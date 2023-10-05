@@ -12,9 +12,9 @@ path = "lib.rs"
 
 [dependencies]
 bitflags = { workspace = true }
-bluetooth_traits = { path = "../bluetooth_traits" }
+bluetooth_traits = { workspace = true }
 device = { git = "https://github.com/servo/devices", features = ["bluetooth-test"], rev = "cb28c4725ffbfece99dab842d17d3e8c50774778" }
-embedder_traits = { path = "../embedder_traits" }
+embedder_traits = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 servo_config = { path = "../config" }

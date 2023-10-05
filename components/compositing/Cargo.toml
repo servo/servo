@@ -17,29 +17,29 @@ gl = ["gleam", "pixels"]
 
 [dependencies]
 canvas = { path = "../canvas" }
-compositing_traits = { path = "../compositing_traits" }
+compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
-embedder_traits = { path = "../embedder_traits" }
+embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
-gfx_traits = { path = "../gfx_traits" }
+gfx_traits = { workspace = true }
 gleam = { workspace = true, optional = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
-msg = { path = "../msg" }
-net_traits = { path = "../net_traits" }
+msg = { workspace = true }
+net_traits = { workspace = true }
 num-traits = { workspace = true }
 pixels = { path = "../pixels", optional = true }
-profile_traits = { path = "../profile_traits" }
-script_traits = { path = "../script_traits" }
+profile_traits = { workspace = true }
+script_traits = { workspace = true }
 servo_config = { path = "../config" }
 servo-media = { git = "https://github.com/servo/media" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
-style_traits = { path = "../style_traits" }
+style_traits = { workspace = true }
 time = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

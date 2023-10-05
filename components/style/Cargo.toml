@@ -75,7 +75,7 @@ smallvec = "1.0"
 static_assertions = "1.1"
 string_cache = { version = "0.8", optional = true }
 style_derive = { path = "../style_derive" }
-style_traits = { path = "../style_traits" }
+style_traits = { workspace = true }
 time = "0.1"
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }

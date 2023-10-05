@@ -16,27 +16,27 @@ doctest = false
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 bitflags = { workspace = true }
-canvas_traits = { path = "../canvas_traits" }
-embedder_traits = { path = "../embedder_traits" }
+canvas_traits = { workspace = true }
+embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 gfx = { path = "../gfx" }
-gfx_traits = { path = "../gfx_traits" }
+gfx_traits = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
-msg = { path = "../msg" }
-net_traits = { path = "../net_traits" }
+msg = { workspace = true }
+net_traits = { workspace = true }
 num-traits = { workspace = true }
 parking_lot = { workspace = true }
-profile_traits = { path = "../profile_traits" }
+profile_traits = { workspace = true }
 range = { path = "../range" }
 rayon = { workspace = true }
-script_layout_interface = { path = "../script_layout_interface" }
-script_traits = { path = "../script_traits" }
+script_layout_interface = { workspace = true }
+script_traits = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_arc = { path = "../servo_arc" }
@@ -47,7 +47,7 @@ servo_url = { path = "../url" }
 size_of_test = { path = "../size_of_test" }
 smallvec = { workspace = true, features = ["union"] }
 style = { path = "../style", features = ["servo"] }
-style_traits = { path = "../style_traits" }
+style_traits = { workspace = true }
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-script = { workspace = true }
 webrender_api = { workspace = true }

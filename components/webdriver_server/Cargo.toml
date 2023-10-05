@@ -12,7 +12,7 @@ path = "lib.rs"
 
 [dependencies]
 base64 = { workspace = true }
-compositing_traits = { path = "../compositing_traits" }
+compositing_traits = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
@@ -22,14 +22,14 @@ image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
-msg = { path = "../msg" }
-net_traits = { path = "../net_traits" }
+msg = { workspace = true }
+net_traits = { workspace = true }
 pixels = { path = "../pixels" }
-script_traits = { path = "../script_traits" }
+script_traits = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
-style_traits = { path = "../style_traits" }
+style_traits = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }

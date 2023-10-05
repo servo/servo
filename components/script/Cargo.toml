@@ -37,8 +37,8 @@ atomic_refcell = { workspace = true }
 backtrace = { workspace = true }
 base64 = { workspace = true }
 bitflags = { workspace = true }
-bluetooth_traits = { path = "../bluetooth_traits" }
-canvas_traits = { path = "../canvas_traits" }
+bluetooth_traits = { workspace = true }
+canvas_traits = { workspace = true }
 chrono = "0.4"
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
@@ -46,16 +46,16 @@ crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 data-url = { workspace = true }
 deny_public_fields = { path = "../deny_public_fields" }
-devtools_traits = { path = "../devtools_traits" }
+devtools_traits = { workspace = true }
 dom_struct = { path = "../dom_struct" }
 domobject_derive = { path = "../domobject_derive" }
-embedder_traits = { path = "../embedder_traits" }
+embedder_traits = { workspace = true }
 encoding_rs = { workspace = true }
 enum-iterator = "0.3"
 euclid = { workspace = true }
 fnv = { workspace = true }
 fxhash = { workspace = true }
-gfx_traits = { path = "../gfx_traits" }
+gfx_traits = { workspace = true }
 headers = { workspace = true }
 html5ever = { workspace = true }
 http = { workspace = true }
@@ -76,20 +76,20 @@ media = { path = "../media" }
 metrics = { path = "../metrics" }
 mime = { workspace = true }
 mime_guess = { workspace = true }
-msg = { path = "../msg" }
-net_traits = { path = "../net_traits" }
+msg = { workspace = true }
+net_traits = { workspace = true }
 num-traits = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
 phf = "0.10"
 pixels = { path = "../pixels" }
-profile_traits = { path = "../profile_traits" }
+profile_traits = { workspace = true }
 range = { path = "../range" }
 ref_filter_map = "1.0.1"
 regex = { workspace = true }
-script_layout_interface = { path = "../script_layout_interface" }
+script_layout_interface = { workspace = true }
 script_plugins = { path = "../script_plugins" }
-script_traits = { path = "../script_traits" }
+script_traits = { workspace = true }
 selectors = { path = "../selectors", features = ["shmem"] }
 serde = { workspace = true, features = ["derive"] }
 serde_bytes = { workspace = true }
@@ -104,7 +104,7 @@ servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
 sparkle = { workspace = true }
 style = { path = "../style", features = ["servo"] }
-style_traits = { path = "../style_traits" }
+style_traits = { workspace = true }
 swapper = "0.1"
 tempfile = "3"
 tendril = { version = "0.4.1", features = ["encoding_rs"] }

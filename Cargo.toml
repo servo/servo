@@ -19,20 +19,26 @@ atomic_refcell = "0.1.13"
 backtrace = "0.3"
 base64 = "0.21.5"
 bitflags = "2.4"
+bluetooth_traits = { path = "components/shared/bluetooth" }
 byteorder = "1.5"
+canvas_traits = { path = "components/shared/canvas" }
 cfg-if = "1.0.0"
+compositing_traits = { path = "components/shared/compositing" }
 content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = "0.12"
 crossbeam-channel = "0.5"
 cssparser = "0.29"
 darling = { version = "0.13", default-features = false }
 data-url = "0.1.0"
+devtools_traits = { path = "components/shared/devtools" }
+embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = "0.8"
 env_logger = "0.8"
 euclid = "0.22"
 fnv = "1.0"
 fxhash = "0.2"
 getopts = "0.2.11"
+gfx_traits = { path = "components/shared/gfx" }
 gleam = "0.15"
 headers = "0.3"
 html5ever = "0.26"
@@ -46,6 +52,7 @@ indexmap = { version = "1.0.2", features = ["std"] }
 ipc-channel = "0.18"
 itertools = "0.10"
 keyboard-types = "0.6"
+layout_traits = { path = "components/shared/layout" }
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
@@ -53,10 +60,13 @@ malloc_size_of_derive = "0.1"
 mime = "0.3.13"
 mime_guess = "2.0.3"
 mozangle = "0.4"
+msg = { path = "components/shared/msg" }
+net_traits = { path = "components/shared/net" }
 num-traits = "0.2"
 parking_lot = "0.12"
 percent-encoding = "2.0"
 proc-macro2 = "1"
+profile_traits = { path = "components/shared/profile" }
 quote = "1"
 rand = "0.8"
 rand_core = "0.6"
@@ -65,6 +75,8 @@ rayon = "1"
 regex = "1.10"
 rustls = { version = "0.21.7", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.3"
+script_layout_interface = { path = "components/shared/script_layout" }
+script_traits = { path = "components/shared/script" }
 serde = "1.0.190"
 serde_bytes = "0.11"
 serde_json = "1.0"
@@ -73,6 +85,7 @@ smallvec = "1.11"
 sparkle = "0.1.26"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
+style_traits = { path = "components/style_traits", features = ["servo"] }
 # NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
 surfman = { version = "0.8", features = ["chains", "sm-angle", "sm-angle-default"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
@@ -90,6 +103,7 @@ webpki = "0.22"
 webpki-roots = "0.25"
 webrender = { git = "https://github.com/servo/webrender", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender" }
+webrender_traits = { path = "components/shared/webrender" }
 winapi = "0.3"
 xi-unicode = "0.1.0"
 xml5ever = "0.17"
