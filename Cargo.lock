@@ -644,7 +644,7 @@ dependencies = [
  "byteorder",
  "canvas_traits",
  "crossbeam-channel",
- "cssparser",
+ "cssparser 0.29.6",
  "euclid",
  "fnv",
  "font-kit",
@@ -678,7 +678,7 @@ name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
- "cssparser",
+ "cssparser 0.29.6",
  "euclid",
  "ipc-channel",
  "lazy_static",
@@ -1203,13 +1203,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "cssparser-macros"
-version = "0.6.0"
+name = "cssparser"
+version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfae75de57f2b2e85e8768c3ea840fd159c8f33e2b6522c7835b7abac81be16e"
+checksum = "9be934d936a0fbed5bcdc01042b770de1398bf79d0e192f49fa7faea0e99281e"
+dependencies = [
+ "cssparser-macros",
+ "dtoa-short",
+ "itoa",
+ "phf",
+ "serde",
+ "smallvec",
+]
+
+[[package]]
+name = "cssparser-macros"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13b588ba4ac1a99f7f2964d24b3d896ddc6bf847ee3855dbd4366f058cfcd331"
 dependencies = [
  "quote",
- "syn 1.0.103",
+ "syn 2.0.37",
 ]
 
 [[package]]
@@ -3071,7 +3085,7 @@ dependencies = [
  "atomic_refcell",
  "bitflags 2.4.0",
  "canvas_traits",
- "cssparser",
+ "cssparser 0.29.6",
  "embedder_traits",
  "euclid",
  "fnv",
@@ -3425,7 +3439,7 @@ dependencies = [
  "app_units",
  "content-security-policy",
  "crossbeam-channel",
- "cssparser",
+ "cssparser 0.29.6",
  "euclid",
  "http",
  "hyper_serde",
@@ -4837,7 +4851,7 @@ dependencies = [
  "content-security-policy",
  "cookie 0.12.0",
  "crossbeam-channel",
- "cssparser",
+ "cssparser 0.29.6",
  "data-url",
  "deny_public_fields",
  "devtools_traits",
@@ -5041,7 +5055,7 @@ name = "selectors"
 version = "0.24.0"
 dependencies = [
  "bitflags 1.3.2",
- "cssparser",
+ "cssparser 0.29.6",
  "derive_more",
  "fxhash",
  "log",
@@ -5769,7 +5783,7 @@ dependencies = [
  "bindgen 0.62.0",
  "bitflags 1.3.2",
  "byteorder",
- "cssparser",
+ "cssparser 0.33.0",
  "derive_more",
  "encoding_rs",
  "euclid",
@@ -5834,7 +5848,7 @@ name = "style_tests"
 version = "0.0.1"
 dependencies = [
  "app_units",
- "cssparser",
+ "cssparser 0.29.6",
  "euclid",
  "html5ever",
  "rayon",
@@ -5855,7 +5869,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "bitflags 1.3.2",
- "cssparser",
+ "cssparser 0.29.6",
  "euclid",
  "lazy_static",
  "malloc_size_of",
@@ -6151,7 +6165,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 name = "to_shmem"
 version = "0.0.0"
 dependencies = [
- "cssparser",
+ "cssparser 0.29.6",
  "servo_arc",
  "smallbitvec",
  "smallvec",
