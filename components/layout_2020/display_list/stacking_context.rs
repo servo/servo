@@ -210,14 +210,14 @@ pub(crate) enum StackingContextContent {
     /// An index into [StackingContext::atomic_inline_stacking_containers].
     ///
     /// There is no section field, because these are always in [StackingContextSection::Foreground].
-    InlineStackingContainer { index: usize },
+    AtomicInlineStackingContainer { index: usize },
 }
 
 impl StackingContextContent {
     fn section(&self) -> StackingContextSection {
         match self {
             Self::Fragment { section, .. } => *section,
-            Self::InlineStackingContainer { .. } => StackingContextSection::Foreground,
+            Self::AtomicInlineStackingContainer { .. } => StackingContextSection::Foreground,
         }
     }
 
@@ -246,7 +246,7 @@ impl StackingContextContent {
                     .borrow()
                     .build_display_list(builder, containing_block, *section);
             },
-            Self::InlineStackingContainer { index } => {
+            Self::AtomicInlineStackingContainer { index } => {
                 #[cfg(debug_assertions)]
                 {
                     debug!("{}InlineStackingContainer {}", indent, *index);
@@ -887,7 +887,7 @@ impl BoxFragment {
         if context_type == StackingContextType::AtomicInlineStackingContainer {
             // Push a dummy fragment that indicates when the new stacking context should be painted.
             parent_stacking_context.contents.push(
-                StackingContextContent::InlineStackingContainer {
+                StackingContextContent::AtomicInlineStackingContainer {
                     index: parent_stacking_context
                         .atomic_inline_stacking_containers
                         .len(),
