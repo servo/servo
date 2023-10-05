@@ -11,7 +11,7 @@ name = "servo_config"
 path = "lib.rs"
 
 [dependencies]
-embedder_traits = { path = "../embedder_traits" }
+embedder_traits = { workspace = true }
 euclid = { workspace = true }
 getopts = { workspace = true }
 lazy_static = { workspace = true }

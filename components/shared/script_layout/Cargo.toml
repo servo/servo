@@ -1,0 +1,39 @@
+[package]
+name = "script_layout_interface"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "script_layout_interface"
+path = "lib.rs"
+
+[dependencies]
+app_units = { workspace = true }
+atomic_refcell = { workspace = true }
+canvas_traits = { workspace = true }
+crossbeam-channel = { workspace = true }
+euclid = { workspace = true }
+fxhash = { workspace = true }
+gfx_traits = { workspace = true }
+html5ever = { workspace = true }
+ipc-channel = { workspace = true }
+libc = { workspace = true }
+malloc_size_of = { path = "../../malloc_size_of" }
+malloc_size_of_derive = { workspace = true }
+metrics = { path = "../../metrics" }
+msg = { workspace = true }
+net_traits = { workspace = true }
+parking_lot = { workspace = true }
+profile_traits = { workspace = true }
+range = { path = "../../range" }
+script_traits = { workspace = true }
+selectors = { path = "../../selectors", features = ["shmem"] }
+servo_arc = { path = "../../servo_arc" }
+servo_atoms = { path = "../../atoms" }
+servo_url = { path = "../../url" }
+style = { path = "../../style", features = ["servo"] }
+style_traits = { workspace = true }
+webrender_api = { git = "https://github.com/servo/webrender" }

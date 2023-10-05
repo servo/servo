@@ -16,13 +16,13 @@ euclid = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
-msg = { path = "../msg" }
+msg = { workspace = true }
 serde = { workspace = true, features = ["serde_derive"] }
 servo_config = { path = "../config" }
 smallvec = { workspace = true, features = ["serde"] }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
-webrender_traits = { path = "../webrender_traits" }
+webrender_traits = { workspace = true }
 wgpu-core = { version = "0.17", features = ["replay", "trace", "serial-pass", "wgsl"] }
 wgpu-types = { version = "0.17" }
 

@@ -17,10 +17,10 @@ ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
 log = { workspace = true }
-msg = { path = "../msg" }
+msg = { workspace = true }
 num-derive = "0.3"
 num-traits = { workspace = true }
 serde = { workspace = true }
-servo_url = { path = "../url" }
+servo_url = { path = "../../url" }
 webrender_api = { workspace = true }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }

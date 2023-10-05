@@ -12,12 +12,12 @@ path = "lib.rs"
 
 [dependencies]
 crossbeam-channel = { workspace = true }
-gfx = { path = "../gfx" }
+gfx = { path = "../../gfx" }
 ipc-channel = { workspace = true }
-metrics = { path = "../metrics" }
-msg = { path = "../msg" }
-net_traits = { path = "../net_traits" }
-profile_traits = { path = "../profile_traits" }
-script_traits = { path = "../script_traits" }
-servo_url = { path = "../url" }
+metrics = { path = "../../metrics" }
+msg = { workspace = true }
+net_traits = { workspace = true }
+profile_traits = { workspace = true }
+script_traits = { workspace = true }
+servo_url = { path = "../../url" }
 webrender_api = { workspace = true }
