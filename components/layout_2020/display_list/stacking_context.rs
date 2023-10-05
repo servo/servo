@@ -669,7 +669,7 @@ impl StackingContext {
     /// Store the fact that something was painted, if [Self::debug_print_items] is not None.
     ///
     /// This is used to help reconstruct the original painting order in [Self::debug_print] without
-    /// duplicating our painting order logic, which could fall out of sync with the real logic.
+    /// duplicating our painting order logic, since that could fall out of sync with the real logic.
     fn debug_push_print_item(&self, field: DebugPrintField, index: usize) {
         if let Some(items) = self.debug_print_items.as_ref() {
             items.borrow_mut().push(DebugPrintItem { field, index });
@@ -703,7 +703,7 @@ impl StackingContext {
                         tree.add_item(format!("{:?}", section));
                     },
                     StackingContextContent::AtomicInlineStackingContainer { index } => {
-                        tree.new_level(format!("AtomicInlineStackingContainer {}", index));
+                        tree.new_level(format!("AtomicInlineStackingContainer #{}", index));
                         self.atomic_inline_stacking_containers[index].debug_print_with_tree(tree);
                         tree.end_level();
                     },
