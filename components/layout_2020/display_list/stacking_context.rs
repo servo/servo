@@ -7,6 +7,7 @@ use std::mem;
 
 use euclid::default::Rect;
 use gfx_traits::print_tree::PrintTree;
+use log::warn;
 use script_traits::compositor::{ScrollTreeNodeId, ScrollableNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DebugOptions;
@@ -519,22 +520,33 @@ impl StackingContext {
                 })
         });
 
+        macro_rules! debug_panic {
+            ($msg: expr) => {
+                if cfg!(debug_assertions) {
+                    panic!($msg);
+                } else {
+                    warn!($msg);
+                    return;
+                }
+            };
+        }
+
         let first_stacking_context_fragment = if let Some(first) = first_if_any {
             first
         } else {
             // This should only happen if the root element has `display: none`
-            panic!("`CanvasBackground::for_root_element` should have returned `style: None`");
+            debug_panic!("`CanvasBackground::for_root_element` should have returned `style: None`");
         };
 
         let StackingContextContent::Fragment { fragment, scroll_node_id, containing_block, .. }
             = first_stacking_context_fragment else {
-                panic!("Expected a fragment, not a stacking container");
+                debug_panic!("Expected a fragment, not a stacking container");
             };
         let fragment = fragment.borrow();
         let box_fragment = match &*fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
             _ => {
-                panic!("Expected a box-generated fragment");
+                debug_panic!("Expected a box-generated fragment");
             },
         };
 
@@ -676,12 +688,17 @@ impl StackingContext {
         }
     }
 
-    /// Print the stacking context tree, or panics if [Self::debug_print_items] is None.
+    /// Print the stacking context tree.
     pub fn debug_print(&self) {
+        if self.debug_print_items.is_none() {
+            warn!("failed to print stacking context tree: debug_print_items was None");
+            return;
+        }
         let mut tree = PrintTree::new("Stacking context tree".to_owned());
         self.debug_print_with_tree(&mut tree);
     }
 
+    /// Print a subtree with the given [PrintTree], or panic if [Self::debug_print_items] is None.
     fn debug_print_with_tree(&self, tree: &mut PrintTree) {
         match self.context_type {
             StackingContextType::RealStackingContext => {
