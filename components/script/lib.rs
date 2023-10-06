@@ -9,6 +9,10 @@
 #![doc = "The script crate contains all matters DOM."]
 #![register_tool(crown)]
 
+// issue a warning if there is no crown
+#[warn(unknown_lints)]
+#[deny(crown_is_not_used)]
+
 // These are used a lot so let's keep them for now
 #[macro_use]
 extern crate js;
