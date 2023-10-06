@@ -8,7 +8,7 @@ interface mixin GPUObjectBase {
 };
 
 dictionary GPUObjectDescriptorBase {
-    USVString label;
+    USVString label = "";
 };
 
 [Exposed=(Window, DedicatedWorker), SecureContext]
@@ -307,6 +307,7 @@ enum GPUTextureFormat {
     "bgra8unorm-srgb",
     // Packed 32-bit formats
     "rgb9e5ufloat",
+    "rgb10a2uint",
     "rgb10a2unorm",
     "rg11b10ufloat",
 
@@ -604,7 +605,7 @@ interface GPUCompilationInfo {
 
 [Exposed=(Window, DedicatedWorker), SecureContext, Serializable]
 interface GPUPipelineError : DOMException {
-    constructor((DOMString or undefined) message, GPUPipelineErrorInit options);
+    constructor(optional DOMString message = "", GPUPipelineErrorInit options);
     readonly attribute GPUPipelineErrorReason reason;
 };
 
@@ -876,8 +877,16 @@ dictionary GPUImageCopyTextureTagged
     boolean premultipliedAlpha = false;
 };
 
+typedef (ImageBitmap or
+         ImageData or
+         HTMLImageElement or
+         HTMLVideoElement or
+         VideoFrame or
+         HTMLCanvasElement or
+         OffscreenCanvas) GPUImageCopyExternalImageSource;
+
 dictionary GPUImageCopyExternalImage {
-    required (ImageBitmap or HTMLVideoElement or HTMLCanvasElement or OffscreenCanvas) source;
+    required GPUImageCopyExternalImageSource source;
     GPUOrigin2D origin = {};
     boolean flipY = false;
 };
@@ -1119,13 +1128,13 @@ interface GPUQueue {
     undefined writeBuffer(
         GPUBuffer buffer,
         GPUSize64 bufferOffset,
-        [AllowShared] BufferSource data,
+        AllowSharedBufferSource data,
         optional GPUSize64 dataOffset = 0,
         optional GPUSize64 size);
 
     undefined writeTexture(
         GPUImageCopyTexture destination,
-        [AllowShared] BufferSource data,
+        AllowSharedBufferSource data,
         GPUImageDataLayout dataLayout,
         GPUExtent3D size);
 

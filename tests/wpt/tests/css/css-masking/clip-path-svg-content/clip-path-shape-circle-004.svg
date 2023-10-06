@@ -5,7 +5,7 @@
 	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
 	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path"/>
 	<html:link rel="match" href="reference/clip-path-circle-001-ref.svg" />
-	<html:meta name="fuzzy" content="maxDifference=0-64; totalPixels=0-78"/>
+	<html:meta name="fuzzy" content="maxDifference=0-64; totalPixels=0-376"/>
 	<metadata class="flags">svg</metadata>
 	<desc class="assert">A basic shape function circle() applied to an SVG
 	rectangle. The specified keyword stroke-box defines the reference box

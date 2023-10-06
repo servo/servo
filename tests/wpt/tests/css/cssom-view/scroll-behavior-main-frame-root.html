@@ -39,6 +39,11 @@
 
     add_completion_callback(() => { resetScroll(scrollingElement); });
 
+    promise_test(async () => {
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    }, `Make sure the page content is stable`);
+
     ["scroll", "scrollTo", "scrollBy", "scrollIntoView"].forEach((scrollFunction) => {
       promise_test(() => {
         resetScroll(scrollingElement);

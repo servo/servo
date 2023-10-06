@@ -14,14 +14,16 @@
       var e = document.createElement(tagName);
       e.src = src;
       assert_equals(e.currentSrc, '');
-      t.step_timeout(function() {
-        if (src == '') {
-          assert_equals(e.currentSrc, '');
-        } else {
-          assert_equals(e.currentSrc, e.src);
-        }
-        t.done();
-      }, 0);
+      e.addEventListener('loadstart', function () {
+        t.step_timeout(function () {
+          if (src == '') {
+            assert_equals(e.currentSrc, '');
+          } else {
+            assert_equals(e.currentSrc, e.src);
+          }
+          t.done();
+        }, 0);
+      })
     }, tagName + '.currentSrc after setting src attribute "' + src + '"');
 
     async_test(function(t) {
@@ -30,14 +32,16 @@
       s.src = src;
       e.appendChild(s);
       assert_equals(e.currentSrc, '');
-      t.step_timeout(function() {
-        if (src == '') {
-          assert_equals(e.currentSrc, '');
-        } else {
-          assert_equals(e.currentSrc, s.src);
-        }
-        t.done();
-      }, 0);
+      e.addEventListener('loadstart', function() {
+        t.step_timeout(function () {
+          if (src == '') {
+            assert_equals(e.currentSrc, '');
+          } else {
+            assert_equals(e.currentSrc, s.src);
+          }
+          t.done();
+        }, 0);
+      });
     }, tagName + '.currentSrc after adding source element with src attribute "' + src + '"');
   });
 });

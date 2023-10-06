@@ -63,9 +63,7 @@ promise_test(async () => {
     'b2',
   ];
 
-  await assert_focus_navigation_forward(elements);
-  elements.reverse();
-  await assert_focus_navigation_backward(elements);
+  await assert_focus_navigation_bidirectional(elements);
 }, 'Focus should cover assigned nodes of slot, especially for nested slots in slot scope.');
 
 </script>

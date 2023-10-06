@@ -21,6 +21,7 @@ async_test(t => {
 
     // Because it's a GET, not a POST
     assert_equals(e.formData, null);
+    assert_equals(e.sourceElement, form);
   });
   window.onload = t.step_func(() => form.submit());
 }, "<form> submission with GET method fires navigate event but with formData null");

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>CSS Text Decoration Test: Invalidation of text decorations in css-pseudo ::selection</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/">
+<meta name="assert" content="text-decorations should be correctly invalidated on selection change.">
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="match" href="reference/selection-pseudo-with-decoration-invalidation-002-ref.html">
+<style>
+    div {
+        display: block;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        line-height: 20px;
+        will-change: transform;
+    }
+    ::selection {
+        background: yellow;
+        color: currentColor;
+        text-decoration-line: underline;
+        text-decoration-style: line;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 10px;
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+</head>
+<body>
+<div>
+This is one line of text, with an image underneath.
+</div>
+<image src="../../support/60x60-green.png"/>
+<div>
+And another line of text.
+</div>
+</body>
+<script>
+async function runTest() {
+  const selection = window.getSelection();
+  const node = document.getElementsByTagName("body")[0];
+  let range = document.createRange();
+  range.selectNodeContents(node);
+  selection.addRange(range);
+  waitForAtLeastOneFrame().then(() => { takeScreenshot() });
+}
+
+onload = () => {
+  waitForAtLeastOneFrame().then(() => { runTest() });
+}
+</script>
+</html>

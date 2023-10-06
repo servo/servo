@@ -24,11 +24,11 @@ def main(request, response):
         response.headers.set(b"Content-Type", b"application/javascript")
 
     if error == b"bad-allow-fledge":
-        response.headers.set(b"X-Allow-FLEDGE", b"sometimes")
+        response.headers.set(b"Ad-Auction-Allowed", b"sometimes")
     elif error == b"fledge-not-allowed":
-        response.headers.set(b"X-Allow-FLEDGE", b"false")
+        response.headers.set(b"Ad-Auction-Allowed", b"false")
     elif error != b"no-allow-fledge":
-        response.headers.set(b"X-Allow-FLEDGE", b"true")
+        response.headers.set(b"Ad-Auction-Allowed", b"true")
 
     body = b''
     if error == b"no-body":

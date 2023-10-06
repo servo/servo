@@ -13,6 +13,7 @@ const rAF = () => new Promise(resolve => requestAnimationFrame(resolve));
 const hash = str => str.substr(str.lastIndexOf('#'));
 (async () => {
   const v = document.querySelector('video');
+  v.getBoundingClientRect(); // force layout flush. ensure viewport dimensions are up-to-date
   v.append(createSource('delayed-broken-video.py#a', '(min-width: 200px)'));
   v.append(createSource('delayed-broken-video.py#b'));
   await rAF();

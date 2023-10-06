@@ -1,0 +1,46 @@
+<!doctype html>
+<title>Animation name and ::part()</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="match" href="animation-part-ref.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1852834">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/1995">
+<wrapper-el></wrapper-el>
+<script>
+class WrapperEl extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this.shadowRoot.innerHTML = `
+      <style>
+        @keyframes green {
+          from { background: green; }
+          to { background: green; }
+        }
+
+        display-el::part(icon) {
+          animation: green 1s linear infinite;
+        }
+      </style>
+      <display-el></display-el>
+    `;
+  }
+}
+customElements.define("wrapper-el", WrapperEl);
+
+class DisplayEl extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this.shadowRoot.innerHTML = `
+      <style>
+        div {
+          width: 16px; height: 16px; background: red;
+        }
+      </style>
+      <p><div part="icon"></div></p>
+    `;
+  }
+}
+customElements.define("display-el", DisplayEl);
+</script>

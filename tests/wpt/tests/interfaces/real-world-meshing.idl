@@ -17,5 +17,5 @@
 };
 
 partial interface XRFrame {
-  readonly attribute XRMeshSet detectedMeshs;
+  readonly attribute XRMeshSet detectedMeshes;
 };

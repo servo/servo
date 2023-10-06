@@ -22,6 +22,7 @@ async_test(t => {
       assert_equals(e.destination.id, "");
       assert_equals(e.destination.index, -1);
       assert_not_equals(e.formData, null);
+      assert_equals(e.sourceElement, null);
     });
     form.submit();
   });

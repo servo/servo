@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta charset="utf-8">
+  <title>Test for validity of disconnected radio buttons</title>
+</head>
+
+<body>
+  <input type="radio" name="group" id="radio1" required />
+  <input type="radio" name="group" id="radio2" checked />
+  <form>
+    <input type="radio" name="group" id="radio3" required />
+    <input type="radio" name="group" id="radio4" checked />
+  </form>
+
+  <script>
+    test(() => {
+      const radio1 = document.getElementById("radio1");
+      const radio2 = document.getElementById("radio2");
+      assert_false(radio1.validity.valueMissing, "Element should not suffer from value missing");
+
+      radio2.remove();
+      assert_true(radio1.validity.valueMissing, "Element should suffer from value missing");
+
+      radio1.checked = true;
+      radio2.required = true;
+      assert_false(radio2.validity.valueMissing, "Element should not suffer from value missing");
+
+      const radio3 = document.getElementById("radio3");
+      const radio4 = document.getElementById("radio4");
+      assert_false(radio3.validity.valueMissing, "Element should not suffer from value missing");
+
+      radio4.remove();
+      assert_true(radio3.validity.valueMissing, "Element should suffer from value missing");
+
+      radio3.checked = true;
+      assert_true(radio4.checked, "Element should remain checked");
+      assert_false(radio3.validity.valueMissing, "Element should not suffer from value missing");
+
+      document.querySelector("form").appendChild(radio2);
+      assert_false(radio3.checked, "Element should be unchecked");
+      assert_false(radio1.validity.valueMissing, "Element should not suffer from value missing");
+    }, "Removed elements are moved into separate radio groups.");
+
+    test(() => {
+      const container = document.createElement("div");
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "group";
+      radio.id = "radio5";
+      radio.required = true;
+      container.appendChild(radio);
+      assert_true(radio.validity.valueMissing, "Element should suffer from value missing");
+
+      const outerContainer = document.createElement("div");
+      const outerRadio = document.createElement("input");
+      outerRadio.type = "radio";
+      outerRadio.name = "group";
+      outerRadio.id = "radio6";
+      outerRadio.checked = true;
+      outerContainer.appendChild(outerRadio);
+      outerContainer.appendChild(container);
+      assert_false(radio.validity.valueMissing, "Element should not suffer from value missing");
+
+      container.remove();
+      assert_true(radio.validity.valueMissing, "Element should suffer from value missing");
+    }, "Disconnected radio buttons should be contained by their tree root.");
+
+    test(() => {
+      const radioParent = document.createElement("input");
+      radioParent.type = "radio";
+      radioParent.name = "group";
+      radioParent.id = "radio-parent";
+      radioParent.required = true;
+      assert_true(radioParent.validity.valueMissing, "Element should suffer from value missing");
+
+      const radioChild = document.createElement("input");
+      radioChild.type = "radio";
+      radioChild.name = "group";
+      radioChild.id = "radio-child";
+      radioChild.checked = true;
+      assert_false(radioChild.validity.valueMissing, "Element should not suffer from value missing");
+
+      radioParent.appendChild(radioChild);
+      assert_false(radioChild.validity.valueMissing, "Element should not suffer from value missing");
+      assert_false(radioParent.validity.valueMissing, "Element should not suffer from value missing");
+
+      radioParent.checked = true;
+      assert_false(radioChild.checked, "Element should no longer be checked");
+    }, "Disconnected radio buttons can serve as radio group containers.");
+
+    test(() => {
+      const shadowHost = document.createElement("div");
+      const root = shadowHost.attachShadow({mode: "open"});
+      const container = document.createElement("div");
+      container.appendChild(shadowHost);
+
+      const radio1 = document.createElement("input");
+      radio1.type = "radio";
+      radio1.name = "group";
+      radio1.required = true;
+      const radio2 = document.createElement("input");
+      radio2.type = "radio";
+      radio2.name = "group";
+      radio2.checked = true;
+      const radio3 = document.createElement("input");
+      radio3.type = "radio";
+      radio3.name = "group";
+      radio3.required = true;
+
+      root.appendChild(radio1);
+      container.appendChild(radio3);
+      assert_true(radio1.validity.valueMissing, "Element should suffer from value missing");
+      assert_true(radio3.validity.valueMissing, "Element should suffer from value missing");
+
+      root.appendChild(radio2);
+      assert_false(radio1.validity.valueMissing, "Element should not suffer from value missing");
+      assert_true(radio3.validity.valueMissing, "Element should suffer from value missing");
+    }, "Shadow roots in disconnected trees can serve as radio group containers.");
+
+    test(() => {
+      const svgRoot = document.createElementNS("http://www.w3.org/2000/svg", "g")
+      const htmlContainer = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+      svgRoot.appendChild(htmlContainer);
+
+      const radio1 = document.createElement("input");
+      radio1.type = "radio";
+      radio1.name = "group";
+      radio1.required = true;
+      const radio2 = document.createElement("input");
+      radio2.type = "radio";
+      radio2.name = "group";
+      radio2.checked = true;
+
+      htmlContainer.appendChild(radio1);
+      assert_true(radio1.validity.valueMissing, "Element should suffer from value missing");
+      htmlContainer.appendChild(radio2);
+      assert_false(radio1.validity.valueMissing, "Element should not suffer from value missing");
+      radio1.checked = true;
+      assert_false(radio2.checked, "Element should no longer be checked");
+    }, "Non-HTML elements in disconnected trees can serve as radio group containers.");
+
+    test(() => {
+      const fragment = document.createDocumentFragment();
+
+      const radio1 = document.createElement("input");
+      radio1.type = "radio";
+      radio1.name = "group";
+      radio1.required = true;
+      const radio2 = document.createElement("input");
+      radio2.type = "radio";
+      radio2.name = "group";
+      radio2.checked = true;
+
+      fragment.appendChild(radio1);
+      assert_true(radio1.validity.valueMissing, "Element should suffer from value missing");
+      fragment.appendChild(radio2);
+      assert_false(radio1.validity.valueMissing, "Element should not suffer from value missing");
+      radio1.checked = true;
+      assert_false(radio2.checked, "Element should no longer be checked");
+    }, "Disconnected document fragments can serve as radio group containers.");
+  </script>
+</body>
+
+</html>

@@ -66,8 +66,6 @@ promise_test(async () => {
         'x-foo/j6'
     ];
 
-    await assert_focus_navigation_forward(elements);
-    elements.reverse();
-    await assert_focus_navigation_backward(elements);
+    await assert_focus_navigation_bidirectional(elements);
 }, 'Focus controller should treat slots as a focus scope.');
 </script>

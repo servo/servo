@@ -34,3 +34,5 @@ def main(request, response):
         response.headers.set(b"prefers-color-scheme-received", request.headers.get(b"sec-ch-prefers-color-scheme"))
     if b"sec-ch-prefers-reduced-motion" in request.headers:
         response.headers.set(b"prefers-reduced-motion-received", request.headers.get(b"sec-ch-prefers-reduced-motion"))
+    if b"sec-ch-prefers-reduced-transparency" in request.headers:
+        response.headers.set(b"prefers-reduced-transparency-received", request.headers.get(b"sec-ch-prefers-reduced-transparency"))

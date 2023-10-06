@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      audioparam-default-value.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      const audit = Audit.createTaskRunner();
+
+      audit.define('test', function(task, should) {
+        const context = new OfflineAudioContext(1, 1, 44100);
+        const defaultValue = -1;
+        const gainNode = new GainNode(context, { gain: defaultValue });
+
+        should(gainNode.gain.defaultValue, "AudioParam's defaultValue").beEqualTo(defaultValue);
+
+        task.done();
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

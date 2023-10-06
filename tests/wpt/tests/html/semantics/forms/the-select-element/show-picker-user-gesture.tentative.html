@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>Test showPicker() user gesture requirement</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body></body>
+<script type=module>
+    test(() => {
+        const select = document.createElement("select");
+
+        assert_throws_dom('NotAllowedError', () => { select.showPicker(); });
+    }, `select showPicker() requires a user gesture`);
+
+    promise_test(async t => {
+        const select = document.createElement("select");
+
+        await test_driver.bless('show picker');
+        select.showPicker();
+        select.blur();
+    }, `select showPicker() does not throw when user activation is active`);
+</script>

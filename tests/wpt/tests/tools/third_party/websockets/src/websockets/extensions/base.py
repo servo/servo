@@ -1,16 +1,8 @@
-"""
-:mod:`websockets.extensions.base` defines abstract classes for implementing
-extensions.
-
-See `section 9 of RFC 6455`_.
-
-.. _section 9 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-9
-
-"""
+from __future__ import annotations
 
 from typing import List, Optional, Sequence, Tuple
 
-from ..framing import Frame
+from .. import frames
 from ..typing import ExtensionName, ExtensionParameter
 
 
@@ -19,53 +11,62 @@ __all__ = ["Extension", "ClientExtensionFactory", "ServerExtensionFactory"]
 
 class Extension:
     """
-    Abstract class for extensions.
+    Base class for extensions.
 
     """
 
-    @property
-    def name(self) -> ExtensionName:
-        """
-        Extension identifier.
+    name: ExtensionName
+    """Extension identifier."""
 
-        """
-
-    def decode(self, frame: Frame, *, max_size: Optional[int] = None) -> Frame:
+    def decode(
+        self,
+        frame: frames.Frame,
+        *,
+        max_size: Optional[int] = None,
+    ) -> frames.Frame:
         """
         Decode an incoming frame.
 
-        :param frame: incoming frame
-        :param max_size: maximum payload size in bytes
+        Args:
+            frame (Frame): incoming frame.
+            max_size: maximum payload size in bytes.
+
+        Returns:
+            Frame: Decoded frame.
+
+        Raises:
+            PayloadTooBig: if decoding the payload exceeds ``max_size``.
 
         """
 
-    def encode(self, frame: Frame) -> Frame:
+    def encode(self, frame: frames.Frame) -> frames.Frame:
         """
         Encode an outgoing frame.
 
-        :param frame: outgoing frame
+        Args:
+            frame (Frame): outgoing frame.
+
+        Returns:
+            Frame: Encoded frame.
 
         """
 
 
 class ClientExtensionFactory:
     """
-    Abstract class for client-side extension factories.
+    Base class for client-side extension factories.
 
     """
 
-    @property
-    def name(self) -> ExtensionName:
-        """
-        Extension identifier.
-
-        """
+    name: ExtensionName
+    """Extension identifier."""
 
     def get_request_params(self) -> List[ExtensionParameter]:
         """
-        Build request parameters.
+        Build parameters to send to the server for this extension.
 
-        Return a list of ``(name, value)`` pairs.
+        Returns:
+            List[ExtensionParameter]: Parameters to send to the server.
 
         """
 
@@ -75,28 +76,31 @@ class ClientExtensionFactory:
         accepted_extensions: Sequence[Extension],
     ) -> Extension:
         """
-        Process response parameters received from the server.
+        Process parameters received from the server.
 
-        :param params: list of ``(name, value)`` pairs.
-        :param accepted_extensions: list of previously accepted extensions.
-        :raises ~websockets.exceptions.NegotiationError: if parameters aren't
-            acceptable
+        Args:
+            params (Sequence[ExtensionParameter]): parameters received from
+                the server for this extension.
+            accepted_extensions (Sequence[Extension]): list of previously
+                accepted extensions.
+
+        Returns:
+            Extension: An extension instance.
+
+        Raises:
+            NegotiationError: if parameters aren't acceptable.
 
         """
 
 
 class ServerExtensionFactory:
     """
-    Abstract class for server-side extension factories.
+    Base class for server-side extension factories.
 
     """
 
-    @property
-    def name(self) -> ExtensionName:
-        """
-        Extension identifier.
-
-        """
+    name: ExtensionName
+    """Extension identifier."""
 
     def process_request_params(
         self,
@@ -104,16 +108,21 @@ class ServerExtensionFactory:
         accepted_extensions: Sequence[Extension],
     ) -> Tuple[List[ExtensionParameter], Extension]:
         """
-        Process request parameters received from the client.
+        Process parameters received from the client.
 
-        To accept the offer, return a 2-uple containing:
+        Args:
+            params (Sequence[ExtensionParameter]): parameters received from
+                the client for this extension.
+            accepted_extensions (Sequence[Extension]): list of previously
+                accepted extensions.
 
-        - response parameters: a list of ``(name, value)`` pairs
-        - an extension: an instance of a subclass of :class:`Extension`
+        Returns:
+            Tuple[List[ExtensionParameter], Extension]: To accept the offer,
+            parameters to send to the client for this extension and an
+            extension instance.
 
-        :param params: list of ``(name, value)`` pairs.
-        :param accepted_extensions: list of previously accepted extensions.
-        :raises ~websockets.exceptions.NegotiationError: to reject the offer,
-            if parameters aren't acceptable
+        Raises:
+            NegotiationError: to reject the offer, if parameters received from
+                the client aren't acceptable.
 
         """

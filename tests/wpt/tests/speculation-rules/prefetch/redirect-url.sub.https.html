@@ -26,9 +26,9 @@
 
   promise_test(async t => {
     const agent = await spawnWindow(t);
-    // Because `forceSinglePrefetch()` waits for 2 seconds, we put 4-second delay
+    // Because `forceSinglePrefetch()` waits for 2 seconds, we put 2.5-second delay
     // here to make the redirect response is received after `navigate()` below.
-    const nextUrl = new URL('/common/slow-redirect.py?delay=4', location.href);
+    const nextUrl = new URL('/common/slow-redirect.py?delay=2.5', location.href);
     const finalUrl = agent.getExecutorURL({ page: 2 });
     nextUrl.searchParams.set('location', finalUrl);
     await agent.forceSinglePrefetch(nextUrl);
@@ -40,9 +40,9 @@
 
   promise_test(async t => {
     const agent = await spawnWindow(t);
-    // Because `forceSinglePrefetch()` waits for 2 seconds, we put 4-second delay
+    // Because `forceSinglePrefetch()` waits for 2 seconds, we put 2.5-second delay
     // here to make the redirect response is received after `navigate()` below.
-    const nextUrl = new URL('/common/slow-redirect.py?delay=4', location.href);
+    const nextUrl = new URL('/common/slow-redirect.py?delay=2.5', location.href);
     const finalUrl = agent.getExecutorURL({ page: 2, hostname: '{{hosts[alt][www]}}' });
     nextUrl.searchParams.set('location', finalUrl);
     await agent.forceSinglePrefetch(nextUrl);

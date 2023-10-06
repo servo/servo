@@ -17,14 +17,15 @@
 <body><div contenteditable></div></body>
 <script>
 /**
- * The expected behavior is based on Chrome 91.
+ * This test checks how insertParagraph command and insertText of "\n" works
+ * in valid styles of parent (editing host itself or in an splittable element).
  */
 const params = new URLSearchParams(location.search);
 const style = params.get("white-space");
 const isNewLineSignificant = style == "pre" || style == "pre-wrap" || style == "pre-line";
 const command = params.get("command");
 const editingHost = document.querySelector("div[contenteditable]");
-function doIt() {
+function execInsertTextOrParagraphCommand() {
   if (command == "insertParagraph") {
     document.execCommand(command);
   } else {
@@ -33,18 +34,19 @@ function doIt() {
   }
 }
 for (const defaultParagraphSeparator of ["div", "p"]) {
-  document.execCommand("defaultparagraphseparator", false, defaultParagraphSeparator);
+  document.execCommand("defaultParagraphSeparator", false, defaultParagraphSeparator);
   for (const display of ["block", "inline", "inline-block"]) {
-    // insertparagraph at direct child of editing host.
-    // XXX Oddly, if the outside display value is "block", `white-space`
-    //     does not affect to the insertparagraph command.
+    // Inserting paragraph or inserting a linefeed in a text node which is
+    // a direct child of the editing host.
     test(() => {
       editingHost.style.whiteSpace = style;
       editingHost.style.display = display;
       const utils = new EditorTestUtils(editingHost);
       utils.setupEditingHost(`abc[]`);
       editingHost.getBoundingClientRect();
-      doIt();
+      execInsertTextOrParagraphCommand();
+      // If the editing host is a block, at least the new paragraph should be
+      // the default paragraph separator element.
       if (display == "block") {
         assert_in_array(
           editingHost.innerHTML,
@@ -54,7 +56,14 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
           ],
           "New paragraph should be inserted at end of the editing host"
         );
-      } else if (isNewLineSignificant) {
+      }
+      // Otherwise, i.e., the editing host is inline, insert a line break (a
+      // linefeed or <br>) should be inserted instead because it's better
+      // look for the users.
+      // Note that an extra line break is required for making the last line
+      // visible because the editing host is the last visible inline in the
+      // parent block (<body>).
+      else if (isNewLineSignificant) {
         assert_in_array(
           editingHost.innerHTML,
           [
@@ -70,15 +79,16 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
           "A <br> should be inserted at end"
         );
       }
-    }, `<div contenteditable style="white-space:${style}; display:${display}">abc[]</div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+    }, `<div contenteditable style="white-space:${style}; display:${display}">abc[]</div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
 
+    // Same as above test except the caret position.
     test(() => {
       editingHost.style.whiteSpace = style;
       editingHost.style.display = display;
       const utils = new EditorTestUtils(editingHost);
       utils.setupEditingHost(`[]abc`);
       editingHost.getBoundingClientRect();
-      doIt();
+      execInsertTextOrParagraphCommand();
       if (display == "block") {
         assert_in_array(
           editingHost.innerHTML,
@@ -107,15 +117,16 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
           "A <br> should be inserted at start"
         );
       }
-    }, `<div contenteditable style="white-space:${style}; display:${display}">[]abc</div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+    }, `<div contenteditable style="white-space:${style}; display:${display}">[]abc</div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
 
+    // Same as above test except the caret position.
     test(() => {
       editingHost.style.whiteSpace = style;
       editingHost.style.display = display;
       const utils = new EditorTestUtils(editingHost);
       utils.setupEditingHost(`a[]bc`);
       editingHost.getBoundingClientRect();
-      doIt();
+      execInsertTextOrParagraphCommand();
       if (display == "block") {
         assert_in_array(
           editingHost.innerHTML,
@@ -144,9 +155,12 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
           "A <br> should be inserted"
         );
       }
-    }, `<div contenteditable style="white-space:${style}; display:${display}">a[]bc</div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+    }, `<div contenteditable style="white-space:${style}; display:${display}">a[]bc</div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
 
-    // inline styles should be preserved.
+    // Inserting paragraph or inserting a linefeed in a text node after
+    // executing the "italic" command.  The paragraph or line break result
+    // should be same as above, but the text in the new paragraph or new line
+    // should be wrapped in <i>.
     test(() => {
       editingHost.style.whiteSpace = style;
       editingHost.style.display = display;
@@ -154,7 +168,7 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
       utils.setupEditingHost(`abc[]`);
       editingHost.getBoundingClientRect();
       document.execCommand("italic");
-      doIt();
+      execInsertTextOrParagraphCommand();
       document.execCommand("inserttext", false, "def");
       if (display == "block") {
         assert_in_array(
@@ -190,15 +204,19 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
           "The new line should be italic"
         );
       }
-    }, `<div contenteditable style="white-space:${style}; display:${display}">abc[]</div> (defaultparagraphseparator: ${defaultParagraphSeparator}) (preserving temporary inline style test)`);
+    }, `<div contenteditable style="white-space:${style}; display:${display}">abc[]</div> (defaultParagraphSeparator: ${defaultParagraphSeparator}) (preserving temporary inline style test)`);
 
+    // Inserting paragraph or inserting a linefeed in a text node which is
+    // wrapped in a <b>.  The paragraph or line break result should be same as
+    // above, but the <b> element should be duplicated in the new paragraph
+    // or shouldn't be split if inserting a line break.
     test(() => {
       editingHost.style.whiteSpace = style;
       editingHost.style.display = display;
       const utils = new EditorTestUtils(editingHost);
       utils.setupEditingHost(`<b>abc[]</b>`);
       editingHost.getBoundingClientRect();
-      doIt();
+      execInsertTextOrParagraphCommand();
       document.execCommand("inserttext", false, "def");
       if (display == "block") {
         assert_in_array(
@@ -234,33 +252,37 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
           "The new line should be bold"
         );
       }
-    }, `<div contenteditable style="white-space:${style}; display:${display}"><b>abc[]</b></div> (defaultparagraphseparator: ${defaultParagraphSeparator}) (preserving inline style test)`);
+    }, `<div contenteditable style="white-space:${style}; display:${display}"><b>abc[]</b></div> (defaultParagraphSeparator: ${defaultParagraphSeparator}) (preserving inline style test)`);
 
     for (const paragraph of ["div", "p"]) {
-      // insertparagraph in existing paragraph whose `white-space` is specified.
-      // XXX Oddly, the white-space style of the ancestor block/inline is
-      //     ignored.
+      // Inserting paragraph or inserting a linefeed in a splittable paragraph
+      // (<p> or <div>) whose `white-space` is specified.
       test(() => {
         editingHost.style.whiteSpace = "normal";
         editingHost.style.display = display;
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph} style="white-space:${style}">abc[]</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        doIt();
+        execInsertTextOrParagraphCommand();
+        // Even if the editing host is inline, the command should be handled
+        // with in the splittable paragraph.  Therefore, the paragraph should
+        // be just split and the style attribute should be cloned to keep same
+        // style in the new paragraph.
         assert_equals(
           editingHost.innerHTML,
           `<${paragraph} style="white-space:${style}">abc</${paragraph}><${paragraph} style="white-space:${style}"><br></${paragraph}>`,
           "New paragraph should be inserted at end of the paragraph"
         );
-      }, `<div contenteditable style="display:${display}"><${paragraph} style="white-space:${style}">abc[]</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+      }, `<div contenteditable style="display:${display}"><${paragraph} style="white-space:${style}">abc[]</${paragraph}></div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
 
+      // Same as above test except the caret position.
       test(() => {
         editingHost.style.whiteSpace = "normal";
         editingHost.style.display = display;
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph} style="white-space:${style}">[]abc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        doIt();
+        execInsertTextOrParagraphCommand();
         assert_in_array(
           editingHost.innerHTML,
           [
@@ -269,15 +291,16 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
           ],
           "New paragraph should be inserted at start of the paragraph"
         );
-      }, `<div contenteditable style="display:${display}"><${paragraph} style="white-space:${style}">[]abc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+      }, `<div contenteditable style="display:${display}"><${paragraph} style="white-space:${style}">[]abc</${paragraph}></div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
 
+      // Same as above test except the caret position.
       test(() => {
         editingHost.style.whiteSpace = "normal";
         editingHost.style.display = display;
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph} style="white-space:${style}">a[]bc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        doIt();
+        execInsertTextOrParagraphCommand();
         assert_in_array(
           editingHost.innerHTML,
           [
@@ -286,32 +309,36 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
           ],
           "The paragraph should be split"
         );
-      }, `<div contenteditable style="display:${display}"><${paragraph} style="white-space:${style}">a[]bc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+      }, `<div contenteditable style="display:${display}"><${paragraph} style="white-space:${style}">a[]bc</${paragraph}></div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
 
-      // insertparagraph in existing paragraph.
-      // XXX Oddly, the white-space style of the ancestor block/inline is
-      //     ignored.
+      // Inserting paragraph or inserting a linefeed in a splittable paragraph
+      // in the editing host whose `white-space` is specified.
       test(() => {
         editingHost.style.whiteSpace = style;
         editingHost.style.display = display;
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph}>abc[]</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        doIt();
+        execInsertTextOrParagraphCommand();
+        // Same as previous tests, the splittable paragraph should be split.
+        // The `white-space` style of the ancestor block or the inline editing
+        // host should not affect to the behavior because we can just split
+        // the paragraph.
         assert_equals(
           editingHost.innerHTML,
           `<${paragraph}>abc</${paragraph}><${paragraph}><br></${paragraph}>`,
           "New paragraph should be inserted at end of the paragraph"
         );
-      }, `<div contenteditable style="display:${display}; white-space:${style}"><${paragraph}>abc[]</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+      }, `<div contenteditable style="display:${display}; white-space:${style}"><${paragraph}>abc[]</${paragraph}></div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
 
+      // Same as above test except the caret position.
       test(() => {
         editingHost.style.whiteSpace = style;
         editingHost.style.display = display;
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph}>[]abc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        doIt();
+        execInsertTextOrParagraphCommand();
         assert_in_array(
           editingHost.innerHTML,
           [
@@ -320,15 +347,16 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
           ],
           "New paragraph should be inserted at start of the paragraph"
         );
-      }, `<div contenteditable style="display:${display}; white-space:${style}"><${paragraph}>[]abc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+      }, `<div contenteditable style="display:${display}; white-space:${style}"><${paragraph}>[]abc</${paragraph}></div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
 
+      // Same as above test except the caret position.
       test(() => {
         editingHost.style.whiteSpace = style;
         editingHost.style.display = display;
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph}>a[]bc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        doIt();
+        execInsertTextOrParagraphCommand();
         assert_in_array(
           editingHost.innerHTML,
           [
@@ -337,12 +365,10 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
           ],
           "The paragraph should be split"
         );
-      }, `<div contenteditable style="display:${display}; white-space:${style}"><${paragraph}>a[]bc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+      }, `<div contenteditable style="display:${display}; white-space:${style}"><${paragraph}>a[]bc</${paragraph}></div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
 
-      // Styling the existing paragraph instead of editing host.
-      // XXX Oddly, new or right paragraph is wrapped by default paragraph
-      //     separator, and even if the default paragraph separator is "p",
-      //     the `<p>` element wraps the new block element!
+      // Inserting paragraph or inserting a linefeed in a splittable paragraph
+      // element whose `display` and `white-space` are specified.
       test(() => {
         editingHost.style.whiteSpace = "normal";
         editingHost.style.display = "block";
@@ -350,22 +376,36 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const styleAttr = `style="display:${display}; white-space:${style}"`;
         utils.setupEditingHost(`<${paragraph} ${styleAttr}>abc[]</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        doIt();
-        if (display != "block") {
-          assert_equals(
-            editingHost.innerHTML,
-            `<${paragraph} ${styleAttr}>abc</${paragraph}><${defaultParagraphSeparator}><${paragraph} ${styleAttr}><br></${paragraph}></${defaultParagraphSeparator}>`,
-            "New paragraph should be inserted at end of the paragraph which is wrapped by a default paragraph"
-          );
-        } else {
+        execInsertTextOrParagraphCommand();
+        // If the paragraph is a normal block, we can just split the paragraph.
+        if (display == "block") {
           assert_equals(
             editingHost.innerHTML,
             `<${paragraph} ${styleAttr}>abc</${paragraph}><${paragraph} ${styleAttr}><br></${paragraph}>`,
             "New paragraph should be inserted at end of the paragraph"
           );
         }
-      }, `<div contenteditable><${paragraph} style="display:${display}; white-space:${style}">abc[]</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+        // Otherwise, the paragraph is an inline, splitting the paragraph
+        // element does not look like inserting paragraph for the users
+        // because it would just duplicate the inlined element.
+        // Therefore, the split paragraph should be wrapped into the new
+        // paragraph (considered with the default paragraph separator) at
+        // least.  However, <p> cannot contain <p> nor <div> which may be
+        // styled as inline.  Therefore, <div> should be used for the new
+        // paragraph even if the default paragraph separator is <p>.
+        else {
+          assert_in_array(
+            editingHost.innerHTML,
+            [
+              `<${paragraph} ${styleAttr}>abc</${paragraph}><div><${paragraph} ${styleAttr}><br></${paragraph}></div>`,
+              `<div><${paragraph} ${styleAttr}>abc</${paragraph}></div><div><${paragraph} ${styleAttr}><br></${paragraph}></div>`,
+            ],
+            "New paragraph should be inserted at end of the paragraph which is wrapped by a new <div>"
+          );
+        }
+      }, `<div contenteditable><${paragraph} style="display:${display}; white-space:${style}">abc[]</${paragraph}></div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
 
+      // Same as above test except the caret position.
       test(() => {
         editingHost.style.whiteSpace = "normal";
         editingHost.style.display = "block";
@@ -373,17 +413,8 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const styleAttr = `style="display:${display}; white-space:${style}"`;
         utils.setupEditingHost(`<${paragraph} ${styleAttr}>[]abc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        doIt();
-        if (display != "block") {
-          assert_in_array(
-            editingHost.innerHTML,
-            [
-              `<${defaultParagraphSeparator}><${paragraph} ${styleAttr}><br></${paragraph}></${defaultParagraphSeparator}><${paragraph} ${styleAttr}>abc</${paragraph}>`,
-              `<${defaultParagraphSeparator}><${paragraph} ${styleAttr}><br></${paragraph}></${defaultParagraphSeparator}><${paragraph} ${styleAttr}>abc<br></${paragraph}>`,
-            ],
-            "New paragraph should be inserted at start of the paragraph which is wrapped by a default paragraph"
-          );
-        } else {
+        execInsertTextOrParagraphCommand();
+        if (display == "block") {
           assert_in_array(
             editingHost.innerHTML,
             [
@@ -392,9 +423,22 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
             ],
             "New paragraph should be inserted at start of the paragraph"
           );
+        } else {
+          assert_in_array(
+            editingHost.innerHTML,
+            [
+              `<div><${paragraph} ${styleAttr}><br></${paragraph}></div><${paragraph} ${styleAttr}>abc</${paragraph}>`,
+              `<div><${paragraph} ${styleAttr}><br></${paragraph}></div><${paragraph} ${styleAttr}>abc<br></${paragraph}>`,
+              `<div><${paragraph} ${styleAttr}><br></${paragraph}></div><div><${paragraph} ${styleAttr}>abc</${paragraph}></div>`,
+              `<div><${paragraph} ${styleAttr}><br></${paragraph}></div><div><${paragraph} ${styleAttr}>abc<br></${paragraph}></div>`,
+            ],
+            "New paragraph should be inserted at start of the paragraph which is wrapped by a new <div>"
+          );
         }
-      }, `<div contenteditable><${paragraph} style="display:${display}; white-space:${style}">[]abc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
 
+      }, `<div contenteditable><${paragraph} style="display:${display}; white-space:${style}">[]abc</${paragraph}></div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
+
+      // Same as above test except the caret position.
       test(() => {
         editingHost.style.whiteSpace = "normal";
         editingHost.style.display = "block";
@@ -402,17 +446,8 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
         const utils = new EditorTestUtils(editingHost);
         utils.setupEditingHost(`<${paragraph} ${styleAttr}>a[]bc</${paragraph}>`);
         editingHost.getBoundingClientRect();
-        doIt();
-        if (display != "block") {
-          assert_in_array(
-            editingHost.innerHTML,
-            [
-              `<${paragraph} ${styleAttr}>a</${paragraph}><${defaultParagraphSeparator}><${paragraph} ${styleAttr}>bc</${paragraph}></${defaultParagraphSeparator}>`,
-              `<${paragraph} ${styleAttr}>a</${paragraph}><${defaultParagraphSeparator}><${paragraph} ${styleAttr}>bc<br></${paragraph}></${defaultParagraphSeparator}>`,
-            ],
-            "The paragraph should be split and the latter one should be wrapped by a default paragraph"
-          );
-        } else {
+        execInsertTextOrParagraphCommand();
+        if (display == "block") {
           assert_in_array(
             editingHost.innerHTML,
             [
@@ -421,8 +456,19 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
             ],
             "The paragraph should be split"
           );
+        } else {
+          assert_in_array(
+            editingHost.innerHTML,
+            [
+              `<${paragraph} ${styleAttr}>a</${paragraph}><div><${paragraph} ${styleAttr}>bc</${paragraph}></div>`,
+              `<${paragraph} ${styleAttr}>a</${paragraph}><div><${paragraph} ${styleAttr}>bc<br></${paragraph}></div>`,
+              `<div><${paragraph} ${styleAttr}>a</${paragraph}></div><div><${paragraph} ${styleAttr}>bc</${paragraph}></div>`,
+              `<div><${paragraph} ${styleAttr}>a</${paragraph}></div><div><${paragraph} ${styleAttr}>bc<br></${paragraph}></div>`,
+            ],
+            "The paragraph should be split and the latter one should be wrapped by a new <div>"
+          );
         }
-      }, `<div contenteditable><${paragraph} style="display:${display}; white-space:${style}">a[]bc</${paragraph}></div> (defaultparagraphseparator: ${defaultParagraphSeparator})`);
+      }, `<div contenteditable><${paragraph} style="display:${display}; white-space:${style}">a[]bc</${paragraph}></div> (defaultParagraphSeparator: ${defaultParagraphSeparator})`);
     }
   }
 }

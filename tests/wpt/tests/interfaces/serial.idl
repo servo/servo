@@ -23,11 +23,13 @@ interface Serial : EventTarget {
 
 dictionary SerialPortRequestOptions {
   sequence<SerialPortFilter> filters;
+  sequence<BluetoothServiceUUID> allowedBluetoothServiceClassIds;
 };
 
 dictionary SerialPortFilter {
   unsigned short usbVendorId;
   unsigned short usbProductId;
+  BluetoothServiceUUID bluetoothServiceClassId;
 };
 
 [Exposed=(DedicatedWorker,Window), SecureContext]
@@ -49,6 +51,7 @@ interface SerialPort : EventTarget {
 dictionary SerialPortInfo {
   unsigned short usbVendorId;
   unsigned short usbProductId;
+  BluetoothServiceUUID bluetoothServiceClassId;
 };
 
 dictionary SerialOptions {

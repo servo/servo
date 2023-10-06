@@ -103,3 +103,18 @@ function delay(milliseconds)
     step_timeout(resolve, milliseconds);
   });
 }
+
+function requestForbiddenHeaders(desc, forbiddenHeaders) {
+  var url = RESOURCES_DIR + "inspect-headers.py";
+  var requestInit = {"headers": forbiddenHeaders}
+  var urlParameters = "?headers=" + Object.keys(forbiddenHeaders).join("|");
+
+  promise_test(function(test){
+    return fetch(url + urlParameters, requestInit).then(function(resp) {
+      assert_equals(resp.status, 200, "HTTP status is 200");
+      assert_equals(resp.type , "basic", "Response's type is basic");
+      for (var header in forbiddenHeaders)
+        assert_not_equals(resp.headers.get("x-request-" + header), forbiddenHeaders[header], header + " does not have the value we defined");
+    });
+  }, desc);
+}

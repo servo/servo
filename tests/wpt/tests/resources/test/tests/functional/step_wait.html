@@ -25,6 +25,22 @@ promise_test(async t => {
 promise_test(async t => {
   await t.step_wait(); // Throws
 }, "step_wait() takes an argument");
+
+promise_test(async t => {
+  function wait(ms) {
+    return new Promise(resolve => step_timeout(resolve, ms));
+  }
+  let x = 1;
+  step_timeout(() => {
+    ++x;
+  }, 100);
+
+  await t.step_wait(async () => {
+    await wait(1);
+    return x === 2;
+  });
+  assert_equals(x, 2);
+}, "async step_wait()");
 </script>
 <script type="text/json" id="expected">
 {
@@ -46,6 +62,12 @@ promise_test(async t => {
       "message": "cond is not a function",
       "properties": {},
       "status_string": "FAIL"
+    },
+    {
+      "name": "async step_wait()",
+      "message": null,
+      "properties": {},
+      "status_string": "PASS"
     }
   ],
   "type": "complete",

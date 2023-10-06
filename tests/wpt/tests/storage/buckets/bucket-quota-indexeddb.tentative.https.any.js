@@ -7,7 +7,7 @@ promise_test(async t => {
   const dbname =
       this.window ? window.location.pathname : 'estimate-worker.https.html';
 
-  let quota = arraySize / 2;
+  let quota = arraySize * 1.5;
   const bucket = await navigator.storageBuckets.open('idb', {quota});
 
   await indexedDbDeleteRequest(bucket.indexedDB, dbname);
@@ -25,8 +25,13 @@ promise_test(async t => {
     view[i] = Math.floor(Math.random() * 255);
   }
 
-  const testBlob = new Blob([buffer], {type: 'binary/random'});
-  txn.objectStore(objectStoreName).add(testBlob, 1);
+  // Two puts in one transaction to ensure that both are counted towards quota.
+  txn.objectStore(objectStoreName).add(new Blob([buffer], {
+    type: 'binary/random'
+  }), 1);
+  txn.objectStore(objectStoreName).add(new Blob([buffer], {
+    type: 'binary/random'
+  }), 2);
 
   await promise_rejects_dom(
       t, 'QuotaExceededError', transactionPromise(txn));

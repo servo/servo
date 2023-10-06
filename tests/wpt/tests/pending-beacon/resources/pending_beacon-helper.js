@@ -84,12 +84,18 @@ function generateSequentialData(begin, end, skip) {
 }
 
 function generatePayload(size) {
-  let data = '';
-  if (size > 0) {
-    const prefix = String(size) + ':';
-    data = prefix + Array(size - prefix.length).fill('*').join('');
+  if (size == 0) {
+    return '';
   }
-  return data;
+  const prefix = String(size) + ':';
+  if (size < prefix.length) {
+    return Array(size).fill('*').join('');
+  }
+  if (size == prefix.length) {
+    return prefix;
+  }
+
+  return prefix + Array(size - prefix.length).fill('*').join('');
 }
 
 function generateSetBeaconURL(uuid, options) {

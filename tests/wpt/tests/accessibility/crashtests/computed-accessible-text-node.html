@@ -1,14 +1,24 @@
 <html class="test-wait">
 <img id="img1">text
 <script>
-async function trigger1() {
-  let img = document.getElementById('img1');
-  let computed_accessible_node = await self.getComputedAccessibleNode(img);
-  // The next sibling is a text node.
-  let next_sibling = computed_accessible_node.nextSibling;
-  await next_sibling.ensureUpToDate();
+
+// Bypass this abandoned syntax in all but the engines that implement it.
+if (typeof getComputedAccessibleNode !== 'undefined') {
+
+  async function trigger1() {
+    let img = document.getElementById('img1');
+    let computed_accessible_node = await self.getComputedAccessibleNode(img);
+    // The next sibling is a text node.
+    let next_sibling = computed_accessible_node.nextSibling;
+    await next_sibling.ensureUpToDate();
+    document.documentElement.className = '';
+  }
+  trigger1();
+
+} else {
+  // Pass in other engines that have not implemented the abandoned API
   document.documentElement.className = '';
 }
-trigger1();
+
 </script>
 </html>

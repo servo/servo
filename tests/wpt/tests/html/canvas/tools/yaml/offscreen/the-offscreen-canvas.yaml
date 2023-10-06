@@ -1,10 +1,10 @@
-- name: 2d.canvas.reference
+- name: 2d.canvas.host.reference
   desc: canvas refers back to its canvas
   code: |
     @assert ctx.canvas === canvas;
     t.done();
 
-- name: 2d.canvas.readonly
+- name: 2d.canvas.host.readonly
   desc: canvas is readonly
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
@@ -14,14 +14,14 @@
     @assert ctx.canvas === d;
     t.done();
 
-- name: 2d.getcontext.exists
+- name: 2d.canvas.context.exists
   desc: The 2D context is implemented
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     @assert offscreenCanvas2.getContext('2d') !== null;
     t.done();
 
-- name: 2d.getcontext.extraargs.create
+- name: 2d.canvas.context.extraargs.create
   desc: The 2D context doesn't throw with extra getContext arguments (new context)
   code: |
     @assert (new OffscreenCanvas(100, 50)).getContext('2d', false, {}, [], 1, "2") !== null;
@@ -32,7 +32,7 @@
     @assert (new OffscreenCanvas(100, 50)).getContext('2d', Symbol.hasInstance) !== null;
     t.done();
 
-- name: 2d.getcontext.extraargs.cache
+- name: 2d.canvas.context.extraargs.cache
   desc: The 2D context doesn't throw with extra getContext arguments (cached)
   code: |
     @assert canvas.getContext('2d', false, {}, [], 1, "2") !== null;
@@ -43,14 +43,14 @@
     @assert canvas.getContext('2d', Symbol.hasInstance) !== null;
     t.done();
 
-- name: 2d.getcontext.unique
+- name: 2d.canvas.context.unique
   desc: getContext('2d') returns the same object
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     @assert offscreenCanvas2.getContext('2d') === offscreenCanvas2.getContext('2d');
     t.done();
 
-- name: 2d.getcontext.shared
+- name: 2d.canvas.context.shared
   desc: getContext('2d') returns objects which share canvas state
   code: |
     var ctx2 = canvas.getContext('2d');
@@ -60,62 +60,62 @@
     @assert pixel 50,25 == 0,255,0,255;
     t.done();
 
-- name: context.emptystring
+- name: 2d.canvas.context.emptystring
   desc: getContext with empty string returns null
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     @assert throws TypeError offscreenCanvas2.getContext("");
     t.done();
 
-- name: context.unrecognised.badname
+- name: 2d.canvas.context.unrecognised.badname
   desc: getContext with unrecognised context name returns null
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     @assert throws TypeError offscreenCanvas2.getContext('This is not an implemented context in any real browser');
     t.done();
 
-- name: context.unrecognised.badsuffix
+- name: 2d.canvas.context.unrecognised.badsuffix
   desc: Context name "2d" plus a suffix is unrecognised
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     @assert throws TypeError offscreenCanvas2.getContext("2d#");
     t.done();
 
-- name: context.unrecognised.nullsuffix
+- name: 2d.canvas.context.unrecognised.nullsuffix
   desc: Context name "2d" plus a "\0" suffix is unrecognised
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     @assert throws TypeError offscreenCanvas2.getContext("2d\0");
     t.done();
 
-- name: context.unrecognised.unicode
+- name: 2d.canvas.context.unrecognised.unicode
   desc: Context name which kind of looks like "2d" is unrecognised
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     @assert throws TypeError offscreenCanvas2.getContext("2\uFF44");
     t.done();
 
-- name: context.casesensitive
+- name: 2d.canvas.context.casesensitive
   desc: Context name "2D" is unrecognised; matching is case sensitive
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     @assert throws TypeError offscreenCanvas2.getContext('2D');
     t.done();
 
-- name: context.arguments.missing
+- name: 2d.canvas.context.arguments.missing
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     @assert throws TypeError offscreenCanvas2.getContext(); @moz-todo
     t.done();
 
 
-- name: initial.color
+- name: 2d.canvas.host.initial.color
   desc: Initial state is transparent black
   code: |
     @assert pixel 20,20 == 0,0,0,0;
     t.done();
 
-- name: initial.reset.different
+- name: 2d.canvas.host.initial.reset.different
   desc: Changing size resets canvas to transparent black
   code: |
     ctx.fillStyle = '#f00';
@@ -125,7 +125,7 @@
     @assert pixel 20,20 == 0,0,0,0;
     t.done();
 
-- name: initial.reset.same
+- name: 2d.canvas.host.initial.reset.same
   desc: Setting size (not changing the value) resets canvas to transparent black
   code: |
     canvas.width = 100;
@@ -136,7 +136,7 @@
     @assert pixel 20,20 == 0,0,0,0;
     t.done();
 
-- name: initial.reset.path
+- name: 2d.canvas.host.initial.reset.path
   desc: Resetting the canvas state resets the current path
   code: |
     canvas.width = 100;
@@ -147,7 +147,7 @@
     @assert pixel 20,20 == 0,0,0,0;
     t.done();
 
-- name: initial.reset.clip
+- name: 2d.canvas.host.initial.reset.clip
   desc: Resetting the canvas state resets the current clip region
   code: |
     canvas.width = 100;
@@ -159,7 +159,7 @@
     @assert pixel 20,20 == 0,255,0,255;
     t.done();
 
-- name: initial.reset.transform
+- name: 2d.canvas.host.initial.reset.transform
   desc: Resetting the canvas state resets the current transformation matrix
   code: |
     canvas.width = 100;
@@ -170,7 +170,7 @@
     @assert pixel 20,20 == 0,255,0,255;
     t.done();
 
-- name: initial.reset.gradient
+- name: 2d.canvas.host.initial.reset.gradient
   desc: Resetting the canvas state does not invalidate any existing gradients
   code: |
     canvas.width = 50;
@@ -185,7 +185,7 @@
     @assert pixel 50,25 == 0,255,0,255;
     t.done();
 
-- name: initial.reset.pattern
+- name: 2d.canvas.host.initial.reset.pattern
   desc: Resetting the canvas state does not invalidate any existing patterns
   code: |
     canvas.width = 30;
@@ -200,7 +200,7 @@
     @assert pixel 50,25 == 0,255,0,255;
     t.done();
 
-- name: size.attributes.idl.set.zero
+- name: 2d.canvas.host.size.attributes.idl.set.zero
   desc: Setting width/height IDL attributes to 0
   code: |
     canvas.width = 0;
@@ -209,7 +209,7 @@
     @assert canvas.height === 0;
     t.done();
 
-- name: size.attributes.idl
+- name: 2d.canvas.host.size.attributes.idl
   desc: Getting/setting width/height IDL attributes
   webidl:
   - es-unsigned-long
@@ -232,14 +232,14 @@
     @assert canvas.height === 301;
     t.done();
 
-- name: size.attributes.default
+- name: 2d.canvas.host.size.attributes.default
   desc: Default width/height when attributes are missing
   code: |
     @assert canvas.width === 100;
     @assert canvas.height === 50;
     t.done();
 
-- name: size.attributes.reflect.setidl
+- name: 2d.canvas.host.size.attributes.reflect.setidl
   desc: Setting IDL attributes updates IDL and content attributes
   code: |
     canvas.width = 120;
@@ -248,7 +248,7 @@
     @assert canvas.height === 60;
     t.done();
 
-- name: size.attributes.reflect.setidlzero
+- name: 2d.canvas.host.size.attributes.reflect.setidlzero
   desc: Setting IDL attributes to 0 updates IDL and content attributes
   code: |
     canvas.width = 0;
@@ -257,7 +257,7 @@
     @assert canvas.height === 0;
     t.done();
 
-- name: size.large
+- name: 2d.canvas.host.size.large
   notes: Not sure how reasonable this is, but the spec doesn't say there's an upper
     limit on the size.
   code: |
@@ -266,10 +266,4 @@
     canvas.height = n;
     @assert canvas.width === n;
     @assert canvas.height === n;
-    t.done();
-
-- name: 2d.text.setFont.mathFont
-  desc: crbug.com/1212190, make sure offscreencanvas doesn't crash with Math Font
-  code: |
-    ctx.font = "math serif";
     t.done();

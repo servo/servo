@@ -21,6 +21,12 @@ tests = [
     ["hwb(90deg, 50%, 50%, 0.2)", "HWB value with commas should not be parsed"],
     ["hwb(90, 50%, 50%)", "HWB value with commas should not be parsed"],
     ["hwb(90, 50%, 50%, 0.2)", "HWB value with commas should not be parsed"],
+    ["hwb(90 calc(infinity) 50%)", "W must be a percentage"],
+    ["hwb(90 calc(0) 50%)", "W must be a percentage"],
+    ["hwb(90 calc(0 / 0) 50%)", "W must be a percentage"],
+    ["hwb(90 50% calc(infinity))", "B must be a percentage"],
+    ["hwb(90 50% calc(-infinity))", "B must be a percentage"],
+    ["hwb(90 50% calc(0 / 0))", "B must be a percentage"],
 ];
 
 for (const test of tests) {

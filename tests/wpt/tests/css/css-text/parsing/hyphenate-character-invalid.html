@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Text Module Test: parsing hyphenate-character with invalid values</title>
 <link rel="help" href="https://drafts.csswg.org/css-text-4/#hyphenate-character">
-<meta name="assert" content="hyphenate-character supports only the grammar 'none | manual | auto'.">
+<meta name="assert" content="hyphenate-character supports only the grammar 'auto | &lt;string&gt;'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -12,6 +12,7 @@
 <body>
 <script>
 test_invalid_value("hyphenate-character", "normal");
+test_invalid_value("hyphenate-character", "manual");
 test_invalid_value("hyphenate-character", "none");
 test_invalid_value("hyphenate-character", "auto auto");
 test_invalid_value("hyphenate-character", "\"-\" \"=\"");

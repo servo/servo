@@ -2,58 +2,31 @@
 
 const path = "http://{{domains[www1]}}:{{ports[http][0]}}/fetch/orb/resources";
 
-promise_test(
-  t =>
-    promise_rejects_js(
-      t,
-      TypeError,
-      fetchORB(
-        `${path}/text.txt`,
-        null,
-        contentType("text/plain"),
-        contentTypeOptions("nosniff")
-      )
-    ),
-  "ORB should block opaque text/plain with nosniff"
-);
+expected_block(
+  `${path}/text.txt`,
+  (orb_test, message) =>
+    promise_test(
+      t => orb_test(t, contentType("text/plain"), contentTypeOptions("nosniff")),
+      message("ORB should block opaque text/plain with nosniff")));
 
-promise_test(
-  t =>
-    promise_rejects_js(
-      t,
-      TypeError,
-      fetchORB(
-        `${path}/data.json`,
-        null,
-        contentType("application/json"),
-        contentTypeOptions("nosniff")
-      )
-    ),
-  "ORB should block opaque-response-blocklisted MIME type with nosniff"
-);
+expected_block(
+  `${path}/data.json`,
+  (orb_test, message) =>
+    promise_test(
+      t => orb_test(t, contentType("application/json"), contentTypeOptions("nosniff")),
+      message("ORB should block opaque-response-blocklisted MIME type with nosniff")));
 
-promise_test(
-  t =>
-    promise_rejects_js(
-      t,
-      TypeError,
-      fetchORB(
-        `${path}/data.json`,
-        null,
-        contentType(""),
-        contentTypeOptions("nosniff")
-      )
-    ),
-  "ORB should block opaque response with empty Content-Type and nosniff"
-);
+expected_block(
+  `${path}/data.json`,
+  (orb_test, message) =>
+    promise_test(
+      t => orb_test(t, contentTypeOptions("nosniff")),
+      message("ORB should block opaque response with empty Content-Type and nosniff")));
 
-promise_test(
-  () =>
-    fetchORB(
-      `${path}/image.png`,
-      null,
-      contentType(""),
-      contentTypeOptions("nosniff")
-    ),
-  "ORB shouldn't block opaque image with empty Content-Type and nosniff"
-);
+expected_allow(
+  `${path}/image.png`,
+  (orb_test, message) =>
+    promise_test(
+      t => orb_test(t, contentType(""), contentType("text/javascript")),
+      message("ORB shouldn't block opaque image with empty Content-Type and nosniff")),
+  { skip: ["audio", "video", "script"] });

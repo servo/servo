@@ -25,15 +25,15 @@
     promise_test(async () => {
         const test_pointer = pointer_type + "TestPointer";
 
-        new test_driver.Actions().addPointer(test_pointer, pointer_type)
+        let pointerdown_event = getEvent('pointerdown');
+        let pointerup_event = getEvent('pointerup');
+        let click_event = getEvent('click');
+
+        await new test_driver.Actions().addPointer(test_pointer, pointer_type)
             .pointerMove(0, 0, {origin:document.body, sourceName:test_pointer})
             .pointerDown({sourceName:test_pointer})
             .pointerUp({sourceName:test_pointer})
             .send();
-
-        let pointerdown_event = getEvent('pointerdown');
-        let pointerup_event = getEvent('pointerup');
-        let click_event = getEvent('click');
 
         await pointerdown_event;
         let consumed_pointerdown = await consumeTransientActivation();

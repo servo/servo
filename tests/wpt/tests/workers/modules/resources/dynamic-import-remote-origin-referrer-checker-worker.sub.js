@@ -1,5 +1,5 @@
 // Import a remote origin script.
-const import_url = 'https://{{domains[www1]}}:{{ports[https][0]}}/workers/modules/resources/export-referrer-checker.py';
+const import_url = 'https://{{hosts[alt][]}}:{{ports[https][0]}}/workers/modules/resources/export-referrer-checker.py';
 if ('DedicatedWorkerGlobalScope' in self &&
     self instanceof DedicatedWorkerGlobalScope) {
   import(import_url)

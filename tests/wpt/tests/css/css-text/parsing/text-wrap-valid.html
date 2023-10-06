@@ -5,7 +5,7 @@
 <title>CSS Text Module Test: parsing text-wrap with valid values</title>
 <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
 <link rel="help" href="https://drafts.csswg.org/css-text-4/#text-wrap">
-<meta name="assert" content="text-wrap supports the full grammar 'wrap | nowrap | balance | stable | pretty'.">
+<meta name="assert" content="text-wrap supports the full grammar '<text-wrap-mode> || <text-wrap-style>'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -14,9 +14,30 @@
 <script>
 test_valid_value("text-wrap", "wrap");
 test_valid_value("text-wrap", "nowrap");
+
+test_valid_value("text-wrap", "auto");
 test_valid_value("text-wrap", "balance");
 test_valid_value("text-wrap", "stable");
 test_valid_value("text-wrap", "pretty");
+
+test_valid_value("text-wrap", "wrap auto");
+test_valid_value("text-wrap", "wrap balance");
+test_valid_value("text-wrap", "wrap pretty");
+test_valid_value("text-wrap", "wrap stable");
+test_valid_value("text-wrap", "auto wrap");
+test_valid_value("text-wrap", "balance wrap");
+test_valid_value("text-wrap", "pretty wrap");
+test_valid_value("text-wrap", "stable wrap");
+
+test_valid_value("text-wrap", "nowrap auto");
+test_valid_value("text-wrap", "nowrap balance");
+test_valid_value("text-wrap", "nowrap pretty");
+test_valid_value("text-wrap", "nowrap stable");
+test_valid_value("text-wrap", "auto nowrap");
+test_valid_value("text-wrap", "balance nowrap");
+test_valid_value("text-wrap", "pretty nowrap");
+test_valid_value("text-wrap", "stable nowrap");
+
 test_valid_value("text-wrap", "initial");
 test_valid_value("text-wrap", "inherit");
 test_valid_value("text-wrap", "unset");

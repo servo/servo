@@ -17,21 +17,27 @@
     }
 
     .spacer {
-      height: 100px;
+      height: 200px;
       width: 100px;
     }
 
     .scroller {
-      height: 100px;
+      height: 220px;
       width: 100px;
       overflow: scroll;
-      scroll-start: 200px;
       scroll-snap-type: both mandatory;
+    }
+
+    #single_snap_scroller {
+      scroll-start: 100%;
+    }
+    #multi_snap_scroller {
+      scroll-start: 350px;
     }
 
     .snap_point {
       width: 100px;
-      height: 100px;
+      height: 200px;
       scroll-snap-align: start;
     }
   </style>
@@ -53,11 +59,11 @@
     }, "snap overrides scroll-start position");
 
     test((t) => {
-      // scroll-start sets the initial scroll offset to the top of the third
-      // snap_point, so the scroller snaps to the third snap_point.
+      // scroll-start sets the initial scroll offset to 350px which is closer to
+      // the third snap point than the second, so the scroller should snap to
+      // the third snap_point.
       assert_equals(multi_snap_scroller.scrollTop,
-        snap_point_1.getBoundingClientRect().height +
-        snap_point_2.getBoundingClientRect().height,
+        multi_snap_scroller.scrollHeight - multi_snap_scroller.clientHeight,
         "scroller snaps to snap point closer to start position.");
     }, "scroller snaps based on scroll-start position");
   </script>

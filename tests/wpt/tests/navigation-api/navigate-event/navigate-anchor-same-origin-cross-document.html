@@ -18,6 +18,7 @@ async_test(t => {
     assert_equals(e.destination.key, "");
     assert_equals(e.destination.id, "");
     assert_equals(e.destination.index, -1);
+    assert_equals(e.sourceElement, document.getElementById("a"));
     e.preventDefault();
   });
   a.click();

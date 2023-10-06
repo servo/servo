@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: </title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#highlight-styling">
+<link rel="match" href="custom-highlight-font-metrics-003-ref.html">
+<meta name="assert" value="combining a font relative highlight with another highlight">
+<meta name="fuzzy" content="0-120;0-8">
+<head>
+  <style>
+    :root {
+      font-size: 16px;
+    }
+    div {
+      margin: 40px;
+      font-size: 20px;
+    }
+    ::selection {
+      background-color: transparent;
+      text-underline-offset: 0.5em;
+      text-decoration-line: underline;
+      text-decoration-color: green;
+      text-decoration-thickness: 0.25rem;
+    }
+    ::highlight(highlight1) {
+      text-decoration-line: overline;
+      text-decoration-color: green;
+      text-decoration-thickness: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="h1">A green 10px offset underline 4px thick and green overline 4px thick</div>
+  <script>
+    getSelection().selectAllChildren(h1);
+    let r1 = new Range();
+    r1.setStart(h1, 0);
+    r1.setEnd(h1, 1);
+    CSS.highlights.set("highlight1", new Highlight(r1));
+  </script>
+</body>
+</html>

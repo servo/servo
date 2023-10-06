@@ -345,3 +345,20 @@ directory_test(async (t, root) => {
   assert_equals(await getFileContents(handle), '');
   assert_equals(await getFileSize(handle), 0);
 }, 'write() with an invalid blob to an empty file should reject');
+
+directory_test(async (t, root) => {
+  const handle = await createFileWithContents(t, 'file.txt', 'contents', root);
+  const stream = await handle.createWritable({mode: 'exclusive'});
+
+  await stream.write('12345');
+  await promise_rejects_js(
+      t, TypeError, stream.write({type: 'write', data: null}),
+      'write with null data');
+
+  // The file contents should not have been changed.
+  assert_equals(await getFileContents(handle), 'contents');
+
+  // The file's lock was released.
+  const newStream = await handle.createWritable({mode: 'exclusive'});
+  await newStream.close();
+}, 'an errored writable stream releases its lock');

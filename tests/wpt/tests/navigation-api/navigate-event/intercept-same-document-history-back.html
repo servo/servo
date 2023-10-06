@@ -3,6 +3,9 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 async_test(t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   window.onload = () => t.step_timeout(() => {
@@ -15,13 +18,13 @@ async_test(t => {
     navigation.onnavigatesuccess = t.step_func(e => {
       onnavigatesuccess_calls++;
       if (onnavigatesuccess_calls == 3) {
-        assert_equals(navigation.entries().length, 3);
-        assert_equals(navigation.currentEntry.index, 1);
+        assert_equals(navigation.entries().length, start_length + 2);
+        assert_equals(navigation.currentEntry.index, start_index + 1);
         assert_equals(onnavigate_calls, 3);
         history.back();
       } else if (onnavigatesuccess_calls == 4) {
-        assert_equals(navigation.entries().length, 3);
-        assert_equals(navigation.currentEntry.index, 0);
+        assert_equals(navigation.entries().length, start_length + 2);
+        assert_equals(navigation.currentEntry.index, start_index);
         assert_equals(onnavigate_calls, 4);
         t.done();
       }
@@ -30,8 +33,8 @@ async_test(t => {
     navigation.navigate("?foo").finished
       .then(t.step_func(() => navigation.navigate("?bar").finished))
       .then(t.step_func(() => {
-        assert_equals(navigation.entries().length, 3);
-        assert_equals(navigation.currentEntry.index, 2);
+        assert_equals(navigation.entries().length, start_length + 2);
+        assert_equals(navigation.currentEntry.index, start_index + 2);
         assert_equals(onnavigate_calls, 2);
         history.back();
       }));

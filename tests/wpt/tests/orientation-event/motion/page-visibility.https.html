@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/page-visibility/resources/window_state_context.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+sensor_test(async (t, sensorProvider) => {
+  const motionData = generateMotionData(0, 0, 0,
+                                        0, 0, 0,
+                                        0, 0, 0);
+
+  setMockMotionData(sensorProvider, motionData);
+  const event = getExpectedMotionEvent(motionData);
+  await waitForEvent(event);
+
+  const {minimize, restore} = window_state_context(t);
+  await minimize();
+  assert_true(document.hidden);
+
+  let hiddenEventPromise = new Promise((resolve, reject) => {
+    window.addEventListener(
+      'devicemotion',
+      event => {
+        if (document.hidden) {
+          reject();
+        } else {
+          resolve();
+        }
+      },
+      { once: true });
+  });
+
+  // devicemotion events fire every 16ms when active, so we sleep for a while
+  // here to make sure we're not actually getting any events.
+  await new Promise(resolve => { t.step_timeout(resolve, 100); });
+  await restore();
+  assert_false(document.hidden);
+  return Promise.all([hiddenEventPromise, waitForEvent(event)]);
+}, 'Tests to check that devicemotion events are not fired when the page is not visible.');
+</script>
+</body>
+</html>

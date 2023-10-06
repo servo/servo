@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<title>CSS Box Alignment: align-content block fragmentation: complex block content</title>
+<link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#align-block">
+<meta name="flags" content="may">
+<!-- fragmented alignment is underdefined; these are two possibilities -->
+<link rel="match" href="align-content-block-break-content-010-aligned-ref.html">
+<link rel="match" href="align-content-block-break-content-010-unaligned-ref.html">
+
+<style title="Needed for automation; delete to review/debug">
+  @import "/fonts/ahem.css";
+  html { font: 10px/1 Ahem; max-width: 800px; }
+</style>
+
+<style>
+  .pager {
+    column-fill: auto;
+    column-width: 15em;
+    height: 5em;
+  }
+  .test {
+    height: 19.5em;
+    /* show bounds of test box without interfering with margin-collapsing */
+    border-inline: solid black 1em;
+  }
+  .large, .float {
+    height: 2.5em;
+    break-inside: avoid;
+    background: orange;
+  }
+  .float {
+    float: right;
+  }
+  .margin {
+    padding: 0.2em; /* using padding because of margin handling bugs
+    margin-block: 0.5em;
+  }
+  .margin > * {
+    margin-block: -0.3em;
+switch back once fixed */
+  }
+  hr {
+    border: solid 1px; margin: 0.5em; }
+
+  /* readability */
+  .pager { border: solid 2px gray; margin: 0.5em 0; }
+  .test { color: #8888; text-align: center; }
+  .label { color: black; font-weight: bold; }
+</style>
+
+<!--
+   This test creates breaks:
+     * between two blocks with collapsing negative margins
+     * through the middle of a float
+     * through some nested text
+     * after a nested float
+-->
+
+<div class="pager">
+  <div class="test" style="align-content: center">
+      <span class="label">CENTER</span>
+      <div class="margin">
+        <div class="large"></div>
+        <div class="large"></div>
+      </div>
+      LINE 1<br>
+      <div class="float">FLT</div>
+      LINE 2<br>LINE 3
+      <hr>
+      <div>
+        LINE 4<br>LINE 5<br>LINE 6
+        <div class="float">FLT</div>
+      </div>
+      LINE 7
+    </div>
+  </div>
+</div>
+
+<div class="pager">
+  <div class="test" style="align-content: end">
+      <span class="label">END</span>
+      <div class="margin">
+        <div class="large"></div>
+        <div class="large"></div>
+      </div>
+      LINE 1<br>
+      <div class="float">FLT</div>
+      LINE 2<br>LINE 3
+      <hr>
+      <div>
+        LINE 4<br>LINE 5<br>LINE 6
+        <div class="float">FLT</div>
+      </div>
+      LINE 7
+    </div>
+  </div>
+</div>
+
+<div class="pager">
+  <div class="test" style="align-content: baseline">
+      <span class="label">BASELINE</span>
+      <div class="margin">
+        <div class="large"></div>
+        <div class="large"></div>
+      </div>
+      LINE 1<br>
+      <div class="float">FLT</div>
+      LINE 2<br>LINE 3
+      <hr>
+      <div>
+        LINE 4<br>LINE 5<br>LINE 6
+        <div class="float">FLT</div>
+      </div>
+      LINE 7
+    </div>
+  </div>
+</div>
+
+<div class="pager">
+  <div class="test" style="align-content: last baseline">
+      <span class="label">LAST BASELINE</span>
+      <div class="margin">
+        <div class="large"></div>
+        <div class="large"></div>
+      </div>
+      LINE 1<br>
+      <div class="float">FLT</div>
+      LINE 2<br>LINE 3
+      <hr>
+      <div>
+        LINE 4<br>LINE 5<br>LINE 6
+        <div class="float">FLT</div>
+      </div>
+      LINE 7
+    </div>
+  </div>
+</div>
+
+<div class="pager">
+  <div class="test" style="align-content: unsafe center">
+      <span class="label">UNSAFE CENTER</span>
+      <div class="margin">
+        <div class="large"></div>
+        <div class="large"></div>
+      </div>
+      LINE 1<br>
+      <div class="float">FLT</div>
+      LINE 2<br>LINE 3
+      <hr>
+      <div>
+        LINE 4<br>LINE 5<br>LINE 6
+        <div class="float">FLT</div>
+      </div>
+      LINE 7
+    </div>
+  </div>
+</div>
+
+<div class="pager">
+  <div class="test" style="align-content: unsafe end">
+      <span class="label">UNSAFE END</span>
+      <div class="margin">
+        <div class="large"></div>
+        <div class="large"></div>
+      </div>
+      LINE 1<br>
+      <div class="float">FLT</div>
+      LINE 2<br>LINE 3
+      <hr>
+      <div>
+        LINE 4<br>LINE 5<br>LINE 6
+        <div class="float">FLT</div>
+      </div>
+      LINE 7
+    </div>
+  </div>
+</div>

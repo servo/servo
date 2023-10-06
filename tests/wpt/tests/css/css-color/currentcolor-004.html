@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="match" href="currentcolor-004-ref.html">
+<title>currentcolor and visited inherited parent color</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#resolving-other-colors">
+<link rel="author" title="Matthieu Dubet" href="https://github.com/mdubet">
+<style>
+a { color: red; }
+a:visited { color: green; }
+div {
+    color: currentcolor;
+}
+</style>
+<div>
+    <a href=""><div>This should be green and not red.</div></a>
+</div>

@@ -305,11 +305,13 @@ tasks:
             channel: nightly
             stability-exclude-users:
               - moz-wptsync-bot
+            required: true
         - vars:
             browser: chrome
             channel: dev
             stability-exclude-users:
               - chromium-wpt-export-bot
+            required: false
       do:
         - wpt-${vars.browser}-${vars.channel}-stability:
             use:
@@ -334,6 +336,7 @@ tasks:
               --verify-repeat-restart=10
               --github-checks-text-file="/home/test/artifacts/checkrun.md"
             exclude-users: ${vars.stability-exclude-users}
+            required: ${vars.required}
 
         - wpt-${vars.browser}-${vars.channel}-results:
             use:

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const testUrl = document.URL;
+  const [prefetchUrl, anotherPrefetchUrl] = getPrefetchUrlList(2);
+  try {
+    history.pushState({}, '', prefetchUrl);
+    const urls = [
+      new URL('#fragment', prefetchUrl),
+      new URL('#fragment', anotherPrefetchUrl),
+    ];
+    insertSpeculationRules({prefetch: [{source: 'list', urls}]});
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(prefetchUrl), 0);
+    assert_equals(await isUrlPrefetched(anotherPrefetchUrl), 1);
+  } finally {
+    // We needed to temporarily change the document URL to do the previous
+    // test. Undo that to avoid breaking any other test cases.
+    history.back();
+    await new Promise(resolve => {
+      addEventListener('popstate', () => resolve(), {once: true});
+    });
+    await new Promise(resolve => t.step_timeout(resolve, 0));
+    assert_equals(document.URL, testUrl);
+  }
+}, "fragment links to the current document URL are not prefetched");
+</script>

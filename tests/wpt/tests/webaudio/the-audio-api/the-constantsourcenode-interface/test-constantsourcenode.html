@@ -124,7 +124,7 @@ async_test(function(t) {
       var result = e.renderedBuffer.getChannelData(0);
       var expected = buffer.getChannelData(0);
       for (var i = 0; i < 2048; ++i) {
-        assert_true(Math.abs(result[i] - expected[i]) < 1.342e-6, "sample " + i + " should equal " + expected[i]);
+        assert_approx_equals(result[i], expected[i], 1.342e-6, "sample " + i);
       }
     });
     t.done();

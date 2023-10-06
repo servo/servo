@@ -6,6 +6,7 @@
 <iframe id="i2" src="resources/slow-no-store.py"></iframe>
 <script>
 promise_test(async t => {
+  let start_length = navigation.entries().length;
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
@@ -14,7 +15,7 @@ promise_test(async t => {
   await new Promise(resolve => i1.onload = resolve);
   i2.src = "/common/blank.html?navigated";
   await new Promise(resolve => i2.onload = resolve);
-  assert_equals(navigation.entries().length, 1);
+  assert_equals(navigation.entries().length, start_length);
   assert_equals(i1.contentWindow.navigation.entries().length, 2);
   assert_equals(i2.contentWindow.navigation.entries().length, 2);
   assert_equals(i1.contentWindow.navigation.currentEntry.index, 1);

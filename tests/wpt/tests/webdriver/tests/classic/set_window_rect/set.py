@@ -5,8 +5,7 @@ import pytest
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import (available_screen_size, document_hidden,
-                                   is_fullscreen, screen_size)
+from tests.support.helpers import document_hidden, is_fullscreen, is_maximized
 
 
 def set_window_rect(session, rect):
@@ -26,11 +25,20 @@ def test_no_top_browsing_context(session, closed_window):
     assert_error(response, "no such window")
 
 
-def test_no_browsing_context(session, closed_frame):
-    response = set_window_rect(session, {"width": 750, "height": 700})
-    value = assert_success(response)
-    assert value["width"] == 750
-    assert value["height"] == 700
+def test_no_browsing_context(session, closed_window):
+    response = set_window_rect(session, {})
+    assert_error(response, "no such window")
+
+
+def test_response_payload(session):
+    response = set_window_rect(session, {"x": 400, "y": 400})
+    value = assert_success(response, session.window.rect)
+
+    assert isinstance(value, dict)
+    assert isinstance(value.get("x"), int)
+    assert isinstance(value.get("y"), int)
+    assert isinstance(value.get("width"), int)
+    assert isinstance(value.get("height"), int)
 
 
 @pytest.mark.parametrize("rect", [
@@ -76,33 +84,96 @@ def test_invalid_types(session, rect):
     {"height": -2},
     {"width": -1, "height": -2},
 ])
-def test_out_of_bounds(session, rect):
+def test_invalid_values(session, rect):
     response = set_window_rect(session, rect)
     assert_error(response, "invalid argument")
 
 
-def test_width_height_floats(session):
-    response = set_window_rect(session, {"width": 750.5, "height": 700})
-    value = assert_success(response)
-    assert value["width"] == 750
-    assert value["height"] == 700
+def test_restore_from_fullscreen(session):
+    assert not is_fullscreen(session)
 
-    response = set_window_rect(session, {"width": 750, "height": 700.5})
-    value = assert_success(response)
-    assert value["width"] == 750
-    assert value["height"] == 700
+    original = session.window.rect
+    target_rect = {
+        "x": original["x"],
+        "y": original["y"],
+        "width": original["width"] + 50,
+        "height": original["height"] + 50
+    }
+
+    session.window.fullscreen()
+    assert is_fullscreen(session)
+
+    response = set_window_rect(session, target_rect)
+    value = assert_success(response, session.window.rect)
+
+    assert not is_fullscreen(session)
+    assert value == target_rect
+
+
+def test_restore_from_minimized(session):
+    assert not document_hidden(session)
+
+    original = session.window.rect
+    target_rect = {
+        "x": original["x"],
+        "y": original["y"],
+        "width": original["width"] + 50,
+        "height": original["height"] + 50
+    }
+
+    session.window.minimize()
+    assert document_hidden(session)
+
+    response = set_window_rect(session, target_rect)
+    value = assert_success(response, session.window.rect)
+
+    assert not document_hidden(session)
+    assert value == target_rect
+
+
+def test_restore_from_maximized(session):
+    assert not is_maximized(session)
+
+    original = session.window.rect
+    target_rect = {
+        "x": original["x"],
+        "y": original["y"],
+        "width": original["width"] + 50,
+        "height": original["height"] + 50
+    }
+
+    session.window.maximize()
+    assert is_maximized(session)
+
+    response = set_window_rect(session, target_rect)
+    value = assert_success(response, session.window.rect)
+
+    assert not is_maximized(session)
+    assert value == target_rect
 
 
 def test_x_y_floats(session):
-    response = set_window_rect(session, {"x": 0.5, "y": 420})
+    response = set_window_rect(session, {"x": 150.5, "y": 250})
     value = assert_success(response)
-    assert value["x"] == 0
-    assert value["y"] == 420
+    assert value["x"] == 150
+    assert value["y"] == 250
 
-    response = set_window_rect(session, {"x": 100, "y": 450.5})
-    value = assert_success(response)
-    assert value["x"] == 100
-    assert value["y"] == 450
+    response = set_window_rect(session, {"x": 150, "y": 250.5})
+    value = assert_success(response, session.window.rect)
+    assert value["x"] == 150
+    assert value["y"] == 250
+
+
+def test_width_height_floats(session):
+    response = set_window_rect(session, {"width": 500.5, "height": 420})
+    value = assert_success(response, session.window.rect)
+    assert value["width"] == 500
+    assert value["height"] == 420
+
+    response = set_window_rect(session, {"width": 500, "height": 450.5})
+    value = assert_success(response, session.window.rect)
+    assert value["width"] == 500
+    assert value["height"] == 450
 
 
 @pytest.mark.parametrize("rect", [
@@ -138,84 +209,77 @@ def test_no_change(session, rect):
     assert_success(response, original)
 
 
-def test_fully_exit_fullscreen(session):
-    session.window.fullscreen()
-    assert is_fullscreen(session)
+def test_set_to_available_size(
+    session, available_screen_size, minimal_screen_position
+):
+    minimal_x, minimal_y = minimal_screen_position
+    available_width, available_height = available_screen_size
+    target_rect = {
+        "x": minimal_x,
+        "y": minimal_y,
+        "width": available_width,
+        "height": available_height,
+    }
 
-    response = set_window_rect(session, {"width": 600, "height": 400})
-    value = assert_success(response)
-    assert value["width"] == 600
-    assert value["height"] == 400
+    response = set_window_rect(session, target_rect)
+    value = assert_success(response, session.window.rect)
 
-    assert not is_fullscreen(session)
-
-
-def test_restore_from_minimized(session):
-    session.window.minimize()
-    assert document_hidden(session)
-
-    response = set_window_rect(session, {"width": 750, "height": 700})
-    value = assert_success(response)
-    assert value["width"] == 750
-    assert value["height"] == 700
-
-    assert not document_hidden(session)
+    assert value == target_rect
 
 
-def test_restore_from_maximized(session):
-    original_size = session.window.size
-    session.window.maximize()
-    assert session.window.size != original_size
+def test_set_to_screen_size(
+    session, available_screen_size, minimal_screen_position, screen_size
+):
+    minimal_x, minimal_y = minimal_screen_position
+    available_width, available_height = available_screen_size
+    screen_width, screen_height = screen_size
+    target_rect = {
+        "x": minimal_x,
+        "y": minimal_y,
+        "width": screen_width,
+        "height": screen_height,
+    }
 
-    response = set_window_rect(session, {"width": 750, "height": 700})
-    value = assert_success(response)
-    assert value["width"] == 750
-    assert value["height"] == 700
+    response = set_window_rect(session, target_rect)
+    value = assert_success(response, session.window.rect)
 
-
-def test_height_width(session):
-    # The window position might be auto-adjusted by the browser
-    # if it exceeds the lower right corner. As such ensure that
-    # there is enough space left so no window move will occur.
-    session.window.position = (50, 50)
-
-    original = session.window.rect
-    screen_width, screen_height = screen_size(session)
-
-    response = set_window_rect(session, {
-        "width": screen_width - 100,
-        "height": screen_height - 100
-    })
-    assert_success(response, {
-        "x": original["x"],
-        "y": original["y"],
-        "width": screen_width - 100,
-        "height": screen_height - 100,
-    })
+    assert value["width"] >= available_width
+    assert value["width"] <= screen_width
+    assert value["height"] >= available_height
+    assert value["height"] <= screen_height
 
 
-def test_height_width_smaller_than_minimum_browser_size(session):
-    original = session.window.rect
-
-    response = set_window_rect(session, {"width": 10, "height": 10})
-    rect = assert_success(response)
-    assert rect["width"] < original["width"]
-    assert rect["width"] > 10
-    assert rect["height"] < original["height"]
-    assert rect["height"] > 10
-
-
-def test_height_width_larger_than_max(session):
-    screen_width, screen_height = screen_size(session)
-    avail_width, avail_height = available_screen_size(session)
-
-    response = set_window_rect(session, {
+def test_set_larger_than_screen_size(
+    session, available_screen_size, minimal_screen_position, screen_size
+):
+    minimal_x, minimal_y = minimal_screen_position
+    available_width, available_height = available_screen_size
+    screen_width, screen_height = screen_size
+    target_rect = {
+        "x": minimal_x,
+        "y": minimal_y,
         "width": screen_width + 100,
-        "height": screen_height + 100
-    })
-    rect = assert_success(response)
-    assert rect["width"] >= avail_width
-    assert rect["height"] >= avail_height
+        "height": screen_height + 100,
+    }
+
+    response = set_window_rect(session, target_rect)
+    value = assert_success(response, session.window.rect)
+
+    assert value["width"] >= available_width
+    assert value["height"] >= available_height
+
+
+def test_set_smaller_than_minimum_browser_size(session):
+    original_width, original_height = session.window.size
+
+    # A window size of 10x10px shouldn't be supported by any browser.
+    response = set_window_rect(session, {"width": 10, "height": 10})
+    value = assert_success(response, session.window.rect)
+
+    assert value["width"] < original_width
+    assert value["width"] > 10
+    assert value["height"] < original_height
+    assert value["height"] > 10
 
 
 def test_height_width_as_current(session):
@@ -225,12 +289,9 @@ def test_height_width_as_current(session):
         "width": original["width"],
         "height": original["height"]
     })
-    assert_success(response, {
-        "x": original["x"],
-        "y": original["y"],
-        "width": original["width"],
-        "height": original["height"]
-    })
+    value = assert_success(response, session.window.rect)
+
+    assert value == original
 
 
 def test_height_as_current(session):
@@ -240,12 +301,14 @@ def test_height_as_current(session):
         "width": original["width"] + 10,
         "height": original["height"]
     })
-    assert_success(response, {
+    value = assert_success(response, session.window.rect)
+
+    assert value == {
         "x": original["x"],
         "y": original["y"],
         "width": original["width"] + 10,
         "height": original["height"]
-    })
+    }
 
 
 def test_width_as_current(session):
@@ -255,12 +318,14 @@ def test_width_as_current(session):
         "width": original["width"],
         "height": original["height"] + 10
     })
-    assert_success(response, {
+    value = assert_success(response, session.window.rect)
+
+    assert value == {
         "x": original["x"],
         "y": original["y"],
         "width": original["width"],
         "height": original["height"] + 10
-    })
+    }
 
 
 def test_x_y(session):
@@ -269,50 +334,14 @@ def test_x_y(session):
         "x": original["x"] + 10,
         "y": original["y"] + 10
     })
-    assert_success(response, {
+    value = assert_success(response, session.window.rect)
+
+    assert value == {
         "x": original["x"] + 10,
         "y": original["y"] + 10,
         "width": original["width"],
         "height": original["height"]
-    })
-
-
-def test_negative_x_y(session):
-    original = session.window.rect
-
-    response = set_window_rect(session, {"x": - 8, "y": - 8})
-
-    os = session.capabilities["platformName"]
-    # certain WMs prohibit windows from being moved off-screen
-    if os == "linux":
-        rect = assert_success(response)
-        assert rect["x"] <= 0
-        assert rect["y"] <= 0
-        assert rect["width"] == original["width"]
-        assert rect["height"] == original["height"]
-
-    # On macOS, windows can only be moved off the screen on the
-    # horizontal axis.  The system menu bar also blocks windows from
-    # being moved to (0,0).
-    elif os == "mac":
-        value = assert_success(response)
-
-        # `screen.availTop` is not standardized but all browsers we care
-        # about on MacOS implement the CSSOM View mode `Screen` interface.
-        avail_top = session.execute_script("return window.screen.availTop;")
-
-        assert value == {"x": -8,
-                         "y": avail_top,
-                         "width": original["width"],
-                         "height": original["height"]}
-
-    # It turns out that Windows is the only platform on which the
-    # window can be reliably positioned off-screen.
-    elif os == "windows":
-        assert_success(response, {"x": -8,
-                                  "y": -8,
-                                  "width": original["width"],
-                                  "height": original["height"]})
+    }
 
 
 def test_x_y_as_current(session):
@@ -322,12 +351,14 @@ def test_x_y_as_current(session):
         "x": original["x"],
         "y": original["y"]
     })
-    assert_success(response, {
+    value = assert_success(response, session.window.rect)
+
+    assert value == {
         "x": original["x"],
         "y": original["y"],
         "width": original["width"],
         "height": original["height"]
-    })
+    }
 
 
 def test_x_as_current(session):
@@ -337,12 +368,14 @@ def test_x_as_current(session):
         "x": original["x"],
         "y": original["y"] + 10
     })
-    assert_success(response, {
+    value = assert_success(response, session.window.rect)
+
+    assert value == {
         "x": original["x"],
         "y": original["y"] + 10,
         "width": original["width"],
         "height": original["height"]
-    })
+    }
 
 
 def test_y_as_current(session):
@@ -352,12 +385,48 @@ def test_y_as_current(session):
         "x": original["x"] + 10,
         "y": original["y"]
     })
-    assert_success(response, {
+    value = assert_success(response, session.window.rect)
+
+    assert value == {
         "x": original["x"] + 10,
         "y": original["y"],
         "width": original["width"],
         "height": original["height"]
-    })
+    }
+
+
+def test_negative_x_y(session, minimal_screen_position):
+    original = session.window.rect
+
+    response = set_window_rect(session, {"x": - 8, "y": - 8})
+    value = assert_success(response, session.window.rect)
+
+    os = session.capabilities["platformName"]
+    # certain WMs prohibit windows from being moved off-screen
+    if os == "linux":
+        assert value["x"] <= 0
+        assert value["y"] <= 0
+        assert value["width"] == original["width"]
+        assert value["height"] == original["height"]
+
+    # On macOS when not running headless, windows can only be moved off the
+    # screen on the horizontal axis.  The system menu bar also blocks windows
+    # from being moved to (0,0).
+    elif os == "mac":
+        assert value["x"] == -8
+        assert value["y"] <= minimal_screen_position[1]
+        assert value["width"] == original["width"]
+        assert value["height"] == original["height"]
+
+    # It turns out that Windows is the only platform on which the
+    # window can be reliably positioned off-screen.
+    elif os == "windows":
+        assert value == {
+            "x": -8,
+            "y": -8,
+            "width": original["width"],
+            "height": original["height"]
+        }
 
 
 """
@@ -385,19 +454,3 @@ def test_resize_by_script(session):
         assert size2 == (800, 900)
     assert size2 == {"width": 200, "height": 100}
 """
-
-
-def test_payload(session):
-    response = set_window_rect(session, {"x": 400, "y": 400})
-
-    assert response.status == 200
-    assert isinstance(response.body["value"], dict)
-    value = response.body["value"]
-    assert "width" in value
-    assert "height" in value
-    assert "x" in value
-    assert "y" in value
-    assert isinstance(value["width"], int)
-    assert isinstance(value["height"], int)
-    assert isinstance(value["x"], int)
-    assert isinstance(value["y"], int)

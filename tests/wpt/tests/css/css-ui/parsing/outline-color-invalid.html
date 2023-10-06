@@ -5,14 +5,14 @@
 <title>CSS UI Level 3: parsing outline-color with invalid values</title>
 <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-ui-3/#outline-color">
-<meta name="assert" content="outline-color supports only the grammar '<color> | invert'.">
+<meta name="assert" content="outline-color supports only the grammar '<color> | auto'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
 </head>
 <body>
 <script>
-test_invalid_value("outline-color", "auto");
+test_invalid_value("outline-color", "invert");
 test_invalid_value("outline-color", "none");
 test_invalid_value("outline-color", "50%");
 </script>

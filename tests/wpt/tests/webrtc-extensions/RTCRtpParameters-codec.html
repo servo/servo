@@ -9,6 +9,20 @@
 <script>
   'use strict';
 
+  function arrayEquals(a, b) {
+    return Array.isArray(a) && Array.isArray(b) &&
+        a.length === b.length &&
+        a.every((val, i) => val === b[i]);
+  }
+
+  async function sleep(timeout) {
+    return new Promise(resolve => {
+      step_timeout(() => {
+        resolve();
+      }, timeout);
+    });
+  }
+
   function findFirstCodec(name) {
     return RTCRtpSender.getCapabilities(name.split('/')[0]).codecs.filter(c => c.mimeType.localeCompare(name, undefined, { sensitivity: 'base' }) === 0)[0];
   }
@@ -32,6 +46,38 @@
       .sort(([k, v], [k2, v2]) => rids.indexOf(v.rid) - rids.indexOf(v2.rid))
       .map(([k, v]) => stats.get(v.codecId).mimeType);
     return codecs;
+  }
+
+  async function waitForAllLayers(t, sender) {
+    const encodings_count = sender.getParameters().encodings.length;
+    return step_wait_async(t, async () => {
+      const stats = await sender.getStats();
+      return [...stats]
+        .filter(([k, v]) => v.type === 'outbound-rtp').length == encodings_count;
+    }, `Wait for ${encodings_count} layers to start`);
+  }
+
+  function step_wait_async(t, cond, description, timeout=3000, interval=100) {
+    return new Promise(resolve => {
+      var timeout_full = timeout * t.timeout_multiplier;
+      var remaining = Math.ceil(timeout_full / interval);
+
+      var wait_for_inner = t.step_func(async () => {
+          if (await cond()) {
+              resolve();
+          } else {
+              if(remaining === 0) {
+                  assert(false, "step_wait_async", description,
+                          "Timed out waiting on condition");
+              }
+              remaining--;
+              await sleep(interval);
+              wait_for_inner();
+          }
+      });
+
+      wait_for_inner();
+    });
   }
 
   promise_test(async t => {
@@ -152,10 +198,25 @@
       channel: 2,
     };
 
-    assert_throws_dom('OperationError', () => pc.addTransceiver('video', {
+    assert_throws_dom('OperationError', () => pc.addTransceiver('audio', {
       sendEncodings: [{codec: newCodec}],
     }));
   }, `Creating an audio sender with addTransceiver and non-existing codec should throw OperationError`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const newCodec = {
+      mimeType: "dummy/newCodec",
+      clockRate: 90000,
+      channel: 2,
+    };
+
+    assert_throws_dom('OperationError', () => pc.addTransceiver('audio', {
+      sendEncodings: [{codec: newCodec}],
+    }));
+  }, `Creating an audio sender with addTransceiver and non-existing codec type should throw OperationError`);
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
@@ -170,6 +231,20 @@
       sendEncodings: [{codec: newCodec}],
     }));
   }, `Creating a video sender with addTransceiver and non-existing codec should throw OperationError`);
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+
+    const newCodec = {
+      mimeType: "dummy/newCodec",
+      clockRate: 90000,
+    };
+
+    assert_throws_dom('OperationError', () => pc.addTransceiver('video', {
+      sendEncodings: [{codec: newCodec}],
+    }));
+  }, `Creating a video sender with addTransceiver and non-existing codec type should throw OperationError`);
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
@@ -384,7 +459,12 @@
 
     await sender.setParameters(param);
 
-    codecs = await codecsForSender(sender);
+    await step_wait_async(t, async () => {
+      let old_codecs = codecs;
+      codecs = await codecsForSender(sender);
+      return !arrayEquals(codecs, old_codecs);
+    }, 'Waiting for current codecs to change', 5000, 200);
+
     assert_array_equals(codecs, [opus.mimeType]);
   }, `Stats output-rtp should match the selected codec in non-simulcast usecase on an audio sender`);
 
@@ -416,7 +496,102 @@
 
     await sender.setParameters(param);
 
-    codecs = await codecsForSender(sender);
+    await step_wait_async(t, async () => {
+      let old_codecs = codecs;
+      codecs = await codecsForSender(sender);
+      return !arrayEquals(codecs, old_codecs);
+    }, 'Waiting for current codecs to change', 5000, 200);
+
     assert_array_equals(codecs, [vp8.mimeType]);
   }, `Stats output-rtp should match the selected codec in non-simulcast usecase on a video sender`);
+
+  promise_test(async (t) => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    const stream = await getNoiseStream({video:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+
+    const vp8 = findFirstCodec('video/VP8');
+    const nonVP8 = codecsNotMatching(vp8.mimeType);
+
+    const transceiver = pc1.addTransceiver(stream.getTracks()[0], {
+      sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}],
+    });
+    const sender = transceiver.sender;
+
+    transceiver.setCodecPreferences(nonVP8.concat([vp8]));
+
+    exchangeIceCandidates(pc1, pc2);
+    await doOfferToSendSimulcastAndAnswer(pc1, pc2, ['0', '1', '2']);
+
+    await waitForAllLayers(t, sender);
+
+    let codecs = await codecsForSender(sender);
+    assert_not_equals(codecs[0], vp8.mimeType);
+    assert_not_equals(codecs[1], vp8.mimeType);
+    assert_not_equals(codecs[2], vp8.mimeType);
+
+    let param = sender.getParameters();
+    param.encodings[0].codec = vp8;
+    param.encodings[1].codec = vp8;
+    param.encodings[2].codec = vp8;
+
+    await sender.setParameters(param);
+
+    // Waiting for 10s as ramp-up time can be slow in the runners.
+    await step_wait_async(t, async () => {
+      let old_codecs = codecs;
+      codecs = await codecsForSender(sender);
+      return !arrayEquals(codecs, old_codecs);
+    }, 'Waiting for current codecs to change', 10000, 200);
+
+    assert_array_equals(codecs, [vp8.mimeType, vp8.mimeType, vp8.mimeType]);
+  }, `Stats output-rtp should match the selected codec in simulcast usecase on a video sender`);
+
+  promise_test(async (t) => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    const stream = await getNoiseStream({video:true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+
+    const vp8 = findFirstCodec('video/VP8');
+    const nonVP8 = codecsNotMatching(vp8.mimeType);
+
+    const transceiver = pc1.addTransceiver(stream.getTracks()[0], {
+      sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}],
+    });
+    const sender = transceiver.sender;
+
+    transceiver.setCodecPreferences(nonVP8.concat([vp8]));
+
+    exchangeIceCandidates(pc1, pc2);
+    await doOfferToSendSimulcastAndAnswer(pc1, pc2, ['0', '1', '2']);
+
+    await waitForAllLayers(t, sender);
+
+    let codecs = await codecsForSender(sender);
+    assert_not_equals(codecs[0], vp8.mimeType);
+    assert_not_equals(codecs[1], vp8.mimeType);
+    assert_not_equals(codecs[2], vp8.mimeType);
+
+    let param = sender.getParameters();
+    param.encodings[1].codec = vp8;
+
+    await sender.setParameters(param);
+
+    await step_wait_async(t, async () => {
+      let old_codecs = codecs;
+      codecs = await codecsForSender(sender);
+      return !arrayEquals(codecs, old_codecs);
+    }, 'Waiting for current codecs to change', 5000, 200);
+
+    assert_not_equals(codecs[0], vp8.mimeType);
+    assert_equals(codecs[1], vp8.mimeType);
+    assert_not_equals(codecs[2], vp8.mimeType);
+  }, `Stats output-rtp should match the selected mixed codecs in simulcast usecase on a video sender`);
+
 </script>

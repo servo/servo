@@ -2,15 +2,19 @@ import json
 
 from webdriver.bidi.modules.script import ContextTarget
 
-
-async def get_events(bidi_session, context):
-    """Return list of key events recorded on the test_actions.html page."""
+async def get_object_from_context(bidi_session, context, object_path):
+    """Return a plain JS object from a given context, accessible at the given object_path"""
     events_str = await bidi_session.script.evaluate(
-        expression="JSON.stringify(allEvents.events)",
+        expression=f"JSON.stringify({object_path})",
         target=ContextTarget(context),
         await_promise=False,
     )
-    events = json.loads(events_str["value"])
+    return json.loads(events_str["value"])
+
+
+async def get_events(bidi_session, context):
+    """Return list of key events recorded on the test_actions.html page."""
+    events = await get_object_from_context(bidi_session, context, "allEvents.events")
 
     # `key` values in `allEvents` may be escaped (see `escapeSurrogateHalf` in
     # test_actions.html), so this converts them back into unicode literals.

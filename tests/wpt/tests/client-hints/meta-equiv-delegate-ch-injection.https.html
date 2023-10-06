@@ -15,7 +15,7 @@
 document.getElementsByTagName('meta')[0].setAttribute("content", "dpr;sec-ch-dpr;device-memory;sec-ch-device-memory;viewport-width;sec-ch-viewport-width;rtt;downlink;ect");
 document.head.outerHTML += '<meta http-equiv="Delegate-CH" content="sec-ch-ua-arch;sec-ch-ua-platform;sec-ch-ua-model">';
 document.head.innerHTML += '<meta http-equiv="Delegate-CH" content="sec-ch-ua-full-version;sec-ch-ua-bitness;sec-ch-ua-full-version-list">';
-document.write('<meta http-equiv="Delegate-CH" content="sec-ch-ua-platform-version;sec-ch-prefers-color-scheme;sec-ch-prefers-reduced-motion;sec-ch-viewport-height">');
+document.write('<meta http-equiv="Delegate-CH" content="sec-ch-ua-platform-version;sec-ch-prefers-color-scheme;sec-ch-prefers-reduced-motion;sec-ch-viewport-height;sec-ch-prefers-reduced-transparency">');
 
 // resources/echo-client-hints-received.py sets the response headers depending on the set
 // of client hints it receives in the request headers.
@@ -34,6 +34,7 @@ promise_test(t => {
     assert_false(r.headers.has("downlink-received"), "downlink-received");
     assert_false(r.headers.has("ect-received"), "ect-received");
     assert_false(r.headers.has("prefers-color-scheme-received"), "prefers-color-scheme-received");
+    assert_false(r.headers.has("prefers-reduced-transparency-received"), "prefers-reduced-transparency-received");
   });
 }, "Delegate-CH meta-equiv injection test");
 

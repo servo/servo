@@ -12,12 +12,12 @@ promise_test(async () => {
   const frame = attachFencedFrameContext();
   const result = await frame.execute(async () => {
     const expected_error_message =
-        'Failed to execute \'list\' on \'SubApps\': API is only supported in primary top-level browsing contexts.';
+        'Cannot read properties of undefined (reading \'list\')';
     try {
       const list = await navigator.subApps.list();
       return 'navigator.subApps.list() succeeded';
     } catch (e) {
-      if (e.name === 'InvalidStateError' &&
+      if (e.name === 'TypeError' &&
           e.message === expected_error_message) {
         return 'navigator.subApps.list() was disallowed';
       }

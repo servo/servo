@@ -418,7 +418,7 @@ promise_test(async t => {
 
   await promise_rejects_dom(t, "EncodingError",
     decoder.flush().catch((e) => {
-      assert_equals(errors, 0);
+      assert_equals(errors, 1);
       throw e;
     })
   );
@@ -453,7 +453,7 @@ promise_test(async t => {
 
   await promise_rejects_dom(t, "EncodingError",
     decoder.flush().catch((e) => {
-      assert_equals(errors, 0);
+      assert_equals(errors, 1);
       throw e;
     })
   );
@@ -567,7 +567,6 @@ promise_test(async t => {
     };
   });
 }, 'Test low-latency decoding');
-
 
 promise_test(async t => {
   await checkImplements();

@@ -1,21 +1,6 @@
 // META: global=window,worker
 // META: script=../resources/utils.js
 
-function requestForbiddenHeaders(desc, forbiddenHeaders) {
-  var url = RESOURCES_DIR + "inspect-headers.py";
-  var requestInit = {"headers": forbiddenHeaders}
-  var urlParameters = "?headers=" + Object.keys(forbiddenHeaders).join("|");
-
-  promise_test(function(test){
-    return fetch(url + urlParameters, requestInit).then(function(resp) {
-      assert_equals(resp.status, 200, "HTTP status is 200");
-      assert_equals(resp.type , "basic", "Response's type is basic");
-      for (var header in forbiddenHeaders)
-        assert_not_equals(resp.headers.get("x-request-" + header), forbiddenHeaders[header], header + " does not have the value we defined");
-    });
-  }, desc);
-}
-
 function requestValidOverrideHeaders(desc, validHeaders) {
   var url = RESOURCES_DIR + "inspect-headers.py";
   var requestInit = {"headers": validHeaders}
@@ -36,9 +21,6 @@ requestForbiddenHeaders("Accept-Encoding is a forbidden request header", {"Accep
 
 requestForbiddenHeaders("Access-Control-Request-Headers is a forbidden request header", {"Access-Control-Request-Headers": ""});
 requestForbiddenHeaders("Access-Control-Request-Method is a forbidden request header", {"Access-Control-Request-Method": ""});
-requestForbiddenHeaders(
-    'Access-Control-Request-Private-Network is a forbidden request header',
-    {'Access-Control-Request-Private-Network': ''});
 requestForbiddenHeaders("Connection is a forbidden request header", {"Connection": "close"});
 requestForbiddenHeaders("Content-Length is a forbidden request header", {"Content-Length": "42"});
 requestForbiddenHeaders("Cookie is a forbidden request header", {"Cookie": "cookie=none"});

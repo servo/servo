@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="match" href="text-autospace-vertical-combine-001-ref.html">
+<style>
+#container {
+  writing-mode: vertical-rl;
+  font-size: 20px;
+}
+.tcy {
+  text-combine-upright: all;
+}
+</style>
+<div id="container">
+  <div>国<span class="tcy">XX</span>国</div>
+  <div>国<span class="tcy">11</span>国</div>
+</div>

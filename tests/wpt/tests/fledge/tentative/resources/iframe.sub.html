@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--- Allow injected scripts to use functions in fledge-util.js --->
+<base href="..">
+<script src="/resources/testharness.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/fledge-util.js"></script>
+</head>
+<body>
+<script>
+
+  // Fake Test class that only supports adding cleanup callbacks,
+  // primarily to leave interest groups once the test is complete.
+  function Test() {
+    this.cleanup_callbacks = [];
+  }
+
+  // Registers a cleanup method with Test.
+  Test.prototype.add_cleanup = function(callback) {
+    this.cleanup_callbacks.push(callback);
+  };
+
+  // Runs all previously registered cleanup methods, waiting for
+  // them all to complete.
+  Test.prototype.do_cleanup = async function() {
+    while (this.cleanup_callbacks.length > 0) {
+      await this.cleanup_callbacks[0]();
+      this.cleanup_callbacks = this.cleanup_callbacks.slice(1);
+    }
+  };
+
+  // Create a bogus test instance that tracks cleanup callbacks. The
+  // parent frame is expected to run test_instance.do_cleanup() and
+  // wait for it to complete before destroying the frame.
+  let test_instance = new Test();
+
+  // Register a message event listener that listens for events with data
+  // in the format {messageUuid: <uuid>, script: <script>}, and when such
+  // a message is received, tries to eval the script and then returns a
+  // message in the format:
+  //   {messageUuid: <uuid>, result: <result>, returnValue: <returnValue>}
+  //
+  // On success, <result> is "success", while on failure, it's an error
+  // message. <script> is interpreted as a possibly asynchronous function
+  // body. Exceptions are caught and their stringified value is returned
+  // as <result>. <returnValue> is a value returned to the caller of
+  // the function that sent the message. It's up to the received script
+  // to set it, if a return value is needed.
+  //
+  // "messageUuid" serves to allow the listener to make sure the message
+  // is intended for it.
+  window.addEventListener('message', async function(event) {
+    // If not a message for this listener, do nothing.
+    if (!event.data.messageUuid)
+      return;
+    let message = {result: 'unexpected'};
+    try {
+      let param = event.data.param;
+      message = await eval(
+          `(async () => {
+            ${event.data.script};
+            return {result: 'success'};
+          })()`);
+    } catch (e) {
+      message.result = e.toString();
+    }
+    message.messageUuid = event.data.messageUuid;
+    window.parent.postMessage(message, '*');
+  });
+
+  // Inform parent that the iframe has finished loading.
+  window.parent.postMessage(
+      {messageUuid: '{{GET[uuid]}}', result: 'load complete'},
+      '*');
+</script>
+</body>
+</html>

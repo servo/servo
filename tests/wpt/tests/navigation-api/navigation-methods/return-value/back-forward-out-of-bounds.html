@@ -2,15 +2,16 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/helpers.js"></script>
-
+<iframe id="i" src="/common/blank.html"></iframe>
 <script>
 promise_test(async t => {
-  assert_equals(navigation.entries().length, 1);
-  assert_equals(navigation.entries()[0], navigation.currentEntry);
-  assert_false(navigation.canGoBack);
-  assert_false(navigation.canGoForward);
+  await new Promise(resolve => window.onload = resolve);
+  assert_equals(i.contentWindow.navigation.entries().length, 1);
+  assert_equals(i.contentWindow.navigation.entries()[0], i.contentWindow.navigation.currentEntry);
+  assert_false(i.contentWindow.navigation.canGoBack);
+  assert_false(i.contentWindow.navigation.canGoForward);
 
-  await assertBothRejectDOM(t, navigation.back(), "InvalidStateError");
-  await assertBothRejectDOM(t, navigation.forward(), "InvalidStateError");
+  await assertBothRejectDOM(t, i.contentWindow.navigation.back(), "InvalidStateError", i.contentWindow);
+  await assertBothRejectDOM(t, i.contentWindow.navigation.forward(), "InvalidStateError", i.contentWindow);
 }, "back() and forward() out of bounds");
 </script>

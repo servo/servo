@@ -72,6 +72,7 @@ async function testAudioFlow(t, negotiationFunction, perFrameCallback = () => {}
   for (let i = 0; i < numFramesPassthrough; i++) {
     const result = await senderReader.read();
     const frame = result.value;
+    perFrameCallback(frame);
     frameInfos.push({
       data: frame.data,
       timestamp: frame.timestamp,
@@ -79,7 +80,6 @@ async function testAudioFlow(t, negotiationFunction, perFrameCallback = () => {}
       metadata: frame.getMetadata(),
       getMetadata() { return this.metadata; }
     });
-    perFrameCallback(frame);
     senderWriter.write(frame);
   }
 
@@ -93,6 +93,7 @@ async function testAudioFlow(t, negotiationFunction, perFrameCallback = () => {}
     int8View.fill(i);
 
     frame.data = buffer;
+    perFrameCallback(frame);
     frameInfos.push({
       data: frame.data,
       timestamp: frame.timestamp,
@@ -100,7 +101,6 @@ async function testAudioFlow(t, negotiationFunction, perFrameCallback = () => {}
       metadata: frame.getMetadata(),
       getMetadata() { return this.metadata; }
     });
-    perFrameCallback(frame);
     senderWriter.write(frame);
   }
 
@@ -111,6 +111,7 @@ async function testAudioFlow(t, negotiationFunction, perFrameCallback = () => {}
     const int8View = new Int8Array(frame.data);
     int8View.fill(i);
 
+    perFrameCallback(frame);
     frameInfos.push({
       data: frame.data,
       timestamp: frame.timestamp,
@@ -118,7 +119,6 @@ async function testAudioFlow(t, negotiationFunction, perFrameCallback = () => {}
       metadata: frame.getMetadata(),
       getMetadata() { return this.metadata; }
     });
-    perFrameCallback(frame);
     senderWriter.write(frame);
   }
 
@@ -232,6 +232,23 @@ promise_test(async t => {
     assert_not_equals(clonedFrame.timestamp, 0);
   });
 }, 'Encoded frames serialize and deserialize into a deep clone');
+
+promise_test(async t => {
+  let clonedFrames = [];
+  function rewriteFrameTimestamps(frame) {
+    // Add 1 to the rtp timestamp of the frame.
+    const metadata = frame.getMetadata();
+    metadata.rtpTimestamp += 1;
+    frame.setMetadata(metadata);
+
+    assert_equals(frame.getMetadata().rtpTimestamp, metadata.rtpTimestamp)
+  };
+
+  // Run audio flows which will assert that the frames received have the
+  // rtp timestamp set by our modification.
+  await testAudioFlow(
+    t, exchangeOfferAnswer, rewriteFrameTimestamps);
+}, 'Modifying rtp timestamp');
 
 </script>
 </body>

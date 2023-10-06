@@ -80,12 +80,9 @@ test(() => {
 
   // Scroll back a bit.
   scroller.scrollBy(0, -10);
-  // Now, snap back to the third snap point because at the moment when scrolling
-  // up by 10px, the large third snap target element isn't covering over the
-  // snapport, i.e. only bottom 10px of the large element is in the snapport.
-  // See https://github.com/w3c/csswg-drafts/issues/7262
+  // This should snap to the bottom of the 3rd snap area and not all the way
+  // back up to its top.
   assert_equals(scroller.scrollLeft, 0);
-  assert_equals(scroller.scrollTop, 80);
-}, 'There\'s no valid snap positions on large element if it doesn\'t cover ' +
-   'the snapport');
+  assert_equals(scroller.scrollTop, 880);
+}, "snaps to bottom edge of large snap area that doesn't cover the snap port.");
 </script>

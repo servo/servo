@@ -23,6 +23,9 @@
 <meta name="variant" content="?include=selectorMatchesDisplayLocked">
 <meta name="variant" content="?include=unslottedLink">
 <meta name="variant" content="?include=immediateMutation">
+<meta name="variant" content="?include=baseURLChangedBySameDocumentNavigation">
+<meta name="variant" content="?include=baseURLChangedByBaseElement">
+<meta name="variant" content="?include=linkToSelfFragment">
 
 <body>
 <script>
@@ -268,5 +271,48 @@
     await new Promise(resolve => t.step_timeout(resolve, 2000));
     assert_equals(await isUrlPrefetched(url), 1);
   }, 'test that selector_matches predicates respect changes immediately');
+
+  const baseURLChangedTestFixture = (testName, modifyBaseURLFunc) => {
+    return subsetTestByKey(testName, promise_test, async t => {
+      const url = getPrefetchUrl();
+      const link = addLink(url);
+      const url_pattern_string = `prefetch.py${url.search}`;
+
+      // Insert a document rule with a url pattern predicate that uses a
+      // relative URL which will not match with |url|, due to |document.baseURI|
+      // being different from |url|'s path.
+      assert_false((new URLPattern(url_pattern_string, document.baseURI)).test(url));
+      insertDocumentRule({ href_matches: url_pattern_string });
+      await new Promise(resolve => t.step_timeout(resolve, 2000));
+      assert_equals(await isUrlPrefetched(url), 0);
+
+      // Change the baseURL of the document to |url|. |url| should now be
+      // prefetched.
+      modifyBaseURLFunc(url);
+      assert_true((new URLPattern(url_pattern_string, document.baseURI)).test(url));
+      await new Promise(resolve => t.step_timeout(resolve, 2000));
+      assert_equals(await isUrlPrefetched(url), 1);
+    });
+  }
+
+  baseURLChangedTestFixture('baseURLChangedBySameDocumentNavigation', url => {
+    history.pushState({}, "", url);
+  });
+
+  baseURLChangedTestFixture('baseURLChangedByBaseElement', url => {
+    const base = document.createElement('base');
+    base.href = url;
+    document.head.appendChild(base);
+  });
+
+  subsetTestByKey('linkToSelfFragment', promise_test, async t => {
+    const url = getPrefetchUrl();
+    history.pushState({}, "", url);
+    addLink(new URL('#fragment', url));
+    insertDocumentRule();
+    await new Promise(resolve => t.step_timeout(resolve, 2000));
+    assert_equals(await isUrlPrefetched(url), 0);
+  }, 'test that a fragment link to the current document does not prefetch');
+
 </script>
 </body>

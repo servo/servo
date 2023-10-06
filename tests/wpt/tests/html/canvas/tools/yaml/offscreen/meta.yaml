@@ -38,7 +38,7 @@
         } )
 
     tests.append( {
-        'name': 'initial.reset.2dstate',
+        'name': '2d.canvas.host.initial.reset.2dstate',
         'desc': 'Resetting the canvas state resets 2D state variables',
         'code':
     """canvas.width = 100;
@@ -533,7 +533,7 @@
         code = ""
         code, expected = gen(name, string, exp, code)
         tests.append( {
-            "name": "size.attributes.parse.%s" % name,
+            "name": "2d.canvas.host.size.attributes.parse.%s" % name,
             "desc": "Parsing of non-negative integers",
             "code": code,
         } )

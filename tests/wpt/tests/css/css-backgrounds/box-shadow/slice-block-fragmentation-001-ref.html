@@ -4,14 +4,18 @@
   .piece {
     position: absolute;
     left: 5px;
-    top: 5px;
+    top: 0;
     width: 95px;
-    height: 95px;
+    height: 100px;
     border: solid;
+  }
+  .start {
+    top: 5px;
+    height: 95px;
   }
 </style>
 <div style="position:relative; margin:50px;">
-  <div class="piece" style="border-width:0 5px 0 0;"></div>
+  <div class="piece start" style="border-width:0 5px 0 0"></div>
   <div class="piece" style="margin-left:120px; border-width:0 5px 0 0;"></div>
   <div class="piece" style="margin-left:240px; border-width:0 5px 5px 0;"></div>
 </div>

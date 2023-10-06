@@ -4,6 +4,10 @@
 // Source: CSS Transitions Level 2 (https://drafts.csswg.org/css-transitions-2/)
 
 [Exposed=Window]
+interface CSSStartingStyleRule : CSSGroupingRule {
+};
+
+[Exposed=Window]
 interface CSSTransition : Animation {
   readonly attribute CSSOMString transitionProperty;
 };

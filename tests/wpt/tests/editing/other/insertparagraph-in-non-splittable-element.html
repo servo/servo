@@ -26,10 +26,7 @@ const tests = [
     selector: "caption",
     initial: "<div><table><caption>abc</caption><tbody><tr><td>abc</td></tr></tbody></table></div>",
     // <caption> can have paragraphs so that it should be handled as in a block.
-    expected: [
-      "<div><table><caption><br><div>abc</div></caption><tbody><tr><td>abc</td></tr></tbody></table></div>",
-      "<div><table><caption><div><br></div><div>abc</div></caption><tbody><tr><td>abc</td></tr></tbody></table></div>",
-    ],
+    expected: "<div><table><caption><br>abc</caption><tbody><tr><td>abc</td></tr></tbody></table></div>",
   },
   {
     selector: "col",

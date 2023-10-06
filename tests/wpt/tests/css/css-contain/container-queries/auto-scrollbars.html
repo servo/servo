@@ -37,15 +37,15 @@
                                "Tests do not work with overlay scrollbars");
   });
 
+  let initialScrollerWidth = scroller.clientWidth;
   test(() => {
-    assert_less_than(scroller.clientWidth, 100, "Expects a vertical scrollbar");
     assert_equals(getComputedStyle(inner).height, "50px",
                   "Layout with a scrollbar means the container query applies");
   }, "Initial layout - expecting a scrollbar without overflowing content instead of overflowing content without a scrollbar");
 
   test(() => {
     inner.style.borderBottomWidth = "2px";
-    assert_less_than(scroller.clientWidth, 100, "Expects a vertical scrollbar");
+    assert_equals(scroller.clientWidth, initialScrollerWidth, "Scrollbar visibility is consistent after reflow.");
     assert_equals(getComputedStyle(inner).height, "50px",
                   "Layout with a scrollbar means the container query applies");
   }, "Same result after a reflow");

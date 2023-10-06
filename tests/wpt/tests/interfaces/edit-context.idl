@@ -69,11 +69,8 @@ interface TextUpdateEvent : Event {
 dictionary TextFormatInit {
     unsigned long rangeStart;
     unsigned long rangeEnd;
-    DOMString textColor;
-    DOMString backgroundColor;
     DOMString underlineStyle;
     DOMString underlineThickness;
-    DOMString underlineColor;
 };
 
 [Exposed=Window]
@@ -81,11 +78,8 @@ interface TextFormat {
     constructor(optional TextFormatInit options = {});
     readonly attribute unsigned long rangeStart;
     readonly attribute unsigned long rangeEnd;
-    readonly attribute DOMString textColor;
-    readonly attribute DOMString backgroundColor;
     readonly attribute DOMString underlineStyle;
     readonly attribute DOMString underlineThickness;
-    readonly attribute DOMString underlineColor;
 };
 
 dictionary TextFormatUpdateEventInit : EventInit {

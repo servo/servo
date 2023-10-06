@@ -1,6 +1,13 @@
 // META: script=/resources/testdriver.js
 // META: script=/common/utils.js
 // META: script=resources/fledge-util.js
+// META: script=/common/subset-tests.js
+// META: timeout=long
+// META: variant=?1-5
+// META: variant=?6-10
+// META: variant=?11-15
+// META: variant=?16-20
+// META: variant=?21-last
 
 "use strict;"
 
@@ -43,7 +50,7 @@ const makeTest = ({
   // Expectation for a promise error.
   expectPromiseError,
 }) => {
-  promise_test(async test => {
+  subsetTest(promise_test, async test => {
     let waitPromiseError, dontExpectPromiseError;
     if (expectPromiseError) {
       waitPromiseError = interceptUnhandledRejection();
@@ -104,27 +111,27 @@ makeTest({
 });
 
 makeTest({
-  name: 'decisionLogicUrl is invalid',
+  name: 'decisionLogicURL is invalid',
   expect: EXPECT_EXCEPTION(TypeError),
-  auctionConfigOverrides: { decisionLogicUrl: "https://foo:99999999999" },
+  auctionConfigOverrides: { decisionLogicURL: "https://foo:99999999999" },
 });
 
 makeTest({
-  name: 'decisionLogicUrl is cross-origin with seller',
+  name: 'decisionLogicURL is cross-origin with seller',
   expect: EXPECT_EXCEPTION(TypeError),
-  auctionConfigOverrides: { decisionLogicUrl: "https://example.com" },
+  auctionConfigOverrides: { decisionLogicURL: "https://example.com" },
 });
 
 makeTest({
-  name: 'trustedScoringSignalsUrl is invalid',
+  name: 'trustedScoringSignalsURL is invalid',
   expect: EXPECT_EXCEPTION(TypeError),
-  auctionConfigOverrides: { trustedScoringSignalsUrl: "https://foo:99999999999" },
+  auctionConfigOverrides: { trustedScoringSignalsURL: "https://foo:99999999999" },
 });
 
 makeTest({
-  name: 'trustedScoringSignalsUrl is cross-origin with seller',
+  name: 'trustedScoringSignalsURL is cross-origin with seller',
   expect: EXPECT_EXCEPTION(TypeError),
-  auctionConfigOverrides: { trustedScoringSignalsUrl: "https://example.com" },
+  auctionConfigOverrides: { trustedScoringSignalsURL: "https://example.com" },
 });
 
 makeTest({
@@ -242,12 +249,12 @@ makeTest({
     componentAuctions: [
       {
         seller: window.location.origin,
-        decisionLogicUrl: window.location.origin,
+        decisionLogicURL: window.location.origin,
         interestGroupBuyers: undefined,
         componentAuctions: [
           {
             seller: window.location.origin,
-            decisionLogicUrl: window.location.origin,
+            decisionLogicURL: window.location.origin,
           }
         ],
       },
@@ -263,7 +270,7 @@ makeTest({
     componentAuctions: [
       {
         seller: window.location.origin,
-        decisionLogicUrl: window.location.origin,
+        decisionLogicURL: window.location.origin,
         interestGroupBuyers: [],
       },
     ],

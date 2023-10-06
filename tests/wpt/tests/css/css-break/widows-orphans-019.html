@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#widows-orphans">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1486252">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    width: 100px;
+    columns: 4;
+    column-fill: auto;
+    gap: 0;
+    height: 100px;
+    line-height:25px;
+    orphans: 4;
+    widows: 4;
+    background: red;
+  }
+  .float {
+    float: left;
+    width: 20%;
+    height: 400px;
+    background: green;
+  }
+  .ib {
+    display: inline-block;
+    vertical-align: top;
+    width: 40%;
+    height: 25px;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="float"></div>
+  <div class="ib"></div><br>
+  <div class="ib"></div><br>
+  <div class="ib"></div><br>
+  <div class="ib"></div><br>
+  <div class="ib"></div><br>
+  <div class="ib"></div><br>
+  <div class="ib"></div><br>
+  <div class="ib"></div><br>
+  <div class="ib"></div><br>
+  <div class="ib"></div><br>
+  <div class="ib"></div><br>
+  <div class="ib"></div><br>
+  <div class="ib" style="height:100px;"></div><br>
+</div>
+

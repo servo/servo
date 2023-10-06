@@ -1,49 +1,60 @@
+from __future__ import annotations
+
+import logging
 from typing import List, NewType, Optional, Tuple, Union
 
 
-__all__ = ["Data", "Origin", "ExtensionHeader", "ExtensionParameter", "Subprotocol"]
+__all__ = [
+    "Data",
+    "LoggerLike",
+    "Origin",
+    "Subprotocol",
+    "ExtensionName",
+    "ExtensionParameter",
+]
+
+
+# Public types used in the signature of public APIs
 
 Data = Union[str, bytes]
+"""Types supported in a WebSocket message:
+:class:`str` for a Text_ frame, :class:`bytes` for a Binary_.
 
-Data__doc__ = """
-Types supported in a WebSocket message:
-
-- :class:`str` for text messages
-- :class:`bytes` for binary messages
+.. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+.. _Binary : https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
 
 """
-# Remove try / except when dropping support for Python < 3.7
-try:
-    Data.__doc__ = Data__doc__  # type: ignore
-except AttributeError:  # pragma: no cover
-    pass
+
+
+LoggerLike = Union[logging.Logger, logging.LoggerAdapter]
+"""Types accepted where a :class:`~logging.Logger` is expected."""
 
 
 Origin = NewType("Origin", str)
-Origin.__doc__ = """Value of a Origin header"""
-
-
-ExtensionName = NewType("ExtensionName", str)
-ExtensionName.__doc__ = """Name of a WebSocket extension"""
-
-
-ExtensionParameter = Tuple[str, Optional[str]]
-
-ExtensionParameter__doc__ = """Parameter of a WebSocket extension"""
-try:
-    ExtensionParameter.__doc__ = ExtensionParameter__doc__  # type: ignore
-except AttributeError:  # pragma: no cover
-    pass
-
-
-ExtensionHeader = Tuple[ExtensionName, List[ExtensionParameter]]
-
-ExtensionHeader__doc__ = """Item parsed in a Sec-WebSocket-Extensions header"""
-try:
-    ExtensionHeader.__doc__ = ExtensionHeader__doc__  # type: ignore
-except AttributeError:  # pragma: no cover
-    pass
+"""Value of a ``Origin`` header."""
 
 
 Subprotocol = NewType("Subprotocol", str)
-Subprotocol.__doc__ = """Items parsed in a Sec-WebSocket-Protocol header"""
+"""Subprotocol in a ``Sec-WebSocket-Protocol`` header."""
+
+
+ExtensionName = NewType("ExtensionName", str)
+"""Name of a WebSocket extension."""
+
+
+ExtensionParameter = Tuple[str, Optional[str]]
+"""Parameter of a WebSocket extension."""
+
+
+# Private types
+
+ExtensionHeader = Tuple[ExtensionName, List[ExtensionParameter]]
+"""Extension in a ``Sec-WebSocket-Extensions`` header."""
+
+
+ConnectionOption = NewType("ConnectionOption", str)
+"""Connection option in a ``Connection`` header."""
+
+
+UpgradeProtocol = NewType("UpgradeProtocol", str)
+"""Upgrade protocol in an ``Upgrade`` header."""

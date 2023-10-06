@@ -34,4 +34,12 @@ child.appendChild(document.createElement("div"));
 
 testColor("Insert div to div.#child", blue);
 
+child.replaceChildren();
+testColor("Remove div from div.#child", green);
+
+child.textContent = "Test";
+testColor("Insert text into div.#child", blue);
+
+child.textContent = "";
+testColor("Remove text from div.#child", green);
 </script>

@@ -1,11 +1,11 @@
-FROM ubuntu:20.04
+FROM python:3.11
 
 # No interactive frontend during docker build
 ENV DEBIAN_FRONTEND=noninteractive \
     DEBCONF_NONINTERACTIVE_SEEN=true
 
 RUN apt-get -qqy update \
-  && apt-get -qqy install git npm python3 python3-venv
+  && apt-get -qqy install git npm
 
 WORKDIR /app/
 
