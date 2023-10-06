@@ -4803,7 +4803,6 @@ dependencies = [
  "ref_filter_map",
  "regex",
  "script_layout_interface",
- "script_plugins",
  "script_traits",
  "selectors",
  "serde",
@@ -4867,17 +4866,6 @@ dependencies = [
  "style",
  "style_traits",
  "webrender_api",
-]
-
-[[package]]
-name = "script_plugins"
-version = "0.0.1"
-
-[[package]]
-name = "script_plugins_tests"
-version = "0.0.1"
-dependencies = [
- "script_plugins",
 ]
 
 [[package]]
