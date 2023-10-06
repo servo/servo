@@ -64,7 +64,7 @@ image = { workspace = true }
 indexmap = { workspace = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
-js = { package = "mozjs", git = "https://github.com/servo/mozjs" }
+js = { package = "mozjs", git = "https://github.com/servo/mozjs", features = ["streams"] }
 jstraceable_derive = { path = "../jstraceable_derive" }
 keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
