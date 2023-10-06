@@ -97,6 +97,7 @@ class Base:
     def bootstrap(self, force: bool):
         installed_something = self._platform_bootstrap(force)
         installed_something |= self.install_taplo(force)
+        installed_something |= self.install_crown(force)
         if not installed_something:
             print("Dependencies were already installed!")
 
@@ -107,6 +108,16 @@ class Base:
         if subprocess.call(["cargo", "install", "taplo-cli", "--locked"],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
             raise EnvironmentError("Installation of taplo failed.")
+
+        return True
+
+    def install_crown(self, force: bool) -> bool:
+        if not force and shutil.which("crown") is not None:
+            return False
+
+        if subprocess.call(["cargo", "install", "crown", "--git", "https://github.com/sagudev/cargo-crown"],
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
+            raise EnvironmentError("Installation of crown failed.")
 
         return True
 
