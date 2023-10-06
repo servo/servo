@@ -36,7 +36,7 @@ use crate::dom::window::Window;
 
 /// The set of animations for a document.
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub(crate) struct Animations {
     /// The map of nodes to their animation states.
     #[no_trace]

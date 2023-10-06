@@ -165,7 +165,7 @@ impl ServiceWorkerMethods for ServiceWorker {
 }
 
 impl TaskOnce for SimpleWorkerErrorHandler<ServiceWorker> {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn run_once(self) {
         ServiceWorker::dispatch_simple_error(self.addr);
     }

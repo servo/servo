@@ -6906,7 +6906,7 @@ class CGDictionary(CGThing):
         derive = ["JSTraceable"]
         mustRoot = ""
         if self.membersNeedTracing():
-            mustRoot = "#[unrooted_must_root_lint::must_root]\n"
+            mustRoot = "#[crown::unrooted_must_root_lint::must_root]\n"
             if not self.hasRequiredFields(self.dictionary):
                 derive += ["Default"]
 
@@ -7450,7 +7450,7 @@ class CGCallback(CGClass):
                          constructors=self.getConstructors(),
                          methods=realMethods,
                          decorators="#[derive(JSTraceable, PartialEq)]\n"
-                                    "#[unrooted_must_root_lint::allow_unrooted_interior]")
+                                    "#[crown::unrooted_must_root_lint::allow_unrooted_interior]")
 
     def getConstructors(self):
         return [ClassConstructor(

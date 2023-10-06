@@ -126,7 +126,7 @@ impl FromStr for GPUFeatureName {
 }
 
 // this error is wrong because if we inline Self::Key and Self::Value all errors are gone
-#[allow(unrooted_must_root)]
+#[allow(crown::unrooted_must_root)]
 impl Setlike for GPUSupportedFeatures {
     type Key = DOMString;
 

@@ -22,7 +22,7 @@ pub struct StyleSheet {
 }
 
 impl StyleSheet {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(
         type_: DOMString,
         href: Option<DOMString>,

@@ -597,7 +597,7 @@ macro_rules! impl_performance_entry_struct(
                 }
             }
 
-            #[allow(unrooted_must_root)]
+            #[allow(crown::unrooted_must_root)]
             pub fn new(global: &GlobalScope,
                        name: DOMString,
                        start_time: f64,

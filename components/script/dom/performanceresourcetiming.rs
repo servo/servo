@@ -101,7 +101,7 @@ impl PerformanceResourceTiming {
     }
 
     //TODO fetch start should be in RFT
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn from_resource_timing(
         url: ServoUrl,
         initiator_type: InitiatorType,

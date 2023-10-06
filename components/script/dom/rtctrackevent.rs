@@ -25,7 +25,7 @@ pub struct RTCTrackEvent {
 }
 
 impl RTCTrackEvent {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(track: &MediaStreamTrack) -> RTCTrackEvent {
         RTCTrackEvent {
             event: Event::new_inherited(),

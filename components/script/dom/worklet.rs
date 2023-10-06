@@ -424,7 +424,7 @@ struct WorkletThreadInit {
 }
 
 /// A thread for executing worklets.
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 struct WorkletThread {
     /// Which role the thread is currently playing
     role: WorkletThreadRole,
@@ -463,7 +463,7 @@ unsafe impl JSTraceable for WorkletThread {
 impl WorkletThread {
     /// Spawn a new worklet thread, returning the channel to send it control messages.
     #[allow(unsafe_code)]
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn spawn(role: WorkletThreadRole, init: WorkletThreadInit) -> Sender<WorkletControl> {
         let (control_sender, control_receiver) = unbounded();
         // TODO: name this thread
