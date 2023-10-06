@@ -2,6 +2,9 @@ name: Linux
 on:
   workflow_call:
     inputs:
+      force-debug-assertions:
+        required: false
+        type: boolean
       wpt:
         required: false
         type: string
@@ -21,6 +24,9 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      force-debug-assertions:
+        required: false
+        type: boolean
       wpt:
         default: "test"
         required: false
@@ -42,6 +48,7 @@ on:
     branches: ["try-linux", "try-wpt", "try-wpt-2020"]
 
 env:
+  cargo_profile_option: ${{ inputs.force-debug-assertions && "--profile release-with-debug-assertions" || "--release" }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   SCCACHE_GHA_ENABLED: "true"
@@ -82,15 +89,15 @@ jobs:
         run: sudo apt update && python3 ./mach bootstrap
       - name: Tidy
         run: python3 ./mach test-tidy --no-progress --all
-      - name: Release build
-        run: python3 ./mach build --release
+      - name: Release build (${{ inputs.force-debug-assertions && "with" || "without" }} debug assertions)
+        run: python3 ./mach build ${cargo_profile_option}
       - name: Smoketest
-        run: xvfb-run python3 ./mach smoketest --release
+        run: xvfb-run python3 ./mach smoketest ${cargo_profile_option}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-linux' }}
-        run: python3 ./mach test-unit --release
+        run: python3 ./mach test-unit ${cargo_profile_option}
       - name: Rename build timing
         run: cp -r target/cargo-timings target/cargo-timings-linux
       - name: Archive build timing
@@ -102,7 +109,7 @@ jobs:
       - name: Lockfile check
         run: ./etc/ci/lockfile_changed.sh
       - name: Package
-        run: python3 ./mach package --release
+        run: python3 ./mach package ${cargo_profile_option}
       - name: Upload Package
         uses: actions/upload-artifact@v3
         with:

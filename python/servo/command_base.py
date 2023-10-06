@@ -7,7 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from __future__ import print_function
+from __future__ import print_function, annotations
 
 import contextlib
 from enum import Enum
@@ -27,6 +27,7 @@ import tarfile
 import urllib
 import zipfile
 
+from dataclasses import dataclass
 from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 from os import path
@@ -46,10 +47,44 @@ from servo.util import download_file, get_default_cache_dir
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
 
 
-class BuildType(Enum):
-    """ The build type of this Servo build. Either `DEV` or `RELEASE`."""
-    DEV = 1
-    RELEASE = 2
+@dataclass
+class BuildType:
+    class Kind(Enum):
+        DEV = 1
+        RELEASE = 2
+        CUSTOM = 3
+
+    kind: Kind
+    profile: Optional[str]
+
+    def dev() -> BuildType:
+        return BuildType(BuildType.Kind.DEV, None)
+
+    def release() -> BuildType:
+        return BuildType(BuildType.Kind.RELEASE, None)
+
+    def custom(profile: str) -> BuildType:
+        return BuildType(BuildType.Kind.CUSTOM, profile)
+
+    def is_dev(self) -> bool:
+        return self.kind == BuildType.Kind.DEV
+
+    def is_release(self) -> bool:
+        return self.kind == BuildType.Kind.RELEASE
+
+    def is_custom(self) -> bool:
+        return self.kind == BuildType.Kind.CUSTOM
+
+    def directory_name(self) -> str:
+        if self.is_dev():
+            return "debug"
+        elif self.is_release():
+            return "release"
+        else:
+            return self.profile
+
+    def __eq__(self, other: object) -> bool:
+        raise Exception("BUG: do not compare BuildType with ==")
 
 
 @contextlib.contextmanager
@@ -290,8 +325,7 @@ class CommandBase(object):
         base_path = util.get_target_dir()
         base_path = path.join(base_path, "android", self.config["android"]["target"])
         apk_name = "servoapp.apk"
-        build_type_string = "release" if build_type == BuildType.RELEASE else "debug"
-        return path.join(base_path, build_type_string, apk_name)
+        return path.join(base_path, build_type.directory_name(), apk_name)
 
     def get_binary_path(self, build_type: BuildType, target=None, android=False, simpleservo=False):
         base_path = util.get_target_dir()
@@ -310,8 +344,7 @@ class CommandBase(object):
             else:
                 binary_name = "libsimpleservo.so"
 
-        build_type_string = "release" if build_type == BuildType.RELEASE else "debug"
-        binary_path = path.join(base_path, build_type_string, binary_name)
+        binary_path = path.join(base_path, build_type.directory_name(), binary_name)
 
         if not path.exists(binary_path):
             raise BuildNotFound('No Servo binary found. Perhaps you forgot to run `./mach build`?')
@@ -701,6 +734,8 @@ class CommandBase(object):
                 CommandArgument('--dev', '--debug', '-d', group="Build Type",
                                 action='store_true',
                                 help='Build in development mode'),
+                CommandArgument('--profile', group="Build Type",
+                                help='Build with custom Cargo profile'),
             ]
 
         if build_configuration:
@@ -762,9 +797,12 @@ class CommandBase(object):
                 if build_type:
                     # If `build_type` already exists in kwargs we are doing a recursive dispatch.
                     if 'build_type' not in kwargs:
-                        kwargs['build_type'] = self.configure_build_type(kwargs['release'], kwargs['dev'])
+                        kwargs['build_type'] = self.configure_build_type(
+                            kwargs['release'], kwargs['dev'], kwargs['profile'],
+                        )
                     kwargs.pop('release', None)
                     kwargs.pop('dev', None)
+                    kwargs.pop('profile', None)
 
                 if build_configuration:
                     self.configure_cross_compilation(kwargs['target'], kwargs['android'], kwargs['win_arm64'])
@@ -781,24 +819,31 @@ class CommandBase(object):
 
         return decorator_function
 
-    def configure_build_type(self, release: bool, dev: bool) -> BuildType:
-        if release and dev:
-            print("Please specify either --dev (-d) for a development")
-            print("  build, or --release (-r) for an optimized build.")
-            sys.exit(1)
+    def configure_build_type(self, release: bool, dev: bool, profile: Optional[str]) -> BuildType:
+        option_count = release + dev + (profile is not None)
 
-        if not release and not dev:
+        if option_count > 1:
+            print("Please specify either --dev (-d) for a development")
+            print("  build, or --release (-r) for an optimized build,")
+            print("  or --profile PROFILE for a custom Cargo profile.")
+            sys.exit(1)
+        elif option_count < 1:
             if self.config["build"]["mode"] == "dev":
                 print("No build type specified, but .servobuild specified `--dev`.")
-                dev = True
+                return BuildType.dev()
             elif self.config["build"]["mode"] == "release":
                 print("No build type specified, but .servobuild specified `--release`.")
-                release = True
+                return BuildType.release()
             else:
                 print("No build type specified so assuming `--dev`.")
-                dev = True
+                return BuildType.dev()
 
-        return BuildType.DEV if dev else BuildType.RELEASE
+        if release:
+            return BuildType.release()
+        elif dev:
+            return BuildType.dev()
+        else:
+            return BuildType.custom(profile)
 
     def configure_cross_compilation(
             self,

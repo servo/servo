@@ -3,6 +3,9 @@ name: Mac
 on:
   workflow_call:
     inputs:
+      force-debug-assertions:
+        required: false
+        type: boolean
       wpt-layout:
         required: false
         type: string
@@ -19,6 +22,9 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      force-debug-assertions:
+        required: false
+        type: boolean
       wpt-layout:
         required: false
         type: choice
@@ -35,6 +41,7 @@ on:
     branches: ["try-mac", "try-wpt-mac", "try-wpt-mac-2020"]
 
 env:
+  cargo_profile_option: ${{ inputs.force-debug-assertions && "--profile release-with-debug-assertions" || "--release" }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   SCCACHE_GHA_ENABLED: "true"
@@ -70,18 +77,18 @@ jobs:
           python3 -m pip install --upgrade pip virtualenv
           python3 ./mach bootstrap
           brew install gnu-tar
-      - name: Release build
+      - name: Release build (${{ inputs.force-debug-assertions && "with" || "without" }} debug assertions)
         run: |
-          python3 ./mach build --release
+          python3 ./mach build ${cargo_profile_option}
       - name: Smoketest
-        run: python3 ./mach smoketest --release
+        run: python3 ./mach smoketest ${cargo_profile_option}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-mac' }}
-        run: python3 ./mach test-unit --release
+        run: python3 ./mach test-unit ${cargo_profile_option}
       - name: Package
-        run: python3 ./mach package --release
+        run: python3 ./mach package ${cargo_profile_option}
       - name: Package smoketest
         run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
       - name: Rename build timing

@@ -3,6 +3,9 @@ name: Windows
 on:
   workflow_call:
     inputs:
+      force-debug-assertions:
+        required: false
+        type: boolean
       unit-tests:
         required: false
         default: false
@@ -16,6 +19,9 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      force-debug-assertions:
+        required: false
+        type: boolean
       unit-tests:
         required: false
         default: false
@@ -28,6 +34,7 @@ on:
     branches: ["try-windows"]
 
 env:
+  cargo_profile_option: ${{ inputs.force-debug-assertions && "--profile release-with-debug-assertions" || "--release" }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CCACHE: "ccache"
@@ -69,15 +76,15 @@ jobs:
           python -m pip install --upgrade pip virtualenv
           python mach fetch
           python mach bootstrap-gstreamer
-      - name: Release build
-        run: python mach build --release
+      - name: Release build (${{ inputs.force-debug-assertions && "with" || "without" }} debug assertions)
+        run: python mach build $env:cargo_profile_option
       - name: Copy resources
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
-        run: python mach smoketest --angle --release
+        run: python mach smoketest --angle $env:cargo_profile_option
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-windows' }}
-        run: python mach test-unit --release
+        run: python mach test-unit $env:cargo_profile_option
       - name: Rename build timing
         run: cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Archive build timing
@@ -87,7 +94,7 @@ jobs:
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Package
-        run: python mach package --release
+        run: python mach package $env:cargo_profile_option
       - name: Upload package
         uses: actions/upload-artifact@v3
         with:

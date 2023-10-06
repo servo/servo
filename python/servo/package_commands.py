@@ -155,7 +155,12 @@ class PackageCommands(CommandBase):
             else:
                 arch_string = "Arm"
 
-            build_type_string = "Debug" if build_type == BuildType.DEV else "Release"
+            if build_type.is_dev():
+                build_type_string = "Debug"
+            elif build_type.is_release():
+                build_type_string = "Release"
+            else:
+                raise Exception("TODO what should this be?")
 
             flavor_name = "Main"
             if flavor is not None:
