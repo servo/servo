@@ -131,6 +131,7 @@ class Linux(Base):
             'arch linux',
             'arch',
             'artix',
+            'endeavouros',
             'centos linux',
             'centos',
             'debian gnu/linux',
