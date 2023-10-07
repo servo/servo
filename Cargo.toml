@@ -19,7 +19,7 @@ atomic_refcell = "0.1.12"
 backtrace = "0.3"
 base64 = "0.21.4"
 bitflags = "2.4"
-byteorder = "1.0"
+byteorder = "1.5"
 cfg-if = "1.0.0"
 content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = "0.12"
