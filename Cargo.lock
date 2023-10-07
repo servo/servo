@@ -844,7 +844,7 @@ dependencies = [
  "bitflags 1.3.2",
  "block",
  "cocoa-foundation",
- "core-foundation 0.9.3",
+ "core-foundation",
  "core-graphics",
  "foreign-types 0.3.2",
  "libc",
@@ -859,7 +859,7 @@ checksum = "8c6234cbb2e4c785b456c0644748b1ac416dd045799740356f8363dfe00c93f7"
 dependencies = [
  "bitflags 1.3.2",
  "block",
- "core-foundation 0.9.3",
+ "core-foundation",
  "core-graphics-types",
  "libc",
  "objc",
@@ -1040,29 +1040,13 @@ dependencies = [
 
 [[package]]
 name = "core-foundation"
-version = "0.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25b9e03f145fd4f2bf705e07b900cd41fc636598fe5dc452fd0db1441c3f496d"
-dependencies = [
- "core-foundation-sys 0.6.2",
- "libc",
-]
-
-[[package]]
-name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "194a7a9e6de53fa55116934067c844d9d749312f75c6f6d0980e8c252f8c2146"
 dependencies = [
- "core-foundation-sys 0.8.3",
+ "core-foundation-sys",
  "libc",
 ]
-
-[[package]]
-name = "core-foundation-sys"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7ca8a5221364ef15ce201e8ed2f609fc312682a8f4e0e3d4aa5879764e0fa3b"
 
 [[package]]
 name = "core-foundation-sys"
@@ -1077,7 +1061,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2581bbab3b8ffc6fcbd550bf46c355135d16e9ff2a6ea032ad6b9bf1d7efe4fb"
 dependencies = [
  "bitflags 1.3.2",
- "core-foundation 0.9.3",
+ "core-foundation",
  "core-graphics-types",
  "foreign-types 0.3.2",
  "libc",
@@ -1090,7 +1074,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bb142d41022986c1d8ff29103a1411c8a3dfad3552f87a4f8dc50d61d4f4e33"
 dependencies = [
  "bitflags 1.3.2",
- "core-foundation 0.9.3",
+ "core-foundation",
  "libc",
 ]
 
@@ -1100,7 +1084,7 @@ version = "19.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99d74ada66e07c1cefa18f8abfba765b486f250de2e4a999e5727fc0dd4b4a25"
 dependencies = [
- "core-foundation 0.9.3",
+ "core-foundation",
  "core-graphics",
  "foreign-types 0.3.2",
  "libc",
@@ -1768,7 +1752,7 @@ checksum = "21fe28504d371085fae9ac7a3450f0b289ab71e07c8e57baa3fb68b9e57d6ce5"
 dependencies = [
  "bitflags 1.3.2",
  "byteorder",
- "core-foundation 0.9.3",
+ "core-foundation",
  "core-graphics",
  "core-text",
  "dirs-next",
@@ -2058,7 +2042,7 @@ dependencies = [
  "app_units",
  "bitflags 2.4.0",
  "byteorder",
- "core-foundation 0.9.3",
+ "core-foundation",
  "core-graphics",
  "core-text",
  "dwrote",
@@ -2789,7 +2773,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fad5b825842d2b38bd206f3e81d6957625fd7f0a361e345c30e01a0ae2dd613"
 dependencies = [
  "android_system_properties",
- "core-foundation-sys 0.8.3",
+ "core-foundation-sys",
  "iana-time-zone-haiku",
  "js-sys",
  "wasm-bindgen",
@@ -2876,7 +2860,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "861c6093cbc05599e66436aedf380bb0a23cec2180738393d3a340b80dd135ef"
 dependencies = [
  "cgl",
- "core-foundation 0.9.3",
+ "core-foundation",
  "leaky-cow",
  "libc",
 ]
@@ -5514,7 +5498,7 @@ checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
 name = "simpleservo"
 version = "0.0.1"
 dependencies = [
- "core-foundation 0.6.4",
+ "core-foundation",
  "getopts",
  "gl_generator",
  "ipc-channel",
@@ -5882,7 +5866,7 @@ dependencies = [
  "cfg_aliases",
  "cgl",
  "cocoa",
- "core-foundation 0.9.3",
+ "core-foundation",
  "core-graphics",
  "euclid",
  "fnv",
@@ -6806,7 +6790,7 @@ dependencies = [
  "bitflags 1.3.2",
  "build-parallel",
  "byteorder",
- "core-foundation 0.9.3",
+ "core-foundation",
  "core-graphics",
  "core-text",
  "cstr",
@@ -6844,7 +6828,7 @@ dependencies = [
  "app_units",
  "bitflags 1.3.2",
  "byteorder",
- "core-foundation 0.9.3",
+ "core-foundation",
  "core-graphics",
  "crossbeam-channel",
  "derive_more",
@@ -7194,7 +7178,7 @@ dependencies = [
  "android-activity",
  "bitflags 1.3.2",
  "cfg_aliases",
- "core-foundation 0.9.3",
+ "core-foundation",
  "core-graphics",
  "dispatch",
  "instant",

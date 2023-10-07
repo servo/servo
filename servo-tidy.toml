@@ -24,8 +24,6 @@ packages = [
     "bitflags",
     "cfg-if",
     "cookie",
-    "core-foundation",
-    "core-foundation-sys",
     "futures",
     "libloading",
     "mio",
