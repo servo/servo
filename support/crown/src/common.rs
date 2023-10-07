@@ -277,13 +277,6 @@ pub fn def_local_res(cx: &LateContext<'_>, path: &str) -> Vec<Res> {
     resolutions
 }
 
-/// Resolves a def path like `std::vec::Vec` to its [`DefId`]s, see [`def_path_res`].
-pub fn def_path_def_ids(cx: &LateContext<'_>, path: &[&str]) -> impl Iterator<Item = DefId> {
-    def_path_res(cx, path)
-        .into_iter()
-        .filter_map(|res| res.opt_def_id())
-}
-
 pub fn get_trait_def_id(cx: &LateContext<'_>, path: &[&str]) -> Option<DefId> {
     def_path_res(cx, path)
         .into_iter()
