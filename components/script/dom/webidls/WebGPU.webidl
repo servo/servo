@@ -78,6 +78,7 @@ interface mixin NavigatorGPU {
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPU {
+    [NewObject]
     Promise<GPUAdapter?> requestAdapter(optional GPURequestAdapterOptions options = {});
     GPUTextureFormat getPreferredCanvasFormat();
     //[SameObject] readonly attribute WGSLLanguageFeatures wgslLanguageFeatures;
@@ -99,7 +100,9 @@ interface GPUAdapter {
     [SameObject] readonly attribute GPUSupportedLimits limits;
     readonly attribute boolean isFallbackAdapter;
 
+    [NewObject]
     Promise<GPUDevice> requestDevice(optional GPUDeviceDescriptor descriptor = {});
+    [NewObject]
     Promise<GPUAdapterInfo> requestAdapterInfo(optional sequence<DOMString> unmaskHints = []);
 };
 
@@ -133,8 +136,11 @@ interface GPUDevice : EventTarget {
 
     undefined destroy();
 
+    [NewObject]
     GPUBuffer createBuffer(GPUBufferDescriptor descriptor);
+    [NewObject]
     GPUTexture createTexture(GPUTextureDescriptor descriptor);
+    [NewObject]
     GPUSampler createSampler(optional GPUSamplerDescriptor descriptor = {});
     //GPUExternalTexture importExternalTexture(GPUExternalTextureDescriptor descriptor);
 
@@ -145,10 +151,14 @@ interface GPUDevice : EventTarget {
     GPUShaderModule createShaderModule(GPUShaderModuleDescriptor descriptor);
     GPUComputePipeline createComputePipeline(GPUComputePipelineDescriptor descriptor);
     GPURenderPipeline createRenderPipeline(GPURenderPipelineDescriptor descriptor);
+    [NewObject]
     Promise<GPUComputePipeline> createComputePipelineAsync(GPUComputePipelineDescriptor descriptor);
+    [NewObject]
     Promise<GPURenderPipeline> createRenderPipelineAsync(GPURenderPipelineDescriptor descriptor);
 
+    [NewObject]
     GPUCommandEncoder createCommandEncoder(optional GPUCommandEncoderDescriptor descriptor = {});
+    [NewObject]
     GPURenderBundleEncoder createRenderBundleEncoder(GPURenderBundleEncoderDescriptor descriptor);
 
     //GPUQuerySet createQuerySet(GPUQuerySetDescriptor descriptor);
@@ -163,8 +173,9 @@ interface GPUBuffer {
     // TODO: require deep changes
     //readonly attribute GPUBufferMapState mapState;
 
+    [NewObject]
     Promise<undefined> mapAsync(GPUMapModeFlags mode, optional GPUSize64 offset = 0, optional GPUSize64 size);
-    [Throws]
+    [NewObject, Throws]
     ArrayBuffer getMappedRange(optional GPUSize64 offset = 0, optional GPUSize64 size);
     undefined unmap();
 
@@ -209,6 +220,7 @@ namespace GPUMapMode {
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUTexture {
+    [NewObject]
     GPUTextureView createView(optional GPUTextureViewDescriptor descriptor = {});
 
     undefined destroy();
@@ -918,7 +930,9 @@ interface mixin GPUCommandsMixin {
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUCommandEncoder {
+    [NewObject]
     GPURenderPassEncoder beginRenderPass(GPURenderPassDescriptor descriptor);
+    [NewObject]
     GPUComputePassEncoder beginComputePass(optional GPUComputePassDescriptor descriptor = {});
 
     undefined copyBufferToBuffer(
@@ -957,6 +971,7 @@ interface GPUCommandEncoder {
         GPUBuffer destination,
         GPUSize64 destinationOffset);*/
 
+    [NewObject]
     GPUCommandBuffer finish(optional GPUCommandBufferDescriptor descriptor = {});
 };
 GPUCommandEncoder includes GPUObjectBase;
@@ -1263,6 +1278,7 @@ enum GPUErrorFilter {
 
 partial interface GPUDevice {
     undefined pushErrorScope(GPUErrorFilter filter);
+    [NewObject]
     Promise<GPUError?> popErrorScope();
 };
 
