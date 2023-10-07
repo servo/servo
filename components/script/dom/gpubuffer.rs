@@ -16,6 +16,7 @@ use webgpu::identity::WebGPUOpResult;
 use webgpu::wgpu::device::HostMap;
 use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
+use super::bindings::codegen::Bindings::WebGPUBinding::GPUFlagsConstant;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBufferMethods, GPUMapModeConstants, GPUSize64,
@@ -67,6 +68,7 @@ pub struct GPUBuffer {
     buffer: WebGPUBuffer,
     device: Dom<GPUDevice>,
     size: GPUSize64,
+    usage: GPUFlagsConstant,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-pending_map-slot>
     #[ignore_malloc_size_of = "promises are hard"]
     map_promise: DomRefCell<Option<Rc<Promise>>>,
@@ -81,6 +83,7 @@ impl GPUBuffer {
         device: &GPUDevice,
         state: GPUBufferState,
         size: GPUSize64,
+        usage: GPUFlagsConstant,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
         label: USVString,
     ) -> Self {
@@ -93,6 +96,7 @@ impl GPUBuffer {
             buffer,
             map_promise: DomRefCell::new(None),
             size,
+            usage,
             map_info,
         }
     }
@@ -105,12 +109,13 @@ impl GPUBuffer {
         device: &GPUDevice,
         state: GPUBufferState,
         size: GPUSize64,
+        usage: GPUFlagsConstant,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
-                channel, buffer, device, state, size, map_info, label,
+                channel, buffer, device, state, size, usage, map_info, label,
             )),
             global,
         )
@@ -342,14 +347,13 @@ impl GPUBufferMethods for GPUBuffer {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-size
-    fn Size(&self) -> u64 {
+    fn Size(&self) -> GPUSize64 {
         self.size
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-usage
-    fn Usage(&self) -> u32 {
-        //self.usage
-        todo!()
+    fn Usage(&self) -> GPUFlagsConstant {
+        self.usage
     }
 }
 

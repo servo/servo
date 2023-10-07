@@ -376,7 +376,7 @@ impl GPUDeviceMethods for GPUDevice {
         let desc =
             wgt::BufferUsages::from_bits(descriptor.usage).map(|usg| wgpu_res::BufferDescriptor {
                 label: convert_label(&descriptor.parent),
-                size: descriptor.size as wgt::BufferAddress,
+                size: descriptor.size,
                 usage: usg,
                 mapped_at_creation: descriptor.mappedAtCreation,
             });
@@ -431,6 +431,7 @@ impl GPUDeviceMethods for GPUDevice {
             &self,
             state,
             descriptor.size,
+            descriptor.usage,
             map_info,
             descriptor.parent.label.clone(),
         )
