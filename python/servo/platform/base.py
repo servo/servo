@@ -115,7 +115,7 @@ class Base:
         if not force and shutil.which("crown") is not None:
             return False
 
-        if subprocess.call(["cargo", "install", "crown", "--git", "https://github.com/sagudev/cargo-crown"],
+        if subprocess.call(["cargo", "install", "--path", "support/crown"],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
             raise EnvironmentError("Installation of crown failed.")
 
