@@ -1,0 +1,10 @@
+error: Type must be rooted
+ --> $DIR/unrooted_must_root_parameter.rs:4:12
+  |
+4 | fn foo1(_: Foo) {}
+  |            ^^^
+  |
+  = note: `#[deny(crown::unrooted_must_root)]` on by default
+
+error: aborting due to previous error
+
