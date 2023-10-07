@@ -296,7 +296,7 @@ impl GPUBufferMethods for GPUBuffer {
         } else {
             self.size - offset
         };
-        let m_end = offset + range_size;
+        let range = offset..offset + range_size;
         let mut info = self.map_info.borrow_mut();
         let m_info = info.as_mut().unwrap();
 
@@ -306,31 +306,32 @@ impl GPUBufferMethods for GPUBuffer {
         };
         valid &= offset % RANGE_OFFSET_ALIGN_MASK == 0 &&
             range_size % RANGE_SIZE_ALIGN_MASK == 0 &&
-            offset >= m_info.mapping_range.start &&
-            m_end <= m_info.mapping_range.end;
+            range.start >= m_info.mapping_range.start &&
+            range.end <= m_info.mapping_range.end;
         valid &= m_info
             .mapped_ranges
             .iter()
-            .all(|range| range.start >= m_end || range.end <= offset);
+            .all(|m_range| m_range.start >= range.end || m_range.end <= range.start);
         if !valid {
             return Err(Error::Operation);
         }
 
         unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
-            let _ = Rc::from_raw(free_user_data as _);
+            drop(Rc::from_raw(free_user_data as _));
         }
 
         let array_buffer = unsafe {
             NewExternalArrayBuffer(
                 *cx,
                 range_size as usize,
-                m_info.mapping.borrow_mut()[offset as usize..m_end as usize].as_mut_ptr() as _,
+                m_info.mapping.borrow_mut()[range.start as usize..range.end as usize].as_mut_ptr()
+                    as _,
                 Some(free_func),
                 Rc::into_raw(m_info.mapping.clone()) as _,
             )
         };
 
-        m_info.mapped_ranges.push(offset..m_end);
+        m_info.mapped_ranges.push(range);
         m_info.js_buffers.push(Heap::boxed(array_buffer));
 
         Ok(NonNull::new(array_buffer).unwrap())

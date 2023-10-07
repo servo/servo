@@ -13,6 +13,7 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
+use std::ops::Range;
 use std::rc::Rc;
 use std::slice;
 use std::sync::{Arc, Mutex};
@@ -81,7 +82,7 @@ pub enum WebGPURequest {
         buffer_id: id::BufferId,
         device_id: id::DeviceId,
         host_map: HostMap,
-        map_range: std::ops::Range<u64>,
+        map_range: Range<wgt::BufferAddress>,
     },
     BufferMapComplete(id::BufferId),
     CommandEncoderFinish {
@@ -268,7 +269,7 @@ struct BufferMapInfo<'a, T> {
     buffer_id: id::BufferId,
     sender: IpcSender<T>,
     global: &'a wgpu::global::Global<IdentityRecyclerFactory>,
-    size: usize,
+    range: Range<wgt::BufferAddress>,
     external_id: Option<u64>,
 }
 
@@ -421,7 +422,7 @@ impl<'a> WGPU<'a> {
                             buffer_id,
                             sender: sender.clone(),
                             global: &self.global,
-                            size: (map_range.end - map_range.start) as usize,
+                            range: map_range.clone(),
                             external_id: None,
                         };
                         self.buffer_maps.insert(buffer_id, Rc::new(map_info));
@@ -436,8 +437,9 @@ impl<'a> WGPU<'a> {
                             let msg = match status {
                                 BufferMapAsyncStatus::Success => {
                                     let global = &info.global;
+                                    let size = info.range.end - info.range.start;
                                     let (slice_pointer, range_size) = gfx_select!(info.buffer_id =>
-                                        global.buffer_get_mapped_range(info.buffer_id, 0, None))
+                                        global.buffer_get_mapped_range(info.buffer_id, info.range.start, Some(size)))
                                     .unwrap();
                                     let data =
                                         slice::from_raw_parts(slice_pointer, range_size as usize);
@@ -1117,7 +1119,7 @@ impl<'a> WGPU<'a> {
                             buffer_id,
                             sender: self.sender.clone(),
                             global: &self.global,
-                            size: buffer_size as usize,
+                            range: 0..buffer_size,
                             external_id: Some(external_id),
                         };
                         self.present_buffer_maps
@@ -1137,7 +1139,8 @@ impl<'a> WGPU<'a> {
                                         None,
                                         WebGPURequest::UpdateWebRenderData {
                                             buffer_id: info.buffer_id,
-                                            buffer_size: info.size,
+                                            buffer_size: (info.range.end - info.range.start)
+                                                as usize,
                                             external_id: info.external_id.unwrap(),
                                         },
                                     )) {
