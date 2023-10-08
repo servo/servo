@@ -131,3 +131,57 @@ promise_test(async t => {
   // `data.buffer` didn't get detached
   assert_equals(data.length, 16, 'data.length');
 }, 'Test transfering same array buffer twice');
+
+promise_test(async t => {
+  const bytes = [ 0xBA, 0xDF, 0x00, 0xD0, 0xBA, 0xDF, 0x01, 0xD0, 0xBA, 0xDF ];
+  let data = new Uint8Array(bytes);
+  let unused_buffer = new ArrayBuffer(123);
+  let init = {
+    type: 'key',
+    timestamp: 0,
+    data: data,
+    transfer: [data.buffer, unused_buffer]
+  };
+
+  assert_equals(data.length, 10, 'data.length');
+  assert_equals(unused_buffer.byteLength, 123, 'unused_buffer.byteLength');
+
+  let chunk = new EncodedAudioChunk(init);
+  assert_equals(data.length, 0, 'data.length after detach');
+  assert_equals(unused_buffer.byteLength, 0, 'unused_buffer after detach');
+
+  let output_data = new Uint8Array(chunk.byteLength);
+  chunk.copyTo(output_data);
+  let expected_data = new Uint8Array(bytes);
+  assert_equals(expected_data.length, chunk.byteLength, 'expected_data size');
+  for (let i = 0; i < chunk.byteLength; i++) {
+    assert_equals(expected_data[i], output_data[i], `expected_data[${i}]`);
+  }
+}, 'Test transfering ArrayBuffer to EncodedAudioChunk');
+
+promise_test(async t => {
+  const bytes = [ 0xBA, 0xDF, 0x00, 0xD0, 0xBA, 0xDF, 0x01, 0xD0, 0xBA, 0xDF ];
+  let data = new Uint8Array(bytes);
+  let unused_buffer = new ArrayBuffer(123);
+  let init = {
+    type: 'key',
+    timestamp: 0,
+    data: data,
+    transfer: [data.buffer, unused_buffer]
+  };
+
+  assert_equals(data.length, 10, 'data.length');
+  assert_equals(unused_buffer.byteLength, 123, 'unused_buffer.byteLength');
+
+  let chunk = new EncodedVideoChunk(init);
+  assert_equals(data.length, 0, 'data.length after detach');
+  assert_equals(unused_buffer.byteLength, 0, 'unused_buffer after detach');
+
+  let output_data = new Uint8Array(chunk.byteLength);
+  chunk.copyTo(output_data);
+  let expected_data = new Uint8Array(bytes);
+  assert_equals(expected_data.length, chunk.byteLength, 'expected_data size');
+  for (let i = 0; i < chunk.byteLength; i++) {
+    assert_equals(expected_data[i], output_data[i], `expected_data[${i}]`);
+  }
+}, 'Test transfering ArrayBuffer to EncodedVideoChunk');

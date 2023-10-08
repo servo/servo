@@ -6,13 +6,15 @@ promise_test(async (t) => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
 
   location.hash = "#1";
   location.hash = "#2";
   location.hash = "#3";
 
-  assert_equals(navigation.entries().length, 4);
-  const [entry0, entry1, entry2, entry3] = navigation.entries();
+  assert_equals(navigation.entries().length, start_length + 3);
+  const [entry0, entry1, entry2, entry3] = navigation.entries().slice(start_index);
   assert_equals((new URL(entry2.url)).hash, "#2");
   assert_equals((new URL(entry3.url)).hash, "#3");
 
@@ -37,8 +39,8 @@ promise_test(async (t) => {
 
   assert_equals(dispose3Called, 1, "dispose for entry 3 must happen exactly once (final check)");
 
-  assert_equals(navigation.entries().length, 4);
-  const [finalEntry0, finalEntry1, finalEntry2, finalEntry3] = navigation.entries();
+  assert_equals(navigation.entries().length, start_length + 3);
+  const [finalEntry0, finalEntry1, finalEntry2, finalEntry3] = navigation.entries().slice(start_index);
   assert_equals(finalEntry0, entry0);
   assert_equals(finalEntry1, entry1);
   assert_not_equals(finalEntry2, entry2);

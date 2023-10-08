@@ -162,8 +162,10 @@ function createDecisionScriptURL(uuid, params = {}) {
 // by the decision logic script before accepting a bid. "uuid" is expected to
 // be last.  "signalsParams" also has no effect, but is used by
 // trusted-scoring-signals.py to affect the response.
-function createRenderURL(uuid, script, signalsParams) {
-  let url = new URL(`${BASE_URL}resources/fenced-frame.sub.py`);
+function createRenderURL(uuid, script, signalsParams, origin) {
+  if (origin == null)
+    origin = new URL(BASE_URL).origin;
+  let url = new URL(`${origin}${RESOURCE_PATH}fenced-frame.sub.py`);
   if (script)
     url.searchParams.append('script', script);
   if (signalsParams)

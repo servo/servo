@@ -124,7 +124,8 @@ class Script(BidiModule):
         arguments: Optional[List[Mapping[str, Any]]] = None,
         this: Optional[Mapping[str, Any]] = None,
         result_ownership: Optional[OwnershipModel] = None,
-        serialization_options: Optional[SerializationOptions] = None
+        serialization_options: Optional[SerializationOptions] = None,
+        user_activation: Optional[bool] = None
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {
             "functionDeclaration": function_declaration,
@@ -140,6 +141,8 @@ class Script(BidiModule):
             params["resultOwnership"] = result_ownership
         if serialization_options is not None:
             params["serializationOptions"] = serialization_options
+        if user_activation is not None:
+            params["userActivation"] = user_activation
         return params
 
     @call_function.result
@@ -165,7 +168,8 @@ class Script(BidiModule):
         target: Target,
         await_promise: bool,
         result_ownership: Optional[OwnershipModel] = None,
-        serialization_options: Optional[SerializationOptions] = None
+        serialization_options: Optional[SerializationOptions] = None,
+        user_activation: Optional[bool] = None
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {
             "expression": expression,
@@ -177,6 +181,8 @@ class Script(BidiModule):
             params["resultOwnership"] = result_ownership
         if serialization_options is not None:
             params["serializationOptions"] = serialization_options
+        if user_activation is not None:
+            params["userActivation"] = user_activation
         return params
 
     @evaluate.result

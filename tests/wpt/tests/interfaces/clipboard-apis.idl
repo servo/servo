@@ -28,6 +28,8 @@ interface ClipboardItem {
   readonly attribute FrozenArray<DOMString> types;
 
   Promise<Blob> getType(DOMString type);
+
+  static boolean supports(DOMString type);
 };
 
 enum PresentationStyle { "unspecified", "inline", "attachment" };

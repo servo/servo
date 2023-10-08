@@ -7,20 +7,22 @@ promise_test(async (t) => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
 
   await iframe.contentWindow.navigation.navigate("#a");
   await navigation.navigate("#1").finished;
   await navigation.navigate("#2").finished;
   await navigation.navigate("#3").finished;
   await iframe.contentWindow.navigation.back().finished;
-  assert_equals(navigation.entries().length, 4);
+  assert_equals(navigation.entries().length, start_length + 3);
   assert_equals(iframe.contentWindow.navigation.entries().length, 2);
-  assert_equals(navigation.currentEntry.index, 0);
+  assert_equals(navigation.currentEntry.index, start_index);
   assert_equals(iframe.contentWindow.navigation.currentEntry.index, 0);
 
-  let top_entry_0_before = navigation.entries()[0];
+  let top_entry_0_before = navigation.entries()[start_index];
   let dispose_promises = [];
-  for (let i = 1; i < navigation.entries().length; i++) {
+  for (let i = start_index + 1; i < navigation.entries().length; i++) {
     dispose_promises.push(new Promise(r => navigation.entries()[i].ondispose = r))
   }
 
@@ -31,11 +33,11 @@ promise_test(async (t) => {
   // top window should have dispose events, even though that wasn't the window
   // that navigated.
   await Promise.all(dispose_promises);
-  assert_equals(navigation.entries().length, 1);
+  assert_equals(navigation.entries().length, start_length);
   assert_equals(iframe.contentWindow.navigation.entries().length, 2);
-  assert_equals(navigation.currentEntry.index, 0);
+  assert_equals(navigation.currentEntry.index, start_index);
   assert_equals(iframe.contentWindow.navigation.currentEntry.index, 1);
-  assert_equals(navigation.entries()[0], top_entry_0_before);
+  assert_equals(navigation.entries()[start_index], top_entry_0_before);
 
 }, "Dispose events should fire when entries are removed by a navigation in a different frame");
 </script>

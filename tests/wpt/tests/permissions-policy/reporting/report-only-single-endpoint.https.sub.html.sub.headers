@@ -1,0 +1,2 @@
+Permissions-Policy-Report-Only: camera=();report-to=camera-endpoint
+Reporting-Endpoints: camera-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=c3841a1a-e750-4801-a50b-c4222d386515"

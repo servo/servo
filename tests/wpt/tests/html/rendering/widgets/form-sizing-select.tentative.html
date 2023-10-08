@@ -5,7 +5,7 @@
 <body>
 <style>
 .disable-default {
-  form-sizing: normal;
+  form-sizing: content;
 }
 </style>
 <div id="container"></div>
@@ -18,7 +18,7 @@ const DISABLE = 'class="disable-default"';
 test(() => {
   const s = '<select>><option>1<option>quick brown<option>fox</select>';
   container.innerHTML = s + s;
-  container.lastElementChild.style.formSizing = 'normal';
+  container.lastElementChild.style.formSizing = 'content';
   const widthForContent1 = container.lastElementChild.offsetWidth;
   assert_greater_than(container.firstElementChild.offsetWidth,
                       widthForContent1);
@@ -31,9 +31,9 @@ test(() => {
   container.innerHTML = '<select><option>foo<option>quick brown fox</select>';
   const select = container.firstElementChild;
   const initialWidth = select.offsetWidth;
-  select.style.formSizing = 'normal';
+  select.style.formSizing = 'content';
   assert_less_than(select.offsetWidth, initialWidth);
-  select.style.formSizing = 'auto';
+  select.style.formSizing = 'fixed';
   assert_equals(select.offsetWidth, initialWidth);
 }, 'dropdown: Change the form-sizing value dynamically');
 
@@ -76,9 +76,9 @@ if (container.firstElementChild.offsetHeight != container.lastElementChild.offse
     container.innerHTML = '<select multiple><option>foo<option>quick brown fox</select>';
     const select = container.firstElementChild;
     const initialHeight = select.offsetHeight;
-    select.style.formSizing = 'normal';
+    select.style.formSizing = 'content';
     assert_less_than(select.offsetHeight, initialHeight);
-    select.style.formSizing = 'auto';
+    select.style.formSizing = 'fixed';
     assert_equals(select.offsetHeight, initialHeight);
   }, 'listbox: Change the form-sizing value dynamically');
 

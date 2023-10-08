@@ -120,6 +120,7 @@ function addCleanup(t, part) {
 
     // Test cloning of the entire DocumentPartRoot.
     const clonedPartRoot = root.clone();
+    assertEqualParts(root.getParts(),rootExpectations,[nodePart,childNodePart],'cloning a part root should not change the original');
     const clonedContainer = clonedPartRoot.rootContainer;
     assert_true(clonedPartRoot instanceof DocumentPartRoot);
     assert_true(clonedContainer instanceof (useTemplate ? DocumentFragment : Document));

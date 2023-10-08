@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Media Session Standard (https://w3c.github.io/mediasession/)
+// Source: Media Session (https://w3c.github.io/mediasession/)
 
 [Exposed=Window]
 partial interface Navigator {

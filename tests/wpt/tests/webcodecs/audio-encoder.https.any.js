@@ -241,7 +241,7 @@ async function checkEncodingError(t, config, good_data, bad_data) {
 
   encoder.encode(bad_data);
   await promise_rejects_dom(t, 'EncodingError', encoder.flush().catch((e) => {
-    assert_equals(errors, 0);
+    assert_equals(errors, 1);
     throw e;
   }));
 

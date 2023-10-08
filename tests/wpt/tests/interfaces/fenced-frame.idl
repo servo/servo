@@ -28,6 +28,13 @@ interface FencedFrameConfig {
   undefined setSharedStorageContext(DOMString contextString);
 };
 
+typedef (USVString or FencedFrameConfig) UrnOrConfig;
+
+partial interface Navigator {
+  Promise<undefined> deprecatedReplaceInURN(
+    UrnOrConfig urnOrConfig, record<USVString, USVString> replacements);
+};
+
 enum FenceReportingDestination {
   "buyer",
   "seller",
@@ -37,18 +44,27 @@ enum FenceReportingDestination {
 };
 
 dictionary FenceEvent {
-  required DOMString eventType;
-  required DOMString eventData;
-  required sequence<FenceReportingDestination> destination;
+  // This dictionary has two mutually exclusive modes that aren’t represented as
+  // distinct IDL types due to distinguishability issues:
+  //
+  // When reporting to a preregistered destination (specified by enum), the following
+  // properties are used:
+  DOMString eventType;
+  DOMString eventData;
+  sequence<FenceReportingDestination> destination;
   boolean once = false;
+
+  // When reporting to a custom destination URL (with substitution of macros defined by
+  // the Protected Audience buyer), the following property is used:
+  USVString destinationURL;
 };
 
 typedef (FenceEvent or DOMString) ReportEventType;
 
 [Exposed=Window]
 interface Fence {
-    undefined reportEvent(ReportEventType event);
-    undefined setReportEventDataForAutomaticBeacons(FenceEvent event);
+    undefined reportEvent(optional ReportEventType event = {});
+    undefined setReportEventDataForAutomaticBeacons(optional FenceEvent event = {});
     sequence<FencedFrameConfig> getNestedConfigs();
 };
 

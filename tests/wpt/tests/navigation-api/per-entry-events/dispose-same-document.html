@@ -6,13 +6,15 @@ promise_test(async (t) => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
 
   location.hash = "#1";
   location.hash = "#2";
   location.hash = "#3";
 
-  assert_equals(navigation.entries().length, 4);
-  const [entry0, entry1, entry2, entry3] = navigation.entries();
+  assert_equals(navigation.entries().length, start_length + 3);
+  const [entry0, entry1, entry2, entry3] = navigation.entries().slice(start_index);
   assert_equals((new URL(entry2.url)).hash, "#2");
   assert_equals((new URL(entry3.url)).hash, "#3");
 
@@ -26,7 +28,7 @@ promise_test(async (t) => {
     assert_equals(e.composed, false);
 
     assert_array_equals(
-      navigation.entries(),
+      navigation.entries().slice(start_index),
       [entry0, entry1, navigation.currentEntry],
       "entries() is updated during dispose for entry 2");
     assert_not_equals(navigation.currentEntry, entry1, "current entry must be updated during dispose for entry 3");
@@ -40,7 +42,7 @@ promise_test(async (t) => {
     assert_true(dispose2Called, "dispose for entry 2 must have happened before entry 3");
 
     assert_array_equals(
-      navigation.entries(),
+      navigation.entries().slice(start_index),
       [entry0, entry1, navigation.currentEntry],
       "entries() is updated during dispose for entry 3");
     assert_not_equals(navigation.currentEntry, entry1, "current entry must be updated during dispose for entry 3");
@@ -54,8 +56,8 @@ promise_test(async (t) => {
 
   navigation.navigate("#fork");
 
-  assert_equals(navigation.entries().length, 3);
-  const [finalEntry0, finalEntry1, finalEntry2] = navigation.entries();
+  assert_equals(navigation.entries().length, start_length + 2);
+  const [finalEntry0, finalEntry1, finalEntry2] = navigation.entries().slice(start_index);
   assert_equals(finalEntry0, entry0);
   assert_equals(finalEntry1, entry1);
   assert_not_equals(finalEntry2, entry2);

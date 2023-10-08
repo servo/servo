@@ -17,13 +17,9 @@ const LOCK_ACCESS = {
 };
 
 // Array of separators used to separate components in hierarchical paths.
-let kPathSeparators;
-if (navigator.userAgent.includes('Windows NT')) {
-  // Windows uses both '/' and '\' as path separators.
-  kPathSeparators = ['/', '\\'];
-} else {
-  kPathSeparators = ['/'];
-}
+// Consider both '/' and '\' as path separators to ensure file names are
+// platform-agnostic.
+let kPathSeparators = ['/', '\\'];
 
 async function getFileSize(handle) {
   const file = await handle.getFile();

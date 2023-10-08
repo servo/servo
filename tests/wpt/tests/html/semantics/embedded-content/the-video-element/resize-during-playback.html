@@ -14,12 +14,15 @@ for (const format of ['mp4', 'webm']) {
     const video = document.createElement('video');
     assert_implements_optional(video.canPlayType(`video/${format}`), `${format} supported`);
 
+    const eventWatcher = new EventWatcher(t, video, ['resize', 'playing', 'error', 'ended']);
+
     // Load the video and wait for initial resize event.
-    video.src = `/media/400x300-red-resize-200x150-green.${format}`;
     video.muted = true;
     video.preload = 'auto';
+    video.onerror = t.unreached_func("error during playback");
+    video.src = `/media/400x300-red-resize-200x150-green.${format}`;
     document.body.appendChild(video);
-    const eventWatcher = new EventWatcher(t, video, ['resize', 'playing', 'error', 'ended']);
+
     await eventWatcher.wait_for(['resize']);
     assert_equals(video.videoWidth, 400, 'width after first resize event');
     assert_equals(video.videoHeight, 300, 'height after first resize event');

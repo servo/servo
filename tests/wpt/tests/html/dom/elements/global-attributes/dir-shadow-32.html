@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>[dir] and shadow slots: dir=rtl on the shadow host, span in the shadow tree</title>
+<link rel="author" title="Eric Meyer" href="mailto:emeyer@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/C#the-dir-attribute">
+<link rel="help" href="https://github.com/whatwg/html/issues/3699">
+<link rel="help" href="https://github.com/whatwg/html/pull/9796">
+<link rel="match" href="dir-shadow-32-ref.html">
+<style type="text/css">
+body {width: 600px;}
+div {border: 1px solid gray; margin: 1em; padding: 0.25em;}
+</style>
+<script src="dir-shadow-utils.js"></script>
+</head>
+<body>
+
+<p>`dir=rtl` on the shadow host, span in the shadow tree</p>
+<div id="host" dir="rtl"></div>
+<p id="result">The HTML direction / computed CSS `direction` value for the shadow span is: </p>
+
+<script type="text/javascript">
+  let root = host.attachShadow({mode:"open"});
+  root.innerHTML = `<style>span {border: 1px solid silver;}</style><span>RTL.</span>`;
+  result.innerHTML += html_direction(root.querySelector('span')) + " / " + getComputedStyle(root.querySelector('span')).direction + '.';
+</script>
+
+</body>
+</html>
