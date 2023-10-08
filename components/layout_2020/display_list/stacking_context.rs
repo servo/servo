@@ -425,8 +425,6 @@ impl StackingContext {
             None => return false,
         };
 
-        let clip_id: Option<wr::ClipId> = self.clip_chain_id.map(|id| wr::ClipId::ClipChain(id));
-
         // WebRender only uses the stacking context to apply certain effects. If we don't
         // actually need to create a stacking context, just avoid creating one.
         let effects = style.get_effects();
@@ -437,6 +435,8 @@ impl StackingContext {
         {
             return false;
         }
+
+        let clip_id = self.clip_chain_id.map(wr::ClipId::ClipChain);
 
         // Create the filter pipeline.
         let current_color = style.clone_color();
