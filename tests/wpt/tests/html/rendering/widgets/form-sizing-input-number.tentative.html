@@ -4,7 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <style>
 .disable-default {
-  form-sizing: normal;
+  form-sizing: content;
 }
 
 .small-placeholder {
@@ -51,7 +51,7 @@ function addTwoElements(source1, source2) {
   test(() => {
     let pair = addElements(`<input type=${type}>`);
     // A text <input> has approximately 20ch width by default.
-    // A text <input> with form-sizing:normal must be shorter than the default.
+    // A text <input> with form-sizing:content must be shorter than the default.
     assert_less_than(pair.content.offsetWidth, pair.fixed.offsetWidth);
     assert_equals(pair.content.offsetHeight, pair.fixed.offsetHeight);
 

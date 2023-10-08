@@ -19,7 +19,7 @@ interface WebTransportDatagramDuplexStream {
 interface WebTransport {
   constructor(USVString url, optional WebTransportOptions options = {});
 
-  Promise<WebTransportStats> getStats();
+  Promise<WebTransportConnectionStats> getStats();
   readonly attribute Promise<undefined> ready;
   readonly attribute WebTransportReliabilityMode reliability;
   readonly attribute WebTransportCongestionControl congestionControl;
@@ -73,13 +73,12 @@ dictionary WebTransportSendStreamOptions {
   long long? sendOrder = null;
 };
 
-dictionary WebTransportStats {
+dictionary WebTransportConnectionStats {
   DOMHighResTimeStamp timestamp;
   unsigned long long bytesSent;
   unsigned long long packetsSent;
+  unsigned long long bytesLost;
   unsigned long long packetsLost;
-  unsigned long numOutgoingStreamsCreated;
-  unsigned long numIncomingStreamsCreated;
   unsigned long long bytesReceived;
   unsigned long long packetsReceived;
   DOMHighResTimeStamp smoothedRtt;

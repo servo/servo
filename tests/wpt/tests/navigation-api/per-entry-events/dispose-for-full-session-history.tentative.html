@@ -6,9 +6,8 @@ promise_test(async (t) => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(r => window.onload = () => t.step_timeout(r, 0));
-  assert_equals(navigation.entries().length, 1);
 
-  let dispose_promise = new Promise(r => navigation.entries()[0].ondispose = r);
+  let dispose_promise = new Promise(r => navigation.currentEntry.ondispose = r);
 
   // There is no spec for the maximum number of joint session history entries
   // (hence this is a .tentative.html test). However, all(?) browsers have a

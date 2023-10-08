@@ -1783,7 +1783,7 @@ interface Window : EventTarget {
 
   // the user agent
   readonly attribute Navigator navigator;
-  readonly attribute Navigator clientInformation; // legacy alias of .navigator
+  [Replaceable] readonly attribute Navigator clientInformation; // legacy alias of .navigator
   readonly attribute boolean originAgentCluster;
 
   // user prompts

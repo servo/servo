@@ -84,3 +84,14 @@ interface WorkletSharedStorage : SharedStorage {
 
   async iterable<DOMString, DOMString>;
 };
+
+interface mixin HTMLSharedStorageWritableElementUtils {
+  [CEReactions, SecureContext] attribute boolean sharedStorageWritable;
+};
+
+HTMLIFrameElement includes HTMLSharedStorageWritableElementUtils;
+HTMLImageElement includes HTMLSharedStorageWritableElementUtils;
+
+partial dictionary RequestInit {
+  boolean sharedStorageWritable;
+};

@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#dom-propertydescriptor-inherits" />
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#register-a-custom-property" />
+<link rel="help" href="https://drafts.csswg.org/css-variables-2/#invalid-at-computed-value-time" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=outer><div id=inner></div></div>
+<script>
+
+test(function(){
+    CSS.registerProperty({name: '--p1', syntax: '*', initialValue: '0px', inherits: true});
+    outer.style = '--p1: 42px';
+    inner.style = '--p1: var(--undefined)';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--p1'), '');
+
+    CSS.registerProperty({name: '--p2', syntax: '*', initialValue: '0px', inherits: false});
+    outer.style = '--p2: 42px';
+    inner.style = '--p2: var(--undefined)';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--p2'), '');
+}, "Universal syntax: Undefined reference results in guaranteed-invalid value.");
+
+test(function(){
+    CSS.registerProperty({name: '--p3', syntax: '<length>', initialValue: '0px', inherits: true});
+    outer.style = '--p3: 42px';
+    inner.style = '--p3: var(--undefined)';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--p3'), '42px');
+
+    CSS.registerProperty({name: '--p4', syntax: '<length>', initialValue: '0px', inherits: false});
+    outer.style = '--p4: 42px';
+    inner.style = '--incompatible: nolength; --p4: var(--undefined)';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--p4'), '0px');
+}, "Undefined reference results in unsetting the property.");
+
+test(function(){
+    CSS.registerProperty({name: '--p5', syntax: '<length>', initialValue: '0px', inherits: true});
+    outer.style = '--p5: 42px';
+    inner.style = '--incompatible: nolength; --p5: var(--incompatible)';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--p5'), '42px');
+
+    CSS.registerProperty({name: '--p6', syntax: '<length>', initialValue: '0px', inherits: false});
+    outer.style = '--p6: 42px';
+    inner.style = '--incompatible: nolength; --p6: var(--incompatible)';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--p6'), '0px');
+}, "Syntax-incompatible reference results in unsetting the property.");
+
+test(function(){
+    CSS.registerProperty({name: '--p7', syntax: '<length>', initialValue: '0px', inherits: true});
+    outer.style = '--p7: 42px';
+    inner.style = '--p7: var(--undefined, nolength)';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--p7'), '42px');
+
+    CSS.registerProperty({name: '--p8', syntax: '<length>', initialValue: '0px', inherits: false});
+    outer.style = '--p8: 42px';
+    inner.style = 'var(--undefined, nolength)';
+    assert_equals(getComputedStyle(inner).getPropertyValue('--p8'), '0px');
+}, "Syntax-incompatible fallback results in unsetting the property.");
+
+test(function(){
+    const rootElement = document.documentElement;
+    CSS.registerProperty({name: '--p9', syntax: '<length>', initialValue: '0px', inherits: true});
+    rootElement.style = '--p9: var(--undefined);';
+    assert_equals(getComputedStyle(rootElement).getPropertyValue('--p9'), '0px');
+
+    CSS.registerProperty({name: '--p10', syntax: '<length>', initialValue: '0px', inherits: true});
+    rootElement.style = '--incompatible: nolength; --p10: var(--incompatible)';
+    assert_equals(getComputedStyle(rootElement).getPropertyValue('--p10'), '0px');
+
+    CSS.registerProperty({name: '--p11', syntax: '<length>', initialValue: '0px', inherits: true});
+    rootElement.style = '--p11: var(--undefined, nolength)';
+    assert_equals(getComputedStyle(rootElement).getPropertyValue('--p11'), '0px');
+}, "Unsetting inherited properties on the root results in initial value.");
+
+</script>

@@ -3,7 +3,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(t => {
-  const entriesBefore = navigation.entries();
+  let start_index = navigation.currentEntry.index;
+
   const currentBefore = navigation.currentEntry;
 
   let disposeCalled = false;
@@ -16,7 +17,7 @@ test(t => {
     assert_equals(e.composed, false);
 
     assert_not_equals(navigation.currentEntry, currentBefore);
-    assert_array_equals(navigation.entries(), [navigation.currentEntry]);
+    assert_array_equals(navigation.entries().slice(start_index), [navigation.currentEntry]);
     assert_equals((new URL(navigation.currentEntry.url)).search, "?replacement");
     assert_equals(navigation.transition, null);
     assert_equals(location.search, "?replacement");

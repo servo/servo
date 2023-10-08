@@ -9,6 +9,11 @@ enum AudioContextState {
     "closed"
 };
 
+enum AudioContextRenderSizeCategory {
+    "default",
+    "hardware"
+};
+
 callback DecodeErrorCallback = undefined (DOMException error);
 
 callback DecodeSuccessCallback = undefined (AudioBuffer decodedData);
@@ -20,6 +25,7 @@ interface BaseAudioContext : EventTarget {
     readonly attribute double currentTime;
     readonly attribute AudioListener listener;
     readonly attribute AudioContextState state;
+    readonly attribute unsigned long renderQuantumSize;
     [SameObject, SecureContext]
     readonly attribute AudioWorklet audioWorklet;
     attribute EventHandler onstatechange;
@@ -92,6 +98,7 @@ dictionary AudioContextOptions {
     (AudioContextLatencyCategory or double) latencyHint = "interactive";
     float sampleRate;
     (DOMString or AudioSinkOptions) sinkId;
+    (AudioContextRenderSizeCategory or unsigned long) renderSizeHint = "default";
 };
 
 dictionary AudioSinkOptions {
@@ -150,6 +157,7 @@ dictionary OfflineAudioContextOptions {
     unsigned long numberOfChannels = 1;
     required unsigned long length;
     required float sampleRate;
+    (AudioContextRenderSizeCategory or unsigned long) renderSizeHint = "default";
 };
 
 [Exposed=Window]
@@ -629,6 +637,7 @@ interface AudioWorkletGlobalScope : WorkletGlobalScope {
     readonly attribute unsigned long long currentFrame;
     readonly attribute double currentTime;
     readonly attribute float sampleRate;
+    readonly attribute unsigned long renderQuantumSize;
     readonly attribute MessagePort port;
 };
 

@@ -5,6 +5,7 @@
 <iframe id="i" src="/common/blank.html"></iframe>
 <script>
 async_test(t => {
+  let start_index = navigation.currentEntry.index;
   // The navigations in each window should have only added an navigation to
   // their own window.
   function assertExpectedEntries(entries, expected_url) {
@@ -25,7 +26,7 @@ async_test(t => {
   window.onload = () => t.step_timeout(t.step_func(() => {
     location.hash = "#1";
     i.onload = t.step_func_done(() => {
-      assertExpectedEntries(navigation.entries(), location.href);
+      assertExpectedEntries(navigation.entries().slice(start_index), location.href);
       assertExpectedEntries(i.contentWindow.navigation.entries(), i.contentWindow.location.href);
     });
     i.contentWindow.location = "/common/blank.html?2";

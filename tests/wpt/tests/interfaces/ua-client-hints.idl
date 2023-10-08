@@ -12,7 +12,7 @@ dictionary UADataValues {
   DOMString architecture;
   DOMString bitness;
   sequence<NavigatorUABrandVersion> brands;
-  DOMString formFactor;
+  sequence<DOMString> formFactor;
   sequence<NavigatorUABrandVersion> fullVersionList;
   DOMString model;
   boolean mobile;

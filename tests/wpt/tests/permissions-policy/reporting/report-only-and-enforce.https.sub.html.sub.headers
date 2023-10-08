@@ -1,0 +1,3 @@
+Permissions-Policy: camera=();report-to=enforcing-endpoint
+Permissions-Policy-Report-Only: camera=();report-to=report-only-endpoint
+Reporting-Endpoints: enforcing-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=69c90b97-8b7c-4439-b5d2-ff03f237b2b2", report-only-endpoint="https://{{host}}:{{ports[https][0]}}/reporting/resources/report.py?reportID=9d095a14-6b1c-40e1-be19-55a1fec97d11"

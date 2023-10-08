@@ -7,20 +7,20 @@
 interface WEBGL_multi_draw_instanced_base_vertex_base_instance {
   undefined multiDrawArraysInstancedBaseInstanceWEBGL(
       GLenum mode,
-      ([AllowShared] Int32Array or sequence<GLint>) firstsList, GLuint firstsOffset,
-      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, GLuint countsOffset,
-      ([AllowShared] Int32Array or sequence<GLsizei>) instanceCountsList, GLuint instanceCountsOffset,
-      ([AllowShared] Uint32Array or sequence<GLuint>) baseInstancesList, GLuint baseInstancesOffset,
+      ([AllowShared] Int32Array or sequence<GLint>) firstsList, unsigned long long firstsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, unsigned long long countsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) instanceCountsList, unsigned long long instanceCountsOffset,
+      ([AllowShared] Uint32Array or sequence<GLuint>) baseInstancesList, unsigned long long baseInstancesOffset,
       GLsizei drawcount
   );
   undefined multiDrawElementsInstancedBaseVertexBaseInstanceWEBGL(
       GLenum mode,
-      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, GLuint countsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, unsigned long long countsOffset,
       GLenum type,
-      ([AllowShared] Int32Array or sequence<GLsizei>) offsetsList, GLuint offsetsOffset,
-      ([AllowShared] Int32Array or sequence<GLsizei>) instanceCountsList, GLuint instanceCountsOffset,
-      ([AllowShared] Int32Array or sequence<GLint>) baseVerticesList, GLuint baseVerticesOffset,
-      ([AllowShared] Uint32Array or sequence<GLuint>) baseInstancesList, GLuint baseInstancesOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) offsetsList, unsigned long long offsetsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) instanceCountsList, unsigned long long instanceCountsOffset,
+      ([AllowShared] Int32Array or sequence<GLint>) baseVerticesList, unsigned long long baseVerticesOffset,
+      ([AllowShared] Uint32Array or sequence<GLuint>) baseInstancesList, unsigned long long baseInstancesOffset,
       GLsizei drawcount
   );
 };

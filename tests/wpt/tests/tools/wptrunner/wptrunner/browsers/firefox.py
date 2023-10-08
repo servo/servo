@@ -117,7 +117,7 @@ def browser_kwargs(logger, test_type, run_info_data, config, subsuite, **kwargs)
                       "certutil_binary": kwargs["certutil_binary"],
                       "ca_certificate_path": config.ssl_config["ca_cert_path"],
                       "e10s": kwargs["gecko_e10s"],
-                      "enable_fission": run_info_data["fission"],
+                      "disable_fission": kwargs["disable_fission"],
                       "stackfix_dir": kwargs["stackfix_dir"],
                       "binary_args": kwargs["binary_args"].copy(),
                       "timeout_multiplier": get_timeout_multiplier(test_type,
@@ -174,6 +174,7 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     executor_kwargs["ccov"] = run_info_data.get("ccov", False)
     executor_kwargs["browser_version"] = run_info_data.get("browser_version")
     executor_kwargs["debug_test"] = kwargs["debug_test"]
+    executor_kwargs["disable_fission"] = kwargs["disable_fission"]
     return executor_kwargs
 
 
@@ -203,18 +204,13 @@ def run_info_extras(**kwargs):
         pref_value = get_bool_pref_if_exists(pref)
         return pref_value if pref_value is not None else False
 
-    # Default fission to on, unless we get --[no-]enable-fission or
-    # --set-pref fission.autostart=[true|false]
-    enable_fission = [item for item in [kwargs.get("enable_fission"),
-                                        get_bool_pref_if_exists("fission.autostart"),
-                                        True] if item is not None][0]
-
+    # Default fission to on, unless we get --disable-fission
     rv = {"e10s": kwargs["gecko_e10s"],
           "wasm": kwargs.get("wasm", True),
           "verify": kwargs["verify"],
           "headless": kwargs.get("headless", False) or "MOZ_HEADLESS" in os.environ,
-          "fission": enable_fission,
-          "sessionHistoryInParent": (enable_fission or
+          "fission": not kwargs.get("disable_fission"),
+          "sessionHistoryInParent": (not kwargs.get("disable_fission") or
                                      not get_bool_pref("fission.disableSessionHistoryInParent")),
           "swgl": get_bool_pref("gfx.webrender.software")}
 
@@ -610,7 +606,7 @@ class FirefoxOutputHandler(OutputHandler):
 
 class ProfileCreator:
     def __init__(self, logger, prefs_root, config, test_type, extra_prefs, e10s,
-                 enable_fission, debug_test, browser_channel, binary, certutil_binary,
+                 disable_fission, debug_test, browser_channel, binary, certutil_binary,
                  ca_certificate_path):
         self.logger = logger
         self.prefs_root = prefs_root
@@ -618,7 +614,7 @@ class ProfileCreator:
         self.test_type = test_type
         self.extra_prefs = extra_prefs
         self.e10s = e10s
-        self.enable_fission = enable_fission
+        self.disable_fission = disable_fission
         self.debug_test = debug_test
         self.browser_channel = browser_channel
         self.ca_certificate_path = ca_certificate_path
@@ -693,9 +689,8 @@ class ProfileCreator:
         if self.e10s:
             profile.set_preferences({"browser.tabs.remote.autostart": True})
 
-        if self.enable_fission:
-            profile.set_preferences({"fission.autostart": True})
-        else:
+        profile.set_preferences({"fission.autostart": True})
+        if self.disable_fission:
             profile.set_preferences({"fission.autostart": False})
 
         if self.test_type in ("reftest", "print-reftest"):
@@ -707,7 +702,7 @@ class ProfileCreator:
         # Bug 1262954: winxp + e10s, disable hwaccel
         if (self.e10s and platform.system() in ("Windows", "Microsoft") and
             "5.1" in platform.version()):
-            self.profile.set_preferences({"layers.acceleration.disabled": True})
+            profile.set_preferences({"layers.acceleration.disabled": True})
 
         if self.debug_test:
             profile.set_preferences({"devtools.console.stdout.content": True})
@@ -769,7 +764,7 @@ class FirefoxBrowser(Browser):
 
     def __init__(self, logger, binary, prefs_root, test_type, extra_prefs=None, debug_info=None,
                  symbols_path=None, stackwalk_binary=None, certutil_binary=None,
-                 ca_certificate_path=None, e10s=False, enable_fission=True,
+                 ca_certificate_path=None, e10s=False, disable_fission=False,
                  stackfix_dir=None, binary_args=None, timeout_multiplier=None, leak_check=False,
                  asan=False, chaos_mode_flags=None, config=None,
                  browser_channel="nightly", headless=None, preload_browser=False,
@@ -799,7 +794,7 @@ class FirefoxBrowser(Browser):
                                          test_type,
                                          extra_prefs,
                                          e10s,
-                                         enable_fission,
+                                         disable_fission,
                                          debug_test,
                                          browser_channel,
                                          binary,
@@ -872,7 +867,7 @@ class FirefoxWdSpecBrowser(WebDriverBrowser):
     def __init__(self, logger, binary, prefs_root, webdriver_binary, webdriver_args,
                  extra_prefs=None, debug_info=None, symbols_path=None, stackwalk_binary=None,
                  certutil_binary=None, ca_certificate_path=None, e10s=False,
-                 enable_fission=False, stackfix_dir=None, leak_check=False,
+                 disable_fission=False, stackfix_dir=None, leak_check=False,
                  asan=False, chaos_mode_flags=None, config=None,
                  browser_channel="nightly", headless=None, debug_test=False, **kwargs):
 
@@ -896,7 +891,7 @@ class FirefoxWdSpecBrowser(WebDriverBrowser):
                                          "wdspec",
                                          extra_prefs,
                                          e10s,
-                                         enable_fission,
+                                         disable_fission,
                                          debug_test,
                                          browser_channel,
                                          binary,

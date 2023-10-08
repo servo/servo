@@ -3,6 +3,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(t => {
+  let start_index = navigation.currentEntry.index;
   let oncurrententrychange_called = false;
   let ondispose_called = false;
 
@@ -17,7 +18,7 @@ test(t => {
     assert_equals(e.from, original_entry);
     assert_equals(e.from.index, -1);
     assert_equals(e.navigationType, "replace");
-    assert_equals(navigation.currentEntry.index, 0);
+    assert_equals(navigation.currentEntry.index, start_index);
   });
   navigation.navigate("#foo", { history: "replace" });
   assert_true(oncurrententrychange_called);

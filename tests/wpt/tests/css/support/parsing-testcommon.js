@@ -50,10 +50,14 @@ function test_invalid_value(property, value) {
     }, "e.style['" + property + "'] = " + stringifiedValue + " should not set the property value");
 }
 
+function test_valid_forgiving_selector(selector) {
+  test_valid_selector(selector, selector, { onlyWhenForgiving: true });
+}
+
 // serializedSelector can be the expected serialization of selector,
 // or an array of permitted serializations,
 // or omitted if value should serialize as selector.
-function test_valid_selector(selector, serializedSelector) {
+function test_valid_selector(selector, serializedSelector, options) {
     if (arguments.length < 2)
         serializedSelector = selector;
 
@@ -85,6 +89,9 @@ function test_valid_selector(selector, serializedSelector) {
         assert_equals(cssRules.length, 1, "Sheet should have 1 rule");
 
         assert_equals(cssRules[0].selectorText, readSelector, "serialization should round-trip");
+
+        let supports = !options?.onlyWhenForgiving;
+        assert_equals(CSS.supports(`selector(${selector})`), supports, "CSS.supports() reports the expected value");
     }, stringifiedSelector + " should be a valid selector");
 }
 

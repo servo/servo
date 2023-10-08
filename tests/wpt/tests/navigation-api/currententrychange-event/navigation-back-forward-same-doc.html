@@ -3,19 +3,22 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
   await navigation.navigate("#foo").committed;
-  assert_equals(navigation.entries().length, 2);
+  assert_equals(navigation.entries().length, start_length + 1);
 
   let oncurrententrychange_back_called = false;
   let back_committed = false;
   navigation.oncurrententrychange = t.step_func(e => {
     oncurrententrychange_back_called = true;
-    assert_equals(e.from, navigation.entries()[1]);
+    assert_equals(e.from, navigation.entries()[start_index + 1]);
     assert_equals(e.navigationType, "traverse");
-    assert_equals(navigation.currentEntry.index, 0);
+    assert_equals(navigation.currentEntry.index, start_index);
     assert_false(back_committed);
   });
   let back_result = navigation.back();
@@ -27,9 +30,9 @@ promise_test(async t => {
   let forward_committed = false;
   navigation.oncurrententrychange = t.step_func(e => {
     oncurrententrychange_forward_called = true;
-    assert_equals(e.from, navigation.entries()[0]);
+    assert_equals(e.from, navigation.entries()[start_index]);
     assert_equals(e.navigationType, "traverse");
-    assert_equals(navigation.currentEntry.index, 1);
+    assert_equals(navigation.currentEntry.index, start_index + 1);
     assert_false(forward_committed);
   });
   let forward_result = navigation.forward();

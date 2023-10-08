@@ -4,7 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <style>
 .disable-default {
-  form-sizing: normal;
+  form-sizing: content;
 }
 
 .small-placeholder {
@@ -49,7 +49,7 @@ function addTwoElements(source1, source2) {
 test(() => {
   let pair = addElements('<textarea></textarea>');
   // Historically a <textarea> has approximately 20ch x 2lh size by default.
-  // A <textarea> with form-sizing:normal must be samller than the default.
+  // A <textarea> with form-sizing:content must be samller than the default.
   assert_less_than(pair.content.offsetWidth, pair.fixed.offsetWidth);
   assert_less_than(pair.content.offsetHeight, pair.fixed.offsetHeight);
 

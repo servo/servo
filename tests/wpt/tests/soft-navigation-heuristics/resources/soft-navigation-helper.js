@@ -149,7 +149,7 @@ const interact =
 
 const setEvent = (t, button, pushState, addContent, pushUrl, eventType, prepWork) => {
   const eventObject =
-      (eventType == 'click' || eventType == 'keydown') ? button : window;
+      (eventType == 'click' || eventType.startsWith("key")) ? button : window;
   eventObject.addEventListener(eventType, async e => {
     if (prepWork &&!prepWork(t)) {
       return;
@@ -194,7 +194,8 @@ const validateSoftNavigationEntry = async (clicks, extraValidations,
     assert_true(entry.name.includes(pushUrl ? URL : document.location.href),
                 "The soft navigation name is properly set");
     const entryTimestamp = entry.startTime;
-    assert_less_than_equal(timestamps[i]["syncPostInteraction"], entryTimestamp);
+    assert_less_than_equal(timestamps[i]["syncPostInteraction"], entryTimestamp,
+                "Entry timestamp is lower than the post interaction one");
     assert_greater_than_equal(
         timestamps[i]['eventStart'], entryTimestamp,
         'Event start timestamp matches');

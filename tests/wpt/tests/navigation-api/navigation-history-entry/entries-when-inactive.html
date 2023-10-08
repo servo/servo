@@ -3,14 +3,15 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 async_test(t => {
-  const first_entry = navigation.entries()[0];
+  let start_index = navigation.currentEntry.index;
+  const first_entry = navigation.entries()[start_index];
   history.pushState(1, "", "#1");
-  assert_equals(navigation.entries()[0], first_entry);
+  assert_equals(navigation.entries()[start_index], first_entry);
   history.back();
   window.onpopstate = t.step_func_done(() => {
-    const second_entry = navigation.entries()[1];
+    const second_entry = navigation.entries()[start_index + 1];
     history.replaceState(0, "", "#0");
-    assert_equals(navigation.entries()[1], second_entry);
+    assert_equals(navigation.entries()[start_index + 1], second_entry);
   });
 }, "A non-active entry in navigation.entries() should not be modified when a different entry is modified");
 </script>

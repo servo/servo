@@ -25,12 +25,13 @@ Need tests for (likely not a complete list):
     currently guaranteed to work, due to potential time skew between processes).
 * Multiple buyers.
 * Multiple interest groups with same owner.
-* Multiple origin auctions (buyer != publisher != seller).
 * Multiple frame tests (including join IG policy, run auction policy,
     loading URNs in fencedframes in other frames, loading component
     ad URNs in fenced frames of other frames, etc)
 * adAuctionConfig passed to reportResult().
 * Component auctions.
+  * Including cross-origin sellers.
+* clearOriginJoinedInterestGroups.
 * browserSignals fields in scoring/bidding methods.
 * In reporting methods, browserSignals fields: dataVersion, topLevelSeller,
     componentSeller, modifiedBid, adCost, madeHighestScoringOtherBid
