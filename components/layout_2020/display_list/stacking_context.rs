@@ -271,6 +271,9 @@ pub struct StackingContext {
     /// things like preserve-3d.
     spatial_id: wr::SpatialId,
 
+    /// The clip chain id of this fragment if it has one. Used for filter clipping.
+    clip_chain_id: Option<wr::ClipChainId>,
+
     /// The fragment that established this stacking context.
     initializing_fragment_style: Option<ServoArc<ComputedValues>>,
 
@@ -330,11 +333,13 @@ impl StackingContext {
     fn create_descendant(
         &self,
         spatial_id: wr::SpatialId,
+        clip_chain_id: Option<wr::ClipChainId>,
         initializing_fragment_style: ServoArc<ComputedValues>,
         context_type: StackingContextType,
     ) -> Self {
         Self {
             spatial_id,
+            clip_chain_id: clip_chain_id,
             initializing_fragment_style: Some(initializing_fragment_style),
             context_type,
             contents: vec![],
@@ -348,6 +353,7 @@ impl StackingContext {
     pub(crate) fn create_root(wr: &wr::DisplayListBuilder, debug: &DebugOptions) -> Self {
         Self {
             spatial_id: wr::SpaceAndClipInfo::root_scroll(wr.pipeline_id).spatial_id,
+            clip_chain_id: None,
             initializing_fragment_style: None,
             context_type: StackingContextType::RealStackingContext,
             contents: vec![],
@@ -419,6 +425,8 @@ impl StackingContext {
             None => return false,
         };
 
+        let clip_id: Option<wr::ClipId> = self.clip_chain_id.map(|id| wr::ClipId::ClipChain(id));
+
         // WebRender only uses the stacking context to apply certain effects. If we don't
         // actually need to create a stacking context, just avoid creating one.
         let effects = style.get_effects();
@@ -455,7 +463,7 @@ impl StackingContext {
             LayoutPoint::zero(), // origin
             self.spatial_id,
             style.get_webrender_primitive_flags(),
-            None, // clip_chain_id
+            clip_id,
             style.get_used_transform_style().to_webrender(),
             effects.mix_blend_mode.to_webrender(),
             &filters,
@@ -982,6 +990,7 @@ impl BoxFragment {
 
         let mut child_stacking_context = parent_stacking_context.create_descendant(
             containing_block.scroll_node_id.spatial_id,
+            Some(containing_block.clip_chain_id),
             self.style.clone(),
             context_type,
         );
