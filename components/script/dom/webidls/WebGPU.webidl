@@ -170,8 +170,7 @@ interface GPUBuffer {
     readonly attribute GPUSize64Out size;
     readonly attribute GPUFlagsConstant usage;
 
-    // TODO: require deep changes
-    //readonly attribute GPUBufferMapState mapState;
+    readonly attribute GPUBufferMapState mapState;
 
     [NewObject]
     Promise<undefined> mapAsync(GPUMapModeFlags mode, optional GPUSize64 offset = 0, optional GPUSize64 size);

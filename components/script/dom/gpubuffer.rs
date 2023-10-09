@@ -14,9 +14,11 @@ use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::{DetachArrayBuffer, Heap, JSObject, NewExternalArrayBuffer};
 use webgpu::identity::WebGPUOpResult;
 use webgpu::wgpu::device::HostMap;
-use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{wgt, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
-use super::bindings::codegen::Bindings::WebGPUBinding::GPUFlagsConstant;
+use super::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUBufferMapState, GPUFlagsConstant, GPUMapModeFlags,
+};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBufferMethods, GPUMapModeConstants, GPUSize64,
@@ -38,22 +40,41 @@ const RANGE_SIZE_ALIGN_MASK: u64 = 4;
 // https://gpuweb.github.io/gpuweb/#buffer-internals-state
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum GPUBufferState {
-    Mapped,
-    MappedAtCreation,
-    MappingPending,
-    Unmapped,
+    Available,
+    Unavailable,
     Destroyed,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct GPUBufferMapInfo {
-    #[ignore_malloc_size_of = "Rc"]
-    pub mapping: Rc<RefCell<Vec<u8>>>,
-    pub mapping_range: Range<u64>,
-    pub mapped_ranges: Vec<Range<u64>>,
+pub struct GPUArrayBuffer {
+    pub range: Range<u64>,
     #[ignore_malloc_size_of = "defined in mozjs"]
-    pub js_buffers: Vec<Box<Heap<*mut JSObject>>>,
-    pub map_mode: Option<u32>,
+    pub js_buffer: Box<Heap<*mut JSObject>>,
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct GPUBufferMapInfo {
+    /// <https://gpuweb.github.io/gpuweb/#active-buffer-mapping-data>
+    #[ignore_malloc_size_of = "Rc"]
+    pub data: Rc<RefCell<Vec<u8>>>,
+    /// <https://gpuweb.github.io/gpuweb/#active-buffer-mapping-range>
+    pub range: Range<u64>,
+    /// <https://gpuweb.github.io/gpuweb/#active-buffer-mapping-views>
+    pub views: Vec<GPUArrayBuffer>,
+    /// <https://gpuweb.github.io/gpuweb/#active-buffer-mapping-mode>
+    pub mode: GPUMapModeFlags,
+}
+
+impl GPUBufferMapInfo {
+    // https://gpuweb.github.io/gpuweb/#abstract-opdef-initialize-an-active-buffer-mapping
+    pub fn new(mode: GPUMapModeFlags, range: Range<u64>) -> Self {
+        Self {
+            data: Rc::new(RefCell::new(Vec::with_capacity(0))),
+            range,
+            views: Vec::new(),
+            mode,
+        }
+    }
 }
 
 #[dom_struct]
@@ -71,9 +92,9 @@ pub struct GPUBuffer {
     usage: GPUFlagsConstant,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-pending_map-slot>
     #[ignore_malloc_size_of = "promises are hard"]
-    map_promise: DomRefCell<Option<Rc<Promise>>>,
+    pending_map: DomRefCell<Option<Rc<Promise>>>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapping-slot>
-    map_info: DomRefCell<Option<GPUBufferMapInfo>>,
+    mapping: DomRefCell<Option<GPUBufferMapInfo>>,
 }
 
 impl GPUBuffer {
@@ -94,10 +115,10 @@ impl GPUBuffer {
             state: Cell::new(state),
             device: Dom::from_ref(device),
             buffer,
-            map_promise: DomRefCell::new(None),
+            pending_map: DomRefCell::new(None),
             size,
             usage,
-            map_info,
+            mapping: map_info,
         }
     }
 
@@ -143,57 +164,45 @@ impl GPUBufferMethods for GPUBuffer {
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
     fn Unmap(&self) {
         let cx = GlobalScope::get_cx();
-        match self.state.get() {
-            GPUBufferState::Unmapped | GPUBufferState::Destroyed => {
-                // TODO: Record validation error on the current scope
-                return;
-            },
+        // Step 1
+        if let Some(promise) = self.pending_map.borrow_mut().take() {
+            promise.reject_error(Error::Abort);
+        }
+        let mut info = self.mapping.borrow_mut().take();
+        // Step 2
+        if let Some(m_info) = info.as_mut() {
             // Step 3
-            GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => {
-                let mut info = self.map_info.borrow_mut();
-                let m_info = info.as_mut().unwrap();
-                let m_range = m_info.mapping_range.clone();
-                if let Err(e) = self.channel.0.send((
-                    self.device.use_current_scope(),
-                    WebGPURequest::UnmapBuffer {
-                        buffer_id: self.id().0,
-                        device_id: self.device.id().0,
-                        array_buffer: IpcSharedMemory::from_bytes(
-                            m_info.mapping.borrow().as_slice(),
-                        ),
-                        is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
-                        offset: m_range.start,
-                        size: m_range.end - m_range.start,
-                    },
-                )) {
-                    warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
-                }
-                // Step 3.3
-                m_info.js_buffers.drain(..).for_each(|obj| unsafe {
-                    DetachArrayBuffer(*cx, obj.handle());
-                });
-            },
-            // Step 2
-            GPUBufferState::MappingPending => {
-                let promise = self.map_promise.borrow_mut().take().unwrap();
-                promise.reject_error(Error::Operation);
-            },
-        };
-        // Step 4
-        self.state.set(GPUBufferState::Unmapped);
-        *self.map_info.borrow_mut() = None;
+            m_info.views.drain(..).for_each(|obj| unsafe {
+                DetachArrayBuffer(*cx, obj.js_buffer.handle());
+            });
+            // Step 5&7
+            let m_range = m_info.range.clone();
+            if let Err(e) = self.channel.0.send((
+                self.device.use_current_scope(),
+                WebGPURequest::UnmapBuffer {
+                    buffer_id: self.id().0,
+                    device_id: self.device.id().0,
+                    array_buffer: IpcSharedMemory::from_bytes(m_info.data.borrow().as_slice()),
+                    is_write: m_info.mode >= GPUMapModeConstants::WRITE,
+                    offset: m_range.start,
+                    size: m_range.end - m_range.start,
+                },
+            )) {
+                warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
+            } else {
+                // TODO(wpu): is this after response???
+                self.state.set(GPUBufferState::Available);
+            }
+        } else {
+            return;
+        }
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
     fn Destroy(&self) {
-        let state = self.state.get();
-        match state {
-            GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => {
-                self.Unmap();
-            },
-            GPUBufferState::Destroyed => return,
-            _ => {},
-        };
+        // Step 1
+        self.Unmap();
+        // Step 2
         if let Err(e) = self
             .channel
             .0
@@ -218,66 +227,72 @@ impl GPUBufferMethods for GPUBuffer {
         comp: InRealm,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp);
-        let range_size = if let Some(s) = size {
-            s
-        } else if offset >= self.size {
+        // Step 2
+        if self.pending_map.borrow().is_some() {
             promise.reject_error(Error::Operation);
             return promise;
-        } else {
-            self.size - offset
-        };
-        let scope_id = self.device.use_current_scope();
-        if self.state.get() != GPUBufferState::Unmapped {
-            self.device.handle_server_msg(
-                scope_id,
-                WebGPUOpResult::ValidationError(String::from("Buffer is not Unmapped")),
-            );
-            promise.reject_error(Error::Abort);
-            return promise;
         }
-        let host_map = match mode {
-            GPUMapModeConstants::READ => HostMap::Read,
-            GPUMapModeConstants::WRITE => HostMap::Write,
-            _ => {
+        // This checks should be part of device timeline (webgpu thread), but we do them here
+        {
+            // Step 1
+            let range_size = if let Some(s) = size {
+                s
+            } else if offset >= self.size {
+                promise.reject_error(Error::Operation);
+                return promise;
+            } else {
+                self.size - offset
+            };
+            let scope_id = self.device.use_current_scope();
+            if self.state.get() != GPUBufferState::Available {
                 self.device.handle_server_msg(
                     scope_id,
-                    WebGPUOpResult::ValidationError(String::from("Invalid MapModeFlags")),
+                    WebGPUOpResult::ValidationError(String::from("Buffer is not Unmapped")),
                 );
                 promise.reject_error(Error::Abort);
                 return promise;
-            },
-        };
+            }
+            let host_map = match mode {
+                GPUMapModeConstants::READ => HostMap::Read,
+                GPUMapModeConstants::WRITE => HostMap::Write,
+                _ => {
+                    self.device.handle_server_msg(
+                        scope_id,
+                        WebGPUOpResult::ValidationError(String::from("Invalid MapModeFlags")),
+                    );
+                    promise.reject_error(Error::Abort);
+                    return promise;
+                },
+            };
 
-        let map_range = offset..offset + range_size;
+            let range = offset..offset + range_size;
 
-        let sender = response_async(&promise, self);
-        if let Err(e) = self.channel.0.send((
-            scope_id,
-            WebGPURequest::BufferMapAsync {
-                sender,
-                buffer_id: self.buffer.0,
-                device_id: self.device.id().0,
-                host_map,
-                map_range: map_range.clone(),
-            },
-        )) {
-            warn!(
-                "Failed to send BufferMapAsync ({:?}) ({})",
-                self.buffer.0, e
-            );
-            promise.reject_error(Error::Operation);
-            return promise;
+            let sender = response_async(&promise, self);
+            if let Err(e) = self.channel.0.send((
+                scope_id,
+                WebGPURequest::BufferMapAsync {
+                    sender,
+                    buffer_id: self.buffer.0,
+                    device_id: self.device.id().0,
+                    host_map,
+                    map_range: range.clone(),
+                },
+            )) {
+                warn!(
+                    "Failed to send BufferMapAsync ({:?}) ({})",
+                    self.buffer.0, e
+                );
+                promise.reject_error(Error::Operation);
+                return promise;
+            }
+
+            self.state.set(GPUBufferState::Unavailable);
+            //*self.mapping.borrow_mut() = Some(GPUBufferMapInfo::new(mode, range));
+            // content timeline continues down in async wgpu handler
         }
-
-        self.state.set(GPUBufferState::MappingPending);
-        *self.map_info.borrow_mut() = Some(GPUBufferMapInfo {
-            mapping: Rc::new(RefCell::new(Vec::with_capacity(0))),
-            mapping_range: map_range,
-            mapped_ranges: Vec::new(),
-            js_buffers: Vec::new(),
-            map_mode: Some(mode),
-        });
-        *self.map_promise.borrow_mut() = Some(promise.clone());
+        // Step 4
+        *self.pending_map.borrow_mut() = Some(promise.clone());
+        // Step 6
         promise
     }
 
@@ -289,6 +304,7 @@ impl GPUBufferMethods for GPUBuffer {
         offset: GPUSize64,
         size: Option<GPUSize64>,
     ) -> Fallible<NonNull<JSObject>> {
+        // Step 1
         let range_size = if let Some(s) = size {
             s
         } else if offset >= self.size {
@@ -297,44 +313,48 @@ impl GPUBufferMethods for GPUBuffer {
             self.size - offset
         };
         let range = offset..offset + range_size;
-        let mut info = self.map_info.borrow_mut();
-        let m_info = info.as_mut().unwrap();
+        // Step 2: validation
+        let mut info = self.mapping.borrow_mut();
+        if let Some(info) = info.as_mut() {
+            let mut valid = offset % wgt::MAP_ALIGNMENT == 0 &&
+                range_size % wgt::COPY_BUFFER_ALIGNMENT == 0 &&
+                range.start >= info.range.start &&
+                range.end <= info.range.end;
+            // does not overlap
+            valid &= info.views.iter().all(|arr_buf| {
+                arr_buf.range.start <= range.end && range.start <= arr_buf.range.end
+            });
+            if !valid {
+                return Err(Error::Operation);
+            }
 
-        let mut valid = match self.state.get() {
-            GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => true,
-            _ => false,
-        };
-        valid &= offset % RANGE_OFFSET_ALIGN_MASK == 0 &&
-            range_size % RANGE_SIZE_ALIGN_MASK == 0 &&
-            range.start >= m_info.mapping_range.start &&
-            range.end <= m_info.mapping_range.end;
-        valid &= m_info
-            .mapped_ranges
-            .iter()
-            .all(|m_range| m_range.start >= range.end || m_range.end <= range.start);
-        if !valid {
+            // Step 4
+            unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
+                drop(Rc::from_raw(free_user_data as _));
+            }
+
+            let array_buffer = unsafe {
+                NewExternalArrayBuffer(
+                    *cx,
+                    range_size as usize,
+                    info.data.borrow_mut()[range.start as usize..range.end as usize].as_mut_ptr()
+                        as _,
+                    Some(free_func),
+                    Rc::into_raw(info.data.clone()) as _,
+                )
+            };
+
+            // Step 6
+            info.views.push(GPUArrayBuffer {
+                range,
+                js_buffer: Heap::boxed(array_buffer),
+            });
+
+            // Step 7
+            Ok(NonNull::new(array_buffer).unwrap())
+        } else {
             return Err(Error::Operation);
         }
-
-        unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
-            drop(Rc::from_raw(free_user_data as _));
-        }
-
-        let array_buffer = unsafe {
-            NewExternalArrayBuffer(
-                *cx,
-                range_size as usize,
-                m_info.mapping.borrow_mut()[range.start as usize..range.end as usize].as_mut_ptr()
-                    as _,
-                Some(free_func),
-                Rc::into_raw(m_info.mapping.clone()) as _,
-            )
-        };
-
-        m_info.mapped_ranges.push(range);
-        m_info.js_buffers.push(Heap::boxed(array_buffer));
-
-        Ok(NonNull::new(array_buffer).unwrap())
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
@@ -356,42 +376,66 @@ impl GPUBufferMethods for GPUBuffer {
     fn Usage(&self) -> GPUFlagsConstant {
         self.usage
     }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapstate
+    fn MapState(&self) -> GPUBufferMapState {
+        /// Step 1&2&3
+        if self.mapping.borrow().is_some() {
+            GPUBufferMapState::Mapped
+        } else if self.pending_map.borrow().is_some() {
+            GPUBufferMapState::Pending
+        } else {
+            GPUBufferMapState::Unmapped
+        }
+    }
 }
 
 impl AsyncWGPUListener for GPUBuffer {
     #[allow(unsafe_code)]
     fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
-        match response {
-            Ok(WebGPUResponse::BufferMapAsync(bytes)) => {
-                *self
-                    .map_info
-                    .borrow_mut()
-                    .as_mut()
-                    .unwrap()
-                    .mapping
-                    .borrow_mut() = bytes.to_vec();
-                promise.resolve_native(&());
-                self.state.set(GPUBufferState::Mapped);
-            },
-            Err(e) => {
-                warn!("Could not map buffer({:?})", e);
-                promise.reject_error(Error::Abort);
-            },
-            _ => {
-                warn!("GPUBuffer received wrong WebGPUResponse");
-                promise.reject_error(Error::Operation);
-            },
+        // Step 1
+        if let Some(pending_map) = self.pending_map.borrow().as_ref() {
+            if Rc::ptr_eq(promise, pending_map) {
+                // Step 2
+                debug_assert!(!promise.is_fulfilled());
+                match response {
+                    Ok(WebGPUResponse::BufferMapAsync { data, range, mode }) => {
+                        let mode = match mode {
+                            HostMap::Read => GPUMapModeConstants::READ,
+                            HostMap::Write => GPUMapModeConstants::WRITE,
+                        };
+                        // Step 4
+                        let mapping = GPUBufferMapInfo::new(mode, range);
+                        // Step 5
+                        *mapping.data.borrow_mut() = data.to_vec();
+                        // Step 6
+                        *self.mapping.borrow_mut() = Some(mapping);
+                        // Step 7
+                        promise.resolve_native(&());
+                    },
+                    Err(e) => {
+                        warn!("Could not map buffer({:?})", e);
+                        promise.reject_error(Error::Abort);
+                    },
+                    _ => {
+                        warn!("GPUBuffer received wrong WebGPUResponse");
+                        promise.reject_error(Error::Operation);
+                    },
+                }
+                if let Err(e) = self
+                    .channel
+                    .0
+                    .send((None, WebGPURequest::BufferMapComplete(self.buffer.0)))
+                {
+                    warn!(
+                        "Failed to send BufferMapComplete({:?}) ({})",
+                        self.buffer.0, e
+                    );
+                }
+            }
         }
-        *self.map_promise.borrow_mut() = None;
-        if let Err(e) = self
-            .channel
-            .0
-            .send((None, WebGPURequest::BufferMapComplete(self.buffer.0)))
-        {
-            warn!(
-                "Failed to send BufferMapComplete({:?}) ({})",
-                self.buffer.0, e
-            );
-        }
+        self.pending_map.borrow_mut().take();
+        // Step 1.1
+        assert!(promise.is_fulfilled());
     }
 }

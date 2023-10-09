@@ -21,9 +21,9 @@ use webgpu::{self, wgt, ErrorScopeId, WebGPU, WebGPURequest};
 use wgt::{AstcBlock, AstcChannel};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUBlendComponent, GPUBufferBindingType, GPUDeviceLostReason, GPUMipmapFilterMode,
-    GPUPrimitiveState, GPUSamplerBindingType, GPUStorageTextureAccess, GPUTextureSampleType,
-    GPUVertexStepMode,
+    GPUBlendComponent, GPUBufferBindingType, GPUDeviceLostReason, GPUMapModeConstants,
+    GPUMipmapFilterMode, GPUPrimitiveState, GPUSamplerBindingType, GPUStorageTextureAccess,
+    GPUTextureSampleType, GPUVertexStepMode,
 };
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
@@ -373,6 +373,7 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> DomRoot<GPUBuffer> {
+        // Step 2&3
         let desc =
             wgt::BufferUsages::from_bits(descriptor.usage).map(|usg| wgpu_res::BufferDescriptor {
                 label: convert_label(&descriptor.parent),
@@ -393,7 +394,24 @@ impl GPUDeviceMethods for GPUDevice {
                 WebGPUOpResult::ValidationError(String::from("Invalid GPUBufferUsage")),
             );
         }
-
+        let map_info;
+        // Step 4
+        let state;
+        if descriptor.mappedAtCreation {
+            map_info = DomRefCell::new(Some({
+                GPUBufferMapInfo {
+                    data: Rc::new(RefCell::new(vec![0u8; descriptor.size as usize])),
+                    range: 0..descriptor.size,
+                    views: Vec::new(),
+                    mode: GPUMapModeConstants::WRITE,
+                }
+            }));
+            state = GPUBufferState::Unavailable;
+        } else {
+            map_info = DomRefCell::new(None);
+            state = GPUBufferState::Available;
+        }
+        // Step 5
         self.channel
             .0
             .send((
@@ -407,23 +425,8 @@ impl GPUDeviceMethods for GPUDevice {
             .expect("Failed to create WebGPU buffer");
 
         let buffer = webgpu::WebGPUBuffer(id);
-        let map_info;
-        let state;
-        if descriptor.mappedAtCreation {
-            let buf_data = vec![0u8; descriptor.size as usize];
-            map_info = DomRefCell::new(Some(GPUBufferMapInfo {
-                mapping: Rc::new(RefCell::new(buf_data)),
-                mapping_range: 0..descriptor.size,
-                mapped_ranges: Vec::new(),
-                js_buffers: Vec::new(),
-                map_mode: None,
-            }));
-            state = GPUBufferState::Mapped;
-        } else {
-            map_info = DomRefCell::new(None);
-            state = GPUBufferState::Unmapped;
-        }
 
+        // Step 6
         GPUBuffer::new(
             &self.global(),
             self.channel.clone(),

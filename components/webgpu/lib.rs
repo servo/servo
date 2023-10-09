@@ -69,7 +69,11 @@ pub enum WebGPUResponse {
         queue_id: WebGPUQueue,
         descriptor: wgt::DeviceDescriptor<Option<String>>,
     },
-    BufferMapAsync(IpcSharedMemory),
+    BufferMapAsync {
+        data: IpcSharedMemory,
+        range: Range<wgt::BufferAddress>,
+        mode: HostMap,
+    },
     SubmittedWorkDone,
 }
 
@@ -237,7 +241,7 @@ pub enum WebGPURequest {
         buffer_id: id::BufferId,
         device_id: id::DeviceId,
         array_buffer: IpcSharedMemory,
-        is_map_read: bool,
+        is_write: bool,
         offset: u64,
         size: u64,
     },
@@ -270,6 +274,7 @@ struct BufferMapInfo<'a, T> {
     sender: IpcSender<T>,
     global: &'a wgpu::global::Global<IdentityRecyclerFactory>,
     range: Range<wgt::BufferAddress>,
+    mode: HostMap,
     external_id: Option<u64>,
 }
 
@@ -423,6 +428,7 @@ impl<'a> WGPU<'a> {
                             sender: sender.clone(),
                             global: &self.global,
                             range: map_range.clone(),
+                            mode: host_map,
                             external_id: None,
                         };
                         self.buffer_maps.insert(buffer_id, Rc::new(map_info));
@@ -443,9 +449,11 @@ impl<'a> WGPU<'a> {
                                     .unwrap();
                                     let data =
                                         slice::from_raw_parts(slice_pointer, range_size as usize);
-                                    Ok(WebGPUResponse::BufferMapAsync(IpcSharedMemory::from_bytes(
-                                        data,
-                                    )))
+                                    Ok(WebGPUResponse::BufferMapAsync {
+                                        data: IpcSharedMemory::from_bytes(data),
+                                        range: info.range.start..range_size, //TODO(wpu): recheck
+                                        mode: info.mode,
+                                    })
                                 },
                                 _ => {
                                     warn!("Could not map buffer({:?})", info.buffer_id);
@@ -1120,6 +1128,7 @@ impl<'a> WGPU<'a> {
                             sender: self.sender.clone(),
                             global: &self.global,
                             range: 0..buffer_size,
+                            mode: HostMap::Read,
                             external_id: Some(external_id),
                         };
                         self.present_buffer_maps
@@ -1167,12 +1176,12 @@ impl<'a> WGPU<'a> {
                         buffer_id,
                         device_id,
                         array_buffer,
-                        is_map_read,
+                        is_write,
                         offset,
                         size,
                     } => {
                         let global = &self.global;
-                        if !is_map_read {
+                        if is_write {
                             let (slice_pointer, range_size) =
                                 gfx_select!(buffer_id => global.buffer_get_mapped_range(
                                     buffer_id,

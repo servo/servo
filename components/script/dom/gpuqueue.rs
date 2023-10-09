@@ -77,7 +77,7 @@ impl GPUQueueMethods for GPUQueue {
     fn Submit(&self, command_buffers: Vec<DomRoot<GPUCommandBuffer>>) {
         let valid = command_buffers.iter().all(|cb| {
             cb.buffers().iter().all(|b| match b.state() {
-                GPUBufferState::Unmapped => true,
+                GPUBufferState::Available => true,
                 _ => false,
             })
         });
@@ -124,7 +124,7 @@ impl GPUQueueMethods for GPUQueue {
             bytes.len() as GPUSize64 - data_offset
         };
         let valid = data_offset + content_size <= bytes.len() as u64 &&
-            buffer.state() == GPUBufferState::Unmapped &&
+            buffer.state() == GPUBufferState::Available &&
             content_size % wgt::COPY_BUFFER_ALIGNMENT == 0 &&
             buffer_offset % wgt::COPY_BUFFER_ALIGNMENT == 0;
 
