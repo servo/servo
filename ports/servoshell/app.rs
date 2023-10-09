@@ -109,8 +109,15 @@ impl App {
             webrender_surfman.make_gl_context_current().unwrap();
             debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
 
-            app.minibrowser =
-                Some(Minibrowser::new(&webrender_surfman, &events_loop, window.as_ref()).into());
+            app.minibrowser = Some(
+                Minibrowser::new(
+                    &webrender_surfman,
+                    &events_loop,
+                    window.as_ref(),
+                    initial_url.clone(),
+                )
+                .into(),
+            );
         }
 
         if let Some(mut minibrowser) = app.minibrowser() {

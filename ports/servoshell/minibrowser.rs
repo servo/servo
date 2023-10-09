@@ -40,6 +40,7 @@ impl Minibrowser {
         webrender_surfman: &WebrenderSurfman,
         events_loop: &EventsLoop,
         window: &dyn WindowPortsMethods,
+        initial_url: ServoUrl,
     ) -> Self {
         let gl = unsafe {
             glow::Context::from_loader_function(|s| webrender_surfman.get_proc_address(s))
@@ -56,7 +57,7 @@ impl Minibrowser {
             event_queue: RefCell::new(vec![]),
             toolbar_height: Default::default(),
             last_update: Instant::now(),
-            location: RefCell::new(String::default()),
+            location: RefCell::new(initial_url.to_string()),
             location_dirty: false.into(),
         }
     }
@@ -154,7 +155,7 @@ impl Minibrowser {
 
         match browser.current_url_string() {
             Some(location) if location != self.location.get_mut() => {
-                self.location = RefCell::new(location.to_owned());
+                self.location = RefCell::new(self.location.get_mut().to_string());
                 true
             },
             _ => false,
