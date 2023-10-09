@@ -243,7 +243,7 @@ pub enum WebGPURequest {
         array_buffer: IpcSharedMemory,
         is_write: bool,
         offset: u64,
-        size: u64,
+        size: Option<u64>,
     },
     UpdateWebRenderData {
         buffer_id: id::BufferId,
@@ -1182,11 +1182,12 @@ impl<'a> WGPU<'a> {
                     } => {
                         let global = &self.global;
                         if is_write {
+                            // bufferupdate: https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
                             let (slice_pointer, range_size) =
                                 gfx_select!(buffer_id => global.buffer_get_mapped_range(
                                     buffer_id,
                                     offset,
-                                    Some(size)
+                                    size
                                 ))
                                 .unwrap();
                             unsafe {

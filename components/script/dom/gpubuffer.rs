@@ -185,7 +185,7 @@ impl GPUBufferMethods for GPUBuffer {
                     array_buffer: IpcSharedMemory::from_bytes(m_info.data.borrow().as_slice()),
                     is_write: m_info.mode >= GPUMapModeConstants::WRITE,
                     offset: m_range.start,
-                    size: m_range.end - m_range.start,
+                    size: None,
                 },
             )) {
                 warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
