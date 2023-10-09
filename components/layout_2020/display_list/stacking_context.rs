@@ -271,7 +271,7 @@ pub struct StackingContext {
     /// things like preserve-3d.
     spatial_id: wr::SpatialId,
 
-    /// The clip chain id of this fragment if it has one. Used for filter clipping.
+    /// The clip chain id of this stacking context if it has one. Used for filter clipping.
     clip_chain_id: Option<wr::ClipChainId>,
 
     /// The fragment that established this stacking context.
