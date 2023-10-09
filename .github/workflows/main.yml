@@ -62,6 +62,7 @@ jobs:
             }
 
             let returnValue =  {
+              force_debug_assertions: true,
               platform,
               layout,
               unit_tests,
@@ -75,7 +76,7 @@ jobs:
     if: ${{ contains(fromJson('["windows", "all"]'), fromJson(needs.decision.outputs.configuration).platform) }}
     uses: ./.github/workflows/windows.yml
     with:
-      force-debug-assertions: true
+      force-debug-assertions: ${{ fromJson(needs.decision.outputs.configuration).force_debug_assertions }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
 
   build-mac:
@@ -84,7 +85,7 @@ jobs:
     if: ${{ contains(fromJson('["macos", "all"]'), fromJson(needs.decision.outputs.configuration).platform) }}
     uses: ./.github/workflows/mac.yml
     with:
-      force-debug-assertions: true
+      force-debug-assertions: ${{ fromJson(needs.decision.outputs.configuration).force_debug_assertions }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
 
   build-linux:
@@ -93,7 +94,7 @@ jobs:
     if: ${{ contains(fromJson('["linux", "all"]'), fromJson(needs.decision.outputs.configuration).platform) }}
     uses: ./.github/workflows/linux.yml
     with:
-      force-debug-assertions: true
+      force-debug-assertions: ${{ fromJson(needs.decision.outputs.configuration).force_debug_assertions }}
       wpt: 'test'
       layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
