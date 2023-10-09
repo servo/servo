@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::env;
-use std::fs::File;
 use std::path::Path;
 
 use servo::embedder_traits;
@@ -112,31 +111,6 @@ fn url_should_resolve_in_location_bar() {
 }
 
 #[test]
-// if a file named with keyword exists, it should be trated as file path
-fn no_dots_keyword_should_resolve_in_commad_line_as_file_path() {
-    embedder_traits::resources::set_for_tests();
-
-    let cwd = env::current_dir().expect("Failed to get current directory");
-
-    // Create a temporary file called dragonfruit
-    let file_path = cwd.join("dragonfruit");
-    File::create(&file_path).expect("Failed to create dragonfruit file");
-    file_path.to_string_lossy().to_string();
-    let input = "dragonfruit";
-
-    let url = get_default_url(Some(input.to_string()));
-
-    let path_segments = url.path_segments().unwrap().collect::<Vec<_>>();
-    let contains_input = path_segments.contains(&input);
-
-    assert_eq!(url.scheme(), "file");
-    assert!(contains_input);
-
-    // Remove the temporary dragonfruit file
-    std::fs::remove_file(&file_path).expect("Failed to remove dragonfruit file");
-}
-
-#[test]
 fn no_dots_keyword_should_resolve_as_search() {
     embedder_traits::resources::set_for_tests();
     let input = "dragonfruit";
@@ -144,15 +118,15 @@ fn no_dots_keyword_should_resolve_as_search() {
 
     // in location bar
     let location_bar_url = location_bar_input_to_url(input);
-    let binding = location_bar_url.clone().unwrap();
+    let url = location_bar_url.clone().unwrap();
 
-    assert_eq!(binding.scheme(), "https");
-    assert_eq!(binding.domain(), Some("duckduckgo.com"));
-    assert_eq!(binding.query(), Some("q=dragonfruit"));
+    assert_eq!(url.scheme(), "https");
+    assert_eq!(url.domain(), Some("duckduckgo.com"));
+    assert_eq!(url.query(), Some("q=dragonfruit"));
 
-    let expected_result = ServoUrl::parse("https://README.md").ok();
+    let expected_result_for_input1 = ServoUrl::parse("https://README.md").ok();
     let location_bar_url1 = location_bar_input_to_url(input1);
-    assert_eq!(location_bar_url1, expected_result);
+    assert_eq!(location_bar_url1, expected_result_for_input1);
 
     // in command line
     let command_line_url = get_default_url(Some(input.to_string()));

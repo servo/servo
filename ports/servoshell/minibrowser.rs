@@ -11,7 +11,6 @@ use euclid::Length;
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::servo_geometry::DeviceIndependentPixel;
-use servo::servo_url::ServoUrl;
 use servo::webrender_surfman::WebrenderSurfman;
 
 use crate::browser::Browser;
