@@ -41,7 +41,7 @@ on:
     branches: ["try-mac", "try-wpt-mac", "try-wpt-mac-2020"]
 
 env:
-  cargo_profile_option: ${{ inputs.force-debug-assertions && "--profile release-with-debug-assertions" || "--release" }}
+  cargo_profile_option: ${{ inputs.force-debug-assertions && '--profile release-with-debug-assertions' || '--release' }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   SCCACHE_GHA_ENABLED: "true"
@@ -77,7 +77,7 @@ jobs:
           python3 -m pip install --upgrade pip virtualenv
           python3 ./mach bootstrap
           brew install gnu-tar
-      - name: Release build (${{ inputs.force-debug-assertions && "with" || "without" }} debug assertions)
+      - name: Release build (${{ inputs.force-debug-assertions && 'with' || 'without' }} debug assertions)
         run: |
           python3 ./mach build ${cargo_profile_option}
       - name: Smoketest

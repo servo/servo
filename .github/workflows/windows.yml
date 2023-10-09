@@ -34,7 +34,7 @@ on:
     branches: ["try-windows"]
 
 env:
-  cargo_profile_option: ${{ inputs.force-debug-assertions && "--profile release-with-debug-assertions" || "--release" }}
+  cargo_profile_option: ${{ inputs.force-debug-assertions && '--profile release-with-debug-assertions' || '--release' }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CCACHE: "ccache"
@@ -76,7 +76,7 @@ jobs:
           python -m pip install --upgrade pip virtualenv
           python mach fetch
           python mach bootstrap-gstreamer
-      - name: Release build (${{ inputs.force-debug-assertions && "with" || "without" }} debug assertions)
+      - name: Release build (${{ inputs.force-debug-assertions && 'with' || 'without' }} debug assertions)
         run: python mach build $env:cargo_profile_option
       - name: Copy resources
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
