@@ -62,7 +62,7 @@ rand = "0.8"
 rand_core = "0.6"
 rand_isaac = "0.3"
 rayon = "1"
-regex = "1.9"
+regex = "1.10"
 rustls = { version = "0.21.7", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.3"
 serde = "1.0.60"
