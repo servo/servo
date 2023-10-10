@@ -138,7 +138,7 @@ interface GPUDevice : EventTarget {
 
     [NewObject]
     GPUBuffer createBuffer(GPUBufferDescriptor descriptor);
-    [NewObject]
+    [Throws, NewObject]
     GPUTexture createTexture(GPUTextureDescriptor descriptor);
     [NewObject]
     GPUSampler createSampler(optional GPUSamplerDescriptor descriptor = {});
@@ -941,16 +941,19 @@ interface GPUCommandEncoder {
         GPUSize64 destinationOffset,
         GPUSize64 size);
 
+    [Throws]
     undefined copyBufferToTexture(
         GPUImageCopyBuffer source,
         GPUImageCopyTexture destination,
         GPUExtent3D copySize);
 
+    [Throws]
     undefined copyTextureToBuffer(
         GPUImageCopyTexture source,
         GPUImageCopyBuffer destination,
         GPUExtent3D copySize);
 
+    [Throws]
     undefined copyTextureToTexture(
         GPUImageCopyTexture source,
         GPUImageCopyTexture destination,

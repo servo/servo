@@ -288,8 +288,12 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             ))
             .expect("Failed to create WebGPU SwapChain");
 
-        self.texture
-            .set(Some(&descriptor.device.CreateTexture(&text_desc)));
+        self.texture.set(Some(
+            &descriptor
+                .device
+                .CreateTexture(&text_desc)
+                .expect("GPUExtent3DDict should be passed (not seq that can error)"),
+        ));
 
         self.webrender_image.set(Some(receiver.recv().unwrap()));
     }

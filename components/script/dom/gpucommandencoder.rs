@@ -15,11 +15,13 @@ use super::bindings::codegen::Bindings::WebGPUBinding::{
     GPULoadOp, GPUTextureAspect,
 };
 use super::bindings::codegen::UnionTypes::DoubleSequenceOrGPUColorDict;
+use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandEncoderMethods, GPUComputePassDescriptor, GPUExtent3D, GPUOrigin3D,
     GPURenderPassDescriptor, GPUSize64, GPUStoreOp,
 };
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -279,10 +281,10 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         source: &GPUImageCopyBuffer,
         destination: &GPUImageCopyTexture,
         copy_size: GPUExtent3D,
-    ) {
+    ) -> Fallible<()> {
         if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
             self.valid.set(false);
-            return;
+            return Ok(());
         }
 
         self.buffers
@@ -296,13 +298,14 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                 WebGPURequest::CopyBufferToTexture {
                     command_encoder_id: self.encoder.0,
                     source: convert_ic_buffer(source),
-                    destination: convert_ic_texture(destination),
+                    destination: convert_ic_texture(destination)?,
                     copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(
                         &copy_size,
-                    )),
+                    )?),
                 },
             ))
             .expect("Failed to send CopyBufferToTexture");
+        Ok(())
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-copybuffertotexture
@@ -311,10 +314,10 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         source: &GPUImageCopyTexture,
         destination: &GPUImageCopyBuffer,
         copy_size: GPUExtent3D,
-    ) {
+    ) -> Fallible<()> {
         if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
             self.valid.set(false);
-            return;
+            return Ok(());
         }
 
         self.buffers
@@ -327,14 +330,16 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                 None,
                 WebGPURequest::CopyTextureToBuffer {
                     command_encoder_id: self.encoder.0,
-                    source: convert_ic_texture(source),
+                    source: convert_ic_texture(source)?,
                     destination: convert_ic_buffer(destination),
                     copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(
                         &copy_size,
-                    )),
+                    )?),
                 },
             ))
             .expect("Failed to send CopyTextureToBuffer");
+
+        Ok(())
     }
 
     /// https://gpuweb.github.io/gpuweb/#GPUCommandEncoder-copyTextureToTexture
@@ -343,10 +348,10 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         source: &GPUImageCopyTexture,
         destination: &GPUImageCopyTexture,
         copy_size: GPUExtent3D,
-    ) {
+    ) -> Fallible<()> {
         if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
             self.valid.set(false);
-            return;
+            return Ok(());
         }
 
         self.channel
@@ -355,14 +360,15 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                 None,
                 WebGPURequest::CopyTextureToTexture {
                     command_encoder_id: self.encoder.0,
-                    source: convert_ic_texture(source),
-                    destination: convert_ic_texture(destination),
+                    source: convert_ic_texture(source)?,
+                    destination: convert_ic_texture(destination)?,
                     copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(
                         &copy_size,
-                    )),
+                    )?),
                 },
             ))
             .expect("Failed to send CopyTextureToTexture");
+        Ok(())
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
@@ -421,14 +427,19 @@ fn convert_ic_buffer(ic_buffer: &GPUImageCopyBuffer) -> wgpu_com::ImageCopyBuffe
     }
 }
 
-pub fn convert_ic_texture(ic_texture: &GPUImageCopyTexture) -> wgpu_com::ImageCopyTexture {
-    // Here we should have GPUOrigin3D origin, but beacuse = {} in idl we have this monster
+pub fn convert_ic_texture(
+    ic_texture: &GPUImageCopyTexture,
+) -> Fallible<wgpu_com::ImageCopyTexture> {
+    // Here we should have GPUOrigin3D origin, but because = {} in idl we have this monster
     use crate::dom::bindings::codegen::UnionTypes::RangeEnforcedUnsignedLongSequenceOrGPUOrigin3DDict::*;
-    wgpu_com::ImageCopyTexture {
+    Ok(wgpu_com::ImageCopyTexture {
         texture: ic_texture.texture.id().0,
         mip_level: ic_texture.mipLevel,
         origin: match ic_texture.origin {
             RangeEnforcedUnsignedLongSequence(ref v) => {
+                if v.len() > 3 {
+                    return Err(Error::Type("GPUOrigin3D has only 3 dimensions".to_string()));
+                }
                 let mut w = v.clone();
                 w.resize(3, 0);
                 wgt::Origin3d {
@@ -448,7 +459,7 @@ pub fn convert_ic_texture(ic_texture: &GPUImageCopyTexture) -> wgpu_com::ImageCo
             GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
             GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
         },
-    }
+    })
 }
 
 pub fn convert_image_data_layout(data_layout: &GPUImageDataLayout) -> wgt::ImageDataLayout {

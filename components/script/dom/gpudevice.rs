@@ -26,6 +26,7 @@ use super::bindings::codegen::Bindings::WebGPUBinding::{
     GPUTextureSampleType, GPUVertexStepMode,
 };
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
+use super::bindings::error::Fallible;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpusupportedlimits::GPUSupportedLimits;
 use super::types::GPUInternalError;
@@ -790,8 +791,8 @@ impl GPUDeviceMethods for GPUDevice {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture
-    fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> DomRoot<GPUTexture> {
-        let size = convert_texture_size_to_dict(&descriptor.size);
+    fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> Fallible<DomRoot<GPUTexture>> {
+        let size = convert_texture_size_to_dict(&descriptor.size)?;
         let desc = wgt::TextureUsages::from_bits(descriptor.usage).map(|usg| {
             wgpu_res::TextureDescriptor {
                 label: convert_label(&descriptor.parent),
@@ -840,7 +841,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         let texture = webgpu::WebGPUTexture(texture_id);
 
-        GPUTexture::new(
+        Ok(GPUTexture::new(
             &self.global(),
             texture,
             &self,
@@ -852,7 +853,7 @@ impl GPUDeviceMethods for GPUDevice {
             descriptor.format,
             descriptor.usage,
             descriptor.parent.label.clone(),
-        )
+        ))
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
@@ -1534,20 +1535,26 @@ pub fn convert_texture_view_dimension(
     }
 }
 
-pub fn convert_texture_size_to_dict(size: &GPUExtent3D) -> GPUExtent3DDict {
+pub fn convert_texture_size_to_dict(size: &GPUExtent3D) -> Fallible<GPUExtent3DDict> {
     match *size {
-        GPUExtent3D::GPUExtent3DDict(ref dict) => GPUExtent3DDict {
+        GPUExtent3D::GPUExtent3DDict(ref dict) => Ok(GPUExtent3DDict {
             width: dict.width,
             height: dict.height,
             depthOrArrayLayers: dict.depthOrArrayLayers,
-        },
+        }),
         GPUExtent3D::RangeEnforcedUnsignedLongSequence(ref v) => {
-            let mut w = v.clone();
-            w.resize(3, 1);
-            GPUExtent3DDict {
-                width: w[0],
-                height: w[1],
-                depthOrArrayLayers: w[2],
+            if v.len() < 1 || v.len() > 3 {
+                let mut w = v.clone();
+                w.resize(3, 1);
+                Ok(GPUExtent3DDict {
+                    width: w[0],
+                    height: w[1],
+                    depthOrArrayLayers: w[2],
+                })
+            } else {
+                Err(Error::Type(
+                    "GPUExtent3D size must be between 1 and 3 (inclusive)".to_string(),
+                ))
             }
         },
     }
