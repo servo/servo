@@ -242,8 +242,8 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         array_buffer: IpcSharedMemory,
         is_write: bool,
-        offset: u64,
-        size: Option<u64>,
+        offset: wgt::BufferAddress,
+        size: wgt::BufferAddress,
     },
     UpdateWebRenderData {
         buffer_id: id::BufferId,
@@ -451,7 +451,7 @@ impl<'a> WGPU<'a> {
                                         slice::from_raw_parts(slice_pointer, range_size as usize);
                                     Ok(WebGPUResponse::BufferMapAsync {
                                         data: IpcSharedMemory::from_bytes(data),
-                                        range: info.range.start..range_size, //TODO(wpu): recheck
+                                        range: info.range.start..(info.range.start + range_size), //TODO(wpu): recheck
                                         mode: info.mode,
                                     })
                                 },
@@ -1187,7 +1187,7 @@ impl<'a> WGPU<'a> {
                                 gfx_select!(buffer_id => global.buffer_get_mapped_range(
                                     buffer_id,
                                     offset,
-                                    size
+                                    Some(size)
                                 ))
                                 .unwrap();
                             unsafe {

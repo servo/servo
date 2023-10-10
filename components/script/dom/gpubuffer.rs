@@ -176,7 +176,6 @@ impl GPUBufferMethods for GPUBuffer {
                 DetachArrayBuffer(*cx, obj.js_buffer.handle());
             });
             // Step 5&7
-            let m_range = m_info.range.clone();
             if let Err(e) = self.channel.0.send((
                 self.device.use_current_scope(),
                 WebGPURequest::UnmapBuffer {
@@ -184,8 +183,8 @@ impl GPUBufferMethods for GPUBuffer {
                     device_id: self.device.id().0,
                     array_buffer: IpcSharedMemory::from_bytes(m_info.data.borrow().as_slice()),
                     is_write: m_info.mode >= GPUMapModeConstants::WRITE,
-                    offset: m_range.start,
-                    size: None,
+                    offset: m_info.range.start,
+                    size: m_info.range.end - m_info.range.start,
                 },
             )) {
                 warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
@@ -200,6 +199,9 @@ impl GPUBufferMethods for GPUBuffer {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
     fn Destroy(&self) {
+        if self.state.get() == GPUBufferState::Destroyed {
+            return;
+        }
         // Step 1
         self.Unmap();
         // Step 2
@@ -213,7 +215,7 @@ impl GPUBufferMethods for GPUBuffer {
                 self.buffer.0, e
             );
         };
-        // Step 2
+        // Device timeline
         self.state.set(GPUBufferState::Destroyed);
     }
 
@@ -312,19 +314,23 @@ impl GPUBufferMethods for GPUBuffer {
         } else {
             self.size - offset
         };
-        let range = offset..offset + range_size;
+        let range = offset..(offset + range_size);
         // Step 2: validation
         let mut info = self.mapping.borrow_mut();
         if let Some(info) = info.as_mut() {
-            let mut valid = offset % wgt::MAP_ALIGNMENT == 0 &&
+            if !(offset % wgt::MAP_ALIGNMENT == 0 &&
                 range_size % wgt::COPY_BUFFER_ALIGNMENT == 0 &&
                 range.start >= info.range.start &&
-                range.end <= info.range.end;
+                range.end <= info.range.end)
+            {
+                return Err(Error::Operation);
+            }
             // does not overlap
-            valid &= info.views.iter().all(|arr_buf| {
-                arr_buf.range.start <= range.end && range.start <= arr_buf.range.end
-            });
-            if !valid {
+            if !info
+                .views
+                .iter()
+                .all(|arr_buf| arr_buf.range.start <= range.end && range.start <= arr_buf.range.end)
+            {
                 return Err(Error::Operation);
             }
 
@@ -332,13 +338,15 @@ impl GPUBufferMethods for GPUBuffer {
             unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
                 drop(Rc::from_raw(free_user_data as _));
             }
-
+            // data = wgpu_buffer[info.range.start..info.range.end]
+            // and range is relative to wgpu-buffer so we need to rebase it
+            let rebased_range =
+                (range.start - info.range.start) as usize..(range.end - info.range.start) as usize;
             let array_buffer = unsafe {
                 NewExternalArrayBuffer(
                     *cx,
                     range_size as usize,
-                    info.data.borrow_mut()[range.start as usize..range.end as usize].as_mut_ptr()
-                        as _,
+                    info.data.borrow_mut()[rebased_range].as_mut_ptr() as _,
                     Some(free_func),
                     Rc::into_raw(info.data.clone()) as _,
                 )
