@@ -2,6 +2,9 @@ name: Linux WPT Tests
 on:
   workflow_call:
     inputs:
+      force-debug-assertions:
+        required: false
+        type: boolean
       wpt:
         required: false
         type: string

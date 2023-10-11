@@ -3,6 +3,9 @@ name: Mac WPT Tests
 on:
   workflow_call:
     inputs:
+      force-debug-assertions:
+        required: false
+        type: boolean
       layout:
         required: true
         type: string

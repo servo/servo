@@ -140,6 +140,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
+      force-debug-assertions: ${{ inputs.force-debug-assertions }}
       wpt: ${{ inputs.wpt }}
       layout: "layout-2020"
 
@@ -149,6 +150,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
+      force-debug-assertions: ${{ inputs.force-debug-assertions }}
       wpt: ${{ inputs.wpt }}
       layout: "layout-2013"
 

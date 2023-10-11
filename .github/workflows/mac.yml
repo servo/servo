@@ -130,6 +130,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
+      force-debug-assertions: ${{ inputs.force-debug-assertions }}
       layout: "layout-2020"
 
   wpt-2013:
@@ -138,6 +139,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
+      force-debug-assertions: ${{ inputs.force-debug-assertions }}
       layout: "layout-2013"
 
   result:
