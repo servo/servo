@@ -49,6 +49,7 @@ on:
 
 env:
   cargo_profile_option: ${{ inputs.force-debug-assertions && '--profile release-with-debug-assertions' || '--release' }}
+  cargo_profile_name: ${{ inputs.force-debug-assertions && 'release-with-debug-assertions' || 'release' }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   SCCACHE_GHA_ENABLED: "true"
@@ -114,7 +115,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: linux
-          path: target/release/servo-tech-demo.tar.gz
+          path: target/${cargo_profile_name}/servo-tech-demo.tar.gz
       - name: Upload
         if: ${{ inputs.upload }}
         run: |
@@ -126,7 +127,7 @@ jobs:
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
       - name: Package binary
-        run: tar -czf target.tar.gz target/release/servo resources
+        run: tar -czf target.tar.gz target/${cargo_profile_name}/servo resources
       - name: Archive binary
         uses: actions/upload-artifact@v3
         with:
