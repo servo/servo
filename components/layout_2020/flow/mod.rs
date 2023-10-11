@@ -761,6 +761,12 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         // Account for padding and border. We also might have to readjust the
         // `bfc_relative_block_position` if it was different from the content size (i.e. was
         // non-`auto` and/or was affected by min/max block size).
+        //
+        // If this adjustment is positive, that means that a block size was specified, but
+        // the content inside had a smaller block size. If this adjustment is negative, a
+        // block size was specified, but the content inside overflowed this container in
+        // the block direction. In that case, the ceiling for floats is effectively raised
+        // as long as no floats in the overflowing content lowered it.
         sequential_layout_state.advance_block_position(
             (block_size - content_block_size) + pbm.padding.block_end + pbm.border.block_end,
         );
