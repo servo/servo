@@ -78,14 +78,14 @@ jobs:
           python mach fetch
           python mach bootstrap-gstreamer
       - name: Release build (${{ inputs.force-debug-assertions && 'with' || 'without' }} debug assertions)
-        run: python mach build $env:cargo_profile_option
+        run: python mach build ($env:cargo_profile_option -split ' ')
       - name: Copy resources
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
-        run: python mach smoketest --angle $env:cargo_profile_option
+        run: python mach smoketest --angle ($env:cargo_profile_option -split ' ')
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-windows' }}
-        run: python mach test-unit $env:cargo_profile_option
+        run: python mach test-unit ($env:cargo_profile_option -split ' ')
       - name: Rename build timing
         run: cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Archive build timing
@@ -95,7 +95,7 @@ jobs:
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Package
-        run: python mach package $env:cargo_profile_option
+        run: python mach package ($env:cargo_profile_option -split ' ')
       - name: Upload package
         uses: actions/upload-artifact@v3
         with:
