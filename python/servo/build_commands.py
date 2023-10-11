@@ -65,7 +65,7 @@ class MachCommands(CommandBase):
         if build_type.is_release():
             opts += ["--release"]
         elif build_type.is_dev():
-            pass # there is no argument for debug
+            pass  # there is no argument for debug
         else:
             opts += ["--profile", build_type.profile]
 
