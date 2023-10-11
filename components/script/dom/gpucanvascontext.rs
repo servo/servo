@@ -16,20 +16,17 @@ use webrender_api::{
     ImageDescriptorFlags, ImageFormat, ImageKey,
 };
 
-use super::bindings::codegen::Bindings::GPUTextureUsageBinding::GPUTextureUsageConstants;
+use super::bindings::codegen::Bindings::WebGPUBinding::GPUTextureUsageConstants;
 use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use super::bindings::error::{Error, Fallible};
 use super::bindings::root::MutNullableDom;
 use super::gputexture::GPUTexture;
-use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::{
-    GPUCanvasConfiguration, GPUCanvasContextMethods,
+use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElement_Binding::HTMLCanvasElementMethods;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUCanvasConfiguration, GPUCanvasContextMethods, GPUDeviceMethods, GPUExtent3D,
+    GPUExtent3DDict, GPUObjectDescriptorBase, GPUTextureDescriptor, GPUTextureDimension,
+    GPUTextureFormat,
 };
-use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::GPUDeviceBinding::GPUDeviceMethods;
-use crate::dom::bindings::codegen::Bindings::GPUObjectBaseBinding::GPUObjectDescriptorBase;
-use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
-    GPUExtent3D, GPUExtent3DDict, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
-};
-use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, LayoutDom};

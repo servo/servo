@@ -110,7 +110,8 @@ otherwise install OpenSSL and ensure that it's on your $PATH.""")
 def check_environ(product):
     if product not in ("android_weblayer", "android_webview", "chrome",
                        "chrome_android", "chrome_ios", "content_shell",
-                       "firefox", "firefox_android", "servo", "wktr"):
+                       "edgechromium", "firefox", "firefox_android", "ladybird", "servo",
+                       "wktr"):
         config_builder = serve.build_config(os.path.join(wpt_root, "config.json"))
         # Override the ports to avoid looking for free ports
         config_builder.ssl = {"type": "none"}
@@ -542,43 +543,69 @@ class Opera(BrowserSetup):
 class EdgeChromium(BrowserSetup):
     name = "MicrosoftEdge"
     browser_cls = browser.EdgeChromium
+    experimental_channels: ClassVar[Tuple[str, ...]] = ("dev", "canary")
 
     def setup_kwargs(self, kwargs):
         browser_channel = kwargs["browser_channel"]
         if kwargs["binary"] is None:
-            binary = self.browser.find_binary(channel=browser_channel)
+            binary = self.browser.find_binary(venv_path=self.venv.path, channel=browser_channel)
             if binary:
-                logger.info("Using Edge binary %s" % binary)
                 kwargs["binary"] = binary
             else:
-                raise WptrunError("Unable to locate Edge binary")
+                raise WptrunError(f"Unable to locate {self.name.capitalize()} binary")
+
+        if kwargs["mojojs_path"]:
+            kwargs["enable_mojojs"] = True
+            logger.info("--mojojs-path is provided, enabling MojoJS")
+        else:
+            path = self.browser.install_mojojs(dest=self.venv.path,
+                                               browser_binary=kwargs["binary"])
+            if path:
+                kwargs["mojojs_path"] = path
+                kwargs["enable_mojojs"] = True
+                logger.info(f"MojoJS enabled automatically (mojojs_path: {path})")
+            else:
+                kwargs["enable_mojojs"] = False
+                logger.info("MojoJS is disabled for this run.")
 
         if kwargs["webdriver_binary"] is None:
             webdriver_binary = None
             if not kwargs["install_webdriver"]:
-                webdriver_binary = self.browser.find_webdriver()
-                if (webdriver_binary and not self.browser.webdriver_supports_browser(
-                    webdriver_binary, kwargs["binary"])):
+                webdriver_binary = self.browser.find_webdriver(self.venv.bin_path)
+                if webdriver_binary and not self.browser.webdriver_supports_browser(
+                        webdriver_binary, kwargs["binary"], browser_channel):
                     webdriver_binary = None
 
             if webdriver_binary is None:
                 install = self.prompt_install("msedgedriver")
 
                 if install:
-                    logger.info("Downloading msedgedriver")
                     webdriver_binary = self.browser.install_webdriver(
                         dest=self.venv.bin_path,
-                        channel=browser_channel)
+                        channel=browser_channel,
+                        browser_binary=kwargs["binary"],
+                    )
             else:
                 logger.info("Using webdriver binary %s" % webdriver_binary)
 
             if webdriver_binary:
                 kwargs["webdriver_binary"] = webdriver_binary
             else:
-                raise WptrunError("Unable to locate or install msedgedriver binary")
-        if browser_channel in ("dev", "canary") and kwargs["enable_experimental"] is None:
-            logger.info("Automatically turning on experimental features for Edge Dev/Canary")
-            kwargs["enable_experimental"] = True
+                raise WptrunError("Unable to locate or install matching msedgedriver binary")
+        if browser_channel in self.experimental_channels:
+            # HACK(Hexcles): work around https://github.com/web-platform-tests/wpt/issues/16448
+            kwargs["webdriver_args"].append("--disable-build-check")
+            if kwargs["enable_experimental"] is None:
+                logger.info(
+                    "Automatically turning on experimental features for Microsoft Edge Dev/Canary")
+                kwargs["enable_experimental"] = True
+            if kwargs["enable_webtransport_h3"] is None:
+                # To start the WebTransport over HTTP/3 test server.
+                kwargs["enable_webtransport_h3"] = True
+        if os.getenv("TASKCLUSTER_ROOT_URL"):
+            # We are on Taskcluster, where our Docker container does not have
+            # enough capabilities to run Microsoft Edge with sandboxing. (gh-20133)
+            kwargs["binary_args"].append("--no-sandbox")
 
 
 class Edge(BrowserSetup):
@@ -692,6 +719,15 @@ class WebKit(BrowserSetup):
     def setup_kwargs(self, kwargs):
         pass
 
+class Ladybird(BrowserSetup):
+    name = "ladybird"
+    browser_cls = browser.Ladybird
+
+    def install(self, channel=None):
+        raise NotImplementedError
+
+    def setup_kwargs(self, kwargs):
+        pass
 
 class WebKitTestRunner(BrowserSetup):
     name = "wktr"
@@ -782,6 +818,7 @@ product_setup = {
     "wktr": WebKitTestRunner,
     "webkitgtk_minibrowser": WebKitGTKMiniBrowser,
     "epiphany": Epiphany,
+    "ladybird": Ladybird,
 }
 
 

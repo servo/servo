@@ -22,6 +22,7 @@ clangStdenv.mkDerivation rec {
     gst_all_1.gst-plugins-bad
 
     rustup
+    taplo
     llvmPackages.bintools # provides lld
 
     # Build utilities
@@ -44,8 +45,15 @@ clangStdenv.mkDerivation rec {
   # Enable colored cargo and rustc output
   TERMINFO = "${ncurses.out}/share/terminfo";
 
-  # Fix missing libraries errors (those libraries aren't linked against, so we need to dynamically supply them)
-  LD_LIBRARY_PATH = lib.makeLibraryPath [ xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon ];
+  # Provide libraries that aren’t linked against but somehow required
+  LD_LIBRARY_PATH = lib.makeLibraryPath [
+    # Fixes missing library errors
+    xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon
+
+    # [WARN  script::dom::gpu] Could not get GPUAdapter ("NotFound")
+    # TLA Err: Error: Couldn't request WebGPU adapter.
+    vulkan-loader
+  ];
 
   shellHook = ''
     # Fix invalid option errors during linking

@@ -895,57 +895,9 @@ fn static_assert() {
         }
     }
 
-    pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
-        unsafe { bindings::Gecko_FontWeight_SetFloat(&mut self.gecko.mFont.weight, v.0) };
-    }
-    ${impl_simple_copy('font_weight', 'mFont.weight')}
-
-    pub fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
-        let weight: f32 = unsafe {
-            bindings::Gecko_FontWeight_ToFloat(self.gecko.mFont.weight)
-        };
-        longhands::font_weight::computed_value::T(weight)
-    }
-
-    pub fn set_font_stretch(&mut self, v: longhands::font_stretch::computed_value::T) {
-        unsafe {
-            bindings::Gecko_FontStretch_SetFloat(
-                &mut self.gecko.mFont.stretch,
-                v.value(),
-            )
-        };
-    }
-    ${impl_simple_copy('font_stretch', 'mFont.stretch')}
-    pub fn clone_font_stretch(&self) -> longhands::font_stretch::computed_value::T {
-        use crate::values::computed::font::FontStretch;
-        use crate::values::computed::Percentage;
-        use crate::values::generics::NonNegative;
-
-        let stretch =
-            unsafe { bindings::Gecko_FontStretch_ToFloat(self.gecko.mFont.stretch) };
-        debug_assert!(stretch >= 0.);
-
-        FontStretch(NonNegative(Percentage(stretch)))
-    }
-
-    pub fn set_font_style(&mut self, v: longhands::font_style::computed_value::T) {
-        use crate::values::generics::font::FontStyle;
-        let s = &mut self.gecko.mFont.style;
-        unsafe {
-            match v {
-                FontStyle::Normal => bindings::Gecko_FontSlantStyle_SetNormal(s),
-                FontStyle::Italic => bindings::Gecko_FontSlantStyle_SetItalic(s),
-                FontStyle::Oblique(ref angle) => {
-                    bindings::Gecko_FontSlantStyle_SetOblique(s, angle.0.degrees())
-                }
-            }
-        }
-    }
-    ${impl_simple_copy('font_style', 'mFont.style')}
-    pub fn clone_font_style(&self) -> longhands::font_style::computed_value::T {
-        use crate::values::computed::font::FontStyle;
-        FontStyle::from_gecko(self.gecko.mFont.style)
-    }
+    ${impl_simple('font_weight', 'mFont.weight')}
+    ${impl_simple('font_stretch', 'mFont.stretch')}
+    ${impl_simple('font_style', 'mFont.style')}
 
     ${impl_simple_type_with_conversion("font_synthesis", "mFont.synthesis")}
 
@@ -1032,7 +984,7 @@ fn static_assert() {
     ${impl_simple_copy('_moz_min_font_size_ratio', 'mMinFontSizeRatio')}
 </%self:impl_trait>
 
-<%def name="impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name, member=None)">
+<%def name="impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn copy_${type}_${ident}_from(&mut self, other: &Self) {
         self.gecko.m${type.capitalize()}s.ensure_len(other.gecko.m${type.capitalize()}s.len());
@@ -1045,11 +997,7 @@ fn static_assert() {
         );
 
         for (ours, others) in iter {
-            % if member:
-            ours.m${gecko_ffi_name}.${member} = others.m${gecko_ffi_name}.${member};
-            % else:
             ours.m${gecko_ffi_name} = others.m${gecko_ffi_name}.clone();
-            % endif
         }
     }
 
@@ -1104,14 +1052,14 @@ fn static_assert() {
 
         self.gecko.m${type.capitalize()}TimingFunctionCount = input_len as u32;
         for (gecko, servo) in self.gecko.m${type.capitalize()}s.iter_mut().take(input_len as usize).zip(v) {
-            gecko.mTimingFunction.mTiming = servo;
+            gecko.mTimingFunction = servo;
         }
     }
     ${impl_animation_or_transition_count(type, 'timing_function', 'TimingFunction')}
-    ${impl_copy_animation_or_transition_value(type, 'timing_function', "TimingFunction", "mTiming")}
+    ${impl_copy_animation_or_transition_value(type, 'timing_function', "TimingFunction")}
     pub fn ${type}_timing_function_at(&self, index: usize)
         -> longhands::${type}_timing_function::computed_value::SingleComputedValue {
-        self.gecko.m${type.capitalize()}s[index].mTimingFunction.mTiming
+        self.gecko.m${type.capitalize()}s[index].mTimingFunction.clone()
     }
 </%def>
 
@@ -1779,7 +1727,7 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
 <% skip_ui_longhands = """animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode
                           animation-play-state animation-iteration-count
-                          animation-timeline animation-timing-function
+                          animation-timing-function animation-composition animation-timeline
                           transition-duration transition-delay
                           transition-timing-function transition-property""" %>
 
@@ -1911,6 +1859,8 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
             && self.gecko.mAnimationIterationCountCount == other.gecko.mAnimationIterationCountCount
             && self.gecko.mAnimationPlayStateCount == other.gecko.mAnimationPlayStateCount
             && self.gecko.mAnimationTimingFunctionCount == other.gecko.mAnimationTimingFunctionCount
+            && self.gecko.mAnimationCompositionCount == other.gecko.mAnimationCompositionCount
+            && self.gecko.mAnimationTimelineCount == other.gecko.mAnimationTimelineCount
             && unsafe { bindings::Gecko_StyleAnimationsEquals(&self.gecko.mAnimations, &other.gecko.mAnimations) }
     }
 
@@ -1955,6 +1905,8 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
                              data.longhands_by_name["animation-fill-mode"].keyword)}
     ${impl_animation_keyword('play_state', 'PlayState',
                              data.longhands_by_name["animation-play-state"].keyword)}
+    ${impl_animation_keyword('composition', 'Composition',
+                             data.longhands_by_name["animation-composition"].keyword)}
 
     pub fn set_animation_iteration_count<I>(&mut self, v: I)
     where

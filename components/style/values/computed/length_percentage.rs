@@ -730,14 +730,16 @@ impl specified::CalcLengthPercentage {
         F: Fn(Length) -> Length,
     {
         use crate::values::specified::calc::Leaf;
-        use crate::values::specified::length::NoCalcLength;
 
         let node = self.node.map_leaves(|leaf| match *leaf {
             Leaf::Percentage(p) => CalcLengthPercentageLeaf::Percentage(Percentage(p)),
-            Leaf::Length(l) => CalcLengthPercentageLeaf::Length(match l {
-                NoCalcLength::Absolute(ref abs) => zoom_fn(abs.to_computed_value(context)),
-                NoCalcLength::FontRelative(ref fr) => fr.to_computed_value(context, base_size),
-                other => other.to_computed_value(context),
+            Leaf::Length(l) => CalcLengthPercentageLeaf::Length({
+                let result = l.to_computed_value_with_base_size(context, base_size);
+                if l.should_zoom_text() {
+                    zoom_fn(result)
+                } else {
+                    result
+                }
             }),
             Leaf::Number(..) | Leaf::Angle(..) | Leaf::Time(..) => {
                 unreachable!("Shouldn't have parsed")
@@ -755,7 +757,7 @@ impl specified::CalcLengthPercentage {
     ) -> LengthPercentage {
         self.to_computed_value_with_zoom(
             context,
-            |abs| context.maybe_zoom_text(abs.into()),
+            |abs| context.maybe_zoom_text(abs),
             base_size,
         )
     }

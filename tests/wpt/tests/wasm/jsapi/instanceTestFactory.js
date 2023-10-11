@@ -759,3 +759,5 @@ const instanceTestFactory = [
     }
   ],
 ];
+
+globalThis.instanceTestFactory = instanceTestFactory;

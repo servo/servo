@@ -3,7 +3,7 @@ mozcrash==2.2.0
 mozdevice==4.1.1
 mozinstall==2.1.0
 mozleak==0.2
-mozprofile==2.6.0
+mozprofile==2.6.1
 mozrunner==8.3.0
 mozversion==2.4.0
 psutil==5.9.5

@@ -396,6 +396,9 @@ g.test('viewFormats')
   })
   .fn(t => {
     const { canvasType, format, viewFormat } = t.params;
+
+    t.skipIfTextureFormatNotSupported(viewFormat);
+
     const canvas = createCanvas(t, canvasType, 1, 1);
     const ctx = canvas.getContext('webgpu');
     assert(ctx instanceof GPUCanvasContext, 'Failed to get WebGPU context from canvas');

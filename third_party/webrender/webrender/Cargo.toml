@@ -41,7 +41,7 @@ num-traits = "0.2"
 plane-split = "0.17"
 png = { optional = true, version = "0.16" }
 rayon = "1"
-ron = { optional = true, version = "0.6.2" }
+ron = { optional = true, version = "0.8" }
 serde = { optional = true, version = "1.0", features = ["serde_derive"] }
 smallvec = "1"
 time = "0.1"

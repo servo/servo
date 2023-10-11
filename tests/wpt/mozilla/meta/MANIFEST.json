@@ -12753,7 +12753,7 @@
      ]
     ],
     "collections.html": [
-     "8e06ffcc0933719b4b79ea6656d6635cc121d900",
+     "24582a791a999636a722cd2e94c8d53672a2b3aa",
      [
       null,
       {}
@@ -13249,14 +13249,14 @@
      ]
     ],
     "htmlcollection.html": [
-     "57114d30a9265be16d521493c1f041a21b82d3b6",
+     "8d0708aa19c033833aec09c7014f79bab2dbaf6d",
      [
       null,
       {}
      ]
     ],
     "htmlfieldsetelement_elements.html": [
-     "ee0ea4ae15f1f9cd4e1cdb76c5f4c9f13e139bef",
+     "cb5757555f2f7c52803e50c6cd4f191f49dda4c5",
      [
       null,
       {}
@@ -13637,6 +13637,31 @@
      [
       null,
       {}
+     ]
+    ],
+    "ns.any.js": [
+     "05087872b02abdeeb48c21ee9ec037b3a1483c03",
+     [
+      "mozilla/ns.any.html",
+      {
+       "script_metadata": [
+        [
+         "title",
+         "Namespace bindings"
+        ]
+       ]
+      }
+     ],
+     [
+      "mozilla/ns.any.worker.html",
+      {
+       "script_metadata": [
+        [
+         "title",
+         "Namespace bindings"
+        ]
+       ]
+      }
      ]
     ],
     "out-of-order-stylesheet-loads-and-imports.html": [

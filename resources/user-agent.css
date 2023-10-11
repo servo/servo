@@ -250,7 +250,7 @@ table:matches(
 }
 
 
-input, select, option, optgroup, button, textarea, keygen {
+input, select, option, optgroup, button, textarea {
   text-indent: initial;
   text-transform: none;
 }

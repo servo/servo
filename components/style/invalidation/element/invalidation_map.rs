@@ -5,7 +5,6 @@
 //! Code for invalidations due to state or attribute changes.
 
 use crate::context::QuirksMode;
-use crate::element_state::{DocumentState, ElementState};
 use crate::selector_map::{
     MaybeCaseInsensitiveHashMap, PrecomputedHashMap, SelectorMap, SelectorMapEntry,
 };
@@ -17,6 +16,7 @@ use selectors::parser::{Combinator, Component};
 use selectors::parser::{Selector, SelectorIter};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
+use style_traits::dom::{DocumentState, ElementState};
 
 /// Mapping between (partial) CompoundSelectors (and the combinator to their
 /// right) and the states and attributes they depend on.

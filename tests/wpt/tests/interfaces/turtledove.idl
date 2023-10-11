@@ -5,22 +5,25 @@
 
 [SecureContext]
 partial interface Navigator {
-  Promise<undefined> joinAdInterestGroup(AuctionAdInterestGroup group, double durationSeconds);
+  Promise<undefined> joinAdInterestGroup(AuctionAdInterestGroup group);
 };
 
 dictionary AuctionAd {
   required USVString renderURL;
   any metadata;
+
+  USVString buyerReportingId;
+  USVString buyerAndSellerReportingId;
+  sequence<USVString> allowedReportingOrigins;
 };
 
-dictionary AuctionAdInterestGroup {
+dictionary GenerateBidInterestGroup {
   required USVString owner;
   required USVString name;
+  required double lifetimeMs;
 
-  double priority = 0.0;
   boolean enableBiddingSignalsPrioritization = false;
   record<DOMString, double> priorityVector;
-  record<DOMString, double> prioritySignalsOverrides;
 
   DOMString executionMode = "compatibility";
   USVString biddingLogicURL;
@@ -33,9 +36,14 @@ dictionary AuctionAdInterestGroup {
   sequence<AuctionAd> adComponents;
 };
 
+dictionary AuctionAdInterestGroup : GenerateBidInterestGroup {
+  double priority = 0.0;
+  record<DOMString, double> prioritySignalsOverrides;
+};
+
 [SecureContext]
 partial interface Navigator {
-  Promise<undefined> leaveAdInterestGroup(AuctionAdInterestGroupKey group);
+  Promise<undefined> leaveAdInterestGroup(optional AuctionAdInterestGroupKey group = {});
 };
 
 dictionary AuctionAdInterestGroupKey {
@@ -45,7 +53,7 @@ dictionary AuctionAdInterestGroupKey {
 
 [SecureContext]
 partial interface Navigator {
-  Promise<USVString?> runAdAuction(AuctionAdConfig config);
+  Promise<(USVString or FencedFrameConfig)?> runAdAuction(AuctionAdConfig config);
 };
 
 dictionary AuctionAdConfig {
@@ -53,18 +61,21 @@ dictionary AuctionAdConfig {
   required USVString decisionLogicURL;
   USVString trustedScoringSignalsURL;
   sequence<USVString> interestGroupBuyers;
-  any auctionSignals;
-  any sellerSignals;
-  USVString directFromSellerSignals;
+  Promise<any> auctionSignals;
+  Promise<any> sellerSignals;
+  Promise<USVString> directFromSellerSignals;
   unsigned long long sellerTimeout;
   unsigned short sellerExperimentGroupId;
-  record<USVString, any> perBuyerSignals;
-  record<USVString, unsigned long long> perBuyerTimeouts;
+  USVString sellerCurrency;
+  Promise<record<USVString, any>> perBuyerSignals;
+  Promise<record<USVString, unsigned long long>> perBuyerTimeouts;
   record<USVString, unsigned short> perBuyerGroupLimits;
   record<USVString, unsigned short> perBuyerExperimentGroupIds;
   record<USVString, record<USVString, double>> perBuyerPrioritySignals;
+  Promise<record<USVString, USVString>> perBuyerCurrencies;
   sequence<AuctionAdConfig> componentAuctions = [];
   AbortSignal? signal;
+  Promise<boolean> resolveToConfig;
 };
 
 [Exposed=InterestGroupScriptRunnerGlobalScope]
@@ -76,10 +87,26 @@ interface InterestGroupScriptRunnerGlobalScope {
          InterestGroupBiddingScriptRunnerGlobalScope)]
 interface InterestGroupBiddingScriptRunnerGlobalScope
         : InterestGroupScriptRunnerGlobalScope {
-  boolean setBid();
-  boolean setBid(GenerateBidOutput generateBidOutput);
+  boolean setBid(optional GenerateBidOutput generateBidOutput = {});
   undefined setPriority(double priority);
-  undefined setPrioritySignalsOverride(DOMString key, double priority);
+  undefined setPrioritySignalsOverride(DOMString key, optional double? priority);
+};
+
+dictionary AdRender {
+  required DOMString url;
+  DOMString width;
+  DOMString height;
+};
+
+dictionary GenerateBidOutput {
+  double bid = -1;
+  DOMString bidCurrency;
+  (DOMString or AdRender) render;
+  any ad;
+  sequence<(DOMString or AdRender)> adComponents;
+  double adCost;
+  unrestricted double modelingSignals;
+  boolean allowComponentAuction = false;
 };
 
 [Exposed=InterestGroupScoringScriptRunnerGlobalScope,
@@ -96,25 +123,80 @@ interface InterestGroupReportingScriptRunnerGlobalScope
         : InterestGroupScriptRunnerGlobalScope {
   undefined sendReportTo(DOMString url);
   undefined registerAdBeacon(record<DOMString, USVString> map);
-};
-
-dictionary AdRender {
-  required DOMString url;
-  required DOMString width;
-  required DOMString height;
-};
-
-dictionary GenerateBidOutput {
-  required double bid;
-  required (DOMString or AdRender) adRender;
-  any ad;
-  sequence<(DOMString or AdRender)> adComponents;
-  double adCost;
-  double modelingSignals;
-  boolean allowComponentAuction = false;
+  undefined registerAdMacro(DOMString name, USVString value);
 };
 
 [SecureContext]
 partial interface Navigator {
   undefined updateAdInterestGroups();
+};
+
+dictionary PreviousWin {
+  required long long timeDelta;
+  required DOMString adJSON;
+};
+
+dictionary BiddingBrowserSignals {
+  required DOMString topWindowHostname;
+  required USVString seller;
+  required long joinCount;
+  required long bidCount;
+  required long recency;
+
+  USVString topLevelSeller;
+  sequence<PreviousWin> prevWinsMs;
+  object wasmHelper;
+  unsigned long dataVersion;
+};
+
+dictionary ScoringBrowserSignals {
+  required DOMString topWindowHostname;
+  required USVString interestGroupOwner;
+  required USVString renderURL;
+  required unsigned long biddingDurationMsec;
+  required DOMString bidCurrency;
+
+  unsigned long dataVersion;
+  sequence<USVString> adComponents;
+};
+
+dictionary ReportingBrowserSignals {
+  required DOMString topWindowHostname;
+  required USVString interestGroupOwner;
+  required USVString renderURL;
+  required double bid;
+  required double highestScoringOtherBid;
+
+  DOMString bidCurrency;
+  DOMString highestScoringOtherBidCurrency;
+  USVString topLevelSeller;
+  USVString componentSeller;
+
+  USVString buyerAndSellerReportingId;
+};
+
+dictionary ReportResultBrowserSignals : ReportingBrowserSignals {
+  required double desirability;
+
+  DOMString topLevelSellerSignals;
+  double modifiedBid;
+  unsigned long dataVersion;
+};
+
+dictionary ReportWinBrowserSignals : ReportingBrowserSignals {
+  double adCost;
+  USVString seller;
+  boolean madeHighestScoringOtherBid;
+  DOMString interestGroupName;
+  DOMString buyerReportingId;
+  unsigned short modelingSignals;
+  unsigned long dataVersion;
+};
+
+dictionary ScoreAdOutput {
+  required double desirability;
+  double bid;
+  DOMString bidCurrency;
+  double incomingBidInSellerCurrency;
+  boolean allowComponentAuction = false;
 };

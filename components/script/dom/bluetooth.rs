@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::BluetoothBinding::BluetoothDataFilt
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
 use crate::dom::bindings::codegen::Bindings::BluetoothBinding::BluetoothLEScanFilterInit;
 use crate::dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionDescriptor;
-use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerBinding::
+use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServer_Binding::
 BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
 use crate::dom::bindings::codegen::UnionTypes::{ArrayBufferViewOrArrayBuffer, StringOrUnsignedLong};

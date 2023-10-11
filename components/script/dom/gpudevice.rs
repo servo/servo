@@ -19,12 +19,9 @@ use webgpu::wgpu::{
 };
 use webgpu::{self, wgt, ErrorScopeId, WebGPU, WebGPURequest};
 
-use super::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
-    GPUBufferBindingType, GPUSamplerBindingType, GPUStorageTextureAccess, GPUTextureSampleType,
-};
-use super::bindings::codegen::Bindings::GPUDeviceLostInfoBinding::GPUDeviceLostReason;
-use super::bindings::codegen::Bindings::GPURenderPipelineBinding::{
-    GPUBlendComponent, GPUPrimitiveState, GPUVertexStepMode,
+use super::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUBlendComponent, GPUBufferBindingType, GPUDeviceLostReason, GPUPrimitiveState,
+    GPUSamplerBindingType, GPUStorageTextureAccess, GPUTextureSampleType, GPUVertexStepMode,
 };
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
@@ -33,34 +30,16 @@ use super::gpusupportedlimits::GPUSupportedLimits;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
-use crate::dom::bindings::codegen::Bindings::GPUBindGroupBinding::{
-    GPUBindGroupDescriptor, GPUBindingResource,
-};
-use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::GPUBindGroupLayoutDescriptor;
-use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUBufferDescriptor;
-use crate::dom::bindings::codegen::Bindings::GPUComputePipelineBinding::GPUComputePipelineDescriptor;
-use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::{
-    GPUCommandEncoderDescriptor, GPUDeviceMethods,
-};
-use crate::dom::bindings::codegen::Bindings::GPUObjectBaseBinding::GPUObjectDescriptorBase;
-use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutDescriptor;
-use crate::dom::bindings::codegen::Bindings::GPURenderBundleEncoderBinding::GPURenderBundleEncoderDescriptor;
-use crate::dom::bindings::codegen::Bindings::GPURenderPipelineBinding::{
-    GPUBlendFactor, GPUBlendOperation, GPUCullMode, GPUFrontFace, GPUIndexFormat,
-    GPUPrimitiveTopology, GPURenderPipelineDescriptor, GPUStencilOperation, GPUVertexFormat,
-};
-use crate::dom::bindings::codegen::Bindings::GPUSamplerBinding::{
-    GPUAddressMode, GPUCompareFunction, GPUFilterMode, GPUSamplerDescriptor,
-};
-use crate::dom::bindings::codegen::Bindings::GPUShaderModuleBinding::GPUShaderModuleDescriptor;
-use crate::dom::bindings::codegen::Bindings::GPUSupportedLimitsBinding::GPUSupportedLimitsBinding::GPUSupportedLimitsMethods;
-use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
-    GPUExtent3D, GPUExtent3DDict, GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat,
-};
-use crate::dom::bindings::codegen::Bindings::GPUTextureViewBinding::GPUTextureViewDimension;
-use crate::dom::bindings::codegen::Bindings::GPUUncapturedErrorEventBinding::GPUUncapturedErrorEventInit;
-use crate::dom::bindings::codegen::Bindings::GPUValidationErrorBinding::{
-    GPUError, GPUErrorFilter,
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUAddressMode, GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBindingResource,
+    GPUBlendFactor, GPUBlendOperation, GPUBufferDescriptor, GPUCommandEncoderDescriptor,
+    GPUCompareFunction, GPUComputePipelineDescriptor, GPUCullMode, GPUDeviceMethods, GPUError,
+    GPUErrorFilter, GPUExtent3D, GPUExtent3DDict, GPUFilterMode, GPUFrontFace, GPUIndexFormat,
+    GPUObjectDescriptorBase, GPUPipelineLayoutDescriptor, GPUPrimitiveTopology,
+    GPURenderBundleEncoderDescriptor, GPURenderPipelineDescriptor, GPUSamplerDescriptor,
+    GPUShaderModuleDescriptor, GPUStencilOperation, GPUSupportedLimitsMethods,
+    GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat, GPUTextureViewDimension,
+    GPUUncapturedErrorEventInit, GPUVertexFormat,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};

@@ -4,49 +4,43 @@
   <title>Gradient interpolation</title>
   <link rel="author" title="Aaron Krajeski" href="mailto:aaronhk@chromium.org">
   <link rel="help" href="https://www.w3.org/TR/css-color-4/#interpolation">
-  <meta name="assert" content="Channel values of 'none' should not affect the gradient.">
+  <meta name="assert" content="Color stops with missing components should split into two stops and take their neighboring values.">
   <link rel="match" href="gradient-none-interpolation-ref.html">
+  <meta name="fuzzy" content="maxDifference=1; totalPixels=0-5000">
   <style>
     div {
       height: 100px;
     }
-    #red {
-      background: linear-gradient(to right in srgb, color(srgb 0 0 0), color(srgb none 0.5 0.5), color(srgb 1 1 1));
+    #basic {
+      /* "none" should split into two and take each neighboring value. */
+      background: linear-gradient(to right in srgb, color(srgb 0.5 0 0), color(srgb none 0.5 0.5), color(srgb 1 1 1));
     }
-    #green {
-      background: linear-gradient(to right in srgb, color(srgb 0 0 0), color(srgb 0.5 none 0.5), color(srgb 1 1 1));
-    }
-    #blue {
-      background: linear-gradient(to right in srgb, color(srgb 0 0 0), color(srgb 0.5 0.5 none), color(srgb 1 1 1));
-    }
-    #redAndGreen {
-      background: linear-gradient(to right in srgb, color(srgb 0 none 0), color(srgb 0.5 0.5 none), color(srgb 1 1 1));
-    }
-    #multiple {
-      background: linear-gradient(to right in srgb, color(srgb 0 0 0), color(srgb 0.25 0.25 none),
-        color(srgb 0.5 0.5 none), color(srgb 0.75 0.75 none), color(srgb 1 1 1));
-    }
-    #noneOnLeft {
-      background: linear-gradient(to right in srgb, color(srgb none 0 0), color(srgb none 0.25 0.25),
-        color(srgb 0.5 0.5 0.5), color(srgb 0.75 0.75 0.75), color(srgb 1 1 1));
-    }
-    #noneOnRight {
-      background: linear-gradient(to right in srgb, color(srgb 0 0 0), color(srgb 0.25 0.25 0.25),
-        color(srgb 0.5 0.5 0.5), color(srgb 0.75 0.75 none), color(srgb 1 1 none));
+    #multipleNone {
+      /* "none" and "none" gives zero. */
+      background: linear-gradient(to right in srgb, color(srgb none 0 0), color(srgb none 0.5 0.5), color(srgb 1 1 1));
     }
     #allNone {
+      /* "none" and "none" gives zero. */
       background: linear-gradient(to right in srgb, color(srgb none 0 0), color(srgb none 1 1));
+    }
+    #noneHue {
+      background: linear-gradient(to right in oklch, oklch(0.2 0.1 90), oklch(0.8 0.4 none), oklch(0.3 0.2 180));
+    }
+    #noneHueLonger {
+      background: linear-gradient(to right in oklch longer hue, oklch(0.2 0.1 90), oklch(0.5 0.3 none), oklch(0.8 0.4 180));
+    }
+    #transparentHueIsPowerless {
+      /* When "transparent" is converted to oklch, the hue of the resulting stop should act as if it were missing. */
+      background: linear-gradient(to right in oklch, red, transparent, blue);
     }
  </style>
  </head>
  <body>
-  <div id="red"></div>
-  <div id="green"></div>
-  <div id="blue"></div>
-  <div id="redAndGreen"></div>
-  <div id="multiple"></div>
-  <div id="noneOnLeft"></div>
-  <div id="noneOnRight"></div>
+  <div id="basic"></div>
+  <div id="multipleNone"></div>
   <div id="allNone"></div>
+  <div id="noneHue"></div>
+  <div id="noneHueLonger"></div>
+  <div id="transparentHueIsPowerless"></div>
  </body>
 </html>

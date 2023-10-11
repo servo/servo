@@ -85,6 +85,12 @@ async function assert_focus_navigation_backward(elements) {
   return assert_focus_navigation_elements(elements, 'backward');
 }
 
+async function assert_focus_navigation_bidirectional(elements) {
+  await assert_focus_navigation_forward(elements);
+  elements.reverse();
+  await assert_focus_navigation_backward(elements);
+}
+
 
 // If shadow root is closed, need to pass shadowRoot and element to find
 // innermost active element
@@ -149,3 +155,10 @@ async function assert_focus_navigation_forward_with_shadow_root(elements) {
 async function assert_focus_navigation_backward_with_shadow_root(elements) {
   return assert_focus_navigation_elements_with_shadow_root(elements, 'backward');
 }
+
+async function assert_focus_navigation_bidirectional_with_shadow_root(elements) {
+  await assert_focus_navigation_forward_with_shadow_root(elements);
+  elements.reverse();
+  await assert_focus_navigation_backward_with_shadow_root(elements);
+}
+

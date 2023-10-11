@@ -3,23 +3,25 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
-  assert_equals(navigation.entries().length, 1);
+  assert_equals(navigation.entries().length, start_length);
   let key0 = navigation.currentEntry.key;
   await navigation.navigate("#1").committed;
   await navigation.navigate("#2").committed;
   let key2 = navigation.currentEntry.key;
-  assert_equals(navigation.entries().length, 3);
+  assert_equals(navigation.entries().length, start_length + 2);
 
   await navigation.traverseTo(key0).committed;
-  assert_equals(navigation.entries().length, 3);
-  assert_equals(navigation.currentEntry, navigation.entries()[0]);
+  assert_equals(navigation.entries().length, start_length + 2);
+  assert_equals(navigation.currentEntry, navigation.entries()[start_index]);
   assert_equals(key0, navigation.currentEntry.key);
   await navigation.traverseTo(key2).committed;
-  assert_equals(navigation.entries().length, 3);
-  assert_equals(navigation.currentEntry, navigation.entries()[2]);
+  assert_equals(navigation.entries().length, start_length + 2);
+  assert_equals(navigation.currentEntry, navigation.entries()[start_index+2]);
   assert_equals(key2, navigation.currentEntry.key);
 }, "goto() can precisely traverse multiple steps in the joint session history");
 </script>

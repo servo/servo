@@ -32,6 +32,15 @@ test_valid_value("color", "hsl(120 100% 50% / none)", "rgba(0, 255, 0, 0)");
 test_valid_value("color", "hsl(120 100% 50% / 0)", "rgba(0, 255, 0, 0)");
 test_valid_value("color", "hsl(none 100% 50%)", "rgb(255, 0, 0)");
 test_valid_value("color", "hsl(0 100% 50%)", "rgb(255, 0, 0)");
+
+// Test non-finite values. calc(infinity) goes to upper bound while calc(-infinity) and NaN go to the lower bound.
+// See: https://github.com/w3c/csswg-drafts/issues/8629
+test_valid_value("color", "hsl(calc(infinity) 100% 50%)", "rgb(255, 0, 0)"); // hsl(360 100% 50%)
+test_valid_value("color", "hsl(calc(-infinity) 100% 50%)", "rgb(255, 0, 0)"); // hsl(0 100% 50%)
+test_valid_value("color", "hsl(calc(0 / 0) 100% 50%)", "rgb(255, 0, 0)"); // hsl(0 100% 50%)
+test_valid_value("color", "hsl(90 50% 50% / calc(infinity))", "rgb(128, 191, 64)"); // hsl(90 50% 50%)
+test_valid_value("color", "hsl(90 50% 50% / calc(-infinity))", "rgba(128, 191, 64, 0)"); // hsl(90 50% 50% / 0)
+test_valid_value("color", "hsl(90 50% 50% / calc(0 / 0))", "rgba(128, 191, 64, 0)"); // hsl(90 50% 50% / 0)
 </script>
 </body>
 </html>

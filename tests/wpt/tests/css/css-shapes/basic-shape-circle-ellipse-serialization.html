@@ -35,8 +35,8 @@ checkEquals("ellipse(closest-side farthest-side)",
             "ellipse(closest-side farthest-side)");
 
 
-checkEquals("circle(at top 0% right 5px)", "circle(at right 5px top 0%)");
-checkEquals("ellipse(at top 0% right 10px)", "ellipse(at right 10px top 0%)");
+checkEquals("circle(at top 0% right 5px)", "circle(at calc(100% - 5px) 0%)");
+checkEquals("ellipse(at top 0% right 10px)", "ellipse(at calc(100% - 10px) 0%)");
 // Remove defaults like closest-side
 checkEquals("circle(closest-side at center)",
             "circle(at 50% 50%)");
@@ -57,20 +57,19 @@ checkEquals("ellipse(closest-side farthest-side at 50% 50%)",
 checkEquals("ellipse(closest-side 10% at 50% 50%)",
             "ellipse(closest-side 10% at 50% 50%)");
 
-// Don't transform nonzero lengths
+  // Transform to <length-percentage>.
 checkEquals("circle(at right 5px bottom 10px)",
-            "circle(at right 5px bottom 10px)");
+            "circle(at calc(100% - 5px) calc(100% - 10px))");
 checkEquals("ellipse(at right 5px bottom 10px)",
-            "ellipse(at right 5px bottom 10px)");
+            "ellipse(at calc(100% - 5px) calc(100% - 10px))");
 
-// Convert keyword-percentage pairs to plain percentages
-// Convert zero lengths to 0%
-checkEquals("circle(at right 5% top 0px)", "circle(at 95% 0%)");
-checkEquals("ellipse(at right 5% top 0px)", "ellipse(at 95% 0%)");
+// Don't convert zero lengths to 0%
+checkEquals("circle(at right 5% top 0px)", "circle(at calc(95%) 0px)");
+checkEquals("ellipse(at right 5% top 0px)", "ellipse(at calc(95%) 0px)");
 
-// Don't transform calcs
+// Transform calcs
 checkEquals("circle(at right calc(10% + 5px) bottom calc(10% + 5px))",
-            "circle(at right calc(10% + 5px) bottom calc(10% + 5px))");
+            "circle(at calc(90% - 5px) calc(90% - 5px))");
 checkEquals("ellipse(at right calc(10% + 5px) bottom calc(10% + 5px))",
-            "ellipse(at right calc(10% + 5px) bottom calc(10% + 5px))");
+            "ellipse(at calc(90% - 5px) calc(90% - 5px))");
 </script>

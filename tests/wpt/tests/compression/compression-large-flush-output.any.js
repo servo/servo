@@ -1,4 +1,4 @@
-// META: global=window,worker
+// META: global=window,worker,shadowrealm
 // META: script=third_party/pako/pako_inflate.min.js
 // META: script=resources/concatenate-stream.js
 // META: timeout=long

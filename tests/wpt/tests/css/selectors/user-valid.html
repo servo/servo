@@ -2,6 +2,7 @@
 <title>Support for the :user-valid pseudo-class</title>
 <link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
 <link rel="help" href="https://drafts.csswg.org/selectors/#user-pseudos">
+<link rel="help" href="https://html.spec.whatwg.org/#selector-user-valid">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -76,7 +77,7 @@ promise_test(async () => {
   assert_false(optionalTextarea.matches(":user-valid"), "Initially does not match :user-valid");
   assert_false(optionalTextarea.matches(":user-invalid"), "Initially does not match :user-invalid");
 
-  await test_driver.click(submitButton);
+  submitButton.click();
 
   assert_true(optionalInput.matches(":user-valid"), "Submitted the form, input is validated");
   assert_false(optionalInput.matches(":user-invalid"), "Submitted the form, input is validated");
@@ -84,12 +85,21 @@ promise_test(async () => {
   assert_true(optionalTextarea.matches(":user-valid"), "Submitted the form, textarea is validated");
   assert_false(optionalTextarea.matches(":user-invalid"), "Submitted the form, textarea is validated");
 
-  await test_driver.click(resetButton);
+  resetButton.click();
 
   assert_false(optionalInput.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
   assert_false(optionalInput.matches(":user-invalid"), "Reset the form, user-interacted flag is reset");
 
   assert_false(optionalTextarea.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
   assert_false(optionalTextarea.matches(":user-invalid"), "Reset the form, user-interacted flag is reset");
+
+  // Test programmatic form submission with constraint validation.
+  form.requestSubmit();
+
+  assert_true(optionalInput.matches(":user-valid"), "Called form.requestSubmit(), input is validated");
+  assert_false(optionalInput.matches(":user-invalid"), "Called form.requestSubmit(), input is validated");
+
+  assert_true(optionalTextarea.matches(":user-valid"), "Called form.requestSubmit(), textarea is validated");
+  assert_false(optionalTextarea.matches(":user-invalid"), "Called form.requestSubmit(), textarea is validated");
 }, ":user-valid selector properly interacts with submit & reset buttons");
 </script>

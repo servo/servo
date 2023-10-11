@@ -71,7 +71,7 @@
       await waitForScrollReset(t, scroller);
       await waitForCompositorReady();
 
-      const targetScrollendPromise = waitForScrollendEvent(t, frame.contentDocument);
+      const targetScrollendPromise = waitForScrollendEventNoTimeout(frame.contentDocument);
       verifyNoScrollendOnDocument(t);
 
       let x = target_div.getBoundingClientRect().width + 20;

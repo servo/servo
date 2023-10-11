@@ -8,7 +8,13 @@ File an issue: https://github.com/w3c/remote-playback/issues/new
 
 ## Hardware/network dependency
 
-The Remote Playback API requires to communicate with a device over the network.
-Some behavior would require a real devices to be implemented. In order to keep
-these tests automated, only behaviors that can be run without user gesture or
-specific configurations are available here.
+The Remote Playback API requires communication with a device over the network.
+Tests that end in `-manual.html` require a compatible device available on the
+local area network to run the tests; these tests must be run manually.
+
+Known browser/device combinations that can be used to run manual tests:
+
+| Browser             | Device |
+| -------             | ------ |
+| Chrome for Android  | [Chromecast](https://store.google.com/product/chromecast_google_tv?pli=1&hl=en-US) |
+| Safari              | Apple TV |

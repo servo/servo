@@ -19,7 +19,6 @@ t.step(function() {
   _assertSame(ctx.letterSpacing, '0px', "ctx.letterSpacing", "'0px'");
   _assertSame(ctx.wordSpacing, '0px', "ctx.wordSpacing", "'0px'");
   var width_normal = ctx.measureText('Hello World, again').width;
-  var ch_width = width_normal / 18;
 
   function test_word_spacing(value, difference_spacing, epsilon) {
     ctx.wordSpacing = value;
@@ -40,7 +39,6 @@ t.step(function() {
                ['1em', 20, 0.1],
                ['-0.5em', -10, 0.1],
                ['1in', 192, 0.1],
-               ['1ch', 2 * ch_width, 0.1],
                ['-0.1cm', -7.57, 0.2],
                ['-0.6mm', -4.54, 0.2]]
 

@@ -11,6 +11,8 @@ interface SharedStorageWorklet : Worklet {
 interface SharedStorageWorkletGlobalScope : WorkletGlobalScope {
   undefined register(DOMString name,
                      SharedStorageOperationConstructor operationCtor);
+
+  readonly attribute WorkletSharedStorage sharedStorage;
 };
 
 callback SharedStorageOperationConstructor =
@@ -70,6 +72,10 @@ dictionary SharedStorageUrlWithMetadata {
   object reportingMetadata;
 };
 
+partial interface Window {
+  [SecureContext] readonly attribute WindowSharedStorage? sharedStorage;
+};
+
 [Exposed=(SharedStorageWorklet)]
 interface WorkletSharedStorage : SharedStorage {
   Promise<DOMString> get(DOMString key);
@@ -77,4 +83,15 @@ interface WorkletSharedStorage : SharedStorage {
   Promise<double> remainingBudget();
 
   async iterable<DOMString, DOMString>;
+};
+
+interface mixin HTMLSharedStorageWritableElementUtils {
+  [CEReactions, SecureContext] attribute boolean sharedStorageWritable;
+};
+
+HTMLIFrameElement includes HTMLSharedStorageWritableElementUtils;
+HTMLImageElement includes HTMLSharedStorageWritableElementUtils;
+
+partial dictionary RequestInit {
+  boolean sharedStorageWritable;
 };

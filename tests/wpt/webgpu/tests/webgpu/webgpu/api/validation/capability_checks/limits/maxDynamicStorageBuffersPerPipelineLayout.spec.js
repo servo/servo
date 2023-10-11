@@ -22,6 +22,7 @@ g.test('createBindGroupLayout,at_over')
       limitTest,
       testValueName,
       async ({ device, testValue, shouldError }) => {
+        shouldError ||= testValue > t.device.limits.maxStorageBuffersPerShaderStage;
         await t.expectValidationError(() => {
           device.createBindGroupLayout({
             entries: range(testValue, i => ({

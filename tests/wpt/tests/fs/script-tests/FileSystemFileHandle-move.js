@@ -51,24 +51,14 @@ directory_test(async (t, root) => {
 }, 'move(name) can be called multiple times');
 
 directory_test(async (t, root) => {
-  const dir = await root.getDirectoryHandle('dir', {create: true});
-  const handle = await createFileWithContents(t, 'file-before', 'foo', dir);
-  await promise_rejects_js(t, TypeError, handle.move('Lorem.'));
-
-  assert_array_equals(await getSortedDirectoryEntries(root), ['dir/']);
-  assert_array_equals(await getSortedDirectoryEntries(dir), ['file-before']);
-  assert_equals(await getFileContents(handle), 'foo');
-  assert_equals(await getFileSize(handle), 3);
-}, 'move(name) with a name with a trailing period should fail');
-
-directory_test(async (t, root) => {
   const handle = await createFileWithContents(t, 'file-before', 'foo', root);
   await promise_rejects_js(t, TypeError, handle.move('test/test'));
+  await promise_rejects_js(t, TypeError, handle.move('test\\test'));
 
   assert_array_equals(await getSortedDirectoryEntries(root), ['file-before']);
   assert_equals(await getFileContents(handle), 'foo');
   assert_equals(await getFileSize(handle), 3);
-}, 'move(name) with a name with invalid characters should fail');
+}, 'move(name) with a name with path separators should fail');
 
 directory_test(async (t, root) => {
   const handle = await createFileWithContents(t, 'file-before', 'abc', root);

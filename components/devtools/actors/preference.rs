@@ -37,41 +37,50 @@ impl Actor for PreferenceActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         let pref_value = pref_map().get(msg_type);
-        Ok(match pref_value {
-            PrefValue::Float(value) => {
-                let reply = FloatReply {
-                    from: self.name(),
-                    value: value,
-                };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
-            },
-            PrefValue::Int(value) => {
-                let reply = IntReply {
-                    from: self.name(),
-                    value: value,
-                };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
-            },
-            PrefValue::Str(value) => {
-                let reply = CharReply {
-                    from: self.name(),
-                    value: value,
-                };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
-            },
-            PrefValue::Bool(value) => {
-                let reply = BoolReply {
-                    from: self.name(),
-                    value: value,
-                };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
-            },
-            PrefValue::Missing => handle_missing_preference(self.name(), msg_type, stream),
-        })
+        Ok(handle_preference_value(
+            pref_value,
+            self.name(),
+            msg_type,
+            stream,
+        ))
+    }
+}
+
+fn handle_preference_value(
+    pref_value: PrefValue,
+    name: String,
+    msg_type: &str,
+    stream: &mut TcpStream,
+) -> ActorMessageStatus {
+    match pref_value {
+        PrefValue::Float(value) => {
+            let reply = FloatReply { from: name, value };
+            let _ = stream.write_json_packet(&reply);
+            ActorMessageStatus::Processed
+        },
+        PrefValue::Int(value) => {
+            let reply = IntReply { from: name, value };
+            let _ = stream.write_json_packet(&reply);
+            ActorMessageStatus::Processed
+        },
+        PrefValue::Str(value) => {
+            let reply = CharReply { from: name, value };
+            let _ = stream.write_json_packet(&reply);
+            ActorMessageStatus::Processed
+        },
+        PrefValue::Bool(value) => {
+            let reply = BoolReply { from: name, value };
+            let _ = stream.write_json_packet(&reply);
+            ActorMessageStatus::Processed
+        },
+        PrefValue::Array(values) => {
+            let mut result = ActorMessageStatus::Processed;
+            for value in values {
+                result = handle_preference_value(value, name.clone(), msg_type, stream);
+            }
+            result
+        },
+        PrefValue::Missing => handle_missing_preference(name, msg_type, stream),
     }
 }
 

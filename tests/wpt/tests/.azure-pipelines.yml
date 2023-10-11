@@ -100,9 +100,6 @@ jobs:
     inputs:
       versionSpec: '3.11'
   - template: tools/ci/azure/checkout.yml
-  - template: tools/ci/azure/pip_install.yml
-    parameters:
-      packages: virtualenv
   - template: tools/ci/azure/install_fonts.yml
   - template: tools/ci/azure/install_certs.yml
   - template: tools/ci/azure/color_profile.yml
@@ -373,9 +370,6 @@ jobs:
       versionSpec: '3.11'
   - template: tools/ci/azure/system_info.yml
   - template: tools/ci/azure/checkout.yml
-  - template: tools/ci/azure/pip_install.yml
-    parameters:
-      packages: virtualenv
   - template: tools/ci/azure/install_certs.yml
   - template: tools/ci/azure/install_edge.yml
     parameters:
@@ -412,9 +406,6 @@ jobs:
       versionSpec: '3.11'
   - template: tools/ci/azure/system_info.yml
   - template: tools/ci/azure/checkout.yml
-  - template: tools/ci/azure/pip_install.yml
-    parameters:
-      packages: virtualenv
   - template: tools/ci/azure/install_certs.yml
   - template: tools/ci/azure/install_edge.yml
     parameters:
@@ -450,9 +441,6 @@ jobs:
     inputs:
       versionSpec: '3.11'
   - template: tools/ci/azure/checkout.yml
-  - template: tools/ci/azure/pip_install.yml
-    parameters:
-      packages: virtualenv
   - template: tools/ci/azure/install_certs.yml
   - template: tools/ci/azure/install_edge.yml
     parameters:
@@ -488,9 +476,6 @@ jobs:
     inputs:
       versionSpec: '3.11'
   - template: tools/ci/azure/checkout.yml
-  - template: tools/ci/azure/pip_install.yml
-    parameters:
-      packages: virtualenv
   - template: tools/ci/azure/install_certs.yml
   - template: tools/ci/azure/color_profile.yml
   - template: tools/ci/azure/install_safari.yml
@@ -531,9 +516,6 @@ jobs:
     inputs:
       versionSpec: '3.11'
   - template: tools/ci/azure/checkout.yml
-  - template: tools/ci/azure/pip_install.yml
-    parameters:
-      packages: virtualenv
   - template: tools/ci/azure/install_certs.yml
   - template: tools/ci/azure/color_profile.yml
   - template: tools/ci/azure/install_safari.yml
@@ -571,9 +553,6 @@ jobs:
     inputs:
       versionSpec: '3.11'
   - template: tools/ci/azure/checkout.yml
-  - template: tools/ci/azure/pip_install.yml
-    parameters:
-      packages: virtualenv
   - template: tools/ci/azure/install_certs.yml
   - template: tools/ci/azure/color_profile.yml
   - template: tools/ci/azure/update_hosts.yml

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
-use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaBindingBinding::XRMediaBindingMethods;
+use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaBinding_Binding::XRMediaBindingMethods;
 use crate::dom::bindings::codegen::Bindings::XRMediaBindingBinding::XRMediaLayerInit;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};

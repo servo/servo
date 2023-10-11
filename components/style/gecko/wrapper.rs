@@ -19,7 +19,7 @@ use crate::author_styles::AuthorStyles;
 use crate::context::{PostAnimationTasks, QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use crate::data::ElementData;
 use crate::dom::{LayoutIterator, NodeInfo, OpaqueNode, TDocument, TElement, TNode, TShadowRoot};
-use crate::element_state::{DocumentState, ElementState};
+use dom::{DocumentState, ElementState};
 use crate::gecko::data::GeckoStyleSheet;
 use crate::gecko::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use crate::gecko::snapshot_helpers;
@@ -732,14 +732,14 @@ impl<'le> GeckoElement<'le> {
             .as_node()
             .get_bool_flag(nsINode_BooleanFlag::ElementHasLockedStyleStates)
         {
-            return self.0.mState.mStates;
+            return self.0.mState.bits;
         }
         unsafe { Gecko_ElementState(self.0) }
     }
 
     #[inline]
     fn document_state(&self) -> DocumentState {
-        DocumentState::from_bits_truncate(self.as_node().owner_doc().0.mDocumentState.mStates)
+        DocumentState::from_bits_truncate(self.as_node().owner_doc().0.mDocumentState.bits)
     }
 
     #[inline]
@@ -1336,7 +1336,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn is_visited_link(&self) -> bool {
-        self.state().intersects(ElementState::IN_VISITED_STATE)
+        self.state().intersects(ElementState::VISITED)
     }
 
     /// This logic is duplicated in Gecko's nsINode::IsInNativeAnonymousSubtree.
@@ -1515,6 +1515,12 @@ impl<'le> TElement for GeckoElement<'le> {
 
         let after_change_ui_style = after_change_style.get_ui();
         let existing_transitions = self.css_transitions_info();
+
+        if after_change_style.get_box().clone_display().is_none() {
+            // We need to cancel existing transitions.
+            return !existing_transitions.is_empty();
+        }
+
         let mut transitions_to_keep = LonghandIdSet::new();
         for transition_property in after_change_style.transition_properties() {
             let physical_longhand = transition_property
@@ -1844,6 +1850,18 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         None
     }
 
+    #[inline]
+    fn first_element_child(&self) -> Option<Self> {
+        let mut child = self.as_node().first_child();
+        while let Some(child_node) = child {
+            if let Some(el) = child_node.as_element() {
+                return Some(el);
+            }
+            child = child_node.next_sibling();
+        }
+        None
+    }
+
     fn set_selector_flags(&self, flags: ElementSelectorFlags) {
         debug_assert!(!flags.is_empty());
         self.set_flags(selector_flags_to_node_flags(flags));
@@ -2005,7 +2023,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozDirAttrLTR |
             NonTSPseudoClass::MozDirAttrRTL |
             NonTSPseudoClass::MozDirAttrLikeAuto |
-            NonTSPseudoClass::MozModalDialog |
+            NonTSPseudoClass::Modal |
             NonTSPseudoClass::MozTopmostModal |
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Hover |
@@ -2107,8 +2125,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn is_link(&self) -> bool {
-        self.state()
-            .intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE)
+        self.state().intersects(ElementState::VISITED_OR_UNVISITED)
     }
 
     #[inline]

@@ -8,6 +8,7 @@ from shutil import which
 from datetime import timedelta
 
 from . import config
+from . import products
 from . import wpttest
 from .formatters import chromium, wptreport, wptscreenshot
 
@@ -37,8 +38,6 @@ def require_arg(kwargs, name, value_func=None):
 def create_parser(product_choices=None):
     from mozlog import commandline
 
-    from . import products
-
     if product_choices is None:
         product_choices = products.product_list
 
@@ -62,6 +61,8 @@ scheme host and port.""")
                         help="Split run into groups by directories. With a parameter,"
                         "limit the depth of splits e.g. --run-by-dir=1 to split by top-level"
                         "directory")
+    parser.add_argument("-f", "--fully-parallel", action='store_true',
+                        help='Run every test in a separate group for fully parallelism.')
     parser.add_argument("--processes", action="store", type=int, default=None,
                         help="Number of simultaneous processes to use")
     parser.add_argument("--max-restarts", action="store", type=int, default=5,
@@ -142,6 +143,11 @@ scheme host and port.""")
                                       nargs="*", default=wpttest.enabled_tests,
                                       choices=wpttest.enabled_tests,
                                       help="Test types to run")
+    test_selection_group.add_argument("--subsuite-file", action="store",
+                                      help="Path to JSON file containing subsuite configuration")
+    # TODO use an empty string argument for the default subsuite
+    test_selection_group.add_argument("--subsuite", action="append", dest="subsuites",
+                                      help="Subsuite names to run. Runs all subsuites when omitted.")
     test_selection_group.add_argument("--include", action="append",
                                       help="URL prefix to include")
     test_selection_group.add_argument("--include-file", action="store",
@@ -154,6 +160,8 @@ scheme host and port.""")
                                       help="Path to json file containing a mapping {group_name: [test_ids]}")
     test_selection_group.add_argument("--skip-timeout", action="store_true",
                                       help="Skip tests that are expected to time out")
+    test_selection_group.add_argument("--skip-crash", action="store_true",
+                                      help="Skip tests that are expected to crash")
     test_selection_group.add_argument("--skip-implementation-status",
                                       action="append",
                                       choices=["not-implementing", "backlog", "implementing"],
@@ -315,10 +323,7 @@ scheme host and port.""")
                              default=None, help="Don't preload a gecko instance for faster restarts")
     gecko_group.add_argument("--disable-e10s", dest="gecko_e10s", action="store_false", default=True,
                              help="Run tests without electrolysis preferences")
-    gecko_group.add_argument("--enable-fission", dest="enable_fission", action="store_true", default=None,
-                             help="Enable fission in Gecko (defaults to enabled; "
-                             "this option only exists for backward compatibility).")
-    gecko_group.add_argument("--no-enable-fission", dest="enable_fission", action="store_false",
+    gecko_group.add_argument("--disable-fission", dest="disable_fission", action="store_true", default=False,
                              help="Disable fission in Gecko.")
     gecko_group.add_argument("--stackfix-dir", dest="stackfix_dir", action="store",
                              help="Path to directory containing assertion stack fixing scripts")
@@ -456,6 +461,8 @@ def set_from_config(kwargs):
 
     kwargs["config"] = config.read(kwargs["config_path"])
 
+    kwargs["product"] = products.Product(kwargs["config"], kwargs["product"])
+
     keys = {"paths": [("prefs", "prefs_root", True),
                       ("run_info", "run_info", True)],
             "web-platform-tests": [("remote_url", "remote_url", False),
@@ -553,13 +560,10 @@ def check_paths(kwargs):
 def check_args(kwargs):
     set_from_config(kwargs)
 
-    if kwargs["product"] is None:
-        kwargs["product"] = "firefox"
-
     if kwargs["manifest_update"] is None:
         kwargs["manifest_update"] = True
 
-    if "sauce" in kwargs["product"]:
+    if "sauce" in kwargs["product"].name:
         kwargs["pause_after_test"] = False
 
     if kwargs["test_list"]:
@@ -580,13 +584,18 @@ def check_args(kwargs):
         else:
             kwargs["chunk_type"] = "none"
 
-    if kwargs["test_groups_file"] is not None:
-        if kwargs["run_by_dir"] is not False:
-            print("Can't pass --test-groups and --run-by-dir")
-            sys.exit(1)
-        if not os.path.exists(kwargs["test_groups_file"]):
-            print("--test-groups file %s not found" % kwargs["test_groups_file"])
-            sys.exit(1)
+    if sum([
+        kwargs["test_groups_file"] is not None,
+        kwargs["run_by_dir"] is not False,
+        kwargs["fully_parallel"],
+    ]) > 1:
+        print('Must pass up to one of: --test-groups, --run-by-dir, --fully-parallel')
+        sys.exit(1)
+
+    if (kwargs["test_groups_file"] is not None and
+        not os.path.exists(kwargs["test_groups_file"])):
+        print("--test-groups file %s not found" % kwargs["test_groups_file"])
+        sys.exit(1)
 
     # When running on Android, the number of workers is decided by the number of
     # emulators. Each worker will use one emulator to run the Android browser.
@@ -601,7 +610,8 @@ def check_args(kwargs):
             sys.exit(1)
 
     if kwargs["processes"] is None:
-        kwargs["processes"] = 1
+        from manifest import mputil  # type: ignore
+        kwargs["processes"] = mputil.max_parallelism() if kwargs["fully_parallel"] else 1
 
     if kwargs["debugger"] is not None:
         import mozdebug
@@ -642,7 +652,7 @@ def check_args(kwargs):
             sys.exit(1)
         kwargs["openssl_binary"] = path
 
-    if kwargs["ssl_type"] != "none" and kwargs["product"] == "firefox" and kwargs["certutil_binary"]:
+    if kwargs["ssl_type"] != "none" and kwargs["product"].name == "firefox" and kwargs["certutil_binary"]:
         path = exe_path(kwargs["certutil_binary"])
         if path is None:
             print("certutil-binary argument missing or not a valid executable", file=sys.stderr)
@@ -677,9 +687,6 @@ def check_args(kwargs):
 
 def check_args_metadata_update(kwargs):
     set_from_config(kwargs)
-
-    if kwargs["product"] is None:
-        kwargs["product"] = "firefox"
 
     for item in kwargs["run_log"]:
         if os.path.isdir(item):
@@ -716,7 +723,7 @@ def create_parser_metadata_update(product_choices=None):
                                      description="Update script for web-platform-tests tests.")
     # This will be removed once all consumers are updated to the properties-file based system
     parser.add_argument("--product", action="store", choices=product_choices,
-                        default=None, help=argparse.SUPPRESS)
+                        default="firefox", help=argparse.SUPPRESS)
     parser.add_argument("--config", action="store", type=abs_path, help="Path to config file")
     parser.add_argument("--metadata", action="store", type=abs_path, dest="metadata_root",
                         help="Path to the folder containing test metadata"),

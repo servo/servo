@@ -70,15 +70,14 @@ promise_test(async t => {
   // now-same-origin document initiating this navigation via history.
   await A.historyForward();
 
-  const secFetchSite = await B.executeScript(() => window.requestHeaders['sec-fetch-site']);
-  const referrer = await B.executeScript(() => window.requestHeaders['referer']);
+  const requestHeaders = await B.getRequestHeaders();
   const documentReferrer = await B.executeScript(() => document.referrer);
 
-  assert_equals(secFetchSite, 'cross-site',
+  assert_equals(requestHeaders.get('sec-fetch-site'), 'cross-site',
       'Same-origin forward history navigation to a document whose original ' +
       'initiator was cross-site, ends up with Sec-Fetch-Dest: cross-site ' +
       'header');
-  assert_equals(referrer, originA + '/',
+  assert_equals(requestHeaders.get('referer'), originA + '/',
       'Same-origin forward history navigation to a document whose original ' +
       'initiator was cross-site ends up with the Referer header that is the ' +
       'original cross-site initiator');
@@ -113,15 +112,14 @@ promise_test(async t => {
     location.reload();
   }, []);
 
-  const secFetchSite = await B.executeScript(() => window.requestHeaders['sec-fetch-site']);
-  const referrer = await B.executeScript(() => window.requestHeaders['referer']);
+  const requestHeaders = await B.getRequestHeaders();
   const documentReferrer = await B.executeScript(() => document.referrer);
 
-  assert_equals(secFetchSite, 'cross-site',
+  assert_equals(requestHeaders.get('sec-fetch-site'), 'cross-site',
       'Same-origin forward history navigation to a document whose original ' +
       'initiator was cross-site, ends up with Sec-Fetch-Dest: cross-site ' +
       'header');
-  assert_equals(referrer, originA + '/',
+  assert_equals(requestHeaders.get('referer'), originA + '/',
       'Same-origin forward history navigation to a document whose original ' +
       'initiator was cross-site ends up with the Referer header that is the ' +
       'original cross-site initiator');

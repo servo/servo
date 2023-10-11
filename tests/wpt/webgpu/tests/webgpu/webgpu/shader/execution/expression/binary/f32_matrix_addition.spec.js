@@ -15,152 +15,25 @@ import { binary, compoundBinary } from './binary.js';
 
 export const g = makeTestGroup(GPUTest);
 
-export const d = makeCaseCache('binary/f32_matrix_addition', {
-  mat2x2_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(2, 2),
-      sparseMatrixF32Range(2, 2),
-      'finite',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat2x2_non_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(2, 2),
-      sparseMatrixF32Range(2, 2),
-      'unfiltered',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat2x3_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(2, 3),
-      sparseMatrixF32Range(2, 3),
-      'finite',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat2x3_non_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(2, 3),
-      sparseMatrixF32Range(2, 3),
-      'unfiltered',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat2x4_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(2, 4),
-      sparseMatrixF32Range(2, 4),
-      'finite',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat2x4_non_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(2, 4),
-      sparseMatrixF32Range(2, 4),
-      'unfiltered',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat3x2_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(3, 2),
-      sparseMatrixF32Range(3, 2),
-      'finite',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat3x2_non_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(3, 2),
-      sparseMatrixF32Range(3, 2),
-      'unfiltered',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat3x3_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(3, 3),
-      sparseMatrixF32Range(3, 3),
-      'finite',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat3x3_non_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(3, 3),
-      sparseMatrixF32Range(3, 3),
-      'unfiltered',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat3x4_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(3, 4),
-      sparseMatrixF32Range(3, 4),
-      'finite',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat3x4_non_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(3, 4),
-      sparseMatrixF32Range(3, 4),
-      'unfiltered',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat4x2_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(4, 2),
-      sparseMatrixF32Range(4, 2),
-      'finite',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat4x2_non_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(4, 2),
-      sparseMatrixF32Range(4, 2),
-      'unfiltered',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat4x3_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(4, 3),
-      sparseMatrixF32Range(4, 3),
-      'finite',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat4x3_non_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(4, 3),
-      sparseMatrixF32Range(4, 3),
-      'unfiltered',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat4x4_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(4, 4),
-      sparseMatrixF32Range(4, 4),
-      'finite',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-  mat4x4_non_const: () => {
-    return FP.f32.generateMatrixPairToMatrixCases(
-      sparseMatrixF32Range(4, 4),
-      sparseMatrixF32Range(4, 4),
-      'unfiltered',
-      FP.f32.additionMatrixMatrixInterval
-    );
-  },
-});
+// Cases: matCxR_[non_]const
+const mat_cases = [2, 3, 4]
+  .flatMap(cols =>
+    [2, 3, 4].flatMap(rows =>
+      [true, false].map(nonConst => ({
+        [`mat${cols}x${rows}_${nonConst ? 'non_const' : 'const'}`]: () => {
+          return FP.f32.generateMatrixPairToMatrixCases(
+            sparseMatrixF32Range(cols, rows),
+            sparseMatrixF32Range(cols, rows),
+            nonConst ? 'unfiltered' : 'finite',
+            FP.f32.additionMatrixMatrixInterval
+          );
+        },
+      }))
+    )
+  )
+  .reduce((a, b) => ({ ...a, ...b }), {});
+
+export const d = makeCaseCache('binary/f32_matrix_addition', mat_cases);
 
 g.test('matrix')
   .specURL('https://www.w3.org/TR/WGSL/#floating-point-evaluation')

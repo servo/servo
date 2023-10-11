@@ -17,15 +17,19 @@ const kTestTypes = [
   { type: 'u32', stride: 4 },
   { type: 'i32', stride: 4 },
   { type: 'f32', stride: 4 },
+  { type: 'f16', stride: 2 },
   { type: 'vec2<u32>', stride: 8 },
   { type: 'vec2<i32>', stride: 8 },
   { type: 'vec2<f32>', stride: 8 },
+  { type: 'vec2<f16>', stride: 4 },
   { type: 'vec3<u32>', stride: 16 },
   { type: 'vec3<i32>', stride: 16 },
   { type: 'vec3<f32>', stride: 16 },
+  { type: 'vec3<f16>', stride: 8 },
   { type: 'vec4<u32>', stride: 16 },
   { type: 'vec4<i32>', stride: 16 },
   { type: 'vec4<f32>', stride: 16 },
+  { type: 'vec4<f16>', stride: 8 },
   { type: 'mat2x2<f32>', stride: 16 },
   { type: 'mat2x3<f32>', stride: 32 },
   { type: 'mat2x4<f32>', stride: 32 },
@@ -35,11 +39,21 @@ const kTestTypes = [
   { type: 'mat4x2<f32>', stride: 32 },
   { type: 'mat4x3<f32>', stride: 64 },
   { type: 'mat4x4<f32>', stride: 64 },
+  { type: 'mat2x2<f16>', stride: 8 },
+  { type: 'mat2x3<f16>', stride: 16 },
+  { type: 'mat2x4<f16>', stride: 16 },
+  { type: 'mat3x2<f16>', stride: 12 },
+  { type: 'mat3x3<f16>', stride: 24 },
+  { type: 'mat3x4<f16>', stride: 24 },
+  { type: 'mat4x2<f16>', stride: 16 },
+  { type: 'mat4x3<f16>', stride: 32 },
+  { type: 'mat4x4<f16>', stride: 32 },
   { type: 'atomic<u32>', stride: 4 },
   { type: 'atomic<i32>', stride: 4 },
   { type: 'array<u32,4>', stride: 16 },
   { type: 'array<i32,4>', stride: 16 },
   { type: 'array<f32,4>', stride: 16 },
+  { type: 'array<f16,4>', stride: 8 },
   // Structures - see declarations below.
   { type: 'ElemStruct', stride: 4 },
   { type: 'ElemStruct_ImplicitPadding', stride: 16 },
@@ -110,6 +124,24 @@ function runShaderTest(t, wgsl, stride, offset, buffer_size, binding_size, bindi
   t.expectGPUBufferValuesEqual(lengthBuffer, new Uint32Array([length]));
 }
 
+/**
+ * Test if a WGSL type string require using f16 extension.
+ *
+ * @param test_type The wgsl type for testing
+ */
+function typeRequiresF16(test_type) {
+  return test_type.includes('f16');
+}
+
+/**
+ * Generate the necessary wgsl header for tested type, especially for f16
+ *
+ * @param test_type The wgsl type for testing
+ */
+function shaderHeader(test_type) {
+  return typeRequiresF16(test_type) ? 'enable f16;\n\n' : '';
+}
+
 g.test('single_element')
   .specURL('https://www.w3.org/TR/WGSL/#arrayLength-builtin')
   .desc(
@@ -121,8 +153,14 @@ g.test('single_element')
     `
   )
   .params(u => u.combineWithParams(kTestTypes))
+  .beforeAllSubcases(t => {
+    if (typeRequiresF16(t.params.type)) {
+      t.selectDeviceOrSkipTestCase('shader-f16');
+    }
+  })
   .fn(t => {
     const wgsl =
+      shaderHeader(t.params.type) +
       kWgslStructures +
       `
       @group(0) @binding(0) var<storage, read_write> buffer : array<${t.params.type}>;
@@ -132,7 +170,10 @@ g.test('single_element')
         length = arrayLength(&buffer);
       }
     `;
-    runShaderTest(t, wgsl, t.params.stride, 0, t.params.stride, t.params.stride, 0);
+    let buffer_size = t.params.stride;
+    // Ensure that binding size is multiple of 4.
+    buffer_size = buffer_size + ((~buffer_size + 1) & 3);
+    runShaderTest(t, wgsl, t.params.stride, 0, buffer_size, buffer_size, 0);
   });
 
 g.test('multiple_elements')
@@ -150,8 +191,14 @@ g.test('multiple_elements')
     `
   )
   .params(u => u.combine('buffer_size', [640, 1004, 1048576]).combineWithParams(kTestTypes))
+  .beforeAllSubcases(t => {
+    if (typeRequiresF16(t.params.type)) {
+      t.selectDeviceOrSkipTestCase('shader-f16');
+    }
+  })
   .fn(t => {
     const wgsl =
+      shaderHeader(t.params.type) +
       kWgslStructures +
       `
       @group(0) @binding(0) var<storage, read_write> buffer : array<${t.params.type}>;
@@ -179,9 +226,15 @@ g.test('struct_member')
     `
   )
   .params(u => u.combine('member_offset', [0, 4, 20]).combineWithParams(kTestTypes))
+  .beforeAllSubcases(t => {
+    if (typeRequiresF16(t.params.type)) {
+      t.selectDeviceOrSkipTestCase('shader-f16');
+    }
+  })
   .fn(t => {
     const member_offset = align(t.params.member_offset, t.params.stride);
     const wgsl =
+      shaderHeader(t.params.type) +
       kWgslStructures +
       `
       alias ArrayType = array<${t.params.type}>;

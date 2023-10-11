@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <link rel="stylesheet" href="styles.css" />
+  <title>Test that seek() on the local video is reflected on the remote device</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/media.js"></script>
+  <script>
+    setup({ explicit_timeout: true });
+  </script>
+  <body>
+    <div id="pick-device">
+      <p>
+        Click the button below to prompt for a remote playback device and select
+        one!
+      </p>
+      <p>
+        Wait a few seconds for the video to initialize, play and seek.
+      </p>
+      <p>
+        <button id="prompt-button">Pick device</button>
+      </p>
+    </div>
+    <video src="/media/green-at-15.mp4" id="video"></video>
+    <div id="evaluate" style="display: none">
+      <p>
+        Did the playback on the remote device pause and show the following
+        timestamp? (can vary by some frames)
+      </p>
+      <p id="timestamp" style="font-weight: bold"></p>
+      <p>
+        <button id="yes">Yes</button>
+      </p>
+      <p>
+        <button id="no">No</button>
+      </p>
+    </div>
+  </body>
+  <script>
+    let v = document.getElementById("video");
+
+    async_test(t => {
+      let button = document.getElementById("prompt-button");
+      button.onclick = t.step_func(() => {
+        promise_test(() => {
+          return v.remote.prompt().then(() => {
+            v.play();
+          });
+        }, "Prompt resolves");
+      });
+
+      let timestampLabel = document.getElementById("timestamp");
+      v.ontimeupdate = () => {
+        let seconds = Math.floor(v.currentTime) + "";
+        let frames = Math.ceil((v.currentTime - seconds) * 30) + "";
+        timestampLabel.innerText =
+          seconds.padStart(2, "0") + ":" + frames.padStart(2, "0");
+        if (v.currentTime >= 2 && v.currentTime < 18) {
+          v.currentTime = 18;
+        }
+        if (v.currentTime >= 20) {
+          v.pause();
+          document.getElementById("evaluate").style.display = "block";
+        }
+      };
+
+      let evaluate = success =>
+        assert_true(success, "Video paused and has correct play position.");
+
+      document.getElementById("yes").onclick = t.step_func_done(() =>
+        evaluate(true)
+      );
+      document.getElementById("no").onclick = t.step_func_done(() =>
+        evaluate(false)
+      );
+    }, "Test that seek() on the local video is reflected on the remote device.");
+  </script>
+</html>

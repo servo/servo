@@ -131,7 +131,7 @@ interface HTMLElement : Element {
   // The popover API
   undefined showPopover();
   undefined hidePopover();
-  undefined togglePopover(optional boolean force);
+  boolean togglePopover(optional boolean force);
   [CEReactions] attribute DOMString? popover;
 };
 
@@ -1594,6 +1594,7 @@ OffscreenCanvasRenderingContext2D includes CanvasPath;
 interface CustomElementRegistry {
   [CEReactions] undefined define(DOMString name, CustomElementConstructor constructor, optional ElementDefinitionOptions options = {});
   (CustomElementConstructor or undefined) get(DOMString name);
+  DOMString? getName(CustomElementConstructor constructor);
   Promise<CustomElementConstructor> whenDefined(DOMString name);
   [CEReactions] undefined upgrade(Node root);
 };
@@ -1659,6 +1660,18 @@ interface UserActivation {
 
 partial interface Navigator {
   [SameObject] readonly attribute UserActivation userActivation;
+};
+
+[Exposed=Window]
+interface ToggleEvent : Event {
+  constructor(DOMString type, optional ToggleEventInit eventInitDict = {});
+  readonly attribute DOMString oldState;
+  readonly attribute DOMString newState;
+};
+
+dictionary ToggleEventInit : EventInit {
+  DOMString oldState = "";
+  DOMString newState = "";
 };
 
 dictionary FocusOptions {
@@ -1728,18 +1741,6 @@ interface mixin PopoverInvokerElement {
   [CEReactions] attribute DOMString popoverTargetAction;
 };
 
-[Exposed=Window]
-interface ToggleEvent : Event {
-  constructor(DOMString type, optional ToggleEventInit eventInitDict = {});
-  readonly attribute DOMString oldState;
-  readonly attribute DOMString newState;
-};
-
-dictionary ToggleEventInit : EventInit {
-  DOMString oldState = "";
-  DOMString newState = "";
-};
-
 [Global=Window,
  Exposed=Window,
  LegacyUnenumerableNamedProperties]
@@ -1751,6 +1752,7 @@ interface Window : EventTarget {
   attribute DOMString name;
   [PutForwards=href, LegacyUnforgeable] readonly attribute Location location;
   readonly attribute History history;
+  readonly attribute Navigation navigation;
   readonly attribute CustomElementRegistry customElements;
   [Replaceable] readonly attribute BarProp locationbar;
   [Replaceable] readonly attribute BarProp menubar;
@@ -1781,7 +1783,7 @@ interface Window : EventTarget {
 
   // the user agent
   readonly attribute Navigator navigator;
-  readonly attribute Navigator clientInformation; // legacy alias of .navigator
+  [Replaceable] readonly attribute Navigator clientInformation; // legacy alias of .navigator
   readonly attribute boolean originAgentCluster;
 
   // user prompts
@@ -1842,14 +1844,168 @@ interface History {
 };
 
 [Exposed=Window]
+interface Navigation : EventTarget {
+  sequence<NavigationHistoryEntry> entries();
+  readonly attribute NavigationHistoryEntry? currentEntry;
+  undefined updateCurrentEntry(NavigationUpdateCurrentEntryOptions options);
+  readonly attribute NavigationTransition? transition;
+
+  readonly attribute boolean canGoBack;
+  readonly attribute boolean canGoForward;
+
+  NavigationResult navigate(USVString url, optional NavigationNavigateOptions options = {});
+  NavigationResult reload(optional NavigationReloadOptions options = {});
+
+  NavigationResult traverseTo(DOMString key, optional NavigationOptions options = {});
+  NavigationResult back(optional NavigationOptions options = {});
+  NavigationResult forward(optional NavigationOptions options = {});
+
+  attribute EventHandler onnavigate;
+  attribute EventHandler onnavigatesuccess;
+  attribute EventHandler onnavigateerror;
+  attribute EventHandler oncurrententrychange;
+};
+
+dictionary NavigationUpdateCurrentEntryOptions {
+  required any state;
+};
+
+dictionary NavigationOptions {
+  any info;
+};
+
+dictionary NavigationNavigateOptions : NavigationOptions {
+  any state;
+  NavigationHistoryBehavior history = "auto";
+};
+
+dictionary NavigationReloadOptions : NavigationOptions {
+  any state;
+};
+
+dictionary NavigationResult {
+  Promise<NavigationHistoryEntry> committed;
+  Promise<NavigationHistoryEntry> finished;
+};
+
+enum NavigationHistoryBehavior {
+  "auto",
+  "push",
+  "replace"
+};
+
+enum NavigationType {
+ "push",
+ "replace",
+ "reload",
+ "traverse"
+};
+
+[Exposed=Window]
+interface NavigationHistoryEntry : EventTarget {
+  readonly attribute USVString? url;
+  readonly attribute DOMString key;
+  readonly attribute DOMString id;
+  readonly attribute long long index;
+  readonly attribute boolean sameDocument;
+
+  any getState();
+
+  attribute EventHandler ondispose;
+};
+
+[Exposed=Window]
+interface NavigationTransition {
+  readonly attribute NavigationType navigationType;
+  readonly attribute NavigationHistoryEntry from;
+  readonly attribute Promise<undefined> finished;
+};
+
+[Exposed=Window]
+interface NavigateEvent : Event {
+  constructor(DOMString type, NavigateEventInit eventInitDict);
+
+  readonly attribute NavigationType navigationType;
+  readonly attribute NavigationDestination destination;
+  readonly attribute boolean canIntercept;
+  readonly attribute boolean userInitiated;
+  readonly attribute boolean hashChange;
+  readonly attribute AbortSignal signal;
+  readonly attribute FormData? formData;
+  readonly attribute DOMString? downloadRequest;
+  readonly attribute any info;
+  readonly attribute boolean hasUAVisualTransition;
+
+  undefined intercept(optional NavigationInterceptOptions options = {});
+  undefined scroll();
+};
+
+dictionary NavigateEventInit : EventInit {
+  NavigationType navigationType = "push";
+  required NavigationDestination destination;
+  boolean canIntercept = false;
+  boolean userInitiated = false;
+  boolean hashChange = false;
+  required AbortSignal signal;
+  FormData? formData = null;
+  DOMString? downloadRequest = null;
+  any info;
+  boolean hasUAVisualTransition = false;
+};
+
+dictionary NavigationInterceptOptions {
+  NavigationInterceptHandler handler;
+  NavigationFocusReset focusReset;
+  NavigationScrollBehavior scroll;
+};
+
+enum NavigationFocusReset {
+  "after-transition",
+  "manual"
+};
+
+enum NavigationScrollBehavior {
+  "after-transition",
+  "manual"
+};
+
+callback NavigationInterceptHandler = Promise<undefined> ();
+
+[Exposed=Window]
+interface NavigationDestination {
+  readonly attribute USVString url;
+  readonly attribute DOMString key;
+  readonly attribute DOMString id;
+  readonly attribute long long index;
+  readonly attribute boolean sameDocument;
+
+  any getState();
+};
+
+[Exposed=Window]
+interface NavigationCurrentEntryChangeEvent : Event {
+  constructor(DOMString type, NavigationCurrentEntryChangeEventInit eventInitDict);
+
+  readonly attribute NavigationType? navigationType;
+  readonly attribute NavigationHistoryEntry from;
+};
+
+dictionary NavigationCurrentEntryChangeEventInit : EventInit {
+  NavigationType? navigationType = null;
+  required NavigationHistoryEntry from;
+};
+
+[Exposed=Window]
 interface PopStateEvent : Event {
   constructor(DOMString type, optional PopStateEventInit eventInitDict = {});
 
   readonly attribute any state;
+  readonly attribute boolean hasUAVisualTransition;
 };
 
 dictionary PopStateEventInit : EventInit {
   any state = null;
+  boolean hasUAVisualTransition = false;
 };
 
 [Exposed=Window]

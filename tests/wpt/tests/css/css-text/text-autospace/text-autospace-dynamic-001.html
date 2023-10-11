@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="match" href="text-autospace-no-001-ref.html">
+<link rel="mismatch" href="text-autospace-no-001-mismatch-ref.html">
+<style>
+.no-as { text-autospace: no-autospace; }
+</style>
+<div class="test no-as">国国AA国国AA国国</div>
+<div class="test">国国AA国国AA国国</div>
+<script>
+document.body.offsetTop;  // Force layout.
+for (const element of document.getElementsByClassName('test')) {
+  element.classList.toggle('no-as');
+}
+</script>

@@ -19,7 +19,6 @@ promise_setup(async () => {
   }[location.search];
   config.hardwareAcceleration = 'prefer-software';
   config.bitrateMode = "constant";
-  config.scalabilityMode = "L1T2";
   config.framerate = 30;
   ENCODER_CONFIG = config;
 });

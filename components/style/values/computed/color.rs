@@ -4,7 +4,7 @@
 
 //! Computed color values.
 
-use crate::values::animated::color::RGBA as AnimatedRGBA;
+use crate::values::animated::color::AnimatedRGBA;
 use crate::values::animated::ToAnimatedValue;
 use crate::values::generics::color::{GenericCaretColor, GenericColor, GenericColorOrAuto};
 use crate::values::computed::percentage::Percentage;

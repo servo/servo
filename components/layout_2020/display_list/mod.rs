@@ -9,6 +9,7 @@ use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::GlyphStore;
+use gfx_traits::WebRenderEpochToU16;
 use msg::constellation_msg::BrowsingContextId;
 use net_traits::image_cache::UsePlaceholder;
 use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId};
@@ -180,7 +181,10 @@ impl<'a> DisplayListBuilder<'a> {
             Some(cursor(inherited_ui.cursor.keyword, auto_cursor)),
             self.current_scroll_node_id,
         );
-        Some((hit_test_index as u64, 0u16))
+        Some((
+            hit_test_index as u64,
+            self.display_list.compositor_info.epoch.as_u16(),
+        ))
     }
 }
 

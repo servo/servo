@@ -9,7 +9,6 @@ use crate::applicable_declarations::{
 };
 use crate::context::{CascadeInputs, QuirksMode};
 use crate::dom::{TElement, TShadowRoot};
-use crate::element_state::{DocumentState, ElementState};
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
 use crate::invalidation::element::invalidation_map::InvalidationMap;
@@ -60,6 +59,7 @@ use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::sync::Mutex;
 use std::{mem, ops};
+use style_traits::dom::{DocumentState, ElementState};
 use style_traits::viewport::ViewportConstraints;
 
 /// The type of the stylesheets that the stylist contains.

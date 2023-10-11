@@ -26,6 +26,7 @@
     <script src="resources/popover-utils.js"></script>
     <script>
         promise_test(async () => {
+            polyfill_declarative_shadow_dom(outerPopover);
             const innerPopoverToggle = outerPopover.shadowRoot.querySelector("#innerPopoverToggle");
             const innerPopover = outerPopover.shadowRoot.querySelector("#innerPopover");
 

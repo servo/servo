@@ -40,10 +40,10 @@ test_valid_and_computed_value("white-space", "wrap preserve-breaks", "pre-line")
 test_valid_and_computed_value("white-space", "preserve-breaks nowrap", "preserve-breaks nowrap");
 test_valid_and_computed_value("white-space", "nowrap preserve-breaks", "preserve-breaks nowrap");
 
-// Values not used in the pre-defined set.
-test_valid_and_computed_value("white-space", "balance", "balance");
-test_valid_and_computed_value("white-space", "collapse balance", "balance");
-test_valid_and_computed_value("white-space", "balance collapse", "balance");
-test_valid_and_computed_value("white-space", "preserve balance", "preserve balance");
-test_valid_and_computed_value("white-space", "balance preserve", "preserve balance");
+// Values not availabe through the shorthand.
+test_invalid_value("white-space", "balance");
+test_invalid_value("white-space", "collapse balance");
+test_invalid_value("white-space", "balance collapse");
+test_invalid_value("white-space", "preserve balance");
+test_invalid_value("white-space", "balance preserve");
 </script>

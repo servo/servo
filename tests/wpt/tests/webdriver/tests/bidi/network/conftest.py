@@ -3,11 +3,40 @@ import json
 import pytest
 import pytest_asyncio
 
+from webdriver.bidi.error import NoSuchInterceptException
 from webdriver.bidi.modules.script import ContextTarget
 
 RESPONSE_COMPLETED_EVENT = "network.responseCompleted"
 
 PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
+
+
+@pytest_asyncio.fixture
+async def add_intercept(bidi_session):
+    """Add a network intercept for the provided phases and url patterns, and
+    ensure the intercept is removed at the end of the test."""
+
+    intercepts = []
+    async def add_intercept(phases, url_patterns):
+        nonlocal intercepts
+        intercept = await bidi_session.network.add_intercept(
+            phases=phases,
+            url_patterns=url_patterns,
+        )
+        intercepts.append(intercept)
+
+        return intercept
+
+    yield add_intercept
+
+    # Remove all added intercepts at the end of the test
+    for intercept in intercepts:
+        try:
+            await bidi_session.network.remove_intercept(intercept=intercept)
+        except (NoSuchInterceptException):
+            # Ignore exceptions in case a specific intercept was already removed
+            # during the test.
+            pass
 
 
 @pytest.fixture

@@ -6,11 +6,12 @@ use dom_struct::dom_struct;
 use webgpu::wgpu::command::{render_ffi as wgpu_render, RenderPass};
 use webgpu::{wgt, WebGPU, WebGPURequest};
 
-use super::bindings::codegen::Bindings::GPURenderPipelineBinding::GPUIndexFormat;
+use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
 use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUCommandEncoderBinding::GPUColor;
-use crate::dom::bindings::codegen::Bindings::GPURenderPassEncoderBinding::GPURenderPassEncoderMethods;
+use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
+    GPUColor, GPURenderPassEncoderMethods,
+};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};

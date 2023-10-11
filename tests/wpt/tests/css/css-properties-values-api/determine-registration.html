@@ -46,6 +46,38 @@ test_with_at_property({
   });
 }, '@property later in document order wins');
 
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '10px'
+}, (name1) => {
+  with_at_property({
+    name: name1,
+    syntax: '"<length>"',
+    inherits: true,
+    initialValue: '20px'
+  }, (name2) => {
+    assert_equals(name1, name2);
+    assert_equals(getComputedStyle(div).getPropertyValue(name2), '20px');
+  });
+}, '@property later in document order wins (overridding definition with inherits=true)');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: true,
+  initialValue: '10px'
+}, (name1) => {
+  with_at_property({
+    name: name1,
+    syntax: '"<length>"',
+    inherits: false,
+    initialValue: '20px'
+  }, (name2) => {
+    assert_equals(name1, name2);
+    assert_equals(getComputedStyle(div).getPropertyValue(name2), '20px');
+  });
+}, '@property later in document order wins (overridding definition with inherits=false)');
+
 test(() => {
   let name = generate_name();
 

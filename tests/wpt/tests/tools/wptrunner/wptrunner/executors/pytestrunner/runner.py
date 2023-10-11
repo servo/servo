@@ -27,7 +27,7 @@ def do_delayed_imports():
     import pytest
 
 
-def run(path, server_config, session_config, timeout=0, environ=None):
+def run(path, server_config, session_config, timeout=0):
     """
     Run Python test at ``path`` in pytest.  The provided ``session``
     is exposed as a fixture available in the scope of the test functions.
@@ -56,24 +56,29 @@ def run(path, server_config, session_config, timeout=0, environ=None):
             with open(config_path, "w") as f:
                 json.dump(config, f)
 
-            if environ:
-                os.environ.update(environ)
-
             harness = HarnessResultRecorder()
             subtests = SubtestResultRecorder()
 
             try:
                 basetemp = os.path.join(cache, "pytest")
-                pytest.main(["--strict-markers",  # turn function marker warnings into errors
-                             "-vv",  # show each individual subtest and full failure logs
-                             "--capture", "no",  # enable stdout/stderr from tests
-                             "--basetemp", basetemp,  # temporary directory
-                             "--showlocals",  # display contents of variables in local scope
-                             "-p", "no:mozlog",  # use the WPT result recorder
-                             "-p", "no:cacheprovider",  # disable state preservation across invocations
-                             "-o=console_output_style=classic",  # disable test progress bar
-                             path],
-                            plugins=[harness, subtests])
+                pytest.main(
+                    [
+                        "--strict-markers",  # turn function marker warnings into errors
+                        "-vv",  # show each individual subtest and full failure logs
+                        "--capture",
+                        "no",  # enable stdout/stderr from tests
+                        "--basetemp",
+                        basetemp,  # temporary directory
+                        "--showlocals",  # display contents of variables in local scope
+                        "-p",
+                        "no:mozlog",  # use the WPT result recorder
+                        "-p",
+                        "no:cacheprovider",  # disable state preservation across invocations
+                        "-o=console_output_style=classic",  # disable test progress bar
+                        path,
+                    ],
+                    plugins=[harness, subtests],
+                )
             except Exception as e:
                 harness.outcome = ("INTERNAL-ERROR", str(e))
 
@@ -139,9 +144,12 @@ class SubtestResultRecorder:
         self.record(report.nodeid, "ERROR", message, report.longrepr)
 
     def record_skip(self, report):
-        self.record(report.nodeid, "ERROR",
-                    "In-test skip decorators are disallowed, "
-                    "please use WPT metadata to ignore tests.")
+        self.record(
+            report.nodeid,
+            "ERROR",
+            "In-test skip decorators are disallowed, "
+            "please use WPT metadata to ignore tests.",
+        )
 
     def record(self, test, status, message=None, stack=None):
         if stack is not None:

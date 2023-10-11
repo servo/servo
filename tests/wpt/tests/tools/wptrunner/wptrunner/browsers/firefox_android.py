@@ -45,11 +45,11 @@ def check_args(**kwargs):
 def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {"adb_binary": kwargs["adb_binary"],
             "webdriver_binary": kwargs["webdriver_binary"],
-            "webdriver_args": kwargs["webdriver_args"],
+            "webdriver_args": kwargs["webdriver_args"].copy(),
             "package_name": kwargs["package_name"],
             "device_serial": kwargs["device_serial"],
             "prefs_root": kwargs["prefs_root"],
-            "extra_prefs": kwargs["extra_prefs"],
+            "extra_prefs": kwargs["extra_prefs"].copy(),
             "test_type": test_type,
             "debug_info": kwargs["debug_info"],
             "symbols_path": kwargs["symbols_path"],
@@ -57,11 +57,12 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
             "certutil_binary": kwargs["certutil_binary"],
             "ca_certificate_path": config.ssl_config["ca_cert_path"],
             "stackfix_dir": kwargs["stackfix_dir"],
-            "binary_args": kwargs["binary_args"],
+            "binary_args": kwargs["binary_args"].copy(),
             "timeout_multiplier": get_timeout_multiplier(test_type,
                                                          run_info_data,
                                                          **kwargs),
             "e10s": run_info_data["e10s"],
+            "disable_fission": kwargs["disable_fission"],
             # desktop only
             "leak_check": False,
             "chaos_mode_flags": kwargs["chaos_mode_flags"],
@@ -113,9 +114,9 @@ def get_environ(chaos_mode_flags, env_extras=None):
 
 class ProfileCreator(FirefoxProfileCreator):
     def __init__(self, logger, prefs_root, config, test_type, extra_prefs,
-                 enable_fission, debug_test, browser_channel, certutil_binary, ca_certificate_path):
+                 disable_fission, debug_test, browser_channel, certutil_binary, ca_certificate_path):
         super().__init__(logger, prefs_root, config, test_type, extra_prefs,
-                         True, enable_fission, debug_test, browser_channel, None,
+                         True, disable_fission, debug_test, browser_channel, None,
                          certutil_binary, ca_certificate_path)
 
     def _set_required_prefs(self, profile):
@@ -141,6 +142,10 @@ class ProfileCreator(FirefoxProfileCreator):
                 "layout.testing.overlay-scrollbars.always-visible": True,
             })
 
+        profile.set_preferences({"fission.autostart": True})
+        if self.disable_fission:
+            profile.set_preferences({"fission.autostart": False})
+
 
 class FirefoxAndroidBrowser(Browser):
     init_timeout = 300
@@ -153,7 +158,7 @@ class FirefoxAndroidBrowser(Browser):
                  binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
                  chaos_mode_flags=None, config=None, browser_channel="nightly",
                  install_fonts=False, tests_root=None, specialpowers_path=None, adb_binary=None,
-                 debug_test=False, **kwargs):
+                 debug_test=False, disable_fission=False, **kwargs):
 
         super().__init__(logger)
         self.prefs_root = prefs_root
@@ -178,13 +183,14 @@ class FirefoxAndroidBrowser(Browser):
         self.tests_root = tests_root
         self.specialpowers_path = specialpowers_path
         self.adb_binary = adb_binary
+        self.disable_fission = disable_fission
 
         self.profile_creator = ProfileCreator(logger,
                                               prefs_root,
                                               config,
                                               test_type,
                                               extra_prefs,
-                                              False,
+                                              disable_fission,
                                               debug_test,
                                               browser_channel,
                                               certutil_binary,
@@ -309,7 +315,7 @@ class FirefoxAndroidWdSpecBrowser(FirefoxWdSpecBrowser):
     def __init__(self, logger, prefs_root, webdriver_binary, webdriver_args,
                  extra_prefs=None, debug_info=None, symbols_path=None, stackwalk_binary=None,
                  certutil_binary=None, ca_certificate_path=None, e10s=False,
-                 enable_fission=False, stackfix_dir=None, leak_check=False,
+                 disable_fission=False, stackfix_dir=None, leak_check=False,
                  asan=False, chaos_mode_flags=None, config=None,
                  browser_channel="nightly", headless=None,
                  package_name="org.mozilla.geckoview.test_runner", device_serial=None,
@@ -319,7 +325,7 @@ class FirefoxAndroidWdSpecBrowser(FirefoxWdSpecBrowser):
                          extra_prefs=extra_prefs, debug_info=debug_info, symbols_path=symbols_path,
                          stackwalk_binary=stackwalk_binary, certutil_binary=certutil_binary,
                          ca_certificate_path=ca_certificate_path, e10s=e10s,
-                         enable_fission=enable_fission, stackfix_dir=stackfix_dir,
+                         disable_fission=disable_fission, stackfix_dir=stackfix_dir,
                          leak_check=leak_check, asan=asan,
                          chaos_mode_flags=chaos_mode_flags, config=config,
                          browser_channel=browser_channel, headless=headless, **kwargs)
@@ -349,7 +355,6 @@ class FirefoxAndroidWdSpecBrowser(FirefoxWdSpecBrowser):
     def get_env(self, binary, debug_info, headless, chaos_mode_flags):
         env = get_environ(chaos_mode_flags)
         env["RUST_BACKTRACE"] = "1"
-        del env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"]
         return env
 
     def executor_browser(self):

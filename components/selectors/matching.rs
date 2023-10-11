@@ -9,6 +9,7 @@ use crate::parser::{AncestorHashes, Combinator, Component, LocalName};
 use crate::parser::{NonTSPseudoClass, Selector, SelectorImpl, SelectorIter, SelectorList};
 use crate::tree::Element;
 use bitflags::bitflags;
+use debug_unreachable::debug_unreachable;
 use log::debug;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
@@ -63,7 +64,7 @@ impl ElementSelectorFlags {
 /// Holds per-compound-selector data.
 struct LocalMatchingContext<'a, 'b: 'a, Impl: SelectorImpl> {
     shared: &'a mut MatchingContext<'b, Impl>,
-    matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk,
+    quirks_data: Option<(Rightmost, SelectorIter<'a, Impl>)>,
 }
 
 #[inline(always)]
@@ -165,15 +166,6 @@ enum SelectorMatchingResult {
     NotMatchedGlobally,
 }
 
-/// Whether the :hover and :active quirk applies.
-///
-/// https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum MatchesHoverAndActiveQuirk {
-    Yes,
-    No,
-}
-
 /// Matches a selector, fast-rejecting against a bloom filter.
 ///
 /// We accept an offset to allow consumers to represent and match against
@@ -239,7 +231,7 @@ where
 
     let mut local_context = LocalMatchingContext {
         shared: context,
-        matches_hover_and_active_quirk: MatchesHoverAndActiveQuirk::No,
+        quirks_data: None,
     };
 
     // Find the end of the selector or the next combinator, then match
@@ -334,18 +326,46 @@ where
     matches!(result, SelectorMatchingResult::Matched)
 }
 
-#[inline]
-fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
+/// Traverse all descendents of the given element and return true as soon as any of them match
+/// the given list of selectors.
+fn has_children_matching<E: Element>(
+    selectors: &[Selector<E::Impl>],
+    element: &E,
+    context: &mut MatchingContext<E::Impl>,
+) -> bool {
+    let mut current = element.first_element_child();
+
+    while let Some(el) = current {
+        for selector in selectors {
+            if matches_complex_selector(selector.iter(), &el, context) {
+                return true;
+            }
+        }
+
+        if has_children_matching(selectors, &el, context) {
+            return true;
+        }
+
+        current = el.next_sibling_element();
+    }
+
+    false
+}
+
+/// Whether the :hover and :active quirk applies.
+///
+/// https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
+fn hover_and_active_quirk_applies<Impl: SelectorImpl>(
     selector_iter: &SelectorIter<Impl>,
     context: &MatchingContext<Impl>,
     rightmost: Rightmost,
-) -> MatchesHoverAndActiveQuirk {
+) -> bool {
     if context.quirks_mode() != QuirksMode::Quirks {
-        return MatchesHoverAndActiveQuirk::No;
+        return false;
     }
 
     if context.is_nested() {
-        return MatchesHoverAndActiveQuirk::No;
+        return false;
     }
 
     // This compound selector had a pseudo-element to the right that we
@@ -353,10 +373,10 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
     if rightmost == Rightmost::Yes &&
         context.matching_mode() == MatchingMode::ForStatelessPseudoElement
     {
-        return MatchesHoverAndActiveQuirk::No;
+        return false;
     }
 
-    let all_match = selector_iter.clone().all(|simple| match *simple {
+    selector_iter.clone().all(|simple| match *simple {
         Component::LocalName(_) |
         Component::AttributeInNoNamespaceExists { .. } |
         Component::AttributeInNoNamespace { .. } |
@@ -378,13 +398,7 @@ fn matches_hover_and_active_quirk<Impl: SelectorImpl>(
         Component::OnlyOfType => false,
         Component::NonTSPseudoClass(ref pseudo_class) => pseudo_class.is_active_or_hover(),
         _ => true,
-    });
-
-    if all_match {
-        MatchesHoverAndActiveQuirk::Yes
-    } else {
-        MatchesHoverAndActiveQuirk::No
-    }
+    })
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -503,19 +517,21 @@ where
         Combinator::PseudoElement => SelectorMatchingResult::NotMatchedGlobally,
     };
 
-    let mut next_element =
-        next_element_for_combinator(element, combinator, &selector_iter, &context);
-
     // Stop matching :visited as soon as we find a link, or a combinator for
     // something that isn't an ancestor.
-    let mut visited_handling = if element.is_link() || combinator.is_sibling() {
+    let mut visited_handling = if combinator.is_sibling() {
         VisitedHandlingMode::AllLinksUnvisited
     } else {
         context.visited_handling()
     };
 
+    let mut element = element.clone();
     loop {
-        let element = match next_element {
+        if element.is_link() {
+            visited_handling = VisitedHandlingMode::AllLinksUnvisited;
+        }
+
+        element = match next_element_for_combinator(&element, combinator, &selector_iter, &context) {
             None => return candidate_not_found,
             Some(next_element) => next_element,
         };
@@ -562,12 +578,6 @@ where
             // matching on the next candidate element.
             _ => {},
         }
-
-        if element.is_link() {
-            visited_handling = VisitedHandlingMode::AllLinksUnvisited;
-        }
-
-        next_element = next_element_for_combinator(&element, combinator, &selector_iter, &context);
     }
 }
 
@@ -596,8 +606,11 @@ fn matches_compound_selector<E>(
 where
     E: Element,
 {
-    let matches_hover_and_active_quirk =
-        matches_hover_and_active_quirk(&selector_iter, context, rightmost);
+    let quirks_data = if context.quirks_mode() == QuirksMode::Quirks {
+        Some((rightmost, selector_iter.clone()))
+    } else {
+        None
+    };
 
     // Handle some common cases first.
     // We may want to get rid of this at some point if we can make the
@@ -629,7 +642,7 @@ where
 
     let mut local_context = LocalMatchingContext {
         shared: context,
-        matches_hover_and_active_quirk,
+        quirks_data,
     };
     iter::once(selector)
         .chain(selector_iter)
@@ -648,70 +661,13 @@ where
     debug_assert!(context.shared.is_nested() || !context.shared.in_negation());
 
     match *selector {
-        Component::Combinator(_) => unreachable!(),
-        Component::Part(ref parts) => {
-            let mut hosts = SmallVec::<[E; 4]>::new();
-
-            let mut host = match element.containing_shadow_host() {
-                Some(h) => h,
-                None => return false,
-            };
-
-            let current_host = context.shared.current_host;
-            if current_host != Some(host.opaque()) {
-                loop {
-                    let outer_host = host.containing_shadow_host();
-                    if outer_host.as_ref().map(|h| h.opaque()) == current_host {
-                        break;
-                    }
-                    let outer_host = match outer_host {
-                        Some(h) => h,
-                        None => return false,
-                    };
-                    // TODO(emilio): if worth it, we could early return if
-                    // host doesn't have the exportparts attribute.
-                    hosts.push(host);
-                    host = outer_host;
-                }
-            }
-
-            // Translate the part into the right scope.
-            parts.iter().all(|part| {
-                let mut part = part.clone();
-                for host in hosts.iter().rev() {
-                    part = match host.imported_part(&part) {
-                        Some(p) => p,
-                        None => return false,
-                    };
-                }
-                element.is_part(&part)
-            })
-        },
-        Component::Slotted(ref selector) => {
-            // <slots> are never flattened tree slottables.
-            !element.is_html_slot_element() &&
-                context.shared.nest(|context| {
-                    matches_complex_selector(selector.iter(), element, context)
-                })
-        },
-        Component::PseudoElement(ref pseudo) => {
-            element.match_pseudo_element(pseudo, context.shared)
-        },
-        Component::LocalName(ref local_name) => matches_local_name(element, local_name),
-        Component::ExplicitUniversalType | Component::ExplicitAnyNamespace => true,
-        Component::Namespace(_, ref url) | Component::DefaultNamespace(ref url) => {
-            element.has_namespace(&url.borrow())
-        },
-        Component::ExplicitNoNamespace => {
-            let ns = crate::parser::namespace_empty_string::<E::Impl>();
-            element.has_namespace(&ns.borrow())
-        },
         Component::ID(ref id) => {
             element.has_id(id, context.shared.classes_and_ids_case_sensitivity())
         },
         Component::Class(ref class) => {
             element.has_class(class, context.shared.classes_and_ids_case_sensitivity())
         },
+        Component::LocalName(ref local_name) => matches_local_name(element, local_name),
         Component::AttributeInNoNamespaceExists {
             ref local_name,
             ref local_name_lower,
@@ -774,15 +730,68 @@ where
                 },
             )
         },
-        Component::NonTSPseudoClass(ref pc) => {
-            if context.matches_hover_and_active_quirk == MatchesHoverAndActiveQuirk::Yes &&
-                !context.shared.is_nested() &&
-                pc.is_active_or_hover() &&
-                !element.is_link()
-            {
-                return false;
+        Component::Part(ref parts) => {
+            let mut hosts = SmallVec::<[E; 4]>::new();
+
+            let mut host = match element.containing_shadow_host() {
+                Some(h) => h,
+                None => return false,
+            };
+
+            let current_host = context.shared.current_host;
+            if current_host != Some(host.opaque()) {
+                loop {
+                    let outer_host = host.containing_shadow_host();
+                    if outer_host.as_ref().map(|h| h.opaque()) == current_host {
+                        break;
+                    }
+                    let outer_host = match outer_host {
+                        Some(h) => h,
+                        None => return false,
+                    };
+                    // TODO(emilio): if worth it, we could early return if
+                    // host doesn't have the exportparts attribute.
+                    hosts.push(host);
+                    host = outer_host;
+                }
             }
 
+            // Translate the part into the right scope.
+            parts.iter().all(|part| {
+                let mut part = part.clone();
+                for host in hosts.iter().rev() {
+                    part = match host.imported_part(&part) {
+                        Some(p) => p,
+                        None => return false,
+                    };
+                }
+                element.is_part(&part)
+            })
+        },
+        Component::Slotted(ref selector) => {
+            // <slots> are never flattened tree slottables.
+            !element.is_html_slot_element() &&
+                context.shared.nest(|context| {
+                    matches_complex_selector(selector.iter(), element, context)
+                })
+        },
+        Component::PseudoElement(ref pseudo) => {
+            element.match_pseudo_element(pseudo, context.shared)
+        },
+        Component::ExplicitUniversalType | Component::ExplicitAnyNamespace => true,
+        Component::Namespace(_, ref url) | Component::DefaultNamespace(ref url) => {
+            element.has_namespace(&url.borrow())
+        },
+        Component::ExplicitNoNamespace => {
+            let ns = crate::parser::namespace_empty_string::<E::Impl>();
+            element.has_namespace(&ns.borrow())
+        },
+        Component::NonTSPseudoClass(ref pc) => {
+            if let Some((ref rightmost, ref iter)) = context.quirks_data {
+                if pc.is_active_or_hover() && !element.is_link() && hover_and_active_quirk_applies(iter, context.shared, *rightmost) {
+                    return false;
+                }
+            }
             element.match_non_ts_pseudo_class(pc, &mut context.shared)
         },
         Component::FirstChild => matches_first_child(element, context.shared),
@@ -850,6 +859,12 @@ where
             }
             true
         }),
+        Component::Has(ref list) => context.shared.nest(|context| {
+            has_children_matching(list, element, context)
+        }),
+        Component::Combinator(_) => unsafe {
+            debug_unreachable!("Shouldn't try to selector-match combinators")
+        },
     }
 }
 

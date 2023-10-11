@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1486995">
+<link rel="match" href="remote-origin-iframe-print-ref.html">
+<style>
+  iframe {
+    display: block;
+    width: 100px;
+    height: 100px;
+    border: none;
+  }
+</style>
+<script src="/common/get-host-info.sub.js"></script>
+<p>The word "PASS" should be seen below.</p>
+<script>
+  const iframe = document.createElement("iframe");
+  iframe.src = get_host_info().REMOTE_ORIGIN + "/css/printing/resources/iframe-with-abspos.html";
+  document.body.appendChild(iframe);
+</script>

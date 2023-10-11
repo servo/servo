@@ -229,8 +229,15 @@ test(() => {
   //   0                        400              700   900
 
   // Scoll on the element whose snap area is larger than the snapport.
-  scroller7.scrollBy(700, 0);
-  assert_equals(scroller7.scrollLeft, 700);
+  scroller7.scrollBy(600, 0);
+  // Stops before the smaller snap area @ 900px enters the snapport.
+  assert_equals(scroller7.scrollLeft + scroller7.clientWidth, 900);
+  assert_equals(scroller7.scrollTop, 0);
+
+  scroller7.scrollTo(0, 0);
+  scroller7.scrollBy(800, 0);
+  // Now the smaller snap area is closer, so we snap to it.
+  assert_equals(scroller7.scrollLeft, 900);
   assert_equals(scroller7.scrollTop, 0);
 }, "`scroll-snap-stop: always` snap point is further than the scroll " +
    "destination and a snap area covers the snapport");

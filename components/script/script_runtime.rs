@@ -54,8 +54,8 @@ use time::{now, Tm};
 
 use crate::body::BodyMixin;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
+use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::conversions::{
     get_dom_class, private_from_object, root_from_handleobject,
 };

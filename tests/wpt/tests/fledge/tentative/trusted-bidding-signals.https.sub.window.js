@@ -1,7 +1,17 @@
 // META: script=/resources/testdriver.js
 // META: script=/common/utils.js
+// META: script=/common/subset-tests.js
 // META: script=resources/fledge-util.js
 // META: timeout=long
+// META: variant=?1-5
+// META: variant=?6-10
+// META: variant=?11-15
+// META: variant=?16-20
+// META: variant=?21-25
+// META: variant=?26-30
+// META: variant=?31-35
+// META: variant=?36-40
+// META: variant=?41-last
 
 "use strict";
 
@@ -22,10 +32,10 @@
 // fields.
 async function runTrustedBiddingSignalsTest(
     test, generateBidCheck, interestGroupOverrides = {}) {
-  interestGroupOverrides.biddingLogicUrl =
-      createBiddingScriptUrl({
+  interestGroupOverrides.biddingLogicURL =
+    createBiddingScriptURL({
           generateBid: `if (!(${generateBidCheck})) return false;` });
-  await runBasicFledgeTestExpectingWinner(
+  await joinGroupAndRunBasicFledgeTestExpectingWinner(
       test, {interestGroupOverrides: interestGroupOverrides});
 }
 
@@ -36,142 +46,141 @@ async function runTrustedBiddingSignalsTest(
 async function runTrustedBiddingSignalsDataVersionTest(
     test, check, interestGroupOverrides = {}) {
   const uuid = generateUuid(test);
-  interestGroupOverrides.biddingLogicUrl =
-      createBiddingScriptUrl({
+  interestGroupOverrides.biddingLogicURL =
+    createBiddingScriptURL({
           generateBid:
               `if (!(${check})) return false;`,
           reportWin:
               `if (!(${check}))
-                sendReportTo('${createBidderReportUrl(uuid, 'error')}');
+                sendReportTo('${createBidderReportURL(uuid, 'error')}');
               else
-                sendReportTo('${createBidderReportUrl(uuid)}');` });
+                sendReportTo('${createBidderReportURL(uuid)}');` });
   await joinInterestGroup(test, uuid, interestGroupOverrides);
 
   const auctionConfigOverrides = {
-    decisionLogicUrl: createDecisionScriptUrl(
+    decisionLogicURL: createDecisionScriptURL(
         uuid,
         { scoreAd:
               `if (browserSignals.dataVersion !== undefined)
                 return false;`,
           reportResult:
               `if (browserSignals.dataVersion !== undefined)
-                 sendReportTo('${createSellerReportUrl(uuid, 'error')}')
-               sendReportTo('${createSellerReportUrl(uuid)}')`,
-        })
+                 sendReportTo('${createSellerReportURL(uuid, 'error')}')
+               sendReportTo('${createSellerReportURL(uuid)}')`, })
   }
   await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfigOverrides);
   await waitForObservedRequests(
-      uuid, [createBidderReportUrl(uuid), createSellerReportUrl(uuid)]);
+      uuid, [createBidderReportURL(uuid), createSellerReportURL(uuid)]);
 }
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(test, 'trustedBiddingSignals === null');
-}, 'No trustedBiddingSignalsKeys or trustedBiddingSignalsUrl.');
+}, 'No trustedBiddingSignalsKeys or trustedBiddingSignalsURL.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['numValue'] });
-}, 'trustedBiddingSignalsKeys but no trustedBiddingSignalsUrl.');
+}, 'trustedBiddingSignalsKeys but no trustedBiddingSignalsURL.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
-      { trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
-}, 'trustedBiddingSignalsUrl without trustedBiddingSignalsKeys.');
+      { trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
+}, 'trustedBiddingSignalsURL without trustedBiddingSignalsKeys.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['close-connection'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
-}, 'trustedBiddingSignalsUrl closes the connection without sending anything.');
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
+}, 'trustedBiddingSignalsURL closes the connection without sending anything.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['http-error'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response is HTTP 404 error.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['no-content-type'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has no content-type.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['wrong-content-type'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has wrong content-type.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['ad-auction-not-allowed'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response does not allow fledge.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['bad-ad-auction-allowed'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has wrong Ad-Auction-Allowed header.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['no-ad-auction-allow'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has no Ad-Auction-Allowed header.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['replace-body:'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has no body.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['replace-body:Not JSON'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response is not JSON.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['replace-body:[]'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response is a JSON array.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals === null',
       { trustedBiddingSignalsKeys: ['replace-body:{JSON_keys_need_quotes: 1}'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response in invalid JSON object.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals["replace-body:{}"] === null',
       { trustedBiddingSignalsKeys: ['replace-body:{}'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has no keys object.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, `trustedBiddingSignals['replace-body:{"keys":{}}'] === null`,
       { trustedBiddingSignalsKeys: ['replace-body:{"keys":{}}'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has no keys.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       `trustedBiddingSignals["0"] === null &&
@@ -180,66 +189,66 @@ promise_test(async test => {
        trustedBiddingSignals["length"] === null`,
       { trustedBiddingSignalsKeys:
             ['replace-body:{"keys":[1,2,3]}', "0", "1", "2", "length"],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response keys is incorrectly an array.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       `trustedBiddingSignals["wrong-value"] === null &&
       trustedBiddingSignals["another-value"] === undefined`,
       { trustedBiddingSignalsKeys: ['wrong-value'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has key not in trustedBiddingSignalsKeys.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
     await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals["null-value"] === null',
       { trustedBiddingSignalsKeys: ['null-value'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has null value for key.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals["num-value"] === 1',
       { trustedBiddingSignalsKeys: ['num-value'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has a number value for key.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test, 'trustedBiddingSignals["string-value"] === "1"',
       { trustedBiddingSignalsKeys: ['string-value'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has string value for key.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       `JSON.stringify(trustedBiddingSignals["array-value"]) === '[1,"foo",null]'`,
       { trustedBiddingSignalsKeys: ['array-value'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has array value for key.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       `Object.keys(trustedBiddingSignals["object-value"]).length  === 2 &&
        trustedBiddingSignals["object-value"]["a"] === "b" &&
        JSON.stringify(trustedBiddingSignals["object-value"]["c"]) === '["d"]'`,
       { trustedBiddingSignalsKeys: ['object-value'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has object value for key.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       'trustedBiddingSignals[""] === "default value"',
       { trustedBiddingSignalsKeys: [''],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals receives empty string key.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       `Object.keys(trustedBiddingSignals).length === 6 &&
@@ -251,34 +260,34 @@ promise_test(async test => {
        trustedBiddingSignals[""] === "default value"`,
       { trustedBiddingSignalsKeys: ['wrong-value', 'null-value', 'num-value',
                                     'string-value', 'array-value', ''],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has multiple keys.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       'trustedBiddingSignals["+%20 \x00?,3#&"] === "default value"',
       { trustedBiddingSignalsKeys: ['+%20 \x00?,3#&'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals receives escaped key.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       'trustedBiddingSignals["\x00"] === "default value"',
       { trustedBiddingSignalsKeys: ['\x00'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals receives null key.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       `trustedBiddingSignals["interest-group-names"] === '["${DEFAULT_INTEREST_GROUP_NAME}"]'`,
       { trustedBiddingSignalsKeys: ['interest-group-names'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals receives interest group name.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       // Interest group names is a JSONified list of JSONified names, so the
@@ -286,146 +295,146 @@ promise_test(async test => {
       `trustedBiddingSignals["interest-group-names"] === '["+%20 \\\\u0000?,3#&"]'`,
       { name: '+%20 \x00?,3#&',
         trustedBiddingSignalsKeys: ['interest-group-names'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals receives escaped interest group name.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       `trustedBiddingSignals["interest-group-names"] === '[""]'`,
       { name: '',
         trustedBiddingSignalsKeys: ['interest-group-names'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals receives empty interest group name.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsTest(
       test,
       `trustedBiddingSignals["hostname"] === "${window.location.hostname}"`,
       { trustedBiddingSignalsKeys: ['hostname'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals receives hostname field.');
 
 /////////////////////////////////////////////////////////////////////////////
 // Data-Version tests
 /////////////////////////////////////////////////////////////////////////////
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === undefined',
       { trustedBiddingSignalsKeys: ['num-value'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has no Data-Version.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === 3',
       { trustedBiddingSignalsKeys: ['data-version:3'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has numeric Data-Version.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === 0',
       { trustedBiddingSignalsKeys: ['data-version:0'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has min Data-Version.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === 4294967295',
       { trustedBiddingSignalsKeys: ['data-version:4294967295'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has max Data-Version.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === undefined',
       { trustedBiddingSignalsKeys: ['data-version:4294967296'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has too large Data-Version.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === undefined',
       { trustedBiddingSignalsKeys: ['data-version:03'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has Data-Version with leading 0.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === undefined',
       { trustedBiddingSignalsKeys: ['data-version:-1'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has negative Data-Version.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === undefined',
       { trustedBiddingSignalsKeys: ['data-version:1.3'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has decimal in Data-Version.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === undefined',
       { trustedBiddingSignalsKeys: ['data-version:2 2'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has space in Data-Version.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === undefined',
       { trustedBiddingSignalsKeys: ['data-version:0x4'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has hex Data-Version.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === 4',
       { name: 'data-version',
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response has Data-Version and no trustedBiddingSignalsKeys.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === undefined',
       { trustedBiddingSignalsKeys: ['data-version:3', 'replace-body:'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response with Data-Version and empty body.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === undefined',
       { trustedBiddingSignalsKeys: ['data-version:3', 'replace-body:[]'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response with Data-Version and JSON array body.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === undefined',
       { trustedBiddingSignalsKeys: ['data-version:3', 'replace-body:{} {}'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response with Data-Version and double JSON object body.');
 
-promise_test(async test => {
+subsetTest(promise_test, async test => {
   await runTrustedBiddingSignalsDataVersionTest(
       test,
       'browserSignals.dataVersion === 3',
       { trustedBiddingSignalsKeys: ['data-version:3', 'replace-body:{"keys":5}'],
-        trustedBiddingSignalsUrl: TRUSTED_BIDDING_SIGNALS_URL });
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response with Data-Version and invalid keys entry');

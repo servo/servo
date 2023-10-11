@@ -16,12 +16,15 @@ const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
 const remoteBaseURL = host.HTTPS_REMOTE_ORIGIN + basePath;
 const localhostBaseURL = "http://localhost:" + host.HTTP_PORT + basePath;
 
-async function createIframeAndWaitForMessage(test, iframeUrl, setPermissionPolicy) {
+async function createIframeAndWaitForMessage(test, iframeUrl, setPermissionPolicy, style = "") {
     const messageWatcher = new EventWatcher(test, window, "message");
     var iframe = document.createElement("iframe");
     iframe.src = iframeUrl;
     if (setPermissionPolicy) {
       iframe.allow = "identity-credentials-get";
+    }
+    if (style !== "") {
+      iframe.style = style;
     }
     document.body.appendChild(iframe);
     const message = await messageWatcher.wait_for("message");
@@ -43,6 +46,14 @@ fedcm_test(async t => {
   assert_equals(message.result, "Pass");
   assert_equals(message.token, "token");
 }, "FedCM enabled in 2 level deep nested iframe. FedCM should be enabled regardless of iframe nesting depth");
+
+fedcm_test(async t => {
+  const message = await createIframeAndWaitForMessage(
+      t, remoteBaseURL + "support/fedcm-iframe.html",
+      /*setPermissionPolicy=*/true, /*style=*/"display:none;");
+  assert_equals(message.result, "Pass");
+  assert_equals(message.token, "token");
+}, "FedCM enabled in invisible iframe. FedCM should be enabled as long as the top frame is visible");
 
 fedcm_test(async t => {
   const message = await createIframeAndWaitForMessage(

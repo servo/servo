@@ -342,7 +342,7 @@ class WebDriverBrowser(Browser):
         except OSError as e:
             if e.errno == errno.ENOENT:
                 raise OSError(
-                    "WebDriver executable not found: %s" % self.webdriver_binary)
+                    "WebDriver executable not found: %s" % self.webdriver_binary) from e
             raise
         self._output_handler.after_process_start(self._proc.pid)
 
@@ -404,7 +404,8 @@ class WebDriverBrowser(Browser):
         return ExecutorBrowser, {"webdriver_url": self.url,
                                  "host": self.host,
                                  "port": self.port,
-                                 "pac": self.pac}
+                                 "pac": self.pac,
+                                 "env": self.env}
 
     def settings(self, test):
         self._pac = test.environment.get("pac", None) if self._supports_pac else None

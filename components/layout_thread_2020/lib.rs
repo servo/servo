@@ -1259,7 +1259,8 @@ impl LayoutThread {
         // Build the root stacking context. This turns the `FragmentTree` into a
         // tree of fragments in CSS painting order and also creates all
         // applicable spatial and clip nodes.
-        let root_stacking_context = display_list.build_stacking_context_tree(&fragment_tree);
+        let root_stacking_context =
+            display_list.build_stacking_context_tree(&fragment_tree, &self.debug);
 
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let (iframe_sizes, is_contentful) =
@@ -1267,6 +1268,9 @@ impl LayoutThread {
 
         if self.debug.dump_flow_tree {
             fragment_tree.print();
+        }
+        if self.debug.dump_stacking_context_tree {
+            root_stacking_context.debug_print();
         }
         debug!("Layout done!");
 

@@ -9,7 +9,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleObject;
 use servo_atoms::Atom;
 
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::XRInputSourcesChangeEventBinding::{
     self, XRInputSourcesChangeEventMethods,
 };

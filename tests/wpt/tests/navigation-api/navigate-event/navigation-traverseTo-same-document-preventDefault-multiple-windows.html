@@ -4,20 +4,23 @@
 <iframe id="i" src="/common/blank.html"></iframe>
 <script>
 promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
+
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
   await navigation.navigate("#").finished;
   await i.contentWindow.navigation.navigate("#").finished;
-  assert_equals(navigation.entries().length, 2);
+  assert_equals(navigation.entries().length, start_length + 1);
   assert_equals(i.contentWindow.navigation.entries().length, 2);
-  assert_equals(navigation.currentEntry.index, 1);
+  assert_equals(navigation.currentEntry.index, start_index + 1);
   assert_equals(i.contentWindow.navigation.currentEntry.index, 1);
 
   navigation.onnavigate = e => e.preventDefault();
   i.contentWindow.navigation.onnavigate = t.unreached_func("navigate event should not fire in the iframe, because the traversal was cancelled in the top window");
-  await promise_rejects_dom(t, "AbortError", navigation.traverseTo(navigation.entries()[0].key).finished);
-  assert_equals(navigation.currentEntry.index, 1);
+  await promise_rejects_dom(t, "AbortError", navigation.traverseTo(navigation.entries()[start_index].key).finished);
+  assert_equals(navigation.currentEntry.index, start_index + 1);
   assert_equals(i.contentWindow.navigation.currentEntry.index, 1);
 }, "navigation.traverseTo() - if a top window cancels the traversal, any iframes should not fire navigate");
 </script>

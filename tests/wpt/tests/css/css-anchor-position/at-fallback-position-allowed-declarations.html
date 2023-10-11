@@ -45,6 +45,19 @@ test_allowed_declaration('inset-block');
 test_allowed_declaration('inset-inline');
 test_allowed_declaration('inset');
 
+// Margin properties are allowed
+test_allowed_declaration('margin-top');
+test_allowed_declaration('margin-bottom');
+test_allowed_declaration('margin-left');
+test_allowed_declaration('margin-right');
+test_allowed_declaration('margin-block-start');
+test_allowed_declaration('margin-block-end');
+test_allowed_declaration('margin-inline-start');
+test_allowed_declaration('margin-inline-end');
+test_allowed_declaration('margin-block');
+test_allowed_declaration('margin-inline');
+test_allowed_declaration('margin');
+
 // Sizing properties are allowed
 test_allowed_declaration('width');
 test_allowed_declaration('height');
@@ -69,13 +82,6 @@ test_allowed_declaration('align-self', 'normal');
 
 // Custom properties are disallowed
 test_disallowed_declaration('--custom');
-
-// Margin properties are disallowed
-test_disallowed_declaration('margin-left');
-test_disallowed_declaration('margin-right');
-test_disallowed_declaration('margin-top');
-test_disallowed_declaration('margin-bottom');
-test_disallowed_declaration('margin');
 
 // Test some other disallowed properties
 test_disallowed_declaration('font-size');

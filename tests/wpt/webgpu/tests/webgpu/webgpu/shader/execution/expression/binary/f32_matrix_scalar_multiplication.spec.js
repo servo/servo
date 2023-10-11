@@ -15,295 +15,45 @@ import { binary, compoundBinary } from './binary.js';
 
 export const g = makeTestGroup(GPUTest);
 
+// Cases: matCxR_scalar_[non_]const
+const mat_scalar_cases = [2, 3, 4]
+  .flatMap(cols =>
+    [2, 3, 4].flatMap(rows =>
+      [true, false].map(nonConst => ({
+        [`mat${cols}x${rows}_scalar_${nonConst ? 'non_const' : 'const'}`]: () => {
+          return FP.f32.generateMatrixScalarToMatrixCases(
+            sparseMatrixF32Range(cols, rows),
+            sparseF32Range(),
+            nonConst ? 'unfiltered' : 'finite',
+            FP.f32.multiplicationMatrixScalarInterval
+          );
+        },
+      }))
+    )
+  )
+  .reduce((a, b) => ({ ...a, ...b }), {});
+
+// Cases: scalar_matCxR_[non_]const
+const scalar_mat_cases = [2, 3, 4]
+  .flatMap(cols =>
+    [2, 3, 4].flatMap(rows =>
+      [true, false].map(nonConst => ({
+        [`scalar_mat${cols}x${rows}_${nonConst ? 'non_const' : 'const'}`]: () => {
+          return FP.f32.generateScalarMatrixToMatrixCases(
+            sparseF32Range(),
+            sparseMatrixF32Range(cols, rows),
+            nonConst ? 'unfiltered' : 'finite',
+            FP.f32.multiplicationScalarMatrixInterval
+          );
+        },
+      }))
+    )
+  )
+  .reduce((a, b) => ({ ...a, ...b }), {});
+
 export const d = makeCaseCache('binary/f32_matrix_scalar_multiplication', {
-  mat2x2_scalar_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(2, 2),
-      sparseF32Range(),
-      'finite',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat2x2_scalar_non_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(2, 2),
-      sparseF32Range(),
-      'unfiltered',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat2x3_scalar_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(2, 3),
-      sparseF32Range(),
-      'finite',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat2x3_scalar_non_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(2, 3),
-      sparseF32Range(),
-      'unfiltered',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat2x4_scalar_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(2, 4),
-      sparseF32Range(),
-      'finite',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat2x4_scalar_non_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(2, 4),
-      sparseF32Range(),
-      'unfiltered',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat3x2_scalar_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(3, 2),
-      sparseF32Range(),
-      'finite',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat3x2_scalar_non_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(3, 2),
-      sparseF32Range(),
-      'unfiltered',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat3x3_scalar_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(3, 3),
-      sparseF32Range(),
-      'finite',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat3x3_scalar_non_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(3, 3),
-      sparseF32Range(),
-      'unfiltered',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat3x4_scalar_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(3, 4),
-      sparseF32Range(),
-      'finite',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat3x4_scalar_non_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(3, 4),
-      sparseF32Range(),
-      'unfiltered',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat4x2_scalar_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(4, 2),
-      sparseF32Range(),
-      'finite',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat4x2_scalar_non_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(4, 2),
-      sparseF32Range(),
-      'unfiltered',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat4x3_scalar_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(4, 3),
-      sparseF32Range(),
-      'finite',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat4x3_scalar_non_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(4, 3),
-      sparseF32Range(),
-      'unfiltered',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat4x4_scalar_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(4, 4),
-      sparseF32Range(),
-      'finite',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  mat4x4_scalar_non_const: () => {
-    return FP.f32.generateMatrixScalarToMatrixCases(
-      sparseMatrixF32Range(4, 4),
-      sparseF32Range(),
-      'unfiltered',
-      FP.f32.multiplicationMatrixScalarInterval
-    );
-  },
-  scalar_mat2x2_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(2, 2),
-      'finite',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat2x2_non_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(2, 2),
-      'unfiltered',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat2x3_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(2, 3),
-      'finite',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat2x3_non_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(2, 3),
-      'unfiltered',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat2x4_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(2, 4),
-      'finite',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat2x4_non_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(2, 4),
-      'unfiltered',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat3x2_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(3, 2),
-      'finite',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat3x2_non_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(3, 2),
-      'unfiltered',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat3x3_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(3, 3),
-      'finite',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat3x3_non_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(3, 3),
-      'unfiltered',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat3x4_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(3, 4),
-      'finite',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat3x4_non_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(3, 4),
-      'unfiltered',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat4x2_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(4, 2),
-      'finite',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat4x2_non_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(4, 2),
-      'unfiltered',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat4x3_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(4, 3),
-      'finite',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat4x3_non_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(4, 3),
-      'unfiltered',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat4x4_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(4, 4),
-      'finite',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
-  scalar_mat4x4_non_const: () => {
-    return FP.f32.generateScalarMatrixToMatrixCases(
-      sparseF32Range(),
-      sparseMatrixF32Range(4, 4),
-      'unfiltered',
-      FP.f32.multiplicationScalarMatrixInterval
-    );
-  },
+  ...mat_scalar_cases,
+  ...scalar_mat_cases,
 });
 
 g.test('matrix_scalar')

@@ -60,9 +60,7 @@ TEST_SUITES_BY_PREFIX = {path: k for k, v in TEST_SUITES.items() if "paths" in v
 def format_toml_files_with_taplo(check_only: bool = True) -> int:
     taplo = shutil.which("taplo")
     if taplo is None:
-        print("Taplo is not installed.")
-        print("It should be installed using `./mach bootstrap`, \
-                but it can be installed manually using `cargo install taplo-cli --locked`")
+        print("Could not find `taplo`. Run `./mach bootstrap` or `cargo install taplo-cli --locked`")
         return 1
 
     if check_only:
@@ -782,6 +780,8 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
         res = call(["npm", "run", "wpt"], cwd=clone_dir)
         if res != 0:
             return res
+        # https://github.com/gpuweb/cts/pull/2770
+        delete(path.join(clone_dir, "out-wpt", "cts-chunked2sec.https.html"))
         cts_html = path.join(clone_dir, "out-wpt", "cts.https.html")
         # patch
         with open(cts_html, 'r') as file:

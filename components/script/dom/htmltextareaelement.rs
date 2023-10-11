@@ -11,7 +11,7 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use script_traits::ScriptToConstellationChan;
 use style::attr::AttrValue;
-use style::element_state::ElementState;
+use style_traits::dom::ElementState;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -151,7 +151,7 @@ impl HTMLTextAreaElement {
             .clone();
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::IN_ENABLED_STATE | ElementState::IN_READWRITE_STATE,
+                ElementState::ENABLED | ElementState::READWRITE,
                 local_name,
                 prefix,
                 document,

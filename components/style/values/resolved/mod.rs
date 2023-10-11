@@ -63,11 +63,12 @@ macro_rules! trivial_to_resolved_value {
 trivial_to_resolved_value!(());
 trivial_to_resolved_value!(bool);
 trivial_to_resolved_value!(f32);
-trivial_to_resolved_value!(i32);
 trivial_to_resolved_value!(u8);
 trivial_to_resolved_value!(i8);
 trivial_to_resolved_value!(u16);
+trivial_to_resolved_value!(i16);
 trivial_to_resolved_value!(u32);
+trivial_to_resolved_value!(i32);
 trivial_to_resolved_value!(usize);
 trivial_to_resolved_value!(String);
 trivial_to_resolved_value!(Box<str>);
@@ -85,6 +86,7 @@ trivial_to_resolved_value!(crate::Namespace);
 trivial_to_resolved_value!(crate::Prefix);
 trivial_to_resolved_value!(computed::LengthPercentage);
 trivial_to_resolved_value!(style_traits::values::specified::AllowedNumericType);
+trivial_to_resolved_value!(computed::TimingFunction);
 
 impl<A, B> ToResolvedValue for (A, B)
 where

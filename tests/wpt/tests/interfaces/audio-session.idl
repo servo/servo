@@ -1,0 +1,33 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Audio Session (https://w3c.github.io/audio-session/)
+
+enum AudioSessionState {
+  "inactive",
+  "active",
+  "interrupted"
+};
+
+enum AudioSessionType {
+  "auto",
+  "playback",
+  "transient",
+  "transient-solo",
+  "ambient",
+  "play-and-record"
+};
+
+[Exposed=Window]
+partial interface Navigator {
+  // The default audio session that the user agent will use when media elements start/stop playing.
+  readonly attribute AudioSession audioSession;
+};
+
+[Exposed=Window]
+interface AudioSession : EventTarget {
+  attribute AudioSessionType type;
+
+  readonly attribute AudioSessionState state;
+  attribute EventHandler onstatechange;
+};

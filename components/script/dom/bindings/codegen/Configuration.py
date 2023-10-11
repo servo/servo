@@ -232,7 +232,7 @@ class Descriptor(DescriptorProvider):
         self.register = desc.get('register', True)
         self.path = desc.get('path', pathDefault)
         self.inRealmMethods = [name for name in desc.get('inRealms', [])]
-        self.bindingPath = 'crate::dom::bindings::codegen::Bindings::%s' % ('::'.join([ifaceName + 'Binding'] * 2))
+        self.bindingPath = f"crate::dom::bindings::codegen::Bindings::{ifaceName}Binding::{ifaceName}_Binding"
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
         self.weakReferenceable = desc.get('weakReferenceable', False)
@@ -364,6 +364,17 @@ class Descriptor(DescriptorProvider):
         config.maxProtoChainLength = max(config.maxProtoChainLength,
                                          len(self.prototypeChain))
 
+    def maybeGetSuperModule(self):
+        """
+        Returns name of super module if self is part of it
+        """
+        filename = getIdlFileName(self.interface)
+        # if interface name is not same as webidl file
+        # webidl is super module for interface
+        if filename.lower() != self.interface.identifier.name.lower() and not self.interface.isIteratorInterface():
+            return filename
+        return None
+
     def binaryNameFor(self, name):
         return self._binaryNames.get(name, name)
 
@@ -459,9 +470,12 @@ def MakeNativeName(name):
     return name[0].upper() + name[1:]
 
 
+def getIdlFileName(object):
+    return os.path.basename(object.location.filename()).split('.webidl')[0]
+
+
 def getModuleFromObject(object):
-    return ('crate::dom::bindings::codegen::Bindings::'
-            + os.path.basename(object.location.filename()).split('.webidl')[0] + 'Binding')
+    return ('crate::dom::bindings::codegen::Bindings::' + getIdlFileName(object) + 'Binding')
 
 
 def getTypesFromDescriptor(descriptor):

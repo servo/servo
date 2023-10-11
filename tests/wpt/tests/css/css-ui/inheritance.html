@@ -41,10 +41,7 @@ assert_not_inherited('nav-down', 'auto', '#foo');
 assert_not_inherited('nav-left', 'auto', '#foo');
 assert_not_inherited('nav-right', 'auto', '#foo');
 assert_not_inherited('nav-up', 'auto', '#foo');
-if (CSS.supports('outline-color', 'invert'))
-  assert_not_inherited('outline-color', 'invert', 'rgba(42, 53, 64, 0.75)');
-else
-  assert_not_inherited('outline-color', currentColor, 'rgba(42, 53, 64, 0.75)');
+assert_not_inherited('outline-color', currentColor, 'rgba(42, 53, 64, 0.75)');
 assert_not_inherited('outline-offset', '0px', '10px');
 assert_not_inherited('outline-style', 'none', 'auto');
 assert_not_inherited('outline-width', mediumWidth, '10px');

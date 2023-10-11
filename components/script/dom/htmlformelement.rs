@@ -18,14 +18,14 @@ use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
 use servo_atoms::Atom;
 use servo_rand::random;
 use style::attr::AttrValue;
-use style::element_state::ElementState;
 use style::str::split_html_space_chars;
+use style_traits::dom::ElementState;
 use time::{now, Duration, Tm};
 
 use super::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::body::Extractable;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrBinding::AttrMethods;
+use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -37,7 +37,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputE
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -107,7 +107,7 @@ impl HTMLFormElement {
     ) -> HTMLFormElement {
         HTMLFormElement {
             htmlelement: HTMLElement::new_inherited_with_state(
-                ElementState::IN_VALID_STATE,
+                ElementState::VALID,
                 local_name,
                 prefix,
                 document,
@@ -366,10 +366,10 @@ impl HTMLFormElementMethods for HTMLFormElement {
                             elem.downcast::<HTMLTextAreaElement>().unwrap().form_owner()
                         },
                         _ => {
-                            debug_assert!(
-                                !elem.downcast::<HTMLElement>().unwrap().is_listed_element() ||
-                                    elem.local_name() == &local_name!("keygen")
-                            );
+                            debug_assert!(!elem
+                                .downcast::<HTMLElement>()
+                                .unwrap()
+                                .is_listed_element());
                             return false;
                         },
                     },
@@ -693,9 +693,9 @@ impl HTMLFormElement {
             });
 
         self.upcast::<Element>()
-            .set_state(ElementState::IN_VALID_STATE, !is_any_invalid);
+            .set_state(ElementState::VALID, !is_any_invalid);
         self.upcast::<Element>()
-            .set_state(ElementState::IN_INVALID_STATE, is_any_invalid);
+            .set_state(ElementState::INVALID, is_any_invalid);
     }
 
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
@@ -1287,11 +1287,6 @@ impl HTMLFormElement {
                 )) => {
                     child.downcast::<HTMLInputElement>().unwrap().reset();
                 },
-                // TODO HTMLKeygenElement unimplemented
-                //NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLKeygenElement)) => {
-                //    // Unimplemented
-                //    {}
-                //}
                 NodeTypeId::Element(ElementTypeId::HTMLElement(
                     HTMLElementTypeId::HTMLSelectElement,
                 )) => {

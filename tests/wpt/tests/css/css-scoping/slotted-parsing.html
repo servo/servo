@@ -27,13 +27,14 @@
   test_valid_selector("::slotted([attr]:hover)");
   test_valid_selector("::slotted(:not(.a))");
 
-  test_valid_selector("::slotted(*):is()");
-  test_valid_selector("::slotted(*):is(:hover)");
-  test_valid_selector("::slotted(*):is(#id)");
+  test_valid_forgiving_selector("::slotted(*):is()");
+  test_valid_forgiving_selector("::slotted(*):is(:hover)");
+  test_valid_forgiving_selector("::slotted(*):is(#id)");
 
-  test_valid_selector("::slotted(*):where()");
-  test_valid_selector("::slotted(*):where(:hover)");
-  test_valid_selector("::slotted(*):where(#id)");
+  test_valid_forgiving_selector("::slotted(*):where()");
+  test_valid_forgiving_selector("::slotted(*):where(:hover)");
+  test_valid_forgiving_selector("::slotted(*):where(#id)");
+  test_valid_forgiving_selector("::slotted(*):where(::before)");
 
   // Allow tree-abiding pseudo elements after ::slotted
   test_valid_selector("::slotted(*)::before");

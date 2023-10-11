@@ -15,3 +15,11 @@ enum HevcBitstreamFormat {
   "annexb",
   "hevc",
 };
+
+partial dictionary VideoEncoderEncodeOptions {
+  VideoEncoderEncodeOptionsForHevc hevc;
+};
+
+dictionary VideoEncoderEncodeOptionsForHevc {
+  unsigned short? quantizer;
+};

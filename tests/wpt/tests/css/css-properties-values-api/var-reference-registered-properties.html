@@ -145,6 +145,14 @@ test(function(){
     element.style = '';
 }, 'Values are absolutized when substituting into properties with universal syntax');
 
+test(function(){
+    let name = generate_property('<length>');
+    let unregistered = '--unregistered'
+    element.style = `${name}: red; ${unregistered}: var(${name})`
+    let computedStyle = getComputedStyle(element);
+    assert_equals(computedStyle.getPropertyValue(unregistered), '');
+}, 'Invalid values for registered properties are serialized as the empty string')
+
 function test_valid_fallback(syntax, value, fallback) {
     test(function(){
         let name = generate_property(syntax);
@@ -178,5 +186,56 @@ test_valid_fallback('<length> | none', '40px', 'none');
 test_invalid_fallback('<length>', '40px', 'red');
 test_invalid_fallback('<length> | none', '40px', 'nolength');
 test_invalid_fallback('<length>', '40px', 'var(--novar)');
+
+function test_using_valid_fallback(syntax, fallback, expected) {
+    test(function(){
+        let name = generate_property(syntax);
+        try {
+            element.style = `--x:var(${name},${fallback})`;
+            let computedStyle = getComputedStyle(element);
+            assert_equals(computedStyle.getPropertyValue('--x'), expected);
+        } finally {
+            element.style = '';
+        }
+    }, `Fallback must adhere to registered syntax [${syntax}, ${fallback}]`);
+}
+
+function test_using_invalid_fallback(syntax, fallback) {
+    test(function(){
+        let name = generate_property(syntax);
+        try {
+            element.style = `--x:var(${name},${fallback})`;
+            let computedStyle = getComputedStyle(element);
+            assert_equals(computedStyle.getPropertyValue('--x'), '');
+        } finally {
+            element.style = '';
+        }
+    }, `Invalid fallback is not used [${syntax}, ${fallback}]`);
+}
+
+test_using_valid_fallback('<length>', '10px', '10px');
+test_using_valid_fallback('<length> | none', 'none', 'none');
+test_using_valid_fallback('<length>', 'var(--length-1)', '20px');
+
+test_using_invalid_fallback('<length>', 'red');
+test_using_invalid_fallback('<length> | none', 'nolength');
+test_using_invalid_fallback('<color>', 'var(--length-1)');
+
+test(function(t){
+    CSS.registerProperty({
+        name: '--registered-universal-no-initial',
+        syntax: '*',
+        inherits: false
+    });
+    t.add_cleanup(() => {
+        element.style = '';
+    });
+    element.style = [
+        '--registered-universal-no-initial:;',
+        'background-color: var(--registered-universal-no-initial) green',
+    ].join(';');
+    let computedStyle = getComputedStyle(element);
+    assert_equals(computedStyle.getPropertyValue('background-color'), 'rgb(0, 128, 0)');
+}, 'Empty universal custom property can be substituted with var()');
 
 </script>

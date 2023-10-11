@@ -25,7 +25,6 @@ use style::attr::AttrValue;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, TDocument, TElement, TNode, TShadowRoot};
-use style::element_state::*;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{
     extended_filtering, AttrValue as SelectorAttrValue, Lang, NonTSPseudoClass, PseudoElement,
@@ -34,6 +33,7 @@ use style::selector_parser::{
 use style::shared_lock::Locked as StyleLocked;
 use style::values::{AtomIdent, AtomString};
 use style::CaseSensitivityExt;
+use style_traits::dom::ElementState;
 
 use crate::dom::attr::AttrHelpersForLayout;
 use crate::dom::bindings::inheritance::{
@@ -506,6 +506,12 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
         None
     }
 
+    fn first_element_child(&self) -> Option<Self> {
+        self.as_node()
+            .dom_children()
+            .find_map(|child| child.as_element())
+    }
+
     fn attr_matches(
         &self,
         ns: &NamespaceConstraint<&style::Namespace>,
@@ -798,6 +804,12 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
     // Skips non-element nodes
     fn next_sibling_element(&self) -> Option<Self> {
         warn!("ServoThreadSafeLayoutElement::next_sibling_element called");
+        None
+    }
+
+    // Skips non-element nodes
+    fn first_element_child(&self) -> Option<Self> {
+        warn!("ServoThreadSafeLayoutElement::first_element_child called");
         None
     }
 

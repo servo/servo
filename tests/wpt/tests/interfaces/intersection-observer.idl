@@ -10,6 +10,7 @@ interface IntersectionObserver {
   constructor(IntersectionObserverCallback callback, optional IntersectionObserverInit options = {});
   readonly attribute (Element or Document)? root;
   readonly attribute DOMString rootMargin;
+  readonly attribute DOMString scrollMargin;
   readonly attribute FrozenArray<double> thresholds;
   undefined observe(Element target);
   undefined unobserve(Element target);
@@ -42,5 +43,6 @@ dictionary IntersectionObserverEntryInit {
 dictionary IntersectionObserverInit {
   (Element or Document)?  root = null;
   DOMString rootMargin = "0px";
+  DOMString scrollMargin = "0px";
   (double or sequence<double>) threshold = 0;
 };

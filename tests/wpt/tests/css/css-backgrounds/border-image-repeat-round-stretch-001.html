@@ -8,7 +8,7 @@
 
   Created: June 23rd 2023
 
-  Last modified: June 23rd 2023
+  Last modified: August 23rd 2023
 
   -->
 
@@ -53,6 +53,7 @@
       border-image-slice: 64 fill; /* the center will be black */
       border-image-source: url("support/4bicolor-squares.png");
       display: inline-block;
+      image-rendering: pixelated; /* attempt to overcome antialias fuzziness */
       margin-right: 1em;
    }
 

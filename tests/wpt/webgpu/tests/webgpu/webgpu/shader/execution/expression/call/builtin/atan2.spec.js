@@ -11,9 +11,9 @@ Returns the arc tangent of e1 over e2. Component-wise when T is a vector.
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
 import { kValue } from '../../../../../util/constants.js';
-import { TypeF32 } from '../../../../../util/conversion.js';
+import { TypeF32, TypeF16 } from '../../../../../util/conversion.js';
 import { FP } from '../../../../../util/floating_point.js';
-import { linearRange, sparseF32Range } from '../../../../../util/math.js';
+import { linearRange, sparseF32Range, sparseF16Range } from '../../../../../util/math.js';
 import { makeCaseCache } from '../../case_cache.js';
 import { allInputSources, run } from '../../expression.js';
 
@@ -23,8 +23,8 @@ export const g = makeTestGroup(GPUTest);
 
 export const d = makeCaseCache('atan2', {
   f32: () => {
-    // Using sparse, since there a N^2 cases being generated, but including extra values around 0, since that is where
-    // there is a discontinuity that implementations tend to behave badly at.
+    // Using sparse range since there are N^2 cases being generated, and also including extra values
+    // around 0, where there is a discontinuity that implementations may behave badly at.
     const numeric_range = [
       ...sparseF32Range(),
       ...linearRange(kValue.f32.negative.max, kValue.f32.positive.min, 10),
@@ -35,6 +35,21 @@ export const d = makeCaseCache('atan2', {
       numeric_range,
       'unfiltered',
       FP.f32.atan2Interval
+    );
+  },
+  f16: () => {
+    // Using sparse range since there are N^2 cases being generated, and also including extra values
+    // around 0, where there is a discontinuity that implementations may behave badly at.
+    const numeric_range = [
+      ...sparseF16Range(),
+      ...linearRange(kValue.f16.negative.max, kValue.f16.positive.min, 10),
+    ];
+
+    return FP.f16.generateScalarPairToIntervalCases(
+      numeric_range,
+      numeric_range,
+      'unfiltered',
+      FP.f16.atan2Interval
     );
   },
 });
@@ -64,4 +79,10 @@ g.test('f16')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
   .desc(`f16 tests`)
   .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
-  .unimplemented();
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  })
+  .fn(async t => {
+    const cases = await d.get('f16');
+    await run(t, builtin('atan2'), [TypeF16, TypeF16], TypeF16, t.params, cases);
+  });

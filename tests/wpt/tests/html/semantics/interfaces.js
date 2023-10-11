@@ -100,6 +100,7 @@ var elements = [
   ["output", "Output"],
   ["p", "Paragraph"],
   ["param", "Param"],
+  ["permission", "Permission"],
   ["picture", "Picture"],
   ["plaintext", ""],
   ["pre", "Pre"],

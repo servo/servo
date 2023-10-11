@@ -4,17 +4,10 @@
 Basic command buffer compute tests.
 `;
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { kLimitInfo } from '../../../capability_info.js';
 import { GPUTest } from '../../../gpu_test.js';
 import { checkElementsEqualGenerated } from '../../../util/check_contents.js';
 
 export const g = makeTestGroup(GPUTest);
-
-const kMaxComputeWorkgroupSize = [
-  kLimitInfo.maxComputeWorkgroupSizeX.default,
-  kLimitInfo.maxComputeWorkgroupSizeY.default,
-  kLimitInfo.maxComputeWorkgroupSizeZ.default,
-];
 
 g.test('memcpy').fn(t => {
   const data = new Uint32Array([0x01020304]);
@@ -73,28 +66,33 @@ g.test('large_dispatch')
   .params(u =>
     u
       // Reasonably-sized powers of two, and some stranger larger sizes.
-      .combine('dispatchSize', [
-        256,
-        2048,
-        315,
-        628,
-        2179,
-        kLimitInfo.maxComputeWorkgroupsPerDimension.default,
-      ])
-
+      .combine('dispatchSize', [256, 2048, 315, 628, 2179, 'maximum'])
       // Test some reasonable workgroup sizes.
       .beginSubcases()
       // 0 == x axis; 1 == y axis; 2 == z axis.
       .combine('largeDimension', [0, 1, 2])
-      .expand('workgroupSize', p => [1, 2, 8, 32, kMaxComputeWorkgroupSize[p.largeDimension]])
+      .expand('workgroupSize', p => [1, 2, 8, 32, 'maximum'])
   )
   .fn(t => {
     // The output storage buffer is filled with this value.
     const val = 0x01020304;
     const badVal = 0xbaadf00d;
 
-    const wgSize = t.params.workgroupSize;
-    const bufferLength = t.params.dispatchSize * wgSize;
+    const kMaxComputeWorkgroupSize = [
+      t.device.limits.maxComputeWorkgroupSizeX,
+      t.device.limits.maxComputeWorkgroupSizeY,
+      t.device.limits.maxComputeWorkgroupSizeZ,
+    ];
+
+    const wgSize =
+      t.params.workgroupSize === 'maximum'
+        ? kMaxComputeWorkgroupSize[t.params.largeDimension]
+        : t.params.workgroupSize;
+    const dispatchSize =
+      t.params.dispatchSize === 'maximum'
+        ? t.device.limits.maxComputeWorkgroupsPerDimension
+        : t.params.dispatchSize;
+    const bufferLength = dispatchSize * wgSize;
     const bufferByteSize = Uint32Array.BYTES_PER_ELEMENT * bufferLength;
     const dst = t.device.createBuffer({
       size: bufferByteSize,
@@ -104,9 +102,9 @@ g.test('large_dispatch')
     // Only use one large dimension and workgroup size in the dispatch
     // call to keep the size of the test reasonable.
     const dims = [1, 1, 1];
-    dims[t.params.largeDimension] = t.params.dispatchSize;
+    dims[t.params.largeDimension] = dispatchSize;
     const wgSizes = [1, 1, 1];
-    wgSizes[t.params.largeDimension] = t.params.workgroupSize;
+    wgSizes[t.params.largeDimension] = wgSize;
     const pipeline = t.device.createComputePipeline({
       layout: 'auto',
       compute: {

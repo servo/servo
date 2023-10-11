@@ -11,14 +11,15 @@ use std::rc::Rc;
 
 use canvas::canvas_paint_thread::ImageUpdate;
 use compositing_traits::{
-    CompositingReason, CompositionPipeline, CompositorMsg, CompositorReceiver, ConstellationMsg,
-    SendableFrameTree, WebrenderCanvasMsg, WebrenderFontMsg, WebrenderMsg,
+    CanvasToCompositorMsg, CompositingReason, CompositionPipeline, CompositorMsg,
+    CompositorReceiver, ConstellationMsg, FontToCompositorMsg, ForwardedToCompositorMsg,
+    SendableFrameTree,
 };
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
-use euclid::{Point2D, Rect, Scale, Vector2D};
+use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
-use gfx_traits::{Epoch, FontData};
+use gfx_traits::{Epoch, FontData, WebRenderEpochToU16};
 #[cfg(feature = "gl")]
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
@@ -45,11 +46,14 @@ use time::{now, precise_time_ns, precise_time_s};
 use webrender;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutVector2D, WorldPoint,
+    DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutRect, LayoutSize,
+    LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
-    self, BuiltDisplayList, DirtyRect, DocumentId, Epoch as WebRenderEpoch, ExternalScrollId,
-    HitTestFlags, PipelineId as WebRenderPipelineId, ScrollClamping, ScrollLocation, ZoomFactor,
+    self, BuiltDisplayList, ClipId, DirtyRect, DocumentId, Epoch as WebRenderEpoch,
+    ExternalScrollId, HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding,
+    ReferenceFrameKind, ScrollClamping, ScrollLocation, SpaceAndClipInfo, SpatialId,
+    TransformStyle, ZoomFactor,
 };
 use webrender_surfman::WebrenderSurfman;
 
@@ -128,8 +132,10 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// The port on which we receive messages.
     port: CompositorReceiver,
 
-    /// The root pipeline.
-    root_pipeline: RootPipeline,
+    /// The root content pipeline ie the pipeline which contains the main frame
+    /// to display. In the WebRender scene, this will be the only child of another
+    /// pipeline which applies a pinch zoom transformation.
+    root_content_pipeline: RootPipeline,
 
     /// Tracks details about each active pipeline that the compositor knows about.
     pipeline_details: HashMap<PipelineId, PipelineDetails>,
@@ -243,15 +249,22 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 }
 
 #[derive(Clone, Copy)]
-struct ScrollZoomEvent {
-    /// Change the pinch zoom level by this factor
-    magnification: f32,
+struct ScrollEvent {
     /// Scroll by this offset, or to Start or End
     scroll_location: ScrollLocation,
     /// Apply changes to the frame at this location
     cursor: DeviceIntPoint,
     /// The number of OS events that have been coalesced together into this one event.
     event_count: u32,
+}
+
+#[derive(Clone, Copy)]
+enum ScrollZoomEvent {
+    /// An pinch zoom event that magnifies the view by the given factor.
+    PinchZoom(f32),
+    /// A scroll event that scrolls the scroll node at the given location by the
+    /// given amount.
+    Scroll(ScrollEvent),
 }
 
 #[derive(Debug, PartialEq)]
@@ -270,6 +283,10 @@ pub enum ShutdownState {
 struct PipelineDetails {
     /// The pipeline associated with this PipelineDetails object.
     pipeline: Option<CompositionPipeline>,
+
+    /// The epoch of the most recent display list for this pipeline. Note that this display
+    /// list might not be displayed, as WebRender processes display lists asynchronously.
+    most_recent_display_list_epoch: Option<WebRenderEpoch>,
 
     /// Whether animations are running
     animations_running: bool,
@@ -293,6 +310,7 @@ impl PipelineDetails {
     fn new() -> PipelineDetails {
         PipelineDetails {
             pipeline: None,
+            most_recent_display_list_epoch: None,
             animations_running: false,
             animation_callbacks_running: false,
             visible: true,
@@ -356,7 +374,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             embedder_coordinates: window.get_coordinates(),
             window,
             port: state.receiver,
-            root_pipeline: RootPipeline {
+            root_content_pipeline: RootPipeline {
                 top_level_browsing_context_id,
                 id: None,
             },
@@ -370,7 +388,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             shutdown_state: ShutdownState::NotShuttingDown,
             page_zoom: Scale::new(1.0),
             viewport_zoom: PinchZoomFactor::new(1.0),
-            min_viewport_zoom: None,
+            min_viewport_zoom: Some(PinchZoomFactor::new(1.0)),
             max_viewport_zoom: None,
             zoom_action: false,
             zoom_time: 0f64,
@@ -628,7 +646,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (CompositorMsg::Webrender(msg), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::Forwarded(msg), ShutdownState::NotShuttingDown) => {
                 self.handle_webrender_message(msg);
             },
 
@@ -643,9 +661,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     /// Accept messages from content processes that need to be relayed to the WebRender
     /// instance in the parent process.
-    fn handle_webrender_message(&mut self, msg: WebrenderMsg) {
+    fn handle_webrender_message(&mut self, msg: ForwardedToCompositorMsg) {
         match msg {
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendInitialTransaction(pipeline)) => {
+            ForwardedToCompositorMsg::Layout(
+                script_traits::ScriptToCompositorMsg::SendInitialTransaction(pipeline),
+            ) => {
                 self.waiting_on_pending_frame = true;
                 let mut txn = Transaction::new();
                 txn.set_display_list(
@@ -660,7 +680,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendScrollNode(point, scroll_id)) => {
+            ForwardedToCompositorMsg::Layout(
+                script_traits::ScriptToCompositorMsg::SendScrollNode(point, scroll_id),
+            ) => {
                 self.waiting_for_results_of_scroll = true;
 
                 let mut txn = Transaction::new();
@@ -670,11 +692,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendDisplayList {
-                display_list_info,
-                display_list_descriptor,
-                display_list_receiver,
-            }) => {
+            ForwardedToCompositorMsg::Layout(
+                script_traits::ScriptToCompositorMsg::SendDisplayList {
+                    display_list_info,
+                    display_list_descriptor,
+                    display_list_receiver,
+                },
+            ) => {
                 let display_list_data = match display_list_receiver.recv() {
                     Ok(display_list_data) => display_list_data,
                     _ => return warn!("Could not recieve WebRender display list."),
@@ -684,6 +708,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
                 let pipeline_id = display_list_info.pipeline_id;
                 let details = self.pipeline_details(PipelineId::from_webrender(pipeline_id));
+                details.most_recent_display_list_epoch = Some(display_list_info.epoch);
                 details.hit_test_items = display_list_info.hit_test_info;
                 details.install_new_scroll_tree(display_list_info.scroll_tree);
 
@@ -703,7 +728,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(
+            ForwardedToCompositorMsg::Layout(script_traits::ScriptToCompositorMsg::HitTest(
                 pipeline,
                 point,
                 flags,
@@ -725,12 +750,18 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let _ = sender.send(result);
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::GenerateImageKey(sender)) |
-            WebrenderMsg::Net(net_traits::WebrenderImageMsg::GenerateImageKey(sender)) => {
+            ForwardedToCompositorMsg::Layout(
+                script_traits::ScriptToCompositorMsg::GenerateImageKey(sender),
+            ) |
+            ForwardedToCompositorMsg::Net(net_traits::NetToCompositorMsg::GenerateImageKey(
+                sender,
+            )) => {
                 let _ = sender.send(self.webrender_api.generate_image_key());
             },
 
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::UpdateImages(updates)) => {
+            ForwardedToCompositorMsg::Layout(
+                script_traits::ScriptToCompositorMsg::UpdateImages(updates),
+            ) => {
                 let mut txn = Transaction::new();
                 for update in updates {
                     match update {
@@ -755,14 +786,22 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Net(net_traits::WebrenderImageMsg::AddImage(key, desc, data)) => {
+            ForwardedToCompositorMsg::Net(net_traits::NetToCompositorMsg::AddImage(
+                key,
+                desc,
+                data,
+            )) => {
                 let mut txn = Transaction::new();
                 txn.add_image(key, desc, data, None);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
 
-            WebrenderMsg::Font(WebrenderFontMsg::AddFontInstance(font_key, size, sender)) => {
+            ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddFontInstance(
+                font_key,
+                size,
+                sender,
+            )) => {
                 let key = self.webrender_api.generate_font_instance_key();
                 let mut txn = Transaction::new();
                 txn.add_font_instance(key, font_key, size, None, None, Vec::new());
@@ -771,7 +810,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let _ = sender.send(key);
             },
 
-            WebrenderMsg::Font(WebrenderFontMsg::AddFont(data, sender)) => {
+            ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddFont(data, sender)) => {
                 let font_key = self.webrender_api.generate_font_key();
                 let mut txn = Transaction::new();
                 match data {
@@ -783,11 +822,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let _ = sender.send(font_key);
             },
 
-            WebrenderMsg::Canvas(WebrenderCanvasMsg::GenerateKey(sender)) => {
+            ForwardedToCompositorMsg::Canvas(CanvasToCompositorMsg::GenerateKey(sender)) => {
                 let _ = sender.send(self.webrender_api.generate_image_key());
             },
 
-            WebrenderMsg::Canvas(WebrenderCanvasMsg::UpdateImages(updates)) => {
+            ForwardedToCompositorMsg::Canvas(CanvasToCompositorMsg::UpdateImages(updates)) => {
                 let mut txn = Transaction::new();
                 for update in updates {
                     match update {
@@ -862,20 +901,82 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
+    /// Set the root pipeline for our WebRender scene. If there is no pinch zoom applied,
+    /// the root pipeline is the root content pipeline. If there is pinch zoom, the root
+    /// content pipeline is wrapped in a display list that applies a pinch zoom
+    /// transformation to it.
+    fn set_root_content_pipeline_handling_pinch_zoom(&self, transaction: &mut Transaction) {
+        let root_content_pipeline = match self.root_content_pipeline.id {
+            Some(id) => id.to_webrender(),
+            None => return,
+        };
+
+        let zoom_factor = self.pinch_zoom_level();
+        if zoom_factor == 1.0 {
+            transaction.set_root_pipeline(root_content_pipeline);
+            return;
+        }
+
+        // Every display list needs a pipeline, but we'd like to choose one that is unlikely
+        // to conflict with our content pipelines, which start at (1, 1). (0, 0) is WebRender's
+        // dummy pipeline, so we choose (0, 1).
+        let root_pipeline = WebRenderPipelineId(0, 1);
+        transaction.set_root_pipeline(root_pipeline);
+
+        let mut builder = webrender_api::DisplayListBuilder::new(root_pipeline);
+        let viewport_size = LayoutSize::new(
+            self.embedder_coordinates.get_viewport().width() as f32,
+            self.embedder_coordinates.get_viewport().height() as f32,
+        );
+        let viewport_rect = LayoutRect::new(LayoutPoint::zero(), viewport_size);
+        let zoom_reference_frame = builder.push_reference_frame(
+            LayoutPoint::zero(),
+            SpatialId::root_reference_frame(root_pipeline),
+            TransformStyle::Flat,
+            PropertyBinding::Value(Transform3D::scale(zoom_factor, zoom_factor, 1.)),
+            ReferenceFrameKind::Transform {
+                is_2d_scale_translation: true,
+                should_snap: true,
+            },
+        );
+
+        builder.push_iframe(
+            viewport_rect,
+            viewport_rect,
+            &SpaceAndClipInfo {
+                spatial_id: zoom_reference_frame,
+                clip_id: ClipId::root(root_pipeline),
+            },
+            root_content_pipeline,
+            true,
+        );
+        let built_display_list = builder.finalize();
+
+        // NB: We are always passing 0 as the epoch here, but this doesn't seem to
+        // be an issue. WebRender will still update the scene and generate a new
+        // frame even though the epoch hasn't changed.
+        transaction.set_display_list(
+            WebRenderEpoch(0),
+            None,
+            viewport_rect.size,
+            built_display_list,
+            false,
+        );
+    }
+
     fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         debug!(
             "Setting the frame tree for pipeline {}",
             frame_tree.pipeline.id
         );
 
-        self.root_pipeline = RootPipeline {
+        self.root_content_pipeline = RootPipeline {
             top_level_browsing_context_id: frame_tree.pipeline.top_level_browsing_context_id,
             id: Some(frame_tree.pipeline.id),
         };
 
-        let pipeline_id = frame_tree.pipeline.id.to_webrender();
         let mut txn = Transaction::new();
-        txn.set_root_pipeline(pipeline_id);
+        self.set_root_content_pipeline_handling_pinch_zoom(&mut txn);
         txn.generate_frame(0);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
@@ -943,7 +1044,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             initial_viewport: initial_viewport,
         };
 
-        let top_level_browsing_context_id = self.root_pipeline.top_level_browsing_context_id;
+        let top_level_browsing_context_id =
+            self.root_content_pipeline.top_level_browsing_context_id;
 
         let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
 
@@ -1038,7 +1140,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         flags: HitTestFlags,
         pipeline_id: Option<WebRenderPipelineId>,
     ) -> Vec<CompositorHitTestResult> {
-        let root_pipeline_id = match self.root_pipeline.id {
+        let root_pipeline_id = match self.root_content_pipeline.id {
             Some(root_pipeline_id) => root_pipeline_id,
             None => return vec![],
         };
@@ -1058,6 +1160,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     Some(details) => details,
                     None => return None,
                 };
+
+                // If the epoch in the tag does not match the current epoch of the pipeline,
+                // then the hit test is against an old version of the display list and we
+                // should ignore this hit test for now.
+                match details.most_recent_display_list_epoch {
+                    Some(epoch) if epoch.as_u16() == item.tag.1 => {},
+                    _ => return None,
+                }
 
                 let info = &details.hit_test_items[item.tag.0 as usize];
                 Some(CompositorHitTestResult {
@@ -1152,14 +1262,20 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             ),
             TouchAction::Zoom(magnification, scroll_delta) => {
                 let cursor = Point2D::new(-1, -1); // Make sure this hits the base layer.
-                self.pending_scroll_zoom_events.push(ScrollZoomEvent {
-                    magnification: magnification,
-                    scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
-                        scroll_delta.to_untyped(),
-                    )),
-                    cursor: cursor,
-                    event_count: 1,
-                });
+
+                // The order of these events doesn't matter, because zoom is handled by
+                // a root display list and the scroll event here is handled by the scroll
+                // applied to the content display list.
+                self.pending_scroll_zoom_events
+                    .push(ScrollZoomEvent::PinchZoom(magnification));
+                self.pending_scroll_zoom_events
+                    .push(ScrollZoomEvent::Scroll(ScrollEvent {
+                        scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
+                            scroll_delta.to_untyped(),
+                        )),
+                        cursor: cursor,
+                        event_count: 1,
+                    }));
             },
             TouchAction::DispatchEvent => {
                 self.send_touch_event(TouchEventType::Move, identifier, point);
@@ -1213,107 +1329,126 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {
-        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
-            magnification: 1.0,
-            scroll_location,
-            cursor: cursor,
-            event_count: 1,
-        });
+        self.pending_scroll_zoom_events
+            .push(ScrollZoomEvent::Scroll(ScrollEvent {
+                scroll_location: scroll_location,
+                cursor,
+                event_count: 1,
+            }));
     }
 
     fn process_pending_scroll_events(&mut self) {
         // Batch up all scroll events into one, or else we'll do way too much painting.
-        let mut last_combined_event: Option<ScrollZoomEvent> = None;
+        let mut combined_scroll_event: Option<ScrollEvent> = None;
+        let mut combined_magnification = 1.0;
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
-            let this_cursor = scroll_event.cursor;
-
-            let this_delta = match scroll_event.scroll_location {
-                ScrollLocation::Delta(delta) => delta,
-                ScrollLocation::Start | ScrollLocation::End => {
-                    // If this is an event which is scrolling to the start or end of the page,
-                    // disregard other pending events and exit the loop.
-                    last_combined_event = Some(scroll_event);
-                    break;
+            match scroll_event {
+                ScrollZoomEvent::PinchZoom(magnification) => {
+                    combined_magnification *= magnification
                 },
-            };
+                ScrollZoomEvent::Scroll(scroll_event_info) => {
+                    let combined_event = match combined_scroll_event.as_mut() {
+                        None => {
+                            combined_scroll_event = Some(scroll_event_info);
+                            continue;
+                        },
+                        Some(combined_event) => combined_event,
+                    };
 
-            match &mut last_combined_event {
-                last_combined_event @ &mut None => {
-                    *last_combined_event = Some(ScrollZoomEvent {
-                        magnification: scroll_event.magnification,
-                        scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
-                            this_delta.to_untyped(),
-                        )),
-                        cursor: this_cursor,
-                        event_count: 1,
-                    })
-                },
-                &mut Some(ref mut last_combined_event) => {
-                    // Mac OS X sometimes delivers scroll events out of vsync during a
-                    // fling. This causes events to get bunched up occasionally, causing
-                    // nasty-looking "pops". To mitigate this, during a fling we average
-                    // deltas instead of summing them.
-                    if let ScrollLocation::Delta(delta) = last_combined_event.scroll_location {
-                        let old_event_count = Scale::new(last_combined_event.event_count as f32);
-                        last_combined_event.event_count += 1;
-                        let new_event_count = Scale::new(last_combined_event.event_count as f32);
-                        last_combined_event.scroll_location = ScrollLocation::Delta(
-                            (delta * old_event_count + this_delta) / new_event_count,
-                        );
+                    match (
+                        combined_event.scroll_location,
+                        scroll_event_info.scroll_location,
+                    ) {
+                        (ScrollLocation::Delta(old_delta), ScrollLocation::Delta(new_delta)) => {
+                            // Mac OS X sometimes delivers scroll events out of vsync during a
+                            // fling. This causes events to get bunched up occasionally, causing
+                            // nasty-looking "pops". To mitigate this, during a fling we average
+                            // deltas instead of summing them.
+                            let old_event_count = Scale::new(combined_event.event_count as f32);
+                            combined_event.event_count += 1;
+                            let new_event_count = Scale::new(combined_event.event_count as f32);
+                            combined_event.scroll_location = ScrollLocation::Delta(
+                                (old_delta * old_event_count + new_delta) / new_event_count,
+                            );
+                        },
+                        (ScrollLocation::Start, _) | (ScrollLocation::End, _) => {
+                            // Once we see Start or End, we shouldn't process any more events.
+                            break;
+                        },
+                        (_, ScrollLocation::Start) | (_, ScrollLocation::End) => {
+                            // If this is an event which is scrolling to the start or end of the page,
+                            // disregard other pending events and exit the loop.
+                            *combined_event = scroll_event_info;
+                            break;
+                        },
                     }
-                    last_combined_event.magnification *= scroll_event.magnification;
                 },
             }
         }
 
-        if let Some(combined_event) = last_combined_event {
-            let scroll_location = match combined_event.scroll_location {
-                ScrollLocation::Delta(delta) => {
-                    let scaled_delta =
-                        (Vector2D::from_untyped(delta.to_untyped()) / self.scale).to_untyped();
-                    let calculated_delta = LayoutVector2D::from_untyped(scaled_delta);
-                    ScrollLocation::Delta(calculated_delta)
-                },
-                // Leave ScrollLocation unchanged if it is Start or End location.
-                sl @ ScrollLocation::Start | sl @ ScrollLocation::End => sl,
-            };
+        let zoom_changed =
+            self.set_pinch_zoom_level(self.pinch_zoom_level() * combined_magnification);
+        let scroll_result = combined_scroll_event.and_then(|combined_event| {
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
-            let cursor = WorldPoint::from_untyped(cursor);
-            let mut txn = Transaction::new();
+            self.scroll_node_at_world_point(
+                WorldPoint::from_untyped(cursor),
+                combined_event.scroll_location,
+            )
+        });
+        if !zoom_changed && scroll_result.is_none() {
+            return;
+        }
 
-            let result = match self.hit_test_at_point(cursor) {
-                Some(result) => result,
-                None => return,
-            };
+        let mut transaction = Transaction::new();
+        if zoom_changed {
+            self.set_root_content_pipeline_handling_pinch_zoom(&mut transaction);
+        }
 
-            if let Some(details) = self.pipeline_details.get_mut(&result.pipeline_id) {
-                match details
-                    .scroll_tree
-                    .scroll_node_or_ancestor(&result.scroll_tree_node, scroll_location)
-                {
-                    Some((external_id, offset)) => {
-                        let scroll_origin = LayoutPoint::new(-offset.x, -offset.y);
-                        txn.scroll_node_with_id(
-                            scroll_origin,
-                            external_id,
-                            ScrollClamping::NoClamping,
-                        );
-                    },
-                    None => {},
-                }
-            }
-            self.send_scroll_positions_to_layout_for_pipeline(&result.pipeline_id);
-
-            if combined_event.magnification != 1.0 {
-                let old_zoom = self.pinch_zoom_level();
-                self.set_pinch_zoom_level(old_zoom * combined_event.magnification);
-                txn.set_pinch_zoom(ZoomFactor::new(self.pinch_zoom_level()));
-            }
-            txn.generate_frame(0);
-            self.webrender_api
-                .send_transaction(self.webrender_document, txn);
+        if let Some((pipeline_id, external_id, offset)) = scroll_result {
+            let scroll_origin = LayoutPoint::new(-offset.x, -offset.y);
+            transaction.scroll_node_with_id(scroll_origin, external_id, ScrollClamping::NoClamping);
+            self.send_scroll_positions_to_layout_for_pipeline(&pipeline_id);
             self.waiting_for_results_of_scroll = true
         }
+
+        transaction.generate_frame(0);
+        self.webrender_api
+            .send_transaction(self.webrender_document, transaction);
+    }
+
+    /// Perform a hit test at the given [`WorldPoint`] and apply the [`ScrollLocation`]
+    /// scrolling to the applicable scroll node under that point. If a scroll was
+    /// performed, returns the [`PipelineId`] of the node scrolled, the id, and the final
+    /// scroll delta.
+    fn scroll_node_at_world_point(
+        &mut self,
+        cursor: WorldPoint,
+        scroll_location: ScrollLocation,
+    ) -> Option<(PipelineId, ExternalScrollId, LayoutVector2D)> {
+        let scroll_location = match scroll_location {
+            ScrollLocation::Delta(delta) => {
+                let scaled_delta =
+                    (Vector2D::from_untyped(delta.to_untyped()) / self.scale).to_untyped();
+                let calculated_delta = LayoutVector2D::from_untyped(scaled_delta);
+                ScrollLocation::Delta(calculated_delta)
+            },
+            // Leave ScrollLocation unchanged if it is Start or End location.
+            ScrollLocation::Start | ScrollLocation::End => scroll_location,
+        };
+
+        let hit_test_result = match self.hit_test_at_point(cursor) {
+            Some(result) => result,
+            None => return None,
+        };
+
+        let pipeline_details = match self.pipeline_details.get_mut(&hit_test_result.pipeline_id) {
+            Some(details) => details,
+            None => return None,
+        };
+        pipeline_details
+            .scroll_tree
+            .scroll_node_or_ancestor(&hit_test_result.scroll_tree_node, scroll_location)
+            .map(|(external_id, offset)| (hit_test_result.pipeline_id, external_id, offset))
     }
 
     /// If there are any animations running, dispatches appropriate messages to the constellation.
@@ -1405,12 +1540,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     /// Simulate a pinch zoom
     pub fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
-        self.pending_scroll_zoom_events.push(ScrollZoomEvent {
-            magnification: magnification,
-            scroll_location: ScrollLocation::Delta(Vector2D::zero()), // TODO: Scroll to keep the center in view?
-            cursor: Point2D::new(-1, -1), // Make sure this hits the base layer.
-            event_count: 1,
-        });
+        // TODO: Scroll to keep the center in view?
+        self.pending_scroll_zoom_events
+            .push(ScrollZoomEvent::PinchZoom(magnification));
     }
 
     fn send_scroll_positions_to_layout_for_pipeline(&self, pipeline_id: &PipelineId) {
@@ -1726,8 +1858,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // Perform the page flip. This will likely block for a while.
         if self.external_present {
             self.waiting_on_present = true;
-            let msg =
-                ConstellationMsg::ReadyToPresent(self.root_pipeline.top_level_browsing_context_id);
+            let msg = ConstellationMsg::ReadyToPresent(
+                self.root_content_pipeline.top_level_browsing_context_id,
+            );
             if let Err(e) = self.constellation_chan.send(msg) {
                 warn!("Sending event to constellation failed ({:?}).", e);
             }
@@ -1775,7 +1908,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             self.assert_gl_framebuffer_complete();
         }
 
-        // Make the viewport white.
+        // Set the viewport background based on prefs.
         let viewport = self.embedder_coordinates.get_flipped_viewport();
         gl.scissor(
             viewport.origin.x,
@@ -1783,7 +1916,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             viewport.size.width,
             viewport.size.height,
         );
-        gl.clear_color(1.0, 1.0, 1.0, 1.0);
+
+        let color = servo_config::pref!(shell.background_color.rgba);
+        gl.clear_color(
+            color[0] as f32,
+            color[1] as f32,
+            color[2] as f32,
+            color[3] as f32,
+        );
         gl.enable(gleam::gl::SCISSOR_TEST);
         gl.clear(gleam::gl::COLOR_BUFFER_BIT);
         gl.disable(gleam::gl::SCISSOR_TEST);
@@ -1882,14 +2022,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.viewport_zoom.get()
     }
 
-    fn set_pinch_zoom_level(&mut self, mut zoom: f32) {
+    fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
         if let Some(min) = self.min_viewport_zoom {
             zoom = f32::max(min.get(), zoom);
         }
         if let Some(max) = self.max_viewport_zoom {
             zoom = f32::min(max.get(), zoom);
         }
-        self.viewport_zoom = PinchZoomFactor::new(zoom);
+
+        let old_zoom = std::mem::replace(&mut self.viewport_zoom, PinchZoomFactor::new(zoom));
+        old_zoom != self.viewport_zoom
     }
 
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8>
+<title>CSS Text Test: tab-size</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="http://www.w3.org/TR/css-text-3/#tab-size">
+<link rel="match" href="tab-size-integer-005-ref.html">
+<meta name="assert" content="Integer tab sizes are based on the width of <space> in the block container">
+<style>
+@font-face {
+    /* this font-family does not support <space>, so should not be used to resolve tab-size */
+    font-family: without-space;
+    src: url("/fonts/CanvasTest-nospace.ttf");
+}
+@font-face {
+    /* the <space> in this font is much narrower than the default/.notdef in "first" */
+    font-family: with-space;
+    src: url("/fonts/GentiumPlus-R.woff");
+}
+div {
+    font: 40px/2 without-space, with-space, sans-serif;
+    white-space: pre;
+    tab-size: 8;
+}
+span {
+    font-family: with-space, sans-serif;
+}
+</style>
+
+<p>Test passes if the two black squares below are vertically aligned.
+
+<div><span>&nbsp;</span>&#09;E</div>
+<div><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>E</div>

@@ -9,29 +9,55 @@
 <body>
 <script>
 
+function makeZeroFingerprint(algorithm) {
+  const length = algorithm === 'sha-1' ? 160 : parseInt(algorithm.split('-')[1], 10);
+  let zeros = [];
+  for (let i = 0; i < length; i += 8) {
+    zeros.push('00');
+  }
+  return 'a=fingerprint:' + algorithm + ' ' + zeros.join(':');
+}
+
 // Tests that an invalid fingerprint leads to a connectionState 'failed'.
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
-  const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
   pc1.createDataChannel('datachannel');
   exchangeIceCandidates(pc1, pc2);
-  const offer = await pc1.createOffer();
-  await pc2.setRemoteDescription(offer);
-  await pc1.setLocalDescription(offer);
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
   const answer = await pc2.createAnswer();
-  await pc1.setRemoteDescription(new RTCSessionDescription({
+  await pc1.setRemoteDescription({
     type: answer.type,
-    sdp: answer.sdp.replace(/a=fingerprint:sha-256 .*/g,
-      'a=fingerprint:sha-256 00:00:00:00:00:00:00:00:00:00:00:00:00:' +
-      '00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00'),
-  }));
+    sdp: answer.sdp.replace(/a=fingerprint:sha-256 .*/g, makeZeroFingerprint('sha-256')),
+  });
   await pc2.setLocalDescription(answer);
 
   await waitForConnectionStateChange(pc1, ['failed']);
   await waitForConnectionStateChange(pc2, ['failed']);
 }, 'Connection fails if one side provides a wrong DTLS fingerprint');
+
+['sha-1', 'sha-256', 'sha-384', 'sha-512'].forEach(hashFunc => {
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.createDataChannel('datachannel');
+
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    const answer = await pc2.createAnswer();
+    await pc1.setRemoteDescription({
+      type: answer.type,
+      sdp: answer.sdp.replace(/a=fingerprint:sha-256 .*/g, makeZeroFingerprint(hashFunc)),
+    });
+    await pc2.setLocalDescription(answer);
+  }, 'SDP negotiation with a ' + hashFunc + ' fingerprint succeds');
+});
+
 </script>
 </body>
 </html>

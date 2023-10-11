@@ -11,7 +11,7 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use script_layout_interface::message::QueryMsg;
 use style::attr::AttrValue;
-use style::element_state::*;
+use style_traits::dom::ElementState;
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -124,15 +124,15 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#attr-lang
     make_setter!(SetLang, "lang");
 
+    // https://html.spec.whatwg.org/multipage/#the-dir-attribute
+    make_enumerated_getter!(Dir, "dir", "", "ltr" | "rtl" | "auto");
+    // https://html.spec.whatwg.org/multipage/#the-dir-attribute
+    make_setter!(SetDir, "dir");
+
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_getter!(Hidden, "hidden");
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_setter!(SetHidden, "hidden");
-
-    // https://html.spec.whatwg.org/multipage/#the-dir-attribute
-    make_getter!(Dir, "dir");
-    // https://html.spec.whatwg.org/multipage/#the-dir-attribute
-    make_setter!(SetDir, "dir");
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
@@ -516,8 +516,7 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-translate
     fn SetTranslate(&self, yesno: bool) {
         self.upcast::<Element>().set_string_attribute(
-            // TODO change this to local_name! when html5ever updates
-            &LocalName::from("translate"),
+            &html5ever::local_name!("translate"),
             match yesno {
                 true => DOMString::from("yes"),
                 false => DOMString::from("no"),
@@ -651,7 +650,6 @@ impl HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#category-label
     pub fn is_labelable_element(&self) -> bool {
-        // Note: HTMLKeygenElement is omitted because Servo doesn't currently implement it
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
                 HTMLElementTypeId::HTMLInputElement => {
@@ -671,12 +669,6 @@ impl HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#category-listed
     pub fn is_listed_element(&self) -> bool {
-        // Servo does not implement HTMLKeygenElement
-        // https://github.com/servo/servo/issues/2782
-        if self.upcast::<Element>().local_name() == &local_name!("keygen") {
-            return true;
-        }
-
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
                 HTMLElementTypeId::HTMLButtonElement |

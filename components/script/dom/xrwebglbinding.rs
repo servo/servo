@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::XREye;
-use crate::dom::bindings::codegen::Bindings::XRWebGLBindingBinding::XRWebGLBindingBinding::XRWebGLBindingMethods;
+use crate::dom::bindings::codegen::Bindings::XRWebGLBindingBinding::XRWebGLBinding_Binding::XRWebGLBindingMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLBindingBinding::{
     XRCubeLayerInit, XRCylinderLayerInit, XREquirectLayerInit, XRProjectionLayerInit,
     XRQuadLayerInit, XRTextureType,

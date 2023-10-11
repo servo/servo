@@ -44,7 +44,6 @@ dictionary RTCReceivedRtpStreamStats : RTCRtpStreamStats {
 
 dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
  required DOMString   trackIdentifier;
- required DOMString   kind;
  DOMString            mid;
  DOMString            remoteId;
  unsigned long        framesDecoded;
@@ -65,6 +64,7 @@ dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
  DOMHighResTimeStamp  lastPacketReceivedTimestamp;
  unsigned long long   headerBytesReceived;
  unsigned long long   packetsDiscarded;
+ unsigned long long   fecBytesReceived;
  unsigned long long   fecPacketsReceived;
  unsigned long long   fecPacketsDiscarded;
  unsigned long long   bytesReceived;
@@ -94,6 +94,8 @@ dictionary RTCInboundRtpStreamStats : RTCReceivedRtpStreamStats {
  double               totalAssemblyTime;
  unsigned long long   retransmittedPacketsReceived;
  unsigned long long   retransmittedBytesReceived;
+ unsigned long        rtxSsrc;
+ unsigned long        fecSsrc;
 };
 
 dictionary RTCRemoteInboundRtpStreamStats : RTCReceivedRtpStreamStats {
@@ -117,6 +119,7 @@ dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
              unsigned long long   headerBytesSent;
              unsigned long long   retransmittedPacketsSent;
              unsigned long long   retransmittedBytesSent;
+             unsigned long        rtxSsrc;
              double               targetBitrate;
              unsigned long long   totalEncodedBytesTarget;
              unsigned long        frameWidth;

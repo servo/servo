@@ -9,7 +9,6 @@ import {
   kAllBufferUsageBits,
   kBufferSizeAlignment,
   kBufferUsages,
-  kLimitInfo,
 } from '../../../capability_info.js';
 import { GPUConst } from '../../../constants.js';
 import { kMaxSafeMultipleOf8 } from '../../../util/math.js';
@@ -47,18 +46,11 @@ g.test('size')
 
 g.test('limit')
   .desc('Test buffer size is validated against maxBufferSize.')
-  .params(u =>
-    u
-      .beginSubcases()
-      .combine('size', [
-        kLimitInfo.maxBufferSize.default - 1,
-        kLimitInfo.maxBufferSize.default,
-        kLimitInfo.maxBufferSize.default + 1,
-      ])
-  )
+  .params(u => u.beginSubcases().combine('sizeAddition', [-1, 0, +1]))
   .fn(t => {
-    const { size } = t.params;
-    const isValid = size <= kLimitInfo.maxBufferSize.default;
+    const { sizeAddition } = t.params;
+    const size = t.makeLimitVariant('maxBufferSize', { mult: 1, add: sizeAddition });
+    const isValid = size <= t.device.limits.maxBufferSize;
     const usage = BufferUsage.COPY_SRC;
     t.expectGPUError('validation', () => t.device.createBuffer({ size, usage }), !isValid);
   });

@@ -1,4 +1,5 @@
 -moz-content-preferred-color-scheme
+-moz-device-pixel-ratio
 -moz-gtk-csd-close-button-position
 -moz-gtk-csd-maximize-button-position
 -moz-gtk-csd-menu-radius
@@ -37,6 +38,7 @@ datachannel
 date
 datetime-local
 dir
+device-pixel-ratio
 durationchange
 email
 emptied
@@ -108,6 +110,7 @@ rejectionhandled
 removetrack
 reset
 resize
+resolution
 resourcetimingbufferfull
 right
 rtl

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <title>
+    Test that the callback is called with boolean parameter when calling
+    watchAvailability()
+  </title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/media.js"></script>
+  <script>
+    async_test(t => {
+      let v = document.createElement("video");
+      v.src = getVideoURI("/media/movie_5");
+
+      v.remote
+        .watchAvailability(
+          t.step_func_done(() => assert_true(typeof available === "boolean"))
+        )
+        .then(
+          t.step_func(() => {}),
+          t.unreached_func()
+        )
+        .catch(
+          t.step_func_done(error =>
+            assert_equals(error.name, "NotSupportedError")
+          )
+        );
+    }, "Test that the callback is called with boolean parameter when calling watchAvailability().");
+  </script>
+</html>

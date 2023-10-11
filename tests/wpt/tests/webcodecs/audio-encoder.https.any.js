@@ -123,6 +123,51 @@ promise_test(async t => {
 }, 'Simple audio encoding');
 
 promise_test(async t => {
+  let outputs = 0;
+  let init = getDefaultCodecInit(t);
+  let firstOutput = new Promise(resolve => {
+    init.output = (chunk, metadata) => {
+      outputs++;
+      assert_equals(outputs, 1, 'outputs');
+      encoder.reset();
+      resolve();
+    };
+  });
+
+  let encoder = new AudioEncoder(init);
+  let config = {
+    codec: 'opus',
+    sampleRate: 48000,
+    numberOfChannels: 2,
+    bitrate: 256000  // 256kbit
+  };
+  encoder.configure(config);
+
+  let frame_count = 1024;
+  let frame1 = make_audio_data(
+      0, config.numberOfChannels, config.sampleRate, frame_count);
+  let frame2 = make_audio_data(
+      frame_count / config.sampleRate, config.numberOfChannels,
+      config.sampleRate, frame_count);
+  t.add_cleanup(() => {
+    frame1.close();
+    frame2.close();
+  });
+
+  encoder.encode(frame1);
+  encoder.encode(frame2);
+  const flushDone = encoder.flush();
+
+  // Wait for the first output, then reset.
+  await firstOutput;
+
+  // Flush should have been synchronously rejected.
+  await promise_rejects_dom(t, 'AbortError', flushDone);
+
+  assert_equals(outputs, 1, 'outputs');
+}, 'Test reset during flush');
+
+promise_test(async t => {
   let sample_rate = 48000;
   let total_duration_s = 1;
   let data_count = 10;
@@ -163,24 +208,24 @@ promise_test(async t => {
   }
 }, 'Encode audio with negative timestamp');
 
-async function checkEncodingError(config, good_data, bad_data) {
-  let error = null;
-  let outputs = 0;
-  let init = {
-    error: e => {
-      error = e;
-    },
-    output: chunk => {
-      outputs++;
-    }
-  };
-  let encoder = new AudioEncoder(init);
-
-
+async function checkEncodingError(t, config, good_data, bad_data) {
   let support = await AudioEncoder.isConfigSupported(config);
   assert_true(support.supported)
   config = support.config;
 
+  const callbacks = {};
+  let errors = 0;
+  let gotError = new Promise(resolve => callbacks.error = e => {
+    errors++;
+    resolve(e);
+  });
+
+  let outputs = 0;
+  callbacks.output = chunk => {
+    outputs++;
+  };
+
+  let encoder = new AudioEncoder(callbacks);
   encoder.configure(config);
   for (let data of good_data) {
     encoder.encode(data);
@@ -190,11 +235,21 @@ async function checkEncodingError(config, good_data, bad_data) {
 
   let txt_config = "sampleRate: " + config.sampleRate
                  + " numberOfChannels: " + config.numberOfChannels;
-  assert_equals(error, null, txt_config);
+  assert_equals(errors, 0, txt_config);
   assert_greater_than(outputs, 0);
+  outputs = 0;
+
   encoder.encode(bad_data);
-  await encoder.flush().catch(() => {});
-  assert_not_equals(error, null, txt_config);
+  await promise_rejects_dom(t, 'EncodingError', encoder.flush().catch((e) => {
+    assert_equals(errors, 1);
+    throw e;
+  }));
+
+  assert_equals(outputs, 0);
+  let e = await gotError;
+  assert_true(e instanceof DOMException);
+  assert_equals(e.name, 'EncodingError');
+  assert_equals(encoder.state, 'closed', 'state');
 }
 
 function channelNumberVariationTests() {
@@ -216,9 +271,9 @@ function channelNumberVariationTests() {
     ts += Math.floor(data2.duration / 1000000);
 
     let bad_data = make_audio_data(ts, channels + 1, sample_rate, length);
-    promise_test(async t =>
-      checkEncodingError(config, [data1, data2], bad_data),
-      "Channel number variation: " + channels);
+    promise_test(
+        async t => checkEncodingError(t, config, [data1, data2], bad_data),
+        'Channel number variation: ' + channels);
   }
 }
 channelNumberVariationTests();
@@ -242,9 +297,9 @@ function sampleRateVariationTests() {
     ts += Math.floor(data2.duration / 1000000);
 
     let bad_data = make_audio_data(ts, channels, sample_rate + 333, length);
-    promise_test(async t =>
-      checkEncodingError(config, [data1, data2], bad_data),
-      "Sample rate variation: " + sample_rate);
+    promise_test(
+        async t => checkEncodingError(t, config, [data1, data2], bad_data),
+        'Sample rate variation: ' + sample_rate);
   }
 }
 sampleRateVariationTests();
@@ -569,4 +624,4 @@ testOpusEncoderConfigs.forEach(entry => {
     assert_greater_than_equal(
         total_encoded_duration, total_duration_s * 1_000_000);
   }, 'Test encoding Opus with additional parameters: ' + entry.comment);
-})
+});

@@ -5,10 +5,12 @@
 
 <script>
 promise_test(async t => {
+  let start_length = navigation.entries().length;
+  let start_index = navigation.currentEntry.index;
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation due to onload not having completed.
   await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
-  assert_equals(navigation.entries().length, 1);
+  assert_equals(navigation.entries().length, start_length);
 
 
   let navigateEventType;
@@ -20,7 +22,7 @@ promise_test(async t => {
 
   await navigation.navigate(location.href, { history: "push" }).finished;
   assert_equals(navigateEventType, "push");
-  assert_equals(navigation.entries().length, 2);
-  assert_equals(navigation.currentEntry.index, 1);
+  assert_equals(navigation.entries().length, start_length+1);
+  assert_equals(navigation.currentEntry.index, start_index+1);
 }, "navigate() to the current URL with history: 'push' and intercept so it remains same-document");
 </script>

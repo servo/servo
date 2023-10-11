@@ -599,3 +599,9 @@ partial interface TestBinding {
   [Pref="dom.testable_crash.enabled"]
   undefined crashHard();
 };
+
+[Exposed=(Window,Worker), Pref="dom.testbinding.enabled"]
+namespace TestNS {
+    const unsigned long ONE   = 1;
+    const unsigned long TWO   = 0x2;
+};

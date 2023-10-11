@@ -496,18 +496,8 @@ fn eval_moz_platform(_: &Context, query_value: Option<Platform>) -> bool {
     unsafe { bindings::Gecko_MediaFeatures_MatchesPlatform(query_value) }
 }
 
-fn eval_moz_windows_non_native_menus(context: &Context) -> bool {
-    let use_non_native_menus = match static_prefs::pref!("browser.display.windows.non_native_menus")
-    {
-        0 => false,
-        1 => true,
-        _ => {
-            eval_moz_platform(context, Some(Platform::WindowsWin10)) &&
-                get_lnf_int_as_bool(bindings::LookAndFeel_IntID::WindowsDefaultTheme as i32)
-        },
-    };
-
-    use_non_native_menus
+fn eval_moz_windows_non_native_menus(_: &Context) -> bool {
+    unsafe { bindings::Gecko_MediaFeatures_WindowsNonNativeMenus() }
 }
 
 fn eval_moz_overlay_scrollbars(context: &Context) -> bool {
@@ -586,7 +576,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 59] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -877,4 +867,5 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 59] = [
         GTKCSDReversedPlacement
     ),
     lnf_int_feature!(atom!("-moz-system-dark-theme"), SystemUsesDarkTheme),
+    bool_pref_feature!(atom!("-moz-box-flexbox-emulation"), "layout.css.moz-box-flexbox-emulation.enabled"),
 ];

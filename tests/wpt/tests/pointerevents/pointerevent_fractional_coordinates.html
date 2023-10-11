@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
     <head>
-        <title>Pointer Events coordinates can have fractional value<</title>
+        <title>Pointer Events coordinates with fractional values</title>
         <meta name="viewport" content="width=device-width">
         <meta name="variant" content="?mouse">
         <meta name="variant" content="?touch">
@@ -24,54 +24,53 @@
             }
         </style>
         <script>
-            var input = location.search.substring(1);
-            var eventList = [
-                  "pointerdown",
-                  "pointerup",
-                  "pointermove",
-                  "pointerover",
-                  "pointerout",
-                  "pointerenter",
-                  "pointerleave"];
-            var eventsRecieved = {};
-            var clickedTargetList = [];
+            "use strict";
+            const input = location.search.substring(1);
+            const eventList = [
+                "pointerdown",
+                "pointerup",
+                "pointermove",
+                "pointerover",
+                "pointerout",
+                "pointerenter",
+                "pointerleave",
+                "click"
+            ];
+            let eventsWithFractions = {};
+            let clickedTargetList = [];
 
             function resetTestState() {
-                eventsRecieved = {};
+                eventsWithFractions = {};
                 clickedTargetList = [];
-                ['s1', 's2', 's3'].forEach(function(id){
-                    var target = document.getElementById('innerFrame').contentDocument.getElementById(id);
-                    target.style.background = "black"
-                });
             }
 
             function checkPointerEventCoordinates(event) {
-              if (event.clientX != Math.floor(event.clientX) || event.clientY != Math.floor(event.clientY))
-                eventsRecieved[event.type] = true;
+              if (event.clientX != Math.floor(event.clientX) ||
+                    event.clientY != Math.floor(event.clientY))
+                eventsWithFractions[event.type] = true;
             }
 
             function testInputType(inputSource) {
               const scale = 5;
               const width = 3;
               const height = 3;
-              var targetFrame = document.querySelector('#innerFrame');
-              var frameRect = targetFrame.getBoundingClientRect();
-              frameLeft = frameRect.left;
-              frameTop = frameRect.top;
+              const targetFrame = document.querySelector('#innerFrame');
+              const frameRect = targetFrame.getBoundingClientRect();
+              const frameLeft = frameRect.left;
+              const frameTop = frameRect.top;
 
-              target = [{x: 10, y: 10}, {x: 30, y: 50}, {x: 50, y: 30}]
-              xPosition = []
-              yPosition = []
-              for (var i = 0; i < target.length; i++) {
-                xPosition.push((target[i].x + width / 2.0) * scale + frameLeft);
-                yPosition.push((target[i].y + height / 2.0) * scale + frameTop);
+              const targets = [{x: 10, y: 10}, {x: 30, y: 50}, {x: 50, y: 30}]
+              const xPositions = []
+              const yPositions = []
+              for (let i = 0; i < targets.length; i++) {
+                xPositions.push((targets[i].x + width / 2.0) * scale + frameLeft);
+                yPositions.push((targets[i].y + height / 2.0) * scale + frameTop);
               }
-              return sendInputAt(inputSource, xPosition[0], yPosition[0]).then(function() {
-                return sendInputAt(inputSource, xPosition[1], yPosition[1]);
+              return sendInputAt(inputSource, xPositions[0], yPositions[0]).then(function() {
+                return sendInputAt(inputSource, xPositions[1], yPositions[1]);
               }).then(function() {
-                return sendInputAt(inputSource, xPosition[2], yPosition[2]);
+                return sendInputAt(inputSource, xPositions[2], yPositions[2]);
               });
-
             }
 
             function sendInputAt(inputSource, xPosition, yPosition) {
@@ -93,11 +92,11 @@
             }
 
             function run() {
-                var test_pointerEvent = setup_pointerevent_test("pointerevent events in capturing", [input]);
-                var innerFrame = document.getElementById('innerFrame');
-                var innerDocument = innerFrame.contentDocument;
+                const test_pointerEvent = setup_pointerevent_test("pointerevent events in capturing", [input]);
+                const innerFrame = document.getElementById('innerFrame');
+                const innerDocument = innerFrame.contentDocument;
                 ['s1', 's2', 's3'].forEach(function(id){
-                    var target = innerDocument.getElementById(id);
+                    const target = innerDocument.getElementById(id);
                     eventList.forEach(function(eventName) {
                         on_event(target, eventName, checkPointerEventCoordinates);
                     });
@@ -105,15 +104,24 @@
                     on_event(target, "click", function (event) {
                       if (!(event.target.id in clickedTargetList)) {
                           clickedTargetList.push(event.target.id);
-                          event.target.style.background = "red"
                       }
                       if (clickedTargetList.length == 3) {
                           test(function () {
-                              if (Object.keys(eventsRecieved).length != eventList.length){
-                                  eventList.forEach(function(eventName){
-                                     assert_true(eventName in eventsRecieved, eventName + " should have fractional coordinates");
-                                  });
-                              }
+                            eventList.forEach(function(eventName){
+                                if (eventName == "click") {
+                                    assert_false(eventName in eventsWithFractions,
+                                        eventName + " should not have fractional coordinates");
+                                } else {
+                                    assert_true(eventName in eventsWithFractions,
+                                        eventName + " should have fractional coordinates");
+                                }
+                            });
+                            // At this point, we know that `eventsWithFractions` contains all
+                            // of `eventList` except "click".  The assert below rules out any
+                            // extra entry in `eventsWithFractions`.
+                            assert_equals(Object.keys(eventsWithFractions).length,
+                                  eventList.length - 1,
+                                  "eventsWithFractions list does not have any redundant entry");
                           }, expectedPointerType);
                           test_pointerEvent.done();
                       }
@@ -146,4 +154,3 @@
         <div id="log"></div>
     </body>
 </html>
-

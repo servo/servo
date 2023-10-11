@@ -14,8 +14,10 @@ function import_data_url_test(testCase) {
 
     const worker = new SharedWorker(dataURL, { type: 'module'});
     worker.port.postMessage('Send message for tests from main script.');
-    const msgEvent =
-        await new Promise(resolve => worker.port.onmessage = resolve);
+    const msgEvent = await new Promise((resolve, reject) =>{
+        worker.port.onmessage = resolve;
+        worker.onerror = reject;
+    }).catch(e => assert_true(false));
     assert_array_equals(msgEvent.data, testCase.expectation);
   }, testCase.description);
 }

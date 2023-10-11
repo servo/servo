@@ -4,7 +4,6 @@
 
 //! Gecko-specific bits for selector-parsing.
 
-use crate::element_state::{DocumentState, ElementState};
 use crate::gecko_bindings::structs::RawServoSelectorList;
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
@@ -14,6 +13,7 @@ use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::values::{AtomIdent, AtomString};
 use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
 use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
+use dom::{DocumentState, ElementState};
 use selectors::parser::SelectorParseErrorKind;
 use selectors::SelectorList;
 use std::fmt;
@@ -303,6 +303,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     #[inline]
     fn parse_is_and_where(&self) -> bool {
         true
+    }
+
+    #[inline]
+    fn parse_has(&self) -> bool {
+        static_prefs::pref!("layout.css.has-selector.enabled")
     }
 
     #[inline]

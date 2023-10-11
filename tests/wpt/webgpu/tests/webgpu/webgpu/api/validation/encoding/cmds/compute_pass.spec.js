@@ -6,7 +6,8 @@ API validation test for compute pass
 Does **not** test usage scopes (resource_usages/) or programmable pass stuff (programmable_pass).
 `;
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
-import { kBufferUsages, kLimitInfo } from '../../../../capability_info.js';
+import { makeValueTestVariant } from '../../../../../common/util/util.js';
+import { kBufferUsages } from '../../../../capability_info.js';
 import { GPUConst } from '../../../../constants.js';
 import { kResourceStates } from '../../../../gpu_test.js';
 import { ValidationTest } from '../../validation_test.js';
@@ -89,7 +90,6 @@ g.test('pipeline,device_mismatch')
     validateFinish(!mismatched);
   });
 
-const kMaxDispatch = kLimitInfo.maxComputeWorkgroupsPerDimension.default;
 g.test('dispatch_sizes')
   .desc(
     `Test 'direct' and 'indirect' dispatch with various sizes.
@@ -105,13 +105,22 @@ g.test('dispatch_sizes')
   .params(u =>
     u
       .combine('dispatchType', ['direct', 'indirect'])
-      .combine('largeDimValue', [0, 1, kMaxDispatch, kMaxDispatch + 1, 0x7fff_ffff, 0xffff_ffff])
+      .combine('largeDimValueVariant', [
+        { mult: 0, add: 0 },
+        { mult: 0, add: 1 },
+        { mult: 1, add: 0 },
+        { mult: 1, add: 1 },
+        { mult: 0, add: 0x7fff_ffff },
+        { mult: 0, add: 0xffff_ffff },
+      ])
       .beginSubcases()
       .combine('largeDimIndex', [0, 1, 2])
       .combine('smallDimValue', [0, 1])
   )
   .fn(t => {
-    const { dispatchType, largeDimIndex, smallDimValue, largeDimValue } = t.params;
+    const { dispatchType, largeDimIndex, smallDimValue, largeDimValueVariant } = t.params;
+    const maxDispatch = t.device.limits.maxComputeWorkgroupsPerDimension;
+    const largeDimValue = makeValueTestVariant(maxDispatch, largeDimValueVariant);
 
     const pipeline = t.createNoOpComputePipeline();
 
@@ -132,7 +141,7 @@ g.test('dispatch_sizes')
 
     const shouldError =
       dispatchType === 'direct' &&
-      (workSizes[0] > kMaxDispatch || workSizes[1] > kMaxDispatch || workSizes[2] > kMaxDispatch);
+      (workSizes[0] > maxDispatch || workSizes[1] > maxDispatch || workSizes[2] > maxDispatch);
 
     validateFinishAndSubmit(!shouldError, true);
   });

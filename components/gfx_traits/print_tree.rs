@@ -84,6 +84,6 @@ impl PrintTree {
 
 impl Drop for PrintTree {
     fn drop(&mut self) {
-        self.flush_queued_item("\u{9492}\u{9472}");
+        self.flush_queued_item("\u{2514}\u{2500}");
     }
 }

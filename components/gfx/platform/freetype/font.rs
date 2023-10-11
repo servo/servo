@@ -186,11 +186,10 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn style(&self) -> FontStyle {
-        use style::values::generics::font::FontStyle::*;
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC as c_long != 0 } {
-            Italic
+            FontStyle::ITALIC
         } else {
-            Normal
+            FontStyle::NORMAL
         }
     }
 
@@ -200,13 +199,12 @@ impl FontHandleMethods for FontHandle {
             Some(os2) => os2,
         };
         let weight = os2.us_weight_class as f32;
-        FontWeight(weight.max(1.).min(1000.))
+        FontWeight::from_float(weight)
     }
 
     fn stretchiness(&self) -> FontStretch {
-        use style::values::generics::NonNegative;
         use style::values::specified::font::FontStretchKeyword;
-        let percentage = if let Some(os2) = self.os2_table() {
+        if let Some(os2) = self.os2_table() {
             match os2.us_width_class {
                 1 => FontStretchKeyword::UltraCondensed,
                 2 => FontStretchKeyword::ExtraCondensed,
@@ -222,8 +220,7 @@ impl FontHandleMethods for FontHandle {
         } else {
             FontStretchKeyword::Normal
         }
-        .compute();
-        FontStretch(NonNegative(percentage))
+        .compute()
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {

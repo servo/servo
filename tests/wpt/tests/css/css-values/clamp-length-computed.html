@@ -31,4 +31,17 @@ test_length_equals('clamp(10px , 35px, 30px)', '30px');
 // so MIN wins over MAX if they are in the wrong order.
 test_length_equals('clamp(30px, 100px, 20px)', '30px');
 
+// also test with negative values
+test_length_equals('clamp(-30px, -20px, -10px)', '-20px');
+test_length_equals('clamp(-30px, -100px, -10px)', '-30px');
+test_length_equals('clamp(-30px, 100px, -10px)', '-10px');
+test_length_equals('clamp(-10px, 100px, -30px)', '-10px');
+test_length_equals('clamp(-10px, -100px, -30px)', '-10px');
+
+// and negating the result of clamp
+test_length_equals('calc(0px + clamp(10px, 20px, 30px))', '20px');
+test_length_equals('calc(0px - clamp(10px, 20px, 30px))', '-20px');
+test_length_equals('calc(0px + clamp(30px, 100px, 20px))', '30px');
+test_length_equals('calc(0px - clamp(30px, 100px, 20px))', '-30px');
+
 </script>

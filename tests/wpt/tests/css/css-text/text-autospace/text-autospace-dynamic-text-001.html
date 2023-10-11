@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-autospace-property">
+<link rel="help" href="text-autospace-dynamic-text-001-ref.html">
+<div id="target">国国</div>
+<script>
+const target_text = document.getElementById('target').firstChild;
+for (const ch of 'AA国国AA国国') {
+  document.body.offsetTop;  // Force layout.
+  target_text.appendData(ch);
+}
+</script>

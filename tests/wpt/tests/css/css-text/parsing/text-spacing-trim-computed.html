@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text: getComputedStyle().textSpacingTrim</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-spacing-trim-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("text-spacing-trim", "auto");
+test_computed_value("text-spacing-trim", "space-all");
+test_computed_value("text-spacing-trim", "trim-auto");
+test_computed_value("text-spacing-trim", "trim-all");
+test_computed_value("text-spacing-trim", "allow-end");
+test_computed_value("text-spacing-trim", "space-first");
+
+test_computed_value("text-spacing-trim", "allow-end space-first");
+test_computed_value("text-spacing-trim", "space-first allow-end", "allow-end space-first");
+</script>
+</body>
+</html>

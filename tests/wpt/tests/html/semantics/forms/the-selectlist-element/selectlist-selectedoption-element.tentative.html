@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/openui/open-ui/issues/702">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<selectlist>
+  <div>Foo <selectedoption></selectedoption> Bar</div>
+  <option>one</option>
+  <option>two</option>
+</selectlist>
+
+<script>
+test(() => {
+  const selectlist = document.querySelector('selectlist');
+  const selectedoption = document.querySelector('selectedoption');
+  const div = document.querySelector('div');
+
+  assert_equals(selectlist.value, 'one', 'one should be selected initially.');
+  assert_equals(selectedoption.textContent, 'one', "selectedoption's initial text content should be one.");
+  assert_equals(div.textContent, 'Foo one Bar', 'Outer textContent should include default selectedoption.');
+
+  selectlist.value = 'two';
+  assert_equals(selectlist.value, 'two', "assigning two into selectlists's value should work.");
+  assert_equals(selectedoption.textContent, 'two', "selectedoption's text content should be updated with the new value.");
+  assert_equals(div.textContent, 'Foo two Bar', 'Outer textContent should include new selectedoption.');
+}, "<selectedoption>'s text contents should be replaced with its ancestor <selectlist>'s selected value.");
+</script>

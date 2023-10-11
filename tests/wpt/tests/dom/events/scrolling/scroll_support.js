@@ -14,8 +14,10 @@ async function waitForScrollendEvent(test, target, timeoutMs = 500) {
   return waitForEvent("scrollend", test, target, timeoutMs);
 }
 
-async function waitForOverscrollEvent(test, target, timeoutMs = 500) {
-  return waitForEvent("overscroll", test, target, timeoutMs);
+async function waitForScrollendEventNoTimeout(target) {
+  return new Promise((resolve) => {
+    target.addEventListener("scrollend", resolve);
+  });
 }
 
 async function waitForPointercancelEvent(test, target, timeoutMs = 500) {

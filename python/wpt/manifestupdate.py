@@ -34,6 +34,7 @@ def create_parser():
 def update(check_clean=True, rebuild=False, **kwargs):
     logger = wptlogging.setup(kwargs, {"mach": sys.stdout})
     kwargs = {"config": os.path.join(WPT_PATH, "config.ini"),
+              "product": "servo",
               "manifest_path": os.path.join(WPT_PATH, "meta"),
               "tests_root": None,
               "metadata_root": None}

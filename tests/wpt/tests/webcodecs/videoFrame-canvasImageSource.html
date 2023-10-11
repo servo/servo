@@ -61,7 +61,21 @@ async_test(t => {
     frame.close();
     t.done();
   }));
-  video.src = 'four-colors.mp4';
+
+  const mediaConfig = {
+    type: 'file',
+    video: {
+      contentType: 'video/mp4; codecs="av01.0.04M.08"',
+      width: 320,
+      height: 240,
+      bitrate: 1000000,
+      framerate: '30'
+    }
+  };
+  navigator.mediaCapabilities.decodingInfo(mediaConfig).then(t.step_func(result => {
+    assert_implements_optional(result.supported, "AV.1 file streaming unsupported");
+    video.src = 'four-colors.mp4';
+  }));
 }, '<video> and VideoFrame constructed VideoFrame');
 
 test(t => {

@@ -7,7 +7,6 @@
 // NOTE(emilio): This code isn't really executed in Gecko, but we don't want to
 // compile it out so that people remember it exists.
 
-use crate::bezier::Bezier;
 use crate::context::{CascadeInputs, SharedStyleContext};
 use crate::dom::{OpaqueNode, TDocument, TElement, TNode};
 use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
@@ -28,9 +27,7 @@ use crate::stylesheets::layer_rule::LayerOrder;
 use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::{Time, TimingFunction};
 use crate::values::generics::box_::AnimationIterationCount;
-use crate::values::generics::easing::{
-    StepPosition, TimingFunction as GenericTimingFunction, TimingKeyword,
-};
+use crate::values::generics::easing::BeforeFlag;
 use crate::Atom;
 use fxhash::FxHashMap;
 use parking_lot::RwLock;
@@ -88,56 +85,12 @@ impl PropertyAnimation {
     /// The output of the timing function given the progress ration of this animation.
     fn timing_function_output(&self, progress: f64) -> f64 {
         let epsilon = 1. / (200. * self.duration);
-        match self.timing_function {
-            GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
-                Bezier::new(x1, y1, x2, y2).solve(progress, epsilon)
-            },
-            GenericTimingFunction::Steps(steps, pos) => {
-                let mut current_step = (progress * (steps as f64)).floor() as i32;
-
-                if pos == StepPosition::Start ||
-                    pos == StepPosition::JumpStart ||
-                    pos == StepPosition::JumpBoth
-                {
-                    current_step = current_step + 1;
-                }
-
-                // FIXME: We should update current_step according to the "before flag".
-                // In order to get the before flag, we have to know the current animation phase
-                // and whether the iteration is reversed. For now, we skip this calculation.
-                // (i.e. Treat before_flag is unset,)
-                // https://drafts.csswg.org/css-easing/#step-timing-function-algo
-
-                if progress >= 0.0 && current_step < 0 {
-                    current_step = 0;
-                }
-
-                let jumps = match pos {
-                    StepPosition::JumpBoth => steps + 1,
-                    StepPosition::JumpNone => steps - 1,
-                    StepPosition::JumpStart |
-                    StepPosition::JumpEnd |
-                    StepPosition::Start |
-                    StepPosition::End => steps,
-                };
-
-                if progress <= 1.0 && current_step > jumps {
-                    current_step = jumps;
-                }
-
-                (current_step as f64) / (jumps as f64)
-            },
-            GenericTimingFunction::Keyword(keyword) => {
-                let bezier = match keyword {
-                    TimingKeyword::Linear => return progress,
-                    TimingKeyword::Ease => Bezier::new(0.25, 0.1, 0.25, 1.),
-                    TimingKeyword::EaseIn => Bezier::new(0.42, 0., 1., 1.),
-                    TimingKeyword::EaseOut => Bezier::new(0., 0., 0.58, 1.),
-                    TimingKeyword::EaseInOut => Bezier::new(0.42, 0., 0.58, 1.),
-                };
-                bezier.solve(progress, epsilon)
-            },
-        }
+        // FIXME: Need to set the before flag correctly.
+        // In order to get the before flag, we have to know the current animation phase
+        // and whether the iteration is reversed. For now, we skip this calculation
+        // by treating as if the flag is unset at all times.
+        // https://drafts.csswg.org/css-easing/#step-timing-function-algo
+        self.timing_function.calculate_output(progress, BeforeFlag::Unset, epsilon)
     }
 
     /// Update the given animation at a given point of progress.
@@ -360,9 +313,11 @@ impl ComputedKeyframe {
         let mut computed_steps: Vec<Self> = Vec::with_capacity(intermediate_steps.len());
         for (step_index, step) in intermediate_steps.into_iter().enumerate() {
             let start_percentage = step.start_percentage;
-            let timing_function = step.timing_function.unwrap_or(default_timing_function);
             let properties_changed_in_step = step.declarations.longhands().clone();
+            let step_timing_function = step.timing_function.clone();
             let step_style = step.resolve_style(element, context, base_style, resolver);
+            let timing_function =
+                step_timing_function.unwrap_or_else(|| default_timing_function.clone());
 
             let values = {
                 // If a value is not set in a property declaration we use the value from
@@ -741,7 +696,7 @@ impl Animation {
             let animation = PropertyAnimation {
                 from: from.clone(),
                 to: to.clone(),
-                timing_function: prev_keyframe.timing_function,
+                timing_function: prev_keyframe.timing_function.clone(),
                 duration: duration_between_keyframes as f64,
             };
 

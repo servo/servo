@@ -10,7 +10,7 @@ use js::rust::HandleObject;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
+use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserver_Binding::MutationObserverMethods;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::{
     MutationCallback, MutationObserverInit,
 };

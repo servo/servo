@@ -56,8 +56,8 @@ promise_test(async t => {
   });
   const entry = await entryPromise;
   const script = entry.scripts.find(s => s.name === "TimerHandler:setTimeout");
-  assert_greater_than_equal(script.desiredExecutionStart, timeBeforeSetup + delay - 5);
-  assert_less_than_equal(script.desiredExecutionStart, timeAfterSetup + delay);
+  assert_greater_than_equal(script.desiredExecutionStart, timeBeforeSetup + delay - INTERNAL_OVERHEAD_DELAY_EPSILON);
+  assert_less_than_equal(script.desiredExecutionStart, timeAfterSetup + delay + INTERNAL_OVERHEAD_DELAY_EPSILON);
 }, "desiredExecutionStart for setTimeout should be the setup time + delay");
 
 promise_test(async t => {
@@ -73,8 +73,8 @@ promise_test(async t => {
   });
   const entry = await entryPromise;
   const script = entry.scripts.find(s => s.name === "SchedulerPostTaskCallback");
-  assert_greater_than_equal(script.desiredExecutionStart, timeBeforeSetup);
-  assert_less_than_equal(script.desiredExecutionStart, timeAfterSetup);
+  assert_greater_than_equal(script.desiredExecutionStart, timeBeforeSetup - INTERNAL_OVERHEAD_DELAY_EPSILON);
+  assert_less_than_equal(script.desiredExecutionStart, timeAfterSetup + INTERNAL_OVERHEAD_DELAY_EPSILON);
 }, "desiredExecutionStart for Scheduler.postTask should be the time it was called");
 
 promise_test(async t => {

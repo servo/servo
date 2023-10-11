@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz">
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#auto-numbering">
+<link rel="match" href="counter-reset-increment-overflow-underflow-ref.html">
+<style>
+.overflow {
+  counter-reset: over-counter 2000000000;
+}
+.overflow h3:before {
+  counter-increment: over-counter 50000000;
+}
+.overflow h3::before {
+  content: counter(over-counter);
+}
+
+.underflow {
+  counter-reset: under-counter -2000000000;
+}
+.underflow h3:before {
+  counter-increment: under-counter -50000000;
+}
+.underflow h3::before {
+  content: counter(under-counter);
+}
+</style>
+<div class="overflow">
+<h3></h3>
+<h3></h3>
+<h3></h3>
+</div>
+<div class="underflow">
+<h3></h3>
+<h3></h3>
+<h3></h3>
+</div>

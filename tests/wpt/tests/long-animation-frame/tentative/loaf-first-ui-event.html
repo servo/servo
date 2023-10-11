@@ -51,9 +51,9 @@ promise_test(async t => {
        .pointerUp();
     await actions.send();
     await eventPromise;
-  }, s => s.name === "BUTTON.onpointermove", t);
-  const [entry] = await entryPromise;
-  assert_equals(entry.firstUIEventTimestamp, expectedTimestamp);
+  }, (script, entry) =>
+      script.name === "BUTTON.onpointermove" &&
+      entry.firstUIEventTimestamp === expectedTimestamp, t);
 }, "LoAF should expose firstUIEventTimestamp for pointermove events");
 
 promise_test(async t => {

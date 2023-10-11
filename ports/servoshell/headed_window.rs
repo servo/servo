@@ -462,6 +462,12 @@ impl WindowPortsMethods for Window {
                     .borrow_mut()
                     .push(EmbedderEvent::Touch(phase, id, point));
             },
+            winit::event::WindowEvent::TouchpadMagnify { delta, .. } => {
+                let magnification = delta as f32 + 1.0;
+                self.event_queue
+                    .borrow_mut()
+                    .push(EmbedderEvent::PinchZoom(magnification));
+            },
             winit::event::WindowEvent::CloseRequested => {
                 self.event_queue.borrow_mut().push(EmbedderEvent::Quit);
             },

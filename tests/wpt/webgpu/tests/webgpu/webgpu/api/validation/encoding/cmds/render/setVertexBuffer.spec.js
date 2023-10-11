@@ -4,7 +4,7 @@
 Validation tests for setVertexBuffer on render pass and render bundle.
 `;
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { kLimitInfo } from '../../../../../capability_info.js';
+import { makeValueTestVariant } from '../../../../../../common/util/util.js';
 import { GPUConst } from '../../../../../constants.js';
 import { kResourceStates } from '../../../../../gpu_test.js';
 import { ValidationTest } from '../../../validation_test.js';
@@ -20,14 +20,17 @@ Tests slot must be less than the maxVertexBuffers in device limits.
   `
   )
   .paramsSubcasesOnly(
-    kRenderEncodeTypeParams.combine('slot', [
-      0,
-      kLimitInfo.maxVertexBuffers.default - 1,
-      kLimitInfo.maxVertexBuffers.default,
+    kRenderEncodeTypeParams.combine('slotVariant', [
+      { mult: 0, add: 0 },
+      { mult: 1, add: -1 },
+      { mult: 1, add: 0 },
     ])
   )
   .fn(t => {
-    const { encoderType, slot } = t.params;
+    const { encoderType, slotVariant } = t.params;
+    const maxVertexBuffers = t.device.limits.maxVertexBuffers;
+    const slot = makeValueTestVariant(maxVertexBuffers, slotVariant);
+
     const vertexBuffer = t.createBufferWithState('valid', {
       size: 16,
       usage: GPUBufferUsage.VERTEX,
@@ -35,7 +38,7 @@ Tests slot must be less than the maxVertexBuffers in device limits.
 
     const { encoder, validateFinish } = t.createEncoder(encoderType);
     encoder.setVertexBuffer(slot, vertexBuffer);
-    validateFinish(slot < kLimitInfo.maxVertexBuffers.default);
+    validateFinish(slot < maxVertexBuffers);
   });
 
 g.test('vertex_buffer_state')

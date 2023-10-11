@@ -10,9 +10,9 @@ Returns e1 raised to the power e2. Component-wise when T is a vector.
 `;
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeF32 } from '../../../../../util/conversion.js';
+import { TypeF32, TypeF16 } from '../../../../../util/conversion.js';
 import { FP } from '../../../../../util/floating_point.js';
-import { fullF32Range } from '../../../../../util/math.js';
+import { fullF32Range, fullF16Range } from '../../../../../util/math.js';
 import { makeCaseCache } from '../../case_cache.js';
 import { allInputSources, run } from '../../expression.js';
 
@@ -37,6 +37,22 @@ export const d = makeCaseCache('pow', {
       FP.f32.powInterval
     );
   },
+  f16_const: () => {
+    return FP.f16.generateScalarPairToIntervalCases(
+      fullF16Range(),
+      fullF16Range(),
+      'finite',
+      FP.f16.powInterval
+    );
+  },
+  f16_non_const: () => {
+    return FP.f16.generateScalarPairToIntervalCases(
+      fullF16Range(),
+      fullF16Range(),
+      'unfiltered',
+      FP.f16.powInterval
+    );
+  },
 });
 
 g.test('abstract_float')
@@ -58,4 +74,10 @@ g.test('f16')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
   .desc(`f16 tests`)
   .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
-  .unimplemented();
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  })
+  .fn(async t => {
+    const cases = await d.get(t.params.inputSource === 'const' ? 'f16_const' : 'f16_non_const');
+    await run(t, builtin('pow'), [TypeF16, TypeF16], TypeF16, t.params, cases);
+  });

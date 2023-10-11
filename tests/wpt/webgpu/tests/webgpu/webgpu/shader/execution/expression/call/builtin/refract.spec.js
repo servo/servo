@@ -13,9 +13,14 @@ vector e3*e1- (e3* dot(e2,e1) + sqrt(k)) *e2.
 `;
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { toVector, TypeF32, TypeVec } from '../../../../../util/conversion.js';
+import { toVector, TypeF32, TypeF16, TypeVec } from '../../../../../util/conversion.js';
 import { FP } from '../../../../../util/floating_point.js';
-import { sparseVectorF32Range, sparseF32Range } from '../../../../../util/math.js';
+import {
+  sparseVectorF32Range,
+  sparseVectorF16Range,
+  sparseF32Range,
+  sparseF16Range,
+} from '../../../../../util/math.js';
 import { makeCaseCache } from '../../case_cache.js';
 import { allInputSources, run } from '../../expression.js';
 
@@ -66,68 +71,50 @@ function generateCases(kind, param_is, param_ss, param_rs, check) {
     .flatMap(i => {
       return param_ss.flatMap(s => {
         return param_rs.map(r => {
-          return makeCase('f32', i, s, r, check);
+          return makeCase(kind, i, s, r, check);
         });
       });
     })
     .filter(c => c !== undefined);
 }
 
+// Cases: f32_vecN_[non_]const
+const f32_vec_cases = [2, 3, 4]
+  .flatMap(n =>
+    [true, false].map(nonConst => ({
+      [`f32_vec${n}_${nonConst ? 'non_const' : 'const'}`]: () => {
+        return generateCases(
+          'f32',
+          sparseVectorF32Range(n),
+          sparseVectorF32Range(n),
+          sparseF32Range(),
+          nonConst ? 'unfiltered' : 'finite'
+        );
+      },
+    }))
+  )
+  .reduce((a, b) => ({ ...a, ...b }), {});
+
+// Cases: f16_vecN_[non_]const
+const f16_vec_cases = [2, 3, 4]
+  .flatMap(n =>
+    [true, false].map(nonConst => ({
+      [`f16_vec${n}_${nonConst ? 'non_const' : 'const'}`]: () => {
+        return generateCases(
+          'f16',
+          sparseVectorF16Range(n),
+          sparseVectorF16Range(n),
+          sparseF16Range(),
+          nonConst ? 'unfiltered' : 'finite'
+        );
+      },
+    }))
+  )
+  .reduce((a, b) => ({ ...a, ...b }), {});
+
 export const d = makeCaseCache('refract', {
-  f32_vec2_const: () => {
-    return generateCases(
-      'f32',
-      sparseVectorF32Range(2),
-      sparseVectorF32Range(2),
-      sparseF32Range(),
-      'finite'
-    );
-  },
-  f32_vec2_non_const: () => {
-    return generateCases(
-      'f32',
-      sparseVectorF32Range(2),
-      sparseVectorF32Range(2),
-      sparseF32Range(),
-      'unfiltered'
-    );
-  },
-  f32_vec3_const: () => {
-    return generateCases(
-      'f32',
-      sparseVectorF32Range(3),
-      sparseVectorF32Range(3),
-      sparseF32Range(),
-      'finite'
-    );
-  },
-  f32_vec3_non_const: () => {
-    return generateCases(
-      'f32',
-      sparseVectorF32Range(3),
-      sparseVectorF32Range(3),
-      sparseF32Range(),
-      'unfiltered'
-    );
-  },
-  f32_vec4_const: () => {
-    return generateCases(
-      'f32',
-      sparseVectorF32Range(4),
-      sparseVectorF32Range(4),
-      sparseF32Range(),
-      'finite'
-    );
-  },
-  f32_vec4_non_const: () => {
-    return generateCases(
-      'f32',
-      sparseVectorF32Range(4),
-      sparseVectorF32Range(4),
-      sparseF32Range(),
-      'unfiltered'
-    );
-  },
+  ...f32_vec_cases,
+  ...f16_vec_cases,
 });
 
 g.test('abstract_float')
@@ -193,8 +180,68 @@ g.test('f32_vec4')
     );
   });
 
-g.test('f16')
-  .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
-  .desc(`f16 tests`)
-  .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [2, 3, 4]))
-  .unimplemented();
+g.test('f16_vec2')
+  .specURL('https://www.w3.org/TR/WGSL/#numeric-builtin-functions')
+  .desc(`f16 tests using vec2s`)
+  .params(u => u.combine('inputSource', allInputSources))
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  })
+  .fn(async t => {
+    const cases = await d.get(
+      t.params.inputSource === 'const' ? 'f16_vec2_const' : 'f16_vec2_non_const'
+    );
+
+    await run(
+      t,
+      builtin('refract'),
+      [TypeVec(2, TypeF16), TypeVec(2, TypeF16), TypeF16],
+      TypeVec(2, TypeF16),
+      t.params,
+      cases
+    );
+  });
+
+g.test('f16_vec3')
+  .specURL('https://www.w3.org/TR/WGSL/#numeric-builtin-functions')
+  .desc(`f16 tests using vec3s`)
+  .params(u => u.combine('inputSource', allInputSources))
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  })
+  .fn(async t => {
+    const cases = await d.get(
+      t.params.inputSource === 'const' ? 'f16_vec3_const' : 'f16_vec3_non_const'
+    );
+
+    await run(
+      t,
+      builtin('refract'),
+      [TypeVec(3, TypeF16), TypeVec(3, TypeF16), TypeF16],
+      TypeVec(3, TypeF16),
+      t.params,
+      cases
+    );
+  });
+
+g.test('f16_vec4')
+  .specURL('https://www.w3.org/TR/WGSL/#numeric-builtin-functions')
+  .desc(`f16 tests using vec4s`)
+  .params(u => u.combine('inputSource', allInputSources))
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  })
+  .fn(async t => {
+    const cases = await d.get(
+      t.params.inputSource === 'const' ? 'f16_vec4_const' : 'f16_vec4_non_const'
+    );
+
+    await run(
+      t,
+      builtin('refract'),
+      [TypeVec(4, TypeF16), TypeVec(4, TypeF16), TypeF16],
+      TypeVec(4, TypeF16),
+      t.params,
+      cases
+    );
+  });

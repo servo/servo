@@ -33,6 +33,16 @@ test_valid_value("color", "hwb(0 100% 50% / 0)", "rgba(170, 170, 170, 0)");
 // channel of exactly one-half.
 // 0.5 * 255 = 127.5. This value should be rounded UP to 128, not down to 127.
 test_valid_value("color", "hwb(320deg 30% 40%)", "rgb(153, 77, 128)");
+
+// Test non-finite values. calc(infinity) goes to upper bound while calc(-infinity) and NaN go to the lower bound.
+// See: https://github.com/w3c/csswg-drafts/issues/8629
+test_valid_value("color", "hwb(calc(infinity) 20% 10%)", "rgb(230, 51, 51)"); // hwb(360 20% 10%)
+test_valid_value("color", "hwb(calc(-infinity) 20% 10%)", "rgb(230, 51, 51)"); // hwb(0 20% 10%)
+test_valid_value("color", "hwb(calc(0 / 0) 20% 10%)", "rgb(230, 51, 51)"); // hwb(0 20% 10%)
+test_valid_value("color", "hwb(90 20% 10% / calc(infinity))", "rgb(140, 230, 51)"); // hwb(90 20% 10%)
+test_valid_value("color", "hwb(90 20% 10% / calc(-infinity))", "rgba(140, 230, 51, 0)"); // hwb(90 20% 10% / 0)
+test_valid_value("color", "hwb(90 20% 10% / calc(0 / 0))", "rgba(140, 230, 51, 0)"); // hwb(90 20% 10% / 0)
+
 </script>
 </body>
 </html>

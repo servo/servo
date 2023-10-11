@@ -247,7 +247,7 @@ as resetting global state that need to happen consistently before the
 next test starts.
 
 To test that a promise rejects with a specified exception see [promise
-rejection].
+rejection](#promise-rejection).
 
 ### Single Page Tests ###
 

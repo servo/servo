@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+</head>
+
+<body>
+  <style>
+    #scroller {
+      overflow: scroll;
+      height: 500px;
+      width: 500px;
+      background-color: blue;
+      scroll-snap-type: y mandatory;
+      position: absolute;
+    }
+
+    .snap_point {
+      scroll-snap-align: start;
+      width: 40%;
+      position: relative;
+      left: 30%;
+    }
+
+    .big {
+      height: 1000%;
+      background-color: pink;
+      border: solid 1px red;
+    }
+
+    .small {
+      height: 50%;
+      background-color: purple;
+      border: solid 1px black;
+    }
+  </style>
+  <div id="scroller">
+    <div class="big snap_point" id="big_snap_point"></div>
+    <div class="small snap_point">
+    <button id="scrollerButton">scrollerButton</button>
+    </div>
+  </div>
+  <script>
+    promise_test(async(t) => {
+      const x = scroller.clientWidth / 2;
+      const y = scroller.clientHeight / 2;
+
+      // Scroll all the way down to the smaller snap area which doesn't cover
+      // the snapport.
+      let scrollend_promise = new Promise((resolve) => {
+        scroller.addEventListener("scrollend", resolve);
+      });
+      scroller.scrollTop = scroller.scrollHeight;
+      await scrollend_promise;
+
+      // Scroll up with one press of the arrow-up button.
+      scrollend_promise = new Promise((resolve) => {
+        scroller.addEventListener("scrollend", resolve);
+      });
+      const arrowUp = '\uE013';
+      await test_driver.send_keys(scrollerButton, arrowUp);
+
+      await scrollend_promise;
+      assert_equals(scroller.scrollTop, big_snap_point.offsetHeight - scroller.clientHeight,
+          "scroller is snapped to the bottom of the larger snap area, not the top");
+    });
+  </script>
+</body>
+
+</html>

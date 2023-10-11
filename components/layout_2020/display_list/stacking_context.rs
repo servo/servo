@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cmp::Ordering;
+use std::cell::RefCell;
 use std::mem;
 
 use euclid::default::Rect;
+use gfx_traits::print_tree::PrintTree;
+use log::warn;
 use script_traits::compositor::{ScrollTreeNodeId, ScrollableNodeInfo};
 use servo_arc::Arc as ServoArc;
+use servo_config::opts::DebugOptions;
 use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
@@ -23,7 +26,7 @@ use webrender_api::ScrollSensitivity;
 
 use super::DisplayList;
 use crate::cell::ArcRefCell;
-use crate::display_list::conversions::ToWebRender;
+use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
 use crate::display_list::DisplayListBuilder;
 use crate::fragment_tree::{
     AnonymousFragment, BoxFragment, ContainingBlockManager, Fragment, FragmentTree,
@@ -70,14 +73,18 @@ pub(crate) type ContainingBlockInfo<'a> = ContainingBlockManager<'a, ContainingB
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) enum StackingContextSection {
-    BackgroundsAndBorders,
-    BlockBackgroundsAndBorders,
-    Content,
+    OwnBackgroundsAndBorders,
+    DescendantBackgroundsAndBorders,
+    Foreground,
     Outline,
 }
 
 impl DisplayList {
-    pub fn build_stacking_context_tree(&mut self, fragment_tree: &FragmentTree) -> StackingContext {
+    pub fn build_stacking_context_tree(
+        &mut self,
+        fragment_tree: &FragmentTree,
+        debug: &DebugOptions,
+    ) -> StackingContext {
         let root_clip_chain_id = self
             .wr
             .define_clip_chain(None, [wr::ClipId::root(self.wr.pipeline_id)]);
@@ -105,7 +112,7 @@ impl DisplayList {
             for_absolute_and_fixed_descendants: &cb_for_fixed_descendants,
         };
 
-        let mut root_stacking_context = StackingContext::create_root(&self.wr);
+        let mut root_stacking_context = StackingContext::create_root(&self.wr, debug);
         for fragment in &fragment_tree.root_fragments {
             fragment.borrow().build_stacking_context_tree(
                 fragment,
@@ -192,105 +199,186 @@ impl DisplayList {
     }
 }
 
-pub(crate) struct StackingContextFragment {
-    scroll_node_id: ScrollTreeNodeId,
-    clip_chain_id: wr::ClipChainId,
-    section: StackingContextSection,
-    containing_block: PhysicalRect<Length>,
-    fragment: ArcRefCell<Fragment>,
+/// A piece of content that directly belongs to a section of a stacking context.
+///
+/// This is generally part of a fragment, like its borders or foreground, but it
+/// can also be a stacking container that needs to be painted in fragment order.
+pub(crate) enum StackingContextContent {
+    /// A fragment that does not generate a stacking context or stacking container.
+    Fragment {
+        scroll_node_id: ScrollTreeNodeId,
+        clip_chain_id: wr::ClipChainId,
+        section: StackingContextSection,
+        containing_block: PhysicalRect<Length>,
+        fragment: ArcRefCell<Fragment>,
+    },
+
+    /// An index into [StackingContext::atomic_inline_stacking_containers].
+    ///
+    /// There is no section field, because these are always in [StackingContextSection::Foreground].
+    AtomicInlineStackingContainer { index: usize },
 }
 
-impl StackingContextFragment {
-    fn build_display_list(&self, builder: &mut DisplayListBuilder) {
-        builder.current_scroll_node_id = self.scroll_node_id;
-        builder.current_clip_chain_id = self.clip_chain_id;
-        self.fragment
-            .borrow()
-            .build_display_list(builder, &self.containing_block, self.section);
+impl StackingContextContent {
+    fn section(&self) -> StackingContextSection {
+        match self {
+            Self::Fragment { section, .. } => *section,
+            Self::AtomicInlineStackingContainer { .. } => StackingContextSection::Foreground,
+        }
+    }
+
+    fn build_display_list(
+        &self,
+        builder: &mut DisplayListBuilder,
+        inline_stacking_containers: &[StackingContext],
+    ) {
+        match self {
+            Self::Fragment {
+                scroll_node_id,
+                clip_chain_id,
+                section,
+                containing_block,
+                fragment,
+            } => {
+                builder.current_scroll_node_id = *scroll_node_id;
+                builder.current_clip_chain_id = *clip_chain_id;
+                fragment
+                    .borrow()
+                    .build_display_list(builder, containing_block, *section);
+            },
+            Self::AtomicInlineStackingContainer { index } => {
+                inline_stacking_containers[*index].build_display_list(builder);
+            },
+        }
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum StackingContextType {
-    Real,
-    PseudoPositioned,
-    PseudoFloat,
-    PseudoAtomicInline,
+    RealStackingContext,
+    PositionedStackingContainer,
+    FloatStackingContainer,
+    AtomicInlineStackingContainer,
 }
 
-/// A [StackingContext] represents either a stacking context or a stacking
-/// container according to the definitions outlined in
-/// <https://drafts.csswg.org/css-position-4/#painting-order>
-/// Stacking containers are sometimes called "pseudo-stacking contexts"
-/// in the Servo source.
+/// Either a stacking context or a stacking container, per the definitions in
+/// <https://drafts.csswg.org/css-position-4/#painting-order>.
+///
+/// We use the term “real stacking context” in situations that call for a
+/// stacking context but not a stacking container.
 pub struct StackingContext {
     /// The spatial id of this fragment. This is used to properly handle
     /// things like preserve-3d.
     spatial_id: wr::SpatialId,
 
+    /// The clip chain id of this stacking context if it has one. Used for filter clipping.
+    clip_chain_id: Option<wr::ClipChainId>,
+
     /// The fragment that established this stacking context.
     initializing_fragment_style: Option<ServoArc<ComputedValues>>,
 
-    /// The type of this StackingContext. Used for collecting and sorting.
+    /// The type of this stacking context. Used for collecting and sorting.
     context_type: StackingContextType,
 
-    /// Fragments that make up the content of this stacking context.
-    fragments: Vec<StackingContextFragment>,
+    /// The contents that need to be painted in fragment order.
+    contents: Vec<StackingContextContent>,
 
-    /// All non-float stacking context and pseudo stacking context children
-    /// of this stacking context.
-    stacking_contexts: Vec<StackingContext>,
-
-    /// All float stacking container children of this stacking context.
-    /// These are stored separately because they should not be passed up to
-    /// their real stacking context ancestors. From the definition of stacking
-    /// containers from <https://drafts.csswg.org/css-position-4#painting-order>:
-    ///
+    /// Stacking contexts that need to be stolen by the parent stacking context
+    /// if this is a stacking container, that is, real stacking contexts and
+    /// positioned stacking containers (where ‘z-index’ is auto).
+    /// <https://drafts.csswg.org/css-position-4/#paint-a-stacking-container>
     /// > To paint a stacking container, given a box root and a canvas canvas:
     /// >  1. Paint a stacking context given root and canvas, treating root as
     /// >     if it created a new stacking context, but omitting any positioned
     /// >     descendants or descendants that actually create a stacking context
     /// >     (letting the parent stacking context paint them, instead).
-    ///
-    /// Note that all stacking containers / pseudo stacking contexts are passed up
-    /// to parent stacking contexts, except in the case of floats.
-    float_stacking_contexts: Vec<StackingContext>,
+    real_stacking_contexts_and_positioned_stacking_containers: Vec<StackingContext>,
+
+    /// Float stacking containers.
+    /// Separate from real_stacking_contexts_or_positioned_stacking_containers
+    /// because they should never be stolen by the parent stacking context.
+    /// <https://drafts.csswg.org/css-position-4/#paint-a-stacking-container>
+    float_stacking_containers: Vec<StackingContext>,
+
+    /// Atomic inline stacking containers.
+    /// Separate from real_stacking_contexts_or_positioned_stacking_containers
+    /// because they should never be stolen by the parent stacking context, and
+    /// separate from float_stacking_containers so that [StackingContextContent]
+    /// can index into this vec to paint them in fragment order.
+    /// <https://drafts.csswg.org/css-position-4/#paint-a-stacking-container>
+    /// <https://drafts.csswg.org/css-position-4/#paint-a-box-in-a-line-box>
+    atomic_inline_stacking_containers: Vec<StackingContext>,
+
+    /// Information gathered about the painting order, for [Self::debug_print].
+    debug_print_items: Option<RefCell<Vec<DebugPrintItem>>>,
+}
+
+/// Refers to one of the child contents or stacking contexts of a [StackingContext].
+#[derive(Clone, Copy)]
+pub struct DebugPrintItem {
+    field: DebugPrintField,
+    index: usize,
+}
+
+/// Refers to one of the vecs of a [StackingContext].
+#[derive(Clone, Copy)]
+pub enum DebugPrintField {
+    Contents,
+    RealStackingContextsAndPositionedStackingContainers,
+    FloatStackingContainers,
+    AtomicInlineStackingContainers,
 }
 
 impl StackingContext {
-    pub(crate) fn new(
+    fn create_descendant(
+        &self,
         spatial_id: wr::SpatialId,
+        clip_chain_id: Option<wr::ClipChainId>,
         initializing_fragment_style: ServoArc<ComputedValues>,
         context_type: StackingContextType,
     ) -> Self {
         Self {
             spatial_id,
+            clip_chain_id: clip_chain_id,
             initializing_fragment_style: Some(initializing_fragment_style),
             context_type,
-            fragments: vec![],
-            stacking_contexts: vec![],
-            float_stacking_contexts: vec![],
+            contents: vec![],
+            real_stacking_contexts_and_positioned_stacking_containers: vec![],
+            float_stacking_containers: vec![],
+            atomic_inline_stacking_containers: vec![],
+            debug_print_items: self.debug_print_items.is_some().then(|| vec![].into()),
         }
     }
 
-    pub(crate) fn create_root(wr: &wr::DisplayListBuilder) -> Self {
+    pub(crate) fn create_root(wr: &wr::DisplayListBuilder, debug: &DebugOptions) -> Self {
         Self {
             spatial_id: wr::SpaceAndClipInfo::root_scroll(wr.pipeline_id).spatial_id,
+            clip_chain_id: None,
             initializing_fragment_style: None,
-            context_type: StackingContextType::Real,
-            fragments: vec![],
-            stacking_contexts: vec![],
-            float_stacking_contexts: vec![],
+            context_type: StackingContextType::RealStackingContext,
+            contents: vec![],
+            real_stacking_contexts_and_positioned_stacking_containers: vec![],
+            float_stacking_containers: vec![],
+            atomic_inline_stacking_containers: vec![],
+            debug_print_items: debug.dump_stacking_context_tree.then(|| vec![].into()),
         }
     }
 
     /// Add a child stacking context to this stacking context.
     fn add_stacking_context(&mut self, stacking_context: StackingContext) {
-        if stacking_context.context_type == StackingContextType::PseudoFloat {
-            self.float_stacking_contexts.push(stacking_context);
-        } else {
-            self.stacking_contexts.push(stacking_context);
+        match stacking_context.context_type {
+            StackingContextType::RealStackingContext => {
+                &mut self.real_stacking_contexts_and_positioned_stacking_containers
+            },
+            StackingContextType::PositionedStackingContainer => {
+                &mut self.real_stacking_contexts_and_positioned_stacking_containers
+            },
+            StackingContextType::FloatStackingContainer => &mut self.float_stacking_containers,
+            StackingContextType::AtomicInlineStackingContainer => {
+                &mut self.atomic_inline_stacking_containers
+            },
         }
+        .push(stacking_context)
     }
 
     fn z_index(&self) -> i32 {
@@ -300,24 +388,32 @@ impl StackingContext {
     }
 
     pub(crate) fn sort(&mut self) {
-        self.fragments.sort_by(|a, b| a.section.cmp(&b.section));
+        self.contents.sort_by(|a, b| a.section().cmp(&b.section()));
+        self.real_stacking_contexts_and_positioned_stacking_containers
+            .sort_by(|a, b| a.z_index().cmp(&b.z_index()));
 
-        self.stacking_contexts.sort_by(|a, b| {
-            let a_z_index = a.z_index();
-            let b_z_index = b.z_index();
-            if a_z_index != 0 || b_z_index != 0 {
-                return a_z_index.cmp(&b_z_index);
-            }
-
-            match (a.context_type, b.context_type) {
-                (StackingContextType::PseudoFloat, StackingContextType::PseudoFloat) => {
-                    Ordering::Equal
-                },
-                (StackingContextType::PseudoFloat, _) => Ordering::Less,
-                (_, StackingContextType::PseudoFloat) => Ordering::Greater,
-                (_, _) => Ordering::Equal,
-            }
-        });
+        debug_assert!(self
+            .real_stacking_contexts_and_positioned_stacking_containers
+            .iter()
+            .all(|c| match c.context_type {
+                StackingContextType::RealStackingContext |
+                StackingContextType::PositionedStackingContainer => true,
+                _ => false,
+            }));
+        debug_assert!(self
+            .float_stacking_containers
+            .iter()
+            .all(
+                |c| c.context_type == StackingContextType::FloatStackingContainer &&
+                    c.z_index() == 0
+            ));
+        debug_assert!(self
+            .atomic_inline_stacking_containers
+            .iter()
+            .all(
+                |c| c.context_type == StackingContextType::AtomicInlineStackingContainer &&
+                    c.z_index() == 0
+            ));
     }
 
     fn push_webrender_stacking_context_if_necessary(
@@ -340,12 +436,15 @@ impl StackingContext {
             return false;
         }
 
+        let clip_id = self.clip_chain_id.map(wr::ClipId::ClipChain);
+
         // Create the filter pipeline.
+        let current_color = style.clone_color();
         let mut filters: Vec<wr::FilterOp> = effects
             .filter
             .0
             .iter()
-            .map(ToWebRender::to_webrender)
+            .map(|filter| FilterToWebRender::to_webrender(filter, &current_color))
             .collect();
         if effects.opacity != 1.0 {
             filters.push(wr::FilterOp::Opacity(
@@ -364,7 +463,7 @@ impl StackingContext {
             LayoutPoint::zero(), // origin
             self.spatial_id,
             style.get_webrender_primitive_flags(),
-            None, // clip_chain_id
+            clip_id,
             style.get_used_transform_style().to_webrender(),
             effects.mix_blend_mode.to_webrender(),
             &filters,
@@ -420,20 +519,23 @@ impl StackingContext {
         // Let’s find the corresponding fragment.
 
         // The fragment generated by the root element is the first one here, unless…
-        let first_if_any = self.fragments.first().or_else(|| {
+        let first_if_any = self.contents.first().or_else(|| {
             // There wasn’t any `StackingContextFragment` in the root `StackingContext`,
             // because the root element generates a stacking context. Let’s find that one.
-            self.stacking_contexts
+            self.real_stacking_contexts_and_positioned_stacking_containers
                 .first()
                 .and_then(|first_child_stacking_context| {
-                    first_child_stacking_context.fragments.first()
+                    first_child_stacking_context.contents.first()
                 })
         });
 
         macro_rules! debug_panic {
             ($msg: expr) => {
                 if cfg!(debug_assertions) {
-                    panic!($msg)
+                    panic!($msg);
+                } else {
+                    warn!($msg);
+                    return;
                 }
             };
         }
@@ -443,15 +545,17 @@ impl StackingContext {
         } else {
             // This should only happen if the root element has `display: none`
             debug_panic!("`CanvasBackground::for_root_element` should have returned `style: None`");
-            return;
         };
 
-        let fragment = first_stacking_context_fragment.fragment.borrow();
+        let StackingContextContent::Fragment { fragment, scroll_node_id, containing_block, .. }
+            = first_stacking_context_fragment else {
+                debug_panic!("Expected a fragment, not a stacking container");
+            };
+        let fragment = fragment.borrow();
         let box_fragment = match &*fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,
             _ => {
                 debug_panic!("Expected a box-generated fragment");
-                return;
             },
         };
 
@@ -464,7 +568,7 @@ impl StackingContext {
         // The root element may have a CSS transform, and we want the canvas’
         // background image to be transformed. To do so, take its `SpatialId`
         // (but not its `ClipId`)
-        builder.current_scroll_node_id = first_stacking_context_fragment.scroll_node_id;
+        builder.current_scroll_node_id = *scroll_node_id;
 
         // Now we need express the painting area rectangle in the local coordinate system,
         // which differs from the top-level coordinate system based on…
@@ -486,10 +590,8 @@ impl StackingContext {
             }
         }
 
-        let mut fragment_builder = super::BuilderForBoxFragment::new(
-            box_fragment,
-            &first_stacking_context_fragment.containing_block,
-        );
+        let mut fragment_builder =
+            super::BuilderForBoxFragment::new(box_fragment, containing_block);
         let source = super::background::Source::Canvas {
             style,
             painting_area,
@@ -500,61 +602,157 @@ impl StackingContext {
     pub(crate) fn build_display_list(&self, builder: &mut DisplayListBuilder) {
         let pushed_context = self.push_webrender_stacking_context_if_necessary(builder);
 
-        // Properly order display items that make up a stacking context. "Steps" here
-        // refer to the steps in CSS 2.1 Appendix E.
+        // Properly order display items that make up a stacking context.
+        // “Steps” here refer to the steps in CSS 2.1 Appendix E.
+        // Note that “positioned descendants” is generalised to include all descendants that
+        // generate stacking contexts (csswg-drafts#2717), except in the phrase “any positioned
+        // descendants or descendants that actually create a stacking context”, where the term
+        // means positioned descendants that do not generate stacking contexts.
 
         // Steps 1 and 2: Borders and background for the root
-        let mut child_fragments = self.fragments.iter().peekable();
-        while child_fragments.peek().map_or(false, |child| {
-            child.section == StackingContextSection::BackgroundsAndBorders
+        let mut contents = self.contents.iter().enumerate().peekable();
+        while contents.peek().map_or(false, |(_, child)| {
+            child.section() == StackingContextSection::OwnBackgroundsAndBorders
         }) {
-            child_fragments.next().unwrap().build_display_list(builder);
+            let (i, child) = contents.next().unwrap();
+            self.debug_push_print_item(DebugPrintField::Contents, i);
+            child.build_display_list(builder, &self.atomic_inline_stacking_containers);
         }
 
-        // Step 3: Positioned descendants with negative z-indices
-        let mut child_stacking_contexts = self.stacking_contexts.iter().peekable();
-        while child_stacking_contexts
+        // Step 3: Stacking contexts with negative ‘z-index’
+        let mut real_stacking_contexts_and_positioned_stacking_containers = self
+            .real_stacking_contexts_and_positioned_stacking_containers
+            .iter()
+            .enumerate()
+            .peekable();
+        while real_stacking_contexts_and_positioned_stacking_containers
             .peek()
-            .map_or(false, |child| child.z_index() < 0)
+            .map_or(false, |(_, child)| child.z_index() < 0)
         {
-            let child_context = child_stacking_contexts.next().unwrap();
-            child_context.build_display_list(builder);
+            let (i, child) = real_stacking_contexts_and_positioned_stacking_containers
+                .next()
+                .unwrap();
+            self.debug_push_print_item(
+                DebugPrintField::RealStackingContextsAndPositionedStackingContainers,
+                i,
+            );
+            child.build_display_list(builder);
         }
 
         // Step 4: Block backgrounds and borders
-        while child_fragments.peek().map_or(false, |child| {
-            child.section == StackingContextSection::BlockBackgroundsAndBorders
+        while contents.peek().map_or(false, |(_, child)| {
+            child.section() == StackingContextSection::DescendantBackgroundsAndBorders
         }) {
-            child_fragments.next().unwrap().build_display_list(builder);
+            let (i, child) = contents.next().unwrap();
+            self.debug_push_print_item(DebugPrintField::Contents, i);
+            child.build_display_list(builder, &self.atomic_inline_stacking_containers);
         }
 
-        // Step 5: Floats
-        for child_context in &self.float_stacking_contexts {
-            child_context.build_display_list(builder);
+        // Step 5: Float stacking containers
+        for (i, child) in self.float_stacking_containers.iter().enumerate() {
+            self.debug_push_print_item(DebugPrintField::FloatStackingContainers, i);
+            child.build_display_list(builder);
         }
 
-        // Step 6: Content
-        while child_fragments.peek().map_or(false, |child| {
-            child.section == StackingContextSection::Content
+        // Steps 6 and 7: Fragments and inline stacking containers
+        while contents.peek().map_or(false, |(_, child)| {
+            child.section() == StackingContextSection::Foreground
         }) {
-            child_fragments.next().unwrap().build_display_list(builder);
+            let (i, child) = contents.next().unwrap();
+            self.debug_push_print_item(DebugPrintField::Contents, i);
+            child.build_display_list(builder, &self.atomic_inline_stacking_containers);
         }
 
-        // Step 7, 8 & 9: Inlines that generate stacking contexts and positioned
-        // descendants with nonnegative, numeric z-indices
-        for child_context in child_stacking_contexts {
-            child_context.build_display_list(builder);
+        // Steps 8 and 9: Stacking contexts with non-negative ‘z-index’, and
+        // positioned stacking containers (where ‘z-index’ is auto)
+        for (i, child) in real_stacking_contexts_and_positioned_stacking_containers {
+            self.debug_push_print_item(
+                DebugPrintField::RealStackingContextsAndPositionedStackingContainers,
+                i,
+            );
+            child.build_display_list(builder);
         }
 
         // Step 10: Outline
-        while child_fragments.peek().map_or(false, |child| {
-            child.section == StackingContextSection::Outline
+        while contents.peek().map_or(false, |(_, child)| {
+            child.section() == StackingContextSection::Outline
         }) {
-            child_fragments.next().unwrap().build_display_list(builder);
+            let (i, child) = contents.next().unwrap();
+            self.debug_push_print_item(DebugPrintField::Contents, i);
+            child.build_display_list(builder, &self.atomic_inline_stacking_containers);
         }
 
         if pushed_context {
             builder.display_list.wr.pop_stacking_context();
+        }
+    }
+
+    /// Store the fact that something was painted, if [Self::debug_print_items] is not None.
+    ///
+    /// This is used to help reconstruct the original painting order in [Self::debug_print] without
+    /// duplicating our painting order logic, since that could fall out of sync with the real logic.
+    fn debug_push_print_item(&self, field: DebugPrintField, index: usize) {
+        if let Some(items) = self.debug_print_items.as_ref() {
+            items.borrow_mut().push(DebugPrintItem { field, index });
+        }
+    }
+
+    /// Print the stacking context tree.
+    pub fn debug_print(&self) {
+        if self.debug_print_items.is_none() {
+            warn!("failed to print stacking context tree: debug_print_items was None");
+            return;
+        }
+        let mut tree = PrintTree::new("Stacking context tree".to_owned());
+        self.debug_print_with_tree(&mut tree);
+    }
+
+    /// Print a subtree with the given [PrintTree], or panic if [Self::debug_print_items] is None.
+    fn debug_print_with_tree(&self, tree: &mut PrintTree) {
+        match self.context_type {
+            StackingContextType::RealStackingContext => {
+                tree.new_level(format!("{:?} z={}", self.context_type, self.z_index()));
+            },
+            StackingContextType::AtomicInlineStackingContainer => {
+                // do nothing; we print the heading with its index in DebugPrintField::Contents
+            },
+            _ => {
+                tree.new_level(format!("{:?}", self.context_type));
+            },
+        }
+        for DebugPrintItem { field, index } in
+            self.debug_print_items.as_ref().unwrap().borrow().iter()
+        {
+            match field {
+                DebugPrintField::Contents => match self.contents[*index] {
+                    StackingContextContent::Fragment { section, .. } => {
+                        tree.add_item(format!("{:?}", section));
+                    },
+                    StackingContextContent::AtomicInlineStackingContainer { index } => {
+                        tree.new_level(format!("AtomicInlineStackingContainer #{}", index));
+                        self.atomic_inline_stacking_containers[index].debug_print_with_tree(tree);
+                        tree.end_level();
+                    },
+                },
+                DebugPrintField::RealStackingContextsAndPositionedStackingContainers => {
+                    self.real_stacking_contexts_and_positioned_stacking_containers[*index]
+                        .debug_print_with_tree(tree);
+                },
+                DebugPrintField::FloatStackingContainers => {
+                    self.float_stacking_containers[*index].debug_print_with_tree(tree);
+                },
+                DebugPrintField::AtomicInlineStackingContainers => {
+                    // do nothing; we print these in DebugPrintField::Contents
+                },
+            }
+        }
+        match self.context_type {
+            StackingContextType::AtomicInlineStackingContainer => {
+                // do nothing; we print the heading with its index in DebugPrintField::Contents
+            },
+            _ => {
+                tree.end_level();
+            },
         }
     }
 }
@@ -623,13 +821,15 @@ impl Fragment {
                 );
             },
             Fragment::Text(_) | Fragment::Image(_) | Fragment::IFrame(_) => {
-                stacking_context.fragments.push(StackingContextFragment {
-                    section: StackingContextSection::Content,
-                    scroll_node_id: containing_block.scroll_node_id,
-                    clip_chain_id: containing_block.clip_chain_id,
-                    containing_block: containing_block.rect,
-                    fragment: fragment_ref.clone(),
-                });
+                stacking_context
+                    .contents
+                    .push(StackingContextContent::Fragment {
+                        section: StackingContextSection::Foreground,
+                        scroll_node_id: containing_block.scroll_node_id,
+                        clip_chain_id: containing_block.clip_chain_id,
+                        containing_block: containing_block.rect,
+                        fragment: fragment_ref.clone(),
+                    });
             },
         }
     }
@@ -644,20 +844,20 @@ struct ReferenceFrameData {
 impl BoxFragment {
     fn get_stacking_context_type(&self) -> Option<StackingContextType> {
         if self.style.establishes_stacking_context() {
-            return Some(StackingContextType::Real);
+            return Some(StackingContextType::RealStackingContext);
         }
 
         let box_style = &self.style.get_box();
         if box_style.position != ComputedPosition::Static {
-            return Some(StackingContextType::PseudoPositioned);
+            return Some(StackingContextType::PositionedStackingContainer);
         }
 
         if box_style.float != ComputedFloat::None {
-            return Some(StackingContextType::PseudoFloat);
+            return Some(StackingContextType::FloatStackingContainer);
         }
 
         if box_style.display.is_atomic_inline_level() {
-            return Some(StackingContextType::PseudoAtomicInline);
+            return Some(StackingContextType::AtomicInlineStackingContainer);
         }
 
         None
@@ -665,14 +865,14 @@ impl BoxFragment {
 
     fn get_stacking_context_section(&self) -> StackingContextSection {
         if self.get_stacking_context_type().is_some() {
-            return StackingContextSection::BackgroundsAndBorders;
+            return StackingContextSection::OwnBackgroundsAndBorders;
         }
 
         if self.style.get_box().display.outside() == DisplayOutside::Inline {
-            return StackingContextSection::Content;
+            return StackingContextSection::Foreground;
         }
 
-        StackingContextSection::BlockBackgroundsAndBorders
+        StackingContextSection::DescendantBackgroundsAndBorders
     }
 
     fn build_stacking_context_tree(
@@ -777,8 +977,20 @@ impl BoxFragment {
             },
         };
 
-        let mut child_stacking_context = StackingContext::new(
+        if context_type == StackingContextType::AtomicInlineStackingContainer {
+            // Push a dummy fragment that indicates when the new stacking context should be painted.
+            parent_stacking_context.contents.push(
+                StackingContextContent::AtomicInlineStackingContainer {
+                    index: parent_stacking_context
+                        .atomic_inline_stacking_containers
+                        .len(),
+                },
+            );
+        }
+
+        let mut child_stacking_context = parent_stacking_context.create_descendant(
             containing_block.scroll_node_id.spatial_id,
+            Some(containing_block.clip_chain_id),
             self.style.clone(),
             context_type,
         );
@@ -791,9 +1003,10 @@ impl BoxFragment {
         );
 
         let mut stolen_children = vec![];
-        if context_type != StackingContextType::Real {
+        if context_type != StackingContextType::RealStackingContext {
             stolen_children = mem::replace(
-                &mut child_stacking_context.stacking_contexts,
+                &mut child_stacking_context
+                    .real_stacking_contexts_and_positioned_stacking_containers,
                 stolen_children,
             );
         }
@@ -801,7 +1014,7 @@ impl BoxFragment {
         child_stacking_context.sort();
         parent_stacking_context.add_stacking_context(child_stacking_context);
         parent_stacking_context
-            .stacking_contexts
+            .real_stacking_contexts_and_positioned_stacking_containers
             .append(&mut stolen_children);
     }
 
@@ -824,21 +1037,25 @@ impl BoxFragment {
             new_clip_chain_id = clip_chain_id;
         }
 
-        stacking_context.fragments.push(StackingContextFragment {
-            scroll_node_id: new_scroll_node_id,
-            clip_chain_id: new_clip_chain_id,
-            section: self.get_stacking_context_section(),
-            containing_block: containing_block.rect,
-            fragment: fragment.clone(),
-        });
-        if self.style.get_outline().outline_width.px() > 0.0 {
-            stacking_context.fragments.push(StackingContextFragment {
+        stacking_context
+            .contents
+            .push(StackingContextContent::Fragment {
                 scroll_node_id: new_scroll_node_id,
                 clip_chain_id: new_clip_chain_id,
-                section: StackingContextSection::Outline,
+                section: self.get_stacking_context_section(),
                 containing_block: containing_block.rect,
                 fragment: fragment.clone(),
             });
+        if self.style.get_outline().outline_width.px() > 0.0 {
+            stacking_context
+                .contents
+                .push(StackingContextContent::Fragment {
+                    scroll_node_id: new_scroll_node_id,
+                    clip_chain_id: new_clip_chain_id,
+                    section: StackingContextSection::Outline,
+                    containing_block: containing_block.rect,
+                    fragment: fragment.clone(),
+                });
         }
 
         // We want to build the scroll frame after the background and border, because

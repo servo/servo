@@ -16,102 +16,100 @@ Component-wise when T is a vector.
 `;
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { kBit } from '../../../../../util/constants.js';
+import { kValue } from '../../../../../util/constants.js';
 import {
-  i32,
-  i32Bits,
   TypeF32,
+  TypeF16,
   TypeI32,
   TypeU32,
-  u32,
-  u32Bits,
+  TypeAbstractFloat,
 } from '../../../../../util/conversion.js';
 import { FP } from '../../../../../util/floating_point.js';
-import { sparseF32Range } from '../../../../../util/math.js';
+import { sparseF32Range, sparseF16Range, sparseF64Range } from '../../../../../util/math.js';
 import { makeCaseCache } from '../../case_cache.js';
-import { allInputSources, run } from '../../expression.js';
+import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
 
-import { builtin } from './builtin.js';
+import { abstractBuiltin, builtin } from './builtin.js';
 
 export const g = makeTestGroup(GPUTest);
 
+const u32Values = [0, 1, 2, 3, 0x70000000, 0x80000000, kValue.u32.max];
+
+const i32Values = [
+  kValue.i32.negative.min,
+  -3,
+  -2,
+  -1,
+  0,
+  1,
+  2,
+  3,
+  0x70000000,
+  kValue.i32.positive.max,
+];
+
 export const d = makeCaseCache('clamp', {
-  u32: () => {
-    // This array must be strictly increasing, since that ordering determines
-    // the expected values.
-    const test_values = [
-      u32Bits(kBit.u32.min),
-      u32(1),
-      u32(2),
-      u32(0x70000000),
-      u32(0x80000000),
-      u32Bits(kBit.u32.max),
-    ];
-
-    return generateIntegerTestCases(test_values);
+  u32_non_const: () => {
+    return generateIntegerTestCases(u32Values, TypeU32, 'non-const');
   },
-  i32: () => {
-    // This array must be strictly increasing, since that ordering determines
-    // the expected values.
-    const test_values = [
-      i32Bits(kBit.i32.negative.min),
-      i32(-2),
-      i32(-1),
-      i32(0),
-      i32(1),
-      i32(2),
-      i32Bits(0x70000000),
-      i32Bits(kBit.i32.positive.max),
-    ];
-
-    return generateIntegerTestCases(test_values);
+  u32_const: () => {
+    return generateIntegerTestCases(u32Values, TypeU32, 'const');
+  },
+  i32_non_const: () => {
+    return generateIntegerTestCases(i32Values, TypeI32, 'non-const');
+  },
+  i32_const: () => {
+    return generateIntegerTestCases(i32Values, TypeI32, 'const');
   },
   f32_const: () => {
-    return FP.f32.generateScalarTripleToIntervalCases(
-      sparseF32Range(),
-      sparseF32Range(),
-      sparseF32Range(),
-      'finite',
-      ...FP.f32.clampIntervals
-    );
+    return generateFloatTestCases(sparseF32Range(), 'f32', 'const');
   },
   f32_non_const: () => {
-    return FP.f32.generateScalarTripleToIntervalCases(
-      sparseF32Range(),
-      sparseF32Range(),
-      sparseF32Range(),
-      'unfiltered',
-      ...FP.f32.clampIntervals
-    );
+    return generateFloatTestCases(sparseF32Range(), 'f32', 'non-const');
+  },
+  f16_const: () => {
+    return generateFloatTestCases(sparseF16Range(), 'f16', 'const');
+  },
+  f16_non_const: () => {
+    return generateFloatTestCases(sparseF16Range(), 'f16', 'non-const');
+  },
+  abstract: () => {
+    return generateFloatTestCases(sparseF64Range(), 'abstract', 'const');
   },
 });
 
-/**
- * Calculates clamp using the min-max formula.
- * clamp(e, f, g) = min(max(e, f), g)
- *
- * Operates on indices of an ascending sorted array, instead of the actual
- * values to avoid rounding issues.
- *
- * @returns the index of the clamped value
- */
-function calculateMinMaxClamp(ei, fi, gi) {
-  return Math.min(Math.max(ei, fi), gi);
+/** @returns a set of clamp test cases from an ascending list of integer values */
+function generateIntegerTestCases(test_values, type, stage) {
+  return test_values.flatMap(low =>
+    test_values.flatMap(high =>
+      stage === 'const' && low > high
+        ? []
+        : test_values.map(e => ({
+            input: [type.create(e), type.create(low), type.create(high)],
+            expected: type.create(Math.min(Math.max(e, low), high)),
+          }))
+    )
+  );
 }
 
-/** @returns a set of clamp test cases from an ascending list of integer values */
-function generateIntegerTestCases(test_values) {
-  const cases = new Array();
-  test_values.forEach((e, ei) => {
-    test_values.forEach((f, fi) => {
-      test_values.forEach((g, gi) => {
-        const expected_idx = calculateMinMaxClamp(ei, fi, gi);
-        const expected = test_values[expected_idx];
-        cases.push({ input: [e, f, g], expected });
-      });
-    });
-  });
-  return cases;
+function generateFloatTestCases(test_values, trait, stage) {
+  return test_values.flatMap(low =>
+    test_values.flatMap(high =>
+      stage === 'const' && low > high
+        ? []
+        : test_values.flatMap(e => {
+            const c = FP[trait].makeScalarTripleToIntervalCase(
+              e,
+              low,
+              high,
+              stage === 'const' ? 'finite' : 'unfiltered',
+              ...FP[trait].clampIntervals
+            );
+
+            return c === undefined ? [] : [c];
+          })
+    )
+  );
 }
 
 g.test('abstract_int')
@@ -125,7 +123,7 @@ g.test('u32')
   .desc(`u32 tests`)
   .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
   .fn(async t => {
-    const cases = await d.get('u32');
+    const cases = await d.get(t.params.inputSource === 'const' ? 'u32_const' : 'u32_non_const');
     await run(t, builtin('clamp'), [TypeU32, TypeU32, TypeU32], TypeU32, t.params, cases);
   });
 
@@ -134,15 +132,27 @@ g.test('i32')
   .desc(`i32 tests`)
   .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
   .fn(async t => {
-    const cases = await d.get('i32');
+    const cases = await d.get(t.params.inputSource === 'const' ? 'i32_const' : 'i32_non_const');
     await run(t, builtin('clamp'), [TypeI32, TypeI32, TypeI32], TypeI32, t.params, cases);
   });
 
 g.test('abstract_float')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
   .desc(`abstract float tests`)
-  .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
-  .unimplemented();
+  .params(u =>
+    u.combine('inputSource', onlyConstInputSource).combine('vectorize', [undefined, 2, 3, 4])
+  )
+  .fn(async t => {
+    const cases = await d.get('abstract');
+    await run(
+      t,
+      abstractBuiltin('clamp'),
+      [TypeAbstractFloat, TypeAbstractFloat, TypeAbstractFloat],
+      TypeAbstractFloat,
+      t.params,
+      cases
+    );
+  });
 
 g.test('f32')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
@@ -157,4 +167,10 @@ g.test('f16')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
   .desc(`f16 tests`)
   .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
-  .unimplemented();
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  })
+  .fn(async t => {
+    const cases = await d.get(t.params.inputSource === 'const' ? 'f16_const' : 'f16_non_const');
+    await run(t, builtin('clamp'), [TypeF16, TypeF16, TypeF16], TypeF16, t.params, cases);
+  });

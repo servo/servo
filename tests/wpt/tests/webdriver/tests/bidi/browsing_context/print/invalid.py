@@ -124,6 +124,8 @@ async def test_params_page_invalid_type(bidi_session, top_context, page):
     [
         {"height": -1},
         {"width": -1},
+        {"height": 0.03},
+        {"width": 0.03},
     ],
 )
 async def test_params_page_invalid_value(bidi_session, top_context, page):

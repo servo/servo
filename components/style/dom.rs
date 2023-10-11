@@ -12,7 +12,6 @@ use crate::context::SharedStyleContext;
 #[cfg(feature = "gecko")]
 use crate::context::{PostAnimationTasks, UpdateAnimationsTasks};
 use crate::data::ElementData;
-use crate::element_state::ElementState;
 use crate::media_queries::Device;
 use crate::properties::{AnimationDeclarations, ComputedValues, PropertyDeclarationBlock};
 use crate::selector_parser::{AttrValue, Lang, PseudoElement, SelectorImpl};
@@ -30,6 +29,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Deref;
+use style_traits::dom::ElementState;
 
 pub use style_traits::dom::OpaqueNode;
 

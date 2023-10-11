@@ -4,9 +4,9 @@
 
 use dom_struct::dom_struct;
 use webgpu::wgt::Limits;
-use GPUSupportedLimitsBinding::GPUSupportedLimitsMethods;
+use GPUSupportedLimits_Binding::GPUSupportedLimitsMethods;
 
-use super::bindings::codegen::Bindings::GPUSupportedLimitsBinding::GPUSupportedLimitsBinding;
+use super::bindings::codegen::Bindings::WebGPUBinding::GPUSupportedLimits_Binding;
 use super::bindings::reflector::reflect_dom_object;
 use super::bindings::root::DomRoot;
 use crate::dom::bindings::reflector::Reflector;

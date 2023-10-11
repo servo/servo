@@ -152,7 +152,7 @@ async function verifyKeyValueForOrigin(key, value, origin) {
       '/shared-storage/resources/verify-key-value.https.html',
       [outerKey, innerKey]);
   iframeUrl = updateUrlToUseNewOrigin(iframeUrl, origin);
-  appendExpectedKeyAndValue(iframeUrl, key, value);
+  iframeUrl = appendExpectedKeyAndValue(iframeUrl, key, value);
 
   attachIFrame(iframeUrl);
   const result = await nextValueFromServer(outerKey);
@@ -166,7 +166,7 @@ async function verifyKeyNotFoundForOrigin(key, origin) {
       '/shared-storage/resources/verify-key-not-found.https.html',
       [outerKey, innerKey]);
   iframeUrl = updateUrlToUseNewOrigin(iframeUrl, origin);
-  appendExpectedKey(iframeUrl, key);
+  iframeUrl = appendExpectedKey(iframeUrl, key);
 
   attachIFrame(iframeUrl);
   const result = await nextValueFromServer(outerKey);
@@ -178,7 +178,7 @@ async function setKeyValueForOrigin(key, value, origin) {
   let setIframeUrl = generateURL(
       '/shared-storage/resources/set-key-value.https.html', [outerKey]);
   setIframeUrl = updateUrlToUseNewOrigin(setIframeUrl, origin);
-  appendExpectedKeyAndValue(setIframeUrl, key, value);
+  setIframeUrl = appendExpectedKeyAndValue(setIframeUrl, key, value);
 
   attachIFrame(setIframeUrl);
   const result = await nextValueFromServer(outerKey);
@@ -190,7 +190,7 @@ async function deleteKeyForOrigin(key, origin) {
   let deleteIframeUrl = generateURL(
       '/shared-storage/resources/delete-key.https.html', [outerKey]);
   deleteIframeUrl = updateUrlToUseNewOrigin(deleteIframeUrl, origin);
-  appendExpectedKey(deleteIframeUrl, key);
+  deleteIframeUrl = appendExpectedKey(deleteIframeUrl, key);
 
   attachIFrame(deleteIframeUrl);
   const result = await nextValueFromServer(outerKey);

@@ -10,11 +10,19 @@
 <style>
   #target {
     color: blue;
+    outline-style: auto;
+    outline-color: auto;
+  }
+  #target2 {
+    color: blue;
+    outline-style: solid;
+    outline-color: auto;
   }
 </style>
 </head>
 <body>
 <div id="target"></div>
+<div id="target2"></div>
 <script>
 'use strict';
 const currentColor = "rgb(0, 0, 255)";
@@ -23,10 +31,10 @@ test_computed_value("outline-color", "red", "rgb(255, 0, 0)");
 
 test(() => {
   const target = document.getElementById('target');
-  target.style.outlineColor = 'invert';
-  if (target.style.outlineColor === 'invert')
-    assert_equals(getComputedStyle(target).outlineColor, 'invert');
-}, 'invert, if supported, computes to invert');
+  const target2 = document.getElementById('target2');
+  assert_equals(getComputedStyle(target).outlineColor, 'auto');
+  assert_equals(getComputedStyle(target2).outlineColor, currentColor);
+}, 'auto computes to itself or to currentColor depending on the value of outline-style');
 </script>
 </body>
 </html>

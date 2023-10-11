@@ -11,7 +11,7 @@
     <meta name="assert" content="
       When dir='auto', the direction is set according to the first strong character
       of the text, ignoring neutrals and numbers.
-      If there is no strong character, as in this test, the direction defaults to LTR." />
+      If there is no strong character, as in this test, the direction defaults to the parent." />
     <style>
       input, textarea {
         font-size:1em;
@@ -44,7 +44,7 @@
         <p dir="ltr">@123!</p>
       </div>
       <div dir="rtl">
-        <p dir="ltr">@123!</p>
+        <p dir="rtl">@123!</p>
       </div>
     </div>
   </body>

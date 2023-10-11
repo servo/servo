@@ -1,0 +1,43 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: innerText</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="innerText is empty for skipped content due to content-visibility auto">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<div id="container">
+This text should be visible.
+<div style="content-visibility: auto">
+  This text should be visible.
+  <div id="inner">This text is also visible.<br/>
+  </div>
+</div>
+<div id=spacer style="height: 300vh"></div>
+<div style="content-visibility: auto">
+  This text should not be visible.
+  <div id="inner2">
+    This text is also not visible.
+  </div>
+</div>
+</div>
+
+<script>
+async_test((t) => {
+  function step1() {
+    t.step(() => {
+      assert_equals(document.getElementById("container").innerText, "This text should be visible.\nThis text should be visible.\nThis text is also visible.\n");
+      assert_equals(document.getElementById("inner").innerText, "This text is also visible.\n");
+      assert_equals(document.getElementById("inner2").innerText, "");
+    });
+    t.done();
+  }
+
+  requestAnimationFrame(() => requestAnimationFrame(step1));
+});
+</script>
+</html>

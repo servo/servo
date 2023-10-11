@@ -194,5 +194,45 @@ test_no_interpolation({
   from: '10px 20px yellow, 5px 10px green',
   to: 'inset 5px 10px green, 15px 20px blue'
 });
+
+// Test CSS color 4 color types
+test_interpolation({
+  property: 'box-shadow',
+  from: '10px 10px 10px 10px rgb(0 0 0)',
+  to: '10px 10px 10px 10px color(srgb 1 1 1)',
+}, [
+{at: -0.3, expect: '10px 10px 10px 10px oklab(0 0 0)'},
+  {at: 0, expect: '10px 10px 10px 10px oklab(0 0 0)'},
+  {at: 0.3, expect: '10px 10px 10px 10px oklab(0.3 0 0)'},
+  {at: 0.6, expect: '10px 10px 10px 10px oklab(0.6 0 0)'},
+  {at: 1, expect: '10px 10px 10px 10px oklab(1 0 0)'},
+  {at: 1.5, expect: '10px 10px 10px 10px oklab(1 0 0)'},
+]);
+
+test_interpolation({
+  property: 'box-shadow',
+  from: '10px 10px 10px 10px color(srgb 0, 0, 0)',
+  to: '10px 10px 10px 10px rgb(255 255 255)',
+}, [
+{at: -0.3, expect: '10px 10px 10px 10px oklab(0 0 0)'},
+  {at: 0, expect: '10px 10px 10px 10px oklab(0 0 0)'},
+  {at: 0.3, expect: '10px 10px 10px 10px oklab(0.3 0 0)'},
+  {at: 0.6, expect: '10px 10px 10px 10px oklab(0.6 0 0)'},
+  {at: 1, expect: '10px 10px 10px 10px oklab(1 0 0)'},
+  {at: 1.5, expect: '10px 10px 10px 10px oklab(1 0 0)'},
+]);
+
+test_interpolation({
+  property: 'box-shadow',
+  from: '10px 10px 10px 10px color(srgb 0, 0, 0)',
+  to: '10px 10px 10px 10px color(srgb 1 1 1)',
+}, [
+{at: -0.3, expect: '10px 10px 10px 10px oklab(0 0 0)'},
+  {at: 0, expect: '10px 10px 10px 10px oklab(0 0 0)'},
+  {at: 0.3, expect: '10px 10px 10px 10px oklab(0.3 0 0)'},
+  {at: 0.6, expect: '10px 10px 10px 10px oklab(0.6 0 0)'},
+  {at: 1, expect: '10px 10px 10px 10px oklab(1 0 0)'},
+  {at: 1.5, expect: '10px 10px 10px 10px oklab(1 0 0)'},
+]);
 </script>
 </body>

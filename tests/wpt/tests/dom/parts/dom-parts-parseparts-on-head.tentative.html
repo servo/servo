@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head parseparts>
+  <title>{{#}}{{/}}DOM Parts: parseparts on head</title>
+
+<meta name="author" href="mailto:masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/domparts-utils.js"></script>
+
+<!-- no explicit body element-->
+<div>{{#}}Parts{{/}}</div>
+
+<script>
+  test(() => {
+    const target = document.currentScript.previousElementSibling;
+    assert_true(document.head.hasAttribute('parseparts'));
+    assert_false(document.body.hasAttribute('parseparts'));
+    assert_equals(target.previousSibling,null,'The div is the first thing in body, everything else in head');
+    const root = document.getPartRoot();
+    assert_equals(root.getParts().length,0,'No parts should be recognized');
+    assert_equals(target.innerHTML,'{{#}}Parts{{/}}');
+    const titleElement = document.head.querySelector('title');
+    assert_true(titleElement instanceof HTMLTitleElement);
+    assert_equals(titleElement.innerHTML,'{{#}}{{/}}DOM Parts: parseparts on head');
+    target.remove();
+  }, 'It is not possible to put parseparts on the head element');
+</script>

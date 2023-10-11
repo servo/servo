@@ -15,39 +15,7 @@ import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { kTextureFormatInfo, kValidTextureFormatsForCopyE2T } from '../../format_info.js';
 import { CopyToTextureUtils, kCopySubrectInfo } from '../../util/copy_to_texture.js';
 
-import { TexelView } from '../../util/texture/texel_view.js';
-
-// None of the dst texture format is 'uint' or 'sint', so we can always use float value.
-const kColors = {
-  Red: { R: 1.0, G: 0.0, B: 0.0, A: 1.0 },
-  Green: { R: 0.0, G: 1.0, B: 0.0, A: 1.0 },
-  Blue: { R: 0.0, G: 0.0, B: 1.0, A: 1.0 },
-  Black: { R: 0.0, G: 0.0, B: 0.0, A: 1.0 },
-  White: { R: 1.0, G: 1.0, B: 1.0, A: 1.0 },
-  SemitransparentWhite: { R: 1.0, G: 1.0, B: 1.0, A: 0.6 },
-};
-const kTestColorsOpaque = [kColors.Red, kColors.Green, kColors.Blue, kColors.Black, kColors.White];
-
-const kTestColorsAll = [...kTestColorsOpaque, kColors.SemitransparentWhite];
-
-function makeTestColorsTexelView({ testColors, format, width, height, premultiplied, flipY }) {
-  return TexelView.fromTexelsAsColors(format, coords => {
-    const y = flipY ? height - coords.y - 1 : coords.y;
-    const pixelPos = y * width + coords.x;
-    const currentPixel = testColors[pixelPos % testColors.length];
-
-    if (premultiplied && currentPixel.A !== 1.0) {
-      return {
-        R: currentPixel.R * currentPixel.A,
-        G: currentPixel.G * currentPixel.A,
-        B: currentPixel.B * currentPixel.A,
-        A: currentPixel.A,
-      };
-    } else {
-      return currentPixel;
-    }
-  });
-}
+import { kTestColorsAll, kTestColorsOpaque, makeTestColorsTexelView } from './util.js';
 
 export const g = makeTestGroup(CopyToTextureUtils);
 
@@ -71,10 +39,10 @@ g.test('from_ImageData')
   is flipped.
 
   The tests covers:
-  - Valid dstColorFormat of copyExternalImageToTexture()
+  - Valid dstFormat of copyExternalImageToTexture()
   - Valid source image alphaMode
   - Valid dest alphaMode
-  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcDoFlipYDuringCopy' in cases)
+  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcFlipYInCopy' in cases)
 
   And the expected results are all passed.
   `
@@ -83,22 +51,27 @@ g.test('from_ImageData')
     u
       .combine('alpha', ['none', 'premultiply'])
       .combine('orientation', ['none', 'flipY'])
-      .combine('srcDoFlipYDuringCopy', [true, false])
-      .combine('dstColorFormat', kValidTextureFormatsForCopyE2T)
+      .combine('colorSpaceConversion', ['none', 'default'])
+      .combine('srcFlipYInCopy', [true, false])
+      .combine('dstFormat', kValidTextureFormatsForCopyE2T)
       .combine('dstPremultiplied', [true, false])
       .beginSubcases()
       .combine('width', [1, 2, 4, 15, 255, 256])
       .combine('height', [1, 2, 4, 15, 255, 256])
   )
+  .beforeAllSubcases(t => {
+    t.skipIfTextureFormatNotSupported(t.params.dstFormat);
+  })
   .fn(async t => {
     const {
       width,
       height,
       alpha,
       orientation,
-      dstColorFormat,
+      colorSpaceConversion,
+      dstFormat,
       dstPremultiplied,
-      srcDoFlipYDuringCopy,
+      srcFlipYInCopy,
     } = t.params;
 
     const testColors = kTestColorsAll;
@@ -123,16 +96,17 @@ g.test('from_ImageData')
     const imageBitmap = await createImageBitmap(imageData, {
       premultiplyAlpha: alpha,
       imageOrientation: orientation,
+      colorSpaceConversion,
     });
 
     const dst = t.device.createTexture({
       size: { width, height },
-      format: dstColorFormat,
+      format: dstFormat,
       usage:
         GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
     });
 
-    const expFormat = kTextureFormatInfo[dstColorFormat].baseFormat ?? dstColorFormat;
+    const expFormat = kTextureFormatInfo[dstFormat].baseFormat ?? dstFormat;
     const flipSrcBeforeCopy = orientation === 'flipY';
     const texelViewExpected = t.getExpectedDstPixelsFromSrcPixels({
       srcPixels: imageData.data,
@@ -143,7 +117,7 @@ g.test('from_ImageData')
       subRectSize: [width, height],
       format: expFormat,
       flipSrcBeforeCopy,
-      srcDoFlipYDuringCopy,
+      srcDoFlipYDuringCopy: srcFlipYInCopy,
       conversion: {
         srcPremultiplied: false,
         dstPremultiplied,
@@ -151,7 +125,7 @@ g.test('from_ImageData')
     });
 
     t.doTestAndCheckResult(
-      { source: imageBitmap, origin: { x: 0, y: 0 }, flipY: srcDoFlipYDuringCopy },
+      { source: imageBitmap, origin: { x: 0, y: 0 }, flipY: srcFlipYInCopy },
       {
         texture: dst,
         origin: { x: 0, y: 0 },
@@ -186,10 +160,10 @@ g.test('from_canvas')
 
   The tests covers:
   - Valid 2D canvas
-  - Valid dstColorFormat of copyExternalImageToTexture()
+  - Valid dstFormat of copyExternalImageToTexture()
   - Valid source image alphaMode
   - Valid dest alphaMode
-  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcDoFlipYDuringCopy' in cases)
+  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcFlipYInCopy' in cases)
 
   And the expected results are all passed.
   `
@@ -197,21 +171,26 @@ g.test('from_canvas')
   .params(u =>
     u
       .combine('orientation', ['none', 'flipY'])
-      .combine('srcDoFlipYDuringCopy', [true, false])
-      .combine('dstColorFormat', kValidTextureFormatsForCopyE2T)
+      .combine('colorSpaceConversion', ['none', 'default'])
+      .combine('srcFlipYInCopy', [true, false])
+      .combine('dstFormat', kValidTextureFormatsForCopyE2T)
       .combine('dstPremultiplied', [true, false])
       .beginSubcases()
       .combine('width', [1, 2, 4, 15, 255, 256])
       .combine('height', [1, 2, 4, 15, 255, 256])
   )
+  .beforeAllSubcases(t => {
+    t.skipIfTextureFormatNotSupported(t.params.dstFormat);
+  })
   .fn(async t => {
     const {
       width,
       height,
       orientation,
-      dstColorFormat,
+      colorSpaceConversion,
+      dstFormat,
       dstPremultiplied,
-      srcDoFlipYDuringCopy,
+      srcFlipYInCopy,
     } = t.params;
 
     // CTS sometimes runs on worker threads, where document is not available.
@@ -264,16 +243,17 @@ g.test('from_canvas')
     const imageBitmap = await createImageBitmap(imageCanvas, {
       premultiplyAlpha: 'premultiply',
       imageOrientation: orientation,
+      colorSpaceConversion,
     });
 
     const dst = t.device.createTexture({
       size: { width, height },
-      format: dstColorFormat,
+      format: dstFormat,
       usage:
         GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
     });
 
-    const expFormat = kTextureFormatInfo[dstColorFormat].baseFormat ?? dstColorFormat;
+    const expFormat = kTextureFormatInfo[dstFormat].baseFormat ?? dstFormat;
     const flipSrcBeforeCopy = orientation === 'flipY';
     const texelViewExpected = t.getExpectedDstPixelsFromSrcPixels({
       srcPixels: imageData.data,
@@ -284,7 +264,7 @@ g.test('from_canvas')
       subRectSize: [width, height],
       format: expFormat,
       flipSrcBeforeCopy,
-      srcDoFlipYDuringCopy,
+      srcDoFlipYDuringCopy: srcFlipYInCopy,
       conversion: {
         srcPremultiplied: false,
         dstPremultiplied,
@@ -292,7 +272,7 @@ g.test('from_canvas')
     });
 
     t.doTestAndCheckResult(
-      { source: imageBitmap, origin: { x: 0, y: 0 }, flipY: srcDoFlipYDuringCopy },
+      { source: imageBitmap, origin: { x: 0, y: 0 }, flipY: srcFlipYInCopy },
       {
         texture: dst,
         origin: { x: 0, y: 0 },
@@ -328,10 +308,10 @@ g.test('copy_subrect_from_ImageData')
 
   The tests covers:
   - Source WebGPU Canvas lives in the same GPUDevice or different GPUDevice as test
-  - Valid dstColorFormat of copyExternalImageToTexture()
+  - Valid dstFormat of copyExternalImageToTexture()
   - Valid source image alphaMode
   - Valid dest alphaMode
-  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcDoFlipYDuringCopy' in cases)
+  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcFlipYInCopy' in cases)
   - Valid subrect copies.
 
   And the expected results are all passed.
@@ -341,7 +321,8 @@ g.test('copy_subrect_from_ImageData')
     u
       .combine('alpha', ['none', 'premultiply'])
       .combine('orientation', ['none', 'flipY'])
-      .combine('srcDoFlipYDuringCopy', [true, false])
+      .combine('colorSpaceConversion', ['none', 'default'])
+      .combine('srcFlipYInCopy', [true, false])
       .combine('dstPremultiplied', [true, false])
       .beginSubcases()
       .combine('copySubRectInfo', kCopySubrectInfo)
@@ -351,8 +332,9 @@ g.test('copy_subrect_from_ImageData')
       copySubRectInfo,
       alpha,
       orientation,
+      colorSpaceConversion,
       dstPremultiplied,
-      srcDoFlipYDuringCopy,
+      srcFlipYInCopy,
     } = t.params;
 
     const testColors = kTestColorsAll;
@@ -379,6 +361,7 @@ g.test('copy_subrect_from_ImageData')
     const imageBitmap = await createImageBitmap(imageData, {
       premultiplyAlpha: alpha,
       imageOrientation: orientation,
+      colorSpaceConversion,
     });
 
     const dst = t.device.createTexture({
@@ -398,7 +381,7 @@ g.test('copy_subrect_from_ImageData')
       subRectSize: copyExtent,
       format: kColorFormat,
       flipSrcBeforeCopy,
-      srcDoFlipYDuringCopy,
+      srcDoFlipYDuringCopy: srcFlipYInCopy,
       conversion: {
         srcPremultiplied: false,
         dstPremultiplied,
@@ -406,7 +389,7 @@ g.test('copy_subrect_from_ImageData')
     });
 
     t.doTestAndCheckResult(
-      { source: imageBitmap, origin: srcOrigin, flipY: srcDoFlipYDuringCopy },
+      { source: imageBitmap, origin: srcOrigin, flipY: srcFlipYInCopy },
       {
         texture: dst,
         origin: dstOrigin,
@@ -442,10 +425,10 @@ g.test('copy_subrect_from_2D_Canvas')
 
   The tests covers:
   - Source WebGPU Canvas lives in the same GPUDevice or different GPUDevice as test
-  - Valid dstColorFormat of copyExternalImageToTexture()
+  - Valid dstFormat of copyExternalImageToTexture()
   - Valid source image alphaMode
   - Valid dest alphaMode
-  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcDoFlipYDuringCopy' in cases)
+  - Valid 'flipY' config in 'GPUImageCopyExternalImage' (named 'srcFlipYInCopy' in cases)
   - Valid subrect copies.
 
   And the expected results are all passed.
@@ -454,13 +437,20 @@ g.test('copy_subrect_from_2D_Canvas')
   .params(u =>
     u
       .combine('orientation', ['none', 'flipY'])
-      .combine('srcDoFlipYDuringCopy', [true, false])
+      .combine('colorSpaceConversion', ['none', 'default'])
+      .combine('srcFlipYInCopy', [true, false])
       .combine('dstPremultiplied', [true, false])
       .beginSubcases()
       .combine('copySubRectInfo', kCopySubrectInfo)
   )
   .fn(async t => {
-    const { copySubRectInfo, orientation, dstPremultiplied, srcDoFlipYDuringCopy } = t.params;
+    const {
+      copySubRectInfo,
+      orientation,
+      colorSpaceConversion,
+      dstPremultiplied,
+      srcFlipYInCopy,
+    } = t.params;
 
     const { srcOrigin, dstOrigin, srcSize, dstSize, copyExtent } = copySubRectInfo;
     const kColorFormat = 'rgba8unorm';
@@ -515,6 +505,7 @@ g.test('copy_subrect_from_2D_Canvas')
     const imageBitmap = await createImageBitmap(imageCanvas, {
       premultiplyAlpha: 'premultiply',
       imageOrientation: orientation,
+      colorSpaceConversion,
     });
 
     const dst = t.device.createTexture({
@@ -534,7 +525,7 @@ g.test('copy_subrect_from_2D_Canvas')
       subRectSize: copyExtent,
       format: kColorFormat,
       flipSrcBeforeCopy,
-      srcDoFlipYDuringCopy,
+      srcDoFlipYDuringCopy: srcFlipYInCopy,
       conversion: {
         srcPremultiplied: false,
         dstPremultiplied,
@@ -542,7 +533,7 @@ g.test('copy_subrect_from_2D_Canvas')
     });
 
     t.doTestAndCheckResult(
-      { source: imageBitmap, origin: srcOrigin, flipY: srcDoFlipYDuringCopy },
+      { source: imageBitmap, origin: srcOrigin, flipY: srcFlipYInCopy },
       {
         texture: dst,
         origin: dstOrigin,

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::{namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
-use style::element_state::ElementState;
+use style_traits::dom::ElementState;
 
 use crate::dom::bindings::codegen::Bindings::SVGElementBinding::SVGElementMethods;
 use crate::dom::bindings::inheritance::Castable;

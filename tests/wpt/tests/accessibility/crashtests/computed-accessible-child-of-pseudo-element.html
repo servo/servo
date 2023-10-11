@@ -6,17 +6,27 @@
 <h1>Heading</h1>
 
 <script>
-async function trigger1() {
-  let heading = document.querySelector('h1');
-  let computed_accessible_node = await self.getComputedAccessibleNode(heading);
-  let first_child = computed_accessible_node.firstChild;
-  // The first child of the heading is a pseudo element <table>.
-  await first_child.ensureUpToDate();
-  // The next child down has an accessibility object but no node.
-  let grand_child = first_child.firstChild;
-  await grand_child.ensureUpToDate();
+
+// Bypass this abandoned syntax in all but the engines that implement it.
+if (typeof getComputedAccessibleNode !== 'undefined') {
+
+  async function trigger1() {
+    let heading = document.querySelector('h1');
+    let computed_accessible_node = await self.getComputedAccessibleNode(heading);
+    let first_child = computed_accessible_node.firstChild;
+    // The first child of the heading is a pseudo element <table>.
+    await first_child.ensureUpToDate();
+    // The next child down has an accessibility object but no node.
+    let grand_child = first_child.firstChild;
+    await grand_child.ensureUpToDate();
+    document.documentElement.className = '';
+  }
+  trigger1();
+
+} else {
+  // Pass in other engines that have not implemented the abandoned API
   document.documentElement.className = '';
 }
-trigger1();
+
 </script>
 </html>

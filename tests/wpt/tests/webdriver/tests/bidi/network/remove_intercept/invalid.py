@@ -16,8 +16,8 @@ async def test_params_intercept_invalid_value(bidi_session, value):
         await bidi_session.network.remove_intercept(intercept=value)
 
 
-async def test_params_intercept_removed_intercept(bidi_session):
-    intercept = await bidi_session.network.add_intercept(
+async def test_params_intercept_removed_intercept(bidi_session, add_intercept):
+    intercept = await add_intercept(
         phases=["beforeRequestSent"],
         url_patterns=[{"type": "string", "pattern": "https://example.com"}],
     )

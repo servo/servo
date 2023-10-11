@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use euclid::Size2D;
 use webxr_api::Viewport;
 
-use crate::dom::bindings::codegen::Bindings::XRWebGLSubImageBinding::XRWebGLSubImageBinding::XRWebGLSubImageMethods;
+use crate::dom::bindings::codegen::Bindings::XRWebGLSubImageBinding::XRWebGLSubImage_Binding::XRWebGLSubImageMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::xrsubimage::XRSubImage;

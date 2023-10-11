@@ -281,16 +281,6 @@ promise_test(async t => {
 promise_test(async t => {
   const frame = makeI420_4x2();
   const options = {
-      rect: {x: 0, y: 0, width: 4, height: 1},
-  };
-  assert_throws_js(TypeError, () => frame.allocationSize(options));
-  const data = new Uint8Array(12);
-  await promise_rejects_js(t, TypeError, frame.copyTo(data, options));
-}, 'Test unaligned rect.');
-
-promise_test(async t => {
-  const frame = makeI420_4x2();
-  const options = {
       rect: {x: 2, y: 0, width: 2, height: 2},
   };
   const expectedLayout = [

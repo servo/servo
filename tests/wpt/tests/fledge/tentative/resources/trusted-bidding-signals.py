@@ -110,7 +110,7 @@ def main(request, response):
         response.headers.set("Ad-Auction-Allowed", adAuctionAllowed)
     if dataVersion:
         response.headers.set("Data-Version", dataVersion)
-    response.headers.set("X-fledge-bidding-signals-format-version", "2")
+    response.headers.set("Ad-Auction-Bidding-Signals-Format-Version", "2")
 
     if body != None:
         return body

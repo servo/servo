@@ -65,7 +65,8 @@ dictionary MLOperandDescriptor {
 interface MLOperand {};
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
-interface MLActivation {};
+interface MLActivation {
+};
 
 typedef record<DOMString, ArrayBufferView> MLNamedArrayBufferViews;
 
@@ -162,7 +163,7 @@ dictionary MLClampOptions {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand clamp(MLOperand x, optional MLClampOptions options = {});
+  MLOperand clamp(MLOperand operand, optional MLClampOptions options = {});
   MLActivation clamp(optional MLClampOptions options = {});
 };
 
@@ -235,15 +236,15 @@ partial interface MLGraphBuilder {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand abs(MLOperand x);
-  MLOperand ceil(MLOperand x);
-  MLOperand cos(MLOperand x);
-  MLOperand exp(MLOperand x);
-  MLOperand floor(MLOperand x);
-  MLOperand log(MLOperand x);
-  MLOperand neg(MLOperand x);
-  MLOperand sin(MLOperand x);
-  MLOperand tan(MLOperand x);
+  MLOperand abs(MLOperand input);
+  MLOperand ceil(MLOperand input);
+  MLOperand cos(MLOperand input);
+  MLOperand exp(MLOperand input);
+  MLOperand floor(MLOperand input);
+  MLOperand log(MLOperand input);
+  MLOperand neg(MLOperand input);
+  MLOperand sin(MLOperand input);
+  MLOperand tan(MLOperand input);
 };
 
 dictionary MLEluOptions {
@@ -251,7 +252,7 @@ dictionary MLEluOptions {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand elu(MLOperand x, optional MLEluOptions options = {});
+  MLOperand elu(MLOperand input, optional MLEluOptions options = {});
   MLActivation elu(optional MLEluOptions options = {});
 };
 
@@ -315,12 +316,12 @@ dictionary MLHardSigmoidOptions {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand hardSigmoid(MLOperand x, optional MLHardSigmoidOptions options = {});
+  MLOperand hardSigmoid(MLOperand input, optional MLHardSigmoidOptions options = {});
   MLActivation hardSigmoid(optional MLHardSigmoidOptions options = {});
 };
 
 partial interface MLGraphBuilder {
-  MLOperand hardSwish(MLOperand x);
+  MLOperand hardSwish(MLOperand input);
   MLActivation hardSwish();
 };
 
@@ -341,7 +342,7 @@ dictionary MLLeakyReluOptions {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand leakyRelu(MLOperand x, optional MLLeakyReluOptions options = {});
+  MLOperand leakyRelu(MLOperand input, optional MLLeakyReluOptions options = {});
   MLActivation leakyRelu(optional MLLeakyReluOptions options = {});
 };
 
@@ -351,7 +352,7 @@ dictionary MLLinearOptions {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand linear(MLOperand x, optional MLLinearOptions options = {});
+  MLOperand linear(MLOperand input, optional MLLinearOptions options = {});
   MLActivation linear(optional MLLinearOptions options = {});
 };
 
@@ -438,7 +439,7 @@ partial interface MLGraphBuilder {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand prelu(MLOperand x, MLOperand slope);
+  MLOperand prelu(MLOperand input, MLOperand slope);
 };
 
 dictionary MLReduceOptions {
@@ -460,7 +461,7 @@ partial interface MLGraphBuilder {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand relu(MLOperand x);
+  MLOperand relu(MLOperand input);
   MLActivation relu();
 };
 
@@ -485,7 +486,7 @@ partial interface MLGraphBuilder {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand sigmoid(MLOperand x);
+  MLOperand sigmoid(MLOperand input);
   MLActivation sigmoid();
 };
 
@@ -494,7 +495,7 @@ partial interface MLGraphBuilder {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand softmax(MLOperand x);
+  MLOperand softmax(MLOperand input);
   MLActivation softmax();
 };
 
@@ -503,12 +504,12 @@ dictionary MLSoftplusOptions {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand softplus(MLOperand x, optional MLSoftplusOptions options = {});
+  MLOperand softplus(MLOperand input, optional MLSoftplusOptions options = {});
   MLActivation softplus(optional MLSoftplusOptions options = {});
 };
 
 partial interface MLGraphBuilder {
-  MLOperand softsign(MLOperand x);
+  MLOperand softsign(MLOperand input);
   MLActivation softsign();
 };
 
@@ -531,7 +532,7 @@ partial interface MLGraphBuilder {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand tanh(MLOperand x);
+  MLOperand tanh(MLOperand input);
   MLActivation tanh();
 };
 

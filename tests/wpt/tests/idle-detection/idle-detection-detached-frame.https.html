@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<body>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<script>
+'use strict';
+
+promise_test(async t => {
+  await new Promise((resolve) => {
+    window.addEventListener('load', resolve);
+  });
+  await test_driver.set_permission({name: 'idle-detection'}, 'granted');
+
+  const frame = document.body.appendChild(document.createElement('iframe'));
+  const frameIdleDetector = frame.contentWindow.IdleDetector;
+  const frameDOMException = frame.contentWindow.DOMException;
+
+  let detector = new frameIdleDetector();
+  document.body.outerHTML = "";
+  await promise_rejects_dom(t, 'InvalidStateError', frameDOMException, detector.start());
+
+  detector = new frameIdleDetector();
+  return promise_rejects_dom(t, 'InvalidStateError', frameDOMException, detector.start());
+}, 'Using an IdleDetector from a detached frame');
+
+</script>

@@ -129,54 +129,6 @@ pub enum Color {
 #[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, ToCss, ToShmem)]
 #[repr(u8)]
 pub enum SystemColor {
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    TextSelectDisabledBackground,
-    #[css(skip)]
-    TextSelectAttentionBackground,
-    #[css(skip)]
-    TextSelectAttentionForeground,
-    #[css(skip)]
-    TextHighlightBackground,
-    #[css(skip)]
-    TextHighlightForeground,
-    #[css(skip)]
-    IMERawInputBackground,
-    #[css(skip)]
-    IMERawInputForeground,
-    #[css(skip)]
-    IMERawInputUnderline,
-    #[css(skip)]
-    IMESelectedRawTextBackground,
-    #[css(skip)]
-    IMESelectedRawTextForeground,
-    #[css(skip)]
-    IMESelectedRawTextUnderline,
-    #[css(skip)]
-    IMEConvertedTextBackground,
-    #[css(skip)]
-    IMEConvertedTextForeground,
-    #[css(skip)]
-    IMEConvertedTextUnderline,
-    #[css(skip)]
-    IMESelectedConvertedTextBackground,
-    #[css(skip)]
-    IMESelectedConvertedTextForeground,
-    #[css(skip)]
-    IMESelectedConvertedTextUnderline,
-    #[css(skip)]
-    SpellCheckerUnderline,
-    #[css(skip)]
-    ThemedScrollbar,
-    #[css(skip)]
-    ThemedScrollbarInactive,
-    #[css(skip)]
-    ThemedScrollbarThumb,
-    #[css(skip)]
-    ThemedScrollbarThumbHover,
-    #[css(skip)]
-    ThemedScrollbarThumbActive,
-    #[css(skip)]
-    ThemedScrollbarThumbInactive,
     Activeborder,
     /// Background in the (active) titlebar.
     Activecaption,
@@ -195,6 +147,10 @@ pub enum SystemColor {
     MozDisabledfield,
     #[parse(aliases = "-moz-fieldtext")]
     Fieldtext,
+
+    /// Combobox widgets
+    MozComboboxtext,
+    MozCombobox,
 
     Graytext,
     Highlight,
@@ -242,6 +198,9 @@ pub enum SystemColor {
     MozButtonhovertext,
     /// Used for menu item backgrounds when hovered.
     MozMenuhover,
+    /// Used for menu item backgrounds when hovered and disabled.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozMenuhoverdisabled,
     /// Used for menu item text when hovered.
     MozMenuhovertext,
     /// Used for menubar item text.
@@ -296,12 +255,12 @@ pub enum SystemColor {
     MozMacTooltip,
 
     /// Theme accent color.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozAccentColor,
+    /// https://drafts.csswg.org/css-color-4/#valdef-system-color-accentcolor
+    Accentcolor,
 
     /// Foreground for the accent color.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozAccentColorForeground,
+    /// https://drafts.csswg.org/css-color-4/#valdef-system-color-accentcolortext
+    Accentcolortext,
 
     /// The background-color for :autofill-ed inputs.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
@@ -331,15 +290,60 @@ pub enum SystemColor {
     #[parse(aliases = "-moz-visitedhyperlinktext")]
     Visitedtext,
 
-    /// Combobox widgets
-    MozComboboxtext,
-    MozCombobox,
-
     /// Color of tree column headers
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozColheadertext,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozColheaderhovertext,
+
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    TextSelectDisabledBackground,
+    #[css(skip)]
+    TextSelectAttentionBackground,
+    #[css(skip)]
+    TextSelectAttentionForeground,
+    #[css(skip)]
+    TextHighlightBackground,
+    #[css(skip)]
+    TextHighlightForeground,
+    #[css(skip)]
+    IMERawInputBackground,
+    #[css(skip)]
+    IMERawInputForeground,
+    #[css(skip)]
+    IMERawInputUnderline,
+    #[css(skip)]
+    IMESelectedRawTextBackground,
+    #[css(skip)]
+    IMESelectedRawTextForeground,
+    #[css(skip)]
+    IMESelectedRawTextUnderline,
+    #[css(skip)]
+    IMEConvertedTextBackground,
+    #[css(skip)]
+    IMEConvertedTextForeground,
+    #[css(skip)]
+    IMEConvertedTextUnderline,
+    #[css(skip)]
+    IMESelectedConvertedTextBackground,
+    #[css(skip)]
+    IMESelectedConvertedTextForeground,
+    #[css(skip)]
+    IMESelectedConvertedTextUnderline,
+    #[css(skip)]
+    SpellCheckerUnderline,
+    #[css(skip)]
+    ThemedScrollbar,
+    #[css(skip)]
+    ThemedScrollbarInactive,
+    #[css(skip)]
+    ThemedScrollbarThumb,
+    #[css(skip)]
+    ThemedScrollbarThumbHover,
+    #[css(skip)]
+    ThemedScrollbarThumbActive,
+    #[css(skip)]
+    ThemedScrollbarThumbInactive,
 
     #[css(skip)]
     End, // Just for array-indexing purposes.
@@ -515,16 +519,20 @@ fn parse_hash_color(value: &[u8]) -> Result<RGBA, ()> {
 }
 
 impl Color {
-    /// Returns whether this color is a system color.
-    #[cfg(feature = "gecko")]
-    pub fn is_system(&self) -> bool {
-        matches!(self, Color::System(..))
-    }
-
-    /// Returns whether this color is a system color.
-    #[cfg(feature = "servo")]
-    pub fn is_system(&self) -> bool {
-        false
+    /// Returns whether this color is allowed in forced-colors mode.
+    pub fn honored_in_forced_colors_mode(&self, allow_transparent: bool) -> bool {
+        match *self {
+            #[cfg(feature = "gecko")]
+            Color::InheritFromBodyQuirk => false,
+            Color::CurrentColor => false,
+            #[cfg(feature = "gecko")]
+            Color::System(..) => true,
+            Color::Numeric { ref parsed, .. } => allow_transparent && parsed.alpha == 0,
+            Color::ColorMix(ref mix) => {
+                mix.left.honored_in_forced_colors_mode(allow_transparent) &&
+                    mix.right.honored_in_forced_colors_mode(allow_transparent)
+            },
+        }
     }
 
     /// Returns currentcolor value.
@@ -619,7 +627,10 @@ impl Color {
         let mut serialization = [b'0'; 6];
         let space_padding = 6 - total;
         let mut written = space_padding;
-        written += itoa::write(&mut serialization[written..], value).unwrap();
+        let mut buf = itoa::Buffer::new();
+        let s = buf.format(value);
+        (&mut serialization[written..]).write_all(s.as_bytes()).unwrap();
+        written += s.len();
         if let Some(unit) = unit {
             written += (&mut serialization[written..])
                 .write(unit.as_bytes())
@@ -732,6 +743,9 @@ impl SpecifiedValueInfo for Color {
             "currentColor",
             "transparent",
         ]);
+        if allow_color_mix() {
+            f(&["color-mix"]);
+        }
     }
 }
 

@@ -185,6 +185,7 @@ Test that bytesPerRow must be a multiple of 256 for CopyB2T and CopyT2B if it is
   )
   .beforeAllSubcases(t => {
     const info = kTextureFormatInfo[t.params.format];
+    t.skipIfTextureFormatNotSupported(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {

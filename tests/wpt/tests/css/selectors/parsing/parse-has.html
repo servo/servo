@@ -37,5 +37,5 @@
   test_invalid_selector(':has()');
   test_invalid_selector(':has(123)');
   test_invalid_selector(':has(.a, 123)');
-  test_valid_selector(':has(:is(.a, 123))');
+  test_valid_forgiving_selector(':has(:is(.a, 123))');
 </script>

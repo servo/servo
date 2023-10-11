@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use servo_atoms::Atom;
 
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::GamepadEventBinding;
 use crate::dom::bindings::codegen::Bindings::GamepadEventBinding::GamepadEventMethods;
 use crate::dom::bindings::error::Fallible;

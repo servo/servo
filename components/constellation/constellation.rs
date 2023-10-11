@@ -104,8 +104,8 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
 use canvas_traits::ConstellationCanvasMsg;
 use compositing_traits::{
-    CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg, SendableFrameTree,
-    WebrenderMsg,
+    CompositorMsg, CompositorProxy, ConstellationMsg as FromCompositorMsg,
+    ForwardedToCompositorMsg, SendableFrameTree,
 };
 use crossbeam_channel::{after, never, select, unbounded, Receiver, Sender};
 use devtools_traits::{
@@ -716,8 +716,10 @@ where
                 ROUTER.add_route(
                     webrender_ipc_receiver.to_opaque(),
                     Box::new(move |message| {
-                        let _ = compositor_proxy.send(CompositorMsg::Webrender(
-                            WebrenderMsg::Layout(message.to().expect("conversion failure")),
+                        let _ = compositor_proxy.send(CompositorMsg::Forwarded(
+                            ForwardedToCompositorMsg::Layout(
+                                message.to().expect("conversion failure"),
+                            ),
                         ));
                     }),
                 );
@@ -726,9 +728,11 @@ where
                 ROUTER.add_route(
                     webrender_image_ipc_receiver.to_opaque(),
                     Box::new(move |message| {
-                        let _ = compositor_proxy.send(CompositorMsg::Webrender(WebrenderMsg::Net(
-                            message.to().expect("conversion failure"),
-                        )));
+                        let _ = compositor_proxy.send(CompositorMsg::Forwarded(
+                            ForwardedToCompositorMsg::Net(
+                                message.to().expect("conversion failure"),
+                            ),
+                        ));
                     }),
                 );
 

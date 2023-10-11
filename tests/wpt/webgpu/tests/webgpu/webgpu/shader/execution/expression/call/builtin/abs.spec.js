@@ -19,19 +19,37 @@ Component-wise when T is a vector.
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
 import { kBit } from '../../../../../util/constants.js';
-import { i32Bits, TypeF32, TypeI32, TypeU32, u32Bits } from '../../../../../util/conversion.js';
+import {
+  i32Bits,
+  TypeF32,
+  TypeF16,
+  TypeI32,
+  TypeU32,
+  u32Bits,
+  TypeAbstractFloat,
+} from '../../../../../util/conversion.js';
 import { FP } from '../../../../../util/floating_point.js';
-import { fullF32Range } from '../../../../../util/math.js';
+import { fullF32Range, fullF16Range, fullF64Range } from '../../../../../util/math.js';
 import { makeCaseCache } from '../../case_cache.js';
-import { allInputSources, run } from '../../expression.js';
+import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
 
-import { builtin } from './builtin.js';
+import { abstractBuiltin, builtin } from './builtin.js';
 
 export const g = makeTestGroup(GPUTest);
 
 export const d = makeCaseCache('abs', {
   f32: () => {
     return FP.f32.generateScalarToIntervalCases(fullF32Range(), 'unfiltered', FP.f32.absInterval);
+  },
+  f16: () => {
+    return FP.f16.generateScalarToIntervalCases(fullF16Range(), 'unfiltered', FP.f16.absInterval);
+  },
+  abstract: () => {
+    return FP.abstract.generateScalarToIntervalCases(
+      fullF64Range(),
+      'unfiltered',
+      FP.abstract.absInterval
+    );
   },
 });
 
@@ -137,8 +155,13 @@ g.test('i32')
 g.test('abstract_float')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
   .desc(`abstract float tests`)
-  .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
-  .unimplemented();
+  .params(u =>
+    u.combine('inputSource', onlyConstInputSource).combine('vectorize', [undefined, 2, 3, 4])
+  )
+  .fn(async t => {
+    const cases = await d.get('abstract');
+    await run(t, abstractBuiltin('abs'), [TypeAbstractFloat], TypeAbstractFloat, t.params, cases);
+  });
 
 g.test('f32')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
@@ -153,4 +176,10 @@ g.test('f16')
   .specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions')
   .desc(`f16 tests`)
   .params(u => u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4]))
-  .unimplemented();
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  })
+  .fn(async t => {
+    const cases = await d.get('f16');
+    await run(t, builtin('abs'), [TypeF16], TypeF16, t.params, cases);
+  });

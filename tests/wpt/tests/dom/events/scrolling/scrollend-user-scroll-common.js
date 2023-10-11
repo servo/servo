@@ -8,8 +8,7 @@ async function test_scrollend_on_touch_drag(t, target_div) {
   await resetTargetScrollState(t, target_div);
   await waitForCompositorReady();
 
-  const timeout = 3000; // Because we have two pauses we need longer timeout
-  const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div, timeout);
+  const targetScrollendPromise = waitForScrollendEventNoTimeout(target_div);
   verifyNoScrollendOnDocument(t);
 
   let scrollend_count = 0;
@@ -54,7 +53,7 @@ async function test_scrollend_on_scrollbar_gutter_click(t, target_div) {
   await resetTargetScrollState(t, target_div);
   await waitForCompositorReady();
 
-  const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div, 1000);
+  const targetScrollendPromise = waitForScrollendEventNoTimeout(target_div);
   verifyNoScrollendOnDocument(t);
 
   const bounds = target_div.getBoundingClientRect();
@@ -86,7 +85,7 @@ async function test_scrollend_on_scrollbar_thumb_drag(t, target_div) {
   await resetTargetScrollState(t, target_div);
   await waitForCompositorReady();
 
-  const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div, 1000);
+  const targetScrollendPromise = waitForScrollendEventNoTimeout(target_div);
   verifyNoScrollendOnDocument(t);
 
   const bounds = target_div.getBoundingClientRect();
@@ -113,7 +112,7 @@ async function test_scrollend_on_mousewheel_scroll(t, target_div) {
   await resetTargetScrollState(t, target_div);
   await waitForCompositorReady();
 
-  const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div);
+  const targetScrollendPromise = waitForScrollendEventNoTimeout(target_div);
   verifyNoScrollendOnDocument(t);
 
   const x = 0;
@@ -135,7 +134,7 @@ async function test_scrollend_on_keyboard_scroll(t, target_div) {
   await waitForCompositorReady();
 
   verifyNoScrollendOnDocument(t);
-  const targetScrollendPromise = createScrollendPromiseForTarget(t, target_div);
+  const targetScrollendPromise = waitForScrollendEventNoTimeout(target_div);
 
   target_div.focus();
   window.test_driver.send_keys(target_div, '\ue015');

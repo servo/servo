@@ -9,15 +9,16 @@ use crate::values::computed::{Context, Number, ToComputedValue};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
 use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
+use crate::values::generics::box_::ContainIntrinsicSize as GenericContainIntrinsicSize;
 use crate::values::specified::box_ as specified;
 
 pub use crate::values::specified::box_::{
     AnimationName, AnimationTimeline, Appearance, BreakBetween, BreakWithin,
     Clear as SpecifiedClear, Contain, ContainerName, ContainerType, ContentVisibility, Display,
-    Float as SpecifiedFloat, Overflow, OverflowAnchor, OverflowClipBox,
-    OverscrollBehavior, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop,
-    ScrollSnapStrictness, ScrollSnapType, ScrollbarGutter, TouchAction,
-    TransitionProperty, WillChange,
+    Float as SpecifiedFloat, Overflow, OverflowAnchor, OverflowClipBox, OverscrollBehavior,
+    ScrollAxis, ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStop, ScrollSnapStrictness,
+    ScrollSnapType, ScrollTimelineName, ScrollbarGutter, TouchAction, TransitionProperty,
+    WillChange,
 };
 
 /// A computed value for the `vertical-align` property.
@@ -25,6 +26,9 @@ pub type VerticalAlign = GenericVerticalAlign<LengthPercentage>;
 
 /// A computed value for the `animation-iteration-count` property.
 pub type AnimationIterationCount = GenericAnimationIterationCount<Number>;
+
+/// A computed value for the `contain-intrinsic-size` property.
+pub type ContainIntrinsicSize = GenericContainIntrinsicSize<NonNegativeLength>;
 
 impl AnimationIterationCount {
     /// Returns the value `1.0`.

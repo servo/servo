@@ -6,7 +6,6 @@
 //! against a past state of the element.
 
 use crate::dom::TElement;
-use crate::element_state::ElementState;
 use crate::selector_parser::{AttrValue, NonTSPseudoClass, PseudoElement, SelectorImpl};
 use crate::selector_parser::{Snapshot, SnapshotMap};
 use crate::values::AtomIdent;
@@ -16,6 +15,7 @@ use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::{Element, OpaqueElement};
 use std::cell::Cell;
 use std::fmt;
+use style_traits::dom::ElementState;
 
 /// In order to compute restyle hints, we perform a selector match against a
 /// list of partial selectors whose rightmost simple selector may be sensitive
@@ -252,7 +252,7 @@ where
 
     fn is_link(&self) -> bool {
         match self.snapshot().and_then(|s| s.state()) {
-            Some(state) => state.intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE),
+            Some(state) => state.intersects(ElementState::VISITED_OR_UNVISITED),
             None => self.element.is_link(),
         }
     }
@@ -283,6 +283,11 @@ where
     fn next_sibling_element(&self) -> Option<Self> {
         let sibling = self.element.next_sibling_element()?;
         Some(Self::new(sibling, self.snapshot_map))
+    }
+
+    fn first_element_child(&self) -> Option<Self> {
+        let child = self.element.first_element_child()?;
+        Some(Self::new(child, self.snapshot_map))
     }
 
     #[inline]

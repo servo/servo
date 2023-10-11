@@ -176,8 +176,11 @@ pub struct DebugOptions {
     /// Dumps the rule tree.
     pub dump_rule_tree: bool,
 
-    /// Print the flow tree after each layout.
+    /// Print the flow tree (Layout 2013) or fragment tree (Layout 2020) after each layout.
     pub dump_flow_tree: bool,
+
+    /// Print the stacking context tree after each layout.
+    pub dump_stacking_context_tree: bool,
 
     /// Print the display list after each layout.
     pub dump_display_list: bool,
@@ -247,6 +250,7 @@ impl DebugOptions {
                 "disable-text-aa" => self.disable_text_antialiasing = true,
                 "dump-display-list" => self.dump_display_list = true,
                 "dump-display-list-json" => self.dump_display_list_json = true,
+                "dump-stacking-context-tree" => self.dump_stacking_context_tree = true,
                 "dump-flow-tree" => self.dump_flow_tree = true,
                 "dump-rule-tree" => self.dump_rule_tree = true,
                 "dump-style-tree" => self.dump_style_tree = true,
@@ -306,6 +310,10 @@ impl DebugOptions {
         );
         print_option("disable-text-aa", "Disable antialiasing of rendered text.");
         print_option(
+            "dump-stacking-context-tree",
+            "Print the stacking context tree after each layout.",
+        );
+        print_option(
             "dump-display-list",
             "Print the display list after each layout.",
         );
@@ -313,7 +321,10 @@ impl DebugOptions {
             "dump-display-list-json",
             "Print the display list in JSON form.",
         );
-        print_option("dump-flow-tree", "Print the flow tree after each layout.");
+        print_option(
+            "dump-flow-tree",
+            "Print the flow tree (Layout 2013) or fragment tree (Layout 2020) after each layout.",
+        );
         print_option(
             "dump-rule-tree",
             "Print the style rule tree after each layout.",

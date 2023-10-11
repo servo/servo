@@ -49,7 +49,7 @@
 {
   const RESOURCES_PATH =
       '/html/browsers/browsing-the-web/remote-context-helper/resources';
-  const WINDOW_EXECUTOR_PATH = `${RESOURCES_PATH}/executor.sub.html`;
+  const WINDOW_EXECUTOR_PATH = `${RESOURCES_PATH}/executor-window.py`;
   const WORKER_EXECUTOR_PATH = `${RESOURCES_PATH}/executor-worker.js`;
 
   /**
@@ -104,13 +104,18 @@
      *     when this event occurs, e.g. "pageshow",
      *     (@see window.addEventListener). This only makes sense for
      *     window-based executors, not worker-based.
+     * @param {string} [options.status] If supplied, the executor will pass
+     *     this value in the "status" parameter to the executor. The default
+     *     executor will default to a status code of 200, if the parameter is
+     *     not supplied.
      */
     constructor(
-        {origin, scripts = [], headers = [], startOn} = {}) {
+        {origin, scripts = [], headers = [], startOn, status} = {}) {
       this.origin = origin;
       this.scripts = scripts;
       this.headers = headers;
       this.startOn = startOn;
+      this.status = status;
     }
 
     /**
@@ -143,6 +148,10 @@
       if (extraConfig.startOn) {
         startOn = extraConfig.startOn;
       }
+      let status = this.status;
+      if (extraConfig.status) {
+        status = extraConfig.status;
+      }
       const headers = this.headers.concat(extraConfig.headers);
       const scripts = this.scripts.concat(extraConfig.scripts);
       return new RemoteContextConfig({
@@ -150,6 +159,7 @@
         headers,
         scripts,
         startOn,
+        status
       });
     }
   }
@@ -218,6 +228,10 @@
 
       if (config.startOn) {
         url.searchParams.append('startOn', config.startOn);
+      }
+
+      if (config.status) {
+        url.searchParams.append('status', config.status);
       }
 
       if (executorCreator) {
@@ -381,6 +395,26 @@
         extraConfig,
         isWorker: true,
       });
+    }
+
+    /**
+     * Gets a `Headers` object containing the request headers that were used
+     * when the browser requested this document.
+     *
+     * Currently, this only works for `RemoteContextHelper`s representing
+     * windows, not workers.
+     * @returns {Promise<Headers>}
+     */
+    async getRequestHeaders() {
+      // This only works in window environments for now. We could make it work
+      // for workers too; if you have a need, just share or duplicate the code
+      // that's in executor-window.py. Anyway, we explicitly use `window` in
+      // the script so that we get a clear error if you try using it on a
+      // worker.
+
+      // We need to serialize and deserialize the `Headers` object manually.
+      const asNestedArrays = await this.executeScript(() => [...window.__requestHeaders]);
+      return new Headers(asNestedArrays);
     }
 
     /**

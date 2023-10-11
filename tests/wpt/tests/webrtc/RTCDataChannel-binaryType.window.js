@@ -1,7 +1,15 @@
 'use strict';
 
 const validBinaryTypes = ['blob', 'arraybuffer'];
-const invalidBinaryTypes = ['jellyfish', 'arraybuffer ', '', null, undefined];
+const invalidBinaryTypes = ['jellyfish', 'arraybuffer ', '', null, undefined, 234, 54n];
+
+test((t) => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const dc = pc.createDataChannel('test-binary-type');
+
+  assert_equals(dc.binaryType, "blob", `dc.binaryType should be 'blob'`);
+}, `Default binaryType value`);
 
 for (const binaryType of validBinaryTypes) {
   test((t) => {
@@ -20,8 +28,8 @@ for (const binaryType of invalidBinaryTypes) {
     t.add_cleanup(() => pc.close());
     const dc = pc.createDataChannel('test-binary-type');
 
-    assert_throws_dom('SyntaxError', () => {
-      dc.binaryType = binaryType;
-    });
-  }, `Setting invalid binaryType '${binaryType}' should throw SyntaxError`);
+    dc.binaryType = "arraybuffer";
+    dc.binaryType = binaryType;
+    assert_equals(dc.binaryType, "arraybuffer");
+  }, `Setting binaryType to '${binaryType}' should be ignored`);
 }

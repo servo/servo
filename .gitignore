@@ -29,6 +29,9 @@ Servo.app
 capture_webrender/
 /screenshots
 
+# Allow CSV files to be used as resources in tests
+!/tests/**/*.csv
+
 # Editors
 ## IntelliJ
 .idea
@@ -57,6 +60,9 @@ Sessionx.vim
 
 # Layout debugger trace files
 layout_trace*
+
+# Package managers
+support/macos/Brewfile.lock.json
 
 # direnv
 .envrc

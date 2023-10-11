@@ -23,11 +23,12 @@ promise_test(async test => {
            throw new Error("Recency is not rounded to multiple of 100 milliseconds.")
 
          return {'bid': 9,
-                 'render': interestGroup.ads[0].renderUrl};`,
+                 'render': interestGroup.ads[0].renderURL};`,
       reportWin:
-        `sendReportTo('${createBidderReportUrl(uuid)}');` },
+        `sendReportTo('${createBidderReportURL(uuid)}');`
+    },
     // expectedReportUrls
-    [createBidderReportUrl(uuid)]
+    [createBidderReportURL(uuid)]
   );
 }, 'Check recency in generateBid() is below a certain threshold and rounded ' +
    'to multiple of 100 milliseconds.');

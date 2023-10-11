@@ -13,6 +13,7 @@
 
   promise_test(async (t) => {
     await MaybeSetStorageAccess("*", "*", "blocked");
+    await SetFirstPartyCookieAndUnsetStorageAccessPermission(wwwAlt);
     const responder_html = `${wwwAlt}${url_suffix}`;
     const [frame1, frame2] = await Promise.all([
       CreateFrame(responder_html),
@@ -30,21 +31,21 @@
     assert_false(await FrameHasStorageAccess(frame1), "frame1 should not have storage access initially.");
     assert_false(await FrameHasStorageAccess(frame2), "frame2 should not have storage access initially.");
 
-    assert_false(await CanFrameWriteCookies(frame1), "frame1 should not have access via document.cookie.");
-    assert_false(await CanFrameWriteCookies(frame2), "frame2 should not have access via document.cookie.");
+    assert_false(await HasUnpartitionedCookie(frame1), "frame1 should not have cookie access.");
+    assert_false(await HasUnpartitionedCookie(frame2), "frame2 should not have cookie access.");
 
     assert_true(await RequestStorageAccessInFrame(frame1), "requestStorageAccess doesn't require a gesture since the permission has already been granted.");
 
     assert_true(await FrameHasStorageAccess(frame1), "frame1 should have storage access now.");
-    assert_true(await CanFrameWriteCookies(frame1), "frame1 should now be able to write cookies via document.cookie.");
+    assert_true(await HasUnpartitionedCookie(frame1), "frame1 should now have cookie access.");
 
     assert_false(await FrameHasStorageAccess(frame2), "frame2 should still not have storage access.");
-    assert_false(await CanFrameWriteCookies(frame2), "frame2 should still be unable to write cookies via document.cookie");
+    assert_false(await HasUnpartitionedCookie(frame2), "frame2 should still have cookie access.");
 
     assert_true(await RequestStorageAccessInFrame(frame2), "frame2 should be able to get storage access without a gesture.");
 
     assert_true(await FrameHasStorageAccess(frame2), "frame2 should have storage access after it requested it.");
-    assert_true(await CanFrameWriteCookies(frame2), "frame2 should be able to write cookies via document.cookie after getting storage access.");
+    assert_true(await HasUnpartitionedCookie(frame2), "frame2 should have cookie access after getting storage access.");
   }, "Grants have per-frame scope");
 
   promise_test(async (t) => {

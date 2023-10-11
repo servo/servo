@@ -1,9 +1,20 @@
 'use strict';
 
-// serializedValue can be the expected serialization of value,
-// or an array of permitted serializations,
-// or omitted if value should serialize as value.
-function test_valid_value(property, value, serializedValue) {
+/**
+ * Create test that a CSS property computes to the expected value.
+ * The document element #target is used to perform the test.
+ *
+ * @param {string} property  The name of the CSS property being tested.
+ * @param {string} value     A specified value for the property.
+ * @param {string|array} serializedValue  The expected serialized value,
+ *                                 or an array of permitted serializations.
+ *                                 If omitted, defaults to the specified value.
+ * @param {object} options  Additional test information, such as a custom
+ *                          comparison function required for color tests.
+ *                          comparisonFunction is a function that takes two
+ *                          arguments, actual and expected and contains asserts.
+ */
+function test_valid_value(property, value, serializedValue, options = {}) {
     if (arguments.length < 3)
         serializedValue = value;
 
@@ -15,7 +26,9 @@ function test_valid_value(property, value, serializedValue) {
         div.style[property] = value;
         var readValue = div.style.getPropertyValue(property);
         assert_not_equals(readValue, "", "property should be set");
-        if (Array.isArray(serializedValue))
+        if (options.comparisonFunction)
+            options.comparisonFunction(readValue, serializedValue);
+        else if (Array.isArray(serializedValue))
             assert_in_array(readValue, serializedValue, "serialization should be sound");
         else
             assert_equals(readValue, serializedValue, "serialization should be canonical");
@@ -37,10 +50,14 @@ function test_invalid_value(property, value) {
     }, "e.style['" + property + "'] = " + stringifiedValue + " should not set the property value");
 }
 
+function test_valid_forgiving_selector(selector) {
+  test_valid_selector(selector, selector, { onlyWhenForgiving: true });
+}
+
 // serializedSelector can be the expected serialization of selector,
 // or an array of permitted serializations,
 // or omitted if value should serialize as selector.
-function test_valid_selector(selector, serializedSelector) {
+function test_valid_selector(selector, serializedSelector, options) {
     if (arguments.length < 2)
         serializedSelector = selector;
 
@@ -72,6 +89,9 @@ function test_valid_selector(selector, serializedSelector) {
         assert_equals(cssRules.length, 1, "Sheet should have 1 rule");
 
         assert_equals(cssRules[0].selectorText, readSelector, "serialization should round-trip");
+
+        let supports = !options?.onlyWhenForgiving;
+        assert_equals(CSS.supports(`selector(${selector})`), supports, "CSS.supports() reports the expected value");
     }, stringifiedSelector + " should be a valid selector");
 }
 

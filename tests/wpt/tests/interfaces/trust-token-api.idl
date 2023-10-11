@@ -20,6 +20,14 @@ partial dictionary RequestInit {
   PrivateToken privateToken;
 };
 
+partial interface HTMLIFrameElement {
+  [SecureContext] attribute DOMString privateToken;
+};
+
+partial interface XMLHttpRequest {
+  undefined setPrivateToken(PrivateToken privateToken);
+};
+
 partial interface Document {
   Promise<boolean> hasPrivateTokens(USVString issuer);
   Promise<boolean> hasRedemptionRecord(USVString issuer);

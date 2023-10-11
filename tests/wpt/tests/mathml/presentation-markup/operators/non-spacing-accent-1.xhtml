@@ -1,0 +1,20 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Check that non-spacing marks in accents are visible</title>
+    <link rel="mismatch" href="non-spacing-accent-1-ref.xhtml"/>
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=427659"/>
+    <style type="text/css">
+      html { background-color: white }
+      mi { color: white; }
+      mo { color: black; }
+    </style>
+  </head>
+<body>
+  <math xmlns="http://www.w3.org/1998/Math/MathML">
+    <mover>
+      <mi>a</mi>
+      <mo>&#x302;</mo>
+    </mover>
+  </math>
+</body>
+</html>

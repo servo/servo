@@ -352,11 +352,10 @@ pub mod system_font {
         fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
             use crate::gecko_bindings::bindings;
             use crate::gecko_bindings::structs::nsFont;
-            use std::mem;
-            use crate::values::computed::Percentage;
+            use crate::values::computed::font::FontSize;
             use crate::values::specified::font::KeywordInfo;
-            use crate::values::computed::font::{FontSize, FontStretch, FontStyle};
             use crate::values::generics::NonNegative;
+            use std::mem;
 
             let mut system = mem::MaybeUninit::<nsFont>::uninit();
             let system = unsafe {
@@ -368,20 +367,15 @@ pub mod system_font {
                 );
                 &mut *system.as_mut_ptr()
             };
-            let font_weight = longhands::font_weight::computed_value::T::from_gecko_weight(system.weight);
-            let font_stretch = FontStretch(NonNegative(Percentage(unsafe {
-                bindings::Gecko_FontStretch_ToFloat(system.stretch)
-            })));
-            let font_style = FontStyle::from_gecko(system.style);
             let ret = ComputedSystemFont {
                 font_family: system.family.clone(),
                 font_size: FontSize {
                     size: NonNegative(cx.maybe_zoom_text(system.size.0)),
                     keyword_info: KeywordInfo::none()
                 },
-                font_weight,
-                font_stretch,
-                font_style,
+                font_weight: system.weight,
+                font_stretch: system.stretch,
+                font_style: system.style,
                 font_size_adjust: system.sizeAdjust,
                 % for kwprop in kw_font_props:
                     ${kwprop}: longhands::${kwprop}::computed_value::T::from_gecko_keyword(

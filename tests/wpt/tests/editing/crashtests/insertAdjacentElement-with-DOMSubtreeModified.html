@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<head>
+<script src="../resources/js-test.js"></script>
+<script>
+function onLoad() {
+    const x1 = document.getElementById('x1');
+    x1.addEventListener('DOMSubtreeModified', () => {
+        const x2 = document.getElementById('x2');
+        x2.contentDocument;
+    });
+    x1.setAttribute('inputmode', 'url');
+}
+function insertAdjacent() {
+    const x2 = document.getElementById('x2');
+    const x3 = document.getElementById('x3');
+    document.onreadystatechange = insertAdjacent;
+    x3.insertAdjacentElement('beforebegin', x2);
+}
+</script>
+</head>
+<body onload="onLoad()">
+<div id="x1"></div>
+<object id="x2" data="invalid-url" onerror="insertAdjacent()"></object>
+<div id="x3"></div>
+</body>
+</html>

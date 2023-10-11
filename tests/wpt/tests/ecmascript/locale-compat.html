@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<!--
+Copyright (C) 2023 the V8 project authors. All rights reserved.
+This code is governed by the BSD license found in the LICENSE file.
+-->
+<title>Web Compatibility requirements for implementation-defined locale-specific JavaScript APIs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(t => { // https://bugs.chromium.org/p/chromium/issues/detail?id=1414292
+
+  const date = new Date('2022-12-31T23:59:42');
+  const localeString = date.toLocaleString('en-US');
+
+  // No U+202F NARROW NO-BREAK SPACE must be present.
+  assert_false(localeString.includes('\u202F'));
+  // The character between the time and AM/PM should be U+0020 SPACE.
+  assert_regexp_match(localeString, /:\d\d:\d\d\x20[AP]M/);
+
+}, '`Date.prototype.toLocaleString` produces U+0020 instead of U+202F for `en-US` locale');
+
+test(t => { // https://bugs.chromium.org/p/chromium/issues/detail?id=1414292
+
+  const date = new Date('2022-12-31T23:59:42');
+  const formatter = new Intl.DateTimeFormat('en', {timeStyle: 'long'})
+  const formattedString = formatter.format(date);
+
+  // No U+202F NARROW NO-BREAK SPACE must be present.
+  assert_false(formattedString.includes('\u202F'));
+  // The character between the time and AM/PM should be U+0020 SPACE.
+  assert_regexp_match(formattedString, /:\d\d:\d\d\x20[AP]M/);
+
+}, '`Intl.DateTimeFormat.prototype.format` produces U+0020 instead of U+202F for `en` locale');
+
+test(t => { // https://bugs.chromium.org/p/chromium/issues/detail?id=1418727
+
+  const date = new Date('2022-03-31T23:59:42');
+
+  assert_true(date.toLocaleString('en-CA').includes('2022-03-31'));
+  assert_equals(date.toLocaleString('en-CA', {dateStyle: 'short'}), '2022-03-31');
+
+}, '`Date.prototype.toLocaleString` produces `yyyy-mm-dd` instead of `m/d/yyyy` for `en-CA` locale');
+
+</script>

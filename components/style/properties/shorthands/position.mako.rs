@@ -600,7 +600,7 @@
             temp_rows = rows;
             input.expect_delim('/')?;
             flow = parse_auto_flow(input, false)?;
-            auto_cols = grid_auto_columns::parse(context, input).unwrap_or_default();
+            auto_cols = input.try_parse(|i| grid_auto_columns::parse(context, i)).unwrap_or_default();
         } else {
             flow = parse_auto_flow(input, true)?;
             auto_rows = input.try_parse(|i| grid_auto_rows::parse(context, i)).unwrap_or_default();
@@ -621,7 +621,6 @@
     impl<'a> LonghandsToSerialize<'a> {
         /// Returns true if other sub properties except template-{rows,columns} are initial.
         fn is_grid_template(&self) -> bool {
-            *self.grid_template_areas == GridTemplateAreas::None &&
             self.grid_auto_rows.is_initial() &&
             self.grid_auto_columns.is_initial() &&
             *self.grid_auto_flow == grid_auto_flow::get_initial_value()
@@ -630,13 +629,19 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a> {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            if *self.grid_template_areas != GridTemplateAreas::None ||
-               (!self.grid_template_rows.is_initial() &&
-                !self.grid_template_columns.is_initial()) ||
-               self.is_grid_template() {
-                return super::grid_template::serialize_grid_template(self.grid_template_rows,
-                                                                     self.grid_template_columns,
-                                                                     self.grid_template_areas, dest);
+            if self.is_grid_template() {
+                return super::grid_template::serialize_grid_template(
+                    self.grid_template_rows,
+                    self.grid_template_columns,
+                    self.grid_template_areas,
+                    dest
+                );
+            }
+
+            if *self.grid_template_areas != GridTemplateAreas::None {
+                // No other syntax can set the template areas, so fail to
+                // serialize.
+                return Ok(());
             }
 
             if self.grid_auto_flow.contains(GridAutoFlow::COLUMN) {
@@ -663,33 +668,35 @@
                     dest.write_str(" ")?;
                     self.grid_auto_columns.to_css(dest)?;
                 }
-            } else {
-                // It should fail to serialize if other branch of the if condition's values are set.
-                if !self.grid_auto_columns.is_initial() ||
-                    !self.grid_template_rows.is_initial() {
+
+                return Ok(());
+            }
+
+            // It should fail to serialize if other branch of the if condition's values are set.
+            if !self.grid_auto_columns.is_initial() ||
+                !self.grid_template_rows.is_initial() {
+                return Ok(());
+            }
+
+            // It should fail to serialize if template-column value is not Explicit.
+            if let GenericGridTemplateComponent::TrackList(ref list) = *self.grid_template_columns {
+                if !list.is_explicit() {
                     return Ok(());
                 }
-
-                // It should fail to serialize if template-column value is not Explicit.
-                if let GenericGridTemplateComponent::TrackList(ref list) = *self.grid_template_columns {
-                    if !list.is_explicit() {
-                        return Ok(());
-                    }
-                }
-
-                dest.write_str("auto-flow")?;
-                if self.grid_auto_flow.contains(GridAutoFlow::DENSE) {
-                    dest.write_str(" dense")?;
-                }
-
-                if !self.grid_auto_rows.is_initial() {
-                    dest.write_str(" ")?;
-                    self.grid_auto_rows.to_css(dest)?;
-                }
-
-                dest.write_str(" / ")?;
-                self.grid_template_columns.to_css(dest)?;
             }
+
+            dest.write_str("auto-flow")?;
+            if self.grid_auto_flow.contains(GridAutoFlow::DENSE) {
+                dest.write_str(" dense")?;
+            }
+
+            if !self.grid_auto_rows.is_initial() {
+                dest.write_str(" ")?;
+                self.grid_auto_rows.to_css(dest)?;
+            }
+
+            dest.write_str(" / ")?;
+            self.grid_template_columns.to_css(dest)?;
             Ok(())
         }
     }
@@ -860,4 +867,13 @@ ${helpers.two_properties_shorthand(
     "specified::LengthPercentageOrAuto::parse",
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-logical/#propdef-inset-inline"
+)}
+
+${helpers.two_properties_shorthand(
+    "contain-intrinsic-size",
+    "contain-intrinsic-width",
+    "contain-intrinsic-height",
+    engines="gecko",
+    gecko_pref="layout.css.contain-intrinsic-size.enabled",
+    spec="https://drafts.csswg.org/css-sizing-4/#intrinsic-size-override",
 )}

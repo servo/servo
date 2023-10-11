@@ -10,7 +10,7 @@ use euclid::default::Point2D;
 use js::rust::HandleObject;
 use servo_config::pref;
 
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;

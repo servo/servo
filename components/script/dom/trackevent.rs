@@ -7,7 +7,7 @@ use js::rust::HandleObject;
 use servo_atoms::Atom;
 
 use crate::dom::audiotrack::AudioTrack;
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::TrackEventBinding;
 use crate::dom::bindings::codegen::Bindings::TrackEventBinding::TrackEventMethods;
 use crate::dom::bindings::codegen::UnionTypes::VideoTrackOrAudioTrackOrTextTrack;

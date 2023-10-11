@@ -4,7 +4,7 @@
 
 const okayAuctionRequest = {
   seller: "https://{{host}}:{{ports[https][0]}}",
-  decisionLogicUrl: "https://{{host}}:{{ports[https][0]}}",
+  decisionLogicURL: "https://{{host}}:{{ports[https][0]}}",
   perBuyerSignals: {"{{host}}": { randomParam: "value1" }},
   auctionSignals: "pubCode123",
   sellerSignals: { someKey: "sellerValue" }
@@ -22,18 +22,18 @@ promise_test(async t => {
 
 promise_test(async t => {
   const auctionRequest = Object.assign({}, okayAuctionRequest);
-  delete auctionRequest.decisionLogicUrl;
+  delete auctionRequest.decisionLogicURL;
 
   const finalizePromise = navigator.finalizeAd({}, auctionRequest);
 
   await promise_rejects_js(t, TypeError, finalizePromise);
-}, "finalizeAd() should reject a missing decisionLogicUrl.");
+}, "finalizeAd() should reject a missing decisionLogicURL.");
 
 promise_test(async t => {
   const auctionRequest = Object.assign({}, okayAuctionRequest);
-  auctionRequest.decisionLogicUrl = "http://{{host}}:{{ports[https][0]}}";
+  auctionRequest.decisionLogicURL = "http://{{host}}:{{ports[https][0]}}";
 
   const finalizePromise = navigator.finalizeAd({}, auctionRequest);
 
   await promise_rejects_js(t, TypeError, finalizePromise);
-}, "finalizeAd() should reject a non-HTTPS decisionLogicUrl.");
+}, "finalizeAd() should reject a non-HTTPS decisionLogicURL.");

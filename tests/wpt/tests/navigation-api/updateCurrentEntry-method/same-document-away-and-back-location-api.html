@@ -6,7 +6,9 @@ async_test(t => {
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   window.onload = () => t.step_timeout(async () => {
+    let start_length = navigation.entries().length;
     let entry0 = navigation.currentEntry;
+    let start_index = entry0.index;
 
     let navState = { statevar: "state" };
     navigation.updateCurrentEntry({ state: navState });
@@ -15,9 +17,9 @@ async_test(t => {
     location.href = "#2";
     let entry1 = navigation.currentEntry;
 
-    assert_equals(navigation.entries().length, 2);
-    assert_equals(entry0, navigation.entries()[0]);
-    assert_equals(entry1, navigation.entries()[1]);
+    assert_equals(navigation.entries().length, start_length + 1);
+    assert_equals(entry0, navigation.entries()[start_index]);
+    assert_equals(entry1, navigation.entries()[start_index + 1]);
 
     assert_equals(entry0.getState().statevar, "state");
     assert_not_equals(entry0.getState(), navState);
@@ -28,7 +30,7 @@ async_test(t => {
 
     history.back();
     window.onpopstate = t.step_func_done(() => {
-      assert_equals(navigation.entries().length, 2);
+      assert_equals(navigation.entries().length, start_length + 1);
       let back_entry = navigation.currentEntry;
       assert_equals(back_entry, entry0);
       let back_state = back_entry.getState();

@@ -8,7 +8,6 @@
 use crate::context::SharedStyleContext;
 use crate::data::ElementData;
 use crate::dom::TElement;
-use crate::element_state::ElementState;
 use crate::invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use crate::invalidation::element::invalidation_map::*;
 use crate::invalidation::element::invalidator::{DescendantInvalidationLists, InvalidationVector};
@@ -22,6 +21,7 @@ use selectors::attr::CaseSensitivity;
 use selectors::matching::{matches_selector, MatchingContext, MatchingMode, VisitedHandlingMode, NeedsSelectorFlags};
 use selectors::NthIndexCache;
 use smallvec::SmallVec;
+use style_traits::dom::ElementState;
 
 /// The collector implementation.
 struct Collector<'a, 'b: 'a, 'selectors: 'a, E>
@@ -201,7 +201,7 @@ where
         // TODO(emilio): This piece of code should be removed when
         // layout.css.always-repaint-on-unvisited is true, since we cannot get
         // into this situation in that case.
-        if state_changes.contains(ElementState::IN_VISITED_OR_UNVISITED_STATE) {
+        if state_changes.contains(ElementState::VISITED_OR_UNVISITED) {
             trace!(" > visitedness change, force subtree restyle");
             // We can't just return here because there may also be attribute
             // changes as well that imply additional hints for siblings.
@@ -407,24 +407,24 @@ where
             }
         });
 
-        let state_changes = self.state_changes;
-        if !state_changes.is_empty() {
-            self.collect_state_dependencies(&map.state_affecting_selectors, state_changes)
-        }
+        self.collect_state_dependencies(&map.state_affecting_selectors)
     }
 
     fn collect_state_dependencies(
         &mut self,
         map: &'selectors SelectorMap<StateDependency>,
-        state_changes: ElementState,
     ) {
+        if self.state_changes.is_empty() {
+            return;
+        }
         map.lookup_with_additional(
             self.lookup_element,
             self.matching_context.quirks_mode(),
             self.removed_id,
             self.classes_removed,
+            self.state_changes,
             |dependency| {
-                if !dependency.state.intersects(state_changes) {
+                if !dependency.state.intersects(self.state_changes) {
                     return true;
                 }
                 self.scan_dependency(&dependency.dep);

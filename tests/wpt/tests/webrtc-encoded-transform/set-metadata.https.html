@@ -16,13 +16,15 @@ promise_test(async t => {
   const metadata = result.value.getMetadata();
   // TODO(https://crbug.com/webrtc/14709): When RTCEncodedVideoFrame has a
   // constructor, create a new frame from scratch instead of cloning it to
-  // ensure that none of the metadata was carried over via clone(). This would
-  // allow us to be confident that setMetadata() is doing all the work.
+  // ensure that none of the metadata was carried over via structuredClone().
+  // This would allow us to be confident that setMetadata() is doing all the
+  // work.
   //
-  // At that point, we can refactor the clone() implementation to be the same as
-  // constructor() + set data + setMetadata() to ensure that clone() cannot do
-  // things that are not already exposed in JavaScript (no secret steps!).
-  const clone = result.value.clone();
+  // At that point, we can refactor the structuredClone() implementation to be
+  // the same as constructor() + set data + setMetadata() to ensure that
+  // structuredClone() cannot do things that are not already exposed in
+  // JavaScript (no secret steps!).
+  const clone = structuredClone(result.value);
   clone.setMetadata(metadata);
   const cloneMetadata = clone.getMetadata();
   // Encoding related metadata.
@@ -35,44 +37,12 @@ promise_test(async t => {
                 'spatialIndex');
   assert_equals(cloneMetadata.temporalIndex, metadata.temporalIndex,
                 'temporalIndex');
-  assert_equals(cloneMetadata.frameType, metadata.frameType,
-                'frameType');
-  // RTCEncodedVideoFrameAdditionalMetadata-only fields.
-  assert_array_equals(cloneMetadata.decodeTargetIndications,
-                      metadata.decodeTargetIndications,
-                      'decodeTargetIndications');
-  assert_equals(cloneMetadata.isLastFrameInPicture,
-                metadata.isLastFrameInPicture, 'isLastFrameInPicture');
-  assert_equals(cloneMetadata.simulcastIdx, metadata.simulcastIdx,
-                'simulcastIdx');
-  assert_equals(cloneMetadata.codec, metadata.codec, 'codec');
-  // VP8-specifics.
-  assert_equals(cloneMetadata.codecSpecifics.nonReference,
-                metadata.codecSpecifics.nonReference,
-                'codecSpecifics.nonReference');
-  assert_equals(cloneMetadata.codecSpecifics.pictureId,
-                metadata.codecSpecifics.pictureId, 'codecSpecifics.pictureId');
-  assert_equals(cloneMetadata.codecSpecifics.tl0PicIdx,
-                metadata.codecSpecifics.tl0PicIdx, 'codecSpecifics.tl0PicIdx');
-  assert_equals(cloneMetadata.codecSpecifics.temporalIdx,
-                metadata.codecSpecifics.temporalIdx,
-                'codecSpecifics.temporalIdx');
-  assert_equals(cloneMetadata.codecSpecifics.layerSync,
-                metadata.codecSpecifics.layerSync, 'codecSpecifics.layerSync');
-  assert_equals(cloneMetadata.codecSpecifics.keyIdx,
-                metadata.codecSpecifics.keyIdx, 'codecSpecifics.keyIdx.');
-  assert_equals(cloneMetadata.codecSpecifics.partitionId,
-                metadata.codecSpecifics.partitionId,
-                'codecSpecifics.partitionId');
-  assert_equals(cloneMetadata.codecSpecifics.beginningOfPartition,
-                metadata.codecSpecifics.beginningOfPartition,
-                'codecSpecifics.beginningOfPartition');
   // RTP related metadata.
   // TODO(https://crbug.com/webrtc/14709): This information also needs to be
-  // settable but isn't - the assertions only pass because clone() copies them
-  // for us. It would be great if different layers didn't consider different
-  // subset of the struct as "the metadata". Can we consolidate into a single
-  // webrtc struct for all metadata?
+  // settable but isn't - the assertions only pass because structuredClone()
+  // copies them for us. It would be great if different layers didn't consider
+  // different subset of the struct as "the metadata". Can we consolidate into a
+  // single webrtc struct for all metadata?
   assert_equals(cloneMetadata.synchronizationSource,
                 metadata.synchronizationSource, 'synchronizationSource');
   assert_array_equals(cloneMetadata.contributingSources,

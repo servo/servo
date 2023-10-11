@@ -4,13 +4,13 @@
 <body>
 <script>
 async_test(t => {
-  let start_length = history.length;
+  let start_length = navigation.entries().length;
 
   // Wait for after the load event so that the navigation doesn't get converted
   // into a replace navigation.
   window.onload = () => t.step_timeout(() => {
     navigation.navigate("#top");
-    assert_equals(navigation.entries().length, 2);
+    assert_equals(navigation.entries().length, start_length + 1);
 
     let i = document.createElement("iframe");
     i.src = "/common/blank.html";

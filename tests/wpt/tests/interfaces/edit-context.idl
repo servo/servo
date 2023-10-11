@@ -66,14 +66,14 @@ interface TextUpdateEvent : Event {
     readonly attribute unsigned long compositionEnd;
 };
 
+enum UnderlineStyle { "none", "solid", "double", "dotted", "dashed", "wavy" };
+enum UnderlineThickness { "none", "thin", "thick" };
+
 dictionary TextFormatInit {
     unsigned long rangeStart;
     unsigned long rangeEnd;
-    DOMString textColor;
-    DOMString backgroundColor;
-    DOMString underlineStyle;
-    DOMString underlineThickness;
-    DOMString underlineColor;
+    UnderlineStyle underlineStyle;
+    UnderlineThickness underlineThickness;
 };
 
 [Exposed=Window]
@@ -81,11 +81,8 @@ interface TextFormat {
     constructor(optional TextFormatInit options = {});
     readonly attribute unsigned long rangeStart;
     readonly attribute unsigned long rangeEnd;
-    readonly attribute DOMString textColor;
-    readonly attribute DOMString backgroundColor;
-    readonly attribute DOMString underlineStyle;
-    readonly attribute DOMString underlineThickness;
-    readonly attribute DOMString underlineColor;
+    readonly attribute UnderlineStyle underlineStyle;
+    readonly attribute UnderlineThickness underlineThickness;
 };
 
 dictionary TextFormatUpdateEventInit : EventInit {

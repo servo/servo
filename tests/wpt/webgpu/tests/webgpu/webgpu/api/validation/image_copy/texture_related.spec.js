@@ -267,6 +267,7 @@ Test the copy must be a full subresource if the texture's format is depth/stenci
   )
   .beforeAllSubcases(t => {
     const info = kTextureFormatInfo[t.params.format];
+    t.skipIfTextureFormatNotSupported(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -358,6 +359,7 @@ Test that the texture copy origin must be aligned to the format's block size.
   )
   .beforeAllSubcases(t => {
     const info = kTextureFormatInfo[t.params.format];
+    t.skipIfTextureFormatNotSupported(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {
@@ -421,6 +423,7 @@ Test that the copy size must be aligned to the texture's format's block size.
   )
   .beforeAllSubcases(t => {
     const info = kTextureFormatInfo[t.params.format];
+    t.skipIfTextureFormatNotSupported(t.params.format);
     t.selectDeviceOrSkipTestCase(info.feature);
   })
   .fn(t => {

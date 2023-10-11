@@ -7,26 +7,26 @@
 interface WEBGL_multi_draw {
   undefined multiDrawArraysWEBGL(
       GLenum mode,
-      ([AllowShared] Int32Array or sequence<GLint>) firstsList, GLuint firstsOffset,
-      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, GLuint countsOffset,
+      ([AllowShared] Int32Array or sequence<GLint>) firstsList, unsigned long long firstsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, unsigned long long countsOffset,
       GLsizei drawcount);
   undefined multiDrawElementsWEBGL(
       GLenum mode,
-      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, GLuint countsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, unsigned long long countsOffset,
       GLenum type,
-      ([AllowShared] Int32Array or sequence<GLsizei>) offsetsList, GLuint offsetsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) offsetsList, unsigned long long offsetsOffset,
       GLsizei drawcount);
   undefined multiDrawArraysInstancedWEBGL(
       GLenum mode,
-      ([AllowShared] Int32Array or sequence<GLint>) firstsList, GLuint firstsOffset,
-      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, GLuint countsOffset,
-      ([AllowShared] Int32Array or sequence<GLsizei>) instanceCountsList, GLuint instanceCountsOffset,
+      ([AllowShared] Int32Array or sequence<GLint>) firstsList, unsigned long long firstsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, unsigned long long countsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) instanceCountsList, unsigned long long instanceCountsOffset,
       GLsizei drawcount);
   undefined multiDrawElementsInstancedWEBGL(
       GLenum mode,
-      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, GLuint countsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) countsList, unsigned long long countsOffset,
       GLenum type,
-      ([AllowShared] Int32Array or sequence<GLsizei>) offsetsList, GLuint offsetsOffset,
-      ([AllowShared] Int32Array or sequence<GLsizei>) instanceCountsList, GLuint instanceCountsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) offsetsList, unsigned long long offsetsOffset,
+      ([AllowShared] Int32Array or sequence<GLsizei>) instanceCountsList, unsigned long long instanceCountsOffset,
       GLsizei drawcount);
 };

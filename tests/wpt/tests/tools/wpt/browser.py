@@ -1596,25 +1596,53 @@ class Opera(Browser):
 
 
 class EdgeChromium(Browser):
-    """MicrosoftEdge-specific interface."""
+    """Microsoft Edge Chromium Browser class."""
+
+    product = "edgechromium"
+    requirements = "requirements_chromium.txt"
     platform = {
         "Linux": "linux",
         "Windows": "win",
         "Darwin": "macos"
     }.get(uname[0])
-    product = "edgechromium"
-    edgedriver_name = "msedgedriver"
-    requirements = "requirements_chromium.txt"
+
+    def _get_build_version(self, version):
+        """Convert a Edge/MSEdgeDriver version into MAJOR.MINOR.BUILD format."""
+        version_parts = version.split(".")
+        if len(version_parts) < 3:
+            self.logger.info(f"Version {version} could not be formatted for build matching.")
+            return None
+        return ".".join(version_parts[0:3])
+
+    def _remove_existing_edgedriver_binary(self, path):
+        """Remove an existing MSEdgeDriver for this product if it exists
+        in the virtual environment.
+        """
+        # There may be an existing MSEdgeDriver binary from a previous install.
+        # To provide a clean install experience, remove the old binary - this
+        # avoids tricky issues like unzipping over a read-only file.
+        existing_edgedriver_path = which("MSEdgeDriver", path=path)
+        if existing_edgedriver_path:
+            self.logger.info(f"Removing existing MSEdgeDriver binary: {existing_edgedriver_path}")
+            os.chmod(existing_edgedriver_path, stat.S_IWUSR)
+            os.remove(existing_edgedriver_path)
+        existing_driver_notes_path = os.path.join(path, "Driver_notes")
+        if os.path.isdir(existing_driver_notes_path):
+            self.logger.info(f"Removing existing MSEdgeDriver binary: {existing_driver_notes_path}")
+            print(f"Delete {existing_driver_notes_path} folder")
+            rmtree(existing_driver_notes_path)
 
     def download(self, dest=None, channel=None, rename=None):
         raise NotImplementedError
 
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
+    def install_mojojs(self, dest, browser_binary):
+        # TODO: Install MojoJS web framework.
+        # MojoJS is platform agnostic, but the version number must be an
+        # exact match of the Edge version to be compatible.
+        return None
 
     def find_binary(self, venv_path=None, channel=None):
-        self.logger.info(f'Finding Edge binary for channel {channel}')
-
+        # TODO: Check for binary in virtual environment first
         if self.platform == "linux":
             name = "microsoft-edge"
             if channel == "stable":
@@ -1631,117 +1659,100 @@ class EdgeChromium(Browser):
                 suffix = " " + channel.capitalize()
             return f"/Applications/Microsoft Edge{suffix}.app/Contents/MacOS/Microsoft Edge{suffix}"
         if self.platform == "win":
-            binaryname = "msedge"
-            if channel == "beta":
-                winpaths = [os.path.expandvars("$SYSTEMDRIVE\\Program Files\\Microsoft\\Edge Beta\\Application"),
-                            os.path.expandvars("$SYSTEMDRIVE\\Program Files (x86)\\Microsoft\\Edge Beta\\Application")]
-                return which(binaryname, path=os.pathsep.join(winpaths))
-            elif channel == "dev":
-                winpaths = [os.path.expandvars("$SYSTEMDRIVE\\Program Files\\Microsoft\\Edge Dev\\Application"),
-                            os.path.expandvars("$SYSTEMDRIVE\\Program Files (x86)\\Microsoft\\Edge Dev\\Application")]
-                return which(binaryname, path=os.pathsep.join(winpaths))
-            elif channel == "canary":
-                winpaths = [os.path.expanduser("~\\AppData\\Local\\Microsoft\\Edge\\Application"),
-                            os.path.expanduser("~\\AppData\\Local\\Microsoft\\Edge SxS\\Application")]
-                return which(binaryname, path=os.pathsep.join(winpaths))
-            else:
-                winpaths = [os.path.expandvars("$SYSTEMDRIVE\\Program Files\\Microsoft\\Edge\\Application"),
-                            os.path.expandvars("$SYSTEMDRIVE\\Program Files (x86)\\Microsoft\\Edge\\Application")]
-                return which(binaryname, path=os.pathsep.join(winpaths))
-
+            suffix = ""
+            if channel in ("beta", "dev"):
+                suffix = " " + channel.capitalize()
+            winpaths = [os.path.expandvars(fr"%PROGRAMFILES%\Microsoft\Edge{suffix}\Application"),
+                        os.path.expandvars(fr"%programfiles(x86)%\Microsoft\Edge{suffix}\Application")]
+            path = which("msedge.exe", path=os.pathsep.join(winpaths))
+            if channel == "canary":
+                path = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Edge SxS\Application\msedge.exe")
+            return path
         self.logger.warning("Unable to find the browser binary.")
         return None
 
     def find_webdriver(self, venv_path=None, channel=None):
         return which("msedgedriver")
 
-    def webdriver_supports_browser(self, webdriver_binary, browser_binary):
-        edgedriver_version = self.webdriver_version(webdriver_binary)
-        if not edgedriver_version:
-            self.logger.warning(
-                f"Unable to get version for EdgeDriver {webdriver_binary}, rejecting it")
-            return False
+    def install(self, dest=None, channel=None):
+        raise NotImplementedError
 
-        browser_version = self.version(browser_binary)
-        if not browser_version:
-            # If we can't get the browser version, we just have to assume the
-            # EdgeDriver is good.
-            return True
-
-        # Check that the EdgeDriver version matches the Edge version.
-        edgedriver_major = int(edgedriver_version.split('.')[0])
-        browser_major = int(browser_version.split('.')[0])
-        if edgedriver_major != browser_major:
-            self.logger.warning(
-                f"EdgeDriver {edgedriver_version} does not match Edge {browser_version}")
-            return False
-        return True
-
-    def install_webdriver_by_version(self, version, dest=None):
+    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
         if dest is None:
             dest = os.pwd
 
-        if self.platform == "linux":
-            bits = "linux64"
-            edgedriver_path = os.path.join(dest, self.edgedriver_name)
-        elif self.platform == "macos":
-            bits = "mac64"
-            edgedriver_path = os.path.join(dest, self.edgedriver_name)
-        else:
-            bits = "win64" if uname[4] == "x86_64" else "win32"
-            edgedriver_path = os.path.join(dest, f"{self.edgedriver_name}.exe")
-        url = f"https://msedgedriver.azureedge.net/{version}/edgedriver_{bits}.zip"
-
-        # cleanup existing Edge driver files to avoid access_denied errors when unzipping
-        if os.path.isfile(edgedriver_path):
-            # remove read-only attribute
-            os.chmod(edgedriver_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
-            print(f"Delete {edgedriver_path} file")
-            os.remove(edgedriver_path)
-        driver_notes_path = os.path.join(dest, "Driver_notes")
-        if os.path.isdir(driver_notes_path):
-            print(f"Delete {driver_notes_path} folder")
-            rmtree(driver_notes_path)
-
-        self.logger.info(f"Downloading MSEdgeDriver from {url}")
-        unzip(get(url).raw, dest)
-        if os.path.isfile(edgedriver_path):
-            self.logger.info(f"Successfully downloaded MSEdgeDriver to {edgedriver_path}")
-        return which(self.edgedriver_name, path=dest)
-
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        self.logger.info(f"Installing MSEdgeDriver for channel {channel}")
-
+        # Detect the browser version.
+        # The MSEdgeDriver that is installed will match this version.
         if browser_binary is None:
+            # If a browser binary path was not given, detect a valid path.
             browser_binary = self.find_binary(channel=channel)
-        else:
-            self.logger.info(f"Installing matching MSEdgeDriver for Edge binary at {browser_binary}")
+            # We need a browser to version match, so if a browser binary path
+            # was not given and cannot be detected, raise an error.
+            if browser_binary is None:
+                raise FileNotFoundError("No browser binary detected. "
+                                        "Cannot install MSEdgeDriver without a browser version.")
 
         version = self.version(browser_binary)
-
-        # If an exact version can't be found, use a suitable fallback based on
-        # the browser channel, if available.
         if version is None:
-            platforms = {
-                "linux": "LINUX",
-                "macos": "MACOS",
-                "win": "WINDOWS"
-            }
-            if channel is None:
-                channel = "dev"
-            platform = platforms[self.platform]
-            suffix = f"{channel.upper()}_{platform}"
-            version_url = f"https://msedgedriver.azureedge.net/LATEST_{suffix}"
-            version = get(version_url).text.strip()
+            raise ValueError(f"Unable to detect browser version from binary at {browser_binary}. "
+                             "Cannot install MSEdgeDriver without a valid version to match.")
 
-        return self.install_webdriver_by_version(version, dest)
+        edgedriver_path = self.install_webdriver_by_version(version, dest, channel)
+
+        return edgedriver_path
+
+    def install_webdriver_by_version(self, version, dest, channel):
+        self._remove_existing_edgedriver_binary(dest)
+
+        if self.platform == "linux":
+            bits = "linux64"
+        elif self.platform == "macos":
+            bits = "mac64"
+        elif self.platform == "win":
+            bits = "win64" if uname[4] == "x86_64" else "win32"
+
+        url = f"https://msedgedriver.azureedge.net/{version}/edgedriver_{bits}.zip"
+        self.logger.info(f"Downloading MSEdgeDriver from {url}")
+        unzip(get(url).raw, dest)
+        edgedriver_path = which("msedgedriver", path=dest)
+        assert edgedriver_path is not None
+        return edgedriver_path
+
+    def webdriver_supports_browser(self, webdriver_binary, browser_binary, browser_channel):
+        """Check that the browser binary and MSEdgeDriver versions are a valid match."""
+        browser_version = self.version(browser_binary)
+        edgedriver_version = self.webdriver_version(webdriver_binary)
+
+        if not edgedriver_version:
+            self.logger.warning("Unable to get version for MSEdgeDriver "
+                                f"{webdriver_binary}, rejecting it")
+            return False
+
+        if not browser_version:
+            # If we can't get the browser version, we just have to assume the
+            # MSEdgeDriver is good.
+            self.logger.warning("Unable to get version for the browser "
+                                f"{browser_binary}, assuming MSEdgeDriver is good.")
+            return True
+
+        # Check that the EdgeDriver version matches the Edge version.
+        browser_version = self._get_build_version(browser_version)
+        edgedriver_version = self._get_build_version(edgedriver_version)
+
+        # Edge and MSEdgeDriver versions should match on the same MAJOR.MINOR.BUILD version.
+        if browser_version is not None and browser_version != edgedriver_version:
+            self.logger.warning(
+                f"MSEdgeDriver {edgedriver_version} does not match Edge {browser_version}")
+            return False
+        return True
 
     def version(self, binary=None, webdriver_binary=None):
+        """Get version string from browser binary."""
         if not binary:
             self.logger.warning("No browser binary provided.")
             return None
 
-        if self.platform == "win":
+        if uname[0] == "Windows":
             return _get_fileversion(binary, self.logger)
 
         try:
@@ -1756,11 +1767,10 @@ class EdgeChromium(Browser):
         return m.group(1)
 
     def webdriver_version(self, webdriver_binary):
+        """Get version string from MSEdgeDriver binary."""
         if webdriver_binary is None:
             self.logger.warning("No valid webdriver supplied to detect version.")
             return None
-        if self.platform == "win":
-            return _get_fileversion(webdriver_binary, self.logger)
 
         try:
             version_string = call(webdriver_binary, "--version").strip()
@@ -2199,6 +2209,27 @@ class WebKit(Browser):
     def version(self, binary=None, webdriver_binary=None):
         return None
 
+class Ladybird(Browser):
+    product = "ladybird"
+    requirements = None
+
+    def download(self, dest=None, channel=None, rename=None):
+        raise NotImplementedError
+
+    def install(self, dest=None, channel=None):
+        raise NotImplementedError
+
+    def find_binary(self, venv_path=None, channel=None):
+        return which("ladybird")
+
+    def find_webdriver(self, venv_path=None, channel=None):
+        return which("WebDriver")
+
+    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
+        raise NotImplementedError
+
+    def version(self, binary=None, webdriver_binary=None):
+        return None
 
 class WebKitTestRunner(Browser):
     """Interface for WebKitTestRunner.

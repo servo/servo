@@ -33,8 +33,8 @@ def _read_line(io_queue, deadline=None, encoding=None, errors="strict", raise_cr
             raise CrashError()
         if raise_crash_leak and line.startswith(b"#LEAK"):
             raise LeakError()
-    except Empty:
-        raise TimeoutError()
+    except Empty as e:
+        raise TimeoutError() from e
 
     return line.decode(encoding, errors) if encoding else line
 
@@ -224,6 +224,12 @@ def _convert_exception(test, exception, errors):
     raise exception
 
 
+def timeout_for_test(executor, test):
+    if executor.debug_info and executor.debug_info.interactive:
+        return None
+    return test.timeout * executor.timeout_multiplier
+
+
 class ContentShellCrashtestExecutor(CrashtestExecutor):
     def __init__(self, logger, browser, server_config, timeout_multiplier=1, debug_info=None,
             **kwargs):
@@ -232,7 +238,8 @@ class ContentShellCrashtestExecutor(CrashtestExecutor):
 
     def do_test(self, test):
         try:
-            _ = self.protocol.content_shell_test.do_test(self.test_url(test), test.timeout * self.timeout_multiplier)
+            _ = self.protocol.content_shell_test.do_test(self.test_url(test),
+                                                         timeout_for_test(self, test))
             self.protocol.content_shell_errors.read_errors()
             return self.convert_result(test, {"status": "PASS", "message": None})
         except BaseException as exception:
@@ -275,12 +282,11 @@ class ContentShellRefTestExecutor(RefTestExecutor, _SanitizerMixin):  # type: ig
             # source tree (i.e., without looking at a reference). This is not
             # possible in `wpt`, so pass an empty hash here to force a dump.
             command += "''print"
-        _, image = self.protocol.content_shell_test.do_test(
-            command, test.timeout * self.timeout_multiplier)
 
+        _, image = self.protocol.content_shell_test.do_test(command,
+                                                            timeout_for_test(self, test))
         if not image:
             return False, ("ERROR", self.protocol.content_shell_errors.read_errors())
-
         return True, b64encode(image).decode()
 
 
@@ -303,8 +309,7 @@ class ContentShellTestharnessExecutor(TestharnessExecutor, _SanitizerMixin):  # 
     def do_test(self, test):
         try:
             text, _ = self.protocol.content_shell_test.do_test(self.test_url(test),
-                    test.timeout * self.timeout_multiplier)
-
+                                                               timeout_for_test(self, test))
             errors = self.protocol.content_shell_errors.read_errors()
             if not text:
                 return (test.result_cls("ERROR", errors), [])

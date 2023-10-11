@@ -10,7 +10,7 @@ use style::stylesheets::supports_rule::{parse_condition_or_declaration, Declarat
 use style::stylesheets::{CssRuleType, Origin};
 use style_traits::ParsingMode;
 
-use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::DomRoot;

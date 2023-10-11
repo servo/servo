@@ -9,9 +9,9 @@
 	<meta name="assert" content="The clip-path property allows specifying
 	basic shapes and reference boxes. This test checks the usage of the correct
 	reference box. 'fill-box' was specified but is not supported for HTML
-	elements. The used value should be 'border-box' for the polygon() function
+	elements. The used value should be 'content-box' for the polygon() function
 	instead. By mixing percentage and absolute values as coordinates we check
-	the correct used reference box. On sucess you should see a green
+	the correct used reference box. On success you should see a green
 	vertical stripe next to a lime green vertical stripe. Both should be of equal
 	size.">
 <style>
@@ -27,6 +27,6 @@ div {
 </style>
 <body>
 	<p>The test passes if you see a green vertical stripe next to a lime green vertical stripe, both stripes should be of equal size and there should be no red.</p>
-	<div style="clip-path: polygon(0% 25%, 50% 50px, 100px 75%, 0 150px) fill-box"></div>
+	<div style="clip-path: polygon(-75px -50%, 50% -25px, 25px 150%, -75px 75px) fill-box"></div>
 </body>
 </html>

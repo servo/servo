@@ -35,17 +35,6 @@
 .ltr { direction: ltr; }
 .rtl { direction: rtl; }
 
-.TB.large.invert .target { top: auto; }
-.LR.large.invert .target { left: auto; }
-.RL.large.invert .target { right: auto; }
-
-.TB.ltr.large.invert .target { left:   auto; }
-.TB.rtl.large.invert .target { right:  auto; }
-.LR.ltr.large.invert .target { top:    auto; }
-.LR.rtl.large.invert .target { bottom: auto; }
-.RL.ltr.large.invert .target { top:    auto; }
-.RL.rtl.large.invert .target { bottom: auto; }
-
 /* not absolutizing the border colors, so that the test passes even if css-logical is not supported; */
 .large.invert {
   border: solid silver;
@@ -53,10 +42,40 @@
   border-inline-end-color: blue;
 }
 
+.TB.large.invert .target::before { top: auto; }
+.LR.large.invert .target::before { left: auto; }
+.RL.large.invert .target::before { right: auto; }
+
+.TB.ltr.large.invert .target::before { left:   auto; }
+.TB.rtl.large.invert .target::before { right:  auto; }
+.LR.ltr.large.invert .target::before { top:    auto; }
+.LR.rtl.large.invert .target::before { bottom: auto; }
+.RL.ltr.large.invert .target::before { top:    auto; }
+.RL.rtl.large.invert .target::before { bottom: auto; }
+
+.large.invert .target::before {
+  width: 9px;
+  height: 9px;
+  background: orange;
+  top: 0; left: 0; right: 0; bottom: 0;
+  position: absolute;
+  content: '';
+}
+
+.large.invert .target {
+  display: block;
+  background: none;
+  width: 30px;
+  height: 30px;
+  border-block-start: 20px solid red;
+  border-inline-start: 20px solid red;
+}
+
 </style>
 
 <p>Test passes if there is an orange square tucked into each blue corner without gaps,
-and there is no red.
+and there is no red, except for the large inverted cases which should have red
+in the silver corner and smaller orange boxes in the blue corner.
 
 <div class="wrapper">
 <!-- Simple Small Cases -->
@@ -87,6 +106,7 @@ and there is no red.
 
 <!-- Target-inverted Small Cases
      This row should be identical to the previous. -->
+
 <div class="scroller TB ltr small invert">
   <div class="target"></div>
 </div>
@@ -165,3 +185,4 @@ and there is no red.
 </div>
 
 </div> <!-- wrapper -->
+

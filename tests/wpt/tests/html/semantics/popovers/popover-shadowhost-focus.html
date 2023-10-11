@@ -3,6 +3,7 @@
 <link rel=help href="https://github.com/whatwg/html/issues/8994">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 
 <div popover=auto tabindex=0 data-test="autofocus=true, delegatesfocus=false" autofocus class=should-be-focused>
   <template shadowrootmode=open>
@@ -31,16 +32,7 @@
 </div>
 
 <script>
-(function attachShadowRoots(root) {
-  root.querySelectorAll("template[shadowrootmode]").forEach(template => {
-    const mode = template.getAttribute("shadowrootmode");
-    const delegatesFocus = template.hasAttribute("shadowrootdelegatesfocus");
-    const shadowRoot = template.parentNode.attachShadow({ mode, delegatesFocus });
-    shadowRoot.appendChild(template.content);
-    template.remove();
-    attachShadowRoots(shadowRoot);
-  });
-})(document);
+polyfill_declarative_shadow_dom(document);
 
 document.querySelectorAll('body > [popover]').forEach(popover => {
   promise_test(async () => {

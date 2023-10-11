@@ -22,7 +22,7 @@ setup({
 
 void (async () => {
   const workerEnabled = optionEnabled('worker');
-  const worker = workerEnabled ? new TestWorker(false) : undefined;
+  const worker = workerEnabled ? new TestWorker() : undefined;
 
   globalTestConfig.unrollConstEvalLoops = optionEnabled('unroll_const_eval_loops');
 

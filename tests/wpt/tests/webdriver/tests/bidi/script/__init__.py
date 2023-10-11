@@ -1,5 +1,7 @@
 from __future__ import annotations
 from typing import Any, Callable, Mapping
+from webdriver.bidi.modules.script import ContextTarget
+
 from .. import any_int, any_string, recursive_compare
 
 
@@ -190,6 +192,9 @@ REMOTE_VALUES: list[tuple[str, dict]] = [
     ("(function*() { yield 'a'; })()", {
         "type": "generator",
     }),
+    ("(async function*() { yield await Promise.resolve(1); })()", {
+        "type": "generator",
+    }),
     ("Promise.resolve()", {"type": "promise", },),
     ("new Int32Array()", {"type": "typedarray", },),
     ("new ArrayBuffer()", {"type": "arraybuffer", },),
@@ -211,3 +216,24 @@ REMOTE_VALUES: list[tuple[str, dict]] = [
     ("window", {"type": "window", },),
     ("new URL('https://example.com')", {"type": "object", },),
 ]
+
+
+async def create_sandbox(bidi_session, context, sandbox_name="Test", method="evaluate"):
+    if method == "evaluate":
+        result = await bidi_session.script.evaluate(
+            raw_result=True,
+            expression="1 + 2",
+            await_promise=False,
+            target=ContextTarget(context, sandbox=sandbox_name),
+        )
+    elif method == "call_function":
+        result = await bidi_session.script.call_function(
+            raw_result=True,
+            function_declaration="() => 1 + 2",
+            await_promise=False,
+            target=ContextTarget(context, sandbox=sandbox_name),
+        )
+    else:
+        raise Exception(f"Unsupported method to create a sandbox: {method}")
+
+    return result["realm"]

@@ -21,21 +21,15 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
     "ahash",
-    "base64",
     "bitflags",
     "cfg-if",
     "cookie",
-    "core-foundation",
-    "core-foundation-sys",
     "futures",
-    "gl_generator",
-    "itoa",
     "libloading",
     "mio",
     "nix",
     "num-rational",
     "redox_syscall",
-    "ron",
     "socket2",
     "time",
     "wasi",
@@ -78,7 +72,8 @@ packages = [
 # Files that are ignored for all tidy and lint checks.
 files = [
     "./components/net/tests/parsable_mime/text",
-    # Ignore style files to avoid diverging too much from upstream Gecko
+    # Ignore selectors and style files to avoid diverging too much from upstream Gecko
+    "./components/selectors/",
     "./components/style/",
     "./components/style_derive/parse.rs",
     "./resources/hsts_preload.json",

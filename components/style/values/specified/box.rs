@@ -10,7 +10,7 @@ use crate::properties::{LonghandId, PropertyDeclarationId};
 use crate::properties::{PropertyId, ShorthandId};
 use crate::values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use crate::values::generics::box_::Perspective as GenericPerspective;
-use crate::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
+use crate::values::generics::box_::{GenericContainIntrinsicSize, GenericVerticalAlign, VerticalAlignKeyword};
 use crate::values::specified::length::{LengthPercentage, NonNegativeLength};
 use crate::values::specified::{AllowQuirks, Number};
 use crate::values::{CustomIdent, KeyframesName, TimelineName};
@@ -23,17 +23,8 @@ use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 #[cfg(feature = "gecko")]
 fn moz_display_values_enabled(context: &ParserContext) -> bool {
-    context.in_ua_or_chrome_sheet() ||
-        static_prefs::pref!("layout.css.xul-display-values.content.enabled")
+    context.in_ua_or_chrome_sheet()
 }
-
-#[cfg(feature = "gecko")]
-fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
-    context.in_ua_or_chrome_sheet() ||
-        static_prefs::pref!("layout.css.xul-box-display-values.content.enabled")
-}
-
-
 
 #[cfg(not(feature = "servo"))]
 fn flexbox_enabled() -> bool {
@@ -561,9 +552,9 @@ impl Parse for Display {
             #[cfg(feature = "gecko")]
             "-webkit-inline-box" => Display::WebkitInlineBox,
             #[cfg(feature = "gecko")]
-            "-moz-box" if moz_box_display_values_enabled(context) => Display::MozBox,
+            "-moz-box" if moz_display_values_enabled(context) => Display::MozBox,
             #[cfg(feature = "gecko")]
-            "-moz-inline-box" if moz_box_display_values_enabled(context) => Display::MozInlineBox,
+            "-moz-inline-box" if moz_display_values_enabled(context) => Display::MozInlineBox,
             #[cfg(feature = "gecko")]
             "-moz-deck" if moz_display_values_enabled(context) => Display::MozDeck,
             #[cfg(feature = "gecko")]
@@ -620,6 +611,9 @@ impl Debug for Display {
             .finish()
     }
 }
+
+/// A specified value for the `contain-intrinsic-size` property.
+pub type ContainIntrinsicSize = GenericContainIntrinsicSize<NonNegativeLength>;
 
 /// A specified value for the `vertical-align` property.
 pub type VerticalAlign = GenericVerticalAlign<LengthPercentage>;
@@ -774,13 +768,13 @@ impl Default for Scroller {
 #[repr(u8)]
 pub enum ScrollAxis {
     /// The block axis of the scroll container. (Default.)
-    Block,
+    Block = 0,
     /// The inline axis of the scroll container.
-    Inline,
+    Inline = 1,
     /// The vertical block axis of the scroll container.
-    Vertical,
+    Vertical = 2,
     /// The horizontal axis of the scroll container.
-    Horizontal,
+    Horizontal = 3,
 }
 
 impl Default for ScrollAxis {
@@ -815,9 +809,13 @@ fn is_default<T: Default + PartialEq>(value: &T) -> bool {
 pub enum AnimationTimeline {
     /// Use default timeline. The animation’s timeline is a DocumentTimeline.
     Auto,
-    /// The scroll-timeline name
+    /// The scroll-timeline name.
+    ///
+    /// Note: This could be the timeline name from @scroll-timeline rule, or scroll-timeline-name
+    /// from itself, its ancestors, or its previous siblings.
+    /// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timelines-named
     Timeline(TimelineName),
-    /// The scroll() notation
+    /// The scroll() notation.
     /// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-notation
     #[css(function)]
     Scroll(
@@ -871,6 +869,49 @@ impl Parse for AnimationTimeline {
         }
 
         TimelineName::parse(context, input).map(AnimationTimeline::Timeline)
+    }
+}
+
+/// A value for the scroll-timeline-name.
+///
+/// Note: The spec doesn't mention `auto` for scroll-timeline-name. However, `auto` is a keyword in
+/// animation-timeline, so we reject `auto` for scroll-timeline-name now.
+///
+/// https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-name
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct ScrollTimelineName(pub TimelineName);
+
+impl ScrollTimelineName {
+    /// Returns the `none` value.
+    pub fn none() -> Self {
+        Self(TimelineName::none())
+    }
+}
+
+impl Parse for ScrollTimelineName {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(name) = input.try_parse(|input| TimelineName::parse(context, input)) {
+            return Ok(Self(name));
+        }
+
+        input.expect_ident_matching("none")?;
+        Ok(Self(TimelineName::none()))
     }
 }
 
@@ -1355,7 +1396,7 @@ impl TouchAction {
 
 bitflags! {
     #[derive(MallocSizeOf, Parse, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
-    #[css(bitflags(single = "none,strict,content", mixed="size,layout,paint,inline-size", overlapping_bits))]
+    #[css(bitflags(single = "none,strict,content", mixed="size,layout,style,paint,inline-size", overlapping_bits))]
     #[repr(C)]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
@@ -1367,14 +1408,38 @@ bitflags! {
         const BLOCK_SIZE = 1 << 1;
         /// `layout` variant, turns on layout containment
         const LAYOUT = 1 << 2;
+        /// `style` variant, turns on style containment
+        const STYLE = 1 << 3;
         /// `paint` variant, turns on paint containment
-        const PAINT = 1 << 3;
+        const PAINT = 1 << 4;
         /// 'size' variant, turns on size containment
-        const SIZE = 1 << 4 | Contain::INLINE_SIZE.bits | Contain::BLOCK_SIZE.bits;
+        const SIZE = 1 << 5 | Contain::INLINE_SIZE.bits | Contain::BLOCK_SIZE.bits;
         /// `content` variant, turns on layout and paint containment
-        const CONTENT = 1 << 5 | Contain::LAYOUT.bits | Contain::PAINT.bits;
+        const CONTENT = 1 << 6 | Contain::LAYOUT.bits | Contain::STYLE.bits | Contain::PAINT.bits;
         /// `strict` variant, turns on all types of containment
-        const STRICT = 1 << 6 | Contain::LAYOUT.bits | Contain::PAINT.bits | Contain::SIZE.bits;
+        const STRICT = 1 << 7 | Contain::LAYOUT.bits | Contain::STYLE.bits | Contain::PAINT.bits | Contain::SIZE.bits;
+    }
+}
+
+impl Parse for ContainIntrinsicSize {
+    /// none | <length> | auto <length>
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+
+        if let Ok(l) = input.try_parse(|i| NonNegativeLength::parse(context, i))
+        {
+            return Ok(Self::Length(l));
+        }
+
+        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
+            let l = NonNegativeLength::parse(context, input)?;
+            return Ok(Self::AutoLength(l));
+        }
+
+        input.expect_ident_matching("none")?;
+        Ok(Self::None)
     }
 }
 

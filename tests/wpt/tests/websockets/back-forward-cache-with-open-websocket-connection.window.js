@@ -17,5 +17,5 @@ promise_test(async t => {
   await openWebSocket(rc1);
   // The page should not be eligible for BFCache because of open WebSocket connection.
   await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ false);
-  await assertNotRestoredFromBFCache(rc1, ['WebSocket']);
+  await assertNotRestoredFromBFCache(rc1, ['websocket']);
 });

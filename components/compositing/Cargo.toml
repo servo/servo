@@ -35,6 +35,7 @@ num-traits = { workspace = true }
 pixels = { path = "../pixels", optional = true }
 profile_traits = { path = "../profile_traits" }
 script_traits = { path = "../script_traits" }
+servo_config = { path = "../config" }
 servo-media = { git = "https://github.com/servo/media" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
