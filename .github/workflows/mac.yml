@@ -89,9 +89,9 @@ jobs:
         if: ${{ inputs.unit-tests || github.ref_name == 'try-mac' }}
         timeout-minutes: 30 # https://github.com/servo/servo/issues/30275
         run: python3 ./mach test-unit ${cargo_profile_option}
-      - name: Package
+      - name: Build mach package
         run: python3 ./mach package ${cargo_profile_option}
-      - name: Package smoketest
+      - name: Run smoketest for mach package
         run: ./etc/ci/macos_package_smoketest.sh target/${cargo_profile_name}/servo-tech-demo.dmg
       - name: Rename build timing
         run: cp -r target/cargo-timings target/cargo-timings-macos
@@ -101,12 +101,12 @@ jobs:
           name: cargo-timings
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
-      - name: Upload package
+      - name: Upload artifact for mach package
         uses: actions/upload-artifact@v3
         with:
           name: mac
           path: target/${cargo_profile_name}/servo-tech-demo.dmg
-      - name: Upload
+      - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
           python3 ./mach upload-nightly mac --secret-from-environment \
@@ -116,9 +116,9 @@ jobs:
           GITHUB_HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
-      - name: Package binary
+      - name: Build package for target
         run: gtar -czf target.tar.gz target/${cargo_profile_name}/servo target/${cargo_profile_name}/*.dylib target/${cargo_profile_name}/lib/*.dylib resources
-      - name: Archive binary
+      - name: Upload package for target
         uses: actions/upload-artifact@v3
         with:
           name: release-binary-macos

@@ -109,14 +109,14 @@ jobs:
           path: target/cargo-timings-*
       - name: Lockfile check
         run: ./etc/ci/lockfile_changed.sh
-      - name: Package
+      - name: Build mach package
         run: python3 ./mach package ${cargo_profile_option}
-      - name: Upload Package
+      - name: Upload artifact for mach package
         uses: actions/upload-artifact@v3
         with:
           name: linux
           path: target/${cargo_profile_name}/servo-tech-demo.tar.gz
-      - name: Upload
+      - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
           python3 ./mach upload-nightly linux \
@@ -126,9 +126,9 @@ jobs:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
-      - name: Package binary
+      - name: Build package for target
         run: tar -czf target.tar.gz target/${cargo_profile_name}/servo resources
-      - name: Archive binary
+      - name: Upload artifact for target
         uses: actions/upload-artifact@v3
         with:
           name: release-binary

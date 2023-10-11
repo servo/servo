@@ -94,9 +94,9 @@ jobs:
           name: cargo-timings
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
-      - name: Package
+      - name: Build mach package
         run: python mach package ($env:cargo_profile_option -split ' ')
-      - name: Upload package
+      - name: Upload artifact for mach package
         uses: actions/upload-artifact@v3
         with:
           name: win
