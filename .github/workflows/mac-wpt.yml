@@ -8,6 +8,7 @@ on:
         type: string
 
 env:
+  cargo_profile_option: ${{ inputs.force-debug-assertions && '--profile release-with-debug-assertions' || '--release' }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   WPT_COMMAND_LINE_ARG: "${{ inputs.layout == 'layout-2013' && '--legacy-layout' || '' }}"
@@ -43,11 +44,11 @@ jobs:
           python3 -m pip install --upgrade pip virtualenv
           python3 ./mach bootstrap
       - name: Smoketest
-        run: python3 ./mach smoketest --release
+        run: python3 ./mach smoketest ${cargo_profile_option}
       - name: Run tests
         run: |
           python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
-            --release --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
+            ${cargo_profile_option} --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
             --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \
