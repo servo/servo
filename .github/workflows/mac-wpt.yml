@@ -3,7 +3,7 @@ name: Mac WPT Tests
 on:
   workflow_call:
     inputs:
-      force-debug-assertions:
+      production:
         required: false
         type: boolean
       layout:
@@ -11,7 +11,7 @@ on:
         type: string
 
 env:
-  cargo_profile_option: ${{ inputs.force-debug-assertions && '--profile release-with-debug-assertions' || '--release' }}
+  cargo_profile_option: ${{ inputs.production && '--profile production' || '--release' }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   WPT_COMMAND_LINE_ARG: "${{ inputs.layout == 'layout-2013' && '--legacy-layout' || '' }}"
