@@ -3803,7 +3803,6 @@ dependencies = [
  "servo_config",
  "servo_url",
  "sha2",
- "std_test_override",
  "time 0.1.45",
  "tokio",
  "tokio-rustls",
@@ -3854,7 +3853,6 @@ dependencies = [
  "servo_arc",
  "servo_rand",
  "servo_url",
- "std_test_override",
  "time 0.1.45",
  "url",
  "uuid",
@@ -4977,7 +4975,6 @@ dependencies = [
  "servo_atoms",
  "servo_url",
  "smallvec",
- "std_test_override",
  "style_traits",
  "time 0.1.45",
  "uuid",
@@ -5322,7 +5319,6 @@ dependencies = [
  "servo_config_plugins",
  "servo_geometry",
  "servo_url",
- "std_test_override",
  "url",
 ]
 
@@ -5683,13 +5679,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
-name = "std_test_override"
-version = "0.0.1"
-dependencies = [
- "embedder_traits",
-]
-
-[[package]]
 name = "str-buf"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5818,7 +5807,6 @@ dependencies = [
  "servo_atoms",
  "servo_config",
  "servo_url",
- "std_test_override",
  "style",
  "style_traits",
 ]

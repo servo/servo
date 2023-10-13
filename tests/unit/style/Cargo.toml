@@ -23,4 +23,3 @@ servo_config = {path = "../../../components/config"}
 servo_url = {path = "../../../components/url"}
 style = {path = "../../../components/style", features = ["servo"]}
 style_traits = {path = "../../../components/style_traits"}
-std_test_override = { path = "../../../components/std_test_override" }

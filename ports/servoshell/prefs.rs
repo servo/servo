@@ -62,7 +62,6 @@ pub fn register_user_prefs(opts_matches: &Matches) {
 
 #[cfg(test)]
 fn test_parse_pref(arg: &str) {
-    servo::embedder_traits::resources::set_for_tests();
     let mut opts = getopts::Options::new();
     opts.optmulti("", "pref", "", "");
     let args = vec!["servo".to_string(), "--pref".to_string(), arg.to_string()];

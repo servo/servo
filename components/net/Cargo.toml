@@ -70,7 +70,6 @@ webpki-roots = { workspace = true }
 
 [dev-dependencies]
 futures = { version = "0.3", features = ["compat"] }
-std_test_override = { path = "../std_test_override" }
 tokio-test = "0.4"
 tokio-stream = { version = "0.1", features = ["net"] }
 hyper = { workspace = true, features = ["full"] }

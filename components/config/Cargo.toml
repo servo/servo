@@ -24,8 +24,5 @@ servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 url = { workspace = true }
 
-[dev-dependencies]
-std_test_override = { path = "../std_test_override" }
-
 [target.'cfg(not(target_os = "android"))'.dependencies]
 dirs-next = "2.0"

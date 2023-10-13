@@ -2,14 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::{Path, PathBuf};
-use std::sync::{Once, RwLock};
+use std::path::PathBuf;
+use std::sync::RwLock;
 
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref RES: RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>> =
-        RwLock::new(None);
+    static ref RES: RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>> = {
+        if cfg!(servo_production) {
+            RwLock::new(None)
+        } else {
+            const _: () = assert!(cfg!(servo_do_not_use_in_production));
+            RwLock::new(Some(resources_for_tests()))
+        }
+    };
 }
 
 pub fn set(reader: Box<dyn ResourceReaderMethods + Sync + Send>) {
@@ -88,46 +94,13 @@ pub trait ResourceReaderMethods {
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf>;
 }
 
-// Can’t #[cfg(test)] the following because it breaks tests in dependent crates.
-
-pub fn set_for_tests() {
-    static ONCE: Once = Once::new();
-    ONCE.call_once(|| set(resources_for_tests()));
-}
-
-lazy_static::lazy_static! {
-    static ref CMD_RESOURCE_DIR: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None);
-}
-
-fn resources_dir_path_for_tests() -> std::io::Result<PathBuf> {
-    // This needs to be called before the process is sandboxed
-    // as we only give permission to read inside the resources directory,
-    // not the permissions the "search" for the resources directory.
-    let mut dir = CMD_RESOURCE_DIR.lock().unwrap();
-    if let Some(ref path) = *dir {
-        return Ok(PathBuf::from(path));
-    }
-
-    let mut path = std::env::current_exe()?.parent().unwrap().to_owned();
-    path.push("resources");
-    if path.is_dir() {
-        *dir = Some(path);
-        return Ok(dir.clone().unwrap());
-    }
-
-    // Check for Resources on mac when using a case sensitive filesystem.
-    path.pop();
-    path.push("Resources");
-    if path.is_dir() {
-        *dir = Some(path);
-        return Ok(dir.clone().unwrap());
-    }
-
-    let path = Path::new("resources").to_owned();
-    *dir = Some(path);
-    Ok(dir.clone().unwrap())
-}
-
+/// Bake all of our resources into this crate for tests, unless we are `cfg!(servo_production)`.
+///
+/// Local non-production embedder builds (e.g. servoshell) can still override these with [`set`],
+/// if runtime loading of prefs.json and other resources is needed.
+///
+/// In theory this can be `#[cfg(servo_production)]`, but omitting the attribute ensures that the
+/// code is always checked by the compiler, even if it later gets optimised out as dead code.
 fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
     struct ResourceReader;
     impl ResourceReaderMethods for ResourceReader {
@@ -138,9 +111,33 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
             vec![]
         }
         fn read(&self, file: Resource) -> Vec<u8> {
-            let mut path = resources_dir_path_for_tests().expect("Can't find resources directory");
-            path.push(file.filename());
-            std::fs::read(path).expect("Can't read file")
+            match file {
+                Resource::Preferences => &include_bytes!("../../resources/prefs.json")[..],
+                Resource::BluetoothBlocklist => {
+                    &include_bytes!("../../resources/gatt_blocklist.txt")[..]
+                },
+                Resource::DomainList => &include_bytes!("../../resources/public_domains.txt")[..],
+                Resource::HstsPreloadList => {
+                    &include_bytes!("../../resources/hsts_preload.json")[..]
+                },
+                Resource::BadCertHTML => &include_bytes!("../../resources/badcert.html")[..],
+                Resource::NetErrorHTML => &include_bytes!("../../resources/neterror.html")[..],
+                Resource::UserAgentCSS => &include_bytes!("../../resources/user-agent.css")[..],
+                Resource::ServoCSS => &include_bytes!("../../resources/servo.css")[..],
+                Resource::PresentationalHintsCSS => {
+                    &include_bytes!("../../resources/presentational-hints.css")[..]
+                },
+                Resource::QuirksModeCSS => &include_bytes!("../../resources/quirks-mode.css")[..],
+                Resource::RippyPNG => &include_bytes!("../../resources/rippy.png")[..],
+                Resource::MediaControlsCSS => {
+                    &include_bytes!("../../resources/media-controls.css")[..]
+                },
+                Resource::MediaControlsJS => {
+                    &include_bytes!("../../resources/media-controls.js")[..]
+                },
+                Resource::CrashHTML => &include_bytes!("../../resources/crash.html")[..],
+            }
+            .to_owned()
         }
     }
     Box::new(ResourceReader)

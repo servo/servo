@@ -17,9 +17,19 @@ Building Servo is quite easy. Install the prerequisites described in the [README
 
 *Note: on Mac, you might run into an SSL issue while compiling. You'll find a solution to this problem [here](https://github.com/sfackler/rust-openssl/issues/255).*
 
-The `-d` option means "debug build". You can also build with the `-r` option which means "release build". Building with `-d` will allow you to use a debugger (lldb). A `-r` build is more performant. Release builds are slower to build.
+There are three main build profiles, which you can build and use independently of one another:
 
-You can use and build a release build and a debug build in parallel.
+* debug builds, which allow you to use a debugger (lldb)
+* release builds, which are slower to build but more performant
+* production builds, which are used for official releases only
+
+| profile | mach option | optimised? | debug<br>info? | debug<br>assertions? | finds resources in<br>current working dir? |
+|---|---|---|---|---|---|
+| debug | `-d` | no | yes | yes | yes |
+| release | `-r` | yes | no | yes(!) | yes |
+| production | `--profile production` | yes | yes | no | no |
+
+You can change these settings in a servobuild file (see [servobuild.example](../servobuild.example)) or in the root [Cargo.toml](../Cargo.toml).
 
 ## Running Servo
 
