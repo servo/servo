@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Once, RwLock};
 
 use lazy_static::lazy_static;
@@ -99,33 +99,44 @@ lazy_static::lazy_static! {
     static ref CMD_RESOURCE_DIR: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None);
 }
 
-fn resources_dir_path_for_tests() -> std::io::Result<PathBuf> {
+fn resources_dir_path_for_tests() -> PathBuf {
     // This needs to be called before the process is sandboxed
     // as we only give permission to read inside the resources directory,
     // not the permissions the "search" for the resources directory.
     let mut dir = CMD_RESOURCE_DIR.lock().unwrap();
     if let Some(ref path) = *dir {
-        return Ok(PathBuf::from(path));
+        return PathBuf::from(path);
     }
 
-    let mut path = std::env::current_exe()?.parent().unwrap().to_owned();
-    path.push("resources");
-    if path.is_dir() {
-        *dir = Some(path);
-        return Ok(dir.clone().unwrap());
+    let mut path = std::env::current_exe().unwrap();
+    while path.pop() {
+        path.push("resources");
+        if path.is_dir() {
+            *dir = Some(path);
+            return dir.clone().unwrap();
+        }
+        path.pop();
+
+        // Check for Resources on mac when using a case sensitive filesystem.
+        path.push("Resources");
+        if path.is_dir() {
+            *dir = Some(path);
+            return dir.clone().unwrap();
+        }
+        path.pop();
     }
 
-    // Check for Resources on mac when using a case sensitive filesystem.
-    path.pop();
-    path.push("Resources");
-    if path.is_dir() {
-        *dir = Some(path);
-        return Ok(dir.clone().unwrap());
+    let mut path = std::env::current_dir().unwrap();
+    while path.pop() {
+        path.push("resources");
+        if path.is_dir() {
+            *dir = Some(path);
+            return dir.clone().unwrap();
+        }
+        path.pop();
     }
 
-    let path = Path::new("resources").to_owned();
-    *dir = Some(path);
-    Ok(dir.clone().unwrap())
+    panic!("Can't find resources directory")
 }
 
 fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
@@ -135,10 +146,10 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
             vec![]
         }
         fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
-            vec![]
+            vec![resources_dir_path_for_tests()]
         }
         fn read(&self, file: Resource) -> Vec<u8> {
-            let mut path = resources_dir_path_for_tests().expect("Can't find resources directory");
+            let mut path = resources_dir_path_for_tests();
             path.push(file.filename());
             std::fs::read(path).expect("Can't read file")
         }
