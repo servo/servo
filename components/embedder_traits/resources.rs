@@ -108,24 +108,6 @@ fn resources_dir_path_for_tests() -> PathBuf {
         return PathBuf::from(path);
     }
 
-    let mut path = std::env::current_exe().unwrap();
-    while path.pop() {
-        path.push("resources");
-        if path.is_dir() {
-            *dir = Some(path);
-            return dir.clone().unwrap();
-        }
-        path.pop();
-
-        // Check for Resources on mac when using a case sensitive filesystem.
-        path.push("Resources");
-        if path.is_dir() {
-            *dir = Some(path);
-            return dir.clone().unwrap();
-        }
-        path.pop();
-    }
-
     let mut path = std::env::current_dir().unwrap();
     while path.pop() {
         path.push("resources");
