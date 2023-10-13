@@ -6,37 +6,17 @@
 // TODO: move this to somewhere where it can be shared.
 // https://github.com/servo/servo/issues/24853
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::{env, fs, io};
 
-use lazy_static::lazy_static;
 use servo::embedder_traits::resources::{self, Resource};
 
-lazy_static! {
-    static ref CMD_RESOURCE_DIR: Mutex<Option<String>> = Mutex::new(None);
+lazy_static::lazy_static! {
+    static ref CMD_RESOURCE_DIR: Mutex<Option<PathBuf>> = Mutex::new(None);
 }
 
 struct ResourceReader;
-
-fn filename(file: Resource) -> &'static str {
-    match file {
-        Resource::Preferences => "prefs.json",
-        Resource::BluetoothBlocklist => "gatt_blocklist.txt",
-        Resource::DomainList => "public_domains.txt",
-        Resource::HstsPreloadList => "hsts_preload.json",
-        Resource::BadCertHTML => "badcert.html",
-        Resource::NetErrorHTML => "neterror.html",
-        Resource::UserAgentCSS => "user-agent.css",
-        Resource::ServoCSS => "servo.css",
-        Resource::PresentationalHintsCSS => "presentational-hints.css",
-        Resource::QuirksModeCSS => "quirks-mode.css",
-        Resource::RippyPNG => "rippy.png",
-        Resource::MediaControlsCSS => "media-controls.css",
-        Resource::MediaControlsJS => "media-controls.js",
-        Resource::CrashHTML => "crash.html",
-    }
-}
 
 pub fn init() {
     resources::set(Box::new(ResourceReader));
@@ -51,36 +31,31 @@ fn resources_dir_path() -> io::Result<PathBuf> {
         return Ok(PathBuf::from(path));
     }
 
-    // FIXME: Find a way to not rely on the executable being
-    // under `<servo source>[/$target_triple]/target/debug`
-    // or `<servo source>[/$target_triple]/target/release`.
-    let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    // Follow symlink
-    path = path.canonicalize()?;
-
-    while path.pop() {
-        path.push("resources");
-        if path.is_dir() {
-            break;
-        }
-        path.pop();
-        // Check for Resources on mac when using a case sensitive filesystem.
-        path.push("Resources");
-        if path.is_dir() {
-            break;
-        }
-        path.pop();
+    let mut path = env::current_exe()?.parent().unwrap().to_owned();
+    path.push("resources");
+    if path.is_dir() {
+        *dir = Some(path);
+        return Ok(dir.clone().unwrap());
     }
-    *dir = Some(path.to_str().unwrap().to_owned());
-    Ok(path)
+
+    // Check for Resources on mac when using a case sensitive filesystem.
+    path.pop();
+    path.push("Resources");
+    if path.is_dir() {
+        *dir = Some(path);
+        return Ok(dir.clone().unwrap());
+    }
+
+    let path = Path::new("resources").to_owned();
+    *dir = Some(path);
+    Ok(dir.clone().unwrap())
 }
 
 impl resources::ResourceReaderMethods for ResourceReader {
     fn read(&self, file: Resource) -> Vec<u8> {
-        let file = filename(file);
         let mut path = resources_dir_path().expect("Can't find resources directory");
-        path.push(file);
-        fs::read(path.clone()).expect(&format!("Can't read file {:?}", path))
+        path.push(file.filename());
+        fs::read(path).expect("Can't read file")
     }
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
         vec![resources_dir_path().expect("Can't find resources directory")]

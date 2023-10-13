@@ -6,10 +6,9 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
-use getopts::{Matches, Options};
-use servo::config::opts::{self, ArgumentParsingResult};
+use getopts::Matches;
+use servo::config::opts;
 use servo::config::prefs::{self, PrefValue};
-use servo::embedder_traits;
 use servo::servo_config::basedir;
 
 pub fn register_user_prefs(opts_matches: &Matches) {
@@ -61,16 +60,15 @@ pub fn register_user_prefs(opts_matches: &Matches) {
     prefs::add_user_prefs(userprefs);
 }
 
-// Use for test
-#[allow(dead_code)]
+#[cfg(test)]
 fn test_parse_pref(arg: &str) {
-    embedder_traits::resources::set_for_tests();
-    let mut opts = Options::new();
+    servo::embedder_traits::resources::set_for_tests();
+    let mut opts = getopts::Options::new();
     opts.optmulti("", "pref", "", "");
     let args = vec!["servo".to_string(), "--pref".to_string(), arg.to_string()];
     let matches = match opts::from_cmdline_args(opts, &args) {
-        ArgumentParsingResult::ContentProcess(m, _) => m,
-        ArgumentParsingResult::ChromeProcess(m) => m,
+        opts::ArgumentParsingResult::ContentProcess(m, _) => m,
+        opts::ArgumentParsingResult::ChromeProcess(m) => m,
     };
     register_user_prefs(&matches);
 }
