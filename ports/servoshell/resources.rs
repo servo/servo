@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::{env, fs, io};
 
-use servo::embedder_traits::resources::{self, filename, Resource};
+use servo::embedder_traits::resources::{self, Resource};
 
 lazy_static::lazy_static! {
     static ref CMD_RESOURCE_DIR: Mutex<Option<PathBuf>> = Mutex::new(None);
@@ -49,9 +49,8 @@ fn resources_dir_path() -> io::Result<PathBuf> {
 
 impl resources::ResourceReaderMethods for ResourceReader {
     fn read(&self, file: Resource) -> Vec<u8> {
-        let file = filename(file);
         let mut path = resources_dir_path().expect("Can't find resources directory");
-        path.push(file);
+        path.push(file.filename());
         fs::read(path).expect("Can't read file")
     }
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {

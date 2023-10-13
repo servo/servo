@@ -44,25 +44,6 @@ pub fn sandbox_access_files_dirs() -> Vec<PathBuf> {
         .sandbox_access_files_dirs()
 }
 
-pub fn filename(file: Resource) -> &'static str {
-    match file {
-        Resource::Preferences => "prefs.json",
-        Resource::BluetoothBlocklist => "gatt_blocklist.txt",
-        Resource::DomainList => "public_domains.txt",
-        Resource::HstsPreloadList => "hsts_preload.json",
-        Resource::BadCertHTML => "badcert.html",
-        Resource::NetErrorHTML => "neterror.html",
-        Resource::UserAgentCSS => "user-agent.css",
-        Resource::ServoCSS => "servo.css",
-        Resource::PresentationalHintsCSS => "presentational-hints.css",
-        Resource::QuirksModeCSS => "quirks-mode.css",
-        Resource::RippyPNG => "rippy.png",
-        Resource::MediaControlsCSS => "media-controls.css",
-        Resource::MediaControlsJS => "media-controls.js",
-        Resource::CrashHTML => "crash.html",
-    }
-}
-
 pub enum Resource {
     Preferences,
     BluetoothBlocklist,
@@ -78,6 +59,27 @@ pub enum Resource {
     MediaControlsCSS,
     MediaControlsJS,
     CrashHTML,
+}
+
+impl Resource {
+    pub fn filename(&self) -> &'static str {
+        match self {
+            Resource::Preferences => "prefs.json",
+            Resource::BluetoothBlocklist => "gatt_blocklist.txt",
+            Resource::DomainList => "public_domains.txt",
+            Resource::HstsPreloadList => "hsts_preload.json",
+            Resource::BadCertHTML => "badcert.html",
+            Resource::NetErrorHTML => "neterror.html",
+            Resource::UserAgentCSS => "user-agent.css",
+            Resource::ServoCSS => "servo.css",
+            Resource::PresentationalHintsCSS => "presentational-hints.css",
+            Resource::QuirksModeCSS => "quirks-mode.css",
+            Resource::RippyPNG => "rippy.png",
+            Resource::MediaControlsCSS => "media-controls.css",
+            Resource::MediaControlsJS => "media-controls.js",
+            Resource::CrashHTML => "crash.html",
+        }
+    }
 }
 
 pub trait ResourceReaderMethods {
@@ -136,9 +138,8 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
             vec![]
         }
         fn read(&self, file: Resource) -> Vec<u8> {
-            let file = filename(file);
             let mut path = resources_dir_path_for_tests().expect("Can't find resources directory");
-            path.push(file);
+            path.push(file.filename());
             std::fs::read(path).expect("Can't read file")
         }
     }
