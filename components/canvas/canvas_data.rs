@@ -451,6 +451,7 @@ impl<'a> CanvasData<'a> {
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
         smoothing_enabled: bool,
+        premultiply: bool,
     ) {
         // We round up the floating pixel values to draw the pixels
         let source_rect = source_rect.ceil();
@@ -469,6 +470,7 @@ impl<'a> CanvasData<'a> {
                 source_rect.size,
                 dest_rect,
                 smoothing_enabled,
+                premultiply,
                 &draw_options,
             );
         };
@@ -1306,18 +1308,24 @@ pub struct CanvasPaintState<'a> {
 /// image_size: The size of the image to be written
 /// dest_rect: Area of the destination target where the pixels will be copied
 /// smoothing_enabled: It determines if smoothing is applied to the image result
+/// premultiply: Determines whenever the image data should be premultiplied or not
 fn write_image(
     draw_target: &mut dyn GenericDrawTarget,
     mut image_data: Vec<u8>,
     image_size: Size2D<f64>,
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
+    premultiply: bool,
     draw_options: &DrawOptions,
 ) {
     if image_data.is_empty() {
         return;
     }
-    pixels::rgba8_premultiply_inplace(&mut image_data);
+
+    if premultiply {
+        pixels::rgba8_premultiply_inplace(&mut image_data);
+    }
+
     let image_rect = Rect::new(Point2D::zero(), image_size);
 
     // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage

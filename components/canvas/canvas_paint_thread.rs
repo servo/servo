@@ -186,6 +186,7 @@ impl<'a> CanvasPaintThread<'a> {
                 dest_rect,
                 source_rect,
                 smoothing_enabled,
+                true,
             ),
             Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect) => {
                 self.canvas(canvas_id).draw_image(
@@ -193,6 +194,7 @@ impl<'a> CanvasPaintThread<'a> {
                     image_size,
                     dest_rect,
                     source_rect,
+                    false,
                     false,
                 )
             },
@@ -212,6 +214,7 @@ impl<'a> CanvasPaintThread<'a> {
                     dest_rect,
                     source_rect,
                     smoothing,
+                    false,
                 );
             },
             Canvas2dMsg::MoveTo(ref point) => self.canvas(canvas_id).move_to(point),
