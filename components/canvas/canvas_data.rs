@@ -446,7 +446,7 @@ impl<'a> CanvasData<'a> {
 
     pub fn draw_image(
         &mut self,
-        image_data: Vec<u8>,
+        image_data: &[u8],
         image_size: Size2D<f64>,
         dest_rect: Rect<f64>,
         source_rect: Rect<f64>,
@@ -1308,7 +1308,7 @@ pub struct CanvasPaintState<'a> {
 /// smoothing_enabled: It determines if smoothing is applied to the image result
 fn write_image(
     draw_target: &mut dyn GenericDrawTarget,
-    image_data: Vec<u8>,
+    mut image_data: Vec<u8>,
     image_size: Size2D<f64>,
     dest_rect: Rect<f64>,
     smoothing_enabled: bool,
@@ -1317,6 +1317,7 @@ fn write_image(
     if image_data.is_empty() {
         return;
     }
+    pixels::rgba8_premultiply_inplace(&mut image_data);
     let image_rect = Rect::new(Point2D::zero(), image_size);
 
     // From spec https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage

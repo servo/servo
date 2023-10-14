@@ -15,13 +15,12 @@ use canvas_traits::canvas::{
 use cssparser::{Color as CSSColor, Parser, ParserInput, RGBA};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
-use serde_bytes::ByteBuf;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font;
@@ -260,7 +259,7 @@ impl CanvasState {
         &self,
         url: ServoUrl,
         cors_setting: Option<CorsSettings>,
-    ) -> Option<(Vec<u8>, Size2D<u32>)> {
+    ) -> Option<(IpcSharedMemory, Size2D<u32>)> {
         let img = match self.request_image_from_cache(url, cors_setting) {
             ImageResponse::Loaded(img, _) => img,
             ImageResponse::PlaceholderLoaded(_, _) |
@@ -272,7 +271,7 @@ impl CanvasState {
 
         let image_size = Size2D::new(img.width, img.height);
         let image_data = match img.format {
-            PixelFormat::BGRA8 => img.bytes.to_vec(),
+            PixelFormat::BGRA8 => img.bytes.clone(),
             pixel_format => unimplemented!("unsupported pixel format ({:?})", pixel_format),
         };
 
@@ -492,12 +491,10 @@ impl CanvasState {
                 },
             }
         } else {
-            self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-                None,
+            self.send_canvas_2d_msg(Canvas2dMsg::DrawEmptyImage(
                 image_size,
                 dest_rect,
                 source_rect,
-                smoothing_enabled,
             ));
         }
 
@@ -554,12 +551,10 @@ impl CanvasState {
                 _ => return Err(Error::InvalidState),
             }
         } else {
-            self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-                None,
+            self.send_canvas_2d_msg(Canvas2dMsg::DrawEmptyImage(
                 image_size,
                 dest_rect,
                 source_rect,
-                smoothing_enabled,
             ));
         }
 
@@ -582,10 +577,9 @@ impl CanvasState {
         dh: Option<f64>,
     ) -> ErrorResult {
         debug!("Fetching image {}.", url);
-        let (mut image_data, image_size) = self
+        let (image_data, image_size) = self
             .fetch_image_data(url, cors_setting)
             .ok_or(Error::InvalidState)?;
-        pixels::rgba8_premultiply_inplace(&mut image_data);
         let image_size = image_size.to_f64();
 
         let dw = dw.unwrap_or(image_size.width);
@@ -603,11 +597,11 @@ impl CanvasState {
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
         self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
-            Some(ByteBuf::from(image_data)),
             image_size,
             dest_rect,
             source_rect,
             smoothing_enabled,
+            image_data,
         ));
         self.mark_as_dirty(canvas);
         Ok(())
@@ -916,6 +910,7 @@ impl CanvasState {
                     .and_then(|url| {
                         self.fetch_image_data(url, cors_setting_for_element(image.upcast()))
                     })
+                    .map(|data| (data.0.to_vec(), data.1))
                     .ok_or(Error::InvalidState)?
             },
             CanvasImageSource::HTMLCanvasElement(ref canvas) => {
@@ -935,6 +930,7 @@ impl CanvasState {
             CanvasImageSource::CSSStyleValue(ref value) => value
                 .get_url(self.base_url.clone())
                 .and_then(|url| self.fetch_image_data(url, None))
+                .map(|data| (data.0.to_vec(), data.1))
                 .ok_or(Error::InvalidState)?,
         };
 
