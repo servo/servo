@@ -175,11 +175,11 @@ impl<'a> CanvasPaintThread<'a> {
                 .canvas(canvas_id)
                 .is_point_in_path(x, y, fill_rule, chan),
             Canvas2dMsg::DrawImage(
+                ref image_data,
                 image_size,
                 dest_rect,
                 source_rect,
                 smoothing_enabled,
-                ref image_data,
             ) => self.canvas(canvas_id).draw_image(
                 &*image_data,
                 image_size,

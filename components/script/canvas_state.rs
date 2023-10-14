@@ -597,11 +597,11 @@ impl CanvasState {
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
         self.send_canvas_2d_msg(Canvas2dMsg::DrawImage(
+            image_data,
             image_size,
             dest_rect,
             source_rect,
             smoothing_enabled,
-            image_data,
         ));
         self.mark_as_dirty(canvas);
         Ok(())
