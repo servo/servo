@@ -189,7 +189,7 @@ impl<'a> CanvasPaintThread<'a> {
             ),
             Canvas2dMsg::DrawEmptyImage(image_size, dest_rect, source_rect) => {
                 self.canvas(canvas_id).draw_image(
-                    &vec![0; image_size.area() as usize],
+                    &vec![0; image_size.area() as usize * 4],
                     image_size,
                     dest_rect,
                     source_rect,
