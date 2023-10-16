@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::{env, fs};
 
@@ -27,32 +27,45 @@ fn resources_dir_path() -> PathBuf {
         return PathBuf::from(path);
     }
 
-    let path = env::current_exe().unwrap();
-    let path = path.parent().unwrap();
-    let mut path = path.canonicalize().unwrap();
-    path.push("resources");
-    if path.is_dir() {
-        *dir = Some(path);
-        return dir.clone().unwrap();
-    }
+    // Try ./resources and ./Resources relative to the directory containing the
+    // canonicalised executable path, then each of its ancestors.
+    let mut path = env::current_exe().unwrap().canonicalize().unwrap();
+    while path.pop() {
+        path.push("resources");
+        if path.is_dir() {
+            *dir = Some(path);
+            return dir.clone().unwrap();
+        }
+        path.pop();
 
-    // Check for Resources on mac when using a case sensitive filesystem.
-    path.pop();
-    path.push("Resources");
-    if path.is_dir() {
-        *dir = Some(path);
-        return dir.clone().unwrap();
+        // Check for Resources on mac when using a case sensitive filesystem.
+        path.push("Resources");
+        if path.is_dir() {
+            *dir = Some(path);
+            return dir.clone().unwrap();
+        }
+        path.pop();
     }
 
     if cfg!(servo_production) {
         panic!("Can't find resources directory")
     } else {
-        // Try to find resources in the current working directory too.
+        // Try ./resources in the current directory, then each of its ancestors.
         // Not to be used in production builds without considering the security implications!
         const _: () = assert!(cfg!(servo_do_not_use_in_production));
-        let path = Path::new("resources").to_owned();
-        *dir = Some(path);
-        dir.clone().unwrap()
+        let mut path = std::env::current_dir().unwrap();
+        loop {
+            path.push("resources");
+            if path.is_dir() {
+                *dir = Some(path);
+                return dir.clone().unwrap();
+            }
+            path.pop();
+
+            if !path.pop() {
+                panic!("Can't find resources directory")
+            }
+        }
     }
 }
 
