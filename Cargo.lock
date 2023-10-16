@@ -1039,6 +1039,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cookie"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3cd91cf61412820176e137621345ee43b3f4423e589e7ae4e50d601d93e35ef8"
+dependencies = [
+ "time 0.3.23",
+ "version_check",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2741,11 +2751,11 @@ dependencies = [
 
 [[package]]
 name = "hyper_serde"
-version = "0.13.0"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4193ebe2b9ecb7d04dd1a777c25f3294e10310fe5583e1006a3f47779d6c6a01"
+checksum = "7bf2f19b673699cefa20a2e22c6d5bcefa3af7e60b8fe9cf63d0f1f21a23b6e1"
 dependencies = [
- "cookie 0.12.0",
+ "cookie 0.18.0",
  "headers",
  "http",
  "hyper",
