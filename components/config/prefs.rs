@@ -511,7 +511,7 @@ mod gen {
                     #[serde(rename = "shell.native-titlebar.enabled")]
                     enabled: bool,
                 },
-                /// URL string of the search engine webpage like google and duckduckgo.
+                /// URL string of the search engine page (for example <https://google.com> or and <https://duckduckgo.com>.
                 searchpage: String,
             },
             webgl: {
