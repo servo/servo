@@ -145,6 +145,7 @@ mod gen {
             },
             dom: {
                 webgpu: {
+                    /// Enable WebGPU APIs.
                     enabled: bool,
                 },
                 bluetooth: {
@@ -274,6 +275,7 @@ mod gen {
                     enabled: bool,
                 },
                 webgl2: {
+                    /// Enable WebGL2 APIs.
                     enabled: bool,
                 },
                 webrtc: {
@@ -490,12 +492,14 @@ mod gen {
             },
             shell: {
                 background_color: {
+                    /// The background color of shell's viewport. This will be used by OpenGL's `glClearColor`.
                     #[serde(rename = "shell.background-color.rgba")]
                     rgba: [f64; 4],
                 },
                 crash_reporter: {
                     enabled: bool,
                 },
+                /// URL string of the homepage.
                 homepage: String,
                 keep_screen_on: {
                     enabled: bool,
@@ -503,9 +507,11 @@ mod gen {
                 #[serde(rename = "shell.native-orientation")]
                 native_orientation: String,
                 native_titlebar: {
+                    /// Enable native window's titlebar and decorations.
                     #[serde(rename = "shell.native-titlebar.enabled")]
                     enabled: bool,
                 },
+                /// URL string of the search engine webpage like google and duckduckgo.
                 searchpage: String,
             },
             webgl: {
