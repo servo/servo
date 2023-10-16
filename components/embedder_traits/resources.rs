@@ -108,17 +108,20 @@ fn resources_dir_path_for_tests() -> PathBuf {
         return PathBuf::from(path);
     }
 
+    // Try ./resources in the current directory, then each of its ancestors.
     let mut path = std::env::current_dir().unwrap();
-    while path.pop() {
+    loop {
         path.push("resources");
         if path.is_dir() {
             *dir = Some(path);
             return dir.clone().unwrap();
         }
         path.pop();
-    }
 
-    panic!("Can't find resources directory")
+        if !path.pop() {
+            panic!("Can't find resources directory")
+        }
+    }
 }
 
 fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
