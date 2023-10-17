@@ -7,4 +7,4 @@ packaging==23.1
 pillow==9.5.0
 requests==2.31.0
 six==1.16.0
-urllib3==2.0.5
+urllib3==2.0.7
