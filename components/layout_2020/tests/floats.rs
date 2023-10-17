@@ -467,7 +467,7 @@ impl FloatPlacement {
         let mut placed_floats = vec![];
         for float in floats {
             let ceiling = Length::new(float.ceiling as f32);
-            float_context.lower_ceiling(ceiling);
+            float_context.set_ceiling_from_non_floats(ceiling);
             float_context.containing_block_info = float.containing_block_info;
             placed_floats.push(PlacedFloat {
                 origin: float_context.add_float(&float.info),
