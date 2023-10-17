@@ -1028,6 +1028,10 @@ impl ElementAnimationSet {
         old_style: &ComputedValues,
         new_style: &Arc<ComputedValues>,
     ) {
+        if !longhand_id.is_transitionable() {
+            return;
+        }
+
         let style = new_style.get_ui();
         let timing_function = style.transition_timing_function_mod(index);
         let duration = style.transition_duration_mod(index);
