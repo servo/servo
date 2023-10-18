@@ -544,7 +544,11 @@ impl StackingContext {
             first
         } else {
             // This should only happen if the root element has `display: none`
-            debug_panic!("`CanvasBackground::for_root_element` should have returned `style: None`");
+            // TODO(servo#30569) revert to debug_panic!() once underlying bug is fixed
+            log::warn!(
+                "debug assertion failed! `CanvasBackground::for_root_element` should have returned `style: None`",
+            );
+            return;
         };
 
         let StackingContextContent::Fragment { fragment, scroll_node_id, containing_block, .. }
