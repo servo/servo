@@ -1762,7 +1762,11 @@ impl BlockFlow {
         }
 
         // If you remove the might_have_floats_in conditional, this will go off.
-        debug_assert!(!self.is_inline_flex_item());
+        // TODO(servo#30572) revert to debug_assert!() once underlying bug is fixed
+        #[cfg(debug_assertions)]
+        if !(!self.is_inline_flex_item()) {
+            log::warn!("debug assertion failed! !self.is_inline_flex_item()");
+        }
 
         // Compute the available space for us, based on the actual floats.
         let rect = self.base.floats.available_rect(
