@@ -14,7 +14,7 @@ use gfx::font::{self, FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOpt
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
-use log::debug;
+use log::{debug, warn};
 use range::Range;
 use servo_atoms::Atom;
 use style::computed_values::text_rendering::T as TextRendering;
@@ -368,10 +368,16 @@ impl TextRunScanner {
                 }
 
                 // If no font is found (including fallbacks), there's no way we can render.
-                let font = run_info
+                let font = match run_info
                     .font
                     .or_else(|| font_group.borrow_mut().first(&mut font_context))
-                    .expect("No font found for text run!");
+                {
+                    Some(font) => font,
+                    None => {
+                        result.push(None);
+                        continue;
+                    },
+                };
 
                 let (run, break_at_zero) = TextRun::new(
                     &mut *font.borrow_mut(),
@@ -380,13 +386,13 @@ impl TextRunScanner {
                     run_info.bidi_level,
                     linebreaker,
                 );
-                result.push((
+                result.push(Some((
                     ScannedTextRun {
                         run: Arc::new(run),
                         insertion_point: run_info.insertion_point,
                     },
                     break_at_zero,
-                ))
+                )))
             }
             result
         };
@@ -417,7 +423,14 @@ impl TextRunScanner {
                     },
                 };
                 let mapping = mappings.next().unwrap();
-                let (scanned_run, break_at_zero) = runs[mapping.text_run_index].clone();
+                let run = runs[mapping.text_run_index].clone();
+                let (scanned_run, break_at_zero) = match run {
+                    Some(run) => run,
+                    None => {
+                        warn!("Could not find found for TextRun!");
+                        continue;
+                    },
+                };
 
                 let mut byte_range = Range::new(
                     ByteIndex(mapping.byte_range.begin() as isize),
