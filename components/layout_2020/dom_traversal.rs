@@ -228,7 +228,7 @@ fn traverse_pseudo_element_contents<'dom, Node>(
                         .stylist
                         .style_for_anonymous::<Node::ConcreteElement>(
                             &context.shared_context().guards,
-                            &PseudoElement::ServoText,
+                            &PseudoElement::ServoAnonymousBox,
                             &info.style,
                         )
                 });
