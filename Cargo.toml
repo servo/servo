@@ -84,7 +84,7 @@ tungstenite = "0.19"
 unicode-bidi = "0.3.4"
 unicode-script = "0.5"
 url = "2.4"
-uuid = { version = "1.4.1", features = ["v4"] }
+uuid = { version = "1.5.0", features = ["v4"] }
 webdriver = "0.49.0"
 webpki = "0.22"
 webpki-roots = "0.23"
