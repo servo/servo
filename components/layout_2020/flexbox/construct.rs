@@ -132,7 +132,7 @@ where
                     .stylist
                     .style_for_anonymous::<Node::ConcreteElement>(
                         &self.context.shared_context().guards,
-                        &style::selector_parser::PseudoElement::ServoText,
+                        &style::selector_parser::PseudoElement::ServoAnonymousBox,
                         &self.info.style,
                     ),
             )

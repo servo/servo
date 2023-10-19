@@ -448,7 +448,7 @@ where
             .stylist
             .style_for_anonymous::<Node::ConcreteElement>(
                 &self.context.shared_context().guards,
-                &PseudoElement::ServoText, // FIMXE: use `PseudoElement::Marker` when we add it
+                &PseudoElement::ServoLegacyText, // FIMXE: use `PseudoElement::Marker` when we add it
                 &info.style,
             );
         self.handle_inline_level_element(
@@ -684,7 +684,7 @@ where
                 .stylist
                 .style_for_anonymous::<Node::ConcreteElement>(
                     &context.shared_context().guards,
-                    &PseudoElement::ServoText,
+                    &PseudoElement::ServoAnonymousBox,
                     block_container_style,
                 )
         });

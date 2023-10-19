@@ -52,20 +52,21 @@ pub enum PseudoElement {
     // Non-eager pseudos.
     DetailsSummary,
     DetailsContent,
-    ServoText,
-    ServoInputText,
-    ServoTableWrapper,
-    ServoAnonymousTableWrapper,
-    ServoAnonymousTable,
-    ServoAnonymousTableRow,
-    ServoAnonymousTableCell,
-    ServoAnonymousBlock,
-    ServoInlineBlockWrapper,
-    ServoInlineAbsolute,
+    ServoAnonymousBox,
+    ServoLegacyText,
+    ServoLegacyInputText,
+    ServoLegacyTableWrapper,
+    ServoLegacyAnonymousTableWrapper,
+    ServoLegacyAnonymousTable,
+    ServoLegacyAnonymousTableRow,
+    ServoLegacyAnonymousTableCell,
+    ServoLegacyAnonymousBlock,
+    ServoLegacyInlineBlockWrapper,
+    ServoLegacyInlineAbsolute,
 }
 
 /// The count of all pseudo-elements.
-pub const PSEUDO_COUNT: usize = PseudoElement::ServoInlineAbsolute as usize + 1;
+pub const PSEUDO_COUNT: usize = PseudoElement::ServoLegacyInlineAbsolute as usize + 1;
 
 impl ToCss for PseudoElement {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
@@ -79,16 +80,17 @@ impl ToCss for PseudoElement {
             Selection => "::selection",
             DetailsSummary => "::-servo-details-summary",
             DetailsContent => "::-servo-details-content",
-            ServoText => "::-servo-text",
-            ServoInputText => "::-servo-input-text",
-            ServoTableWrapper => "::-servo-table-wrapper",
-            ServoAnonymousTableWrapper => "::-servo-anonymous-table-wrapper",
-            ServoAnonymousTable => "::-servo-anonymous-table",
-            ServoAnonymousTableRow => "::-servo-anonymous-table-row",
-            ServoAnonymousTableCell => "::-servo-anonymous-table-cell",
-            ServoAnonymousBlock => "::-servo-anonymous-block",
-            ServoInlineBlockWrapper => "::-servo-inline-block-wrapper",
-            ServoInlineAbsolute => "::-servo-inline-absolute",
+            ServoAnonymousBox => "::-servo-anonymous-box",
+            ServoLegacyText => "::-servo-legacy-text",
+            ServoLegacyInputText => "::-servo-legacy-input-text",
+            ServoLegacyTableWrapper => "::-servo-legacy-table-wrapper",
+            ServoLegacyAnonymousTableWrapper => "::-servo-legacy-anonymous-table-wrapper",
+            ServoLegacyAnonymousTable => "::-servo-legacy-anonymous-table",
+            ServoLegacyAnonymousTableRow => "::-servo-legacy-anonymous-table-row",
+            ServoLegacyAnonymousTableCell => "::-servo-legacy-anonymous-table-cell",
+            ServoLegacyAnonymousBlock => "::-servo-legacy-anonymous-block",
+            ServoLegacyInlineBlockWrapper => "::-servo-legacy-inline-block-wrapper",
+            ServoLegacyInlineAbsolute => "::-servo-legacy-inline-absolute",
         })
     }
 }
@@ -225,16 +227,17 @@ impl PseudoElement {
             },
             PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::DetailsContent |
-            PseudoElement::ServoText |
-            PseudoElement::ServoInputText |
-            PseudoElement::ServoTableWrapper |
-            PseudoElement::ServoAnonymousTableWrapper |
-            PseudoElement::ServoAnonymousTable |
-            PseudoElement::ServoAnonymousTableRow |
-            PseudoElement::ServoAnonymousTableCell |
-            PseudoElement::ServoAnonymousBlock |
-            PseudoElement::ServoInlineBlockWrapper |
-            PseudoElement::ServoInlineAbsolute => PseudoElementCascadeType::Precomputed,
+            PseudoElement::ServoAnonymousBox |
+            PseudoElement::ServoLegacyText |
+            PseudoElement::ServoLegacyInputText |
+            PseudoElement::ServoLegacyTableWrapper |
+            PseudoElement::ServoLegacyAnonymousTableWrapper |
+            PseudoElement::ServoLegacyAnonymousTable |
+            PseudoElement::ServoLegacyAnonymousTableRow |
+            PseudoElement::ServoLegacyAnonymousTableCell |
+            PseudoElement::ServoLegacyAnonymousBlock |
+            PseudoElement::ServoLegacyInlineBlockWrapper |
+            PseudoElement::ServoLegacyInlineAbsolute => PseudoElementCascadeType::Precomputed,
         }
     }
 
@@ -498,65 +501,71 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 }
                 DetailsContent
             },
-            "-servo-text" => {
+            "-servo-anonymous-box" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoText
+                ServoAnonymousBox
             },
-            "-servo-input-text" => {
+            "-servo-legacy-text" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoInputText
+                ServoLegacyText
             },
-            "-servo-table-wrapper" => {
+            "-servo-legacy-input-text" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoTableWrapper
+                ServoLegacyInputText
             },
-            "-servo-anonymous-table-wrapper" => {
+            "-servo-legacy-table-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoAnonymousTableWrapper
+                ServoLegacyTableWrapper
             },
-            "-servo-anonymous-table" => {
+            "-servo-legacy-anonymous-table-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoAnonymousTable
+                ServoLegacyAnonymousTableWrapper
             },
-            "-servo-anonymous-table-row" => {
+            "-servo-legacy-anonymous-table" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoAnonymousTableRow
+                ServoLegacyAnonymousTable
             },
-            "-servo-anonymous-table-cell" => {
+            "-servo-legacy-anonymous-table-row" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoAnonymousTableCell
+                ServoLegacyAnonymousTableRow
             },
-            "-servo-anonymous-block" => {
+            "-servo-legacy-anonymous-table-cell" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoAnonymousBlock
+                ServoLegacyAnonymousTableCell
             },
-            "-servo-inline-block-wrapper" => {
+            "-servo-legacy-anonymous-block" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoInlineBlockWrapper
+                ServoLegacyAnonymousBlock
             },
-            "-servo-inline-absolute" => {
+            "-servo-legacy-inline-block-wrapper" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoInlineAbsolute
+                ServoLegacyInlineBlockWrapper
+            },
+            "-servo-legacy-inline-absolute" => {
+                if !self.in_user_agent_stylesheet() {
+                    return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
+                }
+                ServoLegacyInlineAbsolute
             },
             _ => return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
 
