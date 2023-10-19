@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::env;
 use std::path::Path;
 
 use servo::embedder_traits;
-use servo::servo_url::ServoUrl;
 
 use crate::parser::{get_default_url, location_bar_input_to_url, parse_url_or_filename};
 
@@ -90,96 +88,82 @@ fn test_argument_parsing_special() {
     assert_eq!(url.fragment(), None);
 }
 
-#[test]
-fn url_should_resolve_in_commad_line() {
+// Helper function to test url
+fn test_url(input: &str, location: &str, cmdline_if_exists: &str, cmdline_otherwise: &str) {
     embedder_traits::resources::set_for_tests();
-    let input = "resources/public_domains.txt";
-    let cwd = "../../";
-    env::set_current_dir(&cwd).expect("Failed to set current directory");
-
-    let result = get_default_url(Some(input.to_string()));
-    assert_eq!(result.scheme(), "file");
+    assert_eq!(
+        location_bar_input_to_url(input).unwrap().into_string(),
+        location
+    );
+    assert_eq!(
+        get_default_url(Some(input), FAKE_CWD, |_| true).into_string(),
+        cmdline_if_exists
+    );
+    assert_eq!(
+        get_default_url(Some(input), FAKE_CWD, |_| false).into_string(),
+        cmdline_otherwise
+    );
 }
 
 #[test]
-fn url_should_resolve_in_location_bar() {
-    embedder_traits::resources::set_for_tests();
-    let input = "resources/public_domains.txt";
-    let expected_result = ServoUrl::parse("https://resources/public_domains.txt").ok();
-    let result = location_bar_input_to_url(input);
-    assert_eq!(result, expected_result);
-}
-
-#[test]
-fn no_dots_keyword_should_resolve_as_search() {
-    embedder_traits::resources::set_for_tests();
-    let input = "dragonfruit";
-    let input1 = "README.md";
-
-    // in location bar
-    let location_bar_url = location_bar_input_to_url(input);
-    let url = location_bar_url.clone().unwrap();
-
-    assert_eq!(url.scheme(), "https");
-    assert_eq!(url.domain(), Some("duckduckgo.com"));
-    assert_eq!(url.query(), Some("q=dragonfruit"));
-
-    let expected_result_for_input1 = ServoUrl::parse("https://README.md").ok();
-    let location_bar_url1 = location_bar_input_to_url(input1);
-    assert_eq!(location_bar_url1, expected_result_for_input1);
-
-    // in command line
-    let command_line_url = get_default_url(Some(input.to_string()));
-
-    // if no file named with keyword exists locally, it should be trated as search keyword
-    assert_eq!(command_line_url.scheme(), "https");
-    assert_eq!(command_line_url.domain(), Some("duckduckgo.com"));
-    assert_eq!(command_line_url.query(), Some("q=dragonfruit"));
-}
-
-#[test]
-fn should_resolve_url() {
-    embedder_traits::resources::set_for_tests();
-    let input = "nic.md/ro"; // known tld
-    let input1 = "foo.txt/ro"; // not a known tld
-    let input2 = "data:text/html,a";
-
-    // This is the expected result form cmdline_url as well because this file doesn't exists locally
-    let result = "https://nic.md/ro";
-    let result_for_input1 = "https://foo.txt/ro";
-
-    // location bar
-    let location_url = location_bar_input_to_url(input).unwrap();
-    let location_url_for_input1 = location_bar_input_to_url(input1).unwrap();
-    let location_url_for_input2 = location_bar_input_to_url(input2).unwrap();
-    assert_eq!(location_url.into_string(), result);
-    assert_eq!(location_url_for_input1.into_string(), result_for_input1);
-    // input should resolve to itself
-    assert_eq!(location_url_for_input2.into_string(), input2);
-
-    // cmdline url
-    let cmdline_url = get_default_url(Some(input.to_string()));
-    let cmdline_url_for_input1 = get_default_url(Some(input1.to_string()));
-    let cmdline_url_for_input2 = get_default_url(Some(input2.to_string()));
-    assert_eq!(cmdline_url.into_string(), result);
-    assert_eq!(cmdline_url_for_input1.into_string(), result_for_input1);
-    // input should resolve to itself
-    assert_eq!(cmdline_url_for_input2.into_string(), input2);
+fn test_cmdline_and_location_bar_url() {
+    test_url(
+        "data:text/html,a",
+        "data:text/html,a",
+        "data:text/html,a",
+        "data:text/html,a",
+    );
+    test_url(
+        "README.md",
+        "https://readme.md/",
+        "file:///fake/cwd/README.md",
+        "https://readme.md/",
+    );
+    test_url(
+        "nic.md",
+        "https://nic.md/",
+        "file:///fake/cwd/nic.md",
+        "https://nic.md/",
+    );
+    test_url(
+        "nic.md/ro",
+        "https://nic.md/ro",
+        "file:///fake/cwd/nic.md/ro",
+        "https://nic.md/ro",
+    );
+    test_url(
+        "foo.txt",
+        "https://foo.txt/",
+        "file:///fake/cwd/foo.txt",
+        "https://foo.txt/",
+    );
+    test_url(
+        "foo.txt/ro",
+        "https://foo.txt/ro",
+        "file:///fake/cwd/foo.txt/ro",
+        "https://foo.txt/ro",
+    );
+    test_url(
+        "resources/public_domains.txt",
+        "https://resources/public_domains.txt",
+        "file:///fake/cwd/resources/public_domains.txt",
+        "https://resources/public_domains.txt",
+    );
+    test_url(
+        "dragonfruit",
+        "https://duckduckgo.com/html/?q=dragonfruit",
+        "file:///fake/cwd/dragonfruit",
+        "https://duckduckgo.com/html/?q=dragonfruit",
+    );
 }
 
 #[cfg(target_os = "linux")]
 #[test]
-fn parse_url_command_line() {
-    let input = "/dev/null";
-    let expected_result = "file:///dev/null";
-
-    //should resolve in command line
-    let cmdline_url = get_default_url(Some(input.to_string()));
-    assert_eq!(cmdline_url.scheme(), "file");
-    assert_eq!(cmdline_url.into_string(), expected_result);
-
-    //should resolve in location bar
-    let location_bar_url = location_bar_input_to_url(input).unwrap();
-    assert_eq!(location_bar_url.scheme(), "file");
-    assert_eq!(location_bar_url.into_string(), expected_result)
+fn test_cmd_and_location_bar_url() {
+    test_url(
+        "/dev/null",
+        "file:///dev/null",
+        "file:///dev/null",
+        "file:///dev/null",
+    );
 }

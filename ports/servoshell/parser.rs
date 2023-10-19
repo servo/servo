@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::Path;
-use std::{env, fs};
 
 use log::warn;
 use servo::net_traits::pub_domains::is_reg_domain;
@@ -21,17 +20,19 @@ pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
     }
 }
 
-pub fn get_default_url(url_opt: Option<String>) -> ServoUrl {
+pub fn get_default_url(
+    url_opt: Option<&str>,
+    cwd: impl AsRef<Path>,
+    exists: impl FnOnce(&str) -> bool,
+) -> ServoUrl {
     // If the url is not provided, we fallback to the homepage in prefs,
     // or a blank page in case the homepage is not set either.
-    let cwd = env::current_dir().unwrap();
-
     let mut new_url = None;
     let cmdline_url = url_opt
         .clone()
         .map(|s| s.to_string())
         .and_then(|url_string| {
-            parse_url_or_filename(&cwd, &url_string)
+            parse_url_or_filename(cwd.as_ref(), &url_string)
                 .map_err(|error| {
                     warn!("URL parsing failed ({:?}).", error);
                     error
@@ -41,25 +42,20 @@ pub fn get_default_url(url_opt: Option<String>) -> ServoUrl {
 
     if let Some(url) = cmdline_url.clone() {
         if url.scheme() == "file" && url.host().is_none() {
-            let url_path = url.path();
-
             // Check if the URL path corresponds to a file
-            if fs::metadata(url_path)
-                .map(|metadata| metadata.is_file())
-                .unwrap_or(false)
-            {
+            if exists(url.path()) {
                 new_url = cmdline_url;
             }
         }
     }
 
     if new_url.is_none() && !url_opt.is_none() {
-        new_url = location_bar_input_to_url(url_opt.unwrap().as_str());
+        new_url = location_bar_input_to_url(url_opt.unwrap());
     }
 
     let pref_url = {
         let homepage_url = pref!(shell.homepage);
-        parse_url_or_filename(&cwd, &homepage_url).ok()
+        parse_url_or_filename(cwd.as_ref(), &homepage_url).ok()
     };
     let blank_url = ServoUrl::parse("about:blank").ok();
 
