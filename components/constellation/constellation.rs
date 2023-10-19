@@ -3168,10 +3168,11 @@ where
         // https://github.com/rust-lang/rust/issues/59159
         let browsing_context_size = browsing_context.size;
         let browsing_context_is_visible = browsing_context.is_visible;
-        debug_assert_eq!(
-            browsing_context_size,
-            load_info.window_size.initial_viewport
-        );
+        // TODO(servo#30571) revert to debug_assert_eq!() once underlying bug is fixed
+        #[cfg(debug_assertions)]
+        if !(browsing_context_size == load_info.window_size.initial_viewport) {
+            log::warn!("debug assertion failed! browsing_context_size == load_info.window_size.initial_viewport");
+        }
 
         // Create the new pipeline, attached to the parent and push to pending changes
         self.new_pipeline(

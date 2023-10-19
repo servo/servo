@@ -41,7 +41,8 @@ pub struct CanvasImageData {
 pub enum Canvas2dMsg {
     Arc(Point2D<f32>, f32, f32, f32, bool),
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
-    DrawImage(Option<ByteBuf>, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
+    DrawImage(IpcSharedMemory, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
+    DrawEmptyImage(Size2D<f64>, Rect<f64>, Rect<f64>),
     DrawImageInOther(CanvasId, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
     BeginPath,
     BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),

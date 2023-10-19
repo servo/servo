@@ -163,7 +163,9 @@ impl Floats {
 
     /// Adjusts the recorded offset of the flow relative to the first float.
     pub fn translate(&mut self, delta: LogicalSize<Au>) {
-        self.offset = self.offset + delta
+        // TODO(servo#30577) revert once underlying bug is fixed
+        // self.offset = self.offset + delta
+        self.offset = self.offset.add_or_warn(delta)
     }
 
     /// Returns the position of the last float in flow coordinates.

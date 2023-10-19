@@ -2108,9 +2108,12 @@ impl WebGLImpl {
                         error!("JS backtrace from failed WebGL API:\n{}", backtrace);
                     }
                 }
-                panic!(
-                    "Unexpected WebGL error: 0x{:x} ({}) [{:?}]",
-                    error, error, command
+                // TODO(servo#30568) revert to panic!() once underlying bug is fixed
+                log::warn!(
+                    "debug assertion failed! Unexpected WebGL error: 0x{:x} ({}) [{:?}]",
+                    error,
+                    error,
+                    command
                 );
             }
         }

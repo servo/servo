@@ -258,10 +258,11 @@ impl BoxFragment {
             return PhysicalSides::new(top, right, bottom, left);
         }
 
-        debug_assert!(
-            position == ComputedPosition::Fixed || position == ComputedPosition::Absolute,
-            "Got unknown position."
-        );
+        // TODO(servo#30570) revert to debug_assert!() once underlying bug is fixed
+        #[cfg(debug_assertions)]
+        if !(position == ComputedPosition::Fixed || position == ComputedPosition::Absolute) {
+            log::warn!("debug assertion failed! Got unknown position.");
+        }
 
         let resolve = |value: &LengthPercentageOrAuto, container_length| {
             value

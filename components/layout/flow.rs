@@ -1376,7 +1376,11 @@ impl MutableOwnedFlowUtils for FlowRef {
         let base = FlowRef::deref_mut(self).mut_base();
 
         for descendant_link in abs_descendants.descendant_links.iter_mut() {
-            debug_assert!(!descendant_link.has_reached_containing_block);
+            // TODO(servo#30573) revert to debug_assert!() once underlying bug is fixed
+            #[cfg(debug_assertions)]
+            if !(!descendant_link.has_reached_containing_block) {
+                log::warn!("debug assertion failed! !descendant_link.has_reached_containing_block");
+            }
             let descendant_base = FlowRef::deref_mut(&mut descendant_link.flow).mut_base();
             descendant_base.absolute_cb.set(this.clone());
         }

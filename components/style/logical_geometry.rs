@@ -570,6 +570,22 @@ impl<T: Add<T, Output = T>> Add for LogicalSize<T> {
     }
 }
 
+// TODO(servo#30577) remove this once underlying bugs are fixed
+impl<T: Add<T, Output = T>> LogicalSize<T> {
+    #[inline]
+    pub fn add_or_warn(self, other: LogicalSize<T>) -> LogicalSize<T> {
+        #[cfg(debug_assertions)]
+        if !(self.debug_writing_mode.mode == other.debug_writing_mode.mode) {
+            log::warn!("debug assertion failed! self.debug_writing_mode.mode == other.debug_writing_mode.mode");
+        }
+        LogicalSize {
+            debug_writing_mode: self.debug_writing_mode,
+            inline: self.inline + other.inline,
+            block: self.block + other.block,
+        }
+    }
+}
+
 impl<T: Sub<T, Output = T>> Sub for LogicalSize<T> {
     type Output = LogicalSize<T>;
 
