@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::OnceCell;
+use std::vec::IntoIter;
 
 use app_units::Au;
 use atomic_refcell::AtomicRef;
@@ -32,7 +33,7 @@ use crate::fragment_tree::{
     AnonymousFragment, BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
     FontMetrics, Fragment, HoistedSharedFragment, TextFragment,
 };
-use crate::geom::{LengthOrAuto, LogicalRect, LogicalVec2};
+use crate::geom::{LogicalRect, LogicalVec2};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
@@ -74,8 +75,8 @@ pub(crate) struct InlineBox {
     pub base_fragment_info: BaseFragmentInfo,
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
-    pub first_fragment: bool,
-    pub last_fragment: bool,
+    pub is_first_fragment: bool,
+    pub is_last_fragment: bool,
     pub children: Vec<ArcRefCell<InlineLevelBox>>,
 }
 
@@ -126,6 +127,10 @@ struct LineUnderConstruction {
     /// Note that when this is not empty, its start corner takes precedence over
     /// [`LineUnderConstruction::start_position`].
     placement_among_floats: OnceCell<LogicalRect<Length>>,
+
+    /// The LineItems for the current line under construction that have already
+    /// been committed to this line.
+    line_items: Vec<LineItem>,
 }
 
 impl LineUnderConstruction {
@@ -138,6 +143,7 @@ impl LineUnderConstruction {
             has_content: false,
             has_floats_waiting_to_be_placed: false,
             placement_among_floats: OnceCell::new(),
+            line_items: Vec::new(),
         }
     }
 
@@ -155,10 +161,6 @@ impl LineUnderConstruction {
 }
 
 struct InlineContainerState {
-    /// The [`LineItems`]s we have collected so far for this nesting level for
-    /// the current line.
-    line_items_so_far: Vec<LineItem>,
-
     /// Whether or not we have processed any content (an atomic element or text) for
     /// this inline box on the current line OR any previous line.
     has_content: bool,
@@ -190,11 +192,13 @@ struct InlineBoxContainerState {
     /// The [`PaddingBorderMargin`] of the [`InlineBox`] that this state tracks.
     pbm: PaddingBorderMargin,
 
-    /// Whether or not this inline box has already been part of a previous line.
-    /// We need to create at least one Fragment for every inline box, but on following
-    /// lines, if the inline box is totally empty (such as after a preserved line
-    /// break), then we don't want to create empty Fragments for it.
-    was_part_of_previous_line: bool,
+    /// Index in the line items of our line item.
+    line_item_index: usize,
+
+    /// Whether this is the last fragment of this InlineBox. This may not be the case
+    /// if the InlineBox is split due to an inline-box-split and this is not the last
+    /// of that split.
+    is_last_fragment: bool,
 }
 
 struct InlineFormattingContextState<'a, 'b> {
@@ -208,8 +212,7 @@ struct InlineFormattingContextState<'a, 'b> {
     /// are currently laid out at the top-level of each [`InlineFormattingContext`].
     fragments: Vec<Fragment>,
 
-    /// Information about the line currently being laid out into [`LineItems`]s. The
-    /// [`LineItem`]s themselves are stored in the nesting state.
+    /// Information about the line currently being laid out into [`LineItems`]s.
     current_line: LineUnderConstruction,
 
     /// After a forced line break (for instance from a `<br>` element) we wait to actually
@@ -267,9 +270,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             self.current_line_max_block_size()
                 .max(line_item.block_size()),
         );
+        self.current_line.line_items.push(line_item);
 
         let current_nesting_level = self.current_inline_container_state_mut();
-        current_nesting_level.line_items_so_far.push(line_item);
         current_nesting_level.has_content = true;
         self.propagate_current_nesting_level_white_space_style();
     }
@@ -310,40 +313,47 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             (parent.text_decoration_line, parent.nested_block_size)
         };
 
-        self.inline_box_state_stack
-            .push(InlineBoxContainerState::new(
-                inline_box,
-                &mut self.current_line.inline_position,
-                &self.containing_block,
-                text_decoration_of_parent,
-                nested_block_size_of_parent,
-                self.layout_context,
-            ));
+        let mut inline_box_state = InlineBoxContainerState::new(
+            inline_box,
+            &self.containing_block,
+            text_decoration_of_parent,
+            nested_block_size_of_parent,
+            self.layout_context,
+            self.current_line.line_items.len(),
+            inline_box.is_last_fragment,
+        );
+
+        if inline_box.is_first_fragment {
+            self.current_line.inline_position += inline_box_state.pbm.padding.inline_start +
+                inline_box_state.pbm.border.inline_start +
+                inline_box_state
+                    .pbm
+                    .margin
+                    .inline_start
+                    .auto_is(Length::zero);
+        }
+
+        let line_item = inline_box_state
+            .layout_into_line_item(self.layout_context, inline_box.is_first_fragment);
+        self.current_line
+            .line_items
+            .push(LineItem::InlineBox(line_item));
+        self.inline_box_state_stack.push(inline_box_state);
     }
 
     /// Finish laying out a particular [`InlineBox`] into line items. This will add the
     /// final [`InlineBoxLineItem`] to the state and pop its state off of
     /// [`Self::inline_box_state_stack`].
     fn finish_inline_box(&mut self) {
-        let mut inline_box_state = match self.inline_box_state_stack.pop() {
+        let inline_box_state = match self.inline_box_state_stack.pop() {
             Some(inline_box_state) => inline_box_state,
             None => return, // We are at the root.
         };
 
-        // We reached the end of the remaining boxes in this nesting level, so we finish it and
-        // start working on the parent nesting level again.
-        let line_item = inline_box_state.layout_into_line_item(
-            self.layout_context,
-            &mut self.current_line.inline_position,
-            true, /* at_end_of_inline_element */
-        );
-
+        self.current_line.line_items.push(LineItem::EndInlineBox);
         self.current_line
             .max_block_size
             .max_assign(inline_box_state.base.nested_block_size);
-        self.current_inline_container_state_mut()
-            .line_items_so_far
-            .push(LineItem::InlineBox(line_item));
 
         // If the inline box that we just finished had any content at all, we want to propagate
         // the `white-space` property of its parent to future inline children. This is because
@@ -351,6 +361,19 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // `white-space` used is that of their nearest common ancestor.
         if inline_box_state.base.has_content {
             self.propagate_current_nesting_level_white_space_style();
+        }
+
+        if inline_box_state.is_last_fragment {
+            if let LineItem::InlineBox(ref mut inline_box) =
+                self.current_line.line_items[inline_box_state.line_item_index]
+            {
+                inline_box.is_last_fragment = true;
+                self.current_line.inline_position += inline_box.pbm.padding.inline_end +
+                    inline_box.pbm.border.inline_end +
+                    inline_box.pbm.margin.inline_end.auto_is(Length::zero);
+            } else {
+                warn!("Did not find InlineBox line item where we expected to!");
+            }
         }
     }
 
@@ -360,28 +383,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     fn finish_current_line_and_reset(&mut self, layout_context: &LayoutContext) {
         self.linebreak_before_new_content = false;
 
-        let mut line_item_from_child = None;
-        for inline_box_state in self.inline_box_state_stack.iter_mut().rev() {
-            if let Some(line_item_from_child) = line_item_from_child {
-                inline_box_state
-                    .base
-                    .line_items_so_far
-                    .push(LineItem::InlineBox(line_item_from_child));
-            }
-
-            line_item_from_child = Some(inline_box_state.layout_into_line_item(
-                self.layout_context,
-                &mut self.current_line.inline_position,
-                false,
-            ));
-        }
-
-        if let Some(line_item_from_child) = line_item_from_child {
-            self.root_nesting_level
-                .line_items_so_far
-                .push(LineItem::InlineBox(line_item_from_child));
-        }
-        let mut line_items = std::mem::take(&mut self.root_nesting_level.line_items_so_far);
+        let mut line_items = std::mem::take(&mut self.current_line.line_items);
 
         // From <https://www.w3.org/TR/css-text-3/#white-space-phase-2>:
         // > 3. A sequence of collapsible spaces at the end of a line is removed,
@@ -429,7 +431,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         };
 
         let positioning_context_length = state.positioning_context.len();
-        let fragments = layout_line_items(line_items, layout_context, &mut state);
+        let fragments = layout_line_items(&mut line_items.into_iter(), layout_context, &mut state);
 
         let size = LogicalVec2 {
             inline: self.containing_block.inline_size,
@@ -466,6 +468,14 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             inline: Length::zero(),
             block: block_end_position,
         });
+
+        // Add line items for the current inline box stack to the new line.
+        for inline_box_state in self.inline_box_state_stack.iter_mut() {
+            inline_box_state.line_item_index = self.current_line.line_items.len();
+            self.current_line.line_items.push(LineItem::InlineBox(
+                inline_box_state.layout_into_line_item(self.layout_context, false),
+            ));
+        }
     }
 
     /// Given the amount of whitespace trimmed from the line and taking into consideration
@@ -735,9 +745,9 @@ impl InlineFormattingContext {
                                 };
                             }
 
-                            add!(first_fragment, inline_start);
+                            add!(is_first_fragment, inline_start);
                             self.traverse(&inline_box.children);
-                            add!(last_fragment, inline_end);
+                            add!(is_last_fragment, inline_end);
                         },
                         InlineLevelBox::TextRun(text_run) => {
                             let result = text_run
@@ -873,7 +883,6 @@ impl InlineFormattingContext {
             white_space: containing_block.style.get_inherited_text().white_space,
             linebreaker: None,
             root_nesting_level: InlineContainerState {
-                line_items_so_far: Vec::with_capacity(self.inline_level_boxes.len()),
                 nested_block_size: line_height_from_style(layout_context, &containing_block.style),
                 has_content: false,
                 text_decoration_line: self.text_decoration_line,
@@ -912,8 +921,8 @@ impl InlineFormattingContext {
                         atomic_formatting_context.layout_into_line_items(layout_context, &mut ifc);
                     },
                     InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
-                        ifc.current_inline_container_state_mut()
-                            .line_items_so_far
+                        ifc.current_line
+                            .line_items
                             .push(LineItem::AbsolutelyPositioned(
                                 AbsolutelyPositionedLineItem {
                                     absolutely_positioned_box: box_.clone(),
@@ -982,29 +991,17 @@ impl InlineFormattingContext {
 impl InlineBoxContainerState {
     fn new(
         inline_box: &InlineBox,
-        inline_position: &mut Length,
         containing_block: &ContainingBlock,
         text_decoration_of_parent: TextDecorationLine,
         nested_block_size_of_parent: Length,
         layout_context: &LayoutContext,
+        initial_index_in_line_items: usize,
+        is_last_fragment: bool,
     ) -> Self {
         let style = inline_box.style.clone();
-        let mut pbm = style.padding_border_margin(containing_block);
-
-        if inline_box.first_fragment {
-            *inline_position += pbm.padding.inline_start +
-                pbm.border.inline_start +
-                pbm.margin.inline_start.auto_is(Length::zero);
-        } else {
-            pbm.padding.inline_start = Length::zero();
-            pbm.border.inline_start = Length::zero();
-            pbm.margin.inline_start = LengthOrAuto::zero();
-        }
-
         let text_decoration_line = text_decoration_of_parent | style.clone_text_decoration_line();
         Self {
             base: InlineContainerState {
-                line_items_so_far: Vec::with_capacity(inline_box.children.len()),
                 has_content: false,
                 text_decoration_line,
                 nested_block_size: nested_block_size_of_parent
@@ -1012,50 +1009,25 @@ impl InlineBoxContainerState {
             },
             style,
             base_fragment_info: inline_box.base_fragment_info,
-            pbm,
-            was_part_of_previous_line: false,
+            pbm: inline_box.style.padding_border_margin(containing_block),
+            line_item_index: initial_index_in_line_items,
+            is_last_fragment,
         }
     }
 
     fn layout_into_line_item(
         &mut self,
         layout_context: &LayoutContext,
-        inline_position: &mut Length,
-        at_end_of_inline_element: bool,
+        is_first_fragment: bool,
     ) -> InlineBoxLineItem {
-        // If we are finishing in order to fragment this InlineBox into multiple lines, do
-        // not add end margins, borders, and padding.
-        let mut pbm = self.pbm.clone();
-        if !at_end_of_inline_element {
-            pbm.padding.inline_end = Length::zero();
-            pbm.border.inline_end = Length::zero();
-            pbm.margin.inline_end = LengthOrAuto::zero();
-        } else {
-            *inline_position += self.pbm.padding.inline_end +
-                self.pbm.border.inline_end +
-                self.pbm.margin.inline_end.auto_is(Length::zero)
-        }
-
-        let new_line_item = InlineBoxLineItem {
+        InlineBoxLineItem {
             base_fragment_info: self.base_fragment_info,
             style: self.style.clone(),
             block_size: line_gap_from_style(layout_context, &self.style),
-            pbm,
-            children: std::mem::take(&mut self.base.line_items_so_far),
-            always_make_fragment: !self.was_part_of_previous_line,
-        };
-
-        // This InlineBox now has at least one Fragment that corresponds to it, so
-        // if subsequent lines can ignore it if it is empty on those lines.
-        self.was_part_of_previous_line = true;
-
-        // If this partial / inline box appears on any subsequent lines, it should not
-        // have any start margin, border, or padding.
-        self.pbm.padding.inline_start = Length::zero();
-        self.pbm.border.inline_start = Length::zero();
-        self.pbm.margin.inline_start = LengthOrAuto::zero();
-
-        new_line_item
+            pbm: self.pbm.clone(),
+            is_first_fragment,
+            is_last_fragment: false,
+        }
     }
 }
 
@@ -1508,8 +1480,8 @@ impl FloatBox {
                 .replace_placement_among_floats(new_placement);
         }
 
-        ifc.current_inline_container_state_mut()
-            .line_items_so_far
+        ifc.current_line
+            .line_items
             .push(LineItem::Float(FloatLineItem {
                 fragment,
                 needs_placement: needs_placement_later,
@@ -1583,12 +1555,12 @@ struct LineItemLayoutState<'a> {
 }
 
 fn layout_line_items(
-    line_items: Vec<LineItem>,
+    iterator: &mut IntoIter<LineItem>,
     layout_context: &LayoutContext,
     state: &mut LineItemLayoutState,
 ) -> Vec<Fragment> {
     let mut fragments = vec![];
-    for item in line_items.into_iter() {
+    while let Some(item) = iterator.next() {
         match item {
             LineItem::TextRun(text_line_item) => {
                 if let Some(fragment) = text_line_item.layout(state) {
@@ -1596,10 +1568,11 @@ fn layout_line_items(
                 }
             },
             LineItem::InlineBox(box_line_item) => {
-                if let Some(fragment) = box_line_item.layout(layout_context, state) {
+                if let Some(fragment) = box_line_item.layout(iterator, layout_context, state) {
                     fragments.push(Fragment::Box(fragment))
                 }
             },
+            LineItem::EndInlineBox => break,
             LineItem::Atomic(atomic_line_item) => {
                 fragments.push(Fragment::Box(atomic_line_item.layout(state)));
             },
@@ -1619,9 +1592,6 @@ fn layout_line_items(
 fn place_pending_floats(ifc: &mut InlineFormattingContextState, line_items: &mut Vec<LineItem>) {
     for item in line_items.into_iter() {
         match item {
-            LineItem::InlineBox(box_line_item) => {
-                place_pending_floats(ifc, &mut box_line_item.children);
-            },
             LineItem::Float(float_line_item) => {
                 if float_line_item.needs_placement {
                     ifc.place_float_fragment(&mut float_line_item.fragment);
@@ -1635,6 +1605,7 @@ fn place_pending_floats(ifc: &mut InlineFormattingContextState, line_items: &mut
 enum LineItem {
     TextRun(TextRunLineItem),
     InlineBox(InlineBoxLineItem),
+    EndInlineBox,
     Atomic(AtomicLineItem),
     AbsolutelyPositioned(AbsolutelyPositionedLineItem),
     Float(FloatLineItem),
@@ -1644,14 +1615,8 @@ impl LineItem {
     fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Length) -> bool {
         match self {
             LineItem::TextRun(ref mut item) => item.trim_whitespace_at_end(whitespace_trimmed),
-            LineItem::InlineBox(b) => {
-                for child in b.children.iter_mut().rev() {
-                    if !child.trim_whitespace_at_end(whitespace_trimmed) {
-                        return false;
-                    }
-                }
-                true
-            },
+            LineItem::InlineBox(_) => true,
+            LineItem::EndInlineBox => true,
             LineItem::Atomic(_) => false,
             LineItem::AbsolutelyPositioned(_) => true,
             LineItem::Float(_) => true,
@@ -1665,6 +1630,7 @@ impl LineItem {
                 // TODO(mrobinson): This should get the line height from the font.
                 Length::zero()
             },
+            LineItem::EndInlineBox => Length::zero(),
             LineItem::Atomic(atomic) => atomic.size.block,
             LineItem::AbsolutelyPositioned(_) => Length::zero(),
             LineItem::Float(_) => Length::zero(),
@@ -1794,21 +1760,40 @@ struct InlineBoxLineItem {
     style: Arc<ComputedValues>,
     pbm: PaddingBorderMargin,
     block_size: Length,
-    children: Vec<LineItem>,
-    always_make_fragment: bool,
+
+    // Whether this is the first fragment for this inline box. This means that it's the
+    // first potentially split box of a block-in-inline-split (or only if there's no
+    // split) and also the first appearance of this fragment on any line.
+    is_first_fragment: bool,
+
+    // Whether this is the last fragment for this inline box. This means that it's the
+    // last potentially split box of a block-in-inline-split (or only if there's no split)
+    // and also the last appearance of this fragment on any line.
+    is_last_fragment: bool,
 }
 
 impl InlineBoxLineItem {
     fn layout(
         self,
+        iterator: &mut IntoIter<LineItem>,
         layout_context: &LayoutContext,
         state: &mut LineItemLayoutState,
     ) -> Option<BoxFragment> {
         let style = self.style.clone();
+        let mut padding = self.pbm.padding.clone();
+        let mut border = self.pbm.border.clone();
+        let mut margin = self.pbm.margin.auto_is(Length::zero);
 
-        let padding = self.pbm.padding.clone();
-        let border = self.pbm.border.clone();
-        let margin = self.pbm.margin.auto_is(Length::zero);
+        if !self.is_first_fragment {
+            padding.inline_start = Length::zero();
+            border.inline_start = Length::zero();
+            margin.inline_start = Length::zero();
+        }
+        if !self.is_last_fragment {
+            padding.inline_end = Length::zero();
+            border.inline_end = Length::zero();
+            margin.inline_end = Length::zero();
+        }
         let pbm_sums = &(&padding + &border) + &margin;
 
         state.inline_position += pbm_sums.inline_start;
@@ -1827,13 +1812,14 @@ impl InlineBoxLineItem {
             positioning_context: nested_positioning_context,
             line_block_start: state.line_block_start,
         };
-        let fragments = layout_line_items(self.children, layout_context, &mut nested_state);
+
+        let fragments = layout_line_items(iterator, layout_context, &mut nested_state);
 
         // If the inline box didn't have any content at all, don't add a Fragment for it.
         let box_has_padding_border_or_margin = pbm_sums.inline_sum() > Length::zero();
         let box_had_absolutes =
             original_nested_positioning_context_length != nested_state.positioning_context.len();
-        if !self.always_make_fragment &&
+        if !self.is_first_fragment &&
             fragments.is_empty() &&
             !box_has_padding_border_or_margin &&
             !box_had_absolutes
