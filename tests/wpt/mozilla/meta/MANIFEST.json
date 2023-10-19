@@ -7686,19 +7686,6 @@
       {}
      ]
     ],
-    "scroll_root.html": [
-     "b1a9cb590b0fcce9c883f99e17fa029a999b699b",
-     [
-      null,
-      [
-       [
-        "/_mozilla/mozilla/scroll_root_ref.html",
-        "=="
-       ]
-      ],
-      {}
-     ]
-    ],
     "scrolling_div_background_borders.html": [
      "6f168aa258c31257eaba218252d32bbf28976e12",
      [
@@ -10590,10 +10577,6 @@
     },
     "restyle-out-of-document-ref.html": [
      "12d09f821614f9912c6fc34c613136bed22b5bc8",
-     []
-    ],
-    "scroll_root_ref.html": [
-     "6503ad5d5265c0698f61fc607e2e4e017b31cb6f",
      []
     ],
     "scrolling_div_background_borders_background.png": [
