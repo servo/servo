@@ -1475,11 +1475,12 @@ impl FloatBox {
         let margin_box = fragment.border_rect().inflate(&fragment.margin);
         let inline_size = margin_box.size.inline.max(Length::zero());
 
+        let inline_position =
+            ifc.current_line.inline_position - ifc.current_line.trailing_whitespace_advance;
         let available_inline_size = match ifc.current_line.placement_among_floats.get() {
             Some(placement_among_floats) => placement_among_floats.size.inline,
             None => ifc.containing_block.inline_size,
-        } - (ifc.current_line.inline_position -
-            ifc.current_line.trailing_whitespace_advance);
+        } - inline_position;
 
         // If this float doesn't fit on the current line or a previous float didn't fit on
         // the current line, we need to place it starting at the next line BUT still as
@@ -1500,7 +1501,7 @@ impl FloatBox {
             // placement among floats for the current line, which may adjust its inline
             // start position.
             let new_placement = ifc.place_line_among_floats(&LogicalVec2 {
-                inline: ifc.current_line.inline_position,
+                inline: inline_position,
                 block: ifc.current_line.max_block_size,
             });
             ifc.current_line
