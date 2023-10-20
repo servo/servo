@@ -289,7 +289,7 @@ def filter_intermittents(
     def add_result(output, text, results: List[UnexpectedResult], filter_func) -> None:
         filtered = [str(result) for result in filter(filter_func, results)]
         if filtered:
-            output += [f"{text} ({len(results)}): ", *filtered]
+            output += [f"{text} ({len(filtered)}): ", *filtered]
 
     def is_stable_and_unexpected(result):
         return not result.flaky and not result.issues
