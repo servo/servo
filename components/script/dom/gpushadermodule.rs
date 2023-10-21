@@ -63,7 +63,7 @@ impl GPUShaderModuleMethods for GPUShaderModule {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo
-    fn CompilationInfo(&self) -> Fallible<Rc<Promise>> {
+    fn GetCompilationInfo(&self) -> Rc<Promise> {
         todo!()
     }
 }

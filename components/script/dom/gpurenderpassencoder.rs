@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::rust::CustomAutoRooterGuard;
+use js::typedarray::Uint32Array;
 use webgpu::wgpu::command::{render_ffi as wgpu_render, RenderPass};
 use webgpu::{wgt, WebGPU, WebGPURequest};
 
@@ -82,20 +84,42 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         *self.label.borrow_mut() = value;
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup
+    /// https://gpuweb.github.io/gpuweb/#gpubindingcommandsmixin-setbindgroup
     #[allow(unsafe_code)]
-    fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, dynamic_offsets: Vec<u32>) {
+    fn SetBindGroup(
+        &self,
+        index: u32,
+        bind_group: Option<&GPUBindGroup>,
+        dynamic_offsets: Vec<u32>,
+    ) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             unsafe {
-                wgpu_render::wgpu_render_pass_set_bind_group(
-                    render_pass,
-                    index,
-                    bind_group.id().0,
-                    dynamic_offsets.as_ptr(),
-                    dynamic_offsets.len(),
-                )
+                if let Some(bind_group) = bind_group {
+                    wgpu_render::wgpu_render_pass_set_bind_group(
+                        render_pass,
+                        index,
+                        bind_group.id().0,
+                        dynamic_offsets.as_ptr(),
+                        dynamic_offsets.len(),
+                    )
+                } else {
+                    warn!("BindGroup is none, and we are doing nothing about it.");
+                }
             };
         }
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpubindingcommandsmixin-setbindgroup-index-bindgroup-dynamicoffsetsdata-dynamicoffsetsdatastart-dynamicoffsetsdatalength
+    ///
+    fn SetBindGroup_(
+        &self,
+        index: u32,
+        bind_group: Option<&GPUBindGroup>,
+        dynamic_offsets_data: CustomAutoRooterGuard<Uint32Array>,
+        dynamic_offsets_data_start: u64,
+        dynamic_offsets_data_length: u32,
+    ) {
+        todo!()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setviewport
@@ -163,7 +187,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end
-    fn End(&self) -> Fallible<()> {
+    fn End(&self) {
         let render_pass = self.render_pass.borrow_mut().take();
         self.channel
             .0
@@ -180,7 +204,6 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
             GPUCommandEncoderState::Open,
             GPUCommandEncoderState::EncodingRenderPass,
         );
-        Ok(())
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline
@@ -196,7 +219,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         buffer: &GPUBuffer,
         index_format: GPUIndexFormat,
         offset: u64,
-        size: u64,
+        size: Option<u64>,
     ) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             wgpu_render::wgpu_render_pass_set_index_buffer(
@@ -207,20 +230,30 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
                     GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
                 },
                 offset,
-                wgt::BufferSize::new(size),
+                buffer_size(size),
             );
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer
-    fn SetVertexBuffer(&self, slot: u32, buffer: &GPUBuffer, offset: u64, size: u64) {
+    /// https://gpuweb.github.io/gpuweb/#dom-gpurendercommandsmixin-setvertexbuffer
+    fn SetVertexBuffer(
+        &self,
+        slot: u32,
+        buffer: Option<&GPUBuffer>,
+        offset: u64,
+        size: Option<u64>,
+    ) {
+        if buffer.is_none() {
+            warn!("Buffer is none, and we are doing nothing about it.");
+            return;
+        }
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             wgpu_render::wgpu_render_pass_set_vertex_buffer(
                 render_pass,
                 slot,
-                buffer.id().0,
+                buffer.unwrap().id().0,
                 offset,
-                wgt::BufferSize::new(size),
+                buffer_size(size),
             );
         }
     }
@@ -295,4 +328,13 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
             };
         }
     }
+}
+
+/// Wgpu does not support size 0 (none is till the end)
+pub fn buffer_size(size: Option<u64>) -> Option<wgt::BufferSize> {
+    size.map(|s| {
+        wgt::BufferSize::new(s).expect(
+            "wgpu does not support size = 0 yet. See https://github.com/gfx-rs/wgpu/issues/3170",
+        )
+    })
 }

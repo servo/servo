@@ -5,18 +5,19 @@
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use super::bindings::error::Fallible;
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuerror::GPUError;
 
 #[dom_struct]
-pub struct GPUOutOfMemoryError {
+pub struct GPUInternalError {
     gpu_error: GPUError,
 }
 
-impl GPUOutOfMemoryError {
+impl GPUInternalError {
     fn new_inherited(message: DOMString) -> Self {
         Self {
             gpu_error: GPUError::new_inherited(message),
@@ -33,20 +34,20 @@ impl GPUOutOfMemoryError {
         message: DOMString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto(
-            Box::new(GPUOutOfMemoryError::new_inherited(message)),
+            Box::new(GPUInternalError::new_inherited(message)),
             global,
             proto,
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuoutofmemoryerror-gpuoutofmemoryerror
+    /// https://gpuweb.github.io/gpuweb/#dom-gpuinternalerror-gpuinternalerror
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         message: DOMString,
     ) -> DomRoot<Self> {
-        GPUOutOfMemoryError::new_with_proto(global, proto, message)
+        GPUInternalError::new_with_proto(global, proto, message)
     }
 
     pub fn base(&self) -> DomRoot<GPUError> {

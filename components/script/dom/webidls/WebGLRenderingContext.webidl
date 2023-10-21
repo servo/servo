@@ -24,6 +24,8 @@ typedef unsigned long  GLuint;
 typedef unrestricted float GLfloat;
 typedef unrestricted float GLclampf;
 
+enum PredefinedColorSpace { "srgb", "display-p3" };
+
 typedef (ImageData or
          HTMLImageElement or
          HTMLCanvasElement or

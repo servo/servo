@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use log::{error, warn};
+use wgpu::device::queue::{SubmittedWorkDoneClosure, SubmittedWorkDoneClosureC};
 use wgpu::gfx_select;
 pub use {wgpu_core as wgpu, wgpu_types as wgt};
 
@@ -12,6 +13,7 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
+use std::ops::Range;
 use std::rc::Rc;
 use std::slice;
 use std::sync::{Arc, Mutex};
@@ -67,7 +69,12 @@ pub enum WebGPUResponse {
         queue_id: WebGPUQueue,
         descriptor: wgt::DeviceDescriptor<Option<String>>,
     },
-    BufferMapAsync(IpcSharedMemory),
+    BufferMapAsync {
+        data: IpcSharedMemory,
+        range: Range<wgt::BufferAddress>,
+        mode: HostMap,
+    },
+    SubmittedWorkDone,
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
@@ -79,7 +86,7 @@ pub enum WebGPURequest {
         buffer_id: id::BufferId,
         device_id: id::DeviceId,
         host_map: HostMap,
-        map_range: std::ops::Range<u64>,
+        map_range: Range<wgt::BufferAddress>,
     },
     BufferMapComplete(id::BufferId),
     CommandEncoderFinish {
@@ -234,9 +241,9 @@ pub enum WebGPURequest {
         buffer_id: id::BufferId,
         device_id: id::DeviceId,
         array_buffer: IpcSharedMemory,
-        is_map_read: bool,
-        offset: u64,
-        size: u64,
+        is_write: bool,
+        offset: wgt::BufferAddress,
+        size: wgt::BufferAddress,
     },
     UpdateWebRenderData {
         buffer_id: id::BufferId,
@@ -256,13 +263,18 @@ pub enum WebGPURequest {
         size: wgt::Extent3d,
         data: IpcSharedMemory,
     },
+    QueueOnSubmittedWorkDone {
+        sender: IpcSender<WebGPUResponseResult>,
+        queue_id: id::QueueId,
+    },
 }
 
 struct BufferMapInfo<'a, T> {
     buffer_id: id::BufferId,
     sender: IpcSender<T>,
     global: &'a wgpu::global::Global<IdentityRecyclerFactory>,
-    size: usize,
+    range: Range<wgt::BufferAddress>,
+    mode: HostMap,
     external_id: Option<u64>,
 }
 
@@ -337,13 +349,15 @@ struct WGPU<'a> {
     global: wgpu::global::Global<IdentityRecyclerFactory>,
     adapters: Vec<WebGPUAdapter>,
     devices: HashMap<WebGPUDevice, PipelineId>,
-    // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
+    /// Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
-    // Buffers with pending mapping
+    /// Buffers with pending mapping
     buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, WebGPUResponseResult>>>,
-    // Presentation Buffers with pending mapping
+    /// Presentation Buffers with pending mapping
     present_buffer_maps:
         HashMap<id::BufferId, Rc<BufferMapInfo<'a, (Option<ErrorScopeId>, WebGPURequest)>>>,
+    /// Queues with pending submitted work
+    queue_submitted_work: HashMap<id::QueueId, Rc<IpcSender<WebGPUResponseResult>>>,
     //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
     error_command_encoders: RefCell<HashMap<id::CommandEncoderId, String>>,
     webrender_api: RenderApi,
@@ -384,6 +398,7 @@ impl<'a> WGPU<'a> {
             _invalid_adapters: Vec::new(),
             buffer_maps: HashMap::new(),
             present_buffer_maps: HashMap::new(),
+            queue_submitted_work: HashMap::new(),
             error_command_encoders: RefCell::new(HashMap::new()),
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
@@ -412,7 +427,8 @@ impl<'a> WGPU<'a> {
                             buffer_id,
                             sender: sender.clone(),
                             global: &self.global,
-                            size: (map_range.end - map_range.start) as usize,
+                            range: map_range.clone(),
+                            mode: host_map,
                             external_id: None,
                         };
                         self.buffer_maps.insert(buffer_id, Rc::new(map_info));
@@ -427,14 +443,17 @@ impl<'a> WGPU<'a> {
                             let msg = match status {
                                 BufferMapAsyncStatus::Success => {
                                     let global = &info.global;
+                                    let size = info.range.end - info.range.start;
                                     let (slice_pointer, range_size) = gfx_select!(info.buffer_id =>
-                                        global.buffer_get_mapped_range(info.buffer_id, 0, None))
+                                        global.buffer_get_mapped_range(info.buffer_id, info.range.start, Some(size)))
                                     .unwrap();
                                     let data =
                                         slice::from_raw_parts(slice_pointer, range_size as usize);
-                                    Ok(WebGPUResponse::BufferMapAsync(IpcSharedMemory::from_bytes(
-                                        data,
-                                    )))
+                                    Ok(WebGPUResponse::BufferMapAsync {
+                                        data: IpcSharedMemory::from_bytes(data),
+                                        range: info.range.start..(info.range.start + range_size), //TODO(wpu): recheck
+                                        mode: info.mode,
+                                    })
                                 },
                                 _ => {
                                     warn!("Could not map buffer({:?})", info.buffer_id);
@@ -1108,7 +1127,8 @@ impl<'a> WGPU<'a> {
                             buffer_id,
                             sender: self.sender.clone(),
                             global: &self.global,
-                            size: buffer_size as usize,
+                            range: 0..buffer_size,
+                            mode: HostMap::Read,
                             external_id: Some(external_id),
                         };
                         self.present_buffer_maps
@@ -1128,7 +1148,8 @@ impl<'a> WGPU<'a> {
                                         None,
                                         WebGPURequest::UpdateWebRenderData {
                                             buffer_id: info.buffer_id,
-                                            buffer_size: info.size,
+                                            buffer_size: (info.range.end - info.range.start)
+                                                as usize,
                                             external_id: info.external_id.unwrap(),
                                         },
                                     )) {
@@ -1155,12 +1176,13 @@ impl<'a> WGPU<'a> {
                         buffer_id,
                         device_id,
                         array_buffer,
-                        is_map_read,
+                        is_write,
                         offset,
                         size,
                     } => {
                         let global = &self.global;
-                        if !is_map_read {
+                        if is_write {
+                            // bufferupdate: https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
                             let (slice_pointer, range_size) =
                                 gfx_select!(buffer_id => global.buffer_get_mapped_range(
                                     buffer_id,
@@ -1245,6 +1267,30 @@ impl<'a> WGPU<'a> {
                         ));
                         self.send_result(queue_id, scope_id, result);
                     },
+                    WebGPURequest::QueueOnSubmittedWorkDone { sender, queue_id } => {
+                        let global = &self.global;
+                        self.queue_submitted_work
+                            .insert(queue_id, Rc::new(sender.clone()));
+                        unsafe extern "C" fn callback(userdata: *mut u8) {
+                            let sender =
+                                Rc::from_raw(userdata as *const IpcSender<WebGPUResponseResult>);
+                            if let Err(e) = sender.send(Ok(WebGPUResponse::SubmittedWorkDone)) {
+                                warn!("Could not send SubmittedWorkDone Response ({})", e);
+                            }
+                        }
+
+                        // TODO(sagudev): use rust closure
+                        let callback_c = unsafe {
+                            SubmittedWorkDoneClosure::from_c(SubmittedWorkDoneClosureC {
+                                callback,
+                                user_data: convert_to_pointer(
+                                    self.queue_submitted_work.get(&queue_id).unwrap().clone(),
+                                ),
+                            })
+                        };
+                        let result = gfx_select!(queue_id => global.queue_on_submitted_work_done(queue_id, callback_c));
+                        self.send_result(queue_id, scope_id, result);
+                    },
                 }
             }
         }
@@ -1264,9 +1310,11 @@ impl<'a> WGPU<'a> {
             result: if let Err(e) = result {
                 let err = format!("{:?}", e);
                 if err.contains("OutOfMemory") {
-                    WebGPUOpResult::OutOfMemoryError
-                } else {
+                    WebGPUOpResult::OutOfMemoryError(err)
+                } else if err.contains("Validation") {
                     WebGPUOpResult::ValidationError(err)
+                } else {
+                    WebGPUOpResult::InternalError(err)
                 }
             } else {
                 WebGPUOpResult::Success

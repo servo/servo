@@ -46,6 +46,7 @@ impl Clone for GPUCanvasConfiguration {
             format: self.format.clone(),
             usage: self.usage.clone(),
             viewFormats: self.viewFormats.clone(),
+            colorSpace: self.colorSpace.clone(),
         }
     }
 }
@@ -239,7 +240,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             }),
             viewFormats: descriptor.viewFormats.clone(),
             // other members to default
-            parent: GPUObjectDescriptorBase { label: None },
+            parent: GPUObjectDescriptorBase::empty(),
             dimension: GPUTextureDimension::_2d,
         };
 
@@ -287,8 +288,12 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             ))
             .expect("Failed to create WebGPU SwapChain");
 
-        self.texture
-            .set(Some(&descriptor.device.CreateTexture(&text_desc)));
+        self.texture.set(Some(
+            &descriptor
+                .device
+                .CreateTexture(&text_desc)
+                .expect("GPUExtent3DDict should be passed (not seq that can error)"),
+        ));
 
         self.webrender_image.set(Some(receiver.recv().unwrap()));
     }

@@ -54,9 +54,6 @@ impl GPUSupportedFeatures {
         if features.contains(wgt::Features::DEPTH32FLOAT_STENCIL8) {
             set.insert(GPUFeatureName::Depth32float_stencil8);
         }
-        if features.contains(wgt::Features::PIPELINE_STATISTICS_QUERY) {
-            set.insert(GPUFeatureName::Pipeline_statistics_query);
-        }
         if features.contains(wgt::Features::TEXTURE_COMPRESSION_BC) {
             set.insert(GPUFeatureName::Texture_compression_bc);
         }
@@ -101,14 +98,16 @@ impl GPUSupportedFeaturesMethods for GPUSupportedFeatures {
 pub fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<wgt::Features> {
     match feature {
         GPUFeatureName::Depth_clip_control => Some(wgt::Features::DEPTH_CLIP_CONTROL),
-        GPUFeatureName::Depth24unorm_stencil8 => None,
         GPUFeatureName::Depth32float_stencil8 => Some(wgt::Features::DEPTH32FLOAT_STENCIL8),
-        GPUFeatureName::Pipeline_statistics_query => Some(wgt::Features::PIPELINE_STATISTICS_QUERY),
         GPUFeatureName::Texture_compression_bc => Some(wgt::Features::TEXTURE_COMPRESSION_BC),
         GPUFeatureName::Texture_compression_etc2 => Some(wgt::Features::TEXTURE_COMPRESSION_ETC2),
         GPUFeatureName::Texture_compression_astc => Some(wgt::Features::TEXTURE_COMPRESSION_ASTC),
         GPUFeatureName::Timestamp_query => Some(wgt::Features::TIMESTAMP_QUERY),
         GPUFeatureName::Indirect_first_instance => Some(wgt::Features::INDIRECT_FIRST_INSTANCE),
+        GPUFeatureName::Shader_f16 => None,
+        GPUFeatureName::Rg11b10ufloat_renderable => None,
+        GPUFeatureName::Bgra8unorm_storage => None,
+        GPUFeatureName::Float32_filterable => None,
     }
 }
 
