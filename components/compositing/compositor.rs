@@ -1856,16 +1856,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         };
 
         // Perform the page flip. This will likely block for a while.
-        if self.external_present {
-            self.waiting_on_present = true;
-            let msg = ConstellationMsg::ReadyToPresent(
-                self.root_content_pipeline.top_level_browsing_context_id,
-            );
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
-            }
-        } else {
-            self.present();
+        self.waiting_on_present = true;
+        let msg = ConstellationMsg::ReadyToPresent(
+            self.root_content_pipeline.top_level_browsing_context_id,
+        );
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending event to constellation failed ({:?}).", e);
         }
 
         self.composition_request = CompositionRequest::NoCompositingNecessary;
