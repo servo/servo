@@ -749,12 +749,24 @@ pub fn entries_to_matrix(entries: &[f64]) -> Fallible<(bool, Transform3D<f64>)> 
 // https://drafts.fxtf.org/geometry-1/#validate-and-fixup
 pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)> {
     // Step 1.
-    if dict.parent.a.is_some() && dict.parent.m11.is_some() && dict.parent.a.unwrap() != dict.parent.m11.unwrap() ||
-        dict.parent.b.is_some() && dict.parent.m12.is_some() && dict.parent.b.unwrap() != dict.parent.m12.unwrap() ||
-        dict.parent.c.is_some() && dict.parent.m21.is_some() && dict.parent.c.unwrap() != dict.parent.m21.unwrap() ||
-        dict.parent.d.is_some() && dict.parent.m22.is_some() && dict.parent.d.unwrap() != dict.parent.m22.unwrap() ||
-        dict.parent.e.is_some() && dict.parent.m41.is_some() && dict.parent.e.unwrap() != dict.parent.m41.unwrap() ||
-        dict.parent.f.is_some() && dict.parent.m42.is_some() && dict.parent.f.unwrap() != dict.parent.m42.unwrap() ||
+    if dict.parent.a.is_some() &&
+        dict.parent.m11.is_some() &&
+        dict.parent.a.unwrap() != dict.parent.m11.unwrap() ||
+        dict.parent.b.is_some() &&
+            dict.parent.m12.is_some() &&
+            dict.parent.b.unwrap() != dict.parent.m12.unwrap() ||
+        dict.parent.c.is_some() &&
+            dict.parent.m21.is_some() &&
+            dict.parent.c.unwrap() != dict.parent.m21.unwrap() ||
+        dict.parent.d.is_some() &&
+            dict.parent.m22.is_some() &&
+            dict.parent.d.unwrap() != dict.parent.m22.unwrap() ||
+        dict.parent.e.is_some() &&
+            dict.parent.m41.is_some() &&
+            dict.parent.e.unwrap() != dict.parent.m41.unwrap() ||
+        dict.parent.f.is_some() &&
+            dict.parent.m42.is_some() &&
+            dict.parent.f.unwrap() != dict.parent.m42.unwrap() ||
         dict.is2D.is_some() &&
             dict.is2D.unwrap() &&
             (dict.m31 != 0.0 ||

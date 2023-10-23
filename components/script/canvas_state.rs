@@ -30,7 +30,7 @@ use style_traits::values::ToCss;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
-    CanvasTextAlign, CanvasTextBaseline, ImageDataMethods
+    CanvasTextAlign, CanvasTextBaseline, ImageDataMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
