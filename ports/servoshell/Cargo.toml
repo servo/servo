@@ -53,7 +53,7 @@ egui-winit = { version = "0.22.0", default-features = false, features = ["clipbo
 euclid = { workspace = true }
 getopts = { workspace = true }
 gleam = { workspace = true }
-glow = "0.12.2"
+glow = "0.13.0"
 keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
