@@ -49,13 +49,13 @@ def create_parser():
 
 
 def update_args_for_legacy_layout(kwargs: dict):
-    kwargs["test_paths"]["/"]["metadata_path"] = os.path.join(
+    kwargs["test_paths"]["/"].metadata_path = os.path.join(
         WPT_PATH, "meta-legacy-layout"
     )
-    kwargs["test_paths"]["/_mozilla/"]["metadata_path"] = os.path.join(
+    kwargs["test_paths"]["/_mozilla/"].metadata_path = os.path.join(
         WPT_PATH, "mozilla", "meta-legacy-layout"
     )
-    kwargs["test_paths"]["/_webgl/"]["metadata_path"] = os.path.join(
+    kwargs["test_paths"]["/_webgl/"].metadata_path = os.path.join(
         WPT_PATH, "webgl", "meta-legacy-layout"
     )
 
