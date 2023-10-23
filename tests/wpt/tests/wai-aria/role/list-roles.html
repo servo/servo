@@ -18,6 +18,9 @@
   <div role="listitem" data-testname="last simple listitem" data-expectedrole="listitem" class="ex">x</div>
 </div>
 
+<div role="listitem" data-testname="orphan div with listitem role" class="ex-generic">x</div>
+<p role="listitem" data-testname="orphan p with listitem role" data-expectedrole="paragraph" class="ex">x</p>
+
 <script>
 AriaUtils.verifyRolesBySelector(".ex");
 </script>

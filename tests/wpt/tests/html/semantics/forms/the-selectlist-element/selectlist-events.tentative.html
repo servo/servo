@@ -130,20 +130,15 @@
 
   promise_test(async () => {
     const selectList = document.getElementById("selectList2");
-    let input_event_count = 0;
-    let change_event_count = 0;
+    const events = [];
 
     selectList.addEventListener("input", (e) => {
-      assert_true(e.composed, "input event should be composed");
-      assert_equals(input_event_count, 0, "input event should not fire twice");
-      assert_equals(change_event_count, 0, "input event should not fire before change");
-      input_event_count++;
+      assert_true(e.composed, "input event should be composed.");
+      events.push('input');
     });
     selectList.addEventListener("change", (e) => {
-      assert_false(e.composed, "change event should not be composed");
-      assert_equals(input_event_count, 1, "change event should fire after input");
-      assert_equals(change_event_count, 0, "change event should not fire twice");
-      change_event_count++;
+      assert_false(e.composed, "change event should not be composed.");
+      events.push('change');
     });
 
     await clickOn(selectList);
@@ -151,47 +146,39 @@
     await test_driver.send_keys(selectList, KEY_CODE_MAP.Enter);
     assert_false(selectList.open);
     assert_equals(selectList.value, "one");
-    assert_equals(input_event_count, 0, "input event shouldn't fire if value wasn't changed");
-    assert_equals(change_event_count, 0, "change event shouldn't fire if value wasn't changed");
+    assert_array_equals(events, [], "input and change shouldn't fire if value wansn't changed.");
 
     await clickOn(selectList);
     assert_true(selectList.open);
     await test_driver.send_keys(selectList, KEY_CODE_MAP.ArrowDown);
-    assert_equals(selectList.value, "two", "value should change when user switches options with arrow key");
-    assert_equals(input_event_count, 1, "input event should fire when user switches options with arrow key");
-    assert_equals(change_event_count, 0, "change event shouldn't fire until popover is closed");
+    assert_equals(selectList.value, "one", "value shouldn't change when user switches options with arrow key.");
+    assert_array_equals(events, ['input'], "input event should fire when user switches options with arrow key.");
 
     await test_driver.send_keys(selectList, KEY_CODE_MAP.Enter);
     assert_equals(selectList.value, "two");
-    assert_equals(input_event_count, 1, "input event should have fired");
-    assert_equals(change_event_count, 1, "change event should have fired");
-  }, "<selectlist> should fire input and change events when new option is selected");
+    assert_array_equals(events, ['input', 'input', 'change'], "input and change should fire after pressing enter.");
+  }, "<selectlist> should fire input and change events when new option is selected.");
 
   promise_test(async () => {
     const selectList = document.getElementById("selectList3");
-    let input_event_count = 0;
-    let change_event_count = 0;
+    const events = [];
 
     selectList.addEventListener("input", (e) => {
-      assert_true(e.composed, "input event should be composed");
-      assert_equals(input_event_count, 0, "input event should not fire twice");
-      assert_equals(change_event_count, 0, "input event should not fire before change");
-      input_event_count++;
+      assert_true(e.composed, "input event should be composed.");
+      events.push('input');
     });
     selectList.addEventListener("change", (e) => {
-      assert_false(e.composed, "change event should not be composed");
-      assert_equals(input_event_count, 1, "change event should fire after input");
-      assert_equals(change_event_count, 0, "change event should not fire twice");
-      change_event_count++;
+      assert_false(e.composed, "change event should not be composed.");
+      events.push('change');
     });
 
     await clickOn(selectList);
     assert_true(selectList.open);
     await test_driver.send_keys(selectList, KEY_CODE_MAP.ArrowDown);
+    assert_array_equals(events, ['input'], "input event should have fired after ArrowDown.");
     await test_driver.send_keys(selectList, KEY_CODE_MAP.Enter);
-    assert_equals(input_event_count, 1, "input event should have fired");
-    assert_equals(change_event_count, 1, "change event should have fired");
-  }, "<selectlist> should fire input and change events even when new selected option has the same value as the old");
+    assert_array_equals(events, ['input', 'input', 'change'], "input and change should fire after pressing Enter.");
+  }, "<selectlist> should fire input and change events even when new selected option has the same value as the old.");
 
   promise_test(async () => {
     const selectList = document.getElementById("selectList4");

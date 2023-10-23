@@ -54,7 +54,7 @@
 
   var targetElement = document.getElementById("target");
 
-    function verifyComputedStyle(property_name, specified_value, expected_value, description)
+    function verifyComputedStyle(property_name, specified_value, expected_value)
     {
 
     test(function()
@@ -64,10 +64,10 @@
 
       assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
 
-      }, description);
+      }, `testing ${property_name}: ${specified_value}`);
     }
 
-    verifyComputedStyle("background-size", "calc(67% - 54% + 4em) 50%", "calc(13% + 64px) 50%", "testing background-size: calc(67% - 54% + 4em) 50%");
+    verifyComputedStyle("background-size", "calc(67% - 54% + 4em) 50%", "calc(13% + 64px) 50%");
 
     /*
     "Where percentages are not resolved at computed-value time,
@@ -79,7 +79,7 @@
     must be resolved though.
     */
 
-    verifyComputedStyle("background-position", "calc(100% - 100% + 20em)", "calc(0% + 320px) 50%", "testing background-position: calc(100% - 100% + 20em)");
+    verifyComputedStyle("background-position", "calc(100% - 100% + 20em)", "calc(0% + 320px) 50%");
 
     /*
     Here too, the percentage is preserved and
@@ -88,7 +88,7 @@
     */
 
 
-    verifyComputedStyle("height", "calc(60% - 50% + 3em)", "105px", "testing height: calc(60% - 50% + 3em)");
+    verifyComputedStyle("height", "calc(60% - 50% + 3em)", "105px");
 
     /*
 

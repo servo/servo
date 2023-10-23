@@ -1,0 +1,104 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<div id="div"></div>
+<button id="button"></button>
+
+<script>
+  test(function () {
+    const host = document.createElement("div");
+    const child = host.appendChild(document.createElement("p"));
+    const shadow = host.attachShadow({ mode: "closed" });
+    const slot = shadow.appendChild(document.createElement("slot"));
+    let childEvent = null;
+    let childEventTarget = null;
+    let childEventInvoker = null;
+    let hostEvent = null;
+    let hostEventTarget = null;
+    let hostEventInvoker = null;
+    slot.addEventListener(
+      "invoke",
+      (e) => {
+        childEvent = e;
+        childEventTarget = e.target;
+        childEventInvoker = e.invoker;
+      },
+      { once: true },
+    );
+    host.addEventListener(
+      "invoke",
+      (e) => {
+        hostEvent = e;
+        hostEventTarget = e.target;
+        hostEventInvoker = e.invoker;
+      },
+      { once: true },
+    );
+    const event = new InvokeEvent("invoke", {
+      bubbles: true,
+      invoker: slot,
+      composed: true,
+    });
+    slot.dispatchEvent(event);
+    assert_true(childEvent instanceof InvokeEvent, "slot saw invoke event");
+    assert_equals(
+      childEventTarget,
+      slot,
+      "target is child inside shadow boundary",
+    );
+    assert_equals(
+      childEventInvoker,
+      slot,
+      "invoker is child inside shadow boundary",
+    );
+    assert_equals(
+      hostEvent,
+      childEvent,
+      "event dispatch propagates across shadow boundary",
+    );
+    assert_equals(
+      hostEventTarget,
+      host,
+      "target is retargeted to shadowroot host",
+    );
+    assert_equals(
+      hostEventInvoker,
+      host,
+      "invoker is retargeted to shadowroot host",
+    );
+  }, "InvokeEvent propagates across shadow boundaries retargeting invoker");
+
+  test(function (t) {
+    const host = document.createElement("div");
+    document.body.append(host);
+    t.add_cleanup(() => host.remove());
+    const shadow = host.attachShadow({ mode: "open" });
+    const button = shadow.appendChild(document.createElement("button"));
+    const invokee = host.appendChild(document.createElement("div"));
+    button.invokeTargetElement = invokee;
+    let event = null;
+    let eventTarget = null;
+    let eventInvoker = null;
+    invokee.addEventListener(
+      "invoke",
+      (e) => {
+        event = e;
+        eventTarget = e.target;
+        eventInvoker = e.invoker;
+      },
+      { once: true },
+    );
+    button.click();
+    assert_true(event instanceof InvokeEvent);
+    assert_equals(eventTarget, invokee, "target is invokee");
+    assert_equals(eventInvoker, host, "invoker is host");
+  }, "cross shadow InvokeEvent retargets invoker to host element");
+</script>

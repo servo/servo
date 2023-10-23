@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Percentage-based @page margins should resolve against the correct dimension</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#page-properties">
+<link rel="match" href="page-margin-005-print-ref.html">
+<style>
+  @page {
+    size: 600px 300px;
+    margin: 10% 5%;
+  }
+  body {
+    margin: 0;
+    background: cyan;
+  }
+</style>
+The page margins should be the same on every side (30px).<br>
+There's a 30px square in the bottom right corner.
+<div style="position:fixed; right:0; bottom:0; width:30px; height:30px; background:hotpink;"></div>
+<div style="break-before:page;">
+  Same on the second page.
+</div>

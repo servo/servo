@@ -34,19 +34,25 @@ def main(request, response):
     if error == b"no-body":
         return body
     if error != b"no-generateBid":
-        body += b"""
+        # Use bid query param if present. Otherwise, use a bid of 9.
+        bid = (request.GET.first(b"bid", None) or b"9").decode("ASCII")
+
+        allowComponentAuction = ""
+        allowComponentAuctionParam = request.GET.first(b"allowComponentAuction", None)
+        if allowComponentAuctionParam != None:
+          allowComponentAuction = f"allowComponentAuction: {allowComponentAuctionParam.decode('ASCII')},"
+
+        body += f"""
             function generateBid(interestGroup, auctionSignals, perBuyerSignals,
                                 trustedBiddingSignals, browserSignals,
-                                directFromSellerSignals) {
-              {{GET[generateBid]}};
-              return {
-                'bid': 9,
-                'render': interestGroup.ads[0].renderURL
-              };
-            }"""
-    bid = request.GET.first(b"bid", None)
-    if bid != None:
-      body = body.replace(b"9", bid)
+                                directFromSellerSignals) {{
+              {{{{GET[generateBid]}}}};
+              return {{
+                bid: {bid},
+                {allowComponentAuction}
+                render: interestGroup.ads[0].renderURL
+              }};
+            }}""".encode()
     if error != b"no-reportWin":
         body += b"""
             function reportWin(auctionSignals, perBuyerSignals, sellerSignals,

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Text Module Test: parsing text-spacing with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-spacing-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("text-spacing", "normal");
+test_valid_value("text-spacing", "none");
+test_valid_value("text-spacing", "auto");
+
+// `text-autospace`.
+test_valid_value("text-spacing", "no-autospace");
+
+// `text-spacing-trim`.
+test_valid_value("text-spacing", "space-first", "normal");
+test_valid_value("text-spacing", "space-all");
+// Two values syntax.
+test_valid_value("text-spacing", "allow-end space-first");
+test_valid_value("text-spacing", "space-first allow-end", "allow-end space-first");
+
+// `text-autospace` and `text-spacing-trim`.
+test_valid_value("text-spacing", "no-autospace space-first", "no-autospace");
+test_valid_value("text-spacing", "no-autospace space-all", "none");
+// Test the reversed order.
+test_valid_value("text-spacing", "space-first no-autospace", "no-autospace");
+test_valid_value("text-spacing", "space-all no-autospace", "none");
+</script>
+</body>
+</html>

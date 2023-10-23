@@ -751,7 +751,13 @@ class CallbackHandler:
             raise ValueError(f"Unknown action {action}") from e
         try:
             with ActionContext(self.logger, self.protocol, payload.get("context")):
-                result = action_handler(payload)
+                try:
+                    result = action_handler(payload)
+                except AttributeError as e:
+                    # If we fail to get an attribute from the protocol presumably that's a
+                    # ProtocolPart we don't implement
+                    if getattr(e, "obj") == self.protocol:
+                        raise NotImplementedError from e
         except self.unimplemented_exc:
             self.logger.warning("Action %s not implemented" % action)
             self._send_message(cmd_id, "complete", "error", f"Action {action} not implemented")

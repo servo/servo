@@ -15,141 +15,266 @@ here = os.path.abspath(os.path.dirname(__file__))
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
 
-def do_delayed_imports():
+NDK_VERSION = "r23c"
+CMDLINE_TOOLS_VERSION_STRING = "11.0"
+CMDLINE_TOOLS_VERSION = "9644228"
+
+AVD_MANIFEST_X86_64 = {
+    "emulator_package": "system-images;android-24;default;x86_64",
+    "emulator_avd_name": "mozemulator-x86_64",
+    "emulator_extra_args": [
+        "-skip-adb-auth",
+        "-verbose",
+        "-show-kernel",
+        "-ranchu",
+        "-selinux", "permissive",
+        "-memory", "3072",
+        "-cores", "4",
+        "-skin", "800x1280",
+        "-gpu", "on",
+        "-no-snapstorage",
+        "-no-snapshot",
+        "-no-window",
+        "-no-accel",
+        "-prop", "ro.test_harness=true"
+    ],
+    "emulator_extra_config": {
+        "hw.keyboard": "yes",
+        "hw.lcd.density": "320",
+        "disk.dataPartition.size": "4000MB",
+        "sdcard.size": "600M"
+    }
+}
+
+
+def do_delayed_imports(paths):
     global android_device
     from mozrunner.devices import android_device
+
     android_device.TOOLTOOL_PATH = os.path.join(os.path.dirname(__file__),
                                                 os.pardir,
                                                 "third_party",
                                                 "tooltool",
                                                 "tooltool.py")
+    android_device.EMULATOR_HOME_DIR = paths["emulator_home"]
 
 
 def get_parser_install():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--path", dest="dest", action="store", default=None,
+                        help="Root path to use for emulator tooling")
     parser.add_argument("--reinstall", action="store_true", default=False,
                         help="Force reinstall even if the emulator already exists")
+    parser.add_argument("--prompt", action="store_true",
+                        help="Enable confirmation prompts")
+    parser.add_argument("--no-prompt", dest="prompt", action="store_false",
+                        help="Skip confirmation prompts")
     return parser
 
 
 def get_parser_start():
-    return get_parser_install()
+    parser = get_parser_install()
+    parser.add_argument("--device-serial", action="store", default=None,
+                        help="Device serial number for Android emulator, if not emulator-5554")
+    return parser
 
 
-def get_sdk_path(dest):
+def get_paths(dest):
+    os_name = platform.system().lower()
+
     if dest is None:
         # os.getcwd() doesn't include the venv path
-        dest = os.path.join(wpt_root, venv_dir())
-    dest = os.path.join(dest, 'android-sdk')
-    return os.path.abspath(os.environ.get('ANDROID_SDK_PATH', dest))
+        base_path = os.path.join(wpt_root, venv_dir(), "android")
+    else:
+        base_path = dest
+
+    sdk_path = os.environ.get("ANDROID_SDK_HOME", os.path.join(base_path, f"android-sdk-{os_name}"))
+    avd_path = os.environ.get("ANDROID_AVD_HOME", os.path.join(sdk_path, ".android", "avd"))
+    return {
+        "base": base_path,
+        "sdk": sdk_path,
+        "sdk_tools": os.path.join(sdk_path, "cmdline-tools", CMDLINE_TOOLS_VERSION_STRING),
+        "avd": avd_path,
+        "emulator_home": os.path.dirname(avd_path)
+    }
 
 
-def uninstall_sdk(dest=None):
-    path = get_sdk_path(dest)
-    if os.path.exists(path) and os.path.isdir(path):
-        shutil.rmtree(path)
+def get_sdk_manager_path(paths):
+    os_name = platform.system().lower()
+    file_name = "sdkmanager"
+    if os_name.startswith("win"):
+        file_name += ".bat"
+    return os.path.join(paths["sdk_tools"], "bin", file_name)
 
 
-def install_sdk(logger, dest=None):
-    sdk_path = get_sdk_path(dest)
-    if os.path.isdir(sdk_path):
-        logger.info("Using SDK installed at %s" % sdk_path)
-        return sdk_path, False
+def get_avd_manager(paths):
+    os_name = platform.system().lower()
+    file_name = "avdmanager"
+    if os_name.startswith("win"):
+        file_name += ".bat"
+    return os.path.join(paths["sdk_tools"], "bin", file_name)
 
-    if not os.path.exists(sdk_path):
-        os.makedirs(sdk_path)
 
+def uninstall_sdk(paths):
+    if os.path.exists(paths["sdk"]) and os.path.isdir(paths["sdk"]):
+        shutil.rmtree(paths["sdk"])
+
+
+def get_os_tag(logger):
     os_name = platform.system().lower()
     if os_name not in ["darwin", "linux", "windows"]:
         logger.critical("Unsupported platform %s" % os_name)
         raise NotImplementedError
 
-    os_name = 'darwin' if os_name == 'macosx' else os_name
-    # TODO: either always use the latest version or have some way to
-    # configure a per-product version if there are strong requirements
-    # to use a specific version.
-    url = f'https://dl.google.com/android/repository/sdk-tools-{os_name}-4333796.zip'
+    if os_name == "macosx":
+        return "darwin"
+    if os_name == "windows":
+        return "win"
+    return "linux"
 
-    logger.info("Getting SDK from %s" % url)
-    temp_path = os.path.join(sdk_path, url.rsplit("/", 1)[1])
+
+def download_and_extract(url, path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    temp_path = os.path.join(path, url.rsplit("/", 1)[1])
     try:
         with open(temp_path, "wb") as f:
             with requests.get(url, stream=True) as resp:
                 shutil.copyfileobj(resp.raw, f)
 
         # Python's zipfile module doesn't seem to work here
-        subprocess.check_call(["unzip", temp_path], cwd=sdk_path)
+        subprocess.check_call(["unzip", temp_path], cwd=path)
     finally:
-        os.unlink(temp_path)
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
 
-    return sdk_path, True
+
+def install_sdk(logger, paths):
+    if os.path.isdir(paths["sdk_tools"]):
+        logger.info("Using SDK installed at %s" % paths["sdk_tools"])
+        return False
+
+    if not os.path.exists(paths["sdk"]):
+        os.makedirs(paths["sdk"])
+
+    download_path = os.path.dirname(paths["sdk_tools"])
+
+    url = f'https://dl.google.com/android/repository/commandlinetools-{get_os_tag(logger)}-{CMDLINE_TOOLS_VERSION}_latest.zip'
+    logger.info("Getting SDK from %s" % url)
+
+    download_and_extract(url, download_path)
+    os.rename(os.path.join(download_path, "cmdline-tools"), paths["sdk_tools"])
+
+    return True
 
 
-def install_android_packages(logger, sdk_path, no_prompt=False):
-    sdk_manager_path = os.path.join(sdk_path, "tools", "bin", "sdkmanager")
-    if not os.path.exists(sdk_manager_path):
-        raise OSError("Can't find sdkmanager at %s" % sdk_manager_path)
-
-    packages = ["platform-tools",
-                "build-tools;33.0.1",
-                "platforms;android-33",
-                "emulator"]
+def install_android_packages(logger, paths, packages, prompt=True):
+    sdk_manager = get_sdk_manager_path(paths)
+    if not os.path.exists(sdk_manager):
+        raise OSError(f"Can't find sdkmanager at {sdk_manager}")
 
     # TODO: make this work non-internactively
-    logger.info("Installing SDK packages")
-    cmd = [sdk_manager_path] + packages
+    logger.info(f"Installing Android packages {' '.join(packages)}")
+    cmd = [sdk_manager] + packages
 
-    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
-    if no_prompt:
-        data = "Y\n" * 100 if no_prompt else None
-        proc.communicate(data)
-    else:
-        proc.wait()
-    if proc.returncode != 0:
-        raise subprocess.CalledProcessError(proc.returncode, cmd)
+    input_data = None if prompt else "\n".join(["y"] * 100).encode("UTF-8")
+    subprocess.run(cmd, check=True, input=input_data)
 
 
-def get_emulator(sdk_path, device_serial=None):
+def install_avd(logger, paths, prompt=True):
+    avd_manager = get_avd_manager(paths)
+    avd_manifest = AVD_MANIFEST_X86_64
+
+    install_android_packages(logger, paths, [avd_manifest["emulator_package"]], prompt=prompt)
+
+    cmd = [avd_manager,
+           "--verbose",
+           "create",
+           "avd",
+           "--force",
+           "--name",
+           avd_manifest["emulator_avd_name"],
+           "--package",
+           avd_manifest["emulator_package"]]
+    input_data = None if prompt else b"no"
+    subprocess.run(cmd, check=True, input=input_data)
+
+
+def get_emulator(paths, device_serial=None):
     if android_device is None:
-        do_delayed_imports()
-    if "ANDROID_SDK_ROOT" not in os.environ:
-        os.environ["ANDROID_SDK_ROOT"] = sdk_path
+        do_delayed_imports(paths)
+
     substs = {"top_srcdir": wpt_root, "TARGET_CPU": "x86"}
-    emulator = android_device.AndroidEmulator("*", substs=substs, device_serial=device_serial)
-    emulator.emulator_path = os.path.join(sdk_path, "emulator", "emulator")
+    emulator = android_device.AndroidEmulator(substs=substs,
+                                              device_serial=device_serial,
+                                              verbose=True)
+    emulator.emulator_path = os.path.join(paths["sdk"], "emulator", "emulator")
     return emulator
 
 
-def install(logger, reinstall=False, no_prompt=False, device_serial=None):
-    if reinstall:
-        uninstall_sdk()
+class Environ:
+    def __init__(self, **kwargs):
+        self.environ = None
+        self.set_environ = kwargs
 
-    dest, new_install = install_sdk(logger)
-    if new_install:
-        install_android_packages(logger, dest, no_prompt)
+    def __enter__(self):
+        self.environ = os.environ.copy()
+        for key, value in self.set_environ.items():
+            if value is None:
+                if key in os.environ:
+                    del os.environ[key]
+            else:
+                os.environ[key] = value
 
-    if "ANDROID_SDK_ROOT" not in os.environ:
-        os.environ["ANDROID_SDK_ROOT"] = dest
+    def __exit__(self, *args, **kwargs):
+        os.environ = self.environ
 
-    emulator = get_emulator(dest, device_serial=device_serial)
+
+def android_environment(paths):
+    return Environ(ANDROID_EMULATOR_HOME=paths["emulator_home"],
+                   ANDROID_AVD_HOME=paths["avd"],
+                   ANDROID_SDK_ROOT=paths["sdk"],
+                   ANDROID_SDK_HOME=paths["sdk"])
+
+
+def install(logger, dest=None, reinstall=False, prompt=True):
+    paths = get_paths(dest)
+
+    with android_environment(paths):
+
+        if reinstall:
+            uninstall_sdk(paths)
+
+        new_install = install_sdk(logger, paths)
+
+        if new_install:
+            packages = ["platform-tools",
+                        "build-tools;33.0.1",
+                        "platforms;android-33",
+                        "emulator"]
+
+            install_android_packages(logger, paths, packages, prompt=prompt)
+
+            install_avd(logger, paths, prompt=prompt)
+
+        emulator = get_emulator(paths)
     return emulator
 
 
-def start(logger, emulator=None, reinstall=False, device_serial=None):
-    if reinstall:
-        install(reinstall=True)
+def start(logger, dest=None, reinstall=False, prompt=True, device_serial=None):
+    paths = get_paths(dest)
 
-    sdk_path = get_sdk_path(None)
+    with android_environment(paths):
+        install(logger, dest=dest, reinstall=reinstall, prompt=prompt)
 
-    if emulator is None:
-        emulator = get_emulator(sdk_path, device_serial=device_serial)
+        emulator = get_emulator(paths, device_serial=device_serial)
 
-    if not emulator.check_avd():
-        logger.critical("Android AVD not found, please run |mach bootstrap|")
-        raise NotImplementedError
+        if not emulator.check_avd():
+            logger.critical("Android AVD not found, please run |wpt install-android-emulator|")
+            raise OSError
 
-    emulator.start()
-    emulator.wait_for_start()
+        emulator.start()
+        emulator.wait_for_start()
     return emulator
 
 

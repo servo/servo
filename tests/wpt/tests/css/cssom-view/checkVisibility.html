@@ -16,13 +16,29 @@
 
 <div id=displaynone style="display:none">hello</div>
 
+<div style="display:none" class="shadow-host-with-slot">
+  <div id="slottedindisplaynone" slot="slot">slotted</div>
+</div>
+
+<div id=displaycontents style="display:contents">
+  <div id=displaycontentschild>hello</div>
+</div>
+
 <div id=opacityzero style="opacity:0">hello</div>
+
+<div style="opacity:0" class="shadow-host-with-slot">
+  <div id="slottedinopacityzero" slot="slot">slotted</div>
+</div>
 
 <div style="content-visibility:hidden">
   <div id=cvhiddenchildwithupdate></div>
 </div>
 
 <div style="content-visibility:hidden" id=cvhiddenwithupdate></div>
+
+<div style="content-visibility:hidden" class="shadow-host-with-slot">
+  <div id="slottedincvhidden" slot="slot">slotted</div>
+</div>
 
 <div style="height:10000px">spacer</div>
 
@@ -41,6 +57,13 @@
 </div>
 
 <script>
+for (const host of document.querySelectorAll(".shadow-host-with-slot")) {
+  const shadowRoot = host.attachShadow({ mode: "open" });
+  const slot = document.createElement("slot");
+  slot.name = "slot";
+  shadowRoot.appendChild(slot);
+}
+
 test(() => {
   assert_false(visibilityhidden.checkVisibility({
     checkVisibilityCSS: true
@@ -55,6 +78,10 @@ test(() => {
 }, 'checkVisibility on content-visibility:hidden element.');
 
 test(() => {
+  assert_false(slottedincvhidden.checkVisibility());
+}, 'checkVisibility on element slotted in content-visibility: hidden shadow host.');
+
+test(() => {
   assert_true(cvauto.checkVisibility());
 }, 'checkVisibility on content-visibility:auto element.');
 
@@ -67,6 +94,15 @@ test(() => {
 }, 'checkVisibility on display:none element.');
 
 test(() => {
+  assert_false(slottedindisplaynone.checkVisibility());
+}, 'checkVisibility on element slotted in display:none shadow host.');
+
+test(() => {
+  assert_false(displaycontents.checkVisibility());
+  assert_true(displaycontentschild.checkVisibility());
+}, 'checkVisibility on display:contents element.');
+
+test(() => {
   assert_false(opacityzero.checkVisibility({
     checkOpacity: true
   }), 'checkOpacity:true');
@@ -74,6 +110,15 @@ test(() => {
     checkOpacity: false
   }), 'checkOpacity:false');
 }, 'checkVisibility on opacity:0 element.');
+
+test(() => {
+  assert_false(slottedinopacityzero.checkVisibility({
+    checkOpacity: true
+  }), 'checkOpacity: true');
+  assert_true(slottedinopacityzero.checkVisibility({
+    checkOpacity: false
+  }), 'checkOpacity: true');
+}, 'checkVisibility on element slotted in opacity: 0; shadow host.');
 
 test(() => {
   cvautocontainer.style.contentVisibility = 'auto';

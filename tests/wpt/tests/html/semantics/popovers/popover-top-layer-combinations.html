@@ -135,7 +135,7 @@ window.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
         // Popover fullscreen isn't visible by default, so explicitly add
         // display:block, so that calls to "clickOn" can succeed.
         ex.classList.add('visible');
-        await blessTopLayer(visible);
+        await blessTopLayer(ex);
         await ex.requestFullscreen();
       } else {
         assert_unreached('Not a dialog or fullscreen');

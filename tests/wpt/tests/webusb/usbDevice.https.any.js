@@ -1247,3 +1247,60 @@ usb_test((t) => {
         .then(() => promise_rejects_dom(t, 'NotFoundError', device.reset()));
   });
 }, 'resetDevice rejects when called on a disconnected device');
+
+usb_test(async (t) => {
+  const PACKET_COUNT = 4;
+  const PACKET_LENGTH = 8;
+  const {device, fakeDevice} = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+  const buffer = new Uint8Array(PACKET_COUNT * PACKET_LENGTH);
+  const packetLengths = new Array(PACKET_COUNT).fill(PACKET_LENGTH);
+  packetLengths[0] = PACKET_LENGTH - 1;
+  await promise_rejects_dom(
+      t, 'DataError', device.isochronousTransferOut(1, buffer, packetLengths));
+}, 'isochronousTransferOut rejects when buffer size exceeds packet lengths');
+
+usb_test(async (t) => {
+  const PACKET_COUNT = 4;
+  const PACKET_LENGTH = 8;
+  const {device, fakeDevice} = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+  const buffer = new Uint8Array(PACKET_COUNT * PACKET_LENGTH);
+  const packetLengths = new Array(PACKET_COUNT).fill(PACKET_LENGTH);
+  packetLengths[0] = PACKET_LENGTH + 1;
+  await promise_rejects_dom(
+      t, 'DataError', device.isochronousTransferOut(1, buffer, packetLengths));
+}, 'isochronousTransferOut rejects when packet lengths exceed buffer size');
+
+usb_test(async (t) => {
+  const PACKET_COUNT = 2;
+  const PACKET_LENGTH = 8;
+  const {device, fakeDevice} = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+  const packetLengths = [0xffffffff, 1];
+  await promise_rejects_dom(
+      t, 'DataError', device.isochronousTransferIn(1, packetLengths));
+}, 'isochronousTransferIn rejects when packet lengths exceed maximum size');
+
+usb_test(async (t) => {
+  const PACKET_COUNT = 2;
+  const PACKET_LENGTH = 8;
+  const {device, fakeDevice} = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+  const buffer = new Uint8Array(PACKET_LENGTH * PACKET_COUNT);
+  const packetLengths = [0xffffffff, 1];
+  await promise_rejects_dom(
+      t, 'DataError', device.isochronousTransferOut(1, buffer, packetLengths));
+}, 'isochronousTransferOut rejects when packet lengths exceed maximum size');

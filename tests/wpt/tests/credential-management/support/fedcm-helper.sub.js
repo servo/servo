@@ -39,6 +39,12 @@ export function mark_signed_in(origin = manifest_origin) {
   });
 }
 
+export function mark_signed_out(origin = manifest_origin) {
+  return new Promise(resolve => {
+    open_and_wait_for_popup(origin, '/credential-management/support/mark_signedout', resolve);
+  });
+}
+
 // Returns FedCM CredentialRequestOptions for which navigator.credentials.get()
 // succeeds.
 export function request_options_with_mediation_required(manifest_filename) {

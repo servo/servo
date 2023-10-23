@@ -4,23 +4,25 @@ from configparser import ConfigParser
 import os
 import sys
 from collections import OrderedDict
-from typing import Any, Dict
+from typing import Dict, Mapping, Optional
 
 here = os.path.dirname(__file__)
 
-class ConfigDict(Dict[str, Any]):
-    def __init__(self, base_path, *args, **kwargs):
+
+class ConfigDict(Dict[str, str]):
+    def __init__(self, base_path: str, *args: str, **kwargs: str):
         self.base_path = base_path
         dict.__init__(self, *args, **kwargs)
 
-    def get_path(self, key, default=None):
+    def get_path(self, key: str, default:Optional[str] = None) -> Optional[str]:
         if key not in self:
             return default
         path = self[key]
         os.path.expanduser(path)
         return os.path.abspath(os.path.join(self.base_path, path))
 
-def read(config_path):
+
+def read(config_path: str) -> Mapping[str, ConfigDict]:
     config_path = os.path.abspath(config_path)
     config_root = os.path.dirname(config_path)
     parser = ConfigParser()
@@ -36,6 +38,7 @@ def read(config_path):
             rv[section][key] = parser.get(section, key, raw=False, vars=subns)
 
     return rv
+
 
 def path(argv=None):
     if argv is None:
@@ -58,6 +61,7 @@ def path(argv=None):
             path = os.path.join(here, "..", "wptrunner.default.ini")
 
     return os.path.abspath(path)
+
 
 def load():
     return read(path(sys.argv))

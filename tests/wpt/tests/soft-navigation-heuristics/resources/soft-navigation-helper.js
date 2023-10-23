@@ -21,24 +21,24 @@ const testSoftNavigation =
       const pushUrl = readValue(options.pushUrl, true);
       const eventType = readValue(options.eventType, "click");
       const interactionType = readValue(options.interactionType, 'click');
-      const expectLCP = options.validate != 'no-lcp';
       const eventPrepWork = options.eventPrepWork;
       promise_test(async t => {
         await waitInitialLCP();
         const preClickLcp = await getLcpEntries();
-        setEvent(t, link, pushState, addContent, pushUrl, eventType, eventPrepWork);
+        setEvent(t, link, pushState, addContent, pushUrl, eventType,
+                 eventPrepWork);
+        let first_navigation_id;
         for (let i = 0; i < clicks; ++i) {
           const firstClick = (i === 0);
           let paint_entries_promise =
-              waitOnPaintEntriesPromise(expectLCP && firstClick);
+              waitOnPaintEntriesPromise(firstClick);
           interacted = false;
           interact(link, interactionType);
 
-          await new Promise(resolve => {
-            (new PerformanceObserver(() => resolve())).observe({
-              type: 'soft-navigation'
-            });
-          });
+          const navigation_id = await waitOnSoftNav();
+          if (!first_navigation_id) {
+            first_navigation_id = navigation_id;
+          }
           // Ensure paint timing entries are fired before moving on to the next
           // click.
           await paint_entries_promise;
@@ -49,7 +49,7 @@ const testSoftNavigation =
         await validateSoftNavigationEntry(
             clicks, extraValidations, pushUrl);
 
-        await runEntryValidations(preClickLcp, clicks + 1, expectLCP);
+        await runEntryValidations(preClickLcp, first_navigation_id, clicks + 1, options.validate);
       }, testName);
     };
 
@@ -64,17 +64,13 @@ const testNavigationApi = (testName, navigateEventHandler, link) => {
     const preClickLcp = await getLcpEntries();
     let paint_entries_promise = waitOnPaintEntriesPromise();
     interact(link);
-    await new Promise(resolve => {
-      (new PerformanceObserver(() => resolve())).observe({
-        type: 'soft-navigation'
-      });
-    });
+    const first_navigation_id = await waitOnSoftNav();
     await navigated;
     await paint_entries_promise;
     assert_equals(document.softNavigations, 1, 'Soft Navigation detected');
     await validateSoftNavigationEntry(1, () => {}, 'foobar.html');
 
-    await runEntryValidations(preClickLcp);
+    await runEntryValidations(preClickLcp, first_navigation_id);
   }, testName);
 };
 
@@ -102,37 +98,34 @@ const testSoftNavigationNotDetected = options => {
   };
 
 const runEntryValidations =
-    async (preClickLcp, entries_expected_number = 2, expect_lcp = true) => {
-  await validatePaintEntries('first-contentful-paint', entries_expected_number);
-  await validatePaintEntries('first-paint', entries_expected_number);
+    async (preClickLcp, first_navigation_id, entries_expected_number = 2,
+           validate = null) => {
+  await validatePaintEntries('first-contentful-paint', entries_expected_number,
+                             first_navigation_id);
+  await validatePaintEntries('first-paint', entries_expected_number,
+                             first_navigation_id);
   const postClickLcp = await getLcpEntries();
   const postClickLcpWithoutSoftNavs = await getLcpEntriesWithoutSoftNavs();
-  if (expect_lcp) {
-    assert_greater_than(
-        postClickLcp.length, preClickLcp.length,
-        'Soft navigation should have triggered at least an LCP entry');
-  } else {
-    assert_equals(
-        postClickLcp.length, preClickLcp.length,
-        'Soft navigation should not have triggered an LCP entry');
+  assert_greater_than(
+      postClickLcp.length, preClickLcp.length,
+      'Soft navigation should have triggered at least an LCP entry');
+
+  if (validate) {
+    await validate();
   }
   assert_equals(
       postClickLcpWithoutSoftNavs.length, preClickLcp.length,
       'Soft navigation should not have triggered an LCP entry when the ' +
       'observer did not opt in');
-  if (expect_lcp) {
-    assert_not_equals(
-        postClickLcp[postClickLcp.length - 1].size,
-        preClickLcp[preClickLcp.length - 1].size,
-        'Soft navigation LCP element should not have identical size to the hard ' +
-            'navigation LCP element');
-  } else {
-    assert_equals(
-        postClickLcp[postClickLcp.length - 1].size,
-        preClickLcp[preClickLcp.length - 1].size,
-        'Soft navigation LCP element should have an identical size to the hard ' +
-            'navigation LCP element');
-  }
+  assert_not_equals(
+      postClickLcp[postClickLcp.length - 1].size,
+      preClickLcp[preClickLcp.length - 1].size,
+      'Soft navigation LCP element should not have identical size to the hard ' +
+          'navigation LCP element');
+  assert_equals(
+      postClickLcp[preClickLcp.length].navigationId,
+      first_navigation_id, 'Soft navigation LCP should have the same navigation ' +
+      'ID as the last soft nav entry')
 };
 
 const interact =
@@ -214,7 +207,7 @@ const validateSoftNavigationEntry = async (clicks, extraValidations,
 
 };
 
-const validatePaintEntries = async (type, entries_number) => {
+const validatePaintEntries = async (type, entries_number, first_navigation_id) => {
   if (!performance.softNavPaintMetricsSupported) {
     return;
   }
@@ -242,6 +235,12 @@ const validatePaintEntries = async (type, entries_number) => {
     assert_not_equals(entries[0].startTime, entries[1].startTime,
       "Entries have different timestamps for " + type);
   }
+  if (expected_entries_number > entries_without_softnavs.length) {
+    assert_equals(entries[entries_without_softnavs.length].navigationId,
+      first_navigation_id,
+      "First paint entry should have the same navigation ID as the last soft " +
+      "navigation entry");
+  }
 };
 
 const waitInitialLCP = () => {
@@ -252,6 +251,19 @@ const waitInitialLCP = () => {
       });
   });
 }
+
+const waitOnSoftNav = () => {
+  return new Promise(resolve => {
+    (new PerformanceObserver(list => {
+       const entries = list.getEntries();
+       assert_equals(entries.length, 1,
+                     "Only one soft navigation entry");
+       resolve(entries[0].navigationId);
+    })).observe({
+      type: 'soft-navigation'
+    });
+  });
+};
 
 const getLcpEntries = async () => {
   const entries = await new Promise(resolve => {
@@ -272,30 +284,41 @@ const getLcpEntriesWithoutSoftNavs = async () => {
   return entries;
 };
 
-const addImage = async (element) => {
+const addImage = async (element, url="blue.png") => {
   const img = new Image();
-  img.src = '/images/blue.png' + "?" + Math.random();
+  img.src = '/images/'+ url + "?" + Math.random();
   img.id="imagelcp";
   await img.decode();
   element.appendChild(img);
 };
-const addImageToMain = async () => {
-  await addImage(document.getElementById('main'));
+const addImageToMain = async (url="blue.png") => {
+  await addImage(document.getElementById('main'), url);
 };
 
-const addTextToDivOnMain =
-    () => {
-      const main = document.getElementById("main");
-      const prevDiv = document.getElementsByTagName("div")[0];
-      if (prevDiv) {
-        main.removeChild(prevDiv);
-      }
-      const div = document.createElement("div");
-      const text = document.createTextNode("Lorem Ipsum");
-      div.appendChild(text);
-      div.style = "font-size: 3em";
-      main.appendChild(div);
-    }
+const addTextParagraphToMain = (text, element_timing = "") => {
+  const main = document.getElementById("main");
+  const p = document.createElement("p");
+  const textNode = document.createTextNode(text);
+  p.appendChild(textNode);
+  if (element_timing) {
+    p.setAttribute("elementtiming", element_timing);
+  }
+  p.style = "font-size: 3em";
+  main.appendChild(p);
+  return p;
+};
+const addTextToDivOnMain = () => {
+  const main = document.getElementById("main");
+  const prevDiv = document.getElementsByTagName("div")[0];
+  if (prevDiv) {
+    main.removeChild(prevDiv);
+  }
+  const div = document.createElement("div");
+  const text = document.createTextNode("Lorem Ipsum");
+  div.appendChild(text);
+  div.style = "font-size: 3em";
+  main.appendChild(div);
+}
 
 const waitOnPaintEntriesPromise = (expectLCP = true) => {
   return new Promise((resolve, reject) => {

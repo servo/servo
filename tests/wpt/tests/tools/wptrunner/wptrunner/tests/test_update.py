@@ -8,7 +8,7 @@ from unittest import mock
 
 import pytest
 
-from .. import metadata, manifestupdate, wptmanifest
+from .. import metadata, manifestupdate, wptcommandline, wptmanifest
 from ..update.update import WPTUpdate
 from ..update.base import StepRunner, Step
 from mozlog import structuredlog, handlers, formatters
@@ -1771,13 +1771,14 @@ class UpdateRunner(StepRunner):
 
 def test_update_pickle():
     logger = structuredlog.StructuredLogger("expected_test")
+    wpt_root = os.path.abspath(os.path.join(here,
+                                            os.pardir,
+                                            os.pardir,
+                                            os.pardir,
+                                            os.pardir))
     args = {
         "test_paths": {
-            "/": {"tests_path": os.path.abspath(os.path.join(here,
-                                                             os.pardir,
-                                                             os.pardir,
-                                                             os.pardir,
-                                                             os.pardir))},
+            "/": wptcommandline.TestRoot(wpt_root, wpt_root),
         },
         "abort": False,
         "continue": False,

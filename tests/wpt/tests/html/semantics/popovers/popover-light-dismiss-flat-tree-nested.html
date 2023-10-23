@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Test that popover light dismiss uses the flat tree when nested shadow roots.</title>
+    <link rel="author" title="Luke Warlow" href="mailto:luke@warlow.dev">
+</head>
+<body>
+    <p>Test passes if the inner popover opens after clicking the inner toggle.</p>
+    <button popovertarget="outerPopover" popovertargetaction="toggle" id="outerPopoverToggle">Toggle</button>
+    <div id="outerPopover" popover>
+        <template shadowrootmode="open">
+            Outer
+            <button id="innerPopoverToggle">Toggle</button>
+            <div id="innerContainer">
+               <template shadowrootmode="open">
+                    <div id="innerPopover" popover>
+                        Inner
+                    </div>
+                </template>
+           </div>
+        </template>
+    </div>
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/declarative-shadow-dom-polyfill.js"></script>
+    <script src="resources/popover-utils.js"></script>
+    <script>
+        promise_test(async () => {
+            polyfill_declarative_shadow_dom(outerPopover);
+            const innerPopoverToggle = outerPopover.shadowRoot.querySelector("#innerPopoverToggle");
+            const innerContainer = outerPopover.shadowRoot.querySelector('#innerContainer');
+            const innerPopover = innerContainer.shadowRoot.querySelector("#innerPopover");
+            innerPopoverToggle.onclick = () => {
+                innerPopover.togglePopover();
+            }
+
+            assert_false(outerPopover.matches(":popover-open"), "outer popover is initially hidden");
+            assert_false(innerPopover.matches(":popover-open"), "inner popover is initially hidden");
+
+            await clickOn(outerPopoverToggle);
+
+            assert_true(outerPopover.matches(":popover-open"), "outer popover is open after clicking the toggle");
+            assert_false(innerPopover.matches(":popover-open"), "inner popover is initially hidden");
+
+            await clickOn(innerPopoverToggle);
+
+            assert_true(outerPopover.matches(":popover-open"), "outer popover is not dismissed after clicking the second toggle");
+            assert_true(innerPopover.matches(":popover-open"), "inner popover is open after clicking the second toggle");
+        }, "Popover light dismiss uses the flat tree when nested shadow root");
+    </script>
+</body>
+</html>

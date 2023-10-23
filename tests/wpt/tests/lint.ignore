@@ -157,6 +157,7 @@ SET TIMEOUT: css/selectors/invalidation/dir-pseudo-class-in-has.html
 SET TIMEOUT: css/selectors/invalidation/lang-pseudo-class-in-has-document-element.html
 SET TIMEOUT: css/selectors/invalidation/lang-pseudo-class-in-has-xhtml.xhtml
 SET TIMEOUT: css/selectors/invalidation/lang-pseudo-class-in-has.html
+SET TIMEOUT: custom-elements/scoped-registry/scoped-registry-define-upgrade-criteria.tentative.html
 SET TIMEOUT: encrypted-media/polyfill/chrome-polyfill.js
 SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
@@ -329,6 +330,7 @@ GENERATE_TESTS: mediacapture-fromelement/creation.html
 GENERATE_TESTS: mediacapture-fromelement/ended.html
 GENERATE_TESTS: html/canvas/offscreen/manual/filter/offscreencanvas.filter.html
 GENERATE_TESTS: pointerevents/pointerevent_constructor.html
+GENERATE_TESTS: pointerevents/pointerevent_constructor.https.html
 GENERATE_TESTS: pointerevents/extension/pointerevent_constructor.html
 GENERATE_TESTS: selection/collapse.js
 GENERATE_TESTS: shadow-dom/leaktests/html-collection.html

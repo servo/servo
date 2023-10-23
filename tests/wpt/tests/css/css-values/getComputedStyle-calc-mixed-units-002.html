@@ -65,7 +65,7 @@
 
   var targetElement = document.getElementById("target");
 
-    function verifyComputedStyle(property_name, specified_value, expected_value, description)
+    function verifyComputedStyle(property_name, specified_value, expected_value)
     {
 
     test(function()
@@ -77,10 +77,10 @@
 
       assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
 
-      }, description);
+      }, `testing ${property_name}: ${specified_value}`);
     }
 
-    verifyComputedStyle("width", "calc(10% + 2em)", "84px", "testing width: calc(10% + 2em)");
+    verifyComputedStyle("width", "calc(10% + 2em)", "84px");
 
     /*
 
@@ -97,7 +97,7 @@
     */
 
 
-    verifyComputedStyle("width", "calc(5% + 4rem)", "146px", "testing width: calc(5% + 4rem)");
+    verifyComputedStyle("width", "calc(5% + 4rem)", "146px");
 
     /*
 
@@ -114,7 +114,7 @@
     */
 
 
-    verifyComputedStyle("width", "calc(8lh + 7px)", "167px", "testing width: calc(8lh + 7px)");
+    verifyComputedStyle("width", "calc(8lh + 7px)", "167px");
 
     /*
 
@@ -131,7 +131,7 @@
     */
 
 
-    verifyComputedStyle("height", "calc(10% + 6pt)", "58px", "testing height: calc(10% + 6pt)");
+    verifyComputedStyle("height", "calc(10% + 6pt)", "58px");
 
     /*
 
@@ -148,7 +148,7 @@
     */
 
 
-    verifyComputedStyle("width", "calc(4em + 2.6458333cm)", "164px", "testing width: calc(4em + 2.6458333cm)");
+    verifyComputedStyle("width", "calc(4em + 2.6458333cm)", "164px");
 
     /*
 
@@ -165,7 +165,7 @@
     */
 
 
-    verifyComputedStyle("height", "calc(5em + 26.458333mm)", "180px", "testing height: calc(5em + 26.458333mm)");
+    verifyComputedStyle("height", "calc(5em + 26.458333mm)", "180px");
 
     /*
 
@@ -182,7 +182,7 @@
     */
 
 
-    verifyComputedStyle("width", "calc(2in + 101.6Q)", "288px", "testing width: calc(2in + 101.6Q)");
+    verifyComputedStyle("width", "calc(2in + 101.6Q)", "288px");
 
     /*
 
@@ -199,7 +199,7 @@
     */
 
 
-    verifyComputedStyle("height", "calc(1pc + 3pt)", "20px", "testing height: calc(1pc + 3pt)");
+    verifyComputedStyle("height", "calc(1pc + 3pt)", "20px");
 
     /*
 

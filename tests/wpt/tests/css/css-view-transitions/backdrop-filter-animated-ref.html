@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>View transitions: capture with backdrop filter on the element (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+.box {
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+#target {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  backdrop-filter: grayscale(0.5);
+}
+</style>
+
+<div class=box></div>
+<div id=target></div>

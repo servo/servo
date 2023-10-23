@@ -12,21 +12,20 @@
 <body>
   <main id=main>
   <a id=link>Click me!</a>
-  <a id=visited>link</a>
+  <a id=visited>link that is really long so it is the LCP</a>
   </main>
   <script>
     const visited = document.getElementById("visited");
     const fake_url = "./fake_" + Math.random();
     visited.href = fake_url;
     const visitFakeURLAndAddInvisibleText = () => {
-      step_timeout(() => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
         history.replaceState({}, "", fake_url);
-      }, 10);
+      }));
       const main = document.getElementById("main");
       const div = document.createElement("div");
       const text = document.createTextNode("Lorem Ipsum");
       div.appendChild(text);
-      div.style="visibility: hidden";
       main.appendChild(div);
     }
     const link = document.getElementById("link");
@@ -35,7 +34,13 @@
         await visitFakeURLAndAddInvisibleText();
       },
       link: link,
-      validate: "no-lcp",
+      validate: async () => {
+        await new Promise(r => step_timeout(r, 100));
+        const postVisitedLcp = await getLcpEntries();
+        assert_not_equals(postVisitedLcp[postVisitedLcp.length - 1].id,
+                          "visited",
+                          "Soft Nav LCP ID should not be visited");
+      },
       test: "Test that a visited link doesn't trigger LCP after a soft " +
             "navigation is detected"});
   </script>

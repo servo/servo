@@ -6,6 +6,14 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
+<script>
+function testNullable(element, jsAttr, contentAttr) {
+    element[jsAttr] = null;
+    assert_equals(element[jsAttr], null);
+    assert_false(element.hasAttribute(contentAttr));
+}
+</script>
+
 <div id="role" role="button"></div>
 <script>
 test(function(t) {
@@ -13,6 +21,7 @@ test(function(t) {
     assert_equals(element.role, "button");
     element.role = "checkbox";
     assert_equals(element.getAttribute("role"), "checkbox");
+    testNullable(element, "role", "role");
 }, "role attribute reflects.");
 </script>
 
@@ -23,6 +32,7 @@ test(function(t) {
     assert_equals(element.ariaAtomic, "true");
     element.ariaAtomic = "false";
     assert_equals(element.getAttribute("aria-atomic"), "false");
+    testNullable(element, "ariaAtomic", "aria-atomic");
 }, "aria-atomic attribute reflects.");
 </script>
 
@@ -33,6 +43,7 @@ test(function(t) {
     assert_equals(element.ariaAutoComplete, "list");
     element.ariaAutoComplete = "inline";
     assert_equals(element.getAttribute("aria-autocomplete"), "inline");
+    testNullable(element, "ariaAutoComplete", "aria-autocomplete");
 }, "aria-autocomplete attribute reflects.");
 </script>
 
@@ -43,6 +54,7 @@ test(function(t) {
     assert_equals(element.ariaBusy, "true");
     element.ariaBusy = "false";
     assert_equals(element.getAttribute("aria-busy"), "false");
+    testNullable(element, "ariaBusy", "aria-busy");
 }, "aria-busy attribute reflects.");
 </script>
 
@@ -53,6 +65,7 @@ test(function(t) {
     assert_equals(element.ariaChecked, "mixed");
     element.ariaChecked = "true";
     assert_equals(element.getAttribute("aria-checked"), "true");
+    testNullable(element, "ariaChecked", "aria-checked");
 }, "aria-checked attribute reflects.");
 </script>
 
@@ -63,6 +76,7 @@ test(function(t) {
     assert_equals(element.ariaColCount, "5");
     element.ariaColCount = "6";
     assert_equals(element.getAttribute("aria-colcount"), "6");
+    testNullable(element, "ariaColCount", "aria-colcount");
 }, "aria-colcount attribute reflects.");
 </script>
 
@@ -73,6 +87,7 @@ test(function(t) {
     assert_equals(element.ariaColIndex, "1");
     element.ariaColIndex = "2";
     assert_equals(element.getAttribute("aria-colindex"), "2");
+    testNullable(element, "ariaColIndex", "aria-colindex");
 }, "aria-colindex attribute reflects.");
 </script>
 
@@ -83,6 +98,7 @@ test(function(t) {
     assert_equals(element.ariaColSpan, "2");
     element.ariaColSpan = "3";
     assert_equals(element.getAttribute("aria-colspan"), "3");
+    testNullable(element, "ariaColSpan", "aria-colspan");
 }, "aria-colspan attribute reflects.");
 </script>
 
@@ -93,6 +109,7 @@ test(function(t) {
     assert_equals(element.ariaCurrent, "page");
     element.ariaCurrent = "step";
     assert_equals(element.getAttribute("aria-current"), "step");
+    testNullable(element, "ariaCurrent", "aria-current");
 }, "aria-current attribute reflects.");
 </script>
 
@@ -105,6 +122,7 @@ test(function(t) {
     assert_equals(element.ariaDescription, "cold as ice");
     element.ariaDescription = "hot as fire";
     assert_equals(element.getAttribute("aria-description"), "hot as fire");
+    testNullable(element, "ariaDescription", "aria-description");
 }, "aria-description attribute reflects.");
 </script>
 
@@ -114,6 +132,7 @@ test(function(t) {
     assert_equals(element.ariaDisabled, "true");
     element.ariaDisabled = "false";
     assert_equals(element.getAttribute("aria-disabled"), "false");
+    testNullable(element, "ariaDisabled", "aria-disabled");
 }, "aria-disabled attribute reflects.");
 </script>
 
@@ -124,6 +143,7 @@ test(function(t) {
     assert_equals(element.ariaExpanded, "true");
     element.ariaExpanded = "false";
     assert_equals(element.getAttribute("aria-expanded"), "false");
+    testNullable(element, "ariaExpanded", "aria-expanded");
 }, "aria-expanded attribute reflects.");
 </script>
 
@@ -134,6 +154,7 @@ test(function(t) {
     assert_equals(element.ariaHasPopup, "menu");
     element.ariaHasPopup = "listbox";
     assert_equals(element.getAttribute("aria-haspopup"), "listbox");
+    testNullable(element, "ariaHasPopup", "aria-haspopup");
 }, "aria-haspopup attribute reflects.");
 </script>
 
@@ -144,6 +165,7 @@ test(function(t) {
     assert_equals(element.ariaHidden, "true");
     element.ariaHidden = "false";
     assert_equals(element.getAttribute("aria-hidden"), "false");
+    testNullable(element, "ariaHidden", "aria-hidden");
 }, "aria-hidden attribute reflects.");
 </script>
 
@@ -154,6 +176,7 @@ test(function(t) {
     assert_equals(element.ariaInvalid, "true");
     element.ariaInvalid = "grammar";
     assert_equals(element.getAttribute("aria-invalid"), "grammar");
+    testNullable(element, "ariaInvalid", "aria-invalid");
 }, "aria-invalid attribute reflects.");
 </script>
 
@@ -164,6 +187,7 @@ test(function(t) {
     assert_equals(element.ariaKeyShortcuts, "x");
     element.ariaKeyShortcuts = "y";
     assert_equals(element.getAttribute("aria-keyshortcuts"), "y");
+    testNullable(element, "ariaKeyShortcuts", "aria-keyshortcuts");
 }, "aria-keyshortcuts attribute reflects.");
 </script>
 
@@ -174,6 +198,7 @@ test(function(t) {
     assert_equals(element.ariaLabel, "x");
     element.ariaLabel = "y";
     assert_equals(element.getAttribute("aria-label"), "y");
+    testNullable(element, "ariaLabel", "aria-label");
 }, "aria-label attribute reflects.");
 </script>
 
@@ -184,6 +209,7 @@ test(function(t) {
     assert_equals(element.ariaLevel, "1");
     element.ariaLevel = "2";
     assert_equals(element.getAttribute("aria-level"), "2");
+    testNullable(element, "ariaLevel", "aria-level");
 }, "aria-level attribute reflects.");
 </script>
 
@@ -194,6 +220,7 @@ test(function(t) {
     assert_equals(element.ariaLive, "polite");
     element.ariaLive = "assertive";
     assert_equals(element.getAttribute("aria-live"), "assertive");
+    testNullable(element, "ariaLive", "aria-live");
 }, "aria-live attribute reflects.");
 </script>
 
@@ -204,6 +231,7 @@ test(function(t) {
     assert_equals(element.ariaModal, "true");
     element.ariaModal = "false";
     assert_equals(element.getAttribute("aria-modal"), "false");
+    testNullable(element, "ariaModal", "aria-modal");
 }, "aria-modal attribute reflects.");
 </script>
 
@@ -214,6 +242,7 @@ test(function(t) {
     assert_equals(element.ariaMultiLine, "true");
     element.ariaMultiLine = "false";
     assert_equals(element.getAttribute("aria-multiline"), "false");
+    testNullable(element, "ariaMultiLine", "aria-multiline");
 }, "aria-multiline attribute reflects.");
 </script>
 
@@ -224,6 +253,7 @@ test(function(t) {
     assert_equals(element.ariaMultiSelectable, "true");
     element.ariaMultiSelectable = "false";
     assert_equals(element.getAttribute("aria-multiselectable"), "false");
+    testNullable(element, "ariaMultiSelectable", "aria-multiselectable");
 }, "aria-multiselectable attribute reflects.");
 </script>
 
@@ -234,6 +264,7 @@ test(function(t) {
     assert_equals(element.ariaOrientation, "vertical");
     element.ariaOrientation = "horizontal";
     assert_equals(element.getAttribute("aria-orientation"), "horizontal");
+    testNullable(element, "ariaOrientation", "aria-orientation");
 }, "aria-orientation attribute reflects.");
 </script>
 
@@ -244,6 +275,7 @@ test(function(t) {
     assert_equals(element.ariaPlaceholder, "x");
     element.ariaPlaceholder = "y";
     assert_equals(element.getAttribute("aria-placeholder"), "y");
+    testNullable(element, "ariaPlaceholder", "aria-placeholder");
 }, "aria-placeholder attribute reflects.");
 </script>
 
@@ -254,6 +286,7 @@ test(function(t) {
     assert_equals(element.ariaPosInSet, "10");
     element.ariaPosInSet = "11";
     assert_equals(element.getAttribute("aria-posinset"), "11");
+    testNullable(element, "ariaPosInSet", "aria-posinset");
 }, "aria-posinset attribute reflects.");
 </script>
 
@@ -265,6 +298,7 @@ test(function(t) {
     assert_equals(element.ariaPressed, "true");
     element.ariaPressed = "false";
     assert_equals(element.getAttribute("aria-pressed"), "false");
+    testNullable(element, "ariaPressed", "aria-pressed");
 }, "aria-pressed attribute reflects.");
 </script>
 
@@ -275,6 +309,7 @@ test(function(t) {
     assert_equals(element.ariaReadOnly, "true");
     element.ariaReadOnly = "false";
     assert_equals(element.getAttribute("aria-readonly"), "false");
+    testNullable(element, "ariaReadOnly", "aria-readonly");
 }, "aria-readonly attribute reflects.");
 </script>
 
@@ -285,6 +320,7 @@ test(function(t) {
     assert_equals(element.ariaRelevant, "text");
     element.ariaRelevant = "removals";
     assert_equals(element.getAttribute("aria-relevant"), "removals");
+    testNullable(element, "ariaRelevant", "aria-relevant");
 }, "aria-relevant attribute reflects.");
 </script>
 
@@ -295,6 +331,7 @@ test(function(t) {
     assert_equals(element.ariaRequired, "true");
     element.ariaRequired = "false";
     assert_equals(element.getAttribute("aria-required"), "false");
+    testNullable(element, "ariaRequired", "aria-required");
 }, "aria-required attribute reflects.");
 </script>
 
@@ -305,6 +342,7 @@ test(function(t) {
     assert_equals(element.ariaRoleDescription, "x");
     element.ariaRoleDescription = "y";
     assert_equals(element.getAttribute("aria-roledescription"), "y");
+    testNullable(element, "ariaRoleDescription", "aria-roledescription");
 }, "aria-roledescription attribute reflects.");
 </script>
 
@@ -315,6 +353,7 @@ test(function(t) {
     assert_equals(element.ariaRowCount, "10");
     element.ariaRowCount = "11";
     assert_equals(element.getAttribute("aria-rowcount"), "11");
+    testNullable(element, "ariaRowCount", "aria-rowcount");
 }, "aria-rowcount attribute reflects.");
 </script>
 
@@ -325,6 +364,7 @@ test(function(t) {
     assert_equals(element.ariaRowIndex, "1");
     element.ariaRowIndex = "2";
     assert_equals(element.getAttribute("aria-rowindex"), "2");
+    testNullable(element, "ariaRowIndex", "aria-rowindex");
 }, "aria-rowindex attribute reflects.");
 </script>
 
@@ -335,6 +375,7 @@ test(function(t) {
     assert_equals(element.ariaRowSpan, "2");
     element.ariaRowSpan = "3";
     assert_equals(element.getAttribute("aria-rowspan"), "3");
+    testNullable(element, "ariaRowSpan", "aria-rowspan");
 }, "aria-rowspan attribute reflects.");
 </script>
 
@@ -345,6 +386,7 @@ test(function(t) {
     assert_equals(element.ariaSelected, "true");
     element.ariaSelected = "false";
     assert_equals(element.getAttribute("aria-selected"), "false");
+    testNullable(element, "ariaSelected", "aria-selected");
 }, "aria-selected attribute reflects.");
 </script>
 
@@ -355,6 +397,7 @@ test(function(t) {
     assert_equals(element.ariaSetSize, "10");
     element.ariaSetSize = "11";
     assert_equals(element.getAttribute("aria-setsize"), "11");
+    testNullable(element, "ariaSetSize", "aria-setsize");
 }, "aria-setsize attribute reflects.");
 </script>
 
@@ -365,6 +408,7 @@ test(function(t) {
     assert_equals(element.ariaSort, "descending");
     element.ariaSort = "ascending";
     assert_equals(element.getAttribute("aria-sort"), "ascending");
+    testNullable(element, "ariaSort", "aria-sort");
 }, "aria-sort attribute reflects.");
 </script>
 
@@ -375,6 +419,7 @@ test(function(t) {
     assert_equals(element.ariaValueMax, "99");
     element.ariaValueMax = "100";
     assert_equals(element.getAttribute("aria-valuemax"), "100");
+    testNullable(element, "ariaValueMax", "aria-valuemax");
 }, "aria-valuemax attribute reflects.");
 </script>
 
@@ -385,6 +430,7 @@ test(function(t) {
     assert_equals(element.ariaValueMin, "3");
     element.ariaValueMin = "2";
     assert_equals(element.getAttribute("aria-valuemin"), "2");
+    testNullable(element, "ariaValueMin", "aria-valuemin");
 }, "aria-valuemin attribute reflects.");
 </script>
 
@@ -395,6 +441,7 @@ test(function(t) {
     assert_equals(element.ariaValueNow, "50");
     element.ariaValueNow = "51";
     assert_equals(element.getAttribute("aria-valuenow"), "51");
+    testNullable(element, "ariaValueNow", "aria-valuenow");
 }, "aria-valuenow attribute reflects.");
 </script>
 
@@ -405,6 +452,7 @@ test(function(t) {
     assert_equals(element.ariaValueText, "50%");
     element.ariaValueText = "51%";
     assert_equals(element.getAttribute("aria-valuetext"), "51%");
+    testNullable(element, "ariaValueText", "aria-valuetext");
 }, "aria-valuetext attribute reflects.");
 </script>
 </html>

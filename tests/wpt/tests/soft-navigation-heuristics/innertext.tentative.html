@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+  <a id=link>Click me!</a>
+  <!-- This test fails if the paragraph below already has content. The reason
+       is that secondary paints are not being properly recorded, and hence don't
+       count for soft navigation heuristics. -->
+  <p id="softnav-content"></p>
+  </main>
+  <script>
+    const link = document.getElementById("link");
+    testSoftNavigation({
+      addContent: async () => {
+        document.getElementById("softnav-content").innerText =
+          "Lorem Ipsum dolor sit amet";
+      },
+      link: link,
+      test: "Soft navigation when only innerText was modified"});
+  </script>
+</body>
+</html>
+
+

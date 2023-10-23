@@ -29,6 +29,17 @@ test_computed_value("background-blend-mode", "saturation");
 test_computed_value("background-blend-mode", "color");
 test_computed_value("background-blend-mode", "luminosity");
 
+// Per spec, excess values should not be used,
+// BUT the computed style should be similar to the specified values.
+// see https://drafts.fxtf.org/compositing-1/#background-blend-mode
+// and https://drafts.csswg.org/css-backgrounds-3/#layering
+// > The lists are matched up from the first value: excess values at the end are not used.
+// but in https://drafts.csswg.org/css-values-4/#linked-properties
+// it was decided that
+// > The computed values of the coordinating list properties are not affected by such truncation or repetition.
+//
+// There is a distinction between specified values, used values, and computed values.
+
 test_computed_value("background-blend-mode", "normal, luminosity");
 test_computed_value("background-blend-mode", "screen, overlay");
 test_computed_value("background-blend-mode", "color, saturation");
