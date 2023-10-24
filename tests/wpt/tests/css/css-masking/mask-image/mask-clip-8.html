@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-clip: clip mask image</title>
+    <link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-mask-clip">
+    <link rel="match" href="mask-clip-8-ref.html">
+    <meta name="assert" content="Check fall back values for fill-box (:content-box), stroke-box and view-box (:border-box).">
+    <style type="text/css">
+      div.outer {
+        /*
+         * content box: 40 x 20
+         * padding box: 52 x 38
+         * border  box: 60 x 50
+         * margin  box: 66 x 54
+         */
+        background-color: purple;
+        position: absolute;
+        top: 10px;
+        margin: 1px 2px 3px 4px;
+        border: solid transparent;
+        border-width: 8px 2px 4px 6px;
+        padding: 6px 9px 12px 3px;
+        width: 40px;
+        height: 20px;
+        mask-size: 100% 100%;
+        mask-image: url(support/transparent-100x50-blue-100x50.svg);
+      }
+
+      div.first {
+        left: 10px;
+        mask-origin: stroke-box;
+      }
+
+      div.second {
+        left: 110px;
+        mask-origin: view-box;
+      }
+
+      div.third {
+        left: 210px;
+        mask-origin: fill-box;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div class="outer mask first"></div>
+    <div class="outer mask second"></div>
+    <div class="outer mask third"></div>
+  </body>
+</html>

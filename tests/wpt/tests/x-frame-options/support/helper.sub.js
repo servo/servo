@@ -89,7 +89,6 @@ function xfo_test({ url, check, message }) {
     }
 
     document.body.append(i);
-    t.add_cleanup(() => i.remove());
   }, message);
 }
 

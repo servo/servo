@@ -3,16 +3,20 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 
+<iframe src='about:blank'></iframe>
+
 <script>
 // If document.open's behavior is modified to remove the url-rewriting behavior,
 // then this test can be deleted (https://github.com/whatwg/html/issues/3989).
 setup({ explicit_done: true });
 
+// This function is called by directly by the child iframe (above), with the
+// child iframe's document. The child iframe's document contains an about:srcdoc iframe.
 window.start = childDocument => {
   const grandchildDocument =
     childDocument.getElementById('foo').contentDocument;
 
-  test(t => {
+  test(() => {
     assert_equals(childDocument.URL, 'about:blank',
       'Child document starting URL');
     assert_equals(grandchildDocument.URL, 'about:srcdoc',
@@ -45,27 +49,19 @@ window.start = childDocument => {
 
   done();
 };
-</script>
 
-<iframe src='about:blank'></iframe>
+let subframe_doc = document.querySelector('iframe').contentDocument;
+subframe_doc.body.innerHTML = '<iframe srcdoc="foo" id="foo"></iframe>';
+promise_test(async t => {
+  const grandchildIframe = subframe_doc.querySelector('iframe');
+  await new Promise(resolve => {
+    grandchildIframe.onload = resolve;
+  });
 
-<script>
-  window.onload = () => {
-    let subframe_doc = document.querySelector('iframe').contentDocument;
-    subframe_doc.body.innerHTML = '<iframe srcdoc="foo" id="foo"></iframe>';
-    promise_test((test) => {
-      return new Promise(async resolve => {
-      // We need a timeout since the srcdoc frame takes time to setup and
-      // doesn't fire a loadstop.
-      test.step_timeout(resolve, 100);
-      }).then(() => {
-        assert_equals(
-            subframe_doc.getElementById('foo').contentDocument.URL,
-            'about:srcdoc');
-        let script = subframe_doc.createElement('script');
-        script.innerHTML = 'parent.start(document);';
-        subframe_doc.body.appendChild(script);
-      });
-    }, "wrapper promise test for timeout.");
-  };
+  assert_equals(grandchildIframe.contentDocument.URL, 'about:srcdoc');
+
+  let script = subframe_doc.createElement('script');
+  script.innerHTML = 'parent.start(document);';
+  subframe_doc.body.appendChild(script);
+}, "wrapper promise test for timeout.");
 </script>

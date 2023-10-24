@@ -22,9 +22,13 @@ runPropertyTests('white-space-collapse', [
   { syntax: 'break-spaces' },
 ]);
 
-runPropertyTests('text-wrap', [
+runPropertyTests('text-wrap-mode', [
   { syntax: 'wrap'},
   { syntax: 'nowrap' },
+]);
+
+runPropertyTests('text-wrap-style', [
+  { syntax: 'auto' },
   { syntax: 'balance' },
   { syntax: 'stable' },
   { syntax: 'pretty' },
@@ -42,6 +46,6 @@ runUnsupportedPropertyTests('white-space-trim', [
   'discard-before discard-inner',
   'discard-after discard-inner',
   'discard-before discard-after discard-inner'
-])
+]);
 
 </script>

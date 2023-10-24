@@ -18,42 +18,22 @@
             // set values for non-default constructor
             on_event(target0, "pointermove", this.step_func(function(event) {
                 generate_tests(assert_equals, [
-                    ["getCoalescedEvents().length", event.getCoalescedEvents().length, 2],
+                    ["getCoalescedEvents in event", "getCoalescedEvents" in event, false],
                     ["getPredictedEvents().length", event.getPredictedEvents().length, 2],
                     ["event.target", event.target, target0],
                     ["event.currentTarget", event.currentTarget, target0],
                     ["event.eventPhase", event.eventPhase, Event.AT_TARGET],
                     ["event.clientX", event.clientX, 310],
                     ["event.pointerType", event.pointerType, "pen"],
-                    ["getCoalescedEvents()[0].clientX", event.getCoalescedEvents()[0].clientX, 300],
-                    ["getCoalescedEvents()[1].clientX", event.getCoalescedEvents()[1].clientX, 310],
                     ["getPredictedEvents()[0].clientX", event.getPredictedEvents()[0].clientX, 320],
                     ["getPredictedEvents()[1].clientX", event.getPredictedEvents()[1].clientX, 330],
                 ]);
-                for (var i=0; i<event.getCoalescedEvents().length; i++) {
-                    var coalescedEvent = event.getCoalescedEvents()[i];
-                    generate_tests(assert_equals, [
-                        ["getCoalescedEvents()[" + i + "].pointerId", coalescedEvent.pointerId, event.pointerId],
-                        ["getCoalescedEvents()[" + i + "].pointerType", coalescedEvent.pointerType, event.pointerType],
-                        ["getCoalescedEvents()[" + i + "].isPrimary", coalescedEvent.isPrimary, event.isPrimary],
-                        ["getCoalescedEvents()[" + i + "].getCoalescedEvents().length", coalescedEvent.getCoalescedEvents().length, 0],
-                        ["getCoalescedEvents()[" + i + "].getPredictedEvents().length", coalescedEvent.getPredictedEvents().length, 0],
-                        ["getCoalescedEvents()[" + i + "].target", coalescedEvent.target, null],
-                        ["getCoalescedEvents()[" + i + "].currentTarget", coalescedEvent.currentTarget, null],
-                        ["getCoalescedEvents()[" + i + "].eventPhase", coalescedEvent.eventPhase, Event.NONE],
-                        ["getCoalescedEvents()[" + i + "].cancelable", coalescedEvent.cancelable, false],
-                        ["getCoalescedEvents()[" + i + "].bubbles", coalescedEvent.bubbles, false],
-                        ["getCoalescedEvents()[" + i + "].offsetX", coalescedEvent.offsetX, 310 + (i==0?-10:0)],
-                        ["getCoalescedEvents()[" + i + "].offsetY", coalescedEvent.offsetY, 0],
-                    ]);
-                }
                 for (var i=0; i<event.getPredictedEvents().length; i++) {
                     var predictedEvent = event.getPredictedEvents()[i];
                     generate_tests(assert_equals, [
                         ["getPredictedEvents()[" + i + "].pointerId", predictedEvent.pointerId, event.pointerId],
                         ["getPredictedEvents()[" + i + "].pointerType", predictedEvent.pointerType, event.pointerType],
                         ["getPredictedEvents()[" + i + "].isPrimary", predictedEvent.isPrimary, event.isPrimary],
-                        ["getPredictedEvents()[" + i + "].getCoalescedEvents().length", predictedEvent.getCoalescedEvents().length, 0],
                         ["getPredictedEvents()[" + i + "].getPredictedEvents().length", predictedEvent.getPredictedEvents().length, 0],
                         ["getPredictedEvents()[" + i + "].target", predictedEvent.target, null],
                         ["getPredictedEvents()[" + i + "].currentTarget", predictedEvent.currentTarget, null],
@@ -68,7 +48,6 @@
             on_event(target0, "pointerout", this.step_func(function(event) {
                 generate_tests(assert_equals, [
                     ["default event.pointerType", event.pointerType, ""],
-                    ["default getCoalescedEvents().length", event.getCoalescedEvents().length, 0],
                     ["default getPredictedEvents().length", event.getPredictedEvents().length, 0],
                 ]);
             }));

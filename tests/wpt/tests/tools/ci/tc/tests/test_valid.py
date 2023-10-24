@@ -267,6 +267,22 @@ def test_verify_payload():
       'wpt-webkitgtk_minibrowser-nightly-testharness-14',
       'wpt-webkitgtk_minibrowser-nightly-testharness-15',
       'wpt-webkitgtk_minibrowser-nightly-testharness-16',
+      'wpt-firefox_android-nightly-testharness-1',
+      'wpt-firefox_android-nightly-testharness-2',
+      'wpt-firefox_android-nightly-testharness-3',
+      'wpt-firefox_android-nightly-testharness-4',
+      'wpt-firefox_android-nightly-testharness-5',
+      'wpt-firefox_android-nightly-testharness-6',
+      'wpt-firefox_android-nightly-testharness-7',
+      'wpt-firefox_android-nightly-testharness-8',
+      'wpt-firefox_android-nightly-testharness-9',
+      'wpt-firefox_android-nightly-testharness-10',
+      'wpt-firefox_android-nightly-testharness-11',
+      'wpt-firefox_android-nightly-testharness-12',
+      'wpt-firefox_android-nightly-testharness-13',
+      'wpt-firefox_android-nightly-testharness-14',
+      'wpt-firefox_android-nightly-testharness-15',
+      'wpt-firefox_android-nightly-testharness-16',
       'wpt-firefox-stable-reftest-1',
       'wpt-firefox-stable-reftest-2',
       'wpt-firefox-stable-reftest-3',
@@ -287,6 +303,11 @@ def test_verify_payload():
       'wpt-webkitgtk_minibrowser-nightly-reftest-3',
       'wpt-webkitgtk_minibrowser-nightly-reftest-4',
       'wpt-webkitgtk_minibrowser-nightly-reftest-5',
+      'wpt-firefox_android-nightly-reftest-1',
+      'wpt-firefox_android-nightly-reftest-2',
+      'wpt-firefox_android-nightly-reftest-3',
+      'wpt-firefox_android-nightly-reftest-4',
+      'wpt-firefox_android-nightly-reftest-5',
       'wpt-firefox-stable-wdspec-1',
       'wpt-firefox-stable-wdspec-2',
       'wpt-chromium-nightly-wdspec-1',
@@ -295,13 +316,17 @@ def test_verify_payload():
       'wpt-chrome-stable-wdspec-2',
       'wpt-webkitgtk_minibrowser-nightly-wdspec-1',
       'wpt-webkitgtk_minibrowser-nightly-wdspec-2',
+      'wpt-firefox_android-nightly-wdspec-1',
+      'wpt-firefox_android-nightly-wdspec-2',
       'wpt-firefox-stable-crashtest-1',
       'wpt-chromium-nightly-crashtest-1',
       'wpt-chrome-stable-crashtest-1',
       'wpt-webkitgtk_minibrowser-nightly-crashtest-1',
+      'wpt-firefox_android-nightly-crashtest-1',
       'wpt-firefox-stable-print-reftest-1',
       'wpt-chromium-nightly-print-reftest-1',
-      'wpt-chrome-stable-print-reftest-1'])
+      'wpt-chrome-stable-print-reftest-1',
+      'wpt-firefox_android-nightly-print-reftest-1'])
 ])
 def test_schedule_tasks(event_path, is_pr, files_changed, expected):
     with mock.patch("tools.ci.tc.decision.get_fetch_rev", return_value=(None, None, None)):
@@ -310,4 +335,5 @@ def test_schedule_tasks(event_path, is_pr, files_changed, expected):
             with open(data_path(event_path), encoding="utf8") as event_file:
                 event = json.load(event_file)
                 scheduled = decision.decide(event)
+                print(list(scheduled.keys()))
                 assert list(scheduled.keys()) == expected

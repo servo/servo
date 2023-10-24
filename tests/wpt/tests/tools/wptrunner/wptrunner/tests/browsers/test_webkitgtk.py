@@ -7,9 +7,11 @@ import pytest
 
 from wptserve.config import ConfigBuilder
 from ..base import active_products
-from wptrunner import environment, products, testloader
+from wptrunner import environment, products, testloader, wptcommandline
 
-test_paths = {"/": {"tests_path": join(dirname(__file__), "..", "..", "..", "..", "..")}}  # repo root
+wpt_root = join(dirname(__file__), "..", "..", "..", "..")
+
+test_paths = {"/": wptcommandline.TestRoot(wpt_root, wpt_root)}
 environment.do_delayed_imports(None, test_paths)
 
 logger = logging.getLogger()

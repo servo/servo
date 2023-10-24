@@ -21,12 +21,12 @@
 
   .inner {
     background-color: blue;
-    animation: clippath 1000000s cubic-bezier(0, 1, 1, 0) -500000s;
+    animation: clippath 20s steps(2, jump-end) -9.999s;
     height: 100px;
   }
-
 </style>
 <script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
 
 <body>
   <div class="outer">
@@ -35,7 +35,7 @@
   </div>
 
   <script>
-    takeScreenshot();
+    waitForAnimationTime(document.getAnimations()[0], 1).then(takeScreenshot);
   </script>
 </body>
 

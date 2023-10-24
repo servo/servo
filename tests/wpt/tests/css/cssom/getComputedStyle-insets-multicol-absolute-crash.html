@@ -1,0 +1,29 @@
+<!doctype html>
+<title>Chromium bug: getComputedStyle() crashes with inset properties on abspos in multicol</title>
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1473508">
+<style>
+html {
+  column-count:2;
+}
+body {
+  transform: scale(1);
+}
+div#test {
+  column-count:2;
+  position:absolute;
+}
+</style>
+
+<div id="test">
+  <svg xmlns="http://www.w3.org/2000/svg"></svg>
+  <div style="transform: scale(1)">
+    <ruby style="position: absolute">
+      <rt>foo</rt>
+    </ruby>
+  </div>
+</div>
+
+<script>
+getComputedStyle(test).right;
+</script>
+

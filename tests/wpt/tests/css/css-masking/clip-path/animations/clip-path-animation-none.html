@@ -19,7 +19,7 @@
   }
 
   .target {
-    animation: clippath 100000s infinite -50000s;
+    animation: clippath 20s steps(2, jump-end) -9.999s;
     background-color: blue;
     width: 100px;
     height: 100px;
@@ -39,15 +39,14 @@
   }
 </style>
 <script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
 
 <body>
   <div class="target">
     <div class="outofbounds"></div>
   </div>
   <script>
-    document.getAnimations()[0].ready.then(() => {
-      takeScreenshot();
-    });
+    waitForAnimationTime(document.getAnimations()[0], 1).then(takeScreenshot);
   </script>
 </body>
 

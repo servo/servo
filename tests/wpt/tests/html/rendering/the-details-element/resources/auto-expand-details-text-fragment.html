@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script src="/scroll-to-text-fragment/stash.js"></script>
+
+<!-- This test is navigated to with the fragment #:~:text=foo -->
+
+<body>
+  <div style="height: 4000px;">spacer</div>
+  <details>
+    <div>foo</div>
+  </details>
+  <script>
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const results = {};
+        // This should be true. The details element should be opened by
+        // ScrollToTextFragment because it has matching text.
+        results.detailsHasOpenAttribute = document.querySelector('details').hasAttribute('open');
+        // This should be greater than zero. The page should be scrolled down
+        // to the matching target.
+        results.pageYOffsetAfterRaf = window.pageYOffset;
+
+        params = new URLSearchParams(window.location.search);
+        stashResultsThenClose(params.get('key'), results);
+      });
+    });
+  </script>
+</body>

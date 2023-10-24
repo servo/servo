@@ -29,6 +29,6 @@ fedcm_test(async t => {
   // "Jane" is a new user, the second account "John" will be selected.
   cred = await navigator.credentials.get(test_options);
   assert_equals(cred.token, "account_id=john_doe");
-  assert_equals(cred.isAccountAutoSelected, true);
+  assert_equals(cred.isAutoSelected, true);
 }, "Test that the returning account from the two accounts will be auto re-authenticated.");
 </script>

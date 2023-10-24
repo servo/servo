@@ -172,6 +172,49 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
       "style",
       `display:${display};white-space:${whiteSpace}`
     );
+    const divElement = document.createElement("div");
+    divElement.textContent = "efg";
+    try {
+      container.appendChild(divElement);
+      utils.setupEditingHost("{}");
+      await utils.sendEnterKey(modifiers);
+      editingHost.removeAttribute("style");
+      // When the <span> element is followed by a <div>, making empty last
+      // line visible requires an invisible <br> after a line break.
+      if (!isPreformatted) {
+        assert_equals(
+          container.innerHTML,
+          '<span contenteditable=""><br><br></span><div>efg</div>',
+          `A <br> and additional <br> should be inserted when ${t.name}`
+        );
+      } else {
+        assert_in_array(
+          container.innerHTML,
+          [
+            `<span contenteditable="">\n\n</span><div>efg</div>`,
+            `<span contenteditable="">\n<br></span><div>efg</div>`,
+          ],
+          `A linefeed and additional line break should be inserted when ${t.name}`
+        );
+      }
+    } finally {
+      divElement.remove();
+    }
+  }, `${
+    testingInsertParagraph ? "insertParagraph" : "insertLineBreak"
+  } in <span contenteditable style="display:${
+    display
+  };white-space:${
+    whiteSpace
+  }">{}</span> followed by a <div> (defaultParagraphSeparator=${
+    defaultParagraphSeparator
+  })`);
+
+  promise_test(async t => {
+    editingHost.setAttribute(
+      "style",
+      `display:${display};white-space:${whiteSpace}`
+    );
     const text = document.createTextNode("abc");
     try {
       container.appendChild(text);
@@ -366,6 +409,49 @@ for (const defaultParagraphSeparator of ["div", "p"]) {
   };white-space:${
     whiteSpace
   }">abcd[]</span> followed by a <br> element (defaultParagraphSeparator=${
+    defaultParagraphSeparator
+  })`);
+
+  promise_test(async t => {
+    editingHost.setAttribute(
+      "style",
+      `display:${display};white-space:${whiteSpace}`
+    );
+    const divElement = document.createElement("div");
+    divElement.textContent = "efg";
+    try {
+      container.appendChild(divElement);
+      utils.setupEditingHost("abcd[]");
+      await utils.sendEnterKey(modifiers);
+      editingHost.removeAttribute("style");
+      // When the <span> element is followed by a <div>, making empty last
+      // line visible requires an invisible <br> after a line break.
+      if (!isPreformatted) {
+        assert_equals(
+          container.innerHTML,
+          '<span contenteditable="">abcd<br><br></span><div>efg</div>',
+          `A <br> and additional <br> should be inserted when ${t.name}`
+        );
+      } else {
+        assert_in_array(
+          container.innerHTML,
+          [
+            `<span contenteditable="">abcd\n<br></span><div>efg</div>`,
+            `<span contenteditable="">abcd\n\n</span><div>efg</div>`,
+          ],
+          `A linefeed and additional line break should be inserted when ${t.name}`
+        );
+      }
+    } finally {
+      divElement.remove();
+    }
+  }, `${
+    testingInsertParagraph ? "insertParagraph" : "insertLineBreak"
+  } in <span contenteditable style="display:${
+    display
+  };white-space:${
+    whiteSpace
+  }">abcd[]</span> followed by a <div> element (defaultParagraphSeparator=${
     defaultParagraphSeparator
   })`);
 

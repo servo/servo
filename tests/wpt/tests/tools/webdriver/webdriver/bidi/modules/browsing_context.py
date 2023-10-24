@@ -15,16 +15,16 @@ class ElementOptions(Dict[str, Any]):
             self["scrollIntoView"] = scroll_into_view
 
 
-class ViewportOptions(Dict[str, Any]):
+class BoxOptions(Dict[str, Any]):
     def __init__(self, x: float, y: float, width: float, height: float):
-        self["type"] = "viewport"
+        self["type"] = "box"
         self["x"] = x
         self["y"] = y
         self["width"] = width
         self["height"] = height
 
 
-ClipOptions = Union[ElementOptions, ViewportOptions]
+ClipOptions = Union[ElementOptions, BoxOptions]
 
 
 class BrowsingContext(BidiModule):

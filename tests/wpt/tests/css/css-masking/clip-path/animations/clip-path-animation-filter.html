@@ -9,14 +9,7 @@
   height: 100px;
   background-color: green;
   filter: blur(5px);
-  /* Use a long animation that start at 50% progress where the slope of the
-     selected timing function is zero. By setting up the animation in this way,
-     we accommodate lengthy delays in running the test without a potential drift
-     in the animated property value. This is important for avoiding flakes,
-     especially on debug builds. The screenshots are taken as soon as the
-     animation is ready, thus the long animation duration has no bearing on
-     the actual duration of the test. */
-  animation: clippath 1000000s cubic-bezier(0,1,1,0) -500000s;
+  animation: clippath 20s steps(2, jump-end) -9.999s;
 }
 @keyframes clippath {
   0%   { clip-path: circle(50% at 50% 50%); }
@@ -24,13 +17,12 @@
 }
 </style>
 <script src="/common/reftest-wait.js"></script>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
 <body>
 <div class="container"></div>
 
 <script>
-document.getAnimations()[0].ready.then(() => {
-  takeScreenshot();
-});
+ waitForAnimationTime(document.getAnimations()[0], 1).then(takeScreenshot);
 </script>
 </body>
 </html>

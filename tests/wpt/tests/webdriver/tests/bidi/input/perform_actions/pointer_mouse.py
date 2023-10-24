@@ -150,7 +150,6 @@ async def test_middle_click(bidi_session, top_context, load_static_test_page):
         actions=actions, context=top_context["context"]
     )
 
-
     events = await get_events(bidi_session, top_context["context"])
     assert len(events) == 3
 

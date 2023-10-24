@@ -1,21 +1,27 @@
 <!DOCTYPE HTML>
 <meta charset=utf-8>
-<title>Long Animation Frame Timing: basic</title>
+<title>Long Animation Frame Timing: script blocks</title>
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/utils.js"></script>
 <script src="resources/utils.js"></script>
-
+<script src="resources/busy.js?from-parser"></script>
 <body>
 <h1>Long Animation Frame: script blocks</h1>
 <div id="log"></div>
 <script>
-test_self_script_block(t => {
-    const script = document.createElement("script");
-    script.innerHTML = `(${busy_wait.toString()})()`;
-    document.body.appendChild(script);
-}, location.href, "classic-script");
+promise_test(async t => {
+  await new Promise(resolve => {
+    new PerformanceObserver((list, observer) => {
+      if (list.getEntries().find(loaf => loaf.scripts.some(script =>
+        script.name === new URL("resources/busy.js?from-parser", location.href).href))) {
+        observer.disconnect();
+        resolve();
+      }
+    }).observe({type: "long-animation-frame", buffered: true});
+  })
+}, "Parser-inserted classic script should generate a long script");
 
 test_self_script_block(t => {
     const script = document.createElement("script");
@@ -44,7 +50,7 @@ test_self_script_block(t => {
     script.type = "module";
     script.innerHTML = `import("./resources/busy.js?import=${uid}");`;
     document.body.appendChild(script);
-}, new URL("resources/busy.js?import", location.href).href, "execute-script");
+}, new URL("resources/busy.js?import", location.href).href, "module-script");
 
 const busy_wait_str = `  (function() {
     const deadline = performance.now() + 365;
@@ -67,7 +73,5 @@ test_self_script_block(t => {
     script.src = blob_url;
     document.body.appendChild(script);
 }, blob_url, "classic-script");
-
-
 </script>
 </body>

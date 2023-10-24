@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: Vertical Writing Mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
+<link rel="match" href="custom-highlight-painting-vertical-writing-mode-001-ref.html">
+<link rel="stylesheet" href="../../css-pseudo/support/highlights.css">
+<meta name="assert" value="::highlight overlay is painted correctly when the highlighted text is in a vertical writing mode">
+<style>
+  :root {
+      writing-mode: vertical-rl;
+  }
+  ::highlight(example-highlight) {
+    background-color: yellow;
+    color: blue;
+  }
+</style>
+<body>
+<div class="highlight_reftest"><span>One </span><span>two </span><span>three…</span></div>
+<script>
+  let r = new Range();
+  r.setStart(document.querySelector("div"), 0);
+  r.setEnd(document.querySelector("div"), 2);
+
+  CSS.highlights.set("example-highlight", new Highlight(r));
+</script>

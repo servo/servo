@@ -1,0 +1,93 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<div id="invokee"></div>
+<button id="invokerbutton" invoketarget="invokee"></button>
+
+<script>
+  promise_test(async function (t) {
+    let event = null;
+    invokee.addEventListener("invoke", (e) => (event = e), { once: true });
+    await clickOn(invokerbutton);
+    assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
+    assert_equals(event.type, "invoke", "type");
+    assert_equals(event.bubbles, false, "bubbles");
+    assert_equals(event.composed, false, "composed");
+    assert_equals(event.isTrusted, true, "isTrusted");
+    assert_equals(event.action, "auto", "action");
+    assert_equals(event.target, invokee, "target");
+    assert_equals(event.invoker, invokerbutton, "invoker");
+  }, "event dispatches on click");
+
+  promise_test(async function (t) {
+    let event = null;
+    invokee.addEventListener("invoke", (e) => (event = e), { once: true });
+    invokerbutton.invokeAction = "fooBar";
+    await clickOn(invokerbutton);
+    assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
+    assert_equals(event.type, "invoke", "type");
+    assert_equals(event.bubbles, false, "bubbles");
+    assert_equals(event.composed, false, "composed");
+    assert_equals(event.isTrusted, true, "isTrusted");
+    assert_equals(event.action, "fooBar", "action");
+    assert_equals(event.target, invokee, "target");
+    assert_equals(event.invoker, invokerbutton, "invoker");
+  }, "event action is set to invokeAction");
+
+  promise_test(async function (t) {
+    let event = null;
+    invokee.addEventListener("invoke", (e) => (event = e), { once: true });
+    invokerbutton.setAttribute("invokeaction", "BaRbAz");
+    await clickOn(invokerbutton);
+    assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
+    assert_equals(event.type, "invoke", "type");
+    assert_equals(event.bubbles, false, "bubbles");
+    assert_equals(event.composed, false, "composed");
+    assert_equals(event.isTrusted, true, "isTrusted");
+    assert_equals(event.action, "BaRbAz", "action");
+    assert_equals(event.target, invokee, "target");
+    assert_equals(event.invoker, invokerbutton, "invoker");
+  }, "event action is set to invokeaction attribute");
+
+  promise_test(async function (t) {
+    let called = false;
+    invokerbutton.addEventListener(
+      "click",
+      (event) => {
+        event.preventDefault();
+      },
+      { once: true },
+    );
+    invokee.addEventListener(
+      "invoke",
+      (event) => {
+        called = true;
+      },
+      { once: true },
+    );
+    await clickOn(invokerbutton);
+    assert_false(called, "event was not called");
+  }, "event does not dispatch if click:preventDefault is called");
+
+  promise_test(async function (t) {
+    let called = false;
+    invokee.addEventListener(
+      "invoke",
+      (event) => {
+        called = true;
+      },
+      { once: true },
+    );
+    invokerbutton.setAttribute("disabled", "");
+    await clickOn(invokerbutton);
+    assert_false(called, "event was not called");
+  }, "event does not dispatch if invoker is disabled");
+</script>

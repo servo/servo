@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Selector Invalidation: :has() besides a pseudoelement</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+.anchor:has(.foo)::before {
+  content: "";
+  display: block;
+  width: 100px;
+  height: 100px;
+  background: green;
+  position: absolute;
+}
+</style>
+<script>
+function go() {
+  dut.classList.add("foo");
+  document.documentElement.classList.remove("reftest-wait");
+}
+</script>
+<body onload="go()">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="anchor">
+<div id="dut"></div>
+<div style="width: 100px; height: 100px; background: red;"></div>
+</div>
+</body>
+</html>

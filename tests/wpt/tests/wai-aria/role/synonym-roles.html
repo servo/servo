@@ -15,8 +15,8 @@
 
 <!-- spec resolution https://github.com/w3c/core-aam/issues/166 -->
 
-<div role="none" id="none" data-expectedrole="none" data-testname="none role == computedrole none" class="ex">x</div><!-- preferred -->
-<div role="presentation" id="presentation" data-expectedrole="none" data-testname="synonym presentation role == computedrole none" class="ex">x</div><!-- synonym -->
+<div role="none" id="none" data-testname="none role == computedrole none" class="ex-generic">x</div><!-- preferred -->
+<div role="presentation" id="presentation" data-testname="synonym presentation role == computedrole none" class="ex-generic">x</div><!-- synonym -->
 
 <div role="image" id="image" data-expectedrole="image" data-testname="image role == computedrole image" class="ex">x</div><!-- preferred -->
 <div role="img" id="img" data-expectedrole="image" data-testname="synonym img role == computedrole image" class="ex">x</div><!-- synonym -->
@@ -28,6 +28,7 @@
 
 <script>
 AriaUtils.verifyRolesBySelector(".ex");
+AriaUtils.verifyGenericRolesBySelector(".ex-generic");
 </script>
 </body>
 </html>

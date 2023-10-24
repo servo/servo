@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="windows-1252"> <!-- intentional to make sure the results are UTF-8 anyway -->
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/pull/9538">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- This was adapted from DOMParser-parseFromString-encoding.html -->
+
+<script>
+function assertEncoding(doc) {
+  assert_equals(doc.charset, "UTF-8", "document.charset");
+  assert_equals(doc.characterSet, "UTF-8", "document.characterSet");
+  assert_equals(doc.inputEncoding, "UTF-8", "document.characterSet");
+}
+
+setup(() => {
+  assert_equals(document.characterSet, "windows-1252", "the meta charset must be in effect, making the main document windows-1252");
+});
+
+test(() => {
+  const doc = Document.parseHTMLUnsafe('');
+  assertEncoding(doc);
+}, 'Parse empty string');
+
+test(() => {
+  const doc = Document.parseHTMLUnsafe(`<meta charset="latin2">`);
+  assertEncoding(doc);
+}, "meta charset latin2");
+
+test(() => {
+  const doc = Document.parseHTMLUnsafe(`<?xml version="1.0" encoding="latin2"?><x/>`);
+  assertEncoding(doc);
+}, "XML declaration");
+</script>

@@ -6,11 +6,13 @@ import sys
 from collections import OrderedDict
 from shutil import which
 from datetime import timedelta
+from typing import Mapping, Optional
 
 from . import config
 from . import products
 from . import wpttest
 from .formatters import chromium, wptreport, wptscreenshot
+
 
 def abs_path(path):
     return os.path.abspath(os.path.expanduser(path))
@@ -483,65 +485,82 @@ def set_from_config(kwargs):
                     new_value = kwargs["config"].get(section, config.ConfigDict({})).get_path(config_value)
                 kwargs[kw_value] = new_value
 
-    kwargs["test_paths"] = get_test_paths(kwargs["config"])
-
-    if kwargs["tests_root"]:
-        if "/" not in kwargs["test_paths"]:
-            kwargs["test_paths"]["/"] = {}
-        kwargs["test_paths"]["/"]["tests_path"] = kwargs["tests_root"]
-
-    if kwargs["metadata_root"]:
-        if "/" not in kwargs["test_paths"]:
-            kwargs["test_paths"]["/"] = {}
-        kwargs["test_paths"]["/"]["metadata_path"] = kwargs["metadata_root"]
-
-    if kwargs.get("manifest_path"):
-        if "/" not in kwargs["test_paths"]:
-            kwargs["test_paths"]["/"] = {}
-        kwargs["test_paths"]["/"]["manifest_path"] = kwargs["manifest_path"]
+    test_paths = get_test_paths(kwargs["config"],
+                                kwargs["tests_root"],
+                                kwargs["metadata_root"],
+                                kwargs["manifest_path"])
+    check_paths(test_paths)
+    kwargs["test_paths"] = test_paths
 
     kwargs["suite_name"] = kwargs["config"].get("web-platform-tests", {}).get("name", "web-platform-tests")
 
 
-    check_paths(kwargs)
+
+class TestRoot:
+    def __init__(self, tests_path: str, metadata_path: str, manifest_path: Optional[str] = None):
+        self.tests_path = tests_path
+        self.metadata_path = metadata_path
+        if manifest_path is None:
+            manifest_path = os.path.join(metadata_path, "MANIFEST.json")
+
+        self.manifest_path = manifest_path
 
 
-def get_test_paths(config):
+TestPaths = Mapping[str, TestRoot]
+
+
+def get_test_paths(config: Mapping[str, config.ConfigDict],
+                   tests_path_override: Optional[str] = None,
+                   metadata_path_override: Optional[str] = None,
+                   manifest_path_override: Optional[str] = None) -> TestPaths:
     # Set up test_paths
     test_paths = OrderedDict()
 
     for section in config.keys():
         if section.startswith("manifest:"):
-            manifest_opts = config.get(section)
+            manifest_opts = config[section]
             url_base = manifest_opts.get("url_base", "/")
-            test_paths[url_base] = {
-                "tests_path": manifest_opts.get_path("tests"),
-                "metadata_path": manifest_opts.get_path("metadata"),
-            }
-            if "manifest" in manifest_opts:
-                test_paths[url_base]["manifest_path"] = manifest_opts.get_path("manifest")
+            tests_path = manifest_opts.get_path("tests")
+            if tests_path is None:
+                raise ValueError(f"Missing `tests` key in configuration with url_base {url_base}")
+            metadata_path = manifest_opts.get_path("metadata")
+            if metadata_path is None:
+                raise ValueError(f"Missing `metadata` key in configuration with url_base {url_base}")
+            manifest_path = manifest_opts.get_path("manifest")
+
+            if url_base == "/":
+                if tests_path_override is not None:
+                    tests_path = tests_path_override
+                if metadata_path_override is not None:
+                    metadata_path = metadata_path_override
+                if manifest_path_override is not None:
+                    manifest_path = manifest_path_override
+
+            test_paths[url_base] = TestRoot(tests_path, metadata_path, manifest_path)
+
+    if "/" not in test_paths:
+        if tests_path_override is None or metadata_path_override is None:
+            raise ValueError("No ini file configures the root url, "
+                             "so --tests and --metadata arguments are mandatory")
+        test_paths["/"] = TestRoot(tests_path_override,
+                                   metadata_path_override,
+                                   manifest_path_override)
 
     return test_paths
 
 
-def exe_path(name):
+def exe_path(name: Optional[str]) -> Optional[str]:
     if name is None:
-        return
+        return None
 
     return which(name)
 
 
-def check_paths(kwargs):
-    for test_paths in kwargs["test_paths"].values():
-        if not ("tests_path" in test_paths and
-                "metadata_path" in test_paths):
-            print("Fatal: must specify both a test path and metadata path")
-            sys.exit(1)
-        if "manifest_path" not in test_paths:
-            test_paths["manifest_path"] = os.path.join(test_paths["metadata_path"],
-                                                       "MANIFEST.json")
-        for key, path in test_paths.items():
+def check_paths(test_paths: TestPaths) -> None:
+    for test_root in test_paths.values():
+        for key in ["tests_path", "metadata_path", "manifest_path"]:
             name = key.split("_", 1)[0]
+            path = getattr(test_root, key)
 
             if name == "manifest":
                 # For the manifest we can create it later, so just check the path
@@ -694,7 +713,7 @@ def check_args_metadata_update(kwargs):
             sys.exit(1)
 
     if kwargs["properties_file"] is None and not kwargs["no_properties_file"]:
-        default_file = os.path.join(kwargs["test_paths"]["/"]["metadata_path"],
+        default_file = os.path.join(kwargs["test_paths"]["/"].metadata_path,
                                     "update_properties.json")
         if os.path.exists(default_file):
             kwargs["properties_file"] = default_file

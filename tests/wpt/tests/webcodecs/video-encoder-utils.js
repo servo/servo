@@ -37,8 +37,8 @@ function fourColorsFrame(ctx, width, height, text) {
 // later. This is an analog of the most basic bar code.
 function putBlackDots(ctx, width, height, count) {
   ctx.fillStyle = 'black';
-  const dot_size = 10;
-  const step = dot_size * 3;
+  const dot_size = 20;
+  const step = dot_size * 2;
 
   for (let i = 1; i <= count; i++) {
     let x = i * step;
@@ -55,8 +55,8 @@ function validateBlackDots(frame, count) {
   let cnv = new OffscreenCanvas(width, height);
   var ctx = cnv.getContext('2d');
   ctx.drawImage(frame, 0, 0);
-  const dot_size = 10;
-  const step = dot_size * 3;
+  const dot_size = 20;
+  const step = dot_size * 2;
 
   for (let i = 1; i <= count; i++) {
     let x = i * step + dot_size / 2;
@@ -69,7 +69,7 @@ function validateBlackDots(frame, count) {
       y = y -1;
 
     let rgba = ctx.getImageData(x, y, 2, 2).data;
-    const tolerance = 40;
+    const tolerance = 60;
     if ((rgba[0] > tolerance || rgba[1] > tolerance || rgba[2] > tolerance)
       && (rgba[4] > tolerance || rgba[5] > tolerance || rgba[6] > tolerance)
       && (rgba[8] > tolerance || rgba[9] > tolerance || rgba[10] > tolerance)

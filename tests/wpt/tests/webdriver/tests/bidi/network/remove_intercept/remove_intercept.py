@@ -69,7 +69,7 @@ async def test_remove_intercept(
     await bidi_session.network.remove_intercept(intercept=intercept)
 
     # The next request should not be blocked
-    on_response_completed = wait_for_event(f"network.responseCompleted")
+    on_response_completed = wait_for_event("network.responseCompleted")
     await fetch(text_url)
     await on_response_completed
 

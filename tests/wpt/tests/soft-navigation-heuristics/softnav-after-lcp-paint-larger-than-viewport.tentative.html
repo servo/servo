@@ -1,0 +1,70 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-helper.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+</head>
+<body>
+  <main id=main>
+    <div>
+      <a id=link><img id="initial_image1" src="/images/lcp-256x256.png?1" style="width: 90vw; height: 90vh">
+        <div id=extra></div>
+      </a>
+    </div>
+  </main>
+  <script>
+  (async () => {
+    const link = document.getElementById("link");
+
+    // Inject a second image that takes a large part of the viewport.
+    await new Promise(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.getElementById("extra").innerHTML = `
+          <div style="position: absolute; bottom: 0; right: 0">
+            <img id="initial_image2" src="/images/lcp-256x256.png?2" style="width: 90vw;height: 90vh">
+          </div>`;
+        resolve();
+      }));
+    });
+    // Wait until the second image is rendered.
+    await new Promise(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        resolve();
+      }));
+    });
+    testSoftNavigation({
+      addContent: async () => {
+        // Remove the initial image, so that the text would be painted on screen.
+        document.getElementById("initial_image1").remove();
+        document.getElementById("initial_image2").remove();
+        let lcp_element_painted;
+        const lcp_element_paint_promise = new Promise((r) => { lcp_element_painted = r; });
+        // Add an LCP element, but have it be small enough to not trigger the
+        // Soft Navigation heuristics.
+        const p = addTextParagraphToMain(
+          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod",
+          /*element_timing=*/"lcp");
+        (new PerformanceObserver(list => {
+          // Once the first element is fully painted:
+          lcp_element_painted();
+        })).observe({type: "element", buffered: true});
+        await lcp_element_paint_promise;
+        // Add a smaller element that gets us over that threshold.
+        addTextParagraphToMain("dolore magna aliqua.");
+      },
+      link: link,
+      test: "Test that an image LCP followed by a smaller soft navigation LCP"
+        + " properly queues an LCP entry, even when the soft navigation is"
+        + " detected after the LCP, even when initial paints significantly"
+        + " exceed the viewport dimensions."});
+  })();
+  </script>
+</body>
+</html>
+
+

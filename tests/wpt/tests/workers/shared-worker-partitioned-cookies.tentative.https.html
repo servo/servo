@@ -24,14 +24,14 @@ promise_test(async () => {
   assert_true(document.cookie.includes('unpartitioned=456'));
 
   const worker = new SharedWorker('support/shared-worker-echo-cookies.js');
-  const nextMessage = workerMessageGenerator(worker);
+  const next_message = worker_message_generator(worker);
 
   worker.port.postMessage({type: 'test_message'});
-  const msg1 = await nextMessage();
+  const msg1 = await next_message();
   assert_true(msg1.ok, 'Message passing');
 
   worker.port.postMessage({type: 'echo_cookies_http'});
-  const msg2 = await nextMessage();
+  const msg2 = await next_message();
   assert_true(msg2.ok, 'Get cookies');
   assert_true(
       msg2.cookies.includes('__Host-partitioned'),
@@ -41,7 +41,7 @@ promise_test(async () => {
       'Can access unpartitioned cookie via HTTP');
 
   worker.port.postMessage({type: 'echo_cookies_import'});
-  const msg3 = await nextMessage();
+  const msg3 = await next_message();
   assert_true(msg3.ok, 'Get cookies');
   assert_true(msg3.cookies.includes(
       '__Host-partitioned'),

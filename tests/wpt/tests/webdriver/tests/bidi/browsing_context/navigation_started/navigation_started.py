@@ -15,6 +15,10 @@ pytestmark = pytest.mark.asyncio
 
 NAVIGATION_STARTED_EVENT = "browsingContext.navigationStarted"
 PAGE_EMPTY = "/webdriver/tests/bidi/browsing_context/support/empty.html"
+PAGE_REDIRECT_HTTP_EQUIV = (
+    "/webdriver/tests/bidi/network/support/redirect_http_equiv.html"
+)
+PAGE_REDIRECTED_HTML = "/webdriver/tests/bidi/network/support/redirected.html"
 
 
 async def test_unsubscribe(bidi_session):
@@ -352,3 +356,86 @@ async def test_invalid_navigation(
     assert navigation_info["navigation"] is not None
 
     await bidi_session.session.unsubscribe(events=[NAVIGATION_STARTED_EVENT])
+
+
+async def test_redirect_http_equiv(
+    bidi_session, subscribe_events, top_context, url
+):
+    await subscribe_events(events=[NAVIGATION_STARTED_EVENT])
+
+    # Track all received browsingContext.navigationStarted events in the events array
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(
+        NAVIGATION_STARTED_EVENT, on_event
+    )
+
+    # PAGE_REDIRECT_HTTP_EQUIV should redirect to PAGE_REDIRECTED_HTML immediately
+    http_equiv_url = url(PAGE_REDIRECT_HTTP_EQUIV)
+    redirected_url = url(PAGE_REDIRECTED_HTML)
+
+    result = await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=http_equiv_url,
+        wait="complete",
+    )
+
+    # Wait until we receive two events, one for the initial navigation and one for
+    # the http-equiv "redirect".
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 2)
+
+    assert len(events) == 2
+    assert_navigation_info(
+        events[0],
+        {
+            "context": top_context["context"],
+            "url": http_equiv_url,
+        },
+    )
+    assert_navigation_info(
+        events[1],
+        {
+            "context": top_context["context"],
+            "url": redirected_url,
+        },
+    )
+
+
+async def test_redirect_navigation(
+    bidi_session, subscribe_events, top_context, url
+):
+    await subscribe_events(events=[NAVIGATION_STARTED_EVENT])
+
+    # Track all received browsingContext.navigationStarted events in the events array
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(
+        NAVIGATION_STARTED_EVENT, on_event
+    )
+
+    html_url = url(PAGE_EMPTY)
+    redirect_url = url(
+        f"/webdriver/tests/support/http_handlers/redirect.py?location={html_url}"
+    )
+
+    result = await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=redirect_url,
+        wait="complete",
+    )
+
+    assert len(events) == 1
+    assert_navigation_info(
+        events[0],
+        {
+            "context": top_context["context"],
+            "url": redirect_url,
+        },
+    )

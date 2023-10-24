@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>Animating both the "scale" and "rotate" property</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#individual-transforms">
+<link rel="match" href="scale-and-rotate-both-specified-on-animation-keyframes-ref.html">
+
+<style>
+
+@keyframes scale-and-rotate-animation {
+    0%      { scale: 1.5; rotate: 0deg; }
+    0.001%  { scale: 1; rotate: 90deg; }
+    100%    { scale: 1; rotate: 90deg; }
+}
+
+#target {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background-color: black;
+
+    transform-origin: bottom left;
+    animation: scale-and-rotate-animation linear 100s;
+}
+
+</style>
+</head>
+<body>
+<div id="target"></div>
+
+<script>
+
+(async function() {
+    // We need to wait for the animation to have started and progressed for one frame
+    // before taking the snapshot.
+    await Promise.all(document.getAnimations().map(animation => animation.ready));
+    await new Promise(requestAnimationFrame);
+    document.documentElement.classList.remove("reftest-wait");
+})();
+
+</script>
+</body>
+</html>

@@ -51,7 +51,7 @@ promise_test(async t => {
       /*name=*/ null,
       /*reasons=*/[],
       /*children=*/[{
-        'preventedBackForwardCache': "yes",
+        'preventedBackForwardCache': "masked",
         'url': null,
         'src': rc1_child_url,
         'id': 'test-id',

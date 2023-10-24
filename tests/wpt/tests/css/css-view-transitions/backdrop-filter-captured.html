@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: capture with backdrop filter on the element</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="backdrop-filter-captured-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.box {
+  background: green;
+  width: 100px;
+  height: 100px;
+}
+#target {
+  view-transition-name: target;
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  backdrop-filter: grayscale(1);
+}
+
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-new(*) { animation: unset; opacity: 1; }
+html::view-transition-old(*) { animation: unset; opacity: 0; }
+</style>
+<div class=box></div>
+<div id=target></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  document.startViewTransition().ready.then(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+</html>

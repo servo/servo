@@ -1,6 +1,6 @@
 import pytest
 from tests.support.image import png_dimensions
-from webdriver.bidi.modules.browsing_context import ElementOptions, ViewportOptions
+from webdriver.bidi.modules.browsing_context import ElementOptions, BoxOptions
 from webdriver.bidi.modules.script import ContextTarget
 
 from . import (
@@ -129,7 +129,7 @@ async def test_clip_viewport(bidi_session, top_context, inline, compare_png_bidi
     )
     reference_data = await bidi_session.browsing_context.capture_screenshot(
         context=top_context["context"],
-        clip=ViewportOptions(
+        clip=BoxOptions(
             x=element_coordinates[0],
             y=element_coordinates[1],
             width=expected_size[0],
@@ -156,7 +156,7 @@ async def test_clip_viewport(bidi_session, top_context, inline, compare_png_bidi
     )
     data = await bidi_session.browsing_context.capture_screenshot(
         context=top_context["context"],
-        clip=ViewportOptions(
+        clip=BoxOptions(
             x=element_coordinates[0],
             y=element_coordinates[1],
             width=element_dimensions[0],
@@ -184,7 +184,7 @@ async def test_clip_viewport(bidi_session, top_context, inline, compare_png_bidi
     )
     new_data = await bidi_session.browsing_context.capture_screenshot(
         context=top_context["context"],
-        clip=ViewportOptions(
+        clip=BoxOptions(
             x=element_coordinates[0],
             y=element_coordinates[1],
             width=element_dimensions[0],
@@ -240,7 +240,7 @@ async def test_clip_viewport_scroll_to(
     )
     new_data = await bidi_session.browsing_context.capture_screenshot(
         context=top_context["context"],
-        clip=ViewportOptions(
+        clip=BoxOptions(
             x=element_coordinates[0],
             y=element_coordinates[1],
             width=element_dimensions[0],
@@ -289,7 +289,7 @@ async def test_clip_viewport_partially_visible(
     )
     new_data = await bidi_session.browsing_context.capture_screenshot(
         context=top_context["context"],
-        clip=ViewportOptions(
+        clip=BoxOptions(
             x=element_coordinates[0],
             y=element_coordinates[1],
             width=expected_size[0],

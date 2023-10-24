@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+  <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1434550">
+  <button id="boo"></button>
+  <div>
+    <iframe style="position:fixed; content-visibility:hidden;"></iframe>
+  </div>
+  <script>
+    requestAnimationFrame(()=> {
+      requestAnimationFrame(()=> {
+        boo.style.touchAction = "pan-x";
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  </script>
+</html>

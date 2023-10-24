@@ -70,5 +70,32 @@ test((t) => {
   });
   assert_equals(root.getParts().length,1,'There should be one NodePart');
 }, `Basic NodePart parsing`);
+
+
+test((t) => {
+  const tmpl = document.createElement('template');
+  tmpl.parseparts = true;
+  tmpl.innerHTML = ' <div id={{}} class={{}} foo=baz></div>';
+  const root = tmpl.content.getPartRoot();
+  t.add_cleanup(() => {
+    tmpl.remove();
+    root.getParts().forEach(part => part.disconnect());
+  });
+  assert_equals(root.getParts().length,0,'Declarative AttributeParts should be automatic, and should not show up in getParts()');
+  function checkBasics(checkContent,expectId,expectClass) {
+    const innerDiv = checkContent.firstElementChild;
+    assert_equals(innerDiv.localName,'div');
+    assert_equals(innerDiv.getAttribute('id'),expectId || '','Declarative AttributeParts id attribute');
+    assert_equals(innerDiv.getAttribute('class'),expectClass || '','Declarative AttributeParts class attribute');
+    assert_equals(innerDiv.getAttribute('foo'),'baz','Declarative AttributeParts should not touch other attributes');
+    return innerDiv;
+  }
+  checkBasics(tmpl.content);
+  const clone = root.clone();
+  const clonedDiv = checkBasics(clone.rootContainer);
+  const cloneWithValues = root.clone({attributeValues: ['foo','bar']});
+  const clonedDiv2 = checkBasics(cloneWithValues.rootContainer,'foo','bar');
+}, `Basic AttributePart cloning with values`);
+
 </script>
 

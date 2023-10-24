@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<script src="/scroll-to-text-fragment/stash.js"></script>
+
+<!-- This test is navigated to with the fragment #:~:text=foo -->
+
+<body>
+  <div style="height: 4000px;">spacer</div>
+  <script>
+    const results = {};
+
+    const foo = document.createElement('div');
+    foo.textContent = 'foo';
+    foo.hidden = 'until-found';
+    document.body.appendChild(foo);
+    window.beforematchFiredOnFoo = false;
+    foo.addEventListener('beforematch', () => {
+      // This should be zero. Scrolling should happen after beforematch is
+      // fired.
+      results.pageYOffsetDuringBeforematch = window.pageYOffset;
+      window.beforematchFiredOnFoo = true;
+    });
+
+    const bar = document.createElement('div');
+    bar.textContent = 'bar';
+    document.body.appendChild(bar);
+    window.beforematchFiredOnBar = false;
+    bar.addEventListener('beforematch', () => {
+      window.beforematchFiredOnBar = true;
+    });
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(async () => {
+        // This should be true. Foo was searched for, so it should get a
+        // beforematch event.
+        results.beforematchFiredOnFoo = window.beforematchFiredOnFoo;
+        // This should be false. Bar was not searched for, so it should not get
+        // a beforematch event.
+        results.beforematchFiredOnBar = window.beforematchFiredOnBar;
+        // This should be greater than zero. The page should be scrolled down
+        // to foo.
+        results.pageYOffsetAfterRaf = window.pageYOffset;
+
+        params = new URLSearchParams(window.location.search);
+        stashResultsThenClose(params.get('key'), results);
+      });
+    });
+  </script>
+</body>
