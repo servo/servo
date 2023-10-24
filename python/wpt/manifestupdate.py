@@ -50,16 +50,11 @@ def update(check_clean=True, rebuild=False, **kwargs):
 
 
 def _update(logger, test_paths, rebuild):
-    def get_path(obj, path):
-        if isinstance(obj, dict):
-            return obj[path]
-        else:
-            return getattr(obj, path)
     for url_base, paths in iteritems(test_paths):
-        manifest_path = os.path.join(get_path(paths, 'metadata_path'), "MANIFEST.json")
+        manifest_path = os.path.join(paths.metadata_path, "MANIFEST.json")
         cache_subdir = os.path.relpath(os.path.dirname(manifest_path),
                                        os.path.dirname(__file__))
-        wptmanifest.manifest.load_and_update(get_path(paths, 'tests_path'),
+        wptmanifest.manifest.load_and_update(paths.tests_path,
                                              manifest_path,
                                              url_base,
                                              working_copy=True,
@@ -73,15 +68,8 @@ def _check_clean(logger, test_paths):
     manifests_by_path = {}
     rv = 0
     for url_base, paths in iteritems(test_paths):
-        def get_path(obj, path):
-            if isinstance(obj, dict):
-                return obj[path]
-            else:
-                return getattr(obj, path)
-
-        tests_path = get_path(paths, "tests_path")
-        manifest_path = os.path.join(
-            get_path(paths, "metadata_path"), "MANIFEST.json")
+        tests_path = paths.tests_path
+        manifest_path = os.path.join(paths.metadata_path, "MANIFEST.json")
 
         old_manifest = wptmanifest.manifest.load_and_update(tests_path,
                                                             manifest_path,

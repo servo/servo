@@ -109,13 +109,7 @@ def update_tests(**kwargs) -> int:
 
     wptcommandline.set_from_config(kwargs)
     if hasattr(wptcommandline, 'check_paths'):
-        # FIXME(mukilan): temporary hack since check_paths
-        # is used before and after we sync the wptrunner code
-        # with upstream and upstream has changed the argument
-        try:
-            wptcommandline.check_paths(kwargs)
-        except AttributeError:
-            wptcommandline.check_paths(kwargs["test_paths"])
+        wptcommandline.check_paths(kwargs["test_paths"])
 
     if kwargs.pop("legacy_layout"):
         update_args_for_legacy_layout(kwargs)
