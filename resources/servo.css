@@ -190,27 +190,27 @@ svg > * {
  * broken for stuff like table backgrounds and such. Gecko explicitly inherits
  * what it wants, which seems a bit better off-hand.
  */
-*|*::-servo-anonymous-table,
-*|*::-servo-anonymous-table-wrapper,
-*|*::-servo-table-wrapper,
-*|*::-servo-anonymous-block,
-*|*::-servo-inline-block-wrapper,
-*|*::-servo-inline-absolute {
+*|*::-servo-legacy-anonymous-table,
+*|*::-servo-legacy-anonymous-table-wrapper,
+*|*::-servo-legacy-table-wrapper,
+*|*::-servo-legacy-anonymous-block,
+*|*::-servo-legacy-inline-block-wrapper,
+*|*::-servo-legacy-inline-absolute {
     all: inherit;
 }
 
 /* style for text node. */
-*|*::-servo-text {
+*|*::-servo-legacy-text {
     text-overflow: inherit;
     overflow: inherit;
 }
 
-*|*::-servo-table-wrapper {
+*|*::-servo-legacy-table-wrapper {
     display: table;
     border: none;
 }
 
-*|*::-servo-anonymous-table-wrapper {
+*|*::-servo-legacy-anonymous-table-wrapper {
     position: static;
     margin: 0;
     counter-increment: none;
@@ -221,7 +221,7 @@ svg > * {
     overflow: visible;
 }
 
-*|*::-servo-anonymous-table {
+*|*::-servo-legacy-anonymous-table {
     display: table;
     position: static;
     border: none;
@@ -230,7 +230,7 @@ svg > * {
     overflow: visible;
 }
 
-*|*::-servo-anonymous-table-row {
+*|*::-servo-legacy-anonymous-table-row {
     display: table-row;
     position: static;
     border: none;
@@ -238,7 +238,7 @@ svg > * {
     overflow: visible;
 }
 
-*|*::-servo-anonymous-table-cell {
+*|*::-servo-legacy-anonymous-table-cell {
     display: table-cell;
     position: static;
     border: none;
@@ -246,7 +246,7 @@ svg > * {
     overflow: visible;
 }
 
-*|*::-servo-anonymous-block {
+*|*::-servo-legacy-anonymous-block {
     display: block;
     position: static;
     border: none;
@@ -257,7 +257,7 @@ svg > * {
 }
 
 /* The outer fragment wrapper of an inline-block. */
-*|*::-servo-inline-block-wrapper {
+*|*::-servo-legacy-inline-block-wrapper {
     position: static;
     border: none;
     padding: 0;
@@ -265,7 +265,7 @@ svg > * {
 }
 
 /* The outer fragment wrapper of an inline absolute hypothetical fragment. */
-*|*::-servo-inline-absolute {
+*|*::-servo-legacy-inline-absolute {
     clip: auto;
     border: none;
     padding: 0;

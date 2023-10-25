@@ -982,6 +982,12 @@ impl LonghandIdSet {
     }
 
     #[inline]
+    fn transitionable() -> &'static Self {
+        ${static_longhand_id_set("TRANSITIONABLE", lambda p: p.transitionable)}
+        &TRANSITIONABLE
+    }
+
+    #[inline]
     fn logical() -> &'static Self {
         ${static_longhand_id_set("LOGICAL", lambda p: p.logical)}
         &LOGICAL
@@ -1358,6 +1364,12 @@ impl LonghandId {
     #[inline]
     pub fn is_discrete_animatable(self) -> bool {
         LonghandIdSet::discrete_animatable().contains(self)
+    }
+
+    /// Returns whether this property is transitionable.
+    #[inline]
+    pub fn is_transitionable(self) -> bool {
+        LonghandIdSet::transitionable().contains(self)
     }
 
     /// Converts from a LonghandId to an adequate nsCSSPropertyID.

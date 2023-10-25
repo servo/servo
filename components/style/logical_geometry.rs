@@ -771,6 +771,38 @@ impl<T: Copy + Sub<T, Output = T>> LogicalPoint<T> {
         }
     }
 
+    // TODO(servo#30577) remove this once underlying bugs are fixed
+    #[inline]
+    pub fn to_physical_or_warn(&self, mode: WritingMode, container_size: Size2D<T>) -> Point2D<T> {
+        #[cfg(debug_assertions)]
+        if !(self.debug_writing_mode.mode == mode) {
+            log::warn!("debug assertion failed! self.debug_writing_mode.mode == mode");
+        }
+        if mode.is_vertical() {
+            Point2D::new(
+                if mode.is_vertical_lr() {
+                    self.b
+                } else {
+                    container_size.width - self.b
+                },
+                if mode.is_inline_tb() {
+                    self.i
+                } else {
+                    container_size.height - self.i
+                },
+            )
+        } else {
+            Point2D::new(
+                if mode.is_bidi_ltr() {
+                    self.i
+                } else {
+                    container_size.width - self.i
+                },
+                self.b,
+            )
+        }
+    }
+
     #[inline]
     pub fn convert(
         &self,

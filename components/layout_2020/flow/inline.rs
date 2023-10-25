@@ -8,6 +8,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRef;
 use gfx::text::glyph::GlyphStore;
 use gfx::text::text_run::GlyphRun;
+use log::warn;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::white_space::T as WhiteSpace;
@@ -739,12 +740,17 @@ impl InlineFormattingContext {
                             add!(last_fragment, inline_end);
                         },
                         InlineLevelBox::TextRun(text_run) => {
+                            let result = text_run
+                                .break_and_shape(self.layout_context, &mut self.linebreaker);
                             let BreakAndShapeResult {
                                 runs,
                                 break_at_start,
                                 ..
-                            } = text_run
-                                .break_and_shape(self.layout_context, &mut self.linebreaker);
+                            } = match result {
+                                Ok(result) => result,
+                                Err(_) => return,
+                            };
+
                             if break_at_start {
                                 self.line_break_opportunity()
                             }
@@ -1223,7 +1229,7 @@ impl TextRun {
         &self,
         layout_context: &LayoutContext,
         linebreaker: &mut Option<LineBreakLeafIter>,
-    ) -> BreakAndShapeResult {
+    ) -> Result<BreakAndShapeResult, &'static str> {
         use gfx::font::ShapingFlags;
         use style::computed_values::text_rendering::T as TextRendering;
         use style::computed_values::word_break::T as WordBreak;
@@ -1250,10 +1256,10 @@ impl TextRun {
 
         crate::context::with_thread_local_font_context(layout_context, |font_context| {
             let font_group = font_context.font_group(font_style);
-            let font = font_group
-                .borrow_mut()
-                .first(font_context)
-                .expect("could not find font");
+            let font = match font_group.borrow_mut().first(font_context) {
+                Some(font) => font,
+                None => return Err("Could not find find for TextRun."),
+            };
             let mut font = font.borrow_mut();
 
             let word_spacing = &inherited_text_style.word_spacing;
@@ -1282,12 +1288,12 @@ impl TextRun {
                 linebreaker,
             );
 
-            BreakAndShapeResult {
+            Ok(BreakAndShapeResult {
                 font_metrics: (&font.metrics).into(),
                 font_key: font.font_key,
                 runs,
                 break_at_start,
-            }
+            })
         })
     }
 
@@ -1313,12 +1319,19 @@ impl TextRun {
         layout_context: &LayoutContext,
         ifc: &mut InlineFormattingContextState,
     ) {
+        let result = self.break_and_shape(layout_context, &mut ifc.linebreaker);
         let BreakAndShapeResult {
             font_metrics,
             font_key,
             runs,
             break_at_start,
-        } = self.break_and_shape(layout_context, &mut ifc.linebreaker);
+        } = match result {
+            Ok(result) => result,
+            Err(string) => {
+                warn!("Could not render TextRun: {string}");
+                return;
+            },
+        };
 
         let white_space = self.parent_style.get_inherited_text().white_space;
         let add_glyphs_to_current_line = |ifc: &mut InlineFormattingContextState,
@@ -1462,11 +1475,12 @@ impl FloatBox {
         let margin_box = fragment.border_rect().inflate(&fragment.margin);
         let inline_size = margin_box.size.inline.max(Length::zero());
 
+        let inline_position =
+            ifc.current_line.inline_position - ifc.current_line.trailing_whitespace_advance;
         let available_inline_size = match ifc.current_line.placement_among_floats.get() {
             Some(placement_among_floats) => placement_among_floats.size.inline,
             None => ifc.containing_block.inline_size,
-        } - (ifc.current_line.inline_position -
-            ifc.current_line.trailing_whitespace_advance);
+        } - inline_position;
 
         // If this float doesn't fit on the current line or a previous float didn't fit on
         // the current line, we need to place it starting at the next line BUT still as
@@ -1487,7 +1501,7 @@ impl FloatBox {
             // placement among floats for the current line, which may adjust its inline
             // start position.
             let new_placement = ifc.place_line_among_floats(&LogicalVec2 {
-                inline: ifc.current_line.inline_position,
+                inline: inline_position,
                 block: ifc.current_line.max_block_size,
             });
             ifc.current_line
@@ -1679,10 +1693,13 @@ fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Len
 fn line_gap_from_style(layout_context: &LayoutContext, style: &ComputedValues) -> Length {
     crate::context::with_thread_local_font_context(layout_context, |font_context| {
         let font_group = font_context.font_group(style.clone_font());
-        let font = font_group
-            .borrow_mut()
-            .first(font_context)
-            .expect("could not find font");
+        let font = match font_group.borrow_mut().first(font_context) {
+            Some(font) => font,
+            None => {
+                warn!("Could not find find for TextRun.");
+                return Length::zero();
+            },
+        };
         let font_metrics: FontMetrics = (&font.borrow().metrics).into();
         font_metrics.line_gap
     })
@@ -1691,10 +1708,13 @@ fn line_gap_from_style(layout_context: &LayoutContext, style: &ComputedValues) -
 fn line_height_from_style(layout_context: &LayoutContext, style: &ComputedValues) -> Length {
     crate::context::with_thread_local_font_context(layout_context, |font_context| {
         let font_group = font_context.font_group(style.clone_font());
-        let font = font_group
-            .borrow_mut()
-            .first(font_context)
-            .expect("could not find font");
+        let font = match font_group.borrow_mut().first(font_context) {
+            Some(font) => font,
+            None => {
+                warn!("Could not find find for TextRun.");
+                return Length::zero();
+            },
+        };
         let font_metrics: FontMetrics = (&font.borrow().metrics).into();
         line_height(style, &font_metrics)
     })
