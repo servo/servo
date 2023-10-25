@@ -3,38 +3,32 @@
 <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
 <link rel="match" href="clip-path-transition-ref.html">
 <style>
-.container {
-  width: 100px;
-  height: 100px;
-  clip-path: circle(50% at 50% 50%);
-  background-color: green;
-  transition-property: clip-path;
-  /* Use a long animation that start at 50% progress where the slope of the
-     selected timing function is zero. By setting up the animation in this way,
-     we accommodate lengthy delays in running the test without a potential drift
-     in the animated property value. This is important for avoiding flakes,
-     especially on debug builds. The screenshots are taken as soon as the
-     animation is ready, thus the long animation duration has no bearing on
-     the actual duration of the test. */
-  transition-duration: 1000000s;
-  transition-timing-function: cubic-bezier(0,1,1,0);
-  transition-delay: -500000s;
-}
+  .container {
+    width: 100px;
+    height: 100px;
+    clip-path: circle(50% at 50% 50%);
+    background-color: green;
+    transition-property: clip-path;
+    transition-duration: 20s;
+    transition-timing-function: steps(2, jump-end);
+    transition-delay: -9.999s;
+  }
 </style>
 <script src="/common/reftest-wait.js"></script>
-<body>
-<div class="container" id="target"></div>
+<script src="../../../../web-animations/resources/timing-utils.js"></script>
 
-<script>
-function update() {
-  document.getElementById('target').style.clipPath = "circle(30% at 30% 30%)";
-  requestAnimationFrame(() => {
-    takeScreenshot();
-  });
-}
-requestAnimationFrame(function() {
-  requestAnimationFrame(update);
-});
-</script>
+<body>
+  <div class="container" id="target"></div>
+
+  <script>
+    function update() {
+      document.getElementById('target').style.clipPath = "circle(30% at 30% 30%)";
+      waitForAnimationTime(document.getAnimations()[0], 1).then(takeScreenshot);
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(update);
+    });
+  </script>
 </body>
+
 </html>

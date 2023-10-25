@@ -82,6 +82,10 @@
     <div role="tabpanel" data-testname="role is tabpanel as sibling to ul with child role none li elements" data-expectedrole="tabpanel" class="ex">Tab one's stuff</div>
     <div role="tabpanel" data-testname="role is tabpanel as sibling to ul with child role none li elements (duplicate)" data-expectedrole="tabpanel" class="ex">Tab two's stuff</div>
 
+<!--orphan tab semantics -->
+<button role="tab" data-testname="orphan button with tab role" data-expectedrole="button" class="ex">x</button>
+<span role="tab" data-testname="orphan span with tab role" class="ex-generic">x</span>
+
 <script>
     AriaUtils.verifyRolesBySelector(".ex");
 </script>

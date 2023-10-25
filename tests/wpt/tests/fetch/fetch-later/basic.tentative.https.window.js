@@ -19,8 +19,8 @@ test(() => {
 test(() => {
   assert_throws_js(
       RangeError,
-      () => fetchLater('https://www.google.com', {activationTimeout: -1}));
-}, `fetchLater() throws RangeError on negative activationTimeout.`);
+      () => fetchLater('https://www.google.com', {activateAfter: -1}));
+}, `fetchLater() throws RangeError on negative activateAfter.`);
 
 test(() => {
   const result = fetchLater('/');

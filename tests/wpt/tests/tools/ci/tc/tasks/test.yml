@@ -4,7 +4,7 @@ components:
     workerType: ci
     schedulerId: taskcluster-github
     deadline: "24 hours"
-    image: webplatformtests/wpt:0.54
+    image: webplatformtests/wpt:0.55
     maxRunTime: 7200
     artifacts:
       public/results:
@@ -107,6 +107,11 @@ components:
   browser-chromium: {}
 
   browser-servo: {}
+
+  browser-firefox_android:
+    privileged: true
+    scopes:
+      - "docker-worker:capability:privileged"
 
   tox-python3_7:
     env:
@@ -221,6 +226,12 @@ tasks:
               use:
                 - trigger-weekly
                 - trigger-push
+            - vars:
+                browser: firefox_android
+                channel: nightly
+              use:
+                - trigger-daily
+                - trigger-push
           do:
             - ${vars.browser}-${vars.channel}-${vars.suite}:
                 use:
@@ -282,6 +293,12 @@ tasks:
             - vars:
                 browser: chrome
                 channel: stable
+              use:
+                - trigger-daily
+                - trigger-push
+            - vars:
+                browser: firefox_android
+                channel: nightly
               use:
                 - trigger-daily
                 - trigger-push
@@ -532,6 +549,7 @@ tasks:
         - wpt-base
         - trigger-pr
         - browser-firefox
+        - browser-firefox_android
       command: ./tools/ci/ci_wptrunner_infrastructure.sh
       install:
         - python3-pip
@@ -543,6 +561,7 @@ tasks:
         browser:
           - firefox
           - chrome
+          - firefox_android
         channel: experimental
         xvfb: true
         hosts: false

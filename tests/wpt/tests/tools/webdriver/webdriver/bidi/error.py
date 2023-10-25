@@ -67,6 +67,10 @@ class NoSuchNodeException(BidiException):
     error_code = "no such node"
 
 
+class NoSuchRequestException(BidiException):
+    error_code = "no such request"
+
+
 class NoSuchScriptException(BidiException):
     error_code = "no such script"
 

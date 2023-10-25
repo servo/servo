@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+<g id="testmeta">
+	<title>CSS Masking: mask with invalid reference</title>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-mask-image"/>
+	<html:link rel="match" href="reference/mask-green-square-001-ref.svg" />
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">masks are ignored if their
+        reference doesn't point to a mask element.</desc>
+</g>
+  <linearGradient id="a" />
+  <rect x="50" y="50" width="100" height="100" fill="green" mask="url(#a)"/>
+</svg>
+

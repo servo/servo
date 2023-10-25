@@ -23,13 +23,13 @@ body { width:600px; height:600px; border:1px solid; box-sizing:border-box; }
   padding-block-start: 1px;
   margin-left: 1px;
   border:1px solid;
-  align-tracks: end;
-  justify-tracks: end;
   masonry-auto-flow: next;
   height: 100px;
   width: 100px;
 }
 .c { grid: repeat(4, auto) / masonry; }
+.ae { align-content: end; }
+.je { justify-content: end; }
 
 span {
   text-decoration: underline lime;
@@ -67,13 +67,13 @@ span:nth-child(4) { font-size:30px; }
 <body>
 
 <!-- TODO: baseline alignment is wrong (bug 1633610)
-<div class="grid c vrr"><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span></div>
-<div class="grid c vrr"><span class="jfb hl pbe">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span></div>
-<div class="grid c swl"><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span></div>
+<div class="grid je c vrr"><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span></div>
+<div class="grid je c vrr"><span class="jfb hl pbe">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span></div>
+<div class="grid je c swl"><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span></div>
 -->
-<div class="grid c swr"><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span></div>
+<div class="grid je c swr"><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span><span class="jfb hl">F<br><x>x</x></span></div>
 
-<div class="grid"><span class="lb hl"><x>x</x><br>L</span><span class="lb hl"><x>x</x><br>L</span><span class="lb hl"><x>x</x><br>L</span><span class="lb hl"><x>x</x><br>L</span></div>
+<div class="grid ae"><span class="lb hl"><x>x</x><br>L</span><span class="lb hl"><x>x</x><br>L</span><span class="lb hl"><x>x</x><br>L</span><span class="lb hl"><x>x</x><br>L</span></div>
 
 <br clear="all">
 

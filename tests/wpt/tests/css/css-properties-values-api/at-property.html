@@ -30,13 +30,66 @@ function get_cssom_descriptor_value(rule, descriptor) {
 // Test that for the given descriptor (e.g. 'syntax'), the specified value
 // will yield the expected_value when observed using CSSOM. If the expected_value
 // is omitted, it is the same as the specified value.
-function test_descriptor(descriptor, specified_value, expected_value) {
-  let camel = to_camel_case(descriptor);
-  if (typeof(expected_value) === 'undefined')
-    expected_value = specified_value;
-  test_with_at_property({ [camel]: specified_value }, (name, rule) => {
-    assert_equals(get_cssom_descriptor_value(rule, descriptor), expected_value);
-  }, `Attribute '${descriptor}' returns expected value for [${specified_value}]`);
+function test_descriptor(descriptor, specified_value, expected_value, other_descriptors) {
+  // Try and build a valid @property form the specified descriptor.
+  let at_property = { [to_camel_case(descriptor)]: specified_value };
+
+  // If extra values are specified in other_descriptors, just use them.
+  if (typeof(other_descriptors) !== 'unspecified') {
+    for (let name in other_descriptors) {
+      if (other_descriptors.hasOwnProperty(name)) {
+        if (name == descriptor) {
+          throw `Unexpected ${name} in other_descriptors`;
+        }
+        at_property[to_camel_case(name)] = other_descriptors[name];
+      }
+    }
+  }
+
+  if (!('syntax' in at_property)) {
+    // The syntax descriptor is required. Use the universal one as a fallback.
+    // https://drafts.css-houdini.org/css-properties-values-api-1/#the-syntax-descriptor
+    at_property.syntax = '"*"';
+  }
+  if (!('inherits' in at_property)) {
+    // The inherits descriptor is required. Make it true as a fallback.
+    // https://drafts.css-houdini.org/css-properties-values-api-1/#inherits-descriptor
+    at_property.inherits = true;
+  }
+  if (!at_property.syntax.match(/^"\s*\*\s*"$/) &&
+      !('initialValue' in at_property)) {
+    // The initial-value is required for non-universal syntax.
+    // Pick a computationally independent value that follows specified syntax.
+    // https://drafts.css-houdini.org/css-properties-values-api-1/#the-syntax-descriptor
+    at_property.initialValue = (() => {
+      let first_syntax_component = specified_value
+        .replace(/^"(.*)"$/, '$1') // unquote
+        .replace(/[\s\uFEFF\xA0]+/g, ' ') // collapse whitespaces
+        .match(/^[^|\#\+]*/)[0] // pick first component
+        .trim();
+       switch (first_syntax_component) {
+         case '<color>': return 'blue';
+         case '<length>': return '42px';
+         default:
+           if (first_syntax_component.startsWith('<')) {
+             throw `Unsupported data type name '${first_syntax_component}'`;
+           }
+           return first_syntax_component; // <custom-ident>
+       }
+    })();
+  }
+
+  if (expected_value === null) {
+    test_with_at_property(at_property, (name, rule) => {
+      assert_true(!rule);
+    }, `Attribute '${descriptor}' makes the @property rule invalid for [${specified_value}]`);
+  } else {
+    if (typeof(expected_value) === 'undefined')
+      expected_value = specified_value;
+    test_with_at_property(at_property, (name, rule) => {
+      assert_equals(get_cssom_descriptor_value(rule, descriptor), expected_value);
+    }, `Attribute '${descriptor}' returns expected value for [${specified_value}]`);
+  }
 }
 
 // syntax
@@ -52,19 +105,36 @@ for (const syntax of ["*", " * ", "* ", "\t*\t"]) {
   test_descriptor('syntax', `"${syntax}"`, syntax);
 }
 
-test_descriptor('syntax', 'red', '');
-test_descriptor('syntax', 'rgb(255, 0, 0)', '');
-test_descriptor('syntax', '<color>', '');
-test_descriptor('syntax', 'foo | bar', '');
+// syntax: <color> value
+test_descriptor('syntax', '"red"', "red"); // treated as <custom-ident>.
+test_descriptor('syntax', '"rgb(255, 0, 0)"', null);
+
+// syntax: missing quotes
+test_descriptor('syntax', '<color>', null);
+test_descriptor('syntax', 'foo | bar', null);
+
+// syntax: invalid <custom-ident>
+// https://drafts.csswg.org/css-values-4/#custom-idents
+for (const syntax of
+  ["default",
+   "initial",
+   "inherit",
+   "unset",
+   "revert",
+   "revert-layer",
+  ]) {
+  test_descriptor('syntax', `"${syntax}"`, null);
+  test_descriptor('syntax', `"${uppercase_first(syntax)}"`, null);
+}
 
 // syntax: pipe between components
-test_descriptor('syntax', 'foo bar', '');
-test_descriptor('syntax', 'Foo <length>', '');
-test_descriptor('syntax', 'foo, bar', '');
-test_descriptor('syntax', '<length> <percentage>', '');
+test_descriptor('syntax', '"foo bar"', null, {'initial-value': 'foo bar'});
+test_descriptor('syntax', '"Foo <length>"', null, {'initial-value': 'Foo 42px'});
+test_descriptor('syntax', '"foo, bar"', null, {'initial-value': 'foo, bar'});
+test_descriptor('syntax', '"<length> <percentage>"', null, {'initial-value': '42px 100%'});
 
-// syntax: leaading bar
-test_descriptor('syntax', '|<length>', '');
+// syntax: leading bar
+test_descriptor('syntax', '"|<length>"', null, {'initial-value': '42px'});
 
 // initial-value
 test_descriptor('initial-value', '10px');
@@ -72,18 +142,21 @@ test_descriptor('initial-value', 'rgb(1, 2, 3)');
 test_descriptor('initial-value', 'red');
 test_descriptor('initial-value', 'foo');
 test_descriptor('initial-value', 'if(){}');
-test_descriptor('initial-value', 'var(--x)');
+
+// initial-value: not computationally independent
+test_descriptor('initial-value', '3em', null, {'syntax': '"<length>"'});
+test_descriptor('initial-value', 'var(--x)', null);
 
 // inherits
 test_descriptor('inherits', 'true', true);
 test_descriptor('inherits', 'false', false);
 
-test_descriptor('inherits', 'none', false);
-test_descriptor('inherits', '0', false);
-test_descriptor('inherits', '1', false);
-test_descriptor('inherits', '"true"', false);
-test_descriptor('inherits', '"false"', false);
-test_descriptor('inherits', 'calc(0)', false);
+test_descriptor('inherits', 'none', null);
+test_descriptor('inherits', '0', null);
+test_descriptor('inherits', '1', null);
+test_descriptor('inherits', '"true"', null);
+test_descriptor('inherits', '"false"', null);
+test_descriptor('inherits', 'calc(0)', null);
 
 test_with_style_node('@property foo { }', (node) => {
   assert_equals(node.sheet.rules.length, 0);

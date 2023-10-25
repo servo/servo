@@ -69,23 +69,12 @@ promise_test(
 if (testPrefix.includes('cross-site')) {
   promise_test(
       async t => {
-        await CommonSetup();
-        await RunCallbackWithGesture(() => {
-          return promise_rejects_dom(t, "NotAllowedError", document.requestStorageAccess(),
-            "document.requestStorageAccess() call without permission");
-        });
-      },
-      '[' + testPrefix +
-          '] document.requestStorageAccess() should be rejected with a NotAllowedError without permission grant');
-
-  promise_test(
-      async t => {
         await test_driver.set_permission(
             {name: 'storage-access'}, 'denied');
 
         await RunCallbackWithGesture(() => {
           return promise_rejects_dom(t, "NotAllowedError", document.requestStorageAccess(),
-            "document.requestStorageAccess() call without permission");
+            "document.requestStorageAccess() call with denied permission");
         });
       },
       '[' + testPrefix +

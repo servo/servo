@@ -17,7 +17,7 @@
     <h1 id="name" parseparts>
       {{#}}
         First
-        {{#}} <span {{}}>Middle</span> {{/}}
+        {{#}} <span {{}} id={{}}>Middle</span> {{/}}
         Last
       {{/}}
       <a foo {{}} id=nodepart1>content</a>
@@ -35,7 +35,7 @@
       <h1 id="name" parseparts>
         {{#}}
           First
-          {{#}} <span {{}}>Middle</span> {{/}}
+          {{#}} <span {{}} id={{}}>Middle</span> {{/}}
           Last
         {{/}}
         <a foo {{}} id=nodepart1>content</a>
@@ -124,7 +124,7 @@ const template = document.getElementById('declarative');
       assertIsComment(childPart2.previousSibling,'');
       assertIsComment(childPart2.nextSibling,'');
       const expectedChild2Parts = [{type:'NodePart',metadata:[]}];
-      assertEqualParts(childPart2.getParts(),expectedChild2Parts,0,'Second level childpart should have just the node part');
+      assertEqualParts(childPart2.getParts(),expectedChild2Parts,0,'Second level childpart should have just the node part (AttributePart is automatic)');
       assert_true(childPart2.getParts()[0].node instanceof HTMLSpanElement);
       assert_equals(childPart2.getParts()[0].node.textContent,'Middle');
     } else {

@@ -63,3 +63,20 @@ test(() => {
   assert_true(ele.matches(":dir(ltr)"), "is LTR after change");
   assert_true(ele2.matches(":dir(ltr)"), "child is LTR after change");
 }, "Non-HTML element text contents influence dir=auto");
+
+test(() => {
+  const e1 = document.createElement("div");
+  e1.dir = "auto";
+  const e2 = document.createElement("div");
+  e2.dir = "auto";
+  e2.innerText = "A";
+  e1.append(e2);
+  assert_true(e1.matches(":dir(ltr)"), "parent is LTR before changes");
+  assert_true(e2.matches(":dir(ltr)"), "child is LTR before changes");
+  e2.removeAttribute("dir");
+  assert_true(e1.matches(":dir(ltr)"), "parent is LTR after removing dir attribute on child");
+  assert_true(e2.matches(":dir(ltr)"), "child is LTR after removing dir attribute on child");
+  e2.firstChild.data = "\u05D0";
+  assert_false(e1.matches(":dir(ltr)"), "parent is RTL after changing text in child");
+  assert_false(e2.matches(":dir(ltr)"), "child is RTL after changing text in child");
+}, "text changes apply to dir=auto on further ancestor after removing dir=auto from closer ancestor");

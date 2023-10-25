@@ -36,8 +36,11 @@
           .watchAvailability(t.step_func(avail => (deviceAvailable = avail)))
           .then(
             t.step_func(() => {
-              promise_rejects_js(t, NotFoundError, v.remote.prompt());
               assert_false(deviceAvailable);
+              promise_rejects_dom(t, 'NotFoundError', v.remote.prompt())
+              .then(() => {
+                t.done();
+              });
             }),
             t.unreached_func()
           );

@@ -13,20 +13,29 @@
     const canvas = new OffscreenCanvas(200, 200);
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = 'rgba(0, 0, 255, 1)';
-    ctx.fillRect(60, 60, 75, 50);
-    ctx.globalAlpha = 0.5;
+    // `transferToImageBitmap` is used to transfer the test result to the
+    // worker's parent, but `transferToImageBitmap` can't be called on canvas
+    // with unclosed layers. We can however draw to a separate offscreen canvas
+    // and write it to the main canvas using `drawImage`.
+    const canvas2 = new OffscreenCanvas(200, 200);
+    const ctx2 = canvas2.getContext('2d');
 
-    ctx.beginLayer();
-    ctx.fillStyle = 'rgba(225, 0, 0, 1)';
-    ctx.fillRect(50, 50, 75, 50);
+    ctx2.fillStyle = 'rgba(0, 0, 255, 1)';
+    ctx2.fillRect(60, 60, 75, 50);
+    ctx2.globalAlpha = 0.5;
 
-    ctx.beginLayer();
-    ctx.fillStyle = 'rgba(0, 255, 0, 1)';
-    ctx.fillRect(70, 70, 75, 50);
+    ctx2.beginLayer();
+    ctx2.fillStyle = 'rgba(225, 0, 0, 1)';
+    ctx2.fillRect(50, 50, 75, 50);
 
-    ctx.endLayer();
-    // Missing ctx.endLayer() here.
+    ctx2.beginLayer();
+    ctx2.fillStyle = 'rgba(0, 255, 0, 1)';
+    ctx2.fillRect(70, 70, 75, 50);
+
+    ctx2.endLayer();
+    // Missing ctx2.endLayer() here.
+
+    ctx.drawImage(canvas2, 0, 0);
 
     const bitmap = canvas.transferToImageBitmap();
     self.postMessage(bitmap, bitmap);

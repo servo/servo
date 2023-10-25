@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/scroll-to-text-fragment/stash.js"></script>
+
+<!-- This test is navigated to with the fragment #:~:text=foo -->
+
+<div id=parentid>
+  <div id=childid hidden=until-found>foo</div>
+</div>
+
+<script>
+  const results = {
+    beforematchFiredOnChild: false,
+    beforematchFiredOnParent: false
+  };
+
+  childid.addEventListener('beforematch', () => {
+    results.beforematchFiredOnChild = true;
+  });
+
+  parentid.addEventListener('beforematch', () => {
+    results.beforematchFiredOnParent = true;
+  });
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const params = new URLSearchParams(window.location.search);
+      stashResultsThenClose(params.get('key'), results);
+    });
+  });
+</script>

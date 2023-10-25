@@ -131,11 +131,11 @@ def fuzzy_prop(node):
     key = <test name> [reftype <reference name>]
     reftype = "==" | "!="
     prop = [propName "=" ] range
-    propName = "maxDifferences" | "totalPixels"
+    propName = "maxDifference" | "totalPixels"
     range = <digits> ["-" <digits>]
 
     So for example:
-      maxDifferences=10;totalPixels=10-20
+      maxDifference=10;totalPixels=10-20
 
       specifies that for any test/ref pair for which no other rule is supplied,
       there must be a maximum pixel difference of exactly 10, and between 10 and

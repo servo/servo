@@ -4,10 +4,7 @@ import uuid
 import pytest
 from webdriver.bidi.modules.script import ScriptEvaluateResultException
 
-from .. import (
-    assert_before_request_sent_event,
-    assert_response_event,
-)
+from .. import assert_before_request_sent_event
 
 PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
 PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
@@ -18,16 +15,14 @@ PAGE_OTHER_TEXT = "/webdriver/tests/bidi/network/support/other.txt"
 @pytest.mark.parametrize("phase", ["beforeRequestSent", "responseStarted"])
 async def test_other_context(
     bidi_session,
-    wait_for_event,
     url,
     top_context,
     add_intercept,
     fetch,
     setup_network_test,
-    phase,
 ):
     # Subscribe to network events only in top_context
-    network_events = await setup_network_test(
+    await setup_network_test(
         events=[
             "network.beforeRequestSent",
             "network.responseStarted",
@@ -44,7 +39,7 @@ async def test_other_context(
 
     # Add an intercept.
     text_url = url(PAGE_EMPTY_TEXT)
-    intercept = await add_intercept(
+    await add_intercept(
         phases=["beforeRequestSent"],
         url_patterns=[{"type": "string", "pattern": text_url}],
     )
@@ -61,16 +56,13 @@ async def test_other_context(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("phase", ["beforeRequestSent", "responseStarted"])
 async def test_other_url(
-    bidi_session,
-    wait_for_event,
     url,
-    top_context,
     add_intercept,
     fetch,
     setup_network_test,
     phase,
 ):
-    network_events = await setup_network_test(
+    await setup_network_test(
         events=[
             "network.beforeRequestSent",
             "network.responseStarted",
@@ -80,7 +72,7 @@ async def test_other_url(
 
     # Add an intercept.
     text_url = url(PAGE_EMPTY_TEXT)
-    intercept = await add_intercept(
+    await add_intercept(
         phases=[phase],
         url_patterns=[{"type": "string", "pattern": text_url}],
     )
@@ -95,7 +87,7 @@ async def test_other_url(
 
 
 @pytest.mark.asyncio
-async def test_return_value(bidi_session, add_intercept):
+async def test_return_value(add_intercept):
     intercept = await add_intercept(phases=["beforeRequestSent"], url_patterns=[])
 
     assert isinstance(intercept, str)
@@ -107,12 +99,11 @@ async def test_two_intercepts(
     bidi_session,
     wait_for_event,
     url,
-    top_context,
     add_intercept,
     fetch,
     setup_network_test,
 ):
-    network_events = await setup_network_test(
+    await setup_network_test(
         events=[
             "network.beforeRequestSent",
             "network.responseStarted",

@@ -13,6 +13,8 @@
 
   <p>Tests <a href="https://w3c.github.io/aria/#grid">grid</a> and related roles.</p>
 
+  <!-- ARIA table roles tested in ./table-roles.html -->
+
   <div role="grid" data-testname="role is grid" data-expectedrole="grid" class="ex">
     <div role="row" data-testname="role is row (in grid)" data-expectedrole="row" class="ex">
       <span role="columnheader" data-testname="role is columnheader (in row, in grid)" data-expectedrole="columnheader" class="ex">x</span>
@@ -41,12 +43,16 @@
     </div>
   </div>
 
-  <div role="gridcell" data-testname="orphaned gridcell outside the context of row" data-expectedrole="none" class="ex">x</div>
-  <div role="rowheader" data-testname="orphaned rowheader outside the context of row" data-expectedrole="none" class="ex">x</div>
-  <div role="columnheader" data-testname="orphaned columnheader outside the context of row" data-expectedrole="none" class="ex">x</div>
+  <span role="row" data-testname="orphaned row outside the context of table" class="ex-generic">x</span>
+  <span role="rowgroup" data-testname="orphaned rowgroup outside the context of row" class="ex-generic">x</span>
+  <div role="gridcell" data-testname="orphaned div with gridcell role outside the context of row" class="ex-generic">x</div>
+  <button role="gridcell" data-testname="orphaned button with gridcell role outside the context of row" data-expectedrole="button" class="ex">x</button>
+  <div role="rowheader" data-testname="orphaned rowheader outside the context of row" class="ex-generic">x</div>
+  <div role="columnheader" data-testname="orphaned columnheader outside the context of row" class="ex-generic">x</div>
 
 <script>
 AriaUtils.verifyRolesBySelector(".ex");
+AriaUtils.verifyGenericRolesBySelector(".ex-generic");
 </script>
 
 </body>

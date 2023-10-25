@@ -68,7 +68,7 @@ Here's one way to demonstrate the feature:
 <meta charset="utf-8">
 <title>BDO element dir=rtl</title>
 <link rel="help" href="https://html.spec.whatwg.org/#the-bdo-element">
-<meta name="assert" content="BDO element's DIR content attribute renders corrently given value of 'rtl'.">
+<meta name="assert" content="BDO element's DIR content attribute renders correctly given value of 'rtl'.">
 
 <p>Test passes if WAS is displayed below.</p>
 <bdo dir="rtl">SAW</bdo>
@@ -101,7 +101,7 @@ That's pretty dense! Let's break it down:
   for a feature outside of CSS, feel free to omit this tag.
 
 - ```html
-  <meta name="assert" content="BDO element's DIR content attribute renders corrently given value of 'rtl'.">
+  <meta name="assert" content="BDO element's DIR content attribute renders correctly given value of 'rtl'.">
   ```
 
   The "assert" metadata is a structured way for you to describe exactly what
@@ -188,7 +188,7 @@ summary:
  <link rel="author" title="Sam Smith" href="mailto:sam@example.com">
  <link rel="help" href="https://html.spec.whatwg.org/#the-bdo-element">
 +<link rel="match" href="rtl-ref.html">
- <meta name="assert" content="BDO element's DIR content attribute renders corrently given value of 'rtl'.">
+ <meta name="assert" content="BDO element's DIR content attribute renders correctly given value of 'rtl'.">
 
  <p>Test passes if WAS is displayed below.</p>
  <bdo dir="rtl">SAW</bdo>

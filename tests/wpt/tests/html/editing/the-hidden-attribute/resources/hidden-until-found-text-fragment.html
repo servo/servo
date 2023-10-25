@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/scroll-to-text-fragment/stash.js"></script>
+
+<!-- This test is navigated to with the fragment #:~:text=foo -->
+
+<body>
+  <div style="height: 4000px;">spacer</div>
+  <div id=target hidden=until-found>foo</div>
+  <script>
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const results = {};
+        // This should be false. The hidden=until-found attribute should be
+        // removed in response to ScrollToTextFragment.
+        results.targetHasHiddenAttribute = document.getElementById('target').hasAttribute('hidden');
+        // This should be greater than zero. The page should be scrolled down
+        // to foo.
+        results.pageYOffsetAfterRaf = window.pageYOffset;
+
+        params = new URLSearchParams(window.location.search);
+        stashResultsThenClose(params.get('key'), results);
+      });
+    });
+  </script>
+</body>

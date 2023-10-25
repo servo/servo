@@ -26,7 +26,7 @@ RUN apt-get -qqy update \
     libunwind8 \
     libxcb-shape0-dev \
     locales \
-    openjdk-8-jre-headless \
+    openjdk-17-jre-headless \
     pulseaudio \
     python3 \
     python3-dev \
@@ -80,6 +80,7 @@ RUN useradd test \
          --shell /bin/bash  \
          --create-home \
   && usermod -a -G sudo test \
+  && usermod -a -G kvm test \
   && usermod -a -G libvirt test \
   && usermod -a -G libvirt-qemu test \
   && echo 'ALL ALL = (ALL) NOPASSWD: ALL' >> /etc/sudoers \

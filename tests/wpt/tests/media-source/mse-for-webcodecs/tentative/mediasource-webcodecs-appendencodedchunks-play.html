@@ -3,47 +3,14 @@
   <title>Test basic encoded chunk buffering and playback with MediaSource</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="media-source-webcodecs-util.js"></script>
 <script>
-
 setup(() => {
   assert_implements(
       SourceBuffer.prototype.hasOwnProperty('appendEncodedChunks'),
       'SourceBuffer prototype hasOwnProperty "appendEncodedChunks", used ' +
           'here to feature detect MSE-for-WebCodecs implementation.');
 });
-
-// TODO(crbug.com/1144908): Consider extracting metadata into helper library
-// shared with webcodecs tests. This metadata is adapted from webcodecs/video-decoder-any.js.
-let vp9 = {
-  async buffer() { return (await fetch('vp9.mp4')).arrayBuffer(); },
-  // Note, file might not actually be level 1. See original metadata in webcodecs test suite.
-  codec: "vp09.00.10.08",
-  frames: [{offset: 44, size: 3315, type: 'key'},
-           {offset: 3359, size: 203, type: 'delta'},
-           {offset: 3562, size: 245, type: 'delta'},
-           {offset: 3807, size: 172, type: 'delta'},
-           {offset: 3979, size: 312, type: 'delta'},
-           {offset: 4291, size: 170, type: 'delta'},
-           {offset: 4461, size: 195, type: 'delta'},
-           {offset: 4656, size: 181, type: 'delta'},
-           {offset: 4837, size: 356, type: 'delta'},
-           {offset: 5193, size: 159, type: 'delta'}]
-};
-
-async function getOpenMediaSource(t) {
-  return new Promise(async resolve => {
-    const v = document.createElement('video');
-    document.body.appendChild(v);
-    const mediaSource = new MediaSource();
-    const url = URL.createObjectURL(mediaSource);
-    mediaSource.addEventListener('sourceopen', t.step_func(() => {
-      URL.revokeObjectURL(url);
-      assert_equals(mediaSource.readyState, 'open', 'MediaSource is open');
-      resolve([ v, mediaSource ]);
-    }), { once: true });
-    v.src = url;
-  });
-}
 
 promise_test(async t => {
   let buffer = await vp9.buffer();

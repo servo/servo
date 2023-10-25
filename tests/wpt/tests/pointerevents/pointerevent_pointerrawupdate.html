@@ -14,7 +14,7 @@
     </head>
     <body onload="run()">
         <h2>pointerrawupdate</h2>
-        <h4>Test Description: This test checks if pointerrawupdate is dispatched correctly. </h4>
+        <h4>Test Description: This test checks that pointerrawupdate is not dispatched on non-SecureContext. </h4>
         <p>Move your mouse within the black box.</p>
         <p>Press left button down and then press middle button while holding down left button. Then release the buttons</p>
         <div id="target0"></div>
@@ -36,8 +36,8 @@
                 });
                 on_event(target0, "pointermove", function (event) {
                     test_pointerrawupdate.step(function() {
-                        assert_true(pointerrawupdateReceived,
-                                    "Pointerrawupdate event should have been received before pointermove.");
+                        assert_false(pointerrawupdateReceived,
+                                    "Pointerrawupdate event should not have been received before pointermove.");
                         }, "Pointerrawupdate event should have been received before pointermove.");
                 });
                 on_event(target0, "pointerdown", function (event) {
@@ -45,9 +45,19 @@
                 });
                 on_event(target0, "pointerup", function (event) {
                     test_pointerrawupdate.step(function() {
-                        assert_true(pointerrawupdateFromButtonChangeReceived,
-                                    "Pointerrawupdate event should have been received from chorded button changes.");
+                        assert_false(pointerrawupdateFromButtonChangeReceived,
+                                    "Pointerrawupdate event should not have been received from chorded button changes.");
                         }, "Pointerrawupdate event should have been received from chorded button changes.");
+
+                    test_pointerrawupdate.step(function() {
+                        assert_false("onpointerrawupdate" in window,
+                                    "Window should not have event handler onpointerrawupdate");
+                        assert_false("onpointerrawupdate" in window.document,
+                                    "Document should not have event handler onpointerrawupdate");
+                        assert_false("onpointerrawupdate" in window.document.documentElement,
+                                     "Element should not have event handler onpointerrawupdate");
+                        }, "onpointerrawupdate should be exposed only in SecureContext");
+
                     // Make sure the test finishes after all the input actions are completed.
                     actions_promise.then( () => {
                         test_pointerrawupdate.done();

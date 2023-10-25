@@ -56,7 +56,12 @@ class GitHasher:
         assert self.git is not None
         # note that git runs the command with tests_root as the cwd, which may
         # not be the root of the git repo (e.g., within a browser repo)
-        cmd = ["diff-index", "--relative", "--no-renames", "--name-only", "-z", "HEAD"]
+        #
+        # `git diff-index --relative` without a path still compares all tracked
+        # files before non-WPT files are filtered out, which can be slow in
+        # vendor repos. Explicitly pass the CWD (i.e., `tests_root`) as a path
+        # argument to avoid unnecessary diffing.
+        cmd = ["diff-index", "--relative", "--no-renames", "--name-only", "-z", "HEAD", os.curdir]
         data = self.git(*cmd)
         return set(data.split("\0"))
 

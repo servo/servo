@@ -9,7 +9,7 @@ from typing import Any, Mapping, Optional
 
 from mozlog import structuredlog, capture
 
-from . import mpcontext
+from . import mpcontext, testloader
 
 # Special value used as a sentinal in various commands
 Stop = object()
@@ -253,6 +253,23 @@ class BrowserManager:
         return self.browser.is_alive()
 
 
+class TestSource:
+    def __init__(self, logger: structuredlog.StructuredLogger, test_queue: testloader.ReadQueue):
+        self.logger = logger
+        self.test_queue = test_queue
+        self.current_group = testloader.TestGroup(None, None, None, None)
+
+    def group(self) -> testloader.TestGroup:
+        if not self.current_group.group or len(self.current_group.group) == 0:
+            try:
+                self.current_group = self.test_queue.get()
+                self.logger.debug(f"Got new test group subsuite:{self.current_group[1]} "
+                                  f"test_type:{self.current_group[2]}")
+            except Empty:
+                return testloader.TestGroup(None, None, None, None)
+        return self.current_group
+
+
 class _RunnerManagerState:
     before_init = namedtuple("before_init", [])
     initializing = namedtuple("initializing",
@@ -269,7 +286,7 @@ RunnerManagerState = _RunnerManagerState()
 
 
 class TestRunnerManager(threading.Thread):
-    def __init__(self, suite_name, index, test_queue, test_source_cls,
+    def __init__(self, suite_name, index, test_queue,
                  test_implementations, stop_flag, retry_index=0, rerun=1,
                  pause_after_test=False, pause_on_unexpected=False,
                  restart_on_unexpected=True, debug_info=None,
@@ -290,9 +307,6 @@ class TestRunnerManager(threading.Thread):
           processes
         """
         self.suite_name = suite_name
-
-        self.test_source = test_source_cls(test_queue)
-
         self.manager_number = index
         self.test_implementation_key = None
 
@@ -311,11 +325,9 @@ class TestRunnerManager(threading.Thread):
             else:
                 self.test_implementations[key] = test_implementation
 
-        mp = mpcontext.get_context()
-
         # Flags used to shut down this thread if we get a sigint
         self.parent_stop_flag = stop_flag
-        self.child_stop_flag = mp.Event()
+        self.child_stop_flag = mpcontext.get_context().Event()
 
         # Keep track of the current retry index. The retries are meant to handle
         # flakiness, so at retry round we should restart the browser after each test.
@@ -326,36 +338,31 @@ class TestRunnerManager(threading.Thread):
         self.pause_on_unexpected = pause_on_unexpected
         self.restart_on_unexpected = restart_on_unexpected
         self.debug_info = debug_info
+        self.capture_stdio = capture_stdio
+        self.restart_on_new_group = restart_on_new_group
+        self.max_restarts = max_restarts
 
         assert recording is not None
         self.recording = recording
-
-        self.command_queue = mp.Queue()
-        self.remote_queue = mp.Queue()
-
-        self.test_runner_proc = None
-
-        super().__init__(name=f"TestRunnerManager-{index}")
-        # This is started in the actual new thread
-        self.logger = None
 
         self.test_count = 0
         self.unexpected_fail_tests = defaultdict(list)
         self.unexpected_pass_tests = defaultdict(list)
 
-        # This may not really be what we want
-        self.daemon = True
+        # Properties we initialize right after the thread is started
+        self.logger = None
+        self.test_source = None
+        self.command_queue = None
+        self.remote_queue = None
 
+        # Properties we initalize later in the lifecycle
         self.timer = None
-
-        self.max_restarts = max_restarts
-
+        self.test_runner_proc = None
         self.browser = None
 
-        self.capture_stdio = capture_stdio
-        self.restart_on_new_group = restart_on_new_group
+        super().__init__(name=f"TestRunnerManager-{index}", target=self.run_loop, args=[test_queue], daemon=True)
 
-    def run(self):
+    def run_loop(self, test_queue):
         """Main loop for the TestRunnerManager.
 
         TestRunnerManagers generally receive commands from their
@@ -365,6 +372,13 @@ class TestRunnerManager(threading.Thread):
         spins."""
         self.recording.set(["testrunner", "startup"])
         self.logger = structuredlog.StructuredLogger(self.suite_name)
+
+        self.test_source = TestSource(self.logger, test_queue)
+
+        mp = mpcontext.get_context()
+        self.command_queue = mp.Queue()
+        self.remote_queue = mp.Queue()
+
         dispatch = {
             RunnerManagerState.before_init: self.start_init,
             RunnerManagerState.initializing: self.init,
@@ -682,6 +696,14 @@ class TestRunnerManager(threading.Thread):
             is_unexpected = expected != result.status and result.status not in known_intermittent
             is_expected_notrun = (expected == "NOTRUN" or "NOTRUN" in known_intermittent)
 
+            if not is_unexpected and result.status in ["FAIL", "PRECONDITION_FAILED"]:
+                # subtest is expected FAIL or expected PRECONDITION_FAILED,
+                # change result to unexpected if expected_fail_message does not
+                # match
+                expected_fail_message = test.expected_fail_message(result.name)
+                if expected_fail_message is not None and result.message != expected_fail_message:
+                    is_unexpected = True
+
             if is_unexpected:
                 subtest_unexpected = True
 
@@ -919,7 +941,7 @@ class TestRunnerManager(threading.Thread):
 
 class ManagerGroup:
     """Main thread object that owns all the TestRunnerManager threads."""
-    def __init__(self, suite_name, test_source, test_implementations,
+    def __init__(self, suite_name, test_queue_builder, test_implementations,
                  retry_index=0,
                  rerun=1,
                  pause_after_test=False,
@@ -931,7 +953,7 @@ class ManagerGroup:
                  recording=None,
                  max_restarts=5):
         self.suite_name = suite_name
-        self.test_source = test_source
+        self.test_queue_builder = test_queue_builder
         self.test_implementations = test_implementations
         self.pause_after_test = pause_after_test
         self.pause_on_unexpected = pause_on_unexpected
@@ -959,15 +981,13 @@ class ManagerGroup:
 
     def run(self, tests):
         """Start all managers in the group"""
-        test_queue, size = self.test_source.cls.make_queue(
-            tests, **self.test_source.kwargs)
+        test_queue, size = self.test_queue_builder.make_queue(tests)
         self.logger.info("Using %i child processes" % size)
 
         for idx in range(size):
             manager = TestRunnerManager(self.suite_name,
                                         idx,
                                         test_queue,
-                                        self.test_source.cls,
                                         self.test_implementations,
                                         self.stop_flag,
                                         self.retry_index,
