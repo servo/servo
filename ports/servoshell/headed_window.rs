@@ -92,6 +92,7 @@ impl Window {
         // unstyled content is white and chrome often has a transparent background). See issue
         // #9996.
         let visible = opts.output_file.is_none() && !no_native_titlebar;
+        let fullscreen = opts.fullscreen;
 
         let win_size: DeviceIntSize = (win_size.to_f32() * window_creation_scale_factor()).to_i32();
         let width = win_size.to_untyped().width;
@@ -102,6 +103,7 @@ impl Window {
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
             .with_inner_size(PhysicalSize::new(width as f64, height as f64))
+            .with_maximized(fullscreen)
             .with_visible(visible);
 
         let winit_window = window_builder

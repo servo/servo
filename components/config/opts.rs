@@ -134,6 +134,9 @@ pub struct Opts {
 
     /// True to enable minibrowser
     pub minibrowser: bool,
+
+    /// True to open the window in fullscreen mode
+    pub fullscreen: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -430,6 +433,7 @@ pub fn default_opts() -> Opts {
         local_script_source: None,
         print_pwm: false,
         minibrowser: true,
+        fullscreen: false,
     }
 }
 
@@ -569,6 +573,8 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "",
     );
     opts.optflag("", "no-minibrowser", "Open minibrowser");
+
+    opts.optflag("", "fullscreen", "open the window in fullscreen mode");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -785,6 +791,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         local_script_source: opt_match.opt_str("local-script-source"),
         print_pwm: opt_match.opt_present("print-pwm"),
         minibrowser: !opt_match.opt_present("no-minibrowser"),
+        fullscreen: opt_match.opt_present("fullscreen"),
     };
 
     set_options(opts);
@@ -817,3 +824,4 @@ pub fn set_options(opts: Opts) {
 pub fn get() -> RwLockReadGuard<'static, Opts> {
     OPTIONS.read().unwrap()
 }
+
