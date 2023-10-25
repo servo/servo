@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use ipc_channel::ipc::IpcSender;
 use log::warn;
@@ -139,11 +139,17 @@ where
     if opts::get().debug.signpost {
         signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
-    let start_time = elapsed_since_epoch().as_nanos();
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
 
     let val = callback();
 
-    let end_time = elapsed_since_epoch().as_nanos();
+    let end_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
     if opts::get().debug.signpost {
         signpost::end(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
@@ -166,10 +172,4 @@ pub fn send_profile_data(
     end_time: u64,
 ) {
     profiler_chan.send(ProfilerMsg::Time((category, meta), (start_time, end_time)));
-}
-
-pub(crate) fn elapsed_since_epoch() -> Duration {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
 }
