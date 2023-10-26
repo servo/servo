@@ -19,7 +19,5 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("cargo:rustc-cfg=servo_do_not_use_in_production");
     }
 
-    gst_plugin_version_helper::get_info();
-
     Ok(())
 }

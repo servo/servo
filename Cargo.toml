@@ -96,9 +96,14 @@ xml5ever = "0.17"
 
 [profile.release]
 opt-level = 3
+debug-assertions = true
 # Uncomment to profile on Linux:
 # debug = true
 # lto = false
+
+[profile.production]
+inherits = "release"
+debug-assertions = false
 
 [patch.crates-io]
 # If you need to temporarily test Servo with a local fork of some upstream

@@ -3,6 +3,9 @@ name: Mac
 on:
   workflow_call:
     inputs:
+      production:
+        required: false
+        type: boolean
       wpt-layout:
         required: false
         type: string
@@ -19,6 +22,9 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      production:
+        required: false
+        type: boolean
       wpt-layout:
         required: false
         type: choice
@@ -35,6 +41,8 @@ on:
     branches: ["try-mac", "try-wpt-mac", "try-wpt-mac-2020"]
 
 env:
+  cargo_profile_option: ${{ inputs.production && '--profile production' || '--release' }}
+  cargo_profile_name: ${{ inputs.production && 'production' || 'release' }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   SCCACHE_GHA_ENABLED: "true"
@@ -70,21 +78,21 @@ jobs:
           python3 -m pip install --upgrade pip virtualenv
           python3 ./mach bootstrap
           brew install gnu-tar
-      - name: Release build
+      - name: Release build (${{ inputs.production && 'without' || 'with' }} debug assertions)
         run: |
-          python3 ./mach build --release
+          python3 ./mach build ${cargo_profile_option}
       - name: Smoketest
-        run: python3 ./mach smoketest --release
+        run: python3 ./mach smoketest ${cargo_profile_option}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-mac' }}
         timeout-minutes: 30 # https://github.com/servo/servo/issues/30275
-        run: python3 ./mach test-unit --release
-      - name: Package
-        run: python3 ./mach package --release
-      - name: Package smoketest
-        run: ./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg
+        run: python3 ./mach test-unit ${cargo_profile_option}
+      - name: Build mach package
+        run: python3 ./mach package ${cargo_profile_option}
+      - name: Run smoketest for mach package
+        run: ./etc/ci/macos_package_smoketest.sh target/${cargo_profile_name}/servo-tech-demo.dmg
       - name: Rename build timing
         run: cp -r target/cargo-timings target/cargo-timings-macos
       - name: Archive build timing
@@ -93,12 +101,12 @@ jobs:
           name: cargo-timings
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
-      - name: Upload package
+      - name: Upload artifact for mach package
         uses: actions/upload-artifact@v3
         with:
           name: mac
-          path: target/release/servo-tech-demo.dmg
-      - name: Upload
+          path: target/${cargo_profile_name}/servo-tech-demo.dmg
+      - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
           python3 ./mach upload-nightly mac --secret-from-environment \
@@ -108,9 +116,9 @@ jobs:
           GITHUB_HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TOKEN }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
-      - name: Package binary
-        run: gtar -czf target.tar.gz target/release/servo target/release/*.dylib target/release/lib/*.dylib resources
-      - name: Archive binary
+      - name: Build package for target
+        run: gtar -czf target.tar.gz target/${cargo_profile_name}/servo target/${cargo_profile_name}/*.dylib target/${cargo_profile_name}/lib/*.dylib resources
+      - name: Upload package for target
         uses: actions/upload-artifact@v3
         with:
           name: release-binary-macos
@@ -122,6 +130,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
+      production: ${{ inputs.production }}
       layout: "layout-2020"
 
   wpt-2013:
@@ -130,6 +139,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
+      production: ${{ inputs.production }}
       layout: "layout-2013"
 
   result:

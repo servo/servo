@@ -2,6 +2,9 @@ name: Linux WPT Tests
 on:
   workflow_call:
     inputs:
+      production:
+        required: false
+        type: boolean
       wpt:
         required: false
         type: string
@@ -10,6 +13,7 @@ on:
         type: string
 
 env:
+  cargo_profile_option: ${{ inputs.production && '--profile production' || '--release' }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   WPT_COMMAND_LINE_ARG: "${{ inputs.layout == 'layout-2013' && '--legacy-layout' || '' }}"
@@ -67,7 +71,7 @@ jobs:
         if: ${{ inputs.wpt != 'sync' }}
         run: |
           python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
-            --release --processes $(nproc) --timeout-multiplier 2 \
+            ${cargo_profile_option} --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
             --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \
@@ -79,7 +83,7 @@ jobs:
         if: ${{ inputs.wpt == 'sync' }}
         run: |
           python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
-            --release --processes $(nproc) --timeout-multiplier 2 \
+            ${cargo_profile_option} --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
             --always-succeed

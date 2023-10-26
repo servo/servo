@@ -71,6 +71,7 @@ jobs:
             }
 
             let returnValue =  {
+              production: false,
               platforms,
               layout,
               unit_tests,
@@ -85,6 +86,7 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'windows') }}
     uses: ./.github/workflows/windows.yml
     with:
+      production: ${{ fromJson(needs.decision.outputs.configuration).production }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
 
   build-mac:
@@ -93,6 +95,7 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'macos') }}
     uses: ./.github/workflows/mac.yml
     with:
+      production: ${{ fromJson(needs.decision.outputs.configuration).production }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
 
   build-linux:
@@ -101,6 +104,7 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'linux') }}
     uses: ./.github/workflows/linux.yml
     with:
+      production: ${{ fromJson(needs.decision.outputs.configuration).production }}
       wpt: 'test'
       layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}

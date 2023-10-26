@@ -62,8 +62,12 @@ class MachCommands(CommandBase):
         opts = params or []
         has_media_stack = "media-gstreamer" in self.features
 
-        if build_type == BuildType.RELEASE:
+        if build_type.is_release():
             opts += ["--release"]
+        elif build_type.is_dev():
+            pass  # there is no argument for debug
+        else:
+            opts += ["--profile", build_type.profile]
 
         if jobs is not None:
             opts += ["-j", jobs]
