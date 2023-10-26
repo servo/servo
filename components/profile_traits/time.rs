@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
-use time::precise_time_ns;
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct TimerMetadata {
@@ -138,16 +139,28 @@ where
     if opts::get().debug.signpost {
         signpost::start(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
-    let start_time = precise_time_ns();
+    let start_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
 
     let val = callback();
 
-    let end_time = precise_time_ns();
+    let end_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
     if opts::get().debug.signpost {
         signpost::end(category as u32, &[0, 0, 0, (category as usize) >> 4]);
     }
 
-    send_profile_data(category, meta, &profiler_chan, start_time, end_time);
+    send_profile_data(
+        category,
+        meta,
+        &profiler_chan,
+        start_time as u64,
+        end_time as u64,
+    );
     val
 }
 

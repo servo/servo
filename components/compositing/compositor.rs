@@ -8,6 +8,7 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use canvas::canvas_paint_thread::ImageUpdate;
 use compositing_traits::{
@@ -42,7 +43,6 @@ use script_traits::{
 };
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
-use time::{now, precise_time_ns, precise_time_s};
 use webrender;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
@@ -1753,7 +1753,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // we get the current time, inform the layout thread about it and remove the
         // pending metric from the list.
         if !self.pending_paint_metrics.is_empty() {
-            let paint_time = precise_time_ns();
+            let paint_time = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos() as u64;
             let mut to_remove = Vec::new();
             // For each pending paint metrics pipeline id
             for (id, pending_epoch) in &self.pending_paint_metrics {
@@ -1974,8 +1977,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             return false;
         }
 
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as f64;
         // If a pinch-zoom happened recently, ask for tiles at the new resolution
-        if self.zoom_action && precise_time_s() - self.zoom_time > 0.3 {
+        if self.zoom_action && now - self.zoom_time > 0.3 {
             self.zoom_action = false;
         }
 
@@ -2055,7 +2062,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn capture_webrender(&mut self) {
-        let capture_id = now().to_timespec().sec.to_string();
+        let capture_id = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+            .to_string();
         let available_path = [env::current_dir(), Ok(env::temp_dir())]
             .iter()
             .filter_map(|val| {
