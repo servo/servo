@@ -749,12 +749,24 @@ pub fn entries_to_matrix(entries: &[f64]) -> Fallible<(bool, Transform3D<f64>)> 
 // https://drafts.fxtf.org/geometry-1/#validate-and-fixup
 pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)> {
     // Step 1.
-    if dict.a.is_some() && dict.m11.is_some() && dict.a.unwrap() != dict.m11.unwrap() ||
-        dict.b.is_some() && dict.m12.is_some() && dict.b.unwrap() != dict.m12.unwrap() ||
-        dict.c.is_some() && dict.m21.is_some() && dict.c.unwrap() != dict.m21.unwrap() ||
-        dict.d.is_some() && dict.m22.is_some() && dict.d.unwrap() != dict.m22.unwrap() ||
-        dict.e.is_some() && dict.m41.is_some() && dict.e.unwrap() != dict.m41.unwrap() ||
-        dict.f.is_some() && dict.m42.is_some() && dict.f.unwrap() != dict.m42.unwrap() ||
+    if dict.parent.a.is_some() &&
+        dict.parent.m11.is_some() &&
+        dict.parent.a.unwrap() != dict.parent.m11.unwrap() ||
+        dict.parent.b.is_some() &&
+            dict.parent.m12.is_some() &&
+            dict.parent.b.unwrap() != dict.parent.m12.unwrap() ||
+        dict.parent.c.is_some() &&
+            dict.parent.m21.is_some() &&
+            dict.parent.c.unwrap() != dict.parent.m21.unwrap() ||
+        dict.parent.d.is_some() &&
+            dict.parent.m22.is_some() &&
+            dict.parent.d.unwrap() != dict.parent.m22.unwrap() ||
+        dict.parent.e.is_some() &&
+            dict.parent.m41.is_some() &&
+            dict.parent.e.unwrap() != dict.parent.m41.unwrap() ||
+        dict.parent.f.is_some() &&
+            dict.parent.m42.is_some() &&
+            dict.parent.f.unwrap() != dict.parent.m42.unwrap() ||
         dict.is2D.is_some() &&
             dict.is2D.unwrap() &&
             (dict.m31 != 0.0 ||
@@ -772,17 +784,17 @@ pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Transfor
     } else {
         let mut is_2d = dict.is2D;
         // Step 2.
-        let m11 = dict.m11.unwrap_or(dict.a.unwrap_or(1.0));
+        let m11 = dict.parent.m11.unwrap_or(dict.parent.a.unwrap_or(1.0));
         // Step 3.
-        let m12 = dict.m12.unwrap_or(dict.b.unwrap_or(0.0));
+        let m12 = dict.parent.m12.unwrap_or(dict.parent.b.unwrap_or(0.0));
         // Step 4.
-        let m21 = dict.m21.unwrap_or(dict.c.unwrap_or(0.0));
+        let m21 = dict.parent.m21.unwrap_or(dict.parent.c.unwrap_or(0.0));
         // Step 5.
-        let m22 = dict.m22.unwrap_or(dict.d.unwrap_or(1.0));
+        let m22 = dict.parent.m22.unwrap_or(dict.parent.d.unwrap_or(1.0));
         // Step 6.
-        let m41 = dict.m41.unwrap_or(dict.e.unwrap_or(0.0));
+        let m41 = dict.parent.m41.unwrap_or(dict.parent.e.unwrap_or(0.0));
         // Step 7.
-        let m42 = dict.m42.unwrap_or(dict.f.unwrap_or(0.0));
+        let m42 = dict.parent.m42.unwrap_or(dict.parent.f.unwrap_or(0.0));
         // Step 8.
         if is_2d.is_none() &&
             (dict.m31 != 0.0 ||
