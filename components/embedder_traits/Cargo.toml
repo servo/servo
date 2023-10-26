@@ -11,6 +11,7 @@ name = "embedder_traits"
 path = "lib.rs"
 
 [dependencies]
+cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }

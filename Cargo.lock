@@ -1533,6 +1533,7 @@ dependencies = [
 name = "embedder_traits"
 version = "0.0.1"
 dependencies = [
+ "cfg-if 1.0.0",
  "crossbeam-channel",
  "ipc-channel",
  "keyboard-types",
@@ -5112,6 +5113,7 @@ dependencies = [
 name = "servo-gst-plugin"
 version = "0.0.1"
 dependencies = [
+ "cfg-if 1.0.0",
  "crossbeam-channel",
  "euclid",
  "glib",

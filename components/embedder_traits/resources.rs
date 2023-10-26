@@ -5,15 +5,21 @@
 use std::path::PathBuf;
 use std::sync::RwLock;
 
+use cfg_if::cfg_if;
 use lazy_static::lazy_static;
 
 lazy_static! {
     static ref RES: RwLock<Option<Box<dyn ResourceReaderMethods + Sync + Send>>> = {
-        if cfg!(servo_production) {
-            RwLock::new(None)
-        } else {
-            const _: () = assert!(cfg!(servo_do_not_use_in_production));
-            RwLock::new(Some(resources_for_tests()))
+        cfg_if! {
+            if #[cfg(servo_production)] {
+                RwLock::new(None)
+            } else {
+                // Static assert that this is really a non-production build, rather
+                // than a failure of the build script’s production check.
+                const _: () = assert!(cfg!(servo_do_not_use_in_production));
+
+                RwLock::new(Some(resources_for_tests()))
+            }
         }
     };
 }
