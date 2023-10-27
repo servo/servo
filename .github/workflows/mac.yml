@@ -9,6 +9,9 @@ on:
       wpt-layout:
         required: false
         type: string
+      tests:
+        required: false
+        type: string
       unit-tests:
         required: false
         default: false
@@ -25,6 +28,9 @@ on:
       production:
         required: false
         type: boolean
+      tests:
+        required: false
+        type: string
       wpt-layout:
         required: false
         type: choice
@@ -132,6 +138,7 @@ jobs:
     with:
       production: ${{ inputs.production }}
       layout: "layout-2020"
+      tests: ${{ inputs.tests }}
 
   wpt-2013:
     if: ${{ github.ref_name == 'try-wpt-mac' || inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
@@ -141,6 +148,7 @@ jobs:
     with:
       production: ${{ inputs.production }}
       layout: "layout-2013"
+      tests: ${{ inputs.tests }}
 
   result:
     name: Result

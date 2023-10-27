@@ -6,6 +6,9 @@ on:
       production:
         required: false
         type: boolean
+      tests:
+        required: false
+        type: string
       layout:
         required: true
         type: string
@@ -50,8 +53,8 @@ jobs:
         run: python3 ./mach smoketest ${cargo_profile_option}
       - name: Run tests
         run: |
-          python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
-            ${cargo_profile_option} --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
+          python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG ${cargo_profile_option} \
+            --processes $(sysctl -n hw.logicalcpu) ${{ inputs.tests }} --timeout-multiplier 8 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
             --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \
