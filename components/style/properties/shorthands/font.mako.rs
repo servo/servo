@@ -38,9 +38,9 @@
     use crate::properties::longhands::font_variant_caps;
     use crate::values::specified::text::LineHeight;
     use crate::values::specified::FontSize;
-    use crate::values::specified::font::{FontPalette, FontStretch, FontStretchKeyword};
+    use crate::values::specified::font::{FontStretch, FontStretchKeyword};
     #[cfg(feature = "gecko")]
-    use crate::values::specified::font::SystemFont;
+    use crate::values::specified::font::{FontPalette, SystemFont};
 
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
