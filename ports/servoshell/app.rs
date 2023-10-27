@@ -40,13 +40,15 @@ pub struct App {
 
 /// Action to be taken by the caller of [`App::handle_events`].
 enum PumpResult {
-    /// The caller should shutdown Servo and its related contexnt.
+    /// The caller should shut down Servo and its related context.
     Shutdown,
     /// A new frame is ready to present. The caller can paint other things themselves during this
-    /// period, but has to call [`Servo::present`] to tell Servo compositor continue rendering.
+    /// period, but has to call [`Servo::present`] to perform page flip and tell Servo compositor
+    /// to continue rendering.
     ReadyToPresent,
     /// The size has changed. The caller can paint other things themselves during this
-    /// period, but has to call [`Servo::present`] to tell Servo compositor continue rendering.
+    /// period, but has to call [`Servo::present`] to perform page flip and tell Servo compositor
+    /// to continue rendering.
     Resize,
 }
 

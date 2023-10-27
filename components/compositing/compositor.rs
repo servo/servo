@@ -1850,7 +1850,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             _ => None,
         };
 
-        // Perform the page flip. Nottify embedder that servo is ready to present.
+        // Nottify embedder that servo is ready to present.
         // Embedder should call `present` to tell compositor to continue rendering.
         self.waiting_on_present = true;
         let msg = ConstellationMsg::ReadyToPresent(
