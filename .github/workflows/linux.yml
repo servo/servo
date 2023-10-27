@@ -11,6 +11,9 @@ on:
       tests:
         required: false
         type: string
+      webgpu:
+        required: false
+        type: boolean
       layout:
         required: false
         type: string
@@ -37,6 +40,9 @@ on:
       tests:
         required: false
         type: string
+      webgpu:
+        required: false
+        type: boolean
       layout:
         required: false
         type: choice
@@ -50,7 +56,7 @@ on:
         default: false
         type: boolean
   push:
-    branches: ["try-linux", "try-wpt", "try-wpt-2020"]
+    branches: ["try-linux", "try-wpt", "try-wpt-2020", "try-webgpu"]
 
 env:
   cargo_profile_option: ${{ inputs.production && '--profile production' || '--release' }}
@@ -139,6 +145,16 @@ jobs:
           name: release-binary
           path: target.tar.gz
 
+  wpt-webgpu:
+    if: ${{ github.ref_name == 'try-webgpu' || inputs.webgpu }}
+    name: Linux WebGPU Tests
+    needs: ["build"]
+    uses: ./.github/workflows/linux-wpt.yml
+    with:
+      production: ${{ inputs.production }}
+      tests: "_webgpu"
+      layout: "layout-2020"
+
   wpt-2020:
     if: ${{ github.ref_name == 'try-wpt-2020' || inputs.layout == '2020' || inputs.layout == 'all' }}
     name: Linux WPT Tests 2020
@@ -170,6 +186,7 @@ jobs:
       - "build"
       - "wpt-2020"
       - "wpt-2013"
+      - "wpt-webgpu"
 
     steps:
       - name: Mark the job as successful

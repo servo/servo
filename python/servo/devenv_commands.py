@@ -32,7 +32,8 @@ VALID_TRY_BRACHES = [
     "try-wpt",
     "try-wpt-2020",
     "try-wpt-mac",
-    "try-wpt-mac-2020"
+    "try-wpt-mac-2020",
+    "try-webgpu",
 ]
 
 

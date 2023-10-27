@@ -29,6 +29,9 @@ on:
       unit-tests:
         required: false
         type: boolean
+      webgpu:
+        required: false
+        type: boolean
 
 jobs:
   decision:
@@ -61,6 +64,7 @@ jobs:
               platform = "all";
               layout = "all";
               unit_tests = true;
+              webgpu = false;
             }
 
             let platforms = [];
@@ -75,7 +79,17 @@ jobs:
               platforms,
               layout,
               unit_tests,
+              webgpu: ${{ inputs.webgpu && 'true' || 'false' }},
             };
+
+            if (context.eventName.startsWith("pull_request")) {
+              for (const label of context.payload.pull_request.labels) {
+                // handle webgpu label
+                if (label.name == "A-content/webgpu") {
+                  returnValue.webgpu = true;
+                }
+              }
+            }
 
             console.log("Using configuration: " + JSON.stringify(returnValue));
             return returnValue;
@@ -107,6 +121,7 @@ jobs:
       production: ${{ fromJson(needs.decision.outputs.configuration).production }}
       layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+      webgpu: ${{ fromJson(needs.decision.outputs.configuration).webgpu }}
 
   build-result:
     name: Result

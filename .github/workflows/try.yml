@@ -85,11 +85,17 @@ jobs:
               platforms: [],
               layout: "none",
               unit_tests: false,
+              webgpu: false,
             };
 
             if (context.eventName == "pull_request_target") {
               let try_labels = [];
               for (const label of context.payload.pull_request.labels) {
+                // handle webgpu label
+                if (label.name == "A-content/webgpu") {
+                  configuration.webgpu = true;
+                }
+
                 if (!label.name.startsWith("T-")) {
                   continue;
                 }
