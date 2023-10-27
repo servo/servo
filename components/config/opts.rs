@@ -560,7 +560,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     opts.optopt(
         "",
         "config-dir",
-        "config directory following xdg spec on linux platform",
+        "Config directory following xdg spec on linux platform",
         "",
     );
     opts.optflag("v", "version", "Display servo version information");
@@ -573,8 +573,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "",
     );
     opts.optflag("", "no-minibrowser", "Open minibrowser");
-
-    opts.optflag("", "fullscreen", "open the window in fullscreen mode");
+    opts.optflag("", "fullscreen", "Open the window in fullscreen mode");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -824,4 +823,3 @@ pub fn set_options(opts: Opts) {
 pub fn get() -> RwLockReadGuard<'static, Opts> {
     OPTIONS.read().unwrap()
 }
-
