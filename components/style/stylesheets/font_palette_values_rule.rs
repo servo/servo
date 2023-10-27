@@ -8,11 +8,14 @@
 
 use crate::error_reporting::ContextualParseError;
 use crate::parser::{Parse, ParserContext};
-use crate::gecko_bindings::bindings::Gecko_AppendPaletteValueHashEntry;
-use crate::gecko_bindings::bindings::{Gecko_SetFontPaletteBase, Gecko_SetFontPaletteOverride};
-use crate::gecko_bindings::structs::gfx::FontPaletteValueSet;
-use crate::gecko_bindings::structs::gfx::FontPaletteValueSet_PaletteValues_kLight;
-use crate::gecko_bindings::structs::gfx::FontPaletteValueSet_PaletteValues_kDark;
+#[cfg(feature = "gecko")]
+use crate::gecko_bindings::{
+    bindings::Gecko_AppendPaletteValueHashEntry,
+    bindings::{Gecko_SetFontPaletteBase, Gecko_SetFontPaletteOverride},
+    structs::gfx::FontPaletteValueSet,
+    structs::gfx::FontPaletteValueSet_PaletteValues_kDark,
+    structs::gfx::FontPaletteValueSet_PaletteValues_kLight,
+};
 use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::values::computed::font::FamilyName;
@@ -159,6 +162,7 @@ impl FontPaletteValuesRule {
     }
 
     /// Convert to Gecko FontPaletteValueSet.
+    #[cfg(feature = "gecko")]
     pub fn to_gecko_palette_value_set(&self, dest: *mut FontPaletteValueSet) {
         for ref family in self.family_names.iter() {
             let family = family.name.to_ascii_lowercase();
