@@ -503,6 +503,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 let family_names = parse_family_name_list(self.context, input)?;
                 AtRulePrelude::FontFeatureValues(family_names)
             },
+            #[cfg(feature = "gecko")]
             "font-palette-values" if static_prefs::pref!("layout.css.font-palette.enabled") => {
                 let name = DashedIdent::parse(self.context, input)?;
                 AtRulePrelude::FontPaletteValues(name)

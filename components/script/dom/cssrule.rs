@@ -105,6 +105,7 @@ impl CSSRule {
             StyleCssRule::Viewport(_) => unimplemented!(),  // TODO
             StyleCssRule::LayerBlock(_) => unimplemented!(), // TODO
             StyleCssRule::LayerStatement(_) => unimplemented!(), // TODO
+            StyleCssRule::FontPaletteValues(_) => unimplemented!(), // TODO
         }
     }
 
