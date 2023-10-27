@@ -3,8 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-#[allow(unused_imports)]
-use std::marker::PhantomData;
 use std::mem;
 use std::sync::{Arc, Mutex};
 
