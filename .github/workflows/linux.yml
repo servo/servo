@@ -5,9 +5,9 @@ on:
       production:
         required: false
         type: boolean
-      wpt:
+      wpt-sync:
         required: false
-        type: string
+        type: boolean
       layout:
         required: false
         type: string
@@ -27,11 +27,10 @@ on:
       production:
         required: false
         type: boolean
-      wpt:
-        default: "test"
+      wpt-sync:
+        default: false
         required: false
-        type: choice
-        options: ["test", "sync"]
+        type: boolean
       layout:
         required: false
         type: choice
@@ -141,7 +140,7 @@ jobs:
     uses: ./.github/workflows/linux-wpt.yml
     with:
       production: ${{ inputs.production }}
-      wpt: ${{ inputs.wpt }}
+      wpt-sync: ${{ inputs.wpt-sync }}
       layout: "layout-2020"
 
   wpt-2013:
@@ -151,7 +150,7 @@ jobs:
     uses: ./.github/workflows/linux-wpt.yml
     with:
       production: ${{ inputs.production }}
-      wpt: ${{ inputs.wpt }}
+      wpt-sync: ${{ inputs.wpt-sync }}
       layout: "layout-2013"
 
   result:

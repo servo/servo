@@ -105,7 +105,6 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       production: ${{ fromJson(needs.decision.outputs.configuration).production }}
-      wpt: 'test'
       layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
 
