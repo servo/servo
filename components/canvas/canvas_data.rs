@@ -247,23 +247,10 @@ pub trait GenericDrawTarget {
         source: Rect<i32>,
         destination: Point2D<i32>,
     );
-    fn create_gradient_stops(
-        &self,
-        gradient_stops: Vec<GradientStop>,
-        extend_mode: ExtendMode,
-    ) -> GradientStops;
+    fn create_gradient_stops(&self, gradient_stops: Vec<GradientStop>) -> GradientStops;
     fn create_path_builder(&self) -> Box<dyn GenericPathBuilder>;
-    fn create_similar_draw_target(
-        &self,
-        size: &Size2D<i32>,
-        format: SurfaceFormat,
-    ) -> Box<dyn GenericDrawTarget>;
-    fn create_source_surface_from_data(
-        &self,
-        data: &[u8],
-        size: Size2D<i32>,
-        stride: i32,
-    ) -> Option<SourceSurface>;
+    fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Box<dyn GenericDrawTarget>;
+    fn create_source_surface_from_data(&self, data: &[u8]) -> Option<SourceSurface>;
     fn draw_surface(
         &mut self,
         surface: SourceSurface,
@@ -292,7 +279,6 @@ pub trait GenericDrawTarget {
         draw_options: &DrawOptions,
     );
     fn fill_rect(&mut self, rect: &Rect<f32>, pattern: Pattern, draw_options: Option<&DrawOptions>);
-    fn get_format(&self) -> SurfaceFormat;
     fn get_size(&self) -> Size2D<i32>;
     fn get_transform(&self) -> Transform2D<f32>;
     fn pop_clip(&mut self);
@@ -325,11 +311,6 @@ pub trait GenericDrawTarget {
     fn snapshot_data_owned(&self) -> Vec<u8>;
 }
 
-#[derive(Clone)]
-pub enum ExtendMode {
-    Raqote(()),
-}
-
 pub enum GradientStop {
     Raqote(raqote::GradientStop),
 }
@@ -348,10 +329,6 @@ pub enum CompositionOp {
     Raqote(raqote::BlendMode),
 }
 
-pub enum SurfaceFormat {
-    Raqote(()),
-}
-
 #[derive(Clone)]
 pub enum SourceSurface {
     Raqote(Vec<u8>), // TODO: See if we can avoid the alloc (probably?)
@@ -367,24 +344,20 @@ pub enum Pattern<'a> {
     Raqote(crate::raqote_backend::Pattern<'a>),
 }
 
-pub enum DrawSurfaceOptions {
-    Raqote(()),
-}
-
 #[derive(Clone)]
 pub enum DrawOptions {
     Raqote(raqote::DrawOptions),
 }
 
 #[derive(Clone)]
-pub enum StrokeOptions<'a> {
-    Raqote(raqote::StrokeStyle, PhantomData<&'a ()>),
+pub enum StrokeOptions {
+    Raqote(raqote::StrokeStyle),
 }
 
 #[derive(Clone, Copy)]
 pub enum Filter {
-    Linear,
-    Point,
+    Bilinear,
+    Nearest,
 }
 
 pub(crate) type CanvasFontContext = FontContext<FontCacheThread>;
@@ -1162,11 +1135,7 @@ impl<'a> CanvasData<'a> {
         pixels::rgba8_byte_swap_and_premultiply_inplace(&mut imagedata);
         let source_surface = self
             .drawtarget
-            .create_source_surface_from_data(
-                &imagedata,
-                rect.size.to_i32(),
-                rect.size.width as i32 * 4,
-            )
+            .create_source_surface_from_data(&imagedata)
             .unwrap();
         self.drawtarget.copy_surface(
             source_surface,
@@ -1212,13 +1181,10 @@ impl<'a> CanvasData<'a> {
     }
 
     fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> Box<dyn GenericDrawTarget> {
-        let mut draw_target = self.drawtarget.create_similar_draw_target(
-            &Size2D::new(
-                source_rect.size.width as i32,
-                source_rect.size.height as i32,
-            ),
-            self.drawtarget.get_format(),
-        );
+        let mut draw_target = self.drawtarget.create_similar_draw_target(&Size2D::new(
+            source_rect.size.width as i32,
+            source_rect.size.height as i32,
+        ));
         let matrix = self.state.transform.then(
             &Transform2D::identity().pre_translate(-source_rect.origin.to_vector().cast::<f32>()),
         );
@@ -1290,7 +1256,7 @@ pub struct CanvasPaintState<'a> {
     pub draw_options: DrawOptions,
     pub fill_style: Pattern<'a>,
     pub stroke_style: Pattern<'a>,
-    pub stroke_opts: StrokeOptions<'a>,
+    pub stroke_opts: StrokeOptions,
     /// The current 2D transform matrix.
     pub transform: Transform2D<f32>,
     pub shadow_offset_x: f64,
@@ -1333,14 +1299,13 @@ fn write_image(
     // to apply a smoothing algorithm to the image data when it is scaled.
     // Otherwise, the image must be rendered using nearest-neighbor interpolation.
     let filter = if smoothing_enabled {
-        Filter::Linear
+        Filter::Bilinear
     } else {
-        Filter::Point
+        Filter::Nearest
     };
-    let image_size = image_size.to_i32();
 
     let source_surface = draw_target
-        .create_source_surface_from_data(&image_data, image_size, image_size.width * 4)
+        .create_source_surface_from_data(&image_data)
         .unwrap();
 
     draw_target.draw_surface(source_surface, dest_rect, image_rect, filter, draw_options);
