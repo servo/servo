@@ -47,22 +47,22 @@ sys.path.append(path.join(path.dirname(__file__), "..", "..",
 
 PACKAGES = {
     'android': [
-        'android/armv7-linux-androideabi/release/servoapp.apk',
-        'android/armv7-linux-androideabi/release/servoview.aar',
+        'android/armv7-linux-androideabi/production/servoapp.apk',
+        'android/armv7-linux-androideabi/production/servoview.aar',
     ],
     'linux': [
-        'release/servo-tech-demo.tar.gz',
+        'production/servo-tech-demo.tar.gz',
     ],
     'mac': [
-        'release/servo-tech-demo.dmg',
+        'production/servo-tech-demo.dmg',
     ],
     'maven': [
         'android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
         'android/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
     ],
     'windows-msvc': [
-        r'release\msi\Servo.exe',
-        r'release\msi\Servo.zip',
+        r'production\msi\Servo.exe',
+        r'production\msi\Servo.zip',
     ],
 }
 
