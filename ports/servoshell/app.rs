@@ -40,8 +40,13 @@ pub struct App {
 
 /// Action to be taken by the caller of [`App::handle_events`].
 enum PumpResult {
+    /// The caller should shutdown Servo and its related contexnt.
     Shutdown,
+    /// A new frame is ready to present. The caller can paint other things themselves during this
+    /// period, but has to call [`Servo::present`] to tell Servo compositor continue rendering.
     ReadyToPresent,
+    /// The size has changed. The caller can paint other things themselves during this
+    /// period, but has to call [`Servo::present`] to tell Servo compositor continue rendering.
     Resize,
 }
 
@@ -166,7 +171,6 @@ impl App {
 
                     let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
                     let mut servo = servo_data.servo;
-                    servo.set_external_present(app.minibrowser.is_some());
 
                     servo.handle_events(vec![EmbedderEvent::NewBrowser(
                         initial_url.to_owned(),
