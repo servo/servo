@@ -5,6 +5,7 @@ on:
     inputs:
       production:
         required: false
+        default: false
         type: boolean
       wpt-layout:
         required: false
@@ -24,6 +25,7 @@ on:
     inputs:
       production:
         required: false
+        default: false
         type: boolean
       wpt-layout:
         required: false
@@ -130,7 +132,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
-      production: ${{ inputs.production }}
+      production: ${{ inputs.production == 'true' }}
       layout: "layout-2020"
 
   wpt-2013:
@@ -139,7 +141,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
-      production: ${{ inputs.production }}
+      production: ${{ inputs.production == 'true' }}
       layout: "layout-2013"
 
   result:
