@@ -6,8 +6,8 @@ use std::default::Default;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::SystemTime;
 
+use chrono::Utc;
 use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
@@ -168,10 +168,7 @@ impl WorkerGlobalScope {
             navigator: Default::default(),
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver,
-            navigation_start_precise: SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos() as u64,
+            navigation_start_precise: Utc::now().timestamp_nanos_opt().unwrap_or_default() as u64,
             performance: Default::default(),
         }
     }
