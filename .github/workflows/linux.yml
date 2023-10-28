@@ -151,7 +151,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
-      production: ${{ inputs.production }}
+      production: ${{ inputs.production == 'true' }}
       tests: "_webgpu"
       layout: "layout-2020"
 
@@ -161,8 +161,8 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
-      production: ${{ inputs.production }}
-      wpt-sync: ${{ inputs.wpt-sync }}
+      production: ${{ inputs.production == 'true' }}
+      wpt-sync: ${{ inputs.wpt-sync == 'true' }}
       tests: ${{ inputs.tests }}
       layout: "layout-2020"
 
@@ -172,8 +172,8 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
-      production: ${{ inputs.production }}
-      wpt-sync: ${{ inputs.wpt-sync }}
+      production: ${{ inputs.production == 'true' }}
+      wpt-sync: ${{ inputs.wpt-sync == 'true' }}
       tests: ${{ inputs.tests }}
       layout: "layout-2013"
 

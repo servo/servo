@@ -136,7 +136,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
-      production: ${{ inputs.production }}
+      production: ${{ inputs.production == 'true' }}
       layout: "layout-2020"
       tests: ${{ inputs.tests }}
 
@@ -146,7 +146,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
-      production: ${{ inputs.production }}
+      production: ${{ inputs.production == 'true' }}
       layout: "layout-2013"
       tests: ${{ inputs.tests }}
 
