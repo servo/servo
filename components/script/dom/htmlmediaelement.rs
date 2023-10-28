@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, SystemTime};
 use std::{f64, mem};
 
 use dom_struct::dom_struct;
@@ -33,7 +34,6 @@ use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
 use servo_media::player::{PlaybackState, Player, PlayerError, PlayerEvent, SeekLock, StreamType};
 use servo_media::{ClientContextId, ServoMedia, SupportsMediaType};
 use servo_url::ServoUrl;
-use time::{self, Duration, Timespec};
 use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageData,
     ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
@@ -378,8 +378,7 @@ pub struct HTMLMediaElement {
     text_tracks_list: MutNullableDom<TextTrackList>,
     /// Time of last timeupdate notification.
     #[ignore_malloc_size_of = "Defined in time"]
-    #[no_trace]
-    next_timeupdate_event: Cell<Timespec>,
+    next_timeupdate_event: Cell<SystemTime>,
     /// Latest fetch request context.
     current_fetch_context: DomRefCell<Option<HTMLMediaElementFetchContext>>,
     /// Player Id reported the player thread
@@ -452,7 +451,7 @@ impl HTMLMediaElement {
             audio_tracks_list: Default::default(),
             video_tracks_list: Default::default(),
             text_tracks_list: Default::default(),
-            next_timeupdate_event: Cell::new(time::get_time() + Duration::milliseconds(250)),
+            next_timeupdate_event: Cell::new(SystemTime::now() + Duration::from_millis(250)),
             current_fetch_context: DomRefCell::new(None),
             id: Cell::new(0),
             media_controls_id: DomRefCell::new(None),
@@ -502,14 +501,14 @@ impl HTMLMediaElement {
     /// https://html.spec.whatwg.org/multipage/#time-marches-on
     fn time_marches_on(&self) {
         // Step 6.
-        if time::get_time() > self.next_timeupdate_event.get() {
+        if SystemTime::now() > self.next_timeupdate_event.get() {
             let window = window_from_node(self);
             window
                 .task_manager()
                 .media_element_task_source()
                 .queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
             self.next_timeupdate_event
-                .set(time::get_time() + Duration::milliseconds(350));
+                .set(SystemTime::now() + Duration::from_millis(350));
         }
     }
 
@@ -2602,7 +2601,7 @@ struct HTMLMediaElementFetchListener {
     /// The generation of the media element when this fetch started.
     generation_id: u32,
     /// Time of last progress notification.
-    next_progress_event: Timespec,
+    next_progress_event: SystemTime,
     /// Timing data for this resource.
     resource_timing: ResourceFetchTiming,
     /// Url for the resource.
@@ -2751,13 +2750,13 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
         // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
         // => "If mode is remote" step 2
-        if time::get_time() > self.next_progress_event {
+        if SystemTime::now() > self.next_progress_event {
             let window = window_from_node(&*elem);
             window
                 .task_manager()
                 .media_element_task_source()
                 .queue_simple_event(elem.upcast(), atom!("progress"), &window);
-            self.next_progress_event = time::get_time() + Duration::milliseconds(350);
+            self.next_progress_event = SystemTime::now() + Duration::from_millis(350);
         }
     }
 
@@ -2886,7 +2885,7 @@ impl HTMLMediaElementFetchListener {
             elem: Trusted::new(elem),
             metadata: None,
             generation_id: elem.generation_id.get(),
-            next_progress_event: time::get_time() + Duration::milliseconds(350),
+            next_progress_event: SystemTime::now() + Duration::from_millis(350),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
             expected_content_length: None,
