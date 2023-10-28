@@ -11,9 +11,9 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
-use std::time::SystemTime;
 use std::{mem, ptr};
 
+use chrono::Utc;
 use content_security_policy::CspList;
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
@@ -729,13 +729,6 @@ impl FileListener {
             },
         }
     }
-}
-
-fn timestamp_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as u64
 }
 
 impl GlobalScope {
@@ -2269,7 +2262,7 @@ impl GlobalScope {
         }
         match timers.entry(label) {
             Entry::Vacant(entry) => {
-                entry.insert(timestamp_ms());
+                entry.insert(Utc::now().timestamp_millis() as u64);
                 Ok(())
             },
             Entry::Occupied(_) => Err(()),
@@ -2281,7 +2274,7 @@ impl GlobalScope {
             .borrow_mut()
             .remove(label)
             .ok_or(())
-            .map(|start| timestamp_ms() - start)
+            .map(|start| Utc::now().timestamp_millis() as u64 - start)
     }
 
     /// Get an `&IpcSender<ScriptToDevtoolsControlMsg>` to send messages
