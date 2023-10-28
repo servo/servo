@@ -9,7 +9,6 @@ import platform
 import sys
 import shutil
 
-from distutils.spawn import find_executable
 from subprocess import Popen
 from tempfile import TemporaryFile
 
@@ -90,7 +89,7 @@ PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
 
 def _get_exec_path(names, is_valid_path=lambda _path: True):
     for name in names:
-        path = find_executable(name)
+        path = shutil.which(name)
         if path and is_valid_path(path):
             return path
     return None
