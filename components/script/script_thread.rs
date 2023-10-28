@@ -27,12 +27,12 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 use std::{ptr, thread};
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
-use chrono::{DateTime, Local, NaiveDateTime, TimeZone};
+use chrono::{DateTime, Local, Utc};
 use crossbeam_channel::{select, unbounded, Receiver, Sender};
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
@@ -241,11 +241,10 @@ impl InProgressLoad {
         layout_is_busy: Arc<AtomicBool>,
         inherited_secure_context: Option<bool>,
     ) -> InProgressLoad {
-        let current_time = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap_or_default();
-        let navigation_start = current_time.as_millis() as u64;
-        let navigation_start_precise = current_time.as_nanos() as u64;
+        let current_time = Utc::now();
+        let navigation_start = current_time.timestamp_millis() as u64;
+        let navigation_start_precise =
+            current_time.timestamp_nanos_opt().unwrap_or_default() as u64;
         layout_chan
             .send(message::Msg::SetNavigationStart(navigation_start_precise))
             .unwrap();
@@ -1867,10 +1866,7 @@ impl ScriptThread {
         F: FnOnce() -> R,
     {
         self.notify_activity_to_hang_monitor(&category);
-        let start = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos() as u64;
+        let start = Instant::now();
         let value = if self.profile_script_events {
             let profiler_cat = match category {
                 ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
@@ -1917,18 +1913,15 @@ impl ScriptThread {
         } else {
             f()
         };
-        let end = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_nanos() as u64;
+        let task_duration = start.elapsed();
         for (doc_id, doc) in self.documents.borrow().iter() {
             if let Some(pipeline_id) = pipeline_id {
-                if pipeline_id == doc_id && end - start > MAX_TASK_NS {
+                if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS.into() {
                     if self.print_pwm {
                         println!(
                             "Task took longer than max allowed ({:?}) {:?}",
                             category,
-                            end - start
+                            task_duration.as_nanos()
                         );
                     }
                     doc.start_tti();
@@ -3360,9 +3353,11 @@ impl ScriptThread {
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
-            headers
-                .typed_get::<LastModified>()
-                .map(|tm| dom_last_modified(&tm.into()))
+            headers.typed_get::<LastModified>().map(|tm| {
+                let tm: SystemTime = tm.into();
+                let local_time: DateTime<Local> = tm.into();
+                local_time.format("%m/%d/%Y %H:%M:%S").to_string()
+            })
         });
 
         let loader = DocumentLoader::new_with_threads(
@@ -4065,15 +4060,4 @@ impl Drop for ScriptThread {
             root.set(None);
         });
     }
-}
-
-fn dom_last_modified(tm: &SystemTime) -> String {
-    let current_time: Duration = tm.duration_since(SystemTime::UNIX_EPOCH).unwrap();
-    let utc_time = NaiveDateTime::from_timestamp_opt(
-        current_time.as_secs() as i64,
-        current_time.subsec_nanos(),
-    )
-    .unwrap_or_default();
-    let local_time: DateTime<Local> = Local.from_utc_datetime(&utc_time);
-    local_time.format("%m/%d/%Y %H:%M:%S").to_string()
 }
