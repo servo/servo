@@ -11,6 +11,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
+use std::time::SystemTime;
 use std::{mem, ptr};
 
 use content_security_policy::CspList;
@@ -54,7 +55,6 @@ use script_traits::{
     ScriptToConstellationChan, TimerEvent, TimerEventId, TimerSchedulerMsg, TimerSource,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
-use time::{get_time, Timespec};
 use uuid::Uuid;
 use webgpu::identity::WebGPUOpResult;
 use webgpu::{ErrorScopeId, WebGPUDevice};
@@ -203,7 +203,7 @@ pub struct GlobalScope {
     /// live updates from the worker.
     devtools_wants_updates: Cell<bool>,
 
-    /// Timers used by the Console API.
+    /// Timers (milliseconds) used by the Console API.
     console_timers: DomRefCell<HashMap<DOMString, u64>>,
 
     /// module map is used when importing JavaScript modules
@@ -729,6 +729,13 @@ impl FileListener {
             },
         }
     }
+}
+
+fn timestamp_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 impl GlobalScope {
@@ -2262,7 +2269,7 @@ impl GlobalScope {
         }
         match timers.entry(label) {
             Entry::Vacant(entry) => {
-                entry.insert(timestamp_in_ms(get_time()));
+                entry.insert(timestamp_ms());
                 Ok(())
             },
             Entry::Occupied(_) => Err(()),
@@ -2274,7 +2281,7 @@ impl GlobalScope {
             .borrow_mut()
             .remove(label)
             .ok_or(())
-            .map(|start| timestamp_in_ms(get_time()) - start)
+            .map(|start| timestamp_ms() - start)
     }
 
     /// Get an `&IpcSender<ScriptToDevtoolsControlMsg>` to send messages
@@ -3109,10 +3116,6 @@ impl GlobalScope {
     pub(crate) fn dynamic_module_list(&self) -> RefMut<DynamicModuleList> {
         self.dynamic_modules.borrow_mut()
     }
-}
-
-fn timestamp_in_ms(time: Timespec) -> u64 {
-    (time.sec * 1000 + (time.nsec / 1000000) as i64) as u64
 }
 
 /// Returns the Rust global scope from a JS global object.
