@@ -4,6 +4,7 @@
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::time::{Duration, SystemTime};
 
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -20,9 +21,8 @@ use servo_rand::random;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use style_traits::dom::ElementState;
-use time::{now, Duration, Tm};
 
-use super::bindings::trace::{HashMapTracedValues, NoTrace};
+use super::bindings::trace::HashMapTracedValues;
 use crate::body::Extractable;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
@@ -94,7 +94,7 @@ pub struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
-    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, NoTrace<Tm>)>>,
+    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, SystemTime)>>,
     firing_submission_events: Cell<bool>,
     rel_list: MutNullableDom<DOMTokenList>,
 }
@@ -442,7 +442,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             name,
             (
                 Dom::from_ref(&*element_node.downcast::<Element>().unwrap()),
-                NoTrace(now()),
+                SystemTime::now(),
             ),
         );
 
@@ -556,7 +556,9 @@ impl HTMLFormElementMethods for HTMLFormElement {
             let entry = SourcedName {
                 name: key.clone(),
                 element: DomRoot::from_ref(&*val.0),
-                source: SourcedNameSource::Past(now() - val.1 .0), // calculate difference now()-val.1 to find age
+                source: SourcedNameSource::Past(
+                    SystemTime::now().duration_since(val.1).unwrap_or_default(),
+                ),
             };
             sourced_names_vec.push(entry);
         }
