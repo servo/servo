@@ -7,6 +7,7 @@
 //! Servo's selector parser.
 
 use crate::attr::{AttrIdentifier, AttrValue};
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::{OpaqueNode, TElement, TNode};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
 use crate::invalidation::element::element_wrapper::ElementSnapshot;
@@ -412,6 +413,10 @@ pub struct SelectorImpl;
 pub struct ExtraMatchingData {
     /// The invalidation data to invalidate doc-state pseudo-classes correctly.
     pub invalidation_data: InvalidationMatchingData,
+
+    /// The invalidation bits from matching container queries. These are here
+    /// just for convenience mostly.
+    pub cascade_input_flags: ComputedValueFlags,
 }
 
 impl ::selectors::SelectorImpl for SelectorImpl {
