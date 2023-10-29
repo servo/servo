@@ -4,6 +4,7 @@ on:
     inputs:
       production:
         required: false
+        default: false
         type: boolean
       wpt:
         required: false
@@ -26,6 +27,7 @@ on:
     inputs:
       production:
         required: false
+        default: false
         type: boolean
       wpt:
         default: "test"
@@ -140,7 +142,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
-      production: ${{ inputs.production }}
+      production: ${{ inputs.production == 'true' }}
       wpt: ${{ inputs.wpt }}
       layout: "layout-2020"
 
@@ -150,7 +152,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
-      production: ${{ inputs.production }}
+      production: ${{ inputs.production == 'true' }}
       wpt: ${{ inputs.wpt }}
       layout: "layout-2013"
 
