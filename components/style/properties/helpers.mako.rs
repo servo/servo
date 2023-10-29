@@ -624,7 +624,7 @@
         pub use self::computed_value::T as SpecifiedValue;
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
             pub enum T {
             % for variant in keyword.values_for(engine):
             <%
