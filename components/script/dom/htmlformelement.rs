@@ -4,7 +4,7 @@
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant};
 
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -94,7 +94,7 @@ pub struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
-    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, SystemTime)>>,
+    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, Instant)>>,
     firing_submission_events: Cell<bool>,
     rel_list: MutNullableDom<DOMTokenList>,
 }
@@ -442,7 +442,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             name,
             (
                 Dom::from_ref(&*element_node.downcast::<Element>().unwrap()),
-                SystemTime::now(),
+                Instant::now(),
             ),
         );
 
@@ -556,9 +556,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             let entry = SourcedName {
                 name: key.clone(),
                 element: DomRoot::from_ref(&*val.0),
-                source: SourcedNameSource::Past(
-                    SystemTime::now().duration_since(val.1).unwrap_or_default(),
-                ),
+                source: SourcedNameSource::Past(Instant::now().duration_since(val.1)),
             };
             sourced_names_vec.push(entry);
         }
