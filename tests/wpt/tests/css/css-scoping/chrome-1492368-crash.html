@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Chrome crash re-assigning to slots with display:none slot</title>
+<link rel="help" href="https://crbug.com/1492368">
+<div id="host">
+  <span id="slotted" style="display:none"></span>
+</div>
+<script>
+  let root = host.attachShadow({mode:"open"});
+  root.innerHTML = `
+    <slot></slot>
+    <slot name="s1" style="display:none"></slot>
+  `;
+  host.offsetTop;
+  slotted.setAttribute("slot", "s1");
+  slotted.style.color = "green";
+  host.offsetTop;
+</script>

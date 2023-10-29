@@ -3,19 +3,29 @@
 	<head>
 		<title>CSS Test: hsla()</title>
 		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Chris Lilley" href="https://svgees.us" />
 		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
 		<link rel="help" href="http://www.w3.org/TR/css3-color/#hsla-color" />
-		<link rel="match" href="t425-hsla-basic-a-ref.html" />
+		<link rel="match" href="t425-hsla-basic-a-ref.xht" />
 		<meta name="assert" content="Test basic functioning of hsla() colors." />
 		<style type="text/css"><![CDATA[
 		html, body { background: white; }
-		div { width: 600px; height: 30px; margin-bottom: 10px; }
-		#one { background-color: hsla(120, 100%, 70%, 1.0); }
-		#two { background-color: hsla(120, 100%, 50%, 0.6); }
+		div { width: 12em; height: 6em; }
+		#one { background-color: hsla(120, 100%, 70%, 1.0); margin-bottom: 0 }
+		#two { background-color: hsla(120, 100%, 50%, 0.6); margin-top:0 }
 		]]></style>
+		/*
+		hsla(120, 100%, 70%, 1.0) is rgb(40% 100% 40%)
+		hsla(120, 100%, 50%, 0.6) is rgb(0% 100% 0% / 0.6)
+		composite rgb values at 60% over white  in sRGB = rgb(40% 100% 40%)
+		BUT if compositing is done with used values, in device RGB
+		you will get a mismatch on WCG screen
+		because the red and blue components will not be zero
+		and the green will not be 100%
+		*/
 	</head>
 	<body>
-		<p>Test passes if the two boxes below are the same color.</p>
+		<p>Test passes if you see a light green square.</p>
 		<div id="one"></div>
 		<div id="two"></div>
 	</body>

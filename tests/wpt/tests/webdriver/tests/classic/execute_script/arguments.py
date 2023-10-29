@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.client import Element, Frame, ShadowRoot, Window
+from webdriver.client import ShadowRoot, WebElement, WebFrame, WebWindow
 
 from tests.support.asserts import assert_error, assert_success
 from . import execute_script
@@ -46,8 +46,8 @@ def test_object(session):
     assert actual[1] == value
 
 
-def test_no_such_element_with_invalid_value(session):
-    element = Element(session, "foo")
+def test_no_such_element_with_unknown_id(session):
+    element = WebElement(session, "foo")
 
     result = execute_script(session, "return true;", args=[element])
     assert_error(result, "no such element")
@@ -87,7 +87,7 @@ def test_no_such_element_from_other_frame(session, get_test_page, closed):
     assert_error(result, "no such element")
 
 
-def test_no_such_shadow_root_with_unknown_shadow_root(session):
+def test_no_such_shadow_root_with_unknown_id(session):
     shadow_root = ShadowRoot(session, "foo")
 
     result = execute_script(session, "return true;", args=[shadow_root])
@@ -147,18 +147,44 @@ def test_stale_element_reference(session, stale_element, as_frame):
     assert_error(result, "stale element reference")
 
 
-@pytest.mark.parametrize("expression, expected_type, expected_class", [
-    ("window.frames[0]", Frame, "Frame"),
-    ("document.querySelector('div')", Element, "HTMLDivElement"),
-    ("document.querySelector('custom-element').shadowRoot", ShadowRoot, "ShadowRoot"),
-    ("window", Window, "Window")
+@pytest.mark.parametrize("type", [WebFrame, WebWindow], ids=["frame", "window"])
+@pytest.mark.parametrize("value", [None, False, 42, [], {}])
+def test_invalid_argument_for_window_with_invalid_type(session, type, value):
+    reference = type(session, value)
+
+    result = execute_script(session, "return true", args=(reference,))
+    assert_error(result, "invalid argument")
+
+
+def test_no_such_window_for_window_with_invalid_value(session, get_test_page):
+    session.url = get_test_page()
+
+    result = execute_script(session, "return [window, window.frames[0]];")
+    [window, frame] = assert_success(result)
+
+    assert isinstance(window, WebWindow)
+    assert isinstance(frame, WebFrame)
+
+    window_reference = WebWindow(session, frame.id)
+    frame_reference = WebFrame(session, window.id)
+
+    for reference in [window_reference, frame_reference]:
+        result = execute_script(session, "return true", args=(reference,))
+        assert_error(result, "no such window")
+
+
+@pytest.mark.parametrize("expression, expected_type", [
+    ("window.frames[0]", WebFrame),
+    ("document.querySelector('div')", WebElement),
+    ("document.querySelector('custom-element').shadowRoot", ShadowRoot),
+    ("window", WebWindow)
 ], ids=["frame", "node", "shadow-root", "window"])
-def test_element_reference(session, get_test_page, expression, expected_type, expected_class):
+def test_element_reference(session, get_test_page, expression, expected_type):
     session.url = get_test_page(as_frame=False)
 
     result = execute_script(session, f"return {expression}")
     reference = assert_success(result)
     assert isinstance(reference, expected_type)
 
-    result = execute_script(session, "return arguments[0].constructor.name", [reference])
-    assert_success(result, expected_class)
+    result = execute_script(session, f"return arguments[0] == {expression}", [reference])
+    assert_success(result, True)

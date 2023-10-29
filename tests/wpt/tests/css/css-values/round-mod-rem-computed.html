@@ -155,6 +155,10 @@ test_math_used('calc(round(1px + 0%, 1px + 0%))', '1px');
 test_math_used('calc(mod(3px + 0%, 2px + 0%))', '1px');
 test_math_used('calc(rem(3px + 0%, 2px + 0%))', '1px');
 
+test_math_used('round(1px + 0%, 1px)', '1px');
+test_math_used('mod(3px + 0%, 2px)', '1px');
+test_math_used('rem(3px + 0%, 2px)', '1px');
+
 // In round(A, B), if B is 0, the result is NaN. If A and B are both infinite, the result is NaN.
 // In mod(A, B) or rem(A, B), if B is 0, the result is NaN. If A is infinite, the result is NaN.
 for (let operator of ['round', 'mod', 'rem']) {

@@ -102,9 +102,9 @@ class HTTPWireProtocol:
     Transports messages (commands and responses) over the WebDriver
     wire protocol.
 
-    Complex objects, such as ``webdriver.Element``, ``webdriver.Frame``,
-    and ``webdriver.Window`` are by default not marshaled to enable
-    use of `session.transport.send` in WPT tests::
+    Complex objects, such as ``webdriver.ShadowRoot``, ``webdriver.WebElement``,
+    ``webdriver.WebFrame``, and ``webdriver.WebWindow`` are by default not
+    marshaled to enable use of `session.transport.send` in WPT tests::
 
         session = webdriver.Session("127.0.0.1", 4444)
         response = transport.send("GET", "element/active", None)
@@ -180,17 +180,17 @@ class HTTPWireProtocol:
         """
         Send a command to the remote.
 
-        The request `body` must be JSON serialisable unless a
+        The request `body` must be JSON serializable unless a
         custom `encoder` has been provided.  This means complex
-        objects such as ``webdriver.Element``, ``webdriver.Frame``,
-        and `webdriver.Window`` are not automatically made
-        into JSON.  This behaviour is, however, provided by
+        objects such as ``webdriver.ShadowRoot``, ``webdriver.WebElement``,
+        ``webdriver.WebFrame``, and `webdriver.Window`` are not automatically
+        made into JSON.  This behavior is, however, provided by
         ``webdriver.protocol.Encoder``, should you want it.
 
         Similarly, the response body is returned au natural
         as plain JSON unless a `decoder` that converts web
         element references to ``webdriver.Element`` is provided.
-        Use ``webdriver.protocol.Decoder`` to achieve this behaviour.
+        Use ``webdriver.protocol.Decoder`` to achieve this behavior.
 
         The client will attempt to use persistent HTTP connections.
 
@@ -211,7 +211,7 @@ class HTTPWireProtocol:
             describing the HTTP response received from the remote end.
 
         :raises ValueError: If `body` or the response body are not
-            JSON serialisable.
+            JSON serializable.
         """
         if body is None and method == "POST":
             body = {}

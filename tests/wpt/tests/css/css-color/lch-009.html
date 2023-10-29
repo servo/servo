@@ -7,10 +7,10 @@
 <meta name="assert" content="lch() with no alpha">
 <style>
     body { background-color: grey; }
-    .test { background-color: hsl(47, 100%, 63%); width: 12em; height: 12em; }
+    .test { background-color: hsl(0, 100%, 63%); width: 12em; height: 12em; }
     .test { background-color: lch(100% 110 60); } /* l = 100% should always be white */
 </style>
 <body>
-    <p>Test passes if you see a white square, and no yellow.</p>
+    <p>Test passes if you see a white square, and no red.</p>
     <div class="test"></div>
 </body>

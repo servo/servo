@@ -6,6 +6,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/common/top-layer.js"></script>
 <script src="resources/helpers.js"></script>
 
 <button id=b0>button</button>
@@ -73,19 +74,22 @@ promise_test(async t => {
   assert_true(dialog.hasAttribute('open'), 'The dialog should be open.');
   assert_true(popover.matches(':popover-open'), 'The popover should be open.');
 
-  await dialogResilientBless(popover, () => sendCloseRequest());
+  await blessTopLayer(popover);
+  await sendCloseRequest();
   await waitForPotentialCloseEvent();
   assert_false(popover.matches(':popover-open'), 'First close request: The popover should be closed.');
   assert_true(dialog.hasAttribute('open'), 'First close request: The dialog should be open.');
   assert_array_equals(events, []);
 
-  await dialogResilientBless(dialog, () => sendCloseRequest());
+  await blessTopLayer(dialog);
+  await sendCloseRequest();
   await waitForPotentialCloseEvent();
   assert_false(popover.matches(':popover-open'), 'Second close request: The popover should be closed.');
   assert_false(dialog.hasAttribute('open'), 'Second close request: The dialog should be closed.');
   assert_array_equals(events, ['dialog cancel', 'dialog close']);
 
-  await dialogResilientBless(closeWatcher, () => sendCloseRequest());
+  await test_driver.bless();
+  await sendCloseRequest();
   await waitForPotentialCloseEvent();
   assert_false(popover.matches(':popover-open'), 'Third close request: The popover should be closed.');
   assert_false(dialog.hasAttribute('open'), 'Third close request: The dialog should be closed.');

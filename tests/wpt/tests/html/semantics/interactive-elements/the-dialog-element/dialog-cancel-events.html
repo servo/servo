@@ -1,70 +1,53 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Test cancel event is fired when the dialog is closed by user interaction</title>
-  <script src="/resources/testharness.js"></script>
-  <script src="/resources/testharnessreport.js"></script>
-  <script src="/resources/testdriver.js"></script>
-  <script src="/resources/testdriver-vendor.js"></script>
-  <link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=227534">
-  <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1322947">
-</head>
-<body>
-<p>Test cancel event is fired when the dialog is closed by user interaction</p>
+<meta charset="utf-8">
+<title>Test cancel event is fired when the dialog is closed by user close requests</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=227534">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1322947">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="/close-watcher/resources/helpers.js"></script>
+
 <dialog>
   <p>Hello World</p>
 </dialog>
-<script>
-  setup({ single_test: true });
 
-  var hasCancelEventFired = false;
-  var hasCloseEventFired = false;
-  var oncancelWasCalled = false;
-  var oncloseWasCalled = false;
+<script type="module">
+setup({ single_test: true });
 
-  function maybeDone() {
-    if (oncloseWasCalled && hasCloseEventFired) {
-      done();
-    }
-  }
+const dialog = document.querySelector("dialog");
+const events = [];
 
-  const dialog = document.querySelector("dialog");
+dialog.addEventListener("cancel", event => {
+  assert_true(event.cancelable, "cancel event should be cancelable");
+  assert_array_equals(events, []);
 
-  dialog.addEventListener("cancel", function(event) {
-    assert_true(true, "cancel event is fired");
-    assert_true(event.cancelable, "cancel event should be cancelable");
-    assert_false(hasCancelEventFired, "cancel event should only be fired once");
-    assert_false(hasCloseEventFired, "close event should be fired after cancel event");
-    hasCancelEventFired = true;
-  });
+  events.push("addEventListener cancel");
+});
 
-  assert_equals(dialog.oncancel, null);
-  dialog.oncancel = function(event) {
-    assert_true(true, "oncancel event handler is called");
-    assert_false(oncancelWasCalled, "oncancel handler should only be called once");
-    assert_false(oncloseWasCalled, "onclose handler should be called after oncancel");
-    oncancelWasCalled = true;
-  }
+assert_equals(dialog.oncancel, null);
+dialog.oncancel = () => {
+  assert_array_equals(events, ["addEventListener cancel"]);
 
-  dialog.addEventListener("close", function() {
-    assert_true(true, "close event is fired");
-    assert_false(hasCloseEventFired, "close event should only be fired once");
-    assert_true(hasCancelEventFired, "cancel event should be fired before close event");
-    hasCloseEventFired = true;
-    maybeDone();
-  });
+  events.push("oncancel");
+};
 
-  assert_equals(dialog.onclose, null);
-  dialog.onclose = function(event) {
-    assert_true(true, "onclose event handler is called");
-    assert_false(oncloseWasCalled, "onclose handler should only be called once");
-    assert_true(oncancelWasCalled, "oncancel handler should be called before onclose");
-    oncloseWasCalled = true;
-    maybeDone();
-  }
+dialog.addEventListener("close", () => {
+  assert_array_equals(events, ["addEventListener cancel", "oncancel"]);
 
-  dialog.showModal();
-  test_driver.send_keys(document.documentElement, "\uE00C"); // ESC key
+  events.push("addEventListener close");
+});
+
+assert_equals(dialog.onclose, null);
+dialog.onclose = () => {
+  assert_array_equals(events, ["addEventListener cancel", "oncancel", "addEventListener close"]);
+
+  done();
+};
+
+dialog.showModal();
+await blessTopLayer(dialog);
+await sendCloseRequest();
 </script>
-</body>
-</html>

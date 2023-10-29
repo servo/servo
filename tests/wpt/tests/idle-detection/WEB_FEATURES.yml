@@ -1,0 +1,3 @@
+features:
+- name: idle-detection
+  files: "**"

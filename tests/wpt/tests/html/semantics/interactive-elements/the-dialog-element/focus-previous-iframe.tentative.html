@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Test focus is moved to the previously focused element when dialog is closed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<dialog>Dialog in parent</dialog>
+
+<iframe srcdoc="<input><dialog> Dialog in child </dialog>"></iframe>
+
+<input>
+<script>
+test(() => {
+  window.onload = function() {
+    const iframe = document.querySelector("iframe");
+    const input = iframe.contentDocument.querySelector("input");
+    // <input> in the child document is focused
+    input.focus();
+
+    const dialog = document.querySelector("dialog");
+    // <dialog> in the parent document is opened
+    dialog.showModal();
+    dialog.close();
+
+    assert_equals(document.activeElement, iframe);
+    assert_equals(iframe.contentDocument.activeElement, input);
+  }
+}, "Focus should move back from parent document to child document");
+
+test(() => {
+  window.onload = function() {
+    const iframe = document.querySelector("iframe");
+    const input = document.querySelector("input");
+    // <input> in the parent document is focused
+    input.focus();
+
+    const dialog = iframe.contentDocument.querySelector("dialog");
+
+    // <dialog> in the child document is focused
+    dialog.showModal();
+    dialog.close();
+
+    assert_equals(document.activeElement, input);
+  }
+}, "Focus should move back from child document to parent document");
+</script>
+</body>

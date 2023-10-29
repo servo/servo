@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver import Element, Frame, ShadowRoot, Window
+from webdriver import WebElement, WebFrame, ShadowRoot, WebWindow
 
 from tests.support.asserts import assert_error, assert_same_element, assert_success
 
@@ -31,7 +31,7 @@ def test_no_browsing_context(session, closed_frame):
 
 
 def test_no_such_element_with_invalid_value(session):
-    element = Element(session, "foo")
+    element = WebElement(session, "foo")
 
     response = get_element_property(session, element.id, "id")
     assert_error(response, "no such element")
@@ -165,10 +165,10 @@ def test_primitives_set_by_execute_script(session, inline, js_primitive, py_prim
 
 
 @pytest.mark.parametrize("js_web_reference,py_web_reference", [
-    ("element", Element),
-    ("frame", Frame),
+    ("element", WebElement),
+    ("frame", WebFrame),
     ("shadowRoot", ShadowRoot),
-    ("window", Window),
+    ("window", WebWindow),
 ])
 def test_web_reference(session, get_test_page, js_web_reference, py_web_reference):
     session.url = get_test_page()

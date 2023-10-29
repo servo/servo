@@ -11,5 +11,5 @@ interface InvokeEvent : Event {
 
 dictionary InvokeEventInit : EventInit {
     Element? invoker = null;
-    DOMString action = "";
+    DOMString action = "auto";
 };

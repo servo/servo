@@ -46,22 +46,6 @@ async function sendEnter() {
 function isElementVisible(el) {
   return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
 }
-function isTopLayer(el) {
-  // A bit of a hack. Just test a few properties of the ::backdrop pseudo
-  // element that change when in the top layer.
-  const properties = ['right','background'];
-  const testEl = document.createElement('div');
-  document.body.appendChild(testEl);
-  const computedStyle = getComputedStyle(testEl, '::backdrop');
-  const nonTopLayerValues = properties.map(p => computedStyle[p]);
-  testEl.remove();
-  for(let i=0;i<properties.length;++i) {
-    if (getComputedStyle(el,'::backdrop')[properties[i]] !== nonTopLayerValues[i]) {
-      return true;
-    }
-  }
-  return false;
-}
 async function finishAnimations(popover) {
   popover.getAnimations({subtree: true}).forEach(animation => animation.finish());
   await waitForRender();
@@ -95,19 +79,6 @@ async function mouseHover(element,hoverWaitTimeMs) {
   assertMouseStillOver(element);
 }
 
-async function blessTopLayer(visibleElement) {
-  // The normal "bless" function doesn't work well when there are top layer
-  // elements blocking clicks. Additionally, since the normal test_driver.bless
-  // function just adds a button to the main document and clicks it, we can't
-  // call that in the presence of open popovers, since that click will close them.
-  const button = document.createElement('button');
-  button.innerHTML = "Click me to activate";
-  visibleElement.appendChild(button);
-  let wait_click = new Promise(resolve => button.addEventListener("click", resolve, {once: true}));
-  await test_driver.click(button);
-  await wait_click;
-  button.remove();
-}
 // This is a "polyfill" of sorts for the `defaultopen` attribute.
 // It can be called before window.load is complete, and it will
 // show defaultopen popovers according to the rules previously part

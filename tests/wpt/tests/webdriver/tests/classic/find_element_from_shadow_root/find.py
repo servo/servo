@@ -1,5 +1,5 @@
 import pytest
-from webdriver.client import Element, ShadowRoot
+from webdriver.client import WebElement, ShadowRoot
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_same_element, assert_success
@@ -174,7 +174,7 @@ def test_find_element(session, get_test_page, using, value, mode):
     result = find_element(session, shadow_root.id, using, value)
     value = assert_success(result)
 
-    element = Element.from_json(value, session)
+    element = WebElement.from_json(value, session)
     assert element.text == expected_text
 
 
@@ -243,5 +243,5 @@ def test_find_element_in_nested_shadow_root(session, get_test_page, mode):
     result = find_element(session, nested_shadow_root.id, "css selector", "#linkText")
     value = assert_success(result)
 
-    element = Element.from_json(value, session)
+    element = WebElement.from_json(value, session)
     assert element.text == expected_text

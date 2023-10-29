@@ -1,19 +1,19 @@
 #!/bin/bash
 set -ex
 
-SCRIPT_DIR=$(cd $(dirname "$0") && pwd -P)
+REL_DIR_NAME=$(dirname "$0")
+SCRIPT_DIR=$(cd "$REL_DIR_NAME" && pwd -P)
 WPT_ROOT=$SCRIPT_DIR/../..
-cd $WPT_ROOT
+cd "$WPT_ROOT"
 
 run_infra_test() {
-    TERM=dumb ./wpt run --log-mach - --yes --manifest ~/meta/MANIFEST.json --metadata infrastructure/metadata/ --install-fonts --install-webdriver --log-wptreport="/home/test/artifacts/wptreport-$1.json" $2 $1 infrastructure/
+    ./tools/ci/taskcluster-run.py "$1" "$2" -- --metadata=infrastructure/metadata/ --log-wptreport="../artifacts/wptreport-$1.json" --include=infrastructure/
 }
 
 main() {
-    ./wpt manifest --rebuild -p ~/meta/MANIFEST.json
-    run_infra_test "chrome" "--binary=$(which google-chrome-unstable) --enable-swiftshader --channel dev $1"
-    run_infra_test "firefox" "--binary=~/build/firefox/firefox $1"
-    run_infra_test "firefox_android" "--install-browser --logcat-dir=/home/test/artifacts/ $1"
+  run_infra_test "chrome" "dev"
+  run_infra_test "firefox" "nightly"
+  run_infra_test "firefox_android" "nightly"
 }
 
-main $1
+main

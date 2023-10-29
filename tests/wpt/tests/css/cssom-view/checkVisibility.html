@@ -141,4 +141,10 @@ test(() => {
   cvhiddenwithupdate.getBoundingClientRect();
   assert_true(cvhiddenwithupdate.checkVisibility());
 }, 'checkVisibility on content-visibility:hidden element after forced layout update.');
+
+test(() => {
+  document.documentElement.style.contentVisibility = "hidden";
+  assert_true(document.documentElement.checkVisibility());
+  document.documentElement.style.removeProperty("content-visibility");
+}, 'checkVisibility on root element with content-visibility: hidden returns true.');
 </script>

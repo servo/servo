@@ -295,9 +295,7 @@ class Actions:
         return ActionSequence(self.session, *args, **kwargs)
 
 
-class Window:
-    identifier = "window-fcc6-11e5-b4f8-330a88ab9d7f"
-
+class BrowserWindow:
     def __init__(self, session):
         self.session = session
 
@@ -371,59 +369,6 @@ class Window:
     @command
     def fullscreen(self):
         return self.session.send_session_command("POST", "window/fullscreen")
-
-    @classmethod
-    def from_json(cls, json, session):
-        uuid = json[Window.identifier]
-        return cls(uuid, session)
-
-
-class Frame:
-    identifier = "frame-075b-4da1-b6ba-e579c2d3230a"
-
-    def __init__(self, session):
-        self.session = session
-
-    @classmethod
-    def from_json(cls, json, session):
-        uuid = json[Frame.identifier]
-        return cls(uuid, session)
-
-
-class ShadowRoot:
-    identifier = "shadow-6066-11e4-a52e-4f735466cecf"
-
-    def __init__(self, session, id):
-        """
-        Construct a new shadow root representation.
-
-        :param id: Shadow root UUID which must be unique across
-            all browsing contexts.
-        :param session: Current ``webdriver.Session``.
-        """
-        self.id = id
-        self.session = session
-
-    @classmethod
-    def from_json(cls, json, session):
-        uuid = json[ShadowRoot.identifier]
-        return cls(session, uuid)
-
-    def send_shadow_command(self, method, uri, body=None):
-        url = f"shadow/{self.id}/{uri}"
-        return self.session.send_session_command(method, url, body)
-
-    @command
-    def find_element(self, strategy, selector):
-        body = {"using": strategy,
-                "value": selector}
-        return self.send_shadow_command("POST", "element", body)
-
-    @command
-    def find_elements(self, strategy, selector):
-        body = {"using": strategy,
-                "value": selector}
-        return self.send_shadow_command("POST", "elements", body)
 
 
 class Find:
@@ -512,7 +457,7 @@ class Session:
         self.extension_cls = extension
 
         self.timeouts = Timeouts(self)
-        self.window = Window(self)
+        self.window = BrowserWindow(self)
         self.find = Find(self)
         self.alert = UserPrompt(self)
         self.actions = Actions(self)
@@ -795,7 +740,44 @@ class Session:
     def screenshot(self):
         return self.send_session_command("GET", "screenshot")
 
-class Element:
+
+class ShadowRoot:
+    identifier = "shadow-6066-11e4-a52e-4f735466cecf"
+
+    def __init__(self, session, id):
+        """
+        Construct a new shadow root representation.
+
+        :param id: Shadow root UUID which must be unique across
+            all browsing contexts.
+        :param session: Current ``webdriver.Session``.
+        """
+        self.id = id
+        self.session = session
+
+    @classmethod
+    def from_json(cls, json, session):
+        uuid = json[ShadowRoot.identifier]
+        return cls(session, uuid)
+
+    def send_shadow_command(self, method, uri, body=None):
+        url = f"shadow/{self.id}/{uri}"
+        return self.session.send_session_command(method, url, body)
+
+    @command
+    def find_element(self, strategy, selector):
+        body = {"using": strategy,
+                "value": selector}
+        return self.send_shadow_command("POST", "element", body)
+
+    @command
+    def find_elements(self, strategy, selector):
+        body = {"using": strategy,
+                "value": selector}
+        return self.send_shadow_command("POST", "elements", body)
+
+
+class WebElement:
     """
     Representation of a web element.
 
@@ -818,12 +800,12 @@ class Element:
         return "<%s %s>" % (self.__class__.__name__, self.id)
 
     def __eq__(self, other):
-        return (isinstance(other, Element) and self.id == other.id and
+        return (isinstance(other, WebElement) and self.id == other.id and
                 self.session == other.session)
 
     @classmethod
     def from_json(cls, json, session):
-        uuid = json[Element.identifier]
+        uuid = json[WebElement.identifier]
         return cls(session, uuid)
 
     def send_element_command(self, method, uri, body=None):
@@ -902,3 +884,42 @@ class Element:
     @command
     def property(self, name):
         return self.send_element_command("GET", "property/%s" % name)
+
+class WebFrame:
+    identifier = "frame-075b-4da1-b6ba-e579c2d3230a"
+
+    def __init__(self, session, id):
+        self.id = id
+        self.session = session
+
+    def __repr__(self):
+        return "<%s %s>" % (self.__class__.__name__, self.id)
+
+    def __eq__(self, other):
+        return (isinstance(other, WebFrame) and self.id == other.id and
+                self.session == other.session)
+
+    @classmethod
+    def from_json(cls, json, session):
+        uuid = json[WebFrame.identifier]
+        return cls(session, uuid)
+
+
+class WebWindow:
+    identifier = "window-fcc6-11e5-b4f8-330a88ab9d7f"
+
+    def __init__(self, session, id):
+        self.id = id
+        self.session = session
+
+    def __repr__(self):
+        return "<%s %s>" % (self.__class__.__name__, self.id)
+
+    def __eq__(self, other):
+        return (isinstance(other, WebWindow) and self.id == other.id and
+                self.session == other.session)
+
+    @classmethod
+    def from_json(cls, json, session):
+        uuid = json[WebWindow.identifier]
+        return cls(session, uuid)

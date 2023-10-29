@@ -56,28 +56,39 @@ async def test_prompt_type(
     }
 
 
+@pytest.mark.parametrize(
+    "default", [None, "", "default"], ids=["null", "empty string", "non empty string"]
+)
 async def test_prompt_default_value(
-    bidi_session, inline, new_tab, subscribe_events, wait_for_event
+    bidi_session, inline, new_tab, subscribe_events, wait_for_event, default
 ):
     await subscribe_events(events=[USER_PROMPT_OPENED_EVENT])
     on_entry = wait_for_event(USER_PROMPT_OPENED_EVENT)
 
     text = "test"
-    default = "default"
+
+    if default is None:
+        script = f"<script>window.prompt('{text}', null)</script>"
+    else:
+        script = f"<script>window.prompt('{text}', '{default}')</script>"
 
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"],
-        url=inline(f"<script>window.prompt('{text}', '{default}')</script>"),
+        url=inline(script),
     )
 
     event = await on_entry
 
-    assert event == {
+    expected_event = {
         "context": new_tab["context"],
         "type": "prompt",
         "message": text,
-        "defaultValue": default,
     }
+
+    if default is not None:
+        expected_event["defaultValue"] = default
+
+    assert event == expected_event
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])

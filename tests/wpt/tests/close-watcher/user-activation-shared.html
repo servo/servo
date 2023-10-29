@@ -6,6 +6,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/common/top-layer.js"></script>
 <script src="resources/helpers.js"></script>
 
 <body>
@@ -22,7 +23,8 @@ promise_test(async t => {
   const freeWatcher = createRecordingCloseWatcher(t, events, "freeWatcher", type);
   freeWatcher.addEventListener("cancel", e => e.preventDefault());
 
-  await dialogResilientBless(freeWatcher, () => freeWatcher.close());
+  await maybeTopLayerBless(freeWatcher);
+  freeWatcher.close();
   await waitForPotentialCloseEvent();
 
   assert_array_equals(events, ["freeWatcher close"]);
@@ -32,7 +34,8 @@ promise_test(async t => {
   const events = [];
   const freeWatcher = createRecordingCloseWatcher(t, events, "freeWatcher", type);
 
-  await dialogResilientBless(freeWatcher, () => sendCloseRequest());
+  await maybeTopLayerBless(freeWatcher);
+  await sendCloseRequest();
   await waitForPotentialCloseEvent();
 
   assert_array_equals(events, ["freeWatcher cancel", "freeWatcher close"]);
@@ -43,7 +46,8 @@ promise_test(async t => {
   const freeWatcher = createRecordingCloseWatcher(t, events, "freeWatcher", type);
   freeWatcher.addEventListener("cancel", e => e.preventDefault());
 
-  await dialogResilientBless(freeWatcher, () => sendCloseRequest());
+  await maybeTopLayerBless(freeWatcher);
+  await sendCloseRequest();
   await waitForPotentialCloseEvent();
 
   assert_array_equals(events, ["freeWatcher cancel"]);
@@ -79,11 +83,13 @@ promise_test(async t => {
   const freeWatcher = createRecordingCloseWatcher(t, events, "freeWatcher", type);
   const activationWatcher = await createBlessedRecordingCloseWatcher(t, events, "activationWatcher", type, freeWatcher);
 
-  await dialogResilientBless(activationWatcher, () => sendCloseRequest());
+  await maybeTopLayerBless(activationWatcher);
+  await sendCloseRequest();
   await waitForPotentialCloseEvent();
   assert_array_equals(events, ["activationWatcher cancel", "activationWatcher close"]);
 
-  await dialogResilientBless(freeWatcher, () => sendCloseRequest());
+  await maybeTopLayerBless(freeWatcher);
+  await sendCloseRequest();
   await waitForPotentialCloseEvent();
   assert_array_equals(events, ["activationWatcher cancel", "activationWatcher close", "freeWatcher cancel", "freeWatcher close"]);
 }, "Creating a close watcher from user activation, and closing close watchers with a close request after user activation, fires cancel");
