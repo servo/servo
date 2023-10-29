@@ -34,6 +34,13 @@ fn nan_inf_enabled() -> bool {
     return false;
 }
 
+fn round_enabled() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.round.enabled");
+    #[cfg(feature = "servo")]
+    return false;
+}
+
 /// The name of the mathematical function that we're parsing.
 #[derive(Clone, Copy, Debug, Parse)]
 pub enum MathFunction {
@@ -772,7 +779,7 @@ impl CalcNode {
         let enabled = if matches!(function, Sin | Cos | Tan | Asin | Acos | Atan | Atan2) {
             trig_enabled()
         } else if matches!(function, Round) {
-            static_prefs::pref!("layout.css.round.enabled")
+            round_enabled()
         } else {
             true
         };
