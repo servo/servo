@@ -508,7 +508,8 @@ trait PrivateMatchMethods: TElement {
 
         // If we have modified animation or transitions, we recascade style for this node.
         if style_changed {
-            let mut rule_node = new_resolved_styles.primary_style().rules().clone();
+            let primary_style = new_resolved_styles.primary_style();
+            let mut rule_node = primary_style.rules().clone();
             let declarations = context.shared.animations.get_all_declarations(
                 &AnimationSetKey::new_for_non_pseudo(self.as_node().opaque()),
                 context.shared.current_time_for_animations,
@@ -529,10 +530,11 @@ trait PrivateMatchMethods: TElement {
                 &mut rule_node,
             );
 
-            if rule_node != *new_resolved_styles.primary_style().rules() {
+            if rule_node != *primary_style.rules() {
                 let inputs = CascadeInputs {
                     rules: Some(rule_node),
-                    visited_rules: new_resolved_styles.primary_style().visited_rules().cloned(),
+                    visited_rules: primary_style.visited_rules().cloned(),
+                    flags: primary_style.flags.for_cascade_inputs(),
                 };
 
                 new_resolved_styles.primary.style = StyleResolverForElement::new(
@@ -621,6 +623,7 @@ trait PrivateMatchMethods: TElement {
         let inputs = CascadeInputs {
             rules: Some(rule_node),
             visited_rules: style.visited_rules().cloned(),
+            flags: style.flags.for_cascade_inputs(),
         };
 
         let new_style = StyleResolverForElement::new(
