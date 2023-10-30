@@ -51,7 +51,7 @@ enum PumpResult {
     /// period, but has to call [`Servo::present`] to perform page flip and tell Servo compositor
     /// to continue rendering.
     Resize,
-    HistoryChanged
+    HistoryChanged,
 }
 
 impl App {
@@ -332,8 +332,10 @@ impl App {
                         if minibrowser.update_location_in_toolbar(browser) {
                             // Update the minibrowser immediately. While we could update by requesting a
                             // redraw, doing so would delay the location update by two frames.
-                            minibrowser
-                                .update(window.winit_window().unwrap(), "update_location_in_toolbar");
+                            minibrowser.update(
+                                window.winit_window().unwrap(),
+                                "update_location_in_toolbar",
+                            );
                         }
                     }
                 },
@@ -423,12 +425,13 @@ impl App {
         let mut history_changed = false;
         loop {
             // Consume and handle those embedder messages.
-            let (new_need_present, new_history_changed) = browser.handle_servo_events(embedder_messages);
+            let (new_need_present, new_history_changed) =
+                browser.handle_servo_events(embedder_messages);
             need_present |= new_need_present;
             history_changed |= new_history_changed;
 
             if history_changed {
-                return Some(PumpResult::HistoryChanged)
+                return Some(PumpResult::HistoryChanged);
             }
 
             // Route embedder events from the Browser to the relevant Servo components,

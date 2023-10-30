@@ -278,7 +278,10 @@ where
     }
 
     /// Returns true if the caller needs to manually present a new frame.
-    pub fn handle_servo_events(&mut self, events: Vec<(Option<BrowserId>, EmbedderMsg)>) -> (bool, bool) {
+    pub fn handle_servo_events(
+        &mut self,
+        events: Vec<(Option<BrowserId>, EmbedderMsg)>,
+    ) -> (bool, bool) {
         let mut need_present = false;
         let mut history_changed = false;
         for (browser_id, msg) in events {
