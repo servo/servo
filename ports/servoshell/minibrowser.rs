@@ -143,7 +143,7 @@ impl Minibrowser {
     }
 
     /// Updates the location field from the given [Browser], unless the user has started editing it
-    /// without clicking Go, returning true iff the location has changed (needing an egui update).
+    /// without clicking Go, returning true if the location has changed (needing an egui update).
     pub fn update_location_in_toolbar(
         &mut self,
         browser: &mut Browser<dyn WindowPortsMethods>,
@@ -155,7 +155,7 @@ impl Minibrowser {
 
         match browser.current_url_string() {
             Some(location) if location != self.location.get_mut() => {
-                self.location = RefCell::new(self.location.get_mut().to_string());
+                self.location = RefCell::new(location.to_owned());
                 true
             },
             _ => false,
