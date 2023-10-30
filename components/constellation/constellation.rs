@@ -1485,9 +1485,10 @@ where
                 }
                 self.handle_panic(top_level_browsing_context_id, error, None);
             },
-            // Send frame tree to WebRender. Make it visible.
+            // Make the given top-level browsing context active.
             FromCompositorMsg::SelectBrowser(top_level_browsing_context_id) => {
-                self.send_frame_tree(top_level_browsing_context_id);
+                // self.send_frame_tree(top_level_browsing_context_id);
+                self.handle_select_browser_msg(top_level_browsing_context_id);
             },
             // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(top_level_browsing_context_id, direction) => {
@@ -5458,10 +5459,16 @@ where
                 "Sending frame tree for browsing context {}.",
                 browsing_context_id
             );
-            self.active_browser_id = Some(top_level_browsing_context_id);
             self.compositor_proxy
-                .send(CompositorMsg::SetFrameTree(frame_tree));
+                .send(CompositorMsg::SendFrameTree(frame_tree));
         }
+    }
+
+    fn handle_select_browser_msg(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+    ) {
+        self.active_browser_id = Some(top_level_browsing_context_id);
     }
 
     fn handle_media_session_action_msg(&mut self, action: MediaSessionActionType) {

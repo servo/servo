@@ -25,7 +25,7 @@ use gfx_traits::{Epoch, FontData, WebRenderEpochToU16};
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
 use libc::c_void;
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use msg::constellation_msg::{
     PipelineId, PipelineIndex, PipelineNamespaceId, TopLevelBrowsingContextId,
 };
@@ -135,7 +135,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// The root content pipeline ie the pipeline which contains the main frame
     /// to display. In the WebRender scene, this will be the only child of another
     /// pipeline which applies a pinch zoom transformation.
-    root_content_pipeline: RootPipeline,
+    root_content_pipelines: Vec<RootPipeline>,
 
     /// Tracks details about each active pipeline that the compositor knows about.
     pipeline_details: HashMap<PipelineId, PipelineDetails>,
@@ -374,10 +374,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             embedder_coordinates: window.get_coordinates(),
             window,
             port: state.receiver,
-            root_content_pipeline: RootPipeline {
+            root_content_pipelines: vec![RootPipeline {
                 top_level_browsing_context_id,
                 id: None,
-            },
+            }],
             pipeline_details: HashMap::new(),
             scale: Scale::new(1.0),
             composition_request: CompositionRequest::NoCompositingNecessary,
@@ -515,8 +515,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.change_running_animations_state(pipeline_id, animation_state);
             },
 
-            (CompositorMsg::SetFrameTree(frame_tree), ShutdownState::NotShuttingDown) => {
-                self.set_frame_tree(&frame_tree);
+            (CompositorMsg::SendFrameTree(frame_tree), ShutdownState::NotShuttingDown) => {
+                self.update_frame_tree(&frame_tree);
                 self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
             },
 
@@ -906,16 +906,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// content pipeline is wrapped in a display list that applies a pinch zoom
     /// transformation to it.
     fn set_root_content_pipeline_handling_pinch_zoom(&self, transaction: &mut Transaction) {
-        let root_content_pipeline = match self.root_content_pipeline.id {
-            Some(id) => id.to_webrender(),
-            None => return,
-        };
+        // let root_content_pipeline = match self.root_content_pipelines.id {
+        //     Some(id) => id.to_webrender(),
+        //     None => return,
+        // };
 
         let zoom_factor = self.pinch_zoom_level();
-        if zoom_factor == 1.0 {
-            transaction.set_root_pipeline(root_content_pipeline);
-            return;
-        }
+        // if zoom_factor == 1.0 {
+        //     transaction.set_root_pipeline(root_content_pipeline);
+        //     return;
+        // }
 
         // Every display list needs a pipeline, but we'd like to choose one that is unlikely
         // to conflict with our content pipelines, which start at (1, 1). (0, 0) is WebRender's
@@ -940,16 +940,25 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
         );
 
-        builder.push_iframe(
-            viewport_rect,
-            viewport_rect,
-            &SpaceAndClipInfo {
-                spatial_id: zoom_reference_frame,
-                clip_id: ClipId::root(root_pipeline),
-            },
-            root_content_pipeline,
-            true,
-        );
+        let viewport_stack_offset = viewport_rect.size / 4.0;
+        let mut current_viewport_rect = viewport_rect.clone();
+        current_viewport_rect.size.width /= 2.0;
+        current_viewport_rect.size.height /= 2.0;
+        for root_pipeline in self.root_content_pipelines.iter() {
+            if let Some(pipeline_id) = root_pipeline.id {
+                builder.push_iframe(
+                    current_viewport_rect,
+                    current_viewport_rect,
+                    &SpaceAndClipInfo {
+                        spatial_id: zoom_reference_frame,
+                        clip_id: ClipId::root(pipeline_id.to_webrender()),
+                    },
+                    pipeline_id.to_webrender(),
+                    true,
+                );
+                current_viewport_rect.origin += viewport_stack_offset;
+            }
+        }
         let built_display_list = builder.finalize();
 
         // NB: We are always passing 0 as the epoch here, but this doesn't seem to
@@ -964,16 +973,22 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         );
     }
 
-    fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
+    fn update_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         debug!(
-            "Setting the frame tree for pipeline {}",
-            frame_tree.pipeline.id
+            "Updating the frame tree for top-level browsing context {} to pipeline {}",
+            frame_tree.pipeline.top_level_browsing_context_id, frame_tree.pipeline.id
         );
 
-        self.root_content_pipeline = RootPipeline {
-            top_level_browsing_context_id: frame_tree.pipeline.top_level_browsing_context_id,
-            id: Some(frame_tree.pipeline.id),
-        };
+        if let Some(root_pipeline) = self.root_content_pipelines.iter_mut().find(|p| {
+            p.top_level_browsing_context_id == frame_tree.pipeline.top_level_browsing_context_id
+        }) {
+            root_pipeline.id = Some(frame_tree.pipeline.id);
+        } else {
+            self.root_content_pipelines.push(RootPipeline {
+                top_level_browsing_context_id: frame_tree.pipeline.top_level_browsing_context_id,
+                id: Some(frame_tree.pipeline.id),
+            });
+        }
 
         let mut txn = Transaction::new();
         self.set_root_content_pipeline_handling_pinch_zoom(&mut txn);
@@ -981,7 +996,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
 
-        self.create_pipeline_details_for_frame_tree(&frame_tree);
+        self.update_pipeline_details_for_frame_tree(&frame_tree);
         self.reset_scroll_tree_for_unattached_pipelines(&frame_tree);
 
         self.frame_tree_id.next();
@@ -1014,11 +1029,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             })
     }
 
-    fn create_pipeline_details_for_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
+    fn update_pipeline_details_for_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         self.pipeline_details(frame_tree.pipeline.id).pipeline = Some(frame_tree.pipeline.clone());
 
         for kid in &frame_tree.children {
-            self.create_pipeline_details_for_frame_tree(kid);
+            self.update_pipeline_details_for_frame_tree(kid);
         }
     }
 
@@ -1044,13 +1059,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             initial_viewport: initial_viewport,
         };
 
-        let top_level_browsing_context_id =
-            self.root_content_pipeline.top_level_browsing_context_id;
-
-        let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
-
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending window resize to constellation failed ({:?}).", e);
+        for root_pipeline in self.root_content_pipelines.iter() {
+            let top_level_browsing_context_id = root_pipeline.top_level_browsing_context_id;
+            let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending window resize to constellation failed ({:?}).", e);
+            }
         }
     }
 
@@ -1140,7 +1154,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         flags: HitTestFlags,
         pipeline_id: Option<WebRenderPipelineId>,
     ) -> Vec<CompositorHitTestResult> {
-        let root_pipeline_id = match self.root_content_pipeline.id {
+        // TODO handle multiple root pipelines
+        let root_pipeline = match self.root_content_pipelines.first() {
+            Some(root_pipeline) => root_pipeline,
+            None => return vec![],
+        };
+        let root_pipeline_id = match root_pipeline.id {
             Some(root_pipeline_id) => root_pipeline_id,
             None => return vec![],
         };
@@ -1672,7 +1691,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
         if self.waiting_on_present {
-            debug!("tried to composite while waiting on present");
+            trace!("tried to composite while waiting on present");
             return Err(UnableToComposite::NotReadyToPaintImage(
                 NotReadyToPaint::WaitingOnConstellation,
             ));
@@ -1736,7 +1755,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             None,
             self.time_profiler_chan.clone(),
             || {
-                debug!("compositor: compositing");
+                trace!("compositor: compositing");
 
                 let size =
                     DeviceIntSize::from_untyped(self.embedder_coordinates.framebuffer.to_untyped());
@@ -1861,11 +1880,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // Perform the page flip. This will likely block for a while.
         if self.external_present {
             self.waiting_on_present = true;
-            let msg = ConstellationMsg::ReadyToPresent(
-                self.root_content_pipeline.top_level_browsing_context_id,
-            );
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
+            for root_pipeline in self.root_content_pipelines.iter() {
+                let msg =
+                    ConstellationMsg::ReadyToPresent(root_pipeline.top_level_browsing_context_id);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({:?}).", e);
+                }
             }
         } else {
             self.present();

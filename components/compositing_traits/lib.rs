@@ -107,7 +107,7 @@ pub enum CompositorMsg {
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
-    SetFrameTree(SendableFrameTree),
+    SendFrameTree(SendableFrameTree),
     /// Composite.
     Recomposite(CompositingReason),
     /// Script has handled a touch event, and either prevented or allowed default actions.
@@ -193,7 +193,7 @@ impl Debug for CompositorMsg {
             CompositorMsg::ChangeRunningAnimationsState(_, state) => {
                 write!(f, "ChangeRunningAnimationsState({:?})", state)
             },
-            CompositorMsg::SetFrameTree(..) => write!(f, "SetFrameTree"),
+            CompositorMsg::SendFrameTree(..) => write!(f, "SendFrameTree"),
             CompositorMsg::Recomposite(..) => write!(f, "Recomposite"),
             CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),
