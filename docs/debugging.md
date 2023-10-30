@@ -1,7 +1,7 @@
 # Servo debugging guide
 
 There are a few ways to debug Servo. `mach` supports a `--debug` flag that
-searches a suitable debugger for you and runs servo with the appropriate
+searches a suitable debugger for you and runs Servo with the appropriate
 arguments under it:
 
 ```
