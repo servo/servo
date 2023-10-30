@@ -51,6 +51,7 @@ enum PumpResult {
     /// period, but has to call [`Servo::present`] to perform page flip and tell Servo compositor
     /// to continue rendering.
     Resize,
+    HistoryChanged
 }
 
 impl App {
@@ -271,16 +272,10 @@ impl App {
             }
 
             // Consume and handle any events from the Minibrowser.
-            if let Some(mut minibrowser) = app.minibrowser() {
+            if let Some(minibrowser) = app.minibrowser() {
                 let browser = &mut app.browser.borrow_mut();
                 let app_event_queue = &mut app.event_queue.borrow_mut();
                 minibrowser.queue_embedder_events_for_minibrowser_events(browser, app_event_queue);
-                if minibrowser.update_location_in_toolbar(browser) {
-                    // Update the minibrowser immediately. While we could update by requesting a
-                    // redraw, doing so would delay the location update by two frames.
-                    minibrowser
-                        .update(window.winit_window().unwrap(), "update_location_in_toolbar");
-                }
             }
 
             match app.handle_events() {
@@ -320,6 +315,20 @@ impl App {
                         minibrowser.paint(window.winit_window().unwrap());
                     }
                     app.servo.as_mut().unwrap().present();
+                },
+                Some(PumpResult::HistoryChanged) => {
+                    // The history was chnaged.
+                    trace!("PumpResult::HistoryChanged");
+
+                    if let Some(mut minibrowser) = app.minibrowser() {
+                        let browser = &mut app.browser.borrow_mut();
+                        if minibrowser.update_location_in_toolbar(browser) {
+                            // Update the minibrowser immediately. While we could update by requesting a
+                            // redraw, doing so would delay the location update by two frames.
+                            minibrowser
+                                .update(window.winit_window().unwrap(), "update_location_in_toolbar");
+                        }
+                    }
                 },
                 None => {},
             }
@@ -404,9 +413,16 @@ impl App {
         let mut embedder_messages = self.servo.as_mut().unwrap().get_events();
         let mut need_resize = false;
         let mut need_present = false;
+        let mut history_changed = false;
         loop {
             // Consume and handle those embedder messages.
-            need_present |= browser.handle_servo_events(embedder_messages);
+            let (new_need_present, new_history_changed) = browser.handle_servo_events(embedder_messages);
+            need_present |= new_need_present;
+            history_changed |= new_history_changed;
+
+            if history_changed {
+                return Some(PumpResult::HistoryChanged)
+            }
 
             // Route embedder events from the Browser to the relevant Servo components,
             // receives and collects embedder messages from various Servo components,
