@@ -103,6 +103,7 @@ fn test_url(input: &str, location: &str, cmdline_if_exists: &str, cmdline_otherw
 }
 
 #[test]
+#[cfg(not(target_os = "windows"))]
 fn test_cmdline_and_location_bar_url() {
     test_url(
         "data:text/html,a",
@@ -153,6 +154,61 @@ fn test_cmdline_and_location_bar_url() {
         "https://duckduckgo.com/html/?q=dragonfruit",
     );
 }
+
+
+#[test]
+#[cfg(target_os = "windows")]
+fn test_cmdline_and_location_bar_url() {
+    test_url(
+        "data:text/html,a",
+        "data:text/html,a",
+        "data:text/html,a",
+        "data:text/html,a",
+    );
+    test_url(
+        "README.md",
+        "https://readme.md/",
+        "file:///C:/fake/cwd/README.md",
+        "https://readme.md/",
+    );
+    test_url(
+        "nic.md",
+        "https://nic.md/",
+        "file:///C:/fake/cwd/nic.md",
+        "https://nic.md/",
+    );
+    test_url(
+        "nic.md/ro",
+        "https://nic.md/ro",
+        "file:///C:/fake/cwd/nic.md/ro",
+        "https://nic.md/ro",
+    );
+    test_url(
+        "foo.txt",
+        "https://foo.txt/",
+        "file:///C:/fake/cwd/foo.txt",
+        "https://foo.txt/",
+    );
+    test_url(
+        "foo.txt/ro",
+        "https://foo.txt/ro",
+        "file:///C:/fake/cwd/foo.txt/ro",
+        "https://foo.txt/ro",
+    );
+    test_url(
+        "resources/public_domains.txt",
+        "https://resources/public_domains.txt",
+        "file:///C:/fake/cwd/resources/public_domains.txt",
+        "https://resources/public_domains.txt",
+    );
+    test_url(
+        "dragonfruit",
+        "https://duckduckgo.com/html/?q=dragonfruit",
+        "file:///C:/fake/cwd/dragonfruit",
+        "https://duckduckgo.com/html/?q=dragonfruit",
+    );
+}
+
 
 #[cfg(target_os = "linux")]
 #[test]
