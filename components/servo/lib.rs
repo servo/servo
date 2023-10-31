@@ -478,7 +478,10 @@ where
             profiler_enabled: false,
             _js_engine_setup: js_engine_setup,
         };
-        InitializedServo { servo, browser_id: top_level_browsing_context_id }
+        InitializedServo {
+            servo,
+            browser_id: top_level_browsing_context_id,
+        }
     }
 
     fn handle_window_event(&mut self, event: EmbedderEvent) -> bool {
