@@ -26,7 +26,6 @@ packages = [
     "cookie",
     "futures",
     "libloading",
-    "mio",
     "nix",
     "num-rational",
     "redox_syscall",
