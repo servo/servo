@@ -975,8 +975,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     fn update_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         debug!(
-            "Updating the frame tree for top-level browsing context {} to pipeline {}",
-            frame_tree.pipeline.top_level_browsing_context_id, frame_tree.pipeline.id
+            "Setting the frame tree for pipeline {:?}",
+            frame_tree.pipeline.id
         );
 
         if let Some(root_pipeline) = self.root_content_pipelines.iter_mut().find(|p| {
