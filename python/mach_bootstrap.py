@@ -20,6 +20,7 @@ WPT_SERVE_PATH = os.path.join(WPT_PATH, "tests", "tools", "wptserve")
 
 SEARCH_PATHS = [
     os.path.join("python", "mach"),
+    os.path.join("third_party", "mozdebug"),
 ]
 
 # Individual files providing mach commands.
