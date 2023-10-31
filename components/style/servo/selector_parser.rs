@@ -23,7 +23,6 @@ use fxhash::FxHashMap;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::parser::SelectorParseErrorKind;
 use selectors::visitor::SelectorVisitor;
-use servo_arc::Arc;
 use std::fmt;
 use std::mem;
 use std::ops::{Deref, DerefMut};
@@ -411,7 +410,7 @@ pub struct SelectorImpl;
 /// A set of extra data to carry along with the matching context, either for
 /// selector-matching or invalidation.
 #[derive(Debug, Default)]
-pub struct ExtraMatchingData {
+pub struct ExtraMatchingData<'a> {
     /// The invalidation data to invalidate doc-state pseudo-classes correctly.
     pub invalidation_data: InvalidationMatchingData,
 
@@ -421,14 +420,14 @@ pub struct ExtraMatchingData {
 
     /// The style of the originating element in order to evaluate @container
     /// size queries affecting pseudo-elements.
-    pub originating_element_style: Option<Arc<ComputedValues>>,
+    pub originating_element_style: Option<&'a ComputedValues>,
 }
 
 impl ::selectors::SelectorImpl for SelectorImpl {
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
-    type ExtraMatchingData = ExtraMatchingData;
+    type ExtraMatchingData<'a> = ExtraMatchingData<'a>;
     type AttrValue = AtomString;
     type Identifier = AtomIdent;
     type LocalName = LocalName;

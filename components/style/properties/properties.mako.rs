@@ -3289,6 +3289,15 @@ impl ComputedValues {
     /// Get the initial computed values.
     pub fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
 
+    /// Converts the computed values to an Arc<> from a reference.
+    pub fn to_arc(&self) -> Arc<Self> {
+        // SAFETY: We're guaranteed to be allocated as an Arc<> since the
+        // functions above are the only ones that create ComputedValues
+        // instances in Servo (and that must be the case since ComputedValues'
+        // member is private).
+        unsafe { Arc::from_raw_addrefed(self) }
+    }
+
     /// Serializes the computed value of this property as a string.
     pub fn computed_value_to_string(&self, property: PropertyDeclarationId) -> String {
         match property {
@@ -4103,7 +4112,7 @@ mod lazy_static_module {
 
     lazy_static! {
         /// The initial values for all style structs as defined by the specification.
-        pub static ref INITIAL_SERVO_VALUES: ComputedValues = ComputedValues {
+        pub static ref INITIAL_SERVO_VALUES : Arc<ComputedValues> = Arc::new(ComputedValues {
             inner: ComputedValuesInner {
                 % for style_struct in data.active_style_structs():
                     ${style_struct.ident}: Arc::new(style_structs::${style_struct.name} {
@@ -4131,7 +4140,7 @@ mod lazy_static_module {
                 flags: ComputedValueFlags::empty(),
             },
             pseudo: None,
-        };
+        });
     }
 }
 
