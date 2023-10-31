@@ -280,7 +280,7 @@ where
 
         // Reserving a namespace to create TopLevelBrowsingContextId.
         PipelineNamespace::install(PipelineNamespaceId(0));
-        let browser_id = BrowserId::new();
+        let top_level_browsing_context_id = BrowserId::new();
 
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
@@ -467,7 +467,7 @@ where
             opts.is_running_problem_test,
             opts.exit_after_load,
             opts.debug.convert_mouse_to_touch,
-            browser_id,
+            top_level_browsing_context_id,
         );
 
         let servo = Servo {
@@ -478,7 +478,7 @@ where
             profiler_enabled: false,
             _js_engine_setup: js_engine_setup,
         };
-        InitializedServo { servo, browser_id }
+        InitializedServo { servo, browser_id: top_level_browsing_context_id }
     }
 
     fn handle_window_event(&mut self, event: EmbedderEvent) -> bool {
@@ -615,8 +615,8 @@ where
                 self.compositor.capture_webrender();
             },
 
-            EmbedderEvent::NewBrowser(url, browser_id) => {
-                let msg = ConstellationMsg::NewBrowser(url, browser_id);
+            EmbedderEvent::NewBrowser(url, top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::NewBrowser(url, top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending NewBrowser message to constellation failed ({:?}).",
@@ -625,8 +625,8 @@ where
                 }
             },
 
-            EmbedderEvent::SelectBrowser(ctx) => {
-                let msg = ConstellationMsg::SelectBrowser(ctx);
+            EmbedderEvent::SelectBrowser(top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::SelectBrowser(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending SelectBrowser message to constellation failed ({:?}).",
@@ -635,8 +635,8 @@ where
                 }
             },
 
-            EmbedderEvent::CloseBrowser(ctx) => {
-                let msg = ConstellationMsg::CloseBrowser(ctx);
+            EmbedderEvent::CloseBrowser(top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::CloseBrowser(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending CloseBrowser message to constellation failed ({:?}).",
@@ -645,8 +645,8 @@ where
                 }
             },
 
-            EmbedderEvent::SendError(ctx, e) => {
-                let msg = ConstellationMsg::SendError(ctx, e);
+            EmbedderEvent::SendError(top_level_browsing_context_id, e) => {
+                let msg = ConstellationMsg::SendError(top_level_browsing_context_id, e);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending SendError message to constellation failed ({:?}).",
