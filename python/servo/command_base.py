@@ -7,7 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from __future__ import print_function, annotations
+from __future__ import annotations
 
 import contextlib
 from enum import Enum

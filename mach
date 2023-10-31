@@ -9,8 +9,6 @@
 ''':' && if [ ! -z "$MSYSTEM" ] ; then exec python "$0" "$@" ; else which python3 > /dev/null 2> /dev/null && exec python3 "$0" "$@" || exec python "$0" "$@" ; fi
 '''
 
-from __future__ import print_function, unicode_literals
-
 import os
 import sys
 
