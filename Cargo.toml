@@ -43,7 +43,7 @@ hyper_serde = "0.13"
 image = "0.24"
 imsz = "0.2"
 indexmap = { version = "1.0.2", features = ["std"] }
-ipc-channel = "0.17"
+ipc-channel = "0.18"
 itertools = "0.10"
 keyboard-types = "0.6"
 lazy_static = "1.4"
@@ -115,9 +115,6 @@ debug-assertions = false
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
-
-# This is here to dedupe winapi since mio 0.6 is still using winapi 0.2.
-mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
 
 # This is required because we want all dependencies that use WebRender to
 # use our vendored version.
