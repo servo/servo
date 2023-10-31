@@ -4,8 +4,6 @@
 
 use std::path::Path;
 
-use servo::embedder_traits;
-
 use crate::parser::{get_default_url, location_bar_input_to_url, parse_url_or_filename};
 
 #[cfg(not(target_os = "windows"))]
@@ -90,7 +88,6 @@ fn test_argument_parsing_special() {
 
 // Helper function to test url
 fn test_url(input: &str, location: &str, cmdline_if_exists: &str, cmdline_otherwise: &str) {
-    embedder_traits::resources::set_for_tests();
     assert_eq!(
         location_bar_input_to_url(input).unwrap().into_string(),
         location
