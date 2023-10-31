@@ -23,6 +23,7 @@ use fxhash::FxHashMap;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::parser::SelectorParseErrorKind;
 use selectors::visitor::SelectorVisitor;
+use servo_arc::Arc;
 use std::fmt;
 use std::mem;
 use std::ops::{Deref, DerefMut};
@@ -417,6 +418,10 @@ pub struct ExtraMatchingData {
     /// The invalidation bits from matching container queries. These are here
     /// just for convenience mostly.
     pub cascade_input_flags: ComputedValueFlags,
+
+    /// The style of the originating element in order to evaluate @container
+    /// size queries affecting pseudo-elements.
+    pub originating_element_style: Option<Arc<ComputedValues>>,
 }
 
 impl ::selectors::SelectorImpl for SelectorImpl {
