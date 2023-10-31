@@ -1886,7 +1886,7 @@ struct TextRunLineItem {
 }
 
 fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Length {
-    let font_size = parent_style.get_font().font_size.size.0;
+    let font_size = parent_style.get_font().font_size.computed_size();
     match parent_style.get_inherited_text().line_height {
         LineHeight::Normal => font_metrics.line_gap,
         LineHeight::Number(number) => font_size * number.0,
