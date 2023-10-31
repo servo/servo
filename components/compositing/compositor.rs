@@ -1787,6 +1787,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     // and check if it is the one the layout thread is expecting,
                     let epoch = Epoch(epoch);
                     if *pending_epoch != epoch {
+                        warn!("{}: paint metrics: pending {:?} should be {:?}", id, pending_epoch, epoch);
                         continue;
                     }
                     // in which case, we remove it from the list of pending metrics,

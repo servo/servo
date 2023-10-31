@@ -3779,7 +3779,7 @@ where
         self.notify_history_changed(top_level_browsing_context_id);
 
         self.trim_history(top_level_browsing_context_id);
-        self.update_frame_tree_if_active(top_level_browsing_context_id);
+        self.update_frame_trees();
     }
 
     fn update_browsing_context(
@@ -4739,7 +4739,7 @@ where
         }
 
         self.notify_history_changed(change.top_level_browsing_context_id);
-        self.update_frame_tree_if_active(change.top_level_browsing_context_id);
+        self.update_frame_trees();
     }
 
     fn focused_browsing_context_is_descendant_of(
@@ -5386,16 +5386,11 @@ where
             })
     }
 
-    /// Re-send the frame tree to the compositor.
-    fn update_frame_tree_if_active(
+    /// Re-send the frame trees to the compositor.
+    fn update_frame_trees(
         &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
-        // Only send the frame tree if it's the active one or if no frame tree
-        // has been sent yet.
-        if self.active_browser_id.is_none() ||
-            Some(top_level_browsing_context_id) == self.active_browser_id
-        {
+        for top_level_browsing_context_id in self.browsers.keys().cloned().collect::<Vec<_>>() {
             self.send_frame_tree(top_level_browsing_context_id);
         }
     }
