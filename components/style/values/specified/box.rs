@@ -2209,6 +2209,7 @@ impl Parse for Overflow {
             "-moz-hidden-unscrollable" if static_prefs::pref!("layout.css.overflow-moz-hidden-unscrollable.enabled") => {
                 Overflow::Clip
             },
+            #[cfg(feature = "gecko")]
             "overlay" if static_prefs::pref!("layout.css.overflow-overlay.enabled") => {
                 Overflow::Auto
             },
