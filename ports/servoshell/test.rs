@@ -155,7 +155,6 @@ fn test_cmdline_and_location_bar_url() {
     );
 }
 
-
 #[test]
 #[cfg(target_os = "windows")]
 fn test_cmdline_and_location_bar_url() {
@@ -208,7 +207,6 @@ fn test_cmdline_and_location_bar_url() {
         "https://duckduckgo.com/html/?q=dragonfruit",
     );
 }
-
 
 #[cfg(target_os = "linux")]
 #[test]
