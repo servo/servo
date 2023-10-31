@@ -3,7 +3,6 @@
 
 blessings == 1.7
 distro == 1.4
-mozdebug == 0.3
 mozinfo == 1.2.1
 mozlog == 7.1.0
 setuptools == 65.5.1
