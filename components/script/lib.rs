@@ -9,7 +9,7 @@
 #![doc = "The script crate contains all matters DOM."]
 #![register_tool(crown)]
 
-// issue a warning if there is no crown
+// Issue a warning if `crown` cannot be found.
 #[warn(unknown_lints)]
 #[deny(crown_is_not_used)]
 // comment to keep tidy happy
