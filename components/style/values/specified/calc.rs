@@ -41,6 +41,13 @@ fn round_enabled() -> bool {
     return false;
 }
 
+fn mod_rem_enabled() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.mod-rem.enabled");
+    #[cfg(feature = "servo")]
+    return false;
+}
+
 /// The name of the mathematical function that we're parsing.
 #[derive(Clone, Copy, Debug, Parse)]
 pub enum MathFunction {
@@ -801,7 +808,7 @@ impl CalcNode {
         } else if matches!(function, Round) {
             round_enabled()
         } else if matches!(function, Mod | Rem) {
-            static_prefs::pref!("layout.css.mod-rem.enabled")
+            mod_rem_enabled()
         } else {
             true
         };
