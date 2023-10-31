@@ -300,7 +300,7 @@ version = "0.0.1"
 dependencies = [
  "backtrace",
  "crossbeam-channel",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "lazy_static",
  "libc",
  "log",
@@ -489,7 +489,7 @@ dependencies = [
  "bluetooth_traits",
  "device",
  "embedder_traits",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "log",
  "servo_config",
  "servo_rand",
@@ -501,7 +501,7 @@ name = "bluetooth_traits"
 version = "0.0.1"
 dependencies = [
  "embedder_traits",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "regex",
  "serde",
 ]
@@ -651,7 +651,7 @@ dependencies = [
  "gfx",
  "gleam",
  "half",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "log",
  "lyon_geom",
  "num-traits",
@@ -680,7 +680,7 @@ dependencies = [
  "crossbeam-channel",
  "cssparser",
  "euclid",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "lazy_static",
  "malloc_size_of",
  "malloc_size_of_derive",
@@ -904,7 +904,7 @@ dependencies = [
  "gfx_traits",
  "gleam",
  "image",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "keyboard-types",
  "libc",
  "log",
@@ -936,7 +936,7 @@ dependencies = [
  "embedder_traits",
  "euclid",
  "gfx_traits",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "keyboard-types",
  "log",
  "msg",
@@ -973,7 +973,7 @@ dependencies = [
  "gfx_traits",
  "headers",
  "http",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "keyboard-types",
  "layout_traits",
  "log",
@@ -1335,7 +1335,7 @@ dependencies = [
  "embedder_traits",
  "headers",
  "http",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "log",
  "msg",
  "serde",
@@ -1354,7 +1354,7 @@ dependencies = [
  "bitflags 2.4.1",
  "headers",
  "http",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "malloc_size_of",
  "malloc_size_of_derive",
  "msg",
@@ -1535,7 +1535,7 @@ version = "0.0.1"
 dependencies = [
  "cfg-if 1.0.0",
  "crossbeam-channel",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "keyboard-types",
  "lazy_static",
  "log",
@@ -2042,7 +2042,7 @@ dependencies = [
  "freetype",
  "gfx_traits",
  "harfbuzz-sys",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "lazy_static",
  "libc",
  "log",
@@ -2884,6 +2884,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "ipc-channel"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ab3a34c91b7e84a72643bd75d1bac3afd241f78f9859fe0b5e5b2a6a75732c2"
+dependencies = [
+ "bincode",
+ "crossbeam-channel",
+ "fnv",
+ "lazy_static",
+ "libc",
+ "mio 0.8.8",
+ "rand",
+ "serde",
+ "tempfile",
+ "uuid",
+ "windows",
+]
+
+[[package]]
 name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3006,7 +3025,7 @@ dependencies = [
  "gfx",
  "gfx_traits",
  "html5ever",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "lazy_static",
  "libc",
  "log",
@@ -3053,7 +3072,7 @@ dependencies = [
  "gfx",
  "gfx_traits",
  "html5ever",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "lazy_static",
  "libc",
  "log",
@@ -3092,7 +3111,7 @@ dependencies = [
  "gfx_traits",
  "histogram",
  "html5ever",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "layout_2013",
  "layout_traits",
  "lazy_static",
@@ -3136,7 +3155,7 @@ dependencies = [
  "gfx",
  "gfx_traits",
  "html5ever",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "layout_2020",
  "layout_traits",
  "lazy_static",
@@ -3169,7 +3188,7 @@ version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
  "gfx",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "metrics",
  "msg",
  "net_traits",
@@ -3288,7 +3307,7 @@ dependencies = [
  "gfx_traits",
  "gleam",
  "gstreamer",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "keyboard-types",
  "layout_thread_2013",
  "layout_thread_2020",
@@ -3467,7 +3486,7 @@ version = "0.0.1"
 dependencies = [
  "euclid",
  "fnv",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "lazy_static",
  "log",
  "serde",
@@ -3535,7 +3554,7 @@ name = "metrics"
 version = "0.0.1"
 dependencies = [
  "gfx_traits",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "log",
  "malloc_size_of",
  "malloc_size_of_derive",
@@ -3552,7 +3571,7 @@ name = "metrics_tests"
 version = "0.0.1"
 dependencies = [
  "gfx_traits",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "metrics",
  "msg",
  "profile_traits",
@@ -3691,7 +3710,7 @@ dependencies = [
 name = "msg"
 version = "0.0.1"
 dependencies = [
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "lazy_static",
  "malloc_size_of",
  "malloc_size_of_derive",
@@ -3782,7 +3801,7 @@ dependencies = [
  "hyper-rustls",
  "hyper_serde",
  "imsz",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "lazy_static",
  "libflate",
  "log",
@@ -3840,7 +3859,7 @@ dependencies = [
  "hyper",
  "hyper_serde",
  "image",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "lazy_static",
  "log",
  "malloc_size_of",
@@ -4424,7 +4443,7 @@ dependencies = [
 name = "profile"
 version = "0.0.1"
 dependencies = [
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "libc",
  "profile_traits",
  "regex",
@@ -4439,7 +4458,7 @@ dependencies = [
 name = "profile_tests"
 version = "0.0.1"
 dependencies = [
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "profile",
  "profile_traits",
  "servo_config",
@@ -4450,7 +4469,7 @@ name = "profile_traits"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "log",
  "serde",
  "servo_config",
@@ -4839,7 +4858,7 @@ dependencies = [
  "hyper_serde",
  "image",
  "indexmap",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "itertools",
  "jstraceable_derive",
  "keyboard-types",
@@ -4914,7 +4933,7 @@ dependencies = [
  "fxhash",
  "gfx_traits",
  "html5ever",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "libc",
  "malloc_size_of",
  "malloc_size_of_derive",
@@ -4971,7 +4990,7 @@ dependencies = [
  "headers",
  "http",
  "hyper_serde",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "keyboard-types",
  "libc",
  "log",
@@ -5136,7 +5155,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 dependencies = [
  "servo-media-audio",
  "servo-media-player",
@@ -5148,7 +5167,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.2.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5170,10 +5189,10 @@ dependencies = [
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 dependencies = [
  "boxfnonce",
- "ipc-channel",
+ "ipc-channel 0.18.0",
  "servo-media",
  "servo-media-audio",
  "servo-media-player",
@@ -5185,7 +5204,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5200,7 +5219,7 @@ dependencies = [
  "gstreamer-sys",
  "gstreamer-video",
  "gstreamer-webrtc",
- "ipc-channel",
+ "ipc-channel 0.18.0",
  "lazy_static",
  "log",
  "mime",
@@ -5219,7 +5238,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -5229,7 +5248,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5242,7 +5261,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5255,9 +5274,9 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 dependencies = [
- "ipc-channel",
+ "ipc-channel 0.18.0",
  "serde",
  "serde_derive",
  "servo-media-streams",
@@ -5267,7 +5286,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 dependencies = [
  "lazy_static",
  "uuid",
@@ -5276,12 +5295,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 dependencies = [
  "boxfnonce",
  "lazy_static",
@@ -5358,7 +5377,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#af97a686de711c44f0e13fd4ace824c7b0a2e2e2"
+source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5498,7 +5517,7 @@ dependencies = [
  "core-foundation",
  "getopts",
  "gl_generator",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "libc",
  "libloading 0.8.0",
  "libservo",
@@ -6715,7 +6734,7 @@ dependencies = [
  "headers",
  "http",
  "image",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "keyboard-types",
  "log",
  "msg",
@@ -6737,7 +6756,7 @@ version = "0.0.1"
 dependencies = [
  "arrayvec",
  "euclid",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "log",
  "malloc_size_of",
  "msg",
@@ -6879,7 +6898,7 @@ version = "0.0.1"
 source = "git+https://github.com/servo/webxr#d566e65b373b1899a642f3c6c3d8a9d12ce3717b"
 dependencies = [
  "euclid",
- "ipc-channel",
+ "ipc-channel 0.17.0",
  "log",
  "serde",
  "time 0.1.45",
