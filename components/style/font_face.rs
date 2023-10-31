@@ -492,7 +492,7 @@ pub struct FontFace<'a>(&'a FontFaceRuleData);
 #[cfg(feature = "servo")]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-pub struct EffectiveSources(SourceList);
+pub struct EffectiveSources(Vec<Source>);
 
 #[cfg(feature = "servo")]
 impl<'a> FontFace<'a> {
@@ -502,6 +502,7 @@ impl<'a> FontFace<'a> {
     pub fn effective_sources(&self) -> EffectiveSources {
         EffectiveSources(
             self.sources()
+                .0
                 .iter()
                 .rev()
                 .filter(|source| {
