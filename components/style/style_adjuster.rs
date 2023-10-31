@@ -7,8 +7,11 @@
 
 use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::TElement;
+#[cfg(feature = "gecko")]
 use crate::properties::longhands::contain::computed_value::T as Contain;
+#[cfg(feature = "gecko")]
 use crate::properties::longhands::container_type::computed_value::T as ContainerType;
+#[cfg(feature = "gecko")]
 use crate::properties::longhands::content_visibility::computed_value::T as ContentVisibility;
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::longhands::float::computed_value::T as Float;
@@ -466,6 +469,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    #[cfg(feature = "gecko")]
     fn adjust_for_contain(&mut self) {
         let box_style = self.style.get_box();
         debug_assert_eq!(box_style.clone_contain(), box_style.clone_effective_containment());
@@ -941,9 +945,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_webkit_line_clamp();
         self.adjust_for_position();
         self.adjust_for_overflow();
-        self.adjust_for_contain();
         #[cfg(feature = "gecko")]
         {
+            self.adjust_for_contain();
             self.adjust_for_table_text_align();
             self.adjust_for_justify_items();
         }
