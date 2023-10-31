@@ -5,6 +5,7 @@ import os
 import subprocess
 from multiprocessing import Queue, Event
 from threading import Thread
+from urllib.parse import urljoin
 
 from . import chrome_spki_certs
 from .base import (
@@ -16,6 +17,7 @@ from .base import (
 from .base import get_timeout_multiplier   # noqa: F401
 from .chrome import debug_args
 from ..executors import executor_kwargs as base_executor_kwargs
+from ..executors.base import server_url
 from ..executors.executorcontentshell import (  # noqa: F401
     ContentShellCrashtestExecutor,
     ContentShellPrintRefTestExecutor,
@@ -82,7 +84,8 @@ def browser_kwargs(logger, test_type, run_info_data, config, subsuite, **kwargs)
 
     return {"binary": kwargs["binary"],
             "binary_args": args,
-            "debug_info": kwargs["debug_info"]}
+            "debug_info": kwargs["debug_info"],
+            "pac_origin": server_url(config, "http")}
 
 
 def executor_kwargs(logger, test_type, test_environment, run_info_data,
@@ -127,21 +130,27 @@ class ContentShellBrowser(Browser):
     termination_timeout: float = 3
 
     def __init__(self, logger, binary="content_shell", binary_args=None,
-                 debug_info=None, **kwargs):
+                 debug_info=None, pac_origin=None, **kwargs):
         super().__init__(logger)
-        debug_cmd_prefix, browser_cmd = browser_command(binary, binary_args or [], debug_info)
-        self._args = [*debug_cmd_prefix, *browser_cmd]
+        self._debug_cmd_prefix, self._browser_cmd = browser_command(
+            binary, binary_args or [], debug_info)
         self._output_handler = None
         self._proc = None
+        self._pac_origin = pac_origin
+        self._pac = None
 
-    def start(self, group_metadata, **kwargs):
-        self.logger.debug("Starting content shell: %s..." % self._args[0])
-        self._output_handler = OutputHandler(self.logger, self._args)
+    def start(self, group_metadata, **settings):
+        browser_cmd, pac = list(self._browser_cmd), settings.get("pac")
+        if pac:
+            browser_cmd.insert(1, f"--proxy-pac-url={pac}")
+        self.logger.debug(f"Starting content shell: {browser_cmd[0]}...")
+        args = [*self._debug_cmd_prefix, *browser_cmd]
+        self._output_handler = OutputHandler(self.logger, args)
         if os.name == "posix":
             close_fds, preexec_fn = True, lambda: os.setpgid(0, 0)
         else:
             close_fds, preexec_fn = False, None
-        self._proc = subprocess.Popen(self._args,
+        self._proc = subprocess.Popen(args,
                                       stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE,
@@ -169,7 +178,7 @@ class ContentShellBrowser(Browser):
         # Content shell is likely still in the process of initializing. The actual waiting
         # for the startup to finish is done in the ContentShellProtocol.
         self.logger.debug("Content shell has been started.")
-        self._output_handler.start(group_metadata=group_metadata, **kwargs)
+        self._output_handler.start(group_metadata=group_metadata, **settings)
 
     def stop(self, force=False):
         self.logger.debug("Stopping content shell...")
@@ -238,6 +247,13 @@ class ContentShellBrowser(Browser):
 
     def check_crash(self, process, test):
         return not self.is_alive()
+
+    def settings(self, test):
+        pac_path = test.environment.get("pac")
+        if self._pac_origin and pac_path:
+            self._pac = urljoin(self._pac_origin, pac_path)
+            return {"pac": self._pac}
+        return {}
 
     def _create_reader_thread(self, name, stream, queue, prefix=b""):
         """This creates (and starts) a background thread which reads lines from `stream` and

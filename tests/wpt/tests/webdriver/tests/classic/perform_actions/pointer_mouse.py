@@ -188,6 +188,24 @@ def test_click_navigation(session, url, inline):
     Poll(session, message=error_message).until(lambda s: s.url == destination)
 
 
+@pytest.mark.parametrize("x, y, event_count", [
+    (0, 0, 0),
+    (1, 0, 1),
+    (0, 1, 1),
+], ids=["default value", "x", "y"])
+def test_move_to_position_in_viewport(
+    session, test_actions_page, mouse_chain, x, y, event_count
+):
+    mouse_chain.pointer_move(x, y).perform()
+    events = get_events(session)
+    assert len(events) == event_count
+
+    # Move again to check that no further mouse move event is emitted.
+    mouse_chain.pointer_move(x, y).perform()
+    events = get_events(session)
+    assert len(events) == event_count
+
+
 @pytest.mark.parametrize("drag_duration", [0, 300, 800])
 @pytest.mark.parametrize("dx, dy", [
     (20, 0), (0, 15), (10, 15), (-20, 0), (10, -15), (-10, -15)

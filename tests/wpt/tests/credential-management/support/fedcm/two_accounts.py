@@ -27,7 +27,7 @@ def main(request, response):
    "picture": "https://idp.example/profile/123",
    "approved_clients": ["123", "456", "789"],
    "login_hints": ["john_doe"],
-   "hosted_domains": ["idp.example", "example"]
+   "domain_hints": ["idp.example", "example"]
   }
   ]
 }

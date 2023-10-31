@@ -7,17 +7,19 @@
 <link rel="help" href="https://w3c.github.io/sensors/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/page-visibility/resources/window_state_context.js"></script>
 <script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
 <script src="/generic-sensor/generic-sensor-tests.js"></script>
 <script src="/orientation-sensor/orientation-sensor-tests.js"></script>
+<script src="resources/sensor-data.js"></script>
 <script>
 
-runGenericSensorTests(
-    'RelativeOrientationSensor',
-    kReadings,
-    verifyQuatSensorReading,
-    ['accelerometer', 'gyroscope']);
+'use strict';
 
-runOrientationSensorTests('RelativeOrientationSensor');
+runGenericSensorTests(kRelativeOrientationSensorData, kOrientationReadings);
+
+runOrientationSensorTests(kRelativeOrientationSensorData, kOrientationReadings);
 
 </script>

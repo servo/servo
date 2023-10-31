@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9522">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+transition_test({
+  syntax: "<transform-list>|none",
+  from: "none",
+  to: "translateX(200px)",
+  expected: "translateX(200px)",
+  behavior: 'allow-discrete',
+}, 'A custom property keyword none is not a <transform-list> value and is not interpolable with <transform-list> values');
+
+</script>

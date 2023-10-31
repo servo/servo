@@ -144,7 +144,8 @@ function animation_test(property, values, description) {
     // iterationComposite is set to something other than "replace".
     animation.currentTime = duration * 2.5;
 
-    assert_equals(getComputedStyle(target).getPropertyValue(name), values.expected);
+    const assert_equals_function = values.assert_function || assert_equals;
+    assert_equals_function(getComputedStyle(target).getPropertyValue(name), values.expected);
   }, description);
 };
 

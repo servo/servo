@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<title>FetchLater Referrer Header: Strict Origin Policy</title>
+<meta name='referrer' content='strict-origin'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/fetch/fetch-later/resources/header-referrer-helper.js"></script>
+</head>
+<body>
+<script>
+
+const {
+  HTTPS_ORIGIN
+} = get_host_info();
+
+testReferrerHeader(token(), HTTPS_ORIGIN, REFERRER_ORIGIN);
+// Note: FetchLater cannot be used for non-secure URL.
+
+</script>
+</body>
+</html>

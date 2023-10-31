@@ -12,12 +12,11 @@ Need tests for (likely not a complete list):
             probably not worth covering all types, if we have coverage for the
             main renderURL).
 * Filtering/prioritization (including bidding signals influencing priorities)
-* Size restrictions.
+* Size restrictions / ad and component ad sizes.
 * additionalBids.
 * adCost.
 * bidCurrency.
 * modellingSignals.
-* Ad and component ad sizes.
 * Updates (both after auction and triggered).
 * All auctionConfig parameters (including invalid auctionConfigs, and ones
     with no buyers).
@@ -40,9 +39,8 @@ Need tests for (likely not a complete list):
 * Network timeouts.
 * Validate specific escaping behavior logic (still under discussion). There
     are a number of different rules for which characters are escaped, and
-    whether spacess are escaped as "%20" or "+".
+    whether spaces are escaped as "%20" or "+".
 * Reports not sent if ad not used.
-* Ties.
 * Interactions with local network access API, which requires public
     networks to send CORS preflights for requests made over local networks.
     Needs testing with public publisher pages running auctions with
@@ -50,10 +48,8 @@ Need tests for (likely not a complete list):
 * Calling FLEDGE APIs (or at least leaveAdInterestGroup() with no args)
     in a non-ad FencedFrame.
 * Test network requests in terms of fetch behavior
-  * No cookies.
-  * No referrer.
   * Redirects not followed.
-  * etc.
+  * Network partition (not yet specced).
 * Test that await is not needed for same-origin interest groups
   * Verify that's still in the spec/explainer first.
 * executionMode
@@ -62,12 +58,13 @@ Need tests for (likely not a complete list):
   * Across scoreAd() / generateBid() calls, and with report calls.
   * In "group-by-origin" execution mode across IGs joined from different
       origins, and between generateBid() and reportWin().
-* Use AbortSignal to abort an auction.
+* Test Content-Type headers allowed in responess for script/wasm/JSON fetches.
 
 If possible:
 * Aggregate reporting.
 * Join/leave permission delegation via .well-known files
   * Including tests for clearOriginJoinedInterestGroups().
+  * Include tests for HTTP-y/fetch-y things (e.g., whether they have cookies)
 * k-anonymity.
 * Signals request batching. This is an optional feature, so can't require it,
     but maybe a test where batching could be used, and make sure things work,

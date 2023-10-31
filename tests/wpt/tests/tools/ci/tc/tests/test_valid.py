@@ -325,8 +325,7 @@ def test_verify_payload():
       'wpt-firefox_android-nightly-crashtest-1',
       'wpt-firefox-stable-print-reftest-1',
       'wpt-chromium-nightly-print-reftest-1',
-      'wpt-chrome-stable-print-reftest-1',
-      'wpt-firefox_android-nightly-print-reftest-1'])
+      'wpt-chrome-stable-print-reftest-1'])
 ])
 def test_schedule_tasks(event_path, is_pr, files_changed, expected):
     with mock.patch("tools.ci.tc.decision.get_fetch_rev", return_value=(None, None, None)):

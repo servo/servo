@@ -3,6 +3,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../resources/utils.js"></script>
+<script src="/web-animations/testcommon.js"></script>
 <div id="target"></div>
 <script>
 
@@ -60,7 +61,8 @@ animation_test({
   initialValue: "translateX(0px)"
 }, {
   keyframes: ["translateX(100px) scale(2)", "rotate(180deg)"],
-  expected: "matrix(0, -1.5, 1.5, 0, 50, 0)"
+  expected: "matrix(0, -1.5, 1.5, 0, 50, 0)",
+  assert_function: assert_matrix_equals
 }, 'Animating a custom property of type <transform-list> containing multiple values and with mismatching list lengths');
 
 </script>

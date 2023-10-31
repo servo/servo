@@ -63,6 +63,5 @@ parallelPromiseTest(async t => {
   document.body.removeChild(iframe);
 
   // The iframe should not send the aborted request.
-  // TODO(crbug.com/1465781): Fix this after implementing abort function.
   await expectBeacon(uuid, {count: 1});
 }, 'A discarded document does not send an already aborted fetchLater request.');

@@ -4,6 +4,18 @@
 
 test_driver.set_test_context(window.top);
 
+let worker;
+
+function waitForWorkerMessage(worker) {
+  return new Promise(resolve => {
+    const listener = (event) => {
+      worker.removeEventListener("message", listener);
+      resolve(event.data);
+    };
+    worker.addEventListener("message", listener);
+  });
+}
+
 window.addEventListener("message", async (event) => {
   function reply(data) {
     event.source.postMessage(
@@ -51,6 +63,16 @@ window.addEventListener("message", async (event) => {
     case "cors fetch":
       reply(await fetch(event.data.url, {mode: 'cors', credentials: 'include'}).then((resp) => resp.text()));
       break;
+    case "start_dedicated_worker":
+      worker = new Worker("embedded_worker.js");
+      reply(undefined);
+      break;
+    case "message_worker": {
+      const p = waitForWorkerMessage(worker);
+      worker.postMessage(event.data.message);
+      reply(await p.then(resp => resp.data))
+      break;
+    }
     default:
   }
 });

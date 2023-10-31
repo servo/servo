@@ -326,8 +326,8 @@ promise_test(async t => {
   const [track] = stream.getTracks();
   t.add_cleanup(() => track.stop());
 
-  assert_throws_dom('NotSupportedError', () => track.stats);
-}, `track.stats throws on audio tracks`);
+  assert_equals(track.stats, null);
+}, `track.stats is null on audio tracks`);
 
 promise_test(async t => {
   const canvas = document.createElement('canvas');
@@ -335,8 +335,8 @@ promise_test(async t => {
   const [track] = stream.getTracks();
   t.add_cleanup(() => track.stop());
 
-  assert_throws_dom('NotSupportedError', () => track.stats);
-}, `track.stats throws on non-device tracks, such as canvas`);
+  assert_equals(track.stats, null);
+}, `track.stats is null on non-device tracks, such as canvas`);
 
 promise_test(async t => {
   // getDisplayMedia() requires inducing a user gesture.

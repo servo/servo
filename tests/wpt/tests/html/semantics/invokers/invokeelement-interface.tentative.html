@@ -17,8 +17,8 @@
     const div = document.body.appendChild(document.createElement("div"));
     invoker.invokeTargetElement = div;
     assert_equals(invoker.invokeTargetElement, div);
-    assert_equals(invoker.getAttribute('invoketarget'), '');
-    assert_false(invoker.hasAttribute('invokeaction'));
+    assert_equals(invoker.getAttribute("invoketarget"), "");
+    assert_false(invoker.hasAttribute("invokeaction"));
   }, "invokeTargetElement reflects set value");
 
   test(function () {
@@ -27,8 +27,8 @@
     const button = shadow.appendChild(document.createElement("button"));
     button.invokeTargetElement = invokee;
     assert_equals(button.invokeTargetElement, invokee);
-    assert_equals(invoker.getAttribute('invoketarget'), '');
-    assert_false(invoker.hasAttribute('invokeaction'));
+    assert_equals(invoker.getAttribute("invoketarget"), "");
+    assert_false(invoker.hasAttribute("invokeaction"));
   }, "invokeTargetElement reflects set value across shadow root into light dom");
 
   test(function () {
@@ -37,8 +37,8 @@
     const div = shadow.appendChild(document.createElement("div"));
     invoker.invokeTargetElement = div;
     assert_equals(invoker.invokeTargetElement, null);
-    assert_equals(invoker.getAttribute('invoketarget'), '');
-    assert_false(invoker.hasAttribute('invokeaction'));
+    assert_equals(invoker.getAttribute("invoketarget"), "");
+    assert_false(invoker.hasAttribute("invokeaction"));
   }, "invokeTargetElement does not reflect set value inside shadowroot");
 
   test(function () {
@@ -52,7 +52,7 @@
   }, "invokeTargetElement throws error on assignment of non Element");
 
   test(function () {
-    assert_false(invoker.hasAttribute('invokeaction'));
+    assert_false(invoker.hasAttribute("invokeaction"));
     assert_equals(invoker.invokeAction, "auto");
   }, "invokeAction reflects 'auto' when attribute not present");
 
@@ -64,6 +64,7 @@
 
   test(function () {
     invoker.invokeAction = "fooBarBaz";
+    assert_equals(invoker.getAttribute("invokeaction"), "fooBarBaz");
     assert_equals(invoker.invokeAction, "fooBarBaz");
   }, "invokeAction reflects same casing");
 

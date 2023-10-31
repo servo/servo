@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver import Element, ShadowRoot
+from webdriver import ShadowRoot, WebElement
 from webdriver.bidi.modules.script import ContextTarget
 
 pytestmark = pytest.mark.asyncio
@@ -51,7 +51,7 @@ async def test_web_element_reference_created_in_bidi(
     assert nodeType == ELEMENT_NODE
 
     # Use element reference from WebDriver BiDi in WebDriver classic
-    node = Element(current_session, result["sharedId"])
+    node = WebElement(current_session, result["sharedId"])
     nodeType = current_session.execute_script(
         """return arguments[0].nodeType""", args=(node,)
     )

@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver import Element
+from webdriver import WebElement
 from webdriver.error import NoSuchAlertException
 from webdriver.transport import Response
 
@@ -16,12 +16,12 @@ def test_null_parameter_value(session, http):
 
 
 def test_no_top_browsing_context(session, closed_window):
-    response = execute_async_script(session, "argument[0](1);")
+    response = execute_async_script(session, "arguments[0](1);")
     assert_error(response, "no such window")
 
 
 def test_no_browsing_context(session, closed_frame):
-    response = execute_async_script(session, "argument[0](1);")
+    response = execute_async_script(session, "arguments[0](1);")
     assert_error(response, "no such window")
 
 
