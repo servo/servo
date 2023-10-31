@@ -437,6 +437,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// column-rule-style: none causes a computed column-rule-width of zero
     /// at computed value time.
+    #[cfg(feature = "gecko")]
     fn adjust_for_column_rule_width(&mut self) {
         let column_style = self.style.get_column();
         if !column_style.clone_column_rule_style().none_or_hidden() {
@@ -967,6 +968,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             self.adjust_for_alignment(layout_parent_style);
         }
         self.adjust_for_border_width();
+        #[cfg(feature = "gecko")]
         self.adjust_for_column_rule_width();
         self.adjust_for_outline_width();
         self.adjust_for_writing_mode(layout_parent_style);
