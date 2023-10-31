@@ -86,19 +86,19 @@ jobs:
           brew install gnu-tar
       - name: Release build (${{ inputs.production && 'without' || 'with' }} debug assertions)
         run: |
-          python3 ./mach build ${cargo_profile_option}
+          python3 ./mach build ${{ env.cargo_profile_option }}
       - name: Smoketest
-        run: python3 ./mach smoketest ${cargo_profile_option}
+        run: python3 ./mach smoketest ${{ env.cargo_profile_option }}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-mac' }}
         timeout-minutes: 30 # https://github.com/servo/servo/issues/30275
-        run: python3 ./mach test-unit ${cargo_profile_option}
+        run: python3 ./mach test-unit ${{ env.cargo_profile_option }}
       - name: Build mach package
-        run: python3 ./mach package ${cargo_profile_option}
+        run: python3 ./mach package ${{ env.cargo_profile_option }}
       - name: Run smoketest for mach package
-        run: ./etc/ci/macos_package_smoketest.sh target/${cargo_profile_name}/servo-tech-demo.dmg
+        run: ./etc/ci/macos_package_smoketest.sh target/${{ env.cargo_profile_name }}/servo-tech-demo.dmg
       - name: Rename build timing
         run: cp -r target/cargo-timings target/cargo-timings-macos
       - name: Archive build timing
@@ -111,7 +111,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: mac
-          path: target/${cargo_profile_name}/servo-tech-demo.dmg
+          path: target/${{ env.cargo_profile_name }}/servo-tech-demo.dmg
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
@@ -123,7 +123,7 @@ jobs:
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
       - name: Build package for target
-        run: gtar -czf target.tar.gz target/${cargo_profile_name}/servo target/${cargo_profile_name}/*.dylib target/${cargo_profile_name}/lib/*.dylib resources
+        run: gtar -czf target.tar.gz target/${{ env.cargo_profile_name }}/servo target/${{ env.cargo_profile_name }}/*.dylib target/${{ env.cargo_profile_name }}/lib/*.dylib resources
       - name: Upload package for target
         uses: actions/upload-artifact@v3
         with:
