@@ -31,6 +31,7 @@ use style::selector_parser::{
     SelectorImpl,
 };
 use style::shared_lock::Locked as StyleLocked;
+use style::values::computed::Display;
 use style::values::{AtomIdent, AtomString};
 use style::CaseSensitivityExt;
 use style_traits::dom::ElementState;
@@ -452,7 +453,10 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
         self.element.namespace()
     }
 
-    fn query_container_size(&self) -> euclid::default::Size2D<Option<app_units::Au>> {
+    fn query_container_size(
+        &self,
+        _display: &Display,
+    ) -> euclid::default::Size2D<Option<app_units::Au>> {
         todo!();
     }
 }
