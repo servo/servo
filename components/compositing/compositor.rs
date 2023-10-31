@@ -966,7 +966,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         debug!(
-            "Setting the frame tree for pipeline {}",
+            "Setting the frame tree for pipeline {:?}",
             frame_tree.pipeline.id
         );
 

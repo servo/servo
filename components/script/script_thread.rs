@@ -794,7 +794,7 @@ impl ScriptThreadFactory for ScriptThread {
         let (sender, receiver) = unbounded();
         let layout_chan = sender.clone();
         thread::Builder::new()
-            .name(format!("Script{}", state.id))
+            .name(format!("Script{:?}", state.id))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
@@ -836,7 +836,7 @@ impl ScriptThreadFactory for ScriptThread {
                 );
                 script_thread.pre_page_load(new_load, load_data);
 
-                let reporter_name = format!("script-reporter-{}", id);
+                let reporter_name = format!("script-reporter-{:?}", id);
                 mem_profiler_chan.run_with_memory_reporting(
                     || {
                         script_thread.start();
