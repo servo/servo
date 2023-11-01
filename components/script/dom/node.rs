@@ -473,12 +473,11 @@ impl<'a> Iterator for QuerySelectorIterator {
             .filter_map(|node| {
                 // TODO(cgaebel): Is it worth it to build a bloom filter here
                 // (instead of passing `None`)? Probably.
-                //
-                // FIXME(bholley): Consider an nth-index cache here.
+                let mut nth_index_cache = Default::default();
                 let mut ctx = MatchingContext::new(
                     MatchingMode::Normal,
                     None,
-                    None,
+                    &mut nth_index_cache,
                     node.owner_doc().quirks_mode(),
                     NeedsSelectorFlags::No,
                 );
@@ -967,11 +966,11 @@ impl Node {
             Err(_) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
-                // FIXME(bholley): Consider an nth-index cache here.
+                let mut nth_index_cache = Default::default();
                 let mut ctx = MatchingContext::new(
                     MatchingMode::Normal,
                     None,
-                    None,
+                    &mut nth_index_cache,
                     doc.quirks_mode(),
                     NeedsSelectorFlags::No,
                 );
