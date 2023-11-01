@@ -71,7 +71,7 @@ clangStdenv.mkDerivation rec {
   RUST_FONTCONFIG_DLOPEN = "on"; # to avoid link failure on fontconfig
   ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
   ANDROID_HOME = "${androidSdk}/libexec/android-sdk";
-  ANDROID_NDK_ROOT = "${ANDROID_SDK}/ndk-bundle";
+  ANDROID_NDK_ROOT = "${ANDROID_SDK_ROOT}/ndk-bundle";
   APP_PLATFORM = "30"; # blurdroid
   ANDROID_SDK_PLATFORM = "30"; # blurdroid
   # Allow cargo to download crates
