@@ -77,7 +77,9 @@ jobs:
           locked: true
       - name: Bootstrap
         run: |
+          python3 -m ensurepip --upgrade
           python3 -m pip install --upgrade pip virtualenv
+          virtualenv --upgrade-embed-wheels
           python3 ./mach bootstrap
           brew install gnu-tar
       - name: Release build (${{ inputs.production && 'without' || 'with' }} debug assertions)
