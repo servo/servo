@@ -162,7 +162,7 @@ class PackageCommands(CommandBase):
             else:
                 raise Exception("TODO what should this be?")
 
-            flavor_name = "Main"
+            flavor_name = "Basic"
             if flavor is not None:
                 flavor_name = flavor.title()
 

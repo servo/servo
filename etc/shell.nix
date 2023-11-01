@@ -90,6 +90,9 @@ clangStdenv.mkDerivation rec {
     vulkan-loader
   ];
 
+  # override the aapt2 that gradle uses with the nix-shipped version
+  GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${androidSdk}/libexec/android-sdk/build-tools/33.0.2/aapt2";
+
   shellHook = ''
     # Fix invalid option errors during linking
     # https://github.com/mozilla/nixpkgs-mozilla/commit/c72ff151a3e25f14182569679ed4cd22ef352328
