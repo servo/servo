@@ -1,0 +1,95 @@
+name: Android
+on:
+  workflow_call:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: string
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: string
+        options: ["release", "debug", "production"]
+  push:
+    branches: ["try-android"]
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  SCCACHE_GHA_ENABLED: "true"
+  CCACHE: "sccache"
+  CARGO_INCREMENTAL: 0
+  RUST_FONTCONFIG_DLOPEN: "on" # FIXME: avoid link failure on fontconfig
+  HARFBUZZ_SYS_NO_PKG_CONFIG: "true"
+
+jobs:
+  build:
+    name: Android Build
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        arch: ['armv7-linux-androideabi', 'i686-linux-android']
+    steps:
+      - uses: actions/checkout@v3
+        if: github.event_name != 'issue_comment' && github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 2
+      # This is necessary to checkout the pull request if this run was triggered
+      # via an `issue_comment` action on a pull request.
+      - uses: actions/checkout@v3
+        if: github.event_name == 'issue_comment' || github.event_name == 'pull_request_target'
+        with:
+          ref: refs/pull/${{ github.event.issue.number || github.event.number }}/head
+          fetch-depth: 2
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+      - name: Install taplo
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: taplo-cli
+          locked: true
+      - name: Bootstrap Python
+        run: python3 -m pip install --upgrade pip virtualenv
+      - name: Bootstrap dependencies
+        run: sudo apt update && python3 ./mach bootstrap
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Build (arch ${{ matrix.arch }} profile ${{ inputs.profile }})
+        run: |
+          export JAVA_HOME="${JAVA_HOME_17_X64}"
+          python3 ./mach build --android --target ${{ matrix.arch }} --${{ inputs.profile }}
+      # TODO: fix test-android-startup
+      # - name: Script tests
+      #   run: ./mach test-android-startup
+      - name: Rename build timing
+        run: cp -r target/cargo-timings target/cargo-timings-android-${{ matrix.arch }}
+      - name: Archive build timing
+        uses: actions/upload-artifact@v3
+        with:
+          name: cargo-timings
+          # Using a wildcard here ensures that the archive includes the path.
+          path: target/cargo-timings-*
+      - name: Upload APK artifact for mach package
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-${{ matrix.arch }}-${{ inputs.profile }}
+          path: target/android/${{ matrix.arch }}/${{ inputs.profile }}/servoapp.apk
+
+  result:
+    name: Result
+    runs-on: ubuntu-latest
+    if: always()
+    # needs all build to detect cancellation
+    needs:
+      - "build"
+    steps:
+      - name: Mark the job as successful
+        run: exit 0
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+      - name: Mark the job as unsuccessful
+        run: exit 1
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+
