@@ -58,6 +58,7 @@ env:
   RUSTC_WRAPPER: "sccache"
   CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
+  RUST_FONTCONFIG_DLOPEN: "on" # FIXME: avoid link failure on fontconfig
 
 jobs:
   build:
