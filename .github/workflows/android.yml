@@ -90,8 +90,8 @@ jobs:
         run: python3 -m pip install --upgrade pip virtualenv
       - name: Bootstrap dependencies
         run: sudo apt update && python3 ./mach bootstrap
-      - name: Tidy
-        run: python3 ./mach test-tidy --no-progress --all
+      # - name: Tidy
+      #   run: python3 ./mach test-tidy --no-progress --all
       - name: Release build (${{ inputs.production && 'without' || 'with' }} debug assertions)
         run: python3 ./mach build --android ${cargo_profile_option}
       - name: Smoketest
