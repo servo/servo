@@ -59,6 +59,7 @@ env:
   CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
   RUST_FONTCONFIG_DLOPEN: "on" # FIXME: avoid link failure on fontconfig
+  HARFBUZZ_SYS_NO_PKG_CONFIG: "true"
 
 jobs:
   build:
