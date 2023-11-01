@@ -549,9 +549,9 @@ class CommandBase(object):
 
         # Paths to Android build tools:
         if self.config["android"]["sdk"]:
-            env["ANDROID_SDK"] = self.config["android"]["sdk"]
+            env["ANDROID_SDK_ROOT"] = self.config["android"]["sdk"]
         if self.config["android"]["ndk"]:
-            env["ANDROID_NDK"] = self.config["android"]["ndk"]
+            env["ANDROID_NDK_ROOT"] = self.config["android"]["ndk"]
         if self.config["android"]["toolchain"]:
             env["ANDROID_TOOLCHAIN"] = self.config["android"]["toolchain"]
         if self.config["android"]["platform"]:
@@ -562,13 +562,14 @@ class CommandBase(object):
         # the env var names above. Once winit is enabled and set as the
         # default, we could modify the subproject makefiles to use the names
         # below and remove the vars above, to avoid duplication.
-        if "ANDROID_SDK" in env:
-            env["ANDROID_HOME"] = env["ANDROID_SDK"]
-        if "ANDROID_NDK" in env:
-            env["NDK_HOME"] = env["ANDROID_NDK"]
+        if "ANDROID_SDK_ROOT" in env:
+            env["ANDROID_HOME"] = env["ANDROID_SDK_ROOT"]
+        if "ANDROID_NDK_ROOT" in env:
+            env["NDK_HOME"] = env["ANDROID_NDK_ROOT"]
         if "ANDROID_TOOLCHAIN" in env:
             env["NDK_STANDALONE"] = env["ANDROID_TOOLCHAIN"]
 
+        # FIXME: is this still needed?
         toolchains = path.join(self.context.topdir, "android-toolchains")
         for kind in ["sdk", "ndk"]:
             default = os.path.join(toolchains, kind)
@@ -579,11 +580,11 @@ class CommandBase(object):
         if os.path.isdir(tools):
             env["PATH"] = "%s%s%s" % (tools, os.pathsep, env["PATH"])
 
-        if "ANDROID_NDK" not in env:
-            print("Please set the ANDROID_NDK environment variable.")
+        if "ANDROID_NDK_ROOT" not in env:
+            print("Please set the ANDROID_NDK_ROOT environment variable.")
             sys.exit(1)
-        if "ANDROID_SDK" not in env:
-            print("Please set the ANDROID_SDK environment variable.")
+        if "ANDROID_SDK_ROOT" not in env:
+            print("Please set the ANDROID_SDK_ROOT environment variable.")
             sys.exit(1)
 
         android_platform = self.config["android"]["platform"]
@@ -594,11 +595,11 @@ class CommandBase(object):
 
 
         # Check if the NDK version is 21
-        if not os.path.isfile(path.join(env["ANDROID_NDK"], 'source.properties')):
+        if not os.path.isfile(path.join(env["ANDROID_NDK_ROOT"], 'source.properties')):
             print("ANDROID_NDK should have file `source.properties`.")
-            print("The environment variable ANDROID_NDK may be set at a wrong path.")
+            print("The environment variable ANDROID_NDK_ROOT may be set at a wrong path.")
             sys.exit(1)
-        with open(path.join(env["ANDROID_NDK"], 'source.properties'), encoding="utf8") as ndk_properties:
+        with open(path.join(env["ANDROID_NDK_ROOT"], 'source.properties'), encoding="utf8") as ndk_properties:
             lines = ndk_properties.readlines()
             if lines[1].split(' = ')[1].split('.')[0] != '25':
                 print("Currently only support NDK 21. Please re-run `./mach bootstrap-android`.")
@@ -622,13 +623,13 @@ class CommandBase(object):
         host_cc = env.get('HOST_CC') or shutil.which("clang") or shutil.which(["gcc"])
         host_cxx = env.get('HOST_CXX') or shutil.which("clang++") or shutil.which("g++")
 
-        llvm_toolchain = path.join(env['ANDROID_NDK'], "toolchains", "llvm", "prebuilt", host)
-        gcc_toolchain = path.join(env['ANDROID_NDK'], "toolchains",
+        llvm_toolchain = path.join(env['ANDROID_NDK_ROOT'], "toolchains", "llvm", "prebuilt", host)
+        gcc_toolchain = path.join(env['ANDROID_NDK_ROOT'], "toolchains",
                                   android_toolchain_prefix + "-4.9", "prebuilt", host)
         env['PATH'] = (path.join(llvm_toolchain, "bin") + ':' + env['PATH'])
         #gcc_libs = path.join(gcc_toolchain, "lib", "gcc", android_toolchain_name, "4.9.x")
 
-        env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK'], "sysroot")
+        env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK_ROOT'], "sysroot")
         #support_include = path.join(env['ANDROID_NDK'], "sources", "android", "support", "include")
         #cpufeatures_include = path.join(env['ANDROID_NDK'], "sources", "android", "cpufeatures")
         #cxx_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl",
@@ -640,12 +641,12 @@ class CommandBase(object):
         stl_include = path.join(llvm_toolchain, "sysroot", "usr", "include", "c++", "v1")
 
         arch_include = path.join(sysroot_include, android_toolchain_name)
-        android_platform_dir = path.join(env['ANDROID_NDK'], "platforms", android_platform, "arch-" + android_arch)
+        android_platform_dir = path.join(env['ANDROID_NDK_ROOT'], "platforms", android_platform, "arch-" + android_arch)
         #arch_libs = path.join(android_platform_dir, "usr", "lib")
         #clang_include = path.join(llvm_toolchain, "lib64", "clang", "5.0", "include")
         android_api = android_platform.replace('android-', '')
 
-        env["ANDROID_NDK_HOME"] = env["ANDROID_NDK"]
+        env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
         env["RUST_TARGET"] = self.cross_compile_target
         env['HOST_CC'] = host_cc
         env['HOST_CXX'] = host_cxx
@@ -718,7 +719,7 @@ class CommandBase(object):
         env["NDK_ANDROID_VERSION"] = android_api
         env["ANDROID_ABI"] = android_lib
         env["ANDROID_PLATFORM"] = android_platform
-        env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(env['ANDROID_NDK'], "build", "cmake", "android.toolchain.cmake")
+        env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(env['ANDROID_NDK_ROOT'], "build", "cmake", "android.toolchain.cmake")
         env["CMAKE_TOOLCHAIN_FILE"] = path.join(self.context.topdir, "support", "android", "toolchain.cmake")
 
         # Set output dir for gradle aar files
@@ -973,15 +974,15 @@ class CommandBase(object):
         return
 
     def android_adb_path(self, env):
-        if "ANDROID_SDK" in env:
-            sdk_adb = path.join(env["ANDROID_SDK"], "platform-tools", "adb")
+        if "ANDROID_SDK_ROOT" in env:
+            sdk_adb = path.join(env["ANDROID_SDK_ROOT"], "platform-tools", "adb")
             if path.exists(sdk_adb):
                 return sdk_adb
         return "adb"
 
     def android_emulator_path(self, env):
-        if "ANDROID_SDK" in env:
-            sdk_adb = path.join(env["ANDROID_SDK"], "emulator", "emulator")
+        if "ANDROID_SDK_ROOT" in env:
+            sdk_adb = path.join(env["ANDROID_SDK_ROOT"], "emulator", "emulator")
             if path.exists(sdk_adb):
                 return sdk_adb
         return "emulator"

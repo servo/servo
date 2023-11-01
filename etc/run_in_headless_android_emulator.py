@@ -79,8 +79,8 @@ def main(avd_name, apk_path, *args):
 
 
 def tool_path(directory, bin_name):
-    if "ANDROID_SDK" in os.environ:
-        path = os.path.join(os.environ["ANDROID_SDK"], directory, bin_name)
+    if "ANDROID_SDK_ROOT" in os.environ:
+        path = os.path.join(os.environ["ANDROID_SDK_ROOT"], directory, bin_name)
         if os.path.exists(path):
             return path
 
