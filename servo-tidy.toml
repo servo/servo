@@ -38,12 +38,6 @@ packages = [
     # Theoretically, it's never fetched.
     "hermit-abi",
 
-    # Duplicated by rustls and image.
-    "spin",
-
-    # Duplicated by rustls and the version of webpki-roots required by async_tungstenite.
-    "rustls-webpki",
-
     # Duplicated by winit.
     "windows-sys",
     "windows-targets",

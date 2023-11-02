@@ -14,7 +14,7 @@ exclude = [".cargo"]
 accountable-refcell = "0.2.0"
 app_units = "0.7"
 arrayvec = "0.7"
-async-tungstenite = { version = "0.22", features = ["tokio-rustls-webpki-roots"] }
+async-tungstenite = { version = "0.23", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.13"
 backtrace = "0.3"
 base64 = "0.21.5"
@@ -80,14 +80,14 @@ synstructure = "0.13"
 time = "0.1.41"
 tokio = "1"
 tokio-rustls = "0.24"
-tungstenite = "0.19"
+tungstenite = "0.20"
 unicode-bidi = "0.3.4"
 unicode-script = "0.5"
 url = "2.4"
 uuid = { version = "1.5.0", features = ["v4"] }
 webdriver = "0.49.0"
 webpki = "0.22"
-webpki-roots = "0.23"
+webpki-roots = "0.25"
 webrender = { git = "https://github.com/servo/webrender", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender" }
 winapi = "0.3"
