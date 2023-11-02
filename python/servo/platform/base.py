@@ -112,9 +112,6 @@ class Base:
         return True
 
     def install_crown(self, force: bool) -> bool:
-        if not force and shutil.which("crown") is not None:
-            return False
-
         if subprocess.call(["cargo", "install", "--path", "support/crown"],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
             raise EnvironmentError("Installation of crown failed.")
