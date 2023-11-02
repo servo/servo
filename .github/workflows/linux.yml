@@ -100,7 +100,11 @@ jobs:
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-linux' }}
-        run: python3 ./mach test-unit ${{ env.cargo_profile_option }}
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 20
+          max_attempts: 2 # https://github.com/servo/servo/issues/30683
+          command: python ./mach test-unit ${{ env.cargo_profile_option }}
       - name: Rename build timing
         run: cp -r target/cargo-timings target/cargo-timings-linux
       - name: Archive build timing
