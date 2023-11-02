@@ -96,13 +96,13 @@ jobs:
       #   run: python3 ./mach test-tidy --no-progress --all
       - name: Release build (${{ inputs.production && 'without' || 'with' }} debug assertions)
         run: python3 ./mach build --android ${cargo_profile_option}
-      - name: Smoketest
-        run: xvfb-run python3 ./mach smoketest ${cargo_profile_option}
+      # - name: Smoketest
+      #   run: xvfb-run python3 ./mach smoketest ${cargo_profile_option}
       - name: Script tests
         run: ./mach test-scripts
-      - name: Unit tests
-        if: ${{ inputs.unit-tests || github.ref_name == 'try-linux' }}
-        run: python3 ./mach test-unit ${cargo_profile_option}
+      # - name: Unit tests
+      #   if: ${{ inputs.unit-tests || github.ref_name == 'try-linux' }}
+      #   run: python3 ./mach test-unit --android ${cargo_profile_option}
       - name: Rename build timing
         run: cp -r target/cargo-timings target/cargo-timings-android
       - name: Archive build timing
@@ -114,12 +114,12 @@ jobs:
       # - name: Lockfile check
       #   run: ./etc/ci/lockfile_changed.sh
       # - name: Build mach package
-      #   run: python3 ./mach package ${cargo_profile_option}
-      # - name: Upload artifact for mach package
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: linux
-      #     path: target/${cargo_profile_name}/servo-tech-demo.tar.gz
+      #   run: python3 ./mach package --android ${cargo_profile_option}
+      - name: Upload artifact for mach package
+        uses: actions/upload-artifact@v3
+        with:
+          name: android
+          path: target/android/armv7-linux-androideabi/${{ env.cargo_profile_name }}/servoapp.apk
       # - name: Upload nightly
       #   if: ${{ inputs.upload }}
       #   run: |
