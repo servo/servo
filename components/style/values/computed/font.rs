@@ -444,6 +444,7 @@ pub struct FamilyName {
     pub syntax: FontFamilyNameSyntax,
 }
 
+#[cfg(feature = "gecko")]
 impl FamilyName {
     fn is_known_icon_font_family(&self) -> bool {
         use crate::gecko_bindings::bindings;
