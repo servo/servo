@@ -425,9 +425,11 @@ fn tweak_when_ignoring_colors(
     }
 
     // Always honor colors if forced-color-adjust is set to none.
-    let forced = context.builder.get_inherited_text().clone_forced_color_adjust();
-    if forced == computed::ForcedColorAdjust::None {
-        return;
+    #[cfg(feature = "gecko")] {
+        let forced = context.builder.get_inherited_text().clone_forced_color_adjust();
+        if forced == computed::ForcedColorAdjust::None {
+            return;
+        }
     }
 
     // Don't override background-color on ::-moz-color-swatch. It is set as an
