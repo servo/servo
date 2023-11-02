@@ -93,8 +93,11 @@ jobs:
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-mac' }}
-        timeout-minutes: 30 # https://github.com/servo/servo/issues/30275
-        run: python3 ./mach test-unit ${{ env.cargo_profile_option }}
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 20 # https://github.com/servo/servo/issues/30275
+          max_attempts: 3 # https://github.com/servo/servo/issues/30683
+          command: python3 ./mach test-unit ${{ env.cargo_profile_option }}
       - name: Build mach package
         run: python3 ./mach package ${{ env.cargo_profile_option }}
       - name: Run smoketest for mach package
