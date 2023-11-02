@@ -119,12 +119,20 @@ impl ToResolvedValue for LineHeight {
 
     fn to_resolved_value(self, context: &ResolvedContext) -> Self::ResolvedValue {
         // Resolve <number> to an absolute <length> based on font size.
-        if matches!(self, Self::Normal | Self::MozBlockHeight) {
-            return self;
+        #[cfg(feature = "gecko")] {
+            if matches!(self, Self::Normal | Self::MozBlockHeight) {
+                return self;
+            }
+            let wm = context.style.writing_mode;
+            let vertical = wm.is_vertical() && !wm.is_sideways();
+            return Self::Length(context.device.calc_line_height(&self, vertical, context.style.get_font(), Some(context.element_info.element)));
         }
-        let wm = context.style.writing_mode;
-        let vertical = wm.is_vertical() && !wm.is_sideways();
-        Self::Length(context.device.calc_line_height(&self, vertical, context.style.get_font(), Some(context.element_info.element)))
+        if let LineHeight::Number(num) = &self {
+            let size = context.style.get_font().clone_font_size().computed_size();
+            LineHeight::Length(NonNegativeLength::new(size.px() * num.0))
+        } else {
+            self
+        }
     }
 
     #[inline]
