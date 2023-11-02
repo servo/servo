@@ -1,7 +1,7 @@
 error: must_not_have_traceable marked wrapper must not have jsmanaged inside on 0-th position. Consider removing the wrapper.
-  --> $DIR/trace_in_no_trace_works.rs:10:12
+  --> $DIR/trace_in_no_trace_works.rs:14:12
    |
-10 | struct Foo(NoTrace<Bar>);
+14 | struct Foo(NoTrace<Bar>);
    |            ^^^^^^^^^^^^
    |
    = note: `#[deny(crown::trace_in_no_trace)]` on by default

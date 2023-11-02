@@ -1,7 +1,7 @@
 error: Type must be rooted
- --> $DIR/unrooted_must_root_return_type.rs:4:14
+ --> $DIR/unrooted_must_root_return_type.rs:8:14
   |
-4 | fn foo2() -> Foo {
+8 | fn foo2() -> Foo {
   |              ^^^
   |
   = note: `#[deny(crown::unrooted_must_root)]` on by default

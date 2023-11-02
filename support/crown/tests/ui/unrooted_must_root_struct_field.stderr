@@ -1,7 +1,7 @@
 error: Type must be rooted, use #[crown::unrooted_must_root_lint::must_root] on the struct definition to propagate
- --> $DIR/unrooted_must_root_struct_field.rs:3:12
+ --> $DIR/unrooted_must_root_struct_field.rs:7:12
   |
-3 | struct Bar(Foo);
+7 | struct Bar(Foo);
   |            ^^^
   |
   = note: `#[deny(crown::unrooted_must_root)]` on by default
