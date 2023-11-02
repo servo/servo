@@ -102,6 +102,7 @@ jobs:
         if: ${{ inputs.unit-tests || github.ref_name == 'try-linux' }}
         uses: nick-fields/retry@v2
         with:
+          timeout_minutes: 20
           max_attempts: 2 # https://github.com/servo/servo/issues/30683
           command: python ./mach test-unit ${{ env.cargo_profile_option }}
       - name: Rename build timing
