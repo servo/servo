@@ -10,6 +10,7 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
+use std::cell::OnceCell;
 use std::cmp::max;
 use std::collections::{hash_map, HashMap};
 use std::rc::Rc;
@@ -38,7 +39,7 @@ use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, RootCollection, ThreadLocalStackRoots};
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
+use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::testworkletglobalscope::TestWorkletTask;
@@ -60,12 +61,18 @@ const MIN_GC_THRESHOLD: u32 = 1_000_000;
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     worklet_id: WorkletId,
+    /// The cached version of the script thread's WorkletThreadPool. We keep this cached
+    /// because we may need to access it after the script thread has terminated.
+    #[ignore_malloc_size_of = "Difficult to measure memory usage of Rc<...> types"]
+    thread_pool: OnceCell<Rc<WorkletThreadPool>>,
 }
 
 impl Drop for DroppableField {
     fn drop(&mut self) {
-        let script_thread = ScriptThread::worklet_thread_pool();
-        script_thread.exit_worklet(self.worklet_id);
+        let worklet_id = self.worklet_id;
+        self.thread_pool.get_mut().map(|thread_pool| {
+            thread_pool.exit_worklet(worklet_id);
+        });
     }
 }
 
@@ -86,6 +93,7 @@ impl Worklet {
             global_type: global_type,
             droppable_field: DroppableField {
                 worklet_id: WorkletId::new(),
+                thread_pool: OnceCell::new(),
             },
         }
     }
@@ -134,19 +142,21 @@ impl WorkletMethods for Worklet {
         // Steps 6-12 in parallel.
         let pending_tasks_struct = PendingTasksStruct::new();
         let global = self.window.upcast::<GlobalScope>();
-        let pool = ScriptThread::worklet_thread_pool();
 
-        pool.fetch_and_invoke_a_worklet_script(
-            global.pipeline_id(),
-            self.droppable_field.worklet_id,
-            self.global_type,
-            self.window.origin().immutable().clone(),
-            global.api_base_url(),
-            module_url_record,
-            options.credentials.clone(),
-            pending_tasks_struct,
-            &promise,
-        );
+        self.droppable_field
+            .thread_pool
+            .get_or_init(ScriptThread::worklet_thread_pool)
+            .fetch_and_invoke_a_worklet_script(
+                global.pipeline_id(),
+                self.droppable_field.worklet_id,
+                self.global_type,
+                self.window.origin().immutable().clone(),
+                global.api_base_url(),
+                module_url_record,
+                options.credentials.clone(),
+                pending_tasks_struct,
+                &promise,
+            );
 
         // Step 5.
         debug!("Returning promise.");
@@ -501,9 +511,14 @@ impl WorkletThread {
                 //       this total ordering on thread roles is what guarantees deadlock-freedom.
                 WorkletData::StartSwapRoles(sender) => {
                     let (our_swapper, their_swapper) = swapper();
-                    sender
-                        .send(WorkletData::FinishSwapRoles(their_swapper))
-                        .unwrap();
+                    match sender.send(WorkletData::FinishSwapRoles(their_swapper)) {
+                        Ok(_) => {},
+                        Err(_) => {
+                            // This might happen if the script thread shuts down while
+                            // waiting for the worklet to finish.
+                            return;
+                        },
+                    };
                     let _ = our_swapper.swap(&mut self.role);
                 },
                 // To finish swapping roles, perform the atomic swap.
