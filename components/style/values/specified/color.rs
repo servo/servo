@@ -33,6 +33,14 @@ fn allow_color_mix() -> bool {
     return false;
 }
 
+#[inline]
+fn allow_more_color_4() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.more_color_4.enabled");
+    #[cfg(feature = "servo")]
+    return false;
+}
+
 impl ColorMix {
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -759,7 +767,7 @@ impl Color {
                 CSSParserColor::CurrentColor => Color::CurrentColor,
                 CSSParserColor::Absolute(absolute) => {
                     let enabled = matches!(absolute, cssparser::AbsoluteColor::Rgba(_)) ||
-                        static_prefs::pref!("layout.css.more_color_4.enabled");
+                        allow_more_color_4();
                     if !enabled {
                         return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                     }
