@@ -1101,7 +1101,7 @@ impl SpecifiedValueInfo for Color {
         if allow_color_mix() {
             f(&["color-mix"]);
         }
-        if static_prefs::pref!("layout.css.more_color_4.enabled") {
+        if allow_more_color_4() {
             f(&["lab", "lch", "oklab", "oklch"]);
         }
     }
