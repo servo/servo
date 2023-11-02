@@ -553,7 +553,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         let style = &self.fragment.style;
         let b = style.get_background();
         let background_color = style.resolve_color(b.background_color.clone());
-        if background_color.alpha > 0 {
+        if background_color.alpha > 0.0 {
             // https://drafts.csswg.org/css-backgrounds/#background-color
             // “The background color is clipped according to the background-clip
             //  value associated with the bottom-most background image layer.”

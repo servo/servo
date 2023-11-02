@@ -5,7 +5,7 @@
 use canvas_traits::canvas::{
     CanvasGradientStop, FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle,
 };
-use cssparser::{Color as CSSColor, Parser, ParserInput, RGBA};
+use cssparser::{AbsoluteColor, Color as CSSColor, Parser, ParserInput, RGBA};
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -58,8 +58,8 @@ impl CanvasGradientMethods for CanvasGradient {
         let color = CSSColor::parse(&mut parser);
         let color = if parser.is_exhausted() {
             match color {
-                Ok(CSSColor::RGBA(rgba)) => rgba,
-                Ok(CSSColor::CurrentColor) => RGBA::new(0, 0, 0, 255),
+                Ok(CSSColor::Absolute(AbsoluteColor::Rgba(rgba))) => rgba,
+                Ok(CSSColor::CurrentColor) => RGBA::new(0, 0, 0, 1.0),
                 _ => return Err(Error::Syntax),
             }
         } else {

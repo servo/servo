@@ -15,7 +15,7 @@ use crate::values::specified::Length;
 use crate::values::AtomString;
 use crate::{Atom, LocalName, Namespace, Prefix};
 use app_units::Au;
-use cssparser::{self, Color, RGBA};
+use cssparser::{self, AbsoluteColor, Color, RGBA};
 use euclid::num::Zero;
 use num_traits::ToPrimitive;
 use selectors::attr::AttrSelectorOperation;
@@ -419,7 +419,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
     }
 
     // Step 5.
-    if let Ok(Color::RGBA(rgba)) = cssparser::parse_color_keyword(input) {
+    if let Ok(Color::Absolute(AbsoluteColor::Rgba(rgba))) = cssparser::parse_color_keyword(input) {
         return Ok(rgba);
     }
 
@@ -431,7 +431,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
             hex(input.as_bytes()[2] as char),
             hex(input.as_bytes()[3] as char),
         ) {
-            return Ok(RGBA::new(r * 17, g * 17, b * 17, 255));
+            return Ok(RGBA::new(r * 17, g * 17, b * 17, 1.0));
         }
     }
 
@@ -504,7 +504,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
         hex_string(red).unwrap(),
         hex_string(green).unwrap(),
         hex_string(blue).unwrap(),
-        255,
+        1.0,
     ));
 
     fn hex(ch: char) -> Result<u8, ()> {

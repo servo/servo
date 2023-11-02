@@ -26,8 +26,8 @@ fn test_rgba_color_interepolation_preserves_transparent() {
 #[test]
 fn test_rgba_color_interepolation_alpha() {
     assert_eq!(
-        interpolate_rgba(RGBA::new(200, 0, 0, 100), RGBA::new(0, 200, 0, 200), 0.5),
-        RGBA::new(67, 133, 0, 150)
+        interpolate_rgba(RGBA::new(200, 0, 0, 0.4), RGBA::new(0, 200, 0, 0.8), 0.5),
+        RGBA::new(67, 133, 0, 0.6)
     );
 }
 
@@ -41,7 +41,7 @@ fn test_rgba_color_interepolation_out_of_range_1() {
             RGBA::from_floats(0.0, 1.0, 0.0, 0.6),
             -0.5
         ),
-        RGBA::new(154, 0, 0, 77)
+        RGBA::new(154, 0, 0, 0.3)
     );
 }
 
@@ -53,7 +53,7 @@ fn test_rgba_color_interepolation_out_of_range_2() {
             RGBA::from_floats(0.0, 0.3, 0.0, 0.4),
             1.5
         ),
-        RGBA::new(0, 154, 0, 77)
+        RGBA::new(0, 154, 0, 0.3)
     );
 }
 

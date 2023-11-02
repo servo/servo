@@ -197,12 +197,12 @@ impl Device {
 
     /// Returns the default background color.
     pub fn default_background_color(&self) -> RGBA {
-        RGBA::new(255, 255, 255, 255)
+        RGBA::new(255, 255, 255, 1.0)
     }
 
     /// Returns the default foreground color.
     pub fn default_color(&self) -> RGBA {
-        RGBA::new(0, 0, 0, 255)
+        RGBA::new(0, 0, 0, 1.0)
     }
 
     /// Returns safe area insets
