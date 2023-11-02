@@ -93,14 +93,14 @@ jobs:
       - name: Tidy
         run: python3 ./mach test-tidy --no-progress --all
       - name: Release build (${{ inputs.production && 'without' || 'with' }} debug assertions)
-        run: python3 ./mach build ${cargo_profile_option}
+        run: python3 ./mach build ${{ env.cargo_profile_option }}
       - name: Smoketest
-        run: xvfb-run python3 ./mach smoketest ${cargo_profile_option}
+        run: xvfb-run python3 ./mach smoketest ${{ env.cargo_profile_option }}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-linux' }}
-        run: python3 ./mach test-unit ${cargo_profile_option}
+        run: python3 ./mach test-unit ${{ env.cargo_profile_option }}
       - name: Rename build timing
         run: cp -r target/cargo-timings target/cargo-timings-linux
       - name: Archive build timing
@@ -112,12 +112,12 @@ jobs:
       - name: Lockfile check
         run: ./etc/ci/lockfile_changed.sh
       - name: Build mach package
-        run: python3 ./mach package ${cargo_profile_option}
+        run: python3 ./mach package ${{ env.cargo_profile_option }}
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v3
         with:
           name: linux
-          path: target/${cargo_profile_name}/servo-tech-demo.tar.gz
+          path: target/${{ env.cargo_profile_name }}/servo-tech-demo.tar.gz
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
@@ -129,7 +129,7 @@ jobs:
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
       - name: Build package for target
-        run: tar -czf target.tar.gz target/${cargo_profile_name}/servo resources
+        run: tar -czf target.tar.gz target/${{ env.cargo_profile_name }}/servo resources
       - name: Upload artifact for target
         uses: actions/upload-artifact@v3
         with:

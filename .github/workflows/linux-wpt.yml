@@ -71,7 +71,7 @@ jobs:
         if: ${{ inputs.wpt != 'sync' }}
         run: |
           python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
-            ${cargo_profile_option} --processes $(nproc) --timeout-multiplier 2 \
+            ${{ env.cargo_profile_option }} --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
             --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \
@@ -83,7 +83,7 @@ jobs:
         if: ${{ inputs.wpt == 'sync' }}
         run: |
           python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
-            ${cargo_profile_option} --processes $(nproc) --timeout-multiplier 2 \
+            ${{ env.cargo_profile_option }} --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
             --always-succeed

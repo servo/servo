@@ -78,14 +78,14 @@ jobs:
           python mach fetch
           python mach bootstrap-gstreamer
       - name: Release build (${{ inputs.production && 'without' || 'with' }} debug assertions)
-        run: python mach build ($env:cargo_profile_option -split ' ')
+        run: python mach build ${{ env.cargo_profile_option }}
       - name: Copy resources
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
-        run: python mach smoketest --angle ($env:cargo_profile_option -split ' ')
+        run: python mach smoketest --angle ${{ env.cargo_profile_option }}
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-windows' }}
-        run: python mach test-unit ($env:cargo_profile_option -split ' ')
+        run: python mach test-unit ${{ env.cargo_profile_option }}
       - name: Rename build timing
         run: cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Archive build timing
@@ -95,16 +95,16 @@ jobs:
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Build mach package
-        run: python mach package ($env:cargo_profile_option -split ' ')
+        run: python mach package ${{ env.cargo_profile_option }}
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v3
         with:
           name: win
           # These files are available
-          # MSI Installer: C:\a\servo\servo\target\$env:cargo_profile_name\msi\Installer.msi
-          # Bundle: C:\a\servo\servo\target\$env:cargo_profile_name\msi\Servo.exe
-          # Zip: C:\a\servo\servo\target\$env:cargo_profile_name\msi\Servo.zip
-          path: C:\\a\\servo\\servo\\target\\$env:cargo_profile_name\\msi\\Servo.exe
+          # MSI Installer: C:\a\servo\servo\target\${{ env.cargo_profile_name }}\msi\Installer.msi
+          # Bundle: C:\a\servo\servo\target\${{ env.cargo_profile_name }}\msi\Servo.exe
+          # Zip: C:\a\servo\servo\target\${{ env.cargo_profile_name }}\msi\Servo.zip
+          path: C:\\a\\servo\\servo\\target\\${{ env.cargo_profile_name }}\\msi\\Servo.exe
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
