@@ -70,10 +70,6 @@ jobs:
           fetch-depth: 2
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
-      - name: Select Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
       - name: Install taplo
         uses: baptiste0928/cargo-install@v2
         with:
