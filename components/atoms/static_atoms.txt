@@ -125,6 +125,7 @@ safe-area-inset-right
 scan
 screen
 scroll-position
+scrollbar-inline-size
 search
 seeked
 seeking
