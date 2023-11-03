@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::mem;
 
 use euclid::default::Rect;
+use euclid::SideOffsets2D;
 use gfx_traits::print_tree::PrintTree;
 use log::warn;
 use script_traits::compositor::{ScrollTreeNodeId, ScrollableNodeInfo};
@@ -23,6 +24,8 @@ use style::values::specified::box_::DisplayOutside;
 use webrender_api as wr;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::ScrollSensitivity;
+use wr::units::{LayoutPixel, LayoutSize};
+use wr::StickyOffsetBounds;
 
 use super::DisplayList;
 use crate::cell::ArcRefCell;
@@ -31,7 +34,7 @@ use crate::display_list::DisplayListBuilder;
 use crate::fragment_tree::{
     AnonymousFragment, BoxFragment, ContainingBlockManager, Fragment, FragmentTree,
 };
-use crate::geom::PhysicalRect;
+use crate::geom::{PhysicalRect, PhysicalSides};
 use crate::style_ext::ComputedValuesExt;
 
 #[derive(Clone)]
@@ -39,6 +42,11 @@ pub(crate) struct ContainingBlock {
     /// The SpatialId of the spatial node that contains the children
     /// of this containing block.
     scroll_node_id: ScrollTreeNodeId,
+
+    /// The size of the parent scroll frame of this containing block, used for resolving
+    /// sticky margins. If this is None, then this is a direct descendant of a reference
+    /// frame and sticky positioning isn't taken into account.
+    scroll_frame_size: Option<LayoutSize>,
 
     /// The WebRender ClipId to use for this children of this containing
     /// block.
@@ -50,14 +58,16 @@ pub(crate) struct ContainingBlock {
 
 impl ContainingBlock {
     pub(crate) fn new(
-        rect: &PhysicalRect<Length>,
+        rect: PhysicalRect<Length>,
         scroll_node_id: ScrollTreeNodeId,
+        scroll_frame_size: Option<LayoutSize>,
         clip_chain_id: wr::ClipChainId,
     ) -> Self {
         ContainingBlock {
             scroll_node_id,
+            scroll_frame_size,
             clip_chain_id,
-            rect: *rect,
+            rect,
         }
     }
 
@@ -90,13 +100,15 @@ impl DisplayList {
             .define_clip_chain(None, [wr::ClipId::root(self.wr.pipeline_id)]);
 
         let cb_for_non_fixed_descendants = ContainingBlock::new(
-            &fragment_tree.initial_containing_block,
+            fragment_tree.initial_containing_block,
             self.compositor_info.root_scroll_node_id,
+            Some(self.compositor_info.viewport_size),
             root_clip_chain_id,
         );
         let cb_for_fixed_descendants = ContainingBlock::new(
-            &fragment_tree.initial_containing_block,
+            fragment_tree.initial_containing_block,
             self.compositor_info.root_reference_frame_id,
+            None,
             root_clip_chain_id,
         );
 
@@ -114,7 +126,7 @@ impl DisplayList {
 
         let mut root_stacking_context = StackingContext::create_root(&self.wr, debug);
         for fragment in &fragment_tree.root_fragments {
-            fragment.borrow().build_stacking_context_tree(
+            fragment.borrow_mut().build_stacking_context_tree(
                 fragment,
                 self,
                 &containing_block_info,
@@ -196,6 +208,29 @@ impl DisplayList {
             }),
         );
         (new_scroll_node_id, new_clip_chain_id)
+    }
+
+    fn define_sticky_frame(
+        &mut self,
+        parent_scroll_node_id: &ScrollTreeNodeId,
+        frame_rect: LayoutRect,
+        margins: SideOffsets2D<Option<f32>, LayoutPixel>,
+        vertical_offset_bounds: StickyOffsetBounds,
+        horizontal_offset_bounds: StickyOffsetBounds,
+    ) -> ScrollTreeNodeId {
+        let new_spatial_id = self.wr.define_sticky_frame(
+            parent_scroll_node_id.spatial_id,
+            frame_rect,
+            margins,
+            vertical_offset_bounds,
+            horizontal_offset_bounds,
+            LayoutVector2D::zero(),
+        );
+        self.compositor_info.scroll_tree.add_scroll_tree_node(
+            Some(parent_scroll_node_id),
+            new_spatial_id,
+            None,
+        )
     }
 }
 
@@ -769,7 +804,7 @@ pub(crate) enum StackingContextBuildMode {
 
 impl Fragment {
     pub(crate) fn build_stacking_context_tree(
-        &self,
+        &mut self,
         fragment_ref: &ArcRefCell<Fragment>,
         display_list: &mut DisplayList,
         containing_block_info: &ContainingBlockInfo,
@@ -810,7 +845,7 @@ impl Fragment {
                     None => unreachable!("Found hoisted box with missing fragment."),
                 };
 
-                fragment_ref.borrow().build_stacking_context_tree(
+                fragment_ref.borrow_mut().build_stacking_context_tree(
                     fragment_ref,
                     display_list,
                     containing_block_info,
@@ -882,7 +917,7 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree(
-        &self,
+        &mut self,
         fragment: &ArcRefCell<Fragment>,
         display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
@@ -899,7 +934,7 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree_maybe_creating_reference_frame(
-        &self,
+        &mut self,
         fragment: &ArcRefCell<Fragment>,
         display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
@@ -941,10 +976,11 @@ impl BoxFragment {
             .style
             .establishes_containing_block_for_all_descendants());
         let adjusted_containing_block = ContainingBlock::new(
-            &containing_block
+            containing_block
                 .rect
                 .translate(-reference_frame_data.origin.to_vector()),
             new_spatial_id,
+            None,
             containing_block.clip_chain_id,
         );
         let new_containing_block_info =
@@ -962,7 +998,7 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree_maybe_creating_stacking_context(
-        &self,
+        &mut self,
         fragment: &ArcRefCell<Fragment>,
         display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
@@ -1025,7 +1061,7 @@ impl BoxFragment {
     }
 
     fn build_stacking_context_tree_for_children(
-        &self,
+        &mut self,
         fragment: &ArcRefCell<Fragment>,
         display_list: &mut DisplayList,
         containing_block: &ContainingBlock,
@@ -1034,6 +1070,19 @@ impl BoxFragment {
     ) {
         let mut new_scroll_node_id = containing_block.scroll_node_id;
         let mut new_clip_chain_id = containing_block.clip_chain_id;
+        let mut new_scroll_frame_size = containing_block_info
+            .for_non_absolute_descendants
+            .scroll_frame_size;
+
+        if let Some(scroll_node_id) = self.build_sticky_frame_if_necessary(
+            display_list,
+            &new_scroll_node_id,
+            &containing_block.rect,
+            &new_scroll_frame_size,
+        ) {
+            new_scroll_node_id = scroll_node_id;
+        }
+
         if let Some(clip_chain_id) = self.build_clip_frame_if_necessary(
             display_list,
             &new_scroll_node_id,
@@ -1067,14 +1116,17 @@ impl BoxFragment {
 
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
-        if let Some((scroll_node_id, clip_chain_id)) = self.build_scroll_frame_if_necessary(
-            display_list,
-            &new_scroll_node_id,
-            &new_clip_chain_id,
-            &containing_block.rect,
-        ) {
+        if let Some((scroll_node_id, clip_chain_id, scroll_frame_size)) = self
+            .build_scroll_frame_if_necessary(
+                display_list,
+                &new_scroll_node_id,
+                &new_clip_chain_id,
+                &containing_block.rect,
+            )
+        {
             new_scroll_node_id = scroll_node_id;
             new_clip_chain_id = clip_chain_id;
+            new_scroll_frame_size = Some(scroll_frame_size);
         }
 
         let padding_rect = self
@@ -1086,10 +1138,18 @@ impl BoxFragment {
             .to_physical(self.style.writing_mode, &containing_block.rect)
             .translate(containing_block.rect.origin.to_vector());
 
-        let for_absolute_descendants =
-            ContainingBlock::new(&padding_rect, new_scroll_node_id, new_clip_chain_id);
-        let for_non_absolute_descendants =
-            ContainingBlock::new(&content_rect, new_scroll_node_id, new_clip_chain_id);
+        let for_absolute_descendants = ContainingBlock::new(
+            padding_rect,
+            new_scroll_node_id,
+            new_scroll_frame_size,
+            new_clip_chain_id,
+        );
+        let for_non_absolute_descendants = ContainingBlock::new(
+            content_rect,
+            new_scroll_node_id,
+            new_scroll_frame_size,
+            new_clip_chain_id,
+        );
 
         // Create a new `ContainingBlockInfo` for descendants depending on
         // whether or not this fragment establishes a containing block for
@@ -1115,7 +1175,7 @@ impl BoxFragment {
         };
 
         for child in &self.children {
-            child.borrow().build_stacking_context_tree(
+            child.borrow_mut().build_stacking_context_tree(
                 child,
                 display_list,
                 &new_containing_block_info,
@@ -1174,7 +1234,7 @@ impl BoxFragment {
         parent_scroll_node_id: &ScrollTreeNodeId,
         parent_clip_id: &wr::ClipChainId,
         containing_block_rect: &PhysicalRect<Length>,
-    ) -> Option<(ScrollTreeNodeId, wr::ClipChainId)> {
+    ) -> Option<(ScrollTreeNodeId, wr::ClipChainId, LayoutSize)> {
         let overflow_x = self.style.get_box().overflow_x;
         let overflow_y = self.style.get_box().overflow_y;
         if overflow_x == ComputedOverflow::Visible && overflow_y == ComputedOverflow::Visible {
@@ -1200,17 +1260,107 @@ impl BoxFragment {
             .translate(containing_block_rect.origin.to_vector())
             .to_webrender();
 
-        Some(
-            display_list.define_scroll_frame(
-                parent_scroll_node_id,
-                parent_clip_id,
-                external_id,
-                self.scrollable_overflow(&containing_block_rect)
-                    .to_webrender(),
-                padding_rect,
-                sensitivity,
-            ),
-        )
+        let (scroll_tree_node_id, clip_chain_id) = display_list.define_scroll_frame(
+            parent_scroll_node_id,
+            parent_clip_id,
+            external_id,
+            self.scrollable_overflow(&containing_block_rect)
+                .to_webrender(),
+            padding_rect,
+            sensitivity,
+        );
+
+        Some((scroll_tree_node_id, clip_chain_id, padding_rect.size))
+    }
+
+    fn build_sticky_frame_if_necessary(
+        &mut self,
+        display_list: &mut DisplayList,
+        parent_scroll_node_id: &ScrollTreeNodeId,
+        containing_block_rect: &PhysicalRect<Length>,
+        scroll_frame_size: &Option<LayoutSize>,
+    ) -> Option<ScrollTreeNodeId> {
+        if self.style.get_box().position != ComputedPosition::Sticky {
+            return None;
+        }
+
+        let scroll_frame_size_for_resolve = match scroll_frame_size {
+            Some(size) => size,
+            None => {
+                // This is a direct descendant of a reference frame.
+                &display_list.compositor_info.viewport_size
+            },
+        };
+
+        // Percentages sticky positions offsets are resovled against the size of the
+        // nearest scroll frame instead of the containing block like for other types
+        // of positioning.
+        let position = self.style.get_position();
+        let offsets = PhysicalSides::new(
+            position
+                .top
+                .map(|v| v.resolve(Length::new(scroll_frame_size_for_resolve.height))),
+            position
+                .right
+                .map(|v| v.resolve(Length::new(scroll_frame_size_for_resolve.width))),
+            position
+                .bottom
+                .map(|v| v.resolve(Length::new(scroll_frame_size_for_resolve.height))),
+            position
+                .left
+                .map(|v| v.resolve(Length::new(scroll_frame_size_for_resolve.width))),
+        );
+        self.resolved_sticky_insets = Some(offsets);
+
+        if scroll_frame_size.is_none() {
+            return None;
+        }
+
+        if offsets.top.is_auto() &&
+            offsets.right.is_auto() &&
+            offsets.bottom.is_auto() &&
+            offsets.left.is_auto()
+        {
+            return None;
+        }
+
+        let frame_rect = self
+            .border_rect()
+            .to_physical(self.style.writing_mode, &containing_block_rect)
+            .translate(containing_block_rect.origin.to_vector())
+            .to_webrender();
+
+        // Position:sticky elements are always restricted based on the size and position of their
+        // containing block.
+        let containing_block_rect = containing_block_rect.to_webrender();
+
+        // This is the minimum negative offset and then the maximum positive offset. We just
+        // specify every edge, but if the corresponding margin is None, that offset has no effect.
+        let vertical_offset_bounds = wr::StickyOffsetBounds::new(
+            containing_block_rect.min_y() - frame_rect.min_y(),
+            containing_block_rect.max_y() - frame_rect.max_y(),
+        );
+        let horizontal_offset_bounds = wr::StickyOffsetBounds::new(
+            containing_block_rect.min_x() - frame_rect.min_x(),
+            containing_block_rect.max_x() - frame_rect.max_x(),
+        );
+
+        let margins = SideOffsets2D::new(
+            offsets.top.non_auto().map(|v| v.px()),
+            offsets.right.non_auto().map(|v| v.px()),
+            offsets.bottom.non_auto().map(|v| v.px()),
+            offsets.left.non_auto().map(|v| v.px()),
+        );
+
+        let sticky_node_id = display_list.define_sticky_frame(
+            parent_scroll_node_id,
+            frame_rect,
+            margins,
+            vertical_offset_bounds,
+            horizontal_offset_bounds,
+        );
+
+        Some(sticky_node_id)
     }
 
     /// Optionally returns the data for building a reference frame, without yet building it.
@@ -1363,7 +1513,7 @@ impl AnonymousFragment {
             containing_block_info.new_for_non_absolute_descendants(&new_containing_block);
 
         for child in &self.children {
-            child.borrow().build_stacking_context_tree(
+            child.borrow_mut().build_stacking_context_tree(
                 child,
                 display_list,
                 &new_containing_block_info,
