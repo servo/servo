@@ -164,6 +164,12 @@ impl Device {
         self.device_pixel_ratio
     }
 
+    /// Gets the size of the scrollbar in CSS pixels.
+    pub fn scrollbar_inline_size(&self) -> CSSPixelLength {
+        // TODO: implement this.
+        CSSPixelLength::new(0.0)
+    }
+
     /// Queries dummy font metrics for Servo. Knows nothing about fonts and does not provide
     /// any metrics.
     /// TODO: Servo's font metrics provider will probably not live in this crate, so this will
