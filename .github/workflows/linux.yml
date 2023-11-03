@@ -62,7 +62,7 @@ env:
 jobs:
   build:
     name: Linux Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         if: github.event_name != 'issue_comment' && github.event_name != 'pull_request_target'
@@ -81,6 +81,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Install taplo
         uses: baptiste0928/cargo-install@v2
         with:

@@ -21,7 +21,7 @@ env:
 jobs:
   linux-wpt:
     name: WPT ${{ inputs.layout }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       max_chunk_id: 20
     strategy:
