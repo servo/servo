@@ -12,7 +12,7 @@ use canvas_traits::canvas::{
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, RadialGradientStyle,
     RepetitionStyle, TextAlign, TextBaseline,
 };
-use cssparser::{AbsoluteColor, Color as CSSColor, Parser, ParserInput, RGBA};
+use cssparser::{Color as CSSColor, Parser, ParserInput, RGBA};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
@@ -302,7 +302,7 @@ impl CanvasState {
         let color = CSSColor::parse(&mut parser);
         if parser.is_exhausted() {
             match color {
-                Ok(CSSColor::Absolute(AbsoluteColor::Rgba(rgba))) => Ok(rgba),
+                Ok(CSSColor::Rgba(rgba)) => Ok(rgba),
                 Ok(CSSColor::CurrentColor) => {
                     // TODO: https://github.com/whatwg/html/issues/1099
                     // Reconsider how to calculate currentColor in a display:none canvas
@@ -1706,7 +1706,7 @@ pub fn parse_color(string: &str) -> Result<RGBA, ()> {
     let mut input = ParserInput::new(string);
     let mut parser = Parser::new(&mut input);
     match CSSColor::parse(&mut parser) {
-        Ok(CSSColor::Absolute(AbsoluteColor::Rgba(rgba))) => {
+        Ok(CSSColor::Rgba(rgba)) => {
             if parser.is_exhausted() {
                 Ok(rgba)
             } else {
