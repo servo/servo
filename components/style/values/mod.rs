@@ -93,7 +93,10 @@ where
 }
 
 fn nan_inf_enabled() -> bool {
-    static_prefs::pref!("layout.css.nan-inf.enabled")
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.nan-inf.enabled");
+    #[cfg(feature = "servo")]
+    return false;
 }
 
 /// Serialize a specified dimension with unit, calc, and NaN/infinity handling (if enabled)
