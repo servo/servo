@@ -54,6 +54,8 @@ packages = [
     "foreign-types-shared",
     "metal",
     "paste",
+    "hashbrown",
+    "indexmap",
 
     # Duplicated by Gecko crates that haven't been updated yet (style, shmem, derive_common, ...).
     "syn",

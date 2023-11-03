@@ -138,6 +138,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                         .label
                         .as_ref()
                         .map(|l| Cow::Borrowed(&**l)),
+                    timestamp_writes: None,
                 },
             ))
         };
@@ -234,6 +235,8 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                     .label
                     .as_ref()
                     .map(|l| Cow::Borrowed(&**l)),
+                timestamp_writes: None,
+                occlusion_query_set: None,
             };
             Some(wgpu_com::RenderPass::new(self.encoder.0, &desc))
         };
