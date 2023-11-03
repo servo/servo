@@ -54,7 +54,9 @@ packages = [
     "foreign-types-shared",
     "metal",
     "paste",
+    # Duplicated by gpu-descriptor and indexmap
     "hashbrown",
+    # Duplicated by script, style, cbindgen, clap, ...
     "indexmap",
 
     # Duplicated by Gecko crates that haven't been updated yet (style, shmem, derive_common, ...).
