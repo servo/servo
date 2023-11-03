@@ -77,10 +77,6 @@ jobs:
           fetch-depth: 2
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
-      - name: Select Python 3.9
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Install taplo
