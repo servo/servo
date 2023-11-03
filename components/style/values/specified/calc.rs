@@ -48,6 +48,13 @@ fn mod_rem_enabled() -> bool {
     return false;
 }
 
+fn exp_enabled() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.exp.enabled");
+    #[cfg(feature = "servo")]
+    return false;
+}
+
 /// The name of the mathematical function that we're parsing.
 #[derive(Clone, Copy, Debug, Parse)]
 pub enum MathFunction {
@@ -871,7 +878,7 @@ impl CalcNode {
         } else if matches!(function, Mod | Rem) {
             mod_rem_enabled()
         } else if matches!(function, Pow | Sqrt | Hypot | Log | Exp) {
-            static_prefs::pref!("layout.css.exp.enabled")
+            exp_enabled()
         } else {
             true
         };
