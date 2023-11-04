@@ -113,7 +113,7 @@ jobs:
   report-test-results:
     name: Report WPT Results
     runs-on: ubuntu-latest
-    if: ${{ always() && !cancelled() && (github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt-sync != 'true') }}
+    if: ${{ always() && !cancelled() && inputs.wpt-sync != 'true' }}
     needs:
       - "linux-wpt"
     steps:
