@@ -7,8 +7,8 @@
 //! A timeline module, used to specify an `AnimationTimeline` which determines
 //! the time used for synchronizing animations in the script thread.
 
+use chrono::Utc;
 use jstraceable_derive::JSTraceable;
-use time;
 
 /// A `AnimationTimeline` which is used to synchronize animations during the script
 /// event loop.
@@ -22,7 +22,7 @@ impl AnimationTimeline {
     #[inline]
     pub fn new() -> Self {
         Self {
-            current_value: time::precise_time_s(),
+            current_value: Utc::now().timestamp() as f64,
         }
     }
 
@@ -39,7 +39,7 @@ impl AnimationTimeline {
 
     /// Updates the value of the `AnimationTimeline` to the current clock time.
     pub fn update(&mut self) {
-        self.current_value = time::precise_time_s();
+        self.current_value = Utc::now().timestamp() as f64;
     }
 
     /// Increments the current value of the timeline by a specific number of seconds.
