@@ -5,9 +5,9 @@ on:
       profile:
         required: true
         type: string
-      wpt:
+      wpt-sync:
         required: false
-        type: string
+        type: boolean
       layout:
         required: true
         type: string
@@ -63,11 +63,11 @@ jobs:
           sudo apt install ./libffi6_3.2.1-8_amd64.deb
           python3 ./mach bootstrap-gstreamer
       - name: Sync from upstream WPT
-        if: ${{ inputs.wpt == 'sync' }}
+        if: ${{ inputs.wpt-sync == 'true' }}
         run: |
           ./mach update-wpt --sync --patch
       - name: Run tests
-        if: ${{ inputs.wpt != 'sync' }}
+        if: ${{ !inputs.wpt-sync == 'true' }}
         run: |
           python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
             --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
@@ -79,7 +79,7 @@ jobs:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           INTERMITTENT_TRACKER_DASHBOARD_SECRET: ${{ secrets.INTERMITTENT_TRACKER_DASHBOARD_SECRET }}
       - name: Run tests (sync)
-        if: ${{ inputs.wpt == 'sync' }}
+        if: ${{ inputs.wpt-sync == 'true' }}
         run: |
           python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
             --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
@@ -88,7 +88,7 @@ jobs:
             --always-succeed
       - name: Archive filtered results
         uses: actions/upload-artifact@v3
-        if: ${{ always() && inputs.wpt != 'sync' }}
+        if: ${{ always() && !inputs.wpt-sync == 'true' }}
         with:
           name: wpt-filtered-results-linux-${{ inputs.layout }}
           path: |
@@ -96,14 +96,14 @@ jobs:
             unexpected-test-wpt.${{ matrix.chunk_id }}.log
       - name: Archive logs
         uses: actions/upload-artifact@v3
-        if: ${{ failure() && inputs.wpt != 'sync' }}
+        if: ${{ failure() && inputs.wpt-sync != 'true' }}
         with:
           name: wpt-logs-linux-${{ inputs.layout }}
           path: |
             test-wpt.${{ matrix.chunk_id }}.log
       - name: Archive logs
         uses: actions/upload-artifact@v3
-        if: ${{ inputs.wpt == 'sync' }}
+        if: ${{ inputs.wpt-sync == 'true' }}
         with:
           name: wpt-logs-linux-${{ inputs.layout }}
           path: |
@@ -113,7 +113,7 @@ jobs:
   report-test-results:
     name: Report WPT Results
     runs-on: ubuntu-latest
-    if: ${{ always() && !cancelled() && (github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt == 'test') }}
+    if: ${{ always() && !cancelled() && (github.ref_name == 'try-wpt' || github.ref_name == 'try-wpt-2020' || inputs.wpt-sync != 'true') }}
     needs:
       - "linux-wpt"
     steps:
