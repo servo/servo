@@ -291,7 +291,9 @@ impl App {
                     trace!("PumpResult::ReadyToPresent");
 
                     // Request a winit redraw event, so we can paint the minibrowser and present.
-                    window.winit_window().unwrap().request_redraw();
+                    if let Some(window) = window.winit_window() {
+                        window.request_redraw();
+                    }
 
                     // We don’t need the compositor to paint to this frame during the redraw event.
                     // TODO(servo#30331) broken on macOS?
