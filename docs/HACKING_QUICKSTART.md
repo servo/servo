@@ -372,6 +372,12 @@ If you need to create a new test file, it should be located in `tests/wpt/mozill
 ./mach test-wpt --manifest-update
 ```
 
+### Running tests via GitHub Actions
+
+Running whole WPT suite is resource intensive and tedious task. Instead of using your computer resources, you can enable Workflows in personal fork and then send your patches to try branch. To make things easier you can use `./mach try` that will automatically send git `HEAD` (patches that are committed in current checkout) to try branch and run full CI build, using same config as it's used for landing things in servo/servo.
+
+For advance try runs see: [try guide](./try.md)
+
 ### Debugging a test
 
 See the [debugging guide](./debugging.md) to get started in how to debug Servo.
