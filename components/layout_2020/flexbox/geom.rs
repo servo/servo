@@ -63,6 +63,15 @@ impl<T> FlexRelativeSides<T> {
             cross: self.cross_start + self.cross_end,
         }
     }
+
+    pub fn map<U>(&self, f: impl Fn(&T) -> U) -> FlexRelativeSides<U> {
+        FlexRelativeSides {
+            main_start: f(&self.main_start),
+            main_end: f(&self.main_end),
+            cross_start: f(&self.cross_start),
+            cross_end: f(&self.cross_end),
+        }
+    }
 }
 
 /// One of the two bits set by the `flex-direction` property
