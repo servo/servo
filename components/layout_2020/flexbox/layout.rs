@@ -14,7 +14,7 @@ use style::properties::longhands::flex_direction::computed_value::T as FlexDirec
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::longhands::justify_content::computed_value::T as JustifyContent;
 use style::values::computed::length::Size;
-use style::values::computed::{Length, CSSPixelLength};
+use style::values::computed::{CSSPixelLength, Length};
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::CSSFloat;
 use style::Zero;
@@ -26,7 +26,7 @@ use super::{FlexContainer, FlexLevelBox};
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
-use crate::geom::{LengthOrAuto, LogicalRect, LogicalSides, LogicalVec2, AuOrAuto};
+use crate::geom::{AuOrAuto, LengthOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
 use crate::style_ext::ComputedValuesExt;
@@ -521,7 +521,6 @@ impl<'a> FlexItem<'a> {
         let margin_auto_is_zero = flex_context.sides_to_flex_relative(margin_auto_is_zero);
         let padding = flex_context.sides_to_flex_relative(pbm.padding.clone());
         let border = flex_context.sides_to_flex_relative(pbm.border.clone());
-
         let padding_border = padding.sum_by_axis() + border.sum_by_axis();
         let pbm_auto_is_zero = padding_border + margin_auto_is_zero.sum_by_axis();
 
@@ -537,33 +536,17 @@ impl<'a> FlexItem<'a> {
 
         let hypothetical_main_size =
             flex_base_size.clamp_between_extremums(content_min_size.main, content_max_size.main);
-
-        let margin: FlexRelativeSides<AuOrAuto> = flex_context.sides_to_flex_relative(pbm.margin).map(|v| v.map(|v| v.into()));
-        let b = flex_context.sides_to_flex_relative(pbm.border);
-
-        let b_slide = FlexRelativeSides::<Au> {
-            cross_start: b.cross_start.into(),
-            cross_end: b.cross_end.into(),
-            main_start: b.main_start.into(),
-            main_end: b.main_end.into()
-        };
-
-        let p = flex_context.sides_to_flex_relative(pbm.padding);
-
-        let p_slide = FlexRelativeSides::<Au> {
-            cross_start: p.cross_start.into(),
-            cross_end: p.cross_end.into(),
-            main_start: p.main_start.into(),
-            main_end: p.main_end.into()
-        };
+        let margin: FlexRelativeSides<AuOrAuto> = flex_context
+            .sides_to_flex_relative(pbm.margin)
+            .map(|v| v.map(|v| v.into()));
 
         Self {
             box_,
             content_box_size,
             content_min_size,
             content_max_size,
-            padding: p_slide,
-            border: b_slide,
+            padding: flex_relative_slides(flex_context.sides_to_flex_relative(pbm.padding)),
+            border: flex_relative_slides(flex_context.sides_to_flex_relative(pbm.border)),
             margin,
             pbm_auto_is_zero,
             flex_base_size,
@@ -1211,8 +1194,14 @@ impl<'items> FlexLine<'items> {
         (
             self.items.iter().map(move |item| {
                 (
-                    item.margin.main_start.auto_is(|| each_auto_margin.into()).into(),
-                    item.margin.main_end.auto_is(|| each_auto_margin.into()).into(),
+                    item.margin
+                        .main_start
+                        .auto_is(|| each_auto_margin.into())
+                        .into(),
+                    item.margin
+                        .main_end
+                        .auto_is(|| each_auto_margin.into())
+                        .into(),
                 )
             }),
             each_auto_margin > Length::zero(),
@@ -1234,8 +1223,9 @@ impl<'items> FlexLine<'items> {
             .zip(item_used_main_sizes)
             .zip(item_margins)
             .map(move |((item, &main_content_size), margin)| {
-                main_position_cursor +=
-                    margin.main_start + item.border.main_start.into() + item.padding.main_start.into();
+                main_position_cursor += margin.main_start +
+                    item.border.main_start.into() +
+                    item.padding.main_start.into();
                 let content_main_start_position = main_position_cursor;
                 main_position_cursor += main_content_size +
                     item.padding.main_end.into() +
@@ -1328,11 +1318,17 @@ impl FlexItem<'_> {
                     AlignItems::Baseline => Length::zero(),
                 }
             };
-        outer_cross_start + margin.cross_start + self.border.cross_start.into() + self.padding.cross_start.into()
+        outer_cross_start +
+            margin.cross_start +
+            self.border.cross_start.into() +
+            self.padding.cross_start.into()
     }
 }
 
-fn logical_slides(flex_context: &mut FlexContext<'_>, item: FlexRelativeSides<Au>) ->  LogicalSides<CSSPixelLength> {
+fn logical_slides(
+    flex_context: &mut FlexContext<'_>,
+    item: FlexRelativeSides<Au>,
+) -> LogicalSides<CSSPixelLength> {
     let value = flex_context.sides_to_flow_relative(item);
 
     LogicalSides::<Length> {
@@ -1343,13 +1339,11 @@ fn logical_slides(flex_context: &mut FlexContext<'_>, item: FlexRelativeSides<Au
     }
 }
 
-// fn flex_relative_slides(flex_context: &FlexContext<'_>, item: LogicalSides<Length>) ->  FlexRelativeSides<CSSPixelLength> {
-//     let value = flex_context.sides_to_flow_relative(item);
-
-//     FlexRelativeSides::<Length> {
-//         cross_start: value.cross_start.into(),
-//         cross_end: value.inline_end.into(),
-//         main_start: value.block_start.into(),
-//         main_end: value.block_end.into(),
-//     }
-// }
+fn flex_relative_slides(value: FlexRelativeSides<CSSPixelLength>) -> FlexRelativeSides<Au> {
+    FlexRelativeSides::<Au> {
+        cross_start: value.cross_start.into(),
+        cross_end: value.cross_end.into(),
+        main_start: value.main_start.into(),
+        main_end: value.main_end.into(),
+    }
+}
