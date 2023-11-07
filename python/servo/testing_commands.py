@@ -329,6 +329,16 @@ class MachCommands(CommandBase):
         print("Running tidy tests...")
         passed = tidy.run_tests() and passed
 
+        def test_try_parser():
+            import unittest
+            verbosity = 1 if logging.getLogger().level >= logging.WARN else 2
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "etc"))
+            import try_parser_test
+            suite = unittest.TestLoader().loadTestsFromModule(try_parser_test)
+            return unittest.TextTestRunner(verbosity=verbosity).run(suite).wasSuccessful()
+        print("Running try_parser tests...")
+        passed = test_try_parser() and passed
+
         print("Running WPT tests...")
         passed = wpt.run_tests() and passed
 
