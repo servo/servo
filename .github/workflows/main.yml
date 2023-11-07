@@ -7,7 +7,7 @@ on:
     # random force pushes.
     branches: ["main", "try"]
   pull_request:
-    types: ['opened', 'synchronize']
+    types: ["opened", "synchronize"]
     branches: ["**"]
   merge_group:
     types: [checks_requested]
@@ -18,16 +18,18 @@ on:
         type: string
   workflow_dispatch:
     inputs:
-      platform:
+      profile:
         required: false
-        type: choice
-        options: ["linux", "windows", "macos", "all"]
+        default: false
+        type: boolean
       layout:
         required: false
+        default: "all"
         type: choice
         options: ["none", "2013", "2020", "all"]
       unit-tests:
         required: false
+        default: true
         type: boolean
 
 jobs:
@@ -50,65 +52,97 @@ jobs:
               return configuration;
             }
 
-            // We need to pick defaults if the inputs are not provided. Unprovided inputs
-            // are empty strings in this template.
-            let platform = "${{ inputs.platform }}" || "linux";
-            let layout = "${{ inputs.layout }}" || "none";
-            let unit_tests = Boolean(${{ inputs.unit-tests }})
+            // try builds can also have config in last commit msg
+            if (${{ github.ref_name == 'try' }}) {
+              let commit_msg = context.payload.head_commit.message;
+              try {
+                var o = JSON.parse(commit_msg.split('\n').slice(-1));
 
-            // Merge queue runs and pushes to `main` should always trigger a full build and test.
-            if (["push", "merge_group"].includes(context.eventName)) {
-              platform = "all";
-              layout = "all";
-              unit_tests = true;
+                if (o && typeof o === "object") {
+                  console.log("Using try commit configuration: " + JSON.stringify(o));
+                  return o;
+                }
+              }
+              catch (e) { }
             }
 
-            let platforms = [];
-            if (platform == "all") {
-              platforms = [ "linux", "windows", "macos" ];
-            } else {
-              platforms = [ platform ];
+            if (context.eventName == "pull_request") {
+              return {
+                "fail_fast": false,
+                "matrix": [
+                  {
+                    "os": "linux",
+                    "name": "Linux",
+                    "layout": "none",
+                    "profile": "release",
+                    "unit_tests": true,
+                  },
+                ],
+              };
             }
 
-            let returnValue =  {
-              platforms,
-              layout,
-              unit_tests,
+            // If we reach here we are likely doing full run
+            configuration = {
+              "fail_fast": false,
+              "matrix": [
+                {
+                  "os": "linux",
+                  "name": "Linux",
+                  "layout": "all",
+                  "profile": "release",
+                  "unit_tests": true,
+                },
+                {
+                  "os": "windows",
+                  "name": "Windows",
+                  "layout": "none", // not used
+                  "profile": "release",
+                  "unit_tests": true,
+                },
+                {
+                  "os": "mac",
+                  "name": "MacOS",
+                  "layout": "none",
+                  "profile": "release",
+                  "unit_tests": true,
+                }
+              ],
             };
 
-            console.log("Using configuration: " + JSON.stringify(returnValue));
-            return returnValue;
+            // Make merge queue fast
+            if (context.eventName == "merge_group") {
+              configuration.fail_fast = true;
+            }
 
-  build-win:
-    name: Windows
-    needs: ["decision"]
-    if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'windows') }}
-    uses: ./.github/workflows/windows.yml
-    with:
-      profile: "release"
-      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
-    secrets: inherit
+            // override stuff by user provided
+            if (context.eventName == "workflow_dispatch") {
+              configuration.matrix.linux.layout = "${{ inputs.layout }}";
+              let unit_tests = Boolean(${{ inputs.unit-tests }});
+              let profile = '${{ inputs.profile }}';
+              for (const platform of configuration.matrix) {
+                platform.profile = profile;
+                platfrom.unit_tests = unit_tests;
+              }
+            }
 
-  build-mac:
-    name: Mac
-    needs: ["decision"]
-    if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'macos') }}
-    uses: ./.github/workflows/mac.yml
-    with:
-      profile: "release"
-      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
-    secrets: inherit
+            console.log("Using configuration: " + JSON.stringify(configuration));
+            return configuration;
 
-  build-linux:
-    name: Linux
+  build:
     needs: ["decision"]
-    if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'linux') }}
-    uses: ./.github/workflows/linux.yml
-    with:
-      profile: "release"
-      layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
-      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: ${{ fromJson(needs.decision.outputs.configuration).fail_fast }}
+      matrix:
+        include: ${{ fromJson(needs.decision.outputs.configuration).matrix }}
+    # we need dipatch os because workflows do not support uses: ${}
+    uses: ./.github/workflows/dispatch-os.yml
     secrets: inherit
+    with:
+      os: ${{ matrix.os }}
+      wpt-layout: ${{ matrix.layout }}
+      profile: ${{ matrix.profile }}
+      unit-tests: ${{ matrix.unit_tests }}
 
   build-result:
     name: Result
@@ -117,14 +151,9 @@ jobs:
     # needs all build to detect cancellation
     needs:
       - "decision"
-      - "build-win"
-      - "build-mac"
-      - "build-linux"
+      - "build"
 
     steps:
-      - name: Mark skipped jobs as successful
-        if: ${{ fromJson(needs.decision.outputs.configuration).platforms[0] != null }}
-        run: exit 0
       - name: Mark the job as successful
         if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         run: exit 0

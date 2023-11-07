@@ -1,0 +1,43 @@
+name: Dispatch OS
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      profile:
+        required: true
+        type: string
+      wpt-layout:
+        required: true
+        type: string
+      unit-tests:
+        required: true
+        type: boolean
+
+jobs:
+  win:
+    if: ${{ inputs.os == 'windows' }}
+    uses: ./.github/workflows/windows.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      unit-tests: ${{ inputs.unit-tests }}
+
+  mac:
+    if: ${{ inputs.os == 'mac' }}
+    uses: ./.github/workflows/mac.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      wpt-layout: ${{ inputs.wpt-layout }}
+      unit-tests: ${{ inputs.unit-tests }}
+
+  linux:
+    if: ${{ inputs.os == 'linux' }}
+    uses: ./.github/workflows/linux.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      wpt-layout: ${{ inputs.wpt-layout }}
+      unit-tests: ${{ inputs.unit-tests }}
