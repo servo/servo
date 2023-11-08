@@ -291,8 +291,11 @@ impl App {
                     trace!("PumpResult::ReadyToPresent");
 
                     // Request a winit redraw event, so we can paint the minibrowser and present.
+                    // Otherwise, it's in headless mode and we present directly.
                     if let Some(window) = window.winit_window() {
                         window.request_redraw();
+                    } else {
+                        app.servo.as_mut().unwrap().present();
                     }
 
                     // We don’t need the compositor to paint to this frame during the redraw event.
