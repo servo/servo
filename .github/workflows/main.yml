@@ -86,6 +86,7 @@ jobs:
     uses: ./.github/workflows/windows.yml
     with:
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+    secrets: inherit
 
   build-mac:
     name: Mac
@@ -94,6 +95,7 @@ jobs:
     uses: ./.github/workflows/mac.yml
     with:
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+    secrets: inherit
 
   build-linux:
     name: Linux
@@ -104,6 +106,7 @@ jobs:
       wpt: 'test'
       layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+    secrets: inherit
 
   build-result:
     name: Result
