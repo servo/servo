@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 
+use app_units::Au;
 use atomic_refcell::AtomicRefMut;
 use style::properties::longhands::align_content::computed_value::T as AlignContent;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
@@ -25,7 +26,7 @@ use super::{FlexContainer, FlexLevelBox};
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
-use crate::geom::{LengthOrAuto, LogicalRect, LogicalSides, LogicalVec2};
+use crate::geom::{AuOrAuto, LengthOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
 use crate::style_ext::ComputedValuesExt;
@@ -59,9 +60,9 @@ struct FlexItem<'a> {
     content_box_size: FlexRelativeVec2<LengthOrAuto>,
     content_min_size: FlexRelativeVec2<Length>,
     content_max_size: FlexRelativeVec2<Option<Length>>,
-    padding: FlexRelativeSides<Length>,
-    border: FlexRelativeSides<Length>,
-    margin: FlexRelativeSides<LengthOrAuto>,
+    padding: FlexRelativeSides<Au>,
+    border: FlexRelativeSides<Au>,
+    margin: FlexRelativeSides<AuOrAuto>,
 
     /// Sum of padding, border, and margin (with `auto` assumed to be zero) in each axis.
     /// This is the difference between an outer and inner size.
@@ -518,10 +519,8 @@ impl<'a> FlexItem<'a> {
         let content_max_size = flex_context.vec2_to_flex_relative(max_size);
         let content_min_size = flex_context.vec2_to_flex_relative(min_size);
         let margin_auto_is_zero = flex_context.sides_to_flex_relative(margin_auto_is_zero);
-        let margin = flex_context.sides_to_flex_relative(pbm.margin);
-        let padding = flex_context.sides_to_flex_relative(pbm.padding);
-        let border = flex_context.sides_to_flex_relative(pbm.border);
-
+        let padding = flex_context.sides_to_flex_relative(pbm.padding.clone());
+        let border = flex_context.sides_to_flex_relative(pbm.border.clone());
         let padding_border = padding.sum_by_axis() + border.sum_by_axis();
         let pbm_auto_is_zero = padding_border + margin_auto_is_zero.sum_by_axis();
 
@@ -537,14 +536,17 @@ impl<'a> FlexItem<'a> {
 
         let hypothetical_main_size =
             flex_base_size.clamp_between_extremums(content_min_size.main, content_max_size.main);
+        let margin: FlexRelativeSides<AuOrAuto> = flex_context
+            .sides_to_flex_relative(pbm.margin)
+            .map(|v| v.map(|v| v.into()));
 
         Self {
             box_,
             content_box_size,
             content_min_size,
             content_max_size,
-            padding,
-            border,
+            padding: flex_relative_slides(flex_context.sides_to_flex_relative(pbm.padding)),
+            border: flex_relative_slides(flex_context.sides_to_flex_relative(pbm.border)),
             margin,
             pbm_auto_is_zero,
             flex_base_size,
@@ -855,8 +857,8 @@ impl FlexLine<'_> {
                         item.box_.style().clone(),
                         item_result.fragments,
                         content_rect,
-                        flex_context.sides_to_flow_relative(item.padding),
-                        flex_context.sides_to_flow_relative(item.border),
+                        logical_slides(flex_context, item.padding),
+                        logical_slides(flex_context, item.border),
                         margin,
                         None,
                         collapsed_margin,
@@ -1192,8 +1194,14 @@ impl<'items> FlexLine<'items> {
         (
             self.items.iter().map(move |item| {
                 (
-                    item.margin.main_start.auto_is(|| each_auto_margin),
-                    item.margin.main_end.auto_is(|| each_auto_margin),
+                    item.margin
+                        .main_start
+                        .auto_is(|| each_auto_margin.into())
+                        .into(),
+                    item.margin
+                        .main_end
+                        .auto_is(|| each_auto_margin.into())
+                        .into(),
                 )
             }),
             each_auto_margin > Length::zero(),
@@ -1215,12 +1223,13 @@ impl<'items> FlexLine<'items> {
             .zip(item_used_main_sizes)
             .zip(item_margins)
             .map(move |((item, &main_content_size), margin)| {
-                main_position_cursor +=
-                    margin.main_start + item.border.main_start + item.padding.main_start;
+                main_position_cursor += margin.main_start +
+                    item.border.main_start.into() +
+                    item.padding.main_start.into();
                 let content_main_start_position = main_position_cursor;
                 main_position_cursor += main_content_size +
-                    item.padding.main_end +
-                    item.border.main_end +
+                    item.padding.main_end.into() +
+                    item.border.main_end.into() +
                     margin.main_end +
                     item_main_interval;
                 content_main_start_position
@@ -1238,10 +1247,10 @@ impl FlexItem<'_> {
         item_cross_content_size: Length,
     ) -> (Length, Length) {
         let auto_count = match (self.margin.cross_start, self.margin.cross_end) {
-            (LengthOrAuto::LengthPercentage(start), LengthOrAuto::LengthPercentage(end)) => {
-                return (start, end);
+            (AuOrAuto::LengthPercentage(start), AuOrAuto::LengthPercentage(end)) => {
+                return (start.into(), end.into());
             },
-            (LengthOrAuto::Auto, LengthOrAuto::Auto) => 2.,
+            (AuOrAuto::Auto, AuOrAuto::Auto) => 2.,
             _ => 1.,
         };
         let outer_size = self.pbm_auto_is_zero.cross + item_cross_content_size;
@@ -1250,8 +1259,8 @@ impl FlexItem<'_> {
         let end;
         if available > Length::zero() {
             let each_auto_margin = available / auto_count;
-            start = self.margin.cross_start.auto_is(|| each_auto_margin);
-            end = self.margin.cross_end.auto_is(|| each_auto_margin);
+            start = self.margin.cross_start.auto_is(|| each_auto_margin.into());
+            end = self.margin.cross_end.auto_is(|| each_auto_margin.into());
         } else {
             // “the block-start or inline-start margin (whichever is in the cross axis)”
             // This margin is the cross-end on iff `flex-wrap` is `wrap-reverse`,
@@ -1274,14 +1283,14 @@ impl FlexItem<'_> {
             //  set it to zero. Set the opposite margin so that the outer cross size of the item
             //  equals the cross size of its flex line.”
             if flex_wrap_reverse {
-                start = self.margin.cross_start.auto_is(|| available);
-                end = self.margin.cross_end.auto_is(Length::zero);
+                start = self.margin.cross_start.auto_is(|| available.into());
+                end = self.margin.cross_end.auto_is(Au::zero);
             } else {
-                start = self.margin.cross_start.auto_is(Length::zero);
-                end = self.margin.cross_end.auto_is(|| available);
+                start = self.margin.cross_start.auto_is(Au::zero);
+                end = self.margin.cross_end.auto_is(|| available.into());
             }
         }
-        (start, end)
+        (start.into(), end.into())
     }
 
     /// Return the coordinate of the cross-start side of the content area
@@ -1309,6 +1318,34 @@ impl FlexItem<'_> {
                     AlignItems::Baseline => Length::zero(),
                 }
             };
-        outer_cross_start + margin.cross_start + self.border.cross_start + self.padding.cross_start
+        outer_cross_start +
+            margin.cross_start +
+            self.border.cross_start.into() +
+            self.padding.cross_start.into()
+    }
+}
+
+// TODO(#29819): Check if this function can be removed after we convert everything to Au.
+fn logical_slides(
+    flex_context: &mut FlexContext<'_>,
+    item: FlexRelativeSides<Au>,
+) -> LogicalSides<Length> {
+    let value = flex_context.sides_to_flow_relative(item);
+
+    LogicalSides::<Length> {
+        inline_start: value.inline_start.into(),
+        inline_end: value.inline_end.into(),
+        block_start: value.block_start.into(),
+        block_end: value.block_end.into(),
+    }
+}
+
+// TODO(#29819): Check if this function can be removed after we convert everything to Au.
+fn flex_relative_slides(value: FlexRelativeSides<Length>) -> FlexRelativeSides<Au> {
+    FlexRelativeSides::<Au> {
+        cross_start: value.cross_start.into(),
+        cross_end: value.cross_end.into(),
+        main_start: value.main_start.into(),
+        main_end: value.main_end.into(),
     }
 }
