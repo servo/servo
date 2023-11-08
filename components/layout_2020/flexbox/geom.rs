@@ -64,6 +64,7 @@ impl<T> FlexRelativeSides<T> {
         }
     }
 
+    // TODO(#29819): Check if this function can be removed after we convert everything to Au.
     pub fn map<U>(&self, f: impl Fn(&T) -> U) -> FlexRelativeSides<U> {
         FlexRelativeSides {
             main_start: f(&self.main_start),
