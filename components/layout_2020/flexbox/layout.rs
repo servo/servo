@@ -1325,6 +1325,8 @@ impl FlexItem<'_> {
     }
 }
 
+
+// TODO(#29819): Check if this function can be removed after we convert everything to Au.
 fn logical_slides(
     flex_context: &mut FlexContext<'_>,
     item: FlexRelativeSides<Au>,
@@ -1339,6 +1341,7 @@ fn logical_slides(
     }
 }
 
+// TODO(#29819): Check if this function can be removed after we convert everything to Au.
 fn flex_relative_slides(value: FlexRelativeSides<CSSPixelLength>) -> FlexRelativeSides<Au> {
     FlexRelativeSides::<Au> {
         cross_start: value.cross_start.into(),
