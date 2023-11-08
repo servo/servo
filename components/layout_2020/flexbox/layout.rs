@@ -14,7 +14,7 @@ use style::properties::longhands::flex_direction::computed_value::T as FlexDirec
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::longhands::justify_content::computed_value::T as JustifyContent;
 use style::values::computed::length::Size;
-use style::values::computed::{CSSPixelLength, Length};
+use style::values::computed::Length;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::CSSFloat;
 use style::Zero;
@@ -1329,7 +1329,7 @@ impl FlexItem<'_> {
 fn logical_slides(
     flex_context: &mut FlexContext<'_>,
     item: FlexRelativeSides<Au>,
-) -> LogicalSides<CSSPixelLength> {
+) -> LogicalSides<Length> {
     let value = flex_context.sides_to_flow_relative(item);
 
     LogicalSides::<Length> {
@@ -1341,7 +1341,7 @@ fn logical_slides(
 }
 
 // TODO(#29819): Check if this function can be removed after we convert everything to Au.
-fn flex_relative_slides(value: FlexRelativeSides<CSSPixelLength>) -> FlexRelativeSides<Au> {
+fn flex_relative_slides(value: FlexRelativeSides<Length>) -> FlexRelativeSides<Au> {
     FlexRelativeSides::<Au> {
         cross_start: value.cross_start.into(),
         cross_end: value.cross_end.into(),
