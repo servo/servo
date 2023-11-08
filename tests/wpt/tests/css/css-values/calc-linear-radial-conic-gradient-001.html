@@ -40,7 +40,7 @@
 
   var targetElement = document.getElementById("target");
 
-    function verifyComputedStyle(property_name, specified_value, expected_value, description)
+    function verifyComputedStyle(property_name, specified_value, expected_value)
     {
 
     test(function()
@@ -61,48 +61,42 @@
 
       assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
 
-      }, description);
+      }, `testing ${property_name}: ${specified_value}`);
     }
 
- /* verifyComputedStyle(property_name, specified_value, expected_value, description) */
+ /* verifyComputedStyle(property_name, specified_value, expected_value) */
 
     /* LINEAR */
 
     verifyComputedStyle(
     "background-image",
     "linear-gradient(rgb(0, 128, 0) calc(0%), rgb(0, 0, 255))",
-    "linear-gradient(rgb(0, 128, 0) 0%, rgb(0, 0, 255))",
-    "testing background-image: linear-gradient(rgb(0, 128, 0) calc(0%), rgb(0, 0, 255))");
+    "linear-gradient(rgb(0, 128, 0) 0%, rgb(0, 0, 255))");
 
     verifyComputedStyle(
     "background-image",
     "linear-gradient(calc(90deg), rgb(0, 128, 0), rgb(0, 0, 255))",
-    "linear-gradient(90deg, rgb(0, 128, 0), rgb(0, 0, 255))",
-    "testing background-image: linear-gradient(calc(90deg), rgb(0, 128, 0), rgb(0, 0, 255))");
+    "linear-gradient(90deg, rgb(0, 128, 0), rgb(0, 0, 255))");
 
     verifyComputedStyle(
     "background-image",
     "linear-gradient(calc(90deg), rgb(0, 128, 0) calc(0%), rgb(0, 0, 255))",
-    "linear-gradient(90deg, rgb(0, 128, 0) 0%, rgb(0, 0, 255))",
-    "testing background-position: linear-gradient(calc(90deg), rgb(0, 128, 0) calc(0%), rgb(0, 0, 255))");
+    "linear-gradient(90deg, rgb(0, 128, 0) 0%, rgb(0, 0, 255))");
 
     verifyComputedStyle(
     "background-image",
     "linear-gradient(calc(0.1turn + 0.15turn), rgb(0, 128, 0), rgb(0, 0, 255))",
-    "linear-gradient(90deg, rgb(0, 128, 0), rgb(0, 0, 255))",
-    "testing background-image: linear-gradient(calc(0.1turn + 0.15turn), rgb(0, 128, 0), rgb(0, 0, 255))");
+    "linear-gradient(90deg, rgb(0, 128, 0), rgb(0, 0, 255))");
 
     verifyComputedStyle(
     "background-image",
     "linear-gradient(calc(150grad - 50grad), rgb(0, 128, 0), rgb(0, 0, 255))",
-    "linear-gradient(90deg, rgb(0, 128, 0), rgb(0, 0, 255))",
-    "testing background-image: linear-gradient(calc(150grad - 50grad), rgb(0, 128, 0), rgb(0, 0, 255))");
+    "linear-gradient(90deg, rgb(0, 128, 0), rgb(0, 0, 255))");
 
     verifyComputedStyle(
     "background-image",
     "linear-gradient(calc(200grad - 90deg), rgb(0, 128, 0), rgb(0, 0, 255))",
-    "linear-gradient(90deg, rgb(0, 128, 0), rgb(0, 0, 255))",
-    "testing background-image: linear-gradient(calc(200grad - 90deg), rgb(0, 128, 0), rgb(0, 0, 255))");
+    "linear-gradient(90deg, rgb(0, 128, 0), rgb(0, 0, 255))");
 
 
     /* RADIAL */
@@ -110,8 +104,7 @@
     verifyComputedStyle(
     "background-image",
     "radial-gradient(rgb(0, 128, 0) calc(10% + 20%), rgb(0, 0, 255) calc(30% + 40%))",
-    "radial-gradient(rgb(0, 128, 0) 30%, rgb(0, 0, 255) 70%)",
-    "testing background-image: radial-gradient(rgb(0, 128, 0) calc(10% + 20%), rgb(0, 0, 255) calc(30% + 40%))");
+    "radial-gradient(rgb(0, 128, 0) 30%, rgb(0, 0, 255) 70%)");
 
 
     /* CONIC */
@@ -119,10 +112,9 @@
     verifyComputedStyle(
     "background-image",
     "conic-gradient(rgb(0, 128, 0) calc(50% + 10%), rgb(0, 0, 255) calc(60% + 20%))",
-    "conic-gradient(rgb(0, 128, 0) 60%, rgb(0, 0, 255) 80%)",
-    "testing background-image: conic-gradient(rgb(0, 128, 0) calc(50% + 10%), rgb(0, 0, 255) calc(60% + 20%))");
+    "conic-gradient(rgb(0, 128, 0) 60%, rgb(0, 0, 255) 80%)");
 
- /* verifyComputedStyle(property_name, specified_value, expected_value, description) */
+ /* verifyComputedStyle(property_name, specified_value, expected_value) */
 
   }
 

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<script src="/scroll-to-text-fragment/stash.js"></script>
+
+<!-- This test is navigated to with the fragment #bar:~:text=foo -->
+
+<body>
+  <div id=foo hidden=until-found>foo</div>
+  <div id=bar hidden=until-found>bar</div>
+  <script>
+    window.beforematchFiredOnFoo = false;
+    foo.addEventListener('beforematch', () => {
+      window.beforematchFiredOnFoo = true;
+    });
+
+    window.beforematchFiredOnBar = false;
+    bar.addEventListener('beforematch', () => {
+      window.beforematchFiredOnBar = true;
+    });
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const results = {};
+        // This should be true. Foo was searched for, so it should get the
+        // beforematch event.
+        results.beforematchFiredOnFoo = window.beforematchFiredOnFoo;
+        // This should be false. Bar should not get the beforematch event
+        // despite being the target of an element fragment due to the text
+        // fragment.
+        results.beforematchFiredOnBar = window.beforematchFiredOnBar;
+
+        params = new URLSearchParams(window.location.search);
+        stashResultsThenClose(params.get('key'), results);
+      });
+    });
+  </script>
+</body>

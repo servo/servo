@@ -3,6 +3,7 @@
 import argparse
 import os
 import platform
+import subprocess
 import sys
 from shutil import which
 from typing import ClassVar, Tuple, Type
@@ -57,6 +58,8 @@ def create_parser():
     parser.add_argument("--install-webdriver", action="store_true",
                         help="Install WebDriver from the release channel specified by --channel "
                         "(or the nightly channel by default).")
+    parser.add_argument("--logcat-dir", action="store", default=None,
+                        help="Directory to write Android logcat files to")
     parser._add_container_actions(wptcommandline.create_parser())
     return parser
 
@@ -158,6 +161,62 @@ in PowerShell with Administrator privileges.""" % (wpt_path, hosts_path)
                 raise WptrunError(message)
 
 
+class AndroidLogcat:
+    def __init__(self, adb_path, base_path=None):
+        self.adb_path = adb_path
+        self.base_path = base_path if base_path is not None else os.curdir
+        self.procs = {}
+
+    def start(self, device_serial):
+        """
+        Start recording logcat. Writes logcat to the upload directory.
+        """
+        # Start logcat for the device. The adb process runs until the
+        # corresponding device is stopped. Output is written directly to
+        # the blobber upload directory so that it is uploaded automatically
+        # at the end of the job.
+        if device_serial in self.procs:
+            logger.warning(f"Logcat for {device_serial} already started")
+            return
+
+        logcat_path = os.path.join(self.base_path, f"logcat-{device_serial}.log")
+        out_file = open(logcat_path, "w")
+        cmd = [
+            self.adb_path,
+            "-s",
+            device_serial,
+            "logcat",
+            "-v",
+            "threadtime",
+            "Trace:S",
+            "StrictMode:S",
+            "ExchangeService:S",
+        ]
+        logger.debug(" ".join(cmd))
+        proc = subprocess.Popen(
+            cmd, stdout=out_file, stdin=subprocess.PIPE
+        )
+        logger.info(f"Started logcat for device {device_serial} pid {proc.pid}")
+        self.procs[device_serial] = (proc, out_file)
+
+    def stop(self, device_serial=None):
+        """
+        Stop logcat process started by logcat_start.
+        """
+        if device_serial is None:
+            for key in list(self.procs.keys()):
+                self.stop(key)
+            return
+
+        proc, out_file = self.procs.get(device_serial, (None, None))
+        if proc is not None:
+            try:
+                proc.kill()
+                out_file.close()
+            finally:
+                del self.procs[device_serial]
+
+
 class BrowserSetup:
     name: ClassVar[str]
     browser_cls: ClassVar[Type[browser.Browser]]
@@ -188,6 +247,9 @@ class BrowserSetup:
 
     def setup(self, kwargs):
         self.setup_kwargs(kwargs)
+
+    def teardown(self):
+        pass
 
 
 def safe_unsetenv(env_var):
@@ -302,35 +364,60 @@ class FirefoxAndroid(BrowserSetup):
         if not kwargs["device_serial"]:
             kwargs["device_serial"] = ["emulator-5554"]
 
+        if kwargs["webdriver_binary"] is None and "wdspec" in kwargs["test_types"]:
+            webdriver_binary = None
+            if not kwargs["install_webdriver"]:
+                webdriver_binary = self.browser.find_webdriver()
+
+            if webdriver_binary is None:
+                install = self.prompt_install("geckodriver")
+
+                if install:
+                    logger.info("Downloading geckodriver")
+                    webdriver_binary = self.browser.install_webdriver(
+                        dest=self.venv.bin_path,
+                        channel=kwargs["browser_channel"],
+                        browser_binary=kwargs["binary"])
+            else:
+                logger.info("Using webdriver binary %s" % webdriver_binary)
+
+            if webdriver_binary:
+                kwargs["webdriver_binary"] = webdriver_binary
+            else:
+                logger.info("Unable to find or install geckodriver, skipping wdspec tests")
+                kwargs["test_types"].remove("wdspec")
+
         for device_serial in kwargs["device_serial"]:
             if device_serial.startswith("emulator-"):
                 # We're running on an emulator so ensure that's set up
-                emulator = android.install(logger,
-                                           reinstall=False,
-                                           no_prompt=not self.prompt,
-                                           device_serial=device_serial)
                 android.start(logger,
-                              emulator=emulator,
                               reinstall=False,
-                              device_serial=device_serial)
+                              device_serial=device_serial,
+                              prompt=kwargs["prompt"])
 
         if "ADB_PATH" not in os.environ:
-            adb_path = os.path.join(android.get_sdk_path(None),
+            adb_path = os.path.join(android.get_paths(None)["sdk"],
                                     "platform-tools",
                                     "adb")
             os.environ["ADB_PATH"] = adb_path
         adb_path = os.environ["ADB_PATH"]
 
+        self._logcat = AndroidLogcat(adb_path, base_path=kwargs["logcat_dir"])
+
         for device_serial in kwargs["device_serial"]:
             device = mozdevice.ADBDeviceFactory(adb=adb_path,
                                                 device=device_serial)
-
+            self._logcat.start(device_serial)
             if self.browser.apk_path:
                 device.uninstall_app(app)
                 device.install_app(self.browser.apk_path)
             elif not device.is_app_installed(app):
                 raise WptrunError("app %s not installed on device %s" %
                                   (app, device_serial))
+
+    def teardown(self):
+        if hasattr(self, "_logcat"):
+            self._logcat.stop()
 
 
 class Chrome(BrowserSetup):
@@ -902,7 +989,8 @@ def setup_wptrunner(venv, **kwargs):
                   "install_browser",
                   "install_webdriver",
                   "channel",
-                  "prompt"]:
+                  "prompt",
+                  "logcat_dir"]:
         del wptrunner_kwargs[kwarg]
 
     wptcommandline.check_args(wptrunner_kwargs)
@@ -915,15 +1003,18 @@ def setup_wptrunner(venv, **kwargs):
             webdriver_binary=wptrunner_kwargs.get("webdriver_binary"),
         )
 
-    return wptrunner_kwargs
+    return setup_cls, wptrunner_kwargs
 
 
 def run(venv, **kwargs):
     setup_logging(kwargs)
 
-    wptrunner_kwargs = setup_wptrunner(venv, **kwargs)
+    setup_cls, wptrunner_kwargs = setup_wptrunner(venv, **kwargs)
 
-    rv = run_single(venv, **wptrunner_kwargs) > 0
+    try:
+        rv = run_single(venv, **wptrunner_kwargs) > 0
+    finally:
+        setup_cls.teardown()
 
     return rv
 

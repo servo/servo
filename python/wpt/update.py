@@ -109,7 +109,7 @@ def update_tests(**kwargs) -> int:
 
     wptcommandline.set_from_config(kwargs)
     if hasattr(wptcommandline, 'check_paths'):
-        wptcommandline.check_paths(kwargs)
+        wptcommandline.check_paths(kwargs["test_paths"])
 
     if kwargs.pop("legacy_layout"):
         update_args_for_legacy_layout(kwargs)

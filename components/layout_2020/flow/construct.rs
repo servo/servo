@@ -475,8 +475,8 @@ where
             self.ongoing_inline_boxes_stack.push(InlineBox {
                 base_fragment_info: info.into(),
                 style: info.style.clone(),
-                first_fragment: true,
-                last_fragment: false,
+                is_first_fragment: true,
+                is_last_fragment: false,
                 children: vec![],
             });
 
@@ -498,7 +498,7 @@ where
                 .ongoing_inline_boxes_stack
                 .pop()
                 .expect("no ongoing inline level box found");
-            inline_box.last_fragment = true;
+            inline_box.is_last_fragment = true;
             ArcRefCell::new(InlineLevelBox::InlineBox(inline_box))
         } else {
             self.ongoing_inline_formatting_context.ends_with_whitespace = false;
@@ -537,13 +537,13 @@ where
                     let fragmented = InlineBox {
                         base_fragment_info: ongoing.base_fragment_info,
                         style: ongoing.style.clone(),
-                        first_fragment: ongoing.first_fragment,
+                        is_first_fragment: ongoing.is_first_fragment,
                         // The fragmented boxes before the block level element
                         // are obviously not the last fragment.
-                        last_fragment: false,
+                        is_last_fragment: false,
                         children: std::mem::take(&mut ongoing.children),
                     };
-                    ongoing.first_fragment = false;
+                    ongoing.is_first_fragment = false;
                     fragmented
                 });
 

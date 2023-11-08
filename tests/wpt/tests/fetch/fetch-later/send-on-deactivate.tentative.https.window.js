@@ -48,11 +48,11 @@ parallelPromiseTest(async t => {
       /*config=*/ null, /*options=*/ {features: 'noopener'});
 
   // When the remote is BFCached, creates a fetchLater request w/
-  // activationTimeout = 0s. It should be sent out immediately.
+  // activateAfter = 0s. It should be sent out immediately.
   await rc1.executeScript(url => {
     window.addEventListener('pagehide', e => {
       if (e.persisted) {
-        fetchLater(url, {activationTimeout: 0});
+        fetchLater(url, {activateAfter: 0});
       }
     });
     // Add a pageshow listener to stash the BFCache event.
@@ -70,7 +70,7 @@ parallelPromiseTest(async t => {
   }));
 
   await expectBeacon(uuid, {count: 1});
-}, `Call fetchLater() when BFCached with activationTimeout=0 sends immediately.`);
+}, `Call fetchLater() when BFCached with activateAfter=0 sends immediately.`);
 
 parallelPromiseTest(async t => {
   const uuid = token();
@@ -101,3 +101,36 @@ parallelPromiseTest(async t => {
 
   await expectBeacon(uuid, {count: 1});
 }, `fetchLater() sends on navigating away a page w/o BFCache.`);
+
+parallelPromiseTest(async t => {
+  const uuid = token();
+  const url = generateSetBeaconURL(uuid);
+  // Sets no option to test the default behavior when a document gets discarded
+  // on navigated away.
+  const helper = new RemoteContextHelper();
+  // Opens a window without BFCache.
+  const rc1 = await helper.addWindow();
+
+  // Creates 2 fetchLater requests in remote, and one of them is aborted
+  // immediately. The other one should only be sent right on navigating away.
+  await rc1.executeScript(url => {
+    const controller = new AbortController();
+    fetchLater(url, {signal: controller.signal});
+    fetchLater(url);
+    controller.abort();
+    // Add a pageshow listener to stash the BFCache event.
+    window.addEventListener('pageshow', e => {
+      window.pageshowEvent = e;
+    });
+  }, [url]);
+  // Navigates away to trigger request sending.
+  const rc2 = await rc1.navigateToNew();
+  // Navigate back.
+  await rc2.historyBack();
+  // Verify that the page was NOT BFCached.
+  assert_equals(undefined, await rc1.executeScript(() => {
+    return window.pageshowEvent;
+  }));
+
+  await expectBeacon(uuid, {count: 1});
+}, `fetchLater() does not send aborted request on navigating away a page w/o BFCache.`);

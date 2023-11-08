@@ -46,7 +46,7 @@ https://chromium.googlesource.com/chromium/src/+/c825d655f6aaf73484f9d56e9012793
 
   var targetElement = document.getElementById("target");
 
-    function verifyComputedStyle(property_name, expected_value, description)
+    function verifyComputedStyle(property_name, expected_value)
     {
 
     test(function()
@@ -54,20 +54,20 @@ https://chromium.googlesource.com/chromium/src/+/c825d655f6aaf73484f9d56e9012793
 
       assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
 
-      }, description);
+      }, `testing ${property_name}: ${expected_value}`);
     }
 
- /* verifyComputedStyle(property_name, expected_value, description) */
+ /* verifyComputedStyle(property_name, expected_value) */
 
-    verifyComputedStyle("border-top-left-radius", "calc(25% + 10px) calc(25% + 20px)", "testing border-top-left-radius: calc(10px + 25%) calc(20px + 25%)");
+    verifyComputedStyle("border-top-left-radius", "calc(25% + 10px) calc(25% + 20px)");
 
-    verifyComputedStyle("border-top-right-radius", "calc(25% + 16px)", "testing border-top-right-radius: calc(1em + 25%)");
+    verifyComputedStyle("border-top-right-radius", "calc(25% + 16px)");
 
-    verifyComputedStyle("border-bottom-right-radius", "25%", "testing border-bottom-right-radius: calc(25%)");
+    verifyComputedStyle("border-bottom-right-radius", "25%");
 
-    verifyComputedStyle("border-bottom-left-radius", "25px", "testing border-bottom-left-radius: calc(25px);");
+    verifyComputedStyle("border-bottom-left-radius", "25px");
 
-    verifyComputedStyle("border-radius", "calc(25% + 10px) calc(25% + 16px) 25% 25px / calc(25% + 20px) calc(25% + 16px) 25% 25px", "testing border-radius shorthand");
+    verifyComputedStyle("border-radius", "calc(25% + 10px) calc(25% + 16px) 25% 25px / calc(25% + 20px) calc(25% + 16px) 25% 25px");
 
   /*
 

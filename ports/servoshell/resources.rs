@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::{env, fs};
 
+use cfg_if::cfg_if;
 use servo::embedder_traits::resources::{self, Resource};
 
 lazy_static::lazy_static! {
@@ -47,18 +48,29 @@ fn resources_dir_path() -> PathBuf {
         path.pop();
     }
 
-    // Try ./resources in the current directory, then each of its ancestors.
-    let mut path = std::env::current_dir().unwrap();
-    loop {
-        path.push("resources");
-        if path.is_dir() {
-            *dir = Some(path);
-            return dir.clone().unwrap();
-        }
-        path.pop();
-
-        if !path.pop() {
+    cfg_if! {
+        if #[cfg(servo_production)] {
             panic!("Can't find resources directory")
+        } else {
+            // Static assert that this is really a non-production build, rather
+            // than a failure of the build script’s production check.
+            const _: () = assert!(cfg!(servo_do_not_use_in_production));
+
+            // Try ./resources in the current directory, then each of its ancestors.
+            // Not to be used in production builds without considering the security implications!
+            let mut path = std::env::current_dir().unwrap();
+            loop {
+                path.push("resources");
+                if path.is_dir() {
+                    *dir = Some(path);
+                    return dir.clone().unwrap();
+                }
+                path.pop();
+
+                if !path.pop() {
+                    panic!("Can't find resources directory")
+                }
+            }
         }
     }
 }

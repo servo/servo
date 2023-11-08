@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1422275">
+<link rel=help href="https://github.com/openui/open-ui/issues/433#issuecomment-1452461404">
+<link rel=help href="https://github.com/openui/open-ui/issues/386#issuecomment-1452469497">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<form></form>
+
+<div id=notform>
+  <selectlist id=defaultbutton>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </selectlist>
+
+  <selectlist id=custombutton>
+    <button type=selectlist>custom button</button>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </selectlist>
+</div>
+
+<script>
+const Enter = '\uE007';
+const Escape = '\uE00C';
+const ArrowLeft = '\uE012';
+const ArrowUp = '\uE013';
+const ArrowRight = '\uE014';
+const ArrowDown = '\uE015';
+const Space = ' ';
+const form = document.querySelector('form');
+const notform = document.getElementById('notform');
+
+for (const id of ['defaultbutton', 'custombutton']) {
+  const selectlist = document.getElementById(id);
+
+  async function closeListbox() {
+    await test_driver.click(selectlist);
+  }
+
+  function addCloseCleanup(t) {
+    t.add_cleanup(async () => {
+      if (selectlist.matches(':open')) {
+        await closeListbox();
+      }
+      if (selectlist.matches(':open')) {
+        throw new Error('selectlist failed to close!');
+      }
+      selectlist.value = 'one';
+    });
+  }
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+    // TODO(http://crbug.com/1350299): When focus for custom buttons is fixed,
+    // then we shouldn't need to explicitly focus the custom button like this
+    // anymore.
+    const customButton = selectlist.querySelector('button');
+    if (customButton) {
+      customButton.focus();
+    } else {
+      selectlist.focus();
+    }
+    assert_false(selectlist.matches(':open'),
+      'The selectlist should initially be closed.');
+    await test_driver.send_keys(selectlist, Space);
+    assert_true(selectlist.matches(':open'),
+      'The selectlist should be open after pressing space.');
+  }, `${id}: When the listbox is closed, spacebar should open the listbox.`);
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+    selectlist.value = 'two';
+    selectlist.focus();
+    assert_false(selectlist.matches(':open'),
+      'The selectlist should initially be closed.');
+
+    await test_driver.send_keys(selectlist, ArrowLeft);
+    assert_true(selectlist.matches(':open'),
+      'Arrow left should open the listbox.');
+    assert_equals(selectlist.value, 'two',
+      'Arrow left should not change the selected value.');
+    await closeListbox();
+
+    await test_driver.send_keys(selectlist, ArrowUp);
+    assert_true(selectlist.matches(':open'),
+      'Arrow up should open the listbox.');
+    assert_equals(selectlist.value, 'two',
+      'Arrow up should not change the selected value.');
+    await closeListbox();
+
+    await test_driver.send_keys(selectlist, ArrowRight);
+    assert_true(selectlist.matches(':open'),
+      'Arrow right should open the listbox.');
+    assert_equals(selectlist.value, 'two',
+      'Arrow right should not change the selected value.');
+    await closeListbox();
+
+    await test_driver.send_keys(selectlist, ArrowDown);
+    assert_true(selectlist.matches(':open'),
+      'Arrow down should open the listbox.');
+    assert_equals(selectlist.value, 'two',
+      'Arrow down should not change the selected value.');
+  }, `${id}: When the listbox is closed, all arrow keys should open the listbox.`);
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+
+    // TODO(http://crbug.com/1350299): When focus for custom buttons is fixed,
+    // then we shouldn't need to explicitly use the custom button like this
+    // anymore.
+    const customButton = selectlist.querySelector('button');
+    if (customButton) {
+      await test_driver.send_keys(customButton, Enter);
+    } else {
+      await test_driver.send_keys(selectlist, Enter);
+    }
+    assert_false(selectlist.matches(':open'),
+      'Enter should not open the listbox when outside a form.');
+
+    form.appendChild(selectlist);
+    let formWasSubmitted = false;
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      formWasSubmitted = true;
+    }, {once: true});
+    if (customButton) {
+      await test_driver.send_keys(customButton, Enter);
+    } else {
+      await test_driver.send_keys(selectlist, Enter);
+    }
+    assert_true(formWasSubmitted,
+      'Enter should submit the form when the listbox is closed.');
+    assert_false(selectlist.matches(':open'),
+      'Enter should not open the listbox when it is in a form.');
+  }, `${id}: When the listbox is closed, the enter key should submit the form or do nothing.`);
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+    const optionOne = selectlist.querySelector('.one');
+    const optionTwo = selectlist.querySelector('.two');
+    const optionThree = selectlist.querySelector('.three');
+
+    selectlist.value = 'two';
+    await test_driver.click(selectlist);
+    assert_true(selectlist.matches(':open'),
+      'The selectlist should open when clicked.');
+    assert_equals(document.activeElement, optionTwo,
+      'The selected option should receive initial focus.');
+
+    await test_driver.send_keys(document.activeElement, ArrowDown);
+    assert_equals(document.activeElement, optionThree,
+      'The next option should receive focus when the down arrow key is pressed.');
+    assert_equals(selectlist.value, 'two',
+      'The selectlists value should not change when focusing another option.');
+
+    await test_driver.send_keys(document.activeElement, ArrowUp);
+    assert_equals(document.activeElement, optionTwo,
+      'The previous option should receive focus when the up arrow key is pressed.');
+    assert_equals(selectlist.value, 'two',
+      'The selectlists value should not change when focusing another option.');
+
+    await test_driver.send_keys(document.activeElement, ArrowUp);
+    assert_equals(document.activeElement, optionOne,
+      'The first option should be selected.');
+    assert_equals(selectlist.value, 'two',
+      'The selectlists value should not change when focusing another option.');
+
+    await test_driver.send_keys(document.activeElement, Enter);
+    assert_false(selectlist.matches(':open'),
+      'The listbox should be closed after pressing enter.');
+    assert_equals(selectlist.value, 'one',
+      'The selectlists value should change after pressing enter on a different option.');
+  }, `${id}: When the listbox is open, the enter key should commit the selected option.`);
+}
+</script>

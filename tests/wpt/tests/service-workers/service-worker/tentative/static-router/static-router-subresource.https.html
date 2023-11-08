@@ -11,6 +11,13 @@ const SCOPE = 'resources/';
 const HTML_FILE = 'resources/simple.html';
 const TXT_FILE = 'resources/direct.txt';
 const CSV_FILE = 'resources/simple.csv';
+// Warning: please prepare the corresponding `*.text.headers` files, otherwise
+// iframeTest() fails to load the following files due to MIME mismatches.
+const OR_TEST_FILES = [
+  'resources/or-test/direct1.text',
+  'resources/or-test/direct2.text',
+  'resources/or-test/does-not-exist.text',
+];
 
 // Register a service worker, then create an iframe at url.
 function iframeTest(url, callback, name) {
@@ -50,6 +57,24 @@ iframeTest(CSV_FILE, async (t, iwin) => {
   const response = await iwin.fetch('?nonce=' + rnd, { mode: 'no-cors' });
   assert_equals(await response.text(), "matched,with,non-url,conditions\n");
 }, 'Subresource load matched with RequestMode condition');
+
+iframeTest(OR_TEST_FILES[0], async (t, iwin) => {
+  const rnd = randomString();
+  const response = await iwin.fetch('?nonce=' + rnd);
+  assert_equals(await response.text(), "Network\n");
+}, 'Subresource load matched with the nested `or` condition');
+
+iframeTest(OR_TEST_FILES[1], async (t, iwin) => {
+  const rnd = randomString();
+  const response = await iwin.fetch('?nonce=' + rnd);
+  assert_equals(await response.text(), "Network\n");
+}, 'Subresource load matched with the next `or` condition');
+
+iframeTest(OR_TEST_FILES[2], async (t, iwin) => {
+  const rnd = randomString();
+  const response = await iwin.fetch('?nonce=' + rnd);
+  assert_equals(await response.text(), rnd);
+}, 'Subresource load not matched with `or` condition');
 
 </script>
 </body>

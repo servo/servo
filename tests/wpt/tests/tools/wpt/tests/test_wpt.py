@@ -206,6 +206,7 @@ def test_run_zero_tests():
 
 @pytest.mark.slow
 @pytest.mark.remote_network
+@pytest.mark.skip(reason="https://github.com/web-platform-tests/wpt/issues/42433")
 @pytest.mark.skipif(sys.platform == "win32",
                     reason="https://github.com/web-platform-tests/wpt/issues/28745")
 def test_run_failing_test():
@@ -239,6 +240,7 @@ def test_run_failing_test():
 
 @pytest.mark.slow
 @pytest.mark.remote_network
+@pytest.mark.skip(reason="https://github.com/web-platform-tests/wpt/issues/42433")
 @pytest.mark.skipif(sys.platform == "win32",
                     reason="https://github.com/web-platform-tests/wpt/issues/28745")
 def test_run_verify_unstable(temp_test):

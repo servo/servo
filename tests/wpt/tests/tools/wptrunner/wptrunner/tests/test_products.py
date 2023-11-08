@@ -8,8 +8,11 @@ import pytest
 from .base import all_products, active_products
 from .. import environment
 from .. import products
+from .. import wptcommandline
 
-test_paths = {"/": {"tests_path": join(dirname(__file__), "..", "..", "..", "..")}}  # repo root
+wpt_root = join(dirname(__file__), "..", "..", "..", "..")
+
+test_paths = {"/": wptcommandline.TestRoot(wpt_root, wpt_root)}
 environment.do_delayed_imports(None, test_paths)
 
 

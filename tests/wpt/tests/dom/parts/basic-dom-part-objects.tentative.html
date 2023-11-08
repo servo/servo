@@ -59,6 +59,24 @@ function addCleanup(t, part) {
 
     assert_throws_js(TypeError,() => new NodePart(nodePart,target.children[0]),'Constructing a Part with a NodePart as the PartRoot should throw');
 
+    const attributePart = addCleanup(t,new AttributePart(root,target,'attributename',/*automatic*/false,{metadata: ['attribute-non-auto']}));
+    assertEqualParts([attributePart],[{type:'AttributePart',metadata:['attribute-non-auto']}],0,'Basic AttributePart');
+    assert_equals(attributePart.node,target);
+    assert_equals(attributePart.root,root);
+    assert_equals(attributePart.localName,'attributename');
+    assert_equals(attributePart.automatic,false);
+    runningPartsExpectation.push({type:'AttributePart',metadata:['attribute-non-auto']});
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart],'getParts() for the root should now have this attributePart');
+    assert_equals(parts.length,0,'Return value of getParts() is not live');
+
+    const attributePartAuto = addCleanup(t,new AttributePart(root,target,'attributename',/*automatic*/true,{metadata: ['attribute-auto']}));
+    assertEqualParts([attributePartAuto],[{type:'AttributePart',metadata:['attribute-auto']}],0,'Basic automatic AttributePart');
+    assert_equals(attributePartAuto.node,target);
+    assert_equals(attributePartAuto.root,root);
+    assert_equals(attributePartAuto.localName,'attributename');
+    assert_equals(attributePartAuto.automatic,true);
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart],'automatic AttributePart should not get included in getParts()');
+
     const childNodePart = addCleanup(t,new ChildNodePart(root,target.children[0], target.children[2],{metadata:['bar','baz']}));
     assertEqualParts([childNodePart],[{type:'ChildNodePart',metadata:['bar','baz']}],0,'Basic ChildNodePart');
     assert_equals(childNodePart.root,root);
@@ -66,30 +84,30 @@ function addCleanup(t, part) {
     assert_equals(childNodePart.nextSibling,target.children[2]);
     assert_equals(childNodePart.getParts().length,0,'childNodePart.getParts() should start out empty');
     runningPartsExpectation.push({type:'ChildNodePart',metadata:['bar','baz']});
-    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,childNodePart],'getParts() for the root should now have this childNodePart');
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart,childNodePart],'getParts() for the root should now have this childNodePart');
 
     const nodeBefore = target.previousSibling || target.parentNode;
     const nodePartBefore = addCleanup(t,new NodePart(root,nodeBefore));
     runningPartsExpectation.push({type:'NodePart',metadata:[]});
-    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,childNodePart,nodePartBefore],'getParts() for the root should now have this nodePart, in construction order');
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart,childNodePart,nodePartBefore],'getParts() for the root should now have this nodePart, in construction order');
 
     const nodePart2 = addCleanup(t,new NodePart(childNodePart,target.children[2],{metadata:['blah']}));
     assert_equals(nodePart2.root,childNodePart);
-    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,childNodePart,nodePartBefore],'getParts() for the root DocumentPartRoot shouldn\'t change');
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart,childNodePart,nodePartBefore],'getParts() for the root DocumentPartRoot shouldn\'t change');
     assertEqualParts(childNodePart.getParts(),[{type:'NodePart',metadata:['blah']}],[nodePart2],'getParts() for the childNodePart should have it');
 
     nodePart2.disconnect();
     assert_equals(nodePart2.root,null,'root should be null after disconnect');
     assert_equals(nodePart2.node,null,'node should be null after disconnect');
     assert_equals(childNodePart.getParts().length,0,'calling disconnect() should remove the part from root.getParts()');
-    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,childNodePart,nodePartBefore],'getParts() for the root DocumentPartRoot still shouldn\'t change');
+    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart,childNodePart,nodePartBefore],'getParts() for the root DocumentPartRoot still shouldn\'t change');
     nodePart2.disconnect(); // Calling twice should be ok.
 
     childNodePart.disconnect();
     assert_equals(childNodePart.root,null,'root should be null after disconnect');
     assert_equals(childNodePart.previousSibling,null,'previousSibling should be null after disconnect');
     assert_equals(childNodePart.nextSibling,null,'nextSibling should be null after disconnect');
-    assert_array_equals(root.getParts(),[nodePartBefore,nodePart]);
+    assert_array_equals(root.getParts(),[nodePartBefore,nodePart,attributePart]);
   }, `Basic imperative DOM Parts object construction (${description})`);
 
   function cloneRange(parent,previousSibling,nextSibling) {
@@ -108,19 +126,21 @@ function addCleanup(t, part) {
   test((t) => {
     const root = doc.getPartRoot();
     const nodePart = addCleanup(t,new NodePart(root,target,{metadata:['node1']}));
+    const attributePart = addCleanup(t,new AttributePart(root,target,'attributeName',/*automatic*/false,{metadata: ['attribute']}));
+    const nonTrackedAttributePart = addCleanup(t,new AttributePart(root,target,'attributeName',/*automatic*/true,{metadata: ['attribute-auto']}));
     const childNodePart = addCleanup(t,new ChildNodePart(root,target.children[0], target.children[2],{metadata:['child']}));
     const nodePart3 = addCleanup(t,new NodePart(childNodePart,target.children[1].firstChild,{metadata: ['node 3']}));
     const nodePart2 = addCleanup(t,new NodePart(childNodePart,target.children[1].firstChild,{metadata: ['node 2']}));
     const childNodePart2 = addCleanup(t,new ChildNodePart(childNodePart,target.children[1].firstElementChild,target.children[1].firstElementChild.nextSibling,{metadata: ['childnodepart2']}));
-    let rootExpectations = [{type:'NodePart',metadata:['node1']},{type:'ChildNodePart',metadata:['child']}];
-    assertEqualParts(root.getParts(),rootExpectations,[nodePart,childNodePart],'setup');
+    let rootExpectations = [{type:'NodePart',metadata:['node1']},{type:'AttributePart',metadata:['attribute']},{type:'ChildNodePart',metadata:['child']}];
+    assertEqualParts(root.getParts(),rootExpectations,[nodePart,attributePart,childNodePart],'setup');
     let childExpectations = [{type:'NodePart',metadata:['node 3']},{type:'NodePart',metadata:['node 2']},{type:'ChildNodePart',metadata:['childnodepart2']}];
     assertEqualParts(childNodePart.getParts(),childExpectations,[nodePart3,nodePart2,childNodePart2],'setup');
     assert_array_equals(childNodePart2.getParts(),[]);
 
     // Test cloning of the entire DocumentPartRoot.
     const clonedPartRoot = root.clone();
-    assertEqualParts(root.getParts(),rootExpectations,[nodePart,childNodePart],'cloning a part root should not change the original');
+    assertEqualParts(root.getParts(),rootExpectations,[nodePart,attributePart,childNodePart],'cloning a part root should not change the original');
     const clonedContainer = clonedPartRoot.rootContainer;
     assert_true(clonedPartRoot instanceof DocumentPartRoot);
     assert_true(clonedContainer instanceof (useTemplate ? DocumentFragment : Document));
@@ -131,9 +151,14 @@ function addCleanup(t, part) {
     assert_true(!clonedPartRoot.getParts().includes(nodePart),'Original parts should not be retained');
     assert_true(!clonedPartRoot.getParts().includes(childNodePart));
     const newNodePart = clonedPartRoot.getParts()[0];
-    const newChildNodePart = clonedPartRoot.getParts()[1];
+    const newAttributePart = clonedPartRoot.getParts()[1];
+    const newChildNodePart = clonedPartRoot.getParts()[2];
     assert_not_equals(newNodePart.node,target,'Node references should not point to original nodes');
     assert_equals(newNodePart.node.id,target.id,'New parts should point to cloned nodes');
+    assert_not_equals(newAttributePart.node,target,'Node references should not point to original nodes');
+    assert_equals(newAttributePart.node.id,target.id,'New parts should point to cloned nodes');
+    assert_equals(newAttributePart.localName,attributePart.localName,'New attribute parts should carry over localName');
+    assert_equals(newAttributePart.automatic,attributePart.automatic,'New attribute parts should carry over automatic');
     assert_not_equals(newChildNodePart.previousSibling,a,'Node references should not point to original nodes');
     assert_equals(newChildNodePart.previousSibling.id,'a');
     assert_not_equals(newChildNodePart.nextSibling,c,'Node references should not point to original nodes');

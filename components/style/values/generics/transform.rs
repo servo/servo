@@ -10,7 +10,7 @@ use crate::values::specified::angle::Angle as SpecifiedAngle;
 use crate::values::specified::length::Length as SpecifiedLength;
 use crate::values::specified::length::LengthPercentage as SpecifiedLengthPercentage;
 use crate::values::{computed, CSSFloat};
-use crate::Zero;
+use crate::{Zero, ZeroNoPercent};
 use euclid;
 use euclid::default::{Rect, Transform3D};
 use std::fmt::{self, Write};
@@ -194,7 +194,7 @@ pub use self::GenericPerspectiveFunction as PerspectiveFunction;
 pub enum GenericTransformOperation<Angle, Number, Length, Integer, LengthPercentage>
 where
     Angle: Zero,
-    LengthPercentage: Zero,
+    LengthPercentage: Zero + ZeroNoPercent,
     Number: PartialEq,
 {
     /// Represents a 2D 2x3 matrix.
@@ -218,7 +218,7 @@ where
     #[css(comma, function)]
     Translate(
         LengthPercentage,
-        #[css(skip_if = "Zero::is_zero")] LengthPercentage,
+        #[css(skip_if = "ZeroNoPercent::is_zero_no_percent")] LengthPercentage,
     ),
     /// translateX(x)
     #[css(function = "translateX")]
@@ -327,7 +327,7 @@ impl<Angle, Number, Length, Integer, LengthPercentage>
     TransformOperation<Angle, Number, Length, Integer, LengthPercentage>
 where
     Angle: Zero,
-    LengthPercentage: Zero,
+    LengthPercentage: Zero + ZeroNoPercent,
     Number: PartialEq,
 {
     /// Check if it is any rotate function.
@@ -404,7 +404,10 @@ impl ToAbsoluteLength for ComputedLength {
 impl ToAbsoluteLength for ComputedLengthPercentage {
     #[inline]
     fn to_pixel_length(&self, containing_len: Option<ComputedLength>) -> Result<CSSFloat, ()> {
-        Ok(self.maybe_percentage_relative_to(containing_len).ok_or(())?.px())
+        Ok(self
+            .maybe_percentage_relative_to(containing_len)
+            .ok_or(())?
+            .px())
     }
 }
 
@@ -446,7 +449,7 @@ where
     Angle: Zero + ToRadians + Copy,
     Number: PartialEq + Copy + Into<f32> + Into<f64>,
     Length: ToAbsoluteLength,
-    LoP: Zero + ToAbsoluteLength,
+    LoP: Zero + ToAbsoluteLength + ZeroNoPercent,
 {
     #[inline]
     fn is_3d(&self) -> bool {
@@ -576,13 +579,14 @@ impl<T: ToMatrix> Transform<T> {
     }
 
     /// Converts a series of components to a 3d matrix.
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     pub fn components_to_transform_3d_matrix(
         ops: &[T],
-        reference_box: Option<&Rect<ComputedLength>>
+        reference_box: Option<&Rect<ComputedLength>>,
     ) -> Result<(Transform3D<CSSFloat>, bool), ()> {
         let cast_3d_transform = |m: Transform3D<f64>| -> Transform3D<CSSFloat> {
             use std::{f32, f64};
-            let cast = |v: f64| { v.min(f32::MAX as f64).max(f32::MIN as f64) as f32 };
+            let cast = |v: f64| v.min(f32::MAX as f64).max(f32::MIN as f64) as f32;
             Transform3D::new(
                 cast(m.m11), cast(m.m12), cast(m.m13), cast(m.m14),
                 cast(m.m21), cast(m.m22), cast(m.m23), cast(m.m24),
@@ -675,7 +679,6 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
 /// A value of the `Rotate` property
 ///
 /// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
-/// cbindgen:private-default-tagged-enum-constructor=false
 pub enum GenericRotate<Number, Angle> {
     /// 'none'
     None,
@@ -768,7 +771,6 @@ where
 /// A value of the `Scale` property
 ///
 /// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
-/// cbindgen:private-default-tagged-enum-constructor=false
 pub enum GenericScale<Number> {
     /// 'none'
     None,
@@ -810,12 +812,12 @@ where
 }
 
 #[inline]
-fn y_axis_and_z_axis_are_zero<LengthPercentage: Zero, Length: Zero>(
+fn y_axis_and_z_axis_are_zero<LengthPercentage: Zero + ZeroNoPercent, Length: Zero>(
     _: &LengthPercentage,
     y: &LengthPercentage,
     z: &Length,
 ) -> bool {
-    y.is_zero() && z.is_zero()
+    y.is_zero_no_percent() && z.is_zero()
 }
 
 #[derive(
@@ -839,17 +841,16 @@ fn y_axis_and_z_axis_are_zero<LengthPercentage: Zero, Length: Zero>(
 ///
 /// If a 2d translation is specified, the property must serialize with only one
 /// or two values (per usual, if the second value is 0px, the default, it must
-/// be omitted when serializing).
+/// be omitted when serializing; however if 0% is the second value, it is included).
 ///
 /// If a 3d translation is specified and the value can be expressed as 2d, we treat as 2d and
 /// serialize accoringly. Otherwise, we serialize all three values.
 /// https://github.com/w3c/csswg-drafts/issues/3305
 ///
 /// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
-/// cbindgen:private-default-tagged-enum-constructor=false
 pub enum GenericTranslate<LengthPercentage, Length>
 where
-    LengthPercentage: Zero,
+    LengthPercentage: Zero + ZeroNoPercent,
     Length: Zero,
 {
     /// 'none'

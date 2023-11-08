@@ -13,12 +13,13 @@
 
 <map name="areamap">
     <area shape="rect" coords="0,0,15,15" href="#" alt="x" data-testname="el-area" data-expectedrole="link" class="ex">
-    <area shape="rect" coords="15,15,31,31" alt="x" data-testname="el-area-no-href" data-expectedrole="generic" class="ex">
+    <area shape="rect" coords="15,15,31,31" alt="x" data-testname="el-area-no-href" class="ex-generic">
 </map>
 <img usemap="#areamap" src="#" style="width: 32px; height: 32px;" alt="x">
 
 <script>
 AriaUtils.verifyRolesBySelector(".ex");
+AriaUtils.verifyGenericRolesBySelector(".ex-generic");
 </script>
 
 </body>

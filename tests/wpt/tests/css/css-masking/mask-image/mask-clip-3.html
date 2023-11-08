@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: mask-clip: clip mask image</title>
+    <link rel="author" title="Mozilla" href="https://www.mozilla.org">
+    <link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-clip">
+    <link rel="match" href="mask-clip-3-ref.html">
+    <meta name="assert" content="fill-box, stroke-box, view-box of mask-clip should clip to the appropriate boxes.">
+    <style type="text/css">
+      div.outer {
+        /*
+         * content box: 40 x 20
+         * padding box: 52 x 38
+         * border  box: 60 x 50
+         * margin  box: 66 x 54
+         */
+        background-color: purple;
+        position: absolute;
+        top: 10px;
+        margin: 1px 2px 3px 4px;
+        border: solid transparent;
+        border-width: 8px 2px 4px 6px;
+        padding: 6px 9px 12px 3px;
+        width: 40px;
+        height: 20px;
+      }
+
+      div.mask {
+        mask-size: 100% 100%;
+        mask-origin: border-box;
+        mask-image: url(support/transparent-100x50-blue-100x50.svg);
+      }
+
+      div.stroke {
+        left: 10px;
+        mask-clip: stroke-box; /* should be the same as border-box */
+      }
+
+      div.view {
+        left: 110px;
+        mask-clip: view-box; /* should be the same as border-box */
+      }
+
+      div.fill {
+        left: 210px;
+        mask-clip: fill-box; /* should be the same as content-box */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="outer mask stroke"></div>
+    <div class="outer mask view"></div>
+    <div class="outer mask fill"></div>
+  </body>
+</html>

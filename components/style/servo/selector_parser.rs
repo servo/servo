@@ -7,6 +7,7 @@
 //! Servo's selector parser.
 
 use crate::attr::{AttrIdentifier, AttrValue};
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::dom::{OpaqueNode, TElement, TNode};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
 use crate::invalidation::element::element_wrapper::ElementSnapshot;
@@ -336,7 +337,7 @@ impl ToCss for NonTSPseudoClass {
         if let Lang(ref lang) = *self {
             dest.write_str(":lang(")?;
             serialize_identifier(lang, dest)?;
-            return dest.write_str(")");
+            return dest.write_char(')');
         }
 
         dest.write_str(match *self {
@@ -406,11 +407,27 @@ impl NonTSPseudoClass {
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct SelectorImpl;
 
+/// A set of extra data to carry along with the matching context, either for
+/// selector-matching or invalidation.
+#[derive(Debug, Default)]
+pub struct ExtraMatchingData<'a> {
+    /// The invalidation data to invalidate doc-state pseudo-classes correctly.
+    pub invalidation_data: InvalidationMatchingData,
+
+    /// The invalidation bits from matching container queries. These are here
+    /// just for convenience mostly.
+    pub cascade_input_flags: ComputedValueFlags,
+
+    /// The style of the originating element in order to evaluate @container
+    /// size queries affecting pseudo-elements.
+    pub originating_element_style: Option<&'a ComputedValues>,
+}
+
 impl ::selectors::SelectorImpl for SelectorImpl {
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
-    type ExtraMatchingData = InvalidationMatchingData;
+    type ExtraMatchingData<'a> = ExtraMatchingData<'a>;
     type AttrValue = AtomString;
     type Identifier = AtomIdent;
     type LocalName = LocalName;

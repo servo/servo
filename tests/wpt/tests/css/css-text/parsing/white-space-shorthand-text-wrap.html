@@ -31,17 +31,31 @@ test(() => {
 </script>
 
 <style>
-#white-space-after-text-wrap {
+#white-space-after-text-wrap-balance {
   text-wrap: balance;
   white-space: normal;
 }
 </style>
-<div id="white-space-after-text-wrap"></div>
+<div id="white-space-after-text-wrap-balance"></div>
 <script>
 test(() => {
-  const target = document.getElementById('white-space-after-text-wrap');
-  assert_equals(getComputedStyle(target).textWrap, 'wrap');
-}, "`white-space` should overwrite previous `text-wrap`");
+  const target = document.getElementById('white-space-after-text-wrap-balance');
+  assert_equals(getComputedStyle(target).textWrap, 'balance');
+}, "`white-space` should not overwrite previous `text-wrap-style: balance`");
+</script>
+
+<style>
+#white-space-after-text-wrap-nowrap {
+  text-wrap: nowrap balance;
+  white-space: normal;
+}
+</style>
+<div id="white-space-after-text-wrap-nowrap"></div>
+<script>
+test(() => {
+  const target = document.getElementById('white-space-after-text-wrap-nowrap');
+  assert_equals(getComputedStyle(target).textWrap, 'balance');
+}, "`white-space` should overwrite previous `text-wrap-mode: nowrap`");
 </script>
 
 <style>
@@ -59,12 +73,12 @@ test(() => {
 }, "`text-wrap` should not be affected by `white-space` on the parent");
 </script>
 
-<div class="balance">
+<div style="text-wrap: balance nowrap;">
   <div id="parent-text-wrap" class="normal"></div>
 </div>
 <script>
 test(() => {
   const target = document.getElementById('parent-text-wrap');
-  assert_equals(getComputedStyle(target).textWrap, 'wrap');
-}, "`white-space` should overwrite `text-wrap` on the parent");
+  assert_equals(getComputedStyle(target).textWrap, 'balance');
+}, "`white-space` should overwrite `text-wrap-mode` on the parent");
 </script>

@@ -43,4 +43,8 @@
 
   assert_valid(true, ":not({}(div))", null, "Nested inside :not, without combinators");
   assert_valid(true, ":not({}(div .foo))", null, "Nested inside :not, with combinators");
+  // This should be invalid even with the forgiving behavior because
+  // `<any-value>` doesn't allow bad tokens:
+  // https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value
+  test_invalid_selector(`:is(# C4єанйтж╕/┘ГЁжЮХєа▓┐ЁЭБМєаСеЁЭЖА%=[ямм0)`);
 </script>

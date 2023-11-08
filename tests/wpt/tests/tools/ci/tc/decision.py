@@ -249,6 +249,7 @@ def create_tc_task(event, task, taskgroup_id, depends_on_ids, env_extra=None):
         "provisionerId": task["provisionerId"],
         "schedulerId": task["schedulerId"],
         "workerType": task["workerType"],
+        "scopes": task.get("scopes", []),
         "metadata": {
             "name": task["name"],
             "description": task.get("description", ""),
@@ -269,6 +270,10 @@ def create_tc_task(event, task, taskgroup_id, depends_on_ids, env_extra=None):
     }
     if "extra" in task:
         task_data["extra"].update(task["extra"])
+    if task.get("privileged"):
+        if "capabilities" not in task_data["payload"]:
+            task_data["payload"]["capabilities"] = {}
+        task_data["payload"]["capabilities"]["privileged"] = True
     if env_extra:
         task_data["payload"]["env"].update(env_extra)
     if depends_on_ids:

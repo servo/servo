@@ -99,7 +99,7 @@ async def test_slow_page(bidi_session, new_tab, url, wait, expect_timeout,
 
     events = []
 
-    async def on_event(_, data):
+    async def on_event(method, data):
         events.append(data)
 
     remove_listener_1 = bidi_session.add_event_listener(
@@ -150,7 +150,7 @@ async def test_slow_script_blocks_domContentLoaded(bidi_session, inline,
 
     events = []
 
-    async def on_event(_, data):
+    async def on_event(method, data):
         events.append(data)
 
     remove_listener_1 = bidi_session.add_event_listener(

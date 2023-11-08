@@ -16,6 +16,7 @@ use crate::rule_cache::RuleCacheConditions;
 use crate::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::cascading_at_rule::DescriptorDeclaration;
+use crate::stylesheets::container_rule::ContainerSizeQuery;
 use crate::stylesheets::{Origin, StylesheetInDocument};
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::length::LengthPercentageOrAuto;
@@ -28,7 +29,6 @@ use cssparser::{parse_important, AtRuleParser, DeclarationListParser, Declaratio
 use euclid::Size2D;
 use selectors::parser::SelectorParseErrorKind;
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::fmt::{self, Write};
 use std::iter::Enumerate;
 use std::str::Chars;
@@ -108,7 +108,7 @@ macro_rules! declare_viewport_descriptor_inner {
                         },
                     )*
                 }
-                dest.write_str(";")
+                dest.write_char(';')
             }
         }
     };
@@ -504,7 +504,7 @@ impl ToCssWithGuard for ViewportRule {
         let mut iter = self.declarations.iter();
         iter.next().unwrap().to_css(&mut CssWriter::new(dest))?;
         for declaration in iter {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             declaration.to_css(&mut CssWriter::new(dest))?;
         }
         dest.write_str(" }")
@@ -665,18 +665,14 @@ impl MaybeNew for ViewportConstraints {
         let initial_viewport = device.au_viewport_size();
 
         let mut conditions = RuleCacheConditions::default();
-        let context = Context {
+        let context = Context::new(
             // Note: DEVICE-ADAPT § 5. states that relative length values are
             // resolved against initial values
-            builder: StyleBuilder::for_inheritance(device, None, None),
-            cached_system_font: None,
-            in_media_query: false,
+            StyleBuilder::for_inheritance(device, None, None),
             quirks_mode,
-            container_info: None,
-            for_smil_animation: false,
-            for_non_inherited_property: None,
-            rule_cache_conditions: RefCell::new(&mut conditions),
-        };
+            &mut conditions,
+            ContainerSizeQuery::none(),
+        );
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'
         let extend_width;

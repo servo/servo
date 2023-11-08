@@ -9,22 +9,32 @@
 <body>
 <script>
 promise_test(async(t) => {
-  const iframe = attachIFrameContext({attributes:[["csp", "frame-src *"]]});
+  const iframe = attachIFrameContext({
+    attributes: [["csp", "frame-src *"]],
+    headers: [["Allow-CSP-From", "*"]]
+  });
   t.step_timeout(() => t.done(), 1000);
   await iframe.execute(async (t) => {
-    const fencedframe = attachFencedFrameContext();
+    const fencedframe = attachFencedFrameContext({
+      headers: [["Allow-CSP-From", "*"]]
+    });
     await fencedframe.execute(() => {});
   });
   assert_unreached("fenced frame should not be loaded.");
 }, 'fenced frame should not be loaded in CSPEE');
 
 promise_test(async(t) => {
-  const iframe_a = attachIFrameContext({attributes:[["csp", "frame-src *"]]});
+  const iframe_a = attachIFrameContext({
+    attributes: [["csp", "frame-src *"]],
+    headers: [["Allow-CSP-From", "*"]]
+  });
   t.step_timeout(() => t.done(), 1000);
   await iframe_a.execute(async (t) => {
-    const iframe_b = attachIFrameContext();
+    const iframe_b = attachIFrameContext({headers: [["Allow-CSP-From", "*"]]});
     await iframe_b.execute(async (t) => {
-      const fencedframe = attachFencedFrameContext();
+      const fencedframe = attachFencedFrameContext({
+        headers: [["Allow-CSP-From", "*"]]
+      });
       await fencedframe.execute(() => {});
     });
   });
@@ -32,16 +42,22 @@ promise_test(async(t) => {
 }, 'fenced frame should not be loaded if any ancestor has CSPEE');
 
 promise_test(async(t) => {
-  const iframe = attachIFrameContext({attributes:[["csp", "frame-src *"]]});
+  const iframe = attachIFrameContext({
+    attributes: [["csp", "frame-src *"]],
+    headers: [["Allow-CSP-From", "*"]]
+  });
   await iframe.execute(async (t) => {
     assert_false(navigator.canLoadAdAuctionFencedFrame());
   });
 }, 'canLoadOpaqueURL considers CSPEE headers');
 
 promise_test(async(t) => {
-  const iframe_a = attachIFrameContext({attributes:[["csp", "frame-src *"]]});
+  const iframe_a = attachIFrameContext({
+    attributes: [["csp", "frame-src *"]],
+    headers: [["Allow-CSP-From", "*"]]
+  });
   await iframe_a.execute(async (t) => {
-    const iframe_b = attachIFrameContext();
+    const iframe_b = attachIFrameContext({headers: [["Allow-CSP-From", "*"]]});
     await iframe_b.execute(async (t) => {
       assert_false(navigator.canLoadAdAuctionFencedFrame());
     });

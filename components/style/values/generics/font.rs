@@ -13,6 +13,13 @@ use std::io::Cursor;
 use style_traits::{CssWriter, ParseError};
 use style_traits::{StyleParseErrorKind, ToCss};
 
+/// A trait for values that are labelled with a FontTag (for feature and
+/// variation settings).
+pub trait TaggedFontValue {
+    /// The value's tag.
+    fn tag(&self) -> FontTag;
+}
+
 /// https://drafts.csswg.org/css-fonts-4/#feature-tag-value
 #[derive(
     Clone,
@@ -30,6 +37,12 @@ pub struct FeatureTagValue<Integer> {
     pub tag: FontTag,
     /// The actual value.
     pub value: Integer,
+}
+
+impl<T> TaggedFontValue for FeatureTagValue<T> {
+    fn tag(&self) -> FontTag {
+        self.tag
+    }
 }
 
 impl<Integer> ToCss for FeatureTagValue<Integer>
@@ -76,18 +89,15 @@ pub struct VariationValue<Number> {
     pub value: Number,
 }
 
+impl<T> TaggedFontValue for VariationValue<T> {
+    fn tag(&self) -> FontTag {
+        self.tag
+    }
+}
+
 /// A value both for font-variation-settings and font-feature-settings.
 #[derive(
-    Clone,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
 )]
 #[css(comma)]
 pub struct FontSettings<T>(#[css(if_empty = "normal", iterable)] pub Box<[T]>);

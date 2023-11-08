@@ -95,7 +95,7 @@ impl<S: FontSource> FontContext<S> {
         self.expire_font_caches_if_necessary();
 
         let cache_key = FontGroupCacheKey {
-            size: Au::from_f32_px(style.font_size.size().px()),
+            size: Au::from_f32_px(style.font_size.computed_size().px()),
             style,
         };
 

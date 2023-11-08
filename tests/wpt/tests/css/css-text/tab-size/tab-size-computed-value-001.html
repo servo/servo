@@ -40,7 +40,7 @@
 
   var targetElement = document.getElementById("target");
 
-    function verifyComputedStyle(property_name, specified_value, expected_value, description)
+    function verifyComputedStyle(property_name, specified_value, expected_value)
     {
 
     test(function()
@@ -60,10 +60,10 @@
 
       assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
 
-      }, description);
+      }, `testing ${property_name}: ${specified_value}`);
     }
 
-    function compareValueCloseTo(property_name, specified_value, epsilon, expected_value, description)
+    function compareValueCloseTo(property_name, specified_value, epsilon, expected_value)
     {
 
     test(function()
@@ -83,60 +83,60 @@
 
       assert_array_approx_equals(computedSpecifiedValue, computedExpectedValue, epsilon);
 
-    } , description);
+    }, `testing ${property_name}: ${specified_value}`);
 
   }
 
-    verifyComputedStyle("tab-size", "4", "4", "testing tab-size: 4");
+    verifyComputedStyle("tab-size", "4", "4");
 
- /* verifyComputedStyle(property_name, initial_value, specified_value, expected_value, description) */
+ /* verifyComputedStyle(property_name, initial_value, specified_value, expected_value) */
 
   /* absolute length units: in, cm, mm, pt, pc, Q, px */
 
-    verifyComputedStyle("tab-size", "0.5in", "48px", "testing tab-size: 0.5in");
+    verifyComputedStyle("tab-size", "0.5in", "48px");
 
-    verifyComputedStyle("tab-size", "2.54cm", "96px", "testing tab-size: 2.54cm");
+    verifyComputedStyle("tab-size", "2.54cm", "96px");
 
-    verifyComputedStyle("tab-size", "25.4mm", "96px", "testing tab-size: 25.4mm");
+    verifyComputedStyle("tab-size", "25.4mm", "96px");
 
-    verifyComputedStyle("tab-size", "18pt", "24px", "testing tab-size: 18pt");
+    verifyComputedStyle("tab-size", "18pt", "24px");
 
-    verifyComputedStyle("tab-size", "5pc", "80px", "testing tab-size: 5pc");
+    verifyComputedStyle("tab-size", "5pc", "80px");
 
-    verifyComputedStyle("tab-size", "101.6Q", "96px", "testing tab-size: 101.6Q");
+    verifyComputedStyle("tab-size", "101.6Q", "96px");
 
-    verifyComputedStyle("tab-size", "7px", "7px", "testing tab-size: 7px");
+    verifyComputedStyle("tab-size", "7px", "7px");
 
- /* verifyComputedStyle(property_name, specified_value, expected_value, description) */
+ /* verifyComputedStyle(property_name, specified_value, expected_value) */
 
   /* relative length units: em, ex, rem */
 
-    verifyComputedStyle("tab-size", "1em", "20px", "testing tab-size: 1em");
+    verifyComputedStyle("tab-size", "1em", "20px");
 
- /* compareValueCloseTo(property_name, specified_value, epsilon, expected_value, description)  */
+ /* compareValueCloseTo(property_name, specified_value, epsilon, expected_value)  */
 
-    compareValueCloseTo("tab-size", "2ex", 0.001, "32px", "testing tab-size: 2ex");
+    compareValueCloseTo("tab-size", "2ex", 0.001, "32px");
 
     /*
     For this sub-test, we set the tolerance precision (epsilon)
     to (0.001 === 1 thousandth).
     */
 
-    verifyComputedStyle("tab-size", "3rem", "48px", "testing tab-size: 3rem");
+    verifyComputedStyle("tab-size", "3rem", "48px");
 
   /*
 
   NOT tested are: vw, vh, vmin, vmax and ch units
 
-    verifyComputedStyle("tab-size", "4vw", "?px", "testing tab-size: 4vw");
+    verifyComputedStyle("tab-size", "4vw", "?px");
 
-    verifyComputedStyle("tab-size", "5vh", "?px", "testing tab-size: 5vh");
+    verifyComputedStyle("tab-size", "5vh", "?px");
 
-    verifyComputedStyle("tab-size", "6vmin", "?px", "testing tab-size: 6vmin");
+    verifyComputedStyle("tab-size", "6vmin", "?px");
 
-    verifyComputedStyle("tab-size", "7vmax", "?px", "testing tab-size: 7vmax");
+    verifyComputedStyle("tab-size", "7vmax", "?px");
 
-    verifyComputedStyle("tab-size", "8ch", "?px", "testing tab-size: 8ch");
+    verifyComputedStyle("tab-size", "8ch", "?px");
 
   */
 

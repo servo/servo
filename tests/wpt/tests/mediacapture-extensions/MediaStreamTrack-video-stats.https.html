@@ -1,8 +1,11 @@
 <!doctype html>
 <meta charset=utf-8>
 <meta name="timeout" content="long">
+<button id="button">User gesture</button>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
 'use strict';
 
@@ -323,11 +326,28 @@ promise_test(async t => {
   const [track] = stream.getTracks();
   t.add_cleanup(() => track.stop());
 
-  try {
-    track.stats.toJSON();
-    assert_not_reached();
-  } catch (e) {
-    assert_equals(e.name, 'NotSupportedError');
-  }
-}, `getFrameStats throws on audio tracks`);
+  assert_equals(track.stats, null);
+}, `track.stats is null on audio tracks`);
+
+promise_test(async t => {
+  const canvas = document.createElement('canvas');
+  const stream = canvas.captureStream(10);
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  assert_equals(track.stats, null);
+}, `track.stats is null on non-device tracks, such as canvas`);
+
+promise_test(async t => {
+  // getDisplayMedia() requires inducing a user gesture.
+  const p = new Promise(r => button.onclick = r);
+  await test_driver.click(button);
+  await p;
+
+  const stream = await navigator.mediaDevices.getDisplayMedia({video:true});
+  const [track] = stream.getTracks();
+  t.add_cleanup(() => track.stop());
+
+  await getFrameStatsUntil(track, stats => stats.totalFrames > 0)
+}, `track.stats is supported on getDisplayMedia tracks`);
 </script>

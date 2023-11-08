@@ -30,7 +30,7 @@
 
   var targetElement = document.getElementById("target");
 
-    function verifyComputedStyle(property_name, specified_value, expected_value, description)
+    function verifyComputedStyle(property_name, specified_value, expected_value)
     {
 
     test(function()
@@ -50,32 +50,32 @@
 
       assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
 
-      }, description);
+      }, `testing ${property_name}: ${specified_value}`);
     }
 
-    verifyComputedStyle("word-spacing", "normal", "0px", "testing word-spacing: normal");
+    verifyComputedStyle("word-spacing", "normal", "0px");
 
-    verifyComputedStyle("word-spacing", "0", "0px", "testing word-spacing: 0");
+    verifyComputedStyle("word-spacing", "0", "0px");
 
-    verifyComputedStyle("word-spacing", "1.27cm", "48px", "testing word-spacing: 1.27cm");
+    verifyComputedStyle("word-spacing", "1.27cm", "48px");
 
-    verifyComputedStyle("word-spacing", "1em", "20px", "testing word-spacing: 1em");
+    verifyComputedStyle("word-spacing", "1em", "20px");
 
-    verifyComputedStyle("word-spacing", "0.5in", "48px", "testing word-spacing: 0.5in");
+    verifyComputedStyle("word-spacing", "0.5in", "48px");
 
-    verifyComputedStyle("word-spacing", "25.4mm", "96px", "testing word-spacing: 25.4mm");
+    verifyComputedStyle("word-spacing", "25.4mm", "96px");
 
-    verifyComputedStyle("word-spacing", "5pc", "80px", "testing word-spacing: 5pc");
+    verifyComputedStyle("word-spacing", "5pc", "80px");
 
-    verifyComputedStyle("word-spacing", "18pt", "24px", "testing word-spacing: 18pt");
+    verifyComputedStyle("word-spacing", "18pt", "24px");
 
-    verifyComputedStyle("word-spacing", "7px", "7px", "testing word-spacing: 7px");
+    verifyComputedStyle("word-spacing", "7px", "7px");
 
-    verifyComputedStyle("word-spacing", "101.6Q", "96px", "testing word-spacing: 101.6Q");
+    verifyComputedStyle("word-spacing", "101.6Q", "96px");
 
-    verifyComputedStyle("word-spacing", "3rem", "48px", "testing word-spacing: 3rem");
+    verifyComputedStyle("word-spacing", "3rem", "48px");
 
-    verifyComputedStyle("word-spacing", "0ch", "0px", "testing word-spacing: 0ch");
+    verifyComputedStyle("word-spacing", "0ch", "0px");
 
   }
 

@@ -118,6 +118,31 @@
 
  /* verifySerialization(specified_value, serialization_expected, description)  */
 
+    /*
+
+    Check distributing multiplication over sums and subs simplification.
+    NOTE: If root contains only two children, one of which is a number
+    (not a percentage or dimension) and the other of which is a Sum
+    whose children are all numeric values, multiply all of the Sum’s
+    children by the number, then return the Sum. So, num * (fn + fn)
+    should not be simplified.
+
+    */
+
+    verifySerialization("calc(2 * (10px + 1rem))", "calc(20px + 2rem)", "testing calc(2 * (10px + 1rem))");
+    verifySerialization("calc(2 * (10px - 1rem))", "calc(20px - 2rem)", "testing calc(2 * (10px - 1rem))");
+    verifySerialization("calc((10px + 1rem) / 2)", "calc(5px + 0.5rem)", "testing calc((10px + 1rem) / 2)");
+    verifySerialization(
+      "calc(2 * (min(10px, 20%) + max(1rem, 2%)))",
+      "calc(2 * (min(10px, 20%) + max(1rem, 2%)))",
+      "testing calc(2 * (min(10px, 20%) + max(1rem, 2%)))"
+    );
+    verifySerialization(
+      "calc((min(10px, 20%) + max(1rem, 2%)) * 2)",
+      "calc((min(10px, 20%) + max(1rem, 2%)) * 2)",
+      "testing calc((min(10px, 20%) + max(1rem, 2%)) * 2)"
+    );
+
     verifySerialization("calc(1vmin - 14%)", "calc(-14% + 1vmin)", "testing calc(1vmin - 14%)");
 
 

@@ -18,8 +18,8 @@
       let sharedStorageWritableHeader = await response.text();
       assert_equals(sharedStorageWritableHeader,
                     "NO_SHARED_STORAGE_WRITABLE_HEADER");
-    }, header + ' disallows the \'Shared-Storage-Writable\' header to be sent '
-              + 'for the same-origin shared storage fetch request.');
+    }, header + ' disallows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the same-origin shared storage fetch request.');
 
     promise_test(async t => {
       let response = await fetch(crossOriginUrl,
@@ -27,7 +27,7 @@
       let sharedStorageWritableHeader = await response.text();
       assert_equals(sharedStorageWritableHeader,
                     "NO_SHARED_STORAGE_WRITABLE_HEADER");
-    }, header + ' disallows the \'Shared-Storage-Writable\' header to be sent '
-              + 'for the cross-origin shared storage fetch request.');
+    }, header + ' disallows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the cross-origin shared storage fetch request.');
   </script>
 </body>

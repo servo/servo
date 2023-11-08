@@ -34,20 +34,20 @@ xr-profile = ["canvas/xr-profile", "canvas_traits/xr-profile", "script/xr-profil
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }
 bluetooth = { path = "../bluetooth" }
-bluetooth_traits = { path = "../bluetooth_traits" }
+bluetooth_traits = { workspace = true }
 canvas = { path = "../canvas", default-features = false }
-canvas_traits = { path = "../canvas_traits" }
+canvas_traits = { workspace = true }
 compositing = { path = "../compositing", features = ["gl"] }
-compositing_traits = { path = "../compositing_traits" }
+compositing_traits = { workspace = true }
 constellation = { path = "../constellation" }
 crossbeam-channel = { workspace = true }
 devtools = { path = "../devtools" }
-devtools_traits = { path = "../devtools_traits" }
-embedder_traits = { path = "../embedder_traits" }
+devtools_traits = { workspace = true }
+embedder_traits = { workspace = true }
 env_logger = { workspace = true }
 euclid = { workspace = true }
 gfx = { path = "../gfx" }
-gfx_traits = { path = "../gfx_traits" }
+gfx_traits = { workspace = true }
 gleam = { workspace = true }
 gstreamer = { version = "0.15", features = ["v1_16"], optional = true }
 ipc-channel = { workspace = true }
@@ -57,14 +57,14 @@ layout_thread_2020 = { path = "../layout_thread_2020" }
 log = { workspace = true }
 media = { path = "../media" }
 mozangle = { workspace = true }
-msg = { path = "../msg" }
+msg = { workspace = true }
 net = { path = "../net" }
-net_traits = { path = "../net_traits" }
+net_traits = { workspace = true }
 profile = { path = "../profile" }
-profile_traits = { path = "../profile_traits" }
+profile_traits = { workspace = true }
 script = { path = "../script" }
-script_layout_interface = { path = "../script_layout_interface" }
-script_traits = { path = "../script_traits" }
+script_layout_interface = { workspace = true }
+script_traits = { workspace = true }
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media", optional = true }
@@ -73,14 +73,14 @@ servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 sparkle = { workspace = true }
 style = { path = "../style", features = ["servo"] }
-style_traits = { path = "../style_traits", features = ["servo"] }
+style_traits = { workspace = true }
 surfman = { workspace = true }
 webdriver_server = { path = "../webdriver_server", optional = true }
 webgpu = { path = "../webgpu" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_surfman = { path = "../webrender_surfman" }
-webrender_traits = { path = "../webrender_traits" }
+webrender_traits = { workspace = true }
 webxr = { git = "https://github.com/servo/webxr" }
 webxr-api = { git = "https://github.com/servo/webxr" }
 

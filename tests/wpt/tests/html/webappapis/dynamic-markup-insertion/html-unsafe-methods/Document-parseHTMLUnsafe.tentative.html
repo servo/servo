@@ -1,0 +1,77 @@
+<!doctype html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<!-- This was adapted from DOMParser-parseFromString-html.html -->
+<title>parseHTMLUnsafe basic test of HTML parsing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// |expected| should be an object indicating the expected type of node.
+function assert_node(actual, expected) {
+    assert_true(actual instanceof expected.type,
+                'Node type mismatch: actual = ' + actual.constructor.name + ', expected = ' + expected.type.name);
+    if (typeof(expected.id) !== 'undefined')
+        assert_equals(actual.id, expected.id, expected.idMessage);
+}
+
+var doc;
+setup(function() {
+    doc = Document.parseHTMLUnsafe('<html id="root"><head></head><body></body></html>');
+});
+
+test(function() {
+    var root = doc.documentElement;
+    assert_node(root, { type: HTMLHtmlElement, id: 'root',
+                        idMessage: 'documentElement id attribute should be root.' });
+}, 'Parsing of id attribute');
+
+test(function() {
+    assert_equals(doc.contentType, "text/html")
+}, 'contentType');
+
+test(function() {
+    assert_equals(doc.compatMode, "BackCompat")
+}, 'compatMode');
+
+test(function() {
+    doc = Document.parseHTMLUnsafe('<!DOCTYPE html><html id="root"><head></head><body></body></html>');
+    assert_equals(doc.compatMode, "CSS1Compat")
+}, 'compatMode for a proper DOCTYPE');
+
+// URL- and encoding-related stuff tested separately.
+
+test(function() {
+    assert_equals(doc.location, null,
+                  'The document must have a location value of null.');
+}, 'Location value');
+
+test(function() {
+    var htmldoc = Document.parseHTMLUnsafe("<!DOCTYPE foo></><foo></multiple></>");
+    assert_equals(htmldoc.documentElement.localName, "html");
+    assert_equals(htmldoc.documentElement.namespaceURI, "http://www.w3.org/1999/xhtml");
+}, "Document.parseHTMLUnsafe parses HTML tag soup with no problems");
+
+test(function() {
+   const doc = Document.parseHTMLUnsafe('<noembed>&lt;a&gt;</noembed>');
+   assert_equals(doc.querySelector('noembed').textContent, '&lt;a&gt;');
+}, 'Document.parseHTMLUnsafe should handle the content of <noembed> as raw text');
+
+test(() => {
+   const doc = Document.parseHTMLUnsafe(`
+<html><body>
+<style>
+  @import url(/dummy.css)
+</style>
+<script>document.x = 8<\/script>
+</body></html>`);
+
+  assert_not_equals(doc.querySelector('script'), null, 'script must be found');
+  assert_equals(doc.x, undefined, 'script must not be executed on the inner document');
+  assert_equals(document.x, undefined, 'script must not be executed on the outer document');
+}, 'script is found synchronously even when there is a css import');
+
+test(() => {
+    const doc = Document.parseHTMLUnsafe(`<body><noscript><p id="test1">test1<p id="test2">test2</noscript>`);
+    assert_node(doc.body.firstChild.childNodes[0], { type: HTMLParagraphElement, id: 'test1' });
+    assert_node(doc.body.firstChild.childNodes[1], { type: HTMLParagraphElement, id: 'test2' });
+}, 'must be parsed with scripting disabled, so noscript works');
+</script>

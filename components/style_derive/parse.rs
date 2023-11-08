@@ -6,10 +6,10 @@ use crate::to_css::{CssBitflagAttrs, CssVariantAttrs};
 use darling::FromField;
 use darling::FromVariant;
 use derive_common::cg;
-use proc_macro2::{TokenStream, Span};
+use proc_macro2::{Span, TokenStream};
 use quote::{quote, TokenStreamExt};
 use syn::parse_quote;
-use syn::{self, Ident, DeriveInput, Path};
+use syn::{self, DeriveInput, Ident, Path};
 use synstructure::{Structure, VariantInfo};
 
 #[derive(Default, FromVariant)]
@@ -47,7 +47,7 @@ fn parse_bitflags(bitflags: &CssBitflagAttrs) -> TokenStream {
     let mut validate_condition = quote! { !result.is_empty() };
     if let Some(ref function) = bitflags.validate_mixed {
         validate_condition.append_all(quote! {
-            && #function(result)
+            && #function(&mut result)
         });
     }
 
@@ -112,9 +112,12 @@ fn parse_non_keyword_variant(
 
     if let Some(ref bitflags) = variant_attrs.bitflags {
         assert!(skip_try, "Should be the only variant");
-        assert!(parse_attrs.condition.is_none(), "Should be the only variant");
+        assert!(
+            parse_attrs.condition.is_none(),
+            "Should be the only variant"
+        );
         assert!(where_clause.is_none(), "Generic bitflags?");
-        return parse_bitflags(bitflags)
+        return parse_bitflags(bitflags);
     }
 
     let field_attrs = cg::parse_field_attrs::<ParseFieldAttrs>(binding_ast);

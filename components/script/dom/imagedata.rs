@@ -15,7 +15,7 @@ use js::jsapi::{Heap, JSObject};
 use js::rust::{HandleObject, Runtime};
 use js::typedarray::{CreateWith, Uint8ClampedArray};
 
-use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;

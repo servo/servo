@@ -1,0 +1,22 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>hidden=until-found and size contained</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://github.com/WICG/display-locking">
+<link rel="match" href="hidden-until-found-005-ref.html">
+<meta name="assert" content="hidden=until-found puts in size containment">
+
+<style>
+div {
+  border: 1px solid black;
+}
+</style>
+
+Test passes if there is a empty div with border below.
+<div hidden=until-found>
+  This text is not visible, and neither should be the div below.
+  <div style="width: 100px; height: 100px; background: red"></div>
+</div>
+</html>
+

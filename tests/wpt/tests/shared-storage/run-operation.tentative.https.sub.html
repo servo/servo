@@ -1,16 +1,19 @@
 <!doctype html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
 
 <body>
 <script>
 'use strict';
 
-promise_test(() => {
+promise_test(async t => {
+  await addModuleOnce("/shared-storage/resources/simple-module.js");
   return sharedStorage.run("operation1", {keepAlive: true});
 }, 'run()');
 
-promise_test(() => {
+promise_test(async t => {
+  await addModuleOnce("/shared-storage/resources/simple-module.js");
   return sharedStorage.run("operation1",
                            {data: {'custom-key': 'custom-value'},
                             keepAlive: true});
@@ -18,6 +21,7 @@ promise_test(() => {
 
 promise_test(async t => {
   try {
+    await addModuleOnce("/shared-storage/resources/simple-module.js");
     await sharedStorage.run("operation1", {data: window});
   } catch (e) {
     assert_equals(e.name, 'DataCloneError');

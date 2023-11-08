@@ -14,6 +14,7 @@ use selectors::parser::{Combinator, Component};
 use selectors::OpaqueElement;
 use smallvec::SmallVec;
 use std::fmt;
+use std::fmt::Write;
 
 /// A trait to abstract the collection of invalidations for a given pass.
 pub trait InvalidationProcessor<'a, E>
@@ -79,6 +80,10 @@ where
 
     /// Executes an action when `Self` is invalidated.
     fn invalidated_self(&mut self, element: E);
+
+    /// Executes an action when `sibling` is invalidated as a sibling of
+    /// `of`.
+    fn invalidated_sibling(&mut self, sibling: E, of: E);
 
     /// Executes an action when any descendant of `Self` is invalidated.
     fn invalidated_descendants(&mut self, element: E, child: E);
@@ -253,7 +258,7 @@ impl<'a> fmt::Debug for Invalidation<'a> {
             }
             component.to_css(f)?;
         }
-        f.write_str(")")
+        f.write_char(')')
     }
 }
 
@@ -397,7 +402,7 @@ where
             );
 
             if invalidated_sibling {
-                sibling_invalidator.processor.invalidated_self(sibling);
+                sibling_invalidator.processor.invalidated_sibling(sibling, self.element);
             }
 
             any_invalidated |= invalidated_sibling;

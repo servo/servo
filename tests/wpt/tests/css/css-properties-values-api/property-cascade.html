@@ -24,7 +24,7 @@
 test(function(){
     // Because var(--my-color) is invalid, our color declaration should behave
     // like color:unset, i.e. it should compute to the inherited color.
-    assert_equals(inner.computedStyleMap().get('color').toString(), 'rgb(1, 1, 1)');
+    assert_equals(getComputedStyle(inner).color, 'rgb(1, 1, 1)');
 
     CSS.registerProperty({
         name: '--my-color',
@@ -36,7 +36,7 @@ test(function(){
     // After registering, var(--my-color) is still invalid. The important thing
     // here is that the computed value of color is the initialValue of
     // --my-color, and not rgb(2, 2, 2).
-    assert_equals(inner.computedStyleMap().get('color').toString(), 'rgb(3, 3, 3)');
+    assert_equals(getComputedStyle(inner).color, 'rgb(3, 3, 3)');
 }, 'Registering a property does not affect cascade');
 
 test(function(){
@@ -56,7 +56,7 @@ test(function(){
 
     outer.appendChild(element);
 
-    assert_equals(element.computedStyleMap().get('color').toString(), 'rgb(4, 4, 4)');
+    assert_equals(getComputedStyle(element).color, 'rgb(4, 4, 4)');
 }, 'Registering a property does not affect parsing');
 
 

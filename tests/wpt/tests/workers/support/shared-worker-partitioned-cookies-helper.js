@@ -2,11 +2,11 @@
 //
 // Usage:
 //   const worker = new SharedWorker(...);
-//   const nextMessage = workerMessages(worker);
+//   const nextMessage = worker_message_generator(worker);
 //   const msg_1 = await nextMessage();
 //   const msg_2 = await nextMessage();
 //   const msg_3 = await nextMessage();
-function workerMessageGenerator(shared_worker) {
+function worker_message_generator(shared_worker) {
   const buffer = [];
   let resolve = null;
 

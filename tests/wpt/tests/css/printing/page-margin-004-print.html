@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test that a fragmented OOF is sized and posisitioned correctly within the containing block, which is the page box size minus the margins</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#at-page-rule">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1486499">
+<link rel="match" href="page-margin-004-print-ref.html">
+<style>
+  @page {
+    size: 300px;
+    margin: 10px 20px 30px 40px;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="position:absolute; box-sizing:border-box; width:100%; border:10px solid; background:yellow;">
+  Page 1
+  <div style="break-before:page; background:cyan;">
+    Page 2
+  </div>
+</div>

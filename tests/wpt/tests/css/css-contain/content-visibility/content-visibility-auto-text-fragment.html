@@ -1,0 +1,46 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: navigating to a text fragment.</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://github.com/WICG/display-locking">
+<meta name="timeout" content="long">
+<meta name="assert" content="content-visibility: auto subtrees are 'searchable' by text fragment links">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/scroll-to-text-fragment/stash.js"></script>
+
+<script>
+promise_test(t => new Promise((resolve, reject) => {
+    const fragment = '#:~:text=hiddentext';
+    const key = token();
+    test_driver.bless("Open a URL with a text fragment directive", () => {
+      window.open(`./resources/text-fragment-target-matchable.html?key=${key}${fragment}`,
+                  '_blank',
+                  'noopener');
+    });
+    fetchResults(key, resolve, reject);
+}).then(data => {
+  assert_equals(data.scrollPosition, "text");
+  assert_equals(data.target, "text");
+}), "Fragment navigation with content-visibility; single text");
+
+promise_test(t => new Promise((resolve, reject) => {
+    const fragment = '#:~:text=start,end';
+    const key = token();
+    test_driver.bless("Open a URL with a text fragment directive", () => {
+      window.open(`./resources/text-fragment-target-matchable.html?key=${key}${fragment}`,
+                  '_blank',
+                  'noopener');
+    });
+    fetchResults(key, resolve, reject);
+}).then(data => {
+  assert_equals(data.scrollPosition, "text2");
+  assert_equals(data.target, "text2and3ancestor");
+}), "Fragment navigation with content-visibility; range across blocks");
+</script>
+

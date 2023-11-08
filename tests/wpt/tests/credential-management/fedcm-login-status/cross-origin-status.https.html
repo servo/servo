@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>FedCM IDP login status API tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {fedcm_test,
+        alt_manifest_origin,
+        alt_request_options_with_mediation_required,
+        open_and_wait_for_popup,
+        mark_signed_out} from '../support/fedcm-helper.sub.js';
+
+const url_prefix = alt_manifest_origin + '/credential-management/support/';
+
+fedcm_test(async t => {
+  await mark_signed_out(alt_manifest_origin);
+  // The header should be ignored because it's a cross-origin fetch.
+  const fetch_result = await fetch(url_prefix + "mark_signedin");
+  assert_true(fetch_result.ok);
+
+  const config = alt_request_options_with_mediation_required();
+  const result = navigator.credentials.get(config);
+  return promise_rejects_dom(t, 'NetworkError', result);
+}, 'Cross-origin status header should be ignored from fetch()');
+
+fedcm_test(async t => {
+  await mark_signed_out(alt_manifest_origin);
+  // The header should be ignored because it's a cross-origin iframe.
+  let iframe = document.createElement("iframe");
+  let iframe_load = new Promise(resolve => {iframe.onload = resolve;});
+  iframe.src = url_prefix + "mark_signedin";
+  document.body.appendChild(iframe);
+  await iframe_load;
+
+  const config = alt_request_options_with_mediation_required();
+  const result = navigator.credentials.get(config);
+  return promise_rejects_dom(t, 'NetworkError', result);
+}, 'Status header should be ignored from cross-origin iframe');
+
+fedcm_test(async t => {
+  await mark_signed_out(alt_manifest_origin);
+  // The header in the subresource should be ignored because the iframe is cross-origin.
+  let iframe = document.createElement("iframe");
+  let iframe_load = new Promise(resolve => {iframe.onload = resolve;});
+  iframe.src = url_prefix + "iframe-mark-signedin.html";
+  document.body.appendChild(iframe);
+  await iframe_load;
+
+  const config = alt_request_options_with_mediation_required();
+  const result = navigator.credentials.get(config);
+  return promise_rejects_dom(t, 'NetworkError', result);
+}, 'Status header should be ignored from cross-origin iframe that contains a subresource with the header');
+
+fedcm_test(async t => {
+  await mark_signed_out(alt_manifest_origin);
+  await open_and_wait_for_popup(alt_manifest_origin, "/credential-management/support/fencedframe-mark-signedin.html");
+
+  const config = alt_request_options_with_mediation_required();
+  const result = navigator.credentials.get(config);
+  return promise_rejects_dom(t, 'NetworkError', result);
+}, 'Status header should be ignored from a fenced frame, even if it is same-origin');
+
+</script>
+

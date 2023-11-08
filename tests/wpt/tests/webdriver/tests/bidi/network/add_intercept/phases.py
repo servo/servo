@@ -23,7 +23,6 @@ PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
     ],
 )
 async def test_request_response_phases(
-    bidi_session,
     wait_for_event,
     url,
     setup_network_test,
@@ -92,10 +91,7 @@ async def test_request_response_phases(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("phase", ["beforeRequestSent", "responseStarted"])
 async def test_not_listening_to_phase_event(
-    bidi_session,
-    wait_for_event,
     url,
-    top_context,
     setup_network_test,
     add_intercept,
     fetch,
@@ -111,11 +107,11 @@ async def test_not_listening_to_phase_event(
     # events.
     events.remove(f"network.{phase}")
 
-    network_events = await setup_network_test(events=events)
+    await setup_network_test(events=events)
 
     # Add an intercept without listening to the corresponding network event
     text_url = url(PAGE_EMPTY_TEXT)
-    intercept = await add_intercept(
+    await add_intercept(
         phases=[phase],
         url_patterns=[{"type": "string", "pattern": text_url}],
     )

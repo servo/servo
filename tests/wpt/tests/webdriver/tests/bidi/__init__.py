@@ -11,7 +11,7 @@ def recursive_compare(expected: Any, actual: Any) -> None:
         expected(actual)
         return
 
-    assert type(expected) == type(actual)
+    assert type(expected) is type(actual)
     if type(expected) is list:
         assert len(expected) == len(actual)
         for index, _ in enumerate(expected):

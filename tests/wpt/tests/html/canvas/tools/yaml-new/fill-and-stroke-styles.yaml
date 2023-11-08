@@ -2074,3 +2074,31 @@
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, 100, 50);
   expected: green
+
+- name: 2d.fillStyle.colormix
+  desc: color-mix works as color input
+  canvasType: ['HtmlCanvas', 'OffscreenCanvas', 'Worker']
+  code: |
+    ctx.fillStyle = "color-mix(in srgb, red, blue)";
+    @assert ctx.fillStyle === 'color(srgb 0.5 0 0.5)';
+    ctx.fillStyle = "color-mix(in srgb, red, color(srgb 1 0 0))";
+    @assert ctx.fillStyle === 'color(srgb 1 0 0)';
+
+- name: 2d.fillStyle.colormix.currentcolor
+  desc: color-mix works as color input with currentcolor
+  canvasType: ['HtmlCanvas']
+  code: |
+    canvas.setAttribute('style', 'color: magenta');
+    ctx.fillStyle = "color-mix(in srgb, black, currentcolor)";
+    @assert ctx.fillStyle === 'color(srgb 0.5 0 0.5)';
+    ctx.strokeStyle = "color-mix(in srgb, black, currentcolor)";
+    @assert ctx.strokeStyle === 'color(srgb 0.5 0 0.5)';
+
+- name: 2d.strokeStyle.colormix
+  desc: color-mix works as color input
+  canvasType: ['HtmlCanvas', 'OffscreenCanvas']
+  code: |
+    ctx.strokeStyle = "color-mix(in srgb, red, blue)";
+    @assert ctx.strokeStyle === 'color(srgb 0.5 0 0.5)';
+    ctx.strokeStyle = "color-mix(in srgb, red, color(srgb 1 0 0))";
+    @assert ctx.strokeStyle === 'color(srgb 1 0 0)';

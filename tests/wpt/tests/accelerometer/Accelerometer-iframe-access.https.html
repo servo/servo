@@ -6,12 +6,15 @@
 <link rel="help" href="https://www.w3.org/TR/accelerometer/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
 <script src="/generic-sensor/generic-sensor-iframe-tests.sub.js"></script>
 <script src="/generic-sensor/generic-sensor-feature-policy-test.sub.js"></script>
+<script src="resources/sensor-data.js"></script>
 <div id="log"></div>
 <script>
-run_generic_sensor_iframe_tests('Accelerometer');
-run_generic_sensor_iframe_tests('LinearAccelerationSensor');
-run_generic_sensor_iframe_tests('GravitySensor');
+run_generic_sensor_iframe_tests(kAccelerometerSensorData, kAccelerometerReadings);
+run_generic_sensor_iframe_tests(kLinearAccelerationSensorData, kAccelerometerReadings);
+run_generic_sensor_iframe_tests(kGravitySensorData, kAccelerometerReadings);
 </script>

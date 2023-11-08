@@ -8,7 +8,9 @@
     <html:link rel="match" href="reference/mask-green-square-001-ref.svg" />
   </g>
   <defs>
-    <filter id="filter"><feGaussianBlur stdDeviation="0.001"/></filter>
+    <filter id="filter" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="0.001"/>
+    </filter>
 
     <mask id="maskFill" maskContentUnits="userSpaceOnUse">
       <rect width="100%" height="100%" fill="white"/>

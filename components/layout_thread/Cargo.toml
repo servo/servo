@@ -14,31 +14,31 @@ path = "lib.rs"
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 crossbeam-channel = { workspace = true }
-embedder_traits = { path = "../embedder_traits" }
+embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 fxhash = { workspace = true }
 gfx = { path = "../gfx" }
-gfx_traits = { path = "../gfx_traits" }
+gfx_traits = { workspace = true }
 histogram = "0.6.8"
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 layout = { path = "../layout", package = "layout_2013" }
-layout_traits = { path = "../layout_traits" }
+layout_traits = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
 metrics = { path = "../metrics" }
-msg = { path = "../msg" }
-net_traits = { path = "../net_traits" }
+msg = { workspace = true }
+net_traits = { workspace = true }
 parking_lot = { workspace = true }
-profile_traits = { path = "../profile_traits" }
+profile_traits = { workspace = true }
 range = { path = "../range" }
 rayon = { workspace = true }
 script = { path = "../script" }
-script_layout_interface = { path = "../script_layout_interface" }
-script_traits = { path = "../script_traits" }
+script_layout_interface = { workspace = true }
+script_traits = { workspace = true }
 selectors = { path = "../selectors", features = ["shmem"] }
 serde_json = { workspace = true }
 servo_allocator = { path = "../allocator" }
@@ -47,6 +47,6 @@ servo_atoms = { path = "../atoms" }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 style = { path = "../style" }
-style_traits = { path = "../style_traits" }
+style_traits = { workspace = true }
 time = { workspace = true }
 webrender_api = { workspace = true }

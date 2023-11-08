@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::marker::PhantomData;
-
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
@@ -15,9 +13,8 @@ use raqote::PathOp;
 
 use crate::canvas_data;
 use crate::canvas_data::{
-    Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, ExtendMode, Filter,
-    GenericDrawTarget, GenericPathBuilder, GradientStop, GradientStops, Path, SourceSurface,
-    StrokeOptions, SurfaceFormat,
+    Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, Filter, GenericDrawTarget,
+    GenericPathBuilder, GradientStop, GradientStops, Path, SourceSurface, StrokeOptions,
 };
 use crate::canvas_paint_thread::AntialiasMode;
 
@@ -85,7 +82,7 @@ impl<'a> CanvasPaintState<'a> {
             draw_options: DrawOptions::Raqote(raqote::DrawOptions::new()),
             fill_style: canvas_data::Pattern::Raqote(pattern.clone()),
             stroke_style: canvas_data::Pattern::Raqote(pattern),
-            stroke_opts: StrokeOptions::Raqote(Default::default(), PhantomData),
+            stroke_opts: StrokeOptions::Raqote(Default::default()),
             transform: Transform2D::identity(),
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
@@ -267,30 +264,30 @@ impl canvas_data::Pattern<'_> {
     }
 }
 
-impl<'a> StrokeOptions<'a> {
+impl StrokeOptions {
     pub fn set_line_width(&mut self, _val: f32) {
         match self {
-            StrokeOptions::Raqote(options, _) => options.width = _val,
+            StrokeOptions::Raqote(options) => options.width = _val,
         }
     }
     pub fn set_miter_limit(&mut self, _val: f32) {
         match self {
-            StrokeOptions::Raqote(options, _) => options.miter_limit = _val,
+            StrokeOptions::Raqote(options) => options.miter_limit = _val,
         }
     }
     pub fn set_line_join(&mut self, val: LineJoinStyle) {
         match self {
-            StrokeOptions::Raqote(options, _) => options.join = val.to_raqote_style(),
+            StrokeOptions::Raqote(options) => options.join = val.to_raqote_style(),
         }
     }
     pub fn set_line_cap(&mut self, val: LineCapStyle) {
         match self {
-            StrokeOptions::Raqote(options, _) => options.cap = val.to_raqote_style(),
+            StrokeOptions::Raqote(options) => options.cap = val.to_raqote_style(),
         }
     }
     pub fn as_raqote(&self) -> &raqote::StrokeStyle {
         match self {
-            StrokeOptions::Raqote(options, _) => options,
+            StrokeOptions::Raqote(options) => options,
         }
     }
 }
@@ -389,11 +386,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
     // Somehow a duplicate of `create_gradient_stops()` with different types.
     // It feels cumbersome to convert GradientStop back and forth just to use
     // `create_gradient_stops()`, so I'll leave this here for now.
-    fn create_gradient_stops(
-        &self,
-        gradient_stops: Vec<GradientStop>,
-        _extend_mode: ExtendMode,
-    ) -> GradientStops {
+    fn create_gradient_stops(&self, gradient_stops: Vec<GradientStop>) -> GradientStops {
         let mut stops = gradient_stops
             .into_iter()
             .map(|item| item.as_raqote().clone())
@@ -406,19 +399,10 @@ impl GenericDrawTarget for raqote::DrawTarget {
     fn create_path_builder(&self) -> Box<dyn GenericPathBuilder> {
         Box::new(PathBuilder::new())
     }
-    fn create_similar_draw_target(
-        &self,
-        size: &Size2D<i32>,
-        _format: SurfaceFormat,
-    ) -> Box<dyn GenericDrawTarget> {
+    fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Box<dyn GenericDrawTarget> {
         Box::new(raqote::DrawTarget::new(size.width, size.height))
     }
-    fn create_source_surface_from_data(
-        &self,
-        data: &[u8],
-        _size: Size2D<i32>,
-        _stride: i32,
-    ) -> Option<SourceSurface> {
+    fn create_source_surface_from_data(&self, data: &[u8]) -> Option<SourceSurface> {
         Some(SourceSurface::Raqote(data.to_vec()))
     }
     #[allow(unsafe_code)]
@@ -588,9 +572,6 @@ impl GenericDrawTarget for raqote::DrawTarget {
             &DrawOptions::Raqote(draw_options),
         );
     }
-    fn get_format(&self) -> SurfaceFormat {
-        SurfaceFormat::Raqote(())
-    }
     fn get_size(&self) -> Size2D<i32> {
         Size2D::new(self.width(), self.height())
     }
@@ -696,8 +677,8 @@ impl GenericDrawTarget for raqote::DrawTarget {
 impl Filter {
     fn to_raqote(&self) -> raqote::FilterMode {
         match self {
-            Filter::Linear => raqote::FilterMode::Bilinear,
-            Filter::Point => raqote::FilterMode::Nearest,
+            Filter::Bilinear => raqote::FilterMode::Bilinear,
+            Filter::Nearest => raqote::FilterMode::Nearest,
         }
     }
 }
@@ -874,10 +855,37 @@ pub trait ToRaqoteGradientStop {
     fn to_raqote(&self) -> raqote::GradientStop;
 }
 
+/// Clamp a 0..1 number to a 0..255 range to u8.
+///
+/// Whilst scaling by 256 and flooring would provide
+/// an equal distribution of integers to percentage inputs,
+/// this is not what Gecko does so we instead multiply by 255
+/// and round (adding 0.5 and flooring is equivalent to rounding)
+///
+/// Chrome does something similar for the alpha value, but not
+/// the rgb values.
+///
+/// See <https://bugzilla.mozilla.org/show_bug.cgi?id=1340484>
+///
+/// Clamping to 256 and rounding after would let 1.0 map to 256, and
+/// `256.0_f32 as u8` is undefined behavior:
+///
+/// <https://github.com/rust-lang/rust/issues/10184>
+#[inline]
+pub fn clamp_unit_f32(val: f32) -> u8 {
+    clamp_floor_256_f32(val * 255.)
+}
+
+/// Round and clamp a single number to a u8.
+#[inline]
+pub fn clamp_floor_256_f32(val: f32) -> u8 {
+    val.round().clamp(0., 255.) as u8
+}
+
 impl ToRaqoteGradientStop for CanvasGradientStop {
     fn to_raqote(&self) -> raqote::GradientStop {
         let color = raqote::Color::new(
-            self.color.alpha,
+            clamp_unit_f32(self.color.alpha),
             self.color.red,
             self.color.green,
             self.color.blue,
@@ -894,7 +902,7 @@ impl<'a> ToRaqotePattern<'_> for FillOrStrokeStyle {
 
         match self {
             Color(color) => Some(Pattern::Color(
-                color.alpha,
+                clamp_unit_f32(color.alpha),
                 color.red,
                 color.green,
                 color.blue,
@@ -952,7 +960,12 @@ impl ToRaqoteStyle for RGBA {
     type Target = raqote::SolidSource;
 
     fn to_raqote_style(self) -> Self::Target {
-        raqote::SolidSource::from_unpremultiplied_argb(self.alpha, self.red, self.green, self.blue)
+        raqote::SolidSource::from_unpremultiplied_argb(
+            clamp_unit_f32(self.alpha),
+            self.red,
+            self.green,
+            self.blue,
+        )
     }
 }
 

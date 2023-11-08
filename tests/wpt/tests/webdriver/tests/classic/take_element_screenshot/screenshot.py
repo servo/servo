@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver import Element
+from webdriver import WebElement
 
 from tests.support.asserts import assert_error, assert_success
 from tests.support.image import png_dimensions
@@ -33,7 +33,7 @@ def test_no_browsing_context(session, closed_frame, inline):
 
 
 def test_no_such_element_with_invalid_value(session):
-    element = Element(session, "foo")
+    element = WebElement(session, "foo")
 
     response = take_element_screenshot(session, element.id)
     assert_error(response, "no such element")

@@ -10,4 +10,8 @@ if (window.location.search) {
                          .flatMap(value => value.split(','));
     document.documentElement.classList.add(...values);
   }
+  const lang = params.get('lang');
+  if (lang) {
+    document.documentElement.lang = lang;
+  }
 }

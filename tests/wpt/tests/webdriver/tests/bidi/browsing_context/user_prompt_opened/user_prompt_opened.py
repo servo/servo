@@ -56,28 +56,40 @@ async def test_prompt_type(
     }
 
 
+@pytest.mark.parametrize(
+    "default", [None, "", "default"], ids=["null", "empty string", "non empty string"]
+)
 async def test_prompt_default_value(
-    bidi_session, inline, new_tab, subscribe_events, wait_for_event
+    bidi_session, inline, new_tab, subscribe_events, wait_for_event, default
 ):
     await subscribe_events(events=[USER_PROMPT_OPENED_EVENT])
     on_entry = wait_for_event(USER_PROMPT_OPENED_EVENT)
 
     text = "test"
-    default = "default"
+
+    if default is None:
+        script = f"<script>window.prompt('{text}', null)</script>"
+    else:
+        script = f"<script>window.prompt('{text}', '{default}')</script>"
 
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"],
-        url=inline(f"<script>window.prompt('{text}', '{default}')</script>"),
+        url=inline(script),
     )
 
     event = await on_entry
 
-    assert event == {
+    expected_event = {
         "context": new_tab["context"],
         "type": "prompt",
         "message": text,
-        "defaultValue": default,
     }
+
+    if default is not None:
+        expected_event["defaultValue"] = default
+
+    assert event == expected_event
+
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_subscribe_to_one_context(
@@ -90,7 +102,7 @@ async def test_subscribe_to_one_context(
     # Track all received browsingContext.userPromptOpened events in the events array
     events = []
 
-    async def on_event(_, data):
+    async def on_event(method, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(
@@ -106,7 +118,7 @@ async def test_subscribe_to_one_context(
     # Open a prompt in the different context.
     await bidi_session.browsing_context.navigate(
         context=another_new_context["context"],
-        url=inline(f"<script>window.alert('second tab')</script>"),
+        url=inline("<script>window.alert('second tab')</script>"),
     )
 
     # Make sure we don't receive this event.
@@ -117,7 +129,7 @@ async def test_subscribe_to_one_context(
     # Open a prompt in the subscribed context.
     await bidi_session.browsing_context.navigate(
         context=new_context["context"],
-        url=inline(f"<script>window.alert('first tab')</script>"),
+        url=inline("<script>window.alert('first tab')</script>"),
     )
 
     event = await on_entry

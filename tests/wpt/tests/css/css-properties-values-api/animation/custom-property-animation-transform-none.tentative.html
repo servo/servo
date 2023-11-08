@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9522">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+// Move to custom-property-animation-transform-list-single-values.html when no longer tentative
+animation_test({
+  syntax: "<transform-list>|none",
+  inherits: false,
+  initialValue: "none"
+}, {
+  keyframes: ["translateX(200px)"],
+  expected: "translateX(200px)"
+}, 'Animating a custom property of type "<transform-list>|none" from "none" to <transform-list> value');
+
+// Move to custom-property-animation-transform-function.html when no longer tentative
+animation_test({
+  syntax: "<transform-function>|none",
+  inherits: false,
+  initialValue: "none"
+}, {
+  keyframes: ["translateX(200px)"],
+  expected: "translateX(200px)"
+}, 'Animating a custom property of type "<transform-function>|none" from "none" to <transform-function> value');
+
+</script>

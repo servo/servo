@@ -17,7 +17,7 @@ async def test_not_unsubscribed(bidi_session):
     # Track all received browsingContext.contextCreated events in the events array
     events = []
 
-    async def on_event(_, data):
+    async def on_event(method, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
@@ -94,7 +94,7 @@ async def test_evaluate_window_open_with_url(bidi_session, subscribe_events, wai
 async def test_navigate_creates_iframes(bidi_session, subscribe_events, top_context, test_page_multiple_frames):
     events = []
 
-    async def on_event(_, data):
+    async def on_event(method, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
@@ -142,7 +142,7 @@ async def test_navigate_creates_iframes(bidi_session, subscribe_events, top_cont
 async def test_navigate_creates_nested_iframes(bidi_session, subscribe_events, top_context, test_page_nested_frames):
     events = []
 
-    async def on_event(_, data):
+    async def on_event(method, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
@@ -200,7 +200,7 @@ async def test_subscribe_to_one_context(
     # Track all received browsingContext.contextCreated events in the events array
     events = []
 
-    async def on_event(_, data):
+    async def on_event(method, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)

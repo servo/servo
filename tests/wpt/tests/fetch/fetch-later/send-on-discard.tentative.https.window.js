@@ -36,8 +36,8 @@ parallelPromiseTest(async t => {
   const iframe = await loadScriptAsIframe(`
     const url = "${url}";
     for (let i = 0; i < ${numPerMethod}; i++) {
-      fetchLater(url, {method: 'GET', activationTimeout: 10000});  // 10s
-      fetchLater(url, {method: 'POST', activationTimeout: 8000});  // 8s
+      fetchLater(url, {method: 'GET', activateAfter: 10000});  // 10s
+      fetchLater(url, {method: 'POST', activateAfter: 8000});  // 8s
     }
   `);
   // Delete the iframe to trigger deferred request sending.
@@ -63,6 +63,5 @@ parallelPromiseTest(async t => {
   document.body.removeChild(iframe);
 
   // The iframe should not send the aborted request.
-  // TODO(crbug.com/1465781): Fix this after implementing abort function.
   await expectBeacon(uuid, {count: 1});
 }, 'A discarded document does not send an already aborted fetchLater request.');

@@ -33,6 +33,7 @@ from .protocol import (BaseProtocolPart,
                        DebugProtocolPart,
                        SPCTransactionsProtocolPart,
                        FedCMProtocolPart,
+                       VirtualSensorProtocolPart,
                        merge_dicts)
 
 from webdriver.client import Session
@@ -396,6 +397,26 @@ class WebDriverDebugProtocolPart(DebugProtocolPart):
         raise NotImplementedError()
 
 
+class WebDriverVirtualSensorPart(VirtualSensorProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def create_virtual_sensor(self, sensor_type, sensor_params):
+        body = {"type": sensor_type}
+        body.update(sensor_params)
+        return self.webdriver.send_session_command("POST", "sensor", body)
+
+    def update_virtual_sensor(self, sensor_type, reading):
+        body = {"reading": reading}
+        return self.webdriver.send_session_command("POST", "sensor/%s" % sensor_type, body)
+
+    def remove_virtual_sensor(self, sensor_type):
+        return self.webdriver.send_session_command("DELETE", "sensor/%s" % sensor_type)
+
+    def get_virtual_sensor_information(self, sensor_type):
+        return self.webdriver.send_session_command("GET", "sensor/%s" % sensor_type)
+
+
 class WebDriverProtocol(Protocol):
     implements = [WebDriverBaseProtocolPart,
                   WebDriverTestharnessProtocolPart,
@@ -412,7 +433,8 @@ class WebDriverProtocol(Protocol):
                   WebDriverVirtualAuthenticatorProtocolPart,
                   WebDriverSPCTransactionsProtocolPart,
                   WebDriverFedCMProtocolPart,
-                  WebDriverDebugProtocolPart]
+                  WebDriverDebugProtocolPart,
+                  WebDriverVirtualSensorPart]
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         super().__init__(executor, browser)

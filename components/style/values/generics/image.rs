@@ -142,14 +142,14 @@ impl<I: style_traits::ToCss, R: style_traits::ToCss> ToCss for GenericImageSetIt
         W: fmt::Write,
     {
         self.image.to_css(dest)?;
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         self.resolution.to_css(dest)?;
 
         if self.has_mime_type {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             dest.write_str("type(")?;
             self.mime_type.to_css(dest)?;
-            dest.write_str(")")?;
+            dest.write_char(')')?;
         }
         Ok(())
     }
@@ -369,7 +369,7 @@ impl ToCss for PaintWorklet {
             dest.write_str(", ")?;
             argument.to_css(dest)?;
         }
-        dest.write_str(")")
+        dest.write_char(')')
     }
 }
 
@@ -433,7 +433,7 @@ where
             Image::Element(ref selector) => {
                 dest.write_str("-moz-element(#")?;
                 serialize_atom_identifier(selector, dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             Image::ImageSet(ref is) => is.to_css(dest),
             Image::CrossFade(ref cf) => cf.to_css(dest),
@@ -520,7 +520,7 @@ where
                     if !omit_shape {
                         shape.to_css(dest)?;
                         if !omit_position {
-                            dest.write_str(" ")?;
+                            dest.write_char(' ')?;
                         }
                     }
                     if !omit_position {
@@ -560,7 +560,7 @@ where
                     dest.write_str("from ")?;
                     angle.to_css(dest)?;
                     if !omit_position {
-                        dest.write_str(" ")?;
+                        dest.write_char(' ')?;
                     }
                 }
                 if !omit_position {
@@ -577,7 +577,7 @@ where
                 }
             },
         }
-        dest.write_str(")")
+        dest.write_char(')')
     }
 }
 

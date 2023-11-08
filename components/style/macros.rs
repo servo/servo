@@ -65,46 +65,6 @@ macro_rules! try_match_ident_ignore_ascii_case {
     }}
 }
 
-macro_rules! define_keyword_type {
-    ($name:ident, $css:expr) => {
-        #[allow(missing_docs)]
-        #[derive(
-            Animate,
-            Clone,
-            ComputeSquaredDistance,
-            Copy,
-            MallocSizeOf,
-            PartialEq,
-            SpecifiedValueInfo,
-            ToAnimatedValue,
-            ToAnimatedZero,
-            ToComputedValue,
-            ToCss,
-            ToResolvedValue,
-            ToShmem,
-        )]
-        pub struct $name;
-
-        impl fmt::Debug for $name {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.write_str($css)
-            }
-        }
-
-        impl $crate::parser::Parse for $name {
-            fn parse<'i, 't>(
-                _context: &$crate::parser::ParserContext,
-                input: &mut ::cssparser::Parser<'i, 't>,
-            ) -> Result<$name, ::style_traits::ParseError<'i>> {
-                input
-                    .expect_ident_matching($css)
-                    .map(|_| $name)
-                    .map_err(|e| e.into())
-            }
-        }
-    };
-}
-
 #[cfg(feature = "servo")]
 macro_rules! local_name {
     ($s:tt) => {

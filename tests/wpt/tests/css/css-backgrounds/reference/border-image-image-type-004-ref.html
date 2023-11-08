@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Reftest reference</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <style>
+  div
+    {
+      border: 50px double red;
+      border-image-slice: 40 30 20 10;
+      border-image-source: url("../support/9-colored-areas-40-30-20-10.png");
+      height: 0px;
+      width: 0px;
+    }
+  </style>
+
+  <p>Test passes if there is a filled yellow square, then, on its right-hand side, a contiguous filled aqua square, then, below, a contiguous filled fuchsia square and finally a filled black square and <strong>no red</strong>.
+
+  <div></div>
+
+  <!--
+
+  Expected result:
+
+ (0,100) (50,100) (100,100)
+   + - - - - - - -+
+   |       ^      |
+   |Yellow50 Aqua |
+   |       v      |
+   | - - - - - - -|
+   |       ^      |
+   |Fuchsi50 Black|
+   |       v      |
+   | - - - - - - -|
+ (0,0)          (100,0)
+
+  -->

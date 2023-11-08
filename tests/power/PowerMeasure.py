@@ -12,8 +12,6 @@
 # Do not forget to run the script in servo/tests/power folder
 # --------------------------------------------------------#
 
-from __future__ import print_function, unicode_literals
-
 import os
 from os import path
 import time

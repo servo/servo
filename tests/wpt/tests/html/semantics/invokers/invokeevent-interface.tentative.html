@@ -1,0 +1,166 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<div id="div"></div>
+<button id="button"></button>
+
+<script>
+  test(function () {
+    const event = new InvokeEvent("test");
+    assert_equals(event.action, "auto");
+    assert_readonly(event, "action", "readonly attribute value");
+  }, "action is a readonly defaulting to 'auto'");
+
+  test(function () {
+    const event = new InvokeEvent("test");
+    assert_equals(event.invoker, null);
+    assert_readonly(event, "invoker", "readonly attribute value");
+  }, "invoker is readonly defaulting to null");
+
+  test(function () {
+    const event = new InvokeEvent("test", { action: "sAmPle" });
+    assert_equals(event.action, "sAmPle");
+  }, "action reflects initialized attribute");
+
+  test(function () {
+    const event = new InvokeEvent("test", { action: undefined });
+    assert_equals(event.action, "auto");
+  }, "action set to undefined");
+
+  test(function () {
+    const event = new InvokeEvent("test", { action: null });
+    assert_equals(event.action, "null");
+  }, "action set to null");
+
+  test(function () {
+    const event = new InvokeEvent("test", { action: false });
+    assert_equals(event.action, "false");
+  }, "action set to false");
+
+  test(function () {
+    const event = new InvokeEvent("test", { action: "" });
+    assert_equals(event.action, "");
+  }, "action explicitly set to empty string");
+
+  test(function () {
+    const event = new InvokeEvent("test", { action: true });
+    assert_equals(event.action, "true");
+  }, "action set to true");
+
+  test(function () {
+    const event = new InvokeEvent("test", { action: 0.5 });
+    assert_equals(event.action, "0.5");
+  }, "action set to a number");
+
+  test(function () {
+    const event = new InvokeEvent("test", { action: [] });
+    assert_equals(event.action, "");
+  }, "action set to []");
+
+  test(function () {
+    const event = new InvokeEvent("test", { action: [1, 2, 3] });
+    assert_equals(event.action, "1,2,3");
+  }, "action set to [1, 2, 3]");
+
+  test(function () {
+    const event = new InvokeEvent("test", { action: { sample: 0.5 } });
+    assert_equals(event.action, "[object Object]");
+  }, "action set to an object");
+
+  test(function () {
+    const event = new InvokeEvent("test", {
+      action: {
+        toString() {
+          return "sample";
+        },
+      },
+    });
+    assert_equals(event.action, "sample");
+  }, "action set to an object with a toString function");
+
+  test(function () {
+    const eventInit = { action: "sample", invoker: document.body };
+    const event = new InvokeEvent("test", eventInit);
+    assert_equals(event.action, "sample");
+    assert_equals(event.invoker, document.body);
+  }, "InvokeEventInit properties set value");
+
+  test(function () {
+    const eventInit = {
+      action: "open",
+      invoker: document.getElementById("div"),
+    };
+    const event = new InvokeEvent("beforetoggle", eventInit);
+    assert_equals(event.action, "open");
+    assert_equals(event.invoker, document.getElementById("div"));
+  }, "InvokeEventInit properties set value 2");
+
+  test(function () {
+    const eventInit = {
+      action: "closed",
+      invoker: document.getElementById("button"),
+    };
+    const event = new InvokeEvent("toggle", eventInit);
+    assert_equals(event.action, "closed");
+    assert_equals(event.invoker, document.getElementById("button"));
+  }, "InvokeEventInit properties set value 3");
+
+  test(function () {
+    const event = new InvokeEvent("test", { invoker: undefined });
+    assert_equals(event.invoker, null);
+  }, "invoker set to undefined");
+
+  test(function () {
+    const event = new InvokeEvent("test", { invoker: null });
+    assert_equals(event.invoker, null);
+  }, "invoker set to null");
+
+  test(function () {
+    assert_throws_js(
+      TypeError,
+      function () {
+        new InvokeEvent("test", { invoker: false });
+      },
+      "invoker is not an object",
+    );
+  }, "invoker set to false");
+
+  test(function () {
+    assert_throws_js(
+      TypeError,
+      function () {
+        const event = new InvokeEvent("test", { invoker: true });
+      },
+      "invoker is not an object",
+    );
+  }, "invoker set to true");
+
+  test(function () {
+    assert_throws_js(
+      TypeError,
+      function () {
+        const event = new InvokeEvent("test", { invoker: {} });
+      },
+      "invoker is not an object",
+    );
+  }, "invoker set to {}");
+
+  test(function () {
+    assert_throws_js(
+      TypeError,
+      function () {
+        const eventInit = { action: "closed", invoker: new XMLHttpRequest() };
+        const event = new InvokeEvent("toggle", eventInit);
+      },
+      "invoker is not an Element",
+    );
+  }, "invoker set to non-Element EventTarget");
+</script>

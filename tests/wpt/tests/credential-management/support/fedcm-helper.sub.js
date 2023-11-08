@@ -1,31 +1,31 @@
-const manifest_origin = "https://{{host}}:{{ports[https][0]}}";
+export const manifest_origin = "https://{{host}}:{{ports[https][0]}}";
 export const alt_manifest_origin = 'https://{{hosts[alt][]}}:{{ports[https][0]}}';
 
-function open_and_wait_for_popup(origin, path, resolve) {
-  let popup_window = window.open(origin + path);
+export function open_and_wait_for_popup(origin, path) {
+  return new Promise(resolve => {
+    let popup_window = window.open(origin + path);
 
-  // We rely on the popup page to send us a message when done.
-  const popup_message_handler = (event) => {
-    if (event.origin == origin) {
-      popup_window.close();
-      window.removeEventListener('message', popup_message_handler);
-      resolve();
-    }
-  };
+    // We rely on the popup page to send us a message when done.
+    const popup_message_handler = (event) => {
+      if (event.origin == origin) {
+        popup_window.close();
+        window.removeEventListener('message', popup_message_handler);
+        resolve();
+      }
+    };
 
-  window.addEventListener('message', popup_message_handler);
+    window.addEventListener('message', popup_message_handler);
+  });
 }
 
 // Set the identity provider cookie.
 export function set_fedcm_cookie(host) {
-  return new Promise(resolve => {
-    if (host == undefined) {
-      document.cookie = 'cookie=1; SameSite=Strict; Path=/credential-management/support; Secure';
-      resolve();
-    } else {
-      open_and_wait_for_popup(host, '/credential-management/support/set_cookie', resolve);
-    }
-  });
+  if (host == undefined) {
+    document.cookie = 'cookie=1; SameSite=Strict; Path=/credential-management/support; Secure';
+    return Promise.resolve();
+  } else {
+    return open_and_wait_for_popup(host, '/credential-management/support/set_cookie');
+  }
 }
 
 // Set the alternate identity provider cookie.
@@ -34,9 +34,11 @@ export function set_alt_fedcm_cookie() {
 }
 
 export function mark_signed_in(origin = manifest_origin) {
-  return new Promise(resolve => {
-    open_and_wait_for_popup(origin, '/credential-management/support/mark_signedin', resolve);
-  });
+  return open_and_wait_for_popup(origin, '/credential-management/support/mark_signedin');
+}
+
+export function mark_signed_out(origin = manifest_origin) {
+  return open_and_wait_for_popup(origin, '/credential-management/support/mark_signedout');
 }
 
 // Returns FedCM CredentialRequestOptions for which navigator.credentials.get()
@@ -150,9 +152,9 @@ export function request_options_with_login_hint(manifest_filename, login_hint) {
   return options;
 }
 
-export function request_options_with_hosted_domain(manifest_filename, hosted_domain) {
+export function request_options_with_domain_hint(manifest_filename, domain_hint) {
   let options = request_options_with_mediation_required(manifest_filename);
-  options.identity.providers[0].hostedDomain = hosted_domain;
+  options.identity.providers[0].domainHint = domain_hint;
 
   return options;
 }

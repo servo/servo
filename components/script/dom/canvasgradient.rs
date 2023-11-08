@@ -9,7 +9,7 @@ use cssparser::{Color as CSSColor, Parser, ParserInput, RGBA};
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::CanvasGradientBinding::CanvasGradientMethods;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasGradientMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -58,8 +58,8 @@ impl CanvasGradientMethods for CanvasGradient {
         let color = CSSColor::parse(&mut parser);
         let color = if parser.is_exhausted() {
             match color {
-                Ok(CSSColor::RGBA(rgba)) => rgba,
-                Ok(CSSColor::CurrentColor) => RGBA::new(0, 0, 0, 255),
+                Ok(CSSColor::Rgba(rgba)) => rgba,
+                Ok(CSSColor::CurrentColor) => RGBA::new(0, 0, 0, 1.0),
                 _ => return Err(Error::Syntax),
             }
         } else {

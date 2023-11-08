@@ -65,4 +65,9 @@ test(() => {
 test(() => {
   assert_equals(style.sheet.rules[3].end, '.b');
 }, 'CSSScopeRule.end, limit only');
+
+test(() => {
+  assert_true(style.sheet.rules[0] instanceof CSSGroupingRule);
+  assert_false(style.sheet.rules[0] instanceof CSSConditionRule);
+}, 'CSSScopeRule is a CSSGroupingRule');
 </script>

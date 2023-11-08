@@ -111,6 +111,14 @@ the global scope.
 .. js:autofunction:: test_driver.reset_fedcm_cooldown
 ```
 
+### Sensors ###
+```eval_rst
+.. js:autofunction:: test_driver.create_virtual_sensor
+.. js:autofunction:: test_driver.update_virtual_sensor
+.. js:autofunction:: test_driver.remove_virtual_sensor
+.. js:autofunction:: test_driver.get_virtual_sensor_information
+```
+
 ### Using test_driver in other browsing contexts ###
 
 Testdriver can be used in browsing contexts (i.e. windows or frames)
@@ -146,7 +154,7 @@ scripts directly in the relevant document, and use the
 specify the browsing context containing testharness.js. Commands are
 then sent via `postMessage` to the test context. For convenience there
 is also a [`test_driver.message_test`](#test_driver.message_test)
-function that can be used to send arbitary messages to the test
+function that can be used to send arbitrary messages to the test
 window. For example, in an auxillary browsing context:
 
 ```js

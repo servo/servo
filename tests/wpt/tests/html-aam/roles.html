@@ -88,8 +88,8 @@
 <img src="#" alt="x" data-testname="el-img" data-expectedrole="image" class="ex">
 
 <!-- Implementations might also be valid if ignored rather than returning 'none' for the following images. -->
-<img src="#" alt data-testname="el-img-alt-no-value" data-expectedrole="none" class="ex">
-<img src="#" alt="" data-testname="el-img-empty-alt" data-expectedrole="none" class="ex">
+<img src="#" alt data-testname="el-img-alt-no-value" class="ex-generic">
+<img src="#" alt="" data-testname="el-img-empty-alt" class="ex-generic">
 
 <input type="button" value="x" data-testname="el-input-button" data-expectedrole="button" class="ex">
 <input type="checkbox" data-testname="el-input-checkbox" data-expectedrole="checkbox" class="ex">
@@ -199,6 +199,7 @@
 
 <script>
 AriaUtils.verifyRolesBySelector(".ex");
+AriaUtils.verifyGenericRolesBySelector(".ex-generic");
 </script>
 
 </body>

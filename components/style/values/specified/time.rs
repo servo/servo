@@ -159,7 +159,7 @@ impl ToCss for Time {
         match self.unit {
             TimeUnit::Second => {
                 self.seconds.to_css(dest)?;
-                dest.write_str("s")?;
+                dest.write_char('s')?;
             },
             TimeUnit::Millisecond => {
                 (self.seconds * 1000.).to_css(dest)?;
@@ -167,7 +167,7 @@ impl ToCss for Time {
             },
         }
         if self.was_calc {
-            dest.write_str(")")?;
+            dest.write_char(')')?;
         }
         Ok(())
     }

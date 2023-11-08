@@ -15,6 +15,7 @@ crate-type = ["cdylib"]
 path = "lib.rs"
 
 [dependencies]
+cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 glib = "0.9"

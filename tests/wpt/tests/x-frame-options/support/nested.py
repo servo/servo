@@ -17,21 +17,20 @@ def main(request, response):
   var i = document.createElement("iframe");
   i.src = "%s/x-frame-options/support/xfo.py?value=%s";
   i.onload = _ => {
-    // Why two rAFs? Because that seems to be enough to stop the
-    // load event from racing with the onmessage event.
-    requestAnimationFrame(_ => {
-      requestAnimationFrame(_ => {
-        // The race condition problem we have is it is possible
-        // that the sub iframe is loaded before the postMessage is
-        // dispatched, as a result, the "Failed" message is sent
-        // out. So the way we fixed is we simply let the timeout
-        // to happen if we expect the "Loaded" postMessage to be
-        // sent
-        if (!gotMessage && %s != true) {
-          window.parent.postMessage("Failed", "*");
-        }
-      });
-    });
+    // Why 100ms timeout? Because that seems to be enough to stop the
+    // load event from racing with the onmessage event, and it's at least
+    // as long as the two renderAnimationFrame calls that used to be here.
+    setTimeout(_ => {
+      // The race condition problem we have is it is possible
+      // that the sub iframe is loaded before the postMessage is
+      // dispatched, as a result, the "Failed" message is sent
+      // out. So the way we fixed is we simply let the timeout
+      // to happen if we expect the "Loaded" postMessage to be
+      // sent
+      if (!gotMessage && %s != true) {
+        window.parent.postMessage("Failed", "*");
+      }
+    }, 100);
   };
   document.body.appendChild(i);
 </script>

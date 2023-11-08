@@ -21,7 +21,7 @@
 android = false
 
 # Enable `debug_assert!` macros in release mode
-debug-assertions = false
+debug-assertions = true
 
 # Set "debug-mozjs" or use `mach build --debug-mozjs` to build a debug spidermonkey.
 debug-mozjs = false

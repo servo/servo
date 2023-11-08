@@ -9,11 +9,11 @@ def main(request, response):
         <!DOCTYPE html>
         <html>
         <head>
-        <!--- Allow injected scripts to use functions in fledge-util.js --->
+        <!--- Allow injected scripts to use functions in fledge-util.sub.js --->
         <base href="..">
         <script src="/resources/testharness.js"></script>
         <script src="/common/utils.js"></script>
-        <script src="resources/fledge-util.js"></script>
+        <script src="resources/fledge-util.sub.js"></script>
         </head>
         <body>
         <script>

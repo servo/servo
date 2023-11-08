@@ -439,11 +439,9 @@ def check_parsed(repo_root: Text, path: Text, f: IO[bytes]) -> List[rules.Error]
                 errors.append(rules.VariantMissing.error(path))
             else:
                 variant = element.attrib["content"]
-                if (variant == "" or
-                    variant[0] not in ("?", "#") or
-                    len(variant) == 1 or
-                    (variant[0] == "?" and variant[1] == "#")):
-                    errors.append(rules.MalformedVariant.error(path, (path,)))
+                if is_variant_malformed(variant):
+                    value = f"{path} `<meta name=variant>` 'content' attribute"
+                    errors.append(rules.MalformedVariant.error(path, (value,)))
 
     required_elements: List[Text] = []
 
@@ -542,6 +540,12 @@ def check_parsed(repo_root: Text, path: Text, f: IO[bytes]) -> List[rules.Error]
 
     return errors
 
+
+def is_variant_malformed(variant: str) -> bool:
+    return (variant == "" or variant[0] not in ("?", "#") or
+            len(variant) == 1 or (variant[0] == "?" and variant[1] == "#"))
+
+
 class ASTCheck(metaclass=abc.ABCMeta):
     @abc.abstractproperty
     def rule(self) -> Type[rules.Rule]:
@@ -620,7 +624,11 @@ def check_script_metadata(repo_root: Text, path: Text, f: IO[bytes]) -> List[rul
                 if value != b"long":
                     errors.append(rules.UnknownTimeoutMetadata.error(path,
                                                                      line_no=idx + 1))
-            elif key not in (b"title", b"script", b"variant", b"quic"):
+            elif key == b"variant":
+                if is_variant_malformed(value.decode()):
+                    value = f"{path} `META: variant=...` value"
+                    errors.append(rules.MalformedVariant.error(path, (value,), idx + 1))
+            elif key not in (b"title", b"script", b"quic"):
                 errors.append(rules.UnknownMetadata.error(path,
                                                           line_no=idx + 1))
         else:
@@ -680,7 +688,7 @@ def check_all_paths(repo_root: Text, paths: List[Text]) -> List[rules.Error]:
     """
 
     errors = []
-    for paths_fn in all_paths_lints:
+    for paths_fn in all_paths_lints():
         errors.extend(paths_fn(repo_root, paths))
     return errors
 
@@ -975,17 +983,21 @@ def lint(repo_root: Text,
 
 path_lints = [check_file_type, check_path_length, check_worker_collision, check_ahem_copy,
               check_mojom_js, check_tentative_directories, check_gitignore_file]
-all_paths_lints = [check_unique_testharness_basenames,
-                   check_unique_case_insensitive_paths]
 file_lints = [check_regexp_line, check_parsed, check_python_ast, check_script_metadata,
               check_ahem_system_font]
 
-# Don't break users of the lint that don't have git installed.
-try:
-    subprocess.check_output(["git", "--version"])
-    all_paths_lints += [check_git_ignore]
-except (subprocess.CalledProcessError, FileNotFoundError):
-    print('No git present; skipping .gitignore lint.')
+
+def all_paths_lints() -> Any:
+    paths = [check_unique_testharness_basenames,
+             check_unique_case_insensitive_paths]
+    # Don't break users of the lint that don't have git installed.
+    try:
+        subprocess.check_output(["git", "--version"])
+        paths += [check_git_ignore]
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print('No git present; skipping .gitignore lint.')
+    return paths
+
 
 if __name__ == "__main__":
     args = create_parser().parse_args()

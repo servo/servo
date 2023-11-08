@@ -45,7 +45,7 @@ promise_test(async t => {
       /*name=*/ null,
       /*reasons=*/['websocket'],
       /*children=*/[{
-        'preventedBackForwardCache': "no",
+        'preventedBackForwardCache': "masked",
         'url': null,
         'src': rc1_child_url,
         // Id and name should be empty.

@@ -6,10 +6,11 @@
 
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
+use crate::gecko_bindings::structs::ScreenColorGamut;
+use crate::media_queries::{Device, MediaType};
 use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatureDescription};
 use crate::queries::values::Orientation;
-use crate::media_queries::{Device, MediaType};
-use crate::values::computed::{Context, CSSPixelLength, Ratio, Resolution};
+use crate::values::computed::{CSSPixelLength, Context, Ratio, Resolution};
 use app_units::Au;
 use euclid::default::Size2D;
 
@@ -89,7 +90,11 @@ pub enum DisplayMode {
 /// https://w3c.github.io/manifest/#the-display-mode-media-feature
 fn eval_display_mode(context: &Context, query_value: Option<DisplayMode>) -> bool {
     match query_value {
-        Some(v) => v == unsafe { bindings::Gecko_MediaFeatures_GetDisplayMode(context.device().document()) },
+        Some(v) => {
+            v == unsafe {
+                bindings::Gecko_MediaFeatures_GetDisplayMode(context.device().document())
+            }
+        },
         None => true,
     }
 }
@@ -121,25 +126,58 @@ fn eval_scan(_: &Context, _: Option<Scan>) -> bool {
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#color
-fn eval_color(context: &Context) -> u32 {
+fn eval_color(context: &Context) -> i32 {
     unsafe { bindings::Gecko_MediaFeatures_GetColorDepth(context.device().document()) }
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#color-index
-fn eval_color_index(_: &Context) -> u32 {
+fn eval_color_index(_: &Context) -> i32 {
     // We should return zero if the device does not use a color lookup table.
     0
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#monochrome
-fn eval_monochrome(context: &Context) -> u32 {
+fn eval_monochrome(context: &Context) -> i32 {
     // For color devices we should return 0.
     unsafe { bindings::Gecko_MediaFeatures_GetMonochromeBitsPerPixel(context.device().document()) }
 }
 
+/// Values for the color-gamut media feature.
+/// This implements PartialOrd so that lower values will correctly match
+/// higher capabilities.
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, PartialOrd, ToCss)]
+#[repr(u8)]
+enum ColorGamut {
+    /// The sRGB gamut.
+    Srgb,
+    /// The gamut specified by the Display P3 Color Space.
+    P3,
+    /// The gamut specified by the ITU-R Recommendation BT.2020 Color Space.
+    Rec2020,
+}
+
+/// https://drafts.csswg.org/mediaqueries-4/#color-gamut
+fn eval_color_gamut(context: &Context, query_value: Option<ColorGamut>) -> bool {
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return false,
+    };
+    let color_gamut =
+        unsafe { bindings::Gecko_MediaFeatures_ColorGamut(context.device().document()) };
+    // Match if our color gamut is at least as wide as the query value
+    query_value <=
+        match color_gamut {
+            // EndGuard_ is not a valid color gamut, so the default color-gamut is used.
+            ScreenColorGamut::Srgb | ScreenColorGamut::EndGuard_ => ColorGamut::Srgb,
+            ScreenColorGamut::P3 => ColorGamut::P3,
+            ScreenColorGamut::Rec2020 => ColorGamut::Rec2020,
+        }
+}
+
 /// https://drafts.csswg.org/mediaqueries-4/#resolution
 fn eval_resolution(context: &Context) -> Resolution {
-    let resolution_dppx = unsafe { bindings::Gecko_MediaFeatures_GetResolution(context.device().document()) };
+    let resolution_dppx =
+        unsafe { bindings::Gecko_MediaFeatures_GetResolution(context.device().document()) };
     Resolution::from_dppx(resolution_dppx)
 }
 
@@ -172,7 +210,10 @@ pub enum DynamicRange {
 }
 
 /// https://drafts.csswg.org/mediaqueries-5/#prefers-reduced-motion
-fn eval_prefers_reduced_motion(context: &Context, query_value: Option<PrefersReducedMotion>) -> bool {
+fn eval_prefers_reduced_motion(
+    context: &Context,
+    query_value: Option<PrefersReducedMotion>,
+) -> bool {
     let prefers_reduced =
         unsafe { bindings::Gecko_MediaFeatures_PrefersReducedMotion(context.device().document()) };
     let query_value = match query_value {
@@ -317,8 +358,9 @@ fn do_eval_prefers_color_scheme(
     use_content: bool,
     query_value: Option<PrefersColorScheme>,
 ) -> bool {
-    let prefers_color_scheme =
-        unsafe { bindings::Gecko_MediaFeatures_PrefersColorScheme(context.device().document(), use_content) };
+    let prefers_color_scheme = unsafe {
+        bindings::Gecko_MediaFeatures_PrefersColorScheme(context.device().document(), use_content)
+    };
     match query_value {
         Some(v) => prefers_color_scheme == v,
         None => true,
@@ -496,8 +538,8 @@ fn eval_moz_platform(_: &Context, query_value: Option<Platform>) -> bool {
     unsafe { bindings::Gecko_MediaFeatures_MatchesPlatform(query_value) }
 }
 
-fn eval_moz_windows_non_native_menus(_: &Context) -> bool {
-    unsafe { bindings::Gecko_MediaFeatures_WindowsNonNativeMenus() }
+fn eval_moz_windows_non_native_menus(context: &Context) -> bool {
+    unsafe { bindings::Gecko_MediaFeatures_WindowsNonNativeMenus(context.device().document()) }
 }
 
 fn eval_moz_overlay_scrollbars(context: &Context) -> bool {
@@ -576,7 +618,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 63] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -686,6 +728,12 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
         atom!("monochrome"),
         AllowsRanges::Yes,
         Evaluator::Integer(eval_monochrome),
+        FeatureFlags::empty(),
+    ),
+    feature!(
+        atom!("color-gamut"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_color_gamut, ColorGamut),
         FeatureFlags::empty(),
     ),
     feature!(
@@ -867,5 +915,15 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
         GTKCSDReversedPlacement
     ),
     lnf_int_feature!(atom!("-moz-system-dark-theme"), SystemUsesDarkTheme),
-    bool_pref_feature!(atom!("-moz-box-flexbox-emulation"), "layout.css.moz-box-flexbox-emulation.enabled"),
+    lnf_int_feature!(atom!("-moz-panel-animations"), PanelAnimations),
+    // media query for MathML Core's implementation of maction/semantics
+    bool_pref_feature!(
+        atom!("-moz-mathml-core-maction-and-semantics"),
+        "mathml.legacy_maction_and_semantics_implementations.disabled"
+    ),
+    // media query for MathML Core's implementation of ms
+    bool_pref_feature!(
+        atom!("-moz-mathml-core-ms"),
+        "mathml.ms_lquote_rquote_attributes.disabled"
+    ),
 ];

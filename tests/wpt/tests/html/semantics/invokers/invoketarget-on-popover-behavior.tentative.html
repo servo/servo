@@ -1,0 +1,193 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<div id="invokee" popover>
+  <button id="invokerbutton2" invoketarget="invokee"></button>
+</div>
+<button id="invokerbutton" invoketarget="invokee"></button>
+
+<script>
+  // auto
+
+  promise_test(async function (t) {
+    assert_false(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton);
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_true(invokee.matches(":popover-open"));
+  }, "invoking (as auto) closed popover opens");
+
+  promise_test(async function (t) {
+    assert_false(invokee.matches(":popover-open"));
+    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+      once: true,
+    });
+    await clickOn(invokerbutton);
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_false(invokee.matches(":popover-open"));
+  }, "invoking (as auto) closed popover with preventDefault does not open");
+
+  promise_test(async function (t) {
+    invokee.showPopover();
+    assert_true(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton2);
+    assert_false(invokee.matches(":popover-open"));
+  }, "invoking (as auto) open popover closes");
+
+  promise_test(async function (t) {
+    invokee.showPopover();
+    t.add_cleanup(() => invokee.hidePopover());
+    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+      once: true,
+    });
+    assert_true(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton2);
+    assert_true(invokee.matches(":popover-open"));
+  }, "invoking (as auto) open popover with preventDefault does not close");
+
+  // togglepopover
+
+  promise_test(async function (t) {
+    assert_false(invokee.matches(":popover-open"));
+    invokerbutton.setAttribute("invokeaction", "togglepopover");
+    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+    await clickOn(invokerbutton);
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_true(invokee.matches(":popover-open"));
+  }, "invoking (as togglepopover) closed popover opens");
+
+  promise_test(async function (t) {
+    assert_false(invokee.matches(":popover-open"));
+    invokerbutton.setAttribute("invokeaction", "tOgGlEpOpOvEr");
+    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+    await clickOn(invokerbutton);
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_true(invokee.matches(":popover-open"));
+  }, "invoking (as togglepopover - case insensitive) closed popover opens");
+
+  promise_test(async function (t) {
+    assert_false(invokee.matches(":popover-open"));
+    invokerbutton.setAttribute("invokeaction", "togglepopover");
+    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+      once: true,
+    });
+    await clickOn(invokerbutton);
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_false(invokee.matches(":popover-open"));
+  }, "invoking (as togglepopover) closed popover with preventDefault does not open");
+
+  promise_test(async function (t) {
+    invokee.showPopover();
+    invokerbutton2.setAttribute("invokeaction", "togglepopover");
+    t.add_cleanup(() => invokerbutton2.removeAttribute("invokeaction"));
+    assert_true(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton2);
+    assert_false(invokee.matches(":popover-open"));
+  }, "invoking (as togglepopover) open popover closes");
+
+  promise_test(async function (t) {
+    invokee.showPopover();
+    t.add_cleanup(() => invokee.hidePopover());
+    invokerbutton2.setAttribute("invokeaction", "togglepopover");
+    t.add_cleanup(() => invokerbutton2.removeAttribute("invokeaction"));
+    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+      once: true,
+    });
+    assert_true(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton2);
+    assert_true(invokee.matches(":popover-open"));
+  }, "invoking (as togglepopover) open popover with preventDefault does not close");
+
+  // showpopover
+
+  promise_test(async function (t) {
+    invokerbutton.setAttribute("invokeaction", "showpopover");
+    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+    assert_false(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton);
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_true(invokee.matches(":popover-open"));
+  }, "invoking (as showpopover) closed popover opens");
+
+  promise_test(async function (t) {
+    invokerbutton.setAttribute("invokeaction", "sHoWpOpOvEr");
+    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+    assert_false(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton);
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_true(invokee.matches(":popover-open"));
+  }, "invoking (as showpopover - case insensitive) closed popover opens");
+
+  promise_test(async function (t) {
+    invokerbutton.setAttribute("invokeaction", "showpopover");
+    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+    invokee.showPopover();
+    assert_true(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton);
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_true(invokee.matches(":popover-open"));
+  }, "invoking (as showpopover) open popover is noop");
+
+  promise_test(async function (t) {
+    invokerbutton.setAttribute("invokeaction", "showpopover");
+    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+    assert_false(invokee.matches(":popover-open"));
+    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+      once: true,
+    });
+    await clickOn(invokerbutton);
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_false(invokee.matches(":popover-open"));
+  }, "invoking (as showpopover) closed popover with preventDefault does not open");
+
+  // hidepopover
+
+  promise_test(async function (t) {
+    invokerbutton.setAttribute("invokeaction", "hidepopover");
+    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+    assert_false(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton);
+    assert_false(invokee.matches(":popover-open"));
+  }, "invoking (as hidepopover) closed popover is noop");
+
+  promise_test(async function (t) {
+    invokerbutton2.setAttribute("invokeaction", "hidepopover");
+    t.add_cleanup(() => invokerbutton2.removeAttribute("invokeaction"));
+    invokee.showPopover();
+    assert_true(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton2);
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_false(invokee.matches(":popover-open"));
+  }, "invoking (as hidepopover) open popover closes");
+
+  promise_test(async function (t) {
+    invokerbutton2.setAttribute("invokeaction", "hIdEpOpOvEr");
+    t.add_cleanup(() => invokerbutton2.removeAttribute("invokeaction"));
+    invokee.showPopover();
+    assert_true(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton2);
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_false(invokee.matches(":popover-open"));
+  }, "invoking (as hidepopover - case insensitive) open popover closes");
+
+  promise_test(async function (t) {
+    invokerbutton2.setAttribute("invokeaction", "hidepopover");
+    t.add_cleanup(() => invokerbutton2.removeAttribute("invokeaction"));
+    invokee.showPopover();
+    t.add_cleanup(() => invokee.hidePopover());
+    assert_true(invokee.matches(":popover-open"));
+    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+      once: true,
+    });
+    await clickOn(invokerbutton2);
+    assert_true(invokee.matches(":popover-open"));
+  }, "invoking (as hidepopover) open popover with preventDefault does not close");
+</script>

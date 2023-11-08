@@ -45,7 +45,7 @@ def do_delayed_imports(logger, test_paths):
 
 
 def serve_path(test_paths):
-    return test_paths["/"]["tests_path"]
+    return test_paths["/"].tests_path
 
 
 def webtranport_h3_server_is_running(host, port, timeout):
@@ -249,10 +249,10 @@ class TestEnvironment:
 
         route_builder.add_handler("GET", "/resources/testdriver.js", TestdriverLoader())
 
-        for url_base, paths in self.test_paths.items():
+        for url_base, test_root in self.test_paths.items():
             if url_base == "/":
                 continue
-            route_builder.add_mount_point(url_base, paths["tests_path"])
+            route_builder.add_mount_point(url_base, test_root.tests_path)
 
         if "/" not in self.test_paths:
             del route_builder.mountpoint_routes["/"]

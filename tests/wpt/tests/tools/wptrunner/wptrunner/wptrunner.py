@@ -1,4 +1,4 @@
-# mypy: allow-untyped-defs
+# mypy: allow-untyped-calls, allow-untyped-defs
 
 import json
 import os
@@ -6,6 +6,7 @@ import signal
 import sys
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Any, Tuple
 
 import wptserve
 from wptserve import sslutils
@@ -13,6 +14,7 @@ from wptserve import sslutils
 from . import environment as env
 from . import instruments
 from . import mpcontext
+from . import products
 from . import testloader
 from . import wptcommandline
 from . import wptlogging
@@ -47,7 +49,9 @@ def setup_logging(*args, **kwargs):
     return logger
 
 
-def get_loader(test_paths, product, **kwargs):
+def get_loader(test_paths: wptcommandline.TestPaths,
+               product: products.Product,
+               **kwargs: Any) -> Tuple[testloader.TestQueueBuilder, testloader.TestLoader]:
     run_info_extras = product.run_info_extras(**kwargs)
     base_run_info = wpttest.get_run_info(kwargs["run_info"],
                                          product.name,
@@ -98,9 +102,9 @@ def get_loader(test_paths, product, **kwargs):
     ssl_enabled = sslutils.get_cls(kwargs["ssl_type"]).ssl_enabled
     h2_enabled = wptserve.utils.http2_compatible()
 
-    test_source, chunker_kwargs = testloader.get_test_src(logger=logger,
-                                                          test_groups=test_groups,
-                                                          **kwargs)
+    test_queue_builder, chunker_kwargs = testloader.get_test_queue_builder(logger=logger,
+                                                                           test_groups=test_groups,
+                                                                           **kwargs)
 
     test_loader = testloader.TestLoader(test_manifests=test_manifests,
                                         test_types=kwargs["test_types"],
@@ -118,7 +122,7 @@ def get_loader(test_paths, product, **kwargs):
                                         skip_crash=kwargs["skip_crash"],
                                         skip_implementation_status=kwargs["skip_implementation_status"],
                                         chunker_kwargs=chunker_kwargs)
-    return test_source, test_loader
+    return test_queue_builder, test_loader
 
 
 def list_test_groups(test_paths, product, **kwargs):
@@ -155,20 +159,30 @@ def list_tests(test_paths, product, **kwargs):
 
 
 def get_pause_after_test(test_loader, **kwargs):
-    if kwargs["pause_after_test"] is None:
-        if kwargs["repeat_until_unexpected"]:
-            return False
-        if kwargs["headless"]:
-            return False
-        if kwargs["debug_test"]:
-            return True
-        tests = test_loader.tests
-        is_single_testharness = (sum(len(item) for item in tests.values()) == 1 and
-                                 len(tests.get("testharness", [])) == 1)
-        if kwargs["repeat"] == 1 and kwargs["rerun"] == 1 and is_single_testharness:
-            return True
+    if kwargs["pause_after_test"] is not None:
+        return kwargs["pause_after_test"]
+    if kwargs["repeat_until_unexpected"]:
         return False
-    return kwargs["pause_after_test"]
+    if kwargs["headless"]:
+        return False
+    if kwargs["debug_test"]:
+        return True
+    tests = test_loader.tests
+    is_single_testharness = True
+    testharness_count = 0
+    for tests_by_type in tests.values():
+        for test_type, tests in tests_by_type.items():
+            if test_type != "testharness" and len(tests):
+                is_single_testharness = False
+                break
+            elif test_type == "testharness":
+                testharness_count += len(tests)
+                if testharness_count > 1:
+                    is_single_testharness = False
+                    break
+    return kwargs["repeat"] == 1 and kwargs["rerun"] == 1 and is_single_testharness
+
+
 
 
 def log_suite_start(tests_by_group, base_run_info, subsuites, run_by_dir):
@@ -181,7 +195,7 @@ def log_suite_start(tests_by_group, base_run_info, subsuites, run_by_dir):
         logger.add_subsuite(name=name, run_info=subsuite.run_info_extras)
 
 
-def run_test_iteration(test_status, test_loader, test_source,
+def run_test_iteration(test_status, test_loader, test_queue_builder,
                        recording, test_environment, product, kwargs):
     """Runs the entire test suite.
     This is called for each repeat run requested."""
@@ -195,7 +209,7 @@ def run_test_iteration(test_status, test_loader, test_source,
                 tests_by_type[(subsuite_name, test_type)].extend(type_tests_active)
                 tests_by_type[(subsuite_name, test_type)].extend(type_tests_disabled)
 
-    tests_by_group = test_source.cls.tests_by_group(tests_by_type, **test_source.kwargs)
+    tests_by_group = test_queue_builder.tests_by_group(tests_by_type)
 
     log_suite_start(tests_by_group,
                     test_loader.base_run_info,
@@ -271,7 +285,7 @@ def run_test_iteration(test_status, test_loader, test_source,
             tests_to_run = unexpected_fail_tests
             if sum(len(tests) for tests in tests_to_run.values()) == 0:
                 break
-            tests_by_group = test_source.cls.tests_by_group(tests_to_run, **kwargs)
+            tests_by_group = test_queue_builder.tests_by_group(tests_to_run)
 
             logger.suite_end()
 
@@ -281,7 +295,7 @@ def run_test_iteration(test_status, test_loader, test_source,
                             kwargs["run_by_dir"])
 
         with ManagerGroup("web-platform-tests",
-                          test_source,
+                          test_queue_builder,
                           test_implementations,
                           retry_index,
                           kwargs["rerun"],
@@ -386,14 +400,14 @@ def run_tests(config, product, test_paths, **kwargs):
             env_extras.append(FontInstaller(
                 logger,
                 font_dir=kwargs["font_dir"],
-                ahem=os.path.join(test_paths["/"]["tests_path"], "fonts/Ahem.ttf")
+                ahem=os.path.join(test_paths["/"].tests_path, "fonts/Ahem.ttf")
             ))
 
         recording.set(["startup", "load_tests"])
 
-        test_source, test_loader = get_loader(test_paths,
-                                              product,
-                                              **kwargs)
+        test_queue_builder, test_loader = get_loader(test_paths,
+                                                     product,
+                                                     **kwargs)
 
         test_status = TestStatus()
         repeat = kwargs["repeat"]
@@ -472,9 +486,13 @@ def run_tests(config, product, test_paths, **kwargs):
                 elif repeat > 1:
                     logger.info(f"Repetition {test_status.repeated_runs} / {repeat}")
 
-                iter_success = run_test_iteration(test_status, test_loader, test_source,
+                iter_success = run_test_iteration(test_status,
+                                                  test_loader,
+                                                  test_queue_builder,
                                                   recording,
-                                                  test_environment, product, kwargs)
+                                                  test_environment,
+                                                  product,
+                                                  kwargs)
                 # if there were issues with the suite run(tests not loaded, etc.) return
                 if not iter_success:
                     return False, test_status

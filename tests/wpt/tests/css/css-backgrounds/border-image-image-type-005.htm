@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>CSS Backgrounds and Borders Test: The 'border-image-source' property with an SVG image as a value and the 'border-image-slice' property with percentage values</title>
+        <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
+        <link rel="help" href="http://www.w3.org/TR/css3-background/#the-border-image-slice" />
+        <link rel="match" href="reference/border-image-image-type-004-ref.html" />
+        <meta name="flags" content="svg" />
+        <meta name="assert" content="This test checks that border image is sliced into nine regions with inward offsets of: '40% 30% 20% 10%' from the top, right, bottom, and left edges of the image. Percentages are relative to the size of the image: the width of the image for the horizontal offsets, the height for vertical offsets." />
+        <meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-100" />
+        <style type="text/css">
+            div
+            {
+                border: 50px double red;
+                border-image-slice: 40% 30% 20% 10%;
+                border-image-source: url("support/9-colored-areas-40-30-20-10.svg");
+                height: 0px;
+                width: 0px;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test passes if there is a filled yellow square, then, on its right-hand side, a contiguous filled aqua square, then, below, a contiguous filled fuchsia square and finally a filled black square and <strong>no red</strong>.</p>
+        <div></div>
+
+  <!--
+
+  Expected result:
+
+ (0,100) (50,100) (100,100)
+   + - - - - - - -+
+   |       ^      |
+   |Yellow50 Aqua |
+   |       v      |
+   | - - - - - - -|
+   |       ^      |
+   |Fuchsi50 Black|
+   |       v      |
+   | - - - - - - -|
+ (0,0)          (100,0)
+
+  -->
+
+    </body>
+</html>

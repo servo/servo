@@ -392,6 +392,19 @@ class Test(ABC):
             prefs.update(meta_prefs)
         return prefs
 
+    def expected_fail_message(self, subtest):
+        if subtest is None:
+            return None
+
+        metadata = self._get_metadata(subtest)
+        if metadata is None:
+            return None
+
+        try:
+            return metadata.get("expected-fail-message")
+        except KeyError:
+            return None
+
     def expected(self, subtest=None):
         if subtest is None:
             default = self.result_cls.default_expected

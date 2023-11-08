@@ -12,12 +12,11 @@ Need tests for (likely not a complete list):
             probably not worth covering all types, if we have coverage for the
             main renderURL).
 * Filtering/prioritization (including bidding signals influencing priorities)
-* Size restrictions.
+* Size restrictions / ad and component ad sizes.
 * additionalBids.
 * adCost.
 * bidCurrency.
 * modellingSignals.
-* Ad and component ad sizes.
 * Updates (both after auction and triggered).
 * All auctionConfig parameters (including invalid auctionConfigs, and ones
     with no buyers).
@@ -25,35 +24,47 @@ Need tests for (likely not a complete list):
     currently guaranteed to work, due to potential time skew between processes).
 * Multiple buyers.
 * Multiple interest groups with same owner.
-* Multiple frame tests (including join IG policy, run auction policy,
-    loading URNs in fencedframes in other frames, loading component
+* Multiple frame tests (including loading component
     ad URNs in fenced frames of other frames, etc)
 * adAuctionConfig passed to reportResult().
 * Component auctions.
   * Including cross-origin sellers.
-* clearOriginJoinedInterestGroups.
 * browserSignals fields in scoring/bidding methods.
-* In reporting methods, browserSignals fields: dataVersion, topLevelSeller,
+* In reporting methods, browserSignals fields: topLevelSeller,
     componentSeller, modifiedBid, adCost, madeHighestScoringOtherBid
     (with interest group from another origin).
 * Loading ads in iframes.
 * In fencedframes window.fence.setReportEventDataForAutomaticBeacons()
-* Calling leaveAdInterestGroup() in the frame of a winning ad (and one
-    of its component ads)
+* Automatic beacons (e.g., reserved.top_navigation)
 * Network timeouts.
 * Validate specific escaping behavior logic (still under discussion). There
     are a number of different rules for which characters are escaped, and
-    whether spacess are escaped as "%20" or "+".
+    whether spaces are escaped as "%20" or "+".
 * Reports not sent if ad not used.
-* Ties.
 * Interactions with local network access API, which requires public
     networks to send CORS preflights for requests made over local networks.
     Needs testing with public publisher pages running auctions with
     sellers / buyers / update URLs on local networks.
+* Calling FLEDGE APIs (or at least leaveAdInterestGroup() with no args)
+    in a non-ad FencedFrame.
+* Test network requests in terms of fetch behavior
+  * Redirects not followed.
+  * Network partition (not yet specced).
+* Test that await is not needed for same-origin interest groups
+  * Verify that's still in the spec/explainer first.
+* executionMode
+  * Including cross-origin join/leave behavior with "group-by-origin" mode.
+* Make sure state is not shared.
+  * Across scoreAd() / generateBid() calls, and with report calls.
+  * In "group-by-origin" execution mode across IGs joined from different
+      origins, and between generateBid() and reportWin().
+* Test Content-Type headers allowed in responess for script/wasm/JSON fetches.
 
 If possible:
 * Aggregate reporting.
-* Join/leave permission delegation via .well-known files.
+* Join/leave permission delegation via .well-known files
+  * Including tests for clearOriginJoinedInterestGroups().
+  * Include tests for HTTP-y/fetch-y things (e.g., whether they have cookies)
 * k-anonymity.
 * Signals request batching. This is an optional feature, so can't require it,
     but maybe a test where batching could be used, and make sure things work,

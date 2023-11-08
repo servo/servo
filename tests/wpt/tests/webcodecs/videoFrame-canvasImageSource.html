@@ -85,7 +85,11 @@ test(t => {
                     'CSSImageValues are currently always tainted');
 }, 'CSSImageValue constructed VideoFrame');
 
-test(t => {
+promise_test(() => {
+  return new Promise(resolve => onload = resolve);
+}, "Wait for onload event to get access to image data");
+
+promise_test(async t => {
   let frame = new VideoFrame(document.querySelector('img'), {timestamp: 0});
   let canvas = new OffscreenCanvas(frame.displayWidth, frame.displayHeight);
   let ctx = canvas.getContext('2d');
@@ -94,7 +98,7 @@ test(t => {
   frame.close();
 }, 'Image element constructed VideoFrame');
 
-test(t => {
+promise_test(async t => {
   let frame = new VideoFrame(document.querySelector('image'), {timestamp: 0});
   let canvas = new OffscreenCanvas(frame.displayWidth, frame.displayHeight);
   let ctx = canvas.getContext('2d');

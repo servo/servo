@@ -10,7 +10,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import argparse
 import codecs
 import errno
-import imp
+import importlib
 import logging
 import os
 import sys
@@ -253,17 +253,13 @@ To see more help for a specific command, run:
         module name specified. If no name is specified, a random one will be
         chosen.
         """
-        if module_name is None:
-            # Ensure parent module is present otherwise we'll (likely) get
-            # an error due to unknown parent.
-            if 'mach.commands' not in sys.modules:
-                mod = imp.new_module('mach.commands')
-                sys.modules['mach.commands'] = mod
-
-            module_name = 'mach.commands.%s' % uuid.uuid4().hex
-
         try:
-            imp.load_source(module_name, path)
+            if module_name is None:
+                module_name = 'mach.commands.%s' % uuid.uuid4().hex
+            spec = importlib.util.spec_from_file_location(module_name, path)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = module
+            spec.loader.exec_module(module)
         except IOError as e:
             if e.errno != errno.ENOENT:
                 raise

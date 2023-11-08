@@ -106,27 +106,27 @@
   // Tests for dispatched pointer events.
   addPromiseTest("pointerdown", "pointer", [
     "pointerover@child", "pointerenter@parent", "pointerenter@child",
-    "pointerdown@child", "(child-removed)", "pointerup@parent",
+    "pointerdown@child", "(child-removed)", "pointerover@parent", "pointerup@parent",
     "pointerdown@parent", "pointerup@parent",
     "pointerout@parent", "pointerleave@parent"
   ]);
   addPromiseTest("pointerup", "pointer", [
     "pointerover@child", "pointerenter@parent", "pointerenter@child",
     "pointerdown@child", "pointerup@child", "(child-removed)",
-    "pointerdown@parent", "pointerup@parent",
+    "pointerover@parent", "pointerdown@parent", "pointerup@parent",
     "pointerout@parent", "pointerleave@parent"
   ]);
 
   // Same tests for dispatched compatibility mouse events.
   addPromiseTest("pointerdown", "mouse", [
     "mouseover@child", "mouseenter@parent", "mouseenter@child",
-    "(child-removed)", "mouseup@parent",
+    "(child-removed)", "mouseover@parent", "mousedown@parent", "mouseup@parent",
     "mousedown@parent", "mouseup@parent",
     "mouseout@parent", "mouseleave@parent"
   ]);
   addPromiseTest("pointerup", "mouse", [
     "mouseover@child", "mouseenter@parent", "mouseenter@child",
-    "mousedown@child", "(child-removed)",
+    "mousedown@child", "(child-removed)", "mouseover@parent", "mouseup@parent",
     "mousedown@parent", "mouseup@parent",
     "mouseout@parent", "mouseleave@parent"
   ]);

@@ -813,7 +813,7 @@ def test_css_missing_file_tentative():
     (b"""// META: timeout=long\n""", None),
     (b"""//  META: timeout=long\n""", None),
     (b"""// META: script=foo.js\n""", None),
-    (b"""// META: variant=\n""", None),
+    (b"""// META: variant=\n""", (1, "MALFORMED-VARIANT")),
     (b"""// META: variant=?wss\n""", None),
     (b"""# META:\n""", None),
     (b"""\n// META: timeout=long\n""", (2, "STRAY-METADATA")),
@@ -838,6 +838,9 @@ def test_script_metadata(filename, input, error):
             "BROKEN-METADATA": "Metadata comment is not formatted correctly",
             "UNKNOWN-TIMEOUT-METADATA": "Unexpected value for timeout metadata",
             "UNKNOWN-METADATA": "Unexpected kind of metadata",
+            "MALFORMED-VARIANT": (
+                f"{filename} `META: variant=...` value must be a non empty "
+                "string and start with '?' or '#'"),
         }
         assert errors == [
             (kind,

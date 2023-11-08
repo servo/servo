@@ -1,0 +1,18 @@
+[package]
+name = "gfx_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "gfx_traits"
+path = "lib.rs"
+
+[dependencies]
+malloc_size_of = { path = "../../malloc_size_of" }
+malloc_size_of_derive = { workspace = true }
+range = { path = "../../range" }
+serde = { workspace = true }
+webrender_api = { workspace = true }

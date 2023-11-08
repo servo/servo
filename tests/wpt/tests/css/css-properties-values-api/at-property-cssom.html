@@ -18,7 +18,7 @@
     inherits: false;
   }
   @property --valid-whitespace {
-    syntax: " <color>+ ";
+    syntax: " <color># ";
     inherits: false;
     initial-value: red, blue;
   }
@@ -38,8 +38,12 @@
     syntax: "<color> | none";
     initial-value: red;
   }
-  @property --no-initial-value {
+  @property --no-initial-color-value {
     syntax: "<color> | none";
+    inherits: false;
+  }
+  @property --no-initial-universal-value {
+    syntax: "*";
     inherits: false;
   }
   @property --syntax-only {
@@ -52,7 +56,10 @@
     initial-value: red;
   }
   /* U+0009 CHARACTER TABULATION */
-  @property --tab\9 tab {  }
+  @property --tab\9 tab {
+    syntax: "*";
+    inherits: true;
+  }
 </style>
 <script>
 
@@ -64,6 +71,13 @@ function find_at_property_rule(name) {
       return rule;
   }
   return null;
+}
+
+function test_invalid(name) {
+  test(() => {
+    let rule = find_at_property_rule(name);
+    assert_true(!rule);
+  }, `Rule for ${name} is invalid`);
 }
 
 function test_css_text(name, expected) {
@@ -106,22 +120,26 @@ function test_initial_value(name, expected) {
   }, `Rule for ${name} returns expected value for CSSPropertyRule.initialValue`);
 }
 
+// Invalid @property rules.
+test_invalid('--no-descriptors');
+test_invalid('--no-syntax');
+test_invalid('--no-inherits');
+test_invalid('--no-initial-color-value');
+test_invalid('--syntax-only', '@property --syntax-only { syntax: "<color> | none"; }');
+test_invalid('--inherits-only', '@property --inherits-only { inherits: true; }');
+test_invalid('--initial-value-only', '@property --initial-value-only { initial-value: red; }');
+
 // CSSPropertyRule.cssText
 
 test_css_text('--valid', '@property --valid { syntax: "<color> | none"; inherits: false; initial-value: red; }');
 test_css_text('--valid-reverse', '@property --valid-reverse { syntax: "<length>"; inherits: true; initial-value: 0px; }');
 test_css_text('--valid-universal', '@property --valid-universal { syntax: "*"; inherits: false; }');
-test_css_text('--valid-whitespace', '@property --valid-whitespace { syntax: " <color>+ "; inherits: false; initial-value: red, blue; }');
+test_css_text('--valid-whitespace', '@property --valid-whitespace { syntax: " <color># "; inherits: false; initial-value: red, blue; }');
 test_css_text('--vALId', '@property --vALId { syntax: "<color> | none"; inherits: false; initial-value: red; }');
 
-test_css_text('--no-descriptors', '@property --no-descriptors { }');
-test_css_text('--no-syntax', '@property --no-syntax { inherits: false; initial-value: red; }');
-test_css_text('--no-inherits', '@property --no-inherits { syntax: "<color> | none"; initial-value: red; }');
-test_css_text('--no-initial-value', '@property --no-initial-value { syntax: "<color> | none"; inherits: false; }');
-test_css_text('--syntax-only', '@property --syntax-only { syntax: "<color> | none"; }');
-test_css_text('--inherits-only', '@property --inherits-only { inherits: true; }');
-test_css_text('--initial-value-only', '@property --initial-value-only { initial-value: red; }');
-test_css_text('--tab\ttab', '@property --tab\\9 tab { }');
+test_css_text('--no-initial-universal-value', '@property --no-initial-universal-value { syntax: "*"; inherits: false; }');
+
+test_css_text('--tab\ttab', '@property --tab\\9 tab { syntax: "*"; inherits: true; }');
 
 // CSSRule.type
 
@@ -138,29 +156,17 @@ test_name('--valid-universal');
 test_name('--valid-whitespace');
 test_name('--vALId');
 
-test_name('--no-descriptors');
-test_name('--no-syntax');
-test_name('--no-inherits');
-test_name('--no-initial-value');
-test_name('--syntax-only');
-test_name('--inherits-only');
-test_name('--initial-value-only');
+test_name('--no-initial-universal-value');
 
 // CSSPropertyRule.syntax
 
 test_syntax('--valid', '<color> | none');
 test_syntax('--valid-reverse', '<length>');
 test_syntax('--valid-universal', '*');
-test_syntax('--valid-whitespace', ' <color>+ ');
+test_syntax('--valid-whitespace', ' <color># ');
 test_syntax('--vALId', '<color> | none');
 
-test_syntax('--no-descriptors', '');
-test_syntax('--no-syntax', '');
-test_syntax('--no-inherits', '<color> | none');
-test_syntax('--no-initial-value', '<color> | none');
-test_syntax('--syntax-only', '<color> | none');
-test_syntax('--inherits-only', '');
-test_syntax('--initial-value-only', '');
+test_syntax('--no-initial-universal-value', '*');
 
 // CSSPropertyRule.inherits
 
@@ -170,13 +176,7 @@ test_inherits('--valid-universal', false);
 test_inherits('--valid-whitespace', false);
 test_inherits('--vALId', false);
 
-test_inherits('--no-descriptors', false);
-test_inherits('--no-syntax', false);
-test_inherits('--no-inherits', false);
-test_inherits('--no-initial-value', false);
-test_inherits('--syntax-only', false);
-test_inherits('--inherits-only', true);
-test_inherits('--initial-value-only', false);
+test_inherits('--no-initial-universal-value', false);
 
 // CSSPropertyRule.initialValue
 
@@ -186,12 +186,6 @@ test_initial_value('--valid-universal', null);
 test_initial_value('--valid-whitespace', 'red, blue');
 test_initial_value('--vALId', 'red');
 
-test_initial_value('--no-descriptors', null);
-test_initial_value('--no-syntax', 'red');
-test_initial_value('--no-inherits', 'red');
-test_initial_value('--no-initial-value', null);
-test_initial_value('--syntax-only', null);
-test_initial_value('--inherits-only', null);
-test_initial_value('--initial-value-only', 'red');
+test_initial_value('--no-initial-universal-value', null);
 
 </script>

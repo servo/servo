@@ -268,11 +268,11 @@
     window.test_driver_internal.set_spc_transaction_mode = function(mode, context = null) {
         return create_action("set_spc_transaction_mode", {mode, context});
     };
-    
+
     window.test_driver_internal.cancel_fedcm_dialog = function(context = null) {
         return create_action("cancel_fedcm_dialog", {context});
     };
-    
+
     window.test_driver_internal.confirm_idp_login = function(context = null) {
         return create_action("confirm_idp_login", {context});
     };
@@ -280,24 +280,40 @@
     window.test_driver_internal.select_fedcm_account = function(account_index, context = null) {
         return create_action("select_fedcm_account", {account_index, context});
     };
-    
+
     window.test_driver_internal.get_fedcm_account_list = function(context = null) {
         return create_action("get_fedcm_account_list", {context});
     };
-    
+
     window.test_driver_internal.get_fedcm_dialog_title = function(context = null) {
         return create_action("get_fedcm_dialog_title", {context});
     };
-    
+
     window.test_driver_internal.get_fedcm_dialog_type = function(context = null) {
         return create_action("get_fedcm_dialog_type", {context});
     };
-    
+
     window.test_driver_internal.set_fedcm_delay_enabled = function(enabled, context = null) {
         return create_action("set_fedcm_delay_enabled", {enabled, context});
     };
 
     window.test_driver_internal.reset_fedcm_cooldown = function(context = null) {
         return create_action("reset_fedcm_cooldown", {context});
+    };
+
+    window.test_driver_internal.create_virtual_sensor = function(sensor_type, sensor_params={}, context=null) {
+        return create_action("create_virtual_sensor", {sensor_type, sensor_params, context});
+    };
+
+    window.test_driver_internal.update_virtual_sensor = function(sensor_type, reading, context=null) {
+        return create_action("update_virtual_sensor", {sensor_type, reading, context});
+    };
+
+    window.test_driver_internal.remove_virtual_sensor = function(sensor_type, context=null) {
+        return create_action("remove_virtual_sensor", {sensor_type, context});
+    };
+
+    window.test_driver_internal.get_virtual_sensor_information = function(sensor_type, context=null) {
+        return create_action("get_virtual_sensor_information", {sensor_type, context});
     };
 })();

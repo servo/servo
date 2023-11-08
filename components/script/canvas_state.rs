@@ -30,9 +30,8 @@ use style_traits::values::ToCss;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
-    CanvasTextAlign, CanvasTextBaseline,
+    CanvasTextAlign, CanvasTextBaseline, ImageDataMethods,
 };
-use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -107,7 +106,7 @@ impl CanvasContextState {
     const DEFAULT_FONT_STYLE: &'static str = "10px sans-serif";
 
     pub(crate) fn new() -> CanvasContextState {
-        let black = RGBA::new(0, 0, 0, 255);
+        let black = RGBA::new(0, 0, 0, 1.0);
         CanvasContextState {
             global_alpha: 1.0,
             global_composition: CompositionOrBlending::default(),
@@ -303,7 +302,7 @@ impl CanvasState {
         let color = CSSColor::parse(&mut parser);
         if parser.is_exhausted() {
             match color {
-                Ok(CSSColor::RGBA(rgba)) => Ok(rgba),
+                Ok(CSSColor::Rgba(rgba)) => Ok(rgba),
                 Ok(CSSColor::CurrentColor) => {
                     // TODO: https://github.com/whatwg/html/issues/1099
                     // Reconsider how to calculate currentColor in a display:none canvas
@@ -314,7 +313,7 @@ impl CanvasState {
                         // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
                         // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
                         // it is treated as opaque black.
-                        None => return Ok(RGBA::new(0, 0, 0, 255)),
+                        None => return Ok(RGBA::new(0, 0, 0, 1.0)),
                         Some(ref canvas) => &**canvas,
                     };
 
@@ -324,7 +323,7 @@ impl CanvasState {
                         Some(ref s) if canvas_element.has_css_layout_box() => {
                             Ok(s.get_inherited_text().color)
                         },
-                        _ => Ok(RGBA::new(0, 0, 0, 255)),
+                        _ => Ok(RGBA::new(0, 0, 0, 1.0)),
                     }
                 },
                 _ => Err(()),
@@ -1707,7 +1706,7 @@ pub fn parse_color(string: &str) -> Result<RGBA, ()> {
     let mut input = ParserInput::new(string);
     let mut parser = Parser::new(&mut input);
     match CSSColor::parse(&mut parser) {
-        Ok(CSSColor::RGBA(rgba)) => {
+        Ok(CSSColor::Rgba(rgba)) => {
             if parser.is_exhausted() {
                 Ok(rgba)
             } else {
@@ -1733,7 +1732,7 @@ where
     let green = color.green;
     let blue = color.blue;
 
-    if color.alpha == 255 {
+    if color.alpha == 1.0 {
         write!(
             dest,
             "#{:x}{:x}{:x}{:x}{:x}{:x}",

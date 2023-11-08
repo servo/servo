@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>setHTMLUnsafe in HTML</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel=author href="mailto:jarhar@chromium.org">
+<!-- This test was adapted from innerhtml-04.html -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+function testIsChild(p, c) {
+  assert_equals(p.firstChild, c);
+  assert_equals(c.parentNode, p);
+}
+test(function() {
+  var p = document.createElement('p');
+  var b = p.appendChild(document.createElement('b'));
+  var t = b.appendChild(document.createTextNode("foo"));
+  testIsChild(p, b);
+  testIsChild(b, t);
+  assert_equals(t.data, "foo");
+  p.setHTMLUnsafe("");
+  testIsChild(b, t);
+  assert_equals(t.data, "foo");
+}, "setHTMLUnsafe should leave the removed children alone.")
+</script>

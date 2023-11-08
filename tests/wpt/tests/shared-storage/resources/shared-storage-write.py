@@ -7,7 +7,7 @@ def unescape_query_value(query_value_bytes):
 
 def main(request, response):
     writable_header = request.headers.get(
-        b"Shared-Storage-Writable",
+        b"Sec-Shared-Storage-Writable",
         b"NO_SHARED_STORAGE_WRITABLE_HEADER")
     response.headers.append(b"Access-Control-Allow-Origin", b"*")
     if writable_header == b"?1" and b'write' in request.GET:

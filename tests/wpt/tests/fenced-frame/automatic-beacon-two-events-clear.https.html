@@ -40,14 +40,17 @@ promise_test(async(t) => {
   const received_beacon_data_1 = await nextAutomaticBeacon();
   assert_equals(received_beacon_data_1, beacon_data);
 
-  // The second click should not have any associated automatic beacon data, so
-  // an empty beacon should be sent.
+  // The second click should not have any associated automatic beacon info, so
+  // no beacon should be sent.
+  // Set up a timeout to ensure that there's enough time to send any potential
+  // automatic beacons.
   await actions.pointerMove(0, 0, {origin: fencedframe.element})
                .pointerDown()
                .pointerUp()
                .send();
-  const received_beacon_data_2 = await nextAutomaticBeacon();
-  assert_equals(received_beacon_data_2, "<No data>");
+  const timeout = new Promise(resolve => t.step_timeout(resolve, 1000));
+  const result = await Promise.race([nextAutomaticBeacon(), timeout]);
+  assert_true(typeof result === "undefined");
 }, 'Set expiring automatic beacon but trigger two events in a click handler');
 
 </script>

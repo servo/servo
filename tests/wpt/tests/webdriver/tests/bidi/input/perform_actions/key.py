@@ -71,7 +71,7 @@ async def test_key_shadow_tree(bidi_session, top_context, get_test_page, mode, n
 
     shadow_root = await get_shadow_root_from_test_page(bidi_session, top_context, nested)
     input_el = await bidi_session.script.call_function(
-        function_declaration=f"""shadowRoot => {{
+        function_declaration="""shadowRoot => {{
             const input = shadowRoot.querySelector('input');
             input.focus();
             return input;

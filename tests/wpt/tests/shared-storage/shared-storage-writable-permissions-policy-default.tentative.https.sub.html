@@ -24,8 +24,9 @@
       assert_equals(sharedStorageWritableHeader, "?1");
 
       await verifyKeyValueForOrigin('hello', 'world', sameOrigin);
-    }, header + ' allows the \'Shared-Storage-Writable\' header to be sent '
-              + 'for the same-origin shared storage fetch request.');
+      await deleteKeyForOrigin('hello', sameOrigin);
+    }, header + ' allows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the same-origin shared storage fetch request.');
 
     promise_test(async t => {
       let response = await fetch(crossOriginUrl,
@@ -34,8 +35,9 @@
       assert_equals(sharedStorageWritableHeader, "?1");
 
       await verifyKeyValueForOrigin('hello', 'world', crossOrigin);
-    }, header + ' allows the \'Shared-Storage-Writable\' header to be sent '
-              + 'for the cross-origin shared storage fetch request.');
+      await deleteKeyForOrigin('hello', crossOrigin);
+    }, header + ' allows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the cross-origin shared storage fetch request.');
 
     promise_test(async t => {
       let response = await fetch('/common/redirect.py?location='
@@ -45,8 +47,9 @@
       assert_equals(sharedStorageWritableHeader, "?1");
 
       await verifyKeyValueForOrigin('hello', 'world', sameOrigin);
-    }, header + ' allows the \'Shared-Storage-Writable\' header to be sent '
-              + 'for the redirect of a shared storage fetch request, '
+      await deleteKeyForOrigin('hello', sameOrigin);
+    }, header + ' allows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the redirect of a shared storage fetch request, '
               + 'where the redirect has a same-origin URL.');
 
     promise_test(async t => {
@@ -57,8 +60,9 @@
       assert_equals(sharedStorageWritableHeader, "?1");
 
       await verifyKeyValueForOrigin('hello', 'world', crossOrigin);
-    }, header + ' allows the \'Shared-Storage-Writable\' header to be sent '
-              + 'for the redirect of a shared storage fetch request, '
+      await deleteKeyForOrigin('hello', crossOrigin);
+    }, header + ' allows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the redirect of a shared storage fetch request, '
               + 'where the redirect has a cross-origin URL.');
   </script>
 </body>

@@ -1,0 +1,93 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<button id="invoker" invoketarget="invokee"></button>
+<div id="invokee"></div>
+
+<script>
+  test(function () {
+    assert_equals(invoker.invokeTargetElement, invokee);
+  }, "invokeTargetElement reflects invokee HTML element");
+
+  test(function () {
+    const div = document.body.appendChild(document.createElement("div"));
+    invoker.invokeTargetElement = div;
+    assert_equals(invoker.invokeTargetElement, div);
+    assert_equals(invoker.getAttribute("invoketarget"), "");
+    assert_false(invoker.hasAttribute("invokeaction"));
+  }, "invokeTargetElement reflects set value");
+
+  test(function () {
+    const host = document.body.appendChild(document.createElement("div"));
+    const shadow = host.attachShadow({ mode: "open" });
+    const button = shadow.appendChild(document.createElement("button"));
+    button.invokeTargetElement = invokee;
+    assert_equals(button.invokeTargetElement, invokee);
+    assert_equals(invoker.getAttribute("invoketarget"), "");
+    assert_false(invoker.hasAttribute("invokeaction"));
+  }, "invokeTargetElement reflects set value across shadow root into light dom");
+
+  test(function () {
+    const host = document.body.appendChild(document.createElement("div"));
+    const shadow = host.attachShadow({ mode: "open" });
+    const div = shadow.appendChild(document.createElement("div"));
+    invoker.invokeTargetElement = div;
+    assert_equals(invoker.invokeTargetElement, null);
+    assert_equals(invoker.getAttribute("invoketarget"), "");
+    assert_false(invoker.hasAttribute("invokeaction"));
+  }, "invokeTargetElement does not reflect set value inside shadowroot");
+
+  test(function () {
+    assert_throws_js(
+      TypeError,
+      function () {
+        invoker.invokeTargetElement = {};
+      },
+      "invokeTargetElement attribute must be an instance of Element",
+    );
+  }, "invokeTargetElement throws error on assignment of non Element");
+
+  test(function () {
+    assert_false(invoker.hasAttribute("invokeaction"));
+    assert_equals(invoker.invokeAction, "auto");
+  }, "invokeAction reflects 'auto' when attribute not present");
+
+  test(function () {
+    invoker.setAttribute("invokeaction", "");
+    assert_equals(invoker.getAttribute("invokeaction"), "");
+    assert_equals(invoker.invokeAction, "auto");
+  }, "invokeAction reflects 'auto' when attribute empty");
+
+  test(function () {
+    invoker.invokeAction = "fooBarBaz";
+    assert_equals(invoker.getAttribute("invokeaction"), "fooBarBaz");
+    assert_equals(invoker.invokeAction, "fooBarBaz");
+  }, "invokeAction reflects same casing");
+
+  test(function () {
+    invoker.invokeAction = "";
+    assert_equals(invoker.getAttribute("invokeaction"), "");
+    assert_equals(invoker.invokeAction, "auto");
+  }, "invokeAction reflects 'auto' when attribute empty 2");
+
+  test(function () {
+    invoker.invokeAction = [1, 2, 3];
+    assert_equals(invoker.getAttribute("invokeaction"), "1,2,3");
+    assert_equals(invoker.invokeAction, "1,2,3");
+  }, "invokeAction reflects tostring value");
+
+  test(function () {
+    invoker.invokeAction = [];
+    assert_equals(invoker.getAttribute("invokeaction"), "");
+    assert_equals(invoker.invokeAction, "auto");
+  }, "invokeAction reflects 'auto' when attribute set to []");
+
+  test(function () {
+    invoker.invokeAction = {};
+    assert_equals(invoker.invokeAction, "[object Object]");
+  }, "invokeAction reflects tostring value 2");
+</script>

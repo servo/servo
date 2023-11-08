@@ -7,8 +7,6 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from __future__ import print_function, unicode_literals
-
 import datetime
 import locale
 import os
@@ -62,8 +60,12 @@ class MachCommands(CommandBase):
         opts = params or []
         has_media_stack = "media-gstreamer" in self.features
 
-        if build_type == BuildType.RELEASE:
+        if build_type.is_release():
             opts += ["--release"]
+        elif build_type.is_dev():
+            pass  # there is no argument for debug
+        else:
+            opts += ["--profile", build_type.profile]
 
         if jobs is not None:
             opts += ["-j", jobs]

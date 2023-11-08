@@ -145,33 +145,14 @@ pub static SELECTOR_WHITESPACE: &[char] = &[' ', '\t', '\n', '\r', '\x0C'];
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "shmem", derive(ToShmem))]
 pub enum ParsedCaseSensitivity {
-    // 's' was specified.
+    /// 's' was specified.
     ExplicitCaseSensitive,
-    // 'i' was specified.
+    /// 'i' was specified.
     AsciiCaseInsensitive,
-    // No flags were specified and HTML says this is a case-sensitive attribute.
+    /// No flags were specified and HTML says this is a case-sensitive attribute.
     CaseSensitive,
-    // No flags were specified and HTML says this is a case-insensitive attribute.
+    /// No flags were specified and HTML says this is a case-insensitive attribute.
     AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument,
-}
-
-impl ParsedCaseSensitivity {
-    pub fn to_unconditional(self, is_html_element_in_html_document: bool) -> CaseSensitivity {
-        match self {
-            ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument
-                if is_html_element_in_html_document =>
-            {
-                CaseSensitivity::AsciiCaseInsensitive
-            },
-            ParsedCaseSensitivity::AsciiCaseInsensitiveIfInHtmlElementInHtmlDocument => {
-                CaseSensitivity::CaseSensitive
-            },
-            ParsedCaseSensitivity::CaseSensitive | ParsedCaseSensitivity::ExplicitCaseSensitive => {
-                CaseSensitivity::CaseSensitive
-            },
-            ParsedCaseSensitivity::AsciiCaseInsensitive => CaseSensitivity::AsciiCaseInsensitive,
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -18,23 +18,22 @@
 </selectlist>
 
 <selectlist id="selectList1">
-  <div popover slot="listbox" behavior="listbox" id="selectList1-popover">
-    <div behavior="button" id="selectList1-button">
+  <listbox id="selectList1-popover">
+    <button type=selectlist id="selectList1-button">
       Custom button
-    </div>
+    </button>
     <option>one</option>
     <option id="selectList1-child2">two</option>
-  </div>
+  </listbox>
 </selectlist>
 
 <selectlist id="selectList2">
-  <div slot="button" behavior="button" id="selectList2-button">
+  <button type=selectlist id="selectList2-button">
     Custom button
-    <div popover behavior="listbox" id="selectList2-popover">
-      <option>one</option>
-      <option id="selectList2-child2">two</option>
-    </div>
-  </div>
+    <listbox id="selectList2-popover">
+      Custom listbox
+    </listbox>
+  </button>
   <option>three</option>
   <div>
     This is some text.
@@ -45,13 +44,13 @@
 
 <selectlist id="selectList3">
   <div slot="button" id="selectList3-button-slot">
-    <div behavior="button" id="selectList3-button0">button0</div>
+    <button type=selectlist id="selectList3-button0">button0</button>
   </div>
   <option>one</option>
 </selectlist>
 
 <selectlist id="selectList4">
-  <div slot="button" behavior="button" id="selectList4-button0">button0</div>
+  <button type=selectlist id="selectList4-button0">button0</button>
   <div slot="listbox" id="selectList4-listbox-slot">
     <div popover behavior="listbox" id="selectList4-listbox0">
       <option>one</option>
@@ -62,7 +61,7 @@
 
 <selectlist id="selectList5">
   <div slot="button" id="selectList5-button-slot">
-    <div behavior="button" id="selectList5-button0">button0</div>
+    <button type=selectlist id="selectList5-button0">button0</button>
     <div behavior="selected-value" id="selectList5-selectedValue0"></div>
   </div>
   <option>one</option>
@@ -78,7 +77,7 @@
 <!-- No associated JS test -- just don't crash when parsing! -->
 <selectlist id="selectList7">
   <div slot="listbox"></div>
-  <div slot="button" behavior="button"></div>
+  <button type=selectlist></button>
 </selectlist>
 
 <!-- No associated JS test -- just don't crash when parsing! -->
@@ -96,12 +95,6 @@
   </div>
 </selectlist>
 
-<selectlist id="selectList10">
-  <option slot="button" id="selectList10-slottedOption">Test 10</option>
-  <option>one</option>
-  <option id="selectList10-option2">two</option>
-</selectlist>
-
 <selectlist id="selectList11">
   <div popover slot="listbox" behavior="listbox">
     <option>one</option>
@@ -110,24 +103,20 @@
 </selectlist>
 
 <selectlist id="selectList12">
-  <div slot="button" id="selectList12-button-slot">
-    <div behavior="button" id="selectList12-button0">button0</div>
-  </div>
-  <div slot="listbox" id="selectList12-listbox-slot">
-    <div popover behavior="listbox" id="selectList12-originalListbox">
-      <option id="selectList12-option1">one</option>
-      <option>two</option>
-    </div>
-  </div>
+  <button type=selectlist id="selectList12-button0">button0</button>
+  <listbox id="selectList12-listbox">
+    <option id="selectList12-option1">one</option>
+    <option>two</option>
+  </listbox>
 </selectlist>
 
 <selectlist id="selectList13">
   <div slot="button" id="selectList12-button-slot">
     <div id="selectList13-removeContent-button">
-      <div behavior="button" id="selectList13-button0">button0</div>
-      <div behavior="button" id="selectList13-button1">button1</div>
+      <button type=selectlist id="selectList13-button0">button0</button>
+      <button type=selectlist id="selectList13-button1">button1</button>
     </div>
-    <div behavior="button" id="selectList13-button2">button2</div>
+    <button type=selectlist id="selectList13-button2">button2</button>
   </div>
   <div slot="listbox" id="selectList13-listbox-slot">
     <div id="selectList13-removeContent-listbox">
@@ -144,7 +133,7 @@
 </selectlist>
 
 <selectlist id="selectList14">
-  <div slot="button" behavior="button" id="selectList14-button0">button0</div>
+  <button type=selectlist id="selectList14-button0">button0</button>
   <option>one</option>
   <option id="selectList14-option2">two</option>
 </selectlist>
@@ -157,7 +146,7 @@
 <selectlist id="selectList16">
   <div slot="button">
     <div id="selectList16-div0">
-      <div behavior="button" id="selectList16-button0">button</div>
+      <button type=selectlist id="selectList16-button0">button</button>
     </div>
   </div>
   <option>one</option>
@@ -231,7 +220,6 @@
     assert_false(selectList2Popover.matches(':popover-open'), "Clicking a button part should not show an invalid listbox part");
 
     assert_equals(selectList2.value, "three");
-    await clickOn(selectList2Button);
     await clickOn(selectList2Child4);
     assert_equals(selectList2.value, "four", "Clicking an <option> that is a descendant of a valid listbox part should update the value");
   }, "To receive listbox part controller code, an element labeled as a listbox must not be a descendant of the button part in a flat tree traversal");
@@ -336,28 +324,6 @@ promise_test(async () => {
     }, "Ensure that option controller code is updated when listbox changes");
 
   promise_test(async () => {
-    const selectList = document.getElementById("selectList10");
-    const selectList10SlottedOption = document.getElementById("selectList10-slottedOption");
-
-    await clickOn(selectList10SlottedOption);
-    assert_false(selectList.open, "Controller code not applied due to part attribute missing");
-    selectList10SlottedOption.setAttribute("behavior", "button");
-    await clickOn(selectList10SlottedOption);
-    assert_true(selectList.open);
-
-    const option2 = document.getElementById("selectList10-option2");
-    await clickOn(option2);
-    assert_equals(selectList.value, "two");
-    assert_false(selectList.open);
-
-    selectList10SlottedOption.slot = "";
-    await clickOn(selectList);
-    assert_true(selectList.open, "Default button part should be used");
-    await clickOn(selectList10SlottedOption);
-    assert_equals(selectList.value, "Test 10");
-  }, "Ensure that controller code is applied after updating the slot attribute");
-
-  promise_test(async () => {
     const selectList = document.getElementById("selectList11");
     const selectList11Button= document.getElementById("selectList11-button");
 
@@ -371,39 +337,38 @@ promise_test(async () => {
 
   promise_test(async () => {
     const selectList = document.getElementById("selectList12");
-    const originalListbox = document.getElementById("selectList12-originalListbox");
+    const originalListbox = document.getElementById("selectList12-listbox");
     assert_equals(selectList.value, "one", "Initial value should be the first option");
 
-    const selectListButtonSlot = document.getElementById("selectList12-button-slot");
     const selectListButton0 = document.getElementById("selectList12-button0");
     const selectListOption1 = document.getElementById("selectList12-option1");
 
     assert_false(selectList.open);
-    let button1 = document.createElement("div");
+    let button1 = document.createElement("button");
     button1.innerText = "button1";
-    button1.setAttribute("behavior", "button");
-    selectListButtonSlot.insertBefore(button1, selectListButton0);
+    button1.setAttribute("type", "selectlist");
+    selectList.insertBefore(button1, selectListButton0);
     button1.click();
     assert_true(selectList.open, "Controller code should be applied to the new first button in document order");
     await clickOn(selectListOption1);
-    assert_false(selectList.open);
+    assert_false(selectList.open, "listbox should close after clicking option1.");
     selectListButton0.click();
-    assert_false(selectList.open);
+    assert_true(selectList.open, "listbox should open after clicking button0.");
+    selectListButton0.click();
+    assert_false(selectList.open, "listbox should close after clicking button0 again.");
 
-    let button2 = document.createElement("div");
+    let button2 = document.createElement("button");
     button2.innerText = "button2";
-    selectListButtonSlot.insertBefore(button2, button1);
+    selectList.insertBefore(button2, button1);
     button2.click();
-    assert_false(selectList.open, "Controller code should not be applied to button2 since it doesn't have behavior attribute set");
-    button2.setAttribute("behavior", "button");
+    assert_false(selectList.open, "Controller code should not be applied to button2 since it doesn't have type=selectlist.");
+    button2.setAttribute("type", "selectlist");
     button2.click();
     assert_true(selectList.open, "Controller code should be applied to the new button part");
     await clickOn(selectListOption1);
     assert_false(selectList.open);
 
-    let newListbox = document.createElement("div");
-    newListbox.setAttribute("popover", "auto");
-    newListbox.setAttribute("behavior", "listbox");
+    let newListbox = document.createElement("listbox");
     let newOption = document.createElement("option");
     newOption.innerText = "three";
     newListbox.appendChild(newOption);

@@ -126,8 +126,7 @@ where
 {
     let stylist = &shared_context.stylist;
 
-    let for_element =
-        target.revalidation_match_results(stylist, bloom, nth_index_cache);
+    let for_element = target.revalidation_match_results(stylist, bloom, nth_index_cache);
 
     let for_candidate = candidate.revalidation_match_results(stylist, bloom, nth_index_cache);
 

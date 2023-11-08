@@ -11,7 +11,7 @@ pytestmark = pytest.mark.asyncio
 CONTEXT_LOAD_EVENT = "browsingContext.load"
 
 
-async def test_not_unsubscribed(bidi_session, inline, top_context):
+async def test_unsubscribe(bidi_session, inline, new_tab):
     await bidi_session.session.subscribe(events=[CONTEXT_LOAD_EVENT])
     await bidi_session.session.unsubscribe(events=[CONTEXT_LOAD_EVENT])
 
@@ -25,7 +25,7 @@ async def test_not_unsubscribed(bidi_session, inline, top_context):
 
     url = inline("<div>foo</div>")
     await bidi_session.browsing_context.navigate(
-        context=top_context["context"], url=url
+        context=new_tab["context"], url=url, wait="complete"
     )
 
     wait = AsyncPoll(bidi_session, timeout=0.5)

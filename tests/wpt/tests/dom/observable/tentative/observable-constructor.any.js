@@ -1,3 +1,6 @@
+// Because we test that the global error handler is called at various times.
+setup({allow_uncaught_exception: true});
+
 test(() => {
   assert_implements(self.Observable, "The Observable interface is not implemented");
 
@@ -82,7 +85,7 @@ test(() => {
   });
 
   source.subscribe({
-    next: () => assert_unreached("next should not be called"),
+    next: (x) => results.push(x),
     error: (e) => results.push(e),
     complete: () => assert_unreached("complete should not be called"),
   });
@@ -97,6 +100,9 @@ test(() => {
 test(() => {
   const error = new Error("error");
   const results = [];
+  let errorReported = null;
+
+  self.addEventListener("error", e => errorReported = e, {once: true});
 
   const source = new Observable((subscriber) => {
     subscriber.next(1);
@@ -113,10 +119,13 @@ test(() => {
     complete: () => assert_unreached("complete should not be called"),
   });
 
+  assert_equals(errorReported, null, "The global error handler should not be " +
+      "invoked when the subscribe callback throws an error and the " +
+      "subscriber has given an error handler");
   assert_array_equals(
     results,
     [1, error],
-    "should emit values and the throw error synchronously"
+    "should emit values and the thrown error synchronously"
   );
 }, "Observable should error if initializer throws");
 
@@ -197,84 +206,61 @@ test(() => {
 }, "Completing or nexting a subscriber after an error does nothing");
 
 test(() => {
-  const error = new Error("error");
-  let errorReported = false;
+  const error = new Error("custom error");
+  let errorReported = null;
 
-  self.addEventListener(
-    "error",
-    (e) => {
-      assert_equals(e.message, "Uncaught (in observable) error");
-      assert_equals(e.filename, location.href);
-      assert_greater_than(e.lineno, 0);
-      assert_greater_than(e.colno, 0);
-      assert_equals(e.error, error);
-      errorReported = true;
-    },
-    { once: true }
-  );
+  self.addEventListener("error", e => errorReported = e, { once: true });
 
   const source = new Observable((subscriber) => {
     subscriber.error(error);
   });
 
-  // No error handler provided.
+  // No error handler provided...
   source.subscribe({
     next: () => assert_unreached("next should not be called"),
     complete: () => assert_unreached("complete should not be called"),
   });
 
-  assert_true(errorReported);
+  // ... still the exception is reported to the global.
+  assert_true(errorReported !== null, "Exception was reported to global");
+  assert_equals(errorReported.message, "Uncaught Error: custom error", "Error message matches");
+  assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
+  assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
+  assert_equals(errorReported.error, error, "Error object is equivalent");
 }, "Errors pushed to the subscriber that are not handled by the subscription " +
    "are reported to the global");
 
 test(() => {
-  const error = new Error("error");
-  let errorReported = false;
+  const error = new Error("custom error");
+  let errorReported = null;
 
-  self.addEventListener(
-    "error",
-    (e) => {
-      assert_equals(e.message, "Uncaught (in observable) error");
-      assert_equals(e.filename, location.href);
-      assert_greater_than(e.lineno, 0);
-      assert_greater_than(e.colno, 0);
-      assert_equals(e.error, error);
-      errorReported = true;
-    },
-    { once: true }
-  );
+  self.addEventListener("error", e => errorReported = e, { once: true });
 
   const source = new Observable((subscriber) => {
     throw error;
   });
 
-  // No error handler provided.
+  // No error handler provided...
   source.subscribe({
     next: () => assert_unreached("next should not be called"),
     complete: () => assert_unreached("complete should not be called"),
   });
 
-  assert_true(errorReported);
+  // ... still the exception is reported to the global.
+  assert_true(errorReported !== null, "Exception was reported to global");
+  assert_equals(errorReported.message, "Uncaught Error: custom error", "Error message matches");
+  assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
+  assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
+  assert_equals(errorReported.error, error, "Error object is equivalent");
 }, "Errors thrown in the initializer that are not handled by the " +
    "subscription are reported to the global");
 
 test(() => {
-  const error = new Error("error");
+  const error = new Error("custom error");
   const results = [];
-  let errorReported = false;
+  let errorReported = null;
 
-  self.addEventListener(
-    "error",
-    (e) => {
-      assert_equals(e.message, "Uncaught (in observable) error");
-      assert_equals(e.filename, location.href);
-      assert_greater_than(e.lineno, 0);
-      assert_greater_than(e.colno, 0);
-      assert_equals(e.error, error);
-      errorReported = true;
-    },
-    { once: true }
-  );
+  self.addEventListener("error", e => errorReported = e, { once: true });
 
   const source = new Observable((subscriber) => {
     subscriber.next(1);
@@ -295,27 +281,21 @@ test(() => {
     "should emit values synchronously, but not error values after complete"
   );
 
-  assert_true(errorReported);
+  // Error reporting still happens even after  the subscription is closed.
+  assert_true(errorReported !== null, "Exception was reported to global");
+  assert_equals(errorReported.message, "Uncaught Error: custom error", "Error message matches");
+  assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
+  assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
+  assert_equals(errorReported.error, error, "Error object is equivalent");
 }, "Subscription reports errors that are pushed after subscriber is closed " +
    "by completion");
 
-test(() => {
-  const error = new Error("error");
+test(t => {
+  const error = new Error("custom error");
   const results = [];
-  let errorReported = false;
+  let errorReported = null;
 
-  self.addEventListener(
-    "error",
-    (e) => {
-      assert_equals(e.message, "Uncaught (in observable) error");
-      assert_equals(e.filename, location.href);
-      assert_greater_than(e.lineno, 0);
-      assert_greater_than(e.colno, 0);
-      assert_equals(e.error, error);
-      errorReported = true;
-    },
-    { once: true }
-  );
+  self.addEventListener("error", e => errorReported = e, { once: true });
 
   const source = new Observable((subscriber) => {
     subscriber.next(1);
@@ -330,12 +310,14 @@ test(() => {
     complete: () => results.push("complete"),
   });
 
-  assert_array_equals(
-    results,
-    [1, 2, "complete"],
+  assert_array_equals(results, [1, 2, "complete"],
     "should emit values synchronously, but not error after complete"
   );
 
-  assert_true(errorReported);
+  assert_true(errorReported !== null, "Exception was reported to global");
+  assert_true(errorReported.message.includes("custom error"), "Error message matches");
+  assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
+  assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
+  assert_equals(errorReported.error, error, "Error object is equivalent");
 }, "Errors thrown by initializer function after subscriber is closed by " +
    "completion are reported");

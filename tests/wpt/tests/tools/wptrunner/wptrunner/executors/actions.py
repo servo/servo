@@ -367,6 +367,61 @@ class ResetFedCMCooldownAction:
         self.logger.debug("Resetting FedCM cooldown")
         return self.protocol.fedcm.reset_fedcm_cooldown()
 
+
+class CreateVirtualSensorAction:
+    name = "create_virtual_sensor"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        sensor_type = payload["sensor_type"]
+        sensor_params = payload["sensor_params"]
+        self.logger.debug("Creating %s sensor with %s values" % (sensor_type, sensor_params))
+        return self.protocol.virtual_sensor.create_virtual_sensor(sensor_type, sensor_params)
+
+
+class UpdateVirtualSensorAction:
+    name = "update_virtual_sensor"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        sensor_type = payload["sensor_type"]
+        reading = payload["reading"]
+        self.logger.debug("Updating %s sensor with new readings: %s" % (sensor_type, reading))
+        return self.protocol.virtual_sensor.update_virtual_sensor(sensor_type, reading)
+
+
+class RemoveVirtualSensorAction:
+    name = "remove_virtual_sensor"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        sensor_type = payload["sensor_type"]
+        self.logger.debug("Removing %s sensor" % sensor_type)
+        return self.protocol.virtual_sensor.remove_virtual_sensor(sensor_type)
+
+
+class GetVirtualSensorInformationAction:
+    name = "get_virtual_sensor_information"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        sensor_type = payload["sensor_type"]
+        self.logger.debug("Requesting information from %s sensor" % sensor_type)
+        return self.protocol.virtual_sensor.get_virtual_sensor_information(sensor_type)
+
+
 actions = [ClickAction,
            DeleteAllCookiesAction,
            GetAllCookiesAction,
@@ -394,4 +449,8 @@ actions = [ClickAction,
            GetFedCMDialogTitleAction,
            GetFedCMDialogTypeAction,
            SetFedCMDelayEnabledAction,
-           ResetFedCMCooldownAction]
+           ResetFedCMCooldownAction,
+           CreateVirtualSensorAction,
+           UpdateVirtualSensorAction,
+           RemoveVirtualSensorAction,
+           GetVirtualSensorInformationAction]

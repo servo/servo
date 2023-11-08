@@ -9,6 +9,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/top-layer.js"></script>
 <script src="resources/popover-utils.js"></script>
 
 <button id=visible>Visible button</button>
@@ -135,7 +136,7 @@ window.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
         // Popover fullscreen isn't visible by default, so explicitly add
         // display:block, so that calls to "clickOn" can succeed.
         ex.classList.add('visible');
-        await blessTopLayer(visible);
+        await blessTopLayer(ex);
         await ex.requestFullscreen();
       } else {
         assert_unreached('Not a dialog or fullscreen');

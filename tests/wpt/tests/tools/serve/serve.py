@@ -622,18 +622,18 @@ class ServerProc:
     def start(self, init_func, host, port, paths, routes, bind_address, config, log_handlers, **kwargs):
         self.proc = self.mp_context.Process(target=self.create_daemon,
                                             args=(init_func, host, port, paths, routes, bind_address,
-                                                  config, log_handlers),
+                                                  config, log_handlers, dict(**os.environ)),
                                             name='%s on port %s' % (self.scheme, port),
                                             kwargs=kwargs)
         self.proc.daemon = True
         self.proc.start()
 
     def create_daemon(self, init_func, host, port, paths, routes, bind_address,
-                      config, log_handlers, **kwargs):
+                      config, log_handlers, env, **kwargs):
         # Ensure that when we start this in a new process we have the global lock
         # in the logging module unlocked
         importlib.reload(logging)
-
+        os.environ = env
         logger = get_logger(config.logging["level"], log_handlers)
 
         if sys.platform == "darwin":

@@ -11,6 +11,7 @@ use style_traits::{CssWriter, ToCss};
 /// A computed `<time>` value.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToResolvedValue)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[repr(C)]
 pub struct Time {
     seconds: CSSFloat,
 }
@@ -18,7 +19,7 @@ pub struct Time {
 impl Time {
     /// Creates a time value from a seconds amount.
     pub fn from_seconds(seconds: CSSFloat) -> Self {
-        Time { seconds: seconds }
+        Time { seconds }
     }
 
     /// Returns `0s`.
@@ -39,6 +40,6 @@ impl ToCss for Time {
         W: Write,
     {
         self.seconds().to_css(dest)?;
-        dest.write_str("s")
+        dest.write_char('s')
     }
 }

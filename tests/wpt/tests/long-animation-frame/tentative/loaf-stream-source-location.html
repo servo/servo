@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: source location extraction for streams</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: source location extraction for streams</h1>
+<div id="log"></div>
+<script>
+
+const source_location_regex = /^([^@]+\@)?https?\:\/\/[^\/]+[^\:]+\:\d*$/;
+
+promise_test(async t => {
+  const scriptLocation = new URL("resources/stream-promise-generates-loaf.js", location.href);
+  const [entry, script] = await expect_long_frame_with_script(() => {
+    const scriptElement = document.createElement("script");
+    scriptElement.src = scriptLocation;
+    document.body.appendChild(scriptElement);
+  }, script => script.name === "StreamPromise.resolve.then", t);
+
+  assert_true(script.sourceLocation?.includes("stream-promise-generates-loaf.js"));
+}, "Source location should be extracted for stream promises");
+
+</script>
+</body>

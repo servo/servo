@@ -3,6 +3,7 @@
 <meta charset="utf-8"/>
 <meta name="timeout" content="long">
 <title>Service Worker: Partitioned Cookies 3P Iframe</title>
+<script src="partitioned-cookies-test-helpers.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="test-helpers.sub.js"></script>
 </head>
@@ -15,8 +16,9 @@ promise_test(async t => {
   const scope = './partitioned-cookies-3p-';
   const absolute_scope = new URL(scope, window.location).href;
 
-  assert_false(document.cookie.includes('__Host-partitioned=123'), 'DOM cannot access partitioned cookie');
-  assert_true(document.cookie.includes('unpartitioned=456'), 'DOM can access unpartitioned cookie');
+  assert_false(
+      document.cookie.includes('__Host-partitioned=123'),
+      'DOM cannot access partitioned cookie');
 
   const reg = await service_worker_unregister_and_register(t, script, scope);
   await wait_for_state(t, reg.installing, 'activated');
@@ -26,80 +28,47 @@ promise_test(async t => {
   let filtered_registrations =
     retrieved_registrations.filter(reg => reg.scope == absolute_scope);
 
-  // on_message will be reassigned below based on the expected reply from the service worker.
-  let on_message;
-  self.addEventListener('message', ev => on_message(ev));
-  navigator.serviceWorker.addEventListener('message', evt => {
-    self.postMessage(evt.data, '*');
-  });
+  const next_message = worker_message_generator();
 
-  // First test that the worker script started correctly and message passing is enabled.
-  let resolve_wait_promise;
-  let wait_promise = new Promise(resolve => {
-    resolve_wait_promise = resolve;
-  });
-  let got;
-  on_message = ev => {
-    got = ev.data;
-    resolve_wait_promise();
-  };
+  // First test that the worker script started correctly and message passing
+  // is enabled.
   filtered_registrations[0].active.postMessage({type: 'test_message'});
-  await wait_promise;
-  assert_true(got.ok, 'Message passing');
+  const msg1 = await next_message();
+  assert_true(msg1.ok, 'Message passing');
 
   // Test that the partitioned cookie is not available to this worker via HTTP.
-  wait_promise = new Promise(resolve => {
-    resolve_wait_promise = resolve;
-  });
-  on_message = ev => {
-    got = ev.data;
-    resolve_wait_promise();
-  };
   filtered_registrations[0].active.postMessage({type: 'echo_cookies_http'});
-  await wait_promise;
-  assert_true(got.ok, 'Get cookies');
+  const msg2 = await next_message();
+  assert_true(msg2.ok, 'Get cookies');
   assert_false(
-      got.cookies.includes('__Host-partitioned'),
+      msg2.cookies.includes('__Host-partitioned'),
       'Worker cannot access partitioned cookie via HTTP');
   assert_true(
-      got.cookies.includes('unpartitioned'),
+      msg2.cookies.includes('unpartitioned'),
       'Worker can access unpartitioned cookie via HTTP');
 
-  // Test that the partitioned cookie is not available to this worker via CookieStore API.
-  wait_promise = new Promise(resolve => {
-    resolve_wait_promise = resolve;
-  });
-  on_message = ev => {
-    got = ev.data;
-    resolve_wait_promise();
-  };
+  // Test that the partitioned cookie is not available to this worker via
+  // CookieStore API.
   filtered_registrations[0].active.postMessage({type: 'echo_cookies_js'});
-  await wait_promise;
-  assert_true(got.ok, 'Get cookies');
+  const msg3 = await next_message();
+  assert_true(msg3.ok, 'Get cookies');
   assert_false(
-      got.cookies.includes('__Host-partitioned'),
+      msg3.cookies.includes('__Host-partitioned'),
       'Worker cannot access partitioned cookie via JS');
   assert_true(
-      got.cookies.includes('unpartitioned'),
+      msg3.cookies.includes('unpartitioned'),
       'Worker can access unpartitioned cookie via JS');
 
   // Test that the partitioned cookie is not available to this worker in HTTP
   // requests from importScripts.
-  wait_promise = new Promise(resolve => {
-    resolve_wait_promise = resolve;
-  });
-  on_message = ev => {
-    got = ev.data;
-    resolve_wait_promise();
-  };
   filtered_registrations[0].active.postMessage({type: 'echo_cookies_import'});
-  await wait_promise;
-  assert_true(got.ok, 'Get cookies');
+  const msg4 = await next_message();
+  assert_true(msg4.ok, 'Get cookies');
   assert_false(
-      got.cookies.includes('__Host-partitioned'),
+      msg4.cookies.includes('__Host-partitioned'),
       'Worker cannot access partitioned cookie via importScripts');
   assert_true(
-      got.cookies.includes('unpartitioned'),
+      msg4.cookies.includes('unpartitioned'),
       'Worker can access unpartitioned cookie via importScripts');
 });
 

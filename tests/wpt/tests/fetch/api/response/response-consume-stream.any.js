@@ -59,3 +59,22 @@ test(function() {
 test(function() {
     assert_equals(Response.redirect("/").body, null);
 }, "Getting a redirect Response stream");
+
+promise_test(async function(test) {
+  var buffer = new ArrayBuffer(textData.length);
+
+  var body = new Response(textData).body;
+  const reader = body.getReader( {mode: 'byob'} );
+
+  let offset = 3;
+  while (offset < textData.length) {
+    const {done, value} = await reader.read(new Uint8Array(buffer, offset));
+    if (done) {
+      break;
+    }
+    buffer = value.buffer;
+    offset += value.byteLength;
+  }
+
+  validateBufferFromString(buffer, `\0\0\0\"This is response's bo`, 'Buffer should be validated');
+}, `Reading with offset from Response stream`);

@@ -16,7 +16,7 @@ import {fedcm_test,
 fedcm_test(async t => {
   const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
   assert_equals(cred.token, "token");
-  assert_equals(cred.isAccountAutoSelected, false);
+  assert_equals(cred.isAutoSelected, false);
 }, "Successfully obtaining token should resolve the promise.");
 
 </script>

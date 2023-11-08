@@ -32,7 +32,7 @@ use rustc_hir::{ImplItemRef, ItemKind, Node, OwnerId, PrimTy, TraitItemRef};
 use rustc_infer::infer::type_variable::{TypeVariableOrigin, TypeVariableOriginKind};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::LateContext;
-use rustc_middle::ty::{self, GenericArg, ParamEnv, Ty, TyCtxt, TypeVisitable};
+use rustc_middle::ty::{self, GenericArg, ParamEnv, Ty, TyCtxt, TypeVisitableExt};
 use rustc_span::source_map::{ExpnKind, MacroKind, Span};
 use rustc_span::symbol::{Ident, Symbol};
 use rustc_span::DUMMY_SP;
@@ -332,8 +332,7 @@ pub fn implements_trait_with_env<'tcx>(
         kind: TypeVariableOriginKind::MiscVariable,
         span: DUMMY_SP,
     };
-    // in new nightlies: mk_substs -> mk_substs_from_iter
-    let ty_params = tcx.mk_substs(
+    let ty_params = tcx.mk_substs_from_iter(
         ty_params
             .into_iter()
             .map(|arg| arg.unwrap_or_else(|| infcx.next_ty_var(orig).into())),

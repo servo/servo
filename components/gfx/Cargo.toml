@@ -19,14 +19,14 @@ bitflags = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 fontsan = { git = "https://github.com/servo/fontsan" }
-gfx_traits = { path = "../gfx_traits" }
+gfx_traits = { workspace = true }
 harfbuzz-sys = "0.5"
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
-net_traits = { path = "../net_traits" }
+net_traits = { workspace = true }
 range = { path = "../range" }
 serde = { workspace = true }
 servo_arc = { path = "../servo_arc" }

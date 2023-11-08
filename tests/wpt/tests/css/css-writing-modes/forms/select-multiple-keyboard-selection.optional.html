@@ -23,6 +23,13 @@ const arrow_up = "\uE013";
 const arrow_right = "\uE014";
 const arrow_down = "\uE015";
 
+async function sendKeyEventAndWait(key) {
+  await test_driver.send_keys(document.activeElement, key);
+  // Engines differ in when the scrolling is applied so wait for a frame to be
+  // rendered.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
 for (const writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl", "sideways-lr", "sideways-rl"]) {
     if (!CSS.supports(`writing-mode: ${writingMode}`))
         continue;
@@ -54,16 +61,16 @@ for (const writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl", "sidew
 
         assert_equals(document.activeElement, select);
 
-        await test_driver.send_keys(document.activeElement, previousKey);
+        await sendKeyEventAndWait(previousKey);
         assert_equals(select.value, "Option 1");
         assert_equals(select[scrollBlockAxis], 0);
 
-        await test_driver.send_keys(document.activeElement, nextKey);
+        await sendKeyEventAndWait(nextKey);
         assert_equals(select.value, "Option 2");
         assert_equals(select[scrollBlockAxis], 0);
 
         for (let i = 0; i < select.size - 1; i++) {
-            await test_driver.send_keys(document.activeElement, nextKey);
+            await sendKeyEventAndWait(nextKey);
         }
 
         assert_equals(select.value, "Option 5");
@@ -74,7 +81,7 @@ for (const writingMode of ["horizontal-tb", "vertical-lr", "vertical-rl", "sidew
             assert_true(select[scrollBlockAxis] < 0);
         }
 
-        await test_driver.send_keys(document.activeElement, previousKey);
+        await sendKeyEventAndWait(previousKey);
         assert_equals(select.value, "Option 4");
 
         if (!isReversedBlockFlowDirection) {

@@ -7,8 +7,6 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 from datetime import datetime
 from github import Github
 
@@ -47,22 +45,22 @@ sys.path.append(path.join(path.dirname(__file__), "..", "..",
 
 PACKAGES = {
     'android': [
-        'android/armv7-linux-androideabi/release/servoapp.apk',
-        'android/armv7-linux-androideabi/release/servoview.aar',
+        'android/armv7-linux-androideabi/production/servoapp.apk',
+        'android/armv7-linux-androideabi/production/servoview.aar',
     ],
     'linux': [
-        'release/servo-tech-demo.tar.gz',
+        'production/servo-tech-demo.tar.gz',
     ],
     'mac': [
-        'release/servo-tech-demo.dmg',
+        'production/servo-tech-demo.dmg',
     ],
     'maven': [
         'android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
         'android/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
     ],
     'windows-msvc': [
-        r'release\msi\Servo.exe',
-        r'release\msi\Servo.zip',
+        r'production\msi\Servo.exe',
+        r'production\msi\Servo.zip',
     ],
 }
 
@@ -155,7 +153,12 @@ class PackageCommands(CommandBase):
             else:
                 arch_string = "Arm"
 
-            build_type_string = "Debug" if build_type == BuildType.DEV else "Release"
+            if build_type.is_dev():
+                build_type_string = "Debug"
+            elif build_type.is_release():
+                build_type_string = "Release"
+            else:
+                raise Exception("TODO what should this be?")
 
             flavor_name = "Main"
             if flavor is not None:

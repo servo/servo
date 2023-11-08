@@ -8,7 +8,6 @@
 
 use super::animate_multiplicative_factor;
 use super::{Animate, Procedure, ToAnimatedZero};
-use crate::properties::animated_properties::ListAnimation;
 use crate::values::computed::transform::Rotate as ComputedRotate;
 use crate::values::computed::transform::Scale as ComputedScale;
 use crate::values::computed::transform::Transform as ComputedTransform;
@@ -258,22 +257,18 @@ impl Animate for Matrix {
         let other = Matrix3D::from(*other);
         let this = MatrixDecomposed2D::from(this);
         let other = MatrixDecomposed2D::from(other);
-        Ok(Matrix3D::from(this.animate(&other, procedure)?).into_2d()?)
+        Matrix3D::from(this.animate(&other, procedure)?).into_2d()
     }
 
     #[cfg(feature = "gecko")]
     // Gecko doesn't exactly follow the spec here; we use a different procedure
     // to match it
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let from = decompose_2d_matrix(&(*self).into());
-        let to = decompose_2d_matrix(&(*other).into());
-        match (from, to) {
-            (Ok(from), Ok(to)) => Matrix3D::from(from.animate(&to, procedure)?).into_2d(),
-            // Matrices can be undecomposable due to couple reasons, e.g.,
-            // non-invertible matrices. In this case, we should report Err here,
-            // and let the caller do the fallback procedure.
-            _ => Err(()),
-        }
+        let this = Matrix3D::from(*self);
+        let other = Matrix3D::from(*other);
+        let from = decompose_2d_matrix(&this)?;
+        let to = decompose_2d_matrix(&other)?;
+        Matrix3D::from(from.animate(&to, procedure)?).into_2d()
     }
 }
 
@@ -781,17 +776,14 @@ impl Animate for Matrix3D {
     // to match it
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let (from, to) = if self.is_3d() || other.is_3d() {
-            (decompose_3d_matrix(*self), decompose_3d_matrix(*other))
+            (decompose_3d_matrix(*self)?, decompose_3d_matrix(*other)?)
         } else {
-            (decompose_2d_matrix(self), decompose_2d_matrix(other))
+            (decompose_2d_matrix(self)?, decompose_2d_matrix(other)?)
         };
-        match (from, to) {
-            (Ok(from), Ok(to)) => Ok(Matrix3D::from(from.animate(&to, procedure)?)),
-            // Matrices can be undecomposable due to couple reasons, e.g.,
-            // non-invertible matrices. In this case, we should report Err here,
-            // and let the caller do the fallback procedure.
-            _ => Err(()),
-        }
+        // Matrices can be undecomposable due to couple reasons, e.g.,
+        // non-invertible matrices. In this case, we should report Err here,
+        // and let the caller do the fallback procedure.
+        Ok(Matrix3D::from(from.animate(&to, procedure)?))
     }
 }
 
@@ -892,7 +884,11 @@ impl Animate for ComputedTransform {
             // If there is a remainder from *both* lists we must have had mismatched functions.
             // => Add the remainders to a suitable ___Matrix function.
             (Some(this_remainder), Some(other_remainder)) => {
-                result.push(TransformOperation::animate_mismatched_transforms(this_remainder, other_remainder, procedure)?);
+                result.push(TransformOperation::animate_mismatched_transforms(
+                    this_remainder,
+                    other_remainder,
+                    procedure,
+                )?);
             },
             // If there is a remainder from just one list, then one list must be shorter but
             // completely match the type of the corresponding functions in the longer list.
@@ -943,7 +939,7 @@ impl Animate for ComputedTransform {
 impl ComputeSquaredDistance for ComputedTransform {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        let squared_dist = self.0.squared_distance_with_zero(&other.0);
+        let squared_dist = super::lists::with_zero::squared_distance(&self.0, &other.0);
 
         // Roll back to matrix interpolation if there is any Err(()) in the
         // transform lists, such as mismatched transform functions.
@@ -1121,7 +1117,9 @@ impl ComputedTransformOperation {
     ) -> Result<Self, ()> {
         let (left, _left_3d) = Transform::components_to_transform_3d_matrix(left, None)?;
         let (right, _right_3d) = Transform::components_to_transform_3d_matrix(right, None)?;
-        ComputedTransformOperation::Matrix3D(left.into()).animate(&ComputedTransformOperation::Matrix3D(right.into()), procedure)
+        Ok(Self::Matrix3D(
+            Matrix3D::from(left).animate(&Matrix3D::from(right), procedure)?,
+        ))
     }
 
     fn animate_mismatched_transforms(
@@ -1137,22 +1135,18 @@ impl ComputedTransformOperation {
         Ok(match procedure {
             Procedure::Add => {
                 debug_assert!(false, "Addition should've been handled earlier");
-                return Err(())
+                return Err(());
             },
-            Procedure::Interpolate { progress } => {
-                Self::InterpolateMatrix {
-                    from_list,
-                    to_list,
-                    progress: Percentage(progress as f32),
-                }
-            }
-            Procedure::Accumulate { count } => {
-                Self::AccumulateMatrix {
-                    from_list,
-                    to_list,
-                    count: cmp::min(count, i32::max_value() as u64) as i32,
-                }
-            }
+            Procedure::Interpolate { progress } => Self::InterpolateMatrix {
+                from_list,
+                to_list,
+                progress: Percentage(progress as f32),
+            },
+            Procedure::Accumulate { count } => Self::AccumulateMatrix {
+                from_list,
+                to_list,
+                count: cmp::min(count, i32::max_value() as u64) as i32,
+            },
         })
     }
 }

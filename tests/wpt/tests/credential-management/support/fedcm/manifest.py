@@ -14,6 +14,6 @@ def main(request, response):
   "client_metadata_endpoint": "client_metadata.py",
   "id_assertion_endpoint": "token.py",
   "revocation_endpoint": "revoke.py",
-  "login_url": "signin.html"
+  "login_url": "login.html"
 }
 """

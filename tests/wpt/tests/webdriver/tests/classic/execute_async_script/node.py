@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.client import Element, Frame, ShadowRoot, Window
+from webdriver.client import ShadowRoot, WebElement
 
 from tests.support.asserts import assert_error, assert_success
 from . import execute_async_script
@@ -59,11 +59,9 @@ def test_stale_element(session, get_test_page, as_frame):
 
 
 @pytest.mark.parametrize("expression, expected_type", [
-    ("window.frames[0]", Frame),
-    ("document.querySelector('div')", Element),
+    ("document.querySelector('div')", WebElement),
     ("document.querySelector('custom-element').shadowRoot", ShadowRoot),
-    ("window", Window),
-], ids=["frame", "node", "shadow-root", "window"])
+], ids=["element", "shadow-root"])
 def test_element_reference(session, get_test_page, expression, expected_type):
     session.url = get_test_page()
 
@@ -81,7 +79,7 @@ def test_element_reference(session, get_test_page, expression, expected_type):
     (""" document"""),
     (""" document.doctype"""),
 ], ids=["attribute", "text", "cdata", "processing_instruction", "comment", "document", "doctype"])
-def test_non_element_nodes(session, inline, expression):
+def test_not_supported_nodes(session, inline, expression):
     session.url = inline(PAGE_DATA)
 
     result = execute_async_script(session, f"arguments[0]({expression})")

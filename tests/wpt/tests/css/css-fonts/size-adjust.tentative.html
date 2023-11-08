@@ -39,7 +39,7 @@
 </div>
 
 <p>In a text node with multiple fonts, size-adjust should only scale characters in the modified font. In the test case below, digits should be scaled, but not letters.</p>
-<div class="target">
+<div class="target" style="height: 30px">
   123xxx
 </div>
 
@@ -52,6 +52,6 @@
 </div>
 
 <p>The computed 'font-size' value (i.e., 'em') should not be affected. But 'ex' should be scaled since it's measured from the actual glyph.</p>
-<div class="target">
+<div class="target" style="line-height: 1">
   <span class="square" style="--l: 1em"></span><span class="square" style="--l: 1ex"></span>
 </div>

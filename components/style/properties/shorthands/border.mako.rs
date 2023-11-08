@@ -373,13 +373,13 @@ pub fn parse_border<'i, 't>(
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.border_image_source.to_css(dest)?;
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.border_image_slice.to_css(dest)?;
             dest.write_str(" / ")?;
             self.border_image_width.to_css(dest)?;
             dest.write_str(" / ")?;
             self.border_image_outset.to_css(dest)?;
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             self.border_image_repeat.to_css(dest)
         }
     }
@@ -420,7 +420,7 @@ pub fn parse_border<'i, 't>(
                     self.border_${axis}_start_${prop}.to_css(dest)?;
 
                     if self.border_${axis}_end_${prop} != self.border_${axis}_start_${prop} {
-                        dest.write_str(" ")?;
+                        dest.write_char(' ')?;
                         self.border_${axis}_end_${prop}.to_css(dest)?;
                     }
 

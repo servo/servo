@@ -25,7 +25,8 @@
       assert_equals(sharedStorageWritableHeader, "?1");
 
       await verifyKeyValueForOrigin('hello', 'world', sameOrigin);
-    }, header + ' allows the \'Shared-Storage-Writable\' header to be sent '
+      await deleteKeyForOrigin('hello', sameOrigin);
+    }, header + ' allows the \'Sec-Shared-Storage-Writable\' header to be sent '
               + 'for the same-origin shared storage fetch request.');
 
     promise_test(async t => {
@@ -34,8 +35,8 @@
       let sharedStorageWritableHeader = await response.text();
       assert_equals(sharedStorageWritableHeader,
                     "NO_SHARED_STORAGE_WRITABLE_HEADER");
-    }, header + ' disallows the \'Shared-Storage-Writable\' header to be sent '
-              + 'for the cross-origin shared storage fetch request.');
+    }, header + ' disallows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the cross-origin shared storage fetch request.');
 
     promise_test(async t => {
       let response = await fetch('/common/redirect.py?location='
@@ -45,8 +46,9 @@
       assert_equals(sharedStorageWritableHeader, "?1");
 
       await verifyKeyValueForOrigin('hello', 'world', sameOrigin);
-    }, header + ' allows the \'Shared-Storage-Writable\' header to be sent '
-              + 'for the redirect of a shared storage fetch request, '
+      await deleteKeyForOrigin('hello', sameOrigin);
+    }, header + ' allows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the redirect of a shared storage fetch request, '
               + 'where the redirect has a same-origin URL.');
 
     promise_test(async t => {
@@ -56,8 +58,8 @@
       let sharedStorageWritableHeader = await response.text();
       assert_equals(sharedStorageWritableHeader,
                     "NO_SHARED_STORAGE_WRITABLE_HEADER");
-    }, header + ' disallows the \'Shared-Storage-Writable\' header to be sent '
-              + 'for the redirect of a shared storage fetch request, '
+    }, header + ' disallows the \'Sec-Shared-Storage-Writable\' header to be '
+              + 'sent for the redirect of a shared storage fetch request, '
               + 'where the redirect has a cross-origin URL.');
   </script>
 </body>

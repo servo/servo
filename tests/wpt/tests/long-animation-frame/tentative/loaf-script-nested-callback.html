@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: nested scripts</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: nested scripts</h1>
+<div id="log"></div>
+<div id="dummy"></div>
+<script>
+promise_test(async t => {
+  const [entry, script] = await expect_long_frame_with_script(t => {
+    const script_element = document.createElement("script");
+    script_element.async = true;
+    script_element.src = "resources/loaf-after-callback.js";
+    t.add_cleanup(() => script_element.remove());
+    document.body.appendChild(script_element);
+  }, script =>
+    script.name === new URL("resources/loaf-after-callback.js", location.href).href,
+    t);
+  assert_greater_than_equal(script.duration, very_long_frame_duration);
+}, "a callback inside a script block should not mask LoAFs that come afterwards")
+
+promise_test(async t => {
+  const [entry, script] = await expect_long_frame_with_script(t => {
+    const script_element = document.createElement("script");
+    script_element.async = true;
+    script_element.src = "resources/loaf-in-microtask-after-callback.js";
+    t.add_cleanup(() => script_element.remove());
+    document.body.appendChild(script_element);
+  }, script =>
+    script.name === new URL("resources/loaf-in-microtask-after-callback.js", location.href).href,
+    t);
+  assert_greater_than_equal(script.duration, very_long_frame_duration);
+}, "a callback inside a script block should not mask LoAFs in a microtask")
+</script>
+</body>
