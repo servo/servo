@@ -147,6 +147,7 @@ jobs:
       production: ${{ inputs.production == 'true' }}
       wpt: ${{ inputs.wpt }}
       layout: "layout-2020"
+    secrets: inherit
 
   wpt-2013:
     if: ${{ github.ref_name == 'try-wpt' || inputs.layout == '2013' || inputs.layout == 'all' }}
@@ -157,6 +158,7 @@ jobs:
       production: ${{ inputs.production == 'true' }}
       wpt: ${{ inputs.wpt }}
       layout: "layout-2013"
+    secrets: inherit
 
   result:
     name: Result
