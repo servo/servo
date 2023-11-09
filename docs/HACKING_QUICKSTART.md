@@ -33,8 +33,6 @@ Building Servo is quite easy. Install the prerequisites described in the [README
 ./mach build -d
 ```
 
-*Note: on Mac, you might run into an SSL issue while compiling. You'll find a solution to this problem [here](https://github.com/sfackler/rust-openssl/issues/255).*
-
 There are three main build profiles, which you can build and use independently of one another:
 
 * debug builds, which allow you to use a debugger (lldb)
