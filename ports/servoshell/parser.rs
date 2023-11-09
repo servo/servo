@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use log::warn;
 use servo::net_traits::pub_domains::is_reg_domain;
@@ -23,7 +23,7 @@ pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
 pub fn get_default_url(
     url_opt: Option<&str>,
     cwd: impl AsRef<Path>,
-    exists: impl FnOnce(&str) -> bool,
+    exists: impl FnOnce(&PathBuf) -> bool,
 ) -> ServoUrl {
     // If the url is not provided, we fallback to the homepage in prefs,
     // or a blank page in case the homepage is not set either.
@@ -41,11 +41,12 @@ pub fn get_default_url(
         });
 
     if let Some(url) = cmdline_url.clone() {
-        if url.scheme() == "file" && url.host().is_none() {
-            // Check if the URL path corresponds to a file
-            if exists(url.path()) {
+        // Check if the URL path corresponds to a file
+        match (url.scheme(), url.host(), url.to_file_path()) {
+            ("file", None, Ok(ref path)) if exists(path) => {
                 new_url = cmdline_url;
-            }
+            },
+            _ => {},
         }
     }
 
