@@ -1573,7 +1573,7 @@ impl Fragment {
         }
 
         // If this fragment takes up no space, we don't need to build any display items for it.
-        if self.has_non_invertible_transform() {
+        if self.has_non_invertible_transform_or_zero_scale() {
             return;
         }
 
@@ -2419,7 +2419,7 @@ impl BlockFlow {
         flags: StackingContextCollectionFlags,
     ) {
         // This block flow produces no stacking contexts if it takes up no space.
-        if self.has_non_invertible_transform() {
+        if self.has_non_invertible_transform_or_zero_scale() {
             return;
         }
 
