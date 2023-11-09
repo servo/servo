@@ -79,7 +79,7 @@ The examples below will use Unix, but the same applies to Windows.
 
 Servo's build system uses rustup.rs to automatically download a Rust compiler.
 This is a specific version of Rust Nightly determined by the
-[`rust-toolchain`](https://github.com/servo/servo/blob/master/rust-toolchain) file.
+[`rust-toolchain.toml`](https://github.com/servo/servo/blob/master/rust-toolchain.toml) file.
 
 ### Normal build
 
