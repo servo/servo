@@ -8,6 +8,7 @@ use std::cell::{Cell, RefCell, RefMut};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::time::Instant;
+use std::{env, fs};
 
 use gleam::gl;
 use log::{info, trace, warn};
@@ -71,7 +72,11 @@ impl App {
 
         // Handle browser state.
         let browser = Browser::new(window.clone());
-        let initial_url = get_default_url(url);
+        let initial_url = get_default_url(
+            url.as_ref().map(String::as_str),
+            env::current_dir().unwrap(),
+            |path| fs::metadata(path).is_ok(),
+        );
 
         let mut app = App {
             event_queue: RefCell::new(vec![]),
