@@ -77,7 +77,7 @@ jobs:
           python -m pip install --upgrade pip virtualenv
           python mach fetch
           python mach bootstrap-gstreamer
-      - name: ${{ inputs.profile }} build
+      - name: Build (${{ inputs.profile }})
         run: python mach build --${{ inputs.profile }}
       - name: Copy resources
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse

@@ -89,7 +89,7 @@ jobs:
         run: sudo apt update && python3 ./mach bootstrap
       - name: Tidy
         run: python3 ./mach test-tidy --no-progress --all
-      - name: ${{ inputs.profile }} build
+      - name: Build (${{ inputs.profile }})
         run: python3 ./mach build --${{ inputs.profile }}
       - name: Smoketest
         run: xvfb-run python3 ./mach smoketest --${{ inputs.profile }}

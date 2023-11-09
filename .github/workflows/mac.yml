@@ -79,7 +79,7 @@ jobs:
           python3 -m pip install --upgrade pip virtualenv
           python3 ./mach bootstrap
           brew install gnu-tar
-      - name: ${{ inputs.profile }} build
+      - name: Build (${{ inputs.profile }})
         run: |
           python3 ./mach build --${{ inputs.profile }}
       - name: Smoketest
