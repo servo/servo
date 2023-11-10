@@ -174,8 +174,8 @@ class MachCommands(CommandBase):
                      help="Run in bench mode")
     @CommandArgument('--nocapture', default=False, action="store_true",
                      help="Run tests with nocapture ( show test stdout )")
-    @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
-    def test_unit(self, test_name=None, package=None, bench=False, nocapture=False, **kwargs):
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
+    def test_unit(self, build_type: BuildType, test_name=None, package=None, bench=False, nocapture=False, **kwargs):
         if test_name is None:
             test_name = []
 
@@ -239,6 +239,14 @@ class MachCommands(CommandBase):
 
         # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
         args = ["--timings"]
+
+        if build_type.is_release():
+            args += ["--release"]
+        elif build_type.is_dev():
+            pass  # there is no argument for debug
+        else:
+            args += ["--profile", build_type.profile]
+
         for crate in packages:
             args += ["-p", "%s_tests" % crate]
         for crate in in_crate_packages:

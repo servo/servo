@@ -3,9 +3,9 @@ name: Windows
 on:
   workflow_call:
     inputs:
-      production:
-        required: false
-        type: boolean
+      profile:
+        required: true
+        type: string
       unit-tests:
         required: false
         default: false
@@ -19,9 +19,11 @@ on:
         type: string
   workflow_dispatch:
     inputs:
-      production:
+      profile:
         required: false
-        type: boolean
+        default: "release"
+        options: ["release", "debug", "production"]
+        type: choice
       unit-tests:
         required: false
         default: false
@@ -34,8 +36,6 @@ on:
     branches: ["try-windows"]
 
 env:
-  cargo_profile_option: ${{ inputs.production && '--profile production' || '--release' }}
-  cargo_profile_name: ${{ inputs.production && 'production' || 'release' }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   CCACHE: "ccache"
@@ -77,19 +77,19 @@ jobs:
           python -m pip install --upgrade pip virtualenv
           python mach fetch
           python mach bootstrap-gstreamer
-      - name: Release build (${{ inputs.production && 'without' || 'with' }} debug assertions)
-        run: python mach build ${{ env.cargo_profile_option }}
+      - name: Build (${{ inputs.profile }})
+        run: python mach build --${{ inputs.profile }}
       - name: Copy resources
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
-        run: python mach smoketest --angle ${{ env.cargo_profile_option }}
+        run: python mach smoketest --angle --${{ inputs.profile }}
       - name: Unit tests
         if: ${{ inputs.unit-tests || github.ref_name == 'try-windows' }}
         uses: nick-fields/retry@v2
         with:
           timeout_minutes: 30
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
-          command: python mach test-unit ${{ env.cargo_profile_option }} -- -- --test-threads=1
+          command: python mach test-unit --${{ inputs.profile }} -- -- --test-threads=1
       - name: Rename build timing
         run: cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Archive build timing
@@ -99,16 +99,16 @@ jobs:
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Build mach package
-        run: python mach package ${{ env.cargo_profile_option }}
+        run: python mach package --${{ inputs.profile }}
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v3
         with:
           name: win
           # These files are available
-          # MSI Installer: C:\a\servo\servo\target\${{ env.cargo_profile_name }}\msi\Installer.msi
-          # Bundle: C:\a\servo\servo\target\${{ env.cargo_profile_name }}\msi\Servo.exe
-          # Zip: C:\a\servo\servo\target\${{ env.cargo_profile_name }}\msi\Servo.zip
-          path: C:\\a\\servo\\servo\\target\\${{ env.cargo_profile_name }}\\msi\\Servo.exe
+          # MSI Installer: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Installer.msi
+          # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.exe
+          # Zip: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.zip
+          path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\Servo.exe
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |

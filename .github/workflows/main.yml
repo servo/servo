@@ -85,6 +85,7 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'windows') }}
     uses: ./.github/workflows/windows.yml
     with:
+      profile: "release"
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
     secrets: inherit
 
@@ -94,6 +95,7 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'macos') }}
     uses: ./.github/workflows/mac.yml
     with:
+      profile: "release"
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
     secrets: inherit
 
@@ -103,6 +105,7 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'linux') }}
     uses: ./.github/workflows/linux.yml
     with:
+      profile: "release"
       wpt: 'test'
       layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
