@@ -112,24 +112,26 @@ mod media_platform {
 
     #[cfg(any(windows, target_os = "macos"))]
     pub fn init() {
-        let mut plugin_dir = std::env::current_exe().unwrap();
-        plugin_dir.pop();
+        ServoMedia::init_with_backend(|| {
+            let mut plugin_dir = std::env::current_exe().unwrap();
+            plugin_dir.pop();
 
-        if cfg!(target_os = "macos") {
-            plugin_dir.push("lib");
-        }
+            if cfg!(target_os = "macos") {
+                plugin_dir.push("lib");
+            }
 
-        let backend = match GStreamerBackend::init_with_plugins(
-            plugin_dir,
-            &gstreamer_plugins::GSTREAMER_PLUGINS,
-        ) {
-            Ok(b) => b,
-            Err(e) => {
-                eprintln!("Error initializing GStreamer: {:?}", e);
-                std::process::exit(1);
-            },
-        };
-        ServoMedia::init_with_backend(backend);
+            let backend = match GStreamerBackend::init_with_plugins(
+                plugin_dir,
+                &gstreamer_plugins::GSTREAMER_PLUGINS,
+            ) {
+                Ok(b) => b,
+                Err(e) => {
+                    eprintln!("Error initializing GStreamer: {:?}", e);
+                    std::process::exit(1);
+                },
+            };
+            backend
+        });
     }
 
     #[cfg(not(any(windows, target_os = "macos")))]
