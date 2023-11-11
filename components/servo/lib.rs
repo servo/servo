@@ -761,10 +761,6 @@ where
         self.compositor.deinit();
     }
 
-    pub fn set_external_present(&mut self, value: bool) {
-        self.compositor.set_external_present(value)
-    }
-
     pub fn present(&mut self) {
         self.compositor.present();
     }
