@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API: Missing login URL should fail.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        select_manifest,
+        mark_signed_in,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  await mark_signed_in();
+
+  let test_options = request_options_with_mediation_required("manifest_no_login_url.json");
+  await select_manifest(t, test_options);
+
+  const cred = fedcm_get_and_select_first_account(t, test_options);
+  return promise_rejects_dom(t, 'NetworkError', cred);
+}, 'Test that promise is rejected if the manifest has no login URL');
+</script>

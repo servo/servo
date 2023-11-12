@@ -96,7 +96,7 @@ export function request_options_with_context(manifest_filename, context) {
   if (manifest_filename === undefined) {
     manifest_filename = "manifest.py";
   }
-  const manifest_path = `https://{{host}}:{{ports[https][0]}}/\
+  const manifest_path = `${manifest_origin}/\
 credential-management/support/fedcm/${manifest_filename}`;
   return {
     identity: {
@@ -211,4 +211,17 @@ export function fedcm_get_and_select_first_account(t, options) {
   const credentialPromise = navigator.credentials.get(options);
   fedcm_select_account_promise(t, 0);
   return credentialPromise;
+}
+
+export function revoke_options(accountHint, manifest_filename) {
+  if (manifest_filename === undefined) {
+    manifest_filename = "manifest.py";
+  }
+  const manifest_path = `${manifest_origin}/\
+credential-management/support/fedcm/${manifest_filename}`;
+  return {
+      configURL: manifest_path,
+      clientId: '1',
+      accountHint: accountHint
+      };
 }

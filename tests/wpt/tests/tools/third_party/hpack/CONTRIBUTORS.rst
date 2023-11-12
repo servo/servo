@@ -39,6 +39,11 @@ In chronological order:
 
   - Code cleanups.
 
+- Bulat Khasanov (@KhasanovBI)
+
+  - Performance improvement of static header search. Use dict search instead
+    of linear search.
+
 Contributors (hyper)
 ````````````````````
 

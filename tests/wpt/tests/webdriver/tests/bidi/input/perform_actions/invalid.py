@@ -48,8 +48,8 @@ def create_pointer_action(pointer_action, overrides=None, removals=None):
         "pressure": 0.0,
         "tangentialPressure": 0.0,
         "twist": 0,
-        "tiltX": 0,
-        "tiltY": 0,
+        "altitudeAngle": 0,
+        "azimuthAngle": 0,
     }
 
     if pointer_action == "pointerMove":
@@ -567,42 +567,6 @@ async def test_params_pointer_action_common_properties_angle_invalid_type(
         {
             "altitudeAngle": value if angle == "altitudeAngle" else 0.0,
             "azimuthAngle": value if angle == "azimuthAngle" else 0.0,
-        },
-    )
-
-    with pytest.raises(InvalidArgumentException):
-        await perform_actions([{"type": "pointer", "id": "foo", "actions": [action]}])
-
-
-@pytest.mark.parametrize("pointer_action", ["pointerDown", "pointerMove", "pointerUp"])
-@pytest.mark.parametrize("tilt", ["tiltX", "tiltY"])
-@pytest.mark.parametrize("value", [None, "foo", True, 0.1, [], {}])
-async def test_params_pointer_action_common_properties_tilt_invalid_type(
-    perform_actions, pointer_action, tilt, value
-):
-    action = create_pointer_action(
-        pointer_action,
-        {
-            "tiltX": value if tilt == "tiltX" else 0,
-            "tiltY": value if tilt == "tiltY" else 0,
-        },
-    )
-
-    with pytest.raises(InvalidArgumentException):
-        await perform_actions([{"type": "pointer", "id": "foo", "actions": [action]}])
-
-
-@pytest.mark.parametrize("pointer_action", ["pointerDown", "pointerMove", "pointerUp"])
-@pytest.mark.parametrize("tilt", ["tiltX", "tiltY"])
-@pytest.mark.parametrize("value", [-91, 91])
-async def test_params_pointer_action_common_properties_tilt_invalid_value(
-    perform_actions, pointer_action, tilt, value
-):
-    action = create_pointer_action(
-        pointer_action,
-        {
-            "tiltX": value if tilt == "tiltX" else 0,
-            "tiltY": value if tilt == "tiltY" else 0,
         },
     )
 

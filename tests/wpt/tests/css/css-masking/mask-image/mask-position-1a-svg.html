@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>CSS Masking: mask-position: mask positioning, SVG content</title>
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-position">
+<link rel="match" href="mask-position-1-ref.html">
+<meta name="assert" content="Test checks whether positioning mask layer works correctly or not.">
+<style type="text/css">
+  rect.frame {
+    x: -0.5px;
+    y: -0.5px;
+    width: 101px;
+    height: 101px;
+    stroke: black;
+    fill: none;
+  }
+
+  rect.masked {
+    width: 100px;
+    height: 100px;
+    fill: purple;
+    mask-image: url(support/50x50-opaque-blue.svg);
+    mask-repeat: no-repeat;
+  }
+
+  #masked1 { mask-position: right 20% bottom 70%; }
+  #masked2 { mask-position: bottom 70% right 20%; }
+  #masked3 { mask-position: right 30px bottom 25px; }
+  #masked4 { mask-position: bottom 25px right 30px; }
+</style>
+<svg height="408">
+  <g transform="translate(1 1)">
+    <rect class="masked" id="masked1"/>
+    <rect class="frame"/>
+  </g>
+  <g transform="translate(1 103)">
+    <rect class="masked" id="masked2"/>
+    <rect class="frame"/>
+  </g>
+  <g transform="translate(1 205)">
+    <rect class="masked" id="masked3"/>
+    <rect class="frame"/>
+  </g>
+  <g transform="translate(1 307)">
+    <rect class="masked" id="masked4"/>
+    <rect class="frame"/>
+  </g>
+</svg>

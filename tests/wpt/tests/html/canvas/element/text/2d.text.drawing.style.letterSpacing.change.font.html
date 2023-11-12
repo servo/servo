@@ -29,7 +29,7 @@ _addTest(function(canvas, ctx) {
   // 1em = 10px. Add 10px after each letter in "Hello World",
   // makes it 110px longer.
   var width_with_spacing = ctx.measureText('Hello World').width;
-  _assertSame(width_with_spacing, width_normal + 110, "width_with_spacing", "width_normal + 110");
+  assert_approx_equals(width_with_spacing, width_normal + 110, 0.1, "letter-spacing error");
 
   // Changing font to 20px. Without resetting the spacing, 1em letterSpacing
   // is now 20px, so it's suppose to be 220px longer without any letterSpacing set.
@@ -38,7 +38,7 @@ _addTest(function(canvas, ctx) {
   // Now calculate the reference spacing for "Hello World" with no spacing.
   ctx.letterSpacing = '0em';
   width_normal = ctx.measureText('Hello World').width;
-  _assertSame(width_with_spacing, width_normal + 220, "width_with_spacing", "width_normal + 220");
+  assert_approx_equals(width_with_spacing, width_normal + 220, 0.1, "letter-spacing error after font change");
 
 });
 </script>

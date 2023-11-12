@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<title>View transitions: span with overflowing text is rendered correctly (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+
+<style>
+span {
+  text-shadow: red -2px -5px;
+  border: 2px solid black;
+  box-shadow: 3px 3px red, -1em 0 .4em olive;
+}
+
+body {
+  background: pink;
+}
+</style>
+
+<span>This text should render correctly</span>
+

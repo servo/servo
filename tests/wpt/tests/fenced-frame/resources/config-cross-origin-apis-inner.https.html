@@ -17,7 +17,7 @@ if (location.origin == get_host_info().ORIGIN) {
   location.href = next_url;
 } else {
   const event = {
-    eventType: "reserved.top_navigation",
+    eventType: "reserved.top_navigation_commit",
     eventData: "data!",
     destination: ["buyer"],
   }

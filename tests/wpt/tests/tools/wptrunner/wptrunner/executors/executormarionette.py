@@ -130,8 +130,12 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
 
         while True:
             try:
-                return self.marionette.execute_async_script("""let callback = arguments[arguments.length - 1];
+                rv = self.marionette.execute_async_script("""let callback = arguments[arguments.length - 1];
 addEventListener("__test_restart", e => {e.preventDefault(); callback(true)})""")
+                # None can be returned if we try to run the script again before we've completed a navigation.
+                # In that case, keep retrying
+                if rv is not None:
+                    return rv
             except errors.NoSuchWindowException:
                 # The window closed
                 break

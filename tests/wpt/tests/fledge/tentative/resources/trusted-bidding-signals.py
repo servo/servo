@@ -2,7 +2,7 @@ import json
 from urllib.parse import unquote_plus
 from fledge.tentative.resources.fledge_http_server_util import headersToAscii
 
-# Script to generate trusted bidding signals. The responses depends on the
+# Script to generate trusted bidding signals. The response depends on the
 # keys and interestGroupNames - some result in entire response failures, others
 # affect only their own value. Keys are preferentially used over
 # interestGroupName, since keys are composible, but some tests need to cover

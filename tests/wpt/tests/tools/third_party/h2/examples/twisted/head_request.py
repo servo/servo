@@ -94,7 +94,6 @@ class H2Protocol(Protocol):
             (':authority', AUTHORITY),
             (':scheme', 'https'),
             (':path', PATH),
-            ('user-agent', 'hyper-h2/1.0.0'),
         ]
         self.conn.send_headers(1, request_headers, end_stream=True)
         self.request_made = True

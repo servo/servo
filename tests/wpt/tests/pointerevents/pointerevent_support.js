@@ -401,6 +401,10 @@ function moveToDocument(pointerType) {
   var pointerId = pointerType + "Pointer1";
   return new test_driver.Actions()
     .addPointer(pointerId, pointerType)
+    // WebDriver initializes the pointer position (0, 0), therefore, we need
+    // to move different position first.  Otherwise, moving to (0, 0) may be
+    // ignored.
+    .pointerMove(1, 1)
     .pointerMove(0, 0)
     .send();
 }

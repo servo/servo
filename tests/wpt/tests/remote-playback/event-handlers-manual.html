@@ -33,30 +33,26 @@
     v.src = getVideoURI("/media/movie_5");
 
     async_test(t => {
-      let onConnectingCalled = false;
-      let onConnectCalled = false;
-      let onDisconnectCalled = false;
-      v.remote.onconnecting = () => (onConnectingCalled = true);
-      v.remote.onconnect = () => (onConnectCalled = true);
-      v.remote.ondisconnect = () => (onDisconnectCalled = true);
-      let button = document.getElementById("prompt-button");
+      let promptButton = document.getElementById("prompt-button");
       let disconnectButton = document.getElementById("disconnect-button");
-      button.onclick = promise_test(
-        () =>
-          v.remote.prompt().then(() => {
-            button.style.display = "none";
+
+      const w = new EventWatcher(t, v.remote, ['connecting', 'connect', 'disconnect']);
+      w.wait_for(['connecting', 'connect', 'disconnect']).then(t.step_func_done());
+
+      promptButton.onclick = () => {
+        promise_test(() => {
+          return v.remote.prompt().then(() => {
+            promptButton.style.display = "none";
             disconnectButton.style.display = "inline";
-          }),
-        "Prompt to connect device"
-      );
-      disconnectButton.onclick = () =>
-        v.remote.prompt().then(
-          t.step_func_done(() => {
-            assert_true(onConnectingCalled, "onconnecting was called");
-            assert_true(onConnectCalled, "onconnect was called");
-            assert_true(onDisconnectCalled, "ondisconnect was called");
-          })
-        );
+          });
+        }, "Prompt to connect to the device");
+      };
+
+      disconnectButton.onclick = () => {
+        promise_test(() => {
+          return v.remote.prompt()
+        }, "Prompt to disconnect from the device")
+      };
     }, "Test that all event handlers are called when a remote playback device is connected.");
   </script>
 </html>

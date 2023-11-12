@@ -1,8 +1,9 @@
-include README.rst LICENSE CONTRIBUTORS.rst HISTORY.rst tox.ini test_requirements.txt .coveragerc Makefile
-recursive-include test *.py *.sh
+graft src/h2
 graft docs
-prune docs/build
+graft test
 graft visualizer
+graft examples
+prune docs/build
 recursive-include examples *.py *.crt *.key *.pem *.csr
-recursive-include utils *.sh
-recursive-include _travis *.sh
+include README.rst LICENSE CHANGELOG.rst tox.ini
+global-exclude *.pyc *.pyo *.swo *.swp *.map *.yml *.DS_Store

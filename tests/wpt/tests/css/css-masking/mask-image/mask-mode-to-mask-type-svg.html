@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Masking: mask-mode with SVG &lt;mask></title>
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#propdef-mask-mode">
+<link rel="match" href="mask-mode-to-mask-type-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-30000">
+<meta name="assert" content="Test checks the fallback logic between mask-mode and mask-type.">
+<style type="text/css">
+  body {
+    padding: 0;
+    margin: 0;
+  }
+
+  rect {
+    fill: blue;
+    width: 100px;
+    height: 100px;
+  }
+
+  rect.match-luminance {
+    x: 10px;
+    y: 10px;
+    mask-mode: match-source;
+    mask-image: url("#svg-luminance");
+  }
+
+  rect.match-alpha {
+    x: 120px;
+    y: 10px;
+    mask-mode: match-source;
+    mask-image: url("#svg-alpha");
+  }
+
+  rect.luminance-luminance {
+    x: 10px;
+    y: 120px;
+    mask-mode: luminance;
+    mask-image: url("#svg-luminance");
+  }
+
+  rect.luminance-alpha {
+    x: 120px;
+    y: 120px;
+    mask-mode: luminance;
+    mask-image: url("#svg-alpha");
+  }
+
+  rect.alpha-luminance {
+    x: 10px;
+    y: 230px;
+    mask-mode: alpha;
+    mask-image: url("#svg-luminance");
+  }
+
+  rect.alpha-alpha {
+    x: 120px;
+    y: 230px;
+    mask-mode: alpha;
+    mask-image: url("#svg-alpha");
+  }
+
+  #svg-luminance {
+    mask-type: luminance;
+  }
+
+  #svg-alpha {
+    mask-type: alpha;
+  }
+</style>
+<svg width="220" height="330">
+  <rect class="match-luminance"/>
+  <rect class="match-alpha"/>
+  <rect class="luminance-luminance"/>
+  <rect class="luminance-alpha"/>
+  <rect class="alpha-luminance"/>
+  <rect class="alpha-alpha"/>
+
+  <mask id="svg-luminance" maskContentUnits="objectBoundingBox">
+    <rect width="100%" height="100%" fill="blue"/>
+  </mask>
+  <mask id="svg-alpha" maskContentUnits="objectBoundingBox">
+    <rect width="100%" height="100%" fill="blue"/>
+  </mask>
+</svg>

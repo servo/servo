@@ -27,7 +27,6 @@ function myObserver(mutationsList, observer) {
         template.setAttribute('shadowrootmode','open');
         assert_not_equals(template.content, null, 'Regular template should have content, even after adding shadowrootmode attribute');
         assert_not_equals(template.innerHTML, "", 'Regular template should have innerHTML, even after adding shadowrootmode attribute');
-        assert_not_equals(template.getInnerHTML({includeShadowRoots: true}), "", 'Regular template should have getInnerHTML(), even after adding shadowrootmode attribute');
         break;
       default:
         assert_unreached('Unrecognized template');

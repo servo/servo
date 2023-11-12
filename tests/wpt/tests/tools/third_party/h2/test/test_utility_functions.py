@@ -14,12 +14,6 @@ import h2.events
 import h2.exceptions
 from h2.utilities import SizeLimitDict, extract_method_header
 
-# These tests require a non-list-returning range function.
-try:
-    range = xrange
-except NameError:
-    range = range
-
 
 class TestGetNextAvailableStreamID(object):
     """

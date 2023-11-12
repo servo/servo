@@ -16,6 +16,18 @@ const LOCK_ACCESS = {
   EXCLUSIVE: 'exclusive',
 };
 
+function primitiveModesAreContentious(exclusiveMode, mode1, mode2) {
+  return mode1 != mode2 || mode1 === exclusiveMode;
+}
+
+function sahModesAreContentious(mode1, mode2) {
+  return primitiveModesAreContentious('readwrite', mode1, mode2);
+}
+
+function wfsModesAreContentious(mode1, mode2) {
+  return primitiveModesAreContentious('exclusive', mode1, mode2);
+}
+
 // Array of separators used to separate components in hierarchical paths.
 // Consider both '/' and '\' as path separators to ensure file names are
 // platform-agnostic.
@@ -294,4 +306,65 @@ async function testLockAccess(t, fileHandle, createLock) {
   }
 
   return access;
+}
+
+// Creates a test with description `testDesc` to test behavior of the BFCache
+// with `testFunc`.
+function createBFCacheTest(testFunc, testDesc) {
+  // In the remote context `rc`, calls the `funcName` export of
+  // `bfcache-test-page.js` with `args`.
+  //
+  // Will import `bfcache-test-page.js` if it hasn't been imported already.
+  function executeFunc(rc, funcName, args) {
+    return rc.executeScript(async (funcName, args) => {
+      if (self.testPageFuncs === undefined) {
+        self.testPageFuncs =
+            (await import('/fs/resources/bfcache-test-page.js'));
+      }
+      return await self.testPageFuncs[funcName](...args);
+    }, [funcName, args]);
+  }
+
+  promise_test(async t => {
+    const rcHelper = new RemoteContextHelper();
+
+    // Open a window with noopener so that BFCache will work.
+    const backRc = await rcHelper.addWindow(null, {features: 'noopener'});
+    let curRc = backRc;
+
+    // Functions given to the test to control the BFCache test.
+    const testControls = {
+      // Returns an array of functions that bind `executeFunc` with curRc and
+      // their respective function name from `funcName`.
+      getRemoteFuncs: (...funcNames) => {
+        return funcNames.map(
+            funcName => (...args) => executeFunc(curRc, funcName, args));
+      },
+      forward: async () => {
+        if (curRc !== backRc) {
+          throw new Error('Can only navigate forward once.');
+        }
+        prepareForBFCache(curRc);
+        curRc = await curRc.navigateToNew();
+      },
+      back: async (shouldRestoreFromBFCache) => {
+        if (curRc === backRc) {
+          throw new Error(
+              'Can\'t navigate back if you haven\'t navigated forward.');
+        }
+        await curRc.historyBack();
+        curRc = backRc;
+        if (shouldRestoreFromBFCache) {
+          await assertImplementsBFCacheOptional(curRc);
+        } else {
+          await assertNotRestoredFromBFCache(curRc);
+        }
+      },
+      assertBFCacheEligibility(shouldRestoreFromBFCache) {
+        return assertBFCacheEligibility(curRc, shouldRestoreFromBFCache);
+      }
+    };
+
+    await testFunc(t, testControls);
+  }, testDesc);
 }

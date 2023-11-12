@@ -46,7 +46,9 @@ function sensor_test(func, name, properties) {
   }, name, properties);
 }
 
-const MOTION_ROTATION_EPSILON = 1e-8;
+// If two doubles differ by less than this amount, we can consider them
+// to be effectively equal.
+const EPSILON = 1e-8;
 
 function generateMotionData(accelerationX, accelerationY, accelerationZ,
                             accelerationIncludingGravityX,
@@ -125,10 +127,9 @@ function setMockOrientationData(sensorProvider, orientationData) {
 function assertEventEquals(actualEvent, expectedEvent) {
   for (let key1 of Object.keys(Object.getPrototypeOf(expectedEvent))) {
     if (typeof expectedEvent[key1] === "object" && expectedEvent[key1] !== null) {
-      for (let key2 of Object.keys(expectedEvent[key1])) {
-        assert_equals(actualEvent[key1][key2], expectedEvent[key1][key2],
-            `$[key1].$[key2]`);
-      }
+      assertEventEquals(actualEvent[key1], expectedEvent[key1]);
+    } else if (typeof expectedEvent[key1] === "number") {
+      assert_approx_equals(actualEvent[key1], expectedEvent[key1], EPSILON, key1);
     } else {
       assert_equals(actualEvent[key1], expectedEvent[key1], key1);
     }

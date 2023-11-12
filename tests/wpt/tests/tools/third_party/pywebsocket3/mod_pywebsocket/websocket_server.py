@@ -85,11 +85,15 @@ class WebSocketServer(socketserver.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         if necessary.
         """
 
+        # Fall back to None for embedders that don't know about the
+        # handler_encoding option.
+        handler_encoding = getattr(options, "handler_encoding", None)
+
         # Share a Dispatcher among request handlers to save time for
         # instantiation.  Dispatcher can be shared because it is thread-safe.
         options.dispatcher = dispatch.Dispatcher(
             options.websock_handlers, options.scan_dir,
-            options.allow_handlers_outside_root_dir)
+            options.allow_handlers_outside_root_dir, handler_encoding)
         if options.websock_handlers_map_file:
             _alias_handlers(options.dispatcher,
                             options.websock_handlers_map_file)

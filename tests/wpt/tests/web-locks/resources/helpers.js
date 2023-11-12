@@ -69,9 +69,17 @@
    * @returns
    */
   self.requestLockAndHold = (t, name, options = {}) => {
-    return navigator.locks.request(name, options, () => {
-      return new Promise(resolve => t.add_cleanup(resolve));
+    let [promise, resolve] = self.makePromiseAndResolveFunc();
+    const released = navigator.locks.request(name, options, () => promise);
+    // Add a cleanup function that releases the lock by resolving the promise,
+    // and then waits until the lock is really released, to avoid contaminating
+    // following tests with temporarily held locks.
+    t.add_cleanup(() => {
+      resolve();
+      // Cleanup shouldn't fail if the request is aborted.
+      return released.catch(() => undefined);
     });
+    return released;
   };
 
   self.makePromiseAndResolveFunc = () => {

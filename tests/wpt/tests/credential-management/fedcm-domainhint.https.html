@@ -12,13 +12,22 @@ import {
   fedcm_test,
   request_options_with_domain_hint,
   select_manifest,
+  mark_signed_in,
+  fedcm_get_dialog_type_promise,
   fedcm_get_and_select_first_account
 } from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
+  await mark_signed_in();
+
   let options = request_options_with_domain_hint('manifest.py',
     'nomatch');
   const cred = fedcm_get_and_select_first_account(t, options);
+  // We expect a mismatch dialog.
+  const type = await fedcm_get_dialog_type_promise(t);
+  assert_equals(type, 'ConfirmIdpLogin');
+  window.test_driver.cancel_fedcm_dialog();
+
   return promise_rejects_dom(t, "NetworkError", cred);
 }, "No domain hint matches an account.");
 

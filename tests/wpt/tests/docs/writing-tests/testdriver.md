@@ -102,7 +102,7 @@ the global scope.
 ### Federated Credential Management ###
 ```eval_rst
 .. js:autofunction:: test_driver.cancel_fedcm_dialog
-.. js:autofunction:: test_driver.confirm_idp_login
+.. js:autofunction:: test_driver.click_fedcm_dialog_button
 .. js:autofunction:: test_driver.select_fedcm_account
 .. js:autofunction:: test_driver.get_fedcm_account_list
 .. js:autofunction:: test_driver.get_fedcm_dialog_title

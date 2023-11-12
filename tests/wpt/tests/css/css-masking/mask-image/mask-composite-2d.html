@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Masking: mask-composite: compose vector image on SVG content</title>
+<link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-mask-composite">
+<link rel="match" href="mask-composite-2-ref.html">
+<meta name="assert" content="Test checks that vector-mask-image can be composed correctly by different mask-composite value.">
+<style type="text/css">
+  body {
+    padding: 0;
+    margin: 0;
+  }
+
+  rect {
+    fill: blue;
+    width: 100px;
+    height: 100px;
+    y: 10px;
+    mask-image: url(support/blue-100x50-transparent-100x50.svg),
+                url(support/transparent-100x50-blue-100x50.svg);
+  }
+
+  rect.add {
+    x: 10px;
+    mask-composite: add;
+  }
+
+  rect.subtract {
+    x: 120px;
+    mask-composite: subtract;
+  }
+
+  rect.intersect {
+    x: 230px;
+    mask-composite: intersect;
+  }
+
+  rect.exclude {
+    x: 340px;
+    mask-composite: exclude;
+  }
+</style>
+<svg width="440">
+  <rect class="add"/>
+  <rect class="subtract"/>
+  <rect class="intersect"/>
+  <rect class="exclude"/>
+</svg>

@@ -10,7 +10,7 @@ Priority
 build a HTTP/2 priority tree, and the effect that should have on sending data
 from a server.
 
-Hyper-h2 does not enforce any priority logic by default for servers. This is
+h2 does not enforce any priority logic by default for servers. This is
 because scheduling data sends is outside the scope of this library, as it
 likely requires fairly substantial understanding of the scheduler being used.
 
@@ -26,7 +26,7 @@ Related Events
 
 .. versionadded:: 2.4.0
 
-In the 2.4.0 release hyper-h2 added support for signaling "related events".
+In the 2.4.0 release h2 added support for signaling "related events".
 These are a HTTP/2-only construct that exist because certain HTTP/2 events can
 occur simultaneously: that is, one HTTP/2 frame can cause multiple state
 transitions to occur at the same time. One example of this is a HEADERS frame
@@ -35,17 +35,17 @@ cause three events to fire (one of the various request/response received
 events, a :class:`PriorityUpdated <h2.events.PriorityUpdated>` event, and a
 :class:`StreamEnded <h2.events.StreamEnded>` event).
 
-Ordinarily hyper-h2's logic will emit those events to you one at a time. This
+Ordinarily h2's logic will emit those events to you one at a time. This
 means that you may attempt to process, for example, a
 :class:`DataReceived <h2.events.DataReceived>` event, not knowing that the next
 event out will be a :class:`StreamEnded <h2.events.StreamEnded>` event.
-hyper-h2 *does* know this, however, and so will forbid you from taking certain
+h2 *does* know this, however, and so will forbid you from taking certain
 actions that are a violation of the HTTP/2 protocol.
 
 To avoid this asymmetry of information, events that can occur simultaneously
 now carry properties for their "related events". These allow users to find the
 events that can have occurred simultaneously with each other before the event
-is emitted by hyper-h2. The following objects have "related events":
+is emitted by h2. The following objects have "related events":
 
 - :class:`RequestReceived <h2.events.RequestReceived>`:
 
@@ -96,7 +96,7 @@ is emitted by hyper-h2. The following objects have "related events":
       same time as receiving this data.
 
 
-.. warning:: hyper-h2 does not know if you are looking for related events or
+.. warning:: h2 does not know if you are looking for related events or
              expecting to find events in the event stream. Therefore, it will
              always emit "related events" in the event stream. If you are using
              the "related events" event pattern, you will want to be careful to
@@ -167,11 +167,11 @@ When To Send
 ~~~~~~~~~~~~
 
 In addition to knowing how much data to send (see :ref:`advanced-sending-data`)
-it is important to know when to send data. For hyper-h2, this amounts to
+it is important to know when to send data. For h2, this amounts to
 knowing when to call :meth:`data_to_send
 <h2.connection.H2Connection.data_to_send>`.
 
-Hyper-h2 may write data into its send buffer at two times. The first is
+h2 may write data into its send buffer at two times. The first is
 whenever :meth:`receive_data <h2.connection.H2Connection.receive_data>` is
 called. This data is sent in response to some control frames that require no
 user input: for example, responding to PING frames. The second time is in
@@ -179,7 +179,7 @@ response to user action: whenever a user calls a method like
 :meth:`send_headers <h2.connection.H2Connection.send_headers>`, data may be
 written into the buffer.
 
-In a standard design for a hyper-h2 consumer, then, that means there are two
+In a standard design for a h2 consumer, then, that means there are two
 places where you'll potentially want to send data. The first is in your
 "receive data" loop. This is where you take the data you receive, pass it into
 :meth:`receive_data <h2.connection.H2Connection.receive_data>`, and then
@@ -240,16 +240,16 @@ Working With Flow Control
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The amount of flow control window a ``DATA`` frame consumes is the sum of both
-its contained application data *and* the amount of padding used. hyper-h2 shows
+its contained application data *and* the amount of padding used. h2 shows
 this to the user in a :class:`DataReceived <h2.events.DataReceived>` event by
 using the :data:`flow_controlled_length
 <h2.events.DataReceived.flow_controlled_length>` field. When working with flow
-control in hyper-h2, users *must* use this field: simply using
+control in h2, users *must* use this field: simply using
 ``len(datareceived.data)`` can eventually lead to deadlock.
 
 When data has been received and given to the user in a :class:`DataReceived
 <h2.events.DataReceived>`, it is the responsibility of the user to re-open the
-flow control window when the user is ready for more data. hyper-h2 does not do
+flow control window when the user is ready for more data. h2 does not do
 this automatically to avoid flooding the user with data: if we did, the remote
 peer could send unbounded amounts of data that the user would need to buffer
 before processing.
@@ -258,7 +258,7 @@ To re-open the flow control window, then, the user must call
 :meth:`increment_flow_control_window
 <h2.connection.H2Connection.increment_flow_control_window>` with the
 :data:`flow_controlled_length <h2.events.DataReceived.flow_controlled_length>`
-of the received data. hyper-h2 requires that you manage both the connection
+of the received data. h2 requires that you manage both the connection
 and the stream flow control windows separately, so you may need to increment
 both the stream the data was received on and stream ``0``.
 
@@ -269,10 +269,10 @@ flow control windows. You can find out how much data you can send on a given
 stream by using the :meth:`local_flow_control_window
 <h2.connection.H2Connection.local_flow_control_window>` method, which will do
 all of these calculations for you. If you attempt to send more than this amount
-of data on a stream, hyper-h2 will throw a :class:`ProtocolError
+of data on a stream, h2 will throw a :class:`ProtocolError
 <h2.exceptions.ProtocolError>` and refuse to send the data.
 
-In hyper-h2, receiving a ``WINDOW_UPDATE`` frame causes a :class:`WindowUpdated
+In h2, receiving a ``WINDOW_UPDATE`` frame causes a :class:`WindowUpdated
 <h2.events.WindowUpdated>` event to fire. This will notify you that there is
 potentially more room in a flow control window. Note that, just because an
 increment of a given size was received *does not* mean that that much more data
@@ -301,7 +301,7 @@ control strategies. While particular high performance or specific-use-case
 applications may gain value from directly controlling the emission of
 ``WINDOW_UPDATE`` frames, the average application can use a
 lowest-common-denominator strategy to emit those frames. As of version 2.5.0,
-hyper-h2 now provides this automatic strategy for users, if they want to use
+h2 now provides this automatic strategy for users, if they want to use
 it.
 
 This automatic strategy is built around a single method:

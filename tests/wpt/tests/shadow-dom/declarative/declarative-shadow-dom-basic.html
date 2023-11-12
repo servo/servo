@@ -45,6 +45,16 @@ test(() => {
 }, 'Shadowrootmode reflection');
 
 test(() => {
+  const t = document.createElement('template');
+  t.shadowRootMode = 'blah';
+  assert_equals(t.shadowRootMode, '');
+  t.getAttribute('shadowrootmode', 'blah');
+  t.shadowRootMode = 'CLOSED';
+  assert_equals(t.shadowRootMode, 'closed');
+  t.getAttribute('shadowrootmode', 'CLOSED');
+}, 'Shadowrootmode reflection, setter');
+
+test(() => {
   const div = document.createElement('div');
   div.setHTMLUnsafe(`
     <div id="host">

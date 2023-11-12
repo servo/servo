@@ -243,10 +243,10 @@ ALL_EVENTS = OrderedDict(
         )),
         ("EQUALS", OrderedDict(
             [
-                ("code", ""),
+                ("code", "NumpadEqual"),
                 ("ctrl", False),
                 ("key", "="),
-                ("location", 0),
+                ("location", 3),
                 ("meta", False),
                 ("shift", False),
                 ("value", u"\ue019")
@@ -606,7 +606,7 @@ ALL_EVENTS = OrderedDict(
         )),
         ("PAUSE", OrderedDict(
             [
-                ("code", ""),
+                ("code", "Pause"),
                 ("ctrl", False),
                 ("key", "Pause"),
                 ("location", 0),

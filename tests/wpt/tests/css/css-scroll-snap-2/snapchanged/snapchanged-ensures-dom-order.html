@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="resources/common.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+  <style>
+    #scroller {
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      width: 500px;
+      height: 500px;
+      background-color: white;
+      position: relative;
+    }
+    .space_filler {
+      display: inline-block;
+      width: 40%;
+      height: 30%;
+      background-color: green;
+    }
+    .snap_area {
+      scroll-snap-align: start;
+      background-color: yellow;
+      position: absolute;
+      width: 40%;
+      height: 30%;
+    }
+
+    #snap_point_1 {
+      left: 1px;
+    }
+    #snap_point_2 {
+      left: 80%;
+    }
+    #snap_point_3 {
+      left: 40%;
+      scroll-snap-align: start;
+      background-color: yellow;
+      position: absolute;
+      width: 40%;
+      height: 30%;
+    }
+  </style>
+</head>
+<body>
+  <div id="scroller">
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div id="snap_point_1" class="snap_area"><h1>1</h1></div>
+    <div id="snap_point_2" class="snap_area"><h1>2</h1></div>
+  </div>
+  <script>
+    promise_test(async (t) => {
+      checkSnapchangedSupport();
+      await waitForCompositorCommit();
+      const snapchanged_promise = waitForSnapChangedEvent(scroller, false);
+      const snap_point_3 = document.createElement("div");
+      snap_point_3.id = "snap_point_3";
+      t.add_cleanup(() => {
+        snap_point_3.remove();
+      });
+      scroller.insertBefore(snap_point_3, snap_point_2);
+      const evt_seen = await snapchanged_promise;
+      assertSnapchangedEvent(evt_seen,
+                      [snap_point_1.id, snap_point_3.id, snap_point_2.id]);
+    }, "snapchanged lists snapTargets in DOM order.");
+
+    promise_test(async (t) => {
+      checkSnapchangedSupport();
+      await waitForCompositorCommit();
+      const unreached_func = t.unreached_func("snapchanged shouldn't fire " +
+          "since the scroller is snapped to the same elements despite the " +
+          "dom order change.");
+      t.add_cleanup(() => {
+        scroller.removeEventListener("snapchanged", unreached_func);
+      })
+      scroller.addEventListener("snapchanged", unreached_func);
+      scroller.insertBefore(snap_point_2, snap_point_1);
+      await waitForCompositorCommit();
+    }, "DOM order change doesn't trigger snapchanged if snapped targets " +
+       "don't change.");
+  </script>
+</body>
+</html>

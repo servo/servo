@@ -38,7 +38,8 @@ promise_test(async (t) => {
     .pointerUp()
     .send();
   const timeout = new Promise(resolve => t.step_timeout(resolve, 1000));
-  const result = await Promise.race([nextAutomaticBeacon(), timeout]);
+  const result = await Promise.race(
+      [nextAutomaticBeacon("<No data>"), timeout]);
   assert_true(typeof result === "undefined");
 }, "Automatic beacons will not send if the document does not opt in.");
 

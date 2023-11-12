@@ -1,0 +1,373 @@
+{
+  "draft": 9,
+  "description": "https://github.com/Jxck/hpack implemeted in Golang. Encoded using String Literal with Huffman, no Header/Static Table, and always start with emptied Reference Set. by Jxck.",
+  "cases": [
+    {
+      "seqno": 0,
+      "header_table_size": 4096,
+      "wire": "0085b9495339e483c5837f0085b8824e5a4b839d29af0088b83b5339ec327d7f878c6692d5c87a7f0084b958d33f81630087b505b161cc5a93bcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c1008419085ad3b0497ca589d34d1f43aeba0c41a4c7a98f33a69a3fdf9a68fa1d75d0620d263d4c79a68fbed00177febe58f9fbed00177b008b19085ad2b503aa6b47317f8b2d4b70ddf45abefb4005db008b19085ad2b16a21e435537f8a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff",
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "baidu.com"
+        },
+        {
+          ":path": "/"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        }
+      ]
+    },
+    {
+      "seqno": 1,
+      "header_table_size": 4096,
+      "wire": "0085b9495339e483c5837f0085b8824e5a4b839d29af0088b83b5339ec327d7f878c6692d5c87a7f0084b958d33f896251f7310f52e621ff0087b505b161cc5a93bcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c1008419085ad3b0497ca589d34d1f43aeba0c41a4c7a98f33a69a3fdf9a68fa1d75d0620d263d4c79a68fbed00177febe58f9fbed00177b008b19085ad2b503aa6b47317f8b2d4b70ddf45abefb4005db008b19085ad2b16a21e435537f8a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff",
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "baidu.com"
+        },
+        {
+          ":path": "/favicon.ico"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        }
+      ]
+    },
+    {
+      "seqno": 2,
+      "header_table_size": 4096,
+      "wire": "0085b9495339e483c5837f0085b8824e5a4b839d29af0088b83b5339ec327d7f8af1e3c2f18cd25ab90f4f0084b958d33f81630087b505b161cc5a93bcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c1008419085ad3b0497ca589d34d1f43aeba0c41a4c7a98f33a69a3fdf9a68fa1d75d0620d263d4c79a68fbed00177febe58f9fbed00177b008b19085ad2b503aa6b47317f8b2d4b70ddf45abefb4005db008b19085ad2b16a21e435537f8a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff",
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "www.baidu.com"
+        },
+        {
+          ":path": "/"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        }
+      ]
+    },
+    {
+      "seqno": 3,
+      "header_table_size": 4096,
+      "wire": "0085b9495339e483c5837f0085b8824e5a4b839d29af0088b83b5339ec327d7f8af1e3c2f18cd25ab90f4f0084b958d33f9060d4ccc4633496c48f541e6385798d2f0087b505b161cc5a93bcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c1008419085ad39a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f008b19085ad2b503aa6b47317f8b2d4b70ddf45abefb4005db008b19085ad2b16a21e435537f8a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0085b0b296c2d9909d29aee30c78f1e178c6692d5c87a58f008421cfd4c5a4bb0e4bfc325f82eb8165c86f04182ee0042f61bd7c417305d71abcd5e0c2ddeb9871401f",
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "www.baidu.com"
+        },
+        {
+          ":path": "/img/baidu_sylogo1.gif"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "referer": "http://www.baidu.com/"
+        },
+        {
+          "cookie": "BAIDUID=B6136AC10EBE0A8FCD216EB64C4C1A5C:FG=1"
+        }
+      ]
+    },
+    {
+      "seqno": 4,
+      "header_table_size": 4096,
+      "wire": "0085b9495339e483c5837f0085b8824e5a4b839d29af0088b83b5339ec327d7f8af1e3c2f18cd25ab90f4f0084b958d33f91608324e5626a0f18e860d4ccc4c85e634b0087b505b161cc5a93bcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c1008419085ad39a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f008b19085ad2b503aa6b47317f8b2d4b70ddf45abefb4005db008b19085ad2b16a21e435537f8a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0085b0b296c2d9909d29aee30c78f1e178c6692d5c87a58f008421cfd4c5a4bb0e4bfc325f82eb8165c86f04182ee0042f61bd7c417305d71abcd5e0c2ddeb9871401f",
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "www.baidu.com"
+        },
+        {
+          ":path": "/cache/global/img/gs.gif"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "referer": "http://www.baidu.com/"
+        },
+        {
+          "cookie": "BAIDUID=B6136AC10EBE0A8FCD216EB64C4C1A5C:FG=1"
+        }
+      ]
+    },
+    {
+      "seqno": 5,
+      "header_table_size": 4096,
+      "wire": "0085b9495339e483c5837f0085b8824e5a4b839d29af0088b83b5339ec327d7f8a40578e442469311721e90084b958d33f9f62c63c78f0c10649cac4d41e31d0c7443091d53583a560aecaed102b817e880087b505b161cc5a93bcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c1008419085ad383f963e7008b19085ad2b503aa6b47317f8b2d4b70ddf45abefb4005db008b19085ad2b16a21e435537f8a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0085b0b296c2d9909d29aee30c78f1e178c6692d5c87a58f",
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "s1.bdstatic.com"
+        },
+        {
+          ":path": "/r/www/cache/global/js/tangram-1.3.4c1.0.js"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "*/*"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "referer": "http://www.baidu.com/"
+        }
+      ]
+    },
+    {
+      "seqno": 6,
+      "header_table_size": 4096,
+      "wire": "0085b9495339e483c5837f0085b8824e5a4b839d29af0088b83b5339ec327d7f8a40578e442469311721e90084b958d33f9962c63c78f0c10649cac4d41e31d0c7443139e92ac15de5fa230087b505b161cc5a93bcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c1008419085ad383f963e7008b19085ad2b503aa6b47317f8b2d4b70ddf45abefb4005db008b19085ad2b16a21e435537f8a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0085b0b296c2d9909d29aee30c78f1e178c6692d5c87a58f",
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "s1.bdstatic.com"
+        },
+        {
+          ":path": "/r/www/cache/global/js/home-1.8.js"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "*/*"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "referer": "http://www.baidu.com/"
+        }
+      ]
+    },
+    {
+      "seqno": 7,
+      "header_table_size": 4096,
+      "wire": "0085b9495339e483c5837f0085b8824e5a4b839d29af0088b83b5339ec327d7f8a40578e442469311721e90084b958d33f9762c63c78f0c10649cac5a82d8c744316ac15d95da5fa230087b505b161cc5a93bcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c1008419085ad383f963e7008b19085ad2b503aa6b47317f8b2d4b70ddf45abefb4005db008b19085ad2b16a21e435537f8a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0085b0b296c2d9909d29aee30c78f1e178c6692d5c87a58f",
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "s1.bdstatic.com"
+        },
+        {
+          ":path": "/r/www/cache/user/js/u-1.3.4.js"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "*/*"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "referer": "http://www.baidu.com/"
+        }
+      ]
+    },
+    {
+      "seqno": 8,
+      "header_table_size": 4096,
+      "wire": "0085b9495339e483c5837f0085b8824e5a4b839d29af0088b83b5339ec327d7f8a40578e442469311721e90084b958d33f9162c63c78f0c1a999832c15c0b817aea9bf0087b505b161cc5a93bcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c1008419085ad39a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f008b19085ad2b503aa6b47317f8b2d4b70ddf45abefb4005db008b19085ad2b16a21e435537f8a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0085b0b296c2d9909d29aee30c78f1e178c6692d5c87a58f",
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "s1.bdstatic.com"
+        },
+        {
+          ":path": "/r/www/img/i-1.0.0.png"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "referer": "http://www.baidu.com/"
+        }
+      ]
+    },
+    {
+      "seqno": 9,
+      "header_table_size": 4096,
+      "wire": "0085b9495339e483c5837f0085b8824e5a4b839d29af0088b83b5339ec327d7f8af1e3c2f18cd25ab90f4f0084b958d33f896251f7310f52e621ff0087b505b161cc5a93bcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c1008419085ad3b0497ca589d34d1f43aeba0c41a4c7a98f33a69a3fdf9a68fa1d75d0620d263d4c79a68fbed00177febe58f9fbed00177b008b19085ad2b503aa6b47317f8b2d4b70ddf45abefb4005db008b19085ad2b16a21e435537f8a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff008421cfd4c5a4bb0e4bfc325f82eb8165c86f04182ee0042f61bd7c417305d71abcd5e0c2ddeb9871401f",
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "www.baidu.com"
+        },
+        {
+          ":path": "/favicon.ico"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "cookie": "BAIDUID=B6136AC10EBE0A8FCD216EB64C4C1A5C:FG=1"
+        }
+      ]
+    }
+  ]
+}

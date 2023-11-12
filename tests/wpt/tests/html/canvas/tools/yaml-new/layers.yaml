@@ -308,6 +308,101 @@
     @assert ctx.shadowOffsetY === 20;
     @assert ctx.shadowBlur === 30;
 
+- name: 2d.layer.clip-outside
+  desc: Check clipping set outside the layer
+  size: [100, 100]
+  code: |
+    ctx.beginPath();
+    ctx.rect(15, 15, 70, 70);
+    ctx.clip();
+
+    ctx.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(10, 10, 80, 80);
+    ctx.endLayer();
+  reference: |
+    const canvas2 = new OffscreenCanvas(200, 200);
+    const ctx2 = canvas2.getContext('2d');
+
+    ctx2.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+    ctx2.fillStyle = 'blue';
+    ctx2.fillRect(10, 10, 80, 80);
+    ctx2.endLayer();
+
+    ctx.beginPath();
+    ctx.rect(15, 15, 70, 70);
+    ctx.clip();
+
+    ctx.drawImage(canvas2, 0, 0);
+
+- name: 2d.layer.clip-inside
+  desc: Check clipping set inside the layer
+  size: [100, 100]
+  code: |
+    ctx.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+
+    ctx.beginPath();
+    ctx.rect(15, 15, 70, 70);
+    ctx.clip();
+
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(10, 10, 80, 80);
+    ctx.endLayer();
+  reference: |
+    const canvas2 = new OffscreenCanvas(200, 200);
+    const ctx2 = canvas2.getContext('2d');
+
+    ctx2.beginPath();
+    ctx2.rect(15, 15, 70, 70);
+    ctx2.clip();
+
+    ctx2.fillStyle = 'blue';
+    ctx2.fillRect(10, 10, 80, 80);
+
+    ctx.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+    ctx.drawImage(canvas2, 0, 0);
+    ctx.endLayer();
+
+- name: 2d.layer.clip-inside-and-outside
+  desc: Check clipping set inside and outside the layer
+  size: [100, 100]
+  code: |
+    ctx.beginPath();
+    ctx.rect(15, 15, 70, 70);
+    ctx.clip();
+
+    ctx.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+
+    ctx.beginPath();
+    ctx.rect(15, 15, 70, 70);
+    ctx.clip();
+
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(10, 10, 80, 80);
+    ctx.endLayer();
+  reference: |
+    const canvas2 = new OffscreenCanvas(200, 200);
+    const ctx2 = canvas2.getContext('2d');
+
+    ctx2.beginPath();
+    ctx2.rect(15, 15, 70, 70);
+    ctx2.clip();
+
+    ctx2.fillStyle = 'blue';
+    ctx2.fillRect(10, 10, 80, 80);
+
+    const canvas3 = new OffscreenCanvas(200, 200);
+    const ctx3 = canvas3.getContext('2d');
+
+    ctx3.beginLayer({filter: {name: "gaussianBlur", stdDeviation: 12}});
+    ctx3.drawImage(canvas2, 0, 0);
+    ctx3.endLayer();
+
+    ctx.beginPath();
+    ctx.rect(15, 15, 70, 70);
+    ctx.clip();
+    ctx.drawImage(canvas3, 0, 0);
+
 - name: 2d.layer.unclosed
   desc: Check that layers are rendered even if not closed.
   size: [200, 200]
@@ -800,3 +895,55 @@
         const clipRegion = new Path2D();
         clipRegion.rect(20, 20, 160, 160);
         ctx.clip(clipRegion);
+
+- name: 2d.layer.opaque-canvas
+  desc: Checks that layer blending works inside opaque canvas
+  size: [300, 300]
+  code: |
+    {% if canvas_type == 'htmlcanvas' %}
+    const canvas2 = document.createElement('canvas');
+    canvas2.width = 200;
+    canvas2.height = 200;
+    {% else %}
+    const canvas2 = new OffscreenCanvas(200, 200);
+    {% endif %}
+    const ctx2 = canvas2.getContext('2d', {alpha: false});
+
+    ctx2.fillStyle = 'purple';
+    ctx2.fillRect(10, 10, 100, 100);
+
+    ctx2.beginLayer({filter: {name: 'dropShadow', dx: -10, dy: 10,
+                              stdDeviation: 0,
+                              floodColor: 'rgba(200, 100, 50, 0.5)'}});
+    ctx2.fillStyle = 'green';
+    ctx2.fillRect(50, 50, 100, 100);
+    ctx2.globalAlpha = 0.8;
+    ctx2.fillStyle = 'yellow';
+    ctx2.fillRect(75, 25, 100, 100);
+    ctx2.endLayer();
+
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(0, 0, 300, 300);
+    ctx.drawImage(canvas2, 0, 0);
+  reference: |
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(0, 0, 300, 300);
+
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, 200, 200);
+
+    ctx.fillStyle = 'purple';
+    ctx.fillRect(10, 10, 100, 100);
+
+    const canvas2 = new OffscreenCanvas(200, 200);
+    const ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = 'green';
+    ctx2.fillRect(50, 50, 100, 100);
+    ctx2.globalAlpha = 0.8;
+    ctx2.fillStyle = 'yellow';
+    ctx2.fillRect(75, 25, 100, 100);
+
+    ctx.shadowColor = 'rgba(200, 100, 50, 0.5)';
+    ctx.shadowOffsetX = -10;
+    ctx.shadowOffsetY = 10;
+    ctx.drawImage(canvas2, 0, 0);

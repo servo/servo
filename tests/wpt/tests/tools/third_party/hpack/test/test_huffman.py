@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-from hpack.exceptions import HPACKDecodingError
-from hpack.huffman_table import decode_huffman
+from hpack import HPACKDecodingError
 from hpack.huffman import HuffmanEncoder
 from hpack.huffman_constants import REQUEST_CODES, REQUEST_CODES_LENGTH
+from hpack.huffman_table import decode_huffman
 
 from hypothesis import given, example
 from hypothesis.strategies import binary
 
 
-class TestHuffman(object):
+class TestHuffman:
 
     def test_request_huffman_decoder(self):
         assert (
@@ -34,7 +34,7 @@ class TestHuffman(object):
         )
 
 
-class TestHuffmanDecoder(object):
+class TestHuffmanDecoder:
     @given(data=binary())
     @example(b'\xff')
     @example(b'\x5f\xff\xff\xff\xff')

@@ -699,21 +699,22 @@
         },
 
         /**
-         * Accepts a FedCM "Confirm IDP login" dialog.
+         * Clicks a button on the Federated Credential Management dialog
          *
-         * Matches the `Confirm IDP Login
-         * <https://fedidcg.github.io/FedCM/#webdriver-confirmidplogin>`_
+         * Matches the `Click dialog button
+         * <https://fedidcg.github.io/FedCM/#webdriver-clickdialogbutton>`_
          * WebDriver command.
          *
+         * @param {String} dialog_button - String enum representing the dialog button to click.
          * @param {WindowProxy} context - Browsing context in which
          *                                to run the call, or null for the current
          *                                browsing context.
          *
-         * @returns {Promise} Fulfilled after the IDP login has started,
+         * @returns {Promise} Fulfilled after the button is clicked,
          *                    or rejected in case the WebDriver command errors
          */
-        confirm_idp_login: function(context=null) {
-          return window.test_driver_internal.confirm_idp_login(context);
+        click_fedcm_dialog_button: function(dialog_button, context=null) {
+          return window.test_driver_internal.click_fedcm_dialog_button(dialog_button, context);
         },
 
         /**
@@ -1097,8 +1098,8 @@
             throw new Error("cancel_fedcm_dialog() is not implemented by testdriver-vendor.js");
         },
 
-        async confirm_idp_login(context=null) {
-            throw new Error("confirm_idp_login() is not implemented by testdriver-vendor.js");
+        async click_fedcm_dialog_button(dialog_button, context=null) {
+            throw new Error("click_fedcm_dialog_button() is not implemented by testdriver-vendor.js");
         },
 
         async select_fedcm_account(account_index, context=null) {

@@ -18,7 +18,7 @@ from . import assert_console_entry, assert_javascript_entry
     ],
 )
 async def test_console_entry_sync_callstack(
-    bidi_session, inline, top_context, wait_for_event, log_method, expect_stack
+    bidi_session, subscribe_events, inline, top_context, wait_for_event, log_method, expect_stack
 ):
     if log_method == "assert":
         # assert has to be called with a first falsy argument to trigger a log.
@@ -42,7 +42,7 @@ async def test_console_entry_sync_callstack(
             """
         )
 
-    await bidi_session.session.subscribe(events=["log.entryAdded"])
+    await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
 
@@ -78,7 +78,7 @@ async def test_console_entry_sync_callstack(
 
 @pytest.mark.asyncio
 async def test_javascript_entry_sync_callstack(
-    bidi_session, inline, top_context, wait_for_event
+    bidi_session, subscribe_events, inline, top_context, wait_for_event
 ):
     url = inline(
         """
@@ -90,7 +90,7 @@ async def test_javascript_entry_sync_callstack(
         """
     )
 
-    await bidi_session.session.subscribe(events=["log.entryAdded"])
+    await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
 

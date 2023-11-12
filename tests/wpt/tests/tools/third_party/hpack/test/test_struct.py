@@ -7,10 +7,10 @@ Tests for the Header tuples.
 """
 import pytest
 
-from hpack.struct import HeaderTuple, NeverIndexedHeaderTuple
+from hpack import HeaderTuple, NeverIndexedHeaderTuple
 
 
-class TestHeaderTuple(object):
+class TestHeaderTuple:
     def test_is_tuple(self):
         """
         HeaderTuple objects are tuples.

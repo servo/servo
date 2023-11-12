@@ -1,2 +1,11 @@
-include README.rst LICENSE CONTRIBUTORS.rst HISTORY.rst
-
+graft src
+graft docs
+graft test
+prune bench
+prune docs/build
+prune utils
+exclude tasks.py
+exclude test/test_fixtures/*/*.json
+exclude test/test_hpack_integration.py
+include README.rst LICENSE CHANGELOG.rst CONTRIBUTORS.rst tox.ini Makefile
+global-exclude *.pyc *.pyo *.swo *.swp *.map *.yml *.DS_Store

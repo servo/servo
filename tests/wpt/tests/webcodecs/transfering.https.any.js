@@ -217,6 +217,51 @@ promise_test(async t => {
 }, 'Test transfering ArrayBuffer to AudioData');
 
 promise_test(async t => {
+  let sample_rate = 48000;
+  let total_duration_s = 1;
+  let data_count = 10;
+  let chunks = [];
+
+  let encoder_init = {
+    error: t.unreached_func('Encoder error'),
+    output: (chunk, metadata) => {
+      chunks.push(chunk);
+    }
+  };
+  let encoder = new AudioEncoder(encoder_init);
+  let config = {
+    codec: 'opus',
+    sampleRate: sample_rate,
+    numberOfChannels: 2,
+    bitrate: 256000,  // 256kbit
+  };
+  encoder.configure(config);
+
+  let timestamp_us = 0;
+  const data_duration_s = total_duration_s / data_count;
+  const frames = data_duration_s * config.sampleRate;
+  for (let i = 0; i < data_count; i++) {
+    let buffer = new Float32Array(frames * config.numberOfChannels);
+    let data = new AudioData({
+      timestamp: timestamp_us,
+      data: buffer,
+      numberOfChannels: config.numberOfChannels,
+      numberOfFrames: frames,
+      sampleRate: config.sampleRate,
+      format: 'f32-planar',
+      transfer: [buffer.buffer]
+    });
+    timestamp_us += data_duration_s * 1_000_000;
+    assert_equals(buffer.length, 0, 'buffer.length after detach');
+    encoder.encode(data);
+  }
+  await encoder.flush();
+  encoder.close();
+  assert_greater_than(chunks.length, 0);
+}, 'Encoding from AudioData with transferred buffer');
+
+
+promise_test(async t => {
   let unused_buffer = new ArrayBuffer(123);
   let support = await ImageDecoder.isTypeSupported('image/png');
   assert_implements_optional(

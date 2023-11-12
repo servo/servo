@@ -2,8 +2,9 @@ import base64
 
 from tests.support.asserts import assert_pdf
 from tests.support.image import cm_to_px, png_dimensions, ImageDifference
-from typing import Any, Mapping
+from typing import Any, Coroutine, Mapping
 
+import asyncio
 import pytest
 import pytest_asyncio
 from webdriver.bidi.error import (
@@ -12,6 +13,7 @@ from webdriver.bidi.error import (
     NoSuchScriptException,
 )
 from webdriver.bidi.modules.script import ContextTarget
+from webdriver.error import TimeoutException
 
 
 @pytest_asyncio.fixture
@@ -102,20 +104,37 @@ def wait_for_event(bidi_session, event_loop):
 
 
 @pytest.fixture
+def wait_for_future_safe(configuration):
+    """Wait for the given future for a given amount of time.
+    Fails gracefully if the future does not resolve within the given timeout."""
+
+    async def wait_for_future_safe(future: Coroutine, timeout: float = 2.0):
+        try:
+            await asyncio.wait_for(
+                asyncio.shield(future),
+                timeout=timeout * configuration["timeout_multiplier"],
+            )
+        except asyncio.exceptions.TimeoutError:
+            raise TimeoutException("Future did not resolve within the given timeout")
+
+    return wait_for_future_safe
+
+
+@pytest.fixture
 def current_time(bidi_session, top_context):
     """Get the current time stamp in ms from the remote end.
 
     This is required especially when tests are run on different devices like
     for Android, where it's not guaranteed that both machines are in sync.
     """
-    async def _():
+    async def current_time():
         result = await bidi_session.script.evaluate(
             expression="Date.now()",
             target=ContextTarget(top_context["context"]),
             await_promise=True)
         return result["value"]
 
-    return _
+    return current_time
 
 
 @pytest.fixture

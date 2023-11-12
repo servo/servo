@@ -1,0 +1,58 @@
+{
+  "draft": 9,
+  "description": "Encoded by node-http2-hpack.",
+  "cases": [
+    {
+      "seqno": 0,
+      "wire": "8741882f91d35d055c87a784827a879eb193aac92a136087f3e7cf9f3e7c874086f2b4e5a283ff84f07b2893",
+      "headers": [
+        {
+          ":scheme": "https"
+        },
+        {
+          ":authority": "example.com"
+        },
+        {
+          ":path": "/"
+        },
+        {
+          ":method": "GET"
+        },
+        {
+          "user-agent": "hpack-test"
+        },
+        {
+          "cookie": "xxxxxxx1"
+        },
+        {
+          "x-hello": "world"
+        }
+      ],
+      "header_table_size": 4096
+    },
+    {
+      "seqno": 1,
+      "wire": "87c18482c06087f3e7cf9f3e7c8b",
+      "headers": [
+        {
+          ":scheme": "https"
+        },
+        {
+          ":authority": "example.com"
+        },
+        {
+          ":path": "/"
+        },
+        {
+          ":method": "GET"
+        },
+        {
+          "user-agent": "hpack-test"
+        },
+        {
+          "cookie": "xxxxxxx2"
+        }
+      ]
+    }
+  ]
+}

@@ -361,6 +361,16 @@ def _build_option_parser():
                         type=int,
                         default=_DEFAULT_REQUEST_QUEUE_SIZE,
                         help='request queue size')
+    parser.add_argument(
+        '--handler-encoding',
+        '--handler_encoding',
+        dest='handler_encoding',
+        type=six.text_type,
+        default=None,
+        help=('Text encoding used for loading handlers. '
+              'By default, the encoding from the locale is used when '
+              'reading handler files, but this option can override it. '
+              'Any encoding supported by the codecs module may be used.'))
 
     return parser
 

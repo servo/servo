@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title> CSS Scroll Snap 2 Test: snapchanged events</title>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+  </head>
+  <body>
+    <style>
+      #container {
+        overflow-y: scroll;
+        height: 500px;
+        width: 300px;
+        border: solid 1px black;
+        position: absolute;
+        scroll-snap-type: y mandatory;
+      }
+      .snap_area {
+        scroll-snap-align: start;
+        height: 400px;
+        width: 200px;
+        left: 50px;
+        position: absolute;
+      }
+      #area1 {
+        background-color: blue;
+      }
+      #area2 {
+        top: 400px;
+        background-color: yellow;
+      }
+      #area3 {
+        top: 800px;
+        background-color: green;
+      }
+    </style>
+    <div id="container">
+      <div id="area1" class="snap_area"></div>
+      <div id="area2" class="snap_area"></div>
+      <div id="area3" class="snap_area"></div>
+    </div>
+    <script>
+      promise_test(async (t) => {
+        await waitForCompositorCommit();
+
+        container.addEventListener("snapchanged",
+            t.unreached_func("snapchanged should not fire"));
+        let reset = () => {
+          container.scrollTo({ top: 0, behavior: "smooth"});
+          container.removeEventListener("scroll", reset);
+        };
+        container.addEventListener("scroll", reset);
+
+        let scrollend_promise = waitForScrollendEventNoTimeout(container);
+        container.scrollTo({ top: 250, behavior: "smooth"});
+        await scrollend_promise;
+        assert_equals(container.scrollTop, 0, "scroll position is reset");
+
+        // snapchanged should not fire since the scroll ended on the same snap
+        // target as the one it started on.
+        await waitForCompositorCommit();
+      }, "snapchanged doesn't fire if interrupting scroll cancels snap");
+    </script>
+  </body>
+</html>

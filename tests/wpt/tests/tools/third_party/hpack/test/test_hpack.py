@@ -1,23 +1,24 @@
 # -*- coding: utf-8 -*-
-from hpack.hpack import Encoder, Decoder, _dict_to_iterable, _to_bytes
-from hpack.exceptions import (
-    HPACKDecodingError, InvalidTableIndex, OversizedHeaderListError,
-    InvalidTableSizeError
-)
-from hpack.struct import HeaderTuple, NeverIndexedHeaderTuple
 import itertools
 import pytest
 
 from hypothesis import given
 from hypothesis.strategies import text, binary, sets, one_of
 
-try:
-    unicode = unicode
-except NameError:
-    unicode = str
+from hpack import (
+    Encoder,
+    Decoder,
+    HeaderTuple,
+    NeverIndexedHeaderTuple,
+    HPACKDecodingError,
+    InvalidTableIndex,
+    OversizedHeaderListError,
+    InvalidTableSizeError,
+)
+from hpack.hpack import _dict_to_iterable, _to_bytes
 
 
-class TestHPACKEncoder(object):
+class TestHPACKEncoder:
     # These tests are stolen entirely from the IETF specification examples.
     def test_literal_header_field_with_indexing(self):
         """
@@ -337,8 +338,18 @@ class TestHPACKEncoder(object):
 
         assert len(e.header_table.dynamic_entries) == 1
 
+    def test_headers_generator(self):
+        e = Encoder()
 
-class TestHPACKDecoder(object):
+        def headers_generator():
+            return (("k" + str(i), "v" + str(i)) for i in range(3))
+
+        header_set = headers_generator()
+        out = e.encode(header_set)
+        assert Decoder().decode(out) == list(headers_generator())
+
+
+class TestHPACKDecoder:
     # These tests are stolen entirely from the IETF specification examples.
     def test_literal_header_field_with_indexing(self):
         """
@@ -737,7 +748,7 @@ class TestHPACKDecoder(object):
             d.decode(data)
 
 
-class TestDictToIterable(object):
+class TestDictToIterable:
     """
     The dict_to_iterable function has some subtle requirements: validates that
     everything behaves as expected.
@@ -745,7 +756,7 @@ class TestDictToIterable(object):
     As much as possible this tries to be exhaustive.
     """
     keys = one_of(
-        text().filter(lambda k: k and not k.startswith(u':')),
+        text().filter(lambda k: k and not k.startswith(':')),
         binary().filter(lambda k: k and not k.startswith(b':'))
     )
 
@@ -759,8 +770,8 @@ class TestDictToIterable(object):
         with a colon are emitted first.
         """
         def _prepend_colon(k):
-            if isinstance(k, unicode):
-                return u':' + k
+            if isinstance(k, str):
+                return ':' + k
             else:
                 return b':' + k
 
@@ -795,8 +806,8 @@ class TestDictToIterable(object):
         When encoding a dictionary the special keys all appear first.
         """
         def _prepend_colon(k):
-            if isinstance(k, unicode):
-                return u':' + k
+            if isinstance(k, str):
+                return ':' + k
             else:
                 return b':' + k
 

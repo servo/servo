@@ -20,7 +20,7 @@
     assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
     assert_equals(event.type, "invoke", "type");
     assert_equals(event.bubbles, false, "bubbles");
-    assert_equals(event.composed, false, "composed");
+    assert_equals(event.composed, true, "composed");
     assert_equals(event.isTrusted, true, "isTrusted");
     assert_equals(event.action, "auto", "action");
     assert_equals(event.target, invokee, "target");
@@ -35,7 +35,7 @@
     assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
     assert_equals(event.type, "invoke", "type");
     assert_equals(event.bubbles, false, "bubbles");
-    assert_equals(event.composed, false, "composed");
+    assert_equals(event.composed, true, "composed");
     assert_equals(event.isTrusted, true, "isTrusted");
     assert_equals(event.action, "fooBar", "action");
     assert_equals(event.target, invokee, "target");
@@ -50,7 +50,7 @@
     assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
     assert_equals(event.type, "invoke", "type");
     assert_equals(event.bubbles, false, "bubbles");
-    assert_equals(event.composed, false, "composed");
+    assert_equals(event.composed, true, "composed");
     assert_equals(event.isTrusted, true, "isTrusted");
     assert_equals(event.action, "BaRbAz", "action");
     assert_equals(event.target, invokee, "target");
@@ -78,6 +78,7 @@
   }, "event does not dispatch if click:preventDefault is called");
 
   promise_test(async function (t) {
+    t.add_cleanup(() => invokerbutton.removeAttribute('disabled'));
     let called = false;
     invokee.addEventListener(
       "invoke",
@@ -90,4 +91,26 @@
     await clickOn(invokerbutton);
     assert_false(called, "event was not called");
   }, "event does not dispatch if invoker is disabled");
+
+  promise_test(async function (t) {
+    svgInvokee = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    t.add_cleanup(() => {
+      invokerbutton.invokeTargetElement = invokee;
+      svgInvokee.remove();
+    });
+    document.body.append(svgInvokee);
+    let called = false;
+    assert_false(svgInvokee instanceof HTMLElement);
+    assert_true(svgInvokee instanceof Element);
+    svgInvokee.addEventListener(
+      "invoke",
+      (event) => {
+        called = true;
+      },
+      { once: true },
+    );
+    invokerbutton.invokeTargetElement = svgInvokee;
+    await clickOn(invokerbutton);
+    assert_true(called, "event was called");
+  }, "event dispatches if invoker is non-HTML Element");
 </script>

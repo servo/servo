@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="author" title="Aditya Keerthi" href="https://github.com/pxlcoder">
+<link rel="help" href="https://html.spec.whatwg.org/#the-select-element">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<title>Select appearance native writing mode horizontal</title>
+<meta charset="utf-8">
+<link rel="mismatch" href="select-appearance-none-horizontal.optional.html">
+<link rel="mismatch" href="select-appearance-native-vertical.optional.html">
+<link rel="mismatch" href="select-appearance-none-vertical-lr.optional.html">
+<link rel="mismatch" href="select-appearance-none-vertical-rl.optional.html">
+
+<!-- Note test description should be the same across all files to mismatch on. -->
+<p>The select element below should match the correct writing mode.</p>
+<select style="writing-mode: horizontal-tb">
+    <option>Option 1</option>
+    <option>Option 2</option>
+    <option>Option 3</option>
+    <option>Option 4</option>
+    <option>Option 5</option>
+</select>

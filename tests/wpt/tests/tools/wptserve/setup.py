@@ -1,11 +1,14 @@
 from setuptools import setup
 
-PACKAGE_VERSION = '3.0'
-deps = ["h2>=3.0.1"]
+PACKAGE_VERSION = '4.0.1'
+deps = [
+    "h2>=4.1.0",
+    "mod_pywebsocket @ https://github.com/GoogleChromeLabs/pywebsocket3/archive/50602a14f1b6da17e0b619833a13addc6ea78bc2.zip#sha256=4dadd116e67af5625606f883e1973178d4121e8a1dc87b096ba2bb43c692f958",  # noqa
+]
 
 setup(name='wptserve',
       version=PACKAGE_VERSION,
-      description="Python webserver intended for in web browser testing",
+      description="Python web server intended for in web browser testing",
       long_description=open("README.md").read(),
       # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=["Development Status :: 5 - Production/Stable",
