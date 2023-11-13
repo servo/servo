@@ -22,7 +22,7 @@ ply == 3.8
 colorama == 0.3.7
 
 # For package uploading
-boto3 == 1.26.127
+boto3 == 1.28.84
 PyGithub == 1.58.1
 
 # For Python3 compatibility
