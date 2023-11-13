@@ -7,7 +7,7 @@
 
 use crate::context::SharedStyleContext;
 use crate::data::ElementData;
-use crate::dom::TElement;
+use crate::dom::{TElement, TNode};
 use crate::invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use crate::invalidation::element::invalidation_map::*;
 use crate::invalidation::element::invalidator::{DescendantInvalidationLists, InvalidationVector};
@@ -18,7 +18,9 @@ use crate::selector_parser::Snapshot;
 use crate::stylesheets::origin::OriginSet;
 use crate::{Atom, WeakAtom};
 use selectors::attr::CaseSensitivity;
-use selectors::matching::{matches_selector, MatchingContext, MatchingMode, VisitedHandlingMode, NeedsSelectorFlags};
+use selectors::matching::{
+    matches_selector, MatchingContext, MatchingMode, NeedsSelectorFlags, VisitedHandlingMode,
+};
 use selectors::NthIndexCache;
 use smallvec::SmallVec;
 use style_traits::dom::ElementState;
@@ -63,7 +65,7 @@ impl<'a, 'b: 'a, E: TElement + 'b> StateAndAttrInvalidationProcessor<'a, 'b, E> 
         let matching_context = MatchingContext::new_for_visited(
             MatchingMode::Normal,
             None,
-            Some(nth_index_cache),
+            nth_index_cache,
             VisitedHandlingMode::AllLinksVisitedAndUnvisited,
             shared_context.quirks_mode(),
             NeedsSelectorFlags::No,
@@ -116,14 +118,10 @@ pub fn should_process_descendants(data: &ElementData) -> bool {
 }
 
 /// Propagates the bits after invalidating a descendant child.
-pub fn invalidated_descendants<E>(element: E, child: E)
+pub fn propagate_dirty_bit_up_to<E>(ancestor: E, child: E)
 where
     E: TElement,
 {
-    if !child.has_data() {
-        return;
-    }
-
     // The child may not be a flattened tree child of the current element,
     // but may be arbitrarily deep.
     //
@@ -134,20 +132,53 @@ where
         unsafe { parent.set_dirty_descendants() };
         current = parent.traversal_parent();
 
-        if parent == element {
-            break;
+        if parent == ancestor {
+            return;
         }
     }
+    debug_assert!(false, "Should've found {:?} as an ancestor of {:?}", ancestor, child);
+}
+
+/// Propagates the bits after invalidating a descendant child, if needed.
+pub fn invalidated_descendants<E>(element: E, child: E)
+where
+    E: TElement,
+{
+    if !child.has_data() {
+        return;
+    }
+    propagate_dirty_bit_up_to(element, child)
 }
 
 /// Sets the appropriate restyle hint after invalidating the style of a given
 /// element.
-pub fn invalidated_self<E>(element: E)
+pub fn invalidated_self<E>(element: E) -> bool
 where
     E: TElement,
 {
-    if let Some(mut data) = element.mutate_data() {
-        data.hint.insert(RestyleHint::RESTYLE_SELF);
+    let mut data = match element.mutate_data() {
+        Some(data) => data,
+        None => return false,
+    };
+    data.hint.insert(RestyleHint::RESTYLE_SELF);
+    true
+}
+
+/// Sets the appropriate hint after invalidating the style of a sibling.
+pub fn invalidated_sibling<E>(element: E, of: E)
+where
+    E: TElement,
+{
+    debug_assert_eq!(element.as_node().parent_node(), of.as_node().parent_node(), "Should be siblings");
+    if !invalidated_self(element) {
+        return;
+    }
+    if element.traversal_parent() != of.traversal_parent() {
+        let parent = element.as_node().parent_element_or_host();
+        debug_assert!(parent.is_some(), "How can we have siblings without parent nodes?");
+        if let Some(e) = parent {
+            propagate_dirty_bit_up_to(e, element)
+        }
     }
 }
 
@@ -364,6 +395,11 @@ where
         debug_assert_ne!(element, self.element);
         invalidated_self(element);
     }
+
+    fn invalidated_sibling(&mut self, element: E, of: E) {
+        debug_assert_ne!(element, self.element);
+        invalidated_sibling(element, of);
+    }
 }
 
 impl<'a, 'b, 'selectors, E> Collector<'a, 'b, 'selectors, E>
@@ -410,10 +446,7 @@ where
         self.collect_state_dependencies(&map.state_affecting_selectors)
     }
 
-    fn collect_state_dependencies(
-        &mut self,
-        map: &'selectors SelectorMap<StateDependency>,
-    ) {
+    fn collect_state_dependencies(&mut self, map: &'selectors SelectorMap<StateDependency>) {
         if self.state_changes.is_empty() {
             return;
         }

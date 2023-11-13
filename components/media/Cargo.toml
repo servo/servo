@@ -20,4 +20,4 @@ serde = { workspace = true }
 servo-media = { git = "https://github.com/servo/media" }
 servo_config = { path = "../config" }
 webrender_api = { workspace = true }
-webrender_traits = { path = "../webrender_traits" }
+webrender_traits = { workspace = true }

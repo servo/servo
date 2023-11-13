@@ -5,6 +5,7 @@
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
 
+use app_units::Au;
 use serde::Serialize;
 use style::logical_geometry::{
     BlockFlowDirection, InlineBaseDirection, PhysicalCorner, WritingMode,
@@ -21,6 +22,7 @@ pub type PhysicalSize<U> = euclid::Size2D<U, CSSPixel>;
 pub type PhysicalRect<U> = euclid::Rect<U, CSSPixel>;
 pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 pub type LengthOrAuto = AutoOr<Length>;
+pub type AuOrAuto = AutoOr<Au>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
 #[derive(Clone, Serialize)]

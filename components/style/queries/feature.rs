@@ -5,9 +5,10 @@
 //! Query features.
 
 use crate::parser::ParserContext;
-use crate::values::computed::{self, CSSPixelLength, Resolution, Ratio};
+use crate::values::computed::{self, CSSPixelLength, Ratio, Resolution};
 use crate::Atom;
 use cssparser::Parser;
+use super::condition::KleeneValue;
 use std::fmt;
 use style_traits::ParseError;
 
@@ -34,11 +35,13 @@ pub type KeywordParser = for<'a, 'i, 't> fn(
 #[allow(missing_docs)]
 pub enum Evaluator {
     Length(QueryFeatureGetter<CSSPixelLength>),
-    Integer(QueryFeatureGetter<u32>),
+    OptionalLength(QueryFeatureGetter<Option<CSSPixelLength>>),
+    Integer(QueryFeatureGetter<i32>),
     Float(QueryFeatureGetter<f32>),
     BoolInteger(QueryFeatureGetter<bool>),
     /// A non-negative number ratio, such as the one from device-pixel-ratio.
     NumberRatio(QueryFeatureGetter<Ratio>),
+    OptionalNumberRatio(QueryFeatureGetter<Option<Ratio>>),
     /// A resolution.
     Resolution(QueryFeatureGetter<Resolution>),
     /// A keyword value.
@@ -52,7 +55,7 @@ pub enum Evaluator {
         serializer: KeywordSerializer,
         /// The evaluator itself. This is guaranteed to be called with a
         /// keyword that `parser` has produced.
-        evaluator: fn(&computed::Context, Option<KeywordDiscriminant>) -> bool,
+        evaluator: fn(&computed::Context, Option<KeywordDiscriminant>) -> KleeneValue,
     },
 }
 
@@ -66,10 +69,8 @@ macro_rules! keyword_evaluator {
         fn __parse<'i, 't>(
             context: &$crate::parser::ParserContext,
             input: &mut $crate::cssparser::Parser<'i, 't>,
-        ) -> Result<
-            $crate::queries::feature::KeywordDiscriminant,
-            ::style_traits::ParseError<'i>,
-        > {
+        ) -> Result<$crate::queries::feature::KeywordDiscriminant, ::style_traits::ParseError<'i>>
+        {
             let kw = <$keyword_type as $crate::parser::Parse>::parse(context, input)?;
             Ok(kw as $crate::queries::feature::KeywordDiscriminant)
         }
@@ -84,12 +85,12 @@ macro_rules! keyword_evaluator {
         fn __evaluate(
             context: &$crate::values::computed::Context,
             value: Option<$crate::queries::feature::KeywordDiscriminant>,
-        ) -> bool {
+        ) -> $crate::queries::condition::KleeneValue {
             // This unwrap is ok because the only discriminants that get
             // back to us is the ones that `parse` produces.
             let value: Option<$keyword_type> =
                 value.map(|kw| ::num_traits::cast::FromPrimitive::from_u8(kw).unwrap());
-            $actual_evaluator(context, value)
+            $crate::queries::condition::KleeneValue::from($actual_evaluator(context, value))
         }
 
         $crate::queries::feature::Evaluator::Enumerated {

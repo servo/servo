@@ -50,20 +50,21 @@ impl ListStyleType {
     /// attribute is considered here.
     pub fn from_gecko_keyword(value: u32) -> Self {
         use crate::gecko_bindings::structs;
+        let v8 = value as u8;
 
-        if value == structs::NS_STYLE_LIST_STYLE_NONE {
+        if v8 == structs::ListStyle_None {
             return ListStyleType::None;
         }
 
-        ListStyleType::CounterStyle(CounterStyle::Name(CustomIdent(match value {
-            structs::NS_STYLE_LIST_STYLE_DISC => atom!("disc"),
-            structs::NS_STYLE_LIST_STYLE_CIRCLE => atom!("circle"),
-            structs::NS_STYLE_LIST_STYLE_SQUARE => atom!("square"),
-            structs::NS_STYLE_LIST_STYLE_DECIMAL => atom!("decimal"),
-            structs::NS_STYLE_LIST_STYLE_LOWER_ROMAN => atom!("lower-roman"),
-            structs::NS_STYLE_LIST_STYLE_UPPER_ROMAN => atom!("upper-roman"),
-            structs::NS_STYLE_LIST_STYLE_LOWER_ALPHA => atom!("lower-alpha"),
-            structs::NS_STYLE_LIST_STYLE_UPPER_ALPHA => atom!("upper-alpha"),
+        ListStyleType::CounterStyle(CounterStyle::Name(CustomIdent(match v8 {
+            structs::ListStyle_Disc => atom!("disc"),
+            structs::ListStyle_Circle => atom!("circle"),
+            structs::ListStyle_Square => atom!("square"),
+            structs::ListStyle_Decimal => atom!("decimal"),
+            structs::ListStyle_LowerRoman => atom!("lower-roman"),
+            structs::ListStyle_UpperRoman => atom!("upper-roman"),
+            structs::ListStyle_LowerAlpha => atom!("lower-alpha"),
+            structs::ListStyle_UpperAlpha => atom!("upper-alpha"),
             _ => unreachable!("Unknown counter style keyword value"),
         })))
     }

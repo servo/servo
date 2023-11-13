@@ -26,7 +26,6 @@ packages = [
     "cookie",
     "futures",
     "libloading",
-    "mio",
     "nix",
     "num-rational",
     "redox_syscall",
@@ -38,12 +37,6 @@ packages = [
     # This dependency is for "hermit os" which Servo doesn't support.
     # Theoretically, it's never fetched.
     "hermit-abi",
-
-    # Duplicated by rustls and image.
-    "spin",
-
-    # Duplicated by rustls and the version of webpki-roots required by async_tungstenite.
-    "rustls-webpki",
 
     # Duplicated by winit.
     "windows-sys",

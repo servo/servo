@@ -7,7 +7,7 @@
 //! [mq]: https://drafts.csswg.org/mediaqueries/
 //! [cq]: https://drafts.csswg.org/css-contain-3/#container-rule
 
-mod condition;
+pub mod condition;
 
 #[macro_use]
 pub mod feature;
@@ -16,4 +16,4 @@ pub mod values;
 
 pub use self::condition::QueryCondition;
 pub use self::feature::FeatureFlags;
-pub use self::feature_expression::{QueryFeatureExpression, FeatureType};
+pub use self::feature_expression::{FeatureType, QueryFeatureExpression};

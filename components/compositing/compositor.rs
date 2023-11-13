@@ -240,10 +240,6 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// most up to date rendering.
     waiting_on_pending_frame: bool,
 
-    /// Whether to send a ReadyToPresent message to the constellation after rendering a new frame,
-    /// allowing external code to draw to the framebuffer and decide when to present the frame.
-    external_present: bool,
-
     /// Waiting for external code to call present.
     waiting_on_present: bool,
 }
@@ -410,7 +406,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             exit_after_load,
             convert_mouse_to_touch,
             waiting_on_pending_frame: false,
-            external_present: false,
             waiting_on_present: false,
         }
     }
@@ -1858,17 +1853,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             _ => None,
         };
 
-        // Perform the page flip. This will likely block for a while.
-        if self.external_present {
-            self.waiting_on_present = true;
-            let msg = ConstellationMsg::ReadyToPresent(
-                self.root_content_pipeline.top_level_browsing_context_id,
-            );
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
-            }
-        } else {
-            self.present();
+        // Nottify embedder that servo is ready to present.
+        // Embedder should call `present` to tell compositor to continue rendering.
+        self.waiting_on_present = true;
+        let msg = ConstellationMsg::ReadyToPresent(
+            self.root_content_pipeline.top_level_browsing_context_id,
+        );
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending event to constellation failed ({:?}).", e);
         }
 
         self.composition_request = CompositionRequest::NoCompositingNecessary;
@@ -1903,13 +1895,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn clear_background(&self) {
         let gl = &self.webrender_gl;
         self.assert_gl_framebuffer_complete();
-
-        if !self.external_present {
-            // Make framebuffer fully transparent.
-            gl.clear_color(0.0, 0.0, 0.0, 0.0);
-            gl.clear(gleam::gl::COLOR_BUFFER_BIT);
-            self.assert_gl_framebuffer_complete();
-        }
 
         // Set the viewport background based on prefs.
         let viewport = self.embedder_coordinates.get_flipped_viewport();
@@ -2108,9 +2093,5 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
             None => eprintln!("Unable to locate path to save captures"),
         }
-    }
-
-    pub fn set_external_present(&mut self, value: bool) {
-        self.external_present = value;
     }
 }

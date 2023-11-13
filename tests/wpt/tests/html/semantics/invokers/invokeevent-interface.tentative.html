@@ -46,6 +46,11 @@
   }, "action set to false");
 
   test(function () {
+    const event = new InvokeEvent("test", { action: "" });
+    assert_equals(event.action, "");
+  }, "action explicitly set to empty string");
+
+  test(function () {
     const event = new InvokeEvent("test", { action: true });
     assert_equals(event.action, "true");
   }, "action set to true");
@@ -57,7 +62,7 @@
 
   test(function () {
     const event = new InvokeEvent("test", { action: [] });
-    assert_equals(event.action, "auto");
+    assert_equals(event.action, "");
   }, "action set to []");
 
   test(function () {
@@ -73,13 +78,13 @@
   test(function () {
     const event = new InvokeEvent("test", {
       action: {
-        valueOf: function () {
+        toString() {
           return "sample";
         },
       },
     });
-    assert_equals(event.action, "[object Object]");
-  }, "action set to an object with a valueOf function");
+    assert_equals(event.action, "sample");
+  }, "action set to an object with a toString function");
 
   test(function () {
     const eventInit = { action: "sample", invoker: document.body };

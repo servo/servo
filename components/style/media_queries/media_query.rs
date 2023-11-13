@@ -6,8 +6,8 @@
 //!
 //! https://drafts.csswg.org/mediaqueries/#typedef-media-query
 
-use crate::queries::{QueryCondition, FeatureType};
 use crate::parser::ParserContext;
+use crate::queries::{FeatureType, QueryCondition};
 use crate::str::string_as_ascii_lowercase;
 use crate::values::CustomIdent;
 use crate::Atom;
@@ -44,12 +44,12 @@ impl MediaType {
     fn parse(name: &str) -> Result<Self, ()> {
         // From https://drafts.csswg.org/mediaqueries/#mq-syntax:
         //
-        //   The <media-type> production does not include the keywords not, or, and, and only.
+        //   The <media-type> production does not include the keywords only, not, and, or, and layer.
         //
         // Here we also perform the to-ascii-lowercase part of the serialization
         // algorithm: https://drafts.csswg.org/cssom/#serializing-media-queries
         match_ignore_ascii_case! { name,
-            "not" | "or" | "and" | "only" => Err(()),
+            "not" | "or" | "and" | "only" | "layer" => Err(()),
             _ => Ok(MediaType(CustomIdent(Atom::from(string_as_ascii_lowercase(name))))),
         }
     }
@@ -136,7 +136,11 @@ impl MediaQuery {
         let condition = if explicit_media_type.is_none() {
             Some(QueryCondition::parse(context, input, FeatureType::Media)?)
         } else if input.try_parse(|i| i.expect_ident_matching("and")).is_ok() {
-            Some(QueryCondition::parse_disallow_or(context, input, FeatureType::Media)?)
+            Some(QueryCondition::parse_disallow_or(
+                context,
+                input,
+                FeatureType::Media,
+            )?)
         } else {
             None
         };

@@ -34,6 +34,7 @@ compositionstart
 compositionupdate
 controllerchange
 cursive
+dark
 datachannel
 date
 datetime-local
@@ -69,6 +70,7 @@ keydown
 keypress
 kind
 left
+light
 ltr
 load
 loadeddata
@@ -86,6 +88,7 @@ mouseover
 mouseup
 negotiationneeded
 none
+normal
 number
 onchange
 open
@@ -122,6 +125,7 @@ safe-area-inset-right
 scan
 screen
 scroll-position
+scrollbar-inline-size
 search
 seeked
 seeking

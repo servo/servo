@@ -20,6 +20,7 @@ fn parse_selector<'i, 't>(
         stylesheet_origin: Origin::UserAgent,
         namespaces: &ns,
         url_data: &dummy_url,
+        for_supports_rule: false,
     };
     SelectorList::parse(&parser, input)
 }

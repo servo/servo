@@ -3,13 +3,10 @@ name: Try
 on:
   pull_request_target:
     types: [labeled]
-  issue_comment:
-    types: [created]
 
 jobs:
   parse-comment:
-    name: Trigger Try (${{ github.event.name }})
-    if: ${{ github.event_name == 'pull_request_target' || github.event.issue.pull_request  }}
+    name: Trigger Try
     runs-on: ubuntu-latest
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
@@ -87,45 +84,28 @@ jobs:
               unit_tests: false,
             };
 
-            if (context.eventName == "pull_request_target") {
-              let try_labels = [];
-              for (const label of context.payload.pull_request.labels) {
-                if (!label.name.startsWith("T-")) {
-                  continue;
-                }
-
-                // Try to remove the label. If that fails, it's likely that another
-                // workflow has already processed it or a user has removed it.
-                try {
-                  await github.rest.issues.removeLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: context.issue.number,
-                    name: label.name,
-                  });
-                } catch (exception) {
-                  console.log("Assuming '" + label.name + "' is already removed: " + exception);
-                  continue;
-                }
-
-                console.log("Found label: " + label.name);
-                updateConfigurationFromString(label.name, configuration);
-              }
-            } else {
-              let tokens = context.payload.comment.body.split(/\s+/);
-              let tagIndex = tokens.indexOf("@bors-servo");
-              if (tagIndex == -1 || tagIndex + 1 >= tokens.length) {
-                return { platforms: [] };
+            let try_labels = [];
+            for (const label of context.payload.pull_request.labels) {
+              if (!label.name.startsWith("T-")) {
+                continue;
               }
 
-
-              let tryString = tokens[tagIndex + 1];
-              console.log("Found try string: '" + tryString + "'");
-              if (tryString == "try") {
-                updateConfigurationFromString("full", configuration);
-              } else {
-                updateConfigurationFromString(tryString, configuration);
+              // Try to remove the label. If that fails, it's likely that another
+              // workflow has already processed it or a user has removed it.
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  name: label.name,
+                });
+              } catch (exception) {
+                console.log("Assuming '" + label.name + "' is already removed: " + exception);
+                continue;
               }
+
+              console.log("Found label: " + label.name);
+              updateConfigurationFromString(label.name, configuration);
             }
 
             console.log(JSON.stringify(configuration));
@@ -167,7 +147,7 @@ jobs:
     name: Results
     needs: ["parse-comment", "run-try"]
     runs-on: ubuntu-latest
-    if: ${{ always() && fromJson(needs.parse-comment.outputs.configuration).try}}
+    if: ${{ always() && fromJson(needs.parse-comment.outputs.configuration).platforms[0] != null }}
     steps:
       - name: Success
         if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}

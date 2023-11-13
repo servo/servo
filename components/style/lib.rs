@@ -80,6 +80,7 @@ pub mod attr;
 pub mod author_styles;
 pub mod bezier;
 pub mod bloom;
+pub mod color;
 #[path = "properties/computed_value_flags.rs"]
 pub mod computed_value_flags;
 pub mod context;
@@ -160,7 +161,7 @@ pub use style_traits::arc_slice::ArcSlice;
 pub use style_traits::owned_slice::OwnedSlice;
 pub use style_traits::owned_str::OwnedStr;
 
-use std::hash::{Hash, BuildHasher};
+use std::hash::{BuildHasher, Hash};
 
 /// The CSS properties supported by the style system.
 /// Generated from the properties.mako.rs template by build.rs
@@ -244,6 +245,12 @@ where
     }
 }
 
+/// A trait implementing a function to tell if the number is zero without a percent
+pub trait ZeroNoPercent {
+    /// So, `0px` should return `true`, but `0%` or `1px` should return `false`
+    fn is_zero_no_percent(&self) -> bool;
+}
+
 /// A trait pretty much similar to num_traits::One, but without the need of
 /// implementing `Mul`.
 pub trait One {
@@ -292,7 +299,7 @@ impl From<std::collections::TryReserveError> for AllocErr {
 }
 
 /// Shrink the capacity of the collection if needed.
-pub (crate) trait ShrinkIfNeeded {
+pub(crate) trait ShrinkIfNeeded {
     fn shrink_if_needed(&mut self);
 }
 

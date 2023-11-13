@@ -79,8 +79,7 @@ ${helpers.predefined_type(
     "computed::Clear::None",
     engines="gecko servo",
     animation_value_type="discrete",
-    gecko_ffi_name="mBreakType",
-    spec="https://drafts.csswg.org/css-box/#propdef-clear",
+    spec="https://drafts.csswg.org/css2/#propdef-clear",
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
@@ -252,6 +251,19 @@ ${helpers.predefined_type(
     gecko_pref="layout.css.motion-path.enabled",
     flags="CAN_ANIMATE_ON_COMPOSITOR",
     spec="https://drafts.fxtf.org/motion-1/#offset-anchor-property",
+    servo_restyle_damage="reflow_out_of_flow",
+    boxed=True
+)}
+
+// Motion Path Module Level 1
+${helpers.predefined_type(
+    "offset-position",
+    "PositionOrAuto",
+    "computed::PositionOrAuto::auto()",
+    engines="gecko",
+    animation_value_type="ComputedValue",
+    gecko_pref="layout.css.motion-path-offset-position.enabled",
+    spec="https://drafts.fxtf.org/motion-1/#offset-position-property",
     servo_restyle_damage="reflow_out_of_flow",
     boxed=True
 )}
@@ -448,9 +460,10 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "container-type",
     "ContainerType",
-    "computed::ContainerType::NONE",
+    "computed::ContainerType::Normal",
     engines="gecko servo",
     animation_value_type="none",
+    enabled_in="ua",
     gecko_pref="layout.css.container-queries.enabled",
     servo_pref="layout.container-queries.enabled",
     spec="https://drafts.csswg.org/css-contain-3/#container-type",
@@ -462,6 +475,7 @@ ${helpers.predefined_type(
     "computed::ContainerName::none()",
     engines="gecko servo",
     animation_value_type="none",
+    enabled_in="ua",
     gecko_pref="layout.css.container-queries.enabled",
     servo_pref="layout.container-queries.enabled",
     spec="https://drafts.csswg.org/css-contain-3/#container-name",
@@ -547,16 +561,12 @@ ${helpers.predefined_type(
     spec="https://compat.spec.whatwg.org/#touch-action",
 )}
 
-// Note that we only implement -webkit-line-clamp as a single, longhand
-// property for now, but the spec defines line-clamp as a shorthand for separate
-// max-lines, block-ellipsis, and continue properties.
 ${helpers.predefined_type(
     "-webkit-line-clamp",
-    "PositiveIntegerOrNone",
-    "Either::Second(None_)",
+    "LineClamp",
+    "computed::LineClamp::none()",
     engines="gecko",
-    gecko_pref="layout.css.webkit-line-clamp.enabled",
-    animation_value_type="Integer",
+    animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-overflow-3/#line-clamp",
 )}
 

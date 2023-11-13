@@ -91,7 +91,7 @@
             % if engine == "gecko":
             if !is_auto_thickness {
                 if has_value {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                 }
                 self.text_decoration_thickness.to_css(dest)?;
                 has_value = true;
@@ -99,7 +99,7 @@
 
             if !is_solid_style {
                 if has_value {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                 }
                 self.text_decoration_style.to_css(dest)?;
                 has_value = true;
@@ -107,7 +107,7 @@
 
             if !is_current_color {
                 if has_value {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                 }
                 self.text_decoration_color.to_css(dest)?;
                 has_value = true;

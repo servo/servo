@@ -1,0 +1,29 @@
+[package]
+name = "compositing_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "compositing_traits"
+path = "lib.rs"
+
+[dependencies]
+canvas = { path = "../../canvas" }
+crossbeam-channel = { workspace = true }
+embedder_traits = { workspace = true }
+euclid = { workspace = true }
+gfx_traits = { workspace = true }
+ipc-channel = { workspace = true }
+keyboard-types = { workspace = true }
+log = { workspace = true }
+msg = { workspace = true }
+net_traits = { workspace = true }
+profile_traits = { workspace = true }
+script_traits = { workspace = true }
+servo_url = { path = "../../url" }
+style_traits = { workspace = true }
+webrender_api = { workspace = true }
+webrender_surfman = { path = "../../webrender_surfman" }

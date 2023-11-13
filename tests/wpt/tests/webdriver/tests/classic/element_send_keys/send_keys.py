@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver import Element
+from webdriver import WebElement
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
@@ -34,7 +34,7 @@ def test_null_response_value(session, inline):
 
 
 def test_no_top_browsing_context(session, closed_window):
-    element = Element(session, "foo")
+    element = WebElement(session, "foo")
     response = element_send_keys(session, element, "foo")
     assert_error(response, "no such window")
 
@@ -48,14 +48,14 @@ def test_no_top_browsing_context(session, closed_window):
 
 
 def test_no_browsing_context(session, closed_frame):
-    element = Element(session, "foo")
+    element = WebElement(session, "foo")
 
     response = element_send_keys(session, element, "foo")
     assert_error(response, "no such window")
 
 
 def test_no_such_element_with_invalid_value(session):
-    element = Element(session, "foo")
+    element = WebElement(session, "foo")
 
     response = element_send_keys(session, element, "foo")
     assert_error(response, "no such element")

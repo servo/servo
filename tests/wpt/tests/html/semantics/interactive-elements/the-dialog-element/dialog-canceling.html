@@ -8,6 +8,8 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="/close-watcher/resources/helpers.js"></script>
 
 <!--
 To test manually, hit Escape once to see the topmost dialog turn green
@@ -44,13 +46,6 @@ then once again to close it. Repeat for the remaining dialog.
 </dialog>
 
 <script>
-async function pressEscape() {
-  const actions = new test_driver.Actions()
-    .keyDown('\uE00C')
-    .keyUp('\uE00C');
-  await actions.send();
-}
-
 function handleCancel(event) {
   this.style.background = 'green';
   this.querySelector('span').textContent = 'I blocked the cancel! Try again to close me.';
@@ -72,33 +67,36 @@ promise_test(async () => {
   });
 
   bottomDialog.showModal();
+  await blessTopLayer(bottomDialog);
   topDialog.showModal();
 
-  await pressEscape();
+  await blessTopLayer(topDialog);
+  await sendEscKey();
   assert_true(topDialog.open, 'Top dialog event listener should prevent closing.');
   assert_true(bottomDialog.open, 'Top dialog event listener should prevent closing.');
 
-  await pressEscape();
+  await blessTopLayer(topDialog);
+  await sendEscKey();
   assert_false(topDialog.open, 'Top dialog should close.');
   assert_true(bottomDialog.open, 'Top dialog should close.');
 
   swallowInput.focus();
-  await pressEscape();
-  await pressEscape();
-  await pressEscape();
+  await sendEscKey();
+  await sendEscKey();
+  await sendEscKey();
   assert_false(topDialog.open, 'Input should swallow Escape mechanism.');
   assert_true(bottomDialog.open, 'Input should swallow Escape mechanism.');
 
   normalInput.focus();
-  await pressEscape();
+  await sendEscKey();
   assert_false(topDialog.open, 'Bottom dialog event listener should prevent closing.');
   assert_true(bottomDialog.open, 'Bottom dialog event listener should prevent closing.');
 
-  await pressEscape();
+  await sendEscKey();
   assert_false(topDialog.open, 'Bottom dialog should close.');
   assert_false(bottomDialog.open, 'Bottom dialog should close.');
 
-  await pressEscape();
+  await sendEscKey();
   assert_false(topDialog.open, 'Pressing Escape now should do nothing.');
   assert_false(bottomDialog.open, 'Pressing Escape now should do nothing.');
 

@@ -158,7 +158,7 @@ impl ToCss for CssUrl {
 
         dest.write_str("url(")?;
         string.to_css(dest)?;
-        dest.write_str(")")
+        dest.write_char(')')
     }
 }
 
@@ -230,7 +230,7 @@ impl ToCss for ComputedUrl {
 
         dest.write_str("url(")?;
         string.to_css(dest)?;
-        dest.write_str(")")
+        dest.write_char(')')
     }
 }
 

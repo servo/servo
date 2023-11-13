@@ -71,7 +71,6 @@ jobs:
             }
 
             let returnValue =  {
-              production: false,
               platforms,
               layout,
               unit_tests,
@@ -86,8 +85,9 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'windows') }}
     uses: ./.github/workflows/windows.yml
     with:
-      production: ${{ fromJson(needs.decision.outputs.configuration).production }}
+      profile: "release"
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+    secrets: inherit
 
   build-mac:
     name: Mac
@@ -95,8 +95,9 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'macos') }}
     uses: ./.github/workflows/mac.yml
     with:
-      production: ${{ fromJson(needs.decision.outputs.configuration).production }}
+      profile: "release"
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+    secrets: inherit
 
   build-linux:
     name: Linux
@@ -104,10 +105,11 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'linux') }}
     uses: ./.github/workflows/linux.yml
     with:
-      production: ${{ fromJson(needs.decision.outputs.configuration).production }}
+      profile: "release"
       wpt: 'test'
       layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+    secrets: inherit
 
   build-result:
     name: Result

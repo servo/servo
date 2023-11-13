@@ -19,6 +19,6 @@
 </div>
 <script>
   test(() => {
-    assert_equals(getComputedStyle(child).backgroundColor, "lch(0 0 0)");
+    assert_equals(getComputedStyle(child).backgroundColor, "lch(0 0 none)");
   }, "Nested color-mix function with inner currentColor should inherit unresolved");
 </script>

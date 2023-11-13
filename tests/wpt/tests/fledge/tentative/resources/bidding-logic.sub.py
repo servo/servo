@@ -37,10 +37,15 @@ def main(request, response):
         # Use bid query param if present. Otherwise, use a bid of 9.
         bid = (request.GET.first(b"bid", None) or b"9").decode("ASCII")
 
+        bidCurrency = ""
+        bidCurrencyParam = request.GET.first(b"bidCurrency", None)
+        if bidCurrencyParam != None:
+            bidCurrency = "bidCurrency: '" + bidCurrencyParam.decode("ASCII") + "',"
+
         allowComponentAuction = ""
         allowComponentAuctionParam = request.GET.first(b"allowComponentAuction", None)
         if allowComponentAuctionParam != None:
-          allowComponentAuction = f"allowComponentAuction: {allowComponentAuctionParam.decode('ASCII')},"
+            allowComponentAuction = f"allowComponentAuction: {allowComponentAuctionParam.decode('ASCII')},"
 
         body += f"""
             function generateBid(interestGroup, auctionSignals, perBuyerSignals,
@@ -49,6 +54,7 @@ def main(request, response):
               {{{{GET[generateBid]}}}};
               return {{
                 bid: {bid},
+                {bidCurrency}
                 {allowComponentAuction}
                 render: interestGroup.ads[0].renderURL
               }};

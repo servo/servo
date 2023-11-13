@@ -1,0 +1,42 @@
+[package]
+name = "net_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "net_traits"
+path = "lib.rs"
+test = false
+doctest = false
+
+[dependencies]
+content-security-policy = { workspace = true }
+cookie = { workspace = true }
+embedder_traits = { workspace = true }
+headers = { workspace = true }
+http = { workspace = true }
+hyper = { workspace = true }
+hyper_serde = { workspace = true }
+image = { workspace = true }
+ipc-channel = { workspace = true }
+lazy_static = { workspace = true }
+log = { workspace = true }
+malloc_size_of = { path = "../../malloc_size_of" }
+malloc_size_of_derive = { workspace = true }
+mime = { workspace = true }
+msg = { workspace = true }
+num-traits = { workspace = true }
+percent-encoding = { workspace = true }
+pixels = { path = "../../pixels" }
+rustls = { workspace = true }
+serde = { workspace = true }
+servo_arc = { path = "../../servo_arc" }
+servo_rand = { path = "../../rand" }
+servo_url = { path = "../../url" }
+time = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
+webrender_api = { git = "https://github.com/servo/webrender" }

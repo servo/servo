@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver import Element
+from webdriver import WebElement
 from webdriver.error import NoSuchAlertException
 from webdriver.transport import Response
 

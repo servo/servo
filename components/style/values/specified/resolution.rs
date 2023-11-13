@@ -60,10 +60,6 @@ impl Parse for Resolution {
             ref t => return Err(location.new_unexpected_token_error(t.clone())),
         };
 
-        if value <= 0. {
-            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-
         match_ignore_ascii_case! { &unit,
             "dpi" => Ok(Resolution::Dpi(value)),
             "dppx" => Ok(Resolution::Dppx(value)),

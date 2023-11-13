@@ -19,6 +19,7 @@ use crate::shared_lock::{Locked, SharedRwLock};
 use crate::stylist::CascadeData;
 use crate::traversal_flags::TraversalFlags;
 use crate::values::AtomIdent;
+use crate::values::computed::Display;
 use crate::{LocalName, Namespace, WeakAtom};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use selectors::matching::{QuirksMode, VisitedHandlingMode};
@@ -95,7 +96,7 @@ where
     #[inline]
     fn next(&mut self) -> Option<N> {
         let prev = self.previous.take()?;
-        self.previous = prev.next_in_preorder(Some(self.scope));
+        self.previous = prev.next_in_preorder(self.scope);
         self.previous
     }
 }
@@ -164,6 +165,7 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     fn owner_doc(&self) -> Self::ConcreteDocument;
 
     /// Iterate over the DOM children of a node.
+    #[inline(always)]
     fn dom_children(&self) -> DomChildren<Self> {
         DomChildren(self.first_child())
     }
@@ -172,6 +174,7 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     fn is_in_document(&self) -> bool;
 
     /// Iterate over the DOM children of a node, in preorder.
+    #[inline(always)]
     fn dom_descendants(&self) -> DomDescendants<Self> {
         DomDescendants {
             previous: Some(*self),
@@ -179,26 +182,26 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
         }
     }
 
-    /// Returns the next children in pre-order, optionally scoped to a subtree
-    /// root.
+    /// Returns the next node after this one, in a pre-order tree-traversal of
+    /// the subtree rooted at scoped_to.
     #[inline]
-    fn next_in_preorder(&self, scoped_to: Option<Self>) -> Option<Self> {
+    fn next_in_preorder(&self, scoped_to: Self) -> Option<Self> {
         if let Some(c) = self.first_child() {
             return Some(c);
         }
 
-        let mut current = Some(*self);
+        let mut current = *self;
         loop {
             if current == scoped_to {
                 return None;
             }
 
-            debug_assert!(current.is_some(), "not a descendant of the scope?");
-            if let Some(s) = current?.next_sibling() {
+            if let Some(s) = current.next_sibling() {
                 return Some(s);
             }
 
-            current = current?.parent_node();
+            debug_assert!(current.parent_node().is_some(), "Not a descendant of the scope?");
+            current = current.parent_node()?;
         }
     }
 
@@ -209,6 +212,18 @@ pub trait TNode: Sized + Copy + Clone + Debug + NodeInfo + PartialEq {
     /// Get this node's parent element if present.
     fn parent_element(&self) -> Option<Self::ConcreteElement> {
         self.parent_node().and_then(|n| n.as_element())
+    }
+
+    /// Get this node's parent element, or shadow host if it's a shadow root.
+    fn parent_element_or_host(&self) -> Option<Self::ConcreteElement> {
+        let parent = self.parent_node()?;
+        if let Some(e) = parent.as_element() {
+            return Some(e);
+        }
+        if let Some(root) = parent.as_shadow_root() {
+            return Some(root.host());
+        }
+        None
     }
 
     /// Converts self into an `OpaqueNode`.
@@ -929,8 +944,10 @@ pub trait TElement:
     fn namespace(&self)
         -> &<SelectorImpl as selectors::parser::SelectorImpl>::BorrowedNamespaceUrl;
 
-    /// Returns the size of the primary box of the element.
-    fn primary_box_size(&self) -> euclid::default::Size2D<app_units::Au>;
+    /// Returns the size of the element to be used in container size queries.
+    /// This will usually be the size of the content area of the primary box,
+    /// but can be None if there is no box or if some axis lacks size containment.
+    fn query_container_size(&self, display: &Display) -> euclid::default::Size2D<Option<app_units::Au>>;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

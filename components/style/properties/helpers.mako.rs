@@ -119,8 +119,6 @@
             use crate::values::computed::{Context, ToComputedValue};
             #[allow(unused_imports)]
             use crate::values::{computed, specified};
-            #[allow(unused_imports)]
-            use crate::values::{Auto, Either, None_};
             ${caller.body()}
         }
 
@@ -265,8 +263,7 @@
                 Sorry, this is stupid but needed for now.
             % endif
 
-            use crate::properties::animated_properties::ListAnimation;
-            use crate::values::animated::{Animate, ToAnimatedZero, Procedure};
+            use crate::values::animated::{Animate, ToAnimatedZero, Procedure, lists};
             use crate::values::distance::{SquaredDistance, ComputeSquaredDistance};
 
             // FIXME(emilio): For some reason rust thinks that this alias is
@@ -303,7 +300,7 @@
                     procedure: Procedure,
                 ) -> Result<Self, ()> {
                     Ok(OwnedList(
-                        self.0.animate_${vector_animation_type}(&other.0, procedure)?
+                        lists::${vector_animation_type}::animate(&self.0, &other.0, procedure)?
                     ))
                 }
             }
@@ -312,7 +309,7 @@
                     &self,
                     other: &Self,
                 ) -> Result<SquaredDistance, ()> {
-                    self.0.squared_distance_${vector_animation_type}(&other.0)
+                    lists::${vector_animation_type}::squared_distance(&self.0, &other.0)
                 }
             }
             % endif
@@ -413,8 +410,6 @@
         use crate::parser::{Parse, ParserContext};
         #[allow(unused_imports)]
         use crate::properties::{UnparsedValue, ShorthandId};
-        #[allow(unused_imports)]
-        use crate::values::{Auto, Either, None_};
         #[allow(unused_imports)]
         use crate::error_reporting::ParseErrorReporter;
         #[allow(unused_imports)]
@@ -541,104 +536,6 @@
     }
 </%def>
 
-<%def name="single_keyword_system(name, values, **kwargs)">
-    <%
-        keyword_kwargs = {a: kwargs.pop(a, None) for a in [
-            'gecko_constant_prefix',
-            'gecko_enum_prefix',
-            'extra_gecko_values',
-            'extra_servo_values',
-            'custom_consts',
-            'gecko_inexhaustive',
-        ]}
-        keyword = keyword=Keyword(name, values, **keyword_kwargs)
-    %>
-    <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
-        use crate::values::specified::font::SystemFont;
-
-        pub mod computed_value {
-            #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(
-                Clone,
-                Copy,
-                Debug,
-                Eq,
-                FromPrimitive,
-                Hash,
-                MallocSizeOf,
-                Parse,
-                PartialEq,
-                SpecifiedValueInfo,
-                ToCss,
-                ToResolvedValue,
-                ToShmem,
-            )]
-            pub enum T {
-            % for value in keyword.values_for(engine):
-                ${to_camel_case(value)},
-            % endfor
-            }
-
-            ${gecko_keyword_conversion(keyword, keyword.values_for(engine), type="T", cast_to="i32")}
-        }
-
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[derive(Clone, Copy, Debug, Eq, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-        pub enum SpecifiedValue {
-            Keyword(computed_value::T),
-            #[css(skip)]
-            System(SystemFont),
-        }
-
-        pub fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<SpecifiedValue, ParseError<'i>> {
-            Ok(SpecifiedValue::Keyword(computed_value::T::parse(input)?))
-        }
-
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-            fn to_computed_value(&self, _cx: &Context) -> Self::ComputedValue {
-                match *self {
-                    SpecifiedValue::Keyword(v) => v,
-                    % if engine == "gecko":
-                        SpecifiedValue::System(_) => {
-                            _cx.cached_system_font.as_ref().unwrap().${to_rust_ident(name)}
-                        }
-                    % else:
-                        SpecifiedValue::System(system_font) => {
-                            match system_font {}
-                        }
-                    % endif
-                }
-            }
-            fn from_computed_value(other: &computed_value::T) -> Self {
-                SpecifiedValue::Keyword(*other)
-            }
-        }
-
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T {
-            computed_value::T::${to_camel_case(values.split()[0])}
-        }
-        #[inline]
-        pub fn get_initial_specified_value() -> SpecifiedValue {
-            SpecifiedValue::Keyword(computed_value::T::${to_camel_case(values.split()[0])})
-        }
-
-        impl SpecifiedValue {
-            pub fn system_font(f: SystemFont) -> Self {
-                SpecifiedValue::System(f)
-            }
-            pub fn get_system(&self) -> Option<SystemFont> {
-                if let SpecifiedValue::System(s) = *self {
-                    Some(s)
-                } else {
-                    None
-                }
-            }
-        }
-    </%call>
-</%def>
-
 <%def name="gecko_keyword_conversion(keyword, values=None, type='SpecifiedValue', cast_to=None)">
     <%
         if not values:
@@ -726,7 +623,7 @@
         pub use self::computed_value::T as SpecifiedValue;
         pub mod computed_value {
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+            #[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
             pub enum T {
             % for variant in keyword.values_for(engine):
             <%
@@ -968,7 +865,7 @@
 
             first.to_css(dest)?;
             if first != second {
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
                 second.to_css(dest)?;
             }
             Ok(())

@@ -12,12 +12,12 @@ use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::values::{AtomIdent, CustomIdent};
-use style_traits::{CssWriter, ParseError, ToCss};
 use cssparser::{Parser, SourceLocation};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use servo_arc::Arc;
 use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, ToCss};
 
 /// Type of a single [`@page`][page selector]
 ///
@@ -32,7 +32,7 @@ impl PageSelector {
     /// This does not currently take pseudo selectors into account.
     #[inline]
     pub fn ident_matches(&self, other: &CustomIdent) -> bool {
-        self.0.0 == other.0
+        self.0 .0 == other.0
     }
 }
 
@@ -76,7 +76,9 @@ impl Parse for PageSelectors {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Ok(PageSelectors::new(input.parse_comma_separated(|i| PageSelector::parse(context, i))?))
+        Ok(PageSelectors::new(input.parse_comma_separated(|i| {
+            PageSelector::parse(context, i)
+        })?))
     }
 }
 
@@ -102,7 +104,9 @@ impl PageRule {
     #[cfg(feature = "gecko")]
     pub fn size_of(&self, guard: &SharedRwLockReadGuard, ops: &mut MallocSizeOfOps) -> usize {
         // Measurement of other fields may be added later.
-        self.block.unconditional_shallow_size_of(ops) + self.block.read_with(guard).size_of(ops) + self.selectors.size_of(ops)
+        self.block.unconditional_shallow_size_of(ops) +
+            self.block.read_with(guard).size_of(ops) +
+            self.selectors.size_of(ops)
     }
 }
 

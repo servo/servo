@@ -92,7 +92,6 @@ fn line_height_moz_block_height_enabled(context: &ParserContext) -> bool {
     ToAnimatedValue,
     ToCss,
     ToShmem,
-    ToResolvedValue,
     Parse,
 )]
 #[repr(C, u8)]

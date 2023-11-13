@@ -42,7 +42,10 @@ pub struct CascadePriority {
     layer_order: LayerOrder,
 }
 
-const_assert_eq!(std::mem::size_of::<CascadePriority>(), std::mem::size_of::<u32>());
+const_assert_eq!(
+    std::mem::size_of::<CascadePriority>(),
+    std::mem::size_of::<u32>()
+);
 
 impl PartialOrd for CascadePriority {
     #[inline]

@@ -13,7 +13,7 @@ clangStdenv.mkDerivation rec {
 
   buildInputs = [
     # Native dependencies
-    fontconfig freetype openssl libunwind
+    fontconfig freetype libunwind
     xorg.libxcb
     xorg.libX11
 

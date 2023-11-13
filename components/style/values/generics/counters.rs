@@ -50,12 +50,12 @@ where
         }
         self.name.to_css(dest)?;
         if self.is_reversed {
-            dest.write_str(")")?;
+            dest.write_char(')')?;
             if self.value == i32::min_value() {
                 return Ok(());
             }
         }
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         self.value.to_css(dest)
     }
 }
@@ -264,6 +264,11 @@ pub enum GenericContentItem<I> {
     /// `-moz-alt-content`.
     #[cfg(feature = "gecko")]
     MozAltContent,
+    /// `-moz-label-content`.
+    /// This is needed to make `accesskey` work for XUL labels. It's basically
+    /// attr(value) otherwise.
+    #[cfg(feature = "gecko")]
+    MozLabelContent,
     /// `attr([namespace? `|`]? ident)`
     Attr(Attr),
     /// image-set(url) | url(url)

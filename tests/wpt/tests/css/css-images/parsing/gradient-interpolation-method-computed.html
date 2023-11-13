@@ -23,13 +23,13 @@ const LINEAR_GRADIENT_SPECIFIERS = [
 
 const RADIAL_GRADIENT_SPECIFIERS = [
     { input: '50px' },
-    { input: 'ellipse 50% 40em', output: '50% 40em' },
-    { input: 'at right center' },
+    { input: 'ellipse 50% 40em', output: '50% 640px' },
+    { input: 'at right center', output: 'at 100% 50%' },
 ];
 
 const CONIC_GRADIENT_SPECIFIERS = [
     { input: 'from 30deg' },
-    { input: 'at left 10px top 50em' },
+    { input: 'at left 10px top 50em', output: 'at 10px 800px' },
 ];
 
 const legacy_stops = "red, blue"

@@ -154,7 +154,7 @@ macro_rules! try_parse_one {
                     self.transition_property.0[i].to_css(dest)?;
                 }
                 % for name in "duration timing_function delay".split():
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     self.transition_${name}.0[i].to_css(dest)?;
                 % endfor
             }
@@ -190,9 +190,9 @@ macro_rules! try_parse_one {
             % endfor
         }
 
-        fn scroll_linked_animations_enabled() -> bool {
+        fn scroll_driven_animations_enabled() -> bool {
             #[cfg(feature = "gecko")]
-            return static_prefs::pref!("layout.css.scroll-linked-animations.enabled");
+            return static_prefs::pref!("layout.css.scroll-driven-animations.enabled");
             #[cfg(feature = "servo")]
             return false;
         }
@@ -221,7 +221,7 @@ macro_rules! try_parse_one {
                 try_parse_one!(context, input, fill_mode, animation_fill_mode);
                 try_parse_one!(context, input, play_state, animation_play_state);
                 try_parse_one!(context, input, name, animation_name);
-                if scroll_linked_animations_enabled() {
+                if scroll_driven_animations_enabled() {
                     try_parse_one!(context, input, timeline, animation_timeline);
                 }
 
@@ -289,7 +289,7 @@ macro_rules! try_parse_one {
 
                 % for name in props[2:]:
                     self.animation_${name}.0[i].to_css(dest)?;
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                 % endfor
 
                 self.animation_name.0[i].to_css(dest)?;
@@ -320,70 +320,114 @@ macro_rules! try_parse_one {
     engines="gecko"
     name="scroll-timeline"
     sub_properties="scroll-timeline-name scroll-timeline-axis"
-    gecko_pref="layout.css.scroll-linked-animations.enabled",
-    // Also in https://drafts.csswg.org/scroll-animations-1/rewrite#scroll-timeline-shorthand
-    spec="https://github.com/w3c/csswg-drafts/issues/6674"
+    gecko_pref="layout.css.scroll-driven-animations.enabled",
+    spec="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-shorthand"
 >
     pub fn parse_value<'i>(
         context: &ParserContext,
         input: &mut Parser<'i, '_>,
     ) -> Result<Longhands, ParseError<'i>> {
-        use crate::parser::Parse;
-        use crate::values::specified::box_::{ScrollAxis, ScrollTimelineName};
+        use crate::properties::longhands::{scroll_timeline_axis, scroll_timeline_name};
 
-        let mut name = None;
-        let mut axis = None;
-        loop {
-            // Note: When parsing positionally-ambiguous keywords in a property value, a
-            // <custom-ident> production can only claim the keyword if no other unfulfilled
-            // production can claim it. So we try to parse `scroll-timeline-axis` first.
-            //
-            // https://drafts.csswg.org/css-values-4/#custom-idents
+        let mut names = Vec::with_capacity(1);
+        let mut axes = Vec::with_capacity(1);
+        input.parse_comma_separated(|input| {
+            let name = scroll_timeline_name::single_value::parse(context, input)?;
+            let axis = input.try_parse(|i| scroll_timeline_axis::single_value::parse(context, i));
 
-            if axis.is_none() {
-                axis = input.try_parse(ScrollAxis::parse).ok();
-            }
+            names.push(name);
+            axes.push(axis.unwrap_or_default());
 
-            if name.is_none() {
-                if let Ok(value) = input.try_parse(|i| ScrollTimelineName::parse(context, i)) {
-                    name = Some(value);
-                    continue;
-                }
-            }
-            break;
-        }
-
-        // Must occur one or more.
-        if name.is_none() && axis.is_none() {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
+            Ok(())
+        })?;
 
         Ok(expanded! {
-            scroll_timeline_name: name.unwrap_or(ScrollTimelineName::none()),
-            scroll_timeline_axis: axis.unwrap_or_default(),
+            scroll_timeline_name: scroll_timeline_name::SpecifiedValue(names.into()),
+            scroll_timeline_axis: scroll_timeline_axis::SpecifiedValue(axes.into()),
         })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            use crate::values::specified::box_::ScrollAxis;
-
-            let is_default_axis = self.scroll_timeline_axis == &ScrollAxis::default();
-            let is_default_name = self.scroll_timeline_name.0.is_none();
-
-            // Note: if both are default values, we serialize the default axis (because it is the
-            // first value per spec).
-            if !is_default_axis || (is_default_axis && is_default_name) {
-                self.scroll_timeline_axis.to_css(dest)?;
+            // If any value list length is differs then we don't do a shorthand serialization
+            // either.
+            let len = self.scroll_timeline_name.0.len();
+            if len != self.scroll_timeline_axis.0.len() {
+                return Ok(());
             }
 
-            if !is_default_name {
-                if !is_default_axis {
-                    dest.write_char(' ')?;
+            for i in 0..len {
+                if i != 0 {
+                    dest.write_str(", ")?;
                 }
-                self.scroll_timeline_name.to_css(dest)?;
+
+                self.scroll_timeline_name.0[i].to_css(dest)?;
+
+                if self.scroll_timeline_axis.0[i] != Default::default() {
+                    dest.write_char(' ')?;
+                    self.scroll_timeline_axis.0[i].to_css(dest)?;
+                }
+
+            }
+            Ok(())
+        }
+    }
+</%helpers:shorthand>
+
+// Note: view-timeline shorthand doesn't take view-timeline-inset into account.
+<%helpers:shorthand
+    engines="gecko"
+    name="view-timeline"
+    sub_properties="view-timeline-name view-timeline-axis"
+    gecko_pref="layout.css.scroll-driven-animations.enabled",
+    spec="https://drafts.csswg.org/scroll-animations-1/#view-timeline-shorthand"
+>
+    pub fn parse_value<'i>(
+        context: &ParserContext,
+        input: &mut Parser<'i, '_>,
+    ) -> Result<Longhands, ParseError<'i>> {
+        use crate::properties::longhands::{view_timeline_axis, view_timeline_name};
+
+        let mut names = Vec::with_capacity(1);
+        let mut axes = Vec::with_capacity(1);
+        input.parse_comma_separated(|input| {
+            let name = view_timeline_name::single_value::parse(context, input)?;
+            let axis = input.try_parse(|i| view_timeline_axis::single_value::parse(context, i));
+
+            names.push(name);
+            axes.push(axis.unwrap_or_default());
+
+            Ok(())
+        })?;
+
+        Ok(expanded! {
+            view_timeline_name: view_timeline_name::SpecifiedValue(names.into()),
+            view_timeline_axis: view_timeline_axis::SpecifiedValue(axes.into()),
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
+            // If any value list length is differs then we don't do a shorthand serialization
+            // either.
+            let len = self.view_timeline_name.0.len();
+            if len != self.view_timeline_axis.0.len() {
+                return Ok(());
             }
 
+            for i in 0..len {
+                if i != 0 {
+                    dest.write_str(", ")?;
+                }
+
+                self.view_timeline_name.0[i].to_css(dest)?;
+
+                if self.view_timeline_axis.0[i] != Default::default() {
+                    dest.write_char(' ')?;
+                    self.view_timeline_axis.0[i].to_css(dest)?;
+                }
+
+            }
             Ok(())
         }
     }

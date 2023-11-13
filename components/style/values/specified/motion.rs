@@ -60,13 +60,14 @@ impl Parse for RayFunction<Angle> {
             break;
         }
 
-        if angle.is_none() || size.is_none() {
+        if angle.is_none() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(RayFunction {
             angle: angle.unwrap(),
-            size: size.unwrap(),
+            // If no <ray-size> is specified it defaults to closest-side.
+            size: size.unwrap_or(RaySize::ClosestSide),
             contain,
         })
     }

@@ -20,6 +20,7 @@ TRAILING WHITESPACE: html/syntax/xmldecl/support/no-version-or-space-or-trailing
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.adts
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.pdf
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.jpg
+TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.jxl
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.png
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.gif
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.wav
@@ -146,7 +147,6 @@ SET TIMEOUT: conformance-checkers/*
 SET TIMEOUT: content-security-policy/*
 SET TIMEOUT: css/compositing/opacity-and-transform-animation-crash.html
 SET TIMEOUT: css/css-contain/contain-body-overflow-002.html
-SET TIMEOUT: css/css-lists/dynamic-counters-crash.html
 SET TIMEOUT: css/css-display/display-contents-shadow-dom-1.html
 SET TIMEOUT: css/CSS2/normal-flow/crashtests/block-in-inline-ax-crash.html
 SET TIMEOUT: css/selectors/selector-placeholder-shown-type-change-001.html
@@ -311,8 +311,6 @@ GENERATE_TESTS: dom/ranges/Range-selectNode.html
 GENERATE_TESTS: dom/ranges/Range-set.html
 GENERATE_TESTS: dom/traversal/TreeWalker.html
 GENERATE_TESTS: domparsing/createContextualFragment.html
-GENERATE_TESTS: domxpath/001.html
-GENERATE_TESTS: domxpath/002.html
 GENERATE_TESTS: mediacapture-image/MediaStreamTrack-applyConstraints-reject.https.html
 GENERATE_TESTS: mediacapture-image/MediaStreamTrack-getCapabilities.https.html
 GENERATE_TESTS: mediacapture-image/MediaStreamTrack-getConstraints.https.html
@@ -375,6 +373,7 @@ SET TIMEOUT: speculation-rules/prerender/resources/media-autoplay-attribute.html
 SET TIMEOUT: speculation-rules/prerender/resources/media-play.html
 SET TIMEOUT: html/browsers/browsing-the-web/back-forward-cache/timers.html
 SET TIMEOUT: dom/abort/crashtests/timeout-close.html
+SET TIMEOUT: storage-access-api/storage-access-beyond-cookies.locks.tentative.sub.https.window.js
 
 # setTimeout use in reftests
 SET TIMEOUT: acid/acid3/test.html

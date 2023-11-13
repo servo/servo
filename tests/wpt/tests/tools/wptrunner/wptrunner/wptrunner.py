@@ -159,20 +159,30 @@ def list_tests(test_paths, product, **kwargs):
 
 
 def get_pause_after_test(test_loader, **kwargs):
-    if kwargs["pause_after_test"] is None:
-        if kwargs["repeat_until_unexpected"]:
-            return False
-        if kwargs["headless"]:
-            return False
-        if kwargs["debug_test"]:
-            return True
-        tests = test_loader.tests
-        is_single_testharness = (sum(len(item) for item in tests.values()) == 1 and
-                                 len(tests.get("testharness", [])) == 1)
-        if kwargs["repeat"] == 1 and kwargs["rerun"] == 1 and is_single_testharness:
-            return True
+    if kwargs["pause_after_test"] is not None:
+        return kwargs["pause_after_test"]
+    if kwargs["repeat_until_unexpected"]:
         return False
-    return kwargs["pause_after_test"]
+    if kwargs["headless"]:
+        return False
+    if kwargs["debug_test"]:
+        return True
+    tests = test_loader.tests
+    is_single_testharness = True
+    testharness_count = 0
+    for tests_by_type in tests.values():
+        for test_type, tests in tests_by_type.items():
+            if test_type != "testharness" and len(tests):
+                is_single_testharness = False
+                break
+            elif test_type == "testharness":
+                testharness_count += len(tests)
+                if testharness_count > 1:
+                    is_single_testharness = False
+                    break
+    return kwargs["repeat"] == 1 and kwargs["rerun"] == 1 and is_single_testharness
+
+
 
 
 def log_suite_start(tests_by_group, base_run_info, subsuites, run_by_dir):

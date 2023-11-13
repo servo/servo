@@ -29,6 +29,7 @@
 //! The `unsafe_no_jsmanaged_fields!()` macro adds an empty implementation of
 //! `JSTraceable` to a datatype.
 
+use std::cell::OnceCell;
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -86,6 +87,12 @@ unsafe impl<T: CustomTraceable> CustomTraceable for Box<T> {
 unsafe impl<T: CustomTraceable> CustomTraceable for DomRefCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         (*self).borrow().trace(trc)
+    }
+}
+
+unsafe impl<T: JSTraceable> CustomTraceable for OnceCell<T> {
+    unsafe fn trace(&self, tracer: *mut JSTracer) {
+        self.get().map(|value| value.trace(tracer));
     }
 }
 

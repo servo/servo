@@ -1,15 +1,17 @@
 # mypy: ignore-errors
 
-import imp
 import json
 import os
 
+from tools.wpt.utils import load_source
+
 here = os.path.dirname(__file__)
-localpaths = imp.load_source("localpaths", os.path.abspath(os.path.join(here, os.pardir, "localpaths.py")))
+localpaths = load_source("localpaths", os.path.abspath(os.path.join(here, os.pardir, "localpaths.py")))
 
 root = localpaths.repo_root
 
 from manifest import manifest
+
 
 def main(request, response):
     path = os.path.join(root, "MANIFEST.json")

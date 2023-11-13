@@ -3,10 +3,10 @@
 import errno
 import logging
 import os
-import sys
 import shutil
 import stat
 import subprocess
+import sys
 import tarfile
 import time
 import zipfile
@@ -166,3 +166,16 @@ def sha256sum(file_path):
         for chunk in iter(lambda: f.read(4096), b''):
             hash.update(chunk)
     return hash.hexdigest()
+
+
+# see https://docs.python.org/3/whatsnew/3.12.html#imp
+def load_source(modname, filename):
+    import importlib.machinery
+    import importlib.util
+
+    loader = importlib.machinery.SourceFileLoader(modname, filename)
+    spec = importlib.util.spec_from_file_location(modname, filename, loader=loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module.__name__] = module
+    loader.exec_module(module)
+    return module

@@ -2,6 +2,7 @@ import mimetypes
 import os
 import json
 import wptserve.stash
+from fledge.tentative.resources.fledge_http_server_util import headersToAscii
 
 from wptserve.utils import isomorphic_decode, isomorphic_encode
 
@@ -12,14 +13,18 @@ from wptserve.utils import isomorphic_decode, isomorphic_encode
 # clean up after themselves, or that are running concurrently, from interfering
 # with other tests.
 #
-# Each uuid has a stash entry with a dictionary with two entries:
+# Each uuid has a stash entry with a dictionary with the following entries:
 #     "trackedRequests" is a list of all observed requested URLs with a
 #         dispatch of "track_get" or "track_post". POSTS are in the format
 #         "<url>, body: <body>".
+#     "trackedHeaders" is an object mapping HTTP header names to lists
+#         of received HTTP header values for a single request with a
+#         dispatch of "track_headers".
 #     "errors" is a list of an errors that occurred.
 #
-# A dispatch of "request_list" will return the "trackedRequests" dictionary
-# associated with the in uuid, as a JSON string.
+# A dispatch of "tracked_data" will return all tracked information associated
+# with the uuid, as a JSON string. The "errors" field should be checked by
+# the caller before checking other fields.
 #
 # A dispatch of "clean_up" will delete all information associated with the uuid.
 def main(request, response):
@@ -38,7 +43,7 @@ def main(request, response):
     with stash.lock:
         # Take ownership of stashed entry, if any. This removes the entry of the
         # stash.
-        server_state = stash.take(uuid) or {"trackedRequests": [], "errors": []}
+        server_state = stash.take(uuid) or {"trackedRequests": [], "errors": [], "trackedHeaders": None}
 
         # Clear the entire stash. No work to do, since stash entry was already
         # removed.
@@ -48,7 +53,7 @@ def main(request, response):
 
         # Return the list of entries in the stash. Need to add data back to the
         # stash first.
-        if dispatch == b"request_list":
+        if dispatch == b"tracked_data":
             stash.put(uuid, server_state)
             return simple_response(request, response, 200, b"OK",
                                    json.dumps(server_state))
@@ -66,7 +71,7 @@ def main(request, response):
 
         # Tracks a request that's expected to be a POST.
         # In addition to the method, check the Content-Type, which is currently
-        # always text/plain, and compare the body against the expected body.
+        # always text/plain. The request body is stored in trackedRequests.
         if dispatch == b"track_post":
             contentType = request.headers.get(b"Content-Type", b"missing")
             if request.method != "POST":
@@ -79,6 +84,16 @@ def main(request, response):
             else:
                 server_state["trackedRequests"].append(
                     request.url + ", body: " + request.body.decode("utf-8"))
+            stash.put(uuid, server_state)
+            return simple_response(request, response, 200, b"OK", b"")
+
+        # Tracks request headers for a single request.
+        if dispatch == b"track_headers":
+            if server_state["trackedHeaders"] != None:
+                server_state["errors"].append("Second track_headers request received.")
+            else:
+                server_state["trackedHeaders"] = headersToAscii(request.headers)
+
             stash.put(uuid, server_state)
             return simple_response(request, response, 200, b"OK", b"")
 

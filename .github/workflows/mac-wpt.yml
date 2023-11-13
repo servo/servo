@@ -3,15 +3,14 @@ name: Mac WPT Tests
 on:
   workflow_call:
     inputs:
-      production:
-        required: false
-        type: boolean
+      profile:
+        required: true
+        type: string
       layout:
         required: true
         type: string
 
 env:
-  cargo_profile_option: ${{ inputs.production && '--profile production' || '--release' }}
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   WPT_COMMAND_LINE_ARG: "${{ inputs.layout == 'layout-2013' && '--legacy-layout' || '' }}"
@@ -28,15 +27,15 @@ jobs:
         chunk_id: [1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v3
-        if: github.event_name != 'issue_comment'
+        if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 2
-      # This is necessary to checkout the pull request if this run was triggered
-      # via an `issue_comment` action on a pull request.
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
       - uses: actions/checkout@v3
-        if: github.event_name == 'issue_comment'
+        if: github.event_name == 'pull_request_target'
         with:
-          ref: refs/pull/${{ github.event.issue.number }}/head
+          ref: refs/pull/${{ github.event.number }}/head
           fetch-depth: 2
       - uses: actions/download-artifact@v3
         with:
@@ -47,11 +46,11 @@ jobs:
           python3 -m pip install --upgrade pip virtualenv
           python3 ./mach bootstrap
       - name: Smoketest
-        run: python3 ./mach smoketest ${cargo_profile_option}
+        run: python3 ./mach smoketest --${{ inputs.profile }}
       - name: Run tests
         run: |
           python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
-            ${cargo_profile_option} --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
+            --${{ inputs.profile }} --processes $(sysctl -n hw.logicalcpu) --timeout-multiplier 8 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw test-wpt.${{ matrix.chunk_id }}.log \
             --log-raw-unexpected unexpected-test-wpt.${{ matrix.chunk_id }}.log \

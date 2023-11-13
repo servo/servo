@@ -701,7 +701,7 @@ class TestRunnerManager(threading.Thread):
                 # change result to unexpected if expected_fail_message does not
                 # match
                 expected_fail_message = test.expected_fail_message(result.name)
-                if expected_fail_message is not None and result.message != expected_fail_message:
+                if expected_fail_message is not None and result.message.strip() != expected_fail_message:
                     is_unexpected = True
 
             if is_unexpected:

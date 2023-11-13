@@ -12,7 +12,7 @@ doctest = false
 
 [dependencies]
 ipc-channel = { workspace = true }
-profile = {path = "../../../components/profile"}
-profile_traits = {path = "../../../components/profile_traits"}
-servo_config = {path = "../../../components/config"}
+profile = { path = "../../../components/profile" }
+profile_traits = { workspace = true }
+servo_config = { path = "../../../components/config" }
 

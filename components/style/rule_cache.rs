@@ -53,7 +53,7 @@ impl RuleCacheConditions {
         }
 
         if let Some(fs) = self.font_size {
-            if style.get_font().clone_font_size().size != fs {
+            if style.get_font().clone_font_size().computed_size != fs {
                 return false;
             }
         }

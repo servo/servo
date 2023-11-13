@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function, unicode_literals
-
 import os
 import platform
 import sys
@@ -20,6 +18,7 @@ WPT_SERVE_PATH = os.path.join(WPT_PATH, "tests", "tools", "wptserve")
 
 SEARCH_PATHS = [
     os.path.join("python", "mach"),
+    os.path.join("third_party", "mozdebug"),
 ]
 
 # Individual files providing mach commands.
@@ -140,10 +139,10 @@ def _activate_virtualenv(topdir):
     activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
     need_pip_upgrade = False
     if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
-        import imp
+        import importlib
         try:
-            imp.find_module('virtualenv')
-        except ImportError:
+            importlib.import_module('virtualenv')
+        except ModuleNotFoundError:
             sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
 
         _process_exec([python, "-m", "virtualenv", "-p", python, "--system-site-packages", virtualenv_path])

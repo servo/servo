@@ -119,7 +119,6 @@ fn test_report_error_stylesheet() {
         ), // FIXME: column should be around 56
         (10, 17, "Unsupported property declaration: 'invalid: true;'"),
         (12, 28, "Invalid media rule"),
-        (13, 30, "Unsupported @font-face descriptor declaration"),
         // When @counter-style is supported, this should be replaced with two errors
         (14, 19, "Invalid rule: '@counter-style "),
         // When @font-feature-values is supported, this should be replaced with two errors

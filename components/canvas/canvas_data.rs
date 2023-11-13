@@ -488,7 +488,7 @@ impl<'a> CanvasData<'a> {
             .state
             .font_style
             .as_ref()
-            .map_or(10., |style| style.font_size.size().px());
+            .map_or(10., |style| style.font_size.computed_size().px());
         let font_style = self.state.font_style.as_ref();
         let font = font_style.map_or_else(
             || load_system_font_from_style(None),

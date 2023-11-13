@@ -1,7 +1,7 @@
 # META: timeout=long
 
 import pytest
-from webdriver import Element
+from webdriver import WebElement
 
 from tests.support.asserts import (
     assert_element_has_focus,
@@ -45,7 +45,7 @@ def test_null_response_value(session, inline):
 
 
 def test_no_top_browsing_context(session, closed_window):
-    element = Element(session, "foo")
+    element = WebElement(session, "foo")
     response = element_clear(session, element)
     assert_error(response, "no such window")
 
@@ -59,14 +59,14 @@ def test_no_top_browsing_context(session, closed_window):
 
 
 def test_no_browsing_context(session, closed_frame):
-    element = Element(session, "foo")
+    element = WebElement(session, "foo")
 
     response = element_clear(session, element)
     assert_error(response, "no such window")
 
 
 def test_no_such_element_with_invalid_value(session):
-    element = Element(session, "foo")
+    element = WebElement(session, "foo")
 
     response = element_clear(session, element)
     assert_error(response, "no such element")

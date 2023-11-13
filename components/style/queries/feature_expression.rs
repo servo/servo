@@ -6,8 +6,9 @@
 //! `(width >= 400px)`.
 
 use super::feature::{Evaluator, QueryFeatureDescription};
-use super::feature::{KeywordDiscriminant, FeatureFlags};
+use super::feature::{FeatureFlags, KeywordDiscriminant};
 use crate::parser::{Parse, ParserContext};
+use crate::queries::condition::KleeneValue;
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use crate::values::computed::{self, Ratio, ToComputedValue};
 use crate::values::specified::{Integer, Length, Number, Resolution};
@@ -43,7 +44,10 @@ impl FeatureType {
     }
 
     fn find_feature(&self, name: &Atom) -> Option<(usize, &'static QueryFeatureDescription)> {
-        self.features().iter().enumerate().find(|(_, f)| f.name == *name)
+        self.features()
+            .iter()
+            .enumerate()
+            .find(|(_, f)| f.name == *name)
     }
 }
 
@@ -92,8 +96,12 @@ impl Operator {
         // context.
         match self {
             Self::Equal => false,
-            Self::GreaterThan | Self::GreaterThanEqual => matches!(right_op, Self::GreaterThan | Self::GreaterThanEqual),
-            Self::LessThan | Self::LessThanEqual => matches!(right_op, Self::LessThan | Self::LessThanEqual),
+            Self::GreaterThan | Self::GreaterThanEqual => {
+                matches!(right_op, Self::GreaterThan | Self::GreaterThanEqual)
+            },
+            Self::LessThan | Self::LessThanEqual => {
+                matches!(right_op, Self::LessThan | Self::LessThanEqual)
+            },
         }
     }
 
@@ -255,7 +263,7 @@ impl ToCss for QueryFeatureExpression {
     where
         W: fmt::Write,
     {
-        dest.write_str("(")?;
+        dest.write_char('(')?;
 
         match self.kind {
             QueryFeatureExpressionKind::Empty => self.write_name(dest)?,
@@ -478,9 +486,7 @@ impl QueryFeatureExpression {
         let right = match right_op {
             Some(op) => {
                 if !left_op.is_compatible_with(op) {
-                    return Err(
-                        input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                    );
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
                 Some((op, QueryExpressionValue::parse(feature, context, input)?))
             },
@@ -570,7 +576,7 @@ impl QueryFeatureExpression {
     }
 
     /// Returns whether this query evaluates to true for the given device.
-    pub fn matches(&self, context: &computed::Context) -> bool {
+    pub fn matches(&self, context: &computed::Context) -> KleeneValue {
         macro_rules! expect {
             ($variant:ident, $v:expr) => {
                 match *$v {
@@ -580,12 +586,19 @@ impl QueryFeatureExpression {
             };
         }
 
-        match self.feature().evaluator {
+        KleeneValue::from(match self.feature().evaluator {
             Evaluator::Length(eval) => {
                 let v = eval(context);
-                self.kind.evaluate(v, |v| {
-                    expect!(Length, v).to_computed_value(context)
-                })
+                self.kind
+                    .evaluate(v, |v| expect!(Length, v).to_computed_value(context))
+            },
+            Evaluator::OptionalLength(eval) => {
+                let v = match eval(context) {
+                    Some(v) => v,
+                    None => return KleeneValue::Unknown,
+                };
+                self.kind
+                    .evaluate(v, |v| expect!(Length, v).to_computed_value(context))
             },
             Evaluator::Integer(eval) => {
                 let v = eval(context);
@@ -594,14 +607,24 @@ impl QueryFeatureExpression {
             Evaluator::Float(eval) => {
                 let v = eval(context);
                 self.kind.evaluate(v, |v| *expect!(Float, v))
-            }
+            },
             Evaluator::NumberRatio(eval) => {
                 let ratio = eval(context);
                 // A ratio of 0/0 behaves as the ratio 1/0, so we need to call used_value()
                 // to convert it if necessary.
                 // FIXME: we may need to update here once
                 // https://github.com/w3c/csswg-drafts/issues/4954 got resolved.
-                self.kind.evaluate(ratio, |v| expect!(NumberRatio, v).used_value())
+                self.kind
+                    .evaluate(ratio, |v| expect!(NumberRatio, v).used_value())
+            },
+            Evaluator::OptionalNumberRatio(eval) => {
+                let ratio = match eval(context) {
+                    Some(v) => v,
+                    None => return KleeneValue::Unknown,
+                };
+                // See above for subtleties here.
+                self.kind
+                    .evaluate(ratio, |v| expect!(NumberRatio, v).used_value())
             },
             Evaluator::Resolution(eval) => {
                 let v = eval(context).dppx();
@@ -610,15 +633,21 @@ impl QueryFeatureExpression {
                 })
             },
             Evaluator::Enumerated { evaluator, .. } => {
-                let computed = self.kind.non_ranged_value().map(|v| *expect!(Enumerated, v));
-                evaluator(context, computed)
+                let computed = self
+                    .kind
+                    .non_ranged_value()
+                    .map(|v| *expect!(Enumerated, v));
+                return evaluator(context, computed)
             },
             Evaluator::BoolInteger(eval) => {
-                let computed = self.kind.non_ranged_value().map(|v| *expect!(BoolInteger, v));
+                let computed = self
+                    .kind
+                    .non_ranged_value()
+                    .map(|v| *expect!(BoolInteger, v));
                 let boolean = eval(context);
                 computed.map_or(boolean, |v| v == boolean)
             },
-        }
+        })
     }
 }
 
@@ -634,8 +663,8 @@ impl QueryFeatureExpression {
 pub enum QueryExpressionValue {
     /// A length.
     Length(Length),
-    /// A (non-negative) integer.
-    Integer(u32),
+    /// An integer.
+    Integer(i32),
     /// A floating point value.
     Float(CSSFloat),
     /// A boolean value, specified as an integer (i.e., either 0 or 1).
@@ -675,13 +704,13 @@ impl QueryExpressionValue {
         input: &mut Parser<'i, 't>,
     ) -> Result<QueryExpressionValue, ParseError<'i>> {
         Ok(match for_feature.evaluator {
-            Evaluator::Length(..) => {
-                let length = Length::parse_non_negative(context, input)?;
+            Evaluator::OptionalLength(..) | Evaluator::Length(..) => {
+                let length = Length::parse(context, input)?;
                 QueryExpressionValue::Length(length)
             },
             Evaluator::Integer(..) => {
-                let integer = Integer::parse_non_negative(context, input)?;
-                QueryExpressionValue::Integer(integer.value() as u32)
+                let integer = Integer::parse(context, input)?;
+                QueryExpressionValue::Integer(integer.value())
             },
             Evaluator::BoolInteger(..) => {
                 let integer = Integer::parse_non_negative(context, input)?;
@@ -695,7 +724,7 @@ impl QueryExpressionValue {
                 let number = Number::parse(context, input)?;
                 QueryExpressionValue::Float(number.get())
             },
-            Evaluator::NumberRatio(..) => {
+            Evaluator::OptionalNumberRatio(..) | Evaluator::NumberRatio(..) => {
                 use crate::values::specified::Ratio as SpecifiedRatio;
                 let ratio = SpecifiedRatio::parse(context, input)?;
                 QueryExpressionValue::NumberRatio(Ratio::new(ratio.0.get(), ratio.1.get()))

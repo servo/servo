@@ -1,142 +1,179 @@
 'use strict';
 
-// These tests rely on the User Agent providing an implementation of
-// platform sensor backends.
-//
-// In Chromium-based browsers this implementation is provided by a polyfill
-// in order to reduce the amount of test-only code shipped to users. To enable
-// these tests the browser must be run with these options:
-//
-//   --enable-blink-features=MojoJS,MojoJSTest
-async function loadChromiumResources() {
-  await loadScript('/resources/testdriver.js');
-  await loadScript('/resources/testdriver-vendor.js');
-  await loadScript('/page-visibility/resources/window_state_context.js');
-  await import('/resources/chromium/generic_sensor_mocks.js');
-}
+// If two doubles differ by less than this amount, we can consider them
+// to be effectively equal.
+const kEpsilon = 1e-8;
 
-async function initialize_generic_sensor_tests() {
-  if (typeof GenericSensorTest === 'undefined') {
-    const script = document.createElement('script');
-    script.src = '/resources/test-only-api.js';
-    script.async = false;
-    const p = new Promise((resolve, reject) => {
-      script.onload = () => { resolve(); };
-      script.onerror = e => { reject(e); };
-    })
-    document.head.appendChild(script);
-    await p;
+class RingBuffer {
+  constructor(data) {
+    if (!Array.isArray(data)) {
+      throw new TypeError('`data` must be an array.');
+    }
 
-    if (isChromiumBased) {
-      await loadChromiumResources();
+    this.bufferPosition_ = 0;
+    this.data_ = Array.from(data);
+  }
+
+  get data() {
+    return Array.from(this.data_);
+  }
+
+  next() {
+    const value = this.data_[this.bufferPosition_];
+    this.bufferPosition_ = (this.bufferPosition_ + 1) % this.data_.length;
+    return {done: false, value: value};
+  }
+
+  value() {
+    return this.data_[this.bufferPosition_];
+  }
+
+  [Symbol.iterator]() {
+    return this;
+  }
+
+  reset() {
+    this.bufferPosition_ = 0;
+  }
+};
+
+// Calls test_driver.update_virtual_sensor() until it results in a "reading"
+// event. It waits |timeoutInMs| before considering that an event has not been
+// delivered.
+async function update_virtual_sensor_until_reading(
+    t, readings, readingPromise, testDriverName, timeoutInMs) {
+  while (true) {
+    await test_driver.update_virtual_sensor(
+        testDriverName, readings.next().value);
+    const value = await Promise.race([
+      new Promise(
+          resolve => {t.step_timeout(() => resolve('TIMEOUT'), timeoutInMs)}),
+      readingPromise,
+    ]);
+    if (value !== 'TIMEOUT') {
+      break;
     }
   }
-
-  let sensorTest = new GenericSensorTest();
-  await sensorTest.initialize();
-  return sensorTest;
 }
 
-function sensor_test(func, name, properties) {
-  promise_test(async (t) => {
-    t.add_cleanup(() => {
-      if (sensorTest)
-        return sensorTest.reset();
-    });
-
-    let sensorTest = await initialize_generic_sensor_tests();
-    return func(t, sensorTest.getSensorProvider());
-  }, name, properties);
-}
-
-function verifySensorReading(pattern, values, timestamp, isNull) {
-  // If |val| cannot be converted to a float, we return the original value.
-  // This can happen when a value in |pattern| is not a number.
-  function round(val) {
-    const res = Number.parseFloat(val).toPrecision(6);
-    return res === "NaN" ? val : res;
+// This could be turned into a t.step_wait() call once
+// https://github.com/web-platform-tests/wpt/pull/34289 is merged.
+async function wait_for_virtual_sensor_state(testDriverName, predicate) {
+  const result =
+      await test_driver.get_virtual_sensor_information(testDriverName);
+  if (!predicate(result)) {
+    await wait_for_virtual_sensor_state(testDriverName, predicate);
   }
+}
 
-  if (isNull) {
-    return (values === null || values.every(r => r === null)) &&
-           timestamp === null;
+function validate_sensor_data(sensorData) {
+  if (!('sensorName' in sensorData)) {
+    throw new TypeError('sensorData.sensorName is missing');
   }
-
-  return values.every((r, i) => round(r) === round(pattern[i])) &&
-         timestamp !== null;
+  if (!('permissionName' in sensorData)) {
+    throw new TypeError('sensorData.permissionName is missing');
+  }
+  if (!('testDriverName' in sensorData)) {
+    throw new TypeError('sensorData.testDriverName is missing');
+  }
+  if (sensorData.featurePolicyNames !== undefined &&
+      !Array.isArray(sensorData.featurePolicyNames)) {
+    throw new TypeError('sensorData.featurePolicyNames must be an array');
+  }
 }
 
-function verifyXyzSensorReading(pattern, {x, y, z, timestamp}, isNull) {
-  return verifySensorReading(pattern, [x, y, z], timestamp, isNull);
+function validate_reading_data(readingData) {
+  if (!Array.isArray(readingData.readings)) {
+    throw new TypeError('readingData.readings must be an array.');
+  }
+  if (!Array.isArray(readingData.expectedReadings)) {
+    throw new TypeError('readingData.expectedReadings must be an array.');
+  }
+  if (readingData.readings.length < readingData.expectedReadings.length) {
+    throw new TypeError(
+        'readingData.readings\' length must be bigger than ' +
+        'or equal to readingData.expectedReadings\' length.');
+  }
+  if (readingData.expectedRemappedReadings &&
+      !Array.isArray(readingData.expectedRemappedReadings)) {
+    throw new TypeError(
+        'readingData.expectedRemappedReadings must be an ' +
+        'array.');
+  }
+  if (readingData.expectedRemappedReadings &&
+      readingData.expectedReadings.length !=
+          readingData.expectedRemappedReadings.length) {
+    throw new TypeError(
+        'readingData.expectedReadings and ' +
+        'readingData.expectedRemappedReadings must have the same ' +
+        'length.');
+  }
 }
 
-function verifyQuatSensorReading(pattern, {quaternion, timestamp}, isNull) {
-  return verifySensorReading(pattern, quaternion, timestamp, isNull);
+function get_sensor_reading_properties(sensor) {
+  const className = sensor[Symbol.toStringTag];
+  if ([
+        'Accelerometer', 'GravitySensor', 'Gyroscope',
+        'LinearAccelerationSensor', 'Magnetometer', 'ProximitySensor'
+      ].includes(className)) {
+    return ['x', 'y', 'z'];
+  } else if (className == 'AmbientLightSensor') {
+    return ['illuminance'];
+  } else if ([
+               'AbsoluteOrientationSensor', 'RelativeOrientationSensor'
+             ].includes(className)) {
+    return ['quaternion'];
+  } else {
+    throw new TypeError(`Unexpected sensor '${className}'`);
+  }
 }
 
-function verifyAlsSensorReading(pattern, {illuminance, timestamp}, isNull) {
-  return verifySensorReading(pattern, [illuminance], timestamp, isNull);
-}
-
-function verifyGeoSensorReading(pattern, {latitude, longitude, altitude,
-  accuracy, altitudeAccuracy, heading, speed, timestamp}, isNull) {
-  return verifySensorReading(pattern, [latitude, longitude, altitude,
-    accuracy, altitudeAccuracy, heading, speed], timestamp, isNull);
-}
-
-function verifyProximitySensorReading(pattern, {distance, max, near, timestamp}, isNull) {
-  return verifySensorReading(pattern, [distance, max, near], timestamp, isNull);
-}
-
-// Assert that two Sensor objects have the same properties and values.
+// Checks that `sensor` and `expectedSensorLike` have the same properties
+// (except for timestamp) and they have the same values.
 //
-// Verifies that ``actual`` and ``expected`` have the same sensor properties
-// and, if so, that their values are the same.
-//
-// @param {Sensor} actual - Test value.
-// @param {Sensor} expected - Expected value.
-function assert_sensor_equals(actual, expected) {
-  assert_true(
-      actual instanceof Sensor,
-      'assert_sensor_equals: actual must be a Sensor');
-  assert_true(
-      expected instanceof Sensor,
-      'assert_sensor_equals: expected must be a Sensor');
-
-  // These properties vary per sensor type.
-  const CUSTOM_PROPERTIES = [
-    ['illuminance'], ['quaternion'], ['x', 'y', 'z'],
-    [
-      'latitude', 'longitude', 'altitude', 'accuracy', 'altitudeAccuracy',
-      'heading', 'speed'
-    ]
-  ];
-
-  // These properties are present on all objects derived from Sensor.
-  const GENERAL_PROPERTIES = ['timestamp'];
-
-  for (let customProperties of CUSTOM_PROPERTIES) {
-    if (customProperties.every(p => p in actual) &&
-        customProperties.every(p => p in expected)) {
-      customProperties.forEach(p => {
-        if (customProperties == 'quaternion') {
-          assert_array_equals(
-              actual[p], expected[p],
-              `assert_sensor_equals: property '${p}' does not match`);
-        } else {
-          assert_equals(
-              actual[p], expected[p],
-              `assert_sensor_equals: property '${p}' does not match`);
-        }
-      });
-      GENERAL_PROPERTIES.forEach(p => {
-        assert_equals(
-            actual[p], expected[p],
-            `assert_sensor_equals: property '${p}' does not match`);
-      });
-      return;
-    }
+// Options allows configuring some aspects of the comparison:
+// - ignoreTimestamps (boolean): If true, `sensor` and `expectedSensorLike`'s
+//   "timestamp" attribute will not be compared. If `expectedSensorLike` does
+//   not have a "timestamp" attribute, the values will not be compared either.
+//   This is particularly useful when comparing sensor objects from different
+//   origins (and consequently different time origins).
+function assert_sensor_reading_equals(
+    sensor, expectedSensorLike, options = {}) {
+  for (const prop of get_sensor_reading_properties(sensor)) {
+    assert_true(
+        prop in expectedSensorLike,
+        `expectedSensorLike must have a property called '${prop}'`);
+    if (Array.isArray(sensor[prop]))
+      assert_array_approx_equals(
+          sensor[prop], expectedSensorLike[prop], kEpsilon);
+    else
+      assert_approx_equals(sensor[prop], expectedSensorLike[prop], kEpsilon);
   }
+  assert_not_equals(sensor.timestamp, null);
 
-  assert_true(false, 'assert_sensor_equals: sensors have different attributes');
+  if ('timestamp' in expectedSensorLike && !options.ignoreTimestamps) {
+    assert_equals(
+        sensor.timestamp, expectedSensorLike.timestamp,
+        'Sensor timestamps must be equal');
+  }
+}
+
+function assert_sensor_reading_is_null(sensor) {
+  for (const prop of get_sensor_reading_properties(sensor)) {
+    assert_equals(sensor[prop], null);
+  }
+  assert_equals(sensor.timestamp, null);
+}
+
+function serialize_sensor_data(sensor) {
+  const sensorData = {};
+  for (const property of get_sensor_reading_properties(sensor)) {
+    sensorData[property] = sensor[property];
+  }
+  sensorData['timestamp'] = sensor.timestamp;
+
+  // Note that this is not serialized by postMessage().
+  sensorData[Symbol.toStringTag] = sensor[Symbol.toStringTag];
+
+  return sensorData;
 }

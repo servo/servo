@@ -77,6 +77,30 @@ impl std::ops::AddAssign for Percentage {
     }
 }
 
+impl std::ops::Add for Percentage {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Percentage(self.0 + other.0)
+    }
+}
+
+impl std::ops::Sub for Percentage {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        Percentage(self.0 - other.0)
+    }
+}
+
+impl std::ops::Rem for Percentage {
+    type Output = Self;
+
+    fn rem(self, other: Self) -> Self {
+        Percentage(self.0 % other.0)
+    }
+}
+
 impl ToCss for Percentage {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where

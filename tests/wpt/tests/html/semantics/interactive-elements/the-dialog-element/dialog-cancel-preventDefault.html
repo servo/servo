@@ -6,6 +6,8 @@
   <script src="/resources/testharnessreport.js"></script>
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/common/top-layer.js"></script>
+  <script src="/close-watcher/resources/helpers.js"></script>
   <link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=227534">
   <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1322947">
 </head>
@@ -14,7 +16,7 @@
 <dialog>
   <p>Hello World</p>
 </dialog>
-<script>
+<script type=module>
   setup({ single_test: true });
 
   var hasCancelEventFired = false;
@@ -39,7 +41,9 @@
   });
 
   dialog.showModal();
-  test_driver.send_keys(document.documentElement, "\uE00C"); // ESC key
+
+  await blessTopLayer(dialog);
+  await sendCloseRequest();
 </script>
 </body>
 </html>

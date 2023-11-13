@@ -110,10 +110,12 @@ impl TimingFunction {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let steps = Integer::parse_positive(context, input)?;
-        let position = input.try_parse(|i| {
-            i.expect_comma()?;
-            StepPosition::parse(context, i)
-        }).unwrap_or(StepPosition::End);
+        let position = input
+            .try_parse(|i| {
+                i.expect_comma()?;
+                StepPosition::parse(context, i)
+            })
+            .unwrap_or(StepPosition::End);
 
         // jump-none accepts a positive integer greater than 1.
         // FIXME(emilio): The spec asks us to avoid rejecting it at parse
@@ -134,10 +136,8 @@ impl TimingFunction {
         if !linear_timing_function_enabled() {
             return Err(input.new_custom_error(StyleParseErrorKind::ExperimentalProperty));
         }
-        if input.is_exhausted() {
-            return Ok(GenericTimingFunction::LinearFunction(LinearStops::default()));
-        }
         let mut result = vec![];
+        // Closely follows `parse_comma_separated`, but can generate multiple entries for one comma-separated entry.
         loop {
             input.parse_until_before(Delimiter::Comma, |i| {
                 let mut input_start = i.try_parse(|i| Percentage::parse(context, i)).ok();
@@ -149,10 +149,19 @@ impl TimingFunction {
                     input_start = i.try_parse(|i| Percentage::parse(context, i)).ok();
                     input_end = i.try_parse(|i| Percentage::parse(context, i)).ok();
                 }
-                result.push(LinearStop { output, input: input_start.into() });
+                result.push(LinearStop {
+                    output,
+                    input: input_start.into(),
+                });
                 if input_end.is_some() {
-                    debug_assert!(input_start.is_some(), "Input end valid but not input start?");
-                    result.push(LinearStop { output, input: input_end.into() });
+                    debug_assert!(
+                        input_start.is_some(),
+                        "Input end valid but not input start?"
+                    );
+                    result.push(LinearStop {
+                        output,
+                        input: input_end.into(),
+                    });
                 }
 
                 Ok(())
@@ -163,6 +172,9 @@ impl TimingFunction {
                 Ok(&Token::Comma) => continue,
                 Ok(_) => unreachable!(),
             }
+        }
+        if result.len() < 2 {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         Ok(GenericTimingFunction::LinearFunction(LinearStops::new(

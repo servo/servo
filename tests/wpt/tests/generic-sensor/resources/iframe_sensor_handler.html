@@ -1,63 +1,91 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>iframe sensor tester</title>
+<title>cross-origin iframe sensor tester</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
 <script>
-  let mockBackend = null;
   let sensor = null;
-  let sensorType = null;
+
+  test_driver.set_test_context(window.parent);
+
+  // This function is defined separately so that it is added only once
+  // regardless of how many times the 'start_sensor' command is received.
+  function sensorReadingEventHandler() {
+    window.parent.postMessage(
+      {
+        eventName: 'reading',
+        serializedSensor: serialize_sensor_data(sensor),
+      }, '*');
+  }
 
   async function messageHandler(e) {
-    if (e.data.command === 'create_sensor') {
-      if (!sensor) {
-        mockBackend = await initialize_generic_sensor_tests();
-        sensor = new self[e.data.type]();
-        sensorType = e.data.type;
-      }
+    switch (e.data.command) {
+      case 'create_sensor':
+        if (!sensor) {
+          const { sensorName, permissionName } = e.data.sensorData;
+          // TODO(https://github.com/w3c/permissions/issues/419): This does not
+          // work as expected: due to the set_test_context() call above, this
+          // call goes through the top-level frame, which has a different
+          // origin in cross-origin tests, meaning that cross-origin tests only
+          // really work when permissions are granted by default. This can only
+          // be fixed by testdriver.js allowing set_permission() to specify a
+          // different origin.
+          await test_driver.set_permission({ name: permissionName }, 'granted');
+          sensor = new self[sensorName]();
+        }
+        return Promise.resolve();
 
-      return Promise.resolve('success');
-    } else if (e.data.command === 'start_sensor') {
-      if (!sensor) {
-        return Promise.reject('"create_sensor" must be called first');
-      }
+      case 'start_sensor':
+        return new Promise((resolve, reject) => {
+          // This event listener is different from the ones below, as it is
+          // supposed to be used together with IframeSensorReadingEventWatcher.
+          // It sends a message whenever there is an event, and window.parent
+          // decides whether it was expected or not. It is the only way to have
+          // something akin to EventWatcher in a cross-origin iframe.
+          sensor.addEventListener('reading', sensorReadingEventHandler);
 
-      return new Promise((resolve, reject) => {
-        sensor.addEventListener('reading', () => {
-          resolve('success');
-        }, { once: true });
-        sensor.addEventListener('error', e => {
-          reject(`${e.error.name}: ${e.error.message}`);
-        }, { once: true });
-        sensor.start();
-      });
-    } else if (e.data.command === 'is_sensor_suspended') {
-      if (!mockBackend) {
-        return Promise.reject('"create_sensor" must be called first');
-      }
+          sensor.addEventListener('activate', () => {
+            resolve();
+          }, { once: true });
+          sensor.addEventListener('error', e => {
+            reject(`${e.error.name}: ${e.error.message}`);
+          }, { once: true });
+          sensor.start();
+        });
 
-      const mockPlatformSensor = await mockBackend.getSensorProvider().getCreatedSensor(sensorType);
-      return Promise.resolve(!mockPlatformSensor.isReadingData());
-    } else if (e.data.command === 'reset_sensor_backend') {
-      if (sensor) {
-        sensor.stop();
-        await mockBackend.reset();
+      case 'has_reading':
+        return Promise.resolve(sensor.hasReading);
 
-        sensor = null;
-        mockBackend = null;
-      }
-      return Promise.resolve('success');
-    } else {
-      return Promise.reject(`unknown command "${e.data.command}"`);
+      case 'stop_sensor':
+        if (sensor) {
+          sensor.stop();
+        }
+        return Promise.resolve();
+
+      default:
+        return Promise.reject(`unknown command "${e.data.command}"`);
     }
   }
 
   window.onmessage = async (e) => {
-    let reply;
-    try {
-      reply = await messageHandler(e);
-    } catch (error) {
-      reply = error;
+    // The call to test_driver.set_context() above makes messages other than
+    // those we are specifically waiting for to be delivered too. Ignore those
+    // here.
+    if (!e.data.command) {
+      return;
     }
-    e.source.postMessage({ command: e.data.command, result: reply }, '*');
+
+    try {
+      test_driver.message_test({
+        command: e.data.command,
+        result: await messageHandler(e),
+      });
+    } catch (error) {
+      test_driver.message_test({
+        command: e.data.command,
+        error,
+      });
+    }
   }
 </script>

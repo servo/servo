@@ -1,0 +1,17 @@
+[package]
+name = "bluetooth_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "bluetooth_traits"
+path = "lib.rs"
+
+[dependencies]
+embedder_traits = { workspace = true }
+ipc-channel = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }

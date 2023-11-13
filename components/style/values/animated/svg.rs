@@ -5,7 +5,6 @@
 //! Animation implementations for various SVG-related types.
 
 use super::{Animate, Procedure};
-use crate::properties::animated_properties::ListAnimation;
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::svg::SVGStrokeDashArray;
 
@@ -22,7 +21,7 @@ where
         }
         match (self, other) {
             (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => Ok(
-                SVGStrokeDashArray::Values(this.animate_repeatable_list(other, procedure)?),
+                SVGStrokeDashArray::Values(super::lists::repeatable_list::animate(this, other, procedure)?),
             ),
             _ => Err(()),
         }
@@ -37,7 +36,7 @@ where
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         match (self, other) {
             (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
-                this.squared_distance_repeatable_list(other)
+                super::lists::repeatable_list::squared_distance(this, other)
             },
             _ => Err(()),
         }

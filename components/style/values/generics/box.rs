@@ -107,7 +107,6 @@ pub enum GenericContainIntrinsicSize<L> {
 pub use self::GenericContainIntrinsicSize as ContainIntrinsicSize;
 
 impl<L: ToCss> ToCss for ContainIntrinsicSize<L> {
-
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
@@ -118,28 +117,58 @@ impl<L: ToCss> ToCss for ContainIntrinsicSize<L> {
             Self::AutoLength(ref l) => {
                 dest.write_str("auto ")?;
                 l.to_css(dest)
-            }
+            },
         }
     }
 }
 
-/// https://drafts.csswg.org/css-animations/#animation-iteration-count
+/// Note that we only implement -webkit-line-clamp as a single, longhand
+/// property for now, but the spec defines line-clamp as a shorthand for
+/// separate max-lines, block-ellipsis, and continue properties.
+///
+/// https://drafts.csswg.org/css-overflow-3/#line-clamp
 #[derive(
     Clone,
+    ComputeSquaredDistance,
+    Copy,
     Debug,
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
     ToComputedValue,
-    ToCss,
+    ToAnimatedValue,
+    ToAnimatedZero,
     ToResolvedValue,
     ToShmem,
 )]
-pub enum AnimationIterationCount<Number> {
-    /// A `<number>` value.
-    Number(Number),
-    /// The `infinite` keyword.
-    Infinite,
+#[repr(transparent)]
+#[value_info(other_values = "none")]
+pub struct GenericLineClamp<I>(pub I);
+
+pub use self::GenericLineClamp as LineClamp;
+
+impl<I: crate::Zero> LineClamp<I> {
+    /// Returns the `none` value.
+    pub fn none() -> Self {
+        Self(crate::Zero::zero())
+    }
+
+    /// Returns whether we're the `none` value.
+    pub fn is_none(&self) -> bool {
+        self.0.is_zero()
+    }
+}
+
+impl<I: crate::Zero + ToCss> ToCss for LineClamp<I> {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.is_none() {
+            return dest.write_str("none");
+        }
+        self.0.to_css(dest)
+    }
 }
 
 /// A generic value for the `perspective` property.
