@@ -120,7 +120,7 @@ mod media_platform {
                 plugin_dir.push("lib");
             }
 
-            let backend = match GStreamerBackend::init_with_plugins(
+            match GStreamerBackend::init_with_plugins(
                 plugin_dir,
                 &gstreamer_plugins::GSTREAMER_PLUGINS,
             ) {
@@ -129,8 +129,7 @@ mod media_platform {
                     eprintln!("Error initializing GStreamer: {:?}", e);
                     std::process::exit(1);
                 },
-            };
-            backend
+            }
         });
     }
 
