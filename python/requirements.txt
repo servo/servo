@@ -23,6 +23,7 @@ colorama == 0.3.7
 
 # For package uploading
 boto3 == 1.28.84
+pyOpenSSL==23.0.0
 PyGithub == 1.58.1
 
 # For Python3 compatibility
