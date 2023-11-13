@@ -1882,7 +1882,7 @@ impl Flow for InlineFlow {
         for fragment in self.fragments.fragments.iter_mut() {
             // If a particular fragment would establish a stacking context but has a transform
             // applied that causes it to take up no space, we can skip it entirely.
-            if fragment.has_non_invertible_transform() {
+            if fragment.has_non_invertible_transform_or_zero_scale() {
                 continue;
             }
             state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;

@@ -2760,9 +2760,11 @@ impl Fragment {
     }
 
     /// Returns true if this fragment has a transform applied that causes it to take up no space.
-    pub fn has_non_invertible_transform(&self) -> bool {
+    pub fn has_non_invertible_transform_or_zero_scale(&self) -> bool {
         self.transform_matrix(&Rect::default())
-            .map_or(false, |matrix| !matrix.is_invertible())
+            .map_or(false, |matrix| {
+                !matrix.is_invertible() || matrix.m11 == 0. || matrix.m22 == 0.
+            })
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
