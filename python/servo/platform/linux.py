@@ -25,15 +25,16 @@ from .base import Base
 # 2. paste in the whole APT_PKGS = [...]
 # 3. copy(`sudo apt install ${APT_PKGS.join(" ")}`)
 # 4. paste into https://github.com/servo/servo/wiki/Building#debian-based-distributions
-APT_PKGS = ['git', 'curl', 'libx11-dev', 'libfreetype6-dev',
-            'libgl1-mesa-dri', 'libglib2.0-dev', 'xorg-dev', 'gperf', 'g++',
-            'build-essential', 'cmake', 'liblzma-dev', 'libxmu6', 'libxmu-dev',
-            "libxcb-render0-dev", "libxcb-shape0-dev", "libxcb-xfixes0-dev",
-            'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev',
-            'libharfbuzz-dev', 'ccache', 'clang', 'libunwind-dev',
-            'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
-            'libgstreamer-plugins-bad1.0-dev',
-            'libunwind-dev', 'llvm-dev', 'libvulkan1']
+APT_PKGS = [
+    'build-essential', 'ccache', 'clang', 'cmake', 'curl', 'g++', 'git',
+    'gperf', 'libdbus-1-dev', 'libfreetype6-dev', 'libgl1-mesa-dri',
+    'libgles2-mesa-dev', 'libglib2.0-dev', 'libgstreamer-plugins-bad1.0-dev',
+    'libgstreamer-plugins-base1.0-dev', 'libgstreamer1.0-dev',
+    'libharfbuzz-dev', 'liblzma-dev', 'libunwind-dev', 'libunwind-dev',
+    'libvulkan1', 'libx11-dev', 'libxcb-render0-dev', 'libxcb-shape0-dev',
+    'libxcb-xfixes0-dev', 'libxmu-dev', 'libxmu6', 'libegl1-mesa-dev',
+    'llvm-dev', 'm4', 'xorg-dev',
+]
 
 # https://packages.fedoraproject.org
 # 1. open devtools
