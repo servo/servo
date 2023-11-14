@@ -181,7 +181,7 @@ pub enum EmbedderMsg {
     /// The load of a page has completed
     LoadComplete,
     /// A browser is to be closed
-    CloseBrowser,
+    CloseBrowser(TopLevelBrowsingContextId),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(String, Option<String>),
     /// Open dialog to select bluetooth device.
@@ -226,7 +226,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
             EmbedderMsg::HeadParsed => write!(f, "HeadParsed"),
-            EmbedderMsg::CloseBrowser => write!(f, "CloseBrowser"),
+            EmbedderMsg::CloseBrowser(..) => write!(f, "CloseBrowser"),
             EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
             EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
             EmbedderMsg::LoadStart => write!(f, "LoadStart"),

@@ -215,6 +215,20 @@ pub struct InitializedServo<Window: WindowMethods + 'static + ?Sized> {
     pub browser_id: BrowserId,
 }
 
+macro_rules! forward_to_constellation {
+    ($self:ident, $variant:ident $(($($rest:tt),*))?) => {
+        {
+            let msg = ConstellationMsg::$variant$(($($rest),*))?;
+            if let Err(e) = $self.constellation_chan.send(msg) {
+                warn!(
+                    "Sending {} message to constellation failed ({:?}).",
+                    stringify!($variant), e,
+                );
+            }
+        }
+    };
+}
+
 impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
@@ -628,16 +642,6 @@ where
                 }
             },
 
-            EmbedderEvent::SelectBrowser(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::SelectBrowser(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!(
-                        "Sending SelectBrowser message to constellation failed ({:?}).",
-                        e
-                    );
-                }
-            },
-
             EmbedderEvent::CloseBrowser(top_level_browsing_context_id) => {
                 let msg = ConstellationMsg::CloseBrowser(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
@@ -647,6 +651,14 @@ where
                     );
                 }
             },
+
+            EmbedderEvent::ShowBrowser(top_level_browsing_context_id) =>
+                forward_to_constellation!(self, ShowBrowser(top_level_browsing_context_id)),
+            EmbedderEvent::HideBrowser(top_level_browsing_context_id) =>
+                forward_to_constellation!(self, HideBrowser(top_level_browsing_context_id)),
+            EmbedderEvent::FocusBrowser(top_level_browsing_context_id) =>
+                forward_to_constellation!(self, FocusBrowser(top_level_browsing_context_id)),
+            EmbedderEvent::UnfocusBrowser => forward_to_constellation!(self, UnfocusBrowser),
 
             EmbedderEvent::SendError(top_level_browsing_context_id, e) => {
                 let msg = ConstellationMsg::SendError(top_level_browsing_context_id, e);

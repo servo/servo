@@ -60,8 +60,14 @@ pub enum ConstellationMsg {
     CloseBrowser(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
-    /// Make browser visible.
-    SelectBrowser(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context visible.
+    ShowBrowser(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context invisible.
+    HideBrowser(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context focused.
+    FocusBrowser(TopLevelBrowsingContextId),
+    /// Make none of the top-level browsing contexts focused.
+    UnfocusBrowser,
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
@@ -102,8 +108,11 @@ impl fmt::Debug for ConstellationMsg {
             LogEntry(..) => "LogEntry",
             NewBrowser(..) => "NewBrowser",
             CloseBrowser(..) => "CloseBrowser",
+            ShowBrowser(..) => "ShowBrowser",
+            HideBrowser(..) => "HideBrowser",
+            FocusBrowser(..) => "FocusBrowser",
+            UnfocusBrowser => "UnfocusBrowser",
             SendError(..) => "SendError",
-            SelectBrowser(..) => "SelectBrowser",
             ForwardEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",
             EnableProfiler(..) => "EnableProfiler",

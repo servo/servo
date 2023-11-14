@@ -87,9 +87,14 @@ pub enum EmbedderEvent {
     CloseBrowser(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
-    /// Make a top level browsing context visible, hiding the previous
-    /// visible one.
-    SelectBrowser(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context visible.
+    ShowBrowser(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context invisible.
+    HideBrowser(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context focused.
+    FocusBrowser(TopLevelBrowsingContextId),
+    /// Make none of the top-level browsing contexts focused.
+    UnfocusBrowser,
     /// Toggles a debug flag in WebRender
     ToggleWebRenderDebug(WebRenderDebugOption),
     /// Capture current WebRender
@@ -130,7 +135,10 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::NewBrowser(..) => write!(f, "NewBrowser"),
             EmbedderEvent::SendError(..) => write!(f, "SendError"),
             EmbedderEvent::CloseBrowser(..) => write!(f, "CloseBrowser"),
-            EmbedderEvent::SelectBrowser(..) => write!(f, "SelectBrowser"),
+            EmbedderEvent::ShowBrowser(..) => write!(f, "ShowBrowser"),
+            EmbedderEvent::HideBrowser(..) => write!(f, "HideBrowser"),
+            EmbedderEvent::FocusBrowser(..) => write!(f, "FocusBrowser"),
+            EmbedderEvent::UnfocusBrowser => write!(f, "UnfocusBrowser"),
             EmbedderEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
             EmbedderEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
             EmbedderEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),

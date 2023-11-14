@@ -15,6 +15,7 @@ use webrender_surfman::WebrenderSurfman;
 
 pub use crate::compositor::{IOCompositor, ShutdownState};
 
+mod browser;
 mod compositor;
 #[cfg(feature = "gl")]
 mod gl;

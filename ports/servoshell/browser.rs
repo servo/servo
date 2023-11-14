@@ -34,9 +34,9 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
 
     /// id of the top level browsing context. It is unique as tabs
     /// are not supported yet. None until created.
-    browser_id: Option<BrowserId>,
+    focused_browser_id: Option<BrowserId>,
 
-    // A rudimentary stack of "tabs".
+    // A rudimentary stack of "tabs", in painting order.
     // EmbedderMsg::BrowserCreated will push onto it.
     // EmbedderMsg::CloseBrowser will pop from it,
     // and exit if it is empty afterwards.
@@ -59,7 +59,7 @@ where
             title: None,
             current_url: None,
             current_url_string: None,
-            browser_id: None,
+            focused_browser_id: None,
             browsers: Vec::new(),
             window,
             clipboard: match Clipboard::new() {
@@ -75,7 +75,7 @@ where
     }
 
     pub fn browser_id(&self) -> Option<BrowserId> {
-        self.browser_id
+        self.focused_browser_id
     }
 
     pub fn current_url_string(&self) -> Option<&str> {
@@ -108,7 +108,7 @@ where
     fn handle_key_from_window(&mut self, key_event: KeyboardEvent) {
         ShortcutMatcher::from_event(key_event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || {
-                if let Some(id) = self.browser_id {
+                if let Some(id) = self.focused_browser_id {
                     self.event_queue.push(EmbedderEvent::Reload(id));
                 }
             })
@@ -123,7 +123,7 @@ where
                     let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
                     if let Some(input) = input {
                         if let Some(url) = location_bar_input_to_url(&input) {
-                            if let Some(id) = self.browser_id {
+                            if let Some(id) = self.focused_browser_id {
                                 self.event_queue.push(EmbedderEvent::LoadUrl(id, url));
                             }
                         }
@@ -166,13 +166,13 @@ where
                 ));
             })
             .shortcut(CMD_OR_ALT, Key::ArrowRight, || {
-                if let Some(id) = self.browser_id {
+                if let Some(id) = self.focused_browser_id {
                     let event = EmbedderEvent::Navigation(id, TraversalDirection::Forward(1));
                     self.event_queue.push(event);
                 }
             })
             .shortcut(CMD_OR_ALT, Key::ArrowLeft, || {
-                if let Some(id) = self.browser_id {
+                if let Some(id) = self.focused_browser_id {
                     let event = EmbedderEvent::Navigation(id, TraversalDirection::Back(1));
                     self.event_queue.push(event);
                 }
@@ -180,7 +180,7 @@ where
             .shortcut(Modifiers::empty(), Key::Escape, || {
                 let state = self.window.get_fullscreen();
                 if state {
-                    if let Some(id) = self.browser_id {
+                    if let Some(id) = self.focused_browser_id {
                         let event = EmbedderEvent::ExitFullScreen(id);
                         self.event_queue.push(event);
                     }
@@ -193,7 +193,7 @@ where
 
     #[cfg(not(target_os = "win"))]
     fn platform_handle_key(&mut self, key_event: KeyboardEvent) {
-        if let Some(id) = self.browser_id {
+        if let Some(id) = self.focused_browser_id {
             if let Some(event) = ShortcutMatcher::from_event(key_event.clone())
                 .shortcut(CMD_OR_CONTROL, '[', || {
                     EmbedderEvent::Navigation(id, TraversalDirection::Back(1))
@@ -411,15 +411,12 @@ where
                     };
                 },
                 EmbedderMsg::BrowserCreated(new_browser_id) => {
-                    // TODO: properly handle a new "tab"
                     self.browsers.push(new_browser_id);
-                    if self.browser_id.is_none() {
-                        self.browser_id = Some(new_browser_id);
-                    } else {
-                        error!("Multiple top level browsing contexts not supported yet.");
-                    }
+                    self.focused_browser_id = Some(new_browser_id);
                     self.event_queue
-                        .push(EmbedderEvent::SelectBrowser(new_browser_id));
+                        .push(EmbedderEvent::ShowBrowser(new_browser_id));
+                    self.event_queue
+                        .push(EmbedderEvent::FocusBrowser(new_browser_id));
                 },
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(browser_id, key_event);
@@ -466,13 +463,14 @@ where
                 EmbedderMsg::LoadComplete => {
                     // FIXME: surface the loading state in the UI somehow
                 },
-                EmbedderMsg::CloseBrowser => {
-                    // TODO: close the appropriate "tab".
-                    let _ = self.browsers.pop();
+                EmbedderMsg::CloseBrowser(top_level_browsing_context_id) => {
+                    self.browsers.retain(|b| *b != top_level_browsing_context_id);
                     if let Some(prev_browser_id) = self.browsers.last() {
-                        self.browser_id = Some(*prev_browser_id);
+                        self.focused_browser_id = Some(*prev_browser_id);
                         self.event_queue
-                            .push(EmbedderEvent::SelectBrowser(*prev_browser_id));
+                            .push(EmbedderEvent::ShowBrowser(*prev_browser_id));
+                        self.event_queue
+                            .push(EmbedderEvent::FocusBrowser(*prev_browser_id));
                     } else {
                         self.event_queue.push(EmbedderEvent::Quit);
                     }

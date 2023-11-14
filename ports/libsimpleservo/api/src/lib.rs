@@ -704,7 +704,7 @@ impl ServoGlue {
                         self.browser_id = Some(new_browser_id);
                     }
                     self.events
-                        .push(EmbedderEvent::SelectBrowser(new_browser_id));
+                        .push(EmbedderEvent::ShowBrowser(new_browser_id));
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
                     let contents = self.callbacks.host_callbacks.get_clipboard_contents();
@@ -719,7 +719,7 @@ impl ServoGlue {
                     if let Some(prev_browser_id) = self.browsers.last() {
                         self.browser_id = Some(*prev_browser_id);
                         self.events
-                            .push(EmbedderEvent::SelectBrowser(*prev_browser_id));
+                            .push(EmbedderEvent::ShowBrowser(*prev_browser_id));
                     } else {
                         self.events.push(EmbedderEvent::Quit);
                     }

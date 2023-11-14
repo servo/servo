@@ -110,6 +110,10 @@ pub enum CompositorMsg {
     UpdateBrowser(SendableFrameTree),
     /// Remove a browser.
     RemoveBrowser(TopLevelBrowsingContextId),
+    /// Make a browser visible.
+    ShowBrowser(TopLevelBrowsingContextId),
+    /// Make a browser invisible.
+    HideBrowser(TopLevelBrowsingContextId),
     /// Composite.
     Recomposite(CompositingReason),
     /// Script has handled a touch event, and either prevented or allowed default actions.
@@ -197,6 +201,8 @@ impl Debug for CompositorMsg {
             },
             CompositorMsg::UpdateBrowser(..) => write!(f, "UpdateBrowser"),
             CompositorMsg::RemoveBrowser(..) => write!(f, "RemoveBrowser"),
+            CompositorMsg::ShowBrowser(..) => write!(f, "ShowBrowser"),
+            CompositorMsg::HideBrowser(..) => write!(f, "HideBrowser"),
             CompositorMsg::Recomposite(..) => write!(f, "Recomposite"),
             CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),
