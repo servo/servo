@@ -32,7 +32,7 @@ macro_rules! namespace_id_method {
 }
 
 macro_rules! namespace_id {
-    ($id_name:ident, $index_name:ident) => {
+    ($id_name:ident, $index_name:ident, $display_prefix:literal) => {
         #[derive(
             Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
         )]
@@ -40,21 +40,25 @@ macro_rules! namespace_id {
         malloc_size_of_is_0!($index_name);
 
         #[derive(
-            Clone,
-            Copy,
-            Debug,
-            Deserialize,
-            Eq,
-            Hash,
-            MallocSizeOf,
-            Ord,
-            PartialEq,
-            PartialOrd,
-            Serialize,
+            Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
         )]
         pub struct $id_name {
             pub namespace_id: PipelineNamespaceId,
             pub index: $index_name,
+        }
+
+        impl fmt::Debug for $id_name {
+            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                let PipelineNamespaceId(namespace_id) = self.namespace_id;
+                let $index_name(index) = self.index;
+                write!(fmt, "({},{})", namespace_id, index.get())
+            }
+        }
+
+        impl fmt::Display for $id_name {
+            fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                write!(fmt, "{}{:?}", $display_prefix, self)
+            }
         }
     };
 }
@@ -200,7 +204,7 @@ thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = C
 )]
 pub struct PipelineNamespaceId(pub u32);
 
-namespace_id! {PipelineId, PipelineIndex}
+namespace_id! {PipelineId, PipelineIndex, "Pipeline"}
 
 size_of_test!(PipelineId, 8);
 size_of_test!(Option<PipelineId>, 8);
@@ -237,15 +241,7 @@ impl PipelineId {
     }
 }
 
-impl fmt::Display for PipelineId {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let PipelineNamespaceId(namespace_id) = self.namespace_id;
-        let PipelineIndex(index) = self.index;
-        write!(fmt, "({},{})", namespace_id, index.get())
-    }
-}
-
-namespace_id! {BrowsingContextId, BrowsingContextIndex}
+namespace_id! {BrowsingContextId, BrowsingContextIndex, "BrowsingContext"}
 
 size_of_test!(BrowsingContextId, 8);
 size_of_test!(Option<BrowsingContextId>, 8);
@@ -261,26 +257,30 @@ impl BrowsingContextId {
     }
 }
 
-impl fmt::Display for BrowsingContextId {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let PipelineNamespaceId(namespace_id) = self.namespace_id;
-        let BrowsingContextIndex(index) = self.index;
-        write!(fmt, "({},{})", namespace_id, index.get())
-    }
-}
-
 #[derive(Clone, Default, Eq, Hash, PartialEq)]
 pub struct BrowsingContextGroupId(pub u32);
 
 thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrowsingContextId>> = Cell::new(None));
 
 #[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+    Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
 pub struct TopLevelBrowsingContextId(pub BrowsingContextId);
 
 size_of_test!(TopLevelBrowsingContextId, 8);
 size_of_test!(Option<TopLevelBrowsingContextId>, 8);
+
+impl fmt::Debug for TopLevelBrowsingContextId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "TopLevel{:?}", self.0)
+    }
+}
+
+impl fmt::Display for TopLevelBrowsingContextId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "TopLevel{}", self.0)
+    }
+}
 
 impl TopLevelBrowsingContextId {
     pub fn new() -> TopLevelBrowsingContextId {
@@ -294,12 +294,6 @@ impl TopLevelBrowsingContextId {
 
     pub fn installed() -> Option<TopLevelBrowsingContextId> {
         TOP_LEVEL_BROWSING_CONTEXT_ID.with(|tls| tls.get())
-    }
-}
-
-impl fmt::Display for TopLevelBrowsingContextId {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        self.0.fmt(fmt)
     }
 }
 
@@ -321,7 +315,7 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
     }
 }
 
-namespace_id! {MessagePortId, MessagePortIndex}
+namespace_id! {MessagePortId, MessagePortIndex, "MessagePort"}
 
 impl MessagePortId {
     pub fn new() -> MessagePortId {
@@ -334,15 +328,7 @@ impl MessagePortId {
     }
 }
 
-impl fmt::Display for MessagePortId {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let PipelineNamespaceId(namespace_id) = self.namespace_id;
-        let MessagePortIndex(index) = self.index;
-        write!(fmt, "({},{})", namespace_id, index.get())
-    }
-}
-
-namespace_id! {MessagePortRouterId, MessagePortRouterIndex}
+namespace_id! {MessagePortRouterId, MessagePortRouterIndex, "MessagePortRouter"}
 
 impl MessagePortRouterId {
     pub fn new() -> MessagePortRouterId {
@@ -355,15 +341,7 @@ impl MessagePortRouterId {
     }
 }
 
-impl fmt::Display for MessagePortRouterId {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let PipelineNamespaceId(namespace_id) = self.namespace_id;
-        let MessagePortRouterIndex(index) = self.index;
-        write!(fmt, "({},{})", namespace_id, index.get())
-    }
-}
-
-namespace_id! {BroadcastChannelRouterId, BroadcastChannelRouterIndex}
+namespace_id! {BroadcastChannelRouterId, BroadcastChannelRouterIndex, "BroadcastChannelRouter"}
 
 impl BroadcastChannelRouterId {
     pub fn new() -> BroadcastChannelRouterId {
@@ -376,20 +354,7 @@ impl BroadcastChannelRouterId {
     }
 }
 
-impl fmt::Display for BroadcastChannelRouterId {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let PipelineNamespaceId(namespace_id) = self.namespace_id;
-        let BroadcastChannelRouterIndex(index) = self.index;
-        write!(
-            fmt,
-            "(BroadcastChannelRouterId{},{})",
-            namespace_id,
-            index.get()
-        )
-    }
-}
-
-namespace_id! {ServiceWorkerId, ServiceWorkerIndex}
+namespace_id! {ServiceWorkerId, ServiceWorkerIndex, "ServiceWorker"}
 
 impl ServiceWorkerId {
     pub fn new() -> ServiceWorkerId {
@@ -402,15 +367,7 @@ impl ServiceWorkerId {
     }
 }
 
-impl fmt::Display for ServiceWorkerId {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let PipelineNamespaceId(namespace_id) = self.namespace_id;
-        let ServiceWorkerIndex(index) = self.index;
-        write!(fmt, "(ServiceWorkerId{},{})", namespace_id, index.get())
-    }
-}
-
-namespace_id! {ServiceWorkerRegistrationId, ServiceWorkerRegistrationIndex}
+namespace_id! {ServiceWorkerRegistrationId, ServiceWorkerRegistrationIndex, "ServiceWorkerRegistration"}
 
 impl ServiceWorkerRegistrationId {
     pub fn new() -> ServiceWorkerRegistrationId {
@@ -424,20 +381,7 @@ impl ServiceWorkerRegistrationId {
     }
 }
 
-impl fmt::Display for ServiceWorkerRegistrationId {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let PipelineNamespaceId(namespace_id) = self.namespace_id;
-        let ServiceWorkerRegistrationIndex(index) = self.index;
-        write!(
-            fmt,
-            "(ServiceWorkerRegistrationId{},{})",
-            namespace_id,
-            index.get()
-        )
-    }
-}
-
-namespace_id! {BlobId, BlobIndex}
+namespace_id! {BlobId, BlobIndex, "Blob"}
 
 impl BlobId {
     pub fn new() -> BlobId {
@@ -450,15 +394,7 @@ impl BlobId {
     }
 }
 
-impl fmt::Display for BlobId {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let PipelineNamespaceId(namespace_id) = self.namespace_id;
-        let BlobIndex(index) = self.index;
-        write!(fmt, "({},{})", namespace_id, index.get())
-    }
-}
-
-namespace_id! {HistoryStateId, HistoryStateIndex}
+namespace_id! {HistoryStateId, HistoryStateIndex, "HistoryState"}
 
 impl HistoryStateId {
     pub fn new() -> HistoryStateId {
@@ -468,14 +404,6 @@ impl HistoryStateId {
             tls.set(Some(namespace));
             next_history_state_id
         })
-    }
-}
-
-impl fmt::Display for HistoryStateId {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let PipelineNamespaceId(namespace_id) = self.namespace_id;
-        let HistoryStateIndex(index) = self.index;
-        write!(fmt, "({},{})", namespace_id, index.get())
     }
 }
 

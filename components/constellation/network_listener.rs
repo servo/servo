@@ -165,7 +165,7 @@ impl NetworkListener {
         if self.should_send {
             if let Err(e) = self.sender.send((self.pipeline_id, msg)) {
                 warn!(
-                    "Failed to forward network message to pipeline {}: {:?}",
+                    "Failed to forward network message to pipeline {:?}: {:?}",
                     self.pipeline_id, e
                 );
             }

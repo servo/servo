@@ -91,7 +91,7 @@ impl JointSessionHistory {
     }
 
     pub fn remove_entries_for_browsing_context(&mut self, context_id: BrowsingContextId) {
-        debug!("removing entries for context {}", context_id);
+        debug!("{}: Removing entries for browsing context", context_id);
         self.past.retain(|diff| match diff {
             SessionHistoryDiff::BrowsingContextDiff {
                 browsing_context_id,

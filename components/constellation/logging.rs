@@ -9,7 +9,7 @@ use std::thread;
 use backtrace::Backtrace;
 use compositing_traits::ConstellationMsg as FromCompositorMsg;
 use crossbeam_channel::Sender;
-use log::{debug, Level, LevelFilter, Log, Metadata, Record};
+use log::{Level, LevelFilter, Log, Metadata, Record};
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use script_traits::{LogEntry, ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
 use servo_remutex::ReentrantMutex;
@@ -53,7 +53,6 @@ impl Log for FromScriptLogger {
 
     fn log(&self, record: &Record) {
         if let Some(entry) = log_entry(record) {
-            debug!("Sending log entry {:?}.", entry);
             let thread_name = thread::current().name().map(ToOwned::to_owned);
             let msg = FromScriptMsg::LogEntry(thread_name, entry);
             let chan = self
@@ -95,7 +94,6 @@ impl Log for FromCompositorLogger {
 
     fn log(&self, record: &Record) {
         if let Some(entry) = log_entry(record) {
-            debug!("Sending log entry {:?}.", entry);
             let top_level_id = TopLevelBrowsingContextId::installed();
             let thread_name = thread::current().name().map(ToOwned::to_owned);
             let msg = FromCompositorMsg::LogEntry(top_level_id, thread_name, entry);
