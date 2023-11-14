@@ -126,7 +126,7 @@ test(t => {
     { fontPalette: ['normal', 'dark'] },
     {
       duration: 1000,
-      /* Should not affect anything, since <Color> type is not additive,
+      /* Should work like 'replace', since <Color> type is not additive,
          compare: https://drafts.csswg.org/css-values-4/#combine-colors. */
       composite: "add"
     }
@@ -136,7 +136,7 @@ test(t => {
     animation.currentTime = 500;
   });
   assert_equals(getComputedStyle(target).fontPalette,
-                "palette-mix(in oklab, light, normal)");
+                "palette-mix(in oklab, normal, dark)");
 }, "Test additive animations");
 
 </script>

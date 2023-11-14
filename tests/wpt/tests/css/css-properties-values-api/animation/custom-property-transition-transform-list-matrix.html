@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="target"></div>
+<script>
+
+transition_test({
+  syntax: "<transform-list>",
+  from: "translateZ(100px)",
+  to: "scale(4)",
+  expected: "matrix3d(2.5, 0, 0, 0, 0, 2.5, 0, 0, 0, 0, 1, 0, 0, 0, 50, 1)",
+  behavior: 'allow-discrete',
+}, 'A custom property of type <transform-list> can yield a CSS Transition between different function types');
+
+</script>

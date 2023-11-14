@@ -31,8 +31,6 @@
       document.body.appendChild(test);
       test.editContext = editContext;
       test.focus();
-      textInputController.setComposition("foo");
-      assert_equals(test.innerHTML, "");
       await test_driver.send_keys(test, 'a');
       assert_equals(test.innerHTML, "");
       test.remove();

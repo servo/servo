@@ -178,7 +178,7 @@ impl<'tcx> LateLintPass<'tcx> for NotracePass {
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
             for ref field in def.fields() {
                 let field_type = cx.tcx.type_of(field.def_id);
-                incorrect_no_trace(&self.symbols, cx, field_type, field.span);
+                incorrect_no_trace(&self.symbols, cx, field_type.0, field.span);
             }
         }
     }
@@ -188,7 +188,7 @@ impl<'tcx> LateLintPass<'tcx> for NotracePass {
             hir::VariantData::Tuple(fields, ..) => {
                 for field in fields {
                     let field_type = cx.tcx.type_of(field.def_id);
-                    incorrect_no_trace(&self.symbols, cx, field_type, field.ty.span);
+                    incorrect_no_trace(&self.symbols, cx, field_type.0, field.ty.span);
                 }
             },
             _ => (), // Struct variants already caught by check_struct_def

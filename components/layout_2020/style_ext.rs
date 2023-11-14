@@ -472,7 +472,7 @@ impl ComputedValuesExt for ComputedValues {
     fn background_is_transparent(&self) -> bool {
         let background = self.get_background();
         let color = self.resolve_color(background.background_color.clone());
-        color.alpha == 0 &&
+        color.alpha == 0.0 &&
             background
                 .background_image
                 .0

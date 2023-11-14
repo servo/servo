@@ -102,7 +102,10 @@ pub fn derive(mut input: syn::DeriveInput) -> TokenStream {
     }
 
     if let Some(ref bitflags) = input_attrs.bitflags {
-        assert!(!input_attrs.derive_debug, "Bitflags can derive debug on their own");
+        assert!(
+            !input_attrs.derive_debug,
+            "Bitflags can derive debug on their own"
+        );
         assert!(where_clause.is_none(), "Generic bitflags?");
         return derive_bitflags(&input, bitflags);
     }
@@ -328,24 +331,29 @@ fn derive_single_field_expr(
 }
 
 #[derive(Default, FromMeta)]
+#[darling(default)]
 pub struct CssBitflagAttrs {
     /// Flags that can only go on their own, comma-separated.
-    pub single: String,
+    pub single: Option<String>,
     /// Flags that can go mixed with each other, comma-separated.
-    pub mixed: String,
+    pub mixed: Option<String>,
     /// Extra validation of the resulting mixed flags.
-    #[darling(default)]
     pub validate_mixed: Option<Path>,
     /// Whether there are overlapping bits we need to take care of when
     /// serializing.
-    #[darling(default)]
     pub overlapping_bits: bool,
 }
 
 impl CssBitflagAttrs {
     /// Returns a vector of (rust_name, css_name) of a given flag list.
-    fn names(s: &str) -> Vec<(String, String)> {
-        s.split(',').map(|css_name| (cg::to_scream_case(css_name), css_name.to_owned())).collect()
+    fn names(s: &Option<String>) -> Vec<(String, String)> {
+        let s = match s {
+            Some(s) => s,
+            None => return vec![],
+        };
+        s.split(',')
+            .map(|css_name| (cg::to_scream_case(css_name), css_name.to_owned()))
+            .collect()
     }
 
     pub fn single_flags(&self) -> Vec<(String, String)> {

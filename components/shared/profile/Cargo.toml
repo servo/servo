@@ -1,0 +1,20 @@
+[package]
+name = "profile_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "profile_traits"
+path = "lib.rs"
+
+[dependencies]
+crossbeam-channel = { workspace = true }
+ipc-channel = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true }
+servo_config = { path = "../../config" }
+signpost = { git = "https://github.com/pcwalton/signpost.git" }
+time = { workspace = true }

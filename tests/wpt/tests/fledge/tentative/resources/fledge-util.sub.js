@@ -80,7 +80,31 @@ function generateUuid(test) {
   return uuid;
 }
 
-// Repeatedly requests "request_list" URL until exactly the entries in
+// Helper to fetch "tracked_data" URL to fetch all data recorded by the
+// tracker URL associated with "uuid". Throws on error, including if
+// the retrieved object's errors field is non-empty.
+async function fetchTrackedData(uuid) {
+  let trackedRequestsURL = createTrackerURL(window.location.origin, uuid,
+                                            'tracked_data');
+  let response = await fetch(trackedRequestsURL,
+                             {credentials: 'omit', mode: 'cors'});
+  let trackedData = await response.json();
+
+  // Fail on fetch error.
+  if (trackedData.error) {
+    throw trackedRequestsURL + ' fetch failed:' + JSON.stringify(trackedData);
+  }
+
+  // Fail on errors reported by the tracker script.
+  if (trackedData.errors.length > 0) {
+    throw 'Errors reported by request-tracker.py:' +
+        JSON.stringify(trackedData.errors);
+  }
+
+  return trackedData;
+}
+
+// Repeatedly requests "tracked_data" URL until exactly the entries in
 // "expectedRequests" have been observed by the request tracker script (in
 // any order, since report URLs are not guaranteed to be sent in any order).
 //
@@ -90,36 +114,21 @@ function generateUuid(test) {
 // If any other strings are received from the tracking script, or the tracker
 // script reports an error, fails the test.
 async function waitForObservedRequests(uuid, expectedRequests) {
-  let trackedRequestsURL = createTrackerURL(window.location.origin, uuid,
-                                            'request_list');
-  // Sort array for easier comparison, since order doesn't matter.
-  expectedRequests.sort();
+  // Sort array for easier comparison, as observed request order does not
+  // matter, and replace UUID to print consistent errors on failure.
+  expectedRequests = expectedRequests.sort().map((url) => url.replace(uuid, '<uuid>'));
+
   while (true) {
-    let response = await fetch(trackedRequestsURL,
-                               {credentials: 'omit', mode: 'cors'});
-    let trackerData = await response.json();
+    let trackedData = await fetchTrackedData(uuid);
 
-    // Fail on fetch error.
-    if (trackerData.error) {
-      throw trackedRequestsURL + ' fetch failed:' +
-          JSON.stringify(trackerData);
-    }
-
-    // Fail on errors reported by the tracker script.
-    if (trackerData.errors.length > 0) {
-      throw 'Errors reported by request-tracker.py:' +
-          JSON.stringify(trackerData.errors);
-    }
+    // Clean up "trackedRequests" in same manner as "expectedRequests".
+    let trackedRequests = trackedData.trackedRequests.sort().map(
+                              (url) => url.replace(uuid, '<uuid>'));
 
     // If expected number of requests have been observed, compare with list of
     // all expected requests and exit.
-    let trackedRequests = trackerData.trackedRequests;
     if (trackedRequests.length == expectedRequests.length) {
-      // Hide the uuid content in order to have a static expected file.
-      assert_array_equals(trackedRequests.sort().map((url) =>
-                            url.replace(uuid, '<uuid>')),
-                            expectedRequests.map((url) =>
-                            url.replace(uuid, '<uuid>')));
+      assert_array_equals(trackedRequests, expectedRequests);
       break;
     }
 
@@ -127,9 +136,7 @@ async function waitForObservedRequests(uuid, expectedRequests) {
     // compare what's been received so far, to have a greater chance to fail
     // rather than hang on error.
     for (const trackedRequest of trackedRequests) {
-      assert_in_array(trackedRequest.replace(uuid, '<uuid>'),
-                      expectedRequests.sort().map((url) =>
-                      url.replace(uuid, '<uuid>')));
+      assert_in_array(trackedRequest, expectedRequests);
     }
   }
 }
@@ -151,6 +158,8 @@ function createBiddingScriptURL(params = {}) {
     url.searchParams.append('error', params.error);
   if (params.bid)
     url.searchParams.append('bid', params.bid);
+  if (params.bidCurrency)
+    url.searchParams.append('bidCurrency', params.bidCurrency);
   if (params.allowComponentAuction !== undefined)
     url.searchParams.append('allowComponentAuction', JSON.stringify(params.allowComponentAuction))
   return url.toString();

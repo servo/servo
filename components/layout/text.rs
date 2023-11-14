@@ -551,7 +551,7 @@ pub fn font_metrics_for_style(
 
 /// Returns the line block-size needed by the given computed style and font size.
 pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> Au {
-    let font_size = style.get_font().font_size.size();
+    let font_size = style.get_font().font_size.computed_size();
     match style.get_inherited_text().line_height {
         LineHeight::Normal => Au::from(metrics.line_gap),
         LineHeight::Number(l) => Au::from(font_size * l.0),

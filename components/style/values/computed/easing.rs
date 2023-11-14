@@ -69,7 +69,7 @@ impl ComputedTimingFunction {
 
     /// The output of the timing function given the progress ratio of this animation.
     pub fn calculate_output(&self, progress: f64, before_flag: BeforeFlag, epsilon: f64) -> f64 {
-        match self {
+        let progress = match self {
             TimingFunction::CubicBezier { x1, y1, x2, y2 } => {
                 Bezier::calculate_bezier_output(progress, epsilon, *x1, *y1, *x2, *y2)
             },
@@ -78,7 +78,7 @@ impl ComputedTimingFunction {
             },
             TimingFunction::LinearFunction(function) => function.at(progress as f32).into(),
             TimingFunction::Keyword(keyword) => match keyword {
-                TimingKeyword::Linear => return progress,
+                TimingKeyword::Linear => progress,
                 TimingKeyword::Ease => {
                     Bezier::calculate_bezier_output(progress, epsilon, 0.25, 0.1, 0.25, 1.)
                 },
@@ -92,6 +92,18 @@ impl ComputedTimingFunction {
                     Bezier::calculate_bezier_output(progress, epsilon, 0.42, 0., 0.58, 1.)
                 },
             },
-        }
+        };
+
+        // The output progress value of an easing function is a real number in the range:
+        // [-inf, inf].
+        // https://drafts.csswg.org/css-easing-1/#output-progress-value
+        //
+        // However, we expect to use the finite progress for interpolation and web-animations
+        // https://drafts.csswg.org/css-values-4/#interpolation
+        // https://drafts.csswg.org/web-animations-1/#dom-computedeffecttiming-progress
+        //
+        // So we clamp the infinite progress, per the spec issue:
+        // https://github.com/w3c/csswg-drafts/issues/8344
+        progress.min(f64::MAX).max(f64::MIN)
     }
 }

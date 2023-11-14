@@ -4,7 +4,7 @@
 
 use std::path::Path;
 
-use crate::parser::parse_url_or_filename;
+use crate::parser::{get_default_url, location_bar_input_to_url, parse_url_or_filename};
 
 #[cfg(not(target_os = "windows"))]
 const FAKE_CWD: &'static str = "/fake/cwd";
@@ -84,4 +84,137 @@ fn test_argument_parsing_special() {
     );
     assert_eq!(url.query(), None);
     assert_eq!(url.fragment(), None);
+}
+
+// Helper function to test url
+fn test_url(input: &str, location: &str, cmdline_if_exists: &str, cmdline_otherwise: &str) {
+    assert_eq!(
+        location_bar_input_to_url(input).unwrap().into_string(),
+        location
+    );
+    assert_eq!(
+        get_default_url(Some(input), FAKE_CWD, |_| true).into_string(),
+        cmdline_if_exists
+    );
+    assert_eq!(
+        get_default_url(Some(input), FAKE_CWD, |_| false).into_string(),
+        cmdline_otherwise
+    );
+}
+
+#[test]
+#[cfg(not(target_os = "windows"))]
+fn test_cmdline_and_location_bar_url() {
+    test_url(
+        "data:text/html,a",
+        "data:text/html,a",
+        "data:text/html,a",
+        "data:text/html,a",
+    );
+    test_url(
+        "README.md",
+        "https://readme.md/",
+        "file:///fake/cwd/README.md",
+        "https://readme.md/",
+    );
+    test_url(
+        "nic.md",
+        "https://nic.md/",
+        "file:///fake/cwd/nic.md",
+        "https://nic.md/",
+    );
+    test_url(
+        "nic.md/ro",
+        "https://nic.md/ro",
+        "file:///fake/cwd/nic.md/ro",
+        "https://nic.md/ro",
+    );
+    test_url(
+        "foo.txt",
+        "https://foo.txt/",
+        "file:///fake/cwd/foo.txt",
+        "https://foo.txt/",
+    );
+    test_url(
+        "foo.txt/ro",
+        "https://foo.txt/ro",
+        "file:///fake/cwd/foo.txt/ro",
+        "https://foo.txt/ro",
+    );
+    test_url(
+        "resources/public_domains.txt",
+        "https://resources/public_domains.txt",
+        "file:///fake/cwd/resources/public_domains.txt",
+        "https://resources/public_domains.txt",
+    );
+    test_url(
+        "dragonfruit",
+        "https://duckduckgo.com/html/?q=dragonfruit",
+        "file:///fake/cwd/dragonfruit",
+        "https://duckduckgo.com/html/?q=dragonfruit",
+    );
+}
+
+#[test]
+#[cfg(target_os = "windows")]
+fn test_cmdline_and_location_bar_url() {
+    test_url(
+        "data:text/html,a",
+        "data:text/html,a",
+        "data:text/html,a",
+        "data:text/html,a",
+    );
+    test_url(
+        "README.md",
+        "https://readme.md/",
+        "file:///C:/fake/cwd/README.md",
+        "https://readme.md/",
+    );
+    test_url(
+        "nic.md",
+        "https://nic.md/",
+        "file:///C:/fake/cwd/nic.md",
+        "https://nic.md/",
+    );
+    test_url(
+        "nic.md/ro",
+        "https://nic.md/ro",
+        "file:///C:/fake/cwd/nic.md/ro",
+        "https://nic.md/ro",
+    );
+    test_url(
+        "foo.txt",
+        "https://foo.txt/",
+        "file:///C:/fake/cwd/foo.txt",
+        "https://foo.txt/",
+    );
+    test_url(
+        "foo.txt/ro",
+        "https://foo.txt/ro",
+        "file:///C:/fake/cwd/foo.txt/ro",
+        "https://foo.txt/ro",
+    );
+    test_url(
+        "resources/public_domains.txt",
+        "https://resources/public_domains.txt",
+        "file:///C:/fake/cwd/resources/public_domains.txt",
+        "https://resources/public_domains.txt",
+    );
+    test_url(
+        "dragonfruit",
+        "https://duckduckgo.com/html/?q=dragonfruit",
+        "file:///C:/fake/cwd/dragonfruit",
+        "https://duckduckgo.com/html/?q=dragonfruit",
+    );
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn test_cmd_and_location_bar_url() {
+    test_url(
+        "/dev/null",
+        "file:///dev/null",
+        "file:///dev/null",
+        "file:///dev/null",
+    );
 }

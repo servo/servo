@@ -7,7 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from __future__ import print_function, annotations
+from __future__ import annotations
 
 import contextlib
 from enum import Enum
@@ -63,6 +63,9 @@ class BuildType:
     def release() -> BuildType:
         return BuildType(BuildType.Kind.RELEASE, None)
 
+    def prod() -> BuildType:
+        return BuildType(BuildType.Kind.CUSTOM, "production")
+
     def custom(profile: str) -> BuildType:
         return BuildType(BuildType.Kind.CUSTOM, profile)
 
@@ -71,6 +74,9 @@ class BuildType:
 
     def is_release(self) -> bool:
         return self.kind == BuildType.Kind.RELEASE
+
+    def is_prod(self) -> bool:
+        return self.kind == BuildType.Kind.CUSTOM and self.profile == "production"
 
     def is_custom(self) -> bool:
         return self.kind == BuildType.Kind.CUSTOM
@@ -734,6 +740,9 @@ class CommandBase(object):
                 CommandArgument('--dev', '--debug', '-d', group="Build Type",
                                 action='store_true',
                                 help='Build in development mode'),
+                CommandArgument('--prod', '--production', group="Build Type",
+                                action='store_true',
+                                help='Build in release mode without debug assertions'),
                 CommandArgument('--profile', group="Build Type",
                                 help='Build with custom Cargo profile'),
             ]
@@ -798,10 +807,11 @@ class CommandBase(object):
                     # If `build_type` already exists in kwargs we are doing a recursive dispatch.
                     if 'build_type' not in kwargs:
                         kwargs['build_type'] = self.configure_build_type(
-                            kwargs['release'], kwargs['dev'], kwargs['profile'],
+                            kwargs['release'], kwargs['dev'], kwargs['prod'], kwargs['profile'],
                         )
                     kwargs.pop('release', None)
                     kwargs.pop('dev', None)
+                    kwargs.pop('prod', None)
                     kwargs.pop('profile', None)
 
                 if build_configuration:
@@ -819,8 +829,8 @@ class CommandBase(object):
 
         return decorator_function
 
-    def configure_build_type(self, release: bool, dev: bool, profile: Optional[str]) -> BuildType:
-        option_count = release + dev + (profile is not None)
+    def configure_build_type(self, release: bool, dev: bool, prod: bool, profile: Optional[str]) -> BuildType:
+        option_count = release + dev + prod + (profile is not None)
 
         if option_count > 1:
             print("Please specify either --dev (-d) for a development")
@@ -842,6 +852,8 @@ class CommandBase(object):
             return BuildType.release()
         elif dev:
             return BuildType.dev()
+        elif prod:
+            return BuildType.prod()
         else:
             return BuildType.custom(profile)
 

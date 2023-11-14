@@ -23,8 +23,8 @@ content-security-policy = { workspace = true }
 cookie_rs = { package = "cookie", version = "0.12" }
 crossbeam-channel = { workspace = true }
 data-url = { workspace = true }
-devtools_traits = { path = "../devtools_traits" }
-embedder_traits = { path = "../embedder_traits" }
+devtools_traits = { workspace = true }
+embedder_traits = { workspace = true }
 flate2 = "1"
 futures = { version = "0.3", package = "futures" }
 futures-util = { version = "0.3" }
@@ -43,11 +43,11 @@ malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { workspace = true }
 mime = { workspace = true }
 mime_guess = { workspace = true }
-msg = { path = "../msg" }
-net_traits = { path = "../net_traits" }
+msg = { workspace = true }
+net_traits = { workspace = true }
 percent-encoding = { workspace = true }
 pixels = { path = "../pixels" }
-profile_traits = { path = "../profile_traits" }
+profile_traits = { workspace = true }
 rayon = { workspace = true }
 rustls = { workspace = true }
 rustls-pemfile = { workspace = true }

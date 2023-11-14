@@ -7,8 +7,6 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from __future__ import absolute_import, print_function
-
 import os
 import re
 import subprocess

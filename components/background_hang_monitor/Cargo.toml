@@ -18,7 +18,7 @@ crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
-msg = { path = "../msg" }
+msg = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]

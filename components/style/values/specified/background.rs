@@ -102,7 +102,7 @@ impl ToCss for BackgroundRepeat {
             (horizontal, vertical) => {
                 horizontal.to_css(dest)?;
                 if horizontal != vertical {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     vertical.to_css(dest)?;
                 }
                 Ok(())

@@ -8,9 +8,8 @@
 use crate::context::QuirksMode;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::font::{FamilyName, FontFamilyList, SingleFontFamily};
-use crate::values::computed::FontSizeAdjust as ComputedFontSizeAdjust;
+use crate::values::computed::Percentage as ComputedPercentage;
 use crate::values::computed::{font as computed, Length, NonNegativeLength};
-use crate::values::computed::{Percentage as ComputedPercentage};
 use crate::values::computed::{CSSPixelLength, Context, ToComputedValue};
 use crate::values::generics::font::VariationValue;
 use crate::values::generics::font::{
@@ -20,7 +19,7 @@ use crate::values::generics::NonNegative;
 use crate::values::specified::length::{FontBaseSize, PX_PER_PT};
 use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
 use crate::values::specified::{NoCalcLength, NonNegativeNumber, NonNegativePercentage, Number};
-use crate::values::CustomIdent;
+use crate::values::{CustomIdent, SelectorParseErrorKind, serialize_atom_identifier};
 use crate::Atom;
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
@@ -73,21 +72,29 @@ macro_rules! system_font_methods {
 #[allow(missing_docs)]
 #[cfg(feature = "gecko")]
 pub enum SystemFont {
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-caption
     Caption,
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-icon
     Icon,
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-menu
     Menu,
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-message-box
     MessageBox,
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-small-caption
     SmallCaption,
+    /// https://drafts.csswg.org/css-fonts/#valdef-font-status-bar
     StatusBar,
-    MozWindow,
-    MozDocument,
-    MozWorkspace,
-    MozDesktop,
-    MozInfo,
-    MozDialog,
-    MozButton,
+    /// Internal system font, used by the `<menupopup>`s on macOS.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozPullDownMenu,
+    /// Internal system font, used for `<button>` elements.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozButton,
+    /// Internal font, used by `<select>` elements.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozList,
+    /// Internal font, used by `<input>` elements.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozField,
     #[css(skip)]
     End, // Just for indexing purposes.
@@ -209,9 +216,7 @@ impl AbsoluteFontWeight {
     /// Returns the computed value for this absolute font weight.
     pub fn compute(&self) -> computed::FontWeight {
         match *self {
-            AbsoluteFontWeight::Weight(weight) => {
-                computed::FontWeight::from_float(weight.get())
-            },
+            AbsoluteFontWeight::Weight(weight) => computed::FontWeight::from_float(weight.get()),
             AbsoluteFontWeight::Normal => computed::FontWeight::NORMAL,
             AbsoluteFontWeight::Bold => computed::FontWeight::BOLD,
         }
@@ -460,7 +465,7 @@ impl ToComputedValue for FontStretch {
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         FontStretch::Stretch(NonNegativePercentage::from_computed_value(&NonNegative(
-            computed.to_percentage()
+            computed.to_percentage(),
         )))
     }
 }
@@ -706,23 +711,7 @@ impl Parse for FamilyName {
 }
 
 /// Preserve the readability of text when font fallback occurs
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-#[allow(missing_docs)]
-pub enum FontSizeAdjust {
-    Value(GenericFontSizeAdjust<NonNegativeNumber>),
-    #[css(skip)]
-    System(SystemFont),
-}
-
-impl FontSizeAdjust {
-    #[inline]
-    /// Default value of font-size-adjust
-    pub fn none() -> Self {
-        FontSizeAdjust::Value(GenericFontSizeAdjust::None)
-    }
-
-    system_font_methods!(FontSizeAdjust, font_size_adjust);
-}
+pub type FontSizeAdjust = GenericFontSizeAdjust<NonNegativeNumber>;
 
 impl Parse for FontSizeAdjust {
     fn parse<'i, 't>(
@@ -736,41 +725,24 @@ impl Parse for FontSizeAdjust {
             #[cfg(feature = "servo")]
             let basis_enabled = false;
             let basis = match_ignore_ascii_case! { &ident,
-                "none" => return Ok(FontSizeAdjust::none()),
+                "none" => return Ok(Self::None),
                 // Check for size adjustment basis keywords if enabled.
-                "ex-height" if basis_enabled => GenericFontSizeAdjust::ExHeight,
-                "cap-height" if basis_enabled => GenericFontSizeAdjust::CapHeight,
-                "ch-width" if basis_enabled => GenericFontSizeAdjust::ChWidth,
-                "ic-width" if basis_enabled => GenericFontSizeAdjust::IcWidth,
-                "ic-height" if basis_enabled => GenericFontSizeAdjust::IcHeight,
+                "ex-height" if basis_enabled => Self::ExHeight,
+                "cap-height" if basis_enabled => Self::CapHeight,
+                "ch-width" if basis_enabled => Self::ChWidth,
+                "ic-width" if basis_enabled => Self::IcWidth,
+                "ic-height" if basis_enabled => Self::IcHeight,
                 // Unknown (or disabled) keyword.
                 _ => return Err(location.new_custom_error(
-                    ::selectors::parser::SelectorParseErrorKind::UnexpectedIdent(ident)
+                    SelectorParseErrorKind::UnexpectedIdent(ident)
                 )),
             };
             let value = NonNegativeNumber::parse(context, input)?;
-            return Ok(FontSizeAdjust::Value(basis(value)));
+            return Ok(basis(value));
         }
         // Without a basis keyword, the number refers to the 'ex-height' metric.
         let value = NonNegativeNumber::parse(context, input)?;
-        Ok(FontSizeAdjust::Value(GenericFontSizeAdjust::ExHeight(
-            value,
-        )))
-    }
-}
-
-impl ToComputedValue for FontSizeAdjust {
-    type ComputedValue = ComputedFontSizeAdjust;
-
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            FontSizeAdjust::Value(v) => v.to_computed_value(context),
-            FontSizeAdjust::System(_) => self.compute_system(context),
-        }
-    }
-
-    fn from_computed_value(computed: &ComputedFontSizeAdjust) -> Self {
-        Self::Value(ToComputedValue::from_computed_value(computed))
+        Ok(Self::ExHeight(value))
     }
 }
 
@@ -935,11 +907,11 @@ impl FontSize {
                 // If the parent font was keyword-derived, this is too.
                 // Tack the % onto the factor
                 info = compose_keyword(pc.0);
-                (base_size.resolve(context) * pc.0).normalized()
+                (base_size.resolve(context).computed_size() * pc.0).normalized()
             },
             FontSize::Length(LengthPercentage::Calc(ref calc)) => {
                 let calc = calc.to_computed_value_zoomed(context, base_size);
-                calc.resolve(base_size.resolve(context))
+                calc.resolve(base_size.resolve(context).computed_size())
             },
             FontSize::Keyword(i) => {
                 // As a specified keyword, this is keyword derived
@@ -968,13 +940,13 @@ impl FontSize {
                         .as_ref()
                         .unwrap()
                         .font_size
-                        .size
-                        .0
+                        .computed_size()
                 }
             },
         };
         computed::FontSize {
-            size: NonNegative(size),
+            computed_size: NonNegative(size),
+            used_size: NonNegative(size),
             keyword_info: info,
         }
     }
@@ -991,7 +963,7 @@ impl ToComputedValue for FontSize {
     #[inline]
     fn from_computed_value(computed: &computed::FontSize) -> Self {
         FontSize::Length(LengthPercentage::Length(
-            ToComputedValue::from_computed_value(&computed.size.0),
+            ToComputedValue::from_computed_value(&computed.computed_size()),
         ))
     }
 }
@@ -1062,7 +1034,7 @@ bitflags! {
 }
 
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToResolvedValue, ToShmem,
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToComputedValue, ToResolvedValue, ToShmem,
 )]
 #[repr(C, u8)]
 /// Set of variant alternates
@@ -1096,17 +1068,18 @@ pub enum VariantAlternates {
     MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
+    ToComputedValue,
     ToCss,
     ToResolvedValue,
     ToShmem,
 )]
 #[repr(transparent)]
 /// List of Variant Alternates
-pub struct VariantAlternatesList(
+pub struct FontVariantAlternates(
     #[css(if_empty = "normal", iterable)] crate::OwnedSlice<VariantAlternates>,
 );
 
-impl VariantAlternatesList {
+impl FontVariantAlternates {
     /// Returns the length of all variant alternates.
     pub fn len(&self) -> usize {
         self.0.iter().fold(0, |acc, alternate| match *alternate {
@@ -1121,38 +1094,11 @@ impl VariantAlternatesList {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-/// Control over the selection of these alternate glyphs
-pub enum FontVariantAlternates {
-    /// Use alternative glyph from value
-    Value(VariantAlternatesList),
-    /// Use system font glyph
-    #[css(skip)]
-    System(SystemFont),
-}
-
 impl FontVariantAlternates {
     #[inline]
     /// Get initial specified value with VariantAlternatesList
     pub fn get_initial_specified_value() -> Self {
-        FontVariantAlternates::Value(Default::default())
-    }
-
-    system_font_methods!(FontVariantAlternates, font_variant_alternates);
-}
-
-impl ToComputedValue for FontVariantAlternates {
-    type ComputedValue = computed::FontVariantAlternates;
-
-    fn to_computed_value(&self, context: &Context) -> computed::FontVariantAlternates {
-        match *self {
-            FontVariantAlternates::Value(ref v) => v.clone(),
-            FontVariantAlternates::System(_) => self.compute_system(context),
-        }
-    }
-
-    fn from_computed_value(other: &computed::FontVariantAlternates) -> Self {
-        FontVariantAlternates::Value(other.clone())
+        Default::default()
     }
 }
 
@@ -1173,10 +1119,18 @@ impl Parse for FontVariantAlternates {
             .try_parse(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
-            return Ok(FontVariantAlternates::Value(Default::default()));
+            return Ok(Default::default());
         }
 
-        let mut alternates = Vec::new();
+        let mut stylistic = None;
+        let mut historical = None;
+        let mut styleset = None;
+        let mut character_variant = None;
+        let mut swash = None;
+        let mut ornaments = None;
+        let mut annotation = None;
+
+        // Parse values for the various alternate types in any order.
         let mut parsed_alternates = VariantAlternatesParsingFlags::empty();
         macro_rules! check_if_parsed(
             ($input:expr, $flag:path) => (
@@ -1189,7 +1143,7 @@ impl Parse for FontVariantAlternates {
         while let Ok(_) = input.try_parse(|input| match *input.next()? {
             Token::Ident(ref value) if value.eq_ignore_ascii_case("historical-forms") => {
                 check_if_parsed!(input, VariantAlternatesParsingFlags::HISTORICAL_FORMS);
-                alternates.push(VariantAlternates::HistoricalForms);
+                historical = Some(VariantAlternates::HistoricalForms);
                 Ok(())
             },
             Token::Function(ref name) => {
@@ -1200,28 +1154,28 @@ impl Parse for FontVariantAlternates {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::SWASH);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Swash(ident));
+                            swash = Some(VariantAlternates::Swash(ident));
                             Ok(())
                         },
                         "stylistic" => {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::STYLISTIC);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Stylistic(ident));
+                            stylistic = Some(VariantAlternates::Stylistic(ident));
                             Ok(())
                         },
                         "ornaments" => {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::ORNAMENTS);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Ornaments(ident));
+                            ornaments = Some(VariantAlternates::Ornaments(ident));
                             Ok(())
                         },
                         "annotation" => {
                             check_if_parsed!(i, VariantAlternatesParsingFlags::ANNOTATION);
                             let location = i.current_source_location();
                             let ident = CustomIdent::from_ident(location, i.expect_ident()?, &[])?;
-                            alternates.push(VariantAlternates::Annotation(ident));
+                            annotation = Some(VariantAlternates::Annotation(ident));
                             Ok(())
                         },
                         "styleset" => {
@@ -1230,7 +1184,7 @@ impl Parse for FontVariantAlternates {
                                 let location = i.current_source_location();
                                 CustomIdent::from_ident(location, i.expect_ident()?, &[])
                             })?;
-                            alternates.push(VariantAlternates::Styleset(idents.into()));
+                            styleset = Some(VariantAlternates::Styleset(idents.into()));
                             Ok(())
                         },
                         "character-variant" => {
@@ -1239,7 +1193,7 @@ impl Parse for FontVariantAlternates {
                                 let location = i.current_source_location();
                                 CustomIdent::from_ident(location, i.expect_ident()?, &[])
                             })?;
-                            alternates.push(VariantAlternates::CharacterVariant(idents.into()));
+                            character_variant = Some(VariantAlternates::CharacterVariant(idents.into()));
                             Ok(())
                         },
                         _ => return Err(i.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
@@ -1252,9 +1206,25 @@ impl Parse for FontVariantAlternates {
         if parsed_alternates.is_empty() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
-        Ok(FontVariantAlternates::Value(VariantAlternatesList(
-            alternates.into(),
-        )))
+
+        // Collect the parsed values in canonical order, so that we'll serialize correctly.
+        let mut alternates = Vec::new();
+        macro_rules! push_if_some(
+            ($value:expr) => (
+                if let Some(v) = $value {
+                    alternates.push(v);
+                }
+            )
+        );
+        push_if_some!(stylistic);
+        push_if_some!(historical);
+        push_if_some!(styleset);
+        push_if_some!(character_variant);
+        push_if_some!(swash);
+        push_if_some!(ornaments);
+        push_if_some!(annotation);
+
+        Ok(FontVariantAlternates(alternates.into()))
     }
 }
 
@@ -1266,9 +1236,9 @@ macro_rules! impl_variant_east_asian {
         )+
     } => {
         bitflags! {
-            #[derive(MallocSizeOf, ToResolvedValue, ToShmem)]
+            #[derive(MallocSizeOf, ToComputedValue, ToResolvedValue, ToShmem)]
             /// Vairants for east asian variant
-            pub struct VariantEastAsian: u16 {
+            pub struct FontVariantEastAsian: u16 {
                 /// None of the features
                 const NORMAL = 0;
                 $(
@@ -1278,7 +1248,7 @@ macro_rules! impl_variant_east_asian {
             }
         }
 
-        impl ToCss for VariantEastAsian {
+        impl ToCss for FontVariantEastAsian {
             fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
             where
                 W: Write,
@@ -1289,7 +1259,7 @@ macro_rules! impl_variant_east_asian {
 
                 let mut writer = SequenceWriter::new(dest, " ");
                 $(
-                    if self.intersects(VariantEastAsian::$ident) {
+                    if self.intersects(Self::$ident) {
                         writer.raw_item($css)?;
                     }
                 )+
@@ -1303,11 +1273,11 @@ macro_rules! impl_variant_east_asian {
         pub fn assert_variant_east_asian_matches() {
             use crate::gecko_bindings::structs;
             $(
-                debug_assert_eq!(structs::$gecko as u16, VariantEastAsian::$ident.bits());
+                debug_assert_eq!(structs::$gecko as u16, FontVariantEastAsian::$ident.bits());
             )+
         }
 
-        impl SpecifiedValueInfo for VariantEastAsian {
+        impl SpecifiedValueInfo for FontVariantEastAsian {
             fn collect_completion_keywords(f: KeywordsCollectFn) {
                 f(&["normal", $($css,)+]);
             }
@@ -1337,7 +1307,7 @@ impl_variant_east_asian! {
 }
 
 #[cfg(feature = "gecko")]
-impl VariantEastAsian {
+impl FontVariantEastAsian {
     /// Obtain a specified value from a Gecko keyword value
     ///
     /// Intended for use with presentation attributes, not style structs
@@ -1352,43 +1322,7 @@ impl VariantEastAsian {
 }
 
 #[cfg(feature = "gecko")]
-impl_gecko_keyword_conversions!(VariantEastAsian, u16);
-
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-/// Allows control of glyph substitution and sizing in East Asian text.
-pub enum FontVariantEastAsian {
-    /// Value variant with `variant-east-asian`
-    Value(VariantEastAsian),
-    /// System font variant
-    #[css(skip)]
-    System(SystemFont),
-}
-
-impl FontVariantEastAsian {
-    #[inline]
-    /// Get default `font-variant-east-asian` with `empty` variant
-    pub fn empty() -> Self {
-        FontVariantEastAsian::Value(VariantEastAsian::empty())
-    }
-
-    system_font_methods!(FontVariantEastAsian, font_variant_east_asian);
-}
-
-impl ToComputedValue for FontVariantEastAsian {
-    type ComputedValue = computed::FontVariantEastAsian;
-
-    fn to_computed_value(&self, context: &Context) -> computed::FontVariantEastAsian {
-        match *self {
-            FontVariantEastAsian::Value(ref v) => v.clone(),
-            FontVariantEastAsian::System(_) => self.compute_system(context),
-        }
-    }
-
-    fn from_computed_value(other: &computed::FontVariantEastAsian) -> Self {
-        FontVariantEastAsian::Value(other.clone())
-    }
-}
+impl_gecko_keyword_conversions!(FontVariantEastAsian, u16);
 
 impl Parse for FontVariantEastAsian {
     /// normal | [ <east-asian-variant-values> || <east-asian-width-values> || ruby ]
@@ -1397,59 +1331,59 @@ impl Parse for FontVariantEastAsian {
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
-    ) -> Result<FontVariantEastAsian, ParseError<'i>> {
-        let mut result = VariantEastAsian::empty();
+    ) -> Result<Self, ParseError<'i>> {
+        let mut result = Self::empty();
 
         if input
             .try_parse(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
-            return Ok(FontVariantEastAsian::Value(result));
+            return Ok(result);
         }
 
         while let Ok(flag) = input.try_parse(|input| {
             Ok(
                 match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                     "jis78" =>
-                        exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
-                                                  VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
-                                                  VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
-                                        ) => VariantEastAsian::JIS78),
+                        exclusive_value!((result, Self::JIS78 | Self::JIS83 |
+                                                  Self::JIS90 | Self::JIS04 |
+                                                  Self::SIMPLIFIED | Self::TRADITIONAL
+                                        ) => Self::JIS78),
                     "jis83" =>
-                        exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
-                                                  VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
-                                                  VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
-                                        ) => VariantEastAsian::JIS83),
+                        exclusive_value!((result, Self::JIS78 | Self::JIS83 |
+                                                  Self::JIS90 | Self::JIS04 |
+                                                  Self::SIMPLIFIED | Self::TRADITIONAL
+                                        ) => Self::JIS83),
                     "jis90" =>
-                        exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
-                                                  VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
-                                                  VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
-                                        ) => VariantEastAsian::JIS90),
+                        exclusive_value!((result, Self::JIS78 | Self::JIS83 |
+                                                  Self::JIS90 | Self::JIS04 |
+                                                  Self::SIMPLIFIED | Self::TRADITIONAL
+                                        ) => Self::JIS90),
                     "jis04" =>
-                        exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
-                                                  VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
-                                                  VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
-                                        ) => VariantEastAsian::JIS04),
+                        exclusive_value!((result, Self::JIS78 | Self::JIS83 |
+                                                  Self::JIS90 | Self::JIS04 |
+                                                  Self::SIMPLIFIED | Self::TRADITIONAL
+                                        ) => Self::JIS04),
                     "simplified" =>
-                        exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
-                                                  VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
-                                                  VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
-                                        ) => VariantEastAsian::SIMPLIFIED),
+                        exclusive_value!((result, Self::JIS78 | Self::JIS83 |
+                                                  Self::JIS90 | Self::JIS04 |
+                                                  Self::SIMPLIFIED | Self::TRADITIONAL
+                                        ) => Self::SIMPLIFIED),
                     "traditional" =>
-                        exclusive_value!((result, VariantEastAsian::JIS78 | VariantEastAsian::JIS83 |
-                                                  VariantEastAsian::JIS90 | VariantEastAsian::JIS04 |
-                                                  VariantEastAsian::SIMPLIFIED | VariantEastAsian::TRADITIONAL
-                                        ) => VariantEastAsian::TRADITIONAL),
+                        exclusive_value!((result, Self::JIS78 | Self::JIS83 |
+                                                  Self::JIS90 | Self::JIS04 |
+                                                  Self::SIMPLIFIED | Self::TRADITIONAL
+                                        ) => Self::TRADITIONAL),
                     "full-width" =>
-                        exclusive_value!((result, VariantEastAsian::FULL_WIDTH |
-                                                  VariantEastAsian::PROPORTIONAL_WIDTH
-                                        ) => VariantEastAsian::FULL_WIDTH),
+                        exclusive_value!((result, Self::FULL_WIDTH |
+                                                  Self::PROPORTIONAL_WIDTH
+                                        ) => Self::FULL_WIDTH),
                     "proportional-width" =>
-                        exclusive_value!((result, VariantEastAsian::FULL_WIDTH |
-                                                  VariantEastAsian::PROPORTIONAL_WIDTH
-                                        ) => VariantEastAsian::PROPORTIONAL_WIDTH),
+                        exclusive_value!((result, Self::FULL_WIDTH |
+                                                  Self::PROPORTIONAL_WIDTH
+                                        ) => Self::PROPORTIONAL_WIDTH),
                     "ruby" =>
-                        exclusive_value!((result, VariantEastAsian::RUBY) => VariantEastAsian::RUBY),
+                        exclusive_value!((result, Self::RUBY) => Self::RUBY),
                     _ => return Err(()),
                 },
             )
@@ -1458,7 +1392,7 @@ impl Parse for FontVariantEastAsian {
         }
 
         if !result.is_empty() {
-            Ok(FontVariantEastAsian::Value(result))
+            Ok(result)
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
@@ -1473,9 +1407,9 @@ macro_rules! impl_variant_ligatures {
         )+
     } => {
         bitflags! {
-            #[derive(MallocSizeOf, ToResolvedValue, ToShmem)]
+            #[derive(MallocSizeOf, ToComputedValue, ToResolvedValue, ToShmem)]
             /// Variants of ligatures
-            pub struct VariantLigatures: u16 {
+            pub struct FontVariantLigatures: u16 {
                 /// Specifies that common default features are enabled
                 const NORMAL = 0;
                 $(
@@ -1485,7 +1419,7 @@ macro_rules! impl_variant_ligatures {
             }
         }
 
-        impl ToCss for VariantLigatures {
+        impl ToCss for FontVariantLigatures {
             fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
             where
                 W: Write,
@@ -1493,13 +1427,13 @@ macro_rules! impl_variant_ligatures {
                 if self.is_empty() {
                     return dest.write_str("normal");
                 }
-                if self.contains(VariantLigatures::NONE) {
+                if self.contains(FontVariantLigatures::NONE) {
                     return dest.write_str("none");
                 }
 
                 let mut writer = SequenceWriter::new(dest, " ");
                 $(
-                    if self.intersects(VariantLigatures::$ident) {
+                    if self.intersects(FontVariantLigatures::$ident) {
                         writer.raw_item($css)?;
                     }
                 )+
@@ -1513,11 +1447,11 @@ macro_rules! impl_variant_ligatures {
         pub fn assert_variant_ligatures_matches() {
             use crate::gecko_bindings::structs;
             $(
-                debug_assert_eq!(structs::$gecko as u16, VariantLigatures::$ident.bits());
+                debug_assert_eq!(structs::$gecko as u16, FontVariantLigatures::$ident.bits());
             )+
         }
 
-        impl SpecifiedValueInfo for VariantLigatures {
+        impl SpecifiedValueInfo for FontVariantLigatures {
             fn collect_completion_keywords(f: KeywordsCollectFn) {
                 f(&["normal", $($css,)+]);
             }
@@ -1548,7 +1482,7 @@ impl_variant_ligatures! {
 }
 
 #[cfg(feature = "gecko")]
-impl VariantLigatures {
+impl FontVariantLigatures {
     /// Obtain a specified value from a Gecko keyword value
     ///
     /// Intended for use with presentation attributes, not style structs
@@ -1563,50 +1497,7 @@ impl VariantLigatures {
 }
 
 #[cfg(feature = "gecko")]
-impl_gecko_keyword_conversions!(VariantLigatures, u16);
-
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-/// Ligatures and contextual forms are ways of combining glyphs
-/// to produce more harmonized forms
-pub enum FontVariantLigatures {
-    /// Value variant with `variant-ligatures`
-    Value(VariantLigatures),
-    /// System font variant
-    #[css(skip)]
-    System(SystemFont),
-}
-
-impl FontVariantLigatures {
-    system_font_methods!(FontVariantLigatures, font_variant_ligatures);
-
-    /// Default value of `font-variant-ligatures` as `empty`
-    #[inline]
-    pub fn empty() -> FontVariantLigatures {
-        FontVariantLigatures::Value(VariantLigatures::empty())
-    }
-
-    #[inline]
-    /// Get `none` variant of `font-variant-ligatures`
-    pub fn none() -> FontVariantLigatures {
-        FontVariantLigatures::Value(VariantLigatures::NONE)
-    }
-}
-
-impl ToComputedValue for FontVariantLigatures {
-    type ComputedValue = computed::FontVariantLigatures;
-
-    fn to_computed_value(&self, context: &Context) -> computed::FontVariantLigatures {
-        match *self {
-            FontVariantLigatures::Value(ref v) => v.clone(),
-            FontVariantLigatures::System(_) => self.compute_system(context),
-        }
-    }
-
-    fn from_computed_value(other: &computed::FontVariantLigatures) -> Self {
-        FontVariantLigatures::Value(other.clone())
-    }
-}
+impl_gecko_keyword_conversions!(FontVariantLigatures, u16);
 
 impl Parse for FontVariantLigatures {
     /// normal | none |
@@ -1621,57 +1512,56 @@ impl Parse for FontVariantLigatures {
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
-    ) -> Result<FontVariantLigatures, ParseError<'i>> {
-        let mut result = VariantLigatures::empty();
-
+    ) -> Result<Self, ParseError<'i>> {
+        let mut result = Self::empty();
         if input
             .try_parse(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
-            return Ok(FontVariantLigatures::Value(result));
+            return Ok(result);
         }
         if input
             .try_parse(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
-            return Ok(FontVariantLigatures::Value(VariantLigatures::NONE));
+            return Ok(Self::NONE);
         }
 
         while let Ok(flag) = input.try_parse(|input| {
             Ok(
                 match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                     "common-ligatures" =>
-                        exclusive_value!((result, VariantLigatures::COMMON_LIGATURES |
-                                                  VariantLigatures::NO_COMMON_LIGATURES
-                                        ) => VariantLigatures::COMMON_LIGATURES),
+                        exclusive_value!((result, Self::COMMON_LIGATURES |
+                                                  Self::NO_COMMON_LIGATURES
+                                        ) => Self::COMMON_LIGATURES),
                     "no-common-ligatures" =>
-                        exclusive_value!((result, VariantLigatures::COMMON_LIGATURES |
-                                                  VariantLigatures::NO_COMMON_LIGATURES
-                                        ) => VariantLigatures::NO_COMMON_LIGATURES),
+                        exclusive_value!((result, Self::COMMON_LIGATURES |
+                                                  Self::NO_COMMON_LIGATURES
+                                        ) => Self::NO_COMMON_LIGATURES),
                     "discretionary-ligatures" =>
-                        exclusive_value!((result, VariantLigatures::DISCRETIONARY_LIGATURES |
-                                                  VariantLigatures::NO_DISCRETIONARY_LIGATURES
-                                        ) => VariantLigatures::DISCRETIONARY_LIGATURES),
+                        exclusive_value!((result, Self::DISCRETIONARY_LIGATURES |
+                                                  Self::NO_DISCRETIONARY_LIGATURES
+                                        ) => Self::DISCRETIONARY_LIGATURES),
                     "no-discretionary-ligatures" =>
-                        exclusive_value!((result, VariantLigatures::DISCRETIONARY_LIGATURES |
-                                                  VariantLigatures::NO_DISCRETIONARY_LIGATURES
-                                        ) => VariantLigatures::NO_DISCRETIONARY_LIGATURES),
+                        exclusive_value!((result, Self::DISCRETIONARY_LIGATURES |
+                                                  Self::NO_DISCRETIONARY_LIGATURES
+                                        ) => Self::NO_DISCRETIONARY_LIGATURES),
                     "historical-ligatures" =>
-                        exclusive_value!((result, VariantLigatures::HISTORICAL_LIGATURES |
-                                                  VariantLigatures::NO_HISTORICAL_LIGATURES
-                                        ) => VariantLigatures::HISTORICAL_LIGATURES),
+                        exclusive_value!((result, Self::HISTORICAL_LIGATURES |
+                                                  Self::NO_HISTORICAL_LIGATURES
+                                        ) => Self::HISTORICAL_LIGATURES),
                     "no-historical-ligatures" =>
-                        exclusive_value!((result, VariantLigatures::HISTORICAL_LIGATURES |
-                                                  VariantLigatures::NO_HISTORICAL_LIGATURES
-                                        ) => VariantLigatures::NO_HISTORICAL_LIGATURES),
+                        exclusive_value!((result, Self::HISTORICAL_LIGATURES |
+                                                  Self::NO_HISTORICAL_LIGATURES
+                                        ) => Self::NO_HISTORICAL_LIGATURES),
                     "contextual" =>
-                        exclusive_value!((result, VariantLigatures::CONTEXTUAL |
-                                                  VariantLigatures::NO_CONTEXTUAL
-                                        ) => VariantLigatures::CONTEXTUAL),
+                        exclusive_value!((result, Self::CONTEXTUAL |
+                                                  Self::NO_CONTEXTUAL
+                                        ) => Self::CONTEXTUAL),
                     "no-contextual" =>
-                        exclusive_value!((result, VariantLigatures::CONTEXTUAL |
-                                                  VariantLigatures::NO_CONTEXTUAL
-                                        ) => VariantLigatures::NO_CONTEXTUAL),
+                        exclusive_value!((result, Self::CONTEXTUAL |
+                                                  Self::NO_CONTEXTUAL
+                                        ) => Self::NO_CONTEXTUAL),
                     _ => return Err(()),
                 },
             )
@@ -1680,7 +1570,7 @@ impl Parse for FontVariantLigatures {
         }
 
         if !result.is_empty() {
-            Ok(FontVariantLigatures::Value(result))
+            Ok(result)
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
@@ -1695,9 +1585,9 @@ macro_rules! impl_variant_numeric {
         )+
     } => {
         bitflags! {
-            #[derive(MallocSizeOf, ToResolvedValue, ToShmem)]
+            #[derive(MallocSizeOf, ToComputedValue, ToResolvedValue, ToShmem)]
             /// Vairants of numeric values
-            pub struct VariantNumeric: u8 {
+            pub struct FontVariantNumeric: u8 {
                 /// None of other variants are enabled.
                 const NORMAL = 0;
                 $(
@@ -1707,7 +1597,7 @@ macro_rules! impl_variant_numeric {
             }
         }
 
-        impl ToCss for VariantNumeric {
+        impl ToCss for FontVariantNumeric {
             fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
             where
                 W: Write,
@@ -1718,7 +1608,7 @@ macro_rules! impl_variant_numeric {
 
                 let mut writer = SequenceWriter::new(dest, " ");
                 $(
-                    if self.intersects(VariantNumeric::$ident) {
+                    if self.intersects(FontVariantNumeric::$ident) {
                         writer.raw_item($css)?;
                     }
                 )+
@@ -1732,11 +1622,11 @@ macro_rules! impl_variant_numeric {
         pub fn assert_variant_numeric_matches() {
             use crate::gecko_bindings::structs;
             $(
-                debug_assert_eq!(structs::$gecko as u8, VariantNumeric::$ident.bits());
+                debug_assert_eq!(structs::$gecko as u8, FontVariantNumeric::$ident.bits());
             )+
         }
 
-        impl SpecifiedValueInfo for VariantNumeric {
+        impl SpecifiedValueInfo for FontVariantNumeric {
             fn collect_completion_keywords(f: KeywordsCollectFn) {
                 f(&["normal", $($css,)+]);
             }
@@ -1764,7 +1654,7 @@ impl_variant_numeric! {
 }
 
 #[cfg(feature = "gecko")]
-impl VariantNumeric {
+impl FontVariantNumeric {
     /// Obtain a specified value from a Gecko keyword value
     ///
     /// Intended for use with presentation attributes, not style structs
@@ -1779,43 +1669,7 @@ impl VariantNumeric {
 }
 
 #[cfg(feature = "gecko")]
-impl_gecko_keyword_conversions!(VariantNumeric, u8);
-
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-/// Specifies control over numerical forms.
-pub enum FontVariantNumeric {
-    /// Value variant with `variant-numeric`
-    Value(VariantNumeric),
-    /// System font
-    #[css(skip)]
-    System(SystemFont),
-}
-
-impl FontVariantNumeric {
-    #[inline]
-    /// Default value of `font-variant-numeric` as `empty`
-    pub fn empty() -> FontVariantNumeric {
-        FontVariantNumeric::Value(VariantNumeric::empty())
-    }
-
-    system_font_methods!(FontVariantNumeric, font_variant_numeric);
-}
-
-impl ToComputedValue for FontVariantNumeric {
-    type ComputedValue = computed::FontVariantNumeric;
-
-    fn to_computed_value(&self, context: &Context) -> computed::FontVariantNumeric {
-        match *self {
-            FontVariantNumeric::Value(ref v) => v.clone(),
-            FontVariantNumeric::System(_) => self.compute_system(context),
-        }
-    }
-
-    fn from_computed_value(other: &computed::FontVariantNumeric) -> Self {
-        FontVariantNumeric::Value(other.clone())
-    }
-}
+impl_gecko_keyword_conversions!(FontVariantNumeric, u8);
 
 impl Parse for FontVariantNumeric {
     /// normal |
@@ -1830,47 +1684,47 @@ impl Parse for FontVariantNumeric {
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
-    ) -> Result<FontVariantNumeric, ParseError<'i>> {
-        let mut result = VariantNumeric::empty();
+    ) -> Result<Self, ParseError<'i>> {
+        let mut result = Self::empty();
 
         if input
             .try_parse(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
-            return Ok(FontVariantNumeric::Value(result));
+            return Ok(result);
         }
 
         while let Ok(flag) = input.try_parse(|input| {
             Ok(
                 match_ignore_ascii_case! { &input.expect_ident().map_err(|_| ())?,
                     "ordinal" =>
-                        exclusive_value!((result, VariantNumeric::ORDINAL) => VariantNumeric::ORDINAL),
+                        exclusive_value!((result, Self::ORDINAL) => Self::ORDINAL),
                     "slashed-zero" =>
-                        exclusive_value!((result, VariantNumeric::SLASHED_ZERO) => VariantNumeric::SLASHED_ZERO),
+                        exclusive_value!((result, Self::SLASHED_ZERO) => Self::SLASHED_ZERO),
                     "lining-nums" =>
-                        exclusive_value!((result, VariantNumeric::LINING_NUMS |
-                                                  VariantNumeric::OLDSTYLE_NUMS
-                                        ) => VariantNumeric::LINING_NUMS),
+                        exclusive_value!((result, Self::LINING_NUMS |
+                                                  Self::OLDSTYLE_NUMS
+                                        ) => Self::LINING_NUMS),
                     "oldstyle-nums" =>
-                        exclusive_value!((result, VariantNumeric::LINING_NUMS |
-                                                  VariantNumeric::OLDSTYLE_NUMS
-                                        ) => VariantNumeric::OLDSTYLE_NUMS),
+                        exclusive_value!((result, Self::LINING_NUMS |
+                                                  Self::OLDSTYLE_NUMS
+                                        ) => Self::OLDSTYLE_NUMS),
                     "proportional-nums" =>
-                        exclusive_value!((result, VariantNumeric::PROPORTIONAL_NUMS |
-                                                  VariantNumeric::TABULAR_NUMS
-                                        ) => VariantNumeric::PROPORTIONAL_NUMS),
+                        exclusive_value!((result, Self::PROPORTIONAL_NUMS |
+                                                  Self::TABULAR_NUMS
+                                        ) => Self::PROPORTIONAL_NUMS),
                     "tabular-nums" =>
-                        exclusive_value!((result, VariantNumeric::PROPORTIONAL_NUMS |
-                                                  VariantNumeric::TABULAR_NUMS
-                                        ) => VariantNumeric::TABULAR_NUMS),
+                        exclusive_value!((result, Self::PROPORTIONAL_NUMS |
+                                                  Self::TABULAR_NUMS
+                                        ) => Self::TABULAR_NUMS),
                     "diagonal-fractions" =>
-                        exclusive_value!((result, VariantNumeric::DIAGONAL_FRACTIONS |
-                                                  VariantNumeric::STACKED_FRACTIONS
-                                        ) => VariantNumeric::DIAGONAL_FRACTIONS),
+                        exclusive_value!((result, Self::DIAGONAL_FRACTIONS |
+                                                  Self::STACKED_FRACTIONS
+                                        ) => Self::DIAGONAL_FRACTIONS),
                     "stacked-fractions" =>
-                        exclusive_value!((result, VariantNumeric::DIAGONAL_FRACTIONS |
-                                                  VariantNumeric::STACKED_FRACTIONS
-                                        ) => VariantNumeric::STACKED_FRACTIONS),
+                        exclusive_value!((result, Self::DIAGONAL_FRACTIONS |
+                                                  Self::STACKED_FRACTIONS
+                                        ) => Self::STACKED_FRACTIONS),
                     _ => return Err(()),
                 },
             )
@@ -1879,133 +1733,6 @@ impl Parse for FontVariantNumeric {
         }
 
         if !result.is_empty() {
-            Ok(FontVariantNumeric::Value(result))
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-}
-
-/// This property provides low-level control over OpenType or TrueType font features.
-pub type SpecifiedFontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
-
-/// Define initial settings that apply when the font defined by an @font-face
-/// rule is rendered.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-pub enum FontFeatureSettings {
-    /// Value of `FontSettings`
-    Value(SpecifiedFontFeatureSettings),
-    /// System font
-    #[css(skip)]
-    System(SystemFont),
-}
-
-impl FontFeatureSettings {
-    #[inline]
-    /// Get default value of `font-feature-settings` as normal
-    pub fn normal() -> FontFeatureSettings {
-        FontFeatureSettings::Value(FontSettings::normal())
-    }
-
-    system_font_methods!(FontFeatureSettings, font_feature_settings);
-}
-
-impl ToComputedValue for FontFeatureSettings {
-    type ComputedValue = computed::FontFeatureSettings;
-
-    fn to_computed_value(&self, context: &Context) -> computed::FontFeatureSettings {
-        match *self {
-            FontFeatureSettings::Value(ref v) => v.to_computed_value(context),
-            FontFeatureSettings::System(_) => self.compute_system(context),
-        }
-    }
-
-    fn from_computed_value(other: &computed::FontFeatureSettings) -> Self {
-        FontFeatureSettings::Value(ToComputedValue::from_computed_value(other))
-    }
-}
-
-impl Parse for FontFeatureSettings {
-    /// normal | <feature-tag-value>#
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<FontFeatureSettings, ParseError<'i>> {
-        SpecifiedFontFeatureSettings::parse(context, input).map(FontFeatureSettings::Value)
-    }
-}
-
-#[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
-)]
-/// Whether user agents are allowed to synthesize bold or oblique font faces
-/// when a font family lacks those faces, or a small-caps variant when this is
-/// not supported by the face.
-pub struct FontSynthesis {
-    /// If a `font-weight` is requested that the font family does not contain,
-    /// the user agent may synthesize the requested weight from the weights
-    /// that do exist in the font family.
-    pub weight: bool,
-    /// If a font-style is requested that the font family does not contain,
-    /// the user agent may synthesize the requested style from the normal face in the font family.
-    pub style: bool,
-    /// This bit controls whether the user agent is allowed to synthesize small caps variant
-    /// when a font face lacks it.
-    pub small_caps: bool,
-}
-
-impl FontSynthesis {
-    #[inline]
-    /// Get the default value of font-synthesis
-    pub fn get_initial_value() -> Self {
-        FontSynthesis {
-            weight: true,
-            style: true,
-            small_caps: true,
-        }
-    }
-    #[inline]
-    /// Get the 'none' value of font-synthesis
-    pub fn none() -> Self {
-        FontSynthesis {
-            weight: false,
-            style: false,
-            small_caps: false,
-        }
-    }
-    #[inline]
-    /// Return true if this is the 'none' value
-    pub fn is_none(&self) -> bool {
-        *self == Self::none()
-    }
-}
-
-#[inline]
-fn allow_font_synthesis_small_caps() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.font-synthesis-small-caps.enabled");
-    #[cfg(feature = "servo")]
-    return false;
-}
-
-impl Parse for FontSynthesis {
-    fn parse<'i, 't>(
-        _: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<FontSynthesis, ParseError<'i>> {
-        use crate::values::SelectorParseErrorKind;
-        let mut result = Self::none();
-        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
-            match_ignore_ascii_case! { &ident,
-                "none" if result.is_none() => return Ok(result),
-                "weight" if !result.weight => result.weight = true,
-                "style" if !result.style => result.style = true,
-                "small-caps" if !result.small_caps && allow_font_synthesis_small_caps()
-                                    => result.small_caps = true,
-                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident))),
-            }
-        }
-        if !result.is_none() {
             Ok(result)
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
@@ -2013,136 +1740,11 @@ impl Parse for FontSynthesis {
     }
 }
 
-impl ToCss for FontSynthesis {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        if self.is_none() {
-            return dest.write_str("none");
-        }
+/// This property provides low-level control over OpenType or TrueType font features.
+pub type FontFeatureSettings = FontSettings<FeatureTagValue<Integer>>;
 
-        let mut need_space = false;
-        if self.weight {
-            dest.write_str("weight")?;
-            need_space = true;
-        }
-        if self.style {
-            if need_space {
-                dest.write_str(" ")?;
-            }
-            dest.write_str("style")?;
-            need_space = true;
-        }
-        if self.small_caps {
-            if need_space {
-                dest.write_str(" ")?;
-            }
-            dest.write_str("small-caps")?;
-        }
-        Ok(())
-    }
-}
-
-impl SpecifiedValueInfo for FontSynthesis {
-    fn collect_completion_keywords(f: KeywordsCollectFn) {
-        f(&["none", "weight", "style"]);
-        if allow_font_synthesis_small_caps() {
-            f(&["small-caps"]);
-        }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<u8> for FontSynthesis {
-    fn from(bits: u8) -> FontSynthesis {
-        use crate::gecko_bindings::structs;
-
-        FontSynthesis {
-            weight: bits & structs::NS_FONT_SYNTHESIS_WEIGHT as u8 != 0,
-            style: bits & structs::NS_FONT_SYNTHESIS_STYLE as u8 != 0,
-            small_caps: bits & structs::NS_FONT_SYNTHESIS_SMALL_CAPS as u8 != 0,
-        }
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl From<FontSynthesis> for u8 {
-    fn from(v: FontSynthesis) -> u8 {
-        use crate::gecko_bindings::structs;
-
-        let mut bits: u8 = 0;
-        if v.weight {
-            bits |= structs::NS_FONT_SYNTHESIS_WEIGHT as u8;
-        }
-        if v.style {
-            bits |= structs::NS_FONT_SYNTHESIS_STYLE as u8;
-        }
-        if v.small_caps {
-            bits |= structs::NS_FONT_SYNTHESIS_SMALL_CAPS as u8;
-        }
-        bits
-    }
-}
-
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-/// Allows authors to explicitly specify the language system of the font,
-/// overriding the language system implied by the content language
-pub enum FontLanguageOverride {
-    /// When rendering with OpenType fonts,
-    /// the content language of the element is
-    /// used to infer the OpenType language system
-    Normal,
-    /// Single three-letter case-sensitive OpenType language system tag,
-    /// specifies the OpenType language system to be used instead of
-    /// the language system implied by the language of the element
-    Override(Box<str>),
-    /// Use system font
-    #[css(skip)]
-    System(SystemFont),
-}
-
-impl FontLanguageOverride {
-    #[inline]
-    /// Get default value with `normal`
-    pub fn normal() -> FontLanguageOverride {
-        FontLanguageOverride::Normal
-    }
-
-    /// The ToComputedValue implementation for non-system-font
-    /// FontLanguageOverride, used for @font-face descriptors.
-    #[inline]
-    pub fn compute_non_system(&self) -> computed::FontLanguageOverride {
-        match *self {
-            FontLanguageOverride::Normal => computed::FontLanguageOverride::zero(),
-            FontLanguageOverride::Override(ref lang) => {
-                computed::FontLanguageOverride::from_str(lang)
-            },
-            FontLanguageOverride::System(..) => unreachable!(),
-        }
-    }
-
-    system_font_methods!(FontLanguageOverride, font_language_override);
-}
-
-impl ToComputedValue for FontLanguageOverride {
-    type ComputedValue = computed::FontLanguageOverride;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> computed::FontLanguageOverride {
-        match *self {
-            FontLanguageOverride::System(_) => self.compute_system(context),
-            _ => self.compute_non_system(),
-        }
-    }
-    #[inline]
-    fn from_computed_value(computed: &computed::FontLanguageOverride) -> Self {
-        if *computed == computed::FontLanguageOverride::zero() {
-            return FontLanguageOverride::Normal;
-        }
-        FontLanguageOverride::Override(computed.to_str(&mut [0; 4]).into())
-    }
-}
+/// For font-language-override, use the same representation as the computed value.
+pub use crate::values::computed::font::FontLanguageOverride;
 
 impl Parse for FontLanguageOverride {
     /// normal | <string>
@@ -2154,65 +1756,105 @@ impl Parse for FontLanguageOverride {
             .try_parse(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
-            return Ok(FontLanguageOverride::Normal);
+            return Ok(FontLanguageOverride::normal());
         }
 
         let string = input.expect_string()?;
-        Ok(FontLanguageOverride::Override(
-            string.as_ref().to_owned().into_boxed_str(),
-        ))
+
+        // The OpenType spec requires tags to be 1 to 4 ASCII characters:
+        // https://learn.microsoft.com/en-gb/typography/opentype/spec/otff#data-types
+        if string.is_empty() || string.len() > 4 || !string.is_ascii() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        let mut bytes = [b' '; 4];
+        for (byte, str_byte) in bytes.iter_mut().zip(string.as_bytes()) {
+            *byte = *str_byte;
+        }
+
+        Ok(FontLanguageOverride(u32::from_be_bytes(bytes)))
+    }
+}
+
+/// A value for any of the font-synthesis-{weight,style,small-caps} properties.
+#[repr(u8)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+pub enum FontSynthesis {
+    /// This attribute may be synthesized if not supported by a face.
+    Auto,
+    /// Do not attempt to synthesis this style attribute.
+    None,
+}
+
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+/// Allows authors to choose a palette from those supported by a color font
+/// (and potentially @font-palette-values overrides).
+pub struct FontPalette(Atom);
+
+#[allow(missing_docs)]
+impl FontPalette {
+    pub fn normal() -> Self { Self(atom!("normal")) }
+    pub fn light() -> Self { Self(atom!("light")) }
+    pub fn dark() -> Self { Self(atom!("dark")) }
+}
+
+impl Parse for FontPalette {
+    /// normal | light | dark | dashed-ident
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<FontPalette, ParseError<'i>> {
+        let location = input.current_source_location();
+        let ident = input.expect_ident()?;
+        match_ignore_ascii_case! { &ident,
+            "normal" => Ok(Self::normal()),
+            "light" => Ok(Self::light()),
+            "dark" => Ok(Self::dark()),
+            _ => if ident.starts_with("--") {
+                Ok(Self(Atom::from(ident.as_ref())))
+            } else {
+                Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+            },
+        }
+    }
+}
+
+impl ToCss for FontPalette {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        serialize_atom_identifier(&self.0, dest)
     }
 }
 
 /// This property provides low-level control over OpenType or TrueType font
 /// variations.
-pub type SpecifiedFontVariationSettings = FontSettings<VariationValue<Number>>;
-
-/// Define initial settings that apply when the font defined by an @font-face
-/// rule is rendered.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-pub enum FontVariationSettings {
-    /// Value of `FontSettings`
-    Value(SpecifiedFontVariationSettings),
-    /// System font
-    #[css(skip)]
-    System(SystemFont),
-}
-
-impl FontVariationSettings {
-    #[inline]
-    /// Get default value of `font-variation-settings` as normal
-    pub fn normal() -> FontVariationSettings {
-        FontVariationSettings::Value(FontSettings::normal())
-    }
-
-    system_font_methods!(FontVariationSettings, font_variation_settings);
-}
-
-impl ToComputedValue for FontVariationSettings {
-    type ComputedValue = computed::FontVariationSettings;
-
-    fn to_computed_value(&self, context: &Context) -> computed::FontVariationSettings {
-        match *self {
-            FontVariationSettings::Value(ref v) => v.to_computed_value(context),
-            FontVariationSettings::System(_) => self.compute_system(context),
-        }
-    }
-
-    fn from_computed_value(other: &computed::FontVariationSettings) -> Self {
-        FontVariationSettings::Value(ToComputedValue::from_computed_value(other))
-    }
-}
-
-impl Parse for FontVariationSettings {
-    /// normal | <variation-tag-value>#
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<FontVariationSettings, ParseError<'i>> {
-        SpecifiedFontVariationSettings::parse(context, input).map(FontVariationSettings::Value)
-    }
-}
+pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
 
 fn parse_one_feature_value<'i, 't>(
     context: &ParserContext,

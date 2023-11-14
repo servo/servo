@@ -164,6 +164,12 @@ impl Device {
         self.device_pixel_ratio
     }
 
+    /// Gets the size of the scrollbar in CSS pixels.
+    pub fn scrollbar_inline_size(&self) -> CSSPixelLength {
+        // TODO: implement this.
+        CSSPixelLength::new(0.0)
+    }
+
     /// Queries dummy font metrics for Servo. Knows nothing about fonts and does not provide
     /// any metrics.
     /// TODO: Servo's font metrics provider will probably not live in this crate, so this will
@@ -197,12 +203,12 @@ impl Device {
 
     /// Returns the default background color.
     pub fn default_background_color(&self) -> RGBA {
-        RGBA::new(255, 255, 255, 255)
+        RGBA::new(255, 255, 255, 1.0)
     }
 
     /// Returns the default foreground color.
     pub fn default_color(&self) -> RGBA {
-        RGBA::new(0, 0, 0, 255)
+        RGBA::new(0, 0, 0, 1.0)
     }
 
     /// Returns safe area insets

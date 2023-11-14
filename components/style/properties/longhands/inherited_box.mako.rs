@@ -46,8 +46,18 @@ ${helpers.single_keyword(
 )}
 
 ${helpers.single_keyword(
+    "-moz-box-collapse",
+    "flex legacy",
+    engines="gecko",
+    gecko_enum_prefix="StyleMozBoxCollapse",
+    animation_value_type="none",
+    enabled_in="chrome",
+    spec="None (internal)",
+)}
+
+${helpers.single_keyword(
     "-moz-box-layout",
-    "legacy flex",
+    "flex legacy",
     engines="gecko",
     gecko_enum_prefix="StyleMozBoxLayout",
     animation_value_type="none",

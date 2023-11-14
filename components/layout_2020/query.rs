@@ -278,7 +278,7 @@ pub fn process_resolved_style_request<'dom>(
     // For line height, the resolved value is the computed value if it
     // is "normal" and the used value otherwise.
     if longhand_id == LonghandId::LineHeight {
-        let font_size = style.get_font().font_size.size.0;
+        let font_size = style.get_font().font_size.computed_size();
         return match style.get_inherited_text().line_height {
             LineHeight::Normal => computed_style(),
             LineHeight::Number(value) => (font_size * value.0).to_css_string(),

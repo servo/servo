@@ -21,7 +21,7 @@ shmem = ["dep:to_shmem", "dep:to_shmem_derive"]
 
 [dependencies]
 bitflags = "1.0"
-cssparser = "0.29"
+cssparser = { workspace = true }
 derive_more = { version = "0.99", default-features = false, features = ["add", "add_assign"] }
 fxhash = "0.2"
 log = "0.4"

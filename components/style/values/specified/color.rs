@@ -5,9 +5,12 @@
 //! Specified color values.
 
 use super::AllowQuirks;
+use crate::color::mix::ColorInterpolationMethod;
+use crate::color::{AbsoluteColor, ColorComponents, ColorSpace, SerializationFlags};
+use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
-use crate::values::generics::color::{ColorInterpolationMethod, GenericColorMix, GenericCaretColor, GenericColorOrAuto};
+use crate::values::generics::color::{GenericCaretColor, GenericColorMix, GenericColorOrAuto};
 use crate::values::specified::calc::CalcNode;
 use crate::values::specified::Percentage;
 use crate::values::CustomIdent;
@@ -30,10 +33,19 @@ fn allow_color_mix() -> bool {
     return false;
 }
 
-impl Parse for ColorMix {
+#[inline]
+fn allow_more_color_4() -> bool {
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.more_color_4.enabled");
+    #[cfg(feature = "servo")]
+    return false;
+}
+
+impl ColorMix {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        preserve_authored: PreserveAuthored,
     ) -> Result<Self, ParseError<'i>> {
         let enabled =
             context.chrome_rules_enabled() || allow_color_mix();
@@ -56,7 +68,7 @@ impl Parse for ColorMix {
 
             let mut left_percentage = try_parse_percentage(input);
 
-            let left = Color::parse(context, input)?;
+            let left = Color::parse_internal(context, input, preserve_authored)?;
             if left_percentage.is_none() {
                 left_percentage = try_parse_percentage(input);
             }
@@ -94,18 +106,62 @@ impl Parse for ColorMix {
     }
 }
 
+impl AbsoluteColor {
+    /// Convenience function to create a color in the sRGB color space.
+    pub fn from_rgba(rgba: RGBA) -> Self {
+        let red = rgba.red as f32 / 255.0;
+        let green = rgba.green as f32 / 255.0;
+        let blue = rgba.blue as f32 / 255.0;
+
+        Self::new(
+            ColorSpace::Srgb,
+            ColorComponents(red, green, blue),
+            rgba.alpha,
+        )
+    }
+
+    /// Convert the color to sRGB color space and return it in the RGBA struct.
+    pub fn to_rgba(&self) -> RGBA {
+        let rgba = self.to_color_space(ColorSpace::Srgb);
+
+        let red = (rgba.components.0 * 255.0).round() as u8;
+        let green = (rgba.components.1 * 255.0).round() as u8;
+        let blue = (rgba.components.2 * 255.0).round() as u8;
+
+        RGBA::new(red, green, blue, rgba.alpha)
+    }
+}
+
+/// Container holding an absolute color and the text specified by an author.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+pub struct Absolute {
+    /// The specified color.
+    pub color: AbsoluteColor,
+    /// Authored representation.
+    pub authored: Option<Box<str>>,
+}
+
+impl ToCss for Absolute {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if let Some(ref authored) = self.authored {
+            dest.write_str(authored)
+        } else {
+            self.color.to_css(dest)
+        }
+    }
+}
+
 /// Specified color value
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum Color {
     /// The 'currentColor' keyword
     CurrentColor,
-    /// A specific RGBA color
-    Numeric {
-        /// Parsed RGBA color
-        parsed: RGBA,
-        /// Authored representation
-        authored: Option<Box<str>>,
-    },
+    /// An absolute color.
+    /// https://w3c.github.io/csswg-drafts/css-color-4/#typedef-absolute-color-function
+    Absolute(Box<Absolute>),
     /// A system color.
     #[cfg(feature = "gecko")]
     System(SystemColor),
@@ -138,6 +194,7 @@ pub enum SystemColor {
     Buttonhighlight,
     Buttonshadow,
     Buttontext,
+    Buttonborder,
     /// Text color in the (active) titlebar.
     Captiontext,
     #[parse(aliases = "-moz-field")]
@@ -147,6 +204,9 @@ pub enum SystemColor {
     MozDisabledfield,
     #[parse(aliases = "-moz-fieldtext")]
     Fieldtext,
+
+    Mark,
+    Marktext,
 
     /// Combobox widgets
     MozComboboxtext,
@@ -373,8 +433,65 @@ impl From<RGBA> for Color {
     }
 }
 
-struct ColorComponentParser<'a, 'b: 'a>(&'a ParserContext<'b>);
-impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponentParser<'a, 'b> {
+#[inline]
+fn new_absolute(color_space: ColorSpace, c1: f32, c2: f32, c3: f32, alpha: f32) -> Color {
+    Color::Absolute(Box::new(Absolute {
+        color: AbsoluteColor::new(color_space, ColorComponents(c1, c2, c3), alpha),
+        authored: None,
+    }))
+}
+
+impl cssparser::FromParsedColor for Color {
+    fn from_current_color() -> Self {
+        Color::CurrentColor
+    }
+
+    fn from_rgba(red: u8, green: u8, blue: u8, alpha: f32) -> Self {
+        new_absolute(
+            ColorSpace::Srgb,
+            red as f32 / 255.0,
+            green as f32 / 255.0,
+            blue as f32 / 255.0,
+            alpha,
+        )
+    }
+
+    fn from_lab(lightness: f32, a: f32, b: f32, alpha: f32) -> Self {
+        new_absolute(ColorSpace::Lab, lightness, a, b, alpha)
+    }
+
+    fn from_lch(lightness: f32, chroma: f32, hue: f32, alpha: f32) -> Self {
+        new_absolute(ColorSpace::Lch, lightness, chroma, hue, alpha)
+    }
+
+    fn from_oklab(lightness: f32, a: f32, b: f32, alpha: f32) -> Self {
+        new_absolute(ColorSpace::Oklab, lightness, a, b, alpha)
+    }
+
+    fn from_oklch(lightness: f32, chroma: f32, hue: f32, alpha: f32) -> Self {
+        new_absolute(ColorSpace::Oklch, lightness, chroma, hue, alpha)
+    }
+
+    fn from_color_function(
+        color_space: cssparser::PredefinedColorSpace,
+        c1: f32,
+        c2: f32,
+        c3: f32,
+        alpha: f32,
+    ) -> Self {
+        let mut result = new_absolute(color_space.into(), c1, c2, c3, alpha);
+        if let Color::Absolute(ref mut absolute) = result {
+            if matches!(absolute.color.color_space, ColorSpace::Srgb) {
+                absolute.color.flags |= SerializationFlags::AS_COLOR_FUNCTION;
+            }
+        }
+        result
+    }
+}
+
+struct ColorParser<'a, 'b: 'a>(&'a ParserContext<'b>);
+impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorParser<'i> for ColorParser<'a, 'b> {
+    type Output = Color;
     type Error = StyleParseErrorKind<'i>;
 
     fn parse_angle_or_number<'t>(
@@ -437,27 +554,65 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
     }
 }
 
+/// Whether to preserve authored colors during parsing. That's useful only if we
+/// plan to serialize the color back.
+enum PreserveAuthored {
+    No,
+    Yes,
+}
+
 impl Parse for Color {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        // Currently we only store authored value for color keywords,
-        // because all browsers serialize those values as keywords for
-        // specified value.
-        let start = input.state();
-        let authored = input.expect_ident_cloned().ok();
-        input.reset(&start);
+        Self::parse_internal(context, input, PreserveAuthored::Yes)
+    }
+}
 
-        let compontent_parser = ColorComponentParser(&*context);
-        match input.try_parse(|i| CSSParserColor::parse_with(&compontent_parser, i)) {
-            Ok(value) => Ok(match value {
-                CSSParserColor::CurrentColor => Color::CurrentColor,
-                CSSParserColor::RGBA(rgba) => Color::Numeric {
-                    parsed: rgba,
-                    authored: authored.map(|s| s.to_ascii_lowercase().into_boxed_str()),
-                },
-            }),
+impl Color {
+    fn parse_internal<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        preserve_authored: PreserveAuthored,
+    ) -> Result<Self, ParseError<'i>> {
+        let authored = match preserve_authored {
+            PreserveAuthored::No => None,
+            PreserveAuthored::Yes => {
+                // Currently we only store authored value for color keywords,
+                // because all browsers serialize those values as keywords for
+                // specified value.
+                let start = input.state();
+                let authored = input.expect_ident_cloned().ok();
+                input.reset(&start);
+                authored
+            },
+        };
+
+        let color_parser = ColorParser(&*context);
+        match input.try_parse(|i| cssparser::parse_color_with(&color_parser, i)) {
+            Ok(mut color) => {
+                if let Color::Absolute(ref mut absolute) = color {
+                    let enabled = {
+                        let is_srgb = matches!(absolute.color.color_space, ColorSpace::Srgb);
+                        let is_color_function = absolute
+                            .color
+                            .flags
+                            .contains(SerializationFlags::AS_COLOR_FUNCTION);
+                        let pref_enabled = allow_more_color_4();
+
+                        (is_srgb && !is_color_function) || pref_enabled
+                    };
+                    if !enabled {
+                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                    }
+
+                    // Because we can't set the `authored` value at construction time, we have to set it
+                    // here.
+                    absolute.authored = authored.map(|s| s.to_ascii_lowercase().into_boxed_str());
+                }
+                Ok(color)
+            },
             Err(e) => {
                 #[cfg(feature = "gecko")]
                 {
@@ -466,7 +621,8 @@ impl Parse for Color {
                     }
                 }
 
-                if let Ok(mix) = input.try_parse(|i| ColorMix::parse(context, i)) {
+                if let Ok(mix) = input.try_parse(|i| ColorMix::parse(context, i, preserve_authored))
+                {
                     return Ok(Color::ColorMix(Box::new(mix)));
                 }
 
@@ -481,6 +637,56 @@ impl Parse for Color {
             },
         }
     }
+
+    /// Returns whether a given color is valid for authors.
+    pub fn is_valid(context: &ParserContext, input: &mut Parser) -> bool {
+        input
+            .parse_entirely(|input| Self::parse_internal(context, input, PreserveAuthored::No))
+            .is_ok()
+    }
+
+    /// Tries to parse a color and compute it with a given device.
+    pub fn parse_and_compute(
+        context: &ParserContext,
+        input: &mut Parser,
+        device: Option<&Device>,
+    ) -> Option<ComputedColor> {
+        use crate::error_reporting::ContextualParseError;
+        let start = input.position();
+        let result = input
+            .parse_entirely(|input| Self::parse_internal(context, input, PreserveAuthored::No));
+
+        let specified = match result {
+            Ok(s) => s,
+            Err(e) => {
+                if !context.error_reporting_enabled() {
+                    return None;
+                }
+                // Ignore other kinds of errors that might be reported, such as
+                // ParseErrorKind::Basic(BasicParseErrorKind::UnexpectedToken),
+                // since Gecko didn't use to report those to the error console.
+                //
+                // TODO(emilio): Revise whether we want to keep this at all, we
+                // use this only for canvas, this warnings are disabled by
+                // default and not available on OffscreenCanvas anyways...
+                if let ParseErrorKind::Custom(StyleParseErrorKind::ValueError(..)) = e.kind {
+                    let location = e.location.clone();
+                    let error = ContextualParseError::UnsupportedValue(input.slice_from(start), e);
+                    context.log_css_error(location, error);
+                }
+                return None;
+            },
+        };
+
+        match device {
+            Some(device) => {
+                Context::for_media_query_evaluation(device, device.quirks_mode(), |context| {
+                    specified.to_computed_color(Some(&context))
+                })
+            },
+            None => specified.to_computed_color(None),
+        }
+    }
 }
 
 impl ToCss for Color {
@@ -489,14 +695,8 @@ impl ToCss for Color {
         W: Write,
     {
         match *self {
-            Color::CurrentColor => CSSParserColor::CurrentColor.to_css(dest),
-            Color::Numeric {
-                authored: Some(ref authored),
-                ..
-            } => dest.write_str(authored),
-            Color::Numeric {
-                parsed: ref rgba, ..
-            } => rgba.to_css(dest),
+            Color::CurrentColor => cssparser::ToCss::to_css(&CSSParserColor::CurrentColor, dest),
+            Color::Absolute(ref absolute) => absolute.to_css(dest),
             Color::ColorMix(ref mix) => mix.to_css(dest),
             #[cfg(feature = "gecko")]
             Color::System(system) => system.to_css(dest),
@@ -506,28 +706,16 @@ impl ToCss for Color {
     }
 }
 
-/// A wrapper of cssparser::Color::parse_hash.
-///
-/// That function should never return CurrentColor, so it makes no sense to
-/// handle a cssparser::Color here. This should really be done in cssparser
-/// directly rather than here.
-fn parse_hash_color(value: &[u8]) -> Result<RGBA, ()> {
-    CSSParserColor::parse_hash(value).map(|color| match color {
-        CSSParserColor::RGBA(rgba) => rgba,
-        CSSParserColor::CurrentColor => unreachable!("parse_hash should never return currentcolor"),
-    })
-}
-
 impl Color {
     /// Returns whether this color is allowed in forced-colors mode.
     pub fn honored_in_forced_colors_mode(&self, allow_transparent: bool) -> bool {
         match *self {
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => false,
-            Color::CurrentColor => false,
+            Color::CurrentColor => true,
             #[cfg(feature = "gecko")]
             Color::System(..) => true,
-            Color::Numeric { ref parsed, .. } => allow_transparent && parsed.alpha == 0,
+            Color::Absolute(ref absolute) => allow_transparent && absolute.color.alpha() == 0.0,
             Color::ColorMix(ref mix) => {
                 mix.left.honored_in_forced_colors_mode(allow_transparent) &&
                     mix.right.honored_in_forced_colors_mode(allow_transparent)
@@ -548,13 +736,13 @@ impl Color {
         Color::rgba(RGBA::transparent())
     }
 
-    /// Returns a numeric RGBA color value.
+    /// Returns an absolute RGBA color value.
     #[inline]
     pub fn rgba(rgba: RGBA) -> Self {
-        Color::Numeric {
-            parsed: rgba,
+        Color::Absolute(Box::new(Absolute {
+            color: AbsoluteColor::from_rgba(rgba),
             authored: None,
-        }
+        }))
     }
 
     /// Parse a color, with quirks.
@@ -594,7 +782,7 @@ impl Color {
                 if ident.len() != 3 && ident.len() != 6 {
                     return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
-                return parse_hash_color(ident.as_bytes()).map_err(|()| {
+                return RGBA::parse_hash(ident.as_bytes()).map_err(|()| {
                     location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
                 });
             },
@@ -629,7 +817,9 @@ impl Color {
         let mut written = space_padding;
         let mut buf = itoa::Buffer::new();
         let s = buf.format(value);
-        (&mut serialization[written..]).write_all(s.as_bytes()).unwrap();
+        (&mut serialization[written..])
+            .write_all(s.as_bytes())
+            .unwrap();
         written += s.len();
         if let Some(unit) = unit {
             written += (&mut serialization[written..])
@@ -637,7 +827,7 @@ impl Color {
                 .unwrap();
         }
         debug_assert_eq!(written, 6);
-        parse_hash_color(&serialization)
+        RGBA::parse_hash(&serialization)
             .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
@@ -650,7 +840,7 @@ impl Color {
     pub fn to_computed_color(&self, context: Option<&Context>) -> Option<ComputedColor> {
         Some(match *self {
             Color::CurrentColor => ComputedColor::CurrentColor,
-            Color::Numeric { ref parsed, .. } => ComputedColor::Numeric(*parsed),
+            Color::Absolute(ref absolute) => ComputedColor::Numeric(absolute.color.to_rgba()),
             Color::ColorMix(ref mix) => {
                 use crate::values::computed::percentage::Percentage;
 
@@ -745,6 +935,9 @@ impl SpecifiedValueInfo for Color {
         ]);
         if allow_color_mix() {
             f(&["color-mix"]);
+        }
+        if allow_more_color_4() {
+            f(&["color", "lab", "lch", "oklab", "oklch"]);
         }
     }
 }
@@ -943,4 +1136,26 @@ pub enum PrintColorAdjust {
     Economy,
     /// Respect specified colors.
     Exact,
+}
+
+/// https://drafts.csswg.org/css-color-adjust-1/#forced-color-adjust-prop
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum ForcedColorAdjust {
+    /// Adjust colors if needed.
+    Auto,
+    /// Respect specified colors.
+    None,
 }

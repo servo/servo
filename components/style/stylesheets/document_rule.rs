@@ -47,7 +47,7 @@ impl ToCssWithGuard for DocumentRule {
         self.condition.to_css(&mut CssWriter::new(dest))?;
         dest.write_str(" {")?;
         for rule in self.rules.read_with(guard).0.iter() {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             rule.to_css(guard, dest)?;
         }
         dest.write_str(" }")

@@ -1,5 +1,6 @@
 import json
 from urllib.parse import unquote_plus, urlparse
+from fledge.tentative.resources.fledge_http_server_util import headersToAscii
 
 # Script to generate trusted scoring signals. The responses depends on the
 # query strings in the ads Urls - some result in entire response failures,
@@ -117,6 +118,8 @@ def main(request, response):
                         value = {"a":"b", "c":["d"]}
                     elif signalsParam == "hostname":
                         value = request.GET.first(b"hostname", b"not-found").decode("ASCII")
+                    elif signalsParam == "headers":
+                        value = headersToAscii(request.headers)
             if addValue:
                 if urlList["type"] not in responseBody:
                     responseBody[urlList["type"]] = {}

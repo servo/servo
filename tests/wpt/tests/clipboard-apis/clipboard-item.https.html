@@ -95,4 +95,18 @@ promise_test(async () => {
   const text = await (new Response(blob)).text();
   assert_equals(text, 'xxx');
 }, "getType(DOMString invalid type) converts DOMString to Blob");
+
+promise_test(async () => {
+  assert_true(ClipboardItem.supports('text/plain'));
+  assert_true(ClipboardItem.supports('text/html'));
+  assert_true(ClipboardItem.supports('image/png'));
+  assert_false(ClipboardItem.supports('web '));
+  assert_false(ClipboardItem.supports('web')); // without space.
+  assert_false(ClipboardItem.supports('web foo'));
+  assert_false(ClipboardItem.supports('foo/bar'));
+  assert_true(ClipboardItem.supports('web foo/bar'));
+  assert_true(ClipboardItem.supports('web text/html'));
+  assert_false(ClipboardItem.supports('image/svg+xml'));
+  assert_false(ClipboardItem.supports('not a/real type'));
+}, "supports(DOMString) returns true for types that are supported, false otherwise");
 </script>

@@ -70,7 +70,7 @@ jobs:
       - create-draft-release
     uses: ./.github/workflows/windows.yml
     with:
-      production: true
+      profile: "production"
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit
@@ -83,7 +83,7 @@ jobs:
       - create-draft-release
     uses: ./.github/workflows/mac.yml
     with:
-      production: true
+      profile: "production"
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit
@@ -96,7 +96,7 @@ jobs:
       - create-draft-release
     uses: ./.github/workflows/linux.yml
     with:
-      production: true
+      profile: "production"
       upload: true
       github-release-id: ${{ needs.create-draft-release.outputs.release-id }}
     secrets: inherit

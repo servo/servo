@@ -252,6 +252,11 @@ impl Parse for Content {
                             has_alt_content = true;
                             generics::ContentItem::MozAltContent
                         },
+                        #[cfg(feature = "gecko")]
+                        "-moz-label-content" if context.chrome_rules_enabled() => {
+                            has_alt_content = true;
+                            generics::ContentItem::MozLabelContent
+                        },
                         _ =>{
                             let ident = ident.clone();
                             return Err(input.new_custom_error(
@@ -267,7 +272,7 @@ impl Parse for Content {
                 },
             }
         }
-        // We don't allow to parse `-moz-alt-content in multiple positions.
+        // We don't allow to parse `-moz-alt-content` in multiple positions.
         if content.is_empty() || (has_alt_content && content.len() != 1) {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }

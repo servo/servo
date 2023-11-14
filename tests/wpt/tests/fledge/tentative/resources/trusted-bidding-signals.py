@@ -1,5 +1,6 @@
 import json
 from urllib.parse import unquote_plus
+from fledge.tentative.resources.fledge_http_server_util import headersToAscii
 
 # Script to generate trusted bidding signals. The responses depends on the
 # keys and interestGroupNames - some result in entire response failures, others
@@ -99,6 +100,8 @@ def main(request, response):
                 value = json.dumps(interestGroupNames)
             elif key == "hostname":
                 value = request.GET.first(b"hostname", b"not-found").decode("ASCII")
+            elif key == "headers":
+                value = headersToAscii(request.headers)
             responseBody["keys"][key] = value
 
     if "data-version" in interestGroupNames:

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API Error API tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        manifest_origin,
+        select_manifest,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+const url_prefix = manifest_origin + '/credential-management/support/fedcm/';
+
+fedcm_test(async t => {
+  let test_options =
+  request_options_with_mediation_required("manifest_id_assertion_endpoint_returns_error.json");
+  await select_manifest(t, test_options);
+
+  try {
+    const cred = await fedcm_get_and_select_first_account(t, test_options);
+    assert_unreached("An IdentityCredentialError exception should be thrown.");
+  } catch (e) {
+    assert_true(e instanceof DOMException);
+    assert_equals(e.name, "IdentityCredentialError");
+    assert_equals(e.code, "unauthorized_client");
+    assert_equals(e.url, url_prefix + "error.html");
+  }
+}, 'Test that the promise is rejected with proper error details');
+
+</script>

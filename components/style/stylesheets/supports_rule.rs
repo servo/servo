@@ -4,6 +4,7 @@
 
 //! [@supports rules](https://drafts.csswg.org/css-conditional-3/#at-supports)
 
+use crate::font_face::{FontFaceSourceFormatKeyword, FontFaceSourceTechFlags};
 use crate::parser::ParserContext;
 use crate::properties::{PropertyDeclaration, PropertyId, SourcePropertyDeclaration};
 use crate::selector_parser::{SelectorImpl, SelectorParser};
@@ -11,7 +12,6 @@ use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::{CssRuleType, CssRules, Namespaces};
-use crate::font_face::{FontFaceSourceFormatKeyword, FontFaceSourceTechFlags};
 use cssparser::parse_important;
 use cssparser::{Delimiter, Parser, SourceLocation, Token};
 use cssparser::{ParseError as CssParseError, ParserInput};
@@ -296,9 +296,9 @@ impl ToCss for SupportsCondition {
                 cond.to_css(dest)
             },
             SupportsCondition::Parenthesized(ref cond) => {
-                dest.write_str("(")?;
+                dest.write_char('(')?;
                 cond.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::And(ref vec) => {
                 let mut first = true;
@@ -323,31 +323,31 @@ impl ToCss for SupportsCondition {
                 Ok(())
             },
             SupportsCondition::Declaration(ref decl) => {
-                dest.write_str("(")?;
+                dest.write_char('(')?;
                 decl.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::Selector(ref selector) => {
                 dest.write_str("selector(")?;
                 selector.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::MozBoolPref(ref name) => {
                 dest.write_str("-moz-bool-pref(")?;
                 let name =
                     str::from_utf8(name.as_bytes()).expect("Should be parsed from valid UTF-8");
                 name.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::FontFormat(ref kw) => {
                 dest.write_str("font-format(")?;
                 kw.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::FontTech(ref flag) => {
                 dest.write_str("font-tech(")?;
                 flag.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             SupportsCondition::FutureSyntax(ref s) => dest.write_str(&s),
         }
@@ -370,13 +370,6 @@ impl ToCss for RawSelector {
 impl RawSelector {
     /// Tries to evaluate a `selector()` function.
     pub fn eval(&self, context: &ParserContext, namespaces: &Namespaces) -> bool {
-        #[cfg(feature = "gecko")]
-        {
-            if !static_prefs::pref!("layout.css.supports-selector.enabled") {
-                return false;
-            }
-        }
-
         let mut input = ParserInput::new(&self.0);
         let mut input = Parser::new(&mut input);
         input
@@ -385,28 +378,11 @@ impl RawSelector {
                     namespaces,
                     stylesheet_origin: context.stylesheet_origin,
                     url_data: context.url_data,
+                    for_supports_rule: true,
                 };
 
-                #[allow(unused_variables)]
-                let selector = Selector::<SelectorImpl>::parse(&parser, input)
+                Selector::<SelectorImpl>::parse(&parser, input)
                     .map_err(|_| input.new_custom_error(()))?;
-
-                #[cfg(feature = "gecko")]
-                {
-                    use crate::selector_parser::PseudoElement;
-                    use selectors::parser::Component;
-
-                    let has_any_unknown_webkit_pseudo = selector.has_pseudo_element() &&
-                        selector.iter_raw_match_order().any(|component| {
-                            matches!(
-                                *component,
-                                Component::PseudoElement(PseudoElement::UnknownWebkit(..))
-                            )
-                        });
-                    if has_any_unknown_webkit_pseudo {
-                        return Err(input.new_custom_error(()));
-                    }
-                }
 
                 Ok(())
             })

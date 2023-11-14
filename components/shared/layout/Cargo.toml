@@ -1,0 +1,23 @@
+[package]
+name = "layout_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "layout_traits"
+path = "lib.rs"
+
+[dependencies]
+crossbeam-channel = { workspace = true }
+gfx = { path = "../../gfx" }
+ipc-channel = { workspace = true }
+metrics = { path = "../../metrics" }
+msg = { workspace = true }
+net_traits = { workspace = true }
+profile_traits = { workspace = true }
+script_traits = { workspace = true }
+servo_url = { path = "../../url" }
+webrender_api = { workspace = true }

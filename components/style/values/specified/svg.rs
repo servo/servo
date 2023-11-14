@@ -239,7 +239,7 @@ impl ToCss for SVGPaintOrder {
 
         for pos in 0..last_pos_to_serialize + 1 {
             if pos != 0 {
-                dest.write_str(" ")?
+                dest.write_char(' ')?
             }
             self.order_at(pos).to_css(dest)?;
         }

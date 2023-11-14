@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>pagereveal event fires and in correct order on prerender activation</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+const uid = token();
+const initiator_url = `resources/order-in-prerender-activation-popup.html?uid=${uid}`;
+
+// This test opens a popup to an initiator page. That page then prerenders a
+// "prerendering" version of itself (by adding a `prerendering` query param)
+// and navigates itself to activate the prerender. The results are recorded and
+// sent back to this test harness.
+promise_test(async () => {
+  const channel = new PrerenderChannel('result', uid);
+  const test_done = new Promise(resolve => {
+     channel.addEventListener('message', e => resolve(e.data), { once: true });
+  });
+
+  window.open(initiator_url, '_blank', 'noopener');
+
+  const result = await test_done;
+
+  if (result.hasOwnProperty('fail')) {
+    assert_unreached(result.fail);
+  }
+
+  // The test records relevant event occurrences up to the second animation
+  // frame. Ensure their order and apparance is as expected.
+  const events_in_order = result.events.join(',');
+  assert_equals(events_in_order,
+      'pageshow,prerenderingchange,pagereveal,raf');
+});
+</script>

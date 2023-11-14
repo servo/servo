@@ -10,6 +10,7 @@
 import {fedcm_test,
         alt_manifest_origin,
         alt_request_options_with_mediation_required,
+        open_and_wait_for_popup,
         mark_signed_out} from '../support/fedcm-helper.sub.js';
 
 const url_prefix = alt_manifest_origin + '/credential-management/support/';
@@ -52,6 +53,15 @@ fedcm_test(async t => {
   const result = navigator.credentials.get(config);
   return promise_rejects_dom(t, 'NetworkError', result);
 }, 'Status header should be ignored from cross-origin iframe that contains a subresource with the header');
+
+fedcm_test(async t => {
+  await mark_signed_out(alt_manifest_origin);
+  await open_and_wait_for_popup(alt_manifest_origin, "/credential-management/support/fencedframe-mark-signedin.html");
+
+  const config = alt_request_options_with_mediation_required();
+  const result = navigator.credentials.get(config);
+  return promise_rejects_dom(t, 'NetworkError', result);
+}, 'Status header should be ignored from a fenced frame, even if it is same-origin');
 
 </script>
 

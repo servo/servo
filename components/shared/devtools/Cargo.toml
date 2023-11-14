@@ -1,0 +1,24 @@
+[package]
+name = "devtools_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2018"
+publish = false
+
+[lib]
+name = "devtools_traits"
+path = "lib.rs"
+
+[dependencies]
+bitflags = { workspace = true }
+headers = { workspace = true }
+http = { workspace = true }
+ipc-channel = { workspace = true }
+malloc_size_of = { path = "../../malloc_size_of" }
+malloc_size_of_derive = { workspace = true }
+msg = { workspace = true }
+serde = { workspace = true }
+servo_url = { path = "../../url" }
+time = { workspace = true }
+uuid = { workspace = true, features = ["serde"] }

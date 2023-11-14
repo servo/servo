@@ -4,9 +4,11 @@
 
 //! Gecko-specific bits for selector-parsing.
 
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::gecko_bindings::structs::RawServoSelectorList;
 use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
+use crate::properties::ComputedValues;
 use crate::selector_parser::{Direction, HorizontalDirection, SelectorParser};
 use crate::str::starts_with_ignore_ascii_case;
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
@@ -230,8 +232,24 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SelectorImpl;
 
+/// A set of extra data to carry along with the matching context, either for
+/// selector-matching or invalidation.
+#[derive(Default)]
+pub struct ExtraMatchingData<'a> {
+    /// The invalidation data to invalidate doc-state pseudo-classes correctly.
+    pub invalidation_data: InvalidationMatchingData,
+
+    /// The invalidation bits from matching container queries. These are here
+    /// just for convenience mostly.
+    pub cascade_input_flags: ComputedValueFlags,
+
+    /// The style of the originating element in order to evaluate @container
+    /// size queries affecting pseudo-elements.
+    pub originating_element_style: Option<&'a ComputedValues>,
+}
+
 impl ::selectors::SelectorImpl for SelectorImpl {
-    type ExtraMatchingData = InvalidationMatchingData;
+    type ExtraMatchingData<'a> = ExtraMatchingData<'a>;
     type AttrValue = AtomString;
     type Identifier = AtomIdent;
     type LocalName = AtomIdent;
@@ -301,6 +319,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     }
 
     #[inline]
+    fn parse_nth_child_of(&self) -> bool {
+        static_prefs::pref!("layout.css.nth-child-of.enabled")
+    }
+
+    #[inline]
     fn parse_is_and_where(&self) -> bool {
         true
     }
@@ -318,6 +341,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     #[inline]
     fn is_is_alias(&self, function: &str) -> bool {
         function.eq_ignore_ascii_case("-moz-any")
+    }
+
+    #[inline]
+    fn allow_forgiving_selectors(&self) -> bool {
+        !self.for_supports_rule
     }
 
     fn parse_non_ts_pseudo_class(
@@ -373,7 +401,8 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         location: SourceLocation,
         name: CowRcStr<'i>,
     ) -> Result<PseudoElement, ParseError<'i>> {
-        if let Some(pseudo) = PseudoElement::from_slice(&name) {
+        let allow_unkown_webkit = !self.for_supports_rule;
+        if let Some(pseudo) = PseudoElement::from_slice(&name, allow_unkown_webkit) {
             if self.is_pseudo_element_enabled(&pseudo) {
                 return Ok(pseudo);
             }
@@ -413,6 +442,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 if self.is_pseudo_element_enabled(&pseudo) {
                     return Ok(pseudo);
                 }
+            }
+        } else if name.eq_ignore_ascii_case("highlight") {
+            let pseudo = PseudoElement::Highlight(AtomIdent::from(parser.expect_ident()?.as_ref()));
+            if self.is_pseudo_element_enabled(&pseudo) {
+                return Ok(pseudo);
             }
         }
         Err(

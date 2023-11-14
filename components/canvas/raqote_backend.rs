@@ -855,10 +855,37 @@ pub trait ToRaqoteGradientStop {
     fn to_raqote(&self) -> raqote::GradientStop;
 }
 
+/// Clamp a 0..1 number to a 0..255 range to u8.
+///
+/// Whilst scaling by 256 and flooring would provide
+/// an equal distribution of integers to percentage inputs,
+/// this is not what Gecko does so we instead multiply by 255
+/// and round (adding 0.5 and flooring is equivalent to rounding)
+///
+/// Chrome does something similar for the alpha value, but not
+/// the rgb values.
+///
+/// See <https://bugzilla.mozilla.org/show_bug.cgi?id=1340484>
+///
+/// Clamping to 256 and rounding after would let 1.0 map to 256, and
+/// `256.0_f32 as u8` is undefined behavior:
+///
+/// <https://github.com/rust-lang/rust/issues/10184>
+#[inline]
+pub fn clamp_unit_f32(val: f32) -> u8 {
+    clamp_floor_256_f32(val * 255.)
+}
+
+/// Round and clamp a single number to a u8.
+#[inline]
+pub fn clamp_floor_256_f32(val: f32) -> u8 {
+    val.round().clamp(0., 255.) as u8
+}
+
 impl ToRaqoteGradientStop for CanvasGradientStop {
     fn to_raqote(&self) -> raqote::GradientStop {
         let color = raqote::Color::new(
-            self.color.alpha,
+            clamp_unit_f32(self.color.alpha),
             self.color.red,
             self.color.green,
             self.color.blue,
@@ -875,7 +902,7 @@ impl<'a> ToRaqotePattern<'_> for FillOrStrokeStyle {
 
         match self {
             Color(color) => Some(Pattern::Color(
-                color.alpha,
+                clamp_unit_f32(color.alpha),
                 color.red,
                 color.green,
                 color.blue,
@@ -933,7 +960,12 @@ impl ToRaqoteStyle for RGBA {
     type Target = raqote::SolidSource;
 
     fn to_raqote_style(self) -> Self::Target {
-        raqote::SolidSource::from_unpremultiplied_argb(self.alpha, self.red, self.green, self.blue)
+        raqote::SolidSource::from_unpremultiplied_argb(
+            clamp_unit_f32(self.alpha),
+            self.red,
+            self.green,
+            self.blue,
+        )
     }
 }
 

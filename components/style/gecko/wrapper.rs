@@ -19,7 +19,6 @@ use crate::author_styles::AuthorStyles;
 use crate::context::{PostAnimationTasks, QuirksMode, SharedStyleContext, UpdateAnimationsTasks};
 use crate::data::ElementData;
 use crate::dom::{LayoutIterator, NodeInfo, OpaqueNode, TDocument, TElement, TNode, TShadowRoot};
-use dom::{DocumentState, ElementState};
 use crate::gecko::data::GeckoStyleSheet;
 use crate::gecko::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use crate::gecko::snapshot_helpers;
@@ -64,11 +63,13 @@ use crate::shared_lock::{Locked, SharedRwLock};
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::stylist::CascadeData;
 use crate::values::{AtomIdent, AtomString};
+use crate::values::computed::Display;
 use crate::CaseSensitivityExt;
 use crate::LocalName;
 use app_units::Au;
-use euclid::default::Size2D;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use dom::{DocumentState, ElementState};
+use euclid::default::Size2D;
 use fxhash::FxHashMap;
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
@@ -77,11 +78,11 @@ use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
 use selectors::{Element, OpaqueElement};
 use servo_arc::{Arc, ArcBorrow, RawOffsetArc};
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::ptr;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 #[inline]
 fn elements_with_id<'a, 'le>(
@@ -275,16 +276,15 @@ impl<'ln> GeckoNode<'ln> {
         #[allow(dead_code)]
         fn static_assert() {
             let _: [u8; std::mem::size_of::<Cell<u32>>()] = [0u8; std::mem::size_of::<AtomicU32>()];
-            let _: [u8; std::mem::align_of::<Cell<u32>>()] = [0u8; std::mem::align_of::<AtomicU32>()];
+            let _: [u8; std::mem::align_of::<Cell<u32>>()] =
+                [0u8; std::mem::align_of::<AtomicU32>()];
         }
 
         // Rust doesn't provide standalone atomic functions like GCC/clang do
         // (via the atomic intrinsics) or via std::atomic_ref, but it guarantees
         // that the memory representation of u32 and AtomicU32 matches:
         // https://doc.rust-lang.org/std/sync/atomic/struct.AtomicU32.html
-        unsafe {
-            std::mem::transmute::<&Cell<u32>, &AtomicU32>(flags)
-        }
+        unsafe { std::mem::transmute::<&Cell<u32>, &AtomicU32>(flags) }
     }
 
     #[inline]
@@ -321,11 +321,6 @@ impl<'ln> GeckoNode<'ln> {
     fn is_in_shadow_tree(&self) -> bool {
         use crate::gecko_bindings::structs::NODE_IS_IN_SHADOW_TREE;
         self.flags() & (NODE_IS_IN_SHADOW_TREE as u32) != 0
-    }
-
-    #[inline]
-    fn is_connected(&self) -> bool {
-        self.get_bool_flag(nsINode_BooleanFlag::IsConnected)
     }
 
     /// WARNING: This logic is duplicated in Gecko's FlattenedTreeParentIsParent.
@@ -677,12 +672,16 @@ impl<'le> GeckoElement<'le> {
 
     #[inline]
     fn set_flags(&self, flags: u32) {
-        self.as_node().flags_atomic().fetch_or(flags, Ordering::Relaxed);
+        self.as_node()
+            .flags_atomic()
+            .fetch_or(flags, Ordering::Relaxed);
     }
 
     #[inline]
     unsafe fn unset_flags(&self, flags: u32) {
-        self.as_node().flags_atomic().fetch_and(!flags, Ordering::Relaxed);
+        self.as_node()
+            .flags_atomic()
+            .fetch_and(!flags, Ordering::Relaxed);
     }
 
     /// Returns true if this element has descendants for lazy frame construction.
@@ -859,7 +858,7 @@ impl<'le> GeckoElement<'le> {
     fn needs_transitions_update_per_property(
         &self,
         longhand_id: LonghandId,
-        combined_duration: f32,
+        combined_duration_seconds: f32,
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,
         existing_transitions: &FxHashMap<LonghandId, Arc<AnimationValue>>,
@@ -885,7 +884,7 @@ impl<'le> GeckoElement<'le> {
 
         debug_assert_eq!(to.is_some(), from.is_some());
 
-        combined_duration > 0.0f32 &&
+        combined_duration_seconds > 0.0f32 &&
             from != to &&
             from.unwrap()
                 .animate(
@@ -1038,18 +1037,23 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     #[inline]
-    fn primary_box_size(&self) -> Size2D<Au> {
-        if !self.as_node().is_connected() {
-            return Size2D::zero();
+    fn query_container_size(&self, display: &Display) -> Size2D<Option<Au>> {
+        // If an element gets 'display: contents' and its nsIFrame has not been removed yet,
+        // Gecko_GetQueryContainerSize will not notice that it can't have size containment.
+        // Other cases like 'display: inline' will be handled once the new nsIFrame is created.
+        if display.is_contents() {
+            return Size2D::new(None, None);
         }
 
+        let mut width = -1;
+        let mut height = -1;
         unsafe {
-            let frame = self.0._base._base._base.__bindgen_anon_1.mPrimaryFrame.as_ref();
-            if frame.is_null() {
-                return Size2D::zero();
-            }
-            Size2D::new(Au((**frame).mRect.width), Au((**frame).mRect.height))
+            bindings::Gecko_GetQueryContainerSize(self.0, &mut width, &mut height);
         }
+        Size2D::new(
+            if width >= 0 { Some(Au(width)) } else { None },
+            if height >= 0 { Some(Au(height)) } else { None },
+        )
     }
 
     /// Return the list of slotted nodes of this node.
@@ -1529,7 +1533,7 @@ impl<'le> TElement for GeckoElement<'le> {
             transitions_to_keep.insert(physical_longhand);
             if self.needs_transitions_update_per_property(
                 physical_longhand,
-                after_change_ui_style.transition_combined_duration_at(transition_property.index),
+                after_change_ui_style.transition_combined_duration_at(transition_property.index).seconds(),
                 before_change_style,
                 after_change_style,
                 &existing_transitions,
@@ -2099,7 +2103,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                     );
                     return false;
                 }
-                if context.extra_data.document_state.intersects(state_bit) {
+                if context.extra_data.invalidation_data.document_state.intersects(state_bit) {
                     return !context.in_negation();
                 }
                 self.document_state().contains(state_bit)

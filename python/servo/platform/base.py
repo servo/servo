@@ -51,8 +51,6 @@ class Base:
                 f"gst-plugin-scanner{self.executable_suffix()}",
             )
             env["GST_PLUGIN_SYSTEM_PATH"] = os.path.join(gstreamer_root, "lib", "gstreamer-1.0")
-            if self.is_macos:
-                env["OPENSSL_INCLUDE_DIR"] = os.path.join(gstreamer_root, "Headers")
 
         # If we are not cross-compiling GStreamer must be installed for the system. In
         # the cross-compilation case, we might be picking it up from another directory.

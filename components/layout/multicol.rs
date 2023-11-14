@@ -111,9 +111,13 @@ impl Flow for MulticolFlow {
                 NonNegativeLengthPercentageOrNormal::LengthPercentage(ref len) => {
                     len.0.to_pixel_length(content_inline_size)
                 },
-                NonNegativeLengthPercentageOrNormal::Normal => {
-                    self.block_flow.fragment.style.get_font().font_size.size()
-                },
+                NonNegativeLengthPercentageOrNormal::Normal => self
+                    .block_flow
+                    .fragment
+                    .style
+                    .get_font()
+                    .font_size
+                    .computed_size(),
             });
 
             let column_style = style.get_column();

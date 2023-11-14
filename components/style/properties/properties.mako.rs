@@ -134,10 +134,10 @@ pub mod shorthands {
         width.to_css(dest)?;
         // FIXME(emilio): Should we really serialize the border style if it's
         // `solid`?
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         style.to_css(dest)?;
         if *color != Color::CurrentColor {
-            dest.write_str(" ")?;
+            dest.write_char(' ')?;
             color.to_css(dest)?;
         }
         Ok(())
@@ -168,6 +168,8 @@ pub mod shorthands {
             if p.name in ['direction', 'unicode-bidi']:
                 continue;
             if not p.enabled_in_content() and not p.experimental(engine):
+                continue;
+            if "Style" not in p.rule_types_allowed_names():
                 continue;
             if p.logical:
                 logical_longhands.append(p.name)
@@ -923,15 +925,17 @@ CASCADE_GROUPS = {
         "-moz-min-font-size-ratio",
         # font-size depends on math-depth's computed value.
         "math-depth",
-        # Needed to compute the first available font, in order to
-        # compute font-relative units correctly.
+        # Needed to compute the first available font and its used size,
+        # in order to compute font-relative units correctly.
         "font-size",
+        "font-size-adjust",
         "font-weight",
         "font-stretch",
         "font-style",
         "font-family",
         # color-scheme affects how system colors resolve.
         "color-scheme",
+        "forced-color-adjust",
     ],
 }
 def in_late_group(p):
@@ -3142,24 +3146,18 @@ impl ComputedValues {
     }
 % endfor
 
-    /// Writes the value of the given longhand as a string in `dest`.
-    ///
-    /// Note that the value will usually be the computed value, except for
-    /// colors, where it's resolved.
+    /// Writes the (resolved or computed) value of the given longhand as a string in `dest`.
     ///
     /// TODO(emilio): We should move all the special resolution from
     /// nsComputedDOMStyle to ToResolvedValue instead.
-    pub fn get_resolved_value(
+    pub fn computed_or_resolved_value(
         &self,
         property_id: LonghandId,
+        context: Option<<&resolved::Context>,
         dest: &mut CssStringWriter,
     ) -> fmt::Result {
         use crate::values::resolved::ToResolvedValue;
-
         let mut dest = CssWriter::new(dest);
-        let context = resolved::Context {
-            style: self,
-        };
         match property_id {
             % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
             <% props = list(props) %>
@@ -3170,34 +3168,39 @@ impl ComputedValues {
                     % endfor
                     _ => unsafe { debug_unreachable!() },
                 };
-                value.to_resolved_value(&context).to_css(&mut dest)
+                if let Some(c) = context {
+                    value.to_resolved_value(c).to_css(&mut dest)
+                } else {
+                    value.to_css(&mut dest)
+                }
             }
             % endfor
         }
     }
 
     /// Returns the given longhand's resolved value as a property declaration.
-    pub fn resolved_declaration(&self, property_id: LonghandId) -> PropertyDeclaration {
+    pub fn computed_or_resolved_declaration(
+        &self,
+        property_id: LonghandId,
+        context: Option<<&resolved::Context>,
+    ) -> PropertyDeclaration {
         use crate::values::resolved::ToResolvedValue;
         use crate::values::computed::ToComputedValue;
-
-        let context = resolved::Context {
-            style: self,
-        };
-
         match property_id {
             % for specified_type, props in groupby(data.longhands, key=lambda x: x.specified_type()):
             <% props = list(props) %>
             ${" |\n".join("LonghandId::{}".format(p.camel_case) for p in props)} => {
-                let value = match property_id {
+                let mut computed_value = match property_id {
                     % for prop in props:
                     LonghandId::${prop.camel_case} => self.clone_${prop.ident}(),
                     % endfor
                     _ => unsafe { debug_unreachable!() },
                 };
-                let resolved = value.to_resolved_value(&context);
-                let computed = ToResolvedValue::from_resolved_value(resolved);
-                let specified = ToComputedValue::from_computed_value(&computed);
+                if let Some(c) = context {
+                    let resolved = computed_value.to_resolved_value(c);
+                    computed_value = ToResolvedValue::from_resolved_value(resolved);
+                }
+                let specified = ToComputedValue::from_computed_value(&computed_value);
                 % if props[0].boxed:
                 let specified = Box::new(specified);
                 % endif
@@ -3287,13 +3290,26 @@ impl ComputedValues {
     /// Get the initial computed values.
     pub fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
 
+    /// Converts the computed values to an Arc<> from a reference.
+    pub fn to_arc(&self) -> Arc<Self> {
+        // SAFETY: We're guaranteed to be allocated as an Arc<> since the
+        // functions above are the only ones that create ComputedValues
+        // instances in Servo (and that must be the case since ComputedValues'
+        // member is private).
+        unsafe { Arc::from_raw_addrefed(self) }
+    }
+
     /// Serializes the computed value of this property as a string.
     pub fn computed_value_to_string(&self, property: PropertyDeclarationId) -> String {
         match property {
             PropertyDeclarationId::Longhand(id) => {
+                let context = resolved::Context {
+                    style: self,
+                };
                 let mut s = String::new();
-                self.get_resolved_value(
+                self.computed_or_resolved_value(
                     id,
+                    Some(&context),
                     &mut s
                 ).unwrap();
                 s
@@ -4101,7 +4117,7 @@ mod lazy_static_module {
 
     lazy_static! {
         /// The initial values for all style structs as defined by the specification.
-        pub static ref INITIAL_SERVO_VALUES: ComputedValues = ComputedValues {
+        pub static ref INITIAL_SERVO_VALUES : Arc<ComputedValues> = Arc::new(ComputedValues {
             inner: ComputedValuesInner {
                 % for style_struct in data.active_style_structs():
                     ${style_struct.ident}: Arc::new(style_structs::${style_struct.name} {
@@ -4129,7 +4145,7 @@ mod lazy_static_module {
                 flags: ComputedValueFlags::empty(),
             },
             pseudo: None,
-        };
+        });
     }
 }
 

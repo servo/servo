@@ -18,8 +18,8 @@ use crate::shared_lock::SharedRwLockReadGuard;
 use crate::stylesheets::{CssRule, StylesheetInDocument};
 use crate::stylesheets::{EffectiveRules, EffectiveRulesIterator};
 use crate::values::AtomIdent;
-use crate::{Atom, ShrinkIfNeeded};
 use crate::LocalName as SelectorLocalName;
+use crate::{Atom, ShrinkIfNeeded};
 use selectors::parser::{Component, LocalName, Selector};
 
 /// The kind of change that happened for a given rule.
@@ -552,10 +552,10 @@ impl StylesheetInvalidationSet {
             Page(..) |
             Viewport(..) |
             FontFeatureValues(..) |
+            FontPaletteValues(..) |
             LayerStatement(..) |
             FontFace(..) |
             Keyframes(..) |
-            ScrollTimeline(..) |
             Container(..) |
             Style(..) => {
                 if is_generic_change {
@@ -633,12 +633,8 @@ impl StylesheetInvalidationSet {
                     // existing elements.
                 }
             },
-            // TODO: Check if timeline name is referenced, though this might go away in bug 1737918.
-            ScrollTimeline(..) |
-            CounterStyle(..) |
-            Page(..) |
-            Viewport(..) |
-            FontFeatureValues(..) => {
+            CounterStyle(..) | Page(..) | Viewport(..) | FontFeatureValues(..) |
+            FontPaletteValues(..) => {
                 debug!(
                     " > Found unsupported rule, marking the whole subtree \
                      invalid."

@@ -698,6 +698,7 @@ where
             Component::Is(ref list) | Component::Where(ref list) | Component::Has(ref list) => {
                 list.size_of(ops)
             },
+            Component::NthOf(ref nth_of_data) => nth_of_data.size_of(ops),
             Component::PseudoElement(ref pseudo) => (*pseudo).size_of(ops),
             Component::Combinator(..) |
             Component::ExplicitAnyNamespace |
@@ -711,19 +712,11 @@ where
             Component::Class(..) |
             Component::AttributeInNoNamespaceExists { .. } |
             Component::AttributeInNoNamespace { .. } |
-            Component::FirstChild |
-            Component::LastChild |
-            Component::OnlyChild |
             Component::Root |
             Component::Empty |
             Component::Scope |
-            Component::NthChild(..) |
-            Component::NthLastChild(..) |
-            Component::NthOfType(..) |
-            Component::NthLastOfType(..) |
-            Component::FirstOfType |
-            Component::LastOfType |
-            Component::OnlyOfType |
+            Component::ParentSelector |
+            Component::Nth(..) |
             Component::Host(None) => 0,
         }
     }

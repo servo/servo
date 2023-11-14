@@ -180,7 +180,7 @@ impl CertificateVerificationOverrideVerifier {
         let root_cert_store = match ca_certficates {
             CACertificates::Default => {
                 let mut root_cert_store = rustls::RootCertStore::empty();
-                root_cert_store.add_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.0.iter().map(
+                root_cert_store.add_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.iter().map(
                     |trust_anchor| {
                         OwnedTrustAnchor::from_subject_spki_name_constraints(
                             trust_anchor.subject,

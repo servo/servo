@@ -24,6 +24,7 @@ ${helpers.single_keyword(
     "normal embed isolate bidi-override isolate-override plaintext",
     engines="gecko servo",
     servo_pref="layout.legacy_layout",
+    gecko_enum_prefix="StyleUnicodeBidi",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi",
     servo_restyle_damage="rebuild_and_reflow",
@@ -44,6 +45,7 @@ ${helpers.single_keyword(
     "text-decoration-style",
     "solid double dotted dashed wavy -moz-none",
     engines="gecko servo",
+    gecko_enum_prefix="StyleTextDecorationStyle",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-style",
 )}

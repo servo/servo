@@ -109,14 +109,14 @@ where
 
         if !self.line_num.is_zero() {
             if self.is_span {
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
             }
             self.line_num.to_css(dest)?;
         }
 
         if self.ident != atom!("") {
             if self.is_span || !self.line_num.is_zero() {
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
             }
             CustomIdent(self.ident.clone()).to_css(dest)?;
         }
@@ -341,12 +341,12 @@ impl<L: ToCss> ToCss for TrackSize<L> {
                 min.to_css(dest)?;
                 dest.write_str(", ")?;
                 max.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
             TrackSize::FitContent(ref lp) => {
                 dest.write_str("fit-content(")?;
                 lp.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_char(')')
             },
         }
     }
@@ -493,7 +493,7 @@ impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
             .enumerate()
         {
             if i > 0 {
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
             }
 
             concat_serialize_idents("[", "] ", names, " ", dest)?;
@@ -504,7 +504,7 @@ impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
             concat_serialize_idents(" [", "]", line_names_last, " ", dest)?;
         }
 
-        dest.write_str(")")?;
+        dest.write_char(')')?;
 
         Ok(())
     }
@@ -615,7 +615,7 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
             match values_iter.next() {
                 Some(value) => {
                     if !names.is_empty() {
-                        dest.write_str(" ")?;
+                        dest.write_char(' ')?;
                     }
 
                     value.to_css(dest)?;
@@ -627,7 +627,7 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
                 line_names_iter.peek().map_or(false, |v| !v.is_empty()) ||
                 (idx + 1 == self.auto_repeat_index)
             {
-                dest.write_str(" ")?;
+                dest.write_char(' ')?;
             }
         }
 
@@ -669,6 +669,11 @@ impl Parse for LineNameList {
         input.expect_ident_matching("subgrid")?;
         let mut line_names = vec![];
         let mut fill_data = None;
+        // Rather than truncating the result after inserting values, just
+        // have a maximum number of values. This gives us an early out on very
+        // large name lists, but more importantly prevents OOM on huge repeat
+        // expansions. (bug 1583429)
+        let mut max_remaining = MAX_GRID_LINE as usize;
 
         loop {
             let repeat_parse_result = input.try_parse(|input| {
@@ -685,34 +690,40 @@ impl Parse for LineNameList {
                 })
             });
             if let Ok((names_list, count)) = repeat_parse_result {
+                let mut handle_size = |n| {
+                    let n = cmp::min(n, max_remaining);
+                    max_remaining -= n;
+                    n
+                };
                 match count {
                     // FIXME(emilio): we shouldn't expand repeat() at
                     // parse time for subgrid. (bug 1583429)
-                    RepeatCount::Number(num) => line_names.extend(
-                        names_list
-                            .iter()
-                            .cloned()
-                            .cycle()
-                            .take(num.value() as usize * names_list.len()),
-                    ),
+                    RepeatCount::Number(num) => {
+                        let n = handle_size(
+                            num.value() as usize * names_list.len());
+                        line_names.extend(
+                            names_list.iter().cloned().cycle().take(n));
+                    },
                     RepeatCount::AutoFill if fill_data.is_none() => {
                         let fill_idx = line_names.len();
                         let fill_len = names_list.len();
                         fill_data = Some((fill_idx, fill_len));
-                        line_names.extend(names_list.into_iter());
+                        let n = handle_size(fill_len);
+                        line_names.extend(names_list.into_iter().take(n));
                     },
                     _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
                 }
             } else if let Ok(names) = input.try_parse(parse_line_names) {
-                line_names.push(names);
+                if max_remaining > 0 {
+                    line_names.push(names);
+                    max_remaining -= 1;
+                }
             } else {
                 break;
             }
         }
 
-        if line_names.len() > MAX_GRID_LINE as usize {
-            line_names.truncate(MAX_GRID_LINE as usize);
-        }
+        debug_assert!(line_names.len() <= MAX_GRID_LINE as usize);
 
         let (fill_start, fill_len) = fill_data.unwrap_or((0, 0));
 
@@ -742,14 +753,14 @@ impl ToCss for LineNameList {
             if let Some((ref first, rest)) = names.split_first() {
                 first.to_css(dest)?;
                 for name in rest {
-                    dest.write_str(" ")?;
+                    dest.write_char(' ')?;
                     name.to_css(dest)?;
                 }
             }
 
-            dest.write_str("]")?;
+            dest.write_char(']')?;
             if fill_len > 0 && i == fill_start + fill_len - 1 {
-                dest.write_str(")")?;
+                dest.write_char(')')?;
             }
         }
 
@@ -770,6 +781,7 @@ impl ToCss for LineNameList {
     ToResolvedValue,
     ToShmem,
 )]
+#[value_info(other_values = "subgrid")]
 #[repr(C, u8)]
 pub enum GenericGridTemplateComponent<L, I> {
     /// `none` value.

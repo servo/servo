@@ -39,7 +39,7 @@ impl ToCss for PiecewiseLinearFunctionEntry {
         W: fmt::Write,
     {
         self.y.to_css(dest)?;
-        dest.write_str(" ")?;
+        dest.write_char(' ')?;
         Percentage(self.x).to_css(dest)
     }
 }
@@ -230,7 +230,10 @@ impl PiecewiseLinearFunctionBuilder {
         }
         // Guaranteed at least two elements.
         // Start element's x value should've been assigned when the first value was pushed.
-        debug_assert!(self.entries[0].x.is_some(), "Expected an entry with x defined!");
+        debug_assert!(
+            self.entries[0].x.is_some(),
+            "Expected an entry with x defined!"
+        );
         // Spec asserts that if the last entry does not have an x value, it is assigned the largest seen x value.
         self.entries
             .last_mut()

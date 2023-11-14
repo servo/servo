@@ -26,7 +26,6 @@ use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, Keyf
 use crate::stylesheets::layer_rule::LayerOrder;
 use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::{Time, TimingFunction};
-use crate::values::generics::box_::AnimationIterationCount;
 use crate::values::generics::easing::BeforeFlag;
 use crate::Atom;
 use fxhash::FxHashMap;
@@ -90,7 +89,8 @@ impl PropertyAnimation {
         // and whether the iteration is reversed. For now, we skip this calculation
         // by treating as if the flag is unset at all times.
         // https://drafts.csswg.org/css-easing/#step-timing-function-algo
-        self.timing_function.calculate_output(progress, BeforeFlag::Unset, epsilon)
+        self.timing_function
+            .calculate_output(progress, BeforeFlag::Unset, epsilon)
     }
 
     /// Update the given animation at a given point of progress.
@@ -258,6 +258,7 @@ impl IntermediateComputedKeyframe {
         let inputs = CascadeInputs {
             rules: new_node,
             visited_rules: base_style.visited_rules().cloned(),
+            flags: base_style.flags.for_cascade_inputs(),
         };
         resolver
             .cascade_style_and_visited_with_default_parents(inputs)
@@ -1336,9 +1337,11 @@ pub fn maybe_start_animations<E>(
         // animation begins in a finished state.
         let delay = style.animation_delay_mod(i).seconds();
 
-        let iteration_state = match style.animation_iteration_count_mod(i) {
-            AnimationIterationCount::Infinite => KeyframesIterationState::Infinite(0.0),
-            AnimationIterationCount::Number(n) => KeyframesIterationState::Finite(0.0, n.into()),
+        let iteration_count = style.animation_iteration_count_mod(i);
+        let iteration_state = if iteration_count.0.is_infinite() {
+            KeyframesIterationState::Infinite(0.0)
+        } else {
+            KeyframesIterationState::Finite(0.0, iteration_count.0 as f64)
         };
 
         let animation_direction = style.animation_direction_mod(i);

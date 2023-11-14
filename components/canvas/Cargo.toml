@@ -18,7 +18,7 @@ xr-profile = ["webxr-api/profile", "time"]
 [dependencies]
 bitflags = { workspace = true }
 byteorder = { workspace = true }
-canvas_traits = { path = "../canvas_traits" }
+canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }
@@ -38,12 +38,12 @@ servo_arc = { path = "../servo_arc" }
 servo_config = { path = "../config" }
 sparkle = { workspace = true }
 style = { path = "../style" }
-style_traits = { path = "../style_traits" }
+style_traits = { workspace = true }
 surfman = { workspace = true }
 time = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_surfman = { path = "../webrender_surfman" }
-webrender_traits = { path = "../webrender_traits" }
+webrender_traits = { workspace = true }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc"] }
