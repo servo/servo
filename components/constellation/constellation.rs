@@ -223,8 +223,8 @@ struct WebrenderWGPU {
     wgpu_image_map: Arc<Mutex<HashMap<u64, webgpu::PresentationData>>>,
 }
 
-/// Servo supports tabs (referred to as browsers), so `Constellation` needs to
-/// store browser specific data for bookkeeping.
+/// Servo supports multiple top-level browsing contexts or “browsers”, so `Constellation` needs to
+/// store browser-specific data for bookkeeping.
 struct Browser {
     /// The currently focused browsing context in this browser for key events.
     /// The focused pipeline is the current entry of the focused browsing
@@ -325,12 +325,11 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     /// constellation to send messages to the compositor thread.
     compositor_proxy: CompositorProxy,
 
-    /// The last frame tree sent to WebRender, denoting the browser (tab) user
-    /// has currently selected. This also serves as the key to retrieve data
-    /// about the current active browser from `browsers`.
-    active_browser_id: Option<TopLevelBrowsingContextId>,
+    /// The top-level browsing context that is currently focused. This also serves as the key to
+    /// retrieve data about the currently focused browser from `browsers`.
+    focused_browser_id: Option<TopLevelBrowsingContextId>,
 
-    /// Bookkeeping data for all browsers in constellation.
+    /// Bookkeeping data for all browsers in the constellation.
     browsers: HashMap<TopLevelBrowsingContextId, Browser>,
 
     /// Channels for the constellation to send messages to the public
@@ -758,7 +757,7 @@ where
                     network_listener_receiver: network_listener_receiver,
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy,
-                    active_browser_id: None,
+                    focused_browser_id: None,
                     browsers: HashMap::new(),
                     devtools_sender: state.devtools_sender,
                     bluetooth_ipc_sender: state.bluetooth_thread,
@@ -1352,9 +1351,7 @@ where
                 self.handle_get_pipeline(browsing_context_id, response_sender);
             },
             FromCompositorMsg::GetFocusTopLevelBrowsingContext(resp_chan) => {
-                // The focused browsing context's top-level browsing context is
-                // the active browser's id itself.
-                let _ = resp_chan.send(self.active_browser_id);
+                let _ = resp_chan.send(self.focused_browser_id);
             },
             FromCompositorMsg::Keyboard(key_event) => {
                 self.handle_key_msg(key_event);
@@ -2996,8 +2993,9 @@ where
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
         self.browsers.remove(&top_level_browsing_context_id);
-        if self.active_browser_id == Some(top_level_browsing_context_id) {
-            self.active_browser_id = None;
+        if self.focused_browser_id == Some(top_level_browsing_context_id) {
+            // TODO on close: focus last tlbc; notify embedder?
+            self.focused_browser_id = None;
         }
         let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
             Some(bc) => bc,
@@ -4010,7 +4008,7 @@ where
     fn handle_ime_dismissed(&mut self) {
         // Send to the focused browsing contexts' current pipeline.
         let focused_browsing_context_id = self
-            .active_browser_id
+            .focused_browser_id
             .and_then(|browser_id| self.browsers.get(&browser_id))
             .map(|browser| browser.focused_browsing_context_id);
         if let Some(browsing_context_id) = focused_browsing_context_id {
@@ -4041,7 +4039,7 @@ where
         // Send to the focused browsing contexts' current pipeline.  If it
         // doesn't exist, fall back to sending to the compositor.
         let focused_browsing_context_id = self
-            .active_browser_id
+            .focused_browser_id
             .and_then(|browser_id| self.browsers.get(&browser_id))
             .map(|browser| browser.focused_browsing_context_id);
         match focused_browsing_context_id {
@@ -4746,7 +4744,7 @@ where
         browsing_context_id: BrowsingContextId,
     ) -> bool {
         let focused_browsing_context_id = self
-            .active_browser_id
+            .focused_browser_id
             .and_then(|browser_id| self.browsers.get(&browser_id))
             .map(|browser| browser.focused_browsing_context_id);
         focused_browsing_context_id.map_or(false, |focus_ctx_id| {
@@ -4905,7 +4903,8 @@ where
         //
         // If there is no focus browsing context yet, the initial page has
         // not loaded, so there is nothing to save yet.
-        let top_level_browsing_context_id = match self.active_browser_id {
+        // TODO figure out what to do about handle_is_ready_to_save_image
+        let top_level_browsing_context_id = match self.focused_browser_id {
             Some(id) => id,
             None => return ReadyToSave::NoTopLevelBrowsingContext,
         };
@@ -5402,7 +5401,7 @@ where
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
-        self.active_browser_id = Some(top_level_browsing_context_id);
+        self.focused_browser_id = Some(top_level_browsing_context_id);
     }
 
     fn handle_media_session_action_msg(&mut self, action: MediaSessionActionType) {
