@@ -3002,8 +3002,17 @@ where
             self.compositor_proxy
                 .send(CompositorMsg::RemoveBrowser(browsing_context.top_level_id));
             // https://html.spec.whatwg.org/multipage/#bcg-remove
-            self.browsing_context_group_set
-                .remove(&browsing_context.bc_group_id);
+            let bc_group_id = browsing_context.bc_group_id;
+            if let Some(bc_group) = self.browsing_context_group_set.get_mut(&bc_group_id) {
+                if !bc_group.top_level_browsing_context_set.remove(&top_level_browsing_context_id) {
+                    warn!("{}: Top-level browsing context not found in {}", top_level_browsing_context_id, bc_group_id);
+                }
+                if bc_group.top_level_browsing_context_set.is_empty() {
+                    self.browsing_context_group_set.remove(&browsing_context.bc_group_id);
+                }
+            } else {
+                warn!("{}: Browsing context group not found!", bc_group_id);
+            };
         }
         debug!("{}: Closed", top_level_browsing_context_id);
     }
