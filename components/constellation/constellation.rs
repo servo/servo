@@ -3778,7 +3778,7 @@ where
         self.notify_history_changed(top_level_browsing_context_id);
 
         self.trim_history(top_level_browsing_context_id);
-        self.update_frame_trees();
+        self.update_frame_tree(top_level_browsing_context_id);
     }
 
     fn update_browsing_context(
@@ -4738,7 +4738,7 @@ where
         }
 
         self.notify_history_changed(change.top_level_browsing_context_id);
-        self.update_frame_trees();
+        self.update_frame_tree(change.top_level_browsing_context_id);
     }
 
     fn focused_browsing_context_is_descendant_of(
@@ -5385,17 +5385,8 @@ where
             })
     }
 
-    /// Re-send the frame trees to the compositor.
-    fn update_frame_trees(
-        &mut self,
-    ) {
-        for top_level_browsing_context_id in self.browsers.keys().cloned().collect::<Vec<_>>() {
-            self.send_frame_tree(top_level_browsing_context_id);
-        }
-    }
-
-    /// Send the current frame tree to compositor
-    fn send_frame_tree(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+    /// Send the frame tree for the given browser to the compositor.
+    fn update_frame_tree(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.

@@ -106,7 +106,7 @@ pub enum CompositorMsg {
     ShutdownComplete,
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Replaces the current frame tree, typically called during main frame navigation.
+    /// Add or update a frame tree, typically called during main frame navigation.
     SendFrameTree(SendableFrameTree),
     /// Composite.
     Recomposite(CompositingReason),

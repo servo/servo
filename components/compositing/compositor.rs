@@ -970,18 +970,27 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     fn update_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
         debug!(
-            "Setting the frame tree for pipeline {:?}",
+            "{}: Updating frame tree",
             frame_tree.pipeline.id
         );
 
         if let Some(root_pipeline) = self.root_content_pipelines.iter_mut().find(|p| {
             p.top_level_browsing_context_id == frame_tree.pipeline.top_level_browsing_context_id
         }) {
-            root_pipeline.id = Some(frame_tree.pipeline.id);
+            let new_pipeline_id = Some(frame_tree.pipeline.id);
+            if new_pipeline_id != root_pipeline.id {
+                debug!("{:?}: Changing top-level browsing context from pipeline {:?} to {:?}",
+                    root_pipeline.top_level_browsing_context_id, root_pipeline.id, new_pipeline_id);
+            }
+            root_pipeline.id = new_pipeline_id;
         } else {
+            let top_level_browsing_context_id = frame_tree.pipeline.top_level_browsing_context_id;
+            let pipeline_id = Some(frame_tree.pipeline.id);
+            debug!("{:?}: Pushing new top-level browsing context with pipeline {:?}",
+                top_level_browsing_context_id, pipeline_id);
             self.root_content_pipelines.push(RootPipeline {
-                top_level_browsing_context_id: frame_tree.pipeline.top_level_browsing_context_id,
-                id: Some(frame_tree.pipeline.id),
+                top_level_browsing_context_id: top_level_browsing_context_id,
+                id: pipeline_id,
             });
         }
 
