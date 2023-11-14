@@ -2990,23 +2990,20 @@ where
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
+        debug!("{:?}: Closing", top_level_browsing_context_id);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
+        let browsing_context = self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
         self.browsers.remove(&top_level_browsing_context_id);
         if self.focused_browser_id == Some(top_level_browsing_context_id) {
             // TODO on close: focus last tlbc; notify embedder?
             self.focused_browser_id = None;
         }
-        let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(bc) => bc,
-            None => {
-                warn!("Browsing context closed before it started");
-                return;
-            },
-        };
-        // https://html.spec.whatwg.org/multipage/#bcg-remove
-        self.browsing_context_group_set
-            .remove(&browsing_context.bc_group_id);
+        if let Some(browsing_context) = browsing_context {
+            // https://html.spec.whatwg.org/multipage/#bcg-remove
+            self.browsing_context_group_set
+                .remove(&browsing_context.bc_group_id);
+        }
+        debug!("{:?}: Closed", top_level_browsing_context_id);
     }
 
     fn handle_iframe_size_msg(&mut self, iframe_sizes: Vec<IFrameSizeMsg>) {
@@ -5133,12 +5130,12 @@ where
         }
     }
 
-    // Close a browsing context (and all children)
+    // Close and return the browsing context with the given id (and its children), if it exists.
     fn close_browsing_context(
         &mut self,
         browsing_context_id: BrowsingContextId,
         exit_mode: ExitPipelineMode,
-    ) {
+    ) -> Option<BrowsingContext> {
         debug!("{}: Closing", browsing_context_id);
 
         self.close_browsing_context_children(
@@ -5149,7 +5146,10 @@ where
 
         let browsing_context = match self.browsing_contexts.remove(&browsing_context_id) {
             Some(ctx) => ctx,
-            None => return warn!("{}: Closing twice", browsing_context_id),
+            None => {
+                warn!("{}: Closing twice", browsing_context_id);
+                return None;
+            },
         };
 
         {
@@ -5160,12 +5160,13 @@ where
         if let Some(parent_pipeline_id) = browsing_context.parent_pipeline_id {
             match self.pipelines.get_mut(&parent_pipeline_id) {
                 None => {
-                    return warn!("{}: Child closed after parent", parent_pipeline_id);
+                    warn!("{}: Child closed after parent", parent_pipeline_id);
                 },
                 Some(parent_pipeline) => parent_pipeline.remove_child(browsing_context_id),
             };
         }
         debug!("{}: Closed", browsing_context_id);
+        Some(browsing_context)
     }
 
     // Close the children of a browsing context
