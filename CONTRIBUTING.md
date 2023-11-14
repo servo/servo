@@ -51,7 +51,7 @@ For specific git instructions, see [GitHub workflow 101](https://github.com/serv
 
 ## Running tests in pull requests
 
-When you push to a pull request, GitHub automatically checks that your changes have no compile, lint, or tidy errors.
+When you push to a pull request, GitHub automatically checks that your changes have no compilation, lint, or tidy errors.
 
 To run unit tests or Web Platform Tests against a pull request, add one or more of the labels below to your pull request. If you do not have permission to add labels to your pull request, add a comment on your bug requesting that they be added.
 
