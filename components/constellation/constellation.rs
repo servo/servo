@@ -867,7 +867,7 @@ where
                     .ok_or("Opener was closed before the openee started")?;
                 self.browsing_context_group_set
                     .get(&opener.bc_group_id)
-                    .ok_or("Opener belongs to an unknow BC group")?
+                    .ok_or("Opener belongs to an unknown browsing context group")?
             },
             None => self
                 .browsing_context_group_set
@@ -884,13 +884,13 @@ where
                 })
                 .last()
                 .ok_or(
-                    "Trying to get an event-loop for a top-level belonging to an unknown BC group",
+                    "Trying to get an event-loop for a top-level belonging to an unknown browsing context group",
                 )?,
         };
         bc_group
             .event_loops
             .get(host)
-            .ok_or("Trying to get an event-loop from an unknown BC group")
+            .ok_or("Trying to get an event-loop from an unknown browsing context group")
             .map(|event_loop| event_loop.clone())
     }
 
@@ -929,7 +929,7 @@ where
         let bc_group_id = match maybe_bc_group_id {
             Some(id) => id,
             None => {
-                warn!("Trying to add an event-loop to an unknown BC group");
+                warn!("Trying to add an event-loop to an unknown browsing context group");
                 return;
             },
         };
@@ -1412,7 +1412,7 @@ where
                     },
                     None => {
                         return warn!(
-                            "{}: AllowNavigationReqsponse for unknown request",
+                            "{}: AllowNavigationResponse for unknown request",
                             pipeline_id
                         );
                     },
@@ -3001,7 +3001,7 @@ where
         let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
             Some(bc) => bc,
             None => {
-                warn!("Browsing context has closed before it has started");
+                warn!("Browsing context closed before it started");
                 return;
             },
         };
@@ -3316,7 +3316,7 @@ where
         let opener = match self.browsing_contexts.get(&opener_browsing_context_id) {
             Some(id) => id,
             None => {
-                warn!("Trying to append an unknown auxiliary to a BC group");
+                warn!("Trying to append an unknown auxiliary to a browsing context group");
                 return;
             },
         };
