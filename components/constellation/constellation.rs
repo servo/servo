@@ -327,7 +327,7 @@ pub struct Constellation<Message, LTF, STF, SWF> {
 
     /// The top-level browsing context that is currently focused. This also serves as the key to
     /// retrieve data about the currently focused browser from `browsers`.
-    focused_browser_id: Option<TopLevelBrowsingContextId>,
+    last_focused_browser_ids: Vec<TopLevelBrowsingContextId>,
 
     /// Bookkeeping data for all browsers in the constellation.
     browsers: HashMap<TopLevelBrowsingContextId, Browser>,
@@ -757,7 +757,7 @@ where
                     network_listener_receiver: network_listener_receiver,
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy,
-                    focused_browser_id: None,
+                    last_focused_browser_ids: vec![],
                     browsers: HashMap::new(),
                     devtools_sender: state.devtools_sender,
                     bluetooth_ipc_sender: state.bluetooth_thread,
@@ -1351,7 +1351,7 @@ where
                 self.handle_get_pipeline(browsing_context_id, response_sender);
             },
             FromCompositorMsg::GetFocusTopLevelBrowsingContext(resp_chan) => {
-                let _ = resp_chan.send(self.focused_browser_id);
+                let _ = resp_chan.send(self.last_focused_browser_ids.first().cloned());
             },
             FromCompositorMsg::Keyboard(key_event) => {
                 self.handle_key_msg(key_event);
@@ -1482,8 +1482,7 @@ where
             },
             // Make the given top-level browsing context active.
             FromCompositorMsg::SelectBrowser(top_level_browsing_context_id) => {
-                // self.send_frame_tree(top_level_browsing_context_id);
-                self.handle_select_browser_msg(top_level_browsing_context_id);
+                self.focus_browser(top_level_browsing_context_id);
             },
             // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(top_level_browsing_context_id, direction) => {
@@ -1546,7 +1545,7 @@ where
 
     fn handle_request_from_script(&mut self, message: (PipelineId, FromScriptMsg)) {
         let (source_pipeline_id, content) = message;
-        debug!(
+        trace!(
             "{}: Message from pipeline: {:?}",
             source_pipeline_id, content,
         );
@@ -2994,10 +2993,10 @@ where
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let browsing_context = self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
         self.browsers.remove(&top_level_browsing_context_id);
-        if self.focused_browser_id == Some(top_level_browsing_context_id) {
-            // TODO on close: focus last tlbc; notify embedder?
-            self.focused_browser_id = None;
-        }
+
+        // TODO notify embedder?
+        self.last_focused_browser_ids.retain(|id| *id != top_level_browsing_context_id);
+
         if let Some(browsing_context) = browsing_context {
             self.compositor_proxy
                 .send(CompositorMsg::RemoveBrowser(browsing_context.top_level_id));
@@ -3784,7 +3783,7 @@ where
         self.notify_history_changed(top_level_browsing_context_id);
 
         self.trim_history(top_level_browsing_context_id);
-        self.update_frame_tree(top_level_browsing_context_id);
+        self.update_browser(top_level_browsing_context_id);
     }
 
     fn update_browsing_context(
@@ -4016,7 +4015,8 @@ where
     fn handle_ime_dismissed(&mut self) {
         // Send to the focused browsing contexts' current pipeline.
         let focused_browsing_context_id = self
-            .focused_browser_id
+            .last_focused_browser_ids
+            .first()
             .and_then(|browser_id| self.browsers.get(&browser_id))
             .map(|browser| browser.focused_browsing_context_id);
         if let Some(browsing_context_id) = focused_browsing_context_id {
@@ -4047,8 +4047,9 @@ where
         // Send to the focused browsing contexts' current pipeline.  If it
         // doesn't exist, fall back to sending to the compositor.
         let focused_browsing_context_id = self
-            .focused_browser_id
-            .and_then(|browser_id| self.browsers.get(&browser_id))
+            .last_focused_browser_ids
+            .first()
+            .and_then(|browser_id| dbg!(&self.browsers).get(&dbg!(browser_id)))
             .map(|browser| browser.focused_browsing_context_id);
         match focused_browsing_context_id {
             Some(browsing_context_id) => {
@@ -4074,6 +4075,7 @@ where
                 }
             },
             None => {
+                warn!("No focused browsing context! Falling back to sending key to compositor");
                 let event = (None, EmbedderMsg::Keyboard(event));
                 self.embedder_proxy.send(event);
             },
@@ -4744,7 +4746,7 @@ where
         }
 
         self.notify_history_changed(change.top_level_browsing_context_id);
-        self.update_frame_tree(change.top_level_browsing_context_id);
+        self.update_browser(change.top_level_browsing_context_id);
     }
 
     fn focused_browsing_context_is_descendant_of(
@@ -4752,7 +4754,8 @@ where
         browsing_context_id: BrowsingContextId,
     ) -> bool {
         let focused_browsing_context_id = self
-            .focused_browser_id
+            .last_focused_browser_ids
+            .first()
             .and_then(|browser_id| self.browsers.get(&browser_id))
             .map(|browser| browser.focused_browsing_context_id);
         focused_browsing_context_id.map_or(false, |focus_ctx_id| {
@@ -4912,8 +4915,8 @@ where
         // If there is no focus browsing context yet, the initial page has
         // not loaded, so there is nothing to save yet.
         // TODO figure out what to do about handle_is_ready_to_save_image
-        let top_level_browsing_context_id = match self.focused_browser_id {
-            Some(id) => id,
+        let top_level_browsing_context_id = match self.last_focused_browser_ids.first() {
+            Some(&id) => id,
             None => return ReadyToSave::NoTopLevelBrowsingContext,
         };
 
@@ -5397,7 +5400,7 @@ where
     }
 
     /// Send the frame tree for the given browser to the compositor.
-    fn update_frame_tree(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+    fn update_browser(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
@@ -5409,11 +5412,12 @@ where
         }
     }
 
-    fn handle_select_browser_msg(
+    fn focus_browser(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
-        self.focused_browser_id = Some(top_level_browsing_context_id);
+        self.last_focused_browser_ids.retain(|id| *id != top_level_browsing_context_id);
+        self.last_focused_browser_ids.insert(0, top_level_browsing_context_id);
     }
 
     fn handle_media_session_action_msg(&mut self, action: MediaSessionActionType) {
