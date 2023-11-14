@@ -5071,8 +5071,9 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
+source = "git+https://github.com/servo/media#97515f64c551e37854c6e29eff93988c4d0ee152"
 dependencies = [
+ "once_cell",
  "servo-media-audio",
  "servo-media-player",
  "servo-media-streams",
@@ -5083,7 +5084,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.2.0"
-source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
+source = "git+https://github.com/servo/media#97515f64c551e37854c6e29eff93988c4d0ee152"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5190,7 +5191,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
+source = "git+https://github.com/servo/media#97515f64c551e37854c6e29eff93988c4d0ee152"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -5202,7 +5203,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
+source = "git+https://github.com/servo/media#97515f64c551e37854c6e29eff93988c4d0ee152"
 dependencies = [
  "lazy_static",
  "uuid",
@@ -5211,12 +5212,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
+source = "git+https://github.com/servo/media#97515f64c551e37854c6e29eff93988c4d0ee152"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
+source = "git+https://github.com/servo/media#97515f64c551e37854c6e29eff93988c4d0ee152"
 dependencies = [
  "boxfnonce",
  "lazy_static",
@@ -5293,7 +5294,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#8ea11a849d5c2f0e469d1d1ccad93a74fbd81462"
+source = "git+https://github.com/servo/media#97515f64c551e37854c6e29eff93988c4d0ee152"
 dependencies = [
  "proc-macro2",
  "quote",
