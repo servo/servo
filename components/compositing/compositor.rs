@@ -119,9 +119,9 @@ impl FrameTreeId {
 #[derive(Clone, Copy, Debug)]
 enum LayerPixel {}
 
-struct RootPipeline {
+struct Browser {
     top_level_browsing_context_id: TopLevelBrowsingContextId,
-    id: Option<PipelineId>,
+    pipeline_id: Option<PipelineId>,
 }
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
@@ -132,10 +132,9 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// The port on which we receive messages.
     port: CompositorReceiver,
 
-    /// The root content pipeline ie the pipeline which contains the main frame
-    /// to display. In the WebRender scene, this will be the only child of another
-    /// pipeline which applies a pinch zoom transformation.
-    root_content_pipelines: Vec<RootPipeline>,
+    /// The top-level browsing contexts in painting order. In the WebRender scene, these are the
+    /// children of a single root pipeline that also applies any pinch zoom transformation.
+    browsers: Vec<Browser>,
 
     /// Tracks details about each active pipeline that the compositor knows about.
     pipeline_details: HashMap<PipelineId, PipelineDetails>,
@@ -374,9 +373,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             embedder_coordinates: window.get_coordinates(),
             window,
             port: state.receiver,
-            root_content_pipelines: vec![RootPipeline {
+            browsers: vec![Browser {
                 top_level_browsing_context_id,
-                id: None,
+                pipeline_id: None,
             }],
             pipeline_details: HashMap::new(),
             scale: Scale::new(1.0),
@@ -947,8 +946,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let mut current_viewport_rect = viewport_rect.clone();
         current_viewport_rect.size.width /= 2.0;
         current_viewport_rect.size.height /= 2.0;
-        for root_pipeline in self.root_content_pipelines.iter() {
-            if let Some(pipeline_id) = root_pipeline.id {
+        for browser in self.browsers.iter() {
+            if let Some(pipeline_id) = browser.pipeline_id {
                 builder.push_iframe(
                     current_viewport_rect,
                     current_viewport_rect,
@@ -982,23 +981,23 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             frame_tree.pipeline.id
         );
 
-        if let Some(root_pipeline) = self.root_content_pipelines.iter_mut().find(|p| {
+        if let Some(browser) = self.browsers.iter_mut().find(|p| {
             p.top_level_browsing_context_id == frame_tree.pipeline.top_level_browsing_context_id
         }) {
             let new_pipeline_id = Some(frame_tree.pipeline.id);
-            if new_pipeline_id != root_pipeline.id {
+            if new_pipeline_id != browser.pipeline_id {
                 debug!("{:?}: Changing top-level browsing context from pipeline {:?} to {:?}",
-                    root_pipeline.top_level_browsing_context_id, root_pipeline.id, new_pipeline_id);
+                    browser.top_level_browsing_context_id, browser.pipeline_id, new_pipeline_id);
             }
-            root_pipeline.id = new_pipeline_id;
+            browser.pipeline_id = new_pipeline_id;
         } else {
             let top_level_browsing_context_id = frame_tree.pipeline.top_level_browsing_context_id;
             let pipeline_id = Some(frame_tree.pipeline.id);
             debug!("{:?}: Pushing new top-level browsing context with pipeline {:?}",
                 top_level_browsing_context_id, pipeline_id);
-            self.root_content_pipelines.push(RootPipeline {
+            self.browsers.push(Browser {
                 top_level_browsing_context_id: top_level_browsing_context_id,
-                id: pipeline_id,
+                pipeline_id,
             });
         }
 
@@ -1016,11 +1015,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     fn remove_browser(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         debug!("{}: Removing", top_level_browsing_context_id);
-        let root = if let Some(index) = self.root_content_pipelines.iter().enumerate()
-            .find(|(_, root)| root.top_level_browsing_context_id == top_level_browsing_context_id)
+        let browser = if let Some(index) = self.browsers.iter().enumerate()
+            .find(|(_, b)| b.top_level_browsing_context_id == top_level_browsing_context_id)
             .map(|(index, _)| index)
         {
-            self.root_content_pipelines.remove(index)
+            self.browsers.remove(index)
         } else {
             return;
         };
@@ -1031,7 +1030,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
 
-        if let Some(pipeline_id) = root.id {
+        if let Some(pipeline_id) = browser.pipeline_id {
             self.remove_pipeline_details_tree(pipeline_id);
         }
 
@@ -1111,8 +1110,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             initial_viewport: initial_viewport,
         };
 
-        for root_pipeline in self.root_content_pipelines.iter() {
-            let top_level_browsing_context_id = root_pipeline.top_level_browsing_context_id;
+        for browser in self.browsers.iter() {
+            let top_level_browsing_context_id = browser.top_level_browsing_context_id;
             let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
             if let Err(e) = self.constellation_chan.send(msg) {
                 warn!("Sending window resize to constellation failed ({:?}).", e);
@@ -1207,11 +1206,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         pipeline_id: Option<WebRenderPipelineId>,
     ) -> Vec<CompositorHitTestResult> {
         // TODO handle multiple root pipelines
-        let root_pipeline = match self.root_content_pipelines.first() {
-            Some(root_pipeline) => root_pipeline,
+        let browser = match self.browsers.first() {
+            Some(browser) => browser,
             None => return vec![],
         };
-        let root_pipeline_id = match root_pipeline.id {
+        let root_pipeline_id = match browser.pipeline_id {
             Some(root_pipeline_id) => root_pipeline_id,
             None => return vec![],
         };
@@ -1933,9 +1932,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // Nottify embedder that servo is ready to present.
         // Embedder should call `present` to tell compositor to continue rendering.
         self.waiting_on_present = true;
-        for root_pipeline in self.root_content_pipelines.iter() {
+        for browser in self.browsers.iter() {
             let msg =
-                ConstellationMsg::ReadyToPresent(root_pipeline.top_level_browsing_context_id);
+                ConstellationMsg::ReadyToPresent(browser.top_level_browsing_context_id);
             if let Err(e) = self.constellation_chan.send(msg) {
                 warn!("Sending event to constellation failed ({:?}).", e);
             }
