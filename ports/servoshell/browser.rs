@@ -414,7 +414,7 @@ where
                     self.browsers.push(new_browser_id);
                     self.focused_browser_id = Some(new_browser_id);
                     self.event_queue
-                        .push(EmbedderEvent::ShowBrowser(new_browser_id));
+                        .push(EmbedderEvent::RaiseBrowserToTop(new_browser_id));
                     self.event_queue
                         .push(EmbedderEvent::FocusBrowser(new_browser_id));
                 },

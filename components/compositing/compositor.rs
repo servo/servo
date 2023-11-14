@@ -526,6 +526,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.browsers.hide(top_level_browsing_context_id);
             },
 
+            (CompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
+                self.browsers.raise_to_top(top_level_browsing_context_id);
+            },
+
             (CompositorMsg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
                 self.waiting_on_pending_frame = false;
                 self.composition_request = CompositionRequest::CompositeNow(reason)

@@ -114,6 +114,8 @@ pub enum CompositorMsg {
     ShowBrowser(TopLevelBrowsingContextId),
     /// Make a browser invisible.
     HideBrowser(TopLevelBrowsingContextId),
+    /// Make a browser visible and paint on top of all others.
+    RaiseBrowserToTop(TopLevelBrowsingContextId),
     /// Composite.
     Recomposite(CompositingReason),
     /// Script has handled a touch event, and either prevented or allowed default actions.
@@ -203,6 +205,7 @@ impl Debug for CompositorMsg {
             CompositorMsg::RemoveBrowser(..) => write!(f, "RemoveBrowser"),
             CompositorMsg::ShowBrowser(..) => write!(f, "ShowBrowser"),
             CompositorMsg::HideBrowser(..) => write!(f, "HideBrowser"),
+            CompositorMsg::RaiseBrowserToTop(..) => write!(f, "RaiseBrowserToTop"),
             CompositorMsg::Recomposite(..) => write!(f, "Recomposite"),
             CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),

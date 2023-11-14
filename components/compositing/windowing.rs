@@ -91,6 +91,8 @@ pub enum EmbedderEvent {
     ShowBrowser(TopLevelBrowsingContextId),
     /// Make a top-level browsing context invisible.
     HideBrowser(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context visible and paint on top of all others.
+    RaiseBrowserToTop(TopLevelBrowsingContextId),
     /// Make a top-level browsing context focused.
     FocusBrowser(TopLevelBrowsingContextId),
     /// Make none of the top-level browsing contexts focused.
@@ -137,6 +139,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::CloseBrowser(..) => write!(f, "CloseBrowser"),
             EmbedderEvent::ShowBrowser(..) => write!(f, "ShowBrowser"),
             EmbedderEvent::HideBrowser(..) => write!(f, "HideBrowser"),
+            EmbedderEvent::RaiseBrowserToTop(..) => write!(f, "RaiseBrowserToTop"),
             EmbedderEvent::FocusBrowser(..) => write!(f, "FocusBrowser"),
             EmbedderEvent::UnfocusBrowser => write!(f, "UnfocusBrowser"),
             EmbedderEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),

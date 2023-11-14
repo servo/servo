@@ -10,9 +10,6 @@ pub struct BrowserManager {
 
     /// The order to paint them in, topmost last.
     painting_order: Vec<TopLevelBrowsingContextId>,
-
-    // /// The order in which they were focused, latest first.
-    // focus_order: Vec<TopLevelBrowsingContextId>,
 }
 
 #[derive(Debug)]

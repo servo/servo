@@ -64,6 +64,8 @@ pub enum ConstellationMsg {
     ShowBrowser(TopLevelBrowsingContextId),
     /// Make a top-level browsing context invisible.
     HideBrowser(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context visible and paint on top of all others.
+    RaiseBrowserToTop(TopLevelBrowsingContextId),
     /// Make a top-level browsing context focused.
     FocusBrowser(TopLevelBrowsingContextId),
     /// Make none of the top-level browsing contexts focused.
@@ -110,6 +112,7 @@ impl fmt::Debug for ConstellationMsg {
             CloseBrowser(..) => "CloseBrowser",
             ShowBrowser(..) => "ShowBrowser",
             HideBrowser(..) => "HideBrowser",
+            RaiseBrowserToTop(..) => "RaiseBrowserToTop",
             FocusBrowser(..) => "FocusBrowser",
             UnfocusBrowser => "UnfocusBrowser",
             SendError(..) => "SendError",

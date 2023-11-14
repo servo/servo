@@ -1487,6 +1487,9 @@ where
             FromCompositorMsg::HideBrowser(top_level_browsing_context_id) => {
                 self.compositor_proxy.send(CompositorMsg::HideBrowser(top_level_browsing_context_id));
             },
+            FromCompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id) => {
+                self.compositor_proxy.send(CompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id));
+            },
             FromCompositorMsg::FocusBrowser(top_level_browsing_context_id) => {
                 self.browsers.focus(top_level_browsing_context_id);
             },
