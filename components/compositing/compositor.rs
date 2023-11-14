@@ -280,6 +280,9 @@ struct PipelineDetails {
     /// The pipeline associated with this PipelineDetails object.
     pipeline: Option<CompositionPipeline>,
 
+    /// The id of the parent pipeline, if any.
+    parent_pipeline_id: Option<PipelineId>,
+
     /// The epoch of the most recent display list for this pipeline. Note that this display
     /// list might not be displayed, as WebRender processes display lists asynchronously.
     most_recent_display_list_epoch: Option<WebRenderEpoch>,
@@ -306,6 +309,7 @@ impl PipelineDetails {
     fn new() -> PipelineDetails {
         PipelineDetails {
             pipeline: None,
+            parent_pipeline_id: None,
             most_recent_display_list_epoch: None,
             animations_running: false,
             animation_callbacks_running: false,
@@ -510,9 +514,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.change_running_animations_state(pipeline_id, animation_state);
             },
 
-            (CompositorMsg::SendFrameTree(frame_tree), ShutdownState::NotShuttingDown) => {
-                self.update_frame_tree(&frame_tree);
+            (CompositorMsg::UpdateBrowser(frame_tree), ShutdownState::NotShuttingDown) => {
+                self.update_browser(&frame_tree);
                 self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
+            },
+
+            (CompositorMsg::RemoveBrowser(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
+                self.remove_browser(top_level_browsing_context_id);
             },
 
             (CompositorMsg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
@@ -968,9 +976,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         );
     }
 
-    fn update_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
+    fn update_browser(&mut self, frame_tree: &SendableFrameTree) {
         debug!(
-            "{}: Updating frame tree",
+            "{}: Updating browser",
             frame_tree.pipeline.id
         );
 
@@ -1000,8 +1008,32 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
 
-        self.update_pipeline_details_for_frame_tree(&frame_tree);
+        self.update_pipeline_details_tree(&frame_tree, None);
         self.reset_scroll_tree_for_unattached_pipelines(&frame_tree);
+
+        self.frame_tree_id.next();
+    }
+
+    fn remove_browser(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+        debug!("{}: Removing", top_level_browsing_context_id);
+        let root = if let Some(index) = self.root_content_pipelines.iter().enumerate()
+            .find(|(_, root)| root.top_level_browsing_context_id == top_level_browsing_context_id)
+            .map(|(index, _)| index)
+        {
+            self.root_content_pipelines.remove(index)
+        } else {
+            return;
+        };
+
+        let mut txn = Transaction::new();
+        self.set_root_content_pipeline_handling_pinch_zoom(&mut txn);
+        txn.generate_frame(0);
+        self.webrender_api
+            .send_transaction(self.webrender_document, txn);
+
+        if let Some(pipeline_id) = root.id {
+            self.remove_pipeline_details_tree(pipeline_id);
+        }
 
         self.frame_tree_id.next();
     }
@@ -1033,11 +1065,27 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             })
     }
 
-    fn update_pipeline_details_for_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
-        self.pipeline_details(frame_tree.pipeline.id).pipeline = Some(frame_tree.pipeline.clone());
+    fn update_pipeline_details_tree(&mut self, frame_tree: &SendableFrameTree, parent_pipeline_id: Option<PipelineId>) {
+        let pipeline_id = frame_tree.pipeline.id;
+        let pipeline_details = self.pipeline_details(pipeline_id);
+        pipeline_details.pipeline = Some(frame_tree.pipeline.clone());
+        pipeline_details.parent_pipeline_id = parent_pipeline_id;
 
         for kid in &frame_tree.children {
-            self.update_pipeline_details_for_frame_tree(kid);
+            self.update_pipeline_details_tree(kid, Some(pipeline_id));
+        }
+    }
+
+    fn remove_pipeline_details_tree(&mut self, pipeline_id: PipelineId) {
+        self.pipeline_details.remove(&pipeline_id);
+
+        let children = self.pipeline_details.iter()
+            .filter(|(_, pipeline_details)| pipeline_details.parent_pipeline_id == Some(pipeline_id))
+            .map(|(&pipeline_id, _)| pipeline_id)
+            .collect::<Vec<_>>();
+
+        for kid in children {
+            self.remove_pipeline_details_tree(kid);
         }
     }
 

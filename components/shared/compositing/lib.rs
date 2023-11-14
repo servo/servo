@@ -106,8 +106,10 @@ pub enum CompositorMsg {
     ShutdownComplete,
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Add or update a frame tree, typically called during main frame navigation.
-    SendFrameTree(SendableFrameTree),
+    /// Add or update a browser, given its frame tree.
+    UpdateBrowser(SendableFrameTree),
+    /// Remove a browser.
+    RemoveBrowser(TopLevelBrowsingContextId),
     /// Composite.
     Recomposite(CompositingReason),
     /// Script has handled a touch event, and either prevented or allowed default actions.
@@ -193,7 +195,8 @@ impl Debug for CompositorMsg {
             CompositorMsg::ChangeRunningAnimationsState(_, state) => {
                 write!(f, "ChangeRunningAnimationsState({:?})", state)
             },
-            CompositorMsg::SendFrameTree(..) => write!(f, "SendFrameTree"),
+            CompositorMsg::UpdateBrowser(..) => write!(f, "UpdateBrowser"),
+            CompositorMsg::RemoveBrowser(..) => write!(f, "RemoveBrowser"),
             CompositorMsg::Recomposite(..) => write!(f, "Recomposite"),
             CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),

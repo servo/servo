@@ -2990,7 +2990,7 @@ where
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
-        debug!("{:?}: Closing", top_level_browsing_context_id);
+        debug!("{}: Closing", top_level_browsing_context_id);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let browsing_context = self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
         self.browsers.remove(&top_level_browsing_context_id);
@@ -2999,11 +2999,13 @@ where
             self.focused_browser_id = None;
         }
         if let Some(browsing_context) = browsing_context {
+            self.compositor_proxy
+                .send(CompositorMsg::RemoveBrowser(browsing_context.top_level_id));
             // https://html.spec.whatwg.org/multipage/#bcg-remove
             self.browsing_context_group_set
                 .remove(&browsing_context.bc_group_id);
         }
-        debug!("{:?}: Closed", top_level_browsing_context_id);
+        debug!("{}: Closed", top_level_browsing_context_id);
     }
 
     fn handle_iframe_size_msg(&mut self, iframe_sizes: Vec<IFrameSizeMsg>) {
@@ -5394,7 +5396,7 @@ where
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
             debug!("{}: Sending frame tree", browsing_context_id);
             self.compositor_proxy
-                .send(CompositorMsg::SendFrameTree(frame_tree));
+                .send(CompositorMsg::UpdateBrowser(frame_tree));
         }
     }
 
