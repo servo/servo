@@ -53,19 +53,15 @@ For specific git instructions, see [GitHub workflow 101](https://github.com/serv
 
 When you push to a pull request, GitHub automatically checks that your changes have no compile, lint, or tidy errors.
 
-To run unit tests or Web Platform Tests against a pull request, you can mention [@bors-servo](https://github.com/bors-servo) in a comment, or add one or more labels to your pull request:
+To run unit tests or Web Platform Tests against a pull request, add one or more of the labels below to your pull request:
 
-| comment | label |
+| Label | Effect |
 |---|---|
-| `@bors-servo try`<br>`@bors-servo try=full` | `T-full` |
-| `@bors-servo try=wpt-2013`<br>`@bors-servo try=wpt`<sup>1</sup> | `T-linux-wpt-2013` |
-| `@bors-servo try=wpt-2020` | `T-linux-wpt-2020` |
-| `@bors-servo try=linux` | `T-linux-wpt-2020`<sup>2</sup> |
-| `@bors-servo try=macos` | `T-macos` |
-| `@bors-servo try=windows` | `T-windows` |
-
-1. this will become equivalent to `try=wpt-2020` at some point
-2. unlike `try=linux`, this runs WPT tests too, not just unit tests
+| `T-full` | Unit tests: Linux, macOS, Windows<br>Layout tests: Linux, macOS<br>Legacy layout tests: Linux, macOS |
+| `T-linux-wpt-2013` | Unit tests: Linux<br>Legacy layout tests: Linux |
+| `T-linux-wpt-2020` | Unit tests: Linux<br>Layout tests: Linux |
+| `T-macos` | Unit tests: macOS |
+| `T-windows` | Unit tests: Windows |
 
 ## Conduct
 
