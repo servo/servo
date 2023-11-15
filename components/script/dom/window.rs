@@ -794,7 +794,7 @@ impl WindowMethods for Window {
                         // Step 2, unload.
                         document.unload(false);
                         // Step 3, remove from the user interface
-                        let _ = window.send_to_embedder(EmbedderMsg::CloseBrowser(top_level_browsing_context_id));
+                        let _ = window.send_to_embedder(EmbedderMsg::BrowserClosed(top_level_browsing_context_id));
                         // Step 4, discard browsing context.
                         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
                         // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.

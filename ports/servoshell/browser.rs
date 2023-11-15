@@ -412,11 +412,22 @@ where
                 },
                 EmbedderMsg::BrowserCreated(new_browser_id) => {
                     self.browsers.push(new_browser_id);
-                    self.focused_browser_id = Some(new_browser_id);
                     self.event_queue
                         .push(EmbedderEvent::RaiseBrowserToTop(new_browser_id));
                     self.event_queue
                         .push(EmbedderEvent::FocusBrowser(new_browser_id));
+                },
+                EmbedderMsg::BrowserClosed(top_level_browsing_context_id) => {
+                    self.browsers.retain(|b| *b != top_level_browsing_context_id);
+                    if self.browsers.is_empty() {
+                        self.event_queue.push(EmbedderEvent::Quit);
+                    }
+                },
+                EmbedderMsg::BrowserFocused(top_level_browsing_context_id) => {
+                    self.focused_browser_id = Some(top_level_browsing_context_id);
+                },
+                EmbedderMsg::BrowserUnfocused => {
+                    self.focused_browser_id = None;
                 },
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(browser_id, key_event);
@@ -462,18 +473,6 @@ where
                 },
                 EmbedderMsg::LoadComplete => {
                     // FIXME: surface the loading state in the UI somehow
-                },
-                EmbedderMsg::CloseBrowser(top_level_browsing_context_id) => {
-                    self.browsers.retain(|b| *b != top_level_browsing_context_id);
-                    if let Some(prev_browser_id) = self.browsers.last() {
-                        self.focused_browser_id = Some(*prev_browser_id);
-                        self.event_queue
-                            .push(EmbedderEvent::ShowBrowser(*prev_browser_id));
-                        self.event_queue
-                            .push(EmbedderEvent::FocusBrowser(*prev_browser_id));
-                    } else {
-                        self.event_queue.push(EmbedderEvent::Quit);
-                    }
                 },
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;

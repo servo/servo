@@ -1487,9 +1487,11 @@ where
             },
             FromCompositorMsg::FocusBrowser(top_level_browsing_context_id) => {
                 self.browsers.focus(top_level_browsing_context_id);
+                self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::BrowserFocused(top_level_browsing_context_id)));
             },
             FromCompositorMsg::UnfocusBrowser => {
                 self.browsers.unfocus();
+                self.embedder_proxy.send((None, EmbedderMsg::BrowserUnfocused));
             },
             // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(top_level_browsing_context_id, direction) => {
@@ -3012,6 +3014,9 @@ where
         debug!("{}: Closing", top_level_browsing_context_id);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let browsing_context = self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
+        if self.browsers.focused_browser().map(|(id, _)| id) == Some(top_level_browsing_context_id) {
+            self.embedder_proxy.send((None, EmbedderMsg::BrowserUnfocused));
+        }
         self.browsers.remove(top_level_browsing_context_id);
 
         if let Some(browsing_context) = browsing_context {
@@ -4196,6 +4201,7 @@ where
 
         // Focus the top-level browsing context.
         self.browsers.focus(top_level_browsing_context_id);
+        self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::BrowserFocused(top_level_browsing_context_id)));
 
         // Update the browser’s focused browsing context.
         match self.browsers.get_mut(top_level_browsing_context_id) {

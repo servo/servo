@@ -713,7 +713,7 @@ impl ServoGlue {
                 EmbedderMsg::SetClipboardContents(text) => {
                     self.callbacks.host_callbacks.set_clipboard_contents(text);
                 },
-                EmbedderMsg::CloseBrowser => {
+                EmbedderMsg::BrowserClosed => {
                     // TODO: close the appropriate "tab".
                     let _ = self.browsers.pop();
                     if let Some(prev_browser_id) = self.browsers.last() {
