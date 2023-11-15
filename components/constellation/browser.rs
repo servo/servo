@@ -42,6 +42,24 @@ impl<Browser> BrowserManager<Browser> {
         self.browsers.get_mut(&top_level_browsing_context_id)
     }
 
+    pub fn focused_browser(&self) -> Option<(TopLevelBrowsingContextId, &Browser)> {
+        if !self.is_focused {
+            return None;
+        }
+
+        if let Some(top_level_browsing_context_id) = self.focus_order.last().cloned() {
+            debug_assert!(
+                self.browsers.contains_key(&top_level_browsing_context_id),
+                "BUG: browser in .focus_order not in .browsers!",
+            );
+            self.get(top_level_browsing_context_id)
+                .map(|browser| (top_level_browsing_context_id, browser))
+        } else {
+            debug_assert!(false, "BUG: .is_focused but no browsers in .focus_order!");
+            None
+        }
+    }
+
     pub fn focus(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         debug_assert!(self.browsers.contains_key(&top_level_browsing_context_id));
         self.focus_order.retain(|b| *b != top_level_browsing_context_id);
