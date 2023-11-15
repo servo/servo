@@ -235,7 +235,7 @@ impl Device {
 
     /// Return whether the document is a chrome document.
     #[inline]
-    pub fn is_chrome_document(&self) -> bool {
+    pub fn chrome_rules_enabled_for_document(&self) -> bool {
         false
     }
 }
