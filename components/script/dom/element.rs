@@ -702,9 +702,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = bgcolor {
+            use cssparser::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BackgroundColor(color.into()),
+                PropertyDeclaration::BackgroundColor(
+                    specified::Color::from_rgba(color.red, color.green, color.blue, color.alpha)
+                        .into(),
+                ),
             ));
         }
 
@@ -736,9 +740,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = color {
+            use cssparser::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Color(longhands::color::SpecifiedValue(color.into())),
+                PropertyDeclaration::Color(longhands::color::SpecifiedValue(
+                    specified::Color::from_rgba(color.red, color.green, color.blue, color.alpha)
+                        .into(),
+                )),
             ));
         }
 

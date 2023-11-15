@@ -22,6 +22,7 @@ use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::color::{AbsoluteColor, ColorSpace};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
@@ -1694,19 +1695,27 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<R
                 // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
                 // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
                 // it is treated as opaque black.
-                None => RGBA::new(0, 0, 0, 1.0),
+                None => AbsoluteColor::black(),
                 Some(ref canvas) => {
                     let canvas_element = canvas.upcast::<Element>();
                     match canvas_element.style() {
                         Some(ref s) if canvas_element.has_css_layout_box() => {
                             s.get_inherited_text().color
                         },
-                        _ => RGBA::new(0, 0, 0, 1.0),
+                        _ => AbsoluteColor::black(),
                     }
                 },
             };
 
-            Ok(color.into_rgba(current_color))
+            let rgba = color
+                .resolve_into_absolute(&current_color)
+                .to_color_space(ColorSpace::Srgb);
+            Ok(RGBA::from_floats(
+                rgba.components.0,
+                rgba.components.1,
+                rgba.components.2,
+                rgba.alpha,
+            ))
         },
         None => Err(()),
     }

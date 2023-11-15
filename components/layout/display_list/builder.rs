@@ -29,6 +29,7 @@ use net_traits::image_cache::UsePlaceholder;
 use range::Range;
 use servo_config::opts;
 use servo_geometry::{self, MaxRect};
+use style::color::AbsoluteColor;
 use style::computed_values::border_style::T as BorderStyle;
 use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::pointer_events::T as PointerEvents;
@@ -43,7 +44,6 @@ use style::values::computed::{ClipRectOrAuto, Gradient};
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::PaintWorklet;
 use style::values::specified::ui::CursorKind;
-use style::values::RGBA;
 use style_traits::{CSSPixel, ToCss};
 use webrender_api::units::{LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{
@@ -671,7 +671,7 @@ impl Fragment {
         state: &mut DisplayListBuildState,
         style: &ComputedValues,
         background: &style_structs::Background,
-        background_color: RGBA,
+        background_color: AbsoluteColor,
         display_list_section: DisplayListSection,
         absolute_bounds: Rect<Au>,
     ) {
@@ -2202,7 +2202,7 @@ impl Fragment {
     fn build_display_list_for_text_decoration(
         &self,
         state: &mut DisplayListBuildState,
-        color: &RGBA,
+        color: &AbsoluteColor,
         stacking_relative_box: &LogicalRect<Au>,
         clip: Rect<Au>,
     ) {
@@ -2860,7 +2860,7 @@ impl BlockFlow {
         &self,
         state: &mut DisplayListBuildState,
         background: &style_structs::Background,
-        background_color: RGBA,
+        background_color: AbsoluteColor,
     ) {
         let stacking_relative_border_box = self
             .base
