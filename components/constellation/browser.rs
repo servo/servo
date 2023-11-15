@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use msg::constellation_msg::{TopLevelBrowsingContextId, PipelineId, PipelineNamespaceId, PipelineNamespace};
+use msg::constellation_msg::TopLevelBrowsingContextId;
 
 #[derive(Debug)]
 pub struct BrowserManager<Browser> {
@@ -55,71 +55,75 @@ impl<Browser> BrowserManager<Browser> {
 }
 
 
-#[cfg(test)] fn top_level_id(namespace_id: u32, index: u32) -> TopLevelBrowsingContextId {
+#[cfg(test)] mod test {
     use std::num::NonZeroU32;
 
-    use msg::constellation_msg::{BrowsingContextIndex, BrowsingContextId};
+    use msg::constellation_msg::{BrowsingContextIndex, BrowsingContextId, TopLevelBrowsingContextId, PipelineNamespace, PipelineNamespaceId};
 
-    TopLevelBrowsingContextId(BrowsingContextId {
-        namespace_id: PipelineNamespaceId(namespace_id),
-        index: BrowsingContextIndex(NonZeroU32::new(index).unwrap()),
-    })
-}
+    use crate::browser::BrowserManager;
 
-#[cfg(test)] fn browsers_sorted<Browser: Clone>(browsers: &BrowserManager<Browser>) -> Vec<(TopLevelBrowsingContextId, Browser)> {
-    let mut keys = browsers.browsers.keys().collect::<Vec<_>>();
-    keys.sort();
-    keys.iter()
-        .map(|&id| (*id, browsers.browsers.get(id).cloned().unwrap()))
-        .collect()
-}
+    fn top_level_id(namespace_id: u32, index: u32) -> TopLevelBrowsingContextId {
+        TopLevelBrowsingContextId(BrowsingContextId {
+            namespace_id: PipelineNamespaceId(namespace_id),
+            index: BrowsingContextIndex(NonZeroU32::new(index).unwrap()),
+        })
+    }
 
-#[test] fn test() {
-    PipelineNamespace::install(PipelineNamespaceId(0));
-    let mut browsers = BrowserManager::default();
+    fn browsers_sorted<Browser: Clone>(browsers: &BrowserManager<Browser>) -> Vec<(TopLevelBrowsingContextId, Browser)> {
+        let mut keys = browsers.browsers.keys().collect::<Vec<_>>();
+        keys.sort();
+        keys.iter()
+            .map(|&id| (*id, browsers.browsers.get(id).cloned().unwrap()))
+            .collect()
+    }
 
-    // add() adds the browser to the map, but does not focus it.
-    browsers.add(TopLevelBrowsingContextId::new(), 'a');
-    browsers.add(TopLevelBrowsingContextId::new(), 'b');
-    browsers.add(TopLevelBrowsingContextId::new(), 'c');
-    assert_eq!(browsers_sorted(&browsers), vec![
-        (top_level_id(0, 1), 'a'),
-        (top_level_id(0, 2), 'b'),
-        (top_level_id(0, 3), 'c'),
-    ]);
-    assert!(browsers.focus_order.is_empty());
-    assert_eq!(browsers.is_focused, false);
+    #[test] fn test() {
+        PipelineNamespace::install(PipelineNamespaceId(0));
+        let mut browsers = BrowserManager::default();
 
-    // focus() makes the given browser the latest in focus order.
-    browsers.focus(top_level_id(0, 2));
-    assert_eq!(browsers.focus_order, vec![top_level_id(0, 2)]);
-    assert_eq!(browsers.is_focused, true);
-    browsers.focus(top_level_id(0, 1));
-    assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 1)]);
-    assert_eq!(browsers.is_focused, true);
-    browsers.focus(top_level_id(0, 3));
-    assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]);
-    assert_eq!(browsers.is_focused, true);
+        // add() adds the browser to the map, but does not focus it.
+        browsers.add(TopLevelBrowsingContextId::new(), 'a');
+        browsers.add(TopLevelBrowsingContextId::new(), 'b');
+        browsers.add(TopLevelBrowsingContextId::new(), 'c');
+        assert_eq!(browsers_sorted(&browsers), vec![
+            (top_level_id(0, 1), 'a'),
+            (top_level_id(0, 2), 'b'),
+            (top_level_id(0, 3), 'c'),
+        ]);
+        assert!(browsers.focus_order.is_empty());
+        assert_eq!(browsers.is_focused, false);
 
-    // unfocus() clears the “is focused” flag, but does not touch the focus order.
-    browsers.unfocus();
-    assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]);
-    assert_eq!(browsers.is_focused, false);
+        // focus() makes the given browser the latest in focus order.
+        browsers.focus(top_level_id(0, 2));
+        assert_eq!(browsers.focus_order, vec![top_level_id(0, 2)]);
+        assert_eq!(browsers.is_focused, true);
+        browsers.focus(top_level_id(0, 1));
+        assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 1)]);
+        assert_eq!(browsers.is_focused, true);
+        browsers.focus(top_level_id(0, 3));
+        assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]);
+        assert_eq!(browsers.is_focused, true);
 
-    // focus() avoids duplicates in focus order, when the given browser has been focused before.
-    browsers.focus(top_level_id(0, 1));
-    assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]);
-    assert_eq!(browsers.is_focused, true);
+        // unfocus() clears the “is focused” flag, but does not touch the focus order.
+        browsers.unfocus();
+        assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]);
+        assert_eq!(browsers.is_focused, false);
 
-    // remove() clears the “is focused” flag iff the given browser was focused.
-    browsers.remove(top_level_id(0, 2));
-    assert_eq!(browsers.is_focused, true);
-    browsers.remove(top_level_id(0, 1));
-    assert_eq!(browsers.is_focused, false);
-    browsers.remove(top_level_id(0, 3));
-    assert_eq!(browsers.is_focused, false);
+        // focus() avoids duplicates in focus order, when the given browser has been focused before.
+        browsers.focus(top_level_id(0, 1));
+        assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]);
+        assert_eq!(browsers.is_focused, true);
 
-    // remove() removes the given browser from both the map and the focus order.
-    assert!(browsers_sorted(&browsers).is_empty());
-    assert!(browsers.focus_order.is_empty());
+        // remove() clears the “is focused” flag iff the given browser was focused.
+        browsers.remove(top_level_id(0, 2));
+        assert_eq!(browsers.is_focused, true);
+        browsers.remove(top_level_id(0, 1));
+        assert_eq!(browsers.is_focused, false);
+        browsers.remove(top_level_id(0, 3));
+        assert_eq!(browsers.is_focused, false);
+
+        // remove() removes the given browser from both the map and the focus order.
+        assert!(browsers_sorted(&browsers).is_empty());
+        assert!(browsers.focus_order.is_empty());
+    }
 }

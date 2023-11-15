@@ -96,7 +96,7 @@ use std::marker::PhantomData;
 use std::mem::replace;
 use std::rc::{Rc, Weak};
 use std::sync::{Arc, Mutex};
-use std::{process, thread, fmt};
+use std::{process, thread};
 
 use background_hang_monitor::HangMonitorRegister;
 use bluetooth_traits::BluetoothRequest;

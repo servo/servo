@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use msg::constellation_msg::{TopLevelBrowsingContextId, PipelineId, PipelineNamespace, PipelineNamespaceId};
+use msg::constellation_msg::TopLevelBrowsingContextId;
 
 #[derive(Debug)]
 pub struct BrowserManager<Browser> {
@@ -60,74 +60,78 @@ impl<Browser> BrowserManager<Browser> {
     }
 }
 
-#[cfg(test)] fn top_level_id(namespace_id: u32, index: u32) -> TopLevelBrowsingContextId {
+#[cfg(test)] mod test {
     use std::num::NonZeroU32;
 
-    use msg::constellation_msg::{BrowsingContextIndex, BrowsingContextId};
+    use msg::constellation_msg::{BrowsingContextIndex, BrowsingContextId, TopLevelBrowsingContextId, PipelineNamespace, PipelineNamespaceId};
 
-    TopLevelBrowsingContextId(BrowsingContextId {
-        namespace_id: PipelineNamespaceId(namespace_id),
-        index: BrowsingContextIndex(NonZeroU32::new(index).unwrap()),
-    })
-}
+    use crate::browser::BrowserManager;
 
-#[cfg(test)] fn browsers_sorted<Browser: Clone>(browsers: &BrowserManager<Browser>) -> Vec<(TopLevelBrowsingContextId, Browser)> {
-    let mut keys = browsers.browsers.keys().collect::<Vec<_>>();
-    keys.sort();
-    keys.iter()
-        .map(|&id| (*id, browsers.browsers.get(id).cloned().unwrap()))
-        .collect()
-}
+    fn top_level_id(namespace_id: u32, index: u32) -> TopLevelBrowsingContextId {
+        TopLevelBrowsingContextId(BrowsingContextId {
+            namespace_id: PipelineNamespaceId(namespace_id),
+            index: BrowsingContextIndex(NonZeroU32::new(index).unwrap()),
+        })
+    }
 
-#[test] fn test() {
-    PipelineNamespace::install(PipelineNamespaceId(0));
-    let mut browsers = BrowserManager::default();
+    fn browsers_sorted<Browser: Clone>(browsers: &BrowserManager<Browser>) -> Vec<(TopLevelBrowsingContextId, Browser)> {
+        let mut keys = browsers.browsers.keys().collect::<Vec<_>>();
+        keys.sort();
+        keys.iter()
+            .map(|&id| (*id, browsers.browsers.get(id).cloned().unwrap()))
+            .collect()
+    }
 
-    // add() adds the browser to the map, but not the painting order.
-    browsers.add(TopLevelBrowsingContextId::new(), 'a');
-    browsers.add(TopLevelBrowsingContextId::new(), 'b');
-    browsers.add(TopLevelBrowsingContextId::new(), 'c');
-    assert_eq!(browsers_sorted(&browsers), vec![
-        (top_level_id(0, 1), 'a'),
-        (top_level_id(0, 2), 'b'),
-        (top_level_id(0, 3), 'c'),
-    ]);
-    assert!(browsers.painting_order.is_empty());
+    #[test] fn test() {
+        PipelineNamespace::install(PipelineNamespaceId(0));
+        let mut browsers = BrowserManager::default();
 
-    // For browsers not yet visible, both show() and raise_to_top() add the given browser on top.
-    browsers.show(top_level_id(0, 2));
-    assert_eq!(browsers.painting_order, vec![top_level_id(0, 2)]);
-    browsers.raise_to_top(top_level_id(0, 1));
-    assert_eq!(browsers.painting_order, vec![top_level_id(0, 2), top_level_id(0, 1)]);
-    browsers.show(top_level_id(0, 3));
-    assert_eq!(browsers.painting_order, vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]);
+        // add() adds the browser to the map, but not the painting order.
+        browsers.add(TopLevelBrowsingContextId::new(), 'a');
+        browsers.add(TopLevelBrowsingContextId::new(), 'b');
+        browsers.add(TopLevelBrowsingContextId::new(), 'c');
+        assert_eq!(browsers_sorted(&browsers), vec![
+            (top_level_id(0, 1), 'a'),
+            (top_level_id(0, 2), 'b'),
+            (top_level_id(0, 3), 'c'),
+        ]);
+        assert!(browsers.painting_order.is_empty());
 
-    // For browsers already visible, show() does nothing, while raise_to_top() makes it on top.
-    browsers.show(top_level_id(0, 1));
-    assert_eq!(browsers.painting_order, vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]);
-    browsers.raise_to_top(top_level_id(0, 1));
-    assert_eq!(browsers.painting_order, vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]);
+        // For browsers not yet visible, both show() and raise_to_top() add the given browser on top.
+        browsers.show(top_level_id(0, 2));
+        assert_eq!(browsers.painting_order, vec![top_level_id(0, 2)]);
+        browsers.raise_to_top(top_level_id(0, 1));
+        assert_eq!(browsers.painting_order, vec![top_level_id(0, 2), top_level_id(0, 1)]);
+        browsers.show(top_level_id(0, 3));
+        assert_eq!(browsers.painting_order, vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]);
 
-    // hide() removes the browser from the painting order, but not the map.
-    browsers.hide(top_level_id(0, 3));
-    assert_eq!(browsers.painting_order, vec![top_level_id(0, 2), top_level_id(0, 1)]);
-    assert_eq!(browsers_sorted(&browsers), vec![
-        (top_level_id(0, 1), 'a'),
-        (top_level_id(0, 2), 'b'),
-        (top_level_id(0, 3), 'c'),
-    ]);
+        // For browsers already visible, show() does nothing, while raise_to_top() makes it on top.
+        browsers.show(top_level_id(0, 1));
+        assert_eq!(browsers.painting_order, vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]);
+        browsers.raise_to_top(top_level_id(0, 1));
+        assert_eq!(browsers.painting_order, vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]);
 
-    // painting_order() returns only the visible browsers, in painting order.
-    let mut painting_order = browsers.painting_order();
-    assert_eq!(painting_order.next(), Some((&top_level_id(0, 2), &'b')));
-    assert_eq!(painting_order.next(), Some((&top_level_id(0, 1), &'a')));
-    assert_eq!(painting_order.next(), None);
-    drop(painting_order);
+        // hide() removes the browser from the painting order, but not the map.
+        browsers.hide(top_level_id(0, 3));
+        assert_eq!(browsers.painting_order, vec![top_level_id(0, 2), top_level_id(0, 1)]);
+        assert_eq!(browsers_sorted(&browsers), vec![
+            (top_level_id(0, 1), 'a'),
+            (top_level_id(0, 2), 'b'),
+            (top_level_id(0, 3), 'c'),
+        ]);
 
-    // remove() removes the given browser from both the map and the painting order.
-    browsers.remove(top_level_id(0, 1));
-    browsers.remove(top_level_id(0, 2));
-    browsers.remove(top_level_id(0, 3));
-    assert!(browsers_sorted(&browsers).is_empty());
-    assert!(browsers.painting_order.is_empty());
+        // painting_order() returns only the visible browsers, in painting order.
+        let mut painting_order = browsers.painting_order();
+        assert_eq!(painting_order.next(), Some((&top_level_id(0, 2), &'b')));
+        assert_eq!(painting_order.next(), Some((&top_level_id(0, 1), &'a')));
+        assert_eq!(painting_order.next(), None);
+        drop(painting_order);
+
+        // remove() removes the given browser from both the map and the painting order.
+        browsers.remove(top_level_id(0, 1));
+        browsers.remove(top_level_id(0, 2));
+        browsers.remove(top_level_id(0, 3));
+        assert!(browsers_sorted(&browsers).is_empty());
+        assert!(browsers.painting_order.is_empty());
+    }
 }
