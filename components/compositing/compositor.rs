@@ -47,7 +47,7 @@ use webrender;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutRect, LayoutSize,
-    LayoutVector2D, WorldPoint,
+    LayoutVector2D, WorldPoint, LayoutPixel,
 };
 use webrender_api::{
     self, BuiltDisplayList, ClipId, DirtyRect, DocumentId, Epoch as WebRenderEpoch,
@@ -212,6 +212,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// The coordinates of the native window, its view and the screen.
     embedder_coordinates: EmbedderCoordinates,
+    next_browser_location: LayoutPoint,
 
     /// Current mouse cursor.
     cursor: Cursor,
@@ -352,6 +353,7 @@ enum CompositeTarget {
 #[derive(Debug)]
 pub struct Browser {
     pub pipeline_id: Option<PipelineId>,
+    pub rect: Rect<f32, LayoutPixel>,
 }
 
 impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
@@ -364,17 +366,24 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         convert_mouse_to_touch: bool,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) -> Self {
+        let embedder_coordinates = window.get_coordinates();
         let composite_target = match output_file {
             Some(_) => CompositeTarget::PngFile,
             None => CompositeTarget::Window,
         };
 
+        let size = LayoutSize::new(
+            embedder_coordinates.get_viewport().width() as f32 * 3.0 / 4.0,
+            embedder_coordinates.get_viewport().height() as f32 * 3.0 / 4.0,
+        );
+        let rect = LayoutRect::new(LayoutPoint::zero(), size);
         let mut browsers = BrowserManager::default();
-        browsers.add(top_level_browsing_context_id, Browser { pipeline_id: None });
+        browsers.add(top_level_browsing_context_id, Browser { pipeline_id: None, rect });
         browsers.show(top_level_browsing_context_id);
 
         IOCompositor {
-            embedder_coordinates: window.get_coordinates(),
+            embedder_coordinates,
+            next_browser_location: LayoutPoint::new(32.0, 32.0),
             window,
             port: state.receiver,
             browsers,
@@ -945,7 +954,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             self.embedder_coordinates.get_viewport().width() as f32,
             self.embedder_coordinates.get_viewport().height() as f32,
         );
-        let viewport_rect = LayoutRect::new(LayoutPoint::zero(), viewport_size);
         let zoom_reference_frame = builder.push_reference_frame(
             LayoutPoint::zero(),
             SpatialId::root_reference_frame(root_pipeline),
@@ -957,15 +965,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
         );
 
-        let viewport_stack_offset = viewport_rect.size / 4.0;
-        let mut current_viewport_rect = viewport_rect.clone();
-        current_viewport_rect.size.width /= 2.0;
-        current_viewport_rect.size.height /= 2.0;
         for (_, browser) in self.browsers.painting_order() {
             if let Some(pipeline_id) = browser.pipeline_id {
                 builder.push_iframe(
-                    current_viewport_rect,
-                    current_viewport_rect,
+                    browser.rect,
+                    browser.rect,
                     &SpaceAndClipInfo {
                         spatial_id: zoom_reference_frame,
                         clip_id: ClipId::root(pipeline_id.to_webrender()),
@@ -973,7 +977,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     pipeline_id.to_webrender(),
                     true,
                 );
-                current_viewport_rect.origin += viewport_stack_offset;
             }
         }
         let built_display_list = builder.finalize();
@@ -984,7 +987,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         transaction.set_display_list(
             WebRenderEpoch(0),
             None,
-            viewport_rect.size,
+            viewport_size,
             built_display_list,
             false,
         );
@@ -1009,7 +1012,15 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             let pipeline_id = Some(frame_tree.pipeline.id);
             debug!("{:?}: Creating new browser with pipeline {:?}",
                 top_level_browsing_context_id, pipeline_id);
-            self.browsers.add(top_level_browsing_context_id, Browser { pipeline_id });
+
+            let size = LayoutSize::new(
+                self.embedder_coordinates.get_viewport().width() as f32 * 3.0 / 4.0,
+                self.embedder_coordinates.get_viewport().height() as f32 * 3.0 / 4.0,
+            );
+            let rect = LayoutRect::new(self.next_browser_location, size);
+            self.browsers.add(top_level_browsing_context_id, Browser { pipeline_id, rect });
+            self.next_browser_location.x += 32.0;
+            self.next_browser_location.y += 32.0;
         }
 
         self.update_root_pipeline();
@@ -1105,12 +1116,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             initial_viewport: initial_viewport,
         };
 
-        for (&top_level_browsing_context_id, _) in self.browsers.painting_order() {
-            let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending window resize to constellation failed ({:?}).", e);
-            }
-        }
+        // TODO do this in an independent event
+        // for (&top_level_browsing_context_id, _) in self.browsers.painting_order() {
+        //     let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
+        //     if let Err(e) = self.constellation_chan.send(msg) {
+        //         warn!("Sending window resize to constellation failed ({:?}).", e);
+        //     }
+        // }
     }
 
     pub fn on_resize_window_event(&mut self) -> bool {
