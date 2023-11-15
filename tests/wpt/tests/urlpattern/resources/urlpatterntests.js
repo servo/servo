@@ -46,22 +46,41 @@ function runTests(data) {
             baseURL = new URL(entry.pattern[1]);
           }
 
+          const EARLIER_COMPONENTS = {
+            protocol: [],
+            hostname: ["protocol"],
+            port: ["protocol", "hostname"],
+            username: [],
+            password: [],
+            pathname: ["protocol", "hostname", "port"],
+            search: ["protocol", "hostname", "port", "pathname"],
+            hash: ["protocol", "hostname", "port", "pathname", "search"],
+          };
+
           // We automatically populate the expected pattern string using
           // the following options in priority order:
           //
           //  1. If the original input explicitly provided a pattern, then
           //     echo that back as the expected value.
-          //  2. If the baseURL exists and provides a component value then
+          //  2. If an "earlier" component is specified, then a wildcard
+          //     will be used rather than inheriting from the base URL.
+          //  3. If the baseURL exists and provides a component value then
           //     use that for the expected pattern.
-          //  3. Otherwise fall back on the default pattern of `*` for an
+          //  4. Otherwise fall back on the default pattern of `*` for an
           //     empty component pattern.
+          //
+          // Note that username and password are never inherited, and will only
+          // need to match if explicitly specified.
           if (entry.exactly_empty_components &&
               entry.exactly_empty_components.includes(component)) {
             expected = '';
           } else if (typeof entry.pattern[0] === 'object' &&
               entry.pattern[0][component]) {
             expected = entry.pattern[0][component];
-          } else if (baseURL) {
+          } else if (typeof entry.pattern[0] === 'object' &&
+              EARLIER_COMPONENTS[component].some(c => c in entry.pattern[0])) {
+            expected = '*';
+          } else if (baseURL && component !== 'username' && component !== 'password') {
             let base_value = baseURL[component];
             // Unfortunately some URL() getters include separator chars; e.g.
             // the trailing `:` for the protocol.  Strip those off if necessary.

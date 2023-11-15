@@ -40,6 +40,43 @@
         }
         break;
       }
+      case "caches": {
+        const has = await handle.caches.has(id);
+        if (has) {
+          message = "Cross-site first-party Cache Storage should be empty";
+        }
+        break;
+      }
+      case "getDirectory": {
+        const root = await handle.getDirectory();
+        let has = await root.getFileHandle(id).then(() => true, () => false);;
+        if (has) {
+          message = "Cross-site first-party Origin Private File System should be empty";
+        }
+        break;
+      }
+      case "estimate": {
+        const estimate = await handle.estimate();
+        if (estimate.usage > 0) {
+          message = "Cross-site first-party estimate should be empty";
+        }
+        break;
+      }
+      case "blobStorage": {
+        const blob = await fetch(atob(id)).then(
+          (response) => response.text(),
+          () => "");
+        if (blob != "") {
+          message = "Cross-site first-party blob storage should be empty";
+        }
+        break;
+      }
+      case "BroadcastChannel": {
+        const channel = handle.BroadcastChannel(id);
+        channel.postMessage("Cross-origin handle access");
+        channel.close();
+        break;
+      }
       default: {
         message = "Unexpected type " + type;
         break;

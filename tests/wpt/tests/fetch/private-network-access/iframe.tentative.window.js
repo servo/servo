@@ -8,7 +8,7 @@
 // less-public address spaces, and can navigate them otherwise.
 //
 // This file covers only those tests that must execute in a non secure context.
-// Other tests are defined in: iframe.https.window.js
+// Other tests are defined in: iframe.tentative.https.window.js
 
 setup(() => {
   // Making sure we are in a non secure context, as expected.

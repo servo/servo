@@ -1,4 +1,0 @@
-Contributors
-============
-
-.. include:: ../../CONTRIBUTORS.rst

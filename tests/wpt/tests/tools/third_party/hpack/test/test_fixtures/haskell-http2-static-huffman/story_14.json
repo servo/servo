@@ -1,0 +1,360 @@
+{
+    "cases": [
+        {
+            "seqno": 0,
+            "wire": "0283c5837f06839d29af018841aa1ae43d2b92af0481630f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f04b0497ca589d34d1f43aeba0c41a4c7a98f33a69a3fdf9a68fa1d75d0620d263d4c79a68fbed00177febe58f9fbed00177b0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "sina.com.cn"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                }
+            ]
+        },
+        {
+            "seqno": 1,
+            "wire": "0283c5837f06839d29af018bf1e3c2e835435c87a572550481630f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f04b0497ca589d34d1f43aeba0c41a4c7a98f33a69a3fdf9a68fa1d75d0620d263d4c79a68fbed00177febe58f9fbed00177b0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.sina.com.cn"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                }
+            ]
+        },
+        {
+            "seqno": 2,
+            "wire": "0283c5837f06839d29af018ca8be10ba0d50d721e95c957f049763a21879d604008820134c0801105ebc7aa5de7ad7e88f0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f0483f963e70f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24919d29aee30c78f1e1741aa1ae43d2b92a63",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "news.sina.com.cn"
+                },
+                {
+                    ":path": "/js/87/20121024/201218ConfTop.js"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.sina.com.cn/"
+                }
+            ]
+        },
+        {
+            "seqno": 3,
+            "wire": "0283c5837f06839d29af018f35495e4ace7a1741aa1ae43d2b92af049060d5d073f5b6b60d5d073f5b6b5eb9eb0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f0483f963e70f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24919d29aee30c78f1e1741aa1ae43d2b92a63",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "int.dpool.sina.com.cn"
+                },
+                {
+                    ":path": "/iplookup/iplookup.php"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.sina.com.cn/"
+                }
+            ]
+        },
+        {
+            "seqno": 4,
+            "wire": "0283c5837f06839d29af0189332ba0d50cd4ccb92a04a163b9a429d8100226021032c7075e037ac2e3b7f788011042064410bcdb2bf4ae6f0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24919d29aee30c78f1e1741aa1ae43d2b92a63",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "i3.sinaimg.cn"
+                },
+                {
+                    ":path": "/video/2012/1103/U7805P167DT20121103211853.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.sina.com.cn/"
+                }
+            ]
+        },
+        {
+            "seqno": 5,
+            "wire": "0283c5837f06839d29af0189332ba0d50cd4ccb92a049f6273d256040089808402638380683ad905fde200441080411082d38bf4ae6f0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24919d29aee30c78f1e1741aa1ae43d2b92a63",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "i3.sinaimg.cn"
+                },
+                {
+                    ":path": "/home/2012/1102/U6041P30DT20121102122146.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.sina.com.cn/"
+                }
+            ]
+        },
+        {
+            "seqno": 6,
+            "wire": "0283c5837f06839d29af0189332ba0d50cd4ccb92a04986273d25624290ec08007d8032c818a0f31e29cf495798d2f0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24919d29aee30c78f1e1741aa1ae43d2b92a63",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "i3.sinaimg.cn"
+                },
+                {
+                    ":path": "/home/deco/2009/0330/logo_home.gif"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.sina.com.cn/"
+                }
+            ]
+        },
+        {
+            "seqno": 7,
+            "wire": "0283c5837f06839d29af018a902ba0d50d721e95c95704986113cec50524e3a98100220802e20d50d8a0f31c2bf4ae6f0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24919d29aee30c78f1e1741aa1ae43d2b92a63",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "d1.sina.com.cn"
+                },
+                {
+                    ":path": "/shh/lechan/20121016sina/logo1.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.sina.com.cn/"
+                }
+            ]
+        },
+        {
+            "seqno": 8,
+            "wire": "0283c5837f06839d29af0189301741aa19a999725504a06273d25604008980840cb1c1e6db0eb6417f7880110420640e32eb2d2fd2b9bf0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24919d29aee30c78f1e1741aa1ae43d2b92a63",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "i0.sinaimg.cn"
+                },
+                {
+                    ":path": "/home/2012/1103/U8551P30DT20121103063734.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.sina.com.cn/"
+                }
+            ]
+        },
+        {
+            "seqno": 9,
+            "wire": "0283c5837f06839d29af0189305741aa19a9997255049f6273d25604008980840163838e34f6b6417f7880110420085a0b4c897e95cd0f2bbcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c10f049a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176f0f028b2d4b70ddf45abefb4005db0f018a9bd9abfa5242cb40d25f008721eaa8a4498f5788ea52d6b0e83772ff0f24919d29aee30c78f1e1741aa1ae43d2b92a63",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "i1.sinaimg.cn"
+                },
+                {
+                    ":path": "/home/2012/1101/U6648P30DT20121101141432.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.sina.com.cn/"
+                }
+            ]
+        }
+    ],
+    "draft": 9,
+    "description": "http2 in Haskell: StaticH - static table=yes, header table=no, huffman=yes"
+}

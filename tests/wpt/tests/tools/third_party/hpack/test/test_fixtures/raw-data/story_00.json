@@ -1,0 +1,53 @@
+{
+  "context": "request",
+  "cases": [
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "yahoo.co.jp"
+        },
+        {
+          ":path": "/"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "www.yahoo.co.jp"
+        },
+        {
+          ":path": "/"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "k.yimg.jp"
+        },
+        {
+          ":path": "/images/top/sp2/cmn/logo-ns-130528.png"
+        }
+      ]
+    }
+  ]
+}

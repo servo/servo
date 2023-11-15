@@ -1,0 +1,52 @@
+{
+  "context": "request",
+  "cases": [
+    {
+      "headers": [
+        {
+          ":scheme": "https"
+        },
+        {
+          ":authority": "example.com"
+        },
+        {
+          ":path": "/"
+        },
+        {
+          ":method": "GET"
+        },
+        {
+          "user-agent": "hpack-test"
+        },
+        {
+          "cookie": "xxxxxxx1"
+        },
+        {
+          "x-hello": "world"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":scheme": "https"
+        },
+        {
+          ":authority": "example.com"
+        },
+        {
+          ":path": "/"
+        },
+        {
+          ":method": "GET"
+        },
+        {
+          "user-agent": "hpack-test"
+        },
+        {
+          "cookie": "xxxxxxx2"
+        }
+      ]
+    }
+  ]
+}

@@ -21,7 +21,7 @@ promise_test(async(t) => {
   await fencedframe.execute((new_url, beacon_data) => {
     // `once` defaults to false.
     let beacon_event = {
-      eventType: "reserved.top_navigation",
+      eventType: "reserved.top_navigation_commit",
       eventData: beacon_data,
       destination: ["buyer"],
     }
@@ -37,7 +37,7 @@ promise_test(async(t) => {
                .pointerDown()
                .pointerUp()
                .send();
-  const received_beacon_data_1 = await nextAutomaticBeacon();
+  const received_beacon_data_1 = await nextAutomaticBeacon(beacon_data);
   assert_equals(received_beacon_data_1, beacon_data);
 
   // The second click should still have associated automatic beacon data, and a
@@ -46,7 +46,7 @@ promise_test(async(t) => {
                .pointerDown()
                .pointerUp()
                .send();
-  const received_beacon_data_2 = await nextAutomaticBeacon();
+  const received_beacon_data_2 = await nextAutomaticBeacon(beacon_data);
   assert_equals(received_beacon_data_2, beacon_data);
 }, 'Set persisting automatic beacon but trigger two events in a click handler');
 

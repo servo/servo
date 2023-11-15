@@ -2,7 +2,7 @@ Getting Started: Writing Your Own HTTP/2 Server
 ===============================================
 
 This document explains how to get started writing fully-fledged HTTP/2
-implementations using Hyper-h2 as the underlying protocol stack. It covers the
+implementations using h2 as the underlying protocol stack. It covers the
 basic concepts you need to understand, and talks you through writing a very
 simple HTTP/2 server.
 
@@ -17,10 +17,10 @@ return to this documentation.
 Connections
 -----------
 
-Hyper-h2's core object is the
+h2's core object is the
 :class:`H2Connection <h2.connection.H2Connection>` object. This object is an
 abstract representation of the state of a single HTTP/2 connection, and holds
-all the important protocol state. When using Hyper-h2, this object will be the
+all the important protocol state. When using h2, this object will be the
 first thing you create and the object that does most of the heavy lifting.
 
 The interface to this object is relatively simple. For sending data, you
@@ -54,7 +54,7 @@ this document, we'll do just that.
 
 Some important subtleties of ``H2Connection`` objects are covered in
 :doc:`advanced-usage`: see :ref:`h2-connection-advanced` for more information.
-However, one subtlety should be covered, and that is this: Hyper-h2's
+However, one subtlety should be covered, and that is this: h2's
 ``H2Connection`` object doesn't do I/O. Let's talk briefly about why.
 
 I/O
@@ -74,19 +74,19 @@ into bytes to send. So there's no reason to have lots of different versions of
 this core protocol code: one for Twisted, one for gevent, one for threading,
 and one for synchronous code.
 
-This is why we said at the top that Hyper-h2 is a *HTTP/2 Protocol Stack*, not
-a *fully-fledged implementation*. Hyper-h2 knows how to transform bytes into
+This is why we said at the top that h2 is a *HTTP/2 Protocol Stack*, not
+a *fully-fledged implementation*. h2 knows how to transform bytes into
 events and back, but that's it. The I/O and smarts might be different, but
-the core HTTP/2 logic is the same: that's what Hyper-h2 provides.
+the core HTTP/2 logic is the same: that's what h2 provides.
 
-Not doing I/O makes Hyper-h2 general, and also relatively simple. It has an
+Not doing I/O makes h2 general, and also relatively simple. It has an
 easy-to-understand performance envelope, it's easy to test (and as a result
 easy to get correct behaviour out of), and it behaves in a reproducible way.
 These are all great traits to have in a library that is doing something quite
 complex.
 
 This document will talk you through how to build a relatively simple HTTP/2
-implementation using Hyper-h2, to give you an understanding of where it fits in
+implementation using h2, to give you an understanding of where it fits in
 your software.
 
 
@@ -99,7 +99,7 @@ When writing a HTTP/2 implementation it's important to know what the remote
 peer is doing: if you didn't care, writing networked programs would be a lot
 easier!
 
-Hyper-h2 encodes the actions of the remote peer in the form of *events*. When
+h2 encodes the actions of the remote peer in the form of *events*. When
 you receive data from the remote peer and pass it into your ``H2Connection``
 object (see :ref:`h2-connection-basic`), the ``H2Connection`` returns a list
 of objects, each one representing a single event that has occurred. Each
@@ -112,11 +112,11 @@ concept, not just a HTTP/2 one. Other events are extremely HTTP/2-specific:
 for example, :class:`PushedStreamReceived <h2.events.PushedStreamReceived>`
 refers to Server Push, a very HTTP/2-specific concept.
 
-The reason these events exist is that Hyper-h2 is intended to be very general.
-This means that, in many cases, Hyper-h2 does not know exactly what to do in
+The reason these events exist is that h2 is intended to be very general.
+This means that, in many cases, h2 does not know exactly what to do in
 response to an event. Your code will need to handle these events, and make
 decisions about what to do. That's the major role of any HTTP/2 implementation
-built on top of Hyper-h2.
+built on top of h2.
 
 A full list of events is available in :ref:`h2-events-api`. For the purposes
 of this example, we will handle only a small set of events.
@@ -129,7 +129,7 @@ Armed with the knowledge you just obtained, we're going to write a very simple
 HTTP/2 web server. The goal of this server is to write a server that can handle
 a HTTP GET, and that returns the headers sent by the client, encoded in JSON.
 Basically, something a lot like `httpbin.org/get`_. Nothing fancy, but this is
-a good way to get a handle on how you should interact with Hyper-h2.
+a good way to get a handle on how you should interact with h2.
 
 For the sake of simplicity, we're going to write this using the Python standard
 library, in Python 3. In reality, you'll probably want to use an asynchronous
@@ -137,7 +137,7 @@ framework of some kind: see the `examples directory`_ in the repository for
 some examples of how you'd do that.
 
 Before we start, create a new file called ``h2server.py``: we'll use that as
-our workspace. Additionally, you should install Hyper-h2: follow the
+our workspace. Additionally, you should install h2: follow the
 instructions in :doc:`installation`.
 
 Step 1: Sockets
@@ -324,7 +324,7 @@ Let's do that next.
 Step 3: Sending the Preamble
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Hyper-h2 makes doing connection setup really easy. All you need to do is call
+h2 makes doing connection setup really easy. All you need to do is call
 the
 :meth:`initiate_connection <h2.connection.H2Connection.initiate_connection>`
 method, and then send the corresponding data. Let's update our ``handle``
@@ -348,7 +348,7 @@ new method in there:
 :meth:`data_to_send <h2.connection.H2Connection.data_to_send>`.
 
 When you make function calls on your ``H2Connection`` object, these will often
-want to cause HTTP/2 data to be written out to the network. But Hyper-h2
+want to cause HTTP/2 data to be written out to the network. But h2
 doesn't do any I/O, so it can't do that itself. Instead, it writes it to an
 internal buffer. You can retrieve data from this buffer using the
 ``data_to_send`` method. There are some subtleties about that method, but we
@@ -477,17 +477,17 @@ there: ``:status``. This is a HTTP/2-specific header, and it's used to hold the
 HTTP status code that used to go at the top of a HTTP response. Here, we're
 saying the response is ``200 OK``, which is successful.
 
-To send headers in Hyper-h2, you use the
+To send headers in h2, you use the
 :meth:`send_headers <h2.connection.H2Connection.send_headers>` function.
 
 Next, we want to send the body data. To do that, we use the
 :meth:`send_data <h2.connection.H2Connection.send_data>` function. This also
-takes a stream ID. Note that the data is binary: Hyper-h2 does not work with
+takes a stream ID. Note that the data is binary: h2 does not work with
 unicode strings, so you *must* pass bytestrings to the ``H2Connection``. The
-one exception is headers: Hyper-h2 will automatically encode those into UTF-8.
+one exception is headers: h2 will automatically encode those into UTF-8.
 
 The last thing to note is that on our call to ``send_data``, we set
-``end_stream`` to ``True``. This tells Hyper-h2 (and the remote peer) that
+``end_stream`` to ``True``. This tells h2 (and the remote peer) that
 we're done with sending data: the response is over. Because we know that
 ``hyper`` will have ended its side of the stream, when we end ours the stream
 will be totally done with.
@@ -703,7 +703,7 @@ see something like the following output from ``hyper``:
 Here you can see the HTTP/2 request 'special headers' that ``hyper`` sends.
 These are similar to the ``:status`` header we have to send on our response:
 they encode important parts of the HTTP request in a clearly-defined way. If
-you were writing a client stack using Hyper-h2, you'd need to make sure you
+you were writing a client stack using h2, you'd need to make sure you
 were sending those headers.
 
 Congratulations!
@@ -737,10 +737,10 @@ it, there are a few directions you could investigate:
 
 .. _event loop: https://en.wikipedia.org/wiki/Event_loop
 .. _httpbin.org/get: https://httpbin.org/get
-.. _examples directory: https://github.com/python-hyper/hyper-h2/tree/master/examples
-.. _standard library's socket module: https://docs.python.org/3.5/library/socket.html
+.. _examples directory: https://github.com/python-hyper/h2/tree/master/examples
+.. _standard library's socket module: https://docs.python.org/3/library/socket.html
 .. _Application Layer Protocol Negotiation: https://en.wikipedia.org/wiki/Application-Layer_Protocol_Negotiation
-.. _get your certificate here: https://raw.githubusercontent.com/python-hyper/hyper-h2/master/examples/twisted/server.crt
-.. _get your private key here: https://raw.githubusercontent.com/python-hyper/hyper-h2/master/examples/twisted/server.key
+.. _get your certificate here: https://raw.githubusercontent.com/python-hyper/h2/master/examples/twisted/server.crt
+.. _get your private key here: https://raw.githubusercontent.com/python-hyper/h2/master/examples/twisted/server.key
 .. _PyOpenSSL: http://pyopenssl.readthedocs.org/
-.. _Eventlet example: https://github.com/python-hyper/hyper-h2/blob/master/examples/eventlet/eventlet-server.py
+.. _Eventlet example: https://github.com/python-hyper/h2/blob/master/examples/eventlet/eventlet-server.py

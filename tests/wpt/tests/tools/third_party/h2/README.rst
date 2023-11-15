@@ -1,11 +1,21 @@
-===============================
-hyper-h2: HTTP/2 Protocol Stack
-===============================
+=========================
+h2: HTTP/2 Protocol Stack
+=========================
 
-.. image:: https://raw.github.com/Lukasa/hyper/development/docs/source/images/hyper.png
+.. image:: https://github.com/python-hyper/h2/workflows/CI/badge.svg
+    :target: https://github.com/python-hyper/h2/actions
+    :alt: Build Status
+.. image:: https://codecov.io/gh/python-hyper/h2/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/python-hyper/h2
+    :alt: Code Coverage
+.. image:: https://readthedocs.org/projects/h2/badge/?version=latest
+    :target: https://h2.readthedocs.io/en/latest/
+    :alt: Documentation Status
+.. image:: https://img.shields.io/badge/chat-join_now-brightgreen.svg
+    :target: https://gitter.im/python-hyper/community
+    :alt: Chat community
 
-.. image:: https://travis-ci.org/python-hyper/hyper-h2.svg?branch=master
-    :target: https://travis-ci.org/python-hyper/hyper-h2
+.. image:: https://raw.github.com/python-hyper/documentation/master/source/logo/hyper-black-bg-white.png
 
 This repository contains a pure-Python implementation of a HTTP/2 protocol
 stack. It's written from the ground up to be embeddable in whatever program you
@@ -17,8 +27,10 @@ You use it like this:
 .. code-block:: python
 
     import h2.connection
+    import h2.config
 
-    conn = h2.connection.H2Connection()
+    config = h2.config.H2Configuration()
+    conn = h2.connection.H2Connection(config=config)
     conn.send_headers(stream_id=stream_id, headers=headers)
     conn.send_data(stream_id, data)
     socket.sendall(conn.data_to_send())
@@ -33,17 +45,17 @@ To install it, just run:
 
 .. code-block:: console
 
-    $ pip install h2
+    $ python -m pip install h2
 
 Documentation
 =============
 
-Documentation is available at http://python-hyper.org/h2/.
+Documentation is available at https://h2.readthedocs.io .
 
 Contributing
 ============
 
-``hyper-h2`` welcomes contributions from anyone! Unlike many other projects we
+``h2`` welcomes contributions from anyone! Unlike many other projects we
 are happy to accept cosmetic contributions and small contributions, in addition
 to large feature requests and changes.
 
@@ -55,11 +67,11 @@ please `read the contribution guidelines`_.
 License
 =======
 
-``hyper-h2`` is made available under the MIT License. For more details, see the
+``h2`` is made available under the MIT License. For more details, see the
 ``LICENSE`` file in the repository.
 
 Authors
 =======
 
-``hyper-h2`` is maintained by Cory Benfield, with contributions from others. For
-more details about the contributors, please see ``CONTRIBUTORS.rst``.
+``h2`` was authored by Cory Benfield and is maintained
+by the members of `python-hyper <https://github.com/orgs/python-hyper/people>`_.

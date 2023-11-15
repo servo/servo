@@ -49,6 +49,8 @@ test_computed_value("display", "run-in");
 test_computed_value("display", "flow", "block");
 test_computed_value("display", "flow-root");
 test_computed_value("display", "ruby");
+test_computed_value("display", "ruby-base");
+test_computed_value("display", "ruby-text");
 
 test_computed_value("display", "flow list-item", "list-item");
 test_computed_value("display", "list-item flow", "list-item");
@@ -154,6 +156,8 @@ function test_display_affected(property, value) {
       'table-row',
       'table-cell',
       'table-caption',
+      'ruby-base',
+      'ruby-text',
       'inline-block'
     ];
 

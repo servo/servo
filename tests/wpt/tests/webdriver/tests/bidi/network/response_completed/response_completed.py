@@ -17,8 +17,8 @@ RESPONSE_COMPLETED_EVENT = "network.responseCompleted"
 
 
 @pytest.mark.asyncio
-async def test_subscribe_status(bidi_session, top_context, wait_for_event, url, fetch):
-    await bidi_session.session.subscribe(events=[RESPONSE_COMPLETED_EVENT])
+async def test_subscribe_status(bidi_session, subscribe_events, top_context, wait_for_event, url, fetch):
+    await subscribe_events(events=[RESPONSE_COMPLETED_EVENT])
 
     # Track all received network.responseCompleted events in the events array
     events = []

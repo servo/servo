@@ -16,7 +16,7 @@ function createComponentAdTrackerURL(uuid, id) {
                           `component_ad_${id}`)
 }
 
-// Returns a component ad render URL that fetches the correspondinding component ad
+// Returns a component ad render URL that fetches the corresponding component ad
 // tracker URL.
 function createComponentAdRenderURL(uuid, id) {
   return createRenderURL(

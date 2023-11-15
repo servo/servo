@@ -1,0 +1,28 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script src="resources/is_uuid.js"></script>
+
+<script>
+// This test ensures that navigation.activation is properly updated when a page
+// is restored from bfcache.
+runBfcacheTest({
+  targetOrigin: originSameSite,
+  async funcAfterAssertion(pageA, pageB) {
+    const activationData = await pageA.execute_script(() => {
+      return { entryURL : navigation.activation.entry.url,
+               fromIsNull : navigation.activation.from === null,
+               navigationType : navigation.activation.navigationType }
+    });
+
+    // activation.entry should be the currently activated page, and
+    // activation.from should be omitted because it is a different origin.
+    assert_equals(activationData.entryURL, pageA.url);
+    assert_true(activationData.fromIsNull);
+    assert_equals(activationData.navigationType, "traverse");
+  }
+}, "navigation.activation must be updated when restored from bfcache");
+</script>

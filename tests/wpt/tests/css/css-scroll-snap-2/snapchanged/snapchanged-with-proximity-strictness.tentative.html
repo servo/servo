@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>
+  <title> CSS Scroll Snap 2 Test: snapchanged events on proximity strictness container</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events"/>
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="resources/common.js"></script>
+<style>
+  div {
+    position: absolute;
+    margin: 0;
+  }
+
+  #scroller {
+    height: 600px;
+    width: 600px;
+    overflow: hidden;
+    scroll-snap-type: y proximity;
+  }
+
+  .snap {
+    width: 300px;
+    height: 300px;
+    background-color: green;
+    scroll-snap-align: start;
+  }
+
+  .area {
+    width: 2000px;
+    height: 2000px;
+  }
+  </style>
+</head>
+<body>
+<div id="scroller">
+  <div class="area"></div>
+  <div id="target" class="snap" style="top: 0px;"></div>
+</div>
+
+<script>
+  const target = document.getElementById("target");
+  let resolve_func = null;
+
+  promise_test(async (test) => {
+    checkSnapchangedSupport();
+    await waitForCompositorCommit();
+    // The initial snap position is at (0, 0).
+    assert_equals(scroller.scrollTop, 0);
+    assert_equals(scroller.scrollLeft, 0);
+
+    let snapchanged_promise = waitForSnapChangedEvent(scroller);
+    // Scroll to a position where it's outside of the scroll-snap proximity
+    // threshold, so that it won't trigger snapping.
+    scroller.scrollTo(0, 250);
+
+    // snapchanged should fire as we've moved from within the proximity range
+    // to outside the proximity range and are no longer snapped.
+    let evt = await snapchanged_promise;
+    assert_equals(scroller.scrollTop, 250);
+    assertSnapchangedEvent(evt, []);
+    evt = null;
+
+    snapchanged_promise = waitForSnapChangedEvent(scroller);
+    // Scroll to a position within the scroll-snap proximity
+    // threshold, so that it triggers snapping.
+    scroller.scrollTo(0, 190);
+
+    evt = await snapchanged_promise;
+    assert_equals(scroller.scrollTop, 0);
+    // snapchanged should fire as we've moved from outside the proximity range
+    // to inside the proximity range and are once again snapped.
+    assertSnapchangedEvent(evt, [target.id]);
+  }, "Snapchanged fires when scrolling outside proximity range.");
+  </script>
+</body>
+</html>

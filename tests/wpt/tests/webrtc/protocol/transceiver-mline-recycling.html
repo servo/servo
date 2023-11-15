@@ -1,0 +1,87 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>payload type handling (assuming rtcp-mux)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../third_party/sdp/sdp.js"></script>
+<script>
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  const negotiate = async () => {
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+  };
+
+  // Add audio, negotiate, stop the transceiver, negotiate again,
+  // add another audio transceiver and negotiate. This should re-use the m-line.
+  pc1.addTransceiver('audio');
+  await negotiate();
+  pc1.getTransceivers()[0].stop();
+  await negotiate();
+  pc1.addTransceiver('audio');
+  await negotiate();
+  let numberOfMediaSections = SDPUtils.splitSections(pc1.localDescription.sdp).length - 1;
+  assert_equals(numberOfMediaSections, 1, 'Audio m-line gets reused for audio transceiver');
+
+  // Stop the audio transceiver, negotiate, add a video transceiver, negotiate.
+  // This should reuse the m-line.
+  pc1.getTransceivers()[0].stop();
+  await negotiate();
+  pc1.addTransceiver('video');
+  await negotiate();
+  numberOfMediaSections = SDPUtils.splitSections(pc1.localDescription.sdp).length - 1;
+  assert_equals(numberOfMediaSections, 1, 'Audio m-line gets reused for video transceiver');
+
+  // Add another video transceiver after stopping the current one.
+  // This should re-use the m-line.
+  pc1.getTransceivers()[0].stop();
+  await negotiate();
+  pc1.addTransceiver('video');
+  await negotiate();
+  numberOfMediaSections = SDPUtils.splitSections(pc1.localDescription.sdp).length - 1;
+  assert_equals(numberOfMediaSections, 1, 'Video m-line gets reused for video transceiver');
+}, 'Reuses m-lines in local negotiation');
+
+promise_test(async t => {
+  // SDP with a rejected video m-line.
+  const sdp = `v=0
+o=- 0 3 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=fingerprint:sha-256 A7:24:72:CA:6E:02:55:39:BA:66:DF:6E:CC:4C:D8:B0:1A:BF:1A:56:65:7D:F4:03:AD:7E:77:43:2A:29:EC:93
+m=video 0 UDP/TLS/RTP/SAVPF 100
+c=IN IP4 0.0.0.0
+a=rtcp-mux
+a=sendonly
+a=mid:video
+a=rtpmap:100 VP8/90000
+a=setup:actpass
+a=ice-ufrag:ETEn
+a=ice-pwd:OtSK0WpNtpUjkY4+86js7Z/l
+`;
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  await pc1.setRemoteDescription({type: 'offer', sdp});
+  await pc1.setLocalDescription();
+  assert_equals(pc1.getTransceivers().length, 0);
+  pc1.addTransceiver('audio');
+  let offer = await pc1.createOffer();
+  let numberOfMediaSections = SDPUtils.splitSections(offer.sdp).length - 1;
+  assert_equals(numberOfMediaSections, 1, 'Remote video m-line gets reused for audio transceiver');
+
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  await pc2.setRemoteDescription({type: 'offer', sdp});
+  await pc2.setLocalDescription();
+  assert_equals(pc2.getTransceivers().length, 0);
+  pc1.addTransceiver('video');
+  offer = await pc2.createOffer();
+  numberOfMediaSections = SDPUtils.splitSections(offer.sdp).length - 1;
+  assert_equals(numberOfMediaSections, 1, 'Remote video m-line gets reused for video transceiver');
+}, 'Reuses m-lines in remote negotiation');
+</script>

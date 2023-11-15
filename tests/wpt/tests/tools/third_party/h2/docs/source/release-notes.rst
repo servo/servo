@@ -85,7 +85,7 @@ lot of great work has been done by the community. To that end, we'd also like
 to extend a great thankyou to those contributors who made their first contribution
 to the project between release 1.0.0 and 2.0.0. Many thanks to:
 `Thomas Kriechbaumer`_, `Alex Chan`_, `Maximilian Hils`_, and `Glyph`_. For a
-full historical list of contributors, see :doc:`contributors`.
+full historical list of contributors, see `contributors`_.
 
 We're looking forward to the next few months of Python HTTP/2 work, and hoping
 that you'll find lots of excellent HTTP/2 applications to build with Hyper-h2!
@@ -95,7 +95,8 @@ that you'll find lots of excellent HTTP/2 applications to build with Hyper-h2!
 .. _Alex Chan: https://github.com/alexwlchan
 .. _Maximilian Hils: https://github.com/mhils
 .. _Glyph: https://github.com/glyph
+.. _contributors: https://github.com/python-hyper/hyper-h2/blob/b14817b79c7bb1661e1aa84ef7920c009ef1e75b/CONTRIBUTORS.rst
 
 
 .. _detailed-release-notes:
-.. include:: ../../HISTORY.rst
+.. include:: ../../CHANGELOG.rst

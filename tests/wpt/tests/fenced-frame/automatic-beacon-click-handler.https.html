@@ -16,65 +16,42 @@ promise_test(async(t) => {
   const fencedframe = await attachFencedFrameContext(
       {generator_api: 'fledge', automatic_beacon: true});
   const new_url = new URL("resources/dummy.html", location.href);
-  const beacon_data = "This is the beacon data!";
+  const start_beacon_data = "This is the start beacon data!";
+  const commit_beacon_data = "This is the commit beacon data!";
 
-  await fencedframe.execute((new_url, beacon_data) => {
+  await fencedframe.execute(
+      (new_url, start_beacon_data, commit_beacon_data) => {
     addEventListener("click", (event) => {
-      let beacon_event = {
-        eventType: "reserved.top_navigation",
-        eventData: beacon_data,
+      let start_beacon_event = {
+        eventType: "reserved.top_navigation_start",
+        eventData: start_beacon_data,
         destination: ["buyer"],
       }
-      window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
+      window.fence.setReportEventDataForAutomaticBeacons(start_beacon_event);
+      let commit_beacon_event = {
+        eventType: "reserved.top_navigation_commit",
+        eventData: commit_beacon_data,
+        destination: ["buyer"],
+      }
+      window.fence.setReportEventDataForAutomaticBeacons(commit_beacon_event);
       window.open(new_url, "_blank");
     });
-  }, [new_url, beacon_data]);
+  }, [new_url, start_beacon_data, commit_beacon_data]);
 
   await actions.pointerMove(0, 0, {origin: fencedframe.element})
                .pointerDown()
                .pointerUp()
                .send();
 
-  const received_beacon_data = await nextAutomaticBeacon();
-  assert_equals(received_beacon_data, beacon_data);
+  const received_beacon_data = await nextAutomaticBeacon(start_beacon_data);
+  assert_equals(received_beacon_data, start_beacon_data);
+  const received_beacon_data_2 = await nextAutomaticBeacon(commit_beacon_data);
+  assert_equals(received_beacon_data_2, commit_beacon_data);
+
+  // Leaving this fenced frame around for subsequent tests can lead to
+  // flakiness.
+  document.body.removeChild(fencedframe.element);
 }, 'Set and trigger an automatic beacon in a click handler');
-
-promise_test(async(t) => {
-  const fencedframe = await attachFencedFrameContext(
-    {generator_api: 'fledge', automatic_beacon: true});
-  const new_url = new URL("resources/dummy.html", location.href);
-  const beacon_data = "This is the beacon data!";
-
-  await fencedframe.execute((new_url, beacon_data) => {
-    const actions = new test_driver.Actions();
-    let a = document.createElement('a');
-    a.textContent = "Click me!";
-    a.href = new_url;
-    a.target = "_blank";
-
-    // When the anchor link is clicked, the click handler will set the data
-    // before the navigation happens. This test checks to make sure that the
-    // data makes it to the correct place by the time the navigation commits.
-    a.onclick = () => {
-      let beacon_event = {
-        eventType: "reserved.top_navigation",
-        eventData: beacon_data,
-        destination: ["buyer"],
-      }
-      window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
-    };
-    document.body.appendChild(a);
-
-    // This will trigger the beacon data storing + navigation.
-    return actions.pointerMove(0, 0, {origin: a})
-                 .pointerDown()
-                 .pointerUp()
-                 .send();
-  }, [new_url, beacon_data]);
-
-  const received_beacon_data = await nextAutomaticBeacon();
-  assert_equals(received_beacon_data, beacon_data);
-}, 'Set and trigger an automatic beacon in an <a> click handler');
 
 </script>
 </body>

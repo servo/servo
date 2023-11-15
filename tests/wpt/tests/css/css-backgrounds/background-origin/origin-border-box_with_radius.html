@@ -5,68 +5,41 @@
   <title>CSS Backgrounds Test:  background-origin:border-box & border-radius</title>
   <link rel="author" title="finscn" href="mailto:finscn@gmail.com" >
   <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-origin" >
-  <meta name="flags" content="image">
-  <meta name="assert" content="border-box : The position is relative to the border box." >
+  <meta name="flags" content="">
+  <link rel="match" href="../reference/origin-border-box_with_radius-ref.html">
 
   <meta charset="utf-8">
 
 
 <style type="text/css">
 
-  .infomation {
-    padding : 10px;
-    font-size : 16pt;
-    margin : 5px;
-  }
-
-  .test-case {
-    padding : 5px;
-    margin : 5px;
-  }
-
-  .view {
-    border : 30px solid rgba(60,150,255,0.4);
-    width : 320px;
-    height : 240px;
-    padding : 30px;
-    margin : 10px;
-    font-size : 16pt;
-    color : #ff9933;
+  div {
+    border : 16px solid rgba(60,150,255,0.4);
+    width : 450px;
+    height : 224px;
+    padding : 16px;
+    margin-top : 8px;
     background-image : url("../support/css3.png");
+    background-origin : border-box;
+    border-radius: 60px;
   }
 
   .no-repeat {
     background-repeat : no-repeat;
   }
 
-  .case {
-    background-origin : border-box;
-    border-radius: 60px;
+  .repeat {
+    background-repeat : repeat;
   }
 
-
- </style>
+</style>
 
 </head>
 <body>
 
-<div class="infomation">
-Test Passed If : The background is painted. The paint area includes the area covered by border , and the area surrounded by border.<br>
-When border-radius is enabled, the browser should paint the background correctly.
-</div>
+  <div class="no-repeat" ></div>
 
-<div class="test-case">
-
-  <div id="border-box" class="view case no-repeat" >
-      Test background-origin:
-  </div>
-
-  <div id="border-box" class="view case" >
-      Test background-origin:
-  </div>
-
-
-</div>
+  <div class="repeat" ></div>
 
 </body>
 

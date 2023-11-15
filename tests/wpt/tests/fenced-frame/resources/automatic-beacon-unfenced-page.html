@@ -12,7 +12,7 @@
     // '../automatic-beacon-unfenced-top.https.html'. An automatic beacon will
     // have been sent as a result of the navigation.
     const beacon_data = "This is the beacon data!";
-    const received_beacon_data = await nextAutomaticBeacon();
+    const received_beacon_data = await nextAutomaticBeacon(beacon_data);
     assert_equals(received_beacon_data, beacon_data);
   });
 </script>

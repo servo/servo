@@ -4,11 +4,11 @@
     <title>XMLHttpRequest: responseXML document properties</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="../html/dom/documents/resource-metadata-management/support/document-lastModified-utils.js"></script>
   </head>
   <body>
     <div id="log"></div>
     <script>
-      var timePreXHR = Math.floor(new Date().getTime(new Date().getTime() - 3000) / 1000); // three seconds ago, in case there's clock drift
       var client = new XMLHttpRequest()
       client.open("GET", "resources/well-formed.xml", false)
       client.send(null)
@@ -87,10 +87,7 @@
       }, "Test document URL properties of document with <base> after redirect");
 
       test(function() {
-        var lastModified = Math.floor(parseLastModified(client.responseXML.lastModified).getTime() / 1000);
-        var now = Math.floor(new Date().getTime(new Date().getTime() + 3000) / 1000); // three seconds from now, in case there's clock drift
-        assert_greater_than_equal(lastModified, timePreXHR);
-        assert_less_than_equal(lastModified, now);
+        assert_document_lastmodified_string_approximately_now(client.responseXML.lastModified);
       }, 'lastModified set to time of response if no HTTP header provided')
 
       test(function() {

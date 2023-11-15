@@ -28,7 +28,7 @@ fedcm_test(async t => {
   // just the accounts endpoint.
   // (This is not technically spec-compliant)
   await select_manifest(t, test_options);
-  await window.test_driver.confirm_idp_login();
+  await window.test_driver.click_fedcm_dialog_button("ConfirmIdpLoginContinue");
 
   // Now wait for the account chooser.
   type = await fedcm_get_dialog_type_promise(t);

@@ -4,19 +4,18 @@ State Machine Visualizer
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 This code provides a module that can use graphviz to visualise the state
-machines included in hyper-h2. These visualisations can be used as part of the
-documentation of hyper-h2, and as a reference material to understand how the
+machines included in h2. These visualisations can be used as part of the
+documentation of h2, and as a reference material to understand how the
 state machines function.
 
 The code in this module is heavily inspired by code in Automat, which can be
 found here: https://github.com/glyph/automat. For details on the licensing of
 Automat, please see the NOTICES.visualizer file in this folder.
 
-This module is very deliberately not shipped with the rest of hyper-h2. This is
-because it is of minimal value to users who are installing hyper-h2: its use
-is only really for the developers of hyper-h2.
+This module is very deliberately not shipped with the rest of h2. This is
+because it is of minimal value to users who are installing h2: its use
+is only really for the developers of h2.
 """
-from __future__ import print_function
 import argparse
 import collections
 import sys
@@ -201,13 +200,13 @@ def build_digraph(state_machine):
 
 def main():
     """
-    Renders all the state machines in hyper-h2 into images.
+    Renders all the state machines in h2 into images.
     """
     program_name = sys.argv[0]
     argv = sys.argv[1:]
 
     description = """
-    Visualize hyper-h2 state machines as graphs.
+    Visualize h2 state machines as graphs.
     """
     epilog = """
     You must have the graphviz tool suite installed.  Please visit

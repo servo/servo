@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="resources/common.js"></script>
+  <style>
+    #scroller {
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      width: 500px;
+      height: 500px;
+      background-color: white;
+      position: relative;
+    }
+    .large_space {
+      position: absolute;
+      height: 100vh;
+      width: 100vw;
+    }
+    .space_filler {
+      display: inline-block;
+      width: 40%;
+      height: 30%;
+      background-color: green;
+    }
+    .snap_area {
+      scroll-snap-align: start;
+      background-color: yellow;
+      position: absolute;
+      width: 40%;
+      height: 30%;
+      top: 500px;
+    }
+
+    .left {
+      left: 1px;
+    }
+    .right {
+      left: 41%;
+    }
+  </style>
+</head>
+<body>
+  <div id="scroller">
+    <div class="large_space"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div class="space_filler"></div>
+    <div id="left" class="snap_area left"><h1>1</h1></div>
+    <div id="right" class="snap_area right"><h1>2</h1></div>
+  </div>
+  <script>
+    let unreached_func = null;
+    promise_test(async (t) => {
+      checkSnapchangedSupport();
+      await waitForCompositorCommit();
+      unreached_func = t.unreached_func("snapchanged shouldn't fire " +
+          "since the scroller is snapped to the same elements.");
+      scroller.addEventListener("snapchanged", unreached_func);
+      t.add_cleanup(() => {
+        scroller.removeEventListener("snapchanged", unreached_func);
+      });
+      assert_greater_than(right.offsetLeft, left.offsetLeft,
+          "boxes have switched positions.");
+      // Switch the boxes' horizontal positions.
+      right.style.left = "1px";
+      left.style.left = "41%";
+      await waitForCompositorCommit();
+      assert_less_than(right.offsetLeft, left.offsetLeft,
+          "boxes have switched positions.");
+      await waitForCompositorCommit();
+    }, "snapchanged doesn't fire after layout change if snapped to the same " +
+    "elements");
+
+    promise_test(async (t) => {
+      checkSnapchangedSupport();
+      await waitForCompositorCommit();
+      unreached_func = t.unreached_func("snapchanged shouldn't fire " +
+          "since the scroller is snapped to the same elements.");
+      scroller.addEventListener("snapchanged", unreached_func);
+      t.add_cleanup(() => {
+        scroller.removeEventListener("snapchanged", unreached_func);
+      });
+      const scrollend_promise = waitForScrollendEventNoTimeout(scroller);
+      // Move the boxes to the same vertical level. Both boxes should still be
+      // considered snapped to so snapchanged should not be triggerred.
+      right.style.top = `0px`;
+      left.style.top = `0px`;
+      await scrollend_promise;
+      assert_equals(scroller.scrollTop, 0);
+      await waitForCompositorCommit();
+    }, "snapchanged doesn't fire after snap to the same targets after scroll. " +
+    "elements");
+
+  </script>
+</body>
+</html>

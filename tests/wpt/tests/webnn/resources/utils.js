@@ -535,6 +535,128 @@ const buildOperationWithTwoInputs= (operationName, builder, resources) => {
   return namedOutputOperand;
 };
 
+const buildBatchNorm = (operationName, builder, resources) => {
+  // MLOperand batchNormalization(MLOperand input, MLOperand mean, MLOperand variance,
+  //                              optional MLBatchNormalizationOptions options = {});
+  const namedOutputOperand = {};
+  const [inputOperand, meanOperand, varianceOperand] = createMultiInputOperands(builder, resources);
+  const batchNormOptions = {...resources.options};
+  if (batchNormOptions.scale) {
+    batchNormOptions.scale = createConstantOperand(builder, batchNormOptions.scale);
+  }
+  if (batchNormOptions.bias) {
+    batchNormOptions.bias = createConstantOperand(builder, batchNormOptions.bias);
+  }
+  if (batchNormOptions.activation) {
+    batchNormOptions.activation = builder[batchNormOptions.activation]();
+  }
+  // invoke builder.batchNormalization()
+  namedOutputOperand[resources.expected.name] =
+      builder[operationName](inputOperand, meanOperand, varianceOperand, batchNormOptions);
+  return namedOutputOperand;
+};
+
+const buildConcat = (operationName, builder, resources) => {
+  // MLOperand concat(sequence<MLOperand> inputs, unsigned long axis);
+  const namedOutputOperand = {};
+  const inputOperands = [];
+  for (let input of resources.inputs) {
+    inputOperands.push(builder.input(input.name, {type: input.type, dimensions: input.shape}));
+  }
+  // invoke builder.concat()
+  namedOutputOperand[resources.expected.name] = builder[operationName](inputOperands, resources.axis);
+  return namedOutputOperand;
+};
+
+const buildConvTranspose2d = (operationName, builder, resources) => {
+  // MLOperand convTranspose2d(MLOperand input, MLOperand filter, optional MLConvTranspose2dOptions options = {});
+  const namedOutputOperand = {};
+  const [inputOperand, filterOperand] = createMultiInputOperands(builder, resources);
+  let convTranspose2dOptions = {...resources.options};
+  if (convTranspose2dOptions.bias) {
+    convTranspose2dOptions.bias = createConstantOperand(builder, convTranspose2dOptions.bias);
+  }
+  if (convTranspose2dOptions.activation) {
+    convTranspose2dOptions.activation = builder[convTranspose2dOptions.activation]();
+  }
+  namedOutputOperand[resources.expected.name] = builder[operationName](inputOperand, filterOperand, convTranspose2dOptions);
+  return namedOutputOperand;
+};
+
+const buildConv2d= (operationName, builder, resources) => {
+  // MLOperand conv2d(MLOperand input, MLOperand filter, optional MLConv2dOptions options = {});
+  const namedOutputOperand = {};
+  const [inputOperand, filterOperand] = createMultiInputOperands(builder, resources);
+  let conv2dOptions = {...resources.options};
+  if (conv2dOptions.bias) {
+    conv2dOptions.bias = createConstantOperand(builder, conv2dOptions.bias);
+  }
+  if (conv2dOptions.activation) {
+    conv2dOptions.activation = builder[conv2dOptions.activation]();
+  }
+  namedOutputOperand[resources.expected.name] = builder[operationName](inputOperand, filterOperand, conv2dOptions);
+  return namedOutputOperand;
+};
+
+const buildGemm= (operationName, builder, resources) => {
+  // MLOperand gemm(MLOperand a, MLOperand b, optional MLGemmOptions options = {});
+  const namedOutputOperand = {};
+  const [inputOperandA, inputOperandB] = createMultiInputOperands(builder, resources);
+  let gemmOptions = {...resources.options};
+  if (gemmOptions.c) {
+    if (gemmOptions.c.shape) {
+      gemmOptions.c = createConstantOperand(builder, gemmOptions.c);
+    } else {
+      // MLOperand c;
+      // Create a single-value operand when c is a scalar
+      gemmOptions.c = builder.constant(gemmOptions.c);
+    }
+  }
+  namedOutputOperand[resources.expected.name] = builder[operationName](inputOperandA, inputOperandB, gemmOptions);
+  return namedOutputOperand;
+};
+
+const buildPad = (operationName, builder, resources) => {
+  // MLOperand pad(MLOperand input, sequence<unsigned long> beginningPadding, sequence<unsigned long> endingPadding, optional MLPadOptions options = {});
+  const namedOutputOperand = {};
+  const inputOperand = createSingleInputOperand(builder, resources);
+  // invoke builder.pad()
+  namedOutputOperand[resources.expected.name] = builder[operationName](inputOperand, resources.beginningPadding, resources.endingPadding, resources.options);
+  return namedOutputOperand;
+};
+
+const buildReshape = (operationName, builder, resources) => {
+  // MLOperand reshape(MLOperand input, sequence<unsigned long?> newShape);
+  const namedOutputOperand = {};
+  const inputOperand = createSingleInputOperand(builder, resources);
+  // invoke builder.reshape()
+  namedOutputOperand[resources.expected.name] = builder[operationName](inputOperand, resources.newShape);
+  return namedOutputOperand;
+};
+
+const buildSlice = (operationName, builder, resources) => {
+  // MLOperand slice(MLOperand input, sequence<unsigned long> starts, sequence<unsigned long> sizes);
+  const namedOutputOperand = {};
+  const inputOperand = createSingleInputOperand(builder, resources);
+  // invoke builder.slice()
+  namedOutputOperand[resources.expected.name] = builder[operationName](inputOperand, resources.starts, resources.sizes);
+  return namedOutputOperand;
+};
+
+const buildSplit = (operationName, builder, resources) => {
+  // sequence<MLOperand> split(MLOperand input,
+  //                           (unsigned long or sequence<unsigned long>) splits,
+  //                           optional MLSplitOptions options = {});
+  const namedOutputOperand = {};
+  const inputOperand = createSingleInputOperand(builder, resources);
+  // invoke builder.split()
+  const outputOperands = builder[operationName](inputOperand, resources.splits, resources.options);
+  resources.expected.forEach((resourceDict, index) => {
+    namedOutputOperand[resourceDict.name] = outputOperands[index];
+  });
+  return namedOutputOperand;
+};
+
 /**
  * Build a graph.
  * @param {String} operationName - An operation name
@@ -616,8 +738,9 @@ const run = async (operationName, context, builder, resources, buildFunc) => {
  * Run WebNN operation tests.
  * @param {(String[]|String)} operationName - An operation name array or an operation name
  * @param {Function} buildFunc - A build function for an operation
+ * @param {String} deviceType - The execution device type for this test
  */
-const testWebNNOperation = (operationName, buildFunc) => {
+const testWebNNOperation = (operationName, buildFunc, deviceType = 'cpu') => {
   let operationNameArray;
   if (typeof operationName === 'string') {
     operationNameArray = [operationName];
@@ -637,7 +760,7 @@ const testWebNNOperation = (operationName, buildFunc) => {
       operationNameArray.forEach((subOperationName) => {
         const tests = loadTests(subOperationName);
         setup(() => {
-          context = navigator.ml.createContextSync();
+          context = navigator.ml.createContextSync({deviceType});
           builder = new MLGraphBuilder(context);
         });
         for (const subTest of tests) {
@@ -651,7 +774,7 @@ const testWebNNOperation = (operationName, buildFunc) => {
       operationNameArray.forEach((subOperationName) => {
         const tests = loadTests(subOperationName);
         promise_setup(async () => {
-          context = await navigator.ml.createContext();
+          context = await navigator.ml.createContext({deviceType});
           builder = new MLGraphBuilder(context);
         });
         for (const subTest of tests) {

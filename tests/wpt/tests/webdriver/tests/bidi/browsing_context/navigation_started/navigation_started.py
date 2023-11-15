@@ -439,3 +439,23 @@ async def test_redirect_navigation(
             "url": redirect_url,
         },
     )
+
+
+async def test_navigate_history_pushstate(
+    bidi_session, inline, new_tab, subscribe_events, wait_for_event
+):
+    await subscribe_events([NAVIGATION_STARTED_EVENT])
+
+    on_entry = wait_for_event(NAVIGATION_STARTED_EVENT)
+    url = inline("""
+        <script>
+            window.addEventListener('DOMContentLoaded', () => {
+                history.pushState({}, '', '#1');
+            });
+        </script>""")
+    result = await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=url, wait="complete"
+    )
+    event = await on_entry
+
+    assert event["navigation"] == result["navigation"]

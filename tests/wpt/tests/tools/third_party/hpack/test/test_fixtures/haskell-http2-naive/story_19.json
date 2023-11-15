@@ -1,0 +1,366 @@
+{
+    "cases": [
+        {
+            "seqno": 0,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790979616e6465782e727500053a70617468012f000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e3000066163636570743f746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e38000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c697665",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "yandex.ru"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                }
+            ]
+        },
+        {
+            "seqno": 1,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790d7777772e79616e6465782e727500053a70617468012f000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e3000066163636570743f746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e38000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c697665",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.yandex.ru"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                }
+            ]
+        },
+        {
+            "seqno": 2,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790e796162732e79616e6465782e727500053a70617468672f636f756e742f566e775f337a4632646b4f34303030325a686c384b4761354b504b32636d50664d6559704f327a47307641654f754165665a4941676f41324b41653266504f4f50393679713462613166444b47514331686c445665514e384766564431376537000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657215687474703a2f2f7777772e79616e6465782e72752f0006636f6f6b696522743d703b2079616e6465787569643d36343130343533373731333531393439343531",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "yabs.yandex.ru"
+                },
+                {
+                    ":path": "/count/Vnw_3zF2dkO40002Zhl8KGa5KPK2cmPfMeYpO2zG0vAeOuAefZIAgoA2KAe2fPOOP96yq4ba1fDKGQC1hlDVeQN8GfVD17e7"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yandex.ru/"
+                },
+                {
+                    "cookie": "t=p; yandexuid=6410453771351949451"
+                }
+            ]
+        },
+        {
+            "seqno": 3,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790e796162732e79616e6465782e727500053a70617468642f636f756e742f566e775f336d667438777134303030305a686c384b4761354b503679713462613166444b686c445665514e3847665644313761333d71634f6e34394b32636d50664d6362516167585a57675941676f41324b414d4d3636496344375733000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657215687474703a2f2f7777772e79616e6465782e72752f0006636f6f6b696522743d703b2079616e6465787569643d36343130343533373731333531393439343531",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "yabs.yandex.ru"
+                },
+                {
+                    ":path": "/count/Vnw_3mft8wq40000Zhl8KGa5KP6yq4ba1fDKhlDVeQN8GfVD17a3=qcOn49K2cmPfMcbQagXZWgYAgoA2KAMM66IcD7W3"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yandex.ru/"
+                },
+                {
+                    "cookie": "t=p; yandexuid=6410453771351949451"
+                }
+            ]
+        },
+        {
+            "seqno": 4,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790979616e6465782e737400053a70617468262f6c65676f2f5f2f704475394f5741514b423073324a39496f6a4b7069535f45686f2e69636f000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e3000066163636570743f746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e38000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c697665",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "yandex.st"
+                },
+                {
+                    ":path": "/lego/_/pDu9OWAQKB0s2J9IojKpiS_Eho.ico"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                }
+            ]
+        },
+        {
+            "seqno": 5,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790979616e6465782e737400053a706174681c2f7777772f312e3335392f7777772f692f79616e646578332e706e67000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657215687474703a2f2f7777772e79616e6465782e72752f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "yandex.st"
+                },
+                {
+                    ":path": "/www/1.359/www/i/yandex3.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yandex.ru/"
+                }
+            ]
+        },
+        {
+            "seqno": 6,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790979616e6465782e737400053a70617468162f6d6f7264612d6c6f676f2f692f6c6f676f2e706e67000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657215687474703a2f2f7777772e79616e6465782e72752f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "yandex.st"
+                },
+                {
+                    ":path": "/morda-logo/i/logo.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yandex.ru/"
+                }
+            ]
+        },
+        {
+            "seqno": 7,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790c6d632e79616e6465782e727500053a706174680d2f77617463682f373232353435000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657215687474703a2f2f7777772e79616e6465782e72752f0006636f6f6b696522743d703b2079616e6465787569643d36343130343533373731333531393439343531",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "mc.yandex.ru"
+                },
+                {
+                    ":path": "/watch/722545"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yandex.ru/"
+                },
+                {
+                    "cookie": "t=p; yandexuid=6410453771351949451"
+                }
+            ]
+        },
+        {
+            "seqno": 8,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790979616e6465782e737400053a70617468312f7777772f312e3335392f7777772f70616765732d6465736b746f702f7777772d6373732f5f7777772d6373732e637373000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707412746578742f6373732c2a2f2a3b713d302e31000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657215687474703a2f2f7777772e79616e6465782e72752f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "yandex.st"
+                },
+                {
+                    ":path": "/www/1.359/www/pages-desktop/www-css/_www-css.css"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/css,*/*;q=0.1"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yandex.ru/"
+                }
+            ]
+        },
+        {
+            "seqno": 9,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790979616e6465782e737400053a70617468262f7777772f5f2f5f723770702d622d684b6f4462677947597930494233776c6b6e6f2e706e67000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657215687474703a2f2f7777772e79616e6465782e72752f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "yandex.st"
+                },
+                {
+                    ":path": "/www/_/_r7pp-b-hKoDbgyGYy0IB3wlkno.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.yandex.ru/"
+                }
+            ]
+        }
+    ],
+    "draft": 9,
+    "description": "http2 in Haskell: Naive - static table=no, header table=no, huffman=no"
+}

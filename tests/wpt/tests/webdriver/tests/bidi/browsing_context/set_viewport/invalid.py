@@ -1,3 +1,5 @@
+# META: timeout=long
+
 import pytest
 
 import webdriver.bidi.error as error
@@ -69,3 +71,15 @@ async def test_params_viewport_height_invalid_type(bidi_session, new_tab, height
 async def test_params_viewport_invalid_value(bidi_session, new_tab, viewport):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.browsing_context.set_viewport(context=new_tab["context"], viewport=viewport)
+
+
+@pytest.mark.parametrize("device_pixel_ratio", [False, "", {}, []])
+async def test_params_devicePixelRatio_invalid_type(bidi_session, new_tab,device_pixel_ratio):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.set_viewport(context=new_tab["context"], device_pixel_ratio=device_pixel_ratio)
+
+
+@pytest.mark.parametrize("device_pixel_ratio", [0, -1])
+async def test_params_devicePixelRatio_invalid_value(bidi_session, new_tab, device_pixel_ratio):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.set_viewport(context=new_tab["context"], device_pixel_ratio=device_pixel_ratio)

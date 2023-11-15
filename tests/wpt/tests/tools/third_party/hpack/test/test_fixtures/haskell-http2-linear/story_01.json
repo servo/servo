@@ -1,0 +1,57 @@
+{
+    "cases": [
+        {
+            "seqno": 0,
+            "wire": "87410b6578616d706c652e636f6d84827a0a687061636b2d74657374600878787878787878314007782d68656c6c6f05776f726c64",
+            "headers": [
+                {
+                    ":scheme": "https"
+                },
+                {
+                    ":authority": "example.com"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    ":method": "GET"
+                },
+                {
+                    "user-agent": "hpack-test"
+                },
+                {
+                    "cookie": "xxxxxxx1"
+                },
+                {
+                    "x-hello": "world"
+                }
+            ]
+        },
+        {
+            "seqno": 1,
+            "wire": "87c18482c060087878787878787832",
+            "headers": [
+                {
+                    ":scheme": "https"
+                },
+                {
+                    ":authority": "example.com"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    ":method": "GET"
+                },
+                {
+                    "user-agent": "hpack-test"
+                },
+                {
+                    "cookie": "xxxxxxx2"
+                }
+            ]
+        }
+    ],
+    "draft": 9,
+    "description": "http2 in Haskell: Linear - static table=yes, header table=yes, huffman=no"
+}

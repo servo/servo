@@ -31,7 +31,7 @@ async function init() {
   await fencedframe.execute((new_url) => {
     const beacon_data = "This is the beacon data!";
     let beacon_event = {
-      eventType: "reserved.top_navigation",
+      eventType: "reserved.top_navigation_commit",
       eventData: beacon_data,
       destination: ["buyer"],
     }

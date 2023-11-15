@@ -1,0 +1,24 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="i" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+  await i.contentWindow.navigation.navigate("/common/blank.html#fragment").finished;
+  assert_equals(i.contentWindow.navigation.entries().length, 2);
+
+  let urlAfterSameDoc = i.contentWindow.location.href;
+
+  i.contentWindow.navigation.navigate("/common/blank.html?a");
+  await new Promise(resolve => i.onload = () => t.step_timeout(resolve, 0));
+  assert_equals(i.contentWindow.navigation.entries().length, 3);
+
+  assert_equals(i.contentWindow.navigation.activation.from,
+                i.contentWindow.navigation.entries()[1]);
+  assert_equals(i.contentWindow.navigation.activation.from.url, urlAfterSameDoc);
+  assert_equals(i.contentWindow.navigation.activation.navigationType, "push");
+}, "navigation.activation same-document then cross-document");
+</script>

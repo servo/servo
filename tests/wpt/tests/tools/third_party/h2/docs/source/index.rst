@@ -3,14 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Hyper-h2: A pure-Python HTTP/2 protocol stack
-=============================================
+h2: A pure-Python HTTP/2 protocol stack
+=======================================
 
-Hyper-h2 is a HTTP/2 protocol stack, written entirely in Python. The goal of
-Hyper-h2 is to be a common HTTP/2 stack for the Python ecosystem,
+h2 is a HTTP/2 protocol stack, written entirely in Python. The goal of
+h2 is to be a common HTTP/2 stack for the Python ecosystem,
 usable in all programs regardless of concurrency model or environment.
 
-To achieve this, Hyper-h2 is entirely self-contained: it does no I/O of any
+To achieve this, h2 is entirely self-contained: it does no I/O of any
 kind, leaving that up to a wrapper library to control. This ensures that it can
 seamlessly work in all kinds of environments, from single-threaded code to
 Twisted.
@@ -38,4 +38,3 @@ Contents
    testimonials
    release-process
    release-notes
-   contributors

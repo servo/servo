@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>CSS Text — line breaking around Break After and Exclamation</title>
+<meta name=assert content="When ‘white-space’ allows wrapping, line breaking behavior defined for BA and EX line-breaking classes in [UAX14] must be honored.">
+<link rel=help href="https://www.w3.org/TR/css-text-3/#line-breaking">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=628825">
+<link rel=author title="Makoto Kato" href="mailto:m_kato@ga2.so-net.ne.jp">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.test > div {
+  font-family: monospace;
+  font-size: 25px;
+  width: 1ch;
+  line-height: 30px;
+}
+</style>
+<body>
+
+<div class="test">
+  <div id="nonbreakable1">X&#x1361;!</div>
+  <div id="nonbreakable2">X&#x1680;!</div>
+  <div id="nonbreakable3">X&#x2009;!</div>
+  <div id="nonbreakable4">X&#x205F;!</div>
+</div>
+
+<script>
+test(function() {
+  assert_true(document.getElementById('nonbreakable1').offsetHeight <= 35);
+}, "U+0x1361 (BA) and U+0x0021 (EX)");
+test(function() {
+  assert_true(document.getElementById('nonbreakable2').offsetHeight <= 35);
+}, "U+0x1680 (BA) and U+0x0021 (EX)");
+test(function() {
+  assert_true(document.getElementById('nonbreakable3').offsetHeight <= 35);
+}, "U+0x2009 (BA) and U+0x0021 (EX)");
+test(function() {
+  assert_true(document.getElementById('nonbreakable4').offsetHeight <= 35);
+}, "U+0x205F (BA) and U+0x0021 (EX)");
+</script>
+
+<div id='log'></div>
+
+</body>
+</html>

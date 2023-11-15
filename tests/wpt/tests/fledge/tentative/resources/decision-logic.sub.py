@@ -36,7 +36,7 @@ def main(request, response):
     if error != b"no-scoreAd":
         body += b"""
             function scoreAd(adMetadata, bid, auctionConfig, trustedScoringSignals,
-                            browserSignals) {
+                            browserSignals, directFromSellerSignals) {
               // Don't bid on interest group with the wrong uuid. This is to prevent
               // left over interest groups from other tests from affecting auction
               // results.

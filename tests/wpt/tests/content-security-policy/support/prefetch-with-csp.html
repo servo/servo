@@ -1,12 +1,13 @@
 <!DOCTYPE html>
   <html>
     <head>
-      <link id="prefetch" rel="prefetch" href="pass.png">
-    </head>
-    <body>
       <script>
+        let link = document.createElement("link");
+        link.rel = "prefetch";
         const bc = new BroadcastChannel(new URLSearchParams(location.search).get("uid"));
-        document.getElementById("prefetch").addEventListener("error", e => bc.postMessage(false));
+        link.addEventListener("error", e => bc.postMessage(false));
+        link.href = "pass.png";
+        document.head.appendChild(link);
         const observer = new PerformanceObserver(entries => {
           const found = entries.getEntriesByName(new URL("pass.png", location.href).href);
           if (found.length)
@@ -14,5 +15,5 @@
         });
         observer.observe({entryTypes: ["resource"]});
       </script>
-    </body>
+    </head>
   </html>

@@ -2895,8 +2895,31 @@ var browserTests = [
 
 // Select all list item children when list items have multiple nodes.
 ["{<ul><li>abc<span>def</span>ghi</li><li>jkl<span>opq</span>rst</li></ul>}",
-   [["delete",""]],
+   [["forwarddelete",""]],
    "<ul><li>{}<br></li></ul>",
+   [true],
+   {}],
+
+// inlined elements shouldn't be joined as <span>, etc
+["<div style=\"display:inline\">abc[]</div><div style=\"display:inline\">def</div>",
+   [["forwarddelete",""]],
+   "<div style=\"display:inline\">abc</div><div style=\"display:inline\">ef</div>",
+   [true],
+   {}],
+["<ul><li style=\"display:inline\">abc[]</li><li style=\"display:inline\">def</li></ul>",
+   [["forwarddelete",""]],
+   "<ul><li style=\"display:inline\">abc</li><li style=\"display:inline\">ef</li></ul>",
+   [true],
+   {}],
+["<dl><dt style=\"display:inline\">abc[]</dt><dd style=\"display:inline\">def</dd></dl>",
+   [["forwarddelete",""]],
+   "<dl><dt style=\"display:inline\">abc</dt><dd style=\"display:inline\">ef</dd></dl>",
+   [true],
+   {}],
+// list-styled elements should work as list item elements
+["<div><span style=\"display:list-item\">abc[]</span><span style=\"display:list-item\">def</span></div>",
+   [["forwarddelete",""]],
+   "<div><span style=\"display:list-item\">abcdef</span></div>",
    [true],
    {}],
 ]

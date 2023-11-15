@@ -1,0 +1,58 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Nested CSS Content Visibility: auto + scrollIntoView</title>
+<link rel="author" title="Cathie Chen" href="mailto:cathiechen@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-vs-scrollIntoView-001-ref.html">
+<meta name="assert"
+    content="Test if target scrollIntoView is visible when it is inside a nested content-visibility: auto">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+    .auto {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 1px auto 10000px;
+    }
+
+    .child {
+        height: 40000px;
+        position: relative;
+    }
+
+    #target {
+        position: absolute;
+        bottom: 0;
+    }
+
+    .before_target {
+        height: 40000px;
+    }
+</style>
+
+<div id=e1 class="auto before_target"></div>
+<div id=e2 class="auto before_target"></div>
+<div id=e3 class=auto>
+    <div class=auto>
+        <div class=child></div>
+        <div class=auto>
+            <div class=child></div>
+            <div class=auto>
+                <div class=child>
+                    <div id=target>PASS</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function runTest() {
+        target.scrollIntoView();
+        // Double rAF to ensure that rendering has "settled".
+        requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+    }
+
+    window.onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

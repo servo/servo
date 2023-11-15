@@ -198,7 +198,6 @@ async_test(t => {
   }));
 
   span.addEventListener("click", t.step_func(ev => {
-    ev.preventDefault();
     t.step_timeout(() => t.done(), 500);
   }));
 
@@ -207,4 +206,27 @@ async_test(t => {
 
 }, "clicking the child of a button by dispatching a non-bubbling event should not trigger submit");
 
+async_test(t => {
+
+  const form = document.createElement("form");
+  const button = document.createElement("button");
+  button.disabled = true;
+  const span = document.createElement("span");
+  button.appendChild(span);
+  form.appendChild(button);
+  document.body.appendChild(form);
+
+  form.addEventListener("submit", t.step_func_done(ev => {
+    ev.preventDefault();
+    assert_unreached("Form should not be submitted");
+  }));
+
+  span.addEventListener("click", t.step_func(ev => {
+    assert_true(true, "span was clicked");
+    t.step_timeout(() => t.done(), 500);
+  }));
+
+  span.click();
+
+}, "clicking the child of a disabled button with .click() should not trigger submit");
 </script>

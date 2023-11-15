@@ -1,0 +1,95 @@
+import asyncio
+
+import pytest
+
+from tests.support.sync import AsyncPoll
+
+from .. import assert_response_event
+
+PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
+
+AUTH_REQUIRED_EVENT = "network.authRequired"
+
+
+@pytest.mark.asyncio
+async def test_subscribe_status(
+    bidi_session, new_tab, subscribe_events, wait_for_event, url
+):
+    await subscribe_events(events=[AUTH_REQUIRED_EVENT])
+
+    # Track all received network.authRequired events in the events array.
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(AUTH_REQUIRED_EVENT, on_event)
+
+    auth_url = url(
+        "/webdriver/tests/support/http_handlers/authentication.py?realm=testrealm"
+    )
+
+    on_auth_required = wait_for_event(AUTH_REQUIRED_EVENT)
+
+    # navigate using wait="none" as other wait conditions would hang because of
+    # the authentication prompt.
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=auth_url,
+        wait="none",
+    )
+
+    await on_auth_required
+
+    assert len(events) == 1
+    expected_request = {"method": "GET", "url": auth_url}
+    expected_response = {
+        "url": auth_url,
+        "authChallenges": [
+            ({"scheme": "Basic", "realm": "testrealm"}),
+        ],
+    }
+    assert_response_event(
+        events[0],
+        expected_request=expected_request,
+        expected_response=expected_response,
+        redirect_count=0,
+    )
+
+    await bidi_session.session.unsubscribe(events=[AUTH_REQUIRED_EVENT])
+
+    # Navigate to authentication.py again and check no new event is received.
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=auth_url,
+        wait="none",
+    )
+    await asyncio.sleep(0.5)
+    assert len(events) == 1
+
+    remove_listener()
+
+
+@pytest.mark.asyncio
+async def test_no_authentication(
+    bidi_session, new_tab, subscribe_events, wait_for_event, url
+):
+    await subscribe_events(events=[AUTH_REQUIRED_EVENT])
+
+    # Track all received network.authRequired events in the events array.
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(AUTH_REQUIRED_EVENT, on_event)
+
+    # Navigate to a page which should not trigger any authentication.
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=url(PAGE_EMPTY_HTML),
+        wait="complete",
+    )
+
+    assert len(events) == 0
+    remove_listener()

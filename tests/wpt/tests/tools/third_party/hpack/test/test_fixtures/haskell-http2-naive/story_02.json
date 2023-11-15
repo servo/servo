@@ -1,0 +1,360 @@
+{
+    "cases": [
+        {
+            "seqno": 0,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790a616d617a6f6e2e636f6d00053a70617468012f000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e3000066163636570743f746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e38000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c697665",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "amazon.com"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                }
+            ]
+        },
+        {
+            "seqno": 1,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f7269747917672d6563782e696d616765732d616d617a6f6e2e636f6d00053a706174683b2f696d616765732f472f30312f676e6f2f626561636f6e2f426561636f6e5370726974652d55532d30312e5f563430313930333533355f2e706e67000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657216687474703a2f2f7777772e616d617a6f6e2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "g-ecx.images-amazon.com"
+                },
+                {
+                    ":path": "/images/G/01/gno/beacon/BeaconSprite-US-01._V401903535_.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.amazon.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 2,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f7269747917672d6563782e696d616765732d616d617a6f6e2e636f6d00053a706174683f2f696d616765732f472f30312f782d6c6f63616c652f636f6d6d6f6e2f7472616e73706172656e742d706978656c2e5f563338363934323436345f2e676966000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657216687474703a2f2f7777772e616d617a6f6e2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "g-ecx.images-amazon.com"
+                },
+                {
+                    ":path": "/images/G/01/x-locale/common/transparent-pixel._V386942464_.gif"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.amazon.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 3,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f7269747917672d6563782e696d616765732d616d617a6f6e2e636f6d00053a70617468582f696d616765732f472f30312f696d6731322f6f746865722f64697361737465722d72656c6965662f3330302d636f6c756d6e2f73616e64792d72656c6965665f3330307837352e5f563430303638393439315f2e706e67000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657216687474703a2f2f7777772e616d617a6f6e2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "g-ecx.images-amazon.com"
+                },
+                {
+                    ":path": "/images/G/01/img12/other/disaster-relief/300-column/sandy-relief_300x75._V400689491_.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.amazon.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 4,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f726974790e7777772e616d617a6f6e2e636f6d00053a70617468012f000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e3000066163636570743f746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e38000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c697665",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "www.amazon.com"
+                },
+                {
+                    ":path": "/"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                }
+            ]
+        },
+        {
+            "seqno": 5,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f7269747917672d6563782e696d616765732d616d617a6f6e2e636f6d00053a706174683f2f696d616765732f472f30312f782d6c6f63616c652f636f6d6d6f6e2f7472616e73706172656e742d706978656c2e5f563139323233343637355f2e676966000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657216687474703a2f2f7777772e616d617a6f6e2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "g-ecx.images-amazon.com"
+                },
+                {
+                    ":path": "/images/G/01/x-locale/common/transparent-pixel._V192234675_.gif"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.amazon.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 6,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f7269747917672d6563782e696d616765732d616d617a6f6e2e636f6d00053a706174685b2f696d616765732f472f30312f696d6731322f73686f65732f73616c65735f6576656e74732f31315f6e6f762f313033305f4163636573736f7269657350524f4d4f5f475772696768742e5f563430303632363935305f2e676966000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657216687474703a2f2f7777772e616d617a6f6e2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "g-ecx.images-amazon.com"
+                },
+                {
+                    ":path": "/images/G/01/img12/shoes/sales_events/11_nov/1030_AccessoriesPROMO_GWright._V400626950_.gif"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.amazon.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 7,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f7269747917672d6563782e696d616765732d616d617a6f6e2e636f6d00053a706174683e2f696d616765732f472f30312f4175746f6d6f746976652f726f746f732f4475726163656c6c3630305f3132302e5f563139323230343736345f2e6a7067000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657216687474703a2f2f7777772e616d617a6f6e2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "g-ecx.images-amazon.com"
+                },
+                {
+                    ":path": "/images/G/01/Automotive/rotos/Duracell600_120._V192204764_.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.amazon.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 8,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f7269747917672d6563782e696d616765732d616d617a6f6e2e636f6d00053a70617468432f696d616765732f472f30312f75692f6c6f6164496e64696361746f72732f6c6f6164496e64696361746f722d6c617267652e5f563139323139353438305f2e676966000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657216687474703a2f2f7777772e616d617a6f6e2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "g-ecx.images-amazon.com"
+                },
+                {
+                    ":path": "/images/G/01/ui/loadIndicators/loadIndicator-large._V192195480_.gif"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.amazon.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 9,
+            "wire": "00073a6d6574686f640347455400073a736368656d650468747470000a3a617574686f72697479156563782e696d616765732d616d617a6f6e2e636f6d00053a70617468212f696d616765732f492f3431485a2d4e442d53554c2e5f534c3133355f2e6a7067000a757365722d6167656e74514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e30000661636365707421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e35000f6163636570742d6c616e67756167650e656e2d55532c656e3b713d302e35000f6163636570742d656e636f64696e670d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c69766500077265666572657216687474703a2f2f7777772e616d617a6f6e2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "ecx.images-amazon.com"
+                },
+                {
+                    ":path": "/images/I/41HZ-ND-SUL._SL135_.jpg"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.amazon.com/"
+                }
+            ]
+        }
+    ],
+    "draft": 9,
+    "description": "http2 in Haskell: Naive - static table=no, header table=no, huffman=no"
+}

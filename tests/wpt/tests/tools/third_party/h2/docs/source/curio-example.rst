@@ -6,7 +6,7 @@ example of how to build a concurrent networking framework using Python 3.5's
 new ``async``/``await`` syntax.
 
 This example is notable for demonstrating the correct use of HTTP/2 flow
-control with Hyper-h2. It is also a good example of the brand new syntax.
+control with h2. It is also a good example of the brand new syntax.
 
 .. literalinclude:: ../../examples/curio/curio-server.py
    :language: python

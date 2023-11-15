@@ -76,7 +76,7 @@ async def test_pen_pointer_properties(
     (
         actions.add_pointer(pointer_type="pen")
         .pointer_move(x=0, y=0, origin=get_element_origin(pointerArea))
-        .pointer_down(button=0, pressure=0.36, tilt_x=-72, tilt_y=9, twist=86)
+        .pointer_down(button=0, pressure=0.36, altitude_angle=0.3, azimuth_angle=0.2419, twist=86)
         .pointer_move(x=10, y=10, origin=get_element_origin(pointerArea))
         .pointer_up(button=0)
         .pointer_move(x=80, y=50, origin=get_element_origin(pointerArea))
@@ -110,8 +110,8 @@ async def test_pen_pointer_properties(
     assert round(events[3]["width"], 2) == 1
     assert round(events[3]["height"], 2) == 1
     assert round(events[3]["pressure"], 2) == 0.36
-    assert events[3]["tiltX"] == -72
-    assert events[3]["tiltY"] == 9
+    assert events[3]["tiltX"] == 72
+    assert events[3]["tiltY"] == 38
     assert events[3]["twist"] == 86
     assert events[6]["type"] == "pointermove"
     assert events[6]["pageX"] == pytest.approx(center["x"] + 10, abs=1.0)

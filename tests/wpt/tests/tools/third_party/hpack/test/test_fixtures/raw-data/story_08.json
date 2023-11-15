@@ -1,0 +1,363 @@
+{
+  "context": "request",
+  "cases": [
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "flickr.com"
+        },
+        {
+          ":path": "/"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "www.flickr.com"
+        },
+        {
+          ":path": "/"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "cookie": "BX=c99r6jp89a7no&b=3&s=q4; localization=en-us%3Bus%3Bus"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "us.adserver.yahoo.com"
+        },
+        {
+          ":path": "/a"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "*/*"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "referer": "http://www.flickr.com/"
+        },
+        {
+          "cookie": "B=4m2rqu589a507&b=3&s=1v; k_visit=1; MSC=t=1351947310X; CH=AgBQlRQgADwDIAAbDSAAGrIgADpuIAAoriAALMQgAAs0IAA7CCAAJ0MgABo3; ucs=bnas=0"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "www.flickr.com"
+        },
+        {
+          ":path": "/images/share-this-icons-sprite.png.v6"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "cookie": "BX=c99r6jp89a7no&b=3&s=q4; localization=en-us%3Bus%3Bus"
+        },
+        {
+          "referer": "http://www.flickr.com/"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "www.flickr.com"
+        },
+        {
+          ":path": "/images/flickr-sprite.png.v4"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "referer": "http://www.flickr.com/"
+        },
+        {
+          "cookie": "BX=c99r6jp89a7no&b=3&s=q4; localization=en-us%3Bus%3Bus"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "www.flickr.com"
+        },
+        {
+          ":path": "/flanal_event.gne"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "cookie": "BX=c99r6jp89a7no&b=3&s=q4; localization=en-us%3Bus%3Bus; ywadp10001561398679=1956875541"
+        },
+        {
+          "referer": "http://www.flickr.com/"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "y.analytics.yahoo.com"
+        },
+        {
+          ":path": "/fpc.pl"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "*/*"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "referer": "http://www.flickr.com/"
+        },
+        {
+          "cookie": "B=4m2rqu589a507&b=3&s=1v; k_visit=1; MSC=t=1351947310X; CH=AgBQlRQgADwDIAAbDSAAGrIgADpuIAAoriAALMQgAAs0IAA7CCAAJ0MgABo3; ucs=bnas=0"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "d.yimg.com"
+        },
+        {
+          ":path": "/ce/soup/soup_generated_fragment.gne"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "*/*"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "referer": "http://www.flickr.com/"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "geo.yahoo.com"
+        },
+        {
+          ":path": "/b"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "referer": "http://www.flickr.com/"
+        },
+        {
+          "cookie": "B=4m2rqu589a507&b=3&s=1v; k_visit=1; MSC=t=1351947310X; CH=AgBQlRQgADwDIAAbDSAAGrIgADpuIAAoriAALMQgAAs0IAA7CCAAJ0MgABo3; ucs=bnas=0"
+        }
+      ]
+    },
+    {
+      "headers": [
+        {
+          ":method": "GET"
+        },
+        {
+          ":scheme": "http"
+        },
+        {
+          ":authority": "www.flickr.com"
+        },
+        {
+          ":path": "/photos/nasacommons/4940913342/"
+        },
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        },
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        },
+        {
+          "accept-language": "en-US,en;q=0.5"
+        },
+        {
+          "accept-encoding": "gzip, deflate"
+        },
+        {
+          "connection": "keep-alive"
+        },
+        {
+          "cookie": "BX=c99r6jp89a7no&b=3&s=q4; localization=en-us%3Bus%3Bus; ywadp10001561398679=1956875541; fl_v=souhp; fpc10001561398679=Qvv1ikW_|aUqazlyMaa|fses10001561398679=|aUqazlyMaa|Qvv1ikW_|fvis10001561398679=Zj1odHRwJTNBJTJGJTJGd3d3LmZsaWNrci5jb20lMkYmdD0xMzUxOTUwMDc1JmI9JTJGaW5kZXhfc291cC5nbmU=|8M1871YYH0|8M1871YYH0|8M1871YYH0|8|8M1871YYH0|8M1871YYH0"
+        },
+        {
+          "referer": "http://www.flickr.com/"
+        }
+      ]
+    }
+  ]
+}

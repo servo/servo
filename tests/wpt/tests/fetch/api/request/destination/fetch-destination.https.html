@@ -194,6 +194,40 @@ promise_test(async t => {
   });
 }, 'HTMLLinkElement with rel=stylesheet fetches with a "style" Request.destination');
 
+// Import declaration with `type: "css"` - style destination
+promise_test(t => {
+  return new Promise((resolve, reject) => {
+      frame.contentWindow.onerror = reject;
+
+      let node = frame.contentWindow.document.createElement("script");
+      node.onload = resolve;
+      node.onerror = reject;
+      node.src = "import-declaration-type-css.js";
+      node.type = "module";
+      frame.contentWindow.document.body.appendChild(node);
+  }).then(() => {
+    frame.contentWindow.onerror = null;
+  });
+}, 'Import declaration with `type: "css"` fetches with a "style" Request.destination');
+
+// JSON destination
+///////////////////
+
+// Import declaration with `type: "json"` - json destination
+promise_test(t => {
+  return new Promise((resolve, reject) => {
+      frame.contentWindow.onerror = reject;
+      let node = frame.contentWindow.document.createElement("script");
+      node.onload = resolve;
+      node.onerror = reject;
+      node.src = "import-declaration-type-json.js";
+      node.type = "module";
+      frame.contentWindow.document.body.appendChild(node);
+  }).then(() => {
+    frame.contentWindow.onerror = null;
+  });
+}, 'Import declaration with `type: "json"` fetches with a "json" Request.destination');
+
 // Preload tests
 ////////////////
 // HTMLLinkElement with rel=preload and as=fetch - empty string destination
@@ -231,6 +265,22 @@ promise_test(async t => {
       assert_unreached("Fetch errored.");
   });
 }, 'HTMLLinkElement with rel=preload and as=style fetches with a "style" Request.destination');
+
+// HTMLLinkElement with rel=preload and as=json - json destination
+promise_test(t => {
+  return new Promise((resolve, reject) => {
+      let node = frame.contentWindow.document.createElement("link");
+      node.rel = "preload";
+      node.as = "json";
+      if (node.as != "json") {
+        resolve();
+      }
+      node.onload = resolve;
+      node.onerror = reject;
+      node.href = "dummy.json?t=2&dest=json";
+      frame.contentWindow.document.body.appendChild(node);
+  });
+}, 'HTMLLinkElement with rel=preload and as=json fetches with a "json" Request.destination');
 
 // HTMLLinkElement with rel=preload and as=script - script destination
 promise_test(async t => {

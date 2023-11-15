@@ -18,7 +18,7 @@ We should also consider writing helper functions to reduce the complexity of
 these tests, so that they can be written more easily, as they are remarkably
 useful.
 """
-import coroutine_tests
+from . import coroutine_tests
 
 import h2.config
 import h2.connection

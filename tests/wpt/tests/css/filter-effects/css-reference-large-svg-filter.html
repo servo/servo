@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Filter References Large SVG Filter Effect</title>
+    <link rel="author" title="Michael Ludwig" href="mailto:michaelludwig@google.com">
+    <link rel="help" href="https://crbug.com/1466359">
+    <link rel="match" href="css-reference-large-svg-filter-ref.html">
+    <meta name="assert" content="The test passes if a green square is visible.">
+
+    <style>
+        html {
+            filter: url(#full_page_filter)
+        }
+    </style>
+</head>
+<body>
+    <div style="position: absolute;left: -100000px">Offscreen content increasing size of HTML body.</div>
+    <div style="width: 200px; height: 200px; background-color: green;"></div>
+
+    <svg xmlns="http://www.w3.org/2000/svg">
+        <filter x="0" y="0" width="999999"  height="99999" id="full_page_filter">
+            <feComponentTransfer>
+                <feFuncR type="identity" exponent="3"></feFuncR>
+                <feFuncG type="identity" exponent="3"></feFuncG>
+                <feFuncB type="identity" exponent="3"></feFuncB>
+            </feComponentTransfer>
+        </filter>
+    </svg>
+</body>
+</html>

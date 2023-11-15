@@ -21,7 +21,7 @@ test_valid_value("animation-range-start", "exit 1%, cover 2%, contain 100%");
 test_valid_value("animation-range-start", "exit-crossing 42%");
 test_valid_value("animation-range-start", "entry 42px");
 test_valid_value("animation-range-start", "entry-crossing 42px");
-test_valid_value("animation-range-start", "contain calc(10px + 10%)");
+test_valid_value("animation-range-start", "contain calc(10px + 10%)", "contain calc(10% + 10px)");
 test_valid_value("animation-range-start", "entry 1em");
 test_valid_value("animation-range-start", "exit calc(1em + 10px)");
 test_valid_value("animation-range-start", "entry 42%");

@@ -37,9 +37,9 @@
 
     await StartDedicatedWorker(frame);
 
-    assert_equals(
-        await MessageWorker(frame, {command: "fetch", url: altRootEchoCookies}),
-        "cookie=unpartitioned", "Worker's fetch is credentialed.");
+    assert_true(cookieStringHasCookie("cookie", "unpartitioned",
+          await MessageWorker(frame, {command: "fetch", url: altRootEchoCookies})),
+        "Worker's fetch is credentialed.");
   }, "Workers inherit storage access");
 
   promise_test(async (t) => {
@@ -49,9 +49,9 @@
     const frame = await SetUpResponderFrame(t, altRootResponder);
 
     await StartDedicatedWorker(frame);
-    assert_equals(
-        await MessageWorker(frame, {command: "fetch", url: altRootEchoCookies}),
-        "", "Worker's first fetch is uncredentialed.");
+    assert_false(cookieStringHasCookie("cookie", "unpartitioned",
+          await MessageWorker(frame, {command: "fetch", url: altRootEchoCookies})),
+        "Worker's first fetch is uncredentialed.");
 
     // Since the parent document obtains storage access *after* having created
     // the worker, this should have no effect on the worker.
@@ -59,9 +59,9 @@
     assert_true(await FrameHasStorageAccess(frame), "frame has storage access after request.");
     assert_true(await HasUnpartitionedCookie(frame), "frame has access to cookies after request.");
 
-    assert_equals(
-        await MessageWorker(frame, {command: "fetch", url: altRootEchoCookies}),
-        "", "Worker's second fetch is uncredentialed.");
+    assert_false(cookieStringHasCookie("cookie", "unpartitioned",
+          await MessageWorker(frame, {command: "fetch", url: altRootEchoCookies})),
+        "Worker's second fetch is uncredentialed.");
   }, "Workers don't observe parent's storage access");
 
 }());

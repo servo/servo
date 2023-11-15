@@ -1,2 +1,8 @@
-include README.rst LICENSE CONTRIBUTORS.rst HISTORY.rst
-
+graft src
+graft docs
+graft test
+prune docs/build
+prune test/http2-frame-test-case
+include README.rst LICENSE CHANGELOG.rst CONTRIBUTORS.rst tox.ini .gitmodules
+include src/hyperframe/py.typed
+global-exclude *.pyc *.pyo *.swo *.swp *.map *.yml *.DS_Store

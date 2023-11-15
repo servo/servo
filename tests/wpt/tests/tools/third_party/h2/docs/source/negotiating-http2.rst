@@ -1,7 +1,7 @@
 Negotiating HTTP/2
 ==================
 
-`RFC 7540`_ specifies three methods of negotiating HTTP/2 connections. This document outlines how to use Hyper-h2 with each one.
+`RFC 7540`_ specifies three methods of negotiating HTTP/2 connections. This document outlines how to use h2 with each one.
 
 .. _starting-alpn:
 
@@ -10,12 +10,12 @@ HTTPS URLs (ALPN)
 
 Starting HTTP/2 for HTTPS URLs is outlined in `RFC 7540 Section 3.3`_. In this case, the client and server use a TLS extension to negotiate HTTP/2: `ALPN`_. How to use ALPN is currently not covered in this document: please consult the documentation for either the :mod:`ssl module <python:ssl>` in the standard library, or the :mod:`PyOpenSSL <pyopenssl:OpenSSL.SSL>` third-party modules, for more on this topic.
 
-This method is the simplest to use once the TLS connection is established. To use it with Hyper-h2, after you've established the connection and confirmed that HTTP/2 has been negotiated with `ALPN`_, create a :class:`H2Connection <h2.connection.H2Connection>` object and call :meth:`H2Connection.initiate_connection <h2.connection.H2Connection.initiate_connection>`. This will ensure that the appropriate preamble data is placed in the data buffer. You should then immediately send the data returned by :meth:`H2Connection.data_to_send <h2.connection.H2Connection.data_to_send>` on your TLS connection.
+This method is the simplest to use once the TLS connection is established. To use it with h2, after you've established the connection and confirmed that HTTP/2 has been negotiated with `ALPN`_, create a :class:`H2Connection <h2.connection.H2Connection>` object and call :meth:`H2Connection.initiate_connection <h2.connection.H2Connection.initiate_connection>`. This will ensure that the appropriate preamble data is placed in the data buffer. You should then immediately send the data returned by :meth:`H2Connection.data_to_send <h2.connection.H2Connection.data_to_send>` on your TLS connection.
 
-At this point, you're free to use all the HTTP/2 functionality provided by Hyper-h2.
+At this point, you're free to use all the HTTP/2 functionality provided by h2.
 
 .. note::
-   Although Hyper-h2 is not concerned with negotiating protocol versions, it is important to note that support for `ALPN`_ is not available in the standard library of Python versions < 2.7.9.
+   Although h2 is not concerned with negotiating protocol versions, it is important to note that support for `ALPN`_ is not available in the standard library of Python versions < 2.7.9.
    As a consequence, clients may encounter various errors due to protocol versions mismatch.
 
 Server Setup Example
@@ -47,18 +47,18 @@ HTTP URLs (Upgrade)
 
 Starting HTTP/2 for HTTP URLs is outlined in `RFC 7540 Section 3.2`_. In this case, the client and server use the HTTP Upgrade mechanism originally described in `RFC 7230 Section 6.7`_. The client sends its initial HTTP/1.1 request with two extra headers. The first is ``Upgrade: h2c``, which requests upgrade to cleartext HTTP/2. The second is a ``HTTP2-Settings`` header, which contains a specially formatted string that encodes a HTTP/2 Settings frame.
 
-To do this with Hyper-h2 you have two slightly different flows: one for clients, one for servers.
+To do this with h2 you have two slightly different flows: one for clients, one for servers.
 
 Clients
 ~~~~~~~
 
 For a client, when sending the first request you should manually add your ``Upgrade`` header. You should then create a :class:`H2Connection <h2.connection.H2Connection>` object and call :meth:`H2Connection.initiate_upgrade_connection <h2.connection.H2Connection.initiate_upgrade_connection>` with no arguments. This method will return a bytestring to use as the value of your ``HTTP2-Settings`` header.
 
-If the server returns a ``101`` status code, it has accepted the upgrade, and you should immediately send the data returned by :meth:`H2Connection.data_to_send <h2.connection.H2Connection.data_to_send>`. Now you should consume the entire ``101`` header block. All data after the ``101`` header block is HTTP/2 data that should be fed directly to :meth:`H2Connection.receive_data <h2.connection.H2Connection.receive_data>` and handled as normal with Hyper-h2.
+If the server returns a ``101`` status code, it has accepted the upgrade, and you should immediately send the data returned by :meth:`H2Connection.data_to_send <h2.connection.H2Connection.data_to_send>`. Now you should consume the entire ``101`` header block. All data after the ``101`` header block is HTTP/2 data that should be fed directly to :meth:`H2Connection.receive_data <h2.connection.H2Connection.receive_data>` and handled as normal with h2.
 
 If the server does not return a ``101`` status code then it is not upgrading. Continue with HTTP/1.1 as normal: you may throw away your :class:`H2Connection <h2.connection.H2Connection>` object, as it is of no further use.
 
-The server will respond to your original request in HTTP/2. Please pay attention to the events received from Hyper-h2, as they will define the server's response.
+The server will respond to your original request in HTTP/2. Please pay attention to the events received from h2, as they will define the server's response.
 
 Client Example
 ^^^^^^^^^^^^^^

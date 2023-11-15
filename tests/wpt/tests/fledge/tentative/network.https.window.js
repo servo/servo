@@ -5,7 +5,8 @@
 // META: script=resources/fledge-util.sub.js
 // META: timeout=long
 // META: variant=?1-5
-// META: variant=?6-last
+// META: variant=?6-10
+// META: variant=?11-last
 
 "use strict";
 
@@ -17,11 +18,23 @@
 // URL that sets a cookie named "cookie" with a value of "cookie".
 const SET_COOKIE_URL = `${BASE_URL}resources/set-cookie.asis`;
 
+// URL that redirects to trusted bidding or scoring signals, depending on the
+// query parameters, maintaining the query parameters for the redirect.
+const REDIRECT_TO_TRUSTED_SIGNALS_URL = `${BASE_URL}resources/redirect-to-trusted-signals.py`;
+
 // Returns a URL that stores request headers. Headers can later be retrieved
 // as a name-to-list-of-values mapping with
 // "(await fetchTrackedData(uuid)).trackedHeaders"
 function createHeaderTrackerURL(uuid) {
   return createTrackerURL(window.location.origin, uuid, 'track_headers');
+}
+
+// Returns a URL that redirects to the provided URL. Uses query strings, so
+// not suitable for generating trusted bidding/scoring signals URLs.
+function createRedirectURL(location) {
+  let url = new URL(`${BASE_URL}resources/redirect.py`);
+  url.searchParams.append('location', location);
+  return url.toString();
 }
 
 // Delete all cookies. Separate function so that can be replaced with
@@ -86,16 +99,12 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  await deleteAllCookies();
-
   await joinGroupAndRunBasicFledgeTestExpectingNoWinner(
       test,
       { uuid: uuid,
-        interestGroupOverrides: { biddingLogicURL: SET_COOKIE_URL }
+        interestGroupOverrides: {
+            biddingLogicURL: createRedirectURL(createBiddingScriptURL()) }
       });
-
-  assert_equals(document.cookie, '');
-  await deleteAllCookies();
 }, 'biddingLogicURL redirect.');
 
 subsetTest(promise_test, async test => {
@@ -133,6 +142,16 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
+  await joinGroupAndRunBasicFledgeTestExpectingNoWinner(
+      test,
+      { uuid: uuid,
+        interestGroupOverrides:
+            { biddingWasmHelperURL: createRedirectURL(createBiddingWasmHelperURL()) }
+      });
+}, 'biddingWasmHelperURL redirect.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
   await setCookie(test);
 
   await joinGroupAndRunBasicFledgeTestExpectingNoWinner(
@@ -163,6 +182,16 @@ subsetTest(promise_test, async test => {
   assert_equals(document.cookie, '');
   await deleteAllCookies();
 }, 'decisionLogicURL Set-Cookie.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await joinGroupAndRunBasicFledgeTestExpectingNoWinner(
+      test,
+      { uuid: uuid,
+        auctionConfigOverrides:
+            { decisionLogicURL: createRedirectURL(createDecisionScriptURL(uuid)) }
+      });
+}, 'decisionLogicURL redirect.');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
@@ -208,6 +237,25 @@ subsetTest(promise_test, async test => {
   assert_equals(document.cookie, '');
   await deleteAllCookies();
 }, 'trustedBiddingSignalsURL Set-Cookie.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  await joinGroupAndRunBasicFledgeTestExpectingWinner(
+      test,
+      { uuid: uuid,
+        interestGroupOverrides: {
+          trustedBiddingSignalsURL: REDIRECT_TO_TRUSTED_SIGNALS_URL,
+          trustedBiddingSignalsKeys: ['num-value'],
+          biddingLogicURL: createBiddingScriptURL({
+              generateBid:
+                  `// The redirect should not be followed, so no signals should be received.
+                   if (trustedBiddingSignals !== null)
+                     throw "Unexpected trustedBiddingSignals: " + JSON.stringify(trustedBiddingSignals);`
+          })
+        }
+      });
+}, 'trustedBiddingSignalsURL redirect.');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
@@ -258,3 +306,22 @@ subsetTest(promise_test, async test => {
   assert_equals(document.cookie, '');
   await deleteAllCookies();
 }, 'trustedScoringSignalsURL Set-Cookie.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  await joinGroupAndRunBasicFledgeTestExpectingWinner(
+      test,
+      { uuid: uuid,
+        auctionConfigOverrides: {
+          trustedScoringSignalsURL: REDIRECT_TO_TRUSTED_SIGNALS_URL,
+          decisionLogicURL: createDecisionScriptURL(uuid,
+            {
+              scoreAd:
+                  `// The redirect should not be followed, so no signals should be received.
+                   if (trustedScoringSignals !== null)
+                     throw "Unexpected trustedScoringSignals: " + JSON.stringify(trustedScoringSignals);`
+            })
+        }
+      });
+}, 'trustedScoringSignalsURL redirect.');

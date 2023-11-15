@@ -62,7 +62,7 @@ _ACAO = ("Access-Control-Allow-Origin", "*")
 _ACAPN = ("Access-Control-Allow-Private-Network", "true")
 _ACAH = ("Access-Control-Allow-Headers", "Service-Worker")
 
-def _get_response_headers(method, mode):
+def _get_response_headers(method, mode, origin):
   acam = ("Access-Control-Allow-Methods", method)
 
   if mode == b"cors":
@@ -73,6 +73,15 @@ def _get_response_headers(method, mode):
 
   if mode == b"cors+pna+sw":
     return [acam, _ACAO, _ACAPN, _ACAH]
+
+  if mode == b"navigation":
+    return [
+        acam,
+        ("Access-Control-Allow-Origin", origin),
+        _ACAPN,
+        ("Access-Control-Allow-Credentials", "true"),
+        ("Access-Control-Allow-Headers", "Upgrade-Insecure-Requests")
+    ]
 
   return []
 
@@ -115,7 +124,8 @@ def _handle_preflight_request(request, response):
 
   method = request.headers.get("Access-Control-Request-Method")
   mode = request.GET.get(b"preflight-headers")
-  headers = _get_response_headers(method, mode)
+  origin = request.headers.get("Origin")
+  headers = _get_response_headers(method, mode, origin)
 
   return (headers, "preflight")
 
@@ -147,7 +157,8 @@ def _handle_final_request(request, response):
       request.server.stash.put(uuid, "final")
 
     mode = request.GET.get(b"final-headers")
-    headers = _get_response_headers(request.method, mode)
+    origin = request.headers.get("Origin")
+    headers = _get_response_headers(request.method, mode, origin)
 
   redirect = request.GET.get(b"redirect")
   if redirect is not None:

@@ -7,11 +7,13 @@
 
 <iframe name=frame1 id=frame1></iframe>
 <form id=form1 target=frame1 action="does_not_exist.html">
-  <button id=submitbutton type=submit>
-    <div id=buttonchilddiv>
-      button child div text
-    </div>
-  </button>
+  <div id=parentdiv>
+    <button id=submitbutton type=submit>
+      <div id=buttonchilddiv>
+        button child div text
+      </div>
+    </button>
+  </div>
 </form>
 
 <script>
@@ -31,4 +33,26 @@ async_test(t => {
     buttonChildDiv.click();
   });
 }, 'This test will pass if a form navigation successfully occurs when clicking a child element of a <button type=submit> element with a onclick event handler which prevents the default form submission and manually calls form.submit() instead.');
+
+async_test(t => {
+  window.addEventListener('load', () => {
+    const frame1 = document.getElementById('frame1');
+    frame1.addEventListener('load', t.step_func_done(() => {}));
+
+    const submitButton = document.getElementById('submitbutton');
+    submitButton.addEventListener('click', event => {
+      const form = document.getElementById('form1');
+      form.submit();
+    });
+
+    const parentDiv = document.getElementById("parentdiv");
+    parentDiv.addEventListener("click", event => {
+      // event was already handled for the button
+      // but it's activation behavior won't have run yet and we prevent that now
+      event.preventDefault();
+    })
+
+    submitButton.click();
+  });
+}, "clicking a submit button, which calls form.submit and has a parent calling e.prevenDefault() should still submit the form");
 </script>
