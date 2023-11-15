@@ -18,6 +18,7 @@ use cssparser::{match_ignore_ascii_case, parse_nth, *};
 use cssparser::{BasicParseError, BasicParseErrorKind, ParseError, ParseErrorKind};
 use cssparser::{CowRcStr, Delimiter, SourceLocation};
 use cssparser::{Parser as CssParser, ToCss, Token};
+use debug_unreachable::debug_unreachable;
 use precomputed_hash::PrecomputedHash;
 use servo_arc::{HeaderWithLength, ThinArc, UniqueArc};
 use size_of_test::size_of_test;
