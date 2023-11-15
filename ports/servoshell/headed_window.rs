@@ -102,6 +102,7 @@ impl Window {
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
+            .with_maximized(fullscreen)
             .with_inner_size(PhysicalSize::new(width as f64, height as f64))
             .with_visible(visible);
 
