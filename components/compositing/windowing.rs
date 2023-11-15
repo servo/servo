@@ -16,7 +16,7 @@ use servo_geometry::DeviceIndependentPixel;
 use servo_media::player::context::{GlApi, GlContext, NativeDisplay};
 use servo_url::ServoUrl;
 use style_traits::DevicePixel;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint};
+use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, DeviceRect};
 use webrender_api::ScrollLocation;
 use webrender_surfman::WebrenderSurfman;
 
@@ -88,6 +88,8 @@ pub enum EmbedderEvent {
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
     /// Make a top-level browsing context visible.
+    MoveResizeBrowser(TopLevelBrowsingContextId, DeviceRect),
+    /// Make a top-level browsing context visible.
     ShowBrowser(TopLevelBrowsingContextId),
     /// Make a top-level browsing context invisible.
     HideBrowser(TopLevelBrowsingContextId),
@@ -137,6 +139,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::NewBrowser(..) => write!(f, "NewBrowser"),
             EmbedderEvent::SendError(..) => write!(f, "SendError"),
             EmbedderEvent::CloseBrowser(..) => write!(f, "CloseBrowser"),
+            EmbedderEvent::MoveResizeBrowser(..) => write!(f, "MoveResizeBrowser"),
             EmbedderEvent::ShowBrowser(..) => write!(f, "ShowBrowser"),
             EmbedderEvent::HideBrowser(..) => write!(f, "HideBrowser"),
             EmbedderEvent::RaiseBrowserToTop(..) => write!(f, "RaiseBrowserToTop"),
@@ -213,15 +216,21 @@ pub struct EmbedderCoordinates {
 impl EmbedderCoordinates {
     /// Get the unflipped viewport rectangle for use with the WebRender API.
     pub fn get_viewport(&self) -> DeviceIntRect {
-        DeviceIntRect::from_untyped(&self.viewport.to_untyped())
+        self.viewport.clone()
     }
 
-    /// Get the flipped viewport rectangle. This should be used when drawing directly
-    /// to the framebuffer with OpenGL commands.
-    pub fn get_flipped_viewport(&self) -> DeviceIntRect {
+    /// Flip the given rect.
+    /// This should be used when drawing directly to the framebuffer with OpenGL commands.
+    pub fn flipped_rect(&self, rect: &DeviceIntRect) -> DeviceIntRect {
         let fb_height = self.framebuffer.height;
-        let mut view = self.viewport.clone();
-        view.origin.y = fb_height - view.origin.y - view.size.height;
-        DeviceIntRect::from_untyped(&view.to_untyped())
+        let mut result = rect.clone();
+        result.origin.y = fb_height - result.origin.y - result.size.height;
+        result
+    }
+
+    /// Get the flipped viewport rectangle.
+    /// This should be used when drawing directly to the framebuffer with OpenGL commands.
+    pub fn get_flipped_viewport(&self) -> DeviceIntRect {
+        self.flipped_rect(&self.get_viewport())
     }
 }

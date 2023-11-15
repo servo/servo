@@ -503,7 +503,7 @@ where
             EmbedderEvent::Idle => {},
 
             EmbedderEvent::Refresh => {
-                self.compositor.composite();
+                self.compositor.composite(true);
             },
 
             EmbedderEvent::Resize => {
@@ -652,6 +652,8 @@ where
                 }
             },
 
+            EmbedderEvent::MoveResizeBrowser(top_level_browsing_context_id, rect) =>
+                forward_to_constellation!(self, MoveResizeBrowser(top_level_browsing_context_id, rect)),
             EmbedderEvent::ShowBrowser(top_level_browsing_context_id) =>
                 forward_to_constellation!(self, ShowBrowser(top_level_browsing_context_id)),
             EmbedderEvent::HideBrowser(top_level_browsing_context_id) =>
@@ -779,8 +781,8 @@ where
         self.compositor.present();
     }
 
-    pub fn recomposite(&mut self) {
-        self.compositor.composite();
+    pub fn recomposite_unconditionally(&mut self) {
+        self.compositor.composite(true);
     }
 }
 

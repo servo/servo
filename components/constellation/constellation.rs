@@ -1476,6 +1476,9 @@ where
                 }
                 self.handle_panic(top_level_browsing_context_id, error, None);
             },
+            FromCompositorMsg::MoveResizeBrowser(top_level_browsing_context_id, rect) => {
+                self.compositor_proxy.send(CompositorMsg::MoveResizeBrowser(top_level_browsing_context_id, rect));
+            },
             FromCompositorMsg::ShowBrowser(top_level_browsing_context_id) => {
                 self.compositor_proxy.send(CompositorMsg::ShowBrowser(top_level_browsing_context_id));
             },

@@ -18,6 +18,7 @@ use script_traits::{
     WindowSizeData, WindowSizeType,
 };
 use servo_url::ServoUrl;
+use webrender_api::units::DeviceRect;
 
 /// Messages to the constellation.
 pub enum ConstellationMsg {
@@ -60,6 +61,8 @@ pub enum ConstellationMsg {
     CloseBrowser(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
+    /// Make a top-level browsing context visible.
+    MoveResizeBrowser(TopLevelBrowsingContextId, DeviceRect),
     /// Make a top-level browsing context visible.
     ShowBrowser(TopLevelBrowsingContextId),
     /// Make a top-level browsing context invisible.
@@ -112,6 +115,7 @@ impl fmt::Debug for ConstellationMsg {
             LogEntry(..) => "LogEntry",
             NewBrowser(..) => "NewBrowser",
             CloseBrowser(..) => "CloseBrowser",
+            MoveResizeBrowser(..) => "MoveResizeBrowser",
             ShowBrowser(..) => "ShowBrowser",
             HideBrowser(..) => "HideBrowser",
             RaiseBrowserToTop(..) => "RaiseBrowserToTop",

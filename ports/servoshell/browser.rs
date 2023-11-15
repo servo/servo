@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::rc::Rc;
@@ -22,26 +23,28 @@ use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
+use servo::webrender_api::units::{DeviceRect, DevicePoint, DeviceSize};
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
 use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use crate::parser::location_bar_input_to_url;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
-pub struct Browser<Window: WindowPortsMethods + ?Sized> {
+pub struct BrowserManager<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
     current_url_string: Option<String>,
 
     /// List of top-level browsing contexts.
     /// Modified by EmbedderMsg::BrowserOpened and EmbedderMsg::BrowserClosed,
     /// and we exit if it ever becomes empty.
-    browsers: Vec<BrowserId>,
+    browsers: HashMap<BrowserId, Browser>,
 
     /// The top level browsing context that is currently focused.
     /// Modified by EmbedderMsg::BrowserFocused and EmbedderMsg::BrowserUnfocused.
     focused_browser_id: Option<BrowserId>,
 
     /// The order to paint the browsing contexts in.
+    /// Modified by EmbedderMsg::BrowserPaintingOrder.
     painting_order: Vec<BrowserId>,
 
     title: Option<String>,
@@ -52,16 +55,21 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     shutdown_requested: bool,
 }
 
-impl<Window> Browser<Window>
+#[derive(Debug)]
+pub struct Browser {
+    pub rect: DeviceRect,
+}
+
+impl<Window> BrowserManager<Window>
 where
     Window: WindowPortsMethods + ?Sized,
 {
-    pub fn new(window: Rc<Window>) -> Browser<Window> {
-        Browser {
+    pub fn new(window: Rc<Window>) -> BrowserManager<Window> {
+        BrowserManager {
             title: None,
             current_url: None,
             current_url_string: None,
-            browsers: Vec::new(),
+            browsers: HashMap::default(),
             focused_browser_id: None,
             painting_order: vec![],
             window,
@@ -79,6 +87,15 @@ where
 
     pub fn browser_id(&self) -> Option<BrowserId> {
         self.focused_browser_id
+    }
+
+    pub fn get_mut(&mut self, browser_id: BrowserId) -> Option<&mut Browser> {
+        self.browsers.get_mut(&browser_id)
+    }
+
+    pub fn painting_order(&self) -> impl Iterator<Item = (&BrowserId, &Browser)> {
+        self.painting_order.iter()
+            .flat_map(move |browser_id| self.browsers.get(browser_id).map(|b| (browser_id, b)))
     }
 
     pub fn current_url_string(&self) -> Option<&str> {
@@ -414,14 +431,17 @@ where
                     };
                 },
                 EmbedderMsg::BrowserOpened(new_browser_id) => {
-                    self.browsers.push(new_browser_id);
+                    let rect = DeviceRect::new(DevicePoint::new(32.0, 32.0), DeviceSize::new(320.0, 240.0));
+                    self.browsers.insert(new_browser_id, Browser { rect });
+                    self.event_queue
+                        .push(EmbedderEvent::MoveResizeBrowser(new_browser_id, rect));
                     self.event_queue
                         .push(EmbedderEvent::RaiseBrowserToTop(new_browser_id));
                     self.event_queue
                         .push(EmbedderEvent::FocusBrowser(new_browser_id));
                 },
                 EmbedderMsg::BrowserClosed(top_level_browsing_context_id) => {
-                    self.browsers.retain(|b| *b != top_level_browsing_context_id);
+                    self.browsers.retain(|&id, _| id != top_level_browsing_context_id);
                     if self.browsers.is_empty() {
                         self.event_queue.push(EmbedderEvent::Quit);
                     }

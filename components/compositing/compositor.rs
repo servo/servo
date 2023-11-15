@@ -47,7 +47,7 @@ use webrender;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutRect, LayoutSize,
-    LayoutVector2D, WorldPoint, LayoutPixel,
+    LayoutVector2D, WorldPoint, DeviceRect,
 };
 use webrender_api::{
     self, BuiltDisplayList, ClipId, DirtyRect, DocumentId, Epoch as WebRenderEpoch,
@@ -353,7 +353,7 @@ enum CompositeTarget {
 #[derive(Debug)]
 pub struct Browser {
     pub pipeline_id: Option<PipelineId>,
-    pub rect: Rect<f32, LayoutPixel>,
+    pub rect: DeviceRect,
 }
 
 impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
@@ -372,13 +372,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             None => CompositeTarget::Window,
         };
 
-        let size = LayoutSize::new(
-            embedder_coordinates.get_viewport().width() as f32 * 3.0 / 4.0,
-            embedder_coordinates.get_viewport().height() as f32 * 3.0 / 4.0,
-        );
-        let rect = LayoutRect::new(LayoutPoint::zero(), size);
         let mut browsers = BrowserManager::default();
-        browsers.add(top_level_browsing_context_id, Browser { pipeline_id: None, rect });
+        browsers.add(top_level_browsing_context_id, Browser {
+            pipeline_id: None,
+            rect: embedder_coordinates.get_viewport().to_f32(),
+        });
         browsers.show(top_level_browsing_context_id);
 
         IOCompositor {
@@ -532,6 +530,28 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.remove_browser(top_level_browsing_context_id);
             },
 
+            (CompositorMsg::MoveResizeBrowser(top_level_browsing_context_id, rect), ShutdownState::NotShuttingDown) => {
+                if let Some(browser) = self.browsers.get_mut(top_level_browsing_context_id) {
+                    let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
+                    let initial_viewport = rect.size.to_f32() / dppx;
+                    let data = WindowSizeData {
+                        device_pixel_ratio: dppx,
+                        initial_viewport,
+                    };
+                    if rect.size != browser.rect.size {
+                        let size_type = WindowSizeType::Resize; // FIXME always this value in practice
+                        let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
+                        if let Err(e) = self.constellation_chan.send(msg) {
+                            warn!("Sending window resize to constellation failed ({:?}).", e);
+                        }
+                    }
+                    browser.rect = rect;
+                    self.update_root_pipeline();
+                } else {
+                    warn!("{}: MoveResizeBrowser on unknown top-level browsing context", top_level_browsing_context_id);
+                }
+            },
+
             (CompositorMsg::ShowBrowser(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
                 self.browsers.show(top_level_browsing_context_id);
                 self.update_root_pipeline();
@@ -575,7 +595,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (CompositorMsg::CreatePng(rect, reply), ShutdownState::NotShuttingDown) => {
-                let res = self.composite_specific_target(CompositeTarget::WindowAndPng, rect);
+                let res = self.composite_specific_target(CompositeTarget::WindowAndPng, rect, false);
                 if let Err(ref e) = res {
                     info!("Error retrieving PNG: {:?}", e);
                 }
@@ -968,10 +988,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         transaction.set_root_pipeline(root_pipeline);
 
         let mut builder = webrender_api::DisplayListBuilder::new(root_pipeline);
-        let viewport_size = LayoutSize::new(
-            self.embedder_coordinates.get_viewport().width() as f32,
-            self.embedder_coordinates.get_viewport().height() as f32,
-        );
         let zoom_reference_frame = builder.push_reference_frame(
             LayoutPoint::zero(),
             SpatialId::root_reference_frame(root_pipeline),
@@ -983,11 +999,15 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
         );
 
+        // TODO do we need to start scaling these properly?
+        // let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
+        let viewport_size = self.embedder_coordinates.get_viewport().size.to_f32();
+        let viewport_size = LayoutSize::from_untyped(viewport_size.to_untyped());
         for (_, browser) in self.browsers.painting_order() {
             if let Some(pipeline_id) = browser.pipeline_id {
                 builder.push_iframe(
-                    browser.rect,
-                    browser.rect,
+                    LayoutRect::from_untyped(&browser.rect.to_untyped()),
+                    LayoutRect::from_untyped(&browser.rect.to_untyped()),
                     &SpaceAndClipInfo {
                         spatial_id: zoom_reference_frame,
                         clip_id: ClipId::root(pipeline_id.to_webrender()),
@@ -1031,12 +1051,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             debug!("{:?}: Creating new browser with pipeline {:?}",
                 top_level_browsing_context_id, pipeline_id);
 
-            let size = LayoutSize::new(
-                self.embedder_coordinates.get_viewport().width() as f32 * 3.0 / 4.0,
-                self.embedder_coordinates.get_viewport().height() as f32 * 3.0 / 4.0,
-            );
-            let rect = LayoutRect::new(self.next_browser_location, size);
-            self.browsers.add(top_level_browsing_context_id, Browser { pipeline_id, rect });
+            self.browsers.add(top_level_browsing_context_id, Browser {
+                pipeline_id,
+                rect: self.embedder_coordinates.get_viewport().to_f32(),
+            });
             self.next_browser_location.x += 32.0;
             self.next_browser_location.y += 32.0;
         }
@@ -1116,9 +1134,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.pipeline_details.remove(&pipeline_id);
     }
 
-    fn send_window_size(&mut self, size_type: WindowSizeType) {
-        let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
-
+    fn send_window_size(&mut self) {
         let mut transaction = Transaction::new();
         transaction.set_document_view(
             self.embedder_coordinates.get_viewport(),
@@ -1126,21 +1142,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         );
         self.webrender_api
             .send_transaction(self.webrender_document, transaction);
-
-        let initial_viewport = self.embedder_coordinates.viewport.size.to_f32() / dppx;
-
-        let data = WindowSizeData {
-            device_pixel_ratio: dppx,
-            initial_viewport: initial_viewport,
-        };
-
-        // TODO do this in an independent event
-        // for (&top_level_browsing_context_id, _) in self.browsers.painting_order() {
-        //     let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
-        //     if let Err(e) = self.constellation_chan.send(msg) {
-        //         warn!("Sending window resize to constellation failed ({:?}).", e);
-        //     }
-        // }
     }
 
     pub fn on_resize_window_event(&mut self) -> bool {
@@ -1158,7 +1159,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             return false;
         }
 
-        self.send_window_size(WindowSizeType::Resize);
+        self.send_window_size();
         self.composite_if_necessary(CompositingReason::Resize);
         return true;
     }
@@ -1597,7 +1598,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     pub fn on_zoom_reset_window_event(&mut self) {
         self.page_zoom = Scale::new(1.0);
         self.update_zoom_transform();
-        self.send_window_size(WindowSizeType::Resize);
+        self.send_window_size();
         self.update_page_zoom_for_webrender();
     }
 
@@ -1608,7 +1609,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 .min(MAX_ZOOM),
         );
         self.update_zoom_transform();
-        self.send_window_size(WindowSizeType::Resize);
+        self.send_window_size();
         self.update_page_zoom_for_webrender();
     }
 
@@ -1723,9 +1724,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    pub fn composite(&mut self) {
+    pub fn composite(&mut self, unconditionally: bool) {
         let target = self.composite_target;
-        match self.composite_specific_target(target, None) {
+        match self.composite_specific_target(target, None, unconditionally) {
             Ok(_) => {
                 if self.output_file.is_some() || self.exit_after_load {
                     println!("Shutting down the Constellation after generating an output file or exit flag specified");
@@ -1753,8 +1754,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         &mut self,
         target: CompositeTarget,
         rect: Option<Rect<f32, CSSPixel>>,
+        unconditionally: bool,
     ) -> Result<Option<Image>, UnableToComposite> {
-        if self.waiting_on_present {
+        if self.waiting_on_present && !unconditionally {
             trace!("tried to composite while waiting on present");
             return Err(UnableToComposite::NotReadyToPaintImage(
                 NotReadyToPaint::WaitingOnConstellation,
@@ -1944,12 +1946,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         // Notify embedder that servo is ready to present.
         // Embedder should call `present` to tell compositor to continue rendering.
-        self.waiting_on_present = true;
-        for (&top_level_browsing_context_id, _) in self.browsers.painting_order() {
-            let msg =
-                ConstellationMsg::ReadyToPresent(top_level_browsing_context_id);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
+        if !unconditionally {
+            self.waiting_on_present = true;
+            for (&top_level_browsing_context_id, _) in self.browsers.painting_order() {
+                let msg =
+                    ConstellationMsg::ReadyToPresent(top_level_browsing_context_id);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({:?}).", e);
+                }
             }
         }
 
@@ -1987,14 +1991,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.assert_gl_framebuffer_complete();
 
         // Set the viewport background based on prefs.
-        let viewport = self.embedder_coordinates.get_flipped_viewport();
-        gl.scissor(
-            viewport.origin.x,
-            viewport.origin.y,
-            viewport.size.width,
-            viewport.size.height,
-        );
-
         let color = servo_config::pref!(shell.background_color.rgba);
         gl.clear_color(
             color[0] as f32,
@@ -2002,9 +1998,21 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             color[2] as f32,
             color[3] as f32,
         );
-        gl.enable(gleam::gl::SCISSOR_TEST);
-        gl.clear(gleam::gl::COLOR_BUFFER_BIT);
-        gl.disable(gleam::gl::SCISSOR_TEST);
+
+        // Clear the viewport rect of each top-level browsing context.
+        for (_, browser) in self.browsers.painting_order() {
+            let rect = self.embedder_coordinates.flipped_rect(&browser.rect.to_i32());
+            gl.scissor(
+                rect.origin.x,
+                rect.origin.y,
+                rect.size.width,
+                rect.size.height,
+            );
+            gl.enable(gleam::gl::SCISSOR_TEST);
+            gl.clear(gleam::gl::COLOR_BUFFER_BIT);
+            gl.disable(gleam::gl::SCISSOR_TEST);
+        }
+
         self.assert_gl_framebuffer_complete();
     }
 
@@ -2063,7 +2071,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         match self.composition_request {
             CompositionRequest::NoCompositingNecessary => {},
-            CompositionRequest::CompositeNow(_) => self.composite(),
+            CompositionRequest::CompositeNow(_) => self.composite(false),
         }
 
         // Run the WebXR main thread
@@ -2091,7 +2099,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             };
             let keep_going = self.handle_browser_message(msg);
             if need_recomposite {
-                self.composite();
+                self.composite(false);
                 break;
             }
             if !keep_going {

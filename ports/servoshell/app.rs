@@ -22,7 +22,7 @@ use winit::event::WindowEvent;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::WindowId;
 
-use crate::browser::Browser;
+use crate::browser::BrowserManager;
 use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::minibrowser::Minibrowser;
@@ -32,7 +32,7 @@ use crate::{headed_window, headless_window};
 
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
-    browser: RefCell<Browser<dyn WindowPortsMethods>>,
+    browser: RefCell<BrowserManager<dyn WindowPortsMethods>>,
     event_queue: RefCell<Vec<EmbedderEvent>>,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
@@ -78,7 +78,7 @@ impl App {
         };
 
         // Handle browser state.
-        let browser = Browser::new(window.clone());
+        let browser = BrowserManager::new(window.clone());
         let initial_url = get_default_url(
             url.as_ref().map(String::as_str),
             env::current_dir().unwrap(),
@@ -113,16 +113,9 @@ impl App {
         }
 
         if let Some(mut minibrowser) = app.minibrowser() {
-            minibrowser.update(window.winit_window().unwrap(), "init");
+            minibrowser.update(window.winit_window().unwrap(), &mut app.browser.borrow_mut(), "init");
             window.set_toolbar_height(minibrowser.toolbar_height.get());
         }
-
-        // Whether or not to recomposite during the next RedrawRequested event.
-        // Normally this is true, including for RedrawRequested events that come from the platform
-        // (e.g. X11 without picom or similar) when an offscreen or obscured window becomes visible.
-        // If we are calling request_redraw in response to the compositor having painted to this
-        // frame, set this to false, so we can avoid an unnecessary recomposite.
-        let mut need_recomposite = true;
 
         let t_start = Instant::now();
         let mut t = t_start;
@@ -203,18 +196,15 @@ impl App {
 
                 // WARNING: do not defer painting or presenting to some later tick of the event
                 // loop or servoshell may become unresponsive! (servo#30312)
-                if need_recomposite {
-                    trace!("need_recomposite");
-                    app.servo.as_mut().unwrap().recomposite();
-                }
                 if let Some(mut minibrowser) = app.minibrowser() {
-                    minibrowser.update(window.winit_window().unwrap(), "RedrawRequested");
+                    minibrowser.update(window.winit_window().unwrap(), &mut app.browser.borrow_mut(), "RedrawRequested");
                     minibrowser.paint(window.winit_window().unwrap());
                 }
-                app.servo.as_mut().unwrap().present();
 
-                // By default, the next RedrawRequested event will need to recomposite.
-                need_recomposite = true;
+                // TODO we paint servo again to ensure it goes on top of egui. inefficient :(
+                app.servo.as_mut().unwrap().recomposite_unconditionally();
+
+                app.servo.as_mut().unwrap().present();
             }
 
             // Handle the event
@@ -279,7 +269,7 @@ impl App {
                     // Update the minibrowser immediately. While we could update by requesting a
                     // redraw, doing so would delay the location update by two frames.
                     minibrowser
-                        .update(window.winit_window().unwrap(), "update_location_in_toolbar");
+                        .update(window.winit_window().unwrap(), browser, "update_location_in_toolbar");
                 }
             }
 
@@ -312,13 +302,14 @@ impl App {
                     trace!("PumpResult::Resize");
 
                     // Resizes are unusual in that we need to repaint synchronously.
+                    if let Some(mut minibrowser) = app.minibrowser() {
+                        minibrowser.update(window.winit_window().unwrap(), &mut app.browser.borrow_mut(), "PumpResult::Resize");
+                        minibrowser.paint(window.winit_window().unwrap());
+                    }
+
                     // TODO(servo#30049) can we replace this with the simpler Servo::recomposite?
                     app.servo.as_mut().unwrap().repaint_synchronously();
 
-                    if let Some(mut minibrowser) = app.minibrowser() {
-                        minibrowser.update(window.winit_window().unwrap(), "PumpResult::Resize");
-                        minibrowser.paint(window.winit_window().unwrap());
-                    }
                     app.servo.as_mut().unwrap().present();
                 },
                 None => {},

@@ -6,14 +6,15 @@ use std::cell::{Cell, RefCell};
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{Key, Modifiers, TopBottomPanel};
-use euclid::Length;
+use egui::{Key, Modifiers, TopBottomPanel, CentralPanel, Pos2, Vec2, InnerResponse};
+use euclid::{Length, Scale, Point2D, Size2D, Rect};
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::servo_geometry::DeviceIndependentPixel;
+use servo::style_traits::DevicePixel;
 use servo::webrender_surfman::WebrenderSurfman;
 
-use crate::browser::Browser;
+use crate::browser::BrowserManager;
 use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
 use crate::parser::location_bar_input_to_url;
@@ -62,7 +63,7 @@ impl Minibrowser {
     }
 
     /// Update the minibrowser, but don’t paint.
-    pub fn update(&mut self, window: &winit::window::Window, reason: &'static str) {
+    pub fn update(&mut self, window: &winit::window::Window, browsers: &mut BrowserManager<dyn WindowPortsMethods>, reason: &'static str) {
         let now = Instant::now();
         trace!(
             "{:?} since last update ({})",
@@ -78,7 +79,7 @@ impl Minibrowser {
             location_dirty,
         } = self;
         let _duration = context.run(window, |ctx| {
-            TopBottomPanel::top("toolbar").show(ctx, |ui| {
+            let InnerResponse { inner: height, .. } = TopBottomPanel::top("toolbar").show(ctx, |ui| {
                 ui.allocate_ui_with_layout(
                     ui.available_size(),
                     egui::Layout::right_to_left(egui::Align::Center),
@@ -106,9 +107,41 @@ impl Minibrowser {
                         }
                     },
                 );
+                ui.cursor().min.y
             });
+            toolbar_height.set(Length::new(height));
+            CentralPanel::default().show(ctx, |_| {});
 
-            toolbar_height.set(Length::new(ctx.used_rect().height()));
+            // Add an egui window for each top-level browsing context.
+            let scale = Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
+            let toolbar_size = Size2D::new(0.0, toolbar_height.get().get());
+            let painting_order = browsers.painting_order()
+                .map(|(&id, _)| id)
+                .collect::<Vec<_>>();
+            let mut move_resize_events = vec![];
+            for browser_id in painting_order {
+                if let Some(browser) = browsers.get_mut(browser_id) {
+                    egui::Window::new("Servo")
+                        .default_pos(browser.rect.origin.to_tuple())
+                        .default_size(browser.rect.size.to_tuple())
+                        .show(ctx, |ui| {
+                            let Pos2 { x, y } = ui.cursor().min;
+                            let origin = Point2D::new(x, y) - toolbar_size;
+                            let Vec2 { x, y } = ui.available_size();
+                            let size = Size2D::new(x, y);
+                            let rect = Rect::new(origin, size) * scale;
+                            if rect != browser.rect {
+                                browser.rect = rect;
+                                move_resize_events.push(EmbedderEvent::MoveResizeBrowser(browser_id, rect));
+                            }
+                            ui.allocate_space(ui.available_size());
+                        });
+                }
+            }
+            if !move_resize_events.is_empty() {
+                browsers.handle_window_events(move_resize_events);
+            }
+
             *last_update = now;
         });
     }
@@ -122,7 +155,7 @@ impl Minibrowser {
     /// routing those to the App event queue.
     pub fn queue_embedder_events_for_minibrowser_events(
         &self,
-        browser: &Browser<dyn WindowPortsMethods>,
+        browser: &BrowserManager<dyn WindowPortsMethods>,
         app_event_queue: &mut Vec<EmbedderEvent>,
     ) {
         for event in self.event_queue.borrow_mut().drain(..) {
@@ -145,7 +178,7 @@ impl Minibrowser {
     /// without clicking Go, returning true iff the location has changed (needing an egui update).
     pub fn update_location_in_toolbar(
         &mut self,
-        browser: &mut Browser<dyn WindowPortsMethods>,
+        browser: &mut BrowserManager<dyn WindowPortsMethods>,
     ) -> bool {
         // User edited without clicking Go?
         if self.location_dirty.get() {

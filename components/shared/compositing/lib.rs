@@ -24,7 +24,7 @@ use script_traits::{
     MouseEventType, ScriptToCompositorMsg,
 };
 use style_traits::CSSPixel;
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DeviceRect};
 use webrender_api::{self, FontInstanceKey, FontKey, ImageKey};
 
 /// Why we performed a composite. This is used for debugging.
@@ -110,6 +110,8 @@ pub enum CompositorMsg {
     UpdateBrowser(SendableFrameTree),
     /// Remove a browser.
     RemoveBrowser(TopLevelBrowsingContextId),
+    /// Make a browser visible.
+    MoveResizeBrowser(TopLevelBrowsingContextId, DeviceRect),
     /// Make a browser visible.
     ShowBrowser(TopLevelBrowsingContextId),
     /// Make a browser invisible.
@@ -203,6 +205,7 @@ impl Debug for CompositorMsg {
             },
             CompositorMsg::UpdateBrowser(..) => write!(f, "UpdateBrowser"),
             CompositorMsg::RemoveBrowser(..) => write!(f, "RemoveBrowser"),
+            CompositorMsg::MoveResizeBrowser(..) => write!(f, "MoveResizeBrowser"),
             CompositorMsg::ShowBrowser(..) => write!(f, "ShowBrowser"),
             CompositorMsg::HideBrowser(..) => write!(f, "HideBrowser"),
             CompositorMsg::RaiseBrowserToTop(..) => write!(f, "RaiseBrowserToTop"),
