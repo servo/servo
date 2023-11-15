@@ -337,7 +337,7 @@ impl WindowProxy {
             let constellation_msg = ScriptMsg::ScriptNewAuxiliary(load_info, pipeline_sender);
             window.send_to_constellation(constellation_msg);
             ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
-            let msg = EmbedderMsg::BrowserCreated(new_top_level_browsing_context_id);
+            let msg = EmbedderMsg::BrowserOpened(new_top_level_browsing_context_id);
             window.send_to_embedder(msg);
             // TODO: if noopener is false, copy the sessionStorage storage area of the creator origin.
             // See step 14 of https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context

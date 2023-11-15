@@ -157,7 +157,7 @@ pub enum EmbedderMsg {
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningBrowser(IpcSender<bool>),
     /// A new browser was created by script
-    BrowserCreated(TopLevelBrowsingContextId),
+    BrowserOpened(TopLevelBrowsingContextId),
     /// A browser is to be closed
     BrowserClosed(TopLevelBrowsingContextId),
     /// A browser is to be closed
@@ -257,7 +257,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::HideIME => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
             EmbedderMsg::AllowOpeningBrowser(..) => write!(f, "AllowOpeningBrowser"),
-            EmbedderMsg::BrowserCreated(..) => write!(f, "BrowserCreated"),
+            EmbedderMsg::BrowserOpened(..) => write!(f, "BrowserOpened"),
             EmbedderMsg::BrowserClosed(..) => write!(f, "BrowserClosed"),
             EmbedderMsg::BrowserFocused(..) => write!(f, "BrowserFocused"),
             EmbedderMsg::BrowserUnfocused => write!(f, "BrowserUnfocused"),

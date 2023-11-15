@@ -32,14 +32,13 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
     current_url_string: Option<String>,
 
-    /// id of the top level browsing context. It is unique as tabs
-    /// are not supported yet. None until created.
+    /// The top level browsing context that is currently focused.
+    /// Modified by EmbedderMsg::BrowserFocused and EmbedderMsg::BrowserUnfocused.
     focused_browser_id: Option<BrowserId>,
 
-    // A rudimentary stack of "tabs", in painting order.
-    // EmbedderMsg::BrowserCreated will push onto it.
-    // EmbedderMsg::CloseBrowser will pop from it,
-    // and exit if it is empty afterwards.
+    /// List of top-level browsing contexts.
+    /// Modified by EmbedderMsg::BrowserOpened and EmbedderMsg::BrowserClosed,
+    /// and we exit if it ever becomes empty.
     browsers: Vec<BrowserId>,
 
     title: Option<String>,
@@ -410,7 +409,7 @@ where
                         warn!("Failed to send AllowOpeningBrowser response: {}", e);
                     };
                 },
-                EmbedderMsg::BrowserCreated(new_browser_id) => {
+                EmbedderMsg::BrowserOpened(new_browser_id) => {
                     self.browsers.push(new_browser_id);
                     self.event_queue
                         .push(EmbedderEvent::RaiseBrowserToTop(new_browser_id));

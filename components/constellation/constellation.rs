@@ -2945,7 +2945,7 @@ where
         let pipeline_id = PipelineId::new();
         let msg = (
             Some(top_level_browsing_context_id),
-            EmbedderMsg::BrowserCreated(top_level_browsing_context_id),
+            EmbedderMsg::BrowserOpened(top_level_browsing_context_id),
         );
         self.embedder_proxy.send(msg);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);

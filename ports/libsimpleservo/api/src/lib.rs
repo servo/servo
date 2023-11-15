@@ -697,7 +697,7 @@ impl ServoGlue {
                         warn!("Failed to send AllowOpeningBrowser response: {}", e);
                     };
                 },
-                EmbedderMsg::BrowserCreated(new_browser_id) => {
+                EmbedderMsg::BrowserOpened(new_browser_id) => {
                     // TODO: properly handle a new "tab"
                     self.browsers.push(new_browser_id);
                     if self.browser_id.is_none() {
