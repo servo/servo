@@ -4181,7 +4181,10 @@ where
                 None => return warn!("{}: Focus parent after closure", pipeline_id),
             };
 
-        // Update the focused browsing context in its browser in `browsers`.
+        // Focus the top-level browsing context.
+        self.browsers.focus(top_level_browsing_context_id);
+
+        // Update the browser’s focused browsing context.
         match self.browsers.get_mut(top_level_browsing_context_id) {
             Some(browser) => {
                 browser.focused_browsing_context_id = browsing_context_id;
