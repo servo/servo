@@ -14,6 +14,7 @@ use crate::{Atom, LocalName, Namespace, ShrinkIfNeeded};
 use selectors::attr::NamespaceConstraint;
 use selectors::parser::{Combinator, Component};
 use selectors::parser::{Selector, SelectorIter};
+use selectors::visitor::{SelectorVisitor, SelectorListKind};
 use smallvec::SmallVec;
 use style_traits::dom::{DocumentState, ElementState};
 
