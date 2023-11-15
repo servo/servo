@@ -220,7 +220,7 @@ impl<'a> TextRun {
             if text.len() == 0 {
                 return (glyphs, true);
             }
-            *breaker = Some(LineBreakLeafIter::new(&text, 0));
+            *breaker = Some(LineBreakLeafIter::new(text, 0));
         }
 
         let breaker = breaker.as_mut().unwrap();
