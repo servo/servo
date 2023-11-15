@@ -208,6 +208,21 @@ pub enum EmbedderMsg {
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Compositing done, but external code needs to present.
     ReadyToPresent,
+    /// The given event was hit-tested and may have matched a browser.
+    HitTestedEvent(HitTestedEvent),
+}
+
+/// The variant of CompositorEvent that passed the hit test.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum HitTestedEvent {
+    ResizeEvent,
+    MouseButtonEvent,
+    MouseMoveEvent,
+    TouchEvent,
+    WheelEvent,
+    KeyboardEvent,
+    CompositionEvent,
+    IMEDismissedEvent,
 }
 
 impl Debug for EmbedderMsg {
@@ -245,6 +260,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
             EmbedderMsg::ReadyToPresent => write!(f, "ReadyToPresent"),
+            EmbedderMsg::HitTestedEvent(..) => write!(f, "HitTestedEvent"),
         }
     }
 }

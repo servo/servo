@@ -113,7 +113,7 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg,
 };
 use embedder_traits::{
-    Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent, MediaSessionPlaybackState,
+    Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent, MediaSessionPlaybackState, HitTestedEvent,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
@@ -2908,15 +2908,28 @@ where
             self.pressed_mouse_buttons = 0;
         }
 
-        let msg = ConstellationControlMsg::SendEvent(destination_pipeline_id, event);
-        let result = match self.pipelines.get(&destination_pipeline_id) {
+        let pipeline = match self.pipelines.get(&destination_pipeline_id) {
             None => {
                 debug!("{}: Got event after closure", destination_pipeline_id);
                 return;
             },
-            Some(pipeline) => pipeline.event_loop.send(msg),
+            Some(pipeline) => pipeline,
         };
-        if let Err(e) = result {
+        let hit_tested_event = match event {
+            CompositorEvent::ResizeEvent(..) => HitTestedEvent::ResizeEvent,
+            MouseButtonEvent(..) => HitTestedEvent::MouseButtonEvent,
+            MouseMoveEvent(..) => HitTestedEvent::MouseMoveEvent,
+            CompositorEvent::TouchEvent(..) => HitTestedEvent::TouchEvent,
+            CompositorEvent::WheelEvent(..) => HitTestedEvent::WheelEvent,
+            CompositorEvent::KeyboardEvent(..) => HitTestedEvent::KeyboardEvent,
+            CompositorEvent::CompositionEvent(..) => HitTestedEvent::CompositionEvent,
+            CompositorEvent::IMEDismissedEvent => HitTestedEvent::IMEDismissedEvent,
+        };
+        let msg = EmbedderMsg::HitTestedEvent(hit_tested_event);
+        self.embedder_proxy.send((Some(pipeline.top_level_browsing_context_id), msg));
+
+        let msg = ConstellationControlMsg::SendEvent(destination_pipeline_id, event);
+        if let Err(e) = pipeline.event_loop.send(msg) {
             self.handle_send_error(destination_pipeline_id, e);
         }
     }

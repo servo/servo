@@ -15,7 +15,7 @@ use log::{debug, error, info, trace, warn};
 use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
 use servo::embedder_traits::{
     ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt, PermissionRequest,
-    PromptDefinition, PromptOrigin, PromptResult,
+    PromptDefinition, PromptOrigin, PromptResult, HitTestedEvent,
 };
 use servo::msg::constellation_msg::{TopLevelBrowsingContextId as BrowserId, TraversalDirection};
 use servo::script_traits::TouchEventType;
@@ -532,6 +532,23 @@ where
                 },
                 EmbedderMsg::ReadyToPresent => {
                     need_present = true;
+                },
+                EmbedderMsg::HitTestedEvent(event) => match (browser_id, event) {
+                    (None, _) => {},
+                    (
+                        _,
+                        HitTestedEvent::ResizeEvent
+                        | HitTestedEvent::MouseMoveEvent
+                        | HitTestedEvent::TouchEvent
+                        | HitTestedEvent::WheelEvent
+                        | HitTestedEvent::KeyboardEvent
+                        | HitTestedEvent::CompositionEvent
+                        | HitTestedEvent::IMEDismissedEvent,
+                    ) => {},
+                    (Some(browser_id), HitTestedEvent::MouseButtonEvent) => {
+                        self.event_queue.push(EmbedderEvent::RaiseBrowserToTop(browser_id));
+                        self.event_queue.push(EmbedderEvent::FocusBrowser(browser_id));
+                    },
                 },
             }
         }

@@ -525,14 +525,17 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             (CompositorMsg::ShowBrowser(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
                 self.browsers.show(top_level_browsing_context_id);
+                self.update_root_pipeline();
             },
 
             (CompositorMsg::HideBrowser(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
                 self.browsers.hide(top_level_browsing_context_id);
+                self.update_root_pipeline();
             },
 
             (CompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
                 self.browsers.raise_to_top(top_level_browsing_context_id);
+                self.update_root_pipeline();
             },
 
             (CompositorMsg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
@@ -916,21 +919,20 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    /// Set the root pipeline for our WebRender scene. If there is no pinch zoom applied,
-    /// the root pipeline is the root content pipeline. If there is pinch zoom, the root
-    /// content pipeline is wrapped in a display list that applies a pinch zoom
-    /// transformation to it.
-    fn set_root_content_pipeline_handling_pinch_zoom(&self, transaction: &mut Transaction) {
-        // let root_content_pipeline = match self.root_content_pipelines.id {
-        //     Some(id) => id.to_webrender(),
-        //     None => return,
-        // };
+    /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
+    /// for each visible top-level browsing context, applying the pinch zoom transformation if any.
+    fn update_root_pipeline(&mut self) {
+        let mut txn = Transaction::new();
+        self.update_root_pipeline_with_txn(&mut txn);
+        txn.generate_frame(0);
+        self.webrender_api
+            .send_transaction(self.webrender_document, txn);
+    }
 
+    /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
+    /// for each visible top-level browsing context, applying the pinch zoom transformation if any.
+    fn update_root_pipeline_with_txn(&self, transaction: &mut Transaction) {
         let zoom_factor = self.pinch_zoom_level();
-        // if zoom_factor == 1.0 {
-        //     transaction.set_root_pipeline(root_content_pipeline);
-        //     return;
-        // }
 
         // Every display list needs a pipeline, but we'd like to choose one that is unlikely
         // to conflict with our content pipelines, which start at (1, 1). (0, 0) is WebRender's
@@ -1010,12 +1012,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             self.browsers.add(top_level_browsing_context_id, Browser { pipeline_id });
         }
 
-        let mut txn = Transaction::new();
-        self.set_root_content_pipeline_handling_pinch_zoom(&mut txn);
-        txn.generate_frame(0);
-        self.webrender_api
-            .send_transaction(self.webrender_document, txn);
-
+        self.update_root_pipeline();
         self.update_pipeline_details_tree(&frame_tree, None);
         self.reset_scroll_tree_for_unattached_pipelines(&frame_tree);
 
@@ -1027,12 +1024,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let Some(browser) = self.browsers.remove(top_level_browsing_context_id)
             else { return };
 
-        let mut txn = Transaction::new();
-        self.set_root_content_pipeline_handling_pinch_zoom(&mut txn);
-        txn.generate_frame(0);
-        self.webrender_api
-            .send_transaction(self.webrender_document, txn);
-
+        self.update_root_pipeline();
         if let Some(pipeline_id) = browser.pipeline_id {
             self.remove_pipeline_details_tree(pipeline_id);
         }
@@ -1161,9 +1153,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             MouseWindowEvent::MouseUp(_, p) => p,
         };
 
-        let result = match self.hit_test_at_device_point(point) {
-            Some(result) => result,
-            None => return,
+        let Some(result) = self.hit_test_at_device_point(point) else {
+            // TODO notify embedder?
+            // let msg = ConstellationMsg::UnconsumedEvent(...);
+            return;
         };
 
         let (button, event_type) = match mouse_window_event {
@@ -1461,7 +1454,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         let mut transaction = Transaction::new();
         if zoom_changed {
-            self.set_root_content_pipeline_handling_pinch_zoom(&mut transaction);
+            self.update_root_pipeline_with_txn(&mut transaction);
         }
 
         if let Some((pipeline_id, external_id, offset)) = scroll_result {
