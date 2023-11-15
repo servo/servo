@@ -164,6 +164,8 @@ pub enum EmbedderMsg {
     BrowserFocused(TopLevelBrowsingContextId),
     /// A browser is to be closed
     BrowserUnfocused,
+    /// A browser is to be closed
+    BrowserPaintingOrder(Vec<TopLevelBrowsingContextId>),
     /// Wether or not to unload a document
     AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
@@ -261,6 +263,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::BrowserClosed(..) => write!(f, "BrowserClosed"),
             EmbedderMsg::BrowserFocused(..) => write!(f, "BrowserFocused"),
             EmbedderMsg::BrowserUnfocused => write!(f, "BrowserUnfocused"),
+            EmbedderMsg::BrowserPaintingOrder(..) => write!(f, "BrowserPaintingOrder"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),

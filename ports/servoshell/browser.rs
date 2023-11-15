@@ -32,14 +32,17 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
     current_url_string: Option<String>,
 
-    /// The top level browsing context that is currently focused.
-    /// Modified by EmbedderMsg::BrowserFocused and EmbedderMsg::BrowserUnfocused.
-    focused_browser_id: Option<BrowserId>,
-
     /// List of top-level browsing contexts.
     /// Modified by EmbedderMsg::BrowserOpened and EmbedderMsg::BrowserClosed,
     /// and we exit if it ever becomes empty.
     browsers: Vec<BrowserId>,
+
+    /// The top level browsing context that is currently focused.
+    /// Modified by EmbedderMsg::BrowserFocused and EmbedderMsg::BrowserUnfocused.
+    focused_browser_id: Option<BrowserId>,
+
+    /// The order to paint the browsing contexts in.
+    painting_order: Vec<BrowserId>,
 
     title: Option<String>,
 
@@ -58,8 +61,9 @@ where
             title: None,
             current_url: None,
             current_url_string: None,
-            focused_browser_id: None,
             browsers: Vec::new(),
+            focused_browser_id: None,
+            painting_order: vec![],
             window,
             clipboard: match Clipboard::new() {
                 Ok(c) => Some(c),
@@ -427,6 +431,9 @@ where
                 },
                 EmbedderMsg::BrowserUnfocused => {
                     self.focused_browser_id = None;
+                },
+                EmbedderMsg::BrowserPaintingOrder(browser_ids) => {
+                    self.painting_order = dbg!(browser_ids);
                 },
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(browser_id, key_event);

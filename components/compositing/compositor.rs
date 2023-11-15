@@ -535,16 +535,34 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             (CompositorMsg::ShowBrowser(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
                 self.browsers.show(top_level_browsing_context_id);
                 self.update_root_pipeline();
+
+                let painting_order = self.browsers.painting_order().map(|(&id, _)| id).collect();
+                let msg = ConstellationMsg::BrowserPaintingOrder(painting_order);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({:?}).", e);
+                }
             },
 
             (CompositorMsg::HideBrowser(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
                 self.browsers.hide(top_level_browsing_context_id);
                 self.update_root_pipeline();
+
+                let painting_order = self.browsers.painting_order().map(|(&id, _)| id).collect();
+                let msg = ConstellationMsg::BrowserPaintingOrder(painting_order);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({:?}).", e);
+                }
             },
 
             (CompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
                 self.browsers.raise_to_top(top_level_browsing_context_id);
                 self.update_root_pipeline();
+
+                let painting_order = self.browsers.painting_order().map(|(&id, _)| id).collect();
+                let msg = ConstellationMsg::BrowserPaintingOrder(painting_order);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({:?}).", e);
+                }
             },
 
             (CompositorMsg::Recomposite(reason), ShutdownState::NotShuttingDown) => {

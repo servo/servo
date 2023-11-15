@@ -1549,6 +1549,9 @@ where
                     EmbedderMsg::ReadyToPresent,
                 ));
             },
+            FromCompositorMsg::BrowserPaintingOrder(browser_ids) => {
+                self.embedder_proxy.send((None, EmbedderMsg::BrowserPaintingOrder(browser_ids)));
+            },
         }
     }
 

@@ -86,8 +86,10 @@ pub enum ConstellationMsg {
     ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
-    /// Compositing done, but external code needs to present.
+    /// Notify the embedder that it needs to present a new frame.
     ReadyToPresent(TopLevelBrowsingContextId),
+    /// Notify the embedder of an updated browser painting order.
+    BrowserPaintingOrder(Vec<TopLevelBrowsingContextId>),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -126,6 +128,7 @@ impl fmt::Debug for ConstellationMsg {
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",
+            BrowserPaintingOrder(..) => "BrowserPaintingOrder",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }
