@@ -3319,12 +3319,29 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         self.is_html_element() && self.local_name() == &local_name!("slot")
     }
 
-    fn set_selector_flags(&self, flags: ElementSelectorFlags) {
-        #[allow(unsafe_code)]
-        unsafe {
-            Dom::from_ref(self.deref())
-                .to_layout()
-                .insert_selector_flags(flags);
+    fn apply_selector_flags(&self, flags: ElementSelectorFlags) {
+        // Handle flags that apply to the element.
+        let self_flags = flags.for_self();
+        if !self_flags.is_empty() {
+            #[allow(unsafe_code)]
+            unsafe {
+                Dom::from_ref(self.deref())
+                    .to_layout()
+                    .insert_selector_flags(self_flags);
+            }
+        }
+
+        // Handle flags that apply to the parent.
+        let parent_flags = flags.for_parent();
+        if !parent_flags.is_empty() {
+            if let Some(p) = self.parent_element() {
+                #[allow(unsafe_code)]
+                unsafe {
+                    Dom::from_ref(p.deref())
+                        .to_layout()
+                        .insert_selector_flags(parent_flags);
+                }
+            }
         }
     }
 }
