@@ -103,7 +103,6 @@ impl Window {
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
             .with_inner_size(PhysicalSize::new(width as f64, height as f64))
-            .with_maximized(fullscreen)
             .with_visible(visible);
 
         let winit_window = window_builder
@@ -141,7 +140,7 @@ impl Window {
             .expect("Failed to create WR surfman");
 
         debug!("Created window {:?}", winit_window.id());
-        Window {
+        let window = Window {
             winit_window,
             webrender_surfman,
             event_queue: RefCell::new(vec![]),
@@ -159,7 +158,9 @@ impl Window {
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),
-        }
+        };
+        window.set_fullscreen(fullscreen);
+        window
     }
 
     fn handle_received_character(&self, mut ch: char) {
