@@ -129,7 +129,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     port: CompositorReceiver,
 
     /// Our top-level browsing contexts.
-    browsers: BrowserManager,
+    browsers: BrowserManager<Browser>,
 
     /// Tracks details about each active pipeline that the compositor knows about.
     pipeline_details: HashMap<PipelineId, PipelineDetails>,
@@ -349,6 +349,11 @@ enum CompositeTarget {
     PngFile,
 }
 
+#[derive(Debug)]
+pub struct Browser {
+    pub pipeline_id: Option<PipelineId>,
+}
+
 impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn new(
         window: Rc<Window>,
@@ -365,7 +370,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         };
 
         let mut browsers = BrowserManager::default();
-        browsers.add(top_level_browsing_context_id, None);
+        browsers.add(top_level_browsing_context_id, Browser { pipeline_id: None });
         browsers.show(top_level_browsing_context_id);
 
         IOCompositor {
@@ -1002,7 +1007,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             let pipeline_id = Some(frame_tree.pipeline.id);
             debug!("{:?}: Creating new browser with pipeline {:?}",
                 top_level_browsing_context_id, pipeline_id);
-            self.browsers.add(top_level_browsing_context_id, pipeline_id);
+            self.browsers.add(top_level_browsing_context_id, Browser { pipeline_id });
         }
 
         let mut txn = Transaction::new();
