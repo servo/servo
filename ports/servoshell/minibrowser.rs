@@ -6,7 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{Key, Modifiers, TopBottomPanel, CentralPanel, Pos2, Vec2, InnerResponse};
+use egui::{Key, Modifiers, TopBottomPanel, CentralPanel, Pos2, Vec2, InnerResponse, Area, Id, Sense};
 use euclid::{Length, Scale, Point2D, Size2D, Rect};
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
@@ -121,7 +121,8 @@ impl Minibrowser {
             let mut move_resize_events = vec![];
             for browser_id in painting_order {
                 if let Some(browser) = browsers.get_mut(browser_id) {
-                    egui::Window::new("Servo")
+                    egui::Window::new(format!("Window({:?})", browser_id))
+                        .id(Id::new(format!("Window({:?})", browser_id)))
                         .default_pos(browser.rect.origin.to_tuple())
                         .default_size(browser.rect.size.to_tuple())
                         .show(ctx, |ui| {
@@ -134,7 +135,12 @@ impl Minibrowser {
                                 browser.rect = rect;
                                 move_resize_events.push(EmbedderEvent::MoveResizeBrowser(browser_id, rect));
                             }
-                            ui.allocate_space(ui.available_size());
+
+                            let min = ui.cursor().min;
+                            let size = ui.available_size();
+                            let rect = egui::Rect::from_min_size(min, size);
+                            ui.allocate_space(size);
+                            dbg!(ui.interact(rect, Id::new(format!("interact({:?})", browser_id)), Sense::click_and_drag()));
                         });
                 }
             }
