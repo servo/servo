@@ -3702,6 +3702,10 @@ impl Document {
 
     // https://fullscreen.spec.whatwg.org/#exit-fullscreen
     pub fn exit_fullscreen(&self) -> Rc<Promise> {
+        // Send EmbedderMsg first
+        let event = EmbedderMsg::SetFullscreenState(false);
+        self.send_to_embedder(event);
+
         let global = self.global();
         // Step 1
         let in_realm_proof = AlreadyInRealm::assert();
@@ -3718,9 +3722,6 @@ impl Document {
 
         let window = self.window();
         // Step 8
-        let event = EmbedderMsg::SetFullscreenState(false);
-        self.send_to_embedder(event);
-
         // Step 9
         let trusted_element = Trusted::new(&*element);
         let trusted_promise = TrustedPromise::new(promise.clone());
