@@ -40,7 +40,7 @@
 <body>
   <div class="demo">
     <div id="a" class="animTo">A</div>
-    <div id="b" class="animFrom">A</div>
+    <div id="b" class="animFrom" style="font-palette: --custom;">A</div>
   </div>
 </body>
 
@@ -58,9 +58,9 @@
   var afterPaletteAnimationTest2 = async_test(
     "Verify font-palette is animated when `to` keyframe is not specified"
   );
-  document.getElementById("b").addEventListener("animationstart",
+  document.getElementById("b").addEventListener("animationend",
     afterPaletteAnimationTest2.step_func_done(function() {
-        assert_not_equals(window.getComputedStyle(
+        assert_equals(window.getComputedStyle(
                 document.getElementById("b"))
             .getPropertyValue('font-palette'), "normal");
     }));

@@ -24,7 +24,7 @@ promise_test(async (t) => {
     (new_url, beacon_data) => {
       addEventListener("click", (event) => {
         let beacon_event = {
-          eventType: "reserved.top_navigation",
+          eventType: "reserved.top_navigation_commit",
           eventData: beacon_data,
           destination: ["component-seller"],
         };
@@ -44,8 +44,9 @@ promise_test(async (t) => {
   // An automatic beacon should be sent out, but no data should be sent as part
   // of the beacon because the "buyer" destination was not specified in
   // setReportEventDataForAutomaticBeacons().
-  const received_beacon_data = await nextAutomaticBeacon();
-  assert_equals(received_beacon_data, "<No data>");
+  const expected_data = "<No data>";
+  const received_beacon_data = await nextAutomaticBeacon(expected_data);
+  assert_equals(received_beacon_data, expected_data);
 }, "Set and trigger an automatic beacon with no destination specified");
 
 </script>

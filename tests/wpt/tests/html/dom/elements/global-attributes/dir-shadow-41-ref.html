@@ -16,8 +16,8 @@ span {border: 1px solid silver;}
 </head>
 <body>
 
-<p>`dir=ltr` on a div in the shadow tree, `dir=rtl` on the shadow host, no slotted text in the light or dark trees</p>
-<div id="host" dir="rtl"><div dir="ltr"><span dir="rtl"></span></div></div>
+<p>`dir=rtl` on a div in the shadow tree, `dir=ltr` on the shadow host, no slotted text in the light or dark trees</p>
+<div id="host" dir="ltr"><div dir="rtl"><span></span></div></div>
 <p id="result">The HTML direction / computed CSS `direction` value is: rtl / rtl (on the slot).</p>
 
 </body>

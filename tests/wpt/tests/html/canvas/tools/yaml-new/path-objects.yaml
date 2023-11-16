@@ -966,6 +966,32 @@
     @assert pixel 50,20 == 0,255,0,255;
   expected: green
 
+- name: 2d.path.arc.twopie.5
+  desc: arc() draws correctly when start = 2 and end = start + 2pi+e and clockwise
+  code: |
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.moveTo(50, 25);
+    ctx.arc(50, 25, 50, 2, 2 + 2*Math.PI, false);
+    ctx.closePath();
+    ctx.fill();
+    @assert pixel 95,25 == 0,0,0,255;
+
+- name: 2d.path.arc.twopie.6
+  desc: arc() draws correctly when start = 5 and end = start + 2pi+e and clockwise
+  code: |
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.moveTo(50, 25);
+    ctx.arc(50, 25, 50, 5, 5 + 2*Math.PI, false);
+    ctx.closePath();
+    ctx.fill();
+    @assert pixel 5,25 == 0,0,0,255;
+
 - name: 2d.path.arc.shape.1
   desc: arc() from 0 to pi does not draw anything in the wrong half
   code: |

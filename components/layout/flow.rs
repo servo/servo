@@ -277,7 +277,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         might_have_floats_in_or_out
     }
 
-    fn has_non_invertible_transform(&self) -> bool {
+    fn has_non_invertible_transform_or_zero_scale(&self) -> bool {
         if !self.class().is_block_like() ||
             self.as_block()
                 .fragment
@@ -290,7 +290,9 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
             return false;
         }
 
-        self.as_block().fragment.has_non_invertible_transform()
+        self.as_block()
+            .fragment
+            .has_non_invertible_transform_or_zero_scale()
     }
 
     fn get_overflow_in_parent_coordinates(&self) -> Overflow {
@@ -1176,7 +1178,7 @@ impl BaseFlow {
         state: &mut StackingContextCollectionState,
     ) {
         for kid in self.children.iter_mut() {
-            if !kid.has_non_invertible_transform() {
+            if !kid.has_non_invertible_transform_or_zero_scale() {
                 kid.collect_stacking_contexts(state);
             }
         }

@@ -5,65 +5,41 @@
   <title>CSS Backgrounds Test:  background-origin:content-box & background-size</title>
   <link rel="author" title="finscn" href="mailto:finscn@gmail.com" >
   <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-origin" >
-  <meta name="flags" content="image">
-  <meta name="assert" content="content-box : The position is relative to the content box." >
+  <meta name="flags" content="">
+  <link rel="match" href="../reference/origin-content-box_with_size-ref.html">
 
   <meta charset="utf-8">
 
 
 <style type="text/css">
 
-  .infomation {
-    padding : 10px;
-    font-size : 16pt;
-    margin : 5px;
-  }
-
-  .test-case {
-    padding : 5px;
-    margin : 5px;
-  }
-
-  .view {
-    border : 30px solid rgba(60,150,255,0.4);
-    width : 320px;
-    height : 240px;
-    padding : 30px;
-    margin : 10px;
-    font-size : 16pt;
-    color : #ff9933;
+  div {
+    border : 16px solid rgba(60,150,255,0.4);
+    width : 450px;
+    height : 224px;
+    padding : 16px;
+    margin-top : 8px;
     background-image : url("../support/css3.png");
+    background-origin : content-box;
+    background-size : 50%;
   }
 
   .no-repeat {
     background-repeat : no-repeat;
   }
 
-  .case {
-    background-origin : content-box;
-    background-size : 50%;
+  .repeat {
+    background-repeat : repeat;
   }
 
- </style>
+</style>
 
 </head>
 <body>
-<div class="infomation">
-Test Passed If : The background is painted. The paint area is the content-area(excludes padding-area ) of the DIV.<br>
-When background-size is enabled, the browser should paint the background correctly.
-</div>
 
-<div class="test-case">
+  <div class="no-repeat" ></div>
 
-  <div class="view case no-repeat" >
-      Test background-origin
-  </div>
-
-  <div class="view case" >
-      Test background-origin
-  </div>
-
-</div>
+  <div class="repeat" ></div>
 
 </body>
 

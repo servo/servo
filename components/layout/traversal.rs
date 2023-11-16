@@ -345,7 +345,7 @@ pub struct BuildDisplayList<'a> {
 impl<'a> BuildDisplayList<'a> {
     #[inline]
     pub fn traverse(&mut self, flow: &mut dyn Flow) {
-        if flow.has_non_invertible_transform() {
+        if flow.has_non_invertible_transform_or_zero_scale() {
             return;
         }
 

@@ -5,8 +5,13 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 
 <script>
+  const sibling_url = new URL("resources/subframe-with-longtask.html",
+                              new URL(location.pathname,
+                                      get_host_info().HTTPS_REMOTE_ORIGIN)).href;
+
   async_test(t => {
     assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
     window.addEventListener('message', t.step_func(e => {
@@ -30,10 +35,8 @@
       const longtaskFrame = document.createElement('iframe');
       longtaskFrame.id = 'longtask-iframe-id';
       longtaskFrame.name = 'longtask-iframe-name';
-      // Simulate cross-origin by using sandbox.
-      longtaskFrame.sandbox = "allow-scripts";
       document.body.appendChild(longtaskFrame);
-      longtaskFrame.src = 'resources/subframe-with-longtask.html'
+      longtaskFrame.src = sibling_url;
     };
 }, 'Performance longtask entries from cross-origin iframe are observable in its sibling.');
 </script>

@@ -56,6 +56,16 @@
 
     verifySerialization("calc(50px + calc(40%))", "calc(40% + 50px)", "testing calc(50px + calc(40%))");
 
+    verifySerialization("calc(calc(300px - 1 * (0% + 100px)))", "calc(0% + 200px)", "testing calc(calc(300px - 1 * (0% + 100px)))");
+
+    verifySerialization("calc(calc(300px - (0% + 100px) * 1))", "calc(0% + 200px)", "testing calc(calc(300px - (0% + 100px) * 1))");
+
+    verifySerialization("calc(calc(300px - (0% + 100px) * -1))", "calc(0% + 400px)", "testing calc(calc(300px - (0% + 100px) * -1))");
+
+    verifySerialization("calc(calc(300px - -1 * (0% + 100px)))", "calc(0% + 400px)", "testing calc(calc(300px - -1 * (0% + 100px)))");
+
+    verifySerialization("calc(calc(300px - 1 * (0% - 100px)))", "calc(0% + 400px)", "testing calc(calc(300px - 1 * (0% - 100px)))");
+
   /*
 
   "

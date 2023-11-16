@@ -7,11 +7,12 @@
 <script src="/css/support/parsing-testcommon.js"></script>
 <script>
   const pseudo = "::highlight(foo)";
-  test_valid_selector(`${pseudo}`);
+  test_valid_selector(pseudo);
   test_valid_selector(`.a${pseudo}`);
   test_valid_selector(`div ${pseudo}`);
   test_valid_selector(`::part(my-part)${pseudo}`);
 
+  test_invalid_selector("::highlight");
   test_invalid_selector(`::before${pseudo}`);
   test_invalid_selector(`${pseudo}.a`);
   test_invalid_selector(`${pseudo} div`);

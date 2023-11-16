@@ -1008,7 +1008,13 @@ class Chrome(ChromeChromiumBase):
         # If no ChromeDriver download URL reference file exists,
         # try to find a download URL based on the build version.
         self.logger.info(f"Searching for ChromeDriver downloads for version {version}.")
-        return self._get_webdriver_url_by_build(formatted_version)
+        download_url = self._get_webdriver_url_by_build(formatted_version)
+        if download_url is None:
+            milestone = version.split('.')[0]
+            self.logger.info(f'No ChromeDriver download found for build {formatted_version}. '
+                             f'Finding latest available download for milestone {milestone}')
+            download_url = self._get_webdriver_url_by_milestone(milestone)
+        return download_url
 
     def _get_old_webdriver_url(self, version):
         """Find a ChromeDriver download URL for Chrome version <= 114
@@ -1060,6 +1066,33 @@ class Chrome(ChromeChromiumBase):
                              f"of platform {self.platform}")
             return None
         return downloads_for_platform[0]["url"]
+
+    def _get_webdriver_url_by_milestone(self, milestone):
+        """Find a ChromeDriver download URL that is the latest available
+        for a Chrome milestone.
+
+        Raises: RequestException if a bad responses is received from
+                Chrome for Testing sources.
+
+        Returns: Download URL string or None if no matching milestone is found.
+        """
+
+        try:
+            # Get a list of builds with download URLs from Chrome for Testing.
+            resp = get(f"{CHROME_FOR_TESTING_ROOT_URL}"
+                       "latest-versions-per-milestone.json")
+        except requests.RequestException as e:
+            raise requests.RequestException(
+                "Chrome for Testing versions not found", e)
+        milestones_json = resp.json()
+        milestones_dict = milestones_json["milestones"]
+        if milestone not in milestones_dict:
+            self.logger.info(f"No latest version found for milestone {milestone}.")
+            return None
+        version_available = self._get_build_version(
+            milestones_dict[milestone]["version"])
+
+        return self._get_webdriver_url_by_build(version_available)
 
     def _get_download_urls_by_version(self, version):
         """Find Chrome for Testing and ChromeDriver download URLs matching a specific version.
@@ -1305,9 +1338,16 @@ class Chrome(ChromeChromiumBase):
 
         # Chrome and ChromeDriver versions should match on the same MAJOR.MINOR.BUILD version.
         if browser_version is not None and browser_version != chromedriver_version:
-            self.logger.warning(
-                f"ChromeDriver {chromedriver_version} does not match Chrome {browser_version}")
-            return False
+            # Consider the same milestone as matching.
+            # Workaround for https://github.com/web-platform-tests/wpt/issues/42545
+            # TODO(DanielRyanSmith): Remove this logic when browser binary is
+            # downloaded from Chrome for Testing in CI runs.
+            browser_milestone = browser_version.split('.')[0]
+            chromedriver_milestone = chromedriver_version.split('.')[0]
+            if browser_milestone != chromedriver_milestone:
+                self.logger.warning(
+                    f"ChromeDriver {chromedriver_version} does not match Chrome {browser_version}")
+                return False
         return True
 
     def version(self, binary=None, webdriver_binary=None):
@@ -1315,7 +1355,6 @@ class Chrome(ChromeChromiumBase):
         if not binary:
             self.logger.warning("No browser binary provided.")
             return None
-
         if uname[0] == "Windows":
             return _get_fileversion(binary, self.logger)
 

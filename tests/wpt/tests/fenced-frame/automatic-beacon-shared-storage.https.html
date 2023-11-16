@@ -17,27 +17,37 @@ promise_test(async(t) => {
   const fencedframe = await attachFencedFrameContext(
       {generator_api: 'sharedstorage'});
   const new_url = new URL("resources/dummy.html", location.href);
-  const beacon_data = "This is the beacon data!";
+  const start_beacon_data = "This is the start beacon data!";
+  const commit_beacon_data = "This is the commit beacon data!";
 
-  await fencedframe.execute((new_url, beacon_data) => {
+  await fencedframe.execute((new_url, start_beacon_data,
+      commit_beacon_data) => {
     addEventListener("click", (event) => {
-      let beacon_event = {
-        eventType: "reserved.top_navigation",
-        eventData: beacon_data,
+      let start_beacon_event = {
+        eventType: "reserved.top_navigation_start",
+        eventData: start_beacon_data,
         destination: ["shared-storage-select-url"],
       }
-      window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
+      window.fence.setReportEventDataForAutomaticBeacons(start_beacon_event);
+      let commit_beacon_event = {
+        eventType: "reserved.top_navigation_commit",
+        eventData: commit_beacon_data,
+        destination: ["shared-storage-select-url"],
+      }
+      window.fence.setReportEventDataForAutomaticBeacons(commit_beacon_event);
       window.open(new_url, "_blank");
     });
-  }, [new_url, beacon_data]);
+  }, [new_url, start_beacon_data, commit_beacon_data]);
 
   await actions.pointerMove(0, 0, {origin: fencedframe.element})
                .pointerDown()
                .pointerUp()
                .send();
 
-  const received_beacon_data = await nextAutomaticBeacon();
-  assert_equals(received_beacon_data, beacon_data);
+  const received_beacon_data_1 = await nextAutomaticBeacon(start_beacon_data);
+  assert_equals(received_beacon_data_1, start_beacon_data);
+  const received_beacon_data_2 = await nextAutomaticBeacon(commit_beacon_data);
+  assert_equals(received_beacon_data_2, commit_beacon_data);
 }, 'Set and trigger an automatic beacon in a click handler for SharedStorage');
 
 </script>

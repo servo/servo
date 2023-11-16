@@ -67,7 +67,7 @@ setup(
     python_requires='>=2.7',
     install_requires=['six'],
     url='https://github.com/GoogleChromeLabs/pywebsocket3',
-    version='3.0.1',
+    version='3.0.2',
 )
 
 # vi:sts=4 sw=4 et

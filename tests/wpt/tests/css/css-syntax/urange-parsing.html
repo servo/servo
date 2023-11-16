@@ -143,7 +143,9 @@ testInvalidUrange("u+0+1");
 testUrange("u+000000-000001", "U+0-1");
 testInvalidUrange("u+0000000-1");
 testInvalidUrange("u+0-0000001");
+testUrange("u+0-10ffff", "U+0-10FFFF");
 // Too large!
+testInvalidUrange("u+0-110000");
 testInvalidUrange("u+0-222222");
 
 //  u '+' '?'+

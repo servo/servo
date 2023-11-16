@@ -12,16 +12,26 @@
   <script>
     promise_test(async function() {
       const editContext = new EditContext();
-      const test = document.createElement("div");
-      document.body.appendChild(test);
-      editContext.addEventListener("textupdate", e => {
-        test.innerHTML = e.text;
+      const div = document.createElement("div");
+      document.body.appendChild(div);
+      let beforeInputType = null;
+      let beforeInputTargetRanges = null;
+      div.addEventListener("beforeinput", e => {
+        beforeInputType = e.inputType;
+        beforeInputTargetRanges = e.getTargetRanges().map(
+          staticRange => [staticRange.startOffset, staticRange.endOffset]);
       });
-      test.editContext = editContext;
-      test.focus();
-      await test_driver.send_keys(test, 'a');
-      assert_equals(test.innerHTML, "a");
-      test.remove();
+      editContext.addEventListener("textupdate", e => {
+        div.innerHTML = e.text;
+      });
+      div.editContext = editContext;
+      div.focus();
+      await test_driver.send_keys(div, 'a');
+      assert_equals(div.innerHTML, "a");
+      assert_equals(beforeInputType, "insertText");
+      assert_equals(beforeInputTargetRanges.length, 1);
+      assert_array_equals(beforeInputTargetRanges[0], [0, 0]);
+      div.remove();
     }, 'Testing EditContext English typing');
 
     promise_test(async function() {
@@ -60,7 +70,10 @@
     div.innerText = divText;
     div.editContext = new EditContext();
     div.focus();
-
+    let got_before_input_event = false;
+    div.addEventListener("beforeinput", e => {
+      got_before_input_event = true;
+    });
     let got_textupdate_event = false;
     div.editContext.addEventListener("textupdate", e => {
       got_textupdate_event = true;
@@ -70,9 +83,47 @@
     await test_driver.send_keys(div, "a");
 
     assert_false(got_textupdate_event, "Shouldn't have received textupdate event after editContext was detached");
+    assert_false(got_before_input_event, "Shouldn't have received beforeinput event after editContext was detached");
 
     div.remove();
   }, "EditContext should not receive events after being detached from element");
+
+  promise_test(async function() {
+      const editContext = new EditContext();
+      const div = document.createElement("div");
+      div.innerText = "hello there";
+      document.body.appendChild(div);
+      let beforeInputType = null;
+      let beforeInputTargetRanges = null;
+      div.addEventListener("beforeinput", e => {
+        beforeInputType = e.inputType;
+        beforeInputTargetRanges = e.getTargetRanges().map(
+          staticRange => [staticRange.startOffset, staticRange.endOffset]);
+      });
+      let textUpdateSelection = null;
+      editContext.addEventListener("textupdate", e => {
+        textUpdateSelection = [e.selectionStart, e.selectionEnd];
+        div.innerText = `${div.innerText.substring(0, e.updateRangeStart)}${e.text}${div.innerText.substring(e.updateRangeEnd)}`;
+      });
+      div.editContext = editContext;
+      editContext.updateText(0, 11, "hello there");
+      editContext.updateSelection(10, 10);
+      const selection = window.getSelection();
+      selection.setBaseAndExtent(div.firstChild, 10, div.firstChild, 10);
+
+      await test_driver.send_keys(div, "\uE003");
+      assert_equals(div.innerHTML, "hello thee");
+      assert_array_equals(textUpdateSelection, [9, 9]);
+      assert_equals(beforeInputType, "deleteContentBackward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Backspace should not have a target range in EditContext");
+
+      await test_driver.send_keys(div, "\uE017");
+      assert_equals(div.innerHTML, "hello the");
+      assert_array_equals(textUpdateSelection, [9, 9]);
+      assert_equals(beforeInputType, "deleteContentForward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Delete should not have a target range in EditContext");
+      div.remove();
+    }, "Backspace and delete in EditContext");
   </script>
 </body>
 </html>

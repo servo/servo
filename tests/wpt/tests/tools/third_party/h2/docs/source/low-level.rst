@@ -2,16 +2,16 @@ Low-Level Details
 =================
 
 .. warning:: This section of the documentation covers low-level implementation
-             details of hyper-h2. This is most likely to be of use to hyper-h2
+             details of h2. This is most likely to be of use to h2
              developers and to other HTTP/2 implementers, though it could well
              be of general interest. Feel free to peruse it, but if you're
-             looking for information about how to *use* hyper-h2 you should
+             looking for information about how to *use* h2 you should
              consider looking elsewhere.
 
 State Machines
 --------------
 
-hyper-h2 is fundamentally built on top of a pair of interacting Finite State
+h2 is fundamentally built on top of a pair of interacting Finite State
 Machines. One of these FSMs manages per-connection state, and another manages
 per-stream state. Almost without exception (see :ref:`priority` for more
 details) every single frame is unconditionally translated into events for
@@ -96,7 +96,7 @@ The other action taken by the side-effect functions defined here is returning
 :ref:`events <h2-events-basic>`. Most of these events are returned directly to
 the user, and reflect the specific state transition that has taken place, but
 some of the events are purely *internal*: they are used to signal to other
-parts of the hyper-h2 codebase what action has been taken.
+parts of the h2 codebase what action has been taken.
 
 The major use of the internal events functionality at this time is for
 validating header blocks: there are different rules for request headers than
@@ -105,7 +105,7 @@ internal events are used to determine *exactly what* kind of data the user is
 attempting to send, and using that information to do the correct kind of
 validation. This approach ensures that the final source of truth about what's
 happening at the protocol level lives inside the FSM, which is an extremely
-important design principle we want to continue to enshrine in hyper-h2.
+important design principle we want to continue to enshrine in h2.
 
 A visual representation of this FSM is shown below:
 
@@ -139,20 +139,20 @@ situation where it is invalid to receive a ``PRIORITY`` frame. This means that
 including it in the stream FSM would require that we allow ``SEND_PRIORITY``
 and ``RECV_PRIORITY`` in all states.
 
-This is not a totally onerous task: however, another key note is that hyper-h2
+This is not a totally onerous task: however, another key note is that h2
 uses the *absence* of a stream state machine to flag a closed stream. This is
 primarily for memory conservation reasons: if we needed to keep around an FSM
 for every stream we've ever seen, that would cause long-lived HTTP/2
 connections to consume increasingly large amounts of memory. On top of this,
 it would require us to create a stream FSM each time we received a ``PRIORITY``
 frame for a given stream, giving a malicious peer an easy route to force a
-hyper-h2 user to allocate nearly unbounded amounts of memory.
+h2 user to allocate nearly unbounded amounts of memory.
 
-For this reason, hyper-h2 circumvents the stream FSM entirely for ``PRIORITY``
+For this reason, h2 circumvents the stream FSM entirely for ``PRIORITY``
 frames. Instead, these frames are treated as being connection-level frames that
 *just happen* to identify a specific stream. They do not bring streams into
-being, or in any sense interact with hyper-h2's view of streams. Their stream
-details are treated as strictly metadata that hyper-h2 is not interested in
+being, or in any sense interact with h2's view of streams. Their stream
+details are treated as strictly metadata that h2 is not interested in
 beyond being able to parse it out.
 
 

@@ -36,6 +36,19 @@
   const GREY = "rgb(128, 128, 128)";
   const BLUE = "rgb(0, 0, 255)";
 
+  async function navigateFragment(fragment) {
+    return new Promise(resolve => {
+      let hashChanged = (e) => {
+        if (location.hash.substring(1) === fragment) {
+          resolve();
+          window.removeEventListener("hashchange", hashChanged);
+        }
+      };
+      window.addEventListener("hashchange", hashChanged);
+      fragmentLink(fragment).click();
+    });
+  }
+
   function fragmentLink(fragment) {
     return document.querySelector(`a[href="#${fragment}"]`);
   }
@@ -51,14 +64,14 @@
     assert_equals(getComputedStyle(parent2).color, GREY, "parent2 should be grey without :target");
     assert_equals(getComputedStyle(parent3).color, GREY, "parent3 should be grey without :target");
 
-    fragmentLink("fragment").click();
+    await navigateFragment("fragment");
 
     assert_true(fragment.matches(":target"));
     assert_equals(getComputedStyle(parent1).color, GREEN, "parent1 should be green on fragment click");
     assert_equals(getComputedStyle(parent2).color, GREY, "parent2 should be grey without :target");
     assert_equals(getComputedStyle(parent3).color, GREY, "parent3 should be grey without :target");
 
-    fragmentLink("fragment2").click();
+    await navigateFragment("fragment2");
 
     assert_true(fragment2.matches(":target"));
     assert_equals(getComputedStyle(parent1).color, GREY, "parent1 should be grey without :target");
@@ -73,14 +86,14 @@
     // Skip to check parent2 color since there is nothing in the spec mentioning DOM mutations affecting the target element.
     // - https://html.spec.whatwg.org/multipage/browsing-the-web.html#scroll-to-fragid
 
-    fragmentLink("fragment3").click();
+    await navigateFragment("fragment3");
 
     assert_true(fragment3.matches(":target"));
     assert_equals(getComputedStyle(parent1).color, GREY, "parent1 should be grey without :target");
     assert_equals(getComputedStyle(parent2).color, GREY, "parent2 should be grey without :target");
     assert_equals(getComputedStyle(parent3).color, GREEN, "parent3 should be green on fragment click");
 
-    fragmentLink("").click();
+    await navigateFragment("");
 
     assert_equals(location.hash, "");
     assert_equals(getComputedStyle(parent1).color, GREY, "parent1 should be grey without :target");

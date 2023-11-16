@@ -3019,4 +3019,27 @@ var browserTests = [
    "<ul><li>{}<br></li></ul>",
    [true],
    {}],
+
+// inlined elements shouldn't be joined as <span>, etc
+["<div style=\"display:inline\">abc</div><div style=\"display:inline\">[]def</div>",
+   [["delete",""]],
+   "<div style=\"display:inline\">ab</div><div style=\"display:inline\">def</div>",
+   [true],
+   {}],
+["<ul><li style=\"display:inline\">abc</li><li style=\"display:inline\">[]def</li></ul>",
+   [["delete",""]],
+   "<ul><li style=\"display:inline\">ab</li><li style=\"display:inline\">def</li></ul>",
+   [true],
+   {}],
+["<dl><dt style=\"display:inline\">abc</dt><dd style=\"display:inline\">[]def</dd></dl>",
+   [["delete",""]],
+   "<dl><dt style=\"display:inline\">ab</dt><dd style=\"display:inline\">def</dd></dl>",
+   [true],
+   {}],
+// list-styled elements should work as list item elements
+["<div><span style=\"display:list-item\">abc</span><span style=\"display:list-item\">[]def</span></div>",
+   [["delete",""]],
+   "<div><span style=\"display:list-item\">abcdef</span></div>",
+   [true],
+   {}],
 ]

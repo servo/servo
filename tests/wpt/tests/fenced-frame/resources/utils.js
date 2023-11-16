@@ -37,7 +37,10 @@ async function runSelectRawURL(href, resolve_to_config = false) {
   }
   return await sharedStorage.selectURL(
       'test-url-selection-operation', [{url: href,
-          reportingMetadata: {'reserved.top_navigation': BEACON_URL}}], {
+          reportingMetadata: {
+            'reserved.top_navigation_start': BEACON_URL,
+            'reserved.top_navigation_commit': BEACON_URL,
+          }}], {
         data: {'mockResult': 0},
         resolveToConfig: resolve_to_config,
         keepAlive: true,
@@ -495,11 +498,13 @@ async function nextValueFromServer(key) {
 }
 
 // Reads the data from the latest automatic beacon sent to the server.
-async function readAutomaticBeaconDataFromServer() {
-  const serverURL = `${BEACON_URL}`;
-  const response = await fetch(serverURL);
+async function readAutomaticBeaconDataFromServer(expected_body) {
+  let serverURL = `${BEACON_URL}`;
+  const response = await fetch(serverURL + "?" + new URLSearchParams({
+    expected_body: expected_body,
+  }));
   if (!response.ok)
-    throw new Error('An error happened in the server');
+    throw new Error('An error happened in the server ' + response.status);
   const value = await response.text();
 
   // The value is not stored in the server.
@@ -511,10 +516,11 @@ async function readAutomaticBeaconDataFromServer() {
 
 // Convenience wrapper around the above getter that will wait until a value is
 // available on the server.
-async function nextAutomaticBeacon() {
+async function nextAutomaticBeacon(expected_body) {
   while (true) {
     // Fetches the test result from the server.
-    const { status, value } = await readAutomaticBeaconDataFromServer();
+    const { status, value } =
+        await readAutomaticBeaconDataFromServer(expected_body);
     if (!status) {
       // The test result has not been stored yet. Retry after a while.
       await new Promise(resolve => setTimeout(resolve, 20));

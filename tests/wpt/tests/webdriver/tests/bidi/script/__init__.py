@@ -213,7 +213,14 @@ REMOTE_VALUES: list[tuple[str, dict]] = [
             }
         },
     ),
-    ("window", {"type": "window", },),
+    (
+        "window", {
+            "type": "window",
+            "value": {
+                "context": any_string,
+            }
+        },
+    ),
     ("new URL('https://example.com')", {"type": "object", },),
 ]
 

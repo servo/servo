@@ -1,12 +1,12 @@
 Installation
 ============
 
-Hyper-h2 is a pure-python project. This means installing it is extremely
+h2 is a pure-python project. This means installing it is extremely
 simple. To get the latest release from PyPI, simply run:
 
 .. code-block:: console
 
-    $ pip install h2
+    $ python -m pip install h2
 
 Alternatively, feel free to download one of the release tarballs from
 `our GitHub page`_, extract it to your favourite directory, and then run
@@ -15,4 +15,4 @@ Alternatively, feel free to download one of the release tarballs from
 
     $ python setup.py install
 
-.. _our GitHub page: https://github.com/python-hyper/hyper-h2
+.. _our GitHub page: https://github.com/python-hyper/h2

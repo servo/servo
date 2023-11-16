@@ -18,6 +18,7 @@ promise_test(async (t) => {
   assert_equals(i.contentWindow.navigation.currentEntry.index, 2);
   assert_equals(i.contentWindow.navigation.entries()[0].url, null);
   assert_equals(i.contentWindow.navigation.entries()[1].url, null);
+  assert_equals(i.contentWindow.navigation.activation.from.url, null);
 
   // Navigating back to no-referrer.html should uncensor the urls.
   i.contentWindow.navigation.back();
@@ -27,6 +28,8 @@ promise_test(async (t) => {
   assert_equals(new URL(i.contentWindow.navigation.entries()[0].url).pathname,
                 "/navigation-api/navigation-history-entry/resources/no-referrer-meta.html");
   assert_equals(new URL(i.contentWindow.navigation.entries()[1].url).pathname,
+                "/navigation-api/navigation-history-entry/resources/no-referrer-meta.html");
+  assert_equals(new URL(i.contentWindow.navigation.activation.entry.url).pathname,
                 "/navigation-api/navigation-history-entry/resources/no-referrer-meta.html");
 }, "The url of a document with no-referrer referrer meta tag is censored in NavigationHistoryEntry");
 </script>

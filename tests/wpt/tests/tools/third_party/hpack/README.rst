@@ -2,19 +2,23 @@
 hpack: HTTP/2 Header Encoding for Python
 ========================================
 
+.. image:: https://github.com/python-hyper/hpack/workflows/CI/badge.svg
+    :target: https://github.com/python-hyper/hpack/actions
+    :alt: Build Status
+.. image:: https://codecov.io/gh/python-hyper/hpack/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/python-hyper/hpack
+    :alt: Code Coverage
+.. image:: https://readthedocs.org/projects/hpack/badge/?version=latest
+    :target: https://hpack.readthedocs.io/en/latest/
+    :alt: Documentation Status
+.. image:: https://img.shields.io/badge/chat-join_now-brightgreen.svg
+    :target: https://gitter.im/python-hyper/community
+    :alt: Chat community
+
 .. image:: https://raw.github.com/Lukasa/hyper/development/docs/source/images/hyper.png
 
-.. image:: https://travis-ci.org/python-hyper/hpack.png?branch=master
-    :target: https://travis-ci.org/python-hyper/hpack
-
 This module contains a pure-Python HTTP/2 header encoding (HPACK) logic for use
-in Python programs that implement HTTP/2. It also contains a compatibility
-layer that automatically enables the use of ``nghttp2`` if it's available.
-
-Documentation
-=============
-
-Documentation is available at http://python-hyper.org/hpack/.
+in Python programs that implement HTTP/2.
 
 Contributing
 ============

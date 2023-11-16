@@ -23,7 +23,7 @@ promise_test(async(t) => {
 
   // window.fence calls should succeed before the iframe is removed.
   inner_fence.setReportEventDataForAutomaticBeacons({
-    eventType: "reserved.top_navigation",
+    eventType: "reserved.top_navigation_commit",
     eventData: 'This is the event data!',
     destination: ['buyer']
   });
@@ -35,7 +35,7 @@ promise_test(async(t) => {
   // becomes inactive.
   try {
     inner_fence.setReportEventDataForAutomaticBeacons({
-      eventType: "reserved.top_navigation",
+      eventType: "reserved.top_navigation_commit",
       eventData: 'This is the event data!',
       destination: ['buyer']
     });

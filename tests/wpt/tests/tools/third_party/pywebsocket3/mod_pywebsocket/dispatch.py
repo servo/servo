@@ -30,6 +30,7 @@
 """
 
 from __future__ import absolute_import
+import io
 import logging
 import os
 import re
@@ -179,7 +180,8 @@ class Dispatcher(object):
     def __init__(self,
                  root_dir,
                  scan_dir=None,
-                 allow_handlers_outside_root_dir=True):
+                 allow_handlers_outside_root_dir=True,
+                 handler_encoding=None):
         """Construct an instance.
 
         Args:
@@ -206,7 +208,8 @@ class Dispatcher(object):
             raise DispatchException('scan_dir:%s must be a directory under '
                                     'root_dir:%s.' % (scan_dir, root_dir))
         self._source_handler_files_in_dir(root_dir, scan_dir,
-                                          allow_handlers_outside_root_dir)
+                                          allow_handlers_outside_root_dir,
+                                          handler_encoding)
 
     def add_resource_path_alias(self, alias_resource_path,
                                 existing_resource_path):
@@ -346,7 +349,8 @@ class Dispatcher(object):
         return handler_suite
 
     def _source_handler_files_in_dir(self, root_dir, scan_dir,
-                                     allow_handlers_outside_root_dir):
+                                     allow_handlers_outside_root_dir,
+                                     handler_encoding):
         """Source all the handler source files in the scan_dir directory.
 
         The resource path is determined relative to root_dir.
@@ -369,7 +373,7 @@ class Dispatcher(object):
                     'Canonical path of %s is not under root directory' % path)
                 continue
             try:
-                with open(path) as handler_file:
+                with io.open(path, encoding=handler_encoding) as handler_file:
                     handler_suite = _source_handler_file(handler_file.read())
             except DispatchException as e:
                 self._source_warnings.append('%s: %s' % (path, e))

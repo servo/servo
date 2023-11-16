@@ -25,7 +25,7 @@ body { margin: 0; }
 
 .container.transitioned {
   left: 20px;
-  width: 200px;
+  width: 600px;
   transform: translateY(-50px);
 }
 
@@ -68,6 +68,10 @@ body { margin: 0; }
   let endWidth = document.getElementById('end').getBoundingClientRect().width;
   let startWidth = document.getElementById('start').getBoundingClientRect().width;
   let scale = endWidth / startWidth;
+  /* Default UA CSS scales the image pseudos to match the group in the inline
+     direction. The block direction scales to retain the image's aspect ratio.
+     So have the dummy end line scale to match the end state width and apply the
+     same scale to its height. */
   document.getElementById('dummyEndInline').style.transform = `scale(${scale})`;
 </script>
 

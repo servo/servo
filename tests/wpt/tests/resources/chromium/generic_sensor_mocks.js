@@ -274,6 +274,9 @@ self.GenericSensorTest = (() => {
         window.clearInterval(this.sensorReadingTimerId_);
         this.sensorReadingTimerId_ = null;
       }
+      this.buffer_.fill(0);
+      this.lastRawReading_ = null;
+      this.lastRoundedReading_ = null;
     }
 
     getSamplingFrequency() {

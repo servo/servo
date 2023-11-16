@@ -6,9 +6,9 @@ from ... import int_interval
 
 @pytest.mark.asyncio
 async def test_types_and_values(
-    bidi_session, current_time, top_context, wait_for_event
+    bidi_session, subscribe_events, current_time, top_context, wait_for_event
 ):
-    await bidi_session.session.subscribe(events=["log.entryAdded"])
+    await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
 

@@ -7,7 +7,7 @@ Tests of the flow control management in h2
 """
 import pytest
 
-from hypothesis import given
+from hypothesis import given, settings, HealthCheck
 from hypothesis.strategies import integers
 
 import h2.config
@@ -715,6 +715,7 @@ class TestAutomaticFlowControl(object):
         return c
 
     @given(stream_id=integers(max_value=0))
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_must_acknowledge_for_stream(self, frame_factory, stream_id):
         """
         Flow control acknowledgements must be done on a stream ID that is
@@ -740,6 +741,7 @@ class TestAutomaticFlowControl(object):
             )
 
     @given(size=integers(max_value=-1))
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_cannot_acknowledge_less_than_zero(self, frame_factory, size):
         """
         The user must acknowledge at least 0 bytes.
@@ -837,6 +839,7 @@ class TestAutomaticFlowControl(object):
             c.acknowledge_received_data(2048, stream_id=101)
 
     @given(integers(min_value=1025, max_value=DEFAULT_FLOW_WINDOW))
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_acknowledging_1024_bytes_when_empty_increments(self,
                                                             frame_factory,
                                                             increment):
@@ -873,6 +876,7 @@ class TestAutomaticFlowControl(object):
     # This test needs to use a lower cap, because otherwise the algo will
     # increment the stream window anyway.
     @given(integers(min_value=1025, max_value=(DEFAULT_FLOW_WINDOW // 4) - 1))
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_connection_only_empty(self, frame_factory, increment):
         """
         If the connection flow control window is empty, but the stream flow
@@ -916,6 +920,7 @@ class TestAutomaticFlowControl(object):
         assert c.data_to_send() == expected_data
 
     @given(integers(min_value=1025, max_value=DEFAULT_FLOW_WINDOW))
+    @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_mixing_update_forms(self, frame_factory, increment):
         """
         If the user mixes ackowledging data with manually incrementing windows,

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Masking: mask-repeat: repeated mask layer image, SVG content</title>
+<link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-mask-repeat">
+<link rel="match" href="mask-repeat-3-ref.html">
+<meta name="assert" content="Test checks whether repeated mask layer works correctly or not.">
+<style type="text/css">
+  rect.frame {
+    x: -0.5px;
+    y: -0.5px;
+    width: 151px;
+    height: 151px;
+    stroke: black;
+    fill: none;
+  }
+
+  rect.masked {
+    width: 150px;
+    height: 150px;
+    fill: purple;
+    mask-image: url(support/50x50-opaque-blue.svg);
+    mask-position: left top;
+  }
+
+  #round {
+    mask-repeat: round;
+  }
+  #round-x {
+    mask-repeat: round no-repeat;
+  }
+  #round-y {
+    mask-repeat: no-repeat round;
+  }
+</style>
+<svg height="456">
+  <g transform="translate(1 1)">
+    <rect class="masked" id="round"/>
+    <rect class="frame"/>
+  </g>
+  <g transform="translate(1 153)">
+    <rect class="masked" id="round-x"/>
+    <rect class="frame"/>
+  </g>
+  <g transform="translate(1 305)">
+    <rect class="masked" id="round-y"/>
+    <rect class="frame"/>
+  </g>
+</svg>

@@ -82,17 +82,6 @@ async def test_params_clip_element_sharedId_invalid_value(bidi_session, top_cont
         )
 
 
-@pytest.mark.parametrize("value", [42, "foo", {}, []])
-async def test_params_clip_element_scroll_into_view_invalid_type(
-    bidi_session, top_context, value
-):
-    with pytest.raises(error.InvalidArgumentException):
-        await bidi_session.browsing_context.capture_screenshot(
-            context=top_context["context"],
-            clip=ElementOptions(element={}, scroll_into_view=value),
-        )
-
-
 @pytest.mark.parametrize("value", [None, False, "foo", {}, []])
 async def test_params_clip_viewport_x_invalid_type(bidi_session, top_context, value):
     with pytest.raises(error.InvalidArgumentException):

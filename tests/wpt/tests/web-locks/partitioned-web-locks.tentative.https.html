@@ -41,18 +41,17 @@ async function third_party_test(t) {
     HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname);
 
   // Step 1.
-  navigator.locks.request('testLock', {mode: 'exclusive', ifAvailable: true},
+  let lock_id = next_lock_id++;
+  let [ promise, release ] = makePromiseAndResolveFunc();
+  let released = navigator.locks.request('testLock', {mode: 'exclusive', ifAvailable: true},
         lock => {
           if (lock === null) {
             assert_true(false)
             return;
           }
-          let lock_id = next_lock_id++;
-          let release;
-          const promise = new Promise(r => { release = r; });
-          held.set(lock_id, release);
           return promise;
         });
+  held.set(lock_id, { release, released });
 
   // Step 2.
   const w = window.open(target_url);
@@ -60,10 +59,14 @@ async function third_party_test(t) {
 
   // Step 7.
   t.add_cleanup(() => {
-    w.close()
+    w.close();
+    let released = [];
     for(let i = 1; i < next_lock_id; i++){
-      held.get(i)();
+      let h = held.get(i);
+      h.release();
+      released.push(h.released);
     }
+    return Promise.allSettled(released);
   });
 
   // Step 8.
@@ -124,19 +127,17 @@ async function nested_iframe_test(t) {
 
   // Nested Step 1.
   // Request the weblock for the top-level site.
-  navigator.locks.request('testLock', {mode: 'exclusive', ifAvailable: true},
+  let lock_id = next_lock_id_2++;
+  let [ promise, release ] = makePromiseAndResolveFunc();
+  let released = navigator.locks.request('testLock', {mode: 'exclusive', ifAvailable: true},
         lock => {
           if (lock === null) {
             assert_true(false)
             return;
           }
-          // Obtain and store the release functions for clean-up.
-          let lock_id = next_lock_id_2++;
-          let release;
-          const promise = new Promise(r => { release = r; });
-          held_2.set(lock_id, release);
           return promise;
         }).catch(error => alert(error.message));
+  held_2.set(lock_id, { release, released });
 
   // Nested Step 2.
   // Open the nested iframes. The script in the innermost child iframe
@@ -146,10 +147,14 @@ async function nested_iframe_test(t) {
 
   // Nested Step 10.
   t.add_cleanup(() => {
-    w.close()
-    for(let i = 1; i < next_lock_id_2; i++){
-      held_2.get(i)();
+    w.close();
+    let released = [];
+    for(let i = 1; i < next_lock_id; i++){
+      let h = held_2.get(i);
+      h.release();
+      released.push(h.released);
     }
+    return Promise.allSettled(released);
   });
 
   // Nested Step 11.

@@ -58,6 +58,59 @@ test_math_used("round(13px, -10px)", "10px");
 test_math_used("round(-13px, -10px)", "-10px");
 test_math_used("round(-18px, -10px)", "-20px");
 
+// Test with value that is an exact multiple of step
+test_math_used("round(10px, 5px)", "10px");
+test_math_used("round(nearest, 10px, 5px)", "10px");
+test_math_used("round(down, 10px, 5px)", "10px");
+test_math_used("round(up, 10px, 5px)", "10px");
+test_math_used("round(to-zero, 10px, 5px)", "10px");
+
+test_math_used("round(-10px, 5px)", "-10px");
+test_math_used("round(nearest, -10px, 5px)", "-10px");
+test_math_used("round(down, -10px, 5px)", "-10px");
+test_math_used("round(up, -10px, 5px)", "-10px");
+test_math_used("round(to-zero, -10px, 5px)", "-10px");
+
+// Test negation of the round operation
+test_math_used("calc(0px - round(23px, 10px))", "-20px");
+test_math_used("calc(0px - round(18px, 10px))", "-20px");
+test_math_used("calc(0px - round(15px, 10px))", "-20px");
+test_math_used("calc(0px - round(13px, 10px))", "-10px");
+test_math_used("calc(0px - round(-13px, 10px))", "10px");
+test_math_used("calc(0px - round(-18px, 10px))", "20px");
+
+// Test negation of nearest
+test_math_used("calc(0px - round(nearest, 23px, 10px))", "-20px");
+test_math_used("calc(0px - round(nearest, 18px, 10px))", "-20px");
+test_math_used("calc(0px - round(nearest, 15px, 10px))", "-20px");
+test_math_used("calc(0px - round(nearest, 13px, 10px))", "-10px");
+test_math_used("calc(0px - round(nearest, -13px, 10px))", "10px");
+test_math_used("calc(0px - round(nearest, -18px, 10px))", "20px");
+
+// Test negation of down
+test_math_used("calc(0px - round(down, 23px, 10px))", "-20px");
+test_math_used("calc(0px - round(down, 18px, 10px))", "-10px");
+test_math_used("calc(0px - round(down, 15px, 10px))", "-10px");
+test_math_used("calc(0px - round(down, 13px, 10px))", "-10px");
+test_math_used("calc(0px - round(down, -13px, 10px))", "20px");
+test_math_used("calc(0px - round(down, -18px, 10px))", "20px");
+
+// Test negation of up
+test_math_used("calc(0px - round(up, 23px, 10px))", "-30px");
+test_math_used("calc(0px - round(up, 18px, 10px))", "-20px");
+test_math_used("calc(0px - round(up, 15px, 10px))", "-20px");
+test_math_used("calc(0px - round(up, 13px, 10px))", "-20px");
+test_math_used("calc(0px - round(up, -13px, 10px))", "10px");
+test_math_used("calc(0px - round(up, -18px, 10px))", "10px");
+
+// Test negation of to-zero
+test_math_used("calc(0px - round(to-zero, 23px, 10px))", "-20px");
+test_math_used("calc(0px - round(to-zero, 18px, 10px))", "-10px");
+test_math_used("calc(0px - round(to-zero, 15px, 10px))", "-10px");
+test_math_used("calc(0px - round(to-zero, 13px, 10px))", "-10px");
+test_math_used("calc(0px - round(to-zero, -13px, 10px))", "10px");
+test_math_used("calc(0px - round(to-zero, -18px, 10px))", "10px");
+
 // Extreme cases:
 
 // 0 step is NaN

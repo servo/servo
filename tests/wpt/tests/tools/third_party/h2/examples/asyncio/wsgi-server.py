@@ -3,13 +3,13 @@
 asyncio-server.py
 ~~~~~~~~~~~~~~~~~
 
-A fully-functional WSGI server, written using hyper-h2. Requires asyncio.
+A fully-functional WSGI server, written using h2. Requires asyncio.
 
 To test it, try installing httpbin from pip (``pip install httpbin``) and then
 running the server (``python asyncio-server.py httpbin:app``).
 
 This server does not support HTTP/1.1: it is a HTTP/2-only WSGI server. The
-purpose of this code is to demonstrate how to integrate hyper-h2 into a more
+purpose of this code is to demonstrate how to integrate h2 into a more
 complex application, and to demonstrate several principles of concurrent
 programming.
 

@@ -4,13 +4,13 @@ This module defines substantial HPACK integration tests. These can take a very
 long time to run, so they're outside the main test suite, but they need to be
 run before every change to HPACK.
 """
-from hpack.hpack import Decoder, Encoder
-from hpack.struct import HeaderTuple
 from binascii import unhexlify
 from pytest import skip
 
+from hpack import Decoder, Encoder, HeaderTuple
 
-class TestHPACKDecoderIntegration(object):
+
+class TestHPACKDecoderIntegration:
     def test_can_decode_a_story(self, story):
         d = Decoder()
 

@@ -787,8 +787,10 @@ impl Fragment {
 
                 // If this fragment has a transform applied that makes it take up no space
                 // then we don't need to create any stacking contexts for it.
-                let has_non_invertible_transform =
-                    fragment.has_non_invertible_transform(&containing_block.rect.to_untyped());
+                let has_non_invertible_transform = fragment
+                    .has_non_invertible_transform_or_zero_scale(
+                        &containing_block.rect.to_untyped(),
+                    );
                 if has_non_invertible_transform {
                     return;
                 }
@@ -1258,10 +1260,10 @@ impl BoxFragment {
     }
 
     /// Returns true if the given style contains a transform that is not invertible.
-    fn has_non_invertible_transform(&self, containing_block: &Rect<Length>) -> bool {
+    fn has_non_invertible_transform_or_zero_scale(&self, containing_block: &Rect<Length>) -> bool {
         let list = &self.style.get_box().transform;
         match list.to_transform_3d_matrix(Some(containing_block)) {
-            Ok(t) => !t.0.is_invertible(),
+            Ok(t) => !t.0.is_invertible() || t.0.m11 == 0. || t.0.m22 == 0.,
             Err(_) => false,
         }
     }

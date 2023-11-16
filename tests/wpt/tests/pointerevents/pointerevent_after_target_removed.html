@@ -118,16 +118,16 @@
   ]);
 
   // Same tests for dispatched compatibility mouse events.
-  addPromiseTest("pointerdown", "mouse", [
-    "mouseover@child", "mouseenter@parent", "mouseenter@child",
-    "(child-removed)", "mouseover@parent", "mousedown@parent", "mouseup@parent",
-    "mousedown@parent", "mouseup@parent",
-    "mouseout@parent", "mouseleave@parent"
-  ]);
-  addPromiseTest("pointerup", "mouse", [
+  addPromiseTest("mousedown", "mouse", [
     "mouseover@child", "mouseenter@parent", "mouseenter@child",
     "mousedown@child", "(child-removed)", "mouseover@parent", "mouseup@parent",
     "mousedown@parent", "mouseup@parent",
+    "mouseout@parent", "mouseleave@parent"
+  ]);
+  addPromiseTest("mouseup", "mouse", [
+    "mouseover@child", "mouseenter@parent", "mouseenter@child",
+    "mousedown@child", "mouseup@child", "(child-removed)",
+    "mouseover@parent", "mousedown@parent", "mouseup@parent",
     "mouseout@parent", "mouseleave@parent"
   ]);
 </script>

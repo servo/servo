@@ -11,14 +11,14 @@
 // `sendOn` to specify the name of the event when the keepalive request should
 // be sent instead of the default 'load'.
 // `mode` to specify the fetch request's CORS mode.
-// `disallowOrigin` to ask the iframe to set up a server that forbids CORS
-// requests.
+// `disallowCrossOrigin` to ask the iframe to set up a server that disallows
+// cross origin requests.
 function getKeepAliveIframeUrl(token, method, {
   frameOrigin = 'DEFAULT',
   requestOrigin = '',
   sendOn = 'load',
   mode = 'cors',
-  disallowOrigin = false
+  disallowCrossOrigin = false
 } = {}) {
   const https = location.protocol.startsWith('https');
   frameOrigin = frameOrigin === 'DEFAULT' ?
@@ -28,7 +28,7 @@ function getKeepAliveIframeUrl(token, method, {
       `token=${token}&` +
       `method=${method}&` +
       `sendOn=${sendOn}&` +
-      `mode=${mode}&` + (disallowOrigin ? `disallowOrigin=1&` : ``) +
+      `mode=${mode}&` + (disallowCrossOrigin ? `disallowCrossOrigin=1&` : ``) +
       `origin=${requestOrigin}`;
 }
 
@@ -72,25 +72,40 @@ async function queryToken(token) {
   return json;
 }
 
+// A helper to assert the existence of `token` that should have been stored in
+// the server by fetching ../resources/stash-put.py.
+//
+// This function simply wait for a custom amount of time before trying to
+// retrieve `token` from the server.
+// `expectTokenExist` tells if `token` should be present or not.
+//
+// NOTE:
 // In order to parallelize the work, we are going to have an async_test
 // for the rest of the work. Note that we want the serialized behavior
 // for the steps so far, so we don't want to make the entire test case
 // an async_test.
-function assertStashedTokenAsync(testName, token, {shouldPass = true} = {}) {
-  async_test((test) => {
-    new Promise((resolve) => test.step_timeout(resolve, 3000))
-        .then(() => {
+function assertStashedTokenAsync(
+    testName, token, {expectTokenExist = true} = {}) {
+  async_test(test => {
+    new Promise(resolve => test.step_timeout(resolve, 3000 /*ms*/))
+        .then(test.step_func(() => {
           return queryToken(token);
-        })
-        .then((result) => {
-          assert_equals(result, 'on');
-        })
-        .then(() => {
-          test.done();
-        })
-        .catch(test.step_func((e) => {
-          if (shouldPass) {
-            assert_unreached(e);
+        }))
+        .then(test.step_func(result => {
+          if (expectTokenExist) {
+            assert_equals(
+                result, 'on', `token [${token}] should be on (stashed).`);
+            test.done();
+          } else {
+            assert_not_equals(
+                result, 'on', `token [${token}] should not be on (stashed).`);
+            return Promise.reject(
+                `Failed to retrieve token [${token}] from server`);
+          }
+        }))
+        .catch(test.step_func(e => {
+          if (expectTokenExist) {
+            test.unreached_func(e);
           } else {
             test.done();
           }

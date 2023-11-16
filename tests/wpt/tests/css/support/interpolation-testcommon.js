@@ -104,6 +104,59 @@
     },
   };
 
+  var cssTransitionsInterpolationAllowDiscrete = {
+    name: 'CSS Transitions with transition-behavior:allow-discrete',
+    isSupported: function() {return true;},
+    supportsProperty: function() {return true;},
+    supportsValue: function() {return true;},
+    setup: function(property, from, target) {
+      target.style.setProperty(property, isNeutralKeyframe(from) ? '' : from);
+    },
+    nonInterpolationExpectations: function(from, to) {
+      return expectFlip(from, to, 0.5);
+    },
+    notAnimatableExpectations: function(from, to, underlying) {
+      return expectFlip(from, to, -Infinity);
+    },
+    interpolate: function(property, from, to, at, target, behavior) {
+      // Force a style recalc on target to set the 'from' value.
+      getComputedStyle(target).getPropertyValue(property);
+      target.style.transitionDuration = '100s';
+      target.style.transitionDelay = '-50s';
+      target.style.transitionTimingFunction = createEasing(at);
+      target.style.transitionProperty = property;
+      target.style.transitionBehavior = 'allow-discrete';
+      target.style.setProperty(property, isNeutralKeyframe(to) ? '' : to);
+    },
+  };
+
+  var cssTransitionAllInterpolationAllowDiscrete = {
+    name: 'CSS Transitions with transition-property:all and transition-behavor:allow-discrete',
+    isSupported: function() {return true;},
+    // The 'all' value doesn't cover custom properties.
+    supportsProperty: function(property) {return property.indexOf('--') !== 0;},
+    supportsValue: function() {return true;},
+    setup: function(property, from, target) {
+      target.style.setProperty(property, isNeutralKeyframe(from) ? '' : from);
+    },
+    nonInterpolationExpectations: function(from, to) {
+      return expectFlip(from, to, 0.5);
+    },
+    notAnimatableExpectations: function(from, to, underlying) {
+      return expectFlip(from, to, -Infinity);
+    },
+    interpolate: function(property, from, to, at, target, behavior) {
+      // Force a style recalc on target to set the 'from' value.
+      getComputedStyle(target).getPropertyValue(property);
+      target.style.transitionDuration = '100s';
+      target.style.transitionDelay = '-50s';
+      target.style.transitionTimingFunction = createEasing(at);
+      target.style.transitionProperty = 'all';
+      target.style.transitionBehavior = 'allow-discrete';
+      target.style.setProperty(property, isNeutralKeyframe(to) ? '' : to);
+    },
+  };
+
   var webAnimationsInterpolation = {
     name: 'Web Animations',
     isSupported: function() {return 'animate' in Element.prototype;},
@@ -435,13 +488,19 @@
   function test_not_animatable(options) {
     test_interpolation(options, expectNotAnimatable);
   }
-  function create_tests() {
+  function create_tests(addAllowDiscreteTests) {
     var interpolationMethods = [
       cssTransitionsInterpolation,
       cssTransitionAllInterpolation,
       cssAnimationsInterpolation,
       webAnimationsInterpolation,
     ];
+    if (addAllowDiscreteTests) {
+      interpolationMethods = [
+        cssTransitionsInterpolationAllowDiscrete,
+        cssTransitionAllInterpolationAllowDiscrete,
+      ].concat(interpolationMethods);
+    }
     var container = createElement(document.body);
     var targets = createTestTargets(interpolationMethods, interpolationTests, compositionTests, container);
     // Separate interpolation and measurement into different phases to avoid O(n^2) of the number of targets.
@@ -456,7 +515,7 @@
 
   function test_interpolation(options, expectations) {
     interpolationTests.push({options, expectations});
-    create_tests();
+    create_tests(expectations === expectNoInterpolation || expectations === expectNotAnimatable);
     interpolationTests = [];
   }
   function test_composition(options, expectations) {

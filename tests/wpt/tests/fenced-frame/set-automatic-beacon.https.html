@@ -13,7 +13,7 @@ promise_test(async(t) => {
       {generator_api: 'fledge'});
   await fencedframe.execute(() => {
     let event = {
-      eventType: "reserved.top_navigation",
+      eventType: "reserved.top_navigation_commit",
       eventData: "a".repeat(64000),
       destination: ["buyer"],
     }
@@ -26,7 +26,7 @@ promise_test(async(t) => {
       {generator_api: 'fledge'});
   await fencedframe.execute(() => {
     let event = {
-      eventType: "reserved.top_navigation",
+      eventType: "reserved.top_navigation_commit",
       eventData: "a".repeat(64001),
       destination: ["buyer"],
     }
@@ -41,7 +41,7 @@ promise_test(async(t) => {
       {generator_api: 'fledge'});
   await fencedframe.execute(() => {
     let event = {
-      eventType: "reserved.top_navigation",
+      eventType: "reserved.top_navigation_commit",
       eventData: "a".repeat(32),
       destination: ["invalid"],
     }

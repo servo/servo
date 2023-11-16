@@ -10,7 +10,7 @@ shortcuts have been taken to ensure ease of implementation and understanding.
 The main advantages of this example are:
 
 1. It properly demonstrates HTTP/2 flow control management.
-2. It demonstrates how to plug hyper-h2 into a larger, more complex
+2. It demonstrates how to plug h2 into a larger, more complex
    application.
 
 

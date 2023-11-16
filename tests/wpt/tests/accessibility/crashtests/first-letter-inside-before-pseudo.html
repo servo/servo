@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+  <link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+  <meta name="assert" content="Test that the browser doesn't crash when a first-letter pseudo-element toggles visiblity as a child of a before pseudo-element.">
+<style>
+  .btn-text::before {
+    content: "a";
+    visibility: hidden;
+  }
+
+  .btn-text.visible::before {
+    visibility: visible;
+  }
+
+  #problem::first-letter {
+    text-transform: none;
+  }
+</style>
+<div id="problem">
+  <span class="btn-text"></span>
+</div>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelector('.btn-text').classList.toggle('visible')
+  }));
+</script>

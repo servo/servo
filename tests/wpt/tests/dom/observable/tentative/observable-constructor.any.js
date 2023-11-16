@@ -134,6 +134,10 @@ test(() => {
 // originally included:
 // https://github.com/web-platform-tests/wpt/blob/0246526ca46ef4e5eae8b8e4a87dd905c40f5326/dom/observable/tentative/observable-ctor.any.js#L123-L137.
 
+// TODO(domfarolino): Add a test asserting that `Subscriber#signal` != the
+// actual `AbortSignal` passed into `subscribe()`. See
+// https://github.com/web-platform-tests/wpt/pull/42219#discussion_r1361243283.
+
 test(() => {
   const results = [];
 
@@ -192,7 +196,7 @@ test(() => {
     // TODO(https://github.com/WICG/observable/issues/76): Assert
     // `subscriber.closed` is true, if we add that attribute.
     // assert_true(subscriber.closed, "subscriber is closed after error");
-    subscriber.next();
+    subscriber.next(3);
     subscriber.complete();
   });
 
@@ -321,3 +325,156 @@ test(t => {
   assert_equals(errorReported.error, error, "Error object is equivalent");
 }, "Errors thrown by initializer function after subscriber is closed by " +
    "completion are reported");
+
+test(() => {
+  const error1 = new Error("error 1");
+  const error2 = new Error("error 2");
+  const results = [];
+  let errorReported = null;
+
+  self.addEventListener("error", e => errorReported = e, { once: true });
+
+  const source = new Observable((subscriber) => {
+    subscriber.next(1);
+    subscriber.next(2);
+    subscriber.error(error1);
+    throw error2;
+  });
+
+  source.subscribe({
+    next: (x) => results.push(x),
+    error: (error) => results.push(error),
+    complete: () => assert_unreached("complete should not be called"),
+  });
+
+  assert_array_equals(
+    results,
+    [1, 2, error1],
+    "should emit values synchronously, but not nexted values after error"
+  );
+
+  assert_true(errorReported !== null, "Exception was reported to global");
+  assert_true(errorReported.message.includes("error 2"), "Error message matches");
+  assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
+  assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
+  assert_equals(errorReported.error, error2, "Error object is equivalent");
+}, "Errors thrown by initializer function after subscriber is closed by " +
+   "error are reported");
+
+test(() => {
+  const error1 = new Error("error 1");
+  const error2 = new Error("error 2");
+  const results = [];
+  let errorReported = null;
+
+  self.addEventListener("error", e => errorReported = e, { once: true });
+
+  const source = new Observable((subscriber) => {
+    subscriber.next(1);
+    subscriber.next(2);
+    subscriber.error(error1);
+    subscriber.error(error2);
+  });
+
+  source.subscribe({
+    next: (x) => results.push(x),
+    error: (error) => results.push(error),
+    complete: () => assert_unreached("complete should not be called"),
+  });
+
+  assert_array_equals(
+    results,
+    [1, 2, error1],
+    "should emit values synchronously, but not nexted values after error"
+  );
+
+  assert_true(errorReported !== null, "Exception was reported to global");
+  assert_true(errorReported.message.includes("error 2"), "Error message matches");
+  assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
+  assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
+  assert_equals(errorReported.error, error2, "Error object is equivalent");
+}, "Errors pushed by initializer function after subscriber is closed by " +
+   "error are reported");
+
+// TODO(domfarolino): If we add `subscriber.closed`, assert that its value is
+// `true` in this test. See https://github.com/WICG/observable/issues/76.
+test(t => {
+  const source = new Observable((subscriber) => {
+    let n = 0;
+    while (!subscriber.signal.aborted) {
+      subscriber.next(n++);
+      if (n > 3) {
+        assert_unreached("The subscriber should be closed by now");
+      }
+    }
+  });
+
+  const ac = new AbortController();
+  const results = [];
+
+  source.subscribe({
+    next: (x) => {
+      results.push(x);
+      if (x === 2) {
+        ac.abort();
+      }
+    },
+    error: () => results.push('error'),
+    complete: () => results.push('complete'),
+    signal: ac.signal,
+  });
+
+  assert_array_equals(
+    results,
+    [0, 1, 2],
+    "should emit values synchronously before abort"
+  );
+}, "Aborting a subscription should stop emitting values");
+
+test(() => {
+  const error = new Error("custom error");
+  let errorReported = null;
+
+  self.addEventListener("error", e => errorReported = e, { once: true });
+
+  const source = new Observable(() => {
+    throw error;
+  });
+
+  try {
+    source.subscribe();
+  } catch {
+    assert_unreached("subscriber() never throws an error");
+  }
+
+  assert_true(errorReported !== null, "Exception was reported to global");
+  assert_true(errorReported.message.includes("custom error"), "Error message matches");
+  assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
+  assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
+  assert_equals(errorReported.error, error, "Error object is equivalent");
+}, "Calling subscribe should never throw an error synchronously, initializer throws error");
+
+test(() => {
+  const error = new Error("custom error");
+  let errorReported = null;
+
+  self.addEventListener("error", e => errorReported = e, { once: true });
+
+  const source = new Observable((subscriber) => {
+    subscriber.error(error);
+  });
+
+  try {
+    source.subscribe();
+  } catch {
+    assert_unreached("subscriber() never throws an error");
+  }
+
+  assert_true(errorReported !== null, "Exception was reported to global");
+  assert_true(errorReported.message.includes("custom error"), "Error message matches");
+  assert_greater_than(errorReported.lineno, 0, "Error lineno is greater than 0");
+  assert_greater_than(errorReported.colno, 0, "Error lineno is greater than 0");
+  assert_equals(errorReported.error, error, "Error object is equivalent");
+}, "Calling subscribe should never throw an error synchronously, subscriber pushes error");
+
+// TODO(domfarolino): Add back the teardown tests that Ben wrote.

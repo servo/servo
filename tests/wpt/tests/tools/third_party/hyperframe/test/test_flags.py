@@ -5,7 +5,7 @@ from hyperframe.frame import (
 import pytest
 
 
-class TestFlags(object):
+class TestFlags:
     def test_add(self):
         flags = Flags([Flag("VALID_FLAG", 0x00)])
         assert not flags
@@ -33,3 +33,11 @@ class TestFlags(object):
         flags.add("VALID_FLAG")
         with pytest.raises(ValueError):
             flags.add("INVALID_FLAG")
+
+    def test_repr(self):
+        flags = Flags([Flag("VALID_FLAG", 0x00), Flag("OTHER_FLAG", 0x01)])
+        assert repr(flags) == "[]"
+        flags.add("VALID_FLAG")
+        assert repr(flags) == "['VALID_FLAG']"
+        flags.add("OTHER_FLAG")
+        assert repr(flags) == "['OTHER_FLAG', 'VALID_FLAG']"

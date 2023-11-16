@@ -28,7 +28,7 @@ navigation id, not the increment.
       // Assert navigation id exists in a NavigationTiming entry.
       const navigationIdOfNavigationTiming =
         performance.getEntriesByType('navigation')[0].navigationId;
-      assert_not_equals(navigationIdOfNavigationTiming, null,
+      assert_true(!!navigationIdOfNavigationTiming,
         'Navigation Id of a navigation timing entry should exist at initial navigation');
 
       // Assert navigation id exists in PaintTiming entries and are all the same.

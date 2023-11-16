@@ -2062,4 +2062,70 @@ promise_test(async (t) => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Meta + Backspace at "<p>   abc[] def</p>"');
 
+// If editing host is nested, editing in the nested one shouldn't cause
+// target ranges extended to outside of it.
+promise_test(async t => {
+  const innerHTML = "<div contenteditable=\"false\"><div contenteditable=\"\"><p><br></p></div></div>";
+  initializeTest(innerHTML);
+  const p = gEditor.querySelector("p");
+  const innerEditingHost = p.parentNode;
+  document.activeElement?.blur();
+  p.parentNode.focus();
+  gSelection.collapse(p, 0);
+  await sendBackspaceKey();
+  if (gEditor.innerHTML == innerHTML) {
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+      startContainer: p,
+      startOffset: 0,
+      endContainer: p,
+      endOffset: 0,
+    });
+    checkGetTargetRangesOfInputOnDoNothing();
+  } else {
+    checkEditorContentResultAsSubTest(
+      "<div contenteditable=\"false\"><div contenteditable=\"\"><br></div></div>",
+      t.name
+    );
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+      startContainer: innerEditingHost,
+      startOffset: 0,
+      endContainer: p,
+      endOffset: 1,
+    });
+    checkGetTargetRangesOfInputOnDeleteSomething();
+  }
+}, 'Backspace at "<div contenteditable="false"><div contenteditable=""><p>{}<br></p></div></div>');
+
+promise_test(async t => {
+  const innerHTML = "<div contenteditable=\"false\">\n  <div contenteditable=\"\"><p><br></p></div></div>";
+  initializeTest(innerHTML);
+  const p = gEditor.querySelector("p");
+  const innerEditingHost = p.parentNode;
+  document.activeElement?.blur();
+  p.parentNode.focus();
+  gSelection.collapse(p, 0);
+  await sendBackspaceKey();
+  if (gEditor.innerHTML == innerHTML) {
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+      startContainer: p,
+      startOffset: 0,
+      endContainer: p,
+      endOffset: 0,
+    });
+    checkGetTargetRangesOfInputOnDoNothing();
+  } else {
+    checkEditorContentResultAsSubTest(
+      "<div contenteditable=\"false\">\n  <div contenteditable=\"\"><br></div></div>",
+      t.name
+    );
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+      startContainer: innerEditingHost,
+      startOffset: 0,
+      endContainer: p,
+      endOffset: 1,
+    });
+    checkGetTargetRangesOfInputOnDeleteSomething();
+  }
+}, 'Backspace at "<div contenteditable="false">\n  <div contenteditable=""><p>{}<br></p></div></div>');
+
 </script>

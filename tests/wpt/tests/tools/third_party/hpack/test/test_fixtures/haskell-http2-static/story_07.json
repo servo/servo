@@ -1,0 +1,366 @@
+{
+    "cases": [
+        {
+            "seqno": 0,
+            "wire": "020347455406046874747001137374617469632e616b2e666263646e2e6e657404212f727372632e7068702f76322f79622f722f47734e4a4e7775492d554d2e6769660f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f0421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e350f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2418687474703a2f2f7777772e66616365626f6f6b2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "static.ak.fbcdn.net"
+                },
+                {
+                    ":path": "/rsrc.php/v2/yb/r/GsNJNwuI-UM.gif"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.facebook.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 1,
+            "wire": "020347455406046874747001137374617469632e616b2e666263646e2e6e657404212f727372632e7068702f76322f79592f722f75386941336b58623859312e6373730f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f0412746578742f6373732c2a2f2a3b713d302e310f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2418687474703a2f2f7777772e66616365626f6f6b2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "static.ak.fbcdn.net"
+                },
+                {
+                    ":path": "/rsrc.php/v2/yY/r/u8iA3kXb8Y1.css"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/css,*/*;q=0.1"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.facebook.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 2,
+            "wire": "020347455406046874747001137374617469632e616b2e666263646e2e6e657404212f727372632e7068702f76322f79492f722f71414e56547343353266702e6373730f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f0412746578742f6373732c2a2f2a3b713d302e310f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2418687474703a2f2f7777772e66616365626f6f6b2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "static.ak.fbcdn.net"
+                },
+                {
+                    ":path": "/rsrc.php/v2/yI/r/qANVTsC52fp.css"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/css,*/*;q=0.1"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.facebook.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 3,
+            "wire": "020347455406046874747001137374617469632e616b2e666263646e2e6e657404212f727372632e7068702f76322f79742f722f465a614d4b7141526743362e706e670f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f0421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e350f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2418687474703a2f2f7777772e66616365626f6f6b2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "static.ak.fbcdn.net"
+                },
+                {
+                    ":path": "/rsrc.php/v2/yt/r/FZaMKqARgC6.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.facebook.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 4,
+            "wire": "020347455406046874747001137374617469632e616b2e666263646e2e6e657404202f727372632e7068702f76322f795a2f722f6a6c4b446f5831356b48472e6a730f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f04032a2f2a0f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2418687474703a2f2f7777772e66616365626f6f6b2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "static.ak.fbcdn.net"
+                },
+                {
+                    ":path": "/rsrc.php/v2/yZ/r/jlKDoX15kHG.js"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.facebook.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 5,
+            "wire": "020347455406046874747001137374617469632e616b2e666263646e2e6e657404212f727372632e7068702f76322f794f2f722f5f4d5261727068634349712e6373730f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f0412746578742f6373732c2a2f2a3b713d302e310f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2418687474703a2f2f7777772e66616365626f6f6b2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "static.ak.fbcdn.net"
+                },
+                {
+                    ":path": "/rsrc.php/v2/yO/r/_MRarphcCIq.css"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "text/css,*/*;q=0.1"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.facebook.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 6,
+            "wire": "020347455406046874747001137374617469632e616b2e666263646e2e6e657404202f727372632e7068702f76322f79502f722f43526b69444457546431752e6a730f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f04032a2f2a0f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2418687474703a2f2f7777772e66616365626f6f6b2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "static.ak.fbcdn.net"
+                },
+                {
+                    ":path": "/rsrc.php/v2/yP/r/CRkiDDWTd1u.js"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.facebook.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 7,
+            "wire": "020347455406046874747001137374617469632e616b2e666263646e2e6e657404212f727372632e7068702f76322f79582f782f5171364c316861517259722e706e670f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f0421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e350f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f243b687474703a2f2f7374617469632e616b2e666263646e2e6e65742f727372632e7068702f76322f79492f722f71414e56547343353266702e637373",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "static.ak.fbcdn.net"
+                },
+                {
+                    ":path": "/rsrc.php/v2/yX/x/Qq6L1haQrYr.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://static.ak.fbcdn.net/rsrc.php/v2/yI/r/qANVTsC52fp.css"
+                }
+            ]
+        },
+        {
+            "seqno": 8,
+            "wire": "020347455406046874747001137374617469632e616b2e666263646e2e6e657404202f727372632e7068702f76322f794e2f722f45617262576f5f6d44552d2e6a730f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f04032a2f2a0f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f2418687474703a2f2f7777772e66616365626f6f6b2e636f6d2f",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "static.ak.fbcdn.net"
+                },
+                {
+                    ":path": "/rsrc.php/v2/yN/r/EarbWo_mDU-.js"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "*/*"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://www.facebook.com/"
+                }
+            ]
+        },
+        {
+            "seqno": 9,
+            "wire": "020347455406046874747001137374617469632e616b2e666263646e2e6e657404212f727372632e7068702f76322f79372f782f396a74376f566446377a332e706e670f2b514d6f7a696c6c612f352e3020284d6163696e746f73683b20496e74656c204d6163204f5320582031302e383b2072763a31362e3029204765636b6f2f32303130303130312046697265666f782f31362e300f0421696d6167652f706e672c696d6167652f2a3b713d302e382c2a2f2a3b713d302e350f020e656e2d55532c656e3b713d302e350f010d677a69702c206465666c617465000a636f6e6e656374696f6e0a6b6565702d616c6976650f243b687474703a2f2f7374617469632e616b2e666263646e2e6e65742f727372632e7068702f76322f794f2f722f5f4d5261727068634349712e637373",
+            "headers": [
+                {
+                    ":method": "GET"
+                },
+                {
+                    ":scheme": "http"
+                },
+                {
+                    ":authority": "static.ak.fbcdn.net"
+                },
+                {
+                    ":path": "/rsrc.php/v2/y7/x/9jt7oVdF7z3.png"
+                },
+                {
+                    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+                },
+                {
+                    "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+                },
+                {
+                    "accept-language": "en-US,en;q=0.5"
+                },
+                {
+                    "accept-encoding": "gzip, deflate"
+                },
+                {
+                    "connection": "keep-alive"
+                },
+                {
+                    "referer": "http://static.ak.fbcdn.net/rsrc.php/v2/yO/r/_MRarphcCIq.css"
+                }
+            ]
+        }
+    ],
+    "draft": 9,
+    "description": "http2 in Haskell: Static - static table=yes, header table=no, huffman=no"
+}

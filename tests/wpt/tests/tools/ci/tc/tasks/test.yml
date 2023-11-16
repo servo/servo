@@ -22,7 +22,7 @@ components:
       test-type: testharness
 
   wpt-reftest:
-    chunks: 5
+    chunks: 6
     vars:
       test-type: reftest
 

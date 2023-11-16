@@ -1,0 +1,361 @@
+{
+  "cases": [
+    {
+      "header_table_size": 16384, 
+      "seqno": 0, 
+      "wire": "3fe11f828641871d23f67a9721e9847abcd07f66a281b0dae053fad0321aa49d13fda992a49685340c8a6adca7e28102ef7da9677b8171707f6a62293a9d810020004015309ac2ca7f2c05c5c153b0497ca589d34d1f43aeba0c41a4c7a98f33a69a3fdf9a68fa1d75d0620d263d4c79a68fbed00177febe58f9fbed00177b518b2d4b70ddf45abefb4005db90408721eaa8a4498f5788ea52d6b0e83772ff", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "amazon.com"
+        }, 
+        {
+          ":path": "/"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }
+      ]
+    }, 
+    {
+      "seqno": 1, 
+      "wire": "82864191996293cae6a473150b0e91fb3d4b90f4ff04ab60d48e62a18c4c002c4d51d88ca321ea62e94643d5babb0c92adc372c00af17168017c0cb6cb712f5d537fc2539a352398ac5754df46a473158f9fbed00177bebe58f9fbed00176fc190c073919d29aee30c78f1e171d23f67a9721e963f", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "g-ecx.images-amazon.com"
+        }, 
+        {
+          ":path": "/images/G/01/gno/beacon/BeaconSprite-US-01._V401903535_.png"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.amazon.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 2, 
+      "wire": "8286c004ad60d48e62a18c4c002c795a83907415821e9a4f5309b07522b1d85a92b566f25a178b8b2f38fb4269c6a25e634bc4bfc290c1be", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "g-ecx.images-amazon.com"
+        }, 
+        {
+          ":path": "/images/G/01/x-locale/common/transparent-pixel._V386942464_.gif"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.amazon.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 3, 
+      "wire": "8286c004bf60d48e62a18c4c002c1a9982260e99cb63121903424b62d61683165619001621e8b69a9840ea93d2d61683165899003cbadaf171680071e7da7c312f5d537fc4bfc290c1be", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "g-ecx.images-amazon.com"
+        }, 
+        {
+          ":path": "/images/G/01/img12/other/disaster-relief/300-column/sandy-relief_300x75._V400689491_.png"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.amazon.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 4, 
+      "wire": "8286418bf1e3c2e3a47ecf52e43d3f84c5c4c390c2", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "www.amazon.com"
+        }, 
+        {
+          ":path": "/"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }
+      ]
+    }, 
+    {
+      "seqno": 5, 
+      "wire": "8286c104ad60d48e62a18c4c002c795a83907415821e9a4f5309b07522b1d85a92b566f25a178b885f109969c75b89798d2fc5c0c390c2bf", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "g-ecx.images-amazon.com"
+        }, 
+        {
+          ":path": "/images/G/01/x-locale/common/transparent-pixel._V192234675_.gif"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.amazon.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 6, 
+      "wire": "8286c104c160d48e62a18c4c002c1a9982261139ca86103a0a888bdcb5250c0431547eec040c82284842a107b0c546bdbab46a8b172b0d34e95e2e2d000e09c7db044bcc697fc5c0c390c2bf", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "g-ecx.images-amazon.com"
+        }, 
+        {
+          ":path": "/images/G/01/img12/shoes/sales_events/11_nov/1030_AccessoriesPROMO_GWright._V400626950_.gif"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.amazon.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 7, 
+      "wire": "8286c104ac60d48e62a18c4c002c436a4f49d26ee562c3a4e862fdb60c85a287000882202f1710be2101a75c6a25fa5737c5c0c390c2bf", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "g-ecx.images-amazon.com"
+        }, 
+        {
+          ":path": "/images/G/01/Automotive/rotos/Duracell600_120._V192204764_.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.amazon.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 8, 
+      "wire": "8286c104b060d48e62a18c4c002c5a662838e4c9548620d27b10c5071c992a90c41a4f62d40ec98abc5c42f882fb6d3c089798d2ffc5c0c390c2bf", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "g-ecx.images-amazon.com"
+        }, 
+        {
+          ":path": "/images/G/01/ui/loadIndicators/loadIndicator-large._V192195480_.gif"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.amazon.com/"
+        }
+      ]
+    }, 
+    {
+      "seqno": 9, 
+      "wire": "8286418f293cae6a473150b0e91fb3d4b90f4f049a60d48e62a18c8c341c7fab69beb6ee19d78b7670b2dc4bf4ae6fc6c1c490c3c0", 
+      "headers": [
+        {
+          ":method": "GET"
+        }, 
+        {
+          ":scheme": "http"
+        }, 
+        {
+          ":authority": "ecx.images-amazon.com"
+        }, 
+        {
+          ":path": "/images/I/41HZ-ND-SUL._SL135_.jpg"
+        }, 
+        {
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:16.0) Gecko/20100101 Firefox/16.0"
+        }, 
+        {
+          "accept": "image/png,image/*;q=0.8,*/*;q=0.5"
+        }, 
+        {
+          "accept-language": "en-US,en;q=0.5"
+        }, 
+        {
+          "accept-encoding": "gzip, deflate"
+        }, 
+        {
+          "connection": "keep-alive"
+        }, 
+        {
+          "referer": "http://www.amazon.com/"
+        }
+      ]
+    }
+  ], 
+  "draft": 9, 
+  "description": "Encoded by nghttp2. The basic encoding strategy is described in http://lists.w3.org/Archives/Public/ietf-http-wg/2013JulSep/1135.html We use huffman encoding only if it produces strictly shorter byte string than original. We make some headers not indexing at all, but this does not always result in less bits on the wire."
+}

@@ -6,13 +6,10 @@ from ._module import BidiModule, command
 
 class ElementOptions(Dict[str, Any]):
     def __init__(
-        self, element: Mapping[str, Any], scroll_into_view: Optional[bool] = None
+        self, element: Mapping[str, Any]
     ):
         self["type"] = "element"
         self["element"] = element
-
-        if scroll_into_view is not None:
-            self["scrollIntoView"] = scroll_into_view
 
 
 class BoxOptions(Dict[str, Any]):
@@ -178,5 +175,18 @@ class BrowsingContext(BidiModule):
         return result["data"]
 
     @command
-    def set_viewport(self, context: str, viewport: Optional[Mapping[str, Any]] = None) -> Mapping[str, Any]:
-        return {"context": context, "viewport": viewport}
+    def set_viewport(self,
+                     context: str,
+                     viewport: Optional[Mapping[str, Any]] = None,
+                     device_pixel_ratio: Optional[float] = None) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "context": context,
+        }
+
+        if viewport is not None:
+            params["viewport"] = viewport
+
+        if device_pixel_ratio is not None:
+            params["devicePixelRatio"] = device_pixel_ratio
+
+        return params

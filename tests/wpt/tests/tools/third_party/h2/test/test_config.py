@@ -15,6 +15,7 @@ class TestH2Config(object):
     """
     Tests of the H2 config object.
     """
+
     def test_defaults(self):
         """
         The default values of the HTTP/2 config object are sensible.
@@ -128,3 +129,16 @@ class TestH2Config(object):
         config = h2.config.H2Configuration()
         config.logger = logger
         assert config.logger is logger
+
+    @pytest.mark.parametrize("trace_level", [False, True])
+    def test_output_logger(self, capsys, trace_level):
+        logger = h2.config.OutputLogger(trace_level=trace_level)
+
+        logger.debug("This is a debug message %d.", 123)
+        logger.trace("This is a trace message %d.", 123)
+        captured = capsys.readouterr()
+        assert "h2 (debug): This is a debug message 123.\n" in captured.err
+        if trace_level:
+            assert "h2 (trace): This is a trace message 123.\n" in captured.err
+        else:
+            assert "h2 (trace): This is a trace message 123.\n" not in captured.err

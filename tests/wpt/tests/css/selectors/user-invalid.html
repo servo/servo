@@ -112,4 +112,33 @@ test(() => {
   // matches() will throw if the selector isn't suppported
   assert_throws_dom("SyntaxError", () => input.matches(':user-error'));
 }, ':user-error selector should not be supported');
+
+['required-input', 'required-textarea'].forEach(elementId => {
+  promise_test(async () => {
+    const resetButton = document.getElementById('reset-button');
+    const element = document.getElementById(elementId);
+
+    element.value = '';
+    resetButton.click();
+    assert_false(element.matches(':user-invalid'),
+      'Element should not match :user-invalid at the start of the test.');
+    assert_false(element.matches(':user-valid'),
+      'Element should not match :user-valid at the start of the test.');
+
+    const backspace = '\uE003';
+    element.focus();
+    await test_driver.send_keys(element, 'a');
+    await test_driver.send_keys(element, backspace);
+    assert_false(element.matches(':user-invalid'),
+      'Element should not match :user-invalid before blurring.');
+    assert_false(element.matches(':user-valid'),
+      'Element should not match :user-valid before blurring.');
+
+    element.blur();
+    assert_true(element.matches(':user-invalid'),
+      'Element should match :user-invalid after typing text and deleting it.');
+    assert_false(element.matches(':user-valid'),
+      'Element should not match :user-valid after the test.');
+  }, `${elementId}: A required input or textarea should match :user-invalid if a user types into it and then clears it before blurring.`);
+});
 </script>

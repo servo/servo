@@ -15,6 +15,23 @@
 test_computed_value("text-decoration-thickness", "auto");
 test_computed_value("text-decoration-thickness", "from-font");
 test_computed_value("text-decoration-thickness", "calc(10px - 8px)", "2px");
+
+test_computed_value("text-decoration-thickness", "32px", "32px");
+test_computed_value("text-decoration-thickness", "2em", "32px");
+test_computed_value("text-decoration-thickness", "200%", "200%");
+
+test_computed_value("text-decoration-thickness", "calc(2em - 0px)", "32px");
+test_computed_value("text-decoration-thickness", "calc(200% - 0px)", "200%");
+test_computed_value("text-decoration-thickness", "calc(0.5em - 0px)", "8px");
+test_computed_value("text-decoration-thickness", "calc(50% - 0px)", "50%");
+
+test_computed_value("text-decoration-thickness", "calc(2em - 8px)", "24px");
+test_computed_value("text-decoration-thickness", "calc(2em - 0.5em)", "24px");
+test_computed_value("text-decoration-thickness", "calc(2em - 50%)", "calc(-50% + 32px)");
+
+test_computed_value("text-decoration-thickness", "calc(200% - 8px)");
+test_computed_value("text-decoration-thickness", "calc(200% - 0.5em)", "calc(200% - 8px)");
+test_computed_value("text-decoration-thickness", "calc(200% - 50%)", "150%");
 </script>
 </body>
 </html>

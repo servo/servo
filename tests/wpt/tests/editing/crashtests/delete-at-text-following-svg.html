@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+mask, li {
+  float: inline-start;
+  animation-name: kf0;
+}
+@keyframes kf0 {}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  window.focus();
+  document.designMode = "on";
+  document.onpointerlockerror = onPointerLockErrorOrAnimationStart;
+  const mask = document.querySelector("mask");
+  mask.requestPointerLock();
+  mask.prepend(document.querySelector("table"));
+});
+function onPointerLockErrorOrAnimationStart() {
+  document.execCommand("underline");
+  document.execCommand("delete");
+  onanimationstart  = onPointerLockErrorOrAnimationStart;
+  try {
+    getSelection().setBaseAndExtent(
+      document.querySelector("li"), 0,
+      document.querySelector("thead"), 0
+    );
+  } catch (e) {}
+}
+</script>
+<body><svg>
+<mask>
+<clipPath>
+</clipPath></mask></svg><sup>
+AA
+<li>
+<br></li></sup><table>
+<thead>
+</thead></table>

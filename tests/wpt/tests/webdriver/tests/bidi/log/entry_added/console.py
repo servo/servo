@@ -24,9 +24,9 @@ from ... import any_string, int_interval
     ],
 )
 async def test_text_with_argument_variation(
-    bidi_session, top_context, wait_for_event, log_argument, expected_text,
+    bidi_session, subscribe_events, top_context, wait_for_event, log_argument, expected_text,
 ):
-    await bidi_session.session.subscribe(events=["log.entryAdded"])
+    await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(
@@ -51,9 +51,9 @@ async def test_text_with_argument_variation(
     ],
 )
 async def test_level(
-    bidi_session, top_context, wait_for_event, log_method, expected_level
+    bidi_session, subscribe_events, top_context, wait_for_event, log_method, expected_level
 ):
-    await bidi_session.session.subscribe(events=["log.entryAdded"])
+    await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
 
@@ -73,8 +73,8 @@ async def test_level(
 
 
 @pytest.mark.asyncio
-async def test_timestamp(bidi_session, top_context, wait_for_event, current_time):
-    await bidi_session.session.subscribe(events=["log.entryAdded"])
+async def test_timestamp(bidi_session, subscribe_events, top_context, wait_for_event, current_time):
+    await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
 
@@ -101,8 +101,8 @@ async def test_timestamp(bidi_session, top_context, wait_for_event, current_time
 
 
 @pytest.mark.asyncio
-async def test_new_context_with_new_window(bidi_session, top_context, wait_for_event):
-    await bidi_session.session.subscribe(events=["log.entryAdded"])
+async def test_new_context_with_new_window(bidi_session, subscribe_events, top_context, wait_for_event):
+    await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(
@@ -120,8 +120,8 @@ async def test_new_context_with_new_window(bidi_session, top_context, wait_for_e
 
 
 @pytest.mark.asyncio
-async def test_new_context_with_refresh(bidi_session, top_context, wait_for_event):
-    await bidi_session.session.subscribe(events=["log.entryAdded"])
+async def test_new_context_with_refresh(bidi_session, subscribe_events, top_context, wait_for_event):
+    await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(
@@ -144,6 +144,7 @@ async def test_new_context_with_refresh(bidi_session, top_context, wait_for_even
 @pytest.mark.asyncio
 async def test_different_contexts(
     bidi_session,
+    subscribe_events,
     top_context,
     wait_for_event,
     test_page_same_origin_frame,
@@ -155,7 +156,7 @@ async def test_different_contexts(
     assert len(contexts[0]["children"]) == 1
     frame_context = contexts[0]["children"][0]
 
-    await bidi_session.session.subscribe(events=["log.entryAdded"])
+    await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(

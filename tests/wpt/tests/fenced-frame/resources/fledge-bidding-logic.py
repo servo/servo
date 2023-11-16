@@ -56,9 +56,12 @@ def main(request, response):
   if automatic_beacon is not None:
     register_ad_beacon = (
     '''registerAdBeacon({
-        'reserved.top_navigation':
+        'reserved.top_navigation_start':
         browserSignals.interestGroupOwner +
-        '/fenced-frame/resources/automatic-beacon-store.py'
+        '/fenced-frame/resources/automatic-beacon-store.py',
+        'reserved.top_navigation_commit':
+        browserSignals.interestGroupOwner +
+        '/fenced-frame/resources/automatic-beacon-store.py',
       });
     '''
   )

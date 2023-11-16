@@ -1,15 +1,15 @@
 Release Process
 ===============
 
-Because of Hyper-h2's place at the bottom of the dependency tree, it is
+Because of h2's place at the bottom of the dependency tree, it is
 extremely important that the project maintains a diligent release schedule.
 This document outlines our process for managing releases.
 
 Versioning
 ----------
 
-Hyper-h2 follows `semantic versioning`_ of its public API when it comes to
-numbering releases. The public API of Hyper-h2 is strictly limited to the
+h2 follows `semantic versioning`_ of its public API when it comes to
+numbering releases. The public API of h2 is strictly limited to the
 entities listed in the :doc:`api` documentation: anything not mentioned in that
 document is not considered part of the public API and is not covered by the
 versioning guarantees given by semantic versioning.
@@ -17,7 +17,7 @@ versioning guarantees given by semantic versioning.
 Maintenance
 -----------
 
-Hyper-h2 has the notion of a "release series", given by a major and minor
+h2 has the notion of a "release series", given by a major and minor
 version number: for example, there is the 2.1 release series. When each minor
 release is made and a release series is born, a branch is made off the release
 tag: for example, for the 2.1 release series, the 2.1.X branch.
@@ -32,7 +32,7 @@ backported.
 Supported Release Series'
 -------------------------
 
-The developers of Hyper-h2 commit to supporting the following release series:
+The developers of h2 commit to supporting the following release series:
 
 - The most recent, as identified by the first two numbers in the highest
   version currently released.
