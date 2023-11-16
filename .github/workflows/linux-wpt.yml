@@ -67,7 +67,7 @@ jobs:
         run: |
           ./mach update-wpt --sync --patch
       - name: Run tests
-        if: ${{ !inputs.wpt-sync == 'true' }}
+        if: ${{ inputs.wpt-sync != 'true' }}
         run: |
           python3 ./mach test-wpt $WPT_COMMAND_LINE_ARG \
             --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
@@ -88,7 +88,7 @@ jobs:
             --always-succeed
       - name: Archive filtered results
         uses: actions/upload-artifact@v3
-        if: ${{ always() && !inputs.wpt-sync == 'true' }}
+        if: ${{ always() && inputs.wpt-sync != 'true' }}
         with:
           name: wpt-filtered-results-linux-${{ inputs.layout }}
           path: |
