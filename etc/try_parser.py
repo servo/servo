@@ -165,7 +165,7 @@ class Layout(str, Enum):
         s = s.lower()
         if s == 'none':
             return Layout.none
-        elif s == 'all':
+        elif s == 'all' or s == 'both':
             return Layout.all
         elif "legacy" in s or "2013" in s:
             return Layout.layout2013
@@ -190,7 +190,7 @@ class OS(str, Enum):
         elif "win" in s:
             return OS.win
         else:
-            raise RuntimeError("Wrong OS")
+            raise RuntimeError("Wrong OS; only `linux`, `mac` and `windows` are supported")
 
 
 class JobConfig(object):
@@ -220,10 +220,10 @@ class JobConfig(object):
                 job.layout = Layout.parse(v)
             elif k == "profile":
                 job.profile = v
-            elif k == "unit-tests":
+            elif k == "unit-tests" or k == "unit-test":
                 job.unit_tests = (v.lower() == "true")
             else:
-                raise RuntimeError(f"Unknown key `{k}`")
+                raise RuntimeError(f"Unknown key `{k}`; only `os`, `layout`, `profile` and `unit-tests` are supported.")
         return job
 
 
