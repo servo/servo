@@ -125,6 +125,7 @@ impl Minibrowser {
                         .id(Id::new(format!("Window({:?})", browser_id)))
                         .default_pos(browser.rect.origin.to_tuple())
                         .default_size(browser.rect.size.to_tuple())
+                        .collapsible(false)
                         .show(ctx, |ui| {
                             let Pos2 { x, y } = ui.cursor().min;
                             let origin = Point2D::new(x, y) - toolbar_size;
@@ -140,7 +141,7 @@ impl Minibrowser {
                             let size = ui.available_size();
                             let rect = egui::Rect::from_min_size(min, size);
                             ui.allocate_space(size);
-                            dbg!(ui.interact(rect, Id::new(format!("interact({:?})", browser_id)), Sense::click_and_drag()));
+                            let _todo = ui.interact(rect, Id::new(format!("interact({:?})", browser_id)), Sense::click_and_drag());
                         });
                 }
             }
