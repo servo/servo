@@ -91,8 +91,6 @@ pub enum ConstellationMsg {
     IMEDismissed,
     /// Notify the embedder that it needs to present a new frame.
     ReadyToPresent(TopLevelBrowsingContextId),
-    /// Notify the embedder that a browser was closed.
-    BrowserClosed(TopLevelBrowsingContextId),
     /// Notify the embedder of an updated browser painting order.
     BrowserPaintingOrder(Vec<TopLevelBrowsingContextId>),
 }
@@ -134,7 +132,6 @@ impl fmt::Debug for ConstellationMsg {
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",
-            BrowserClosed(..) => "BrowserClosed",
             BrowserPaintingOrder(..) => "BrowserPaintingOrder",
         };
         write!(formatter, "ConstellationMsg::{}", variant)

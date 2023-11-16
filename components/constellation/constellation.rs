@@ -1552,9 +1552,6 @@ where
                     EmbedderMsg::ReadyToPresent,
                 ));
             },
-            FromCompositorMsg::BrowserClosed(browser_id) => {
-                self.embedder_proxy.send((Some(browser_id), EmbedderMsg::BrowserClosed(browser_id)));
-            },
             FromCompositorMsg::BrowserPaintingOrder(browser_ids) => {
                 self.embedder_proxy.send((None, EmbedderMsg::BrowserPaintingOrder(browser_ids)));
             },
@@ -3027,10 +3024,10 @@ where
             self.embedder_proxy.send((None, EmbedderMsg::BrowserUnfocused));
         }
         self.browsers.remove(top_level_browsing_context_id);
+        self.compositor_proxy.send(CompositorMsg::RemoveBrowser(top_level_browsing_context_id));
+        self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::BrowserClosed(top_level_browsing_context_id)));
 
         if let Some(browsing_context) = browsing_context {
-            self.compositor_proxy
-                .send(CompositorMsg::RemoveBrowser(browsing_context.top_level_id));
             // https://html.spec.whatwg.org/multipage/#bcg-remove
             let bc_group_id = browsing_context.bc_group_id;
             if let Some(bc_group) = self.browsing_context_group_set.get_mut(&bc_group_id) {
