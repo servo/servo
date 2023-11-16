@@ -504,7 +504,7 @@ where
             EmbedderEvent::Idle => {},
 
             EmbedderEvent::Refresh => {
-                self.compositor.composite(true);
+                self.compositor.composite();
             },
 
             EmbedderEvent::Resize => {
@@ -782,8 +782,8 @@ where
         self.compositor.present();
     }
 
-    pub fn recomposite_unconditionally(&mut self) {
-        self.compositor.composite(true);
+    pub fn output_framebuffer_id(&self) -> Option<gl::GLuint> {
+        self.compositor.output_framebuffer_id()
     }
 }
 

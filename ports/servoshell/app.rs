@@ -113,7 +113,12 @@ impl App {
         }
 
         if let Some(mut minibrowser) = app.minibrowser() {
-            minibrowser.update(window.winit_window().unwrap(), &mut app.browser.borrow_mut(), "init");
+            minibrowser.update(
+                window.winit_window().unwrap(),
+                &mut app.browser.borrow_mut(),
+                None,
+                "init",
+            );
             window.set_toolbar_height(minibrowser.toolbar_height.get());
         }
 
@@ -197,12 +202,14 @@ impl App {
                 // WARNING: do not defer painting or presenting to some later tick of the event
                 // loop or servoshell may become unresponsive! (servo#30312)
                 if let Some(mut minibrowser) = app.minibrowser() {
-                    minibrowser.update(window.winit_window().unwrap(), &mut app.browser.borrow_mut(), "RedrawRequested");
+                    minibrowser.update(
+                        window.winit_window().unwrap(),
+                        &mut app.browser.borrow_mut(),
+                        app.servo.as_ref().unwrap().output_framebuffer_id(),
+                        "RedrawRequested",
+                    );
                     minibrowser.paint(window.winit_window().unwrap());
                 }
-
-                // TODO we paint servo again to ensure it goes on top of egui. inefficient :(
-                app.servo.as_mut().unwrap().recomposite_unconditionally();
 
                 app.servo.as_mut().unwrap().present();
             }
@@ -270,8 +277,12 @@ impl App {
                 if minibrowser.update_location_in_toolbar(browser) {
                     // Update the minibrowser immediately. While we could update by requesting a
                     // redraw, doing so would delay the location update by two frames.
-                    minibrowser
-                        .update(window.winit_window().unwrap(), browser, "update_location_in_toolbar");
+                    minibrowser.update(
+                        window.winit_window().unwrap(),
+                        browser,
+                        None,
+                        "update_location_in_toolbar",
+                    );
                 }
             }
 
@@ -304,13 +315,17 @@ impl App {
                     trace!("PumpResult::Resize");
 
                     // Resizes are unusual in that we need to repaint synchronously.
+                    app.servo.as_mut().unwrap().repaint_synchronously();
+
                     if let Some(mut minibrowser) = app.minibrowser() {
-                        minibrowser.update(window.winit_window().unwrap(), &mut app.browser.borrow_mut(), "PumpResult::Resize");
+                        minibrowser.update(
+                            window.winit_window().unwrap(),
+                            &mut app.browser.borrow_mut(),
+                            None,
+                            "PumpResult::Resize",
+                        );
                         minibrowser.paint(window.winit_window().unwrap());
                     }
-
-                    // TODO(servo#30049) can we replace this with the simpler Servo::recomposite?
-                    app.servo.as_mut().unwrap().repaint_synchronously();
 
                     app.servo.as_mut().unwrap().present();
                 },

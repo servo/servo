@@ -3,11 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
+use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{Key, Modifiers, TopBottomPanel, CentralPanel, Pos2, Vec2, InnerResponse, Id, Sense, Frame, Color32, WidgetText, RichText};
+use egui::{Key, Modifiers, TopBottomPanel, CentralPanel, Pos2, Vec2, InnerResponse, Id, Sense, Frame, Color32, WidgetText, RichText, PaintCallback};
+use egui_glow::CallbackFn;
 use euclid::{Length, Scale, Point2D, Size2D, Rect};
+use gleam::gl;
+use glow::NativeFramebuffer;
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::servo_geometry::DeviceIndependentPixel;
@@ -63,7 +67,13 @@ impl Minibrowser {
     }
 
     /// Update the minibrowser, but don’t paint.
-    pub fn update(&mut self, window: &winit::window::Window, browsers: &mut BrowserManager<dyn WindowPortsMethods>, reason: &'static str) {
+    pub fn update(
+        &mut self,
+        window: &winit::window::Window,
+        browsers: &mut BrowserManager<dyn WindowPortsMethods>,
+        servo_framebuffer_id: Option<gl::GLuint>,
+        reason: &'static str,
+    ) {
         let now = Instant::now();
         trace!(
             "{:?} since last update ({})",
@@ -158,6 +168,38 @@ impl Minibrowser {
                             let size = ui.available_size();
                             let rect = egui::Rect::from_min_size(min, size);
                             ui.allocate_space(size);
+
+                            if let Some(fbo) = servo_framebuffer_id {
+                                ui.painter().add(PaintCallback {
+                                    rect,
+                                    callback: Arc::new(CallbackFn::new(move |info, painter| {
+                                        use glow::HasContext as _;
+                                        let clip = info.clip_rect_in_pixels();
+                                        let x = clip.left_px as gl::GLint;
+                                        let y = clip.from_bottom_px as gl::GLint;
+                                        let width = clip.width_px as gl::GLsizei;
+                                        let height = clip.height_px as gl::GLsizei;
+                                        unsafe {
+                                            painter.gl().clear_color(1.0, 0.0, 1.0, 1.0);
+                                            painter.gl().scissor(x, y, width, height);
+                                            painter.gl().enable(gl::SCISSOR_TEST);
+                                            painter.gl().clear(gl::COLOR_BUFFER_BIT);
+                                            painter.gl().disable(gl::SCISSOR_TEST);
+
+                                            let fbo = NativeFramebuffer(NonZeroU32::new(fbo).unwrap());
+                                            painter.gl().bind_framebuffer(gl::READ_FRAMEBUFFER, Some(fbo));
+                                            painter.gl().bind_framebuffer(gl::DRAW_FRAMEBUFFER, None);
+                                            painter.gl().blit_framebuffer(
+                                                x, y, x + width, y + height,
+                                                x, y, x + width, y + height,
+                                                gl::COLOR_BUFFER_BIT,
+                                                gl::NEAREST,
+                                            );
+                                            painter.gl().bind_framebuffer(gl::FRAMEBUFFER, None);
+                                        }
+                                    })),
+                                });
+                            }
 
                             // Prevent drags that start inside the viewport from moving the window.
                             // TODO use this to determine if a non-servo part of egui was clicked?

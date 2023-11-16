@@ -60,6 +60,7 @@ use webrender_surfman::WebrenderSurfman;
 use crate::browser::BrowserManager;
 #[cfg(feature = "gl")]
 use crate::gl;
+use crate::gl::RenderTargetInfo;
 use crate::touch::{TouchAction, TouchHandler};
 use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
@@ -219,7 +220,11 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Current cursor position.
     cursor_pos: DevicePoint,
 
+    /// Path to a PNG file to write our output to.
     output_file: Option<String>,
+
+    /// Our last frame of output.
+    output_frame_info: Option<RenderTargetInfo>,
 
     is_running_problem_test: bool,
 
@@ -339,11 +344,14 @@ impl PipelineDetails {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum CompositeTarget {
-    /// Normal composition to a window
+    /// Draw directly to a window.
     Window,
 
-    /// Compose as normal, but also return a PNG of the composed output
-    WindowAndPng,
+    /// Draw to an offscreen OpenGL framebuffer object.
+    Fbo,
+
+    /// Draw directly to a window, and to an Image in shared memory for a PNG file.
+    WindowAndPngFile,
 
     /// Compose to a PNG, write it to disk, and then exit the browser (used for reftests)
     PngFile,
@@ -368,7 +376,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let embedder_coordinates = window.get_coordinates();
         let composite_target = match output_file {
             Some(_) => CompositeTarget::PngFile,
-            None => CompositeTarget::Window,
+            None => CompositeTarget::Fbo,
         };
 
         let mut browsers = BrowserManager::default();
@@ -411,6 +419,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             cursor: Cursor::None,
             cursor_pos: DevicePoint::new(0.0, 0.0),
             output_file,
+            output_frame_info: None,
             is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
@@ -593,7 +602,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (CompositorMsg::CreatePng(rect, reply), ShutdownState::NotShuttingDown) => {
-                let res = self.composite_specific_target(CompositeTarget::WindowAndPng, rect, false);
+                let res = self.composite_specific_target(CompositeTarget::WindowAndPngFile, rect);
                 if let Err(ref e) = res {
                     info!("Error retrieving PNG: {:?}", e);
                 }
@@ -1720,9 +1729,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    pub fn composite(&mut self, unconditionally: bool) {
+    pub fn composite(&mut self) {
         let target = self.composite_target;
-        match self.composite_specific_target(target, None, unconditionally) {
+        match self.composite_specific_target(target, None) {
             Ok(_) => {
                 if self.output_file.is_some() || self.exit_after_load {
                     println!("Shutting down the Constellation after generating an output file or exit flag specified");
@@ -1750,9 +1759,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         &mut self,
         target: CompositeTarget,
         rect: Option<Rect<f32, CSSPixel>>,
-        unconditionally: bool,
     ) -> Result<Option<Image>, UnableToComposite> {
-        if self.waiting_on_present && !unconditionally {
+        if self.waiting_on_present {
             trace!("tried to composite while waiting on present");
             return Err(UnableToComposite::NotReadyToPaintImage(
                 NotReadyToPaint::WaitingOnConstellation,
@@ -1780,8 +1788,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender.update();
 
         let wait_for_stable_image = match target {
-            CompositeTarget::WindowAndPng | CompositeTarget::PngFile => true,
-            CompositeTarget::Window => self.exit_after_load,
+            CompositeTarget::Window | CompositeTarget::Fbo => self.exit_after_load,
+            CompositeTarget::WindowAndPngFile | CompositeTarget::PngFile => true,
         };
 
         if wait_for_stable_image {
@@ -1803,7 +1811,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             #[cfg(feature = "gl")]
             CompositeTarget::Window => gl::RenderTargetInfo::default(),
             #[cfg(feature = "gl")]
-            CompositeTarget::WindowAndPng | CompositeTarget::PngFile => gl::initialize_png(
+            CompositeTarget::Fbo | CompositeTarget::WindowAndPngFile | CompositeTarget::PngFile => gl::initialize_img(
                 &*self.webrender_gl,
                 FramebufferUintLength::new(size.width),
                 FramebufferUintLength::new(size.height),
@@ -1887,8 +1895,19 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let rv = match target {
             CompositeTarget::Window => None,
             #[cfg(feature = "gl")]
-            CompositeTarget::WindowAndPng => {
-                let img = gl::draw_img(
+            CompositeTarget::Fbo => {
+                // Free the OpenGL resources of the old frame if any...
+                if let Some(old) = self.output_frame_info.take() {
+                    old.drop(&*self.webrender_gl);
+                }
+
+                // ...then store the new frame info in its place.
+                self.output_frame_info = Some(rt_info);
+                None
+            },
+            #[cfg(feature = "gl")]
+            CompositeTarget::WindowAndPngFile => {
+                let img = gl::read_img(
                     &*self.webrender_gl,
                     rt_info,
                     x,
@@ -1915,7 +1934,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     || match self.output_file.as_ref() {
                         Some(path) => match File::create(path) {
                             Ok(mut file) => {
-                                let img = gl::draw_img(
+                                let img = gl::read_img(
                                     gl,
                                     rt_info,
                                     x,
@@ -1942,14 +1961,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         // Notify embedder that servo is ready to present.
         // Embedder should call `present` to tell compositor to continue rendering.
-        if !unconditionally {
-            self.waiting_on_present = true;
-            for (&top_level_browsing_context_id, _) in self.browsers.painting_order() {
-                let msg =
-                    ConstellationMsg::ReadyToPresent(top_level_browsing_context_id);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending event to constellation failed ({:?}).", e);
-                }
+        self.waiting_on_present = true;
+        for (&top_level_browsing_context_id, _) in self.browsers.painting_order() {
+            let msg =
+                ConstellationMsg::ReadyToPresent(top_level_browsing_context_id);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending event to constellation failed ({:?}).", e);
             }
         }
 
@@ -1959,6 +1976,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.waiting_for_results_of_scroll = false;
 
         Ok(rv)
+    }
+
+    pub fn output_framebuffer_id(&self) -> Option<gleam::gl::GLuint> {
+        self.output_frame_info.as_ref().map(|info| info.framebuffer_id())
     }
 
     pub fn present(&mut self) {
@@ -2067,7 +2088,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         match self.composition_request {
             CompositionRequest::NoCompositingNecessary => {},
-            CompositionRequest::CompositeNow(_) => self.composite(false),
+            CompositionRequest::CompositeNow(_) => self.composite(),
         }
 
         // Run the WebXR main thread
@@ -2095,7 +2116,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             };
             let keep_going = self.handle_browser_message(msg);
             if need_recomposite {
-                self.composite(false);
+                self.composite();
                 break;
             }
             if !keep_going {
