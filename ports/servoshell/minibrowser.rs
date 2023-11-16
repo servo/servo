@@ -6,7 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{Key, Modifiers, TopBottomPanel, CentralPanel, Pos2, Vec2, InnerResponse, Id, Sense};
+use egui::{Key, Modifiers, TopBottomPanel, CentralPanel, Pos2, Vec2, InnerResponse, Id, Sense, Frame, Color32, WidgetText, RichText};
 use euclid::{Length, Scale, Point2D, Size2D, Rect};
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
@@ -115,19 +115,34 @@ impl Minibrowser {
             // Add an egui window for each top-level browsing context.
             let scale = Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
             let toolbar_size = Size2D::new(0.0, toolbar_height.get().get());
+            let focused_browser_id = browsers.focused_browser_id();
             let painting_order = browsers.painting_order()
                 .map(|(&id, _)| id)
                 .collect::<Vec<_>>();
             let mut embedder_events = vec![];
             for browser_id in painting_order {
                 if let Some(browser) = browsers.get_mut(browser_id) {
+                    // Always true; we don’t want to close the egui window until Servo tells us to
+                    // with a BrowserClosed message, and by that point we can just not add one.
                     let mut open = true;
-                    egui::Window::new(format!("Window({:?})", browser_id))
-                        .id(Id::new(format!("Window({:?})", browser_id)))
+
+                    let id = format!("Window({:?})", browser_id);
+                    let title: WidgetText;
+                    let mut frame = Frame::window(&ctx.style());
+                    if focused_browser_id == Some(browser_id) {
+                        title = RichText::new(id.clone()).color(Color32::BLACK).into();
+                        frame = frame.fill(Color32::from_rgb_additive(0x00, 0x9d, 0x9a));
+                    } else {
+                        title = id.clone().into();
+                    }
+
+                    egui::Window::new(title)
+                        .id(Id::new(id))
                         .default_pos(browser.rect.origin.to_tuple())
                         .default_size(browser.rect.size.to_tuple())
                         .collapsible(false)
                         .open(&mut open)
+                        .frame(frame)
                         .show(ctx, |ui| {
                             let Pos2 { x, y } = ui.cursor().min;
                             let origin = Point2D::new(x, y) - toolbar_size;

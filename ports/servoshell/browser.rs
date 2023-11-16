@@ -93,6 +93,10 @@ where
         self.browsers.get_mut(&browser_id)
     }
 
+    pub fn focused_browser_id(&self) -> Option<BrowserId> {
+        self.focused_browser_id.clone()
+    }
+
     pub fn painting_order(&self) -> impl Iterator<Item = (&BrowserId, &Browser)> {
         self.painting_order.iter()
             .flat_map(move |browser_id| self.browsers.get(browser_id).map(|b| (browser_id, b)))
@@ -453,7 +457,7 @@ where
                     self.focused_browser_id = None;
                 },
                 EmbedderMsg::BrowserPaintingOrder(browser_ids) => {
-                    self.painting_order = dbg!(browser_ids);
+                    self.painting_order = browser_ids;
                 },
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(browser_id, key_event);
