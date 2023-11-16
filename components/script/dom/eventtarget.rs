@@ -448,7 +448,7 @@ impl EventTarget {
 
         let listener = EventListenerType::Additive(listener.clone());
         if let Some(entries) = handlers.get_mut(ty) {
-            entries.drain_filter(|e| e.listener == listener && e.once);
+            entries.retain(|e| e.listener != listener || !e.once)
         }
     }
 
