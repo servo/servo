@@ -158,6 +158,9 @@ impl Minibrowser {
                             let size = ui.available_size();
                             let rect = egui::Rect::from_min_size(min, size);
                             ui.allocate_space(size);
+
+                            // Prevent drags that start inside the viewport from moving the window.
+                            // TODO use this to determine if a non-servo part of egui was clicked?
                             let _todo = ui.interact(rect, Id::new(format!("interact({:?})", browser_id)), Sense::click_and_drag());
                         });
                     if !open {
