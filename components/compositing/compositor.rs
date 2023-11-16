@@ -528,6 +528,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             (CompositorMsg::RemoveBrowser(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
                 self.remove_browser(top_level_browsing_context_id);
+                let msg = ConstellationMsg::BrowserClosed(top_level_browsing_context_id);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({:?}).", e);
+                }
             },
 
             (CompositorMsg::MoveResizeBrowser(top_level_browsing_context_id, rect), ShutdownState::NotShuttingDown) => {

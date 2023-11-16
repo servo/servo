@@ -6,7 +6,7 @@ use std::cell::{Cell, RefCell};
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{Key, Modifiers, TopBottomPanel, CentralPanel, Pos2, Vec2, InnerResponse, Area, Id, Sense};
+use egui::{Key, Modifiers, TopBottomPanel, CentralPanel, Pos2, Vec2, InnerResponse, Id, Sense};
 use euclid::{Length, Scale, Point2D, Size2D, Rect};
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
@@ -118,14 +118,16 @@ impl Minibrowser {
             let painting_order = browsers.painting_order()
                 .map(|(&id, _)| id)
                 .collect::<Vec<_>>();
-            let mut move_resize_events = vec![];
+            let mut embedder_events = vec![];
             for browser_id in painting_order {
                 if let Some(browser) = browsers.get_mut(browser_id) {
+                    let mut open = true;
                     egui::Window::new(format!("Window({:?})", browser_id))
                         .id(Id::new(format!("Window({:?})", browser_id)))
                         .default_pos(browser.rect.origin.to_tuple())
                         .default_size(browser.rect.size.to_tuple())
                         .collapsible(false)
+                        .open(&mut open)
                         .show(ctx, |ui| {
                             let Pos2 { x, y } = ui.cursor().min;
                             let origin = Point2D::new(x, y) - toolbar_size;
@@ -134,7 +136,7 @@ impl Minibrowser {
                             let rect = Rect::new(origin, size) * scale;
                             if rect != browser.rect {
                                 browser.rect = rect;
-                                move_resize_events.push(EmbedderEvent::MoveResizeBrowser(browser_id, rect));
+                                embedder_events.push(EmbedderEvent::MoveResizeBrowser(browser_id, rect));
                             }
 
                             let min = ui.cursor().min;
@@ -143,10 +145,13 @@ impl Minibrowser {
                             ui.allocate_space(size);
                             let _todo = ui.interact(rect, Id::new(format!("interact({:?})", browser_id)), Sense::click_and_drag());
                         });
+                    if !open {
+                        embedder_events.push(EmbedderEvent::CloseBrowser(browser_id));
+                    }
                 }
             }
-            if !move_resize_events.is_empty() {
-                browsers.handle_window_events(move_resize_events);
+            if !embedder_events.is_empty() {
+                browsers.handle_window_events(embedder_events);
             }
 
             *last_update = now;

@@ -784,18 +784,15 @@ impl WindowMethods for Window {
 
                 // Step 3.2, queue a task on the DOM manipulation task source to close current.
                 let this = Trusted::new(self);
-                let top_level_browsing_context_id = window_proxy.top_level_browsing_context_id();
                 let task = task!(window_close_browsing_context: move || {
                     let window = this.root();
                     let document = window.Document();
                     // https://html.spec.whatwg.org/multipage/#closing-browsing-contexts
-                    // Step 1, prompt to unload.
+                    // Step 3, prompt to unload.
                     if document.prompt_to_unload(false) {
-                        // Step 2, unload.
+                        // Step 4, unload.
                         document.unload(false);
-                        // Step 3, remove from the user interface
-                        let _ = window.send_to_embedder(EmbedderMsg::BrowserClosed(top_level_browsing_context_id));
-                        // Step 4, discard browsing context.
+                        // Step 5, discard browsing context.
                         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
                         // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.
                         window.discard_browsing_context();

@@ -1552,6 +1552,9 @@ where
                     EmbedderMsg::ReadyToPresent,
                 ));
             },
+            FromCompositorMsg::BrowserClosed(browser_id) => {
+                self.embedder_proxy.send((Some(browser_id), EmbedderMsg::BrowserClosed(browser_id)));
+            },
             FromCompositorMsg::BrowserPaintingOrder(browser_ids) => {
                 self.embedder_proxy.send((None, EmbedderMsg::BrowserPaintingOrder(browser_ids)));
             },
