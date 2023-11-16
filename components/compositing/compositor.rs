@@ -212,7 +212,6 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// The coordinates of the native window, its view and the screen.
     embedder_coordinates: EmbedderCoordinates,
-    next_browser_location: LayoutPoint,
 
     /// Current mouse cursor.
     cursor: Cursor,
@@ -381,7 +380,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         IOCompositor {
             embedder_coordinates,
-            next_browser_location: LayoutPoint::new(32.0, 32.0),
             window,
             port: state.receiver,
             browsers,
@@ -1055,8 +1053,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 pipeline_id,
                 rect: self.embedder_coordinates.get_viewport().to_f32(),
             });
-            self.next_browser_location.x += 32.0;
-            self.next_browser_location.y += 32.0;
         }
 
         self.update_root_pipeline();
