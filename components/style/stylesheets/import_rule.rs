@@ -255,7 +255,12 @@ impl ImportRule {
                 .ok()
         };
 
-        let supports = if !static_prefs::pref!("layout.css.import-supports.enabled") {
+        #[cfg(feature = "gecko")]
+        let supports_enabled = static_prefs::pref!("layout.css.import-supports.enabled");
+        #[cfg(feature = "servo")]
+        let supports_enabled = false;
+
+        let supports = if !supports_enabled {
             None
         } else {
             input
