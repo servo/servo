@@ -39,6 +39,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                         PropertyDeclaration::Display(longhands::display::SpecifiedValue::Block),
                         Importance::Normal,
                     ))),
+                    rules: None,
                     source_location: SourceLocation { line: 0, column: 0 },
                 }));
 
