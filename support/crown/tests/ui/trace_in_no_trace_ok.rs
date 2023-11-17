@@ -2,15 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/// Fake jstraceable
+/// Mock `JSTraceable`
 pub trait JSTraceable {}
-impl JSTraceable for i32 {}
+
+struct TraceableStruct;
+impl JSTraceable for TraceableStruct {}
+
+struct NotTraceableStruct;
 
 #[crown::trace_in_no_trace_lint::must_not_have_traceable]
 struct NoTrace<T>(T);
 
-struct Bar;
-
-struct Foo(NoTrace<Bar>);
+struct Foo(NoTrace<NotTraceableStruct>);
 
 fn main() {}

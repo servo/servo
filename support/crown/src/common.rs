@@ -240,21 +240,9 @@ pub fn def_path_res(cx: &LateContext<'_>, path: &[&str]) -> Vec<Res> {
 
 pub fn def_local_res(cx: &LateContext<'_>, path: &str) -> Vec<Res> {
     let tcx = cx.tcx;
-
-    /*let (base, mut path) = match *path {
-        [primitive] => {
-            return vec![PrimTy::from_name(Symbol::intern(primitive)).map_or(Res::Err, Res::PrimTy)];
-        }
-        [base, ref path @ ..] => (base, path),
-        _ => return Vec::new(),
-    };*/
-
     let local_crate = LOCAL_CRATE.as_def_id();
-
     let starts = Res::Def(tcx.def_kind(local_crate), local_crate);
-
     let mut resolutions: Vec<Res> = vec![starts];
-
     let segment = Symbol::intern(path);
 
     resolutions = resolutions
@@ -335,7 +323,6 @@ pub fn implements_trait_with_env<'tcx>(
         kind: TypeVariableOriginKind::MiscVariable,
         span: DUMMY_SP,
     };
-    // in new nightlies: mk_substs -> mk_substs_from_iter
     let ty_params = tcx.mk_substs_from_iter(
         ty_params
             .into_iter()

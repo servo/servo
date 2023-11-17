@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-extern crate compiletest_rs as compiletest;
-
 use std::env;
 use std::path::PathBuf;
 
+use compiletest_rs as compiletest;
 use once_cell::sync::Lazy;
 
 static PROFILE_PATH: Lazy<PathBuf> = Lazy::new(|| {
