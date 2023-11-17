@@ -260,10 +260,11 @@ impl Minibrowser {
             for (i, (browser_id, window)) in expected_order.into_iter().enumerate() {
                 if actual_order[i] != window.layer_id {
                     info!(
-                        "{}: Raising to top in response to egui interaction",
+                        "{}: Raising to top and focusing in response to egui interaction",
                         browser_id
                     );
                     embedder_events.push(EmbedderEvent::RaiseBrowserToTop(browser_id));
+                    embedder_events.push(EmbedderEvent::FocusBrowser(browser_id));
                     break;
                 }
             }
