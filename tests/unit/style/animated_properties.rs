@@ -85,6 +85,6 @@ fn test_rgba_color_interepolation_out_of_range_clamped_2() {
             AbsoluteColor::srgb(0.0, 1.0, 0.0, 0.2),
             1.5
         ),
-        AbsoluteColor::srgb(0.0, 0.0, 0.0, 0.0)
+        AbsoluteColor::srgb(-0.4, 0.3, 0.0, 0.0)
     );
 }
