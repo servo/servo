@@ -305,18 +305,15 @@ impl App {
                     } else {
                         app.servo.as_mut().unwrap().present();
                     }
-
-                    // We don’t need the compositor to paint to this frame during the redraw event.
-                    // TODO(servo#30331) broken on macOS?
-                    // need_recomposite = false;
                 },
                 Some(PumpResult::Resize) => {
                     // The window was resized.
                     trace!("PumpResult::Resize");
 
                     // Resizes are unusual in that we need to repaint synchronously.
-                    app.servo.as_mut().unwrap().repaint_synchronously();
-
+                    // If we had resized any of the viewports in response to this, we would need to
+                    // call Servo::repaint_synchronously. At the moment we don’t, so there won’t be
+                    // any paint scheduled, and calling it would hang the compositor forever.
                     if let Some(mut minibrowser) = app.minibrowser() {
                         minibrowser.update(
                             window.winit_window().unwrap(),
