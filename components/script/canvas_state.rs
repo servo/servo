@@ -112,7 +112,7 @@ impl CanvasContextState {
     const DEFAULT_FONT_STYLE: &'static str = "10px sans-serif";
 
     pub(crate) fn new() -> CanvasContextState {
-        let black = RGBA::new(0, 0, 0, 1.0);
+        let black = RGBA::new(Some(0), Some(0), Some(0), Some(1.0));
         CanvasContextState {
             global_alpha: 1.0,
             global_composition: CompositionOrBlending::default(),
@@ -127,7 +127,7 @@ impl CanvasContextState {
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
-            shadow_color: RGBA::transparent(),
+            shadow_color: RGBA::new(Some(0), Some(0), Some(0), Some(0.0)),
             font_style: None,
             text_align: Default::default(),
             text_baseline: Default::default(),
@@ -1711,10 +1711,10 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<R
                 .resolve_into_absolute(&current_color)
                 .to_color_space(ColorSpace::Srgb);
             Ok(RGBA::from_floats(
-                rgba.components.0,
-                rgba.components.1,
-                rgba.components.2,
-                rgba.alpha,
+                Some(rgba.components.0),
+                Some(rgba.components.1),
+                Some(rgba.components.2),
+                Some(rgba.alpha),
             ))
         },
         None => Err(()),
@@ -1732,11 +1732,12 @@ pub fn serialize<W>(color: &RGBA, dest: &mut W) -> fmt::Result
 where
     W: fmt::Write,
 {
-    let red = color.red;
-    let green = color.green;
-    let blue = color.blue;
+    let red = color.red.unwrap_or(0);
+    let green = color.green.unwrap_or(0);
+    let blue = color.blue.unwrap_or(0);
+    let alpha = color.alpha.unwrap_or(0.0);
 
-    if color.alpha == 1.0 {
+    if alpha == 1.0 {
         write!(
             dest,
             "#{:x}{:x}{:x}{:x}{:x}{:x}",
@@ -1748,14 +1749,7 @@ where
             blue & 0xF
         )
     } else {
-        write!(
-            dest,
-            "rgba({}, {}, {}, {})",
-            red,
-            green,
-            blue,
-            color.alpha_f32()
-        )
+        write!(dest, "rgba({}, {}, {}, {})", red, green, blue, alpha)
     }
 }
 
