@@ -238,6 +238,12 @@ pub fn def_path_res(cx: &LateContext<'_>, path: &[&str]) -> Vec<Res> {
     resolutions
 }
 
+/// Resolves a def path like `std::vec::Vec`, but searches only local crate
+///
+/// Also returns multiple results when there are multiple paths under the same name e.g. `std::vec`
+/// would have both a [`DefKind::Mod`] and [`DefKind::Macro`].
+///
+/// This function is less expensive than `def_path_res` and should be used sparingly.
 pub fn def_local_res(cx: &LateContext<'_>, path: &str) -> Vec<Res> {
     let tcx = cx.tcx;
     let local_crate = LOCAL_CRATE.as_def_id();
