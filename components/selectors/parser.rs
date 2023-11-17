@@ -15,7 +15,7 @@ use crate::sink::Push;
 use crate::visitor::SelectorListKind;
 pub use crate::visitor::SelectorVisitor;
 use bitflags::bitflags;
-use cssparser::{match_ignore_ascii_case, parse_nth, *};
+use cssparser::{match_ignore_ascii_case, parse_nth};
 use cssparser::{BasicParseError, BasicParseErrorKind, ParseError, ParseErrorKind};
 use cssparser::{CowRcStr, Delimiter, SourceLocation};
 use cssparser::{Parser as CssParser, ToCss, Token};

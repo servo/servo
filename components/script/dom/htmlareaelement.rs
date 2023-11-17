@@ -5,7 +5,7 @@
 use std::default::Default;
 use std::{f32, str};
 
-use cssparser::{_cssparser_internal_to_lowercase, match_ignore_ascii_case};
+use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{local_name, LocalName, Prefix};
