@@ -107,18 +107,45 @@ impl DeepCloneWithLock for ImportSheet {
 /// A sheet that is held from an import rule.
 #[cfg(feature = "servo")]
 #[derive(Debug)]
-pub struct ImportSheet(pub ::servo_arc::Arc<crate::stylesheets::Stylesheet>);
+pub enum ImportSheet {
+    /// A bonafide stylesheet.
+    Sheet(::servo_arc::Arc<crate::stylesheets::Stylesheet>),
+
+    /// An @import created with a false <supports-condition>, so will never be fetched.
+    Refused,
+}
 
 #[cfg(feature = "servo")]
 impl ImportSheet {
+    /// Creates a new ImportSheet from a stylesheet.
+    pub fn new(sheet: ::servo_arc::Arc<crate::stylesheets::Stylesheet>) -> Self {
+        ImportSheet::Sheet(sheet)
+    }
+
+    /// Creates a refused ImportSheet for a load that will not happen.
+    pub fn new_refused() -> Self {
+        ImportSheet::Refused
+    }
+
+    /// Returns a reference to the stylesheet in this ImportSheet, if it exists.
+    pub fn as_sheet(&self) -> Option<&::servo_arc::Arc<crate::stylesheets::Stylesheet>> {
+        match *self {
+            ImportSheet::Sheet(ref s) => Some(s),
+            ImportSheet::Refused => None,
+        }
+    }
+
     /// Returns the media list for this import rule.
     pub fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
-        self.0.media(guard)
+        self.as_sheet().and_then(|s| s.media(guard))
     }
 
     /// Returns the rules for this import rule.
     pub fn rules<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a [CssRule] {
-        self.0.rules(guard)
+        match self.as_sheet() {
+            Some(s) => s.rules(guard),
+            None => &[],
+        }
     }
 }
 
@@ -130,9 +157,13 @@ impl DeepCloneWithLock for ImportSheet {
         _guard: &SharedRwLockReadGuard,
         _params: &DeepCloneParams,
     ) -> Self {
-        use servo_arc::Arc;
-
-        ImportSheet(Arc::new((&*self.0).clone()))
+        match *self {
+            ImportSheet::Sheet(ref s) => {
+                use servo_arc::Arc;
+                ImportSheet::Sheet(Arc::new((&**s).clone()))
+            },
+            ImportSheet::Refused => ImportSheet::Refused,
+        }
     }
 }
 

@@ -241,7 +241,12 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 let url_string = input.expect_url_or_string()?.as_ref().to_owned();
                 let url = CssUrl::parse_from_string(url_string, &self.context, CorsMode::None);
 
-                let supports = if !static_prefs::pref!("layout.css.import-supports.enabled") {
+                #[cfg(feature = "gecko")]
+                let supports_enabled = static_prefs::pref!("layout.css.import-supports.enabled");
+                #[cfg(feature = "servo")]
+                let supports_enabled = false;
+
+                let supports = if !supports_enabled {
                     None
                 } else {
                     input.try_parse(SupportsCondition::parse_for_import).map(|condition| {
