@@ -703,8 +703,7 @@ impl ServoGlue {
                     if self.browser_id.is_none() {
                         self.browser_id = Some(new_browser_id);
                     }
-                    self.events
-                        .push(EmbedderEvent::ShowBrowser(new_browser_id));
+                    self.events.push(EmbedderEvent::ShowBrowser(new_browser_id));
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
                     let contents = self.callbacks.host_callbacks.get_clipboard_contents();

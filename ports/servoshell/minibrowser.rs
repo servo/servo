@@ -7,9 +7,12 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{Key, Modifiers, TopBottomPanel, CentralPanel, Pos2, Vec2, InnerResponse, Id, Sense, Frame, Color32, WidgetText, RichText, PaintCallback};
+use egui::{
+    CentralPanel, Color32, Frame, Id, InnerResponse, Key, Modifiers, PaintCallback, Pos2, RichText,
+    Sense, TopBottomPanel, Vec2, WidgetText,
+};
 use egui_glow::CallbackFn;
-use euclid::{Length, Scale, Point2D, Size2D, Rect};
+use euclid::{Length, Point2D, Rect, Scale, Size2D};
 use gleam::gl;
 use glow::NativeFramebuffer;
 use log::{trace, warn};
@@ -89,44 +92,47 @@ impl Minibrowser {
             location_dirty,
         } = self;
         let _duration = context.run(window, |ctx| {
-            let InnerResponse { inner: height, .. } = TopBottomPanel::top("toolbar").show(ctx, |ui| {
-                ui.allocate_ui_with_layout(
-                    ui.available_size(),
-                    egui::Layout::right_to_left(egui::Align::Center),
-                    |ui| {
-                        if ui.button("go").clicked() {
-                            event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                            location_dirty.set(false);
-                        }
+            let InnerResponse { inner: height, .. } =
+                TopBottomPanel::top("toolbar").show(ctx, |ui| {
+                    ui.allocate_ui_with_layout(
+                        ui.available_size(),
+                        egui::Layout::right_to_left(egui::Align::Center),
+                        |ui| {
+                            if ui.button("go").clicked() {
+                                event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                                location_dirty.set(false);
+                            }
 
-                        let location_field = ui.add_sized(
-                            ui.available_size(),
-                            egui::TextEdit::singleline(&mut *location.borrow_mut()),
-                        );
-                        if location_field.changed() {
-                            location_dirty.set(true);
-                        }
-                        if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
-                            location_field.request_focus();
-                        }
-                        if location_field.lost_focus() &&
-                            ui.input(|i| i.clone().key_pressed(Key::Enter))
-                        {
-                            event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                            location_dirty.set(false);
-                        }
-                    },
-                );
-                ui.cursor().min.y
-            });
+                            let location_field = ui.add_sized(
+                                ui.available_size(),
+                                egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                            );
+                            if location_field.changed() {
+                                location_dirty.set(true);
+                            }
+                            if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
+                                location_field.request_focus();
+                            }
+                            if location_field.lost_focus() &&
+                                ui.input(|i| i.clone().key_pressed(Key::Enter))
+                            {
+                                event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                                location_dirty.set(false);
+                            }
+                        },
+                    );
+                    ui.cursor().min.y
+                });
             toolbar_height.set(Length::new(height));
             CentralPanel::default().show(ctx, |_| {});
 
             // Add an egui window for each top-level browsing context.
-            let scale = Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
+            let scale =
+                Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
             let toolbar_size = Size2D::new(0.0, toolbar_height.get().get());
             let focused_browser_id = browsers.focused_browser_id();
-            let painting_order = browsers.painting_order()
+            let painting_order = browsers
+                .painting_order()
                 .map(|(&id, _)| id)
                 .collect::<Vec<_>>();
             let mut embedder_events = vec![];
@@ -161,7 +167,8 @@ impl Minibrowser {
                             let rect = Rect::new(origin, size) * scale;
                             if rect != browser.rect {
                                 browser.rect = rect;
-                                embedder_events.push(EmbedderEvent::MoveResizeBrowser(browser_id, rect));
+                                embedder_events
+                                    .push(EmbedderEvent::MoveResizeBrowser(browser_id, rect));
                             }
 
                             let min = ui.cursor().min;
@@ -186,12 +193,23 @@ impl Minibrowser {
                                             painter.gl().clear(gl::COLOR_BUFFER_BIT);
                                             painter.gl().disable(gl::SCISSOR_TEST);
 
-                                            let fbo = NativeFramebuffer(NonZeroU32::new(fbo).unwrap());
-                                            painter.gl().bind_framebuffer(gl::READ_FRAMEBUFFER, Some(fbo));
-                                            painter.gl().bind_framebuffer(gl::DRAW_FRAMEBUFFER, None);
+                                            let fbo =
+                                                NativeFramebuffer(NonZeroU32::new(fbo).unwrap());
+                                            painter
+                                                .gl()
+                                                .bind_framebuffer(gl::READ_FRAMEBUFFER, Some(fbo));
+                                            painter
+                                                .gl()
+                                                .bind_framebuffer(gl::DRAW_FRAMEBUFFER, None);
                                             painter.gl().blit_framebuffer(
-                                                x, y, x + width, y + height,
-                                                x, y, x + width, y + height,
+                                                x,
+                                                y,
+                                                x + width,
+                                                y + height,
+                                                x,
+                                                y,
+                                                x + width,
+                                                y + height,
                                                 gl::COLOR_BUFFER_BIT,
                                                 gl::NEAREST,
                                             );
@@ -203,7 +221,11 @@ impl Minibrowser {
 
                             // Prevent drags that start inside the viewport from moving the window.
                             // TODO use this to determine if a non-servo part of egui was clicked?
-                            let _todo = ui.interact(rect, Id::new(format!("interact({:?})", browser_id)), Sense::click_and_drag());
+                            let _todo = ui.interact(
+                                rect,
+                                Id::new(format!("interact({:?})", browser_id)),
+                                Sense::click_and_drag(),
+                            );
                         });
                     if !open {
                         embedder_events.push(EmbedderEvent::CloseBrowser(browser_id));

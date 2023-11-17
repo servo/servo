@@ -15,15 +15,15 @@ use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{debug, error, info, trace, warn};
 use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
 use servo::embedder_traits::{
-    ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt, PermissionRequest,
-    PromptDefinition, PromptOrigin, PromptResult, HitTestedEvent,
+    ContextMenuResult, EmbedderMsg, FilterPattern, HitTestedEvent, PermissionPrompt,
+    PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
 };
 use servo::msg::constellation_msg::{TopLevelBrowsingContextId as BrowserId, TraversalDirection};
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
+use servo::webrender_api::units::{DevicePoint, DeviceRect, DeviceSize};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_api::units::{DeviceRect, DevicePoint, DeviceSize};
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
 use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
@@ -98,7 +98,8 @@ where
     }
 
     pub fn painting_order(&self) -> impl Iterator<Item = (&BrowserId, &Browser)> {
-        self.painting_order.iter()
+        self.painting_order
+            .iter()
             .flat_map(move |browser_id| self.browsers.get(browser_id).map(|b| (browser_id, b)))
     }
 
@@ -435,7 +436,10 @@ where
                     };
                 },
                 EmbedderMsg::BrowserOpened(new_browser_id) => {
-                    let rect = DeviceRect::new(DevicePoint::new(32.0, 32.0), DeviceSize::new(320.0, 240.0));
+                    let rect = DeviceRect::new(
+                        DevicePoint::new(32.0, 32.0),
+                        DeviceSize::new(320.0, 240.0),
+                    );
                     self.browsers.insert(new_browser_id, Browser { rect });
                     self.event_queue
                         .push(EmbedderEvent::MoveResizeBrowser(new_browser_id, rect));
@@ -445,7 +449,8 @@ where
                         .push(EmbedderEvent::FocusBrowser(new_browser_id));
                 },
                 EmbedderMsg::BrowserClosed(top_level_browsing_context_id) => {
-                    self.browsers.retain(|&id, _| id != top_level_browsing_context_id);
+                    self.browsers
+                        .retain(|&id, _| id != top_level_browsing_context_id);
                     if self.browsers.is_empty() {
                         self.event_queue.push(EmbedderEvent::Quit);
                     }
@@ -566,17 +571,19 @@ where
                     (None, _) => {},
                     (
                         _,
-                        HitTestedEvent::ResizeEvent
-                        | HitTestedEvent::MouseMoveEvent
-                        | HitTestedEvent::TouchEvent
-                        | HitTestedEvent::WheelEvent
-                        | HitTestedEvent::KeyboardEvent
-                        | HitTestedEvent::CompositionEvent
-                        | HitTestedEvent::IMEDismissedEvent,
+                        HitTestedEvent::ResizeEvent |
+                        HitTestedEvent::MouseMoveEvent |
+                        HitTestedEvent::TouchEvent |
+                        HitTestedEvent::WheelEvent |
+                        HitTestedEvent::KeyboardEvent |
+                        HitTestedEvent::CompositionEvent |
+                        HitTestedEvent::IMEDismissedEvent,
                     ) => {},
                     (Some(browser_id), HitTestedEvent::MouseButtonEvent) => {
-                        self.event_queue.push(EmbedderEvent::RaiseBrowserToTop(browser_id));
-                        self.event_queue.push(EmbedderEvent::FocusBrowser(browser_id));
+                        self.event_queue
+                            .push(EmbedderEvent::RaiseBrowserToTop(browser_id));
+                        self.event_queue
+                            .push(EmbedderEvent::FocusBrowser(browser_id));
                     },
                 },
             }

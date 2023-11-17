@@ -653,16 +653,24 @@ where
                 }
             },
 
-            EmbedderEvent::MoveResizeBrowser(top_level_browsing_context_id, rect) =>
-                forward_to_constellation!(self, MoveResizeBrowser(top_level_browsing_context_id, rect)),
-            EmbedderEvent::ShowBrowser(top_level_browsing_context_id) =>
-                forward_to_constellation!(self, ShowBrowser(top_level_browsing_context_id)),
-            EmbedderEvent::HideBrowser(top_level_browsing_context_id) =>
-                forward_to_constellation!(self, HideBrowser(top_level_browsing_context_id)),
-            EmbedderEvent::RaiseBrowserToTop(top_level_browsing_context_id) =>
-                forward_to_constellation!(self, RaiseBrowserToTop(top_level_browsing_context_id)),
-            EmbedderEvent::FocusBrowser(top_level_browsing_context_id) =>
-                forward_to_constellation!(self, FocusBrowser(top_level_browsing_context_id)),
+            EmbedderEvent::MoveResizeBrowser(top_level_browsing_context_id, rect) => {
+                forward_to_constellation!(
+                    self,
+                    MoveResizeBrowser(top_level_browsing_context_id, rect)
+                )
+            },
+            EmbedderEvent::ShowBrowser(top_level_browsing_context_id) => {
+                forward_to_constellation!(self, ShowBrowser(top_level_browsing_context_id))
+            },
+            EmbedderEvent::HideBrowser(top_level_browsing_context_id) => {
+                forward_to_constellation!(self, HideBrowser(top_level_browsing_context_id))
+            },
+            EmbedderEvent::RaiseBrowserToTop(top_level_browsing_context_id) => {
+                forward_to_constellation!(self, RaiseBrowserToTop(top_level_browsing_context_id))
+            },
+            EmbedderEvent::FocusBrowser(top_level_browsing_context_id) => {
+                forward_to_constellation!(self, FocusBrowser(top_level_browsing_context_id))
+            },
             EmbedderEvent::UnfocusBrowser => forward_to_constellation!(self, UnfocusBrowser),
 
             EmbedderEvent::SendError(top_level_browsing_context_id, e) => {

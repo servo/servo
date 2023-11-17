@@ -113,7 +113,8 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg,
 };
 use embedder_traits::{
-    Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent, MediaSessionPlaybackState, HitTestedEvent,
+    Cursor, EmbedderMsg, EmbedderProxy, HitTestedEvent, MediaSessionEvent,
+    MediaSessionPlaybackState,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
@@ -1480,28 +1481,44 @@ where
                 self.handle_panic(top_level_browsing_context_id, error, None);
             },
             FromCompositorMsg::MoveResizeBrowser(top_level_browsing_context_id, rect) => {
-                self.compositor_proxy.send(CompositorMsg::MoveResizeBrowser(top_level_browsing_context_id, rect));
+                self.compositor_proxy.send(CompositorMsg::MoveResizeBrowser(
+                    top_level_browsing_context_id,
+                    rect,
+                ));
             },
             FromCompositorMsg::ShowBrowser(top_level_browsing_context_id) => {
-                self.compositor_proxy.send(CompositorMsg::ShowBrowser(top_level_browsing_context_id));
-                self.browsers.set_browser_visibility(top_level_browsing_context_id, true);
-                self.notify_browser_visibility(top_level_browsing_context_id, self.browsers.is_effectively_visible(top_level_browsing_context_id));
+                self.compositor_proxy
+                    .send(CompositorMsg::ShowBrowser(top_level_browsing_context_id));
+                self.browsers
+                    .set_browser_visibility(top_level_browsing_context_id, true);
+                self.notify_browser_visibility(
+                    top_level_browsing_context_id,
+                    self.browsers
+                        .is_effectively_visible(top_level_browsing_context_id),
+                );
             },
             FromCompositorMsg::HideBrowser(top_level_browsing_context_id) => {
-                self.compositor_proxy.send(CompositorMsg::HideBrowser(top_level_browsing_context_id));
+                self.compositor_proxy
+                    .send(CompositorMsg::HideBrowser(top_level_browsing_context_id));
                 self.notify_browser_visibility(top_level_browsing_context_id, false);
             },
             FromCompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id) => {
-                self.compositor_proxy.send(CompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id));
+                self.compositor_proxy.send(CompositorMsg::RaiseBrowserToTop(
+                    top_level_browsing_context_id,
+                ));
                 self.notify_browser_visibility(top_level_browsing_context_id, true);
             },
             FromCompositorMsg::FocusBrowser(top_level_browsing_context_id) => {
                 self.browsers.focus(top_level_browsing_context_id);
-                self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::BrowserFocused(top_level_browsing_context_id)));
+                self.embedder_proxy.send((
+                    Some(top_level_browsing_context_id),
+                    EmbedderMsg::BrowserFocused(top_level_browsing_context_id),
+                ));
             },
             FromCompositorMsg::UnfocusBrowser => {
                 self.browsers.unfocus();
-                self.embedder_proxy.send((None, EmbedderMsg::BrowserUnfocused));
+                self.embedder_proxy
+                    .send((None, EmbedderMsg::BrowserUnfocused));
             },
             // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(top_level_browsing_context_id, direction) => {
@@ -1554,7 +1571,9 @@ where
                 self.browsers.set_native_window_visibility(visible);
                 let browsers = self.browsers.iter().map(|(&id, _)| id).collect::<Vec<_>>();
                 for top_level_browsing_context_id in browsers {
-                    let visible = self.browsers.is_effectively_visible(top_level_browsing_context_id);
+                    let visible = self
+                        .browsers
+                        .is_effectively_visible(top_level_browsing_context_id);
                     self.notify_browser_visibility(top_level_browsing_context_id, visible);
                 }
             },
@@ -1565,7 +1584,8 @@ where
                 ));
             },
             FromCompositorMsg::BrowserPaintingOrder(browser_ids) => {
-                self.embedder_proxy.send((None, EmbedderMsg::BrowserPaintingOrder(browser_ids)));
+                self.embedder_proxy
+                    .send((None, EmbedderMsg::BrowserPaintingOrder(browser_ids)));
             },
         }
     }
@@ -1574,7 +1594,8 @@ where
         let (source_pipeline_id, content) = message;
         trace!(
             "{}: Message from pipeline: {:?}",
-            source_pipeline_id, content,
+            source_pipeline_id,
+            content,
         );
 
         let source_top_ctx_id = match self
@@ -2946,7 +2967,8 @@ where
             CompositorEvent::IMEDismissedEvent => HitTestedEvent::IMEDismissedEvent,
         };
         let msg = EmbedderMsg::HitTestedEvent(hit_tested_event);
-        self.embedder_proxy.send((Some(pipeline.top_level_browsing_context_id), msg));
+        self.embedder_proxy
+            .send((Some(pipeline.top_level_browsing_context_id), msg));
 
         let msg = ConstellationControlMsg::SendEvent(destination_pipeline_id, event);
         if let Err(e) = pipeline.event_loop.send(msg) {
@@ -3032,23 +3054,37 @@ where
     ) {
         debug!("{}: Closing", top_level_browsing_context_id);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let browsing_context = self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
-        if self.browsers.focused_browser().map(|(id, _)| id) == Some(top_level_browsing_context_id) {
-            self.embedder_proxy.send((None, EmbedderMsg::BrowserUnfocused));
+        let browsing_context =
+            self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
+        if self.browsers.focused_browser().map(|(id, _)| id) == Some(top_level_browsing_context_id)
+        {
+            self.embedder_proxy
+                .send((None, EmbedderMsg::BrowserUnfocused));
         }
         self.browsers.remove(top_level_browsing_context_id);
-        self.compositor_proxy.send(CompositorMsg::RemoveBrowser(top_level_browsing_context_id));
-        self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::BrowserClosed(top_level_browsing_context_id)));
+        self.compositor_proxy
+            .send(CompositorMsg::RemoveBrowser(top_level_browsing_context_id));
+        self.embedder_proxy.send((
+            Some(top_level_browsing_context_id),
+            EmbedderMsg::BrowserClosed(top_level_browsing_context_id),
+        ));
 
         if let Some(browsing_context) = browsing_context {
             // https://html.spec.whatwg.org/multipage/#bcg-remove
             let bc_group_id = browsing_context.bc_group_id;
             if let Some(bc_group) = self.browsing_context_group_set.get_mut(&bc_group_id) {
-                if !bc_group.top_level_browsing_context_set.remove(&top_level_browsing_context_id) {
-                    warn!("{}: Top-level browsing context not found in {}", top_level_browsing_context_id, bc_group_id);
+                if !bc_group
+                    .top_level_browsing_context_set
+                    .remove(&top_level_browsing_context_id)
+                {
+                    warn!(
+                        "{}: Top-level browsing context not found in {}",
+                        top_level_browsing_context_id, bc_group_id
+                    );
                 }
                 if bc_group.top_level_browsing_context_set.is_empty() {
-                    self.browsing_context_group_set.remove(&browsing_context.bc_group_id);
+                    self.browsing_context_group_set
+                        .remove(&browsing_context.bc_group_id);
                 }
             } else {
                 warn!("{}: Browsing context group not found!", bc_group_id);
@@ -4056,7 +4092,9 @@ where
 
     fn handle_ime_dismissed(&mut self) {
         // Send to the focused browsing contexts' current pipeline.
-        let focused_browsing_context_id = self.browsers.focused_browser()
+        let focused_browsing_context_id = self
+            .browsers
+            .focused_browser()
             .map(|(_, browser)| browser.focused_browsing_context_id);
         if let Some(browsing_context_id) = focused_browsing_context_id {
             let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -4085,7 +4123,9 @@ where
     fn handle_key_msg(&mut self, event: KeyboardEvent) {
         // Send to the focused browsing contexts' current pipeline.  If it
         // doesn't exist, fall back to sending to the compositor.
-        let focused_browsing_context_id = self.browsers.focused_browser()
+        let focused_browsing_context_id = self
+            .browsers
+            .focused_browser()
             .map(|(_, browser)| browser.focused_browsing_context_id);
         match focused_browsing_context_id {
             Some(browsing_context_id) => {
@@ -4221,7 +4261,10 @@ where
 
         // Focus the top-level browsing context.
         self.browsers.focus(top_level_browsing_context_id);
-        self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::BrowserFocused(top_level_browsing_context_id)));
+        self.embedder_proxy.send((
+            Some(top_level_browsing_context_id),
+            EmbedderMsg::BrowserFocused(top_level_browsing_context_id),
+        ));
 
         // Update the browser’s focused browsing context.
         match self.browsers.get_mut(top_level_browsing_context_id) {
@@ -4791,7 +4834,9 @@ where
         &self,
         browsing_context_id: BrowsingContextId,
     ) -> bool {
-        let focused_browsing_context_id = self.browsers.focused_browser()
+        let focused_browsing_context_id = self
+            .browsers
+            .focused_browser()
             .map(|(_, browser)| browser.focused_browsing_context_id);
         focused_browsing_context_id.map_or(false, |focus_ctx_id| {
             focus_ctx_id == browsing_context_id ||
@@ -5390,7 +5435,8 @@ where
         &mut self,
         top_level_id: TopLevelBrowsingContextId,
     ) -> &mut JointSessionHistory {
-        self.browsers.get_mut(top_level_id)
+        self.browsers
+            .get_mut(top_level_id)
             .map(|browser| &mut browser.session_history)
             .expect("Unknown top-level browsing context")
     }

@@ -46,8 +46,8 @@ use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use webrender;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutRect, LayoutSize,
-    LayoutVector2D, WorldPoint, DeviceRect,
+    DeviceIntPoint, DeviceIntSize, DevicePoint, DeviceRect, LayoutPoint, LayoutRect, LayoutSize,
+    LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
     self, BuiltDisplayList, ClipId, DirtyRect, DocumentId, Epoch as WebRenderEpoch,
@@ -380,10 +380,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         };
 
         let mut browsers = BrowserManager::default();
-        browsers.add(top_level_browsing_context_id, Browser {
-            pipeline_id: None,
-            rect: embedder_coordinates.get_viewport().to_f32(),
-        });
+        browsers.add(
+            top_level_browsing_context_id,
+            Browser {
+                pipeline_id: None,
+                rect: embedder_coordinates.get_viewport().to_f32(),
+            },
+        );
         browsers.show(top_level_browsing_context_id);
 
         IOCompositor {
@@ -533,11 +536,17 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
             },
 
-            (CompositorMsg::RemoveBrowser(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
+            (
+                CompositorMsg::RemoveBrowser(top_level_browsing_context_id),
+                ShutdownState::NotShuttingDown,
+            ) => {
                 self.remove_browser(top_level_browsing_context_id);
             },
 
-            (CompositorMsg::MoveResizeBrowser(top_level_browsing_context_id, rect), ShutdownState::NotShuttingDown) => {
+            (
+                CompositorMsg::MoveResizeBrowser(top_level_browsing_context_id, rect),
+                ShutdownState::NotShuttingDown,
+            ) => {
                 if let Some(browser) = self.browsers.get_mut(top_level_browsing_context_id) {
                     let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
                     let initial_viewport = rect.size.to_f32() / dppx;
@@ -547,7 +556,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     };
                     if rect.size != browser.rect.size {
                         let size_type = WindowSizeType::Resize; // FIXME always this value in practice
-                        let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
+                        let msg = ConstellationMsg::WindowSize(
+                            top_level_browsing_context_id,
+                            data,
+                            size_type,
+                        );
                         if let Err(e) = self.constellation_chan.send(msg) {
                             warn!("Sending window resize to constellation failed ({:?}).", e);
                         }
@@ -555,11 +568,17 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     browser.rect = rect;
                     self.update_root_pipeline();
                 } else {
-                    warn!("{}: MoveResizeBrowser on unknown top-level browsing context", top_level_browsing_context_id);
+                    warn!(
+                        "{}: MoveResizeBrowser on unknown top-level browsing context",
+                        top_level_browsing_context_id
+                    );
                 }
             },
 
-            (CompositorMsg::ShowBrowser(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
+            (
+                CompositorMsg::ShowBrowser(top_level_browsing_context_id),
+                ShutdownState::NotShuttingDown,
+            ) => {
                 self.browsers.show(top_level_browsing_context_id);
                 self.update_root_pipeline();
 
@@ -570,7 +589,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (CompositorMsg::HideBrowser(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
+            (
+                CompositorMsg::HideBrowser(top_level_browsing_context_id),
+                ShutdownState::NotShuttingDown,
+            ) => {
                 self.browsers.hide(top_level_browsing_context_id);
                 self.update_root_pipeline();
 
@@ -581,7 +603,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (CompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id), ShutdownState::NotShuttingDown) => {
+            (
+                CompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id),
+                ShutdownState::NotShuttingDown,
+            ) => {
                 self.browsers.raise_to_top(top_level_browsing_context_id);
                 self.update_root_pipeline();
 
@@ -1039,29 +1064,33 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn update_browser(&mut self, frame_tree: &SendableFrameTree) {
-        debug!(
-            "{}: Updating browser",
-            frame_tree.pipeline.id
-        );
+        debug!("{}: Updating browser", frame_tree.pipeline.id);
 
         let top_level_browsing_context_id = frame_tree.pipeline.top_level_browsing_context_id;
         if let Some(browser) = self.browsers.get_mut(top_level_browsing_context_id) {
             let new_pipeline_id = Some(frame_tree.pipeline.id);
             if new_pipeline_id != browser.pipeline_id {
-                debug!("{:?}: Updating browser from pipeline {:?} to {:?}",
-                    top_level_browsing_context_id, browser.pipeline_id, new_pipeline_id);
+                debug!(
+                    "{:?}: Updating browser from pipeline {:?} to {:?}",
+                    top_level_browsing_context_id, browser.pipeline_id, new_pipeline_id
+                );
             }
             browser.pipeline_id = new_pipeline_id;
         } else {
             let top_level_browsing_context_id = frame_tree.pipeline.top_level_browsing_context_id;
             let pipeline_id = Some(frame_tree.pipeline.id);
-            debug!("{:?}: Creating new browser with pipeline {:?}",
-                top_level_browsing_context_id, pipeline_id);
+            debug!(
+                "{:?}: Creating new browser with pipeline {:?}",
+                top_level_browsing_context_id, pipeline_id
+            );
 
-            self.browsers.add(top_level_browsing_context_id, Browser {
-                pipeline_id,
-                rect: self.embedder_coordinates.get_viewport().to_f32(),
-            });
+            self.browsers.add(
+                top_level_browsing_context_id,
+                Browser {
+                    pipeline_id,
+                    rect: self.embedder_coordinates.get_viewport().to_f32(),
+                },
+            );
         }
 
         self.update_root_pipeline();
@@ -1111,7 +1140,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             })
     }
 
-    fn update_pipeline_details_tree(&mut self, frame_tree: &SendableFrameTree, parent_pipeline_id: Option<PipelineId>) {
+    fn update_pipeline_details_tree(
+        &mut self,
+        frame_tree: &SendableFrameTree,
+        parent_pipeline_id: Option<PipelineId>,
+    ) {
         let pipeline_id = frame_tree.pipeline.id;
         let pipeline_details = self.pipeline_details(pipeline_id);
         pipeline_details.pipeline = Some(frame_tree.pipeline.clone());
@@ -1125,8 +1158,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn remove_pipeline_details_tree(&mut self, pipeline_id: PipelineId) {
         self.pipeline_details.remove(&pipeline_id);
 
-        let children = self.pipeline_details.iter()
-            .filter(|(_, pipeline_details)| pipeline_details.parent_pipeline_id == Some(pipeline_id))
+        let children = self
+            .pipeline_details
+            .iter()
+            .filter(|(_, pipeline_details)| {
+                pipeline_details.parent_pipeline_id == Some(pipeline_id)
+            })
             .map(|(&pipeline_id, _)| pipeline_id)
             .collect::<Vec<_>>();
 
@@ -1811,11 +1848,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             #[cfg(feature = "gl")]
             CompositeTarget::Window => gl::RenderTargetInfo::default(),
             #[cfg(feature = "gl")]
-            CompositeTarget::Fbo | CompositeTarget::WindowAndPngFile | CompositeTarget::PngFile => gl::initialize_img(
-                &*self.webrender_gl,
-                FramebufferUintLength::new(size.width),
-                FramebufferUintLength::new(size.height),
-            ),
+            CompositeTarget::Fbo | CompositeTarget::WindowAndPngFile | CompositeTarget::PngFile => {
+                gl::initialize_img(
+                    &*self.webrender_gl,
+                    FramebufferUintLength::new(size.width),
+                    FramebufferUintLength::new(size.height),
+                )
+            },
             #[cfg(not(feature = "gl"))]
             _ => (),
         };
@@ -1857,7 +1896,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     // and check if it is the one the layout thread is expecting,
                     let epoch = Epoch(epoch);
                     if *pending_epoch != epoch {
-                        warn!("{}: paint metrics: pending {:?} should be {:?}", id, pending_epoch, epoch);
+                        warn!(
+                            "{}: paint metrics: pending {:?} should be {:?}",
+                            id, pending_epoch, epoch
+                        );
                         continue;
                     }
                     // in which case, we remove it from the list of pending metrics,
@@ -1963,8 +2005,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // Embedder should call `present` to tell compositor to continue rendering.
         self.waiting_on_present = true;
         for (&top_level_browsing_context_id, _) in self.browsers.painting_order() {
-            let msg =
-                ConstellationMsg::ReadyToPresent(top_level_browsing_context_id);
+            let msg = ConstellationMsg::ReadyToPresent(top_level_browsing_context_id);
             if let Err(e) = self.constellation_chan.send(msg) {
                 warn!("Sending event to constellation failed ({:?}).", e);
             }
@@ -1979,7 +2020,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn output_framebuffer_id(&self) -> Option<gleam::gl::GLuint> {
-        self.output_frame_info.as_ref().map(|info| info.framebuffer_id())
+        self.output_frame_info
+            .as_ref()
+            .map(|info| info.framebuffer_id())
     }
 
     pub fn present(&mut self) {
@@ -2018,7 +2061,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         // Clear the viewport rect of each top-level browsing context.
         for (_, browser) in self.browsers.painting_order() {
-            let rect = self.embedder_coordinates.flipped_rect(&browser.rect.to_i32());
+            let rect = self
+                .embedder_coordinates
+                .flipped_rect(&browser.rect.to_i32());
             gl.scissor(
                 rect.origin.x,
                 rect.origin.y,

@@ -134,6 +134,9 @@ impl RenderTargetInfo {
     }
 
     pub fn framebuffer_id(&self) -> gl::GLuint {
-        *self.framebuffer_ids.first().expect("guaranteed by initialize_img")
+        *self
+            .framebuffer_ids
+            .first()
+            .expect("guaranteed by initialize_img")
     }
 }

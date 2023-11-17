@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::collections::{HashMap, HashSet};
 
 use msg::constellation_msg::TopLevelBrowsingContextId;
@@ -34,23 +38,37 @@ impl<Browser> Default for BrowserManager<Browser> {
 }
 
 impl<Browser> BrowserManager<Browser> {
-    pub fn add(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId, browser: Browser) {
+    pub fn add(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        browser: Browser,
+    ) {
         self.browsers.insert(top_level_browsing_context_id, browser);
     }
 
-    pub fn remove(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) -> Option<Browser> {
+    pub fn remove(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+    ) -> Option<Browser> {
         if self.focus_order.last() == Some(&top_level_browsing_context_id) {
             self.is_focused = false;
         }
-        self.focus_order.retain(|b| *b != top_level_browsing_context_id);
+        self.focus_order
+            .retain(|b| *b != top_level_browsing_context_id);
         self.browsers.remove(&top_level_browsing_context_id)
     }
 
-    pub fn get(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) -> Option<&Browser> {
+    pub fn get(
+        &self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+    ) -> Option<&Browser> {
         self.browsers.get(&top_level_browsing_context_id)
     }
 
-    pub fn get_mut(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) -> Option<&mut Browser> {
+    pub fn get_mut(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+    ) -> Option<&mut Browser> {
         self.browsers.get_mut(&top_level_browsing_context_id)
     }
 
@@ -74,7 +92,8 @@ impl<Browser> BrowserManager<Browser> {
 
     pub fn focus(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         debug_assert!(self.browsers.contains_key(&top_level_browsing_context_id));
-        self.focus_order.retain(|b| *b != top_level_browsing_context_id);
+        self.focus_order
+            .retain(|b| *b != top_level_browsing_context_id);
         self.focus_order.push(top_level_browsing_context_id);
         self.is_focused = true;
     }
@@ -83,7 +102,11 @@ impl<Browser> BrowserManager<Browser> {
         self.is_focused = false;
     }
 
-    pub fn set_browser_visibility(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId, visible: bool) {
+    pub fn set_browser_visibility(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        visible: bool,
+    ) {
         debug_assert!(self.browsers.contains_key(&top_level_browsing_context_id));
         if visible {
             self.visible_browsers.insert(top_level_browsing_context_id);
@@ -97,9 +120,14 @@ impl<Browser> BrowserManager<Browser> {
     }
 
     /// Returns true iff the browser is visible and the native window is visible.
-    pub fn is_effectively_visible(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) -> bool {
+    pub fn is_effectively_visible(
+        &self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+    ) -> bool {
         debug_assert!(self.browsers.contains_key(&top_level_browsing_context_id));
-        self.native_window_is_visible && self.visible_browsers.contains(&top_level_browsing_context_id)
+        self.native_window_is_visible &&
+            self.visible_browsers
+                .contains(&top_level_browsing_context_id)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&TopLevelBrowsingContextId, &Browser)> {
@@ -107,30 +135,45 @@ impl<Browser> BrowserManager<Browser> {
     }
 }
 
-
-#[cfg(test)] mod test {
+#[cfg(test)]
+mod test {
     use std::num::NonZeroU32;
 
-    use msg::constellation_msg::{BrowsingContextIndex, BrowsingContextId, TopLevelBrowsingContextId, PipelineNamespace, PipelineNamespaceId};
+    use msg::constellation_msg::{
+        BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId,
+        TopLevelBrowsingContextId,
+    };
 
     use crate::browser::BrowserManager;
 
     fn top_level_id(namespace_id: u32, index: u32) -> TopLevelBrowsingContextId {
         TopLevelBrowsingContextId(BrowsingContextId {
             namespace_id: PipelineNamespaceId(namespace_id),
-            index: BrowsingContextIndex(NonZeroU32::new(index).unwrap()),
+            index: BrowsingContextIndex(NonZeroU32::new(index).expect("incorrect test case")),
         })
     }
 
-    fn browsers_sorted<Browser: Clone>(browsers: &BrowserManager<Browser>) -> Vec<(TopLevelBrowsingContextId, Browser)> {
+    fn browsers_sorted<Browser: Clone>(
+        browsers: &BrowserManager<Browser>,
+    ) -> Vec<(TopLevelBrowsingContextId, Browser)> {
         let mut keys = browsers.browsers.keys().collect::<Vec<_>>();
         keys.sort();
         keys.iter()
-            .map(|&id| (*id, browsers.browsers.get(id).cloned().unwrap()))
+            .map(|&id| {
+                (
+                    *id,
+                    browsers
+                        .browsers
+                        .get(id)
+                        .cloned()
+                        .expect("incorrect test case"),
+                )
+            })
             .collect()
     }
 
-    #[test] fn test() {
+    #[test]
+    fn test() {
         PipelineNamespace::install(PipelineNamespaceId(0));
         let mut browsers = BrowserManager::default();
 
@@ -138,11 +181,14 @@ impl<Browser> BrowserManager<Browser> {
         browsers.add(TopLevelBrowsingContextId::new(), 'a');
         browsers.add(TopLevelBrowsingContextId::new(), 'b');
         browsers.add(TopLevelBrowsingContextId::new(), 'c');
-        assert_eq!(browsers_sorted(&browsers), vec![
-            (top_level_id(0, 1), 'a'),
-            (top_level_id(0, 2), 'b'),
-            (top_level_id(0, 3), 'c'),
-        ]);
+        assert_eq!(
+            browsers_sorted(&browsers),
+            vec![
+                (top_level_id(0, 1), 'a'),
+                (top_level_id(0, 2), 'b'),
+                (top_level_id(0, 3), 'c'),
+            ]
+        );
         assert!(browsers.focus_order.is_empty());
         assert_eq!(browsers.is_focused, false);
 
@@ -151,20 +197,32 @@ impl<Browser> BrowserManager<Browser> {
         assert_eq!(browsers.focus_order, vec![top_level_id(0, 2)]);
         assert_eq!(browsers.is_focused, true);
         browsers.focus(top_level_id(0, 1));
-        assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 1)]);
+        assert_eq!(
+            browsers.focus_order,
+            vec![top_level_id(0, 2), top_level_id(0, 1)]
+        );
         assert_eq!(browsers.is_focused, true);
         browsers.focus(top_level_id(0, 3));
-        assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]);
+        assert_eq!(
+            browsers.focus_order,
+            vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]
+        );
         assert_eq!(browsers.is_focused, true);
 
         // unfocus() clears the “is focused” flag, but does not touch the focus order.
         browsers.unfocus();
-        assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]);
+        assert_eq!(
+            browsers.focus_order,
+            vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]
+        );
         assert_eq!(browsers.is_focused, false);
 
         // focus() avoids duplicates in focus order, when the given browser has been focused before.
         browsers.focus(top_level_id(0, 1));
-        assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]);
+        assert_eq!(
+            browsers.focus_order,
+            vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]
+        );
         assert_eq!(browsers.is_focused, true);
 
         // is_effectively_visible() checks that the given browser is visible.
