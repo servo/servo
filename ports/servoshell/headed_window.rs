@@ -480,7 +480,7 @@ impl WindowPortsMethods for Window {
                         .resize(physical_size.to_i32())
                         .expect("Failed to resize");
                     self.inner_size.set(new_size);
-                    self.event_queue.borrow_mut().push(EmbedderEvent::Resize);
+                    self.event_queue.borrow_mut().push(EmbedderEvent::WindowResize);
                 }
             },
             _ => {},

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use msg::constellation_msg::TopLevelBrowsingContextId;
 
@@ -13,11 +13,23 @@ pub struct BrowserManager<Browser> {
 
     /// Whether the latest browser in focus order is currently focused.
     is_focused: bool,
+
+    /// The browsers that would be visible in a containing native window.
+    visible_browsers: HashSet<TopLevelBrowsingContextId>,
+
+    /// Whether our native window is visible, or true if there is no such window.
+    native_window_is_visible: bool,
 }
 
 impl<Browser> Default for BrowserManager<Browser> {
     fn default() -> Self {
-        Self { browsers: Default::default(), focus_order: Default::default(), is_focused: Default::default() }
+        Self {
+            browsers: HashMap::default(),
+            focus_order: Vec::default(),
+            is_focused: false,
+            visible_browsers: HashSet::default(),
+            native_window_is_visible: true,
+        }
     }
 }
 
@@ -69,6 +81,29 @@ impl<Browser> BrowserManager<Browser> {
 
     pub fn unfocus(&mut self) {
         self.is_focused = false;
+    }
+
+    pub fn set_browser_visibility(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId, visible: bool) {
+        debug_assert!(self.browsers.contains_key(&top_level_browsing_context_id));
+        if visible {
+            self.visible_browsers.insert(top_level_browsing_context_id);
+        } else {
+            self.visible_browsers.remove(&top_level_browsing_context_id);
+        }
+    }
+
+    pub fn set_native_window_visibility(&mut self, visible: bool) {
+        self.native_window_is_visible = visible;
+    }
+
+    /// Returns true iff the browser is visible and the native window is visible.
+    pub fn is_effectively_visible(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) -> bool {
+        debug_assert!(self.browsers.contains_key(&top_level_browsing_context_id));
+        self.native_window_is_visible && self.visible_browsers.contains(&top_level_browsing_context_id)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&TopLevelBrowsingContextId, &Browser)> {
+        self.browsers.iter()
     }
 }
 
@@ -131,6 +166,26 @@ impl<Browser> BrowserManager<Browser> {
         browsers.focus(top_level_id(0, 1));
         assert_eq!(browsers.focus_order, vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]);
         assert_eq!(browsers.is_focused, true);
+
+        // is_effectively_visible() checks that the given browser is visible.
+        browsers.set_browser_visibility(top_level_id(0, 1), true);
+        browsers.set_browser_visibility(top_level_id(0, 3), true);
+        assert_eq!(browsers.is_effectively_visible(top_level_id(0, 1)), true);
+        assert_eq!(browsers.is_effectively_visible(top_level_id(0, 2)), false);
+        assert_eq!(browsers.is_effectively_visible(top_level_id(0, 3)), true);
+
+        // is_effectively_visible() checks that the native window is visible.
+        browsers.set_native_window_visibility(false);
+        assert_eq!(browsers.is_effectively_visible(top_level_id(0, 1)), false);
+        assert_eq!(browsers.is_effectively_visible(top_level_id(0, 2)), false);
+        assert_eq!(browsers.is_effectively_visible(top_level_id(0, 3)), false);
+
+        // set_native_window_visibility() does not destroy or prevent changes to browser visibility state.
+        browsers.set_browser_visibility(top_level_id(0, 1), false);
+        browsers.set_native_window_visibility(true);
+        assert_eq!(browsers.is_effectively_visible(top_level_id(0, 1)), false);
+        assert_eq!(browsers.is_effectively_visible(top_level_id(0, 2)), false);
+        assert_eq!(browsers.is_effectively_visible(top_level_id(0, 3)), true);
 
         // remove() clears the “is focused” flag iff the given browser was focused.
         browsers.remove(top_level_id(0, 2));

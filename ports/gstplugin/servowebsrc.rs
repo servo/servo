@@ -176,7 +176,7 @@ impl ServoThread {
             Some(..) => {
                 set_pref!(dom.webxr.sessionavailable, true);
                 set_pref!(dom.webxr.unsafe_assume_user_intent, true);
-                servo.handle_events(vec![EmbedderEvent::ChangeBrowserVisibility(id, false)]);
+                servo.handle_events(vec![EmbedderEvent::WindowVisibility(id, false)]);
                 None
             },
         };
@@ -221,7 +221,7 @@ impl ServoThread {
             .window()
             .webrender_surfman
             .resize(size.to_untyped());
-        self.servo.handle_events(vec![EmbedderEvent::Resize]);
+        self.servo.handle_events(vec![EmbedderEvent::WindowResize]);
     }
 }
 

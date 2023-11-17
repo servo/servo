@@ -429,7 +429,7 @@ impl ServoGlue {
     pub fn resize(&mut self, coordinates: Coordinates) -> Result<(), &'static str> {
         info!("resize");
         *self.callbacks.coordinates.borrow_mut() = coordinates;
-        self.process_event(EmbedderEvent::Resize)
+        self.process_event(EmbedderEvent::WindowResize)
     }
 
     /// Start scrolling.
@@ -580,7 +580,7 @@ impl ServoGlue {
     pub fn change_visibility(&mut self, visible: bool) -> Result<(), &'static str> {
         info!("change_visibility");
         if let Ok(id) = self.get_browser_id() {
-            let event = EmbedderEvent::ChangeBrowserVisibility(id, visible);
+            let event = EmbedderEvent::WindowVisibility(id, visible);
             self.process_event(event)
         } else {
             // Ignore visibility change if no browser has been created yet.

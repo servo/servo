@@ -234,6 +234,9 @@ struct Browser {
 
     /// The joint session history for this browser.
     session_history: JointSessionHistory,
+
+    /// Whether this browser is visible in the containing native window.
+    is_visible: bool,
 }
 
 /// A browsing context group.
@@ -1481,12 +1484,16 @@ where
             },
             FromCompositorMsg::ShowBrowser(top_level_browsing_context_id) => {
                 self.compositor_proxy.send(CompositorMsg::ShowBrowser(top_level_browsing_context_id));
+                self.browsers.set_browser_visibility(top_level_browsing_context_id, true);
+                self.notify_browser_visibility(top_level_browsing_context_id, self.browsers.is_effectively_visible(top_level_browsing_context_id));
             },
             FromCompositorMsg::HideBrowser(top_level_browsing_context_id) => {
                 self.compositor_proxy.send(CompositorMsg::HideBrowser(top_level_browsing_context_id));
+                self.notify_browser_visibility(top_level_browsing_context_id, false);
             },
             FromCompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id) => {
                 self.compositor_proxy.send(CompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id));
+                self.notify_browser_visibility(top_level_browsing_context_id, true);
             },
             FromCompositorMsg::FocusBrowser(top_level_browsing_context_id) => {
                 self.browsers.focus(top_level_browsing_context_id);
@@ -1543,8 +1550,13 @@ where
             FromCompositorMsg::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
             },
-            FromCompositorMsg::ChangeBrowserVisibility(top_level_browsing_context_id, visible) => {
-                self.handle_change_browser_visibility(top_level_browsing_context_id, visible);
+            FromCompositorMsg::WindowVisibility(visible) => {
+                self.browsers.set_native_window_visibility(visible);
+                let browsers = self.browsers.iter().map(|(&id, _)| id).collect::<Vec<_>>();
+                for top_level_browsing_context_id in browsers {
+                    let visible = self.browsers.is_effectively_visible(top_level_browsing_context_id);
+                    self.notify_browser_visibility(top_level_browsing_context_id, visible);
+                }
             },
             FromCompositorMsg::ReadyToPresent(top_level_browsing_context_id) => {
                 self.embedder_proxy.send((
@@ -2974,6 +2986,7 @@ where
             Browser {
                 focused_browsing_context_id: browsing_context_id,
                 session_history: JointSessionHistory::new(),
+                is_visible: false,
             },
         );
 
@@ -3343,6 +3356,7 @@ where
             Browser {
                 focused_browsing_context_id: new_browsing_context_id,
                 session_history: JointSessionHistory::new(),
+                is_visible: false,
             },
         );
 
@@ -4455,7 +4469,7 @@ where
         }
     }
 
-    fn handle_change_browser_visibility(
+    fn notify_browser_visibility(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         visible: bool,
@@ -4465,13 +4479,13 @@ where
             Some(browsing_context) => browsing_context.pipeline_id,
             None => {
                 return warn!(
-                    "{}: Got visibility change event after closure",
+                    "{}: Tried to notify visibility after closure",
                     browsing_context_id
                 );
             },
         };
         match self.pipelines.get(&pipeline_id) {
-            None => return warn!("{}: Got visibility change event after closure", pipeline_id),
+            None => return warn!("{}: Tried to notify visibility after closure", pipeline_id),
             Some(pipeline) => pipeline.notify_visibility(visible),
         };
     }

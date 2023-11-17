@@ -507,7 +507,7 @@ where
                 self.compositor.composite();
             },
 
-            EmbedderEvent::Resize => {
+            EmbedderEvent::WindowResize => {
                 return self.compositor.on_resize_window_event();
             },
 
@@ -685,14 +685,11 @@ where
                 }
             },
 
-            EmbedderEvent::ChangeBrowserVisibility(top_level_browsing_context_id, visible) => {
-                let msg = ConstellationMsg::ChangeBrowserVisibility(
-                    top_level_browsing_context_id,
-                    visible,
-                );
+            EmbedderEvent::WindowVisibility(visible) => {
+                let msg = ConstellationMsg::WindowVisibility(visible);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
-                        "Sending ChangeBrowserVisibility to constellation failed ({:?}).",
+                        "Sending WindowVisibility to constellation failed ({:?}).",
                         e
                     );
                 }

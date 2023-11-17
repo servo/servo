@@ -49,7 +49,9 @@ pub enum EmbedderEvent {
     /// message, the window must make the same GL context as in `PrepareRenderingEvent` current.
     Refresh,
     /// Sent when the window is resized.
-    Resize,
+    WindowResize,
+    /// Set browser visibility. A hidden browser will not tick the animations.
+    WindowVisibility(bool),
     /// Sent when a navigation request from script is allowed/refused.
     AllowNavigationResponse(PipelineId, bool),
     /// Sent when a new URL is to be loaded.
@@ -110,8 +112,6 @@ pub enum EmbedderEvent {
     /// Sent when the user triggers a media action through the UA exposed media UI
     /// (play, pause, seek, etc.).
     MediaSessionAction(MediaSessionActionType),
-    /// Set browser visibility. A hidden browser will not tick the animations.
-    ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
 }
@@ -121,7 +121,7 @@ impl Debug for EmbedderEvent {
         match *self {
             EmbedderEvent::Idle => write!(f, "Idle"),
             EmbedderEvent::Refresh => write!(f, "Refresh"),
-            EmbedderEvent::Resize => write!(f, "Resize"),
+            EmbedderEvent::WindowResize => write!(f, "Resize"),
             EmbedderEvent::Keyboard(..) => write!(f, "Keyboard"),
             EmbedderEvent::AllowNavigationResponse(..) => write!(f, "AllowNavigationResponse"),
             EmbedderEvent::LoadUrl(..) => write!(f, "LoadUrl"),
@@ -150,7 +150,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
             EmbedderEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
             EmbedderEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
-            EmbedderEvent::ChangeBrowserVisibility(..) => write!(f, "ChangeBrowserVisibility"),
+            EmbedderEvent::WindowVisibility(..) => write!(f, "WindowVisibility"),
             EmbedderEvent::IMEDismissed => write!(f, "IMEDismissed"),
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
         }

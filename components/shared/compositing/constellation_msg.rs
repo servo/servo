@@ -85,8 +85,8 @@ pub enum ConstellationMsg {
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
-    /// Toggle browser visibility.
-    ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
+    /// The visibility of the window has changed.
+    WindowVisibility(bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Notify the embedder that it needs to present a new frame.
@@ -128,7 +128,7 @@ impl fmt::Debug for ConstellationMsg {
             DisableProfiler => "DisableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
-            ChangeBrowserVisibility(..) => "ChangeBrowserVisibility",
+            WindowVisibility(..) => "WindowVisibility",
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",
