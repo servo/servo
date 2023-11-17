@@ -31,7 +31,7 @@
 //! to a forest whose roots are top-level browsing context.  The logical
 //! relationship between these types is:
 //!
-//! ```
+//! ```text
 //! +------------+                      +------------+                 +---------+
 //! |  Browsing  | ------parent?------> |  Pipeline  | --event_loop--> |  Event  |
 //! |  Context   | ------current------> |            |                 |  Loop   |
