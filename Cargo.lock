@@ -1644,9 +1644,9 @@ dependencies = [
 
 [[package]]
 name = "etagere"
-version = "0.2.9"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bf70b9ea3a235a7432b4f481854815e2d4fb2fe824c1f5fb09b8985dd06b3e9"
+checksum = "306960881d6c46bd0dd6b7f07442a441418c08d0d3e63d8d080b0f64c6343e4e"
 dependencies = [
  "euclid",
  "serde",
