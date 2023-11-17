@@ -112,8 +112,12 @@ class Base:
         return True
 
     def install_crown(self, force: bool) -> bool:
+        # we need to override rust from cargo/config because crown
+        # may not be installed
+        env = dict(os.environ)
+        env["CARGO_BUILD_RUSTC"] = "rustc"
         if subprocess.call(["cargo", "install", "--path", "support/crown"],
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env) != 0:
             raise EnvironmentError("Installation of crown failed.")
 
         return True

@@ -950,8 +950,6 @@ class CommandBase(object):
         if with_debug_assertions or self.config["build"]["debug-assertions"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
-        env["RUSTC"] = "crown"
-
         return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
 
     def android_support_dir(self):
