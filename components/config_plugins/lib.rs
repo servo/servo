@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![feature(proc_macro_diagnostic)]
-
 use std::collections::{hash_map, HashMap};
 use std::fmt::Write;
 use std::iter;
@@ -23,15 +21,7 @@ pub fn build_structs(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream
     let input: MacroInput = parse_macro_input!(tokens);
     let out = Build::new(&input)
         .build(&input.type_def)
-        .unwrap_or_else(|e| {
-            proc_macro::Diagnostic::spanned(
-                e.span().unwrap(),
-                proc_macro::Level::Error,
-                format!("{}", e),
-            )
-            .emit();
-            TokenStream::new()
-        });
+        .unwrap_or_else(|e| syn::Error::new(e.span(), e).to_compile_error());
     out.into()
 }
 
