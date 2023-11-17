@@ -5,6 +5,7 @@
 //! Specified types for box properties.
 
 use crate::parser::{Parse, ParserContext};
+#[cfg(feature = "gecko")]
 use crate::properties::{LonghandId, PropertyDeclarationId, PropertyId};
 use crate::values::generics::box_::{
     GenericLineClamp, GenericPerspective, GenericContainIntrinsicSize, GenericVerticalAlign,
