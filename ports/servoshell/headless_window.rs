@@ -7,6 +7,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use euclid::num::Zero;
 use euclid::{Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
@@ -113,6 +114,10 @@ impl WindowPortsMethods for Window {
 
     fn winit_window(&self) -> Option<&winit::window::Window> {
         None
+    }
+
+    fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
+        Length::zero()
     }
 
     fn set_toolbar_height(&self, _height: Length<f32, DeviceIndependentPixel>) {

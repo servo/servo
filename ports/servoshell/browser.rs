@@ -22,7 +22,7 @@ use servo::msg::constellation_msg::{TopLevelBrowsingContextId as BrowserId, Trav
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
-use servo::webrender_api::units::{DevicePoint, DeviceRect, DeviceSize};
+use servo::webrender_api::units::DeviceRect;
 use servo::webrender_api::ScrollLocation;
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
@@ -436,10 +436,16 @@ where
                     };
                 },
                 EmbedderMsg::BrowserOpened(new_browser_id) => {
-                    let rect = DeviceRect::new(
-                        DevicePoint::new(32.0, 32.0),
-                        DeviceSize::new(320.0, 240.0),
-                    );
+                    let scale = self.window.hidpi_factor().get();
+                    let toolbar = self.window.toolbar_height().get();
+
+                    // Adjust for our toolbar height, and egui window decorations.
+                    let mut rect = self.window.get_coordinates().get_viewport().to_f32();
+                    rect.origin.x += 6.0 * scale;
+                    rect.origin.y += (toolbar + 35.0) * scale;
+                    rect.size.width -= 6.0 * scale + 6.0 * scale;
+                    rect.size.height -= (toolbar + 35.0) * scale + 6.0 * scale;
+
                     self.browsers.insert(new_browser_id, Browser { rect });
                     self.event_queue
                         .push(EmbedderEvent::MoveResizeBrowser(new_browser_id, rect));

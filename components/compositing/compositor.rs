@@ -547,8 +547,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 CompositorMsg::MoveResizeBrowser(top_level_browsing_context_id, rect),
                 ShutdownState::NotShuttingDown,
             ) => {
+                let dppx = self.page_zoom * self.hidpi_factor();
                 if let Some(browser) = self.browsers.get_mut(top_level_browsing_context_id) {
-                    let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
                     let initial_viewport = rect.size.to_f32() / dppx;
                     let data = WindowSizeData {
                         device_pixel_ratio: dppx,
@@ -1031,15 +1031,15 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
         );
 
-        // TODO do we need to start scaling these properly?
-        // let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
-        let viewport_size = self.embedder_coordinates.get_viewport().size.to_f32();
+        let dppx = self.page_zoom * self.hidpi_factor();
+        let viewport_size = self.embedder_coordinates.get_viewport().size.to_f32() / dppx;
         let viewport_size = LayoutSize::from_untyped(viewport_size.to_untyped());
         for (_, browser) in self.browsers.painting_order() {
             if let Some(pipeline_id) = browser.pipeline_id {
+                let rect = browser.rect / dppx;
                 builder.push_iframe(
-                    LayoutRect::from_untyped(&browser.rect.to_untyped()),
-                    LayoutRect::from_untyped(&browser.rect.to_untyped()),
+                    LayoutRect::from_untyped(&rect.to_untyped()),
+                    LayoutRect::from_untyped(&rect.to_untyped()),
                     &SpaceAndClipInfo {
                         spatial_id: zoom_reference_frame,
                         clip_id: ClipId::root(pipeline_id.to_webrender()),

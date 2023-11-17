@@ -129,7 +129,6 @@ impl Minibrowser {
             // Add an egui window for each top-level browsing context.
             let scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
-            let toolbar_size = Size2D::new(0.0, toolbar_height.get().get());
             let focused_browser_id = browsers.focused_browser_id();
             let painting_order = browsers
                 .painting_order()
@@ -144,25 +143,26 @@ impl Minibrowser {
                     let mut open = true;
 
                     let id = format!("Window({:?})", browser_id);
-                    let title: WidgetText;
                     let mut frame = Frame::window(&ctx.style());
-                    if focused_browser_id == Some(browser_id) {
-                        title = RichText::new(id.clone()).color(Color32::BLACK).into();
+                    let title = format!("{:?}", browser_id.0);
+                    let title: WidgetText = if focused_browser_id == Some(browser_id) {
                         frame = frame.fill(Color32::from_rgb_additive(0x00, 0x9d, 0x9a));
+                        RichText::new(title).color(Color32::BLACK).into()
                     } else {
-                        title = id.clone().into();
-                    }
+                        title.into()
+                    };
 
+                    let rect = browser.rect / scale;
                     let window = egui::Window::new(title)
                         .id(Id::new(id))
-                        .default_pos(browser.rect.origin.to_tuple())
-                        .default_size(browser.rect.size.to_tuple())
+                        .default_pos(rect.origin.to_tuple())
+                        .default_size(rect.size.to_tuple())
                         .collapsible(false)
                         .open(&mut open)
                         .frame(frame)
                         .show(ctx, |ui| {
                             let Pos2 { x, y } = ui.cursor().min;
-                            let origin = Point2D::new(x, y) - toolbar_size;
+                            let origin = Point2D::new(x, y);
                             let Vec2 { x, y } = ui.available_size();
                             let size = Size2D::new(x, y);
                             let rect = Rect::new(origin, size) * scale;
@@ -182,7 +182,7 @@ impl Minibrowser {
                                     rect,
                                     callback: Arc::new(CallbackFn::new(move |info, painter| {
                                         use glow::HasContext as _;
-                                        let clip = info.clip_rect_in_pixels();
+                                        let clip = info.viewport_in_pixels();
                                         let x = clip.left_px as gl::GLint;
                                         let y = clip.from_bottom_px as gl::GLint;
                                         let width = clip.width_px as gl::GLsizei;
