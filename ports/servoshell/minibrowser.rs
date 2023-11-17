@@ -15,7 +15,7 @@ use egui_glow::CallbackFn;
 use euclid::{Length, Point2D, Rect, Scale, Size2D};
 use gleam::gl;
 use glow::NativeFramebuffer;
-use log::{trace, warn};
+use log::{info, trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
@@ -136,6 +136,7 @@ impl Minibrowser {
                 .map(|(&id, _)| id)
                 .collect::<Vec<_>>();
             let mut embedder_events = vec![];
+            let mut expected_order = vec![];
             for browser_id in painting_order {
                 if let Some(browser) = browsers.get_mut(browser_id) {
                     // Always true; we don’t want to close the egui window until Servo tells us to
@@ -152,7 +153,7 @@ impl Minibrowser {
                         title = id.clone().into();
                     }
 
-                    egui::Window::new(title)
+                    let window = egui::Window::new(title)
                         .id(Id::new(id))
                         .default_pos(browser.rect.origin.to_tuple())
                         .default_size(browser.rect.size.to_tuple())
@@ -227,11 +228,46 @@ impl Minibrowser {
                                 Sense::click_and_drag(),
                             );
                         });
+
+                    let window = window.expect("guaranteed by Window::show");
+                    expected_order.push((browser_id, window.response));
+
                     if !open {
                         embedder_events.push(EmbedderEvent::CloseBrowser(browser_id));
                     }
                 }
             }
+
+            // If the resultant egui windows are not in the expected order, then egui has reordered
+            // the windows in response to the user clicking or dragging it. In that case, the first
+            // window `expected_order[i]` that we fail to find at `actual_order[i]` is the one that
+            // raised, and we need to raise the browser accordingly.
+            //
+            // Note that we can’t check Response.clicked() or dragged() or gained_focus() because
+            // those can be inaccurate for egui windows, and we can’t check Context.layer_id_at()
+            // because it can be inaccurate when there is another egui window underneath.
+            let actual_order = ctx.memory(|memory| {
+                memory
+                    .layer_ids()
+                    .filter(|&id| {
+                        expected_order
+                            .iter()
+                            .find(|(_, window)| window.layer_id == id)
+                            .is_some()
+                    })
+                    .collect::<Vec<_>>()
+            });
+            for (i, (browser_id, window)) in expected_order.into_iter().enumerate() {
+                if actual_order[i] != window.layer_id {
+                    info!(
+                        "{}: Raising to top in response to egui interaction",
+                        browser_id
+                    );
+                    embedder_events.push(EmbedderEvent::RaiseBrowserToTop(browser_id));
+                    break;
+                }
+            }
+
             if !embedder_events.is_empty() {
                 browsers.handle_window_events(embedder_events);
             }
