@@ -235,9 +235,6 @@ struct Browser {
 
     /// The joint session history for this browser.
     session_history: JointSessionHistory,
-
-    /// Whether this browser is visible in the containing native window.
-    is_visible: bool,
 }
 
 /// A browsing context group.
@@ -1500,13 +1497,25 @@ where
             FromCompositorMsg::HideBrowser(top_level_browsing_context_id) => {
                 self.compositor_proxy
                     .send(CompositorMsg::HideBrowser(top_level_browsing_context_id));
-                self.notify_browser_visibility(top_level_browsing_context_id, false);
+                self.browsers
+                    .set_browser_visibility(top_level_browsing_context_id, false);
+                self.notify_browser_visibility(
+                    top_level_browsing_context_id,
+                    self.browsers
+                        .is_effectively_visible(top_level_browsing_context_id),
+                );
             },
             FromCompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id) => {
                 self.compositor_proxy.send(CompositorMsg::RaiseBrowserToTop(
                     top_level_browsing_context_id,
                 ));
-                self.notify_browser_visibility(top_level_browsing_context_id, true);
+                self.browsers
+                    .set_browser_visibility(top_level_browsing_context_id, true);
+                self.notify_browser_visibility(
+                    top_level_browsing_context_id,
+                    self.browsers
+                        .is_effectively_visible(top_level_browsing_context_id),
+                );
             },
             FromCompositorMsg::FocusBrowser(top_level_browsing_context_id) => {
                 self.browsers.focus(top_level_browsing_context_id);
@@ -3008,7 +3017,6 @@ where
             Browser {
                 focused_browsing_context_id: browsing_context_id,
                 session_history: JointSessionHistory::new(),
-                is_visible: false,
             },
         );
 
@@ -3392,7 +3400,6 @@ where
             Browser {
                 focused_browsing_context_id: new_browsing_context_id,
                 session_history: JointSessionHistory::new(),
-                is_visible: false,
             },
         );
 
