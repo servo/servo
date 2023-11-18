@@ -30,7 +30,7 @@ fn allow_color_mix() -> bool {
     #[cfg(feature = "gecko")]
     return static_prefs::pref!("layout.css.color-mix.enabled");
     #[cfg(feature = "servo")]
-    return false;
+    return true;
 }
 
 #[inline]
@@ -38,7 +38,7 @@ fn allow_more_color_4() -> bool {
     #[cfg(feature = "gecko")]
     return static_prefs::pref!("layout.css.more_color_4.enabled");
     #[cfg(feature = "servo")]
-    return false;
+    return true;
 }
 
 impl ColorMix {
