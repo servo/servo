@@ -1,4 +1,4 @@
-from tests.support.asserts import assert_error, assert_success
+from tests.support.asserts import assert_error
 
 
 def element_click(session, element):
@@ -8,7 +8,7 @@ def element_click(session, element):
             element_id=element.id))
 
 
-def test_file_upload_state(session,inline):
+def test_file_upload_state(session, inline):
     session.url = inline("<input type=file>")
 
     element = session.find.css("input", all=False)

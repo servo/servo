@@ -225,3 +225,16 @@ credential-management/support/fedcm/${manifest_filename}`;
       accountHint: accountHint
       };
 }
+
+export function alt_revoke_options(accountHint, manifest_filename) {
+  if (manifest_filename === undefined) {
+    manifest_filename = "manifest.py";
+  }
+  const manifest_path = `${alt_manifest_origin}/\
+credential-management/support/fedcm/${manifest_filename}`;
+  return {
+      configURL: manifest_path,
+      clientId: '1',
+      accountHint: accountHint
+  };
+}

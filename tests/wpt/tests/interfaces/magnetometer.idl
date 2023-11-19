@@ -29,18 +29,3 @@ interface UncalibratedMagnetometer : Sensor {
   readonly attribute double? yBias;
   readonly attribute double? zBias;
 };
-
-dictionary MagnetometerReadingValues {
-  required double? x;
-  required double? y;
-  required double? z;
-};
-
-dictionary UncalibratedMagnetometerReadingValues {
-  required double? x;
-  required double? y;
-  required double? z;
-  required double? xBias;
-  required double? yBias;
-  required double? zBias;
-};

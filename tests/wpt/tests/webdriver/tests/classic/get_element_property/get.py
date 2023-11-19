@@ -2,7 +2,7 @@ import pytest
 
 from webdriver import WebElement, WebFrame, ShadowRoot, WebWindow
 
-from tests.support.asserts import assert_error, assert_same_element, assert_success
+from tests.support.asserts import assert_error, assert_success
 
 
 def get_element_property(session, element_id, prop):

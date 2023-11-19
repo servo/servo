@@ -177,6 +177,7 @@ dictionary VideoEncoderConfig {
   DOMString scalabilityMode;
   VideoEncoderBitrateMode bitrateMode = "variable";
   LatencyMode latencyMode = "quality";
+  DOMString contentHint;
 };
 
 enum HardwareAcceleration {
@@ -229,6 +230,7 @@ dictionary EncodedAudioChunkInit {
   [EnforceRange] required long long timestamp;    // microseconds
   [EnforceRange] unsigned long long duration;     // microseconds
   required BufferSource data;
+  sequence<ArrayBuffer> transfer = [];
 };
 
 enum EncodedAudioChunkType {
@@ -252,6 +254,7 @@ dictionary EncodedVideoChunkInit {
   [EnforceRange] required long long timestamp;        // microseconds
   [EnforceRange] unsigned long long duration;         // microseconds
   required AllowSharedBufferSource data;
+  sequence<ArrayBuffer> transfer = [];
 };
 
 enum EncodedVideoChunkType {

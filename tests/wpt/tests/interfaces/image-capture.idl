@@ -89,7 +89,7 @@ partial dictionary MediaTrackCapabilities {
   MediaSettingsRange   tilt;
   MediaSettingsRange   zoom;
 
-  boolean              torch;
+  sequence<boolean> torch;
 };
 
 partial dictionary MediaTrackConstraintSet {

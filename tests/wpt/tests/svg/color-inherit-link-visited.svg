@@ -1,0 +1,8 @@
+<svg width="100" height="100" fill="green" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:html="http://www.w3.org/1999/xhtml">
+  <html:link rel="help" href="https://developer.mozilla.org/en-US/docs/Web/CSS/Privacy_and_the_:visited_selector"/>
+  <html:link rel="match" href="color-inherit-link-visited-ref.svg"/>
+  <html:meta name="assert" content="Tests that color is correctly inherited in the presence of visited link"/>
+  <a xlink:href="">
+    <rect width="100" height="100"></rect>
+  </a>
+</svg>

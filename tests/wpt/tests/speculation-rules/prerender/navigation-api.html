@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const rcHelper = new RemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+  assert_equals(await referrerRC.executeScript(() => navigation.entries().length), 1);
+  let referrerRCCurrentId = await referrerRC.executeScript(() => navigation.currentEntry.id);
+
+  const prerenderedRC = await addPrerenderRC(referrerRC);
+  let activationStateBeforeActivation = await prerenderedRC.executeScript(() => {
+    return {
+     entries: navigation.entries().map(e => ({ id: e.id, })),
+     activationEntryId: navigation.activation.entry?.id,
+     activationFromId: navigation.activation.from?.id,
+     activationNavigationType : navigation.activation.navigationType,
+    }
+  });
+  assert_equals(activationStateBeforeActivation.entries.length, 1);
+  assert_equals(activationStateBeforeActivation.activationFromId, referrerRCCurrentId);
+  assert_equals(activationStateBeforeActivation.activationEntryId, activationStateBeforeActivation.entries[0].id);
+  assert_equals(activationStateBeforeActivation.activationNavigationType, "push");
+
+  // Save the current entry before activation.
+  await prerenderedRC.executeScript(() => window.currentEntryBeforeActivation = navigation.currentEntry);
+
+  await activatePrerenderRC(referrerRC, prerenderedRC);
+
+  let activationStateAfterActivation = await prerenderedRC.executeScript(() => {
+    return {
+     entries: navigation.entries().map(e => ({ id: e.id, })),
+     activationEntryId: navigation.activation.entry?.id,
+     activationFromId: navigation.activation.from?.id,
+     activationNavigationType : navigation.activation.navigationType,
+    }
+  });
+  assert_equals(activationStateAfterActivation.entries.length, 2);
+  assert_equals(activationStateAfterActivation.activationFromId, activationStateAfterActivation.entries[0].id);
+  assert_equals(activationStateAfterActivation.activationFromId, referrerRCCurrentId);
+  assert_equals(activationStateAfterActivation.activationEntryId, activationStateAfterActivation.entries[1].id);
+  assert_equals(activationStateAfterActivation.activationNavigationType, "push");
+
+  let currentEntryIdentity = await prerenderedRC.executeScript(() => {
+    return window.currentEntryBeforeActivation === navigation.currentEntry &&
+           navigation.currentEntry === navigation.entries()[navigation.entries().length - 1];
+  });
+  assert_true(currentEntryIdentity);
+},`navigation.entries() and navigation.activation should be updated on activation`);
+</script>

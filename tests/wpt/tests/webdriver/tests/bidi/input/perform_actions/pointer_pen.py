@@ -1,7 +1,6 @@
 import pytest
 
 from webdriver.bidi.modules.input import Actions, get_element_origin
-from webdriver.bidi.modules.script import ContextTarget
 
 from .. import get_events
 from . import (

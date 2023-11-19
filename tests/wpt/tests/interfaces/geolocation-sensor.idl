@@ -35,13 +35,3 @@ dictionary GeolocationSensorReading {
   double? heading;
   double? speed;
 };
-
-dictionary GeolocationReadingValues {
-  required double? latitude;
-  required double? longitude;
-  required double? altitude;
-  required double? accuracy;
-  required double? altitudeAccuracy;
-  required double? heading;
-  required double? speed;
-};

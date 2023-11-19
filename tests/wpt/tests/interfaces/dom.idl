@@ -396,6 +396,7 @@ dictionary ShadowRootInit {
   required ShadowRootMode mode;
   boolean delegatesFocus = false;
   SlotAssignmentMode slotAssignment = "named";
+  boolean clonable = false;
 };
 
 [Exposed=Window,

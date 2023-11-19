@@ -154,8 +154,8 @@ async def test_middle_click(bidi_session, top_context, load_static_test_page):
     assert len(events) == 3
 
     expected = [
-      {"type": "mousedown", "button": 1, "buttons": 4},
-      {"type": "mouseup", "button": 1, "buttons": 0},
+        {"type": "mousedown", "button": 1, "buttons": 4},
+        {"type": "mouseup", "button": 1, "buttons": 0},
     ]
     filtered_events = [filter_dict(e, expected[0]) for e in events]
     mousedown_mouseup_events = [
@@ -252,6 +252,7 @@ async def test_click_navigation(
     inline,
     subscribe_events,
     wait_for_event,
+    wait_for_future_safe,
     get_element,
 ):
     await subscribe_events(events=["browsingContext.load"])
@@ -281,7 +282,7 @@ async def test_click_navigation(
 
         on_entry = wait_for_event("browsingContext.load")
         await click_link()
-        event = await on_entry
+        event = await wait_for_future_safe(on_entry)
         assert event["url"] == destination
 
 

@@ -1,0 +1,1014 @@
+<!DOCTYPE HTML>
+<title>APNG tests</title>
+<style>
+html {
+    background-color: white;
+    color: black;
+}
+body {
+    font-family: sans-serif;
+}
+.testimage {
+    border: 1px black solid;
+    background: #ffa;
+}
+blockquote {
+    font-style: italic;
+}
+blockquote[cite]:after {
+    font-style: normal;
+    font-size: x-small;
+    padding-left: 2em;
+    content: "(" attr(cite) ")";
+}
+blockquote[cite="#apng"]:after {
+    content: "(APNG Specification)";
+}
+blockquote[cite="#png"]:after {
+    content: "(PNG Specification)";
+}
+blockquote p {
+    margin: 0;
+}
+div.case {
+    border: 1px #888 solid;
+    padding: 0.3em;
+    margin: 0.3em;
+}
+div.case:target {
+    border: 2px #000 solid;
+}
+div.case > p {
+    margin: 0;
+}
+</style>
+
+<p><em>This page is somewhat incomplete and quite possibly incorrect &ndash; use with caution. <img src="underconstruction.png" style="vertical-align: middle" alt=""></em>
+
+<h1>APNG tests</h1>
+
+<p>For all these tests, wait at least a second after all the images have downloaded, before checking that the rendered output is correct.
+
+<p>Test output conventions:
+A solid green 128&times;64 rectangle means success.
+Any red means failure.
+Anything else means you need to read the instructions.
+"Transparent" is indicated by a <span style="background: #ffa">light yellow background</span>.
+
+<p>Sections of the relevant specifications are sometimes quoted when they clarify the expected behaviour.
+
+<p>Please don't link directly to the images in this page, since they may get renamed and will break any such links.
+
+<p>You can download <a href="generate.pl">the script</a> and <a href="source.html">the source data</a> for this page.
+
+
+<h2>Valid images</h2>
+
+
+<h3>Basic cases</h3>
+
+<div class="case">
+<p>Trivial static image.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+IDAT => [create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Trivial animated image - one frame; using default image.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [1, 0],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+IDAT => [create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Trivial animated image - one frame; ignoring default image.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [1, 0],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+
+<h3>IDAT, fdAT splitting</h3>
+<blockquote cite="#png"><p>There may be multiple IDAT chunks; if so, they shall appear consecutively with no other intervening chunks. The compressed datastream is then the concatenation of the contents of the data fields of all the IDAT chunks.</blockquote>
+<blockquote cite="#apng"><p>The compressed datastream is then the concatenation of the contents of the data fields of all the `fdAT` chunks within a frame.</blockquote>
+
+<div class="case">
+<p>Basic split IDAT.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+IDAT_split => [0,32, create_surface(W, H, 'green')],
+IDAT_split => [32,-1, create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Split IDAT with zero-length chunk.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+IDAT_split => [0,32, create_surface(W, H, 'green')],
+IDAT_split => [32,32, create_surface(W, H, 'green')],
+IDAT_split => [32,-1, create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Basic split fdAT.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [1, 0],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT_split => [1, 0,32, create_surface(W, H, 'green')],
+fdAT_split => [2, 32,-1, create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Split fdAT with zero-length chunk.
+<p>This should be solid green.
+<!-- Opera bug 286566 -->
+<png>
+IHDR => [W, H],
+acTL => [1, 0],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT_split => [1, 0,32, create_surface(W, H, 'green')],
+fdAT_split => [2, 32,32, create_surface(W, H, 'green')],
+fdAT_split => [3, 32,-1, create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+
+<h3>Dispose ops</h3>
+
+<div class="case">
+<p>APNG_DISPOSE_OP_NONE - basic.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [3, 1],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [1, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [2, create_surface(W, H, 'green')],
+fcTL => [3, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [4, create_surface(W, H, 'transparent')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_DISPOSE_OP_BACKGROUND - basic.
+<p>This should be transparent.
+<png>
+IHDR => [W, H],
+acTL => [3, 1],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [1, W, H, 0, 0, 10, 100, DISPOSE_BACKGROUND, BLEND_OVER],
+fdAT => [2, create_surface(W, H, 'red')],
+fcTL => [3, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [4, create_surface(W, H, 'transparent')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_DISPOSE_OP_BACKGROUND - final frame.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [2, 1],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [1, W, H, 0, 0, 10, 100, DISPOSE_BACKGROUND, BLEND_OVER],
+fdAT => [2, create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_DISPOSE_OP_PREVIOUS - basic.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [3, 1],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'green')],
+fcTL => [2, W, H, 0, 0, 10, 100, DISPOSE_PREVIOUS, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'red')],
+fcTL => [4, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [5, create_surface(W, H, 'transparent')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_DISPOSE_OP_PREVIOUS - final frame.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [2, 1],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [1, W, H, 0, 0, 10, 100, DISPOSE_PREVIOUS, BLEND_OVER],
+fdAT => [2, create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_DISPOSE_OP_PREVIOUS - first frame.
+<p>This should be transparent.
+<png>
+IHDR => [W, H],
+acTL => [2, 1],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_PREVIOUS, BLEND_OVER],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [1, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [2, create_surface(W, H, 'transparent')],
+IEND => [],
+</png>
+</div>
+
+
+<h3>Dispose ops and regions</h3>
+
+<div class="case">
+<p>APNG_DISPOSE_OP_NONE in region.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [3, 1],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+IDAT => [create_surface(W, H, 'doublerect', 0,1,0,1, 1,0,0,1)],
+fcTL => [1, W/2, H/2, W/4, H/4, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [2, create_surface(W/2, H/2, 'green')],
+fcTL => [3, 1, 1, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [4, create_surface(1, 1, 'transparent')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_DISPOSE_OP_BACKGROUND before region.
+<p>This should be transparent.
+<png>
+IHDR => [W, H],
+acTL => [2, 1],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_BACKGROUND, BLEND_OVER],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [1, 1, 1, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [2, create_surface(1, 1, 'transparent')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_DISPOSE_OP_BACKGROUND in region.
+<p>This should be a solid blue rectangle containing a smaller transparent rectangle.
+<!-- Opera bug 286565 -->
+<png>
+IHDR => [W, H],
+acTL => [3, 1],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+IDAT => [create_surface(W, H, 'doublerect', 0,0,1,1, 1,0,0,1)],
+fcTL => [1, W/2, H/2, W/4, H/4, 10, 100, DISPOSE_BACKGROUND, BLEND_OVER],
+fdAT => [2, create_surface(W/2, H/2, 'red')],
+fcTL => [3, 1, 1, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [4, create_surface(1, 1, 'transparent')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_DISPOSE_OP_PREVIOUS in region.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [3, 1],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'green')],
+fcTL => [2, W/2, H/2, W/4, H/4, 10, 100, DISPOSE_PREVIOUS, BLEND_OVER],
+fdAT => [3, create_surface(W/2, H/2, 'red')],
+fcTL => [4, 1, 1, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [5, create_surface(1, 1, 'transparent')],
+IEND => [],
+</png>
+</div>
+
+
+<h3>Blend ops</h3>
+
+<div class="case">
+<p>APNG_BLEND_OP_SOURCE on solid colour.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [2, 1],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+fcTL => [2, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_SOURCE],
+fdAT => [3, create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_BLEND_OP_SOURCE on transparent colour.
+<p>This should be transparent.
+<png>
+IHDR => [W, H],
+acTL => [2, 1],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+fcTL => [2, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_SOURCE],
+fdAT => [3, create_surface(W, H, 'transparent')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_BLEND_OP_SOURCE on nearly-transparent colour.
+<p>This should be very nearly transparent.
+<png>
+IHDR => [W, H],
+acTL => [2, 1],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+fcTL => [2, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_SOURCE],
+fdAT => [3, create_surface(W, H, 'solid', 0, 1, 0, 0.01)],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_BLEND_OP_OVER on solid and transparent colours.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [2, 1],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'green')],
+fcTL => [2, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'transparent')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_BLEND_OP_OVER repeatedly with nearly-transparent colours.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+acTL => [128, 1],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'solid', 0, 1, 0, 1)],
+(map {
+    (fcTL => [2+$_*2, W/2, H, 0, 0, 1, 100, DISPOSE_NONE, BLEND_OVER],
+    fdAT => [3+$_*2, create_surface(W/2, H, 'solid', 0, 1, 0, 0.01)])
+} 0..126),
+IEND => [],
+</png>
+</div>
+
+
+<h3>Blending and gamma</h3>
+
+<div class="case">
+<p>APNG_BLEND_OP_OVER
+<p>This should be solid slightly-dark green.
+<png>
+IHDR => [W, H],
+gAMA => [1],
+acTL => [16, 1],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'solid', 0, 1, 0, 1)],
+(map {
+    (fcTL => [2+$_*2, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+    fdAT => [3+$_*2, create_surface(W, H, 'solid', 0, 0.9, 0, 0.5)])
+} 0..14),
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>APNG_BLEND_OP_OVER
+<p>This should be solid nearly-black.
+<png>
+IHDR => [W, H],
+gAMA => [1/2200],
+acTL => [16, 1],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+(map {
+    (fcTL => [2+$_*2, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+    fdAT => [3+$_*2, create_surface(W, H, 'solid', 0.9, 0, 0, 0.5)])
+} 0..14),
+IEND => [],
+</png>
+</div>
+
+
+<h3>Chunk ordering</h3>
+
+<div class="case">
+<p>fcTL before acTL.
+<p>This should be solid green.
+<png>
+IHDR => [W, H],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+acTL => [2, 1],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [1, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [2, create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+
+<h3>Delays</h3>
+
+<div class="case">
+<p>Basic delays.
+<p>This should flash blue for half a second, then yellow for one second, then repeat.
+<png>
+IHDR => [W, H],
+acTL => [4, 0],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 50, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'blue')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'yellow')],
+fcTL => [4, W, H, 0, 0, 10000, 20000, DISPOSE_NONE, BLEND_OVER],
+fdAT => [5, create_surface(W, H, 'blue')],
+fcTL => [6, W, H, 0, 0, 1, 1, DISPOSE_NONE, BLEND_OVER],
+fdAT => [7, create_surface(W, H, 'yellow')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Rounding of division.
+<p>This should flash blue for half a second, then yellow for one second, then repeat.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 1, 2, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'blue')],
+fcTL => [2, W, H, 0, 0, 1, 1, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'yellow')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>16-bit numerator/denominator.
+<p>This should flash blue for half a second, then yellow for one second, then repeat.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 32767, 65534, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'blue')],
+fcTL => [2, W, H, 0, 0, 65535, 65535, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'yellow')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Zero denominator.
+<blockquote cite="#apng"><p>If the denominator is 0, it is to be treated as if it were 100</blockquote>
+<p>This should flash blue for half a second, then yellow for one second, then repeat.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 50, 0, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'blue')],
+fcTL => [2, W, H, 0, 0, 1000, 1000, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'yellow')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Zero numerator.
+<blockquote cite="#apng"><p>If the the value of the numerator is 0 the decoder should render the next frame as quickly as possible, though viewers may impose a reasonable lower bound.</blockquote>
+<p>This should flash cyan for a short period of time (perhaps zero), then magenta for the same short period of time, then blue for half a second, then yellow for one second, then repeat.
+<png>
+IHDR => [W, H],
+acTL => [4, 0],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 0, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'cyan')],
+fcTL => [2, W, H, 0, 0, 0, 0, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'magenta')],
+fcTL => [4, W, H, 0, 0, 500, 1000, DISPOSE_NONE, BLEND_OVER],
+fdAT => [5, create_surface(W, H, 'blue')],
+fcTL => [6, W, H, 0, 0, 1000, 1000, DISPOSE_NONE, BLEND_OVER],
+fdAT => [7, create_surface(W, H, 'yellow')],
+IEND => [],
+</png>
+</div>
+
+
+<h3>num_plays</h3>
+
+<div class="case">
+<p>num_plays = 0
+<p>This should flash yellow for one second, then blue for one second, then repeat forever.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'yellow')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'blue')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>num_plays = 1
+<p>When first loaded, this should flash yellow for one second, then stay blue forever.
+<png>
+IHDR => [W, H],
+acTL => [2, 1],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'yellow')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'blue')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>num_plays = 2
+<p>When first loaded, this should flash yellow for one second, then blue for one second, then yellow for one second, then blue forever.
+<png>
+IHDR => [W, H],
+acTL => [2, 2],
+IDAT => [create_surface(W, H, 'red')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'yellow')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'blue')],
+IEND => [],
+</png>
+</div>
+
+
+<h3>Other depths and colour types</h3>
+
+<div class="case">
+<p>16-bit colour.
+<p>This should be dark blue.
+<png>
+IHDR => [W, H, 16, 6],
+acTL => [2, 1],
+IDAT => [create_raw_surface(W, H, 64, "\xFF\x00\x00\x00\x00\x00\xFF\xFF" x (W*H))],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_raw_surface(W, H, 64, "\x00\x00\x00\x00\x00\x00\xFF\xFF" x (W*H))],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_raw_surface(W, H, 64, "\x00\x00\x00\x00\xFF\xFF\x80\x00" x (W*H))],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>8-bit greyscale.
+<p>This should be a solid grey rectangle containing a solid white rectangle.
+<png>
+IHDR => [W, H, 8, 0],
+acTL => [2, 1],
+IDAT => [create_raw_surface(W, H, 8, "\x00\xFF" x (W*H/2))],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_raw_surface(W, H, 8, "\x80" x (W*H))],
+fcTL => [2, W/2, H/2, W/4, H/4, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_raw_surface(W/2, H/2, 8, "\xFF" x (W*H/4))],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>8-bit greyscale and alpha, with blending.
+<p>This should be solid grey.
+<png>
+IHDR => [W, H, 8, 4],
+acTL => [2, 1],
+IDAT => [create_raw_surface(W, H, 16, "\x00\xFF\xFF\xFF" x (W*H/2))],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_raw_surface(W, H, 16, "\x00\xFF" x (W*H))],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_raw_surface(W, H, 16, "\xFF\x80" x (W*H))],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>2-color palette.
+<p>This should be solid green.
+<png>
+IHDR => [W, H, 1, 3],
+PLTE => [255,0,0, 0,255,0],
+acTL => [2, 1],
+IDAT => [create_raw_surface(W, H, 1, "\x00" x (W*H/8))],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_raw_surface(W, H, 1, "\x00" x (W*H/8))],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_raw_surface(W, H, 1, "\xFF" x (W*H/8))],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>2-bit palette and alpha.
+<p>This should be solid green.
+<png>
+IHDR => [W, H, 2, 3],
+PLTE => [255,0,0, 255,0,0, 0,255,0],
+tRNS => [255, 0, 255],
+acTL => [2, 1],
+IDAT => [create_raw_surface(W, H, 2, "\x00" x (W*H/4))],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_raw_surface(W, H, 2, "\xAA" x (W*H/4))],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_raw_surface(W, H, 2, "\x55" x (W*H/4))],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>1-bit palette and alpha, with blending.
+<p>This should be solid dark blue.
+<png>
+IHDR => [W, H, 1, 3],
+PLTE => [0,0,0, 0,0,255],
+tRNS => [255, 128],
+acTL => [2, 1],
+IDAT => [create_raw_surface(W, H, 1, "\x00" x (W*H/8))],
+fcTL => [0, W, H, 0, 0, 10, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_raw_surface(W, H, 1, "\x00" x (W*H/8))],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_raw_surface(W, H, 1, "\xFF" x (W*H/8))],
+IEND => [],
+</png>
+</div>
+
+
+<h2>Invalid images</h2>
+
+<blockquote cite="#apng">
+<p>It is strongly recommended that when any error is encountered decoders should discard all subsequent frames, stop the animation, and revert to displaying the default image. A decoder which detects an error before the animation has started should display the default image. An error message may be displayed to the user if appropriate.
+</blockquote>
+<p>(If some decoders accept broken images, it seems quite possible that people will create and distribute broken images, and then the error-handling would have to be reverse-engineered by other implementations; hence all these tests to ensure errors get detected properly.)
+<p>For the following images, the default image (solid green) or an error should be displayed.
+
+
+<h3>Incorrect chunks</h3>
+
+<div class="case">
+<p>Missing acTL.
+<png>
+IHDR => [W, H],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Repeated acTL.
+<png>
+IHDR => [W, H],
+acTL => [1, 0],
+acTL => [1, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>acTL after IDAT.
+<png>
+IHDR => [W, H],
+IDAT => [create_surface(W, H, 'green')],
+acTL => [1, 0],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Missing fcTL.
+<p><em>Disabled for now, since it crashes Opera 9.5 alpha 1589 (bug 287173).</em>
+<!--
+<png>
+IHDR => [W, H],
+acTL => [1, 0],
+IDAT => [create_surface(W, H, 'green')],
+fdAT => [0, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+-->
+</div>
+
+<div class="case">
+<p>Repeated fcTL.
+<png>
+IHDR => [W, H],
+acTL => [1, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Missing fdAT.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fcTL => [1, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [2, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+
+<h3>num_frames</h3>
+
+<div class="case">
+<p>num_frames = 0; no default image.
+<blockquote cite="#apng"><p>0 is not a valid value.</blockquote>
+<png>
+IHDR => [W, H],
+acTL => [0, 0],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>num_frames = 0; ignoring default image.
+<blockquote cite="#apng"><p>0 is not a valid value.</blockquote>
+<png>
+IHDR => [W, H],
+acTL => [0, 0],
+IDAT => [create_surface(W, H, 'green')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>num_frames too low.
+<blockquote cite="#apng"><p>This must equal the number of `fcTL` chunks. ... If this value does not equal the actual number of frames it should be treated as an error.</blockquote>
+<png>
+IHDR => [W, H],
+acTL => [1, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>num_frames too high by 1.
+<blockquote cite="#apng"><p>This must equal the number of `fcTL` chunks. ... If this value does not equal the actual number of frames it should be treated as an error.</blockquote>
+<png>
+IHDR => [W, H],
+acTL => [3, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>num_frames too high by 2.
+<blockquote cite="#apng"><p>This must equal the number of `fcTL` chunks. ... If this value does not equal the actual number of frames it should be treated as an error.</blockquote>
+<png>
+IHDR => [W, H],
+acTL => [4, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>num_frames outside valid range.
+<blockquote cite="#apng"><p>an "unsigned int" shall be a 32-bit unsigned integer in network byte order limited to the range 0 to (2^31)-1</blockquote>
+<png>
+IHDR => [W, H],
+acTL => [0x80000001, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+
+<h3>Sequence numbers</h3>
+
+<div class="case">
+<p>Not starting from 0.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [1, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [2, create_surface(W, H, 'red')],
+fcTL => [3, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [4, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Gap in sequence.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [4, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Duplicated sequence number.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [2, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Duplicated chunk.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [3, create_surface(W, H, 'red')],
+fdAT => [3, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Reordered fdAT chunks.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT_split => [4, 32,-1, create_surface(W, H, 'red')],
+fdAT_split => [3, 0,32, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Reordered sequence numbers.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+fcTL => [2, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT_split => [4, 0,32, create_surface(W, H, 'red')],
+fdAT_split => [3, 32,-1, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>Separated fdAT and fcTL sequences.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [0, create_surface(W, H, 'red')],
+fcTL => [1, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+
+<h3>Invalid image-data sizes</h3>
+
+<div class="case">
+<p>Default image's fcTL size not matching IHDR.
+<png>
+IHDR => [W, H],
+acTL => [2, 0],
+fcTL => [0, W, H/2, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+IDAT => [create_surface(W, H/2, 'red')],
+fcTL => [1, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [2, create_surface(W, H, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>fdAT too small.
+<png>
+IHDR => [W, H],
+acTL => [1, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H/2, 'red')],
+IEND => [],
+</png>
+</div>
+
+<div class="case">
+<p>fdAT too large.
+<png>
+IHDR => [W, H],
+acTL => [1, 0],
+IDAT => [create_surface(W, H, 'green')],
+fcTL => [0, W, H, 0, 0, 100, 100, DISPOSE_NONE, BLEND_OVER],
+fdAT => [1, create_surface(W, H*2, 'red')],
+IEND => [],
+</png>
+</div>
+
+<!-- TODO: invalid fcTL (negative offset, etc) -->
+
+<h2>References</h2>
+<ul>
+<li id="apng"><a href="http://wiki.mozilla.org/index.php?title=APNG_Specification&amp;oldid=64503">APNG Specification 1.0</a>
+<li id="png"><a href="http://www.w3.org/TR/PNG/">PNG Specification (Second Edition)</a>
+</ul>

@@ -5,7 +5,6 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from . import (
     get_element_coordinates,
-    get_page_y_offset,
     get_physical_element_dimensions,
     get_reference_screenshot,
 )
@@ -176,7 +175,7 @@ async def test_clip_viewport_scroll_to(
 
     element = await bidi_session.script.call_function(
         await_promise=False,
-        function_declaration=f"""() => {{
+        function_declaration="""() => {{
             const element = document.querySelector('div');
 
             const rect = element.getBoundingClientRect();

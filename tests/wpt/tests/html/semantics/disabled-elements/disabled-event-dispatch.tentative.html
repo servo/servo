@@ -25,7 +25,7 @@ customElements.define('my-control', class extends HTMLElement {
   static get formAssociated() { return true; }
 });
 
-['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click'].forEach(eventName => {
+['mousedown', 'mouseup', 'pointerdown', 'pointerup', 'click', 'dblclick'].forEach(eventName => {
   [true, false].forEach(clickChildElement => {
     for (const target of targetparent.children) {
       promise_test(async () => {
@@ -39,7 +39,18 @@ customElements.define('my-control', class extends HTMLElement {
         let targetchild = target.firstElementChild;
         targetchild.addEventListener(eventName, () => childReceivedEvent = true);
 
-        await test_driver.click(clickChildElement ? targetchild : target);
+        const elementToClick = clickChildElement ? targetchild : target;
+        if (eventName === 'dblclick') {
+          await (new test_driver.Actions()
+            .pointerMove(1, 1, {origin: elementToClick})
+            .pointerDown()
+            .pointerUp()
+            .pointerDown()
+            .pointerUp())
+            .send();
+        } else {
+          await test_driver.click(elementToClick);
+        }
 
         const parentShouldReceiveEvents = eventName.startsWith('pointer');
         assert_equals(parentReceivedEvent, parentShouldReceiveEvents,

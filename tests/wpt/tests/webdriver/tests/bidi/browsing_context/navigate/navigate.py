@@ -18,7 +18,7 @@ async def test_payload(bidi_session, inline, new_tab):
     assert result["url"] == url
 
 
-async def test_interactive_simultaneous_navigation(bidi_session, inline, new_tab):
+async def test_interactive_simultaneous_navigation(bidi_session, wait_for_future_safe, inline, new_tab):
     frame1_start_url = inline("frame1")
     frame2_start_url = inline("frame2")
 
@@ -61,7 +61,7 @@ async def test_interactive_simultaneous_navigation(bidi_session, inline, new_tab
     assert frame2_result["url"] == frame2_url
 
     # The "interactive" navigation should resolve before the 5 seconds timeout.
-    await asyncio.wait_for(frame1_task, timeout=5)
+    await wait_for_future_safe(frame1_task, timeout=5)
 
     frame1_result = frame1_task.result()
     assert frame1_result["url"] == frame1_url

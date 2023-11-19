@@ -74,6 +74,8 @@ dictionary RTCEncodedVideoFrameMetadata {
     octet payloadType;
     sequence<unsigned long> contributingSources;
     long long timestamp;    // microseconds
+    unsigned long rtpTimestamp;
+    DOMString mimeType;
 };
 
 // New interfaces to define encoded video and audio frames. Will eventually
@@ -81,7 +83,6 @@ dictionary RTCEncodedVideoFrameMetadata {
 [Exposed=(Window,DedicatedWorker), Serializable]
 interface RTCEncodedVideoFrame {
     readonly attribute RTCEncodedVideoFrameType type;
-    readonly attribute unsigned long timestamp;
     attribute ArrayBuffer data;
     RTCEncodedVideoFrameMetadata getMetadata();
 };
@@ -91,11 +92,12 @@ dictionary RTCEncodedAudioFrameMetadata {
     octet payloadType;
     sequence<unsigned long> contributingSources;
     short sequenceNumber;
+    unsigned long rtpTimestamp;
+    DOMString mimeType;
 };
 
 [Exposed=(Window,DedicatedWorker), Serializable]
 interface RTCEncodedAudioFrame {
-    readonly attribute unsigned long timestamp;
     attribute ArrayBuffer data;
     RTCEncodedAudioFrameMetadata getMetadata();
 };

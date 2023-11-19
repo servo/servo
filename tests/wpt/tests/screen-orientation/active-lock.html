@@ -5,8 +5,10 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<p id="#fragment"></p>
-<a href="#fragment">fragment</a>
+<body>
+  <p id="fragment"></p>
+  <a href="#fragment">fragment</a>
+</body>
 <script type="module">
   import {
     attachIframe,
@@ -25,31 +27,29 @@
   }, "Performing a fragment navigation must not abort the screen orientation change");
 
   promise_test(async (t) => {
-    t.add_cleanup(makeCleanup());
-    const iframe = await attachIframe();
-    iframe.contentDocument.body.innerHTML = `
-      <p id="#fragment"></p>
-      <a href="#fragment">fragment</a>
-    `;
-    await test_driver.bless("request full screen");
-    await document.documentElement.requestFullscreen();
+    const iframe = await attachIframe({ src: "./resources/nav_iframe.html" });
+    t.add_cleanup(makeCleanup(iframe));
+    await test_driver.bless("request full screen", null, iframe.contentWindow);
+    await iframe.contentDocument.documentElement.requestFullscreen();
     const orientation = getOppositeOrientation();
     const p = iframe.contentWindow.screen.orientation.lock(orientation);
-    await test_driver.click(iframe.contentDocument.querySelector("a"));
+    const anchor = iframe.contentDocument.querySelector("#clickme");
+    await test_driver.click(anchor);
     await p;
-    iframe.remove();
   }, "Performing a fragment navigation within an iframe must not abort the lock promise");
 
   promise_test(async (t) => {
-    t.add_cleanup(makeCleanup());
     const iframe = await attachIframe();
-    await test_driver.bless("request full screen");
-    await document.documentElement.requestFullscreen();
+    t.add_cleanup(makeCleanup(iframe));
+    await test_driver.bless("request full screen", null, iframe.contentWindow);
+    await iframe.contentDocument.documentElement.requestFullscreen();
     const orientation = getOppositeOrientation();
-    const p = iframe.contentWindow.screen.orientation.lock(orientation);
+    const lockPromise = iframe.contentWindow.screen.orientation.lock(orientation);
     const frameDOMException = iframe.contentWindow.DOMException;
-    iframe.contentWindow.location.href = "./resources/empty.html";
-    await promise_rejects_dom(t, "AbortError", frameDOMException, p);
-    iframe.remove();
+    await new Promise((r) => {
+      iframe.addEventListener("load", r, { once: true });
+      iframe.contentWindow.location.href = "about:blank";
+    });
+    await promise_rejects_dom(t, "AbortError", frameDOMException, lockPromise);
   }, "Unloading an iframe by navigating it must abort the lock promise");
 </script>

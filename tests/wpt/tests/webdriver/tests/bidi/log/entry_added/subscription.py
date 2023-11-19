@@ -7,7 +7,7 @@ from . import assert_base_entry, create_log
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("log_type", ["console_api_log", "javascript_error"])
-async def test_subscribe_twice(bidi_session, new_tab, wait_for_event, log_type):
+async def test_subscribe_twice(bidi_session, new_tab, wait_for_event, wait_for_future_safe, log_type):
     # Subscribe to log.entryAdded twice and check that events are received once.
     await bidi_session.session.subscribe(events=["log.entryAdded"])
     await bidi_session.session.subscribe(events=["log.entryAdded"])
@@ -23,7 +23,7 @@ async def test_subscribe_twice(bidi_session, new_tab, wait_for_event, log_type):
     # Check for a ConsoleLogEntry.
     on_entry_added = wait_for_event("log.entryAdded")
     expected_text = await create_log(bidi_session, new_tab, log_type, "text1")
-    await on_entry_added
+    await wait_for_future_safe(on_entry_added)
 
     assert len(events) == 1
     assert_base_entry(events[0], text=expected_text)
@@ -37,13 +37,13 @@ async def test_subscribe_twice(bidi_session, new_tab, wait_for_event, log_type):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("log_type", ["console_api_log", "javascript_error"])
-async def test_subscribe_unsubscribe(bidi_session, new_tab, wait_for_event, log_type):
+async def test_subscribe_unsubscribe(bidi_session, new_tab, wait_for_event, wait_for_future_safe, log_type):
     # Subscribe for log events globally
     await bidi_session.session.subscribe(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_log(bidi_session, new_tab, log_type, "some text")
-    await on_entry_added
+    await wait_for_future_safe(on_entry_added)
 
     # Unsubscribe from log events globally
     await bidi_session.session.unsubscribe(events=["log.entryAdded"])
@@ -90,7 +90,7 @@ async def test_subscribe_unsubscribe(bidi_session, new_tab, wait_for_event, log_
 
     on_entry_added = wait_for_event("log.entryAdded")
     expected_text_2 = await create_log(bidi_session, new_tab, log_type, "text_2")
-    await on_entry_added
+    await wait_for_future_safe(on_entry_added)
 
     assert len(events) == 3
     assert_base_entry(events[0], text=expected_text_0, context=new_tab["context"])
@@ -102,7 +102,7 @@ async def test_subscribe_unsubscribe(bidi_session, new_tab, wait_for_event, log_
 
     on_entry_added = wait_for_event("log.entryAdded")
     expected_text_3 = await create_log(bidi_session, new_context, log_type, "text_3")
-    await on_entry_added
+    await wait_for_future_safe(on_entry_added)
 
     assert len(events) == 4
     assert_base_entry(events[3], text=expected_text_3, context=new_context["context"])

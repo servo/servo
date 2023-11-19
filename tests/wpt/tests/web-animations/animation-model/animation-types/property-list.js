@@ -670,7 +670,7 @@ const gCSSProperties1 = {
   'grid-template-areas': {
     // https://drafts.csswg.org/css-template/#grid-template-areas
     types: [
-      { type: 'discrete', options: [ [ '". . a b" ". .a b"', 'none' ] ] }
+      { type: 'discrete', options: [ [ '". . a b" ". . a b"', 'none' ] ] }
     ]
   },
   'height': {

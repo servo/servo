@@ -136,16 +136,16 @@
 <br>
 
 <h1>simple for each child with image</h1>
-<button data-expectedlabel="one two three" data-testname="button name from content for each child including image" class="ex"><span>one</span> <img src="#" alt="two"> <span>three</span></button><br>
-<h3 data-expectedlabel="one two three" data-testname="heading name from content for each child including image" class="ex"><span>one</span> <img src="#" alt="two"> <span>three</span></h3>
-<a href="#" data-expectedlabel="one two three" data-testname="link name from content for each child including image" class="ex"><span>one</span> <img src="#" alt="two"> <span>three</span></a><br>
+<button data-expectedlabel="one two three" data-testname="button name from content for each child including image" class="ex"><span>one</span> <img alt="two" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="> <span>three</span></button><br>
+<h3 data-expectedlabel="one two three" data-testname="heading name from content for each child including image" class="ex"><span>one</span> <img alt="two" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="> <span>three</span></h3>
+<a href="#" data-expectedlabel="one two three" data-testname="link name from content for each child including image" class="ex"><span>one</span> <img alt="two" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="> <span>three</span></a><br>
 <br>
 
 
 <h1>simple for each child with extra nesting containing image</h1>
-<button data-expectedlabel="one two three four" data-testname="button name from content for each child including nested image" class="ex"><span>one</span> <span>two <img src="#" alt="three"></span> <span>four</span></button><br>
-<h3 data-expectedlabel="one two three four" data-testname="heading name from content for each child including nested image" class="ex"><span>one</span> <span>two <img src="#" alt="three"></span> <span>four</span></h3>
-<a href="#" data-expectedlabel="one two three four" data-testname="link name from content for each child including nested image" class="ex"><span>one</span> <span>two <img src="#" alt="three"></span> <span>four</span></a><br>
+<button data-expectedlabel="one two three four" data-testname="button name from content for each child including nested image" class="ex"><span>one</span> <span>two <img alt="three" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="></span> <span>four</span></button><br>
+<h3 data-expectedlabel="one two three four" data-testname="heading name from content for each child including nested image" class="ex"><span>one</span> <span>two <img alt="three" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="></span> <span>four</span></h3>
+<a href="#" data-expectedlabel="one two three four" data-testname="link name from content for each child including nested image" class="ex"><span>one</span> <span>two <img alt="three" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="></span> <span>four</span></a><br>
 <br>
 
 <h1>heading with nested button with nested image</h1>
@@ -153,7 +153,7 @@
   heading
   <button>
     button
-    <img src="#" alt="image">
+    <img alt="image" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
     button
   </button>
   heading
@@ -164,7 +164,7 @@
   heading
   <a href="#">
     link
-    <img src="#" alt="image">
+    <img alt="image" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
     link
   </a>
   heading
@@ -175,7 +175,7 @@
   heading
   <a href="#" aria-label="link aria-label"><!-- should skip the other link text -->
     ignored link text
-    <img id="nested_image_label_1" src="#" alt="ignored image alt">
+    <img id="nested_image_label_1" alt="ignored image alt" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
     ignored link text
   </a>
   heading
@@ -186,7 +186,7 @@
   heading
   <a href="#" aria-labelledby="nested_image_label1"><!-- should skip the other link text -->
     ignored link text
-    <img id="nested_image_label1" src="#" alt="image">
+    <img id="nested_image_label1" alt="image" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
     ignored link text
   </a>
   heading
@@ -199,7 +199,7 @@
   </a>
   <a href="#" data-expectedlabel="link2 image link3" data-testname="link name from content for each child including nested image (referenced elsewhere via labelledby)" class="ex">
     link2
-    <img id="nested_image_label2" src="#" alt="image">
+    <img id="nested_image_label2" alt="image" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
     <!-- image skipped in this link (when computing heading text) because it was already referenced by the first link within this heading label recursion cycle. -->
     <!-- but image not skipped when computing the text of the link itself since it has not been referenced in that context -->
     link3
@@ -213,7 +213,7 @@
     <span class="note" id="crossref_link">link</span><!-- this text is skipped the first time around because of aria-labelledby on parent element -->
   </a>
   <!-- but it's picked up again in inverse order b/c of cross-referencial aria-labelledby edge case -->
-  <img id="nested_image_label_3" src="#" alt="image" aria-labelledby="crossref_link">
+  <img id="nested_image_label_3" alt="image" aria-labelledby="crossref_link" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
 </h3>
 
 <!-- self-referencial edge case-->
@@ -223,7 +223,7 @@
     <span class="note" id="crossref_link2">link</span><!-- this text is skipped the first time around because of aria-labelledby on parent element -->
   </a>
   <!-- but it's picked up again (after the self-referencial image alt) in inverse order b/c of cross-referencial aria-labelledby edge case -->
-  <img id="nested_image_label4" src="#" alt="image" aria-labelledby="nested_image_label4 crossref_link2">
+  <img id="nested_image_label4" alt="image" aria-labelledby="nested_image_label4 crossref_link2" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
 </h3>
 
 

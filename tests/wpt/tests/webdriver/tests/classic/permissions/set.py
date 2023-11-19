@@ -1,6 +1,7 @@
 from tests.support.asserts import assert_error, assert_success
 import pytest
 
+
 def query(session, name):
     script = """
         var done = arguments[0];
@@ -14,29 +15,63 @@ def query(session, name):
 
     return session.transport.send(
         "POST", "/session/{session_id}/execute/async".format(**vars(session)),
-        {"script": script, "args": []})
+        {
+            "script": script,
+            "args": []
+        })
+
 
 # > 1. Let parameters be the parameters argument, converted to an IDL value of
 # >    type PermissionSetParameters. If this throws an exception, return a
 # >    WebDriver error with WebDriver error code invalid argument.
-@pytest.mark.parametrize("parameters", [
-    #{ "descriptor": { "name": "geolocation" }, "state": "granted" }
-    { "descriptor": { "name": 23 }, "state": "granted" },
-    { "descriptor": { }, "state": "granted" },
-    { "descriptor": { "name": "geolocation" }, "state": "Granted" },
-    { "descriptor": 23, "state": "granted" },
-    { "descriptor": "geolocation", "state": "granted" },
-    { "descriptor": [ { "name": "geolocation" } ], "state": "granted" },
-    [ { "descriptor": { "name": "geolocation" }, "state": "granted" } ],
-])
+@pytest.mark.parametrize(
+    "parameters",
+    [
+        #{ "descriptor": { "name": "geolocation" }, "state": "granted" }
+        {
+            "descriptor": {
+                "name": 23
+            },
+            "state": "granted"
+        },
+        {
+            "descriptor": {},
+            "state": "granted"
+        },
+        {
+            "descriptor": {
+                "name": "geolocation"
+            },
+            "state": "Granted"
+        },
+        {
+            "descriptor": 23,
+            "state": "granted"
+        },
+        {
+            "descriptor": "geolocation",
+            "state": "granted"
+        },
+        {
+            "descriptor": [{
+                "name": "geolocation"
+            }],
+            "state": "granted"
+        },
+        [{
+            "descriptor": {
+                "name": "geolocation"
+            },
+            "state": "granted"
+        }],
+    ])
 def test_invalid_parameters(session, url, parameters):
     session.url = url("/common/blank.html", protocol="https")
     response = session.transport.send(
-        "POST",
-        "/session/{session_id}/permissions".format(**vars(session)),
-        parameters
-    )
+        "POST", "/session/{session_id}/permissions".format(**vars(session)),
+        parameters)
     assert_error(response, "invalid argument")
+
 
 # > 6. If settings is a non-secure context and rootDesc.name isn't allowed in
 # >    non-secure contexts, return a WebDriver error with WebDriver error code
@@ -45,20 +80,23 @@ def test_invalid_parameters(session, url, parameters):
 def test_non_secure_context(session, url, state):
     session.url = url("/common/blank.html", protocol="http")
     response = session.transport.send(
-        "POST", "/session/{session_id}/permissions".format(**vars(session)),
-        { "descriptor": { "name": "push" }, "state": state }
-    )
+        "POST", "/session/{session_id}/permissions".format(**vars(session)), {
+            "descriptor": {
+                "name": "push"
+            },
+            "state": state
+        })
 
     assert_error(response, "invalid argument")
+
 
 @pytest.mark.parametrize("state", ["granted", "denied", "prompt"])
 def test_set_to_state(session, url, state):
     session.url = url("/common/blank.html", protocol="https")
-    parameters = { "descriptor": { "name": "geolocation" }, "state": state }
+    parameters = {"descriptor": {"name": "geolocation"}, "state": state}
     response = session.transport.send(
         "POST", "/session/{session_id}/permissions".format(**vars(session)),
-        parameters
-    )
+        parameters)
 
     try:
         assert_success(response)
@@ -69,7 +107,7 @@ def test_set_to_state(session, url, state):
         assert_error(response, "invalid argument")
         return
 
-    assert response.body.get("value") == None
+    assert response.body.get("value") is None
 
     response = query(session, "geolocation")
 

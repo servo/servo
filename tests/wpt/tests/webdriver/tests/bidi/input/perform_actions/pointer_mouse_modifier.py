@@ -33,14 +33,14 @@ async def test_control_click(
     outer = await get_element("#outer")
 
     actions = Actions()
-    key_sources = (
+    (
         actions.add_key()
         .pause(duration=0)
         .key_down(modifier)
         .pause(duration=200)
         .key_up(modifier)
     )
-    mouse_sources = (
+    (
         actions.add_pointer()
         .pointer_move(x=0, y=0, origin=get_element_origin(outer))
         .pointer_down(button=0)
@@ -98,8 +98,8 @@ async def test_control_click_release(
     )
 
     actions = Actions()
-    key_sources = actions.add_key().pause(duration=0).key_down(Keys.CONTROL)
-    mouse_sources = (
+    actions.add_key().pause(duration=0).key_down(Keys.CONTROL)
+    (
         actions.add_pointer()
         .pointer_move(x=0, y=0, origin=get_element_origin(key_reporter))
         .pointer_down(button=0)
@@ -137,7 +137,7 @@ async def test_many_modifiers_click(
 
     dblclick_timeout = 800
     actions = Actions()
-    key_sources = (
+    (
         actions.add_key()
         .pause(duration=0)
         .key_down(Keys.ALT)
@@ -146,7 +146,7 @@ async def test_many_modifiers_click(
         .key_up(Keys.ALT)
         .key_up(Keys.SHIFT)
     )
-    mouse_sources = (
+    (
         actions.add_pointer()
         .pointer_move(x=0, y=0, origin=get_element_origin(outer))
         .pause(duration=0)
@@ -203,7 +203,7 @@ async def test_modifier_click(
     outer = await get_element("#outer")
 
     actions = Actions()
-    key_sources = (
+    (
         actions.add_key()
         .pause(duration=200)
         .key_down(modifier)
@@ -211,7 +211,7 @@ async def test_modifier_click(
         .pause(duration=0)
         .key_up(modifier)
     )
-    mouse_sources = (
+    (
         actions.add_pointer()
         .pointer_move(x=0, y=0, origin=get_element_origin(outer))
         .pause(duration=50)

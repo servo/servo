@@ -36,20 +36,20 @@ async def test_unsubscribe(bidi_session, inline, new_tab):
 
 
 async def test_subscribe(
-    bidi_session, subscribe_events, inline, new_tab, wait_for_event
+    bidi_session, subscribe_events, inline, new_tab, wait_for_event, wait_for_future_safe
 ):
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
 
     on_entry = wait_for_event(CONTEXT_LOAD_EVENT)
     url = inline("<div>foo</div>")
     await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url)
-    event = await on_entry
+    event = await wait_for_future_safe(on_entry)
 
     assert_navigation_info(event, {"context": new_tab["context"], "url": url})
 
 
 async def test_timestamp(
-    bidi_session, current_time, subscribe_events, inline, new_tab, wait_for_event
+    bidi_session, current_time, subscribe_events, inline, new_tab, wait_for_event, wait_for_future_safe
 ):
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
 
@@ -60,7 +60,7 @@ async def test_timestamp(
     result = await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=url
     )
-    event = await on_entry
+    event = await wait_for_future_safe(on_entry)
 
     time_end = await current_time()
 
@@ -122,12 +122,12 @@ async def test_iframe(
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_new_context(bidi_session, subscribe_events, wait_for_event, type_hint):
+async def test_new_context(bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, type_hint):
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
 
     on_entry = wait_for_event(CONTEXT_LOAD_EVENT)
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
-    event = await on_entry
+    event = await wait_for_future_safe(on_entry)
 
     assert_navigation_info(
         event, {"context": new_context["context"], "url": "about:blank"}
@@ -136,7 +136,7 @@ async def test_new_context(bidi_session, subscribe_events, wait_for_event, type_
 
 
 async def test_document_write(
-    bidi_session, subscribe_events, top_context, wait_for_event
+    bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe
 ):
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
 
@@ -148,7 +148,7 @@ async def test_document_write(
         await_promise=False,
     )
 
-    event = await on_entry
+    event = await wait_for_future_safe(on_entry)
 
     assert_navigation_info(
         event,
@@ -158,7 +158,7 @@ async def test_document_write(
 
 
 async def test_page_with_base_tag(
-    bidi_session, subscribe_events, inline, new_tab, wait_for_event
+    bidi_session, subscribe_events, inline, new_tab, wait_for_event, wait_for_future_safe
 ):
     await subscribe_events(events=[CONTEXT_LOAD_EVENT])
 
@@ -167,7 +167,7 @@ async def test_page_with_base_tag(
     result = await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=url
     )
-    event = await on_entry
+    event = await wait_for_future_safe(on_entry)
 
     assert_navigation_info(
         event,

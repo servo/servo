@@ -89,7 +89,7 @@ async def test_remote_value_deserialization(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "channel, expected_data",
-   [
+    [
         (
             {"type": "channel", "value": {"channel": "channel_name"}},
             {"type": "object", "value": [["foo", {"type": "string", "value": "bar"}]]},
@@ -121,7 +121,8 @@ async def test_remote_value_deserialization(
     ids=["default", "with serializationOptions", "with ownership"],
 )
 async def test_channel(
-    bidi_session, top_context, subscribe_events, wait_for_event, channel, expected_data
+    bidi_session, top_context, subscribe_events, wait_for_event,
+    wait_for_future_safe, channel, expected_data
 ):
     await subscribe_events(["script.message"])
 
@@ -133,7 +134,7 @@ async def test_channel(
         target=ContextTarget(top_context["context"]),
         this=channel,
     )
-    event_data = await on_entry_added
+    event_data = await wait_for_future_safe(on_entry_added)
 
     recursive_compare(
         {

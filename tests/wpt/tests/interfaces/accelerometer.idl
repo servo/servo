@@ -26,15 +26,3 @@ interface LinearAccelerationSensor : Accelerometer {
 interface GravitySensor : Accelerometer {
   constructor(optional AccelerometerSensorOptions options = {});
 };
-
-dictionary AccelerometerReadingValues {
-  required double? x;
-  required double? y;
-  required double? z;
-};
-
-dictionary LinearAccelerationReadingValues : AccelerometerReadingValues {
-};
-
-dictionary GravityReadingValues : AccelerometerReadingValues {
-};

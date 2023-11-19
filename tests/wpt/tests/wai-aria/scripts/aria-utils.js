@@ -105,12 +105,12 @@ const AriaUtils = {
       AriaUtils.verifyGenericRolesBySelector(".ex-generic");
 
    This helper function is equivalant to AriaUtils.verifyRoleOrVariantRolesBySelector(".ex-generic", ["generic", "", "none"]);
-   See various issues and discussions linked from https://github.com/web-platform-tests/interop-2023-accessibility-testing/issues/48
+   See various issues and discussions linked from https://github.com/web-platform-tests/interop-accessibility/issues/48
 
   */
   verifyGenericRolesBySelector: function(selector) {
     // ARIA WG determined implementation variants "none" (Chromium), and the empty string "" (WebKit), are sufficiently equivalent to "generic" for WPT test verification of HTML-AAM.
-    // See various discussions linked from https://github.com/web-platform-tests/interop-2023-accessibility-testing/issues/48
+    // See various discussions linked from https://github.com/web-platform-tests/interop-accessibility/issues/48
     this.verifyRoleOrVariantRolesBySelector(selector, ["generic", "", "none"]);
   },
 

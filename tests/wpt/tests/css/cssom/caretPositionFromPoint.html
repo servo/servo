@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>document.caretPositionFromPoint()</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-document-caretpositionfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #textDiv {
+    display: inline-block;
+  }
+</style>
+<div id="textDiv">aaa</div>
+<script>
+  test(() => {
+    assert_throws_js(TypeError, () => { document.caretPositionFromPoint(); });
+    assert_throws_js(TypeError, () => { document.caretPositionFromPoint(5); });
+    assert_throws_js(TypeError, () => { document.caretPositionFromPoint("foo", 5); });
+  }, "document.caretPositionFromPoint() throws when called without the correct parameters");
+
+  test(() => {
+    const doc = document.implementation.createHTMLDocument("");
+    assert_equals(doc.caretPositionFromPoint(0, 0), null);
+  }, "document.caretPositionFromPoint() should return null for a document with no viewport");
+
+  test(() => {
+    assert_equals(document.caretPositionFromPoint(-5, 5), null);
+    assert_equals(document.caretPositionFromPoint(5, -5), null);
+    assert_equals(document.caretPositionFromPoint(document.documentElement.clientWidth * 2, 5), null);
+    assert_equals(document.caretPositionFromPoint(5, document.documentElement.clientHeight * 2), null);
+  }, "document.caretPositionFromPoint() should return null if given coordinates outside of the viewport");
+
+  test(() => {
+    const textDiv = document.getElementById("textDiv");
+    const rect = textDiv.getBoundingClientRect();
+    const characterWidth = rect.width / textDiv.textContent.length;
+    const characterIndex = 2
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y);
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Text);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, textDiv.firstChild);
+    assert_equals(caretPosition.offset, characterIndex);
+  }, "document.caretPositionFromPoint() should return a CaretPosition at the specified location");
+
+  test(() => {
+    const textDiv = document.getElementById("textDiv");
+    const rect = textDiv.getBoundingClientRect();
+    const characterWidth = rect.width / textDiv.textContent.length;
+    const characterIndex = 2
+    const x = rect.left + characterWidth * characterIndex;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y);
+    const caretRangeExpected = new Range();
+    caretRangeExpected.setStart(textDiv.firstChild, characterIndex);
+    caretRectExpected = caretRangeExpected.getBoundingClientRect();
+    assert_true(caretPosition.getClientRect instanceof Function);
+    const caretRectActual = caretPosition.getClientRect();
+    assert_true(caretRectActual instanceof DOMRect);
+    assert_not_equals(caretRectActual, caretPosition.getClientRect(), "CaretPosition.getClientRect() should return a new DOMRect every time");
+    assert_equals(caretRectActual.x, caretRectExpected.x);
+    assert_equals(caretRectActual.y, caretRectExpected.y);
+    assert_equals(caretRectActual.width, 0, "Caret range should be collapsed");
+    assert_equals(caretRectActual.height, caretRectExpected.height);
+  }, "CaretRange.getClientRect() should return a DOMRect that matches one obtained from a manually constructed Range");
+</script>

@@ -173,8 +173,8 @@ async def test_margin_minimum_page_size(
 
     # Check that margins don't affect page dimensions and equal defaults.
     await assert_pdf_dimensions(value, {
-       "width": expected_width,
-       "height": expected_height,
+        "width": expected_width,
+        "height": expected_height,
     })
 
 

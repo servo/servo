@@ -3,10 +3,6 @@
 // (https://github.com/w3c/webref)
 // Source: CSS View Transitions Module Level 1 (https://drafts.csswg.org/css-view-transitions-1/)
 
-partial interface Document {
-  ViewTransition startViewTransition(optional UpdateCallback? updateCallback = null);
-};
-
 callback UpdateCallback = Promise<any> ();
 
 [Exposed=Window]

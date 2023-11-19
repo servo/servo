@@ -17,7 +17,7 @@ PAGE_REDIRECTED_HTML = "/webdriver/tests/bidi/network/support/redirected.html"
 
 
 @pytest.mark.asyncio
-async def test_subscribe_status(bidi_session, subscribe_events, top_context, wait_for_event, url, fetch):
+async def test_subscribe_status(bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe, url, fetch):
     await subscribe_events(events=["network.beforeRequestSent"])
 
     await bidi_session.browsing_context.navigate(
@@ -39,7 +39,7 @@ async def test_subscribe_status(bidi_session, subscribe_events, top_context, wai
     text_url = url(PAGE_EMPTY_TEXT)
     on_before_request_sent = wait_for_event("network.beforeRequestSent")
     await fetch(text_url)
-    await on_before_request_sent
+    await wait_for_future_safe(on_before_request_sent)
 
     assert len(events) == 1
     expected_request = {"method": "GET", "url": text_url}
@@ -62,7 +62,7 @@ async def test_subscribe_status(bidi_session, subscribe_events, top_context, wai
 
 @pytest.mark.asyncio
 async def test_load_page_twice(
-    bidi_session, top_context, wait_for_event, url, setup_network_test
+    bidi_session, top_context, wait_for_event, url, setup_network_test, wait_for_future_safe
 ):
     html_url = url(PAGE_EMPTY_HTML)
 
@@ -75,7 +75,7 @@ async def test_load_page_twice(
         url=html_url,
         wait="complete",
     )
-    await on_before_request_sent
+    await wait_for_future_safe(on_before_request_sent)
 
     assert len(events) == 1
     expected_request = {"method": "GET", "url": html_url}
@@ -88,7 +88,7 @@ async def test_load_page_twice(
 
 @pytest.mark.asyncio
 async def test_navigation_id(
-    bidi_session, top_context, wait_for_event, url, fetch, setup_network_test
+    bidi_session, top_context, wait_for_event, url, fetch, setup_network_test, wait_for_future_safe
 ):
     html_url = url(PAGE_EMPTY_HTML)
 
@@ -101,7 +101,7 @@ async def test_navigation_id(
         url=html_url,
         wait="complete",
     )
-    await on_before_request_sent
+    await wait_for_future_safe(on_before_request_sent)
 
     assert len(events) == 1
     expected_request = {"method": "GET", "url": html_url}
@@ -113,7 +113,7 @@ async def test_navigation_id(
     text_url = url(PAGE_EMPTY_TEXT)
     on_before_request_sent = wait_for_event("network.beforeRequestSent")
     await fetch(text_url, method="GET")
-    await on_before_request_sent
+    await wait_for_future_safe(on_before_request_sent)
 
     assert len(events) == 2
     expected_request = {"method": "GET", "url": text_url}
@@ -139,7 +139,7 @@ async def test_navigation_id(
 )
 @pytest.mark.asyncio
 async def test_request_method(
-    bidi_session, wait_for_event, url, fetch, setup_network_test, method
+    wait_for_event, wait_for_future_safe, url, fetch, setup_network_test, method
 ):
     text_url = url(PAGE_EMPTY_TEXT)
 
@@ -148,7 +148,7 @@ async def test_request_method(
 
     on_before_request_sent = wait_for_event("network.beforeRequestSent")
     await fetch(text_url, method=method)
-    await on_before_request_sent
+    await wait_for_future_safe(on_before_request_sent)
 
     assert len(events) == 1
     expected_request = {"method": method, "url": text_url}
@@ -161,7 +161,7 @@ async def test_request_method(
 
 @pytest.mark.asyncio
 async def test_request_headers(
-    bidi_session, wait_for_event, url, fetch, setup_network_test
+    wait_for_event, wait_for_future_safe, url, fetch, setup_network_test
 ):
     text_url = url(PAGE_EMPTY_TEXT)
 
@@ -170,7 +170,7 @@ async def test_request_headers(
 
     on_before_request_sent = wait_for_event("network.beforeRequestSent")
     await fetch(text_url, method="GET", headers={"foo": "bar"})
-    await on_before_request_sent
+    await wait_for_future_safe(on_before_request_sent)
 
     assert len(events) == 1
     expected_request = {
@@ -187,7 +187,7 @@ async def test_request_headers(
 
 @pytest.mark.asyncio
 async def test_request_cookies(
-    bidi_session, top_context, wait_for_event, url, fetch, setup_network_test
+    bidi_session, top_context, wait_for_event, wait_for_future_safe, url, fetch, setup_network_test
 ):
     text_url = url(PAGE_EMPTY_TEXT)
 
@@ -202,7 +202,7 @@ async def test_request_cookies(
 
     on_before_request_sent = wait_for_event("network.beforeRequestSent")
     await fetch(text_url, method="GET")
-    await on_before_request_sent
+    await wait_for_future_safe(on_before_request_sent)
 
     assert len(events) == 1
     expected_request = {
@@ -224,7 +224,7 @@ async def test_request_cookies(
 
     on_before_request_sent = wait_for_event("network.beforeRequestSent")
     await fetch(text_url, method="GET")
-    await on_before_request_sent
+    await wait_for_future_safe(on_before_request_sent)
 
     assert len(events) == 2
 

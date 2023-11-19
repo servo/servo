@@ -84,7 +84,7 @@ def test_close_last_browsing_context(session):
 
 def test_element_usage_after_closing_browsing_context(session, inline):
     session.url = inline("<p id='a'>foo")
-    a = session.find.css("p", all=False)
+    session.find.css("p", all=False)
     first = session.window_handle
 
     second = session.new_window(type_hint="tab")

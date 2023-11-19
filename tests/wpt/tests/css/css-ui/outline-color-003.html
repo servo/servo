@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: outline-color - respect accent-color </title>
+<link rel="author" title="Helmut Januschka" href="mailto:helmut@januschka.com">
+<link rel="help" title="'outline-color' should use 'accent-color' if auto"
+  href="https://www.w3.org/TR/css-ui-4/#propdef-outline-color">
+<link rel="match" href="outline-color-003-ref.html">
+<meta name="assert" content="Test Checks if accent-color is used when outline-color and outline-style auto">
+
+<div style="padding: 10px; width: 200px; height: 50px; outline: auto; accent-color: purple;">
+  <div style="outline: inherit; accent-color: green;">Green inner outline with a purple outer outline</div>
+</div>

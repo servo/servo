@@ -8,7 +8,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/dom/events/scrolling/scroll_support.js"></script>
-<script src="resources/common.js"></script>
+<script src="/css/css-scroll-snap-2/resources/common.js"></script>
 <style>
   div {
     position: absolute;
@@ -46,7 +46,7 @@
   let resolve_func = null;
 
   promise_test(async (test) => {
-    checkSnapchangedSupport();
+    checkSnapEventSupport("snapchanged");
     await waitForCompositorCommit();
     // The initial snap position is at (0, 0).
     assert_equals(scroller.scrollTop, 0);
@@ -61,7 +61,7 @@
     // to outside the proximity range and are no longer snapped.
     let evt = await snapchanged_promise;
     assert_equals(scroller.scrollTop, 250);
-    assertSnapchangedEvent(evt, []);
+    assertSnapEvent(evt, []);
     evt = null;
 
     snapchanged_promise = waitForSnapChangedEvent(scroller);
@@ -73,7 +73,7 @@
     assert_equals(scroller.scrollTop, 0);
     // snapchanged should fire as we've moved from outside the proximity range
     // to inside the proximity range and are once again snapped.
-    assertSnapchangedEvent(evt, [target.id]);
+    assertSnapEvent(evt, [target.id]);
   }, "Snapchanged fires when scrolling outside proximity range.");
   </script>
 </body>

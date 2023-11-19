@@ -32,12 +32,12 @@ async def test_not_unsubscribed(bidi_session):
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_new_context(bidi_session, wait_for_event, subscribe_events, type_hint):
+async def test_new_context(bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, type_hint):
     await subscribe_events([CONTEXT_CREATED_EVENT])
 
     on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
     top_level_context = await bidi_session.browsing_context.create(type_hint=type_hint)
-    context_info = await on_entry
+    context_info = await wait_for_future_safe(on_entry)
 
     assert_browsing_context(
         context_info,
@@ -48,7 +48,7 @@ async def test_new_context(bidi_session, wait_for_event, subscribe_events, type_
     )
 
 
-async def test_evaluate_window_open_without_url(bidi_session, subscribe_events, wait_for_event, top_context):
+async def test_evaluate_window_open_without_url(bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, top_context):
     await subscribe_events([CONTEXT_CREATED_EVENT])
 
     on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
@@ -58,7 +58,7 @@ async def test_evaluate_window_open_without_url(bidi_session, subscribe_events, 
         target=ContextTarget(top_context["context"]),
         await_promise=False)
 
-    context_info = await on_entry
+    context_info = await wait_for_future_safe(on_entry)
 
     assert_browsing_context(
         context_info,
@@ -69,7 +69,7 @@ async def test_evaluate_window_open_without_url(bidi_session, subscribe_events, 
     )
 
 
-async def test_evaluate_window_open_with_url(bidi_session, subscribe_events, wait_for_event, inline, top_context):
+async def test_evaluate_window_open_with_url(bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, inline, top_context):
     url = inline("<div>foo</div>")
 
     await subscribe_events([CONTEXT_CREATED_EVENT])
@@ -80,7 +80,7 @@ async def test_evaluate_window_open_with_url(bidi_session, subscribe_events, wai
         expression=f"""window.open("{url}");""",
         target=ContextTarget(top_context["context"]),
         await_promise=False)
-    context_info = await on_entry
+    context_info = await wait_for_future_safe(on_entry)
 
     assert_browsing_context(
         context_info,

@@ -86,4 +86,80 @@ test(function() {
                           {value: option0, writable: true, enumerable: true,
                            configurable: true});
 }, "Test [[DefineOwnProperty]] with indexed property setter support.");
+
+test(function() {
+  let dataList = document.createElement("datalist");
+  let option0 = document.createElement("option");
+  option0.id = "foo";
+  dataList.append(option0);
+  // HTMLCollection supports a named property getter but not a setter.
+  let htmlCollection = dataList.options;
+  // Confirm the test settings.
+  assert_equals(htmlCollection.length, 1);
+  // HTMLCollection is marked LegacyUnenumerableNamedProperties so enumerable
+  // is false.
+  assert_prop_desc_equals(htmlCollection, "foo",
+                          {value: option0, writable: false, enumerable: false,
+                           configurable: true});
+  assert_prop_desc_equals(htmlCollection, "bar", undefined);
+  // Actual test
+  assert_throws_js(TypeError, () =>
+      Object.defineProperty(htmlCollection, "foo",
+                            {value: true, writable: true}));
+  assert_throws_js(TypeError, () =>
+      Object.defineProperty(htmlCollection, "foo", {get: () => {}}));
+  assert_throws_js(TypeError, () =>
+      Object.defineProperty(htmlCollection, "foo", {set: () => {}}));
+  let option1 = document.createElement("option");
+  option1.id = "bar";
+  Object.defineProperty(htmlCollection, "bar",
+                        {value: option1, writable: true});
+  assert_equals(htmlCollection["foo"], option0);
+  assert_equals(htmlCollection["bar"], option1);
+  htmlCollection["foo"] = document.documentElement;
+  htmlCollection["baz"] = document.documentElement;
+  assert_equals(htmlCollection["foo"], option0);
+  assert_equals(htmlCollection["baz"], document.documentElement);
+  assert_throws_js(TypeError, () => {
+    "use strict";
+    htmlCollection["foo"] = document.documentElement;
+  });
+  // Nothing must change after all for supported property names.
+  assert_prop_desc_equals(htmlCollection, "foo",
+                          {value: option0, writable: false, enumerable: false,
+                           configurable: true});
+}, "Test [[DefineOwnProperty]] with no named property setter support.");
+
+test(function() {
+  let element = document.createElement("div");
+  // DOMStringMap supports a named property setter.
+  let domStringMap = element.dataset;
+  // Confirm the test settings.
+  assert_prop_desc_equals(domStringMap, "foo", undefined);
+  // Try to define an accessor property with non supported property name.
+  assert_throws_js(TypeError, () =>
+      Object.defineProperty(domStringMap, "foo", {get: () => {}}));
+  assert_throws_js(TypeError, () =>
+      Object.defineProperty(domStringMap, "foo", {set: () => {}}));
+  assert_prop_desc_equals(domStringMap, "foo", undefined);
+  // writable, enumerable, configurable will be ignored.
+  Object.defineProperty(domStringMap, "foo",
+                        {value: "foo content", writable: false,
+                         enumerable: false, configurable: false});
+  assert_prop_desc_equals(domStringMap, "foo",
+                          {value: "foo content", writable: true,
+                           enumerable: true, configurable: true});
+  domStringMap["bar"] = "bar content";
+  assert_prop_desc_equals(domStringMap, "bar",
+                          {value: "bar content", writable: true,
+                           enumerable: true, configurable: true});
+  // Try to define an accessor property with a supported property name.
+  assert_throws_js(TypeError, () =>
+      Object.defineProperty(domStringMap, "foo", {get: () => {}}));
+  assert_throws_js(TypeError, () =>
+      Object.defineProperty(domStringMap, "foo", {set: () => {}}));
+  assert_prop_desc_equals(domStringMap, "foo",
+                          {value: "foo content", writable: true,
+                           enumerable: true, configurable: true});
+}, "Test [[DefineOwnProperty]] with named property setter support.");
 </script>
