@@ -134,6 +134,37 @@
     ctx.shadowColor = 'RGBA(0,255, 0,0)';
     @assert ctx.shadowColor === 'rgba(0, 255, 0, 0)';
 
+- name: 2d.shadow.attributes.shadowColor.current.basic
+  desc: currentColor is computed from the canvas element
+  canvasType: ['HtmlCanvas']
+  code: |
+    canvas.style.color = '#0f0';
+    ctx.shadowColor = 'currentColor';
+    @assert ctx.shadowColor === '#00ff00';
+
+- name: 2d.shadow.attributes.shadowColor.current.changed
+  desc: currentColor is computed when the attribute is set, not when it is painted
+  canvasType: ['HtmlCanvas']
+  code: |
+    canvas.style.color = '#0f0';
+    ctx.shadowColor = 'currentColor';
+    canvas.style.color = '#f00';
+    @assert ctx.shadowColor === '#00ff00';
+
+- name: 2d.shadow.attributes.shadowColor.current.removed
+  desc: currentColor is solid black when the canvas element is not in a document
+  canvasType: ['HtmlCanvas']
+  code: |
+    // Try not to let it undetectably incorrectly pick up opaque-black
+    // from other parts of the document:
+    document.documentElement.style.color = '#f00';
+    document.body.style.color = '#f00';
+    canvas.style.color = '#f00';
+
+    canvas.remove();
+    ctx.shadowColor = 'currentColor';
+    @assert ctx.shadowColor === '#000000';
+
 - name: 2d.shadow.attributes.shadowColor.invalid
   code: |
     ctx.shadowColor = '#00ff00';
