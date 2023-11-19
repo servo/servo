@@ -203,7 +203,7 @@ def render_pdf_to_png_http(current_session, url):
         assert 0 <= index < len(result)
 
         image_string = result[index]
-        image_string_without_data_type = image_string[image_string.find(",") + 1 :]
+        image_string_without_data_type = image_string[image_string.find(",") + 1:]
 
         return base64.b64decode(image_string_without_data_type)
 
@@ -228,7 +228,7 @@ def compare_png_http(current_session, url):
 
         current_session.url = url("/webdriver/tests/support/html/render.html")
         result = current_session.execute_async_script(
-            f"""const callback = arguments[arguments.length - 1]; callback(compare(arguments[0], arguments[1], arguments[2], arguments[3]))""",
+            "const callback = arguments[arguments.length - 1]; callback(compare(arguments[0], arguments[1], arguments[2], arguments[3]))",
             args=[base64.encodebytes(img1).decode(), base64.encodebytes(img2).decode(), width, height],
         )
 

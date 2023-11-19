@@ -213,6 +213,35 @@ SET TIMEOUT: navigation-timing/*
 SET TIMEOUT: old-tests/submission/Microsoft/history/history_000.htm
 SET TIMEOUT: paint-timing/resources/subframe-painting.html
 SET TIMEOUT: performance-timeline/resources/navigation-id-detached-frame-page.html
+SET TIMEOUT: png/apng/acTL-plays-one.html
+SET TIMEOUT: png/apng/acTL-plays-two.html
+SET TIMEOUT: png/apng/fdAT-split-basic.html
+SET TIMEOUT: png/apng/fdAT-split-zero-length.html
+SET TIMEOUT: png/apng/fcTL-acTL-ordering.html
+SET TIMEOUT: png/apng/fcTL-blend-over-repeatedly.html
+SET TIMEOUT: png/apng/fcTL-blend-over-solid.html
+SET TIMEOUT: png/apng/fcTL-blend-source-nearly-transparent.html
+SET TIMEOUT: png/apng/fcTL-blend-source-solid.html
+SET TIMEOUT: png/apng/fcTL-blend-source-transparent.html
+SET TIMEOUT: png/apng/fcTL-dispose-background-final.html
+SET TIMEOUT: png/apng/fcTL-dispose-background.html
+SET TIMEOUT: png/apng/fcTL-dispose-before-region-background.html
+SET TIMEOUT: png/apng/fcTL-dispose-in-region-background.html
+SET TIMEOUT: png/apng/fcTL-dispose-in-region-none.html
+SET TIMEOUT: png/apng/fcTL-dispose-in-region-previous.html
+SET TIMEOUT: png/apng/fcTL-dispose-none.html
+SET TIMEOUT: png/apng/fcTL-dispose-previous-final.html
+SET TIMEOUT: png/apng/fcTL-dispose-previous-first.html
+SET TIMEOUT: png/apng/fcTL-dispose-previous.html
+SET TIMEOUT: png/apng/fdAT-16bit.html
+SET TIMEOUT: png/apng/fdAT-1bit-PLTE-tRNS.html
+SET TIMEOUT: png/apng/fdAT-1bit-PLTE.html
+SET TIMEOUT: png/apng/fdAT-2bit-PLTE-tRNS.html
+SET TIMEOUT: png/apng/fdAT-8bit-gray-alpha.html
+SET TIMEOUT: png/apng/fdAT-8bit-gray.html
+SET TIMEOUT: png/apng/first-frame-IDAT.html
+SET TIMEOUT: png/apng/first-frame-not-IDAT.html
+SET TIMEOUT: png/apng/tester-check.html
 SET TIMEOUT: portals/resources/portals-adopt-predecessor-portal.html
 SET TIMEOUT: preload/single-download-preload.html
 SET TIMEOUT: preload/resources/slow-exec.js
@@ -244,8 +273,8 @@ SET TIMEOUT: service-workers/service-worker/resources/resource-timing-worker.js
 SET TIMEOUT: shadow-dom/Document-prototype-currentScript.html
 SET TIMEOUT: shadow-dom/scroll-to-the-fragment-in-shadow-tree.html
 SET TIMEOUT: shadow-dom/slotchange-event.html
-SET TIMEOUT: trusted-types/block-string-assignment-to-DOMWindowTimers-setTimeout-setInterval.tentative.html
-SET TIMEOUT: trusted-types/DOMWindowTimers-setTimeout-setInterval.tentative.html
+SET TIMEOUT: trusted-types/block-string-assignment-to-DOMWindowTimers-setTimeout-setInterval.html
+SET TIMEOUT: trusted-types/DOMWindowTimers-setTimeout-setInterval.html
 SET TIMEOUT: pending-beacon/resources/pending_beacon-helper.js
 SET TIMEOUT: user-timing/*
 SET TIMEOUT: web-animations/crashtests/reparent-animating-element-002.html
@@ -722,4 +751,4 @@ HTML INVALID SYNTAX: domparsing/DOMParser-parseFromString-xml-parsererror.html
 HTML INVALID SYNTAX: domparsing/XMLSerializer-serializeToString.html
 HTML INVALID SYNTAX: html/canvas/element/manual/unclosed-canvas-4.htm
 HTML INVALID SYNTAX: quirks/percentage-height-calculation.html
-HTML INVALID SYNTAX: trusted-types/TrustedTypePolicyFactory-getAttributeType-namespace.tentative.html
+HTML INVALID SYNTAX: trusted-types/TrustedTypePolicyFactory-getAttributeType-namespace.html

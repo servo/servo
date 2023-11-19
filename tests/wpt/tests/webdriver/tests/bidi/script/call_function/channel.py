@@ -61,7 +61,7 @@ from ... import any_string, recursive_compare
     ids=["default", "with serializationOptions", "with ownership"],
 )
 async def test_channel(
-    bidi_session, top_context, subscribe_events, wait_for_event, channel, expected_data
+    bidi_session, top_context, subscribe_events, wait_for_event, wait_for_future_safe, channel, expected_data
 ):
     await subscribe_events(["script.message"])
 
@@ -73,7 +73,7 @@ async def test_channel(
         await_promise=False,
         target=ContextTarget(top_context["context"]),
     )
-    event_data = await on_script_message
+    event_data = await wait_for_future_safe(on_script_message)
 
     recursive_compare(
         {
@@ -90,7 +90,7 @@ async def test_channel(
 
 @pytest.mark.asyncio
 async def test_channel_with_multiple_arguments(
-    bidi_session, top_context, subscribe_events, wait_for_event
+    bidi_session, top_context, subscribe_events, wait_for_event, wait_for_future_safe
 ):
     await subscribe_events(["script.message"])
 
@@ -103,7 +103,7 @@ async def test_channel_with_multiple_arguments(
         target=ContextTarget(top_context["context"]),
     )
 
-    event_data = await on_script_message
+    event_data = await wait_for_future_safe(on_script_message)
 
     recursive_compare(
         {
@@ -184,6 +184,7 @@ async def test_channel_and_nonchannel_arguments(
     bidi_session,
     top_context,
     wait_for_event,
+    wait_for_future_safe,
     subscribe_events,
 ):
     await subscribe_events(["script.message"])
@@ -201,7 +202,7 @@ async def test_channel_and_nonchannel_arguments(
         await_promise=False,
         target=ContextTarget(top_context["context"]),
     )
-    event_data = await on_script_message
+    event_data = await wait_for_future_safe(on_script_message)
 
     recursive_compare(
         {

@@ -13,6 +13,6 @@ promise_test(async test => {
 
 promise_test(test => {
     return promise_rejects_js(test, TypeError,
-        import("./export-hello.js", { assert: { type: "notARealType"} } ),
+        import("./export-hello.js", { with: { type: "notARealType"} } ),
         "Dynamic import with an unsupported type attribute should fail");
 }, "Dynamic import with an unsupported type attribute should fail");

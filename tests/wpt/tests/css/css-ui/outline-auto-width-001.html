@@ -6,21 +6,31 @@
 <meta name=flags content="">
 <meta name=assert content="outline-width is ignored when outline-style is auto">
 <link rel=help href="https://drafts.csswg.org/css-ui-4/#outline-style">
-<link rel="match" href="reference/outline-auto-with-001-ref.html">
+<link rel="match" href="reference/outline-auto-width-001-ref.html">
+<link rel="match" href="reference/outline-auto-width-001-b-ref.html"><!-- Allowing 'outline-style: auto' to behave the same as 'solid'-->
 <style>
 div {
     outline-style: auto;
-    outline-width: 100px;
+    outline-width: 1em;
     width: 100px;
     height: 100px;
-    margin: 1em;
+    margin: 2em;
 }
 div + div {
     outline-width: 0;
 }
+hr ~ div {
+    outline-style: solid;
+}
 </style>
 
-<p>Test passes if there are two identical box frames below.
+<p>Test passes if either:
+<ul>
+    <li>there are three boxes below, two above the horizontal line and one below, and the two boxes above the line are identical
+    <li>there are two identical boxes below, one above the horizontal line and one below
+</ul>
 
 <div></div>
+<div></div>
+<hr>
 <div></div>

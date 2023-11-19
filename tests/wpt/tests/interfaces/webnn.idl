@@ -44,7 +44,7 @@ enum MLInputOperandLayout {
   "nhwc"
 };
 
-enum MLOperandType {
+enum MLOperandDataType {
   "float32",
   "float16",
   "int32",
@@ -54,8 +54,8 @@ enum MLOperandType {
 };
 
 dictionary MLOperandDescriptor {
-  // The operand type.
-  required MLOperandType type;
+  // The operand data type.
+  required MLOperandDataType dataType;
 
   // The dimensions field is only required for tensor operands.
   sequence<unsigned long> dimensions;
@@ -134,7 +134,7 @@ interface MLGraphBuilder {
   MLOperand constant(MLOperandDescriptor descriptor, MLBufferView bufferView);
 
   // Create a single-value operand from the specified number of the specified type.
-  MLOperand constant(double value, optional MLOperandType type = "float32");
+  MLOperand constant(double value, optional MLOperandDataType dataType = "float32");
 
   // Compile the graph up to the specified output operands asynchronously.
   Promise<MLGraph> build(MLNamedOperands outputs);

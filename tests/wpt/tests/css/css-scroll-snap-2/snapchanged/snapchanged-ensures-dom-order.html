@@ -6,7 +6,7 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/dom/events/scrolling/scroll_support.js"></script>
-  <script src="resources/common.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/common.js"></script>
   <script src="/web-animations/testcommon.js"></script>
   <style>
     #scroller {
@@ -62,7 +62,7 @@
   </div>
   <script>
     promise_test(async (t) => {
-      checkSnapchangedSupport();
+      checkSnapEventSupport("snapchanged");
       await waitForCompositorCommit();
       const snapchanged_promise = waitForSnapChangedEvent(scroller, false);
       const snap_point_3 = document.createElement("div");
@@ -72,12 +72,12 @@
       });
       scroller.insertBefore(snap_point_3, snap_point_2);
       const evt_seen = await snapchanged_promise;
-      assertSnapchangedEvent(evt_seen,
+      assertSnapEvent(evt_seen,
                       [snap_point_1.id, snap_point_3.id, snap_point_2.id]);
     }, "snapchanged lists snapTargets in DOM order.");
 
     promise_test(async (t) => {
-      checkSnapchangedSupport();
+      checkSnapEventSupport("snapchanged");
       await waitForCompositorCommit();
       const unreached_func = t.unreached_func("snapchanged shouldn't fire " +
           "since the scroller is snapped to the same elements despite the " +

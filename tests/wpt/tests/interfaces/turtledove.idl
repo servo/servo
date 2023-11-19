@@ -39,6 +39,7 @@ dictionary GenerateBidInterestGroup {
 dictionary AuctionAdInterestGroup : GenerateBidInterestGroup {
   double priority = 0.0;
   record<DOMString, double> prioritySignalsOverrides;
+  DOMString additionalBidKey;
 };
 
 [SecureContext]
@@ -53,6 +54,12 @@ dictionary AuctionAdInterestGroupKey {
 
 [SecureContext]
 partial interface Navigator {
+  Promise<undefined> clearOriginJoinedAdInterestGroups(
+      USVString owner, optional sequence<USVString> interestGroupsToKeep = []);
+};
+
+[SecureContext]
+partial interface Navigator {
   Promise<(USVString or FencedFrameConfig)?> runAdAuction(AuctionAdConfig config);
 };
 
@@ -63,19 +70,27 @@ dictionary AuctionAdConfig {
   sequence<USVString> interestGroupBuyers;
   Promise<any> auctionSignals;
   Promise<any> sellerSignals;
-  Promise<USVString> directFromSellerSignals;
+  Promise<DOMString> directFromSellerSignalsHeaderAdSlot;
   unsigned long long sellerTimeout;
   unsigned short sellerExperimentGroupId;
   USVString sellerCurrency;
   Promise<record<USVString, any>> perBuyerSignals;
   Promise<record<USVString, unsigned long long>> perBuyerTimeouts;
+  Promise<record<USVString, unsigned long long>> perBuyerCumulativeTimeouts;
   record<USVString, unsigned short> perBuyerGroupLimits;
   record<USVString, unsigned short> perBuyerExperimentGroupIds;
   record<USVString, record<USVString, double>> perBuyerPrioritySignals;
   Promise<record<USVString, USVString>> perBuyerCurrencies;
   sequence<AuctionAdConfig> componentAuctions = [];
+  Promise<undefined> additionalBids;
+  DOMString auctionNonce;
   AbortSignal? signal;
   Promise<boolean> resolveToConfig;
+};
+
+[SecureContext]
+partial interface Navigator {
+  Promise<DOMString> createAuctionNonce();
 };
 
 [Exposed=InterestGroupScriptRunnerGlobalScope]
@@ -129,6 +144,10 @@ interface InterestGroupReportingScriptRunnerGlobalScope
 [SecureContext]
 partial interface Navigator {
   undefined updateAdInterestGroups();
+};
+
+partial dictionary RequestInit {
+  boolean adAuctionHeaders;
 };
 
 dictionary PreviousWin {
@@ -191,6 +210,19 @@ dictionary ReportWinBrowserSignals : ReportingBrowserSignals {
   DOMString buyerReportingId;
   unsigned short modelingSignals;
   unsigned long dataVersion;
+  KAnonStatus kAnonStatus;
+};
+
+enum KAnonStatus { "passedAndEnforced", "passedNotEnforced", "belowThreshold", "notCalculated" };
+
+dictionary DirectFromSellerSignalsForBuyer {
+  any auctionSignals = null;
+  any perBuyerSignals = null;
+};
+
+dictionary DirectFromSellerSignalsForSeller {
+  any auctionSignals = null;
+  any sellerSignals = null;
 };
 
 dictionary ScoreAdOutput {

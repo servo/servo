@@ -1,7 +1,6 @@
 import pytest
 
 from webdriver.bidi.modules.input import Actions, get_element_origin
-from webdriver.bidi.modules.script import ContextTarget
 
 from .. import get_events
 from . import (
@@ -137,7 +136,7 @@ async def test_touch_pointer_properties_angle_twist(
     await load_static_test_page(page="test_actions_pointer.html")
 
     pointerArea = await get_element("#pointerArea")
-    center = await get_inview_center_bidi(
+    await get_inview_center_bidi(
         bidi_session, context=top_context, element=pointerArea
     )
 

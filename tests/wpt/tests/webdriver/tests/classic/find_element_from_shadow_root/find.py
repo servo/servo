@@ -194,7 +194,7 @@ def test_find_element_link_text(session, get_test_page, document, value):
 
     expected = session.execute_script("""
         return arguments[0].shadowRoot.querySelectorAll('a')[0]
-        """,  args=(host,))
+        """, args=(host,))
 
     response = find_element(session, shadow_root.id, "link text", value)
     value = assert_success(response)

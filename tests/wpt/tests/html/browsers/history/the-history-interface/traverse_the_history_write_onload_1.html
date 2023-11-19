@@ -7,23 +7,21 @@
   var t = async_test();
   started = false;
   pages = []
-  timer = null;
-  start_test_wait = t.step_func(
+  timer = setInterval(
     function() {
-      clearTimeout(timer);
-      timer = setTimeout(t.step_func(
+      if (pages.length < 3)
+        return;
+      clearInterval(timer);
+      setTimeout(t.step_func(
         function() {
-          try {
-            //The pass condition here is based on the idea that the spec is wrong and browsers are right
-            assert_array_equals(pages, [2, 3, 1], "Pages opened durning history navigation");
-            t.done();
-          } finally {
-           // win.close();
-          }
+          //The pass condition here is based on the idea that the spec is wrong and browsers are right
+          assert_array_equals(pages, [2, 3, 1], "Pages opened durning history navigation");
+          t.done();
         }
       ), 500);
-    }
-  );
-  t.step(function() {win = window.open("history_entry.html?urls=traverse_the_history_write_onload_1-1.html");
-});
+    }, 50);
+  t.step(function() {
+    win = window.open("history_entry.html?urls=traverse_the_history_write_onload_1-1.html");
+    t.add_cleanup(function() { win.close(); });
+  });
 </script>

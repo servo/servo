@@ -6,7 +6,7 @@ from . import assert_base_entry, create_log
 @pytest.mark.asyncio
 @pytest.mark.parametrize("log_type", ["console_api_log", "javascript_error"])
 async def test_console_log_cached_messages(
-    bidi_session, wait_for_event, log_type, new_tab
+    bidi_session, wait_for_event, wait_for_future_safe, log_type, new_tab
 ):
     # Clear events buffer.
     await bidi_session.session.subscribe(events=["log.entryAdded"])
@@ -40,7 +40,7 @@ async def test_console_log_cached_messages(
 
     on_entry_added = wait_for_event("log.entryAdded")
     expected_text = await create_log(bidi_session, new_tab, log_type, "live_message")
-    await on_entry_added
+    await wait_for_future_safe(on_entry_added)
 
     # Check that we only received the live message.
     assert len(events) == 2

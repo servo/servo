@@ -4,16 +4,7 @@ import sys, urllib, time
 from mod_pywebsocket import msgutil
 
 def web_socket_do_extra_handshake(request):
-    request.connection.write(b'x')
-    time.sleep(2)
-    request.connection.write(b'x')
-    time.sleep(2)
-    request.connection.write(b'x')
-    time.sleep(2)
-    request.connection.write(b'x')
-    time.sleep(2)
-    request.connection.write(b'x')
-    time.sleep(2)
+    time.sleep(10)
     return
 
 def web_socket_transfer_data(request):

@@ -15,9 +15,12 @@
         const uid = token();
         const win = window.open(`./support/preload-csp-report.https.sub.html?uid=${uid}`);
         t.add_cleanup(() => win.close());
-        const reports = await pollReports(endpoint, uid);
-        const failures = reports.filter(r => r['csp-report']['blocked-uri'].endsWith('fail.png'));
-        assert_equals(failures.length, 2);
+        return t.step_wait(async () => {
+            const reports = await pollReports(endpoint, uid);
+            const failures = reports.filter(
+              r => r['csp-report']['blocked-uri'].endsWith('fail.png'));
+            return failures.length === 2;
+        }, "Should receive 2 CSP reports.", 5000, 500);
     }, "Reporting endpoints received credentials.");
   </script>
 </body>

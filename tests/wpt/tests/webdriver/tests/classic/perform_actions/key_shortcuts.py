@@ -45,5 +45,3 @@ def test_mod_a_mod_x_deletes_all_text(session, key_reporter, key_chain, modifier
              .key_up("x") \
              .perform()
     assert get_keys(key_reporter) == ""
-
-

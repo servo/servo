@@ -100,7 +100,7 @@ async def test_reload(bidi_session, subscribe_events, new_tab, inline):
 
 @pytest.mark.parametrize("method", ["evaluate", "call_function"])
 async def test_sandbox(
-    bidi_session, subscribe_events, new_tab, wait_for_event, test_origin, method
+    bidi_session, subscribe_events, new_tab, wait_for_event, wait_for_future_safe, test_origin, method
 ):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=test_origin, wait="complete"
@@ -114,7 +114,7 @@ async def test_sandbox(
         bidi_session, new_tab["context"], sandbox_name, method
     )
 
-    event = await on_realm_created
+    event = await wait_for_future_safe(on_realm_created)
 
     assert event == {
         "context": new_tab["context"],
@@ -191,7 +191,7 @@ async def test_subscribe_to_one_context(
 
 @pytest.mark.parametrize("method", ["evaluate", "call_function"])
 async def test_script_when_realm_is_created(
-    bidi_session, subscribe_events, new_tab, wait_for_event, inline, method
+    bidi_session, subscribe_events, new_tab, wait_for_event,wait_for_future_safe, inline, method
 ):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
@@ -202,7 +202,7 @@ async def test_script_when_realm_is_created(
 
     await bidi_session.browsing_context.reload(context=new_tab["context"])
 
-    realm_info = await on_realm_created
+    realm_info = await wait_for_future_safe(on_realm_created)
 
     # Validate that it's possible to execute the script
     # as soon as a realm is created.

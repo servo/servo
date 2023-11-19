@@ -16,7 +16,7 @@
 
 <h2>HTML input with value, alt, etc.</h2>
 <input type="button" value="button label" data-expectedlabel="button label" data-testname="html: input[type=button]" class="ex">
-<input type="image" src="#" alt="image input label" data-expectedlabel="image input label" data-testname="html: input[type=image]" class="ex">
+<input type="image" alt="image input label" data-expectedlabel="image input label" data-testname="html: input[type=image]" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
 <input type="reset" value="reset label" data-expectedlabel="reset label" data-testname="html: input[type=reset]" class="ex">
 <input type="submit" value="submit label" data-expectedlabel="submit label" data-testname="html: input[type=submit]" class="ex">
 
@@ -117,10 +117,10 @@
 <h2>HTML img/picture</h2>
 <!-- skipped: img:not([alt]) -->
 <!-- skipped: img[alt=""] -->
-<img src="#" alt="image label" data-expectedlabel="image label" data-testname="html: img[alt] (non-empty)" class="ex">
+<img alt="image label" data-expectedlabel="image label" data-testname="html: img[alt] (non-empty)" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
 <picture>
   <source srcset="#">
-  <img src="#" alt="picture label" data-expectedlabel="picture label" data-testname="html: picture > img[alt] (non-empty)" class="ex">
+  <img alt="picture label" data-expectedlabel="picture label" data-testname="html: picture > img[alt] (non-empty)" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
 </picture>
 <!-- elsewhere: image map area alt -> ./fragile/area-alt.html -->
 

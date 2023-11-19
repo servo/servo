@@ -149,7 +149,7 @@ def test_find_elements_equivalence(session, get_test_page):
     host = session.find.css("custom-element", all=False)
     shadow_root = host.shadow_root
 
-    expected = session.execute_script("""
+    session.execute_script("""
         return arguments[0].shadowRoot.querySelector('input')
         """, args=(host,))
 

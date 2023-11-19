@@ -7,3 +7,24 @@
 interface PageRevealEvent : Event {
   readonly attribute ViewTransition? viewTransition;
 };
+
+dictionary StartViewTransitionOptions {
+  UpdateCallback? update = null;
+  sequence<DOMString>? type = null;
+};
+
+partial interface Document {
+
+  ViewTransition startViewTransition(optional (UpdateCallback or StartViewTransitionOptions) callbackOptions = {});
+};
+
+partial interface CSSRule {
+  const unsigned short VIEW_TRANSITION_RULE = 15;
+};
+
+enum ViewTransitionNavigation { "auto", "none" };
+[Exposed=Window]
+interface CSSViewTransitionRule : CSSRule {
+  attribute ViewTransitionNavigation navigation;
+  attribute DOMTokenList type;
+};

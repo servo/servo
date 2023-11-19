@@ -4,7 +4,7 @@ from tests.support.sync import AsyncPoll
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
 
-from ... import any_int, any_string, recursive_compare, int_interval
+from ... import any_int, recursive_compare, int_interval
 from .. import assert_navigation_info
 
 pytestmark = pytest.mark.asyncio
@@ -42,7 +42,7 @@ async def test_unsubscribe(bidi_session, url, top_context):
     remove_listener()
 
 
-async def test_subscribe(bidi_session, subscribe_events, url, new_tab, wait_for_event):
+async def test_subscribe(bidi_session, subscribe_events, url, new_tab, wait_for_event, wait_for_future_safe):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=url(EMPTY_PAGE), wait="complete"
     )
@@ -52,7 +52,7 @@ async def test_subscribe(bidi_session, subscribe_events, url, new_tab, wait_for_
     on_entry = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
     target_url = url(EMPTY_PAGE + '#foo')
     await bidi_session.browsing_context.navigate(context=new_tab["context"], url=target_url, wait="complete")
-    event = await on_entry
+    event = await wait_for_future_safe(on_entry)
 
     assert_navigation_info(event, {"context": new_tab["context"], "url": target_url})
 
@@ -69,7 +69,7 @@ async def test_timestamp(bidi_session, current_time, subscribe_events, url, new_
     on_entry = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
     target_url = url(EMPTY_PAGE + '#foo')
     await bidi_session.browsing_context.navigate(context=new_tab["context"], url=target_url, wait="complete")
-    event = await on_entry
+    event = await wait_for_future_safe(on_entry)
 
     time_end = await current_time()
 
@@ -80,7 +80,7 @@ async def test_timestamp(bidi_session, current_time, subscribe_events, url, new_
 
 
 async def test_navigation_id(
-    bidi_session, new_tab, url, subscribe_events, wait_for_event
+    bidi_session, new_tab, url, subscribe_events, wait_for_event, wait_for_future_safe
 ):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=url(EMPTY_PAGE), wait="complete"
@@ -90,7 +90,7 @@ async def test_navigation_id(
 
     on_frame_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
 
-    target_url = url(EMPTY_PAGE + '#foo');
+    target_url = url(EMPTY_PAGE + '#foo')
     result = await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=target_url, wait="complete")
 
@@ -101,11 +101,11 @@ async def test_navigation_id(
             'timestamp': any_int,
             'url': target_url
         },
-        await on_frame_navigated,
+        await wait_for_future_safe(on_frame_navigated),
     )
 
 
-async def test_url_with_base_tag(bidi_session, subscribe_events, inline, new_tab, wait_for_event):
+async def test_url_with_base_tag(bidi_session, subscribe_events, inline, new_tab, wait_for_event, wait_for_future_safe):
     url = inline("""<base href="/relative-path">""")
     await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url, wait="complete")
 
@@ -113,7 +113,7 @@ async def test_url_with_base_tag(bidi_session, subscribe_events, inline, new_tab
 
     on_frame_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
 
-    target_url = url + '#foo';
+    target_url = url + '#foo'
     await bidi_session.browsing_context.navigate(context=new_tab["context"], url=target_url, wait="complete")
 
     recursive_compare(
@@ -121,12 +121,12 @@ async def test_url_with_base_tag(bidi_session, subscribe_events, inline, new_tab
             'context': new_tab["context"],
             'url': target_url
         },
-        await on_frame_navigated,
+        await wait_for_future_safe(on_frame_navigated),
     )
 
 
 async def test_iframe(
-    bidi_session, new_tab, url, inline, subscribe_events, wait_for_event
+    bidi_session, new_tab, url, inline, subscribe_events, wait_for_event, wait_for_future_safe
 ):
     initial_url = url(EMPTY_PAGE + '#foo')
     parent_url = inline(f"<iframe src='{initial_url}'></iframe>")
@@ -155,7 +155,7 @@ async def test_iframe(
             'timestamp': any_int,
             'url': target_url
         },
-        await on_frame_navigated,
+        await wait_for_future_safe(on_frame_navigated),
     )
 
 
@@ -168,7 +168,7 @@ async def test_iframe(
     ]
 )
 async def test_document_location(
-    bidi_session, new_tab, url, subscribe_events, wait_for_event, hash_before, hash_after
+    bidi_session, new_tab, url, subscribe_events, wait_for_event, wait_for_future_safe, hash_before, hash_after
 ):
     target_context = new_tab["context"]
 
@@ -200,7 +200,7 @@ async def test_document_location(
             'timestamp': any_int,
             'url': target_url
         },
-        await on_frame_navigated,
+        await wait_for_future_safe(on_frame_navigated),
     )
 
 
@@ -213,7 +213,7 @@ async def test_document_location(
     ]
 )
 async def test_browsing_context_navigate(
-    bidi_session, new_tab, url, subscribe_events, wait_for_event, hash_before, hash_after
+    bidi_session, new_tab, url, subscribe_events, wait_for_event, wait_for_future_safe, hash_before, hash_after
 ):
     target_context = new_tab["context"]
 
@@ -236,7 +236,7 @@ async def test_browsing_context_navigate(
             'timestamp': any_int,
             'url': target_url
         },
-        await on_frame_navigated,
+        await wait_for_future_safe(on_frame_navigated),
     )
 
 

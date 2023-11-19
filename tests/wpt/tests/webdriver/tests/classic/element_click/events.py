@@ -1,4 +1,3 @@
-from webdriver import WebElement
 from tests.support.asserts import assert_success
 from tests.support.helpers import filter_dict
 

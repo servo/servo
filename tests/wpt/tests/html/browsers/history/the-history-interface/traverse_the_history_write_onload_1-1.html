@@ -4,9 +4,6 @@
   onunload = function() {}
   opener.pages.push(2);
   onload = function() {
-    document.write("<!doctype html>3<script>opener.pages.push(3); if(!opener.started) {opener.started = true; history.go(-1);} opener.start_test_wait();<\/script>");
-    if (opener.started) {
-      opener.start_test_wait();
-    }
+    document.write("<!doctype html>3<script>opener.pages.push(3); if(!opener.started) {opener.started = true; history.go(-1);}<\/script>");
   }
 </script>

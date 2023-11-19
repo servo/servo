@@ -39,7 +39,7 @@
     assert_equals(e.data.platformVersion, highEntropyValues.platformVersion);
     assert_equals(e.data.uaFullVersion, highEntropyValues.uaFullVersion);
     assert_equals(e.data.wow64, highEntropyValues.wow64);
-    assert_equals(e.data.formFactor, highEntropyValues.formFactor);
+    assert_equals(e.data.formFactor.join(','), highEntropyValues.formFactor.join(','));
     assert_equals(e.data.NavigatorUADataExposed, true);
 
     // Architecture should be one of two permitted values.

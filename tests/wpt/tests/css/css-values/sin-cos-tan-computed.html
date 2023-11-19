@@ -13,6 +13,9 @@
 test_math_used('cos(0)', '1', {type:'number'});
 test_math_used('sin(0)', '0', {type:'number'});
 test_math_used('tan(0)', '0', {type:'number'});
+test_math_used('tan(315deg)', '-1', {type:'number', approx:0.1});
+test_math_used('tan(360deg)', '0', {type:'number', approx:0.1});
+test_math_used('tan(405deg)', '1', {type:'number', approx:0.1});
 
 // Test pi
 test_math_used('calc(sin(pi/2 - pi/2) )', '0', {type:'number', approx:0.1});

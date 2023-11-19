@@ -46,4 +46,4 @@ def test_object_to_json_exception(session):
             }
         });
         """)
-    value = assert_error(response, "javascript error")
+    assert_error(response, "javascript error")

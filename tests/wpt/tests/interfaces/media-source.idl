@@ -4,14 +4,14 @@
 // Source: Media Source Extensions™ (https://w3c.github.io/media-source/)
 
 enum ReadyState {
-    "closed",
-    "open",
-    "ended"
+  "closed",
+  "open",
+  "ended",
 };
 
 enum EndOfStreamError {
-    "network",
-    "decode"
+  "network",
+  "decode",
 };
 
 [Exposed=(Window,DedicatedWorker)]
@@ -41,8 +41,8 @@ interface MediaSource : EventTarget {
 interface MediaSourceHandle {};
 
 enum AppendMode {
-    "segments",
-    "sequence"
+  "segments",
+  "sequence",
 };
 
 [Exposed=(Window,DedicatedWorker)]

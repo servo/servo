@@ -24,14 +24,14 @@ from ... import any_string, int_interval
     ],
 )
 async def test_text_with_argument_variation(
-    bidi_session, subscribe_events, top_context, wait_for_event, log_argument, expected_text,
+    bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe, log_argument, expected_text,
 ):
     await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(
         bidi_session, top_context, "log", log_argument)
-    event_data = await on_entry_added
+    event_data = await wait_for_future_safe(on_entry_added)
 
     assert_console_entry(event_data, text=expected_text, context=top_context["context"])
 
@@ -51,7 +51,7 @@ async def test_text_with_argument_variation(
     ],
 )
 async def test_level(
-    bidi_session, subscribe_events, top_context, wait_for_event, log_method, expected_level
+    bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe, log_method, expected_level
 ):
     await subscribe_events(events=["log.entryAdded"])
 
@@ -65,7 +65,7 @@ async def test_level(
         await create_console_api_message_from_string(
             bidi_session, top_context, log_method, "'foo'")
 
-    event_data = await on_entry_added
+    event_data = await wait_for_future_safe(on_entry_added)
 
     assert_console_entry(
         event_data, text="foo", level=expected_level, method=log_method
@@ -73,7 +73,7 @@ async def test_level(
 
 
 @pytest.mark.asyncio
-async def test_timestamp(bidi_session, subscribe_events, top_context, wait_for_event, current_time):
+async def test_timestamp(bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe, current_time):
     await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
@@ -93,7 +93,7 @@ async def test_timestamp(bidi_session, subscribe_events, top_context, wait_for_e
         target=ContextTarget(top_context["context"]),
     )
 
-    event_data = await on_entry_added
+    event_data = await wait_for_future_safe(on_entry_added)
 
     time_end = await current_time()
 
@@ -101,13 +101,13 @@ async def test_timestamp(bidi_session, subscribe_events, top_context, wait_for_e
 
 
 @pytest.mark.asyncio
-async def test_new_context_with_new_window(bidi_session, subscribe_events, top_context, wait_for_event):
+async def test_new_context_with_new_window(bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe):
     await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(
         bidi_session, top_context, 'log', "'foo'")
-    event_data = await on_entry_added
+    event_data = await wait_for_future_safe(on_entry_added)
     assert_console_entry(event_data, text="foo", context=top_context["context"])
 
     new_context = await bidi_session.browsing_context.create(type_hint="tab")
@@ -115,18 +115,18 @@ async def test_new_context_with_new_window(bidi_session, subscribe_events, top_c
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(
         bidi_session, new_context, 'log', "'foo_in_new_window'")
-    event_data = await on_entry_added
+    event_data = await wait_for_future_safe(on_entry_added)
     assert_console_entry(event_data, text="foo_in_new_window", context=new_context["context"])
 
 
 @pytest.mark.asyncio
-async def test_new_context_with_refresh(bidi_session, subscribe_events, top_context, wait_for_event):
+async def test_new_context_with_refresh(bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe):
     await subscribe_events(events=["log.entryAdded"])
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(
         bidi_session, top_context, 'log', "'foo'")
-    event_data = await on_entry_added
+    event_data = await wait_for_future_safe(on_entry_added)
     assert_console_entry(event_data, text="foo", context=top_context["context"])
 
     await bidi_session.browsing_context.navigate(
@@ -135,7 +135,7 @@ async def test_new_context_with_refresh(bidi_session, subscribe_events, top_cont
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(
         bidi_session, top_context, 'log', "'foo_after_refresh'")
-    event_data = await on_entry_added
+    event_data = await wait_for_future_safe(on_entry_added)
     assert_console_entry(
         event_data, text="foo_after_refresh", context=top_context["context"]
     )
@@ -147,6 +147,7 @@ async def test_different_contexts(
     subscribe_events,
     top_context,
     wait_for_event,
+    wait_for_future_safe,
     test_page_same_origin_frame,
 ):
     await bidi_session.browsing_context.navigate(
@@ -161,11 +162,11 @@ async def test_different_contexts(
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(
         bidi_session, top_context, "log", "'foo'")
-    event_data = await on_entry_added
+    event_data = await wait_for_future_safe(on_entry_added)
     assert_console_entry(event_data, text="foo", context=top_context["context"])
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message_from_string(
         bidi_session, frame_context, "log", "'bar'")
-    event_data = await on_entry_added
+    event_data = await wait_for_future_safe(on_entry_added)
     assert_console_entry(event_data, text="bar", context=frame_context["context"])

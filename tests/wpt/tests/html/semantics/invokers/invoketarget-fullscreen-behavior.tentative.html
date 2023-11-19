@@ -44,6 +44,17 @@
       invokerbutton.removeAttribute("invokeaction");
       if (document.fullscreenElement) await document.exitFullscreen();
     });
+    assert_false(invokee.matches(":fullscreen"));
+    invokerbutton.setAttribute("invokeaction", "toggleFullscreen");
+    invokerbutton.click();
+    assert_false(invokee.matches(":fullscreen"));
+  }, "invoking div with toggleFullscreen action (without user activation) is a no-op");
+
+  promise_test(async function (t) {
+    t.add_cleanup(async () => {
+      invokerbutton.removeAttribute("invokeaction");
+      if (document.fullscreenElement) await document.exitFullscreen();
+    });
     invokee.addEventListener("invoke", (e) => e.preventDefault(), {
       once: true,
     });

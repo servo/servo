@@ -7,7 +7,7 @@
   <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
-  <script src="resources/common.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/common.js"></script>
   <script src="/dom/events/scrolling/scroll_support.js"></script>
   <script src="/web-animations/testcommon.js"></script>
 </head>
@@ -79,7 +79,7 @@
     }, "snapchanged event fires after snap target changes via scrollTo");
 
     promise_test(async (t) => {
-      checkSnapchangedSupport();
+      checkSnapEventSupport("snapchanged");
       await waitForScrollReset(t, scroller);
       await waitForCompositorCommit();
       assert_equals(scroller.scrollTop, 0,
@@ -110,7 +110,7 @@
       scroller.scrollTo(scroll_left_target, scroll_top_target);
 
       evt = await snapchanged_promise;
-      assertSnapchangedEvent(evt, [snap_point_2.id]);
+      assertSnapEvent(evt, [snap_point_2.id]);
       assert_equals(scroller.scrollTop, snap_point_2.offsetTop,
         "scroller snaps to the top of snap_point_2");
       assert_equals(scroller.scrollLeft, snap_point_2.offsetLeft,
