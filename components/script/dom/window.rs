@@ -1333,6 +1333,7 @@ impl WindowMethods for Window {
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             quirks_mode,
+            /* namespaces = */ Default::default(),
             self.css_error_reporter(),
             None,
         );

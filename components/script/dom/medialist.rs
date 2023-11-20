@@ -88,6 +88,7 @@ impl MediaListMethods for MediaList {
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             quirks_mode,
+            /* namespaces = */ Default::default(),
             window.css_error_reporter(),
             None,
         );
@@ -130,6 +131,7 @@ impl MediaListMethods for MediaList {
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             quirks_mode,
+            /* namespaces = */ Default::default(),
             win.css_error_reporter(),
             None,
         );
@@ -168,6 +170,7 @@ impl MediaListMethods for MediaList {
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             quirks_mode,
+            /* namespaces = */ Default::default(),
             win.css_error_reporter(),
             None,
         );

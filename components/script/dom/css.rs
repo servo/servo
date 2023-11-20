@@ -46,6 +46,7 @@ impl CSS {
             Some(CssRuleType::Style),
             ParsingMode::DEFAULT,
             QuirksMode::NoQuirks,
+            /* namespaces = */ Default::default(),
             None,
             None,
         );
@@ -68,10 +69,11 @@ impl CSS {
             Some(CssRuleType::Style),
             ParsingMode::DEFAULT,
             QuirksMode::NoQuirks,
+            /* namespaces = */ Default::default(),
             None,
             None,
         );
-        cond.eval(&context, &Default::default())
+        cond.eval(&context)
     }
 
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
