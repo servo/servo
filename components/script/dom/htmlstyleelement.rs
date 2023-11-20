@@ -108,6 +108,7 @@ impl HTMLStyleElement {
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             doc.quirks_mode(),
+            /* namespaces = */ Default::default(),
             css_error_reporter,
             None,
         );

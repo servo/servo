@@ -1681,6 +1681,7 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<R
         Some(CssRuleType::Style),
         ParsingMode::DEFAULT,
         QuirksMode::NoQuirks,
+        /* namespaces = */ Default::default(),
         None,
         None,
     );

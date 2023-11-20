@@ -321,6 +321,7 @@ impl HTMLLinkElement {
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             document.quirks_mode(),
+            /* namespaces = */ Default::default(),
             window.css_error_reporter(),
             None,
         );
