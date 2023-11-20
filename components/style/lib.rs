@@ -163,6 +163,7 @@ pub use style_traits::owned_str::OwnedStr;
 
 use std::hash::{BuildHasher, Hash};
 
+#[macro_use]
 pub mod properties;
 
 #[cfg(feature = "gecko")]

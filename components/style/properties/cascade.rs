@@ -25,6 +25,7 @@ use crate::shared_lock::StylesheetGuards;
 use crate::style_adjuster::StyleAdjuster;
 use crate::stylesheets::container_rule::ContainerSizeQuery;
 use crate::stylesheets::{layer_rule::LayerOrder, Origin};
+#[cfg(feature = "gecko")]
 use crate::values::specified::length::FontBaseSize;
 use crate::values::{computed, specified};
 use fxhash::FxHashMap;
