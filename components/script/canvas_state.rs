@@ -12,7 +12,7 @@ use canvas_traits::canvas::{
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, RadialGradientStyle,
     RepetitionStyle, TextAlign, TextBaseline,
 };
-use cssparser::{Color as CSSColor, Parser, ParserInput, RGBA};
+use cssparser::{Parser, ParserInput, RGBA};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
@@ -22,10 +22,15 @@ use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::context::QuirksMode;
+use style::parser::ParserContext;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font;
+use style::stylesheets::{CssRuleType, Origin};
 use style::values::computed::font::FontStyle;
+use style::values::specified::color::Color;
 use style_traits::values::ToCss;
+use style_traits::ParsingMode;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
@@ -1665,40 +1670,45 @@ impl CanvasState {
     }
 }
 
-fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<RGBA, ()> {
+pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<RGBA, ()> {
     let mut input = ParserInput::new(string);
     let mut parser = Parser::new(&mut input);
-    let color = CSSColor::parse(&mut parser);
-    if parser.is_exhausted() {
-        match color {
-            Ok(CSSColor::Rgba(rgba)) => Ok(rgba),
-            Ok(CSSColor::CurrentColor) => {
-                // TODO: https://github.com/whatwg/html/issues/1099
-                // Reconsider how to calculate currentColor in a display:none canvas
+    let url = ServoUrl::parse("about:blank").unwrap();
+    let context = ParserContext::new(
+        Origin::Author,
+        &url,
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+        None,
+        None,
+    );
+    match Color::parse_and_compute(&context, &mut parser, None) {
+        Some(color) => {
+            // TODO: https://github.com/whatwg/html/issues/1099
+            // Reconsider how to calculate currentColor in a display:none canvas
 
-                // TODO: will need to check that the context bitmap mode is fixed
-                // once we implement CanvasProxy
-                let canvas = match canvas {
-                    // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
-                    // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
-                    // it is treated as opaque black.
-                    None => return Ok(RGBA::new(0, 0, 0, 1.0)),
-                    Some(ref canvas) => &**canvas,
-                };
+            // TODO: will need to check that the context bitmap mode is fixed
+            // once we implement CanvasProxy
+            let current_color = match canvas {
+                // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
+                // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
+                // it is treated as opaque black.
+                None => RGBA::new(0, 0, 0, 1.0),
+                Some(ref canvas) => {
+                    let canvas_element = canvas.upcast::<Element>();
+                    match canvas_element.style() {
+                        Some(ref s) if canvas_element.has_css_layout_box() => {
+                            s.get_inherited_text().color
+                        },
+                        _ => RGBA::new(0, 0, 0, 1.0),
+                    }
+                },
+            };
 
-                let canvas_element = canvas.upcast::<Element>();
-
-                match canvas_element.style() {
-                    Some(ref s) if canvas_element.has_css_layout_box() => {
-                        Ok(s.get_inherited_text().color)
-                    },
-                    _ => Ok(RGBA::new(0, 0, 0, 1.0)),
-                }
-            },
-            _ => Err(()),
-        }
-    } else {
-        Err(())
+            Ok(color.into_rgba(current_color))
+        },
+        None => Err(()),
     }
 }
 
