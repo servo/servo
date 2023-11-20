@@ -8,6 +8,8 @@ jobs:
   parse-comment:
     name: Trigger Try
     runs-on: ubuntu-latest
+    concurrency:
+      group: try-${{ github.event.number }}
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
     steps:
