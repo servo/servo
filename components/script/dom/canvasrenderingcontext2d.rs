@@ -647,7 +647,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
     fn SetShadowColor(&self, value: DOMString) {
-        self.canvas_state.set_shadow_color(value)
+        self.canvas_state
+            .set_shadow_color(self.canvas.as_ref().map(|c| &**c), value)
     }
 }
 

@@ -296,43 +296,6 @@ impl CanvasState {
         }
     }
 
-    fn parse_color(&self, canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<RGBA, ()> {
-        let mut input = ParserInput::new(string);
-        let mut parser = Parser::new(&mut input);
-        let color = CSSColor::parse(&mut parser);
-        if parser.is_exhausted() {
-            match color {
-                Ok(CSSColor::Rgba(rgba)) => Ok(rgba),
-                Ok(CSSColor::CurrentColor) => {
-                    // TODO: https://github.com/whatwg/html/issues/1099
-                    // Reconsider how to calculate currentColor in a display:none canvas
-
-                    // TODO: will need to check that the context bitmap mode is fixed
-                    // once we implement CanvasProxy
-                    let canvas = match canvas {
-                        // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
-                        // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
-                        // it is treated as opaque black.
-                        None => return Ok(RGBA::new(0, 0, 0, 1.0)),
-                        Some(ref canvas) => &**canvas,
-                    };
-
-                    let canvas_element = canvas.upcast::<Element>();
-
-                    match canvas_element.style() {
-                        Some(ref s) if canvas_element.has_css_layout_box() => {
-                            Ok(s.get_inherited_text().color)
-                        },
-                        _ => Ok(RGBA::new(0, 0, 0, 1.0)),
-                    }
-                },
-                _ => Err(()),
-            }
-        } else {
-            Err(())
-        }
-    }
-
     pub fn get_rect(&self, canvas_size: Size2D<u64>, rect: Rect<u64>) -> Vec<u8> {
         assert!(self.origin_is_clean());
 
@@ -753,10 +716,10 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
-    pub fn set_shadow_color(&self, value: DOMString) {
-        if let Ok(color) = parse_color(&value) {
-            self.state.borrow_mut().shadow_color = color;
-            self.send_canvas_2d_msg(Canvas2dMsg::SetShadowColor(color))
+    pub fn set_shadow_color(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
+        if let Ok(rgba) = parse_color(canvas, &value) {
+            self.state.borrow_mut().shadow_color = rgba;
+            self.send_canvas_2d_msg(Canvas2dMsg::SetShadowColor(rgba))
         }
     }
 
@@ -785,7 +748,7 @@ impl CanvasState {
     ) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::String(string) => {
-                if let Ok(rgba) = self.parse_color(canvas, &string) {
+                if let Ok(rgba) = parse_color(canvas, &string) {
                     self.state.borrow_mut().stroke_style = CanvasFillOrStrokeStyle::Color(rgba);
                 }
             },
@@ -828,7 +791,7 @@ impl CanvasState {
     ) {
         match value {
             StringOrCanvasGradientOrCanvasPattern::String(string) => {
-                if let Ok(rgba) = self.parse_color(canvas, &string) {
+                if let Ok(rgba) = parse_color(canvas, &string) {
                     self.state.borrow_mut().fill_style = CanvasFillOrStrokeStyle::Color(rgba);
                 }
             },
@@ -1702,18 +1665,40 @@ impl CanvasState {
     }
 }
 
-pub fn parse_color(string: &str) -> Result<RGBA, ()> {
+fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<RGBA, ()> {
     let mut input = ParserInput::new(string);
     let mut parser = Parser::new(&mut input);
-    match CSSColor::parse(&mut parser) {
-        Ok(CSSColor::Rgba(rgba)) => {
-            if parser.is_exhausted() {
-                Ok(rgba)
-            } else {
-                Err(())
-            }
-        },
-        _ => Err(()),
+    let color = CSSColor::parse(&mut parser);
+    if parser.is_exhausted() {
+        match color {
+            Ok(CSSColor::Rgba(rgba)) => Ok(rgba),
+            Ok(CSSColor::CurrentColor) => {
+                // TODO: https://github.com/whatwg/html/issues/1099
+                // Reconsider how to calculate currentColor in a display:none canvas
+
+                // TODO: will need to check that the context bitmap mode is fixed
+                // once we implement CanvasProxy
+                let canvas = match canvas {
+                    // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
+                    // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
+                    // it is treated as opaque black.
+                    None => return Ok(RGBA::new(0, 0, 0, 1.0)),
+                    Some(ref canvas) => &**canvas,
+                };
+
+                let canvas_element = canvas.upcast::<Element>();
+
+                match canvas_element.style() {
+                    Some(ref s) if canvas_element.has_css_layout_box() => {
+                        Ok(s.get_inherited_text().color)
+                    },
+                    _ => Ok(RGBA::new(0, 0, 0, 1.0)),
+                }
+            },
+            _ => Err(()),
+        }
+    } else {
+        Err(())
     }
 }
 
