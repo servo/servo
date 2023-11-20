@@ -39,13 +39,13 @@ class TestParser(unittest.TestCase):
     def test_string(self):
         self.assertEqual(Config("linux").toJSON(),
                          '{"fail_fast": false, "matrix": \
-[{"os": "linux", "name": "Linux", "layout": "none", "profile": "release", "unit_tests": true}]}')
+[{"os": "linux", "name": "Linux", "layout": "none", "profile": "release", "unit_tests": true, "wpt": ""}]}')
 
     def test_tuple0(self):
         conf = Config("linux()")
         self.assertEqual(conf.toJSON(),
                          '{"fail_fast": false, "matrix": \
-[{"os": "linux", "name": "Linux", "layout": "none", "profile": "release", "unit_tests": true}]}')
+[{"os": "linux", "name": "Linux", "layout": "none", "profile": "release", "unit_tests": true, "wpt": ""}]}')
 
     def test_tuple1(self):
         conf = Config("linux(profile='debug')")
