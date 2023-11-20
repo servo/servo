@@ -83,7 +83,11 @@ jobs:
         run: |
           python3 ./mach build --${{ inputs.profile }}
       - name: Smoketest
-        run: python3 ./mach smoketest --${{ inputs.profile }}
+        uses: nick-fields/retry@v2
+        with: # See https://github.com/servo/servo/issues/30757
+          timeout_minutes: 5
+          max_attempts: 2
+          command: python3 ./mach smoketest --${{ inputs.profile }}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
