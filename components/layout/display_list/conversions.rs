@@ -62,7 +62,7 @@ impl FilterToLayout for Filter {
                 color: shadow
                     .color
                     .clone()
-                    .resolve_into_absolute(current_color)
+                    .resolve_to_absolute(current_color)
                     .to_layout(),
             }),
             // Statically check that Url is impossible.

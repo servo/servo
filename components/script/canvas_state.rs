@@ -1708,7 +1708,7 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<R
             };
 
             let rgba = color
-                .resolve_into_absolute(&current_color)
+                .resolve_to_absolute(&current_color)
                 .to_color_space(ColorSpace::Srgb);
             Ok(RGBA::from_floats(
                 Some(rgba.components.0),

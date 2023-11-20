@@ -368,7 +368,7 @@ impl Fragment {
         let text_decoration_color = fragment
             .parent_style
             .clone_text_decoration_color()
-            .resolve_into_absolute(color);
+            .resolve_to_absolute(color);
         let text_decoration_style = fragment.parent_style.clone_text_decoration_style();
         if text_decoration_style == ComputedTextDecorationStyle::MozNone {
             return;
