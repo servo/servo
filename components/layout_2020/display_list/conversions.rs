@@ -37,7 +37,7 @@ impl FilterToWebRender for ComputedFilter {
             ComputedFilter::DropShadow(ref shadow) => FilterOp::DropShadow(Shadow {
                 blur_radius: shadow.blur.px(),
                 offset: units::LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
-                color: super::rgba(shadow.color.clone().resolve_into_absolute(current_color)),
+                color: super::rgba(shadow.color.clone().resolve_to_absolute(current_color)),
             }),
             // Statically check that Url is impossible.
             ComputedFilter::Url(ref url) => match *url {},
