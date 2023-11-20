@@ -117,6 +117,7 @@ jobs:
       wpt-layout: ${{ matrix.layout }}
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
+      wpt: ${{ matrix.wpt }}
 
   results:
     name: Results

@@ -8,6 +8,9 @@ on:
       profile:
         required: true
         type: string
+      wpt:
+        required: true
+        type: string
       wpt-layout:
         required: true
         type: string
@@ -32,6 +35,7 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-layout: ${{ inputs.wpt-layout }}
       unit-tests: ${{ inputs.unit-tests }}
+      wpt: ${{ inputs.wpt }}
 
   linux:
     if: ${{ inputs.os == 'linux' }}
@@ -41,3 +45,4 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-layout: ${{ inputs.wpt-layout }}
       unit-tests: ${{ inputs.unit-tests }}
+      wpt: ${{ inputs.wpt }}

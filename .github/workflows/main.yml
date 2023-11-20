@@ -76,6 +76,7 @@ jobs:
                     "layout": "none",
                     "profile": "release",
                     "unit_tests": true,
+                    "wpt": "",
                   },
                 ],
               };
@@ -91,6 +92,7 @@ jobs:
                   "layout": "all",
                   "profile": "release",
                   "unit_tests": true,
+                  "wpt": "",
                 },
                 {
                   "os": "windows",
@@ -98,6 +100,7 @@ jobs:
                   "layout": "none", // not used
                   "profile": "release",
                   "unit_tests": true,
+                  "wpt": "",
                 },
                 {
                   "os": "mac",
@@ -105,6 +108,7 @@ jobs:
                   "layout": "none",
                   "profile": "release",
                   "unit_tests": true,
+                  "wpt": "",
                 }
               ],
             };
@@ -143,6 +147,7 @@ jobs:
       wpt-layout: ${{ matrix.layout }}
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
+      wpt: ${{ matrix.wpt }}
 
   build-result:
     name: Result

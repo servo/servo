@@ -6,6 +6,10 @@ on:
         required: false
         default: "release"
         type: string
+      wpt:
+        default: ""
+        required: false
+        type: string
       wpt-sync:
         required: false
         default: false
@@ -31,6 +35,10 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
+      wpt:
+        default: ""
+        required: false
+        type: string
       wpt-sync:
         default: false
         required: false
@@ -148,6 +156,7 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-sync: ${{ inputs.wpt-sync == 'true' }}
       layout: "layout-2020"
+      wpt: ${{ inputs.wpt }}
     secrets: inherit
 
   wpt-2013:
@@ -159,6 +168,7 @@ jobs:
       profile: ${{ inputs.profile }}
       wpt-sync: ${{ inputs.wpt-sync == 'true' }}
       layout: "layout-2013"
+      wpt: ${{ inputs.wpt }}
     secrets: inherit
 
   result:

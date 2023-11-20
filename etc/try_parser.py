@@ -201,12 +201,13 @@ class JobConfig(object):
     """
 
     def __init__(self, name: str, os: OS, layout: Layout = Layout.none,
-                 profile: str = "release", unit_test: bool = True):
+                 profile: str = "release", unit_test: bool = True, wpt: str = ""):
         self.os: OS = os
         self.name: str = name
         self.layout: Layout = layout
         self.profile: str = profile
         self.unit_tests: bool = unit_test
+        self.wpt: str = wpt
 
     @staticmethod
     def parse(name: str, overrides: dict[str, str]):
@@ -220,6 +221,8 @@ class JobConfig(object):
                 job.layout = Layout.parse(v)
             elif k == "profile":
                 job.profile = v
+            elif k == "wpt":
+                job.wpt = v
             elif k == "unit-tests" or k == "unit-test":
                 job.unit_tests = (v.lower() == "true")
             else:
@@ -249,6 +252,10 @@ def preset(s: str) -> JobConfig | None:
         return JobConfig("MacOS WPT legacy-layout", OS.mac, layout=Layout.layout2013)
     elif s == "mac-wpt-2020":
         return JobConfig("MacOS WPT layout-2020", OS.mac, layout=Layout.layout2020)
+    elif s == "webgpu":
+        return JobConfig("WebGPU CTS", OS.linux, layout=Layout.layout2020, wpt="_webgpu",
+                         profile="production",  # WebGPU works to slow with debug assert
+                         unit_test=False)  # production profile does not work with unit-tests
     else:
         return None
 
