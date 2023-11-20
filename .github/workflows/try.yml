@@ -97,19 +97,30 @@ jobs:
       - name: Parse Try string
         if: ${{ steps.try_string.outputs.result }}
         id: configuration
-        run: python ./etc/try_parser.py ${{ steps.try_string.outputs.result }}
+        run: |
+          out=$(python ./etc/try_parser.py ${{ steps.try_string.outputs.result }})
+          echo "result=${out}" >> $GITHUB_OUTPUT
 
-  run-try:
-    name: Run Try
-    if: ${{ needs.parse-comment.outputs.try_string }}
+  # we cannot call main.yml because we hit workflow neesting limit
+  build:
     needs: ["parse-comment"]
-    uses: ./.github/workflows/main.yml
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: ${{ fromJson(needs.parse-comment.outputs.configuration).fail_fast }}
+      matrix:
+        include: ${{ fromJson(needs.parse-comment.outputs.configuration).matrix }}
+    # we need dipatch os because workflows do not support uses: ${}
+    uses: ./.github/workflows/dispatch-os.yml
+    secrets: inherit
     with:
-      configuration: ${{ needs.parse-comment.outputs.configuration }}
+      os: ${{ matrix.os }}
+      wpt-layout: ${{ matrix.layout }}
+      profile: ${{ matrix.profile }}
+      unit-tests: ${{ matrix.unit_tests }}
 
   results:
     name: Results
-    needs: ["parse-comment", "run-try"]
+    needs: ["parse-comment", "build"]
     runs-on: ubuntu-latest
     if: ${{ always() && needs.parse-comment.outputs.try_string }}
     steps:
