@@ -301,7 +301,7 @@ impl CSSStyleDeclaration {
             // Step 5
             let window = self.owner.window();
             let quirks_mode = window.Document().quirks_mode();
-            let mut declarations = SourcePropertyDeclaration::new();
+            let mut declarations = SourcePropertyDeclaration::default();
             let result = parse_one_declaration_into(
                 &mut declarations,
                 id,

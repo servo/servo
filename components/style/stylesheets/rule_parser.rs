@@ -454,7 +454,10 @@ impl<'a, 'b, 'i> NestedRuleParser<'a, 'b, 'i> {
         if !self.context.rule_types.contains(CssRuleType::Style) {
             return true;
         }
-        static_prefs::pref!("layout.css.nesting.enabled")
+        #[cfg(feature = "gecko")]
+        return static_prefs::pref!("layout.css.nesting.enabled");
+        #[cfg(feature = "servo")]
+        return false;
     }
 
     fn nest_for_rule<R>(&mut self, rule_type: CssRuleType, cb: impl FnOnce(&mut Self) -> R) -> R {

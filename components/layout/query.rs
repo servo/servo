@@ -795,7 +795,7 @@ fn create_font_declaration(
     url_data: &ServoUrl,
     quirks_mode: QuirksMode,
 ) -> Option<PropertyDeclarationBlock> {
-    let mut declarations = SourcePropertyDeclaration::new();
+    let mut declarations = SourcePropertyDeclaration::default();
     let result = parse_one_declaration_into(
         &mut declarations,
         property.clone(),
