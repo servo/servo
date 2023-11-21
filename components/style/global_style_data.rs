@@ -114,7 +114,8 @@ impl StyleThreadPool {
 
 #[cfg(feature = "servo")]
 fn stylo_threads_pref() -> i32 {
-    pref!(layout.threads)
+    use servo_config::pref;
+    pref!(layout.threads) as i32
 }
 
 #[cfg(feature = "gecko")]
