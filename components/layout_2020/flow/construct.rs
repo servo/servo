@@ -273,6 +273,9 @@ where
                     }
                 },
             },
+            DisplayGeneratingBox::LayoutInternal(_) => {
+                unreachable!("The result of blockification should never be layout-internal value.");
+            },
         }
     }
 

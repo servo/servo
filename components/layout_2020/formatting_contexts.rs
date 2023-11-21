@@ -21,6 +21,7 @@ use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
 use crate::style_ext::DisplayInside;
+use crate::table::Table;
 use crate::ContainingBlock;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
@@ -54,6 +55,7 @@ pub(crate) struct ReplacedFormattingContext {
 pub(crate) enum NonReplacedFormattingContextContents {
     Flow(BlockFormattingContext),
     Flex(FlexContainer),
+    Table(Table),
     // Other layout modes go here
 }
 
@@ -73,7 +75,7 @@ impl IndependentFormattingContext {
         propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
         match contents.try_into() {
-            Ok(non_replaced) => {
+            Ok(non_replaced_contents) => {
                 let contents = match display_inside {
                     DisplayInside::Flow { is_list_item } |
                     DisplayInside::FlowRoot { is_list_item } => {
@@ -81,7 +83,7 @@ impl IndependentFormattingContext {
                             BlockFormattingContext::construct(
                                 context,
                                 node_and_style_info,
-                                non_replaced,
+                                non_replaced_contents,
                                 propagated_text_decoration_line,
                                 is_list_item,
                             ),
@@ -91,7 +93,15 @@ impl IndependentFormattingContext {
                         NonReplacedFormattingContextContents::Flex(FlexContainer::construct(
                             context,
                             node_and_style_info,
-                            non_replaced,
+                            non_replaced_contents,
+                            propagated_text_decoration_line,
+                        ))
+                    },
+                    DisplayInside::Table => {
+                        NonReplacedFormattingContextContents::Table(Table::construct(
+                            context,
+                            node_and_style_info,
+                            non_replaced_contents,
                             propagated_text_decoration_line,
                         ))
                     },
@@ -190,6 +200,9 @@ impl NonReplacedFormattingContext {
             NonReplacedFormattingContextContents::Flex(fc) => {
                 fc.layout(layout_context, positioning_context, containing_block)
             },
+            NonReplacedFormattingContextContents::Table(table) => {
+                table.layout(layout_context, positioning_context, containing_block)
+            },
         }
     }
 
@@ -213,6 +226,7 @@ impl NonReplacedFormattingContextContents {
                 .contents
                 .inline_content_sizes(layout_context, writing_mode),
             Self::Flex(inner) => inner.inline_content_sizes(),
+            Self::Table(table) => table.inline_content_sizes(),
         }
     }
 }

@@ -2248,6 +2248,11 @@ impl AbsolutelyPositionedLineItem {
                     block: Length::zero(),
                 }
             },
+            Display::GeneratingBox(DisplayGeneratingBox::LayoutInternal(_)) => {
+                unreachable!(
+                    "The result of blockification should never be a layout-internal value."
+                );
+            },
             Display::Contents => {
                 panic!("display:contents does not generate an abspos box")
             },

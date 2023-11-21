@@ -23,6 +23,7 @@ pub mod query;
 mod replaced;
 mod sizing;
 mod style_ext;
+pub mod table;
 pub mod traversal;
 
 pub use flow::BoxTree;
