@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::{Locked, ToCssWithGuard};
+use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::SupportsRule;
 use style_traits::ToCss;
 
@@ -21,16 +21,15 @@ pub struct CSSSupportsRule {
     cssconditionrule: CSSConditionRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    supportsrule: Arc<Locked<SupportsRule>>,
+    supportsrule: Arc<SupportsRule>,
 }
 
 impl CSSSupportsRule {
     fn new_inherited(
         parent_stylesheet: &CSSStyleSheet,
-        supportsrule: Arc<Locked<SupportsRule>>,
+        supportsrule: Arc<SupportsRule>,
     ) -> CSSSupportsRule {
-        let guard = parent_stylesheet.shared_lock().read();
-        let list = supportsrule.read_with(&guard).rules.clone();
+        let list = supportsrule.rules.clone();
         CSSSupportsRule {
             cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
             supportsrule: supportsrule,
@@ -41,7 +40,7 @@ impl CSSSupportsRule {
     pub fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
-        supportsrule: Arc<Locked<SupportsRule>>,
+        supportsrule: Arc<SupportsRule>,
     ) -> DomRoot<CSSSupportsRule> {
         reflect_dom_object(
             Box::new(CSSSupportsRule::new_inherited(
@@ -54,9 +53,7 @@ impl CSSSupportsRule {
 
     /// <https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface>
     pub fn get_condition_text(&self) -> DOMString {
-        let guard = self.cssconditionrule.shared_lock().read();
-        let rule = self.supportsrule.read_with(&guard);
-        rule.condition.to_css_string().into()
+        self.supportsrule.condition.to_css_string().into()
     }
 }
 
@@ -68,9 +65,6 @@ impl SpecificCSSRule for CSSSupportsRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssconditionrule.shared_lock().read();
-        self.supportsrule
-            .read_with(&guard)
-            .to_css_string(&guard)
-            .into()
+        self.supportsrule.to_css_string(&guard).into()
     }
 }

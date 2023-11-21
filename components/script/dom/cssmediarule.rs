@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::shared_lock::{Locked, ToCssWithGuard};
+use style::shared_lock::ToCssWithGuard;
 use style::stylesheets::MediaRule;
 use style_traits::ToCss;
 
@@ -23,17 +23,13 @@ pub struct CSSMediaRule {
     cssconditionrule: CSSConditionRule,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
-    mediarule: Arc<Locked<MediaRule>>,
+    mediarule: Arc<MediaRule>,
     medialist: MutNullableDom<MediaList>,
 }
 
 impl CSSMediaRule {
-    fn new_inherited(
-        parent_stylesheet: &CSSStyleSheet,
-        mediarule: Arc<Locked<MediaRule>>,
-    ) -> CSSMediaRule {
-        let guard = parent_stylesheet.shared_lock().read();
-        let list = mediarule.read_with(&guard).rules.clone();
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet, mediarule: Arc<MediaRule>) -> CSSMediaRule {
+        let list = mediarule.rules.clone();
         CSSMediaRule {
             cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
             mediarule: mediarule,
@@ -45,7 +41,7 @@ impl CSSMediaRule {
     pub fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
-        mediarule: Arc<Locked<MediaRule>>,
+        mediarule: Arc<MediaRule>,
     ) -> DomRoot<CSSMediaRule> {
         reflect_dom_object(
             Box::new(CSSMediaRule::new_inherited(parent_stylesheet, mediarule)),
@@ -55,11 +51,10 @@ impl CSSMediaRule {
 
     fn medialist(&self) -> DomRoot<MediaList> {
         self.medialist.or_init(|| {
-            let guard = self.cssconditionrule.shared_lock().read();
             MediaList::new(
                 self.global().as_window(),
                 self.cssconditionrule.parent_stylesheet(),
-                self.mediarule.read_with(&guard).media_queries.clone(),
+                self.mediarule.media_queries.clone(),
             )
         })
     }
@@ -67,8 +62,7 @@ impl CSSMediaRule {
     /// <https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface>
     pub fn get_condition_text(&self) -> DOMString {
         let guard = self.cssconditionrule.shared_lock().read();
-        let rule = self.mediarule.read_with(&guard);
-        let list = rule.media_queries.read_with(&guard);
+        let list = self.mediarule.media_queries.read_with(&guard);
         list.to_css_string().into()
     }
 }
@@ -81,10 +75,7 @@ impl SpecificCSSRule for CSSMediaRule {
 
     fn get_css(&self) -> DOMString {
         let guard = self.cssconditionrule.shared_lock().read();
-        self.mediarule
-            .read_with(&guard)
-            .to_css_string(&guard)
-            .into()
+        self.mediarule.to_css_string(&guard).into()
     }
 }
 
