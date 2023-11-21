@@ -218,6 +218,26 @@ macro_rules! rule_filter {
                 use crate::stylesheets::CssRule;
 
                 for rule in self.effective_rules(device, guard) {
+                    if let CssRule::$variant(ref lock) = *rule {
+                        let rule = lock.read_with(guard);
+                        f(&rule)
+                    }
+                }
+            }
+        )+
+    }
+}
+
+macro_rules! rule_filter_for_non_locked {
+    ($( $method: ident($variant:ident => $rule_type: ident), )+) => {
+        $(
+            #[allow(missing_docs)]
+            fn $method<F>(&self, device: &Device, guard: &SharedRwLockReadGuard, mut f: F)
+                where F: FnMut(&crate::stylesheets::$rule_type),
+            {
+                use crate::stylesheets::CssRule;
+
+                for rule in self.effective_rules(device, guard) {
                     if let CssRule::$variant(ref rule) = *rule {
                         f(&rule)
                     }
@@ -283,6 +303,9 @@ pub trait StylesheetInDocument: ::std::fmt::Debug {
 
     rule_filter! {
         effective_font_face_rules(FontFace => FontFaceRule),
+    }
+
+    rule_filter_for_non_locked! {
         effective_viewport_rules(Viewport => ViewportRule),
     }
 }
