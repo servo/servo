@@ -49,7 +49,10 @@ fn report_statistics(stats: &PerThreadTraversalStatistics) {
 }
 
 fn parallelism_threshold() -> usize {
-    static_prefs::pref!("layout.css.stylo-parallelism-threshold") as usize
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.stylo-parallelism-threshold") as usize;
+    #[cfg(feature = "servo")]
+    return 16;
 }
 
 /// Do a DOM traversal for top-down and (optionally) bottom-up processing, generic over `D`.

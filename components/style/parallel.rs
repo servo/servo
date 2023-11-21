@@ -59,7 +59,10 @@ pub const STACK_SAFETY_MARGIN_KB: usize = 168;
 
 /// See documentation of the pref for performance characteristics.
 pub fn work_unit_max() -> usize {
-    static_prefs::pref!("layout.css.stylo-work-unit-size") as usize
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.stylo-work-unit-size") as usize;
+    #[cfg(feature = "servo")]
+    return 16;
 }
 
 /// A callback to create our thread local context.  This needs to be
