@@ -5,6 +5,7 @@
 //! Parsing of the stylesheet contents.
 
 use crate::counter_style::{parse_counter_style_body, parse_counter_style_name_definition};
+#[cfg(feature = "gecko")]
 use crate::custom_properties::parse_name as parse_custom_property_name;
 use crate::error_reporting::ContextualParseError;
 use crate::font_face::parse_font_face_block;
@@ -32,7 +33,9 @@ use crate::stylesheets::{
 };
 use crate::values::computed::font::FamilyName;
 use crate::values::{CssUrl, CustomIdent, DashedIdent, KeyframesName};
-use crate::{Atom, Namespace, Prefix};
+#[cfg(feature = "gecko")]
+use crate::Atom;
+use crate::{Namespace, Prefix};
 use cssparser::{
     AtRuleParser, BasicParseError, BasicParseErrorKind, CowRcStr, DeclarationParser, Parser,
     ParserState, QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser, SourceLocation,
@@ -604,6 +607,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
                     input.try_parse(|i| PageSelectors::parse(self.context, i)).unwrap_or_default()
                 )
             },
+            #[cfg(feature = "gecko")]
             "property" if static_prefs::pref!("layout.css.properties-and-values.enabled") => {
                 let name = input.expect_ident_cloned()?;
                 let name = parse_custom_property_name(&name).map_err(|_| {
