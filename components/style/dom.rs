@@ -19,7 +19,7 @@ use crate::shared_lock::{Locked, SharedRwLock};
 use crate::stylist::CascadeData;
 use crate::values::computed::Display;
 use crate::values::AtomIdent;
-use crate::WeakAtom;
+use crate::{LocalName, WeakAtom};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use selectors::matching::{QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;

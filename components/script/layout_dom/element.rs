@@ -244,11 +244,6 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
     }
 
     #[inline]
-    fn has_attr(&self, namespace: &style::Namespace, attr: &style::LocalName) -> bool {
-        self.get_attr(&**namespace, &**attr).is_some()
-    }
-
-    #[inline]
     fn id(&self) -> Option<&Atom> {
         unsafe { (*self.element.id_attribute()).as_ref() }
     }
