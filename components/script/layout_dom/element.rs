@@ -459,11 +459,6 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
     ) -> euclid::default::Size2D<Option<app_units::Au>> {
         todo!();
     }
-
-    fn anchors_relative_selector(&self) -> bool {
-        self.element
-            .has_selector_flags(ElementSelectorFlags::ANCHORS_RELATIVE_SELECTOR)
-    }
 }
 
 impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
