@@ -346,11 +346,14 @@ pub enum CompositeTarget {
     /// Draw directly to a window.
     Window,
 
-    /// Draw to an offscreen OpenGL framebuffer object.
+    /// Draw to an offscreen OpenGL framebuffer object (IOCompositor::output_framebuffer_id).
     Fbo,
 
-    /// Compose to a PNG, write it to disk, and then exit the browser (used for reftests)
-    File(String),
+    /// Draw to an uncompressed image in shared memory.
+    SharedMemory,
+
+    /// Draw to a PNG file on disk, then exit the browser (for reftests).
+    PngFile(String),
 }
 
 impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
@@ -522,7 +525,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (CompositorMsg::CreatePng(rect, reply), ShutdownState::NotShuttingDown) => {
-                let res = self.run_compositor(rect, true);
+                let res = self.composite_specific_target(Some(CompositeTarget::SharedMemory), rect);
                 if let Err(ref e) = res {
                     info!("Error retrieving PNG: {:?}", e);
                 }
@@ -589,7 +592,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             (CompositorMsg::LoadComplete(_), ShutdownState::NotShuttingDown) => {
                 // If we're painting in headless mode, schedule a recomposite.
-                if matches!(self.composite_target, CompositeTarget::File(_)) || self.exit_after_load
+                if matches!(self.composite_target, CompositeTarget::PngFile(_)) ||
+                    self.exit_after_load
                 {
                     self.composite_if_necessary(CompositingReason::Headless);
                 }
@@ -1489,7 +1493,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-        if matches!(self.composite_target, CompositeTarget::File(_)) {
+        if matches!(self.composite_target, CompositeTarget::PngFile(_)) {
             return Scale::new(1.0);
         }
         self.embedder_coordinates.hidpi_factor
@@ -1634,9 +1638,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn composite(&mut self) {
-        match self.run_compositor(None, false) {
+        match self.composite_specific_target(None, None) {
             Ok(_) => {
-                if matches!(self.composite_target, CompositeTarget::File(_)) || self.exit_after_load
+                if matches!(self.composite_target, CompositeTarget::PngFile(_)) ||
+                    self.exit_after_load
                 {
                     println!("Shutting down the Constellation after generating an output file or exit flag specified");
                     self.start_shutting_down();
@@ -1654,14 +1659,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    /// Composite to the selected target and/or output file (if any).
+    /// Composite to the given target if any, or the current target otherwise.
     /// Returns Ok if composition was performed or Err if it was not possible to composite
     /// for some reason. If read_back is true, reads back and returns the output frame as
     /// Ok(Some(png::Image)), otherwise returns Ok(None).
-    fn run_compositor(
+    fn composite_specific_target(
         &mut self,
+        target_override: Option<CompositeTarget>,
         rect: Option<Rect<f32, CSSPixel>>,
-        read_back: bool,
     ) -> Result<Option<Image>, UnableToComposite> {
         if self.waiting_on_present {
             debug!("tried to composite while waiting on present");
@@ -1690,14 +1695,15 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         self.webrender.update();
 
-        let wait_for_stable_image = read_back ||
-            matches!(self.composite_target, CompositeTarget::File(_)) ||
-            self.exit_after_load;
-        let needs_fbo = read_back ||
-            matches!(
-                self.composite_target,
-                CompositeTarget::File(_) | CompositeTarget::Fbo
-            );
+        let target = target_override.as_ref().unwrap_or(&self.composite_target);
+        let wait_for_stable_image = matches!(
+            target,
+            CompositeTarget::SharedMemory | CompositeTarget::PngFile(_)
+        ) || self.exit_after_load;
+        let needs_fbo = matches!(
+            target,
+            CompositeTarget::SharedMemory | CompositeTarget::PngFile(_) | CompositeTarget::Fbo
+        );
 
         if wait_for_stable_image {
             // The current image may be ready to output. However, if there are animations active,
@@ -1794,59 +1800,62 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             (0, 0, size.width, size.height)
         };
 
-        let rv = if let CompositeTarget::File(path) = &self.composite_target {
-            let gl = &*self.webrender_gl;
-            profile(
-                ProfilerCategory::ImageSaving,
-                None,
-                self.time_profiler_chan.clone(),
-                || match File::create(path) {
-                    Ok(mut file) => {
-                        let img = gl::read_img(
-                            gl,
-                            rt_info,
-                            x,
-                            y,
-                            FramebufferUintLength::new(width),
-                            FramebufferUintLength::new(height),
-                        );
-                        let dynamic_image = DynamicImage::ImageRgb8(img);
-                        if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::Png) {
-                            error!("Failed to save {} ({}).", path, e);
-                        }
-                    },
-                    Err(e) => error!("Failed to create {} ({}).", path, e),
-                },
-            );
-            None
-        } else if read_back {
-            let img = gl::read_img(
-                &*self.webrender_gl,
-                rt_info,
-                x,
-                y,
-                FramebufferUintLength::new(width),
-                FramebufferUintLength::new(height),
-            );
-            Some(Image {
-                width: img.width(),
-                height: img.height(),
-                format: PixelFormat::RGB8,
-                bytes: ipc::IpcSharedMemory::from_bytes(&*img),
-                id: None,
-                cors_status: CorsStatus::Safe,
-            })
-        } else if matches!(self.composite_target, CompositeTarget::Fbo) {
-            // Free the OpenGL resources of the old frame if any...
-            if let Some(old) = self.output_frame_info.take() {
-                old.drop(&*self.webrender_gl);
-            }
+        let rv = match target_override.as_ref().unwrap_or(&self.composite_target) {
+            CompositeTarget::Window => None,
+            CompositeTarget::Fbo => {
+                // Free the OpenGL resources of the old frame if any...
+                if let Some(old) = self.output_frame_info.take() {
+                    old.drop(&*self.webrender_gl);
+                }
 
-            // ...then store the new frame info in its place.
-            self.output_frame_info = Some(rt_info);
-            None
-        } else {
-            None
+                // ...then store the new frame info in its place.
+                self.output_frame_info = Some(rt_info);
+                None
+            },
+            CompositeTarget::SharedMemory => {
+                let img = gl::read_img(
+                    &*self.webrender_gl,
+                    rt_info,
+                    x,
+                    y,
+                    FramebufferUintLength::new(width),
+                    FramebufferUintLength::new(height),
+                );
+                Some(Image {
+                    width: img.width(),
+                    height: img.height(),
+                    format: PixelFormat::RGB8,
+                    bytes: ipc::IpcSharedMemory::from_bytes(&*img),
+                    id: None,
+                    cors_status: CorsStatus::Safe,
+                })
+            },
+            CompositeTarget::PngFile(path) => {
+                let gl = &*self.webrender_gl;
+                profile(
+                    ProfilerCategory::ImageSaving,
+                    None,
+                    self.time_profiler_chan.clone(),
+                    || match File::create(path) {
+                        Ok(mut file) => {
+                            let img = gl::read_img(
+                                gl,
+                                rt_info,
+                                x,
+                                y,
+                                FramebufferUintLength::new(width),
+                                FramebufferUintLength::new(height),
+                            );
+                            let dynamic_image = DynamicImage::ImageRgb8(img);
+                            if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::Png) {
+                                error!("Failed to save {} ({}).", path, e);
+                            }
+                        },
+                        Err(e) => error!("Failed to create {} ({}).", path, e),
+                    },
+                );
+                None
+            },
         };
 
         // Nottify embedder that servo is ready to present.

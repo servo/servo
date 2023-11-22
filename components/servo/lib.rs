@@ -449,7 +449,7 @@ where
         }
 
         let composite_target = if let Some(path) = opts.output_file.clone() {
-            CompositeTarget::File(path)
+            CompositeTarget::PngFile(path)
         } else {
             composite_target
         };
