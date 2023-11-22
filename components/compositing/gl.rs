@@ -4,6 +4,7 @@
 
 use gleam::gl;
 use image::RgbImage;
+use log::debug;
 use servo_geometry::FramebufferUintLength;
 
 #[derive(Default)]
@@ -13,7 +14,7 @@ pub struct RenderTargetInfo {
     texture_ids: Vec<gl::GLuint>,
 }
 
-pub fn initialize_png(
+pub fn initialize_img(
     gl: &dyn gl::Gl,
     width: FramebufferUintLength,
     height: FramebufferUintLength,
@@ -79,7 +80,7 @@ pub fn initialize_png(
     }
 }
 
-pub fn draw_img(
+pub fn read_img(
     gl: &dyn gl::Gl,
     render_target_info: RenderTargetInfo,
     x: i32,
@@ -106,11 +107,7 @@ pub fn draw_img(
         gl::UNSIGNED_BYTE,
     );
 
-    gl.bind_framebuffer(gl::FRAMEBUFFER, 0);
-
-    gl.delete_textures(&render_target_info.texture_ids);
-    gl.delete_renderbuffers(&render_target_info.renderbuffer_ids);
-    gl.delete_framebuffers(&render_target_info.framebuffer_ids);
+    render_target_info.drop(gl);
 
     // flip image vertically (texture is upside down)
     let orig_pixels = pixels.clone();
@@ -123,4 +120,23 @@ pub fn draw_img(
     }
 
     RgbImage::from_raw(width as u32, height as u32, pixels).expect("Flipping image failed!")
+}
+
+impl RenderTargetInfo {
+    pub fn drop(self, gl: &dyn gl::Gl) {
+        // TODO this churns through ids, maybe we should use surfman chains?
+        debug!("freeing fbo {}", self.framebuffer_id());
+
+        gl.bind_framebuffer(gl::FRAMEBUFFER, 0);
+        gl.delete_textures(&self.texture_ids);
+        gl.delete_renderbuffers(&self.renderbuffer_ids);
+        gl.delete_framebuffers(&self.framebuffer_ids);
+    }
+
+    pub fn framebuffer_id(&self) -> gl::GLuint {
+        *self
+            .framebuffer_ids
+            .first()
+            .expect("guaranteed by initialize_img")
+    }
 }
