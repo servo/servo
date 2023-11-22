@@ -297,13 +297,10 @@ impl Filter {
                     Err(())
                 }
             },
-            Filter::Url(ref url) => {
-                if cfg!(feature = "gecko") {
-                    Ok(ComputedFilter::Url(ComputedUrl(url.clone())))
-                } else {
-                    Err(())
-                }
-            },
+            #[cfg(feature = "gecko")]
+            Filter::Url(ref url) => Ok(ComputedFilter::Url(ComputedUrl(url.clone()))),
+            #[cfg(feature = "servo")]
+            Filter::Url(_) => Err(()),
         }
     }
 }
