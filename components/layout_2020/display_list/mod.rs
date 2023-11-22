@@ -686,10 +686,10 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn build_border(&mut self, builder: &mut DisplayListBuilder) {
         let border = self.fragment.style.get_border();
         let widths = SideOffsets2D::new(
-            border.border_top_width.px(),
-            border.border_right_width.px(),
-            border.border_bottom_width.px(),
-            border.border_left_width.px(),
+            border.border_top_width.to_f32_px(),
+            border.border_right_width.to_f32_px(),
+            border.border_bottom_width.to_f32_px(),
+            border.border_left_width.to_f32_px(),
         );
         if widths == SideOffsets2D::zero() {
             return;
@@ -715,7 +715,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build_outline(&mut self, builder: &mut DisplayListBuilder) {
         let outline = self.fragment.style.get_outline();
-        let width = outline.outline_width.px();
+        let width = outline.outline_width.to_f32_px();
         if width == 0.0 {
             return;
         }

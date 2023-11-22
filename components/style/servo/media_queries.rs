@@ -17,7 +17,7 @@ use crate::values::computed::Resolution;
 use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::specified::ViewportVariant;
 use crate::values::KeyframesName;
-use app_units::Au;
+use app_units::{Au, AU_PER_PX};
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::{Scale, SideOffsets2D, Size2D};
 use mime::Mime;
@@ -157,6 +157,11 @@ impl Device {
     /// Whether viewport units were used since the last device change.
     pub fn used_viewport_units(&self) -> bool {
         self.used_viewport_units.load(Ordering::Relaxed)
+    }
+
+    /// Returns the number of app units per device pixel we're using currently.
+    pub fn app_units_per_device_pixel(&self) -> i32 {
+        (AU_PER_PX as f32 / self.device_pixel_ratio.0) as i32
     }
 
     /// Returns the device pixel ratio.

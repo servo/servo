@@ -1052,7 +1052,8 @@ impl BoxFragment {
                 containing_block: containing_block.rect,
                 fragment: fragment.clone(),
             });
-        if self.style.get_outline().outline_width.px() > 0.0 {
+        use style::Zero;
+        if !self.style.get_outline().outline_width.is_zero() {
             stacking_context
                 .contents
                 .push(StackingContextContent::Fragment {

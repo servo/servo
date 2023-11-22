@@ -160,8 +160,8 @@ impl FragmentTree {
             let border = style.get_border();
             Some(Rect::new(
                 Point2D::new(
-                    border.border_left_width.px() as i32,
-                    border.border_top_width.px() as i32,
+                    border.border_left_width.to_px(),
+                    border.border_top_width.to_px(),
                 ),
                 Size2D::new(
                     padding_rect.size.width.px() as i32,
