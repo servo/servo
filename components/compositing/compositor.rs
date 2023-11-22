@@ -11,6 +11,7 @@ use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use canvas::canvas_paint_thread::ImageUpdate;
+use cfg_if::cfg_if;
 use compositing_traits::{
     CanvasToCompositorMsg, CompositingReason, CompositionPipeline, CompositorMsg,
     CompositorReceiver, ConstellationMsg, FontToCompositorMsg, ForwardedToCompositorMsg,
@@ -59,7 +60,6 @@ use webrender_surfman::WebrenderSurfman;
 
 #[cfg(feature = "gl")]
 use crate::gl;
-use crate::gl::RenderTargetInfo;
 use crate::touch::{TouchAction, TouchHandler};
 use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
@@ -227,7 +227,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     cursor_pos: DevicePoint,
 
     /// Our last frame of output.
-    output_frame_info: Option<RenderTargetInfo>,
+    output_frame_info: Option<gl::RenderTargetInfo>,
 
     is_running_problem_test: bool,
 
@@ -1720,14 +1720,20 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             }
         }
 
-        let rt_info = if needs_fbo {
-            gl::initialize_img(
-                &*self.webrender_gl,
-                FramebufferUintLength::new(size.width),
-                FramebufferUintLength::new(size.height),
-            )
-        } else {
-            RenderTargetInfo::default()
+        cfg_if! {
+            if #[cfg(feature = "gl")] {
+                let rt_info = if needs_fbo {
+                    gl::initialize_img(
+                        &*self.webrender_gl,
+                        FramebufferUintLength::new(size.width),
+                        FramebufferUintLength::new(size.height),
+                    )
+                } else {
+                    gl::RenderTargetInfo::default()
+                };
+            } else {
+                let rt_info = ();
+            }
         };
 
         profile(
@@ -1800,63 +1806,69 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             (0, 0, size.width, size.height)
         };
 
-        let rv = match target_override.as_ref().unwrap_or(&self.composite_target) {
-            CompositeTarget::Window => None,
-            CompositeTarget::Fbo => {
-                // Free the OpenGL resources of the old frame if any...
-                if let Some(old) = self.output_frame_info.take() {
-                    old.drop(&*self.webrender_gl);
-                }
+        cfg_if! {
+            if #[cfg(feature = "gl")] {
+                let rv = match target_override.as_ref().unwrap_or(&self.composite_target) {
+                    CompositeTarget::Window => None,
+                    CompositeTarget::Fbo => {
+                        // Free the OpenGL resources of the old frame if any...
+                        if let Some(old) = self.output_frame_info.take() {
+                            old.drop(&*self.webrender_gl);
+                        }
 
-                // ...then store the new frame info in its place.
-                self.output_frame_info = Some(rt_info);
-                None
-            },
-            CompositeTarget::SharedMemory => {
-                let img = gl::read_img(
-                    &*self.webrender_gl,
-                    rt_info,
-                    x,
-                    y,
-                    FramebufferUintLength::new(width),
-                    FramebufferUintLength::new(height),
-                );
-                Some(Image {
-                    width: img.width(),
-                    height: img.height(),
-                    format: PixelFormat::RGB8,
-                    bytes: ipc::IpcSharedMemory::from_bytes(&*img),
-                    id: None,
-                    cors_status: CorsStatus::Safe,
-                })
-            },
-            CompositeTarget::PngFile(path) => {
-                let gl = &*self.webrender_gl;
-                profile(
-                    ProfilerCategory::ImageSaving,
-                    None,
-                    self.time_profiler_chan.clone(),
-                    || match File::create(path) {
-                        Ok(mut file) => {
-                            let img = gl::read_img(
-                                gl,
-                                rt_info,
-                                x,
-                                y,
-                                FramebufferUintLength::new(width),
-                                FramebufferUintLength::new(height),
-                            );
-                            let dynamic_image = DynamicImage::ImageRgb8(img);
-                            if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::Png) {
-                                error!("Failed to save {} ({}).", path, e);
-                            }
-                        },
-                        Err(e) => error!("Failed to create {} ({}).", path, e),
+                        // ...then store the new frame info in its place.
+                        self.output_frame_info = Some(rt_info);
+                        None
                     },
-                );
-                None
-            },
-        };
+                    CompositeTarget::SharedMemory => {
+                        let img = gl::read_img(
+                            &*self.webrender_gl,
+                            rt_info,
+                            x,
+                            y,
+                            FramebufferUintLength::new(width),
+                            FramebufferUintLength::new(height),
+                        );
+                        Some(Image {
+                            width: img.width(),
+                            height: img.height(),
+                            format: PixelFormat::RGB8,
+                            bytes: ipc::IpcSharedMemory::from_bytes(&*img),
+                            id: None,
+                            cors_status: CorsStatus::Safe,
+                        })
+                    },
+                    CompositeTarget::PngFile(path) => {
+                        let gl = &*self.webrender_gl;
+                        profile(
+                            ProfilerCategory::ImageSaving,
+                            None,
+                            self.time_profiler_chan.clone(),
+                            || match File::create(path) {
+                                Ok(mut file) => {
+                                    let img = gl::read_img(
+                                        gl,
+                                        rt_info,
+                                        x,
+                                        y,
+                                        FramebufferUintLength::new(width),
+                                        FramebufferUintLength::new(height),
+                                    );
+                                    let dynamic_image = DynamicImage::ImageRgb8(img);
+                                    if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::Png) {
+                                        error!("Failed to save {} ({}).", path, e);
+                                    }
+                                },
+                                Err(e) => error!("Failed to create {} ({}).", path, e),
+                            },
+                        );
+                        None
+                    },
+                };
+            } else {
+                let rv = None;
+            }
+        }
 
         // Nottify embedder that servo is ready to present.
         // Embedder should call `present` to tell compositor to continue rendering.

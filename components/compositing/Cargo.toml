@@ -17,6 +17,7 @@ gl = ["gleam", "pixels"]
 
 [dependencies]
 canvas = { path = "../canvas" }
+cfg-if = { workspace = true }
 compositing_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }

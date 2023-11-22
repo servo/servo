@@ -896,6 +896,7 @@ name = "compositing"
 version = "0.0.1"
 dependencies = [
  "canvas",
+ "cfg-if 1.0.0",
  "compositing_traits",
  "crossbeam-channel",
  "embedder_traits",
