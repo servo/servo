@@ -81,6 +81,7 @@ fn distribute_one_chunk<'a, 'scope, E, D>(
     D: DomTraversal<E>,
 {
     scope.spawn_fifo(move |scope| {
+        #[cfg(feature = "gecko")]
         gecko_profiler_label!(Layout, StyleComputation);
         let mut tlc = tls.ensure(create_thread_local_context);
         let mut context = StyleContext {
@@ -92,7 +93,12 @@ fn distribute_one_chunk<'a, 'scope, E, D>(
             items,
             traversal_root,
             work_unit_max,
-            static_prefs::pref!("layout.css.stylo-local-work-queue.in-worker") as usize,
+            (|| {
+                #[cfg(feature = "gecko")]
+                return static_prefs::pref!("layout.css.stylo-local-work-queue.in-worker") as usize;
+                #[cfg(feature = "servo")]
+                return 0;
+            })(),
             traversal_data,
             Some(scope),
             traversal,
