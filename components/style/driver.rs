@@ -63,7 +63,10 @@ fn with_pool_in_place_scope<'scope, R>(
 
 /// See documentation of the pref for performance characteristics.
 fn work_unit_max() -> usize {
-    static_prefs::pref!("layout.css.stylo-work-unit-size") as usize
+    #[cfg(feature = "gecko")]
+    return static_prefs::pref!("layout.css.stylo-work-unit-size") as usize;
+    #[cfg(feature = "servo")]
+    return 16;
 }
 
 /// Do a DOM traversal for top-down and (optionally) bottom-up processing, generic over `D`.
@@ -124,7 +127,12 @@ where
             discovered,
             root.as_node().opaque(),
             work_unit_max,
-            static_prefs::pref!("layout.css.stylo-local-work-queue.in-main-thread") as usize,
+            (|| {
+                #[cfg(feature = "gecko")]
+                return static_prefs::pref!("layout.css.stylo-local-work-queue.in-main-thread") as usize;
+                #[cfg(feature = "servo")]
+                return 32;
+            })(),
             PerLevelTraversalData { current_dom_depth: root.depth() },
             maybe_scope,
             traversal,
