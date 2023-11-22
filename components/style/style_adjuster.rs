@@ -536,6 +536,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// an auto value
     ///
     /// <https://github.com/w3c/csswg-drafts/issues/8407>
+    #[cfg(feature = "gecko")]
     fn adjust_for_contain_intrinsic_size(&mut self) {
         let content_visibility = self.style.get_box().clone_content_visibility();
         if content_visibility != ContentVisibility::Auto {
@@ -978,10 +979,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         self.adjust_for_webkit_line_clamp();
         self.adjust_for_position();
         self.adjust_for_overflow();
-        self.adjust_for_contain_intrinsic_size();
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_contain();
+            self.adjust_for_contain_intrinsic_size();
             self.adjust_for_table_text_align();
             self.adjust_for_justify_items();
         }
