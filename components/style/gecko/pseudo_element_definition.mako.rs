@@ -11,7 +11,7 @@ pub enum PseudoElement {
     % for pseudo in PSEUDOS:
         /// ${pseudo.value}
         % if pseudo.is_tree_pseudo_element():
-        ${pseudo.capitalized_pseudo()}(Box<Box<[Atom]>>),
+        ${pseudo.capitalized_pseudo()}(thin_vec::ThinVec<Atom>),
         % elif pseudo.pseudo_ident == "highlight":
         ${pseudo.capitalized_pseudo()}(AtomIdent),
         % else:
@@ -210,7 +210,7 @@ impl PseudoElement {
             },
             _ => {
                 if starts_with_ignore_ascii_case(name, "-moz-tree-") {
-                    return PseudoElement::tree_pseudo_element(name, Box::new([]))
+                    return PseudoElement::tree_pseudo_element(name, Default::default())
                 }
                 const WEBKIT_PREFIX: &str = "-webkit-";
                 if allow_unkown_webkit && starts_with_ignore_ascii_case(name, WEBKIT_PREFIX) {
@@ -228,12 +228,12 @@ impl PseudoElement {
     ///
     /// Returns `None` if the pseudo-element is not recognized.
     #[inline]
-    pub fn tree_pseudo_element(name: &str, args: Box<[Atom]>) -> Option<Self> {
+    pub fn tree_pseudo_element(name: &str, args: thin_vec::ThinVec<Atom>) -> Option<Self> {
         debug_assert!(starts_with_ignore_ascii_case(name, "-moz-tree-"));
         let tree_part = &name[10..];
         % for pseudo in TREE_PSEUDOS:
             if tree_part.eq_ignore_ascii_case("${pseudo.value[11:]}") {
-                return Some(${pseudo_element_variant(pseudo, "args.into()")});
+                return Some(${pseudo_element_variant(pseudo, "args")});
             }
         % endfor
         None

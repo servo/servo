@@ -108,7 +108,7 @@ pub use self::GenericCrossFadeImage as CrossFadeImage;
 #[css(comma, function = "image-set")]
 #[repr(C)]
 pub struct GenericImageSet<Image, Resolution> {
-    /// The index of the selected candidate. Zero for specified values.
+    /// The index of the selected candidate. usize::MAX for specified values or invalid images.
     #[css(skip)]
     pub selected_index: usize,
 

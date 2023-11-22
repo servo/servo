@@ -501,7 +501,6 @@ impl_to_css_for_predefined_type!(i8);
 impl_to_css_for_predefined_type!(i32);
 impl_to_css_for_predefined_type!(u16);
 impl_to_css_for_predefined_type!(u32);
-impl_to_css_for_predefined_type!(::cssparser::RGBA);
 impl_to_css_for_predefined_type!(::cssparser::Token<'a>);
 impl_to_css_for_predefined_type!(::cssparser::UnicodeRange);
 

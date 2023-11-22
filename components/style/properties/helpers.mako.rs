@@ -16,8 +16,6 @@
         #[allow(unused_imports)]
         use app_units::Au;
         #[allow(unused_imports)]
-        use cssparser::{Color as CSSParserColor, RGBA};
-        #[allow(unused_imports)]
         use crate::values::specified::AllowQuirks;
         #[allow(unused_imports)]
         use crate::Zero;

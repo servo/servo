@@ -291,6 +291,19 @@ impl Image {
         )
     }
 
+    /// Provides an alternate method for parsing, but forbidding `none`
+    pub fn parse_forbid_none<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Image, ParseError<'i>> {
+        Self::parse_with_cors_mode(
+            context,
+            input,
+            CorsMode::None,
+            ParseImageFlags::FORBID_NONE
+        )
+    }
+
     /// Provides an alternate method for parsing, but only for urls.
     pub fn parse_only_url<'i, 't>(
         context: &ParserContext,
@@ -399,7 +412,7 @@ impl ImageSet {
             })
         })?;
         Ok(Self {
-            selected_index: 0,
+            selected_index: std::usize::MAX,
             items: items.into(),
         })
     }
@@ -441,7 +454,7 @@ impl ImageSetItem {
                 .ok();
         }
 
-        let resolution = resolution.unwrap_or(Resolution::X(1.0));
+        let resolution = resolution.unwrap_or_else(|| Resolution::from_x(1.0));
         let has_mime_type = mime_type.is_some();
         let mime_type = mime_type.unwrap_or_default();
 

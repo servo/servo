@@ -27,7 +27,7 @@ compositing_traits = { path = "components/shared/compositing" }
 content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = "0.12"
 crossbeam-channel = "0.5"
-cssparser = { version = "0.30", git = "https://github.com/servo/rust-cssparser", rev = "b196a164dcbb317016d4aa6c58c13147e6045ebb" }
+cssparser = { version = "0.31", git = "https://github.com/servo/rust-cssparser", rev = "3e1bd05139cb7174ace395d498ca7128feb8f69d" }
 darling = { version = "0.14", default-features = false }
 data-url = "0.1.0"
 devtools_traits = { path = "components/shared/devtools" }
@@ -77,7 +77,7 @@ rustls = { version = "0.21.9", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
-serde = "1.0.192"
+serde = "1.0.193"
 serde_bytes = "0.11"
 serde_json = "1.0"
 smallbitvec = "2.3.0"
@@ -90,6 +90,7 @@ style_traits = { path = "components/style_traits", features = ["servo"] }
 surfman = { version = "0.8", features = ["chains", "sm-angle", "sm-angle-default"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
+thin-vec = "0.2.1"
 time = "0.1.41"
 tokio = "1"
 tokio-rustls = "0.24"
@@ -97,7 +98,7 @@ tungstenite = "0.20"
 unicode-bidi = "0.3.4"
 unicode-script = "0.5"
 url = "2.4"
-uuid = { version = "1.5.0", features = ["v4"] }
+uuid = { version = "1.6.1", features = ["v4"] }
 webdriver = "0.49.0"
 webpki = "0.22"
 webpki-roots = "0.25"

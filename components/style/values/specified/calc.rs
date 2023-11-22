@@ -11,7 +11,7 @@ use crate::values::generics::calc as generic;
 use crate::values::generics::calc::{MinMaxOp, ModRemOp, RoundingStrategy, SortKey};
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
 use crate::values::specified::length::{ContainerRelativeLength, ViewportPercentageLength};
-use crate::values::specified::{self, Angle, Time};
+use crate::values::specified::{self, Angle, Resolution, Time};
 use crate::values::{CSSFloat, CSSInteger};
 use cssparser::{AngleOrNumber, CowRcStr, NumberOrPercentage, Parser, Token};
 use smallvec::SmallVec;
@@ -107,6 +107,8 @@ pub enum Leaf {
     Angle(Angle),
     /// `<time>`
     Time(Time),
+    /// `<resolution>`
+    Resolution(Resolution),
     /// `<percentage>`
     Percentage(CSSFloat),
     /// `<number>`
@@ -130,6 +132,7 @@ impl ToCss for Leaf {
         match *self {
             Self::Length(ref l) => l.to_css(dest),
             Self::Number(ref n) => n.to_css(dest),
+            Self::Resolution(ref r) => r.to_css(dest),
             Self::Percentage(p) => crate::values::serialize_percentage(p, dest),
             Self::Angle(ref a) => a.to_css(dest),
             Self::Time(ref t) => t.to_css(dest),
@@ -148,10 +151,11 @@ bitflags! {
         const PERCENTAGE = 1 << 1;
         const ANGLE = 1 << 2;
         const TIME = 1 << 3;
+        const RESOLUTION = 1 << 3;
 
         const LENGTH_PERCENTAGE = Self::LENGTH.bits | Self::PERCENTAGE.bits;
         // NOTE: When you add to this, make sure to make Atan2 deal with these.
-        const ALL = Self::LENGTH.bits | Self::PERCENTAGE.bits | Self::ANGLE.bits | Self::TIME.bits;
+        const ALL = Self::LENGTH.bits | Self::PERCENTAGE.bits | Self::ANGLE.bits | Self::TIME.bits | Self::RESOLUTION.bits;
     }
 }
 
@@ -208,10 +212,12 @@ impl PartialOrd for Leaf {
             (&Length(ref one), &Length(ref other)) => one.partial_cmp(other),
             (&Angle(ref one), &Angle(ref other)) => one.degrees().partial_cmp(&other.degrees()),
             (&Time(ref one), &Time(ref other)) => one.seconds().partial_cmp(&other.seconds()),
+            (&Resolution(ref one), &Resolution(ref other)) => one.dppx().partial_cmp(&other.dppx()),
             (&Number(ref one), &Number(ref other)) => one.partial_cmp(other),
             _ => {
                 match *self {
-                    Length(..) | Percentage(..) | Angle(..) | Time(..) | Number(..) => {},
+                    Length(..) | Percentage(..) | Angle(..) | Time(..) | Number(..) |
+                    Resolution(..) => {},
                 }
                 unsafe {
                     debug_unreachable!("Forgot a branch?");
@@ -226,30 +232,9 @@ impl generic::CalcNodeLeaf for Leaf {
         match *self {
             Self::Length(ref l) => l.unitless_value(),
             Self::Percentage(n) | Self::Number(n) => n,
+            Self::Resolution(ref r) => r.dppx(),
             Self::Angle(ref a) => a.degrees(),
             Self::Time(ref t) => t.seconds(),
-        }
-    }
-
-    fn mul_by(&mut self, scalar: f32) {
-        match *self {
-            Self::Length(ref mut l) => {
-                // FIXME: For consistency this should probably convert absolute
-                // lengths into pixels.
-                *l = *l * scalar;
-            },
-            Self::Number(ref mut n) => {
-                *n *= scalar;
-            },
-            Self::Angle(ref mut a) => {
-                *a = Angle::from_calc(a.degrees() * scalar);
-            },
-            Self::Time(ref mut t) => {
-                *t = Time::from_calc(t.seconds() * scalar);
-            },
-            Self::Percentage(ref mut p) => {
-                *p *= scalar;
-            },
         }
     }
 
@@ -258,6 +243,7 @@ impl generic::CalcNodeLeaf for Leaf {
             Self::Number(..) => SortKey::Number,
             Self::Percentage(..) => SortKey::Percentage,
             Self::Time(..) => SortKey::Sec,
+            Self::Resolution(..) => SortKey::Dppx,
             Self::Angle(..) => SortKey::Deg,
             Self::Length(ref l) => match *l {
                 NoCalcLength::Absolute(..) => SortKey::Px,
@@ -334,14 +320,18 @@ impl generic::CalcNodeLeaf for Leaf {
                 *one = specified::Angle::from_calc(one.degrees() + other.degrees());
             },
             (&mut Time(ref mut one), &Time(ref other)) => {
-                *one = specified::Time::from_calc(one.seconds() + other.seconds());
+                *one = specified::Time::from_seconds(one.seconds() + other.seconds());
+            },
+            (&mut Resolution(ref mut one), &Resolution(ref other)) => {
+                *one = specified::Resolution::from_dppx(one.dppx() + other.dppx());
             },
             (&mut Length(ref mut one), &Length(ref other)) => {
                 *one = one.try_op(other, std::ops::Add::add)?;
             },
             _ => {
                 match *other {
-                    Number(..) | Percentage(..) | Angle(..) | Time(..) | Length(..) => {},
+                    Number(..) | Percentage(..) | Angle(..) | Time(..) | Resolution(..) |
+                    Length(..) => {},
                 }
                 unsafe {
                     debug_unreachable!();
@@ -375,8 +365,14 @@ impl generic::CalcNodeLeaf for Leaf {
                     other.degrees(),
                 ))));
             },
+            (&Resolution(ref one), &Resolution(ref other)) => {
+                return Ok(Leaf::Resolution(specified::Resolution::from_dppx(op(
+                    one.dppx(),
+                    other.dppx(),
+                ))));
+            },
             (&Time(ref one), &Time(ref other)) => {
-                return Ok(Leaf::Time(specified::Time::from_calc(op(
+                return Ok(Leaf::Time(specified::Time::from_seconds(op(
                     one.seconds(),
                     other.seconds(),
                 ))));
@@ -386,12 +382,24 @@ impl generic::CalcNodeLeaf for Leaf {
             },
             _ => {
                 match *other {
-                    Number(..) | Percentage(..) | Angle(..) | Time(..) | Length(..) => {},
+                    Number(..) | Percentage(..) | Angle(..) | Time(..) | Length(..) |
+                    Resolution(..) => {},
                 }
                 unsafe {
                     debug_unreachable!();
                 }
             },
+        }
+    }
+
+    fn map(&mut self, mut op: impl FnMut(f32) -> f32) {
+        match self {
+            Leaf::Length(one) => *one = one.map(op),
+            Leaf::Angle(one) => *one = specified::Angle::from_calc(op(one.degrees())),
+            Leaf::Time(one) => *one = specified::Time::from_seconds(op(one.seconds())),
+            Leaf::Resolution(one) => *one = specified::Resolution::from_dppx(op(one.dppx())),
+            Leaf::Percentage(one) => *one = op(*one),
+            Leaf::Number(one) => *one = op(*one),
         }
     }
 }
@@ -428,8 +436,13 @@ impl CalcNode {
                     }
                 }
                 if allowed_units.intersects(CalcUnits::TIME) {
-                    if let Ok(t) = Time::parse_dimension(value, unit, /* from_calc = */ true) {
+                    if let Ok(t) = Time::parse_dimension(value, unit) {
                         return Ok(CalcNode::Leaf(Leaf::Time(t)));
+                    }
+                }
+                if allowed_units.intersects(CalcUnits::RESOLUTION) {
+                    if let Ok(t) = Resolution::parse_dimension(value, unit) {
+                        return Ok(CalcNode::Leaf(Leaf::Resolution(t)));
                     }
                 }
                 return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -443,7 +456,7 @@ impl CalcNode {
                 CalcNode::parse_argument(context, input, allowed_units)
             }),
             &Token::Function(ref name) => {
-                let function = CalcNode::math_function(name, location)?;
+                let function = CalcNode::math_function(context, name, location)?;
                 CalcNode::parse(context, input, function, allowed_units)
             },
             &Token::Ident(ref ident) => {
@@ -596,14 +609,19 @@ impl CalcNode {
                             return Ok(a.atan2(b));
                         }
 
-                        if let Ok(a) = a.to_time() {
-                            let b = b.to_time()?;
+                        if let Ok(a) = a.to_time(None) {
+                            let b = b.to_time(None)?;
                             return Ok(a.seconds().atan2(b.seconds()));
                         }
 
                         if let Ok(a) = a.to_angle() {
                             let b = b.to_angle()?;
                             return Ok(a.radians().atan2(b.radians()));
+                        }
+
+                        if let Ok(a) = a.to_resolution() {
+                            let b = b.to_resolution()?;
+                            return Ok(a.dppx().atan2(b.dppx()));
                         }
 
                         let a = a.into_length_or_percentage(AllowedNumericType::All)?;
@@ -640,10 +658,12 @@ impl CalcNode {
                 },
                 MathFunction::Log => {
                     let a = Self::parse_number_argument(context, input)?;
-                    let b = input.try_parse(|input| {
-                        input.expect_comma()?;
-                        Self::parse_number_argument(context, input)
-                    }).ok();
+                    let b = input
+                        .try_parse(|input| {
+                            input.expect_comma()?;
+                            Self::parse_number_argument(context, input)
+                        })
+                        .ok();
 
                     let number = match b {
                         Some(b) => a.log(b),
@@ -791,8 +811,7 @@ impl CalcNode {
     where
         F: FnOnce() -> Result<CSSFloat, ()>,
     {
-        closure()
-            .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        closure().map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 
     /// Tries to simplify this expression into a `<length>` or `<percentage>`
@@ -822,12 +841,34 @@ impl CalcNode {
     }
 
     /// Tries to simplify this expression into a `<time>` value.
-    fn to_time(&self) -> Result<Time, ()> {
+    fn to_time(&self, clamping_mode: Option<AllowedNumericType>) -> Result<Time, ()> {
         let seconds = self.resolve(|leaf| match *leaf {
-            Leaf::Time(ref t) => Ok(t.seconds()),
+            Leaf::Time(ref time) => Ok(time.seconds()),
             _ => Err(()),
         })?;
-        Ok(Time::from_calc(crate::values::normalize(seconds)))
+
+        Ok(Time::from_seconds_with_calc_clamping_mode(
+            if nan_inf_enabled() {
+                seconds
+            } else {
+                crate::values::normalize(seconds)
+            },
+            clamping_mode,
+        ))
+    }
+
+    /// Tries to simplify the expression into a `<resolution>` value.
+    fn to_resolution(&self) -> Result<Resolution, ()> {
+        let dppx = self.resolve(|leaf| match *leaf {
+            Leaf::Resolution(ref r) => Ok(r.dppx()),
+            _ => Err(()),
+        })?;
+
+        Ok(Resolution::from_dppx_calc(if nan_inf_enabled() {
+            dppx
+        } else {
+            crate::values::normalize(dppx)
+        }))
     }
 
     /// Tries to simplify this expression into an `Angle` value.
@@ -864,6 +905,7 @@ impl CalcNode {
     /// return a mathematical function corresponding to that name or an error.
     #[inline]
     pub fn math_function<'i>(
+        context: &ParserContext,
         name: &CowRcStr<'i>,
         location: cssparser::SourceLocation,
     ) -> Result<MathFunction, ParseError<'i>> {
@@ -876,7 +918,9 @@ impl CalcNode {
             },
         };
 
-        let enabled = if matches!(function, Sin | Cos | Tan | Asin | Acos | Atan | Atan2) {
+        let enabled = if context.chrome_rules_enabled() {
+            true
+        } else if matches!(function, Sin | Cos | Tan | Asin | Acos | Atan | Atan2) {
             trig_enabled()
         } else if matches!(function, Round) {
             round_enabled()
@@ -967,10 +1011,22 @@ impl CalcNode {
     pub fn parse_time<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        clamping_mode: AllowedNumericType,
         function: MathFunction,
     ) -> Result<Time, ParseError<'i>> {
         Self::parse(context, input, function, CalcUnits::TIME)?
-            .to_time()
+            .to_time(Some(clamping_mode))
+            .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    }
+
+    /// Convenience parsing function for `<resolution>`.
+    pub fn parse_resolution<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        function: MathFunction,
+    ) -> Result<Resolution, ParseError<'i>> {
+        Self::parse(context, input, function, CalcUnits::RESOLUTION)?
+            .to_resolution()
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 

@@ -10,7 +10,7 @@ use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::NonNegative;
 use crate::values::specified::calc::CalcNode;
 use crate::values::specified::Number;
-use crate::values::{serialize_percentage, CSSFloat};
+use crate::values::{serialize_percentage, normalize, CSSFloat};
 use cssparser::{Parser, Token};
 use std::fmt::{self, Write};
 use style_traits::values::specified::AllowedNumericType;
@@ -119,7 +119,7 @@ impl Percentage {
                 Ok(Percentage::new(unit_value))
             },
             Token::Function(ref name) => {
-                let function = CalcNode::math_function(name, location)?;
+                let function = CalcNode::math_function(context, name, location)?;
                 let value = CalcNode::parse_percentage(context, input, function)?;
                 Ok(Percentage {
                     value,
@@ -172,7 +172,7 @@ impl ToComputedValue for Percentage {
 
     #[inline]
     fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
-        ComputedPercentage(self.get())
+        ComputedPercentage(normalize(self.get()))
     }
 
     #[inline]

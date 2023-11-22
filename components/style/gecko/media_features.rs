@@ -188,6 +188,13 @@ enum PrefersReducedMotion {
     Reduce,
 }
 
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
+#[repr(u8)]
+enum PrefersReducedTransparency {
+    NoPreference,
+    Reduce,
+}
+
 /// Values for the prefers-color-scheme media feature.
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
 #[repr(u8)]
@@ -224,6 +231,24 @@ fn eval_prefers_reduced_motion(
     match query_value {
         PrefersReducedMotion::NoPreference => !prefers_reduced,
         PrefersReducedMotion::Reduce => prefers_reduced,
+    }
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#prefers-reduced-transparency
+fn eval_prefers_reduced_transparency(
+    context: &Context,
+    query_value: Option<PrefersReducedTransparency>,
+) -> bool {
+    let prefers_reduced =
+        unsafe { bindings::Gecko_MediaFeatures_PrefersReducedTransparency(context.device().document()) };
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return prefers_reduced,
+    };
+
+    match query_value {
+        PrefersReducedTransparency::NoPreference => !prefers_reduced,
+        PrefersReducedTransparency::Reduce => prefers_reduced,
     }
 }
 
@@ -269,6 +294,35 @@ fn eval_forced_colors(context: &Context, query_value: Option<ForcedColors>) -> b
     match query_value {
         Some(query_value) => forced == (query_value == ForcedColors::Active),
         None => forced,
+    }
+}
+
+/// Possible values for the inverted-colors media query.
+/// https://drafts.csswg.org/mediaqueries-5/#inverted
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
+#[repr(u8)]
+enum InvertedColors {
+    /// Colors are displayed normally.
+    None,
+    /// All pixels within the displayed area have been inverted.
+    Inverted,
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#inverted
+fn eval_inverted_colors(
+    context: &Context,
+    query_value: Option<InvertedColors>,
+) -> bool {
+    let inverted_colors =
+        unsafe { bindings::Gecko_MediaFeatures_InvertedColors(context.device().document()) };
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return inverted_colors,
+    };
+
+    match query_value {
+        InvertedColors::None => !inverted_colors,
+        InvertedColors::Inverted => inverted_colors,
     }
 }
 
@@ -538,6 +592,32 @@ fn eval_moz_platform(_: &Context, query_value: Option<Platform>) -> bool {
     unsafe { bindings::Gecko_MediaFeatures_MatchesPlatform(query_value) }
 }
 
+/// Values for the scripting media feature.
+/// https://drafts.csswg.org/mediaqueries-5/#scripting
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
+#[repr(u8)]
+pub enum Scripting {
+    /// Scripting is not supported or not enabled
+    None,
+    /// Scripting is supported and enabled, but only for initial page load
+    /// We will never match this value as it is intended for non-browser user agents,
+    /// but it is part of the spec so we should still parse it.
+    /// See: https://github.com/w3c/csswg-drafts/issues/8621
+    InitialOnly,
+    /// Scripting is supported and enabled
+    Enabled
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#scripting
+fn eval_scripting(context: &Context, query_value: Option<Scripting>) -> bool {
+    let scripting =
+        unsafe { bindings::Gecko_MediaFeatures_Scripting(context.device().document()) };
+    match query_value {
+        Some(v) => v == scripting,
+        None => scripting != Scripting::None,
+    }
+}
+
 fn eval_moz_windows_non_native_menus(context: &Context) -> bool {
     unsafe { bindings::Gecko_MediaFeatures_WindowsNonNativeMenus(context.device().document()) }
 }
@@ -618,7 +698,7 @@ macro_rules! bool_pref_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 63] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 68] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -743,6 +823,12 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 63] = [
         FeatureFlags::empty(),
     ),
     feature!(
+        atom!("prefers-reduced-transparency"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_prefers_reduced_transparency, PrefersReducedTransparency),
+        FeatureFlags::empty(),
+    ),
+    feature!(
         atom!("prefers-contrast"),
         AllowsRanges::No,
         keyword_evaluator!(eval_prefers_contrast, PrefersContrast),
@@ -757,6 +843,12 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 63] = [
         atom!("forced-colors"),
         AllowsRanges::No,
         keyword_evaluator!(eval_forced_colors, ForcedColors),
+        FeatureFlags::empty(),
+    ),
+    feature!(
+        atom!("inverted-colors"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_inverted_colors, InvertedColors),
         FeatureFlags::empty(),
     ),
     feature!(
@@ -793,6 +885,12 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 63] = [
         atom!("video-dynamic-range"),
         AllowsRanges::No,
         keyword_evaluator!(eval_video_dynamic_range, DynamicRange),
+        FeatureFlags::empty(),
+    ),
+    feature!(
+        atom!("scripting"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_scripting, Scripting),
         FeatureFlags::empty(),
     ),
     // Evaluates to the preferred color scheme for content. Only useful in
@@ -916,6 +1014,7 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 63] = [
     ),
     lnf_int_feature!(atom!("-moz-system-dark-theme"), SystemUsesDarkTheme),
     lnf_int_feature!(atom!("-moz-panel-animations"), PanelAnimations),
+    bool_pref_feature!(atom!("-moz-gtk-non-native-menus"), "widget.gtk.non-native-menu-styling"),
     // media query for MathML Core's implementation of maction/semantics
     bool_pref_feature!(
         atom!("-moz-mathml-core-maction-and-semantics"),
@@ -926,4 +1025,6 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 63] = [
         atom!("-moz-mathml-core-ms"),
         "mathml.ms_lquote_rquote_attributes.disabled"
     ),
+    // media query for popover attribute
+    bool_pref_feature!(atom!("-moz-popover-enabled"), "dom.element.popover.enabled"),
 ];

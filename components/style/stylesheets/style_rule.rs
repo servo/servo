@@ -6,8 +6,8 @@
 
 use crate::properties::PropertyDeclarationBlock;
 use crate::selector_parser::SelectorImpl;
-use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
-use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use crate::stylesheets::CssRules;
 use crate::str::CssStringWriter;
 use cssparser::SourceLocation;
 #[cfg(feature = "gecko")]
@@ -25,6 +25,8 @@ pub struct StyleRule {
     pub selectors: SelectorList<SelectorImpl>,
     /// The declaration block with the properties it contains.
     pub block: Arc<Locked<PropertyDeclarationBlock>>,
+    /// The nested rules to this style rule. Only non-`None` when nesting is enabled.
+    pub rules: Option<Arc<Locked<CssRules>>>,
     /// The location in the sheet where it was found.
     pub source_location: SourceLocation,
 }
@@ -35,11 +37,15 @@ impl DeepCloneWithLock for StyleRule {
         &self,
         lock: &SharedRwLock,
         guard: &SharedRwLockReadGuard,
-        _params: &DeepCloneParams,
+        params: &DeepCloneParams,
     ) -> StyleRule {
         StyleRule {
             selectors: self.selectors.clone(),
             block: Arc::new(lock.wrap(self.block.read_with(guard).clone())),
+            rules: self.rules.as_ref().map(|rules| {
+                let rules = rules.read_with(guard);
+                Arc::new(lock.wrap(rules.deep_clone_with_lock(lock, guard, params)))
+            }),
             source_location: self.source_location.clone(),
         }
     }
@@ -53,6 +59,9 @@ impl StyleRule {
         n += self.selectors.0.size_of(ops);
         n += self.block.unconditional_shallow_size_of(ops) +
             self.block.read_with(guard).size_of(ops);
+        if let Some(ref rules) = self.rules {
+            n += rules.unconditional_shallow_size_of(ops) + rules.read_with(guard).size_of(guard, ops)
+        }
         n
     }
 }
@@ -61,19 +70,32 @@ impl ToCssWithGuard for StyleRule {
     /// https://drafts.csswg.org/cssom/#serialize-a-css-rule CSSStyleRule
     fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         use cssparser::ToCss;
-
         // Step 1
         self.selectors.to_css(dest)?;
+        dest.write_str(" {")?;
+
         // Step 2
-        dest.write_str(" { ")?;
-        // Step 3
         let declaration_block = self.block.read_with(guard);
-        declaration_block.to_css(dest)?;
-        // Step 4
-        if !declaration_block.declarations().is_empty() {
-            dest.write_char(' ')?;
+        let has_declarations = !declaration_block.declarations().is_empty();
+
+        // Step 3
+        if let Some(ref rules) = self.rules {
+            let rules = rules.read_with(guard);
+            // Step 6 (here because it's more convenient)
+            if !rules.is_empty() {
+                if has_declarations {
+                    dest.write_str("\n  ")?;
+                    declaration_block.to_css(dest)?;
+                }
+                return rules.to_css_block_without_opening(guard, dest)
+            }
         }
-        // Step 5
-        dest.write_char('}')
+
+        // Steps 4 & 5
+        if has_declarations {
+            dest.write_char(' ')?;
+            declaration_block.to_css(dest)?;
+        }
+        dest.write_str(" }")
     }
 }

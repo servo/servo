@@ -19,7 +19,7 @@ use std::{ops, ptr};
 use std::fmt::{self, Write};
 use std::mem;
 
-use cssparser::{Parser, RGBA, TokenSerializationType};
+use cssparser::{Parser, TokenSerializationType};
 use cssparser::ParserInput;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use crate::context::QuirksMode;
@@ -915,9 +915,7 @@ CASCADE_GROUPS = {
     # Cascade::fixup_font_stuff.
     "fonts_and_color": [
         # Needed to properly compute the zoomed font-size.
-        # FIXME(emilio): This could probably just be a cascade flag
-        # like IN_SVG_SUBTREE or such, and we could nuke this property.
-        "-x-text-zoom",
+        "-x-text-scale",
         # Needed to do font-size computation in a language-dependent way.
         "-x-lang",
         # Needed for ruby to respect language-dependent min-font-size
@@ -1188,14 +1186,6 @@ impl CSSWideKeyword {
     }
 }
 
-#[inline]
-fn cascade_layes_enabled() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.cascade-layers.enabled");
-    #[cfg(feature = "servo")]
-    return false;
-}
-
 impl CSSWideKeyword {
     /// Parses a CSS wide keyword from a CSS identifier.
     pub fn from_ident(ident: &str) -> Result<Self, ()> {
@@ -1204,7 +1194,7 @@ impl CSSWideKeyword {
             "inherit" => CSSWideKeyword::Inherit,
             "unset" => CSSWideKeyword::Unset,
             "revert" => CSSWideKeyword::Revert,
-            "revert-layer" if cascade_layes_enabled() => CSSWideKeyword::RevertLayer,
+            "revert-layer" => CSSWideKeyword::RevertLayer,
             _ => return Err(()),
         })
     }
@@ -2972,6 +2962,20 @@ pub mod style_structs {
                 })
             }
 
+            /// Returns whether there is any named progress timeline specified with
+            /// scroll-timeline-name other than `none`.
+            #[cfg(feature = "gecko")]
+            pub fn specifies_scroll_timelines(&self) -> bool {
+                self.scroll_timeline_name_iter().any(|name| !name.is_none())
+            }
+
+            /// Returns whether there is any named progress timeline specified with
+            /// view-timeline-name other than `none`.
+            #[cfg(feature = "gecko")]
+            pub fn specifies_view_timelines(&self) -> bool {
+                self.view_timeline_name_iter().any(|name| !name.is_none())
+            }
+
             /// Returns true if animation properties are equal between styles, but without
             /// considering keyframe data and animation-timeline.
             #[cfg(feature = "servo")]
@@ -3233,8 +3237,9 @@ impl ComputedValues {
     /// let top_color =
     ///   style.resolve_color(style.get_border().clone_border_top_color());
     #[inline]
-    pub fn resolve_color(&self, color: computed::Color) -> RGBA {
-        color.into_rgba(self.get_inherited_text().clone_color())
+    pub fn resolve_color(&self, color: computed::Color) -> crate::color::AbsoluteColor {
+        let current_color = self.get_inherited_text().clone_color();
+        color.resolve_into_absolute(&current_color)
     }
 
     /// Returns which longhand properties have different values in the two

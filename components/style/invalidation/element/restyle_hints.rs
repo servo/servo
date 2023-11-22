@@ -9,38 +9,48 @@ use crate::traversal_flags::TraversalFlags;
 bitflags! {
     /// The kind of restyle we need to do for a given element.
     #[repr(C)]
-    pub struct RestyleHint: u8 {
+    pub struct RestyleHint: u16 {
         /// Do a selector match of the element.
         const RESTYLE_SELF = 1 << 0;
 
+        /// Do a selector match of the element's pseudo-elements. Always to be combined with
+        /// RESTYLE_SELF.
+        const RESTYLE_PSEUDOS = 1 << 1;
+
+        /// Do a selector match if the element is a pseudo-element.
+        const RESTYLE_SELF_IF_PSEUDO = 1 << 2;
+
         /// Do a selector match of the element's descendants.
-        const RESTYLE_DESCENDANTS = 1 << 1;
+        const RESTYLE_DESCENDANTS = 1 << 3;
 
         /// Recascade the current element.
-        const RECASCADE_SELF = 1 << 2;
+        const RECASCADE_SELF = 1 << 4;
+
+        /// Recascade the current element if it inherits any reset style.
+        const RECASCADE_SELF_IF_INHERIT_RESET_STYLE = 1 << 5;
 
         /// Recascade all descendant elements.
-        const RECASCADE_DESCENDANTS = 1 << 3;
+        const RECASCADE_DESCENDANTS = 1 << 6;
 
         /// Replace the style data coming from CSS transitions without updating
         /// any other style data. This hint is only processed in animation-only
         /// traversal which is prior to normal traversal.
-        const RESTYLE_CSS_TRANSITIONS = 1 << 4;
+        const RESTYLE_CSS_TRANSITIONS = 1 << 7;
 
         /// Replace the style data coming from CSS animations without updating
         /// any other style data. This hint is only processed in animation-only
         /// traversal which is prior to normal traversal.
-        const RESTYLE_CSS_ANIMATIONS = 1 << 5;
+        const RESTYLE_CSS_ANIMATIONS = 1 << 8;
 
         /// Don't re-run selector-matching on the element, only the style
         /// attribute has changed, and this change didn't have any other
         /// dependencies.
-        const RESTYLE_STYLE_ATTRIBUTE = 1 << 6;
+        const RESTYLE_STYLE_ATTRIBUTE = 1 << 9;
 
         /// Replace the style data coming from SMIL animations without updating
         /// any other style data. This hint is only processed in animation-only
         /// traversal which is prior to normal traversal.
-        const RESTYLE_SMIL = 1 << 7;
+        const RESTYLE_SMIL = 1 << 10;
     }
 }
 
@@ -70,11 +80,7 @@ impl RestyleHint {
 
     /// Returns whether we need to restyle this element.
     pub fn has_non_animation_invalidations(&self) -> bool {
-        self.intersects(
-            RestyleHint::RESTYLE_SELF |
-                RestyleHint::RECASCADE_SELF |
-                (Self::replacements() & !Self::for_animations()),
-        )
+        !(*self & !Self::for_animations()).is_empty()
     }
 
     /// Propagates this restyle hint to a child element.
@@ -98,16 +104,19 @@ impl RestyleHint {
         mem::replace(self, Self::empty()).propagate_for_non_animation_restyle()
     }
 
-    /// Returns a new `CascadeHint` appropriate for children of the current
-    /// element.
+    /// Returns a new `RestyleHint` appropriate for children of the current element.
     fn propagate_for_non_animation_restyle(&self) -> Self {
         if self.contains(RestyleHint::RESTYLE_DESCENDANTS) {
             return Self::restyle_subtree();
         }
-        if self.contains(RestyleHint::RECASCADE_DESCENDANTS) {
-            return Self::recascade_subtree();
+        let mut result = Self::empty();
+        if self.contains(RestyleHint::RESTYLE_PSEUDOS) {
+            result |= Self::RESTYLE_SELF_IF_PSEUDO;
         }
-        Self::empty()
+        if self.contains(RestyleHint::RECASCADE_DESCENDANTS) {
+            result |= Self::recascade_subtree();
+        }
+        result
     }
 
     /// Returns a hint that contains all the replacement hints.
@@ -123,12 +132,6 @@ impl RestyleHint {
             RestyleHint::RESTYLE_CSS_TRANSITIONS
     }
 
-    /// Returns whether the hint specifies that the currently element must be
-    /// recascaded.
-    pub fn has_recascade_self(&self) -> bool {
-        self.contains(RestyleHint::RECASCADE_SELF)
-    }
-
     /// Returns whether the hint specifies that an animation cascade level must
     /// be replaced.
     #[inline]
@@ -140,7 +143,7 @@ impl RestyleHint {
     /// be replaced.
     #[inline]
     pub fn has_animation_hint_or_recascade(&self) -> bool {
-        self.intersects(Self::for_animations() | RestyleHint::RECASCADE_SELF)
+        self.intersects(Self::for_animations() | Self::RECASCADE_SELF | Self::RECASCADE_SELF_IF_INHERIT_RESET_STYLE)
     }
 
     /// Returns whether the hint specifies some restyle work other than an
@@ -148,13 +151,6 @@ impl RestyleHint {
     #[inline]
     pub fn has_non_animation_hint(&self) -> bool {
         !(*self & !Self::for_animations()).is_empty()
-    }
-
-    /// Returns whether the hint specifies that selector matching must be re-run
-    /// for the element.
-    #[inline]
-    pub fn match_self(&self) -> bool {
-        self.intersects(RestyleHint::RESTYLE_SELF)
     }
 
     /// Returns whether the hint specifies that some cascade levels must be
@@ -169,16 +165,14 @@ impl RestyleHint {
     pub fn remove_animation_hints(&mut self) {
         self.remove(Self::for_animations());
 
-        // While RECASCADE_SELF is not animation-specific, we only ever add and
-        // process it during traversal.  If we are here, removing animation
-        // hints, then we are in an animation-only traversal, and we know that
-        // any RECASCADE_SELF flag must have been set due to changes in
-        // inherited values after restyling for animations, and thus we want to
-        // remove it so that we don't later try to restyle the element during a
-        // normal restyle.  (We could have separate RECASCADE_SELF_NORMAL and
-        // RECASCADE_SELF_ANIMATIONS flags to make it clear, but this isn't
-        // currently necessary.)
-        self.remove(RestyleHint::RECASCADE_SELF);
+        // While RECASCADE_SELF is not animation-specific, we only ever add and process it during
+        // traversal.  If we are here, removing animation hints, then we are in an animation-only
+        // traversal, and we know that any RECASCADE_SELF flag must have been set due to changes in
+        // inherited values after restyling for animations, and thus we want to remove it so that
+        // we don't later try to restyle the element during a normal restyle.
+        // (We could have separate RECASCADE_SELF_NORMAL and RECASCADE_SELF_ANIMATIONS flags to
+        // make it clear, but this isn't currently necessary.)
+        self.remove(Self::RECASCADE_SELF | Self::RECASCADE_SELF_IF_INHERIT_RESET_STYLE);
     }
 }
 

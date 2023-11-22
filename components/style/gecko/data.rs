@@ -6,9 +6,8 @@
 
 use crate::dom::TElement;
 use crate::gecko_bindings::bindings;
-use crate::gecko_bindings::structs::{self, RawServoStyleSet, ServoStyleSetSizes};
-use crate::gecko_bindings::structs::{StyleSheet as DomStyleSheet, StyleSheetInfo};
-use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::gecko_bindings::structs::{self, ServoStyleSetSizes, StyleSheet as DomStyleSheet, StyleSheetInfo};
+use crate::gecko_bindings::sugar::ownership::HasArcFFI;
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use crate::media_queries::{Device, MediaList};
 use crate::properties::ComputedValues;
@@ -24,6 +23,16 @@ use std::fmt;
 /// Little wrapper to a Gecko style sheet.
 #[derive(Eq, PartialEq)]
 pub struct GeckoStyleSheet(*const DomStyleSheet);
+
+// NOTE(emilio): These are kind of a lie. We allow to make these Send + Sync so that other data
+// structures can also be Send and Sync, but Gecko's stylesheets are main-thread-reference-counted.
+//
+// We assert that we reference-count in the right thread (in the Addref/Release implementations).
+// Sending these to a different thread can't really happen (it could theoretically really happen if
+// we allowed @import rules inside a nested style rule, but that can't happen per spec and would be
+// a parser bug, caught by the asserts).
+unsafe impl Send for GeckoStyleSheet {}
+unsafe impl Sync for GeckoStyleSheet {}
 
 impl fmt::Debug for GeckoStyleSheet {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -191,8 +200,5 @@ impl PerDocumentStyleDataImpl {
     }
 }
 
-unsafe impl HasFFI for PerDocumentStyleData {
-    type FFIType = RawServoStyleSet;
-}
-unsafe impl HasSimpleFFI for PerDocumentStyleData {}
-unsafe impl HasBoxFFI for PerDocumentStyleData {}
+/// The gecko-specific AuthorStyles instantiation.
+pub type AuthorStyles = crate::author_styles::AuthorStyles<GeckoStyleSheet>;

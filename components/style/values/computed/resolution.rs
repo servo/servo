@@ -36,12 +36,12 @@ impl ToComputedValue for specified::Resolution {
 
     #[inline]
     fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
-        Resolution(self.to_dppx())
+        Resolution(self.dppx())
     }
 
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        specified::Resolution::Dppx(computed.dppx())
+        specified::Resolution::from_dppx(computed.dppx())
     }
 }
 

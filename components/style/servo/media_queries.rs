@@ -4,6 +4,7 @@
 
 //! Servo's media-query device and expression representation.
 
+use crate::color::AbsoluteColor;
 use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
 use crate::font_metrics::FontMetrics;
@@ -17,7 +18,6 @@ use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::specified::ViewportVariant;
 use crate::values::KeyframesName;
 use app_units::Au;
-use cssparser::RGBA;
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::{Scale, SideOffsets2D, Size2D};
 use mime::Mime;
@@ -118,7 +118,7 @@ impl Device {
     /// Sets the body text color for the "inherit color from body" quirk.
     ///
     /// <https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk>
-    pub fn set_body_text_color(&self, _color: RGBA) {
+    pub fn set_body_text_color(&self, _color: AbsoluteColor) {
         // Servo doesn't implement this quirk (yet)
     }
 
@@ -202,13 +202,13 @@ impl Device {
     }
 
     /// Returns the default background color.
-    pub fn default_background_color(&self) -> RGBA {
-        RGBA::new(255, 255, 255, 1.0)
+    pub fn default_background_color(&self) -> AbsoluteColor {
+        AbsoluteColor::white()
     }
 
     /// Returns the default foreground color.
-    pub fn default_color(&self) -> RGBA {
-        RGBA::new(0, 0, 0, 1.0)
+    pub fn default_color(&self) -> AbsoluteColor {
+        AbsoluteColor::black()
     }
 
     /// Returns safe area insets
@@ -235,7 +235,7 @@ impl Device {
 
     /// Return whether the document is a chrome document.
     #[inline]
-    pub fn is_chrome_document(&self) -> bool {
+    pub fn chrome_rules_enabled_for_document(&self) -> bool {
         false
     }
 }

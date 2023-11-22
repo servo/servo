@@ -254,6 +254,5 @@ ${helpers.predefined_type(
     "specified::DProperty::none()",
     engines="gecko",
     animation_value_type="ComputedValue",
-    gecko_pref="layout.css.d-property.enabled",
     spec="https://svgwg.org/svg2-draft/paths.html#TheDProperty",
 )}

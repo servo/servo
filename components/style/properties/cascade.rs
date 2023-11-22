@@ -5,6 +5,7 @@
 //! The main cascading algorithm of the style system.
 
 use crate::applicable_declarations::CascadePriority;
+use crate::color::AbsoluteColor;
 use crate::context::QuirksMode;
 use crate::custom_properties::CustomPropertiesBuilder;
 use crate::dom::TElement;
@@ -411,9 +412,8 @@ fn tweak_when_ignoring_colors(
     declaration: &mut Cow<PropertyDeclaration>,
     declarations_to_apply_unless_overriden: &mut DeclarationsToApplyUnlessOverriden,
 ) {
-    use crate::values::specified::Color;
     use crate::values::computed::ToComputedValue;
-    use cssparser::RGBA;
+    use crate::values::specified::Color;
 
     if !longhand_id.ignored_when_document_colors_disabled() {
         return;
@@ -445,7 +445,7 @@ fn tweak_when_ignoring_colors(
         // We assume here currentColor is opaque.
         let color = color
             .to_computed_value(context)
-            .into_rgba(RGBA::new(0, 0, 0, 1.0));
+            .resolve_into_absolute(&AbsoluteColor::black());
         color.alpha
     }
 
@@ -1028,28 +1028,31 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
         builder.mutate_font().gecko_mut().mFont.size = min_font_size;
     }
 
-    /// <svg:text> is not affected by text zoom, and it uses a preshint
-    /// to disable it. We fix up the struct when this happens by
-    /// unzooming its contained font values, which will have been zoomed
-    /// in the parent.
+    /// <svg:text> is not affected by text zoom, and it uses a preshint to disable it. We fix up
+    /// the struct when this happens by unzooming its contained font values, which will have been
+    /// zoomed in the parent.
     ///
-    /// FIXME(emilio): Also, why doing this _before_ handling font-size? That
-    /// sounds wrong.
+    /// FIXME(emilio): Why doing this _before_ handling font-size? That sounds wrong.
     #[cfg(feature = "gecko")]
     fn unzoom_fonts_if_needed(&mut self) {
-        if !self.seen.contains(LonghandId::XTextZoom) {
+        if !self.seen.contains(LonghandId::XTextScale) {
             return;
         }
 
         let builder = &mut self.context.builder;
 
-        let parent_zoom = builder.get_parent_font().gecko().mAllowZoomAndMinSize;
-        let zoom = builder.get_font().gecko().mAllowZoomAndMinSize;
-        if zoom == parent_zoom {
+        let parent_text_scale = builder.get_parent_font().clone__x_text_scale();
+        let text_scale = builder.get_font().clone__x_text_scale();
+        if parent_text_scale == text_scale {
             return;
         }
+        debug_assert_ne!(
+            parent_text_scale.text_zoom_enabled(),
+            text_scale.text_zoom_enabled(),
+            "There's only one value that disables it"
+        );
         debug_assert!(
-            !zoom,
+            !text_scale.text_zoom_enabled(),
             "We only ever disable text zoom (in svg:text), never enable it"
         );
         let device = builder.device;
@@ -1140,7 +1143,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             }
 
             let mut min = parent_font.mScriptMinSize;
-            if font.mAllowZoomAndMinSize {
+            if font.mXTextScale.text_zoom_enabled() {
                 min = builder.device.zoom_text(min);
             }
 

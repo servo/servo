@@ -186,19 +186,26 @@ impl SupportsCondition {
         }
     }
 
+    /// Parses an `@import` condition as per
+    /// https://drafts.csswg.org/css-cascade-5/#typedef-import-conditions
+    pub fn parse_for_import<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        input.expect_function_matching("supports")?;
+        input.parse_nested_block(parse_condition_or_declaration)
+    }
+
     /// <https://drafts.csswg.org/css-conditional-3/#supports_condition_in_parens>
     fn parse_in_parens<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // Whitespace is normally taken care of in `Parser::next`,
-        // but we want to not include it in `pos` for the SupportsCondition::FutureSyntax cases.
-        while input.try_parse(Parser::expect_whitespace).is_ok() {}
+        // Whitespace is normally taken care of in `Parser::next`, but we want to not include it in
+        // `pos` for the SupportsCondition::FutureSyntax cases.
+        input.skip_whitespace();
         let pos = input.position();
         let location = input.current_source_location();
         match *input.next()? {
             Token::ParenthesisBlock => {
                 let nested = input
                     .try_parse(|input| input.parse_nested_block(parse_condition_or_declaration));
-                if nested.is_ok() {
-                    return nested;
+                if let Ok(nested) = nested {
+                    return Ok(Self::Parenthesized(Box::new(nested)));
                 }
             },
             Token::Function(ref ident) => {
@@ -279,7 +286,7 @@ pub fn parse_condition_or_declaration<'i, 't>(
     input: &mut Parser<'i, 't>,
 ) -> Result<SupportsCondition, ParseError<'i>> {
     if let Ok(condition) = input.try_parse(SupportsCondition::parse) {
-        Ok(SupportsCondition::Parenthesized(Box::new(condition)))
+        Ok(condition)
     } else {
         Declaration::parse(input).map(SupportsCondition::Declaration)
     }
@@ -323,9 +330,7 @@ impl ToCss for SupportsCondition {
                 Ok(())
             },
             SupportsCondition::Declaration(ref decl) => {
-                dest.write_char('(')?;
-                decl.to_css(dest)?;
-                dest.write_char(')')
+                decl.to_css(dest)
             },
             SupportsCondition::Selector(ref selector) => {
                 dest.write_str("selector(")?;

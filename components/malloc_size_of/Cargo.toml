@@ -45,6 +45,7 @@ servo_arc = { path = "../servo_arc" }
 smallbitvec = { workspace = true }
 smallvec = { workspace = true }
 string_cache = { workspace = true, optional = true }
+thin-vec = { workspace = true }
 time = { workspace = true, optional = true }
 tokio = { workspace = true }
 url = { workspace = true, optional = true }

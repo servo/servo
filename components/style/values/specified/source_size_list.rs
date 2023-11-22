@@ -4,8 +4,6 @@
 
 //! https://html.spec.whatwg.org/multipage/#source-size-list
 
-#[cfg(feature = "gecko")]
-use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
 use crate::queries::{FeatureType, QueryCondition};
@@ -134,12 +132,3 @@ impl SourceSizeList {
         }
     }
 }
-
-#[cfg(feature = "gecko")]
-unsafe impl HasFFI for SourceSizeList {
-    type FFIType = crate::gecko_bindings::structs::RawServoSourceSizeList;
-}
-#[cfg(feature = "gecko")]
-unsafe impl HasSimpleFFI for SourceSizeList {}
-#[cfg(feature = "gecko")]
-unsafe impl HasBoxFFI for SourceSizeList {}

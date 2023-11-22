@@ -7,7 +7,7 @@
 //! Algorithms, matrices and constants are from the [color-4] specification,
 //! unless otherwise specified:
 //!
-//! https://drafts.csswg.org/csswg-drafts/css-color-4/#color-conversion-code
+//! https://drafts.csswg.org/css-color-4/#color-conversion-code
 //!
 //! NOTE: Matrices has to be transposed from the examples in the spec for use
 //! with the `euclid` library.
@@ -68,6 +68,7 @@ fn hue_to_rgb(t1: f32, t2: f32, hue: f32) -> f32 {
 }
 
 /// Convert from HSL notation to RGB notation.
+/// https://drafts.csswg.org/css-color-4/#hsl-to-rgb
 #[inline]
 pub fn hsl_to_rgb(from: &ColorComponents) -> ColorComponents {
     let ColorComponents(hue, saturation, lightness) = *from;
@@ -87,26 +88,26 @@ pub fn hsl_to_rgb(from: &ColorComponents) -> ColorComponents {
 }
 
 /// Convert from RGB notation to HSL notation.
-/// https://drafts.csswg.org/css-color/#rgb-to-hsl
+/// https://drafts.csswg.org/css-color-4/#rgb-to-hsl
 pub fn rgb_to_hsl(from: &ColorComponents) -> ColorComponents {
     let ColorComponents(red, green, blue) = *from;
 
     let (hue, min, max) = rgb_to_hue_min_max(red, green, blue);
 
-    let light = (min + max) / 2.0;
+    let lightness = (min + max) / 2.0;
     let delta = max - min;
 
-    let sat = if delta != 0.0 {
-        if light == 0.0 || light == 1.0 {
+    let saturation = if delta != 0.0 {
+        if lightness == 0.0 || lightness == 1.0 {
             0.0
         } else {
-            (max - light) / light.min(1.0 - light)
+            (max - lightness) / lightness.min(1.0 - lightness)
         }
     } else {
         0.0
     };
 
-    ColorComponents(hue, sat, light)
+    ColorComponents(hue, saturation, lightness)
 }
 
 /// Convert from HWB notation to RGB notation.
@@ -136,6 +137,30 @@ pub fn rgb_to_hwb(from: &ColorComponents) -> ColorComponents {
     let blackness = 1.0 - max;
 
     ColorComponents(hue, whiteness, blackness)
+}
+
+/// Convert from Lab to Lch. This calculation works for both Lab and Olab.
+/// <https://drafts.csswg.org/css-color-4/#color-conversion-code>
+#[inline]
+pub fn lab_to_lch(from: &ColorComponents) -> ColorComponents {
+    let ColorComponents(lightness, a, b) = *from;
+
+    let hue = normalize_hue(b.atan2(a) * 180.0 / PI);
+    let chroma = (a.powf(2.0) + b.powf(2.0)).sqrt();
+
+    ColorComponents(lightness, chroma, hue)
+}
+
+/// Convert from Lch to Lab. This calculation works for both Lch and Oklch.
+/// <https://drafts.csswg.org/css-color-4/#color-conversion-code>
+#[inline]
+pub fn lch_to_lab(from: &ColorComponents) -> ColorComponents {
+    let ColorComponents(lightness, chroma, hue) = *from;
+
+    let a = chroma * (hue * PI / 180.0).cos();
+    let b = chroma * (hue * PI / 180.0).sin();
+
+    ColorComponents(lightness, a, b)
 }
 
 #[inline]
@@ -195,7 +220,7 @@ fn convert_white_point(from: WhitePoint, to: WhitePoint, components: &mut ColorC
 /// - Convert to sRGB linear light in target color space.
 /// - Convert to sRGB gamma encoded in target color space.
 ///
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#color-conversion
+/// https://drafts.csswg.org/css-color-4/#color-conversion
 pub trait ColorSpaceConversion {
     /// The white point that the implementer is represented in.
     const WHITE_POINT: WhitePoint;
@@ -248,7 +273,7 @@ pub fn from_xyz<To: ColorSpaceConversion>(
 }
 
 /// The sRGB color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-sRGB
+/// https://drafts.csswg.org/css-color-4/#predefined-sRGB
 pub struct Srgb;
 
 impl Srgb {
@@ -305,8 +330,58 @@ impl ColorSpaceConversion for Srgb {
     }
 }
 
+/// Color specified with hue, saturation and lightness components.
+pub struct Hsl;
+
+impl ColorSpaceConversion for Hsl {
+    const WHITE_POINT: WhitePoint = Srgb::WHITE_POINT;
+
+    fn to_linear_light(from: &ColorComponents) -> ColorComponents {
+        Srgb::to_linear_light(&hsl_to_rgb(from))
+    }
+
+    #[inline]
+    fn to_xyz(from: &ColorComponents) -> ColorComponents {
+        Srgb::to_xyz(from)
+    }
+
+    #[inline]
+    fn from_xyz(from: &ColorComponents) -> ColorComponents {
+        Srgb::from_xyz(from)
+    }
+
+    fn to_gamma_encoded(from: &ColorComponents) -> ColorComponents {
+        rgb_to_hsl(&Srgb::to_gamma_encoded(from))
+    }
+}
+
+/// Color specified with hue, whiteness and blackness components.
+pub struct Hwb;
+
+impl ColorSpaceConversion for Hwb {
+    const WHITE_POINT: WhitePoint = Srgb::WHITE_POINT;
+
+    fn to_linear_light(from: &ColorComponents) -> ColorComponents {
+        Srgb::to_linear_light(&hwb_to_rgb(from))
+    }
+
+    #[inline]
+    fn to_xyz(from: &ColorComponents) -> ColorComponents {
+        Srgb::to_xyz(from)
+    }
+
+    #[inline]
+    fn from_xyz(from: &ColorComponents) -> ColorComponents {
+        Srgb::from_xyz(from)
+    }
+
+    fn to_gamma_encoded(from: &ColorComponents) -> ColorComponents {
+        rgb_to_hwb(&Srgb::to_gamma_encoded(from))
+    }
+}
+
 /// The same as sRGB color space, except the transfer function is linear light.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-sRGB-linear
+/// https://drafts.csswg.org/css-color-4/#predefined-sRGB-linear
 pub struct SrgbLinear;
 
 impl ColorSpaceConversion for SrgbLinear {
@@ -332,7 +407,7 @@ impl ColorSpaceConversion for SrgbLinear {
 }
 
 /// The Display-P3 color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-display-p3
+/// https://drafts.csswg.org/css-color-4/#predefined-display-p3
 pub struct DisplayP3;
 
 impl DisplayP3 {
@@ -374,7 +449,7 @@ impl ColorSpaceConversion for DisplayP3 {
 }
 
 /// The a98-rgb color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-a98-rgb
+/// https://drafts.csswg.org/css-color-4/#predefined-a98-rgb
 pub struct A98Rgb;
 
 impl A98Rgb {
@@ -417,7 +492,7 @@ impl ColorSpaceConversion for A98Rgb {
 }
 
 /// The ProPhoto RGB color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-prophoto-rgb
+/// https://drafts.csswg.org/css-color-4/#predefined-prophoto-rgb
 pub struct ProphotoRgb;
 
 impl ProphotoRgb {
@@ -478,7 +553,7 @@ impl ColorSpaceConversion for ProphotoRgb {
 }
 
 /// The Rec.2020 color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-rec2020
+/// https://drafts.csswg.org/css-color-4/#predefined-rec2020
 pub struct Rec2020;
 
 impl Rec2020 {
@@ -539,7 +614,7 @@ impl ColorSpaceConversion for Rec2020 {
 }
 
 /// A color in the XYZ coordinate space with a D50 white reference.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-xyz
+/// https://drafts.csswg.org/css-color-4/#predefined-xyz
 pub struct XyzD50;
 
 impl ColorSpaceConversion for XyzD50 {
@@ -563,7 +638,7 @@ impl ColorSpaceConversion for XyzD50 {
 }
 
 /// A color in the XYZ coordinate space with a D65 white reference.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#predefined-xyz
+/// https://drafts.csswg.org/css-color-4/#predefined-xyz
 pub struct XyzD65;
 
 impl ColorSpaceConversion for XyzD65 {
@@ -587,7 +662,7 @@ impl ColorSpaceConversion for XyzD65 {
 }
 
 /// The Lab color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#specifying-lab-lch
+/// https://drafts.csswg.org/css-color-4/#specifying-lab-lch
 pub struct Lab;
 
 impl Lab {
@@ -668,7 +743,7 @@ impl ColorSpaceConversion for Lab {
 }
 
 /// The Lch color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#specifying-lab-lch
+/// https://drafts.csswg.org/css-color-4/#specifying-lab-lch
 pub struct Lch;
 
 impl ColorSpaceConversion for Lch {
@@ -709,7 +784,7 @@ impl ColorSpaceConversion for Lch {
 }
 
 /// The Oklab color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#specifying-oklab-oklch
+/// https://drafts.csswg.org/css-color-4/#specifying-oklab-oklch
 pub struct Oklab;
 
 impl Oklab {
@@ -773,8 +848,7 @@ impl ColorSpaceConversion for Oklab {
 }
 
 /// The Oklch color space.
-/// https://drafts.csswg.org/csswg-drafts/css-color-4/#specifying-oklab-oklch
-
+/// https://drafts.csswg.org/css-color-4/#specifying-oklab-oklch
 pub struct Oklch;
 
 impl ColorSpaceConversion for Oklch {

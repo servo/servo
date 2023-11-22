@@ -22,7 +22,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::import_rule::{ImportLayer, ImportSheet};
+use style::stylesheets::import_rule::{ImportLayer, ImportSheet, ImportSupportsCondition};
 use style::stylesheets::{
     CssRules, ImportRule, Origin, Stylesheet, StylesheetContents,
     StylesheetLoader as StyleStylesheetLoader,
@@ -361,8 +361,20 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
         context: &ParserContext,
         lock: &SharedRwLock,
         media: Arc<Locked<MediaList>>,
-        layer: Option<ImportLayer>,
+        supports: Option<ImportSupportsCondition>,
+        layer: ImportLayer,
     ) -> Arc<Locked<ImportRule>> {
+        // Ensure the supports conditions for this @import are true, if not, refuse to load
+        if !supports.as_ref().map_or(true, |s| s.enabled) {
+            return Arc::new(lock.wrap(ImportRule {
+                url,
+                stylesheet: ImportSheet::new_refused(),
+                supports,
+                layer,
+                source_location,
+            }));
+        }
+
         let sheet = Arc::new(Stylesheet {
             contents: StylesheetContents::from_data(
                 CssRules::new(Vec::new(), lock),
@@ -375,10 +387,11 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
             disabled: AtomicBool::new(false),
         });
 
-        let stylesheet = ImportSheet(sheet.clone());
+        let stylesheet = ImportSheet::new(sheet.clone());
         let import = ImportRule {
             url,
             stylesheet,
+            supports,
             layer,
             source_location,
         };

@@ -248,6 +248,12 @@ impl CSSPixelLength {
         Self::new(crate::values::normalize(self.0))
     }
 
+    /// Returns a finite (normalized and clamped to float min and max) version of this length.
+    #[inline]
+    pub fn finite(self) -> Self {
+        Self::new(crate::values::normalize(self.0).min(f32::MAX).max(f32::MIN))
+    }
+
     /// Scale the length by a given amount.
     #[inline]
     pub fn scale_by(self, scale: CSSFloat) -> Self {

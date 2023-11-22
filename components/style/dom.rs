@@ -17,7 +17,6 @@ use crate::properties::{AnimationDeclarations, ComputedValues, PropertyDeclarati
 use crate::selector_parser::{AttrValue, Lang, PseudoElement, SelectorImpl};
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::stylist::CascadeData;
-use crate::traversal_flags::TraversalFlags;
 use crate::values::AtomIdent;
 use crate::values::computed::Display;
 use crate::{LocalName, Namespace, WeakAtom};
@@ -389,10 +388,10 @@ pub trait TElement:
         true
     }
 
-    /// Whether this element should match user and author rules.
+    /// Whether this element should match user and content rules.
     ///
     /// We use this for Native Anonymous Content in Gecko.
-    fn matches_user_and_author_rules(&self) -> bool {
+    fn matches_user_and_content_rules(&self) -> bool {
         true
     }
 
@@ -587,51 +586,6 @@ pub trait TElement:
     /// Flags this element as having handled already its snapshot.
     unsafe fn set_handled_snapshot(&self);
 
-    /// Returns whether the element's styles are up-to-date for |traversal_flags|.
-    fn has_current_styles_for_traversal(
-        &self,
-        data: &ElementData,
-        traversal_flags: TraversalFlags,
-    ) -> bool {
-        if traversal_flags.for_animation_only() {
-            // In animation-only restyle we never touch snapshots and don't care
-            // about them. But we can't assert '!self.handled_snapshot()'
-            // here since there are some cases that a second animation-only
-            // restyle which is a result of normal restyle (e.g. setting
-            // animation-name in normal restyle and creating a new CSS
-            // animation in a SequentialTask) is processed after the normal
-            // traversal in that we had elements that handled snapshot.
-            if !data.has_styles() {
-                return false;
-            }
-
-            if !data.hint.has_animation_hint_or_recascade() {
-                return true;
-            }
-
-            // FIXME: This should ideally always return false, but it is a hack
-            // to work around our weird animation-only traversal
-            // stuff: If we're display: none and the rules we could match could
-            // change, we consider our style up-to-date. This is because
-            // re-cascading with and old style doesn't guarantee returning the
-            // correct animation style (that's bug 1393323). So if our display
-            // changed, and it changed from display: none, we would incorrectly
-            // forget about it and wouldn't be able to correctly style our
-            // descendants later.
-            if data.styles.is_display_none() && data.hint.match_self() {
-                return true;
-            }
-
-            return false;
-        }
-
-        if self.has_snapshot() && !self.handled_snapshot() {
-            return false;
-        }
-
-        data.has_styles() && !data.hint.has_non_animation_invalidations()
-    }
-
     /// Returns whether the element's styles are up-to-date after traversal
     /// (i.e. in post traversal).
     fn has_current_styles(&self, data: &ElementData) -> bool {
@@ -694,11 +648,6 @@ pub trait TElement:
     ///
     /// Servo doesn't support visited styles yet.
     fn is_visited_link(&self) -> bool {
-        false
-    }
-
-    /// Returns true if this element is in a native anonymous subtree.
-    fn is_in_native_anonymous_subtree(&self) -> bool {
         false
     }
 
@@ -837,11 +786,8 @@ pub trait TElement:
         use crate::rule_collector::containing_shadow_ignoring_svg_use;
 
         let target = self.rule_hash_target();
-        if !target.matches_user_and_author_rules() {
-            return false;
-        }
-
-        let mut doc_rules_apply = true;
+        let matches_user_and_content_rules = target.matches_user_and_content_rules();
+        let mut doc_rules_apply = matches_user_and_content_rules;
 
         // Use the same rules to look for the containing host as we do for rule
         // collection.
@@ -889,9 +835,9 @@ pub trait TElement:
                         },
                         None => {
                             // TODO(emilio): Should probably distinguish with
-                            // MatchesDocumentRules::{No,Yes,IfPart} or
-                            // something so that we could skip some work.
-                            doc_rules_apply = true;
+                            // MatchesDocumentRules::{No,Yes,IfPart} or something so that we could
+                            // skip some work.
+                            doc_rules_apply = matches_user_and_content_rules;
                             break;
                         },
                     }

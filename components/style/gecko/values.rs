@@ -6,6 +6,7 @@
 
 //! Different kind of helpers to interact with Gecko values.
 
+use crate::color::{AbsoluteColor, ColorSpace};
 use crate::counter_style::{Symbol, Symbols};
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs::CounterStylePtr;
@@ -13,23 +14,28 @@ use crate::values::generics::CounterStyle;
 use crate::values::Either;
 use crate::Atom;
 use app_units::Au;
-use cssparser::RGBA;
 use std::cmp::max;
 
-/// Convert a given RGBA value to `nscolor`.
-pub fn convert_rgba_to_nscolor(rgba: &RGBA) -> u32 {
+/// Convert a color value to `nscolor`.
+pub fn convert_absolute_color_to_nscolor(color: &AbsoluteColor) -> u32 {
+    let srgb = color.to_color_space(ColorSpace::Srgb);
     u32::from_le_bytes([
-        rgba.red,
-        rgba.green,
-        rgba.blue,
-        (rgba.alpha * 255.0).round() as u8,
+        (srgb.components.0 * 255.0).round() as u8,
+        (srgb.components.1 * 255.0).round() as u8,
+        (srgb.components.2 * 255.0).round() as u8,
+        (srgb.alpha * 255.0).round() as u8,
     ])
 }
 
-/// Convert a given `nscolor` to a Servo RGBA value.
-pub fn convert_nscolor_to_rgba(color: u32) -> RGBA {
+/// Convert a given `nscolor` to a Servo AbsoluteColor value.
+pub fn convert_nscolor_to_absolute_color(color: u32) -> AbsoluteColor {
     let [r, g, b, a] = color.to_le_bytes();
-    RGBA::new(r, g, b, a as f32 / 255.0)
+    AbsoluteColor::srgb(
+        r as f32 / 255.0,
+        g as f32 / 255.0,
+        b as f32 / 255.0,
+        a as f32 / 255.0,
+    )
 }
 
 /// Round `width` down to the nearest device pixel, but any non-zero value that

@@ -22,6 +22,7 @@ use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::color::{AbsoluteColor, ColorSpace};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
@@ -111,7 +112,7 @@ impl CanvasContextState {
     const DEFAULT_FONT_STYLE: &'static str = "10px sans-serif";
 
     pub(crate) fn new() -> CanvasContextState {
-        let black = RGBA::new(0, 0, 0, 1.0);
+        let black = RGBA::new(Some(0), Some(0), Some(0), Some(1.0));
         CanvasContextState {
             global_alpha: 1.0,
             global_composition: CompositionOrBlending::default(),
@@ -126,7 +127,7 @@ impl CanvasContextState {
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
-            shadow_color: RGBA::transparent(),
+            shadow_color: RGBA::new(Some(0), Some(0), Some(0), Some(0.0)),
             font_style: None,
             text_align: Default::default(),
             text_baseline: Default::default(),
@@ -1694,19 +1695,27 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<R
                 // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
                 // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
                 // it is treated as opaque black.
-                None => RGBA::new(0, 0, 0, 1.0),
+                None => AbsoluteColor::black(),
                 Some(ref canvas) => {
                     let canvas_element = canvas.upcast::<Element>();
                     match canvas_element.style() {
                         Some(ref s) if canvas_element.has_css_layout_box() => {
                             s.get_inherited_text().color
                         },
-                        _ => RGBA::new(0, 0, 0, 1.0),
+                        _ => AbsoluteColor::black(),
                     }
                 },
             };
 
-            Ok(color.into_rgba(current_color))
+            let rgba = color
+                .resolve_into_absolute(&current_color)
+                .to_color_space(ColorSpace::Srgb);
+            Ok(RGBA::from_floats(
+                Some(rgba.components.0),
+                Some(rgba.components.1),
+                Some(rgba.components.2),
+                Some(rgba.alpha),
+            ))
         },
         None => Err(()),
     }
@@ -1723,11 +1732,12 @@ pub fn serialize<W>(color: &RGBA, dest: &mut W) -> fmt::Result
 where
     W: fmt::Write,
 {
-    let red = color.red;
-    let green = color.green;
-    let blue = color.blue;
+    let red = color.red.unwrap_or(0);
+    let green = color.green.unwrap_or(0);
+    let blue = color.blue.unwrap_or(0);
+    let alpha = color.alpha.unwrap_or(0.0);
 
-    if color.alpha == 1.0 {
+    if alpha == 1.0 {
         write!(
             dest,
             "#{:x}{:x}{:x}{:x}{:x}{:x}",
@@ -1739,14 +1749,7 @@ where
             blue & 0xF
         )
     } else {
-        write!(
-            dest,
-            "rgba({}, {}, {}, {})",
-            red,
-            green,
-            blue,
-            color.alpha_f32()
-        )
+        write!(dest, "rgba({}, {}, {}, {})", red, green, blue, alpha)
     }
 }
 

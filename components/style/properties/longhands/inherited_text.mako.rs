@@ -9,9 +9,9 @@
 ${helpers.predefined_type(
     "color",
     "ColorPropertyValue",
-    "::cssparser::RGBA::new(0, 0, 0, 1.0)",
+    "crate::color::AbsoluteColor::black()",
     engines="gecko servo",
-    animation_value_type="AnimatedRGBA",
+    animation_value_type="AbsoluteColor",
     ignored_when_colors_disabled="True",
     spec="https://drafts.csswg.org/css-color/#color",
 )}
@@ -398,4 +398,13 @@ ${helpers.predefined_type(
     has_effect_on_gecko_scrollbars=False,
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-color-adjust-1/#forced-color-adjust-prop",
+)}
+
+${helpers.single_keyword(
+    "-webkit-text-security",
+    "none circle disc square",
+    engines="gecko",
+    gecko_enum_prefix="StyleTextSecurity",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-text/#MISSING",
 )}

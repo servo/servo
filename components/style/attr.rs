@@ -431,7 +431,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
             hex(input.as_bytes()[2] as char),
             hex(input.as_bytes()[3] as char),
         ) {
-            return Ok(RGBA::new(r * 17, g * 17, b * 17, 1.0));
+            return Ok(RGBA::new(Some(r * 17), Some(g * 17), Some(b * 17), Some(1.0)));
         }
     }
 
@@ -501,10 +501,10 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
 
     // Steps 15-20.
     return Ok(RGBA::new(
-        hex_string(red).unwrap(),
-        hex_string(green).unwrap(),
-        hex_string(blue).unwrap(),
-        1.0,
+        Some(hex_string(red).unwrap()),
+        Some(hex_string(green).unwrap()),
+        Some(hex_string(blue).unwrap()),
+        Some(1.0),
     ));
 
     fn hex(ch: char) -> Result<u8, ()> {

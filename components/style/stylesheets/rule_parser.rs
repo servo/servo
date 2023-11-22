@@ -16,7 +16,7 @@ use crate::str::starts_with_ignore_ascii_case;
 use crate::stylesheets::container_rule::{ContainerCondition, ContainerRule};
 use crate::stylesheets::document_rule::DocumentCondition;
 use crate::stylesheets::font_feature_values_rule::parse_family_name_list;
-use crate::stylesheets::import_rule::ImportLayer;
+use crate::stylesheets::import_rule::{ImportRule, ImportLayer, ImportSupportsCondition};
 use crate::stylesheets::keyframes_rule::parse_keyframe_list;
 use crate::stylesheets::layer_rule::{LayerBlockRule, LayerName, LayerStatementRule};
 use crate::stylesheets::stylesheet::Namespaces;
@@ -204,7 +204,7 @@ pub enum AtRulePrelude {
     /// A @document rule, with its conditional.
     Document(DocumentCondition),
     /// A @import rule prelude.
-    Import(CssUrl, Arc<Locked<MediaList>>, Option<ImportLayer>),
+    Import(CssUrl, Arc<Locked<MediaList>>, Option<ImportSupportsCondition>, ImportLayer),
     /// A @namespace rule prelude.
     Namespace(Option<Prefix>, Namespace),
     /// A @layer rule prelude.
@@ -241,32 +241,12 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 let url_string = input.expect_url_or_string()?.as_ref().to_owned();
                 let url = CssUrl::parse_from_string(url_string, &self.context, CorsMode::None);
 
-                #[cfg(feature = "gecko")]
-                let layers_enabled = static_prefs::pref!("layout.css.cascade-layers.enabled");
-                #[cfg(feature = "servo")]
-                let layers_enabled = false;
-
-                let layer = if !layers_enabled {
-                    None
-                } else if input.try_parse(|input| input.expect_ident_matching("layer")).is_ok() {
-                    Some(ImportLayer {
-                        name: None,
-                    })
-                } else {
-                    input.try_parse(|input| {
-                        input.expect_function_matching("layer")?;
-                        input.parse_nested_block(|input| {
-                            LayerName::parse(&self.context, input)
-                        }).map(|name| ImportLayer {
-                            name: Some(name),
-                        })
-                    }).ok()
-                };
+                let (layer, supports) = ImportRule::parse_layer_and_supports(input, &self.context, self.namespaces);
 
                 let media = MediaList::parse(&self.context, input);
                 let media = Arc::new(self.shared_lock.wrap(media));
 
-                return Ok(AtRulePrelude::Import(url, media, layer));
+                return Ok(AtRulePrelude::Import(url, media, supports, layer));
             },
             "namespace" => {
                 if !self.check_state(State::Namespaces) {
@@ -335,7 +315,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         start: &ParserState,
     ) -> Result<Self::AtRule, ()> {
         let rule = match prelude {
-            AtRulePrelude::Import(url, media, layer) => {
+            AtRulePrelude::Import(url, media, supports, layer) => {
                 let loader = self
                     .loader
                     .expect("Expected a stylesheet loader for @import");
@@ -346,6 +326,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     &self.context,
                     &self.shared_lock,
                     media,
+                    supports,
                     layer,
                 );
 
@@ -807,6 +788,7 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors,
             block,
+            rules: None, // TODO(nesting)
             source_location: start.source_location(),
         }))))
     }
