@@ -971,9 +971,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(border) = border {
-            let width_value = specified::BorderSideWidth::Length(NonNegative(
-                specified::Length::from_px(border as f32),
-            ));
+            let width_value = specified::BorderSideWidth::from_px(border as f32);
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BorderTopWidth(width_value.clone()),
