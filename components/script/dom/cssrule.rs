@@ -102,7 +102,6 @@ impl CSSRule {
             StyleCssRule::Page(_) => unreachable!(),
             StyleCssRule::Container(_) => unimplemented!(), // TODO
             StyleCssRule::Document(_) => unimplemented!(),  // TODO
-            StyleCssRule::Viewport(_) => unimplemented!(),  // TODO
             StyleCssRule::LayerBlock(_) => unimplemented!(), // TODO
             StyleCssRule::LayerStatement(_) => unimplemented!(), // TODO
             StyleCssRule::FontPaletteValues(_) => unimplemented!(), // TODO
