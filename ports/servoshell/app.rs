@@ -115,7 +115,7 @@ impl App {
 
         if let Some(mut minibrowser) = app.minibrowser() {
             minibrowser.update(window.winit_window().unwrap(), None, "init");
-            window.set_toolbar_height(minibrowser.toolbar_height.get());
+            window.set_toolbar_height(minibrowser.toolbar_height);
         }
 
         // Whether or not to recomposite during the next RedrawRequested event.
@@ -258,7 +258,7 @@ impl App {
                         window.winit_window().unwrap().request_redraw();
                     },
                     winit::event::Event::WindowEvent { ref event, .. } => {
-                        let response = minibrowser.context.on_event(&event);
+                        let response = minibrowser.on_event(&event);
                         if response.repaint {
                             // Request a winit redraw event, so we can recomposite, update and paint
                             // the minibrowser, and present the new frame.

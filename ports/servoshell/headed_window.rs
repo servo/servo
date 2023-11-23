@@ -41,6 +41,7 @@ use winit::event::{
 use winit::window::Icon;
 
 use crate::events_loop::{EventsLoop, WakerEvent};
+use crate::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
 use crate::keyutils::keyboard_event_from_winit;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
@@ -517,14 +518,6 @@ impl WindowPortsMethods for Window {
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>) {
         self.toolbar_height.set(height);
     }
-}
-
-fn winit_size_to_euclid_size<T>(size: PhysicalSize<T>) -> Size2D<T, DevicePixel> {
-    Size2D::new(size.width, size.height)
-}
-
-fn winit_position_to_euclid_point<T>(position: PhysicalPosition<T>) -> Point2D<T, DevicePixel> {
-    Point2D::new(position.x, position.y)
 }
 
 impl WindowMethods for Window {
