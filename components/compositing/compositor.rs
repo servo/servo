@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::{create_dir_all, File};
 use std::io::Write;
+use std::mem::swap;
 use std::num::NonZeroU32;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -26,7 +27,7 @@ use gfx_traits::{Epoch, FontData, WebRenderEpochToU16};
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
 use libc::c_void;
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use msg::constellation_msg::{
     PipelineId, PipelineIndex, PipelineNamespaceId, TopLevelBrowsingContextId,
 };
@@ -60,6 +61,7 @@ use webrender_surfman::WebrenderSurfman;
 
 #[cfg(feature = "gl")]
 use crate::gl;
+use crate::gl::RenderTargetInfo;
 use crate::touch::{TouchAction, TouchHandler};
 use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
@@ -226,8 +228,11 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Current cursor position.
     cursor_pos: DevicePoint,
 
-    /// Our last frame of output.
-    output_frame_info: Option<gl::RenderTargetInfo>,
+    /// Offscreen framebuffer object to render to.
+    current_render_target: Option<gl::RenderTargetInfo>,
+
+    /// Offscreen framebuffer object that our last frame was rendered to.
+    last_render_target: Option<gl::RenderTargetInfo>,
 
     is_running_problem_test: bool,
 
@@ -353,7 +358,7 @@ pub enum CompositeTarget {
     SharedMemory,
 
     /// Draw to a PNG file on disk, then exit the browser (for reftests).
-    PngFile(String),
+    PngFile(Rc<String>),
 }
 
 impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
@@ -401,7 +406,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
             cursor_pos: DevicePoint::new(0.0, 0.0),
-            output_frame_info: None,
+            current_render_target: None,
+            last_render_target: None,
             is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
@@ -1052,7 +1058,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn on_resize_window_event(&mut self) -> bool {
-        debug!("compositor resize requested");
+        trace!("Compositor resize requested");
 
         let old_coords = self.embedder_coordinates;
         self.embedder_coordinates = self.window.get_coordinates();
@@ -1060,6 +1066,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // A size change could also mean a resolution change.
         if self.embedder_coordinates.hidpi_factor != old_coords.hidpi_factor {
             self.update_zoom_transform();
+        }
+
+        // If the framebuffer size has changed, invalidate any OpenGL resources that depend on it.
+        if self.embedder_coordinates.framebuffer != old_coords.framebuffer {
+            self.current_render_target = None;
         }
 
         if self.embedder_coordinates.viewport == old_coords.viewport {
@@ -1682,20 +1693,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
         self.assert_no_gl_error();
 
-        // Bind the webrender framebuffer
-        let framebuffer_object = self
-            .webrender_surfman
-            .context_surface_info()
-            .unwrap_or(None)
-            .map(|info| info.framebuffer_object)
-            .unwrap_or(0);
-        self.webrender_gl
-            .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
-        self.assert_gl_framebuffer_complete();
-
         self.webrender.update();
 
-        let target = target_override.as_ref().unwrap_or(&self.composite_target);
+        let target = target_override.unwrap_or_else(|| self.composite_target.clone());
         let wait_for_stable_image = matches!(
             target,
             CompositeTarget::SharedMemory | CompositeTarget::PngFile(_)
@@ -1722,17 +1722,30 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         cfg_if! {
             if #[cfg(feature = "gl")] {
-                let rt_info = if needs_fbo {
-                    gl::initialize_img(
-                        &*self.webrender_gl,
-                        FramebufferUintLength::new(size.width),
-                        FramebufferUintLength::new(size.height),
-                    )
+                if needs_fbo {
+                    if self.current_render_target.is_none() {
+                        self.current_render_target = Some(RenderTargetInfo::new(
+                            self.webrender_gl.clone(),
+                            FramebufferUintLength::new(size.width),
+                            FramebufferUintLength::new(size.height),
+                        ));
+                    }
+                    self.current_render_target
+                        .as_ref()
+                        .expect("Initialised above")
+                        .bind();
                 } else {
-                    gl::RenderTargetInfo::default()
-                };
-            } else {
-                let rt_info = ();
+                    // Bind the webrender framebuffer
+                    let framebuffer_object = self
+                        .webrender_surfman
+                        .context_surface_info()
+                        .unwrap_or(None)
+                        .map(|info| info.framebuffer_object)
+                        .unwrap_or(0);
+                    self.webrender_gl
+                        .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
+                    self.assert_gl_framebuffer_complete();
+                }
             }
         };
 
@@ -1741,7 +1754,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             None,
             self.time_profiler_chan.clone(),
             || {
-                debug!("compositor: compositing");
+                trace!("Compositing");
 
                 let size =
                     DeviceIntSize::from_untyped(self.embedder_coordinates.framebuffer.to_untyped());
@@ -1808,22 +1821,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         cfg_if! {
             if #[cfg(feature = "gl")] {
-                let rv = match target_override.as_ref().unwrap_or(&self.composite_target) {
+                let rv = match target {
                     CompositeTarget::Window => None,
                     CompositeTarget::Fbo => {
-                        // Free the OpenGL resources of the old frame if any...
-                        if let Some(old) = self.output_frame_info.take() {
-                            old.drop(&*self.webrender_gl);
-                        }
-
-                        // ...then store the new frame info in its place.
-                        self.output_frame_info = Some(rt_info);
+                        self.current_render_target.as_ref().expect("Guaranteed by needs_fbo").unbind();
+                        swap(&mut self.current_render_target, &mut self.last_render_target);
                         None
                     },
                     CompositeTarget::SharedMemory => {
-                        let img = gl::read_img(
-                            &*self.webrender_gl,
-                            rt_info,
+                        let render_target_info = self.current_render_target.take().expect("Guaranteed by needs_fbo");
+                        let img = render_target_info.read(
                             x,
                             y,
                             FramebufferUintLength::new(width),
@@ -1839,16 +1846,15 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         })
                     },
                     CompositeTarget::PngFile(path) => {
-                        let gl = &*self.webrender_gl;
                         profile(
                             ProfilerCategory::ImageSaving,
                             None,
                             self.time_profiler_chan.clone(),
-                            || match File::create(path) {
+                            || match File::create(&*path) {
                                 Ok(mut file) => {
-                                    let img = gl::read_img(
-                                        gl,
-                                        rt_info,
+                                    let render_target_info = self.current_render_target.take()
+                                        .expect("Guaranteed by needs_fbo");
+                                    let img = render_target_info.read(
                                         x,
                                         y,
                                         FramebufferUintLength::new(width),
@@ -1889,7 +1895,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn output_framebuffer_id(&self) -> Option<gleam::gl::GLuint> {
-        self.output_frame_info
+        self.last_render_target
             .as_ref()
             .map(|info| info.framebuffer_id())
     }
