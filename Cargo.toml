@@ -64,7 +64,7 @@ msg = { path = "components/shared/msg" }
 net_traits = { path = "components/shared/net" }
 num-traits = "0.2"
 parking_lot = "0.12"
-percent-encoding = "2.0"
+percent-encoding = "2.3"
 proc-macro2 = "1"
 profile_traits = { path = "components/shared/profile" }
 quote = "1"
