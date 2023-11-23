@@ -234,6 +234,9 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Offscreen framebuffer object that our last frame was rendered to.
     last_render_target: Option<gl::RenderTargetInfo>,
 
+    /// Whether to invalidate the last render target at the end of the next frame.
+    invalidate_last_render_target: bool,
+
     is_running_problem_test: bool,
 
     /// True to exit after page load ('-x').
@@ -408,6 +411,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             cursor_pos: DevicePoint::new(0.0, 0.0),
             current_render_target: None,
             last_render_target: None,
+            invalidate_last_render_target: false,
             is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
@@ -1068,9 +1072,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             self.update_zoom_transform();
         }
 
-        // If the framebuffer size has changed, invalidate any OpenGL resources that depend on it.
+        // If the framebuffer size has changed, invalidate the current framebuffer object, and mark
+        // the last framebuffer object as needing to be invalidated at the end of the next frame.
         if self.embedder_coordinates.framebuffer != old_coords.framebuffer {
             self.current_render_target = None;
+            self.invalidate_last_render_target = true;
         }
 
         if self.embedder_coordinates.viewport == old_coords.viewport {
@@ -1825,6 +1831,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     CompositeTarget::Window => None,
                     CompositeTarget::Fbo => {
                         self.current_render_target.as_ref().expect("Guaranteed by needs_fbo").unbind();
+                        if self.invalidate_last_render_target {
+                            // Do not reuse the last render target as the new current render target.
+                            self.last_render_target = None;
+                        }
                         swap(&mut self.current_render_target, &mut self.last_render_target);
                         None
                     },
