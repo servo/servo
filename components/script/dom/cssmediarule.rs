@@ -2,17 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::media_queries::MediaList as StyleMediaList;
-use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{CssRuleType, MediaRule, Origin};
-use style_traits::{ParsingMode, ToCss};
+use style::stylesheets::MediaRule;
+use style_traits::ToCss;
 
 use crate::dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
-use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -74,37 +70,6 @@ impl CSSMediaRule {
         let rule = self.mediarule.read_with(&guard);
         let list = rule.media_queries.read_with(&guard);
         list.to_css_string().into()
-    }
-
-    /// <https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface>
-    pub fn set_condition_text(&self, text: DOMString) {
-        let mut input = ParserInput::new(&text);
-        let mut input = Parser::new(&mut input);
-        let global = self.global();
-        let window = global.as_window();
-        let url = window.get_url();
-        let quirks_mode = window.Document().quirks_mode();
-        let context = ParserContext::new(
-            Origin::Author,
-            &url,
-            Some(CssRuleType::Media),
-            ParsingMode::DEFAULT,
-            quirks_mode,
-            window.css_error_reporter(),
-            None,
-        );
-
-        let new_medialist = StyleMediaList::parse(&context, &mut input);
-        let mut guard = self.cssconditionrule.shared_lock().write();
-
-        // Clone an Arc because we can’t borrow `guard` twice at the same time.
-
-        // FIXME(SimonSapin): allow access to multiple objects with one write guard?
-        // Would need a set of usize pointer addresses or something,
-        // the same object is not accessed more than once.
-        let mqs = Arc::clone(&self.mediarule.write_with(&mut guard).media_queries);
-
-        *mqs.write_with(&mut guard) = new_medialist;
     }
 }
 
