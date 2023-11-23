@@ -139,7 +139,7 @@ impl Minibrowser {
                                 let width = clip.width_px as gl::GLsizei;
                                 let height = clip.height_px as gl::GLsizei;
                                 unsafe {
-                                    painter.gl().clear_color(1.0, 0.0, 1.0, 1.0);
+                                    painter.gl().clear_color(0.0, 0.0, 0.0, 0.0);
                                     painter.gl().scissor(x, y, width, height);
                                     painter.gl().enable(gl::SCISSOR_TEST);
                                     painter.gl().clear(gl::COLOR_BUFFER_BIT);
