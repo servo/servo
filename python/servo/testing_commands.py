@@ -292,7 +292,10 @@ class MachCommands(CommandBase):
         else:
             manifest_dirty = wpt.manifestupdate.update(check_clean=True)
         tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo, no_wpt=no_wpt)
-        rustfmt_failed = call(["cargo", "fmt", "--", "--check"])
+
+        call(["rustup", "install", "nightly-2023-03-18"])
+        call(["rustup", "component", "add", "rustfmt", "--toolchain", "nightly-2023-03-18"])
+        rustfmt_failed = call(["cargo", "+nightly-2023-03-18", "fmt", "--", "--check"])
 
         if rustfmt_failed:
             print("Run `./mach fmt` to fix the formatting")
@@ -396,7 +399,10 @@ class MachCommands(CommandBase):
         result = format_toml_files_with_taplo(check_only=False)
         if result != 0:
             return result
-        return call(["cargo", "fmt"])
+
+        call(["rustup", "install", "nightly-2023-03-18"])
+        call(["rustup", "component", "add", "rustfmt", "--toolchain", "nightly-2023-03-18"])
+        return call(["cargo", "+nightly-2023-03-18", "fmt"])
 
     @Command('update-wpt',
              description='Update the web platform tests',

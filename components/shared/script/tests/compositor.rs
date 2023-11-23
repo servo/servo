@@ -155,7 +155,7 @@ fn test_scroll_tree_chain_through_overflow_hidden() {
         .get_node_mut(&overflow_hidden_id)
         .scroll_info
         .as_mut()
-        .map(|mut info| {
+        .map(|info| {
             info.scroll_sensitivity = ScrollSensitivity::Script;
         });
 

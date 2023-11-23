@@ -1,5 +1,5 @@
 [toolchain]
-channel = "nightly-2023-03-18"
+channel = "1.74"
 components = [
     # For support/crown
     "llvm-tools",
