@@ -346,7 +346,7 @@ pub enum CompositeTarget {
     /// Draw directly to a window.
     Window,
 
-    /// Draw to an offscreen OpenGL framebuffer object (IOCompositor::output_framebuffer_id).
+    /// Draw to an offscreen OpenGL framebuffer object ([IOCompositor::output_framebuffer_id]).
     Fbo,
 
     /// Draw to an uncompressed image in shared memory.
@@ -1660,9 +1660,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     /// Composite to the given target if any, or the current target otherwise.
-    /// Returns Ok if composition was performed or Err if it was not possible to composite
-    /// for some reason. If read_back is true, reads back and returns the output frame as
-    /// Ok(Some(png::Image)), otherwise returns Ok(None).
+    /// Returns Ok if composition was performed or Err if it was not possible to composite for some
+    /// reason. When the target is [CompositeTarget::SharedMemory], the image is read back from the
+    /// GPU and returned as Ok(Some(png::Image)), otherwise we return Ok(None).
     fn composite_specific_target(
         &mut self,
         target_override: Option<CompositeTarget>,
