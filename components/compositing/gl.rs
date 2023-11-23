@@ -24,6 +24,7 @@ impl RenderTargetInfo {
     ) -> Self {
         let framebuffer_ids = gl.gen_framebuffers(1);
         gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
+        trace!("Configuring fbo {}", framebuffer_ids[0]);
 
         let texture_ids = gl.gen_textures(1);
         gl.bind_texture(gl::TEXTURE_2D, texture_ids[0]);
@@ -81,6 +82,10 @@ impl RenderTargetInfo {
             renderbuffer_ids,
             texture_ids,
         }
+    }
+
+    pub fn framebuffer_id(&self) -> gl::GLuint {
+        *self.framebuffer_ids.first().expect("Guaranteed by new")
     }
 
     pub fn bind(&self) {
@@ -141,11 +146,5 @@ impl Drop for RenderTargetInfo {
         self.gl.delete_textures(&self.texture_ids);
         self.gl.delete_renderbuffers(&self.renderbuffer_ids);
         self.gl.delete_framebuffers(&self.framebuffer_ids);
-    }
-}
-
-impl RenderTargetInfo {
-    pub fn framebuffer_id(&self) -> gl::GLuint {
-        *self.framebuffer_ids.first().expect("Guaranteed by new")
     }
 }
