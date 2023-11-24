@@ -56,6 +56,13 @@ jobs:
     name: Mac Build
     runs-on: macos-13
     steps:
+      # XProtect can cause random failures if it decides that the DMG we create
+      # during the packaging phase is malware.
+      # TODO(mrobinson): Is there a way we can do things in a less suspicious way so
+      # we don't have to kill this service?
+      - name: Kill XProtectBehaviorService
+        run: |
+          echo Killing XProtect.; sudo pkill -9 XProtect >/dev/null || true;
       - uses: actions/checkout@v3
         if: github.event_name != 'pull_request_target'
         with:
