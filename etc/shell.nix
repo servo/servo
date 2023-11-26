@@ -32,9 +32,11 @@ let
     llvmPackages = llvmPackages_14;
     stdenv = llvmPackages.stdenv;
 
+    buildToolsVersion = "33.0.2";
     androidComposition = androidenv.composeAndroidPackages {
+      buildToolsVersions = [ buildToolsVersion ];
       includeEmulator = true;
-      platformVersions = [ "30" ];
+      platformVersions = [ "33" ];
       includeSources = false;
       includeSystemImages = true;
       systemImageTypes = [ "google_apis" ];
@@ -135,7 +137,7 @@ stdenv.mkDerivation rec {
 
     # for android builds
     # TODO: make this optional
-    openjdk8_headless
+    openjdk17_headless
     androidSdk
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
@@ -155,6 +157,8 @@ stdenv.mkDerivation rec {
 
   # Enable colored cargo and rustc output
   TERMINFO = "${ncurses.out}/share/terminfo";
+
+  GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${ANDROID_SDK_ROOT}/build-tools/${buildToolsVersion}/aapt2";
 
   # Provide libraries that aren’t linked against but somehow required
   LD_LIBRARY_PATH = lib.makeLibraryPath [
