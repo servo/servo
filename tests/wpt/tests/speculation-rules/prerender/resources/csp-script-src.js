@@ -3,6 +3,9 @@ const params = new URLSearchParams(location.search);
 // Take a key used for storing a test result in the server.
 const key = params.get('key');
 
+// Take a target hint to decide a target context for prerendering.
+const rule_extras = {'target_hint': getTargetHint()};
+
 // Speculation rules injection is blocked in the csp-script-src 'self' test.
 const block = location.pathname.endsWith('csp-script-src-self.html');
 
@@ -37,7 +40,7 @@ if (!run_test) {
     });
   }
 
-  startPrerendering(url.toString());
+  startPrerendering(url.toString(), rule_extras);
 
   // Wait until the prerendered page signals us it's ready to close.
   nextValueFromServer(done_key).then(() => {

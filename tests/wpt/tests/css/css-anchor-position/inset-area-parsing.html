@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: inset-area parsing</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#inset-area">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+  test_valid_value("inset-area", "none");
+  test_valid_value("inset-area", "all");
+  test_valid_value("inset-area", "start");
+  test_valid_value("inset-area", "end");
+  test_valid_value("inset-area", "top");
+  test_valid_value("inset-area", "left");
+  test_valid_value("inset-area", "bottom");
+  test_valid_value("inset-area", "right");
+  test_valid_value("inset-area", "self-start");
+  test_valid_value("inset-area", "self-end");
+  test_valid_value("inset-area", "x-start");
+  test_valid_value("inset-area", "x-end");
+  test_valid_value("inset-area", "x-self-start");
+  test_valid_value("inset-area", "x-self-end");
+  test_valid_value("inset-area", "y-start");
+  test_valid_value("inset-area", "y-end");
+  test_valid_value("inset-area", "y-self-start");
+  test_valid_value("inset-area", "y-self-end");
+
+  test_valid_value("inset-area", "all / all", "all");
+  test_valid_value("inset-area", "top / all", "top");
+  test_valid_value("inset-area", "all / top", "all / top");
+  test_valid_value("inset-area", "start end", "all");
+  test_valid_value("inset-area", "center end start", "all");
+  test_valid_value("inset-area", "center x-end x-start", "x-start x-end");
+  test_valid_value("inset-area", "center end start / top center bottom", "all / top bottom");
+  test_valid_value("inset-area", "end center / start", "center end / start");
+  test_valid_value("inset-area", "bottom / left");
+  test_valid_value("inset-area", "center start", "start center");
+  // Valid to parse and compute, but resolves to 'none'.
+  test_valid_value("inset-area", "x-start / x-start");
+
+  test_invalid_value("inset-area", "/ all");
+  test_invalid_value("inset-area", "none / none");
+  test_invalid_value("inset-area", "start / none");
+  test_invalid_value("inset-area", "none / start");
+  test_invalid_value("inset-area", "center center");
+  test_invalid_value("inset-area", "top left top");
+  test_invalid_value("inset-area", "x-start end");
+  test_invalid_value("inset-area", "bottom left");
+</script>

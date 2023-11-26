@@ -124,6 +124,22 @@
       assert_equals(beforeInputTargetRanges.length, 0, "Delete should not have a target range in EditContext");
       div.remove();
     }, "Backspace and delete in EditContext");
+
+    promise_test(async function() {
+      const iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+      const editContext = new EditContext();
+      iframe.contentDocument.body.editContext = editContext;
+      iframe.contentDocument.body.focus();
+      let got_textupdate_event = false;
+      editContext.addEventListener("textupdate", e => {
+        got_textupdate_event = true;
+      });
+      await test_driver.send_keys(iframe.contentDocument.body, "a");
+      assert_equals(iframe.contentDocument.body.innerHTML, "", "EditContext should disable DOM modification in iframe.");
+      assert_true(got_textupdate_event, "Input in iframe EditContext should trigger textupdate event");
+      iframe.remove();
+    }, 'EditContext constructed outside iframe can be used in iframe');
   </script>
 </body>
 </html>

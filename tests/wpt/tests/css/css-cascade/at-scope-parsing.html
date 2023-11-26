@@ -46,15 +46,17 @@
   test_valid('@scope (.a) to (+ .b)');
   test_valid('@scope (.a) to (~ .b)');
 
-  // Forgiving behavior:
-  test_valid('@scope (.c <> .d)', '@scope ()');
-  test_valid('@scope (.a, .c <> .d)', '@scope (.a)');
-  test_valid('@scope (.a <> .b, .c)', '@scope (.c)');
-  test_valid('@scope (div::before)', '@scope ()');
-  test_valid('@scope (div::after)', '@scope ()');
-  test_valid('@scope (slotted(div))', '@scope ()');
-  test_valid('@scope (.a) to (div::before)', '@scope (.a)');
+  // Forgiving behavior (keep invalid selector as-is for the serialization):
+  test_valid('@scope (.c <> .d)');
+  test_valid('@scope (.a, .c <> .d)');
+  test_valid('@scope (.a <> .b, .c)');
+  test_valid('@scope (div::before)');
+  test_valid('@scope (div::after)');
+  test_valid('@scope (slotted(div))');
+  test_valid('@scope (.a) to (div::before)');
+  test_valid('@scope (> &) to (>>)');
 
+  test_invalid('@scope div');
   test_invalid('@scope (.a) unknown (.c)');
   test_invalid('@scope (.a) to unknown (.c)');
   test_invalid('@scope (.a) 1px (.c)');
@@ -62,4 +64,9 @@
   test_invalid('@scope unknown(.a)');
   test_invalid('@scope 1px');
   test_invalid('@scope creep');
+  test_invalid('@scope )))');
+  test_invalid('@scope (');
+  test_invalid('@scope ( {}');
+  test_invalid('@scope to');
+  test_invalid('@scope }');
 </script>

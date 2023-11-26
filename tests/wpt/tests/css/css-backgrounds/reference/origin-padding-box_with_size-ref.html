@@ -13,6 +13,27 @@
       vertical-align: bottom;
     }
 
+  div.image
+    {
+      height: 288px;
+      width: 514px;
+    }
+
+  img
+    {
+      left: 16px;
+      position: relative;
+      top: 16px;
+    }
+
+  div#multiple
+    {
+      background-image: url('../background-origin/support/yellow-orange-blue-160x160.png');
+      background-position: 16px 16px;
+      background-size: 241px auto;
+      margin-top: 8px;
+    }
+
   div.light-blue-border
     {
       border: 16px solid rgba(60, 150, 255, 0.4);
@@ -23,6 +44,6 @@
     }
   </style>
 
-<div style="height: 288px; width: 514px;"><img src="../background-origin/support/yellow-orange-blue-160x160.png" style="position: relative; top: 16px; left: 16px;" width="241" alt="Image download support must be enabled"></div><div class="light-blue-border"></div><br>
+<div class="image"><img src="../background-origin/support/yellow-orange-blue-160x160.png" width="241" alt="Image download support must be enabled"></div><div class="light-blue-border"></div><br>
 
-<div style="height: 288px; width: 514px; background-image: url('../background-origin/support/yellow-orange-blue-160x160.png'); background-size: 241px auto; background-position: 16px 16px; margin-top: 8px;"></div><div class="light-blue-border"></div>
+<div class="image" id="multiple"></div><div class="light-blue-border"></div>

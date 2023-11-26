@@ -24,6 +24,10 @@ REGION
 invalid_settings values but region still created
 : Invalid Header
 
+REGION
+id:region_split_by_ascii_whitespace			width:10%
+lines:5regionanchor:40%,20%    viewportanchor:30%,80% 	scroll:up
+
 00:00:00.000 --> 00:00:02.500 region:someregionattributeid
 "no region"
 
@@ -50,3 +54,6 @@ invalid_settings values but region still created
 
 00:00:07.000 --> 00:00:08.000 region:
 "no region"
+
+00:00:08.000 --> 00:00:09.000 region:region_split_by_ascii_whitespace
+{"width":10,"lines":5,"regionAnchorX":40,"regionAnchorY":20,"viewportAnchorX":30,"viewportAnchorY":80,"scroll":"up"}

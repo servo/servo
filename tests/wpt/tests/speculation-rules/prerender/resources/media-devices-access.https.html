@@ -13,6 +13,7 @@ const params = new URLSearchParams(location.search);
 const isPrerendering = params.has('prerendering');
 
 if (!isPrerendering) {
+  const rule_extras = {'target_hint': getTargetHint()};
   loadInitiatorPage();
 } else {
   const prerenderEventCollector = new PrerenderEventCollector();

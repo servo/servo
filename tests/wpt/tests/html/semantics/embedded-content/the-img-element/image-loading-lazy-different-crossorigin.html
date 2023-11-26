@@ -15,7 +15,7 @@
 <div id="below-viewport-img-container"></div>
 
 <script>
-const image_path = 'resources/image.png';
+const image_path = 'resources/image.png?image-lazy-loading-lazy-different-crossorigin-' + Math.random();
 
 promise_test(async t => {
   await new Promise((resolve, reject) => {

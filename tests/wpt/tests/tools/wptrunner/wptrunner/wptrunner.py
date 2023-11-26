@@ -52,7 +52,7 @@ def setup_logging(*args, **kwargs):
 def get_loader(test_paths: wptcommandline.TestPaths,
                product: products.Product,
                **kwargs: Any) -> Tuple[testloader.TestQueueBuilder, testloader.TestLoader]:
-    run_info_extras = product.run_info_extras(**kwargs)
+    run_info_extras = product.run_info_extras(logger, **kwargs)
     base_run_info = wpttest.get_run_info(kwargs["run_info"],
                                          product.name,
                                          browser_version=kwargs.get("browser_version"),

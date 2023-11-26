@@ -294,6 +294,7 @@ SET TIMEOUT: xhr/resources/init.htm
 SET TIMEOUT: xhr/resources/xmlhttprequest-timeout.js
 SET TIMEOUT: fenced-frame/resolve-to-config-promise.https.html
 SET TIMEOUT: credential-management/support/fedcm-iframe.html
+SET TIMEOUT: credential-management/support/fedcm/disconnect-iframe.html
 
 # generate_tests implementation and sample usage
 GENERATE_TESTS: resources/test/tests/functional/generate-callback.html

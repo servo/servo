@@ -12,13 +12,16 @@
 </head>
 <body>
 <div id=target></div>
-<div id=scratch></div>
 <script>
-
 test_computed_value("view-transition-name", "none");
 test_computed_value("view-transition-name", "foo");
 test_computed_value("view-transition-name", "bar");
 test_computed_value("view-transition-name", "baz");
+test_computed_value("view-transition-name", "unset", "none");
+test_computed_value("view-transition-name", "initial", "none");
+test_computed_value("view-transition-name", "inherit", "none");
+test_computed_value("view-transition-name", "revert", "none");
+test_computed_value("view-transition-name", "revert-layer", "none");
 </script>
 </body>
 </html>

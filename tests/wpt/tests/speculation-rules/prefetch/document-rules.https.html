@@ -183,10 +183,10 @@
     assert_equals(await isUrlPrefetched(url_2), 0);
   }, 'test selector_matches with :root');
 
-  // 'selector_matches' should never match with a link inside a shadow tree
-  // because the scoping root used when matching is always the document.
+  // 'selector_matches' should use the shadowRoot as the scoping root when
+  // matching links inside a shadow tree.
   subsetTestByKey('selectorMatchesInShadowTree', promise_test, async t => {
-    insertDocumentRule({ selector_matches: 'a.important-link' });
+    insertDocumentRule({ selector_matches: ':scope a.important-link' });
 
     // Create shadow root.
     const shadowHost = document.createElement('div');
@@ -198,7 +198,7 @@
     link.className = 'important-link';
     await new Promise(resolve => t.step_timeout(resolve, 2000));
 
-    assert_equals(await isUrlPrefetched(url), 0);
+    assert_equals(await isUrlPrefetched(url), 1);
   }, 'test selector_matches with link inside shadow tree');
 
   subsetTestByKey('selectorMatchesDisplayNone', promise_test, async t => {

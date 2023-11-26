@@ -1435,6 +1435,12 @@ const gCSSProperties2 = {
     types: [
     ]
   },
+  'view-transition-name': {
+    // https://drafts.csswg.org/css-view-transitions/#propdef-view-transition-name
+    types: [
+      { type: 'discrete', options: [ [ 'none', 'header' ] ] },
+    ]
+  },
   'visibility': {
     // https://drafts.csswg.org/css2/visufx.html#propdef-visibility
     types: [ 'visibility' ]

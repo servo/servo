@@ -20,8 +20,9 @@ def recursive_compare(expected: Any, actual: Any) -> None:
 
     if type(expected) is dict:
         # Actual dict can have more keys as part of the forwards-compat design.
-        assert expected.keys() <= actual.keys(), \
-            f"Key set should be present: {set(expected.keys()) - set(actual.keys())}"
+        assert (
+            expected.keys() <= actual.keys()
+        ), f"Key set should be present: {set(expected.keys()) - set(actual.keys())}"
         for key in expected.keys():
             recursive_compare(expected[key], actual[key])
         return
@@ -88,7 +89,8 @@ async def get_device_pixel_ratio(bidi_session, context: str) -> float:
         return window.devicePixelRatio;
     }""",
         target=ContextTarget(context["context"]),
-        await_promise=False)
+        await_promise=False,
+    )
     return result["value"]
 
 
@@ -111,6 +113,22 @@ async def get_viewport_dimensions(bidi_session, context: str):
         ({
           height: window.innerHeight || document.documentElement.clientHeight,
           width: window.innerWidth || document.documentElement.clientWidth,
+        });
+    """
+    result = await bidi_session.script.evaluate(
+        expression=expression,
+        target=ContextTarget(context["context"]),
+        await_promise=False,
+    )
+
+    return remote_mapping_to_dict(result["value"])
+
+
+async def get_document_dimensions(bidi_session, context: str):
+    expression = """
+        ({
+          height: document.documentElement.scrollHeight,
+          width: document.documentElement.scrollWidth,
         });
     """
     result = await bidi_session.script.evaluate(

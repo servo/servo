@@ -31,6 +31,8 @@ html::view-transition-new(target) {
 <div id=target></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   let transition = document.startViewTransition(() => target.classList.add("target"));
   transition.ready.then(() => {

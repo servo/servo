@@ -25,6 +25,9 @@ test_math_X(
         msgExtra, // Extra info to put after the auto-genned message.
         prop, // If you want to override the automatic choice of tested property.
         extraStyle, // Styles that need to be set at the same time to properly test the value.
+        approx, // The epsilon in order to compare numeric-ish values.
+                // Note that it'd use parseFloat in order to extract the
+                // values, so they can drop units or what not.
     }
 );
 
@@ -42,14 +45,14 @@ to test that a given value is ±∞, ±0, or NaN:
 
 
 
-function test_math_used(testString, expectedString, {approx, msg, msgExtra, type, prop, prefix, suffix, extraStyle={}}={}) {
+function test_math_used(testString, expectedString, {approx, msg, msgExtra, type, prop, extraStyle={}}={}) {
     if(type === undefined) type = "length";
     if(!prop) {
         switch(type) {
-            case "number":     prop = "transform"; prefix="scale("; suffix=")"; break;
+            case "number":     prop = "scale"; break;
             case "integer":    prop = "z-index"; extraStyle.position="absolute"; break;
             case "length":     prop = "margin-left"; break;
-            case "angle":      prop = "transform"; prefix="rotate("; suffix=")"; break;
+            case "angle":      prop = "rotate"; break;
             case "time":       prop = "transition-delay"; break;
             case "resolution": prop = "image-resolution"; break;
             case "flex":       prop = "grid-template-rows"; break;
@@ -57,17 +60,17 @@ function test_math_used(testString, expectedString, {approx, msg, msgExtra, type
         }
 
     }
-    _test_math({stage:'used', testString, expectedString, type, approx, msg, msgExtra, prop, prefix, suffix, extraStyle});
+    _test_math({stage:'used', testString, expectedString, type, approx, msg, msgExtra, prop, extraStyle});
 }
 
-function test_math_computed(testString, expectedString, {approx, msg, msgExtra, type, prop, prefix, suffix, extraStyle={}}={}) {
+function test_math_computed(testString, expectedString, {approx, msg, msgExtra, type, prop, extraStyle={}}={}) {
     if(type === undefined) type = "length";
     if(!prop) {
         switch(type) {
-            case "number":     prop = "transform"; prefix="scale("; suffix=")"; break;
+            case "number":     prop = "scale"; break;
             case "integer":    prop = "z-index"; extraStyle.position="absolute"; break;
             case "length":     prop = "flex-basis"; break;
-            case "angle":      prop = "transform"; prefix="rotate("; suffix=")"; break;
+            case "angle":      prop = "rotate"; break;
             case "time":       prop = "transition-delay"; break;
             case "resolution": prop = "image-resolution"; break;
             case "flex":       prop = "grid-template-rows"; break;
@@ -75,18 +78,18 @@ function test_math_computed(testString, expectedString, {approx, msg, msgExtra, 
         }
 
     }
-    _test_math({stage:'computed', testString, expectedString, type, approx, msg, msgExtra, prop, prefix, suffix, extraStyle});
+    _test_math({stage:'computed', testString, expectedString, type, approx, msg, msgExtra, prop, extraStyle});
 }
 
-function test_math_specified(testString, expectedString, {approx, msg, msgExtra, type, prop, prefix, suffix, extraStyle={}}={}) {
+function test_math_specified(testString, expectedString, {approx, msg, msgExtra, type, prop, extraStyle={}}={}) {
     if(type === undefined) type = "length";
     const stage = "specified";
     if(!prop) {
         switch(type) {
-            case "number":     prop = "transform"; prefix="scale("; suffix=")"; break;
+            case "number":     prop = "scale"; break;
             case "integer":    prop = "z-index"; extraStyle.position="absolute"; break;
             case "length":     prop = "flex-basis"; break;
-            case "angle":      prop = "transform"; prefix="rotate("; suffix=")"; break;
+            case "angle":      prop = "rotate"; break;
             case "time":       prop = "transition-delay"; break;
             case "resolution": prop = "image-resolution"; break;
             case "flex":       prop = "grid-template-rows"; break;
@@ -108,14 +111,6 @@ function test_math_specified(testString, expectedString, {approx, msg, msgExtra,
     }
     let t = testString;
     let e = expectedString;
-    if(prefix) {
-        t = prefix + t;
-        e = prefix + e;
-    }
-    if(suffix) {
-        t += suffix;
-        e += suffix;
-    }
     test(()=>{
         testEl.style[prop] = '';
         testEl.style[prop] = t;
@@ -125,7 +120,19 @@ function test_math_specified(testString, expectedString, {approx, msg, msgExtra,
         testEl.style[prop] = e;
         const expectedValue = testEl.style[prop];
         assert_not_equals(expectedValue, '', `${expectedString} isn't valid in '${prop}'; got the default value instead.`)
-        assert_equals(usedValue, expectedValue, `${testString} and ${expectedString} serialize to the same thing in ${stage} values.`);
+        if (approx) {
+            let extractValue = function(value) {
+                if (value.startsWith("calc(")) {
+                    value = value.slice("calc(".length, -1);
+                }
+                return parseFloat(value);
+            };
+            let parsedUsed = extractValue(usedValue);
+            let parsedExpected = extractValue(expectedValue);
+            assert_approx_equals(parsedUsed, parsedExpected, approx, `${testString} and ${expectedString} ${approx} serialize to the same thing in ${stage} values.`);
+        } else {
+            assert_equals(usedValue, expectedValue, `${testString} and ${expectedString} serialize to the same thing in ${stage} values.`);
+        }
     }, msg);
 }
 
@@ -152,7 +159,7 @@ function test_nan(testString) {
 }
 
 
-function _test_math({stage, testEl, testString, expectedString, type, approx, msg, msgExtra, prop, prefix, suffix, extraStyle}={}) {
+function _test_math({stage, testEl, testString, expectedString, type, approx, msg, msgExtra, prop, extraStyle}={}) {
     // Find the test element
     if(!testEl) testEl = document.getElementById('target');
     if(testEl == null) throw "Couldn't find #target element to run tests on.";
@@ -167,14 +174,6 @@ function _test_math({stage, testEl, testString, expectedString, type, approx, ms
     }
     let t = testString;
     let e = expectedString;
-    if(prefix) {
-        t = prefix + t;
-        e = prefix + e;
-    }
-    if(suffix) {
-        t += suffix;
-        e += suffix;
-    }
     test(()=>{
         testEl.style[prop] = '';
         const defaultValue = getComputedStyle(testEl)[prop];
@@ -186,15 +185,12 @@ function _test_math({stage, testEl, testString, expectedString, type, approx, ms
         const expectedValue = getComputedStyle(testEl)[prop];
         assert_not_equals(expectedValue, defaultValue, `${expectedString} isn't valid in '${prop}'; got the default value instead.`)
         if (approx) {
-            let extractValues = function(value) {
-                if (type == "number" || type == "angle") {
-                    return value.split('(')[1].split(')')[0].split(',').map(parseFloat);
-                }
-                return [parseFloat(value)];
+            let extractValue = function(value) {
+                return parseFloat(value);
             };
-            let parsedUsed = extractValues(usedValue);
-            let parsedExpected = extractValues(expectedValue);
-            assert_array_approx_equals(parsedUsed, parsedExpected, approx, `${testString} and ${expectedString} ${approx} serialize to the same thing in ${stage} values.`);
+            let parsedUsed = extractValue(usedValue);
+            let parsedExpected = extractValue(expectedValue);
+            assert_approx_equals(parsedUsed, parsedExpected, approx, `${testString} and ${expectedString} ${approx} serialize to the same thing in ${stage} values.`);
         } else {
             assert_equals(usedValue, expectedValue, `${testString} and ${expectedString} serialize to the same thing in ${stage} values.`);
         }

@@ -42,6 +42,8 @@ html::view-transition-new(target) {
 </div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 async function runTest() {
   let transition = document.startViewTransition(async () => {
     document.getElementById("target").remove();

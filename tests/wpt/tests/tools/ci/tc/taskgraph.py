@@ -67,6 +67,10 @@ def resolve_chunks(task_data):
         return [task_data]
     rv = []
     total_chunks = task_data["chunks"]
+    if "chunks-override" in task_data:
+        override = task_data["chunks-override"].get(task_data["vars"]["test-type"])
+        if override is not None:
+            total_chunks = override
     for i in range(1, total_chunks + 1):
         chunk_data = deepcopy(task_data)
         chunk_data["chunks"] = {"id": i,

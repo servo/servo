@@ -8,13 +8,15 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 
 <body>
 <script>
 promise_test(async(t) => {
   const actions = new test_driver.Actions();
   const fencedframe = await attachFencedFrameContext(
-      {generator_api: 'fledge', automatic_beacon: true});
+      {generator_api: 'fledge', automatic_beacon: true,
+       origin: get_host_info().HTTPS_REMOTE_ORIGIN});
   const new_url = new URL("resources/dummy.html", location.href);
   const beacon_data = "This is the beacon data!";
 
@@ -37,8 +39,8 @@ promise_test(async(t) => {
                .pointerDown()
                .pointerUp()
                .send();
-  const received_beacon_data_1 = await nextAutomaticBeacon(beacon_data);
-  assert_equals(received_beacon_data_1, beacon_data);
+  const beacon_initiator_origin = await nextAutomaticBeacon(beacon_data);
+  assert_equals(beacon_initiator_origin, get_host_info().HTTPS_ORIGIN);
 
   // The second click should not have any associated automatic beacon info, so
   // no beacon should be sent.

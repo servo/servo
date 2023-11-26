@@ -47,6 +47,8 @@ test_math_used('abs(10px + 10%)', '20px', {type:'length'});
 test_math_used('calc(10px + abs(10%))', '20px', {type:'length'});
 test_math_used('abs(-10px)', '10px', {type:'length'});
 test_math_used('abs(-10%)', '10px', {type:'length'});
+// (20px + 1px) * (sign(20px - 10px - 10px) + 1)
+test_math_used('calc((1em + 1px) * (sign(1em - 10px - 10%) + 1))', '21px', {type:'length'});
 
 // Test sign for zero
 test_zero('calc(sign(-0))', {is_negative: true});

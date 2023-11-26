@@ -15,7 +15,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
 
-NDK_VERSION = "r23c"
+NDK_VERSION = "r25c"
 CMDLINE_TOOLS_VERSION_STRING = "11.0"
 CMDLINE_TOOLS_VERSION = "9644228"
 

@@ -31,7 +31,7 @@ class Product:
         self.env_options = getattr(module, data["env_options"])()
         self.get_env_extras = getattr(module, data["env_extras"])
         self.run_info_extras = (getattr(module, data["run_info_extras"])
-                                if "run_info_extras" in data else lambda **kwargs:{})
+                                if "run_info_extras" in data else lambda product, **kwargs:{})
         self.get_timeout_multiplier = getattr(module, data["timeout_multiplier"])
 
         self.executor_classes = {}

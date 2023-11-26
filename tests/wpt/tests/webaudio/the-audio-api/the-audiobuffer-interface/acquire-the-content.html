@@ -68,7 +68,7 @@ function allSamplesAtOne(audiobuffer, location) {
   for (var i = 0; i < buf.length; i++) {
     // The convolver can introduce a slight numerical error.
     if (Math.abs(buf[i] - 1.0) > 0.0001) {
-      assert_true(false, `Invalid value at index ${i}, expecte close to 1.0, found ${buf[i]} when ${location}`)
+      assert_true(false, `Invalid value at index ${i}, expected close to 1.0, found ${buf[i]} when ${location}`)
       return Promise.reject();
     }
   }
