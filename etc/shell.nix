@@ -7,7 +7,9 @@ let
     pinnedNixpkgs = import (builtins.fetchTarball {
         url = "https://github.com/NixOS/nixpkgs/archive/${pinnedSha}.tar.gz";
     }) {};
+    buildToolsVersion = "33.0.2";
     androidComposition = androidenv.composeAndroidPackages {
+      buildToolsVersions = [ buildToolsVersion ];
       includeEmulator = true;
       platformVersions = [ "30" ];
       includeSources = false;
@@ -57,7 +59,7 @@ clangStdenv.mkDerivation rec {
     pinnedNixpkgs.gnumake
 
     # android build
-    openjdk8_headless
+    openjdk17_headless
 
     # android, make this conditional?
     androidSdk
@@ -79,6 +81,8 @@ clangStdenv.mkDerivation rec {
 
   # Enable colored cargo and rustc output
   TERMINFO = "${ncurses.out}/share/terminfo";
+
+  GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${ANDROID_SDK_ROOT}/build-tools/${buildToolsVersion}/aapt2";
 
   # Provide libraries that aren’t linked against but somehow required
   LD_LIBRARY_PATH = lib.makeLibraryPath [
