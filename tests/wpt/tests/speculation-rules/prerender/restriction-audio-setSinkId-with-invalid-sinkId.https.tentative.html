@@ -2,6 +2,8 @@
 <title>
 Access to the setSinkId of the Audio API with an invalid value is deferred
 </title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -26,7 +28,7 @@ promise_test(async t => {
     });
   });
 
-  const url = `resources/audio-setSinkId.https.html?sinkId=invalid&uid=${uid}`;
+  const url = `resources/audio-setSinkId.https.html?sinkId=invalid&uid=${uid}&target_hint=${getTargetHint()}`;
   window.open(url, '_blank', 'noopener');
 
   const result = await gotMessage;

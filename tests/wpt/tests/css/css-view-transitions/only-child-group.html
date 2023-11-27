@@ -50,6 +50,7 @@ html:only-child {
 
 <script>
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     let transition = document.startViewTransition();
     transition.ready.then(() => {
@@ -64,6 +65,7 @@ promise_test(() => {
 }, ":only-child should match because ::view-transition-group is generated for root element only");
 
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     target.style.viewTransitionName = "target";
     let transition = document.startViewTransition();
@@ -79,6 +81,7 @@ promise_test(() => {
 }, ":only-child should not match because ::view-transition-group is generated for multiple elements");
 
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     document.documentElement.style.viewTransitionName = "none";
     target.style.viewTransitionName = "target";
@@ -95,6 +98,7 @@ promise_test(() => {
 }, ":only-child should match because ::view-transition-group is generated for sub element only");
 
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     document.documentElement.style.viewTransitionName = "none";
     target.style.viewTransitionName = "target";

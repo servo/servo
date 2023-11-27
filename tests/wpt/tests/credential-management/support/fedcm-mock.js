@@ -1,4 +1,4 @@
-import { RequestTokenStatus, LogoutRpsStatus, RevokeStatus, FederatedAuthRequest, FederatedAuthRequestReceiver } from '/gen/third_party/blink/public/mojom/webid/federated_auth_request.mojom.m.js';
+import { RequestTokenStatus, LogoutRpsStatus, DisconnectStatus, FederatedAuthRequest, FederatedAuthRequestReceiver } from '/gen/third_party/blink/public/mojom/webid/federated_auth_request.mojom.m.js';
 
 function toMojoTokenStatus(status) {
   return RequestTokenStatus["k" + status];
@@ -17,7 +17,7 @@ export class MockFederatedAuthRequest {
     this.selected_identity_provider_config_url_ = null;
     this.status_ = RequestTokenStatus.kError;
     this.logoutRpsStatus_ = LogoutRpsStatus.kError;
-    this.revokeStatus_ = RevokeStatus.kError;
+    this.disconnectStatus_ = DisconnectStatus.kError;
     this.returnPending_ = false;
     this.pendingPromiseResolve_ = null;
   }
@@ -53,13 +53,13 @@ export class MockFederatedAuthRequest {
     this.logoutRpsStatus_ = validated;
   }
 
-  // Causes the subsequent `FederatedCredential.revoke` to reject with this
+  // Causes the subsequent `FederatedCredential.disconnect` to reject with this
   // status.
-  revokeReturn(status) {
-    let validated = RevokeStatus[status];
+  disconnectReturn(status) {
+    let validated = DisconnectStatus[status];
     if (validated === undefined)
       throw new Error("Invalid status: " + status);
-    this.revokeStatus_ = validated;
+    this.disconnectStatus_ = validated;
   }
 
   // Implements
@@ -106,9 +106,9 @@ export class MockFederatedAuthRequest {
     });
   }
 
-  async revoke(provider, client_id, account_id) {
+  async disconnect(provider, client_id, account_id) {
     return Promise.resolve({
-      status: this.revokeStatus_
+      status: this.disconnectStatus_
     });
   }
 
@@ -135,7 +135,7 @@ export class MockFederatedAuthRequest {
     this.selected_identity_provider_config_url_ = null;
     this.status_ = RequestTokenStatus.kError;
     this.logoutRpsStatus_ = LogoutRpsStatus.kError;
-    this.revokeStatus_ = RevokeStatus.kError;
+    this.disconnectStatus_ = DisconnectStatus.kError;
     this.receiver_.$.close();
     this.interceptor_.stop();
 

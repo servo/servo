@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API disconnect() tests in iframes.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {alt_manifest_origin,
+        alt_request_options_with_mediation_required,
+        fedcm_test,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+async function createIframeAndWaitForMessage(test, iframeUrl, allow = false) {
+  const messageWatcher = new EventWatcher(test, window, "message");
+  let iframe = document.createElement("iframe");
+  iframe.src = iframeUrl;
+  if (allow) {
+    iframe.allow = "identity-credentials-get";
+  }
+  document.body.appendChild(iframe);
+  const message = await messageWatcher.wait_for("message");
+  return message.data;
+}
+
+fedcm_test(async t => {
+  const message = await createIframeAndWaitForMessage(t, 'support/fedcm/disconnect-iframe.html');
+  assert_equals(message.result, "Pass");
+}, 'Same-origin iframe does not need explicit identity-credentials-get');
+
+fedcm_test(async t => {
+  const message = await createIframeAndWaitForMessage(t,
+      'https://{{hosts[alt][]}}:{{ports[https][0]}}/credential-management/support/fedcm/disconnect-iframe.html?skip_get');
+  assert_equals(message.result, "Failed disconnect");
+  assert_equals(message.errorType, "NotAllowedError");
+}, 'Cross-origin iframe fails disconnect() without explicit identity-credentials-get');
+
+fedcm_test(async t => {
+  const message = await createIframeAndWaitForMessage(t,
+      'https://{{hosts[alt][]}}:{{ports[https][0]}}/credential-management/support/fedcm/disconnect-iframe.html',
+      /*allow=*/true);
+  assert_equals(message.result, "Pass");
+}, 'Cross-origin iframe can disconnect with explicit identity-credentials-get');
+</script>

@@ -239,8 +239,10 @@ class FakeSerialPort {
         this.writable_ = undefined;
         break;
       case SerialPortFlushMode.kTransmit:
-        this.reader_.cancel();
-        this.reader_ = undefined;
+        if (this.reader_) {
+          this.reader_.cancel();
+          this.reader_ = undefined;
+        }
         this.readable_ = undefined;
         break;
     }

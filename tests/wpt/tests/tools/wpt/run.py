@@ -395,17 +395,18 @@ class FirefoxAndroid(BrowserSetup):
                               device_serial=device_serial,
                               prompt=kwargs["prompt"])
 
-        if "ADB_PATH" not in os.environ:
-            adb_path = os.path.join(android.get_paths(None)["sdk"],
-                                    "platform-tools",
-                                    "adb")
-            os.environ["ADB_PATH"] = adb_path
-        adb_path = os.environ["ADB_PATH"]
+        if kwargs["adb_binary"] is None:
+            if "ADB_PATH" not in os.environ:
+                adb_path = os.path.join(android.get_paths(None)["sdk"],
+                                        "platform-tools",
+                                        "adb")
+                os.environ["ADB_PATH"] = adb_path
+            kwargs["adb_binary"] = os.environ["ADB_PATH"]
 
-        self._logcat = AndroidLogcat(adb_path, base_path=kwargs["logcat_dir"])
+        self._logcat = AndroidLogcat(kwargs["adb_binary"], base_path=kwargs["logcat_dir"])
 
         for device_serial in kwargs["device_serial"]:
-            device = mozdevice.ADBDeviceFactory(adb=adb_path,
+            device = mozdevice.ADBDeviceFactory(adb=kwargs["adb_binary"],
                                                 device=device_serial)
             self._logcat.start(device_serial)
             if self.browser.apk_path:

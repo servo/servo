@@ -193,7 +193,7 @@ def env_options():
             "supports_debugger": True}
 
 
-def run_info_extras(**kwargs):
+def run_info_extras(logger, **kwargs):
 
     def get_bool_pref_if_exists(pref):
         for key, value in kwargs.get('extra_prefs', []):

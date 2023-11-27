@@ -7,6 +7,8 @@ This file cannot be upstreamed to WPT until:
   expects that they are not loaded during prerendering.
 -->
 <title>Load a cross-origin document in a prerendered iframe</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -30,7 +32,7 @@ promise_test(async t => {
       once: true
     });
   });
-  const url = `resources/cross-origin-iframe.html?uid=${uid}`;
+  const url = `resources/cross-origin-iframe.html?uid=${uid}&target_hint=${getTargetHint()}`;
   window.open(url, '_blank', 'noopener');
 
   const result = await gotMessage;

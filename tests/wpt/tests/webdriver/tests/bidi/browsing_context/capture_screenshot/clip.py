@@ -1,7 +1,11 @@
 import pytest
-from tests.support.image import png_dimensions
+
+import webdriver.bidi.error as error
 from webdriver.bidi.modules.browsing_context import ElementOptions, BoxOptions
 from webdriver.bidi.modules.script import ContextTarget
+
+from tests.support.image import png_dimensions
+
 
 from . import (
     get_element_coordinates,
@@ -65,7 +69,7 @@ async def test_clip_element(bidi_session, top_context, inline, compare_png_bidi)
     assert comparison.equal()
 
 
-async def test_clip_viewport(bidi_session, top_context, inline, compare_png_bidi):
+async def test_clip_box(bidi_session, top_context, inline, compare_png_bidi):
     url = inline("<input>")
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=url, wait="complete"
@@ -150,9 +154,7 @@ async def test_clip_viewport(bidi_session, top_context, inline, compare_png_bidi
     assert comparison.equal()
 
 
-async def test_clip_viewport_scroll_to(
-    bidi_session, top_context, inline, compare_png_bidi
-):
+async def test_clip_box_scroll_to(bidi_session, top_context, inline, compare_png_bidi):
     element_styles = "background-color: black; width: 50px; height:50px;"
 
     # Render an element inside of viewport for the reference.
@@ -208,7 +210,7 @@ async def test_clip_viewport_scroll_to(
     assert comparison.equal()
 
 
-async def test_clip_viewport_partially_visible(
+async def test_clip_box_partially_visible(
     bidi_session, top_context, inline, compare_png_bidi
 ):
     viewport_dimensions = await get_viewport_dimensions(bidi_session, top_context)
@@ -259,3 +261,44 @@ async def test_clip_viewport_partially_visible(
 
     comparison = await compare_png_bidi(reference_data, new_data)
     assert comparison.equal()
+
+
+async def test_clip_box_outside_of_window_viewport(bidi_session, top_context):
+    viewport_dimensions = await get_viewport_dimensions(bidi_session, top_context)
+
+    with pytest.raises(error.UnableToCaptureScreenException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"],
+            clip=BoxOptions(
+                x=viewport_dimensions["width"],
+                y=viewport_dimensions["height"],
+                width=1,
+                height=1,
+            ),
+        )
+
+
+async def test_clip_element_outside_of_window_viewport(
+    bidi_session, top_context, inline
+):
+    viewport_dimensions = await get_viewport_dimensions(bidi_session, top_context)
+
+    element_styles = "background-color: black; width: 50px; height:50px;"
+    # Render element outside of viewport.
+    url = inline(
+        f"""<div style="{element_styles} margin-top: {viewport_dimensions["height"]}px"></div>"""
+    )
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=url, wait="complete"
+    )
+    element = await bidi_session.script.evaluate(
+        await_promise=False,
+        expression="document.querySelector('div')",
+        target=ContextTarget(top_context["context"]),
+    )
+
+    with pytest.raises(error.UnableToCaptureScreenException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"],
+            clip=ElementOptions(element=element),
+        )

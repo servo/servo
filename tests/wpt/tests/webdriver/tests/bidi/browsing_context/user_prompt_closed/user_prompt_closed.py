@@ -216,7 +216,7 @@ async def test_subscribe_to_one_context(
         context=new_context["context"]
     )
 
-    event = await wait_for_future_safe(s)
+    event = await wait_for_future_safe(on_prompt_closed)
 
     assert event == {
         "context": new_context["context"],

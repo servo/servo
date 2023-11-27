@@ -8,7 +8,7 @@
         watcher.wait_for('securitypolicyviolation').then(t.step_func_done(e => {
             assert_equals(e.blockedURI, "eval");
             assert_equals(e.lineNumber, 15);
-            assert_equals(e.columnNumber, 12);
+            assert_equals(e.columnNumber, 13);
         }));
 
         try {

@@ -9,9 +9,7 @@
 <div id="target"></div>
 <script>
 function test_angle_equals(value, expected) {
-  test_math_used(`rotate(${value})`, `rotate(${expected})`,
-	{prop:'transform', base:'none',
-     msg: `${value} should be used-value-equivalent to ${expected}`});
+  test_math_used(value, expected, {type: "angle"});
 }
 // Simple tests
 test_angle_equals('acos(1)', '0deg');

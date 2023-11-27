@@ -13,10 +13,6 @@
 <script>
 setup(() => assertSpeculationRulesIsSupported());
 
-const params = new URLSearchParams(window.location.search);
-const target_hint = params.get('target_hint');
-const rule_extras = {target_hint};
-
 promise_test(async t => {
   const uid = token();
   const bc = new PrerenderChannel('prerender-channel', uid);
@@ -32,6 +28,7 @@ promise_test(async t => {
   // Start prerendering a page that attempts to invoke the Screen Capture API.
   // This API is activated-gated so it's expected to fail:
   // https://wicg.github.io/nav-speculation/prerendering.html#implicitly-restricted
+  const rule_extras = {'target_hint': getTargetHint()};
   startPrerendering(
       `resources/screen-capture.https.html?uid=${uid}`, rule_extras);
   const result = await gotMessage;

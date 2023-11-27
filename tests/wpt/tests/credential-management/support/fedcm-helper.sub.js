@@ -213,7 +213,7 @@ export function fedcm_get_and_select_first_account(t, options) {
   return credentialPromise;
 }
 
-export function revoke_options(accountHint, manifest_filename) {
+export function disconnect_options(accountHint, manifest_filename) {
   if (manifest_filename === undefined) {
     manifest_filename = "manifest.py";
   }
@@ -226,7 +226,7 @@ credential-management/support/fedcm/${manifest_filename}`;
       };
 }
 
-export function alt_revoke_options(accountHint, manifest_filename) {
+export function alt_disconnect_options(accountHint, manifest_filename) {
   if (manifest_filename === undefined) {
     manifest_filename = "manifest.py";
   }

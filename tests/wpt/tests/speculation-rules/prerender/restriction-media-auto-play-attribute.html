@@ -5,6 +5,8 @@ that media resources are not loaded during prerendering, but it's possible the
 spec will allow loading and only disallow playback.
 -->
 <title>Access to the Autoplay of the Media is deferred</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -29,7 +31,7 @@ function RunTest(type, description) {
         once: true
       });
     });
-    const url = `resources/media-autoplay-attribute.html?type=${type}&uid=${uid}`;
+    const url = `resources/media-autoplay-attribute.html?type=${type}&uid=${uid}&target_hint=${getTargetHint()}`;
     window.open(url, '_blank', 'noopener');
 
     const result = await gotMessage;

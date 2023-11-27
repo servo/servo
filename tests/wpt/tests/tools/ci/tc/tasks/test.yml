@@ -112,6 +112,8 @@ components:
     privileged: true
     scopes:
       - "docker-worker:capability:privileged"
+    chunks-override:
+      testharness: 20
 
   tox-python3_7:
     env:

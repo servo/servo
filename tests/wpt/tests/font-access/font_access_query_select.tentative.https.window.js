@@ -1,8 +1,9 @@
-//META: script=/resources/testdriver.js
-//META: script=/resources/testdriver-vendor.js
-//META: script=resources/font-asserts.js
-//META: script=resources/font-data.js
-//META: script=resources/font-test-utils.js
+// META: script=/resources/testdriver.js
+// META: script=/resources/testdriver-vendor.js
+// META: script=resources/font-asserts.js
+// META: script=resources/font-data.js
+// META: script=resources/font-test-utils.js
+// META: timeout=long
 
 font_access_test(async t => {
   const testData = getTestData();
@@ -10,9 +11,7 @@ font_access_test(async t => {
       testData.size, 1, 'Need a least one test font data.');
   const testFont = testData.values().next().value;
 
-  const queryInput = {
-    postscriptNames: [testFont.postscriptName]
-  };
+  const queryInput = {postscriptNames: [testFont.postscriptName]};
   const fonts = await self.queryLocalFonts(queryInput);
 
   assert_equals(
@@ -21,9 +20,7 @@ font_access_test(async t => {
 }, 'queryLocalFonts(): valid postscript name in QueryOptions');
 
 font_access_test(async t => {
-  const queryInput = {
-    postscriptNames: ['invalid_postscript_name']
-  };
+  const queryInput = {postscriptNames: ['invalid_postscript_name']};
   const fonts = await self.queryLocalFonts(queryInput);
 
   assert_equals(
@@ -40,27 +37,23 @@ font_access_test(async t => {
 }, 'queryLocalFonts(): empty object for QueryOptions.postscriptNames');
 
 font_access_test(async t => {
-  const queryInput = {
-    invalidFieldName: []
-  };
+  const queryInput = {invalidFieldName: []};
   const fonts = await self.queryLocalFonts(queryInput);
 
   assert_greater_than_equal(
       fonts.length, 1,
       'All available fonts should be returned when an invalid field name for ' +
-      'QueryOptions is passed.');
+          'QueryOptions is passed.');
 }, 'queryLocalFonts(): invalid QueryOptions field');
 
 font_access_test(async t => {
-  const queryInput = {
-    postscriptNames: []
-  };
+  const queryInput = {postscriptNames: []};
   const fonts = await self.queryLocalFonts(queryInput);
 
   assert_equals(
       fonts.length, 0,
       'Fonts should not be selected when an empty list for ' +
-      'QueryOptions.postscriptNames is passed.');
+          'QueryOptions.postscriptNames is passed.');
 }, 'queryLocalFonts(): empty QueryOptions.postscriptNames list');
 
 font_access_test(async t => {
@@ -69,7 +62,7 @@ font_access_test(async t => {
   assert_greater_than_equal(
       fonts.length, 1,
       'All available fonts should be returned when undefined is passed for ' +
-      'input.');
+          'input.');
 }, 'queryLocalFonts(): undefined QueryOptions');
 
 const non_ascii_input = [
@@ -96,6 +89,6 @@ for (const test of non_ascii_input) {
     assert_equals(
         fonts.length, 0,
         'Fonts should not be selected for non-ASCII character input: ' +
-        JSON.stringify(fonts));
+            JSON.stringify(fonts));
   }, `queryLocalFonts(): non-ASCII character input: ${JSON.stringify(test)}`);
 }

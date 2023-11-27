@@ -7,6 +7,8 @@
 <iframe src="about:blank"></iframe>
 <script>
 promise_test(async () => {
+    await new Promise(r => window.addEventListener("load", r));
+
     const target = document.getElementById("target");
     target.style.transition = "margin-left 100ms";
 

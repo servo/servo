@@ -48,7 +48,8 @@ async function main() {
 // `prerendering` parameter.
 const params = new URLSearchParams(location.search);
 if (!params.has('prerendering')) {
-  loadInitiatorPage();
+  const rule_extras = {'target_hint': getTargetHint()};
+  loadInitiatorPage(rule_extras);
 } else {
   main();
 }

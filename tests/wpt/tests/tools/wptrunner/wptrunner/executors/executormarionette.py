@@ -1037,8 +1037,14 @@ class MarionetteRefTestExecutor(RefTestExecutor):
         self.implementation_kwargs = {}
         if reftest_internal:
             self.implementation_kwargs["screenshot"] = reftest_screenshot
-            self.implementation_kwargs["chrome_scope"] = (browser_version is not None and
-                                                          int(browser_version.split(".")[0]) < 82)
+            self.implementation_kwargs["chrome_scope"] = False
+            # Older versions of Gecko require switching to chrome scope to run refests
+            if browser_version is not None:
+                try:
+                    major_version = int(browser_version.split(".")[0])
+                    self.implementation_kwargs["chrome_scope"] = major_version < 82
+                except ValueError:
+                    pass
         self.close_after_done = close_after_done
         self.has_window = False
         self.original_pref_values = {}

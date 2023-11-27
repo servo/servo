@@ -7,9 +7,7 @@ from ..undefined import UNDEFINED, Undefined
 
 
 class ElementOptions(Dict[str, Any]):
-    def __init__(
-        self, element: Mapping[str, Any]
-    ):
+    def __init__(self, element: Mapping[str, Any]):
         self["type"] = "element"
         self["element"] = element
 
@@ -31,6 +29,14 @@ class OriginOptions(Enum):
     VIEWPORT = "viewport"
 
 
+class FormatOptions(Dict[str, Any]):
+    def __init__(self, type: str, quality: Optional[float] = None):
+        dict.__init__(self, type=type)
+
+        if quality is not None:
+            self["quality"] = quality
+
+
 class BrowsingContext(BidiModule):
     @command
     def activate(self, context: str) -> Mapping[str, Any]:
@@ -42,12 +48,14 @@ class BrowsingContext(BidiModule):
         context: str,
         clip: Optional[ClipOptions] = None,
         origin: Optional[OriginOptions] = None,
+        format: Optional[FormatOptions] = None,
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"context": context}
 
+        if format is not None:
+            params["format"] = format
         if clip is not None:
             params["clip"] = clip
-
         if origin is not None:
             params["origin"] = origin
 
@@ -203,3 +211,7 @@ class BrowsingContext(BidiModule):
             params["devicePixelRatio"] = device_pixel_ratio
 
         return params
+
+    @command
+    def traverse_history(self, context: str, delta: int) -> Mapping[str, Any]:
+        return {"context": context, "delta": delta}

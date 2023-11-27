@@ -4,14 +4,20 @@
 <link rel="author" href="mailto:masonf@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/cssom/#extensions-to-the-document-or-shadow-root-interface">
 <link rel="match" href="CSSStyleSheet-constructable-concat-ref.html">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
 
 <span>This should be green</span>
 <div id=host></div>
+<pre id=errors></pre>
 
 <script>
-test(function() {
+function assert_equals(val1,val2) {
+  if (val1 === val2) {
+    return;
+  }
+  const t = document.createTextNode(`FAIL! ${val1} should be equal to ${val2}\n`);
+  errors.appendChild(t);
+}
+window.onload = () => {
   const sheet = new CSSStyleSheet();
   sheet.replaceSync('span {background-color:green;}');
   assert_equals(document.adoptedStyleSheets.length,0);
@@ -24,5 +30,5 @@ test(function() {
   assert_equals(shadow.adoptedStyleSheets.length,0);
   shadow.adoptedStyleSheets = shadow.adoptedStyleSheets.concat([sheet]);
   assert_equals(shadow.adoptedStyleSheets.length,1);
-}, "adoptedStyleSheets should allow .concat on empty starting values");
+};
 </script>
