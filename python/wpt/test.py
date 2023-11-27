@@ -647,7 +647,7 @@ def setUpModule():
     def setup_mock_repo(repo_name, local_repo):
         subprocess.check_output(
             ["cp", "-R", "-p", os.path.join(TESTS_DIR, repo_name), local_repo.path])
-        local_repo.run("init", "-b", "master")
+        local_repo.run("init", "-b", "main")
         local_repo.run("add", ".")
         local_repo.run("commit", "-a", "-m", "Initial commit")
 
