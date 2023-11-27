@@ -542,6 +542,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 ShutdownState::NotShuttingDown,
             ) => {
                 self.remove_browser(top_level_browsing_context_id);
+
+                let painting_order = self.browsers.painting_order().map(|(&id, _)| id).collect();
+                let msg = ConstellationMsg::BrowserPaintingOrder(painting_order);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({:?}).", e);
+                }
             },
 
             (
@@ -1011,7 +1017,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         let dppx = self.page_zoom * self.hidpi_factor();
         let viewport_size = self.embedder_coordinates.get_viewport().size.to_f32() / dppx;
-        let viewport_size = LayoutSize::from_untyped(viewport_size.to_untyped());
         for (_, browser) in self.browsers.painting_order() {
             if let Some(pipeline_id) = browser.pipeline_id {
                 let rect = browser.rect / dppx;
@@ -1032,6 +1037,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // NB: We are always passing 0 as the epoch here, but this doesn't seem to
         // be an issue. WebRender will still update the scene and generate a new
         // frame even though the epoch hasn't changed.
+        let viewport_size = LayoutSize::from_untyped(viewport_size.to_untyped());
         transaction.set_display_list(
             WebRenderEpoch(0),
             None,
