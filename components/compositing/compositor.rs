@@ -542,12 +542,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 ShutdownState::NotShuttingDown,
             ) => {
                 self.remove_browser(top_level_browsing_context_id);
-
-                let painting_order = self.browsers.painting_order().map(|(&id, _)| id).collect();
-                let msg = ConstellationMsg::BrowserPaintingOrder(painting_order);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending event to constellation failed ({:?}).", e);
-                }
             },
 
             (

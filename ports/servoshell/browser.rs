@@ -39,9 +39,6 @@ pub struct BrowserManager<Window: WindowPortsMethods + ?Sized> {
     /// and we exit if it ever becomes empty.
     browsers: HashMap<BrowserId, Browser>,
 
-    /// The order in which the browsers were created.
-    creation_order: Vec<BrowserId>,
-
     /// The order to paint the browsers in.
     /// Modified by EmbedderMsg::BrowserPaintingOrder.
     painting_order: Vec<BrowserId>,
@@ -73,7 +70,6 @@ where
             current_url: None,
             current_url_string: None,
             browsers: HashMap::default(),
-            creation_order: vec![],
             painting_order: vec![],
             focused_browser_id: None,
             window,
@@ -443,14 +439,14 @@ where
                     let scale = self.window.hidpi_factor().get();
                     let toolbar = self.window.toolbar_height().get();
 
-                    // Adjust for our toolbar height.
-                    // TODO adjust for egui window decorations if we end up using those
+                    // Adjust for our toolbar height, and egui window decorations.
                     let mut rect = self.window.get_coordinates().get_viewport().to_f32();
-                    rect.origin.y += toolbar * scale;
-                    rect.size.height -= toolbar * scale;
+                    rect.origin.x += 6.0 * scale;
+                    rect.origin.y += (toolbar + 35.0) * scale;
+                    rect.size.width -= 6.0 * scale + 6.0 * scale;
+                    rect.size.height -= (toolbar + 35.0) * scale + 6.0 * scale;
 
                     self.browsers.insert(new_browser_id, Browser { rect });
-                    self.creation_order.push(new_browser_id);
                     self.event_queue
                         .push(EmbedderEvent::MoveResizeBrowser(new_browser_id, rect));
                     self.event_queue
@@ -461,15 +457,7 @@ where
                 EmbedderMsg::BrowserClosed(top_level_browsing_context_id) => {
                     self.browsers
                         .retain(|&id, _| id != top_level_browsing_context_id);
-                    self.creation_order
-                        .retain(|&id| id != top_level_browsing_context_id);
-                    self.painting_order
-                        .retain(|&id| id != top_level_browsing_context_id);
-                    self.focused_browser_id = None;
-                    if let Some(&newest_browser_id) = self.creation_order.last() {
-                        self.event_queue
-                            .push(EmbedderEvent::FocusBrowser(newest_browser_id));
-                    } else {
+                    if self.browsers.is_empty() {
                         self.event_queue.push(EmbedderEvent::Quit);
                     }
                 },
@@ -481,28 +469,6 @@ where
                 },
                 EmbedderMsg::BrowserPaintingOrder(browser_ids) => {
                     self.painting_order = browser_ids;
-
-                    if let Some(&newest_browser_id) = self.creation_order.last() {
-                        let mut newest_browser_is_visible = false;
-
-                        // Hide any visible browsers other than the most recently created.
-                        // TODO stop doing this once we have full multiple browser support
-                        for &browser_id in self.painting_order.iter() {
-                            if browser_id != newest_browser_id {
-                                self.event_queue
-                                    .push(EmbedderEvent::HideBrowser(browser_id));
-                            } else {
-                                newest_browser_is_visible = true;
-                            }
-                        }
-
-                        // If the most recently created browser is not visible, show it.
-                        // TODO stop doing this once we have full multiple browser support
-                        if !newest_browser_is_visible {
-                            self.event_queue
-                                .push(EmbedderEvent::ShowBrowser(newest_browser_id));
-                        }
-                    }
                 },
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(browser_id, key_event);
