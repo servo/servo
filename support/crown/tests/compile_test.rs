@@ -15,7 +15,9 @@ static PROFILE_PATH: Lazy<PathBuf> = Lazy::new(|| {
     profile_path.into()
 });
 
-fn run_ui_tests(bless: bool) {
+#[test]
+fn compile_test() {
+    let bless = env::var("BLESS").map_or(false, |x| !x.trim().is_empty());
     let mut config = compiletest::Config {
         bless,
         edition: Some("2021".into()),
@@ -33,10 +35,4 @@ fn run_ui_tests(bless: bool) {
     config.link_deps(); // Populate config.target_rustcflags with dependencies on the path
 
     compiletest::run_tests(&config);
-}
-
-#[test]
-fn compile_test() {
-    let bless = env::var("BLESS").map_or(false, |x| !x.trim().is_empty());
-    run_ui_tests(bless);
 }
