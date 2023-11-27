@@ -1478,12 +1478,24 @@ where
                 self.handle_panic(top_level_browsing_context_id, error, None);
             },
             FromCompositorMsg::MoveResizeBrowser(top_level_browsing_context_id, rect) => {
+                if self.browsers.get(top_level_browsing_context_id).is_none() {
+                    return warn!(
+                        "{}: MoveResizeBrowser on unknown top-level browsing context",
+                        top_level_browsing_context_id
+                    );
+                }
                 self.compositor_proxy.send(CompositorMsg::MoveResizeBrowser(
                     top_level_browsing_context_id,
                     rect,
                 ));
             },
             FromCompositorMsg::ShowBrowser(top_level_browsing_context_id) => {
+                if self.browsers.get(top_level_browsing_context_id).is_none() {
+                    return warn!(
+                        "{}: ShowBrowser on unknown top-level browsing context",
+                        top_level_browsing_context_id
+                    );
+                }
                 self.compositor_proxy
                     .send(CompositorMsg::ShowBrowser(top_level_browsing_context_id));
                 self.browsers
@@ -1495,6 +1507,12 @@ where
                 );
             },
             FromCompositorMsg::HideBrowser(top_level_browsing_context_id) => {
+                if self.browsers.get(top_level_browsing_context_id).is_none() {
+                    return warn!(
+                        "{}: HideBrowser on unknown top-level browsing context",
+                        top_level_browsing_context_id
+                    );
+                }
                 self.compositor_proxy
                     .send(CompositorMsg::HideBrowser(top_level_browsing_context_id));
                 self.browsers
@@ -1506,6 +1524,12 @@ where
                 );
             },
             FromCompositorMsg::RaiseBrowserToTop(top_level_browsing_context_id) => {
+                if self.browsers.get(top_level_browsing_context_id).is_none() {
+                    return warn!(
+                        "{}: RaiseBrowserToTop on unknown top-level browsing context",
+                        top_level_browsing_context_id
+                    );
+                }
                 self.compositor_proxy.send(CompositorMsg::RaiseBrowserToTop(
                     top_level_browsing_context_id,
                 ));
@@ -1518,6 +1542,12 @@ where
                 );
             },
             FromCompositorMsg::FocusBrowser(top_level_browsing_context_id) => {
+                if self.browsers.get(top_level_browsing_context_id).is_none() {
+                    return warn!(
+                        "{}: FocusBrowser on unknown top-level browsing context",
+                        top_level_browsing_context_id
+                    );
+                }
                 self.browsers.focus(top_level_browsing_context_id);
                 self.embedder_proxy.send((
                     Some(top_level_browsing_context_id),
