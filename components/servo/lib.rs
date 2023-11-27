@@ -654,10 +654,8 @@ where
             },
 
             EmbedderEvent::MoveResizeBrowser(top_level_browsing_context_id, rect) => {
-                forward_to_constellation!(
-                    self,
-                    MoveResizeBrowser(top_level_browsing_context_id, rect)
-                )
+                self.compositor
+                    .move_resize_browser(top_level_browsing_context_id, rect);
             },
             EmbedderEvent::ShowBrowser(top_level_browsing_context_id) => {
                 forward_to_constellation!(self, ShowBrowser(top_level_browsing_context_id))

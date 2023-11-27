@@ -547,32 +547,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 CompositorMsg::MoveResizeBrowser(top_level_browsing_context_id, rect),
                 ShutdownState::NotShuttingDown,
             ) => {
-                let dppx = self.page_zoom * self.hidpi_factor();
-                if let Some(browser) = self.browsers.get_mut(top_level_browsing_context_id) {
-                    let initial_viewport = rect.size.to_f32() / dppx;
-                    let data = WindowSizeData {
-                        device_pixel_ratio: dppx,
-                        initial_viewport,
-                    };
-                    if rect.size != browser.rect.size {
-                        let size_type = WindowSizeType::Resize; // FIXME always this value in practice
-                        let msg = ConstellationMsg::WindowSize(
-                            top_level_browsing_context_id,
-                            data,
-                            size_type,
-                        );
-                        if let Err(e) = self.constellation_chan.send(msg) {
-                            warn!("Sending window resize to constellation failed ({:?}).", e);
-                        }
-                    }
-                    browser.rect = rect;
-                    self.update_root_pipeline();
-                } else {
-                    warn!(
-                        "{}: MoveResizeBrowser on unknown top-level browsing context",
-                        top_level_browsing_context_id
-                    );
-                }
+                self.move_resize_browser(top_level_browsing_context_id, rect);
             },
 
             (
@@ -1111,6 +1086,36 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         self.frame_tree_id.next();
+    }
+
+    pub fn move_resize_browser(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        rect: DeviceRect,
+    ) {
+        let dppx = self.page_zoom * self.hidpi_factor();
+        if let Some(browser) = self.browsers.get_mut(top_level_browsing_context_id) {
+            let initial_viewport = rect.size.to_f32() / dppx;
+            let data = WindowSizeData {
+                device_pixel_ratio: dppx,
+                initial_viewport,
+            };
+            if rect.size != browser.rect.size {
+                let size_type = WindowSizeType::Resize; // FIXME always this value in practice
+                let msg =
+                    ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending window resize to constellation failed ({:?}).", e);
+                }
+            }
+            browser.rect = rect;
+            self.update_root_pipeline();
+        } else {
+            warn!(
+                "{}: MoveResizeBrowser on unknown top-level browsing context",
+                top_level_browsing_context_id
+            );
+        }
     }
 
     fn reset_scroll_tree_for_unattached_pipelines(&mut self, frame_tree: &SendableFrameTree) {
