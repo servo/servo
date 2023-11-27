@@ -1971,6 +1971,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         if self.invalidate_last_render_target {
                             // Do not reuse the last render target as the new current render target.
                             self.last_render_target = None;
+                            self.invalidate_last_render_target = false;
                         }
                         swap(&mut self.current_render_target, &mut self.last_render_target);
                         None
