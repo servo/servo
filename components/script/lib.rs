@@ -8,11 +8,9 @@
 #![deny(unsafe_code)]
 #![doc = "The script crate contains all matters DOM."]
 #![register_tool(crown)]
-
 // Issue a warning if `crown` cannot be found.
-#[warn(unknown_lints)]
-#[deny(crown_is_not_used)]
-// comment to keep tidy happy
+#![warn(unknown_lints)]
+#![deny(crown_is_not_used)]
 
 // These are used a lot so let's keep them for now
 #[macro_use]
