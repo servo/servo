@@ -12,6 +12,7 @@ use egui::{
     Sense, TopBottomPanel, Vec2, WidgetText,
 };
 use egui_glow::CallbackFn;
+use egui_winit::EventResponse;
 use euclid::{Length, Point2D, Rect, Scale, Size2D};
 use gleam::gl;
 use glow::NativeFramebuffer;
@@ -24,14 +25,16 @@ use servo::webrender_surfman::WebrenderSurfman;
 use crate::browser::BrowserManager;
 use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
+use crate::geometry::winit_position_to_euclid_point;
 use crate::parser::location_bar_input_to_url;
 use crate::window_trait::WindowPortsMethods;
 
 pub struct Minibrowser {
     pub context: EguiGlow,
     pub event_queue: RefCell<Vec<MinibrowserEvent>>,
-    pub toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
+    pub toolbar_height: Length<f32, DeviceIndependentPixel>,
     last_update: Instant,
+    last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
     location: RefCell<String>,
 
     /// Whether the location has been edited by the user without clicking Go.
@@ -64,9 +67,38 @@ impl Minibrowser {
             event_queue: RefCell::new(vec![]),
             toolbar_height: Default::default(),
             last_update: Instant::now(),
+            last_mouse_position: None,
             location: RefCell::new(String::default()),
             location_dirty: false.into(),
         }
+    }
+
+    /// Preprocess the given [winit::event::WindowEvent], returning unconsumed for mouse events in
+    /// the Servo browser rect.
+    pub fn on_event(&mut self, event: &winit::event::WindowEvent<'_>) -> EventResponse {
+        let mut result = self.context.on_event(event);
+        result.consumed &= match event {
+            winit::event::WindowEvent::CursorMoved { position, .. } => {
+                let scale = Scale::<_, DeviceIndependentPixel, _>::new(
+                    self.context.egui_ctx.pixels_per_point(),
+                );
+                self.last_mouse_position =
+                    Some(winit_position_to_euclid_point(*position).to_f32() / scale);
+                self.last_mouse_position
+                    .map_or(false, |p| self.is_in_browser_rect(p))
+            },
+            winit::event::WindowEvent::MouseWheel { .. } |
+            winit::event::WindowEvent::MouseInput { .. } => self
+                .last_mouse_position
+                .map_or(false, |p| self.is_in_browser_rect(p)),
+            _ => true,
+        };
+        result
+    }
+
+    /// Return true iff the given position is in the Servo browser rect.
+    fn is_in_browser_rect(&self, position: Point2D<f32, DeviceIndependentPixel>) -> bool {
+        position.y < self.toolbar_height.get()
     }
 
     /// Update the minibrowser, but don’t paint.
@@ -90,6 +122,7 @@ impl Minibrowser {
             last_update,
             location,
             location_dirty,
+            ..
         } = self;
         let _duration = context.run(window, |ctx| {
             let InnerResponse { inner: height, .. } =
@@ -123,7 +156,7 @@ impl Minibrowser {
                     );
                     ui.cursor().min.y
                 });
-            toolbar_height.set(Length::new(height));
+            *toolbar_height = Length::new(height);
             CentralPanel::default().show(ctx, |_| {});
 
             // Add an egui window for each top-level browsing context.

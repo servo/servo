@@ -30,7 +30,7 @@ use canvas::canvas_paint_thread::{self, CanvasPaintThread};
 use canvas::WebGLComm;
 use canvas_traits::webgl::WebGLThreads;
 use compositing::windowing::{EmbedderEvent, EmbedderMethods, WindowMethods};
-use compositing::{IOCompositor, InitialCompositorState, ShutdownState};
+use compositing::{CompositeTarget, IOCompositor, InitialCompositorState, ShutdownState};
 use compositing_traits::{
     CanvasToCompositorMsg, CompositingReason, CompositorMsg, CompositorProxy, CompositorReceiver,
     ConstellationMsg, FontToCompositorMsg, ForwardedToCompositorMsg,
@@ -238,6 +238,7 @@ where
         mut embedder: Box<dyn EmbedderMethods>,
         window: Rc<Window>,
         user_agent: Option<String>,
+        composite_target: CompositeTarget,
     ) -> InitializedServo<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
@@ -461,6 +462,12 @@ where
             }
         }
 
+        let composite_target = if let Some(path) = opts.output_file.clone() {
+            CompositeTarget::PngFile(path.into())
+        } else {
+            composite_target
+        };
+
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
         let compositor = IOCompositor::create(
@@ -478,7 +485,7 @@ where
                 webrender_gl,
                 webxr_main_thread,
             },
-            opts.output_file.clone(),
+            composite_target,
             opts.is_running_problem_test,
             opts.exit_after_load,
             opts.debug.convert_mouse_to_touch,

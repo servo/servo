@@ -13,6 +13,7 @@ use std::{env, fs};
 use gleam::gl;
 use log::{info, trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
+use servo::compositing::CompositeTarget;
 use servo::config::opts;
 use servo::servo_config::pref;
 use servo::Servo;
@@ -119,7 +120,7 @@ impl App {
                 None,
                 "init",
             );
-            window.set_toolbar_height(minibrowser.toolbar_height.get());
+            window.set_toolbar_height(minibrowser.toolbar_height);
         }
 
         let t_start = Instant::now();
@@ -174,7 +175,17 @@ impl App {
                     // Implements embedder methods, used by libservo and constellation.
                     let embedder = Box::new(EmbedderCallbacks::new(ev_waker.clone(), xr_discovery));
 
-                    let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
+                    let composite_target = if app.minibrowser.is_some() {
+                        CompositeTarget::Fbo
+                    } else {
+                        CompositeTarget::Window
+                    };
+                    let servo_data = Servo::new(
+                        embedder,
+                        window.clone(),
+                        user_agent.clone(),
+                        composite_target,
+                    );
                     let mut servo = servo_data.servo;
 
                     servo.handle_events(vec![EmbedderEvent::NewBrowser(
@@ -240,7 +251,7 @@ impl App {
                         window.winit_window().unwrap().request_redraw();
                     },
                     winit::event::Event::WindowEvent { ref event, .. } => {
-                        let response = minibrowser.context.on_event(&event);
+                        let response = minibrowser.on_event(&event);
                         if response.repaint {
                             // Request a winit redraw event, so we can recomposite, update and paint
                             // the minibrowser, and present the new frame.
@@ -280,7 +291,7 @@ impl App {
                     minibrowser.update(
                         window.winit_window().unwrap(),
                         browser,
-                        None,
+                        app.servo.as_ref().unwrap().output_framebuffer_id(),
                         "update_location_in_toolbar",
                     );
                 }
@@ -318,7 +329,7 @@ impl App {
                         minibrowser.update(
                             window.winit_window().unwrap(),
                             &mut app.browser.borrow_mut(),
-                            None,
+                            app.servo.as_ref().unwrap().output_framebuffer_id(),
                             "PumpResult::Resize",
                         );
                         minibrowser.paint(window.winit_window().unwrap());
