@@ -158,14 +158,18 @@ impl FlexContainer {
         // Absolutely-positioned children of the flex container may be interleaved
         // with flex items. We need to preserve their relative order for correct painting order,
         // which is the order of `Fragment`s in this function’s return value.
-        let original_order_with_absolutely_positioned = self
+        //
+        // Example:
+        // absolutely_positioned_items_with_original_order = [Some(item), Some(item), None, Some(item), None]
+        // flex_items                                      =                         [item,             item]
+        let absolutely_positioned_items_with_original_order = self
             .children
             .iter()
             .map(|arcrefcell| {
                 let borrowed = arcrefcell.borrow_mut();
                 match &*borrowed {
                     FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(absolutely_positioned) => {
-                        Ok(absolutely_positioned.clone())
+                        Some(absolutely_positioned.clone())
                     },
                     FlexLevelBox::FlexItem(_) => {
                         let item = AtomicRefMut::map(borrowed, |child| match child {
@@ -173,7 +177,7 @@ impl FlexContainer {
                             _ => unreachable!(),
                         });
                         flex_items.push(item);
-                        Err(())
+                        None
                     },
                 }
             })
@@ -186,11 +190,20 @@ impl FlexContainer {
             flex_items.iter_mut().map(|child| &mut **child),
         );
 
-        let fragments = original_order_with_absolutely_positioned
+        let fragments = absolutely_positioned_items_with_original_order
             .into_iter()
             .map(|child_as_abspos| match child_as_abspos {
-                Err(()) => {
-                    // The `()` here is a place-holder for a flex item.
+                Some(absolutely_positioned) => {
+                    let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
+                        absolutely_positioned,
+                        LogicalVec2::zero(),
+                        containing_block,
+                    );
+                    let hoisted_fragment = hoisted_box.fragment.clone();
+                    positioning_context.push(hoisted_box);
+                    Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
+                },
+                None => {
                     // The `flex_item_fragments` iterator yields one fragment
                     // per flex item, in the original order.
                     let (fragment, mut child_positioning_context) =
@@ -202,16 +215,6 @@ impl FlexContainer {
                     );
                     positioning_context.append(child_positioning_context);
                     fragment
-                },
-                Ok(absolutely_positioned) => {
-                    let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
-                        absolutely_positioned,
-                        LogicalVec2::zero(),
-                        containing_block,
-                    );
-                    let hoisted_fragment = hoisted_box.fragment.clone();
-                    positioning_context.push(hoisted_box);
-                    Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
                 },
             })
             .collect::<Vec<_>>();
