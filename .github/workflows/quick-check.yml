@@ -5,7 +5,7 @@ name: Quick check
 on:
   push:
     branches-ignore:
-      ["master", "auto", "try", "try-*", "dependabot/**"]
+      ["main", "auto", "try", "try-*", "dependabot/**"]
 
 jobs:
   build-linux:
