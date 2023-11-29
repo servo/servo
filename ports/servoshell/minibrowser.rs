@@ -10,6 +10,7 @@ use egui::{Key, Modifiers, TopBottomPanel};
 use euclid::Length;
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
+use servo::msg::constellation_msg::TraversalDirection;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::webrender_surfman::WebrenderSurfman;
 
@@ -33,6 +34,8 @@ pub struct Minibrowser {
 pub enum MinibrowserEvent {
     /// Go button clicked.
     Go,
+    Back,
+    Forward,
 }
 
 impl Minibrowser {
@@ -87,7 +90,12 @@ impl Minibrowser {
                             event_queue.borrow_mut().push(MinibrowserEvent::Go);
                             location_dirty.set(false);
                         }
-
+                        if ui.button("back").clicked() {
+                            event_queue.borrow_mut().push(MinibrowserEvent::Back);
+                        }
+                        if ui.button("forward").clicked() {
+                            event_queue.borrow_mut().push(MinibrowserEvent::Forward);
+                        }
                         let location_field = ui.add_sized(
                             ui.available_size(),
                             egui::TextEdit::singleline(&mut *location.borrow_mut()),
@@ -136,6 +144,14 @@ impl Minibrowser {
                         warn!("failed to parse location");
                         break;
                     }
+                },
+                MinibrowserEvent::Back => {
+                    let browser_id = browser.browser_id().unwrap();
+                    app_event_queue.push(EmbedderEvent::Navigation(browser_id, TraversalDirection::Back(1)));
+                },
+                MinibrowserEvent::Forward => {
+                    let browser_id = browser.browser_id().unwrap();
+                    app_event_queue.push(EmbedderEvent::Navigation(browser_id, TraversalDirection::Forward(1)));
                 },
             }
         }
