@@ -103,8 +103,7 @@ directories = [
     "./tests/wpt/mozilla/tests/mozilla/referrer-policy",
     "./tests/wpt/mozilla/tests/webgl",
     "./python/tidy/tests",
-    "./python/_venv*",
-    "./python/_virtualenv*",
+    "./python/_v*",
     "./python/mach",
     # Generated and upstream code combined with our own. Could use cleanup
     "./target",

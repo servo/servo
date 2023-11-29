@@ -4,8 +4,9 @@
 
 import os
 import platform
-import sys
+import site
 import shutil
+import sys
 
 from subprocess import Popen
 from tempfile import TemporaryFile
@@ -81,11 +82,23 @@ CATEGORIES = {
 }
 
 
+# venv calls its scripts folder "bin" on non-Windows and "Scripts" on Windows.
 def _get_virtualenv_script_dir():
-    # Virtualenv calls its scripts folder "bin" on linux/OSX/MSYS64 but "Scripts" on Windows
     if os.name == "nt" and os.sep != "/":
         return "Scripts"
     return "bin"
+
+
+# venv names its lib folder something like "lib/python3.11/site-packages" on
+# non-Windows and "Lib\site-packages" on Window.
+def _get_virtualenv_lib_dir():
+    if os.name == "nt" and os.sep != "/":
+        return os.path.join("Lib", "site-packages")
+    return os.path.join(
+        "lib",
+        f"python{sys.version_info[0]}.{sys.version_info[1]}",
+        "site-packages"
+    )
 
 
 def _process_exec(args):
@@ -120,15 +133,22 @@ def _activate_virtualenv(topdir):
     virtualenv_path = os.path.join(topdir, "python", "_venv%d.%d" % (sys.version_info[0], sys.version_info[1]))
     python = sys.executable
 
-    if not in_venv():
-        venv_python_path = os.path.join(
-            virtualenv_path,
-            _get_virtualenv_script_dir(),
-            "python"
-        )
+    if os.environ.get("VIRUTAL_ENV") != virtualenv_path:
+        venv_script_path = os.path.join(virtualenv_path, _get_virtualenv_script_dir())
         if not os.path.exists(virtualenv_path):
             _process_exec([python, "-m", "venv", "--system-site-packages", virtualenv_path])
-        os.execv(venv_python_path, [venv_python_path] + sys.argv)
+
+        # This general approach is taken from virtualenv's `activate_this.py`.
+        os.environ["PATH"] = os.pathsep.join([venv_script_path, *os.environ.get("PATH", "").split(os.pathsep)])
+        os.environ["VIRTUAL_ENV"] = virtualenv_path
+
+        prev_length = len(sys.path)
+        lib_path = os.path.realpath(os.path.join(virtualenv_path, _get_virtualenv_lib_dir()))
+        site.addsitedir(lib_path)
+        sys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]
+
+        sys.real_prefix = sys.prefix
+        sys.prefix = virtualenv_path
 
     # TODO: Right now, we iteratively install all the requirements by invoking
     # `pip install` each time. If it were the case that there were conflicting
@@ -155,10 +175,6 @@ def _activate_virtualenv(topdir):
         _process_exec([python, "-m", "pip", "install", "-I", "-r", req_path])
 
         open(marker_path, 'w').close()
-
-
-def in_venv():
-    return sys.prefix != sys.base_prefix
 
 
 def _ensure_case_insensitive_if_windows():
