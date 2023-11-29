@@ -112,7 +112,7 @@ class Base:
         return True
 
     def install_crown(self, force: bool) -> bool:
-        # We need to override the rustc set in from cargo/config.toml because crown
+        # We need to override the rustc set in cargo/config.toml because crown
         # may not be installed yet.
         env = dict(os.environ)
         env["CARGO_BUILD_RUSTC"] = "rustc"
