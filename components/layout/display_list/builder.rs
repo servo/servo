@@ -2593,11 +2593,10 @@ impl BlockFlow {
         // order to properly calculate max offsets we need to compare our size and
         // position in our parent's coordinate system.
         let border_box_in_parent = self.stacking_relative_border_box(CoordinateSystem::Parent);
-        let margins = self.fragment.margin.to_physical(
-            self.base
-                .early_absolute_position_info
-                .relative_containing_block_mode,
-        );
+        let margins = self
+            .fragment
+            .margin
+            .to_physical(self.fragment.style.writing_mode);
 
         // Position:sticky elements are always restricted based on the size and position of
         // their containing block, which for sticky items is like relative and statically

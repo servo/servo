@@ -14,7 +14,8 @@ use style::Zero;
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::cell::ArcRefCell;
 use crate::geom::{
-    LogicalRect, LogicalSides, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
+    LengthOrAuto, LogicalRect, LogicalSides, PhysicalPoint, PhysicalRect, PhysicalSides,
+    PhysicalSize,
 };
 
 #[derive(Serialize)]
@@ -49,6 +50,11 @@ pub(crate) struct BoxFragment {
 
     /// Whether or not this box was overconstrained in the given dimension.
     overconstrained: PhysicalSize<bool>,
+
+    /// The resolved box insets if this box is `position: sticky`. These are calculated
+    /// during stacking context tree construction because they rely on the size of the
+    /// scroll container.
+    pub(crate) resolved_sticky_insets: Option<PhysicalSides<LengthOrAuto>>,
 }
 
 impl BoxFragment {
@@ -121,6 +127,7 @@ impl BoxFragment {
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
             overconstrained,
+            resolved_sticky_insets: None,
         }
     }
 
@@ -217,7 +224,7 @@ impl BoxFragment {
     pub(crate) fn calculate_resolved_insets_if_positioned(
         &self,
         containing_block: &PhysicalRect<CSSPixelLength>,
-    ) -> PhysicalSides<CSSPixelLength> {
+    ) -> PhysicalSides<LengthOrAuto> {
         let position = self.style.get_box().position;
         debug_assert_ne!(
             position,
@@ -229,6 +236,19 @@ impl BoxFragment {
         let content_rect = self
             .content_rect
             .to_physical(self.style.writing_mode, &containing_block);
+
+        if let Some(resolved_sticky_insets) = self.resolved_sticky_insets {
+            return resolved_sticky_insets;
+        }
+
+        let convert_to_length_or_auto = |sides: PhysicalSides<Length>| {
+            PhysicalSides::new(
+                LengthOrAuto::LengthPercentage(sides.top),
+                LengthOrAuto::LengthPercentage(sides.right),
+                LengthOrAuto::LengthPercentage(sides.bottom),
+                LengthOrAuto::LengthPercentage(sides.left),
+            )
+        };
 
         // "A resolved value special case property like top defined in another
         // specification If the property applies to a positioned element and the
@@ -255,14 +275,12 @@ impl BoxFragment {
                 };
             let (left, right) = get_resolved_axis(&insets.left, &insets.right, cb_width);
             let (top, bottom) = get_resolved_axis(&insets.top, &insets.bottom, cb_height);
-            return PhysicalSides::new(top, right, bottom, left);
+            return convert_to_length_or_auto(PhysicalSides::new(top, right, bottom, left));
         }
 
-        // TODO(servo#30570) revert to debug_assert!() once underlying bug is fixed
-        #[cfg(debug_assertions)]
-        if !(position == ComputedPosition::Fixed || position == ComputedPosition::Absolute) {
-            log::warn!("debug assertion failed! Got unknown position.");
-        }
+        debug_assert!(
+            position == ComputedPosition::Fixed || position == ComputedPosition::Absolute
+        );
 
         let resolve = |value: &LengthPercentageOrAuto, container_length| {
             value
@@ -287,6 +305,6 @@ impl BoxFragment {
             (content_rect.origin.x, cb_width - content_rect.max_x())
         };
 
-        PhysicalSides::new(top, right, bottom, left)
+        convert_to_length_or_auto(PhysicalSides::new(top, right, bottom, left))
     }
 }

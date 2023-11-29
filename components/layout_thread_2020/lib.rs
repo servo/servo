@@ -1218,7 +1218,7 @@ impl LayoutThread {
             }
         }
 
-        if !reflow_goal.needs_display() {
+        if !reflow_goal.needs_display_list() {
             // Defer the paint step until the next ForDisplay.
             //
             // We need to tell the document about this so it doesn't
@@ -1280,8 +1280,10 @@ impl LayoutThread {
         self.paint_time_metrics
             .maybe_observe_paint_time(self, epoch, is_contentful);
 
-        self.webrender_api
-            .send_display_list(display_list.compositor_info, display_list.wr.finalize().1);
+        if reflow_goal.needs_display() {
+            self.webrender_api
+                .send_display_list(display_list.compositor_info, display_list.wr.finalize().1);
+        }
 
         self.update_iframe_sizes(iframe_sizes);
 

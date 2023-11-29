@@ -136,18 +136,18 @@ impl ReflowGoal {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::UpdateScrollNode(_) => true,
             ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
-                QueryMsg::NodesFromPointQuery(..) |
-                QueryMsg::TextIndexQuery(..) |
+                QueryMsg::ElementInnerTextQuery(_) |
                 QueryMsg::InnerWindowDimensionsQuery(_) |
-                QueryMsg::ElementInnerTextQuery(_) => true,
+                QueryMsg::NodesFromPointQuery(..) |
+                QueryMsg::ResolvedStyleQuery(..) |
+                QueryMsg::TextIndexQuery(..) => true,
+                QueryMsg::ClientRectQuery(_) |
                 QueryMsg::ContentBoxQuery(_) |
                 QueryMsg::ContentBoxesQuery(_) |
-                QueryMsg::ClientRectQuery(_) |
-                QueryMsg::ScrollingAreaQuery(_) |
                 QueryMsg::NodeScrollIdQuery(_) |
-                QueryMsg::ResolvedStyleQuery(..) |
-                QueryMsg::ResolvedFontStyleQuery(..) |
                 QueryMsg::OffsetParentQuery(_) |
+                QueryMsg::ResolvedFontStyleQuery(..) |
+                QueryMsg::ScrollingAreaQuery(_) |
                 QueryMsg::StyleQuery => false,
             },
         }
