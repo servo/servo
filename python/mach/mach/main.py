@@ -11,6 +11,9 @@ import argparse
 import codecs
 import errno
 import importlib
+from sys import version_info
+#if version_info.major == 3 and version_info.minor > 9 :
+#    import importlib.util
 import logging
 import os
 import sys
