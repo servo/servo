@@ -2785,9 +2785,7 @@ dependencies = [
 
 [[package]]
 name = "hyper_serde"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4193ebe2b9ecb7d04dd1a777c25f3294e10310fe5583e1006a3f47779d6c6a01"
+version = "0.13.2"
 dependencies = [
  "cookie 0.12.0",
  "headers",
@@ -2796,6 +2794,7 @@ dependencies = [
  "mime",
  "serde",
  "serde_bytes",
+ "serde_test",
  "time 0.1.45",
 ]
 
@@ -5101,6 +5100,15 @@ checksum = "3d1c7e3eac408d115102c4c24ad393e0821bb3a5df4d506a80f85f7a742a526b"
 dependencies = [
  "itoa",
  "ryu",
+ "serde",
+]
+
+[[package]]
+name = "serde_test"
+version = "1.0.176"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a2f49ace1498612d14f7e0b8245519584db8299541dfe31a06374a828d620ab"
+dependencies = [
  "serde",
 ]
 

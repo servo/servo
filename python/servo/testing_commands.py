@@ -209,6 +209,7 @@ class MachCommands(CommandBase):
             "servoshell",
             "background_hang_monitor",
             "gfx",
+            "hyper_serde",
             "layout_2013",
             "layout_2020",
             "msg",
