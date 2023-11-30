@@ -92,7 +92,11 @@ impl Window {
         // unstyled content is white and chrome often has a transparent background). See issue
         // #9996.
         let visible = opts.output_file.is_none() && !no_native_titlebar;
-        let fullscreen = opts.fullscreen;
+        let primary_monitor = events_loop
+            .as_winit()
+            .available_monitors()
+            .nth(0)
+            .expect("No monitor detected");
 
         let win_size: DeviceIntSize = (win_size.to_f32() * window_creation_scale_factor()).to_i32();
         let width = win_size.to_untyped().width;
@@ -102,7 +106,6 @@ impl Window {
             .with_title("Servo".to_string())
             .with_decorations(!no_native_titlebar)
             .with_transparent(no_native_titlebar)
-            .with_maximized(fullscreen)
             .with_inner_size(PhysicalSize::new(width as f64, height as f64))
             .with_visible(visible);
 
@@ -110,17 +113,15 @@ impl Window {
             .build(events_loop.as_winit())
             .expect("Failed to create window.");
 
+        if opts.fullscreen {
+            winit_window.set_decorations(false);
+            winit_window.set_inner_size(primary_monitor.size());
+        }
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         {
             let icon_bytes = include_bytes!("../../resources/servo_64.png");
             winit_window.set_window_icon(Some(load_icon(icon_bytes)));
         }
-
-        let primary_monitor = events_loop
-            .as_winit()
-            .available_monitors()
-            .nth(0)
-            .expect("No monitor detected");
 
         let screen_size = winit_size_to_euclid_size(primary_monitor.size());
         let inner_size = winit_size_to_euclid_size(winit_window.inner_size());
@@ -160,7 +161,6 @@ impl Window {
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),
         };
-        window.set_fullscreen(fullscreen);
         window
     }
 
