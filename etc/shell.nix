@@ -10,8 +10,10 @@ let
 
     # Native dependencies
     fontconfig freetype libunwind
+    glib
     xorg.libxcb
     xorg.libX11
+    zlib
 
     gst_all_1.gstreamer
     gst_all_1.gst-plugins-base
