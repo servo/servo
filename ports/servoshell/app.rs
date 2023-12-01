@@ -315,21 +315,24 @@ impl App {
                     match present {
                         Present::Immediate => {
                             // The window was resized.
-                            trace!("PumpResult::Resize");
+                            trace!("PumpResult::Present::Immediate");
 
                             // Resizes are unusual in that we need to repaint synchronously.
                             // TODO(servo#30049) can we replace this with the simpler Servo::recomposite?
                             app.servo.as_mut().unwrap().repaint_synchronously();
 
                             if let Some(mut minibrowser) = app.minibrowser() {
-                                minibrowser.update(window.winit_window().unwrap(), "PumpResult::Resize");
+                                minibrowser.update(
+                                    window.winit_window().unwrap(),
+                                    "PumpResult::Present::Immediate",
+                                );
                                 minibrowser.paint(window.winit_window().unwrap());
                             }
                             app.servo.as_mut().unwrap().present();
                         },
                         Present::Deferred => {
                             // The compositor has painted to this frame.
-                            trace!("PumpResult::ReadyToPresent");
+                            trace!("PumpResult::Present::Deferred");
 
                             // Request a winit redraw event, so we can paint the minibrowser and present.
                             // Otherwise, it's in headless mode and we present directly.
