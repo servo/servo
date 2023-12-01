@@ -50,6 +50,11 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     shutdown_requested: bool,
 }
 
+pub struct ServoEventResponse {
+    pub need_present: bool,
+    pub history_changed: bool,
+}
+
 impl<Window> Browser<Window>
 where
     Window: WindowPortsMethods + ?Sized,
@@ -281,7 +286,7 @@ where
     pub fn handle_servo_events(
         &mut self,
         events: Vec<(Option<BrowserId>, EmbedderMsg)>,
-    ) -> (bool, bool) {
+    ) -> ServoEventResponse {
         let mut need_present = false;
         let mut history_changed = false;
         for (browser_id, msg) in events {
@@ -543,7 +548,10 @@ where
             }
         }
 
-        (need_present, history_changed)
+        ServoEventResponse {
+            need_present,
+            history_changed,
+        }
     }
 }
 
