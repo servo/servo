@@ -375,6 +375,12 @@ struct InlineFormattingContextState<'a, 'b> {
     /// is encountered.
     have_deferred_soft_wrap_opportunity: bool,
 
+    /// Whether or not a soft wrap opportunity should be prevented before the next atomic
+    /// element encountered in the inline formatting context. See
+    /// `char_prevents_soft_wrap_opportunity_when_before_or_after_atomic` for more
+    /// details.
+    prevent_soft_wrap_opportunity_before_next_atomic: bool,
+
     /// The currently white-space setting of this line. This is stored on the
     /// [`InlineFormattingContextState`] because when a soft wrap opportunity is defined
     /// by the boundary between two characters, the white-space property of their nearest
@@ -1260,6 +1266,7 @@ impl InlineFormattingContext {
             white_space: containing_block.style.get_inherited_text().white_space,
             linebreaker: None,
             have_deferred_soft_wrap_opportunity: false,
+            prevent_soft_wrap_opportunity_before_next_atomic: false,
             root_nesting_level: InlineContainerState {
                 nested_block_size: line_height_from_style(layout_context, &containing_block.style),
                 has_content: false,
@@ -1541,7 +1548,11 @@ impl IndependentFormattingContext {
             },
         };
 
-        if ifc.white_space.allow_wrap() {
+        let soft_wrap_opportunity_prevented = mem::replace(
+            &mut ifc.prevent_soft_wrap_opportunity_before_next_atomic,
+            false,
+        );
+        if ifc.white_space.allow_wrap() && !soft_wrap_opportunity_prevented {
             ifc.process_soft_wrap_opportunity();
         }
 
@@ -1683,23 +1694,18 @@ impl TextRun {
             mem::replace(&mut ifc.have_deferred_soft_wrap_opportunity, false);
         let mut break_at_start = break_at_start || have_deferred_soft_wrap_opportunity;
 
-        // From https://www.w3.org/TR/css-text-3/#line-break-details:
-        //
-        // > For Web-compatibility there is a soft wrap opportunity before and after each
-        // > replaced element or other atomic inline, even when adjacent to a character that
-        // > would normally suppress them, including U+00A0 NO-BREAK SPACE. However, with
-        // > the exception of U+00A0 NO-BREAK SPACE, there must be no soft wrap opportunity
-        // > between atomic inlines and adjacent characters belonging to the Unicode GL, WJ,
-        // > or ZWJ line breaking classes.
         if have_deferred_soft_wrap_opportunity {
             if let Some(first_character) = self.text.chars().nth(0) {
-                let class = linebreak_property(first_character);
                 break_at_start = break_at_start &&
-                    (first_character == '\u{00A0}' ||
-                        (class != XI_LINE_BREAKING_CLASS_GL &&
-                            class != XI_LINE_BREAKING_CLASS_WJ &&
-                            class != XI_LINE_BREAKING_CLASS_ZWJ));
+                    !char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(
+                        first_character,
+                    )
             }
+        }
+
+        if let Some(last_character) = self.text.chars().last() {
+            ifc.prevent_soft_wrap_opportunity_before_next_atomic =
+                char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(last_character);
         }
 
         for (run_index, run) in runs.into_iter().enumerate() {
@@ -2285,4 +2291,25 @@ impl FloatLineItem {
             &self.fragment.content_rect.start_corner - &distance_from_parent_to_ifc;
         self.fragment
     }
+}
+
+/// Whether or not this character prevents a soft line wrap opportunity when it
+/// comes before or after an atomic inline element.
+///
+/// From https://www.w3.org/TR/css-text-3/#line-break-details:
+///
+/// > For Web-compatibility there is a soft wrap opportunity before and after each
+/// > replaced element or other atomic inline, even when adjacent to a character that
+/// > would normally suppress them, including U+00A0 NO-BREAK SPACE. However, with
+/// > the exception of U+00A0 NO-BREAK SPACE, there must be no soft wrap opportunity
+/// > between atomic inlines and adjacent characters belonging to the Unicode GL, WJ,
+/// > or ZWJ line breaking classes.
+fn char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character: char) -> bool {
+    if character == '\u{00A0}' {
+        return false;
+    }
+    let class = linebreak_property(character);
+    class == XI_LINE_BREAKING_CLASS_GL ||
+        class == XI_LINE_BREAKING_CLASS_WJ ||
+        class == XI_LINE_BREAKING_CLASS_ZWJ
 }
