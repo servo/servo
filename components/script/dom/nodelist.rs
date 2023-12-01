@@ -19,7 +19,7 @@ use crate::dom::node::{ChildrenMutation, Node};
 use crate::dom::window::Window;
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub enum NodeListType {
     Simple(Vec<Dom<Node>>),
     Children(ChildrenList),
@@ -36,7 +36,7 @@ pub struct NodeList {
 }
 
 impl NodeList {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
             reflector_: Reflector::new(),
@@ -44,7 +44,7 @@ impl NodeList {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<NodeList> {
         reflect_dom_object(Box::new(NodeList::new_inherited(list_type)), window)
     }
@@ -147,7 +147,7 @@ impl NodeList {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct ChildrenList {
     node: Dom<Node>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
@@ -357,7 +357,7 @@ impl ChildrenList {
 // and it's possible that tracking label moves would end up no faster
 // than recalculating labels.
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct LabelsList {
     element: Dom<HTMLElement>,
 }
@@ -390,7 +390,7 @@ pub enum RadioListMode {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct RadioList {
     form: Dom<HTMLFormElement>,
     mode: RadioListMode,
@@ -417,7 +417,7 @@ impl RadioList {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct ElementsByNameList {
     document: Dom<Document>,
     name: DOMString,

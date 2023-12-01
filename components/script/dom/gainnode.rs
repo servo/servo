@@ -30,7 +30,7 @@ pub struct GainNode {
 }
 
 impl GainNode {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
@@ -71,7 +71,7 @@ impl GainNode {
         Self::new_with_proto(window, None, context, options)
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,

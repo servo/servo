@@ -16,7 +16,7 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
 
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub enum StyleSheetListOwner {
     Document(Dom<Document>),
@@ -73,7 +73,7 @@ pub struct StyleSheetList {
 }
 
 impl StyleSheetList {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(doc_or_sr: StyleSheetListOwner) -> StyleSheetList {
         StyleSheetList {
             reflector_: Reflector::new(),
@@ -81,7 +81,7 @@ impl StyleSheetList {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(window: &Window, doc_or_sr: StyleSheetListOwner) -> DomRoot<StyleSheetList> {
         reflect_dom_object(Box::new(StyleSheetList::new_inherited(doc_or_sr)), window)
     }

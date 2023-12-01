@@ -6,37 +6,36 @@ use rustc_ast::ast::{AttrKind, Attribute};
 use rustc_ast::token::TokenKind;
 use rustc_ast::tokenstream::TokenTree;
 use rustc_ast::AttrArgs;
-use rustc_driver::plugin::Registry;
 use rustc_error_messages::MultiSpan;
 use rustc_hir::{self as hir};
-use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass};
+use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
-use rustc_session::declare_lint;
+use rustc_session::declare_tool_lint;
 use rustc_span::symbol::Symbol;
 
-use crate::{get_trait_def_id, implements_trait, symbols};
+use crate::common::{get_local_trait_def_id, get_trait_def_id, implements_trait};
+use crate::symbols;
 
-declare_lint!(
-    TRACE_IN_NO_TRACE,
+declare_tool_lint! {
+    pub crown::TRACE_IN_NO_TRACE,
     Deny,
     "Warn and report incorrect usage of Traceable (jsmanaged) objects in must_not_have_traceable marked wrappers"
-);
+}
 
-declare_lint!(
-    EMPTY_TRACE_IN_NO_TRACE,
+declare_tool_lint! {
+    pub crown::EMPTY_TRACE_IN_NO_TRACE,
     Warn,
     "Warn about usage of empty Traceable objects in must_not_have_traceable marked wrappers"
-);
+}
+
 const EMPTY_TRACE_IN_NO_TRACE_MSG: &str =
     "must_not_have_traceable marked wrapper is not needed for types that implements \
 empty Traceable (like primitive types). Consider removing the wrapper.";
 
-pub fn register(reg: &mut Registry) {
+pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
-    reg.lint_store
-        .register_lints(&[&TRACE_IN_NO_TRACE, &EMPTY_TRACE_IN_NO_TRACE]);
-    reg.lint_store
-        .register_late_pass(move |_| Box::new(NotracePass::new(symbols.clone())));
+    lint_store.register_lints(&[&TRACE_IN_NO_TRACE, &EMPTY_TRACE_IN_NO_TRACE]);
+    lint_store.register_late_pass(move |_| Box::new(NotracePass::new(symbols.clone())));
 }
 
 /// Lint for ensuring safe usage of NoTrace wrappers
@@ -69,9 +68,10 @@ fn get_must_not_have_traceable(sym: &Symbols, attrs: &[Attribute]) -> Option<usi
             matches!(
                 &attr.kind,
                 AttrKind::Normal(normal)
-                if normal.item.path.segments.len() == 2 &&
-                normal.item.path.segments[0].ident.name == sym.trace_in_no_trace_lint &&
-                normal.item.path.segments[1].ident.name == sym.must_not_have_traceable
+                if normal.item.path.segments.len() == 3 &&
+                normal.item.path.segments[0].ident.name == sym.crown &&
+                normal.item.path.segments[1].ident.name == sym.trace_in_no_trace_lint &&
+                normal.item.path.segments[2].ident.name == sym.must_not_have_traceable
             )
         })
         .map(|x| match &x.get_normal_item().args {
@@ -102,14 +102,7 @@ fn is_jstraceable<'tcx>(cx: &LateContext<'tcx>, ty: ty::Ty<'tcx>) -> bool {
         return implements_trait(cx, ty, trait_id, &[]);
     }
     // when running tests
-    if let Some(trait_id) = get_trait_def_id(
-        cx,
-        &[
-            "script_plugins_tests",
-            "trace_in_no_trace_lint",
-            "JSTraceable",
-        ],
-    ) {
+    if let Some(trait_id) = get_local_trait_def_id(cx, "JSTraceable") {
         return implements_trait(cx, ty, trait_id, &[]);
     }
     panic!("JSTraceable not found");
@@ -197,6 +190,7 @@ impl<'tcx> LateLintPass<'tcx> for NotracePass {
 }
 
 symbols! {
+    crown
     trace_in_no_trace_lint
     must_not_have_traceable
 }

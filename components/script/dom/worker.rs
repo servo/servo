@@ -284,7 +284,7 @@ impl WorkerMethods for Worker {
 }
 
 impl TaskOnce for SimpleWorkerErrorHandler<Worker> {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn run_once(self) {
         Worker::dispatch_simple_error(self.addr);
     }

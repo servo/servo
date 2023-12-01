@@ -16,7 +16,7 @@ use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct VertexArrayObject {
     context: Dom<WebGLRenderingContext>,
     #[no_trace]
@@ -264,7 +264,7 @@ impl Drop for VertexArrayObject {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct VertexAttribData {
     pub enabled_as_array: bool,
     pub size: u8,
@@ -278,7 +278,7 @@ pub struct VertexAttribData {
 }
 
 impl Default for VertexAttribData {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn default() -> Self {
         Self {
             enabled_as_array: false,

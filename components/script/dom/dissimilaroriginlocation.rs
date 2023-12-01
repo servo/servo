@@ -28,7 +28,7 @@ pub struct DissimilarOriginLocation {
 }
 
 impl DissimilarOriginLocation {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(window: &DissimilarOriginWindow) -> DissimilarOriginLocation {
         DissimilarOriginLocation {
             reflector: Reflector::new(),

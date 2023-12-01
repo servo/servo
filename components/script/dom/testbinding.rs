@@ -953,12 +953,12 @@ impl TestBindingMethods for TestBinding {
         Record::new()
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn ReturnResolvedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
         Promise::new_resolved(&self.global(), cx, v)
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn ReturnRejectedPromise(&self, cx: SafeJSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
         Promise::new_rejected(&self.global(), cx, v)
     }
@@ -975,7 +975,7 @@ impl TestBindingMethods for TestBinding {
         p.reject_error(Error::Type(s.0));
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
         let promise = p.duplicate();
         let cb = TestBindingCallback {
@@ -1129,7 +1129,7 @@ pub struct TestBindingCallback {
 }
 
 impl TestBindingCallback {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn invoke(self) {
         self.promise.root().resolve_native(&self.value);
     }

@@ -398,7 +398,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         p
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#fetch-method
     fn Fetch(
         &self,

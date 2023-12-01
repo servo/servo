@@ -2,30 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Servo's compiler plugin/macro crate
-//!
-//! This crate provides the `#[unrooted_must_root_lint::must_root]` lint. This lint prevents data
-//! of the marked type from being used on the stack. See the source for more details.
-
-#![deny(unsafe_code)]
-#![feature(plugin)]
-#![feature(rustc_private)]
-
-// This rustc crate is private so it needs to be manually imported.
-extern crate rustc_ast;
-extern crate rustc_driver;
-extern crate rustc_error_messages;
-extern crate rustc_hir;
-extern crate rustc_infer;
-extern crate rustc_lint;
-extern crate rustc_middle;
-extern crate rustc_session;
-extern crate rustc_span;
-extern crate rustc_trait_selection;
-extern crate rustc_type_ir;
-
 use rustc_ast::Mutability;
-use rustc_driver::plugin::Registry;
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::def_id::{CrateNum, DefId, LocalDefId, LOCAL_CRATE};
 use rustc_hir::{ImplItemRef, ItemKind, Node, OwnerId, PrimTy, TraitItemRef};
@@ -39,25 +16,10 @@ use rustc_span::DUMMY_SP;
 use rustc_trait_selection::infer::InferCtxtExt;
 use rustc_type_ir::{FloatTy, IntTy, UintTy};
 
-#[cfg(feature = "unrooted_must_root_lint")]
-mod unrooted_must_root;
-
-#[cfg(feature = "trace_in_no_trace_lint")]
-mod trace_in_no_trace;
-
-#[allow(unsafe_code)] // #[no_mangle] is unsafe
-#[no_mangle]
-fn __rustc_plugin_registrar(reg: &mut Registry) {
-    #[cfg(feature = "unrooted_must_root_lint")]
-    unrooted_must_root::register(reg);
-    #[cfg(feature = "trace_in_no_trace_lint")]
-    trace_in_no_trace::register(reg);
-}
-
 /// check if a DefId's path matches the given absolute type path
 /// usage e.g. with
 /// `match_def_path(cx, id, &["core", "option", "Option"])`
-fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool {
+pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool {
     let def_path = cx.tcx.def_path(def_id);
     let krate = &cx.tcx.crate_name(def_path.krate);
     if krate != &path[0] {
@@ -77,7 +39,7 @@ fn match_def_path(cx: &LateContext, def_id: DefId, path: &[Symbol]) -> bool {
         .all(|(e, p)| e.data.get_opt_name().as_ref() == Some(p))
 }
 
-fn in_derive_expn(span: Span) -> bool {
+pub fn in_derive_expn(span: Span) -> bool {
     matches!(
         span.ctxt().outer_expn_data().kind,
         ExpnKind::Macro(MacroKind::Derive, ..)
@@ -276,15 +238,50 @@ pub fn def_path_res(cx: &LateContext<'_>, path: &[&str]) -> Vec<Res> {
     resolutions
 }
 
-/// Resolves a def path like `std::vec::Vec` to its [`DefId`]s, see [`def_path_res`].
-pub fn def_path_def_ids(cx: &LateContext<'_>, path: &[&str]) -> impl Iterator<Item = DefId> {
-    def_path_res(cx, path)
+/// Resolves a def path like `std::vec::Vec`, but searches only local crate
+///
+/// Also returns multiple results when there are multiple paths under the same name e.g. `std::vec`
+/// would have both a [`DefKind::Mod`] and [`DefKind::Macro`].
+///
+/// This function is less expensive than `def_path_res` and should be used sparingly.
+pub fn def_local_res(cx: &LateContext<'_>, path: &str) -> Vec<Res> {
+    let tcx = cx.tcx;
+    let local_crate = LOCAL_CRATE.as_def_id();
+    let starts = Res::Def(tcx.def_kind(local_crate), local_crate);
+    let mut resolutions: Vec<Res> = vec![starts];
+    let segment = Symbol::intern(path);
+
+    resolutions = resolutions
         .into_iter()
         .filter_map(|res| res.opt_def_id())
+        .flat_map(|def_id| {
+            // When the current def_id is e.g. `struct S`, check the impl items in
+            // `impl S { ... }`
+            let inherent_impl_children = tcx
+                .inherent_impls(def_id)
+                .iter()
+                .flat_map(|&impl_def_id| item_children_by_name(tcx, impl_def_id, segment));
+
+            let direct_children = item_children_by_name(tcx, def_id, segment);
+
+            inherent_impl_children.chain(direct_children)
+        })
+        .collect();
+
+    resolutions
 }
 
 pub fn get_trait_def_id(cx: &LateContext<'_>, path: &[&str]) -> Option<DefId> {
     def_path_res(cx, path)
+        .into_iter()
+        .find_map(|res| match res {
+            Res::Def(DefKind::Trait | DefKind::TraitAlias, trait_id) => Some(trait_id),
+            _ => None,
+        })
+}
+
+pub fn get_local_trait_def_id(cx: &LateContext<'_>, path: &str) -> Option<DefId> {
+    def_local_res(cx, path)
         .into_iter()
         .find_map(|res| match res {
             Res::Def(DefKind::Trait | DefKind::TraitAlias, trait_id) => Some(trait_id),

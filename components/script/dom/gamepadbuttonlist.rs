@@ -19,7 +19,7 @@ pub struct GamepadButtonList {
 // TODO: support gamepad discovery
 #[allow(dead_code)]
 impl GamepadButtonList {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(list: &[&GamepadButton]) -> GamepadButtonList {
         GamepadButtonList {
             reflector_: Reflector::new(),

@@ -6,6 +6,7 @@ members = [
     "ports/libsimpleservo/capi/",
     "ports/libsimpleservo/jniapi/",
     "tests/unit/*",
+    "support/crown",
 ]
 default-members = ["ports/servoshell"]
 exclude = [".cargo"]

@@ -422,7 +422,7 @@ impl ServoParser {
         self.script_nesting_level() > 0 && !self.aborted.get()
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(
         document: &Document,
         tokenizer: Tokenizer,
@@ -447,7 +447,7 @@ impl ServoParser {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new(
         document: &Document,
         tokenizer: Tokenizer,
@@ -693,7 +693,7 @@ enum ParserKind {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 enum Tokenizer {
     Html(self::html::Tokenizer),
     AsyncHtml(self::async_html::Tokenizer),
@@ -1023,7 +1023,7 @@ pub struct FragmentContext<'a> {
     pub form_elem: Option<&'a Node>,
 }
 
-#[allow(unrooted_must_root)]
+#[allow(crown::unrooted_must_root)]
 fn insert(
     parent: &Node,
     reference_child: Option<&Node>,
@@ -1063,7 +1063,7 @@ fn insert(
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct Sink {
     #[no_trace]
     base_url: ServoUrl,
@@ -1086,7 +1086,7 @@ impl Sink {
     }
 }
 
-#[allow(unrooted_must_root)] // FIXME: really?
+#[allow(crown::unrooted_must_root)] // FIXME: really?
 impl TreeSink for Sink {
     type Output = Self;
     fn finish(self) -> Self {

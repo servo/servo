@@ -3,38 +3,37 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use rustc_ast::ast::{AttrKind, Attribute};
-use rustc_driver::plugin::Registry;
 use rustc_hir::{self as hir, intravisit as visit, ExprKind};
-use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass};
+use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
-use rustc_session::declare_lint;
+use rustc_session::declare_tool_lint;
 use rustc_span::def_id::LocalDefId;
 use rustc_span::source_map;
 use rustc_span::symbol::{sym, Symbol};
 
-use crate::{in_derive_expn, match_def_path, symbols};
+use crate::common::{in_derive_expn, match_def_path};
+use crate::symbols;
 
-declare_lint!(
-    UNROOTED_MUST_ROOT,
+declare_tool_lint! {
+    pub crown::UNROOTED_MUST_ROOT,
     Deny,
     "Warn and report usage of unrooted jsmanaged objects"
-);
+}
 
-pub fn register(reg: &mut Registry) {
+pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
-    reg.lint_store.register_lints(&[&UNROOTED_MUST_ROOT]);
-    reg.lint_store
-        .register_late_pass(move |_| Box::new(UnrootedPass::new(symbols.clone())));
+    lint_store.register_lints(&[&UNROOTED_MUST_ROOT]);
+    lint_store.register_late_pass(move |_| Box::new(UnrootedPass::new(symbols.clone())));
 }
 
 /// Lint for ensuring safe usage of unrooted pointers
 ///
 /// This lint (disable with `-A unrooted-must-root`/`#[allow(unrooted_must_root)]`) ensures that
-/// `#[unrooted_must_root_lint::must_root]` values are used correctly.
+/// `#[crown::unrooted_must_root_lint::must_root]` values are used correctly.
 ///
 /// "Incorrect" usage includes:
 ///
-///  - Not being used in a struct/enum field which is not `#[unrooted_must_root_lint::must_root]` itself
+///  - Not being used in a struct/enum field which is not `#[crown::unrooted_must_root_lint::must_root]` itself
 ///  - Not being used as an argument to a function (Except onces named `new` and `new_inherited`)
 ///  - Not being bound locally in a `let` statement, assignment, `for` loop, or `match` statement.
 ///
@@ -43,7 +42,7 @@ pub fn register(reg: &mut Registry) {
 ///
 /// Structs which have their own mechanism of rooting their unrooted contents (e.g. `ScriptThread`)
 /// can be marked as `#[allow(unrooted_must_root)]`. Smart pointers which root their interior type
-/// can be marked as `#[unrooted_must_root_lint::allow_unrooted_interior]`
+/// can be marked as `#[crown::unrooted_must_root_lint::allow_unrooted_interior]`
 pub(crate) struct UnrootedPass {
     symbols: Symbols,
 }
@@ -59,9 +58,10 @@ fn has_lint_attr(sym: &Symbols, attrs: &[Attribute], name: Symbol) -> bool {
         matches!(
             &attr.kind,
             AttrKind::Normal(normal)
-            if normal.item.path.segments.len() == 2 &&
-            normal.item.path.segments[0].ident.name == sym.unrooted_must_root_lint &&
-            normal.item.path.segments[1].ident.name == name
+            if normal.item.path.segments.len() == 3 &&
+            normal.item.path.segments[0].ident.name == sym.crown &&
+            normal.item.path.segments[1].ident.name == sym.unrooted_must_root_lint &&
+            normal.item.path.segments[2].ident.name == name
         )
     })
 }
@@ -181,8 +181,8 @@ impl LintPass for UnrootedPass {
 }
 
 impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
-    /// All structs containing #[unrooted_must_root_lint::must_root] types
-    /// must be #[unrooted_must_root_lint::must_root] themselves
+    /// All structs containing #[crown::unrooted_must_root_lint::must_root] types
+    /// must be #[crown::unrooted_must_root_lint::must_root] themselves
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item) {
         let attrs = cx.tcx.hir().attrs(item.hir_id());
         if has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
@@ -194,7 +194,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                 if is_unrooted_ty(&self.symbols, cx, field_type.0, false) {
                     cx.lint(
                         UNROOTED_MUST_ROOT,
-                        "Type must be rooted, use #[unrooted_must_root_lint::must_root] \
+                        "Type must be rooted, use #[crown::unrooted_must_root_lint::must_root] \
                          on the struct definition to propagate",
                         |lint| lint.set_span(field.span),
                     )
@@ -203,8 +203,8 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         }
     }
 
-    /// All enums containing #[unrooted_must_root_lint::must_root] types
-    /// must be #[unrooted_must_root_lint::must_root] themselves
+    /// All enums containing #[crown::unrooted_must_root_lint::must_root] types
+    /// must be #[crown::unrooted_must_root_lint::must_root] themselves
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
         let ref map = cx.tcx.hir();
         let parent_item = map.expect_item(map.get_parent_item(var.hir_id).def_id);
@@ -218,7 +218,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                             cx.lint(
                                 UNROOTED_MUST_ROOT,
                                 "Type must be rooted, \
-                                use #[unrooted_must_root_lint::must_root] \
+                                use #[crown::unrooted_must_root_lint::must_root] \
                                 on the enum definition to propagate",
                                 |lint| lint.set_span(field.ty.span),
                             )
@@ -229,7 +229,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             }
         }
     }
-    /// Function arguments that are #[unrooted_must_root_lint::must_root] types are not allowed
+    /// Function arguments that are #[crown::unrooted_must_root_lint::must_root] types are not allowed
     fn check_fn(
         &mut self,
         cx: &LateContext<'tcx>,
@@ -299,7 +299,7 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
         };
 
         match expr.kind {
-            // Trait casts from #[unrooted_must_root_lint::must_root] types are not allowed
+            // Trait casts from #[crown::unrooted_must_root_lint::must_root] types are not allowed
             ExprKind::Cast(subexpr, _) => require_rooted(cx, self.in_new_function, &subexpr),
             // This catches assignments... the main point of this would be to catch mutable
             // references to `JS<T>`.
@@ -353,6 +353,7 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
 }
 
 symbols! {
+    crown
     unrooted_must_root_lint
     allow_unrooted_interior
     allow_unrooted_in_rc

@@ -29,7 +29,7 @@ pub struct XRInputSourceEvent {
 }
 
 impl XRInputSourceEvent {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(frame: &XRFrame, source: &XRInputSource) -> XRInputSourceEvent {
         XRInputSourceEvent {
             event: Event::new_inherited(),

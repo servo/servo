@@ -20,7 +20,7 @@ pub struct FileList {
 }
 
 impl FileList {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(files: Vec<Dom<File>>) -> FileList {
         FileList {
             reflector_: Reflector::new(),
@@ -28,7 +28,7 @@ impl FileList {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(window: &Window, files: Vec<DomRoot<File>>) -> DomRoot<FileList> {
         reflect_dom_object(
             Box::new(FileList::new_inherited(

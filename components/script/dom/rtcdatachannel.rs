@@ -53,7 +53,7 @@ pub struct RTCDataChannel {
 }
 
 impl RTCDataChannel {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(
         peer_connection: &RTCPeerConnection,
         label: USVString,

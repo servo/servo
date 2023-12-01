@@ -16,9 +16,6 @@ path = "lib.rs"
 debugmozjs = ['js/debugmozjs']
 jitspew = ['js/jitspew']
 profilemozjs = ['js/profilemozjs']
-unrooted_must_root_lint = ["script_plugins/unrooted_must_root_lint"]
-trace_in_no_trace_lint = ["script_plugins/trace_in_no_trace_lint"]
-default = ["unrooted_must_root_lint", "trace_in_no_trace_lint"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 js_backtrace = []
 refcell_backtrace = ["accountable-refcell"]
@@ -88,7 +85,6 @@ range = { path = "../range" }
 ref_filter_map = "1.0.1"
 regex = { workspace = true }
 script_layout_interface = { workspace = true }
-script_plugins = { path = "../script_plugins" }
 script_traits = { workspace = true }
 selectors = { path = "../selectors", features = ["shmem"] }
 serde = { workspace = true, features = ["derive"] }

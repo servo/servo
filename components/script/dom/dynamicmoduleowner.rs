@@ -30,7 +30,7 @@ pub struct DynamicModuleOwner {
 }
 
 impl DynamicModuleOwner {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(promise: Rc<Promise>, id: DynamicModuleId) -> Self {
         DynamicModuleOwner {
             reflector_: Reflector::new(),
@@ -39,7 +39,7 @@ impl DynamicModuleOwner {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(global: &GlobalScope, promise: Rc<Promise>, id: DynamicModuleId) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(DynamicModuleOwner::new_inherited(promise, id)),

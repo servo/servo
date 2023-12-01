@@ -25,7 +25,7 @@ pub struct XRSessionEvent {
 }
 
 impl XRSessionEvent {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(session: &XRSession) -> XRSessionEvent {
         XRSessionEvent {
             event: Event::new_inherited(),

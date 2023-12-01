@@ -48,7 +48,7 @@ pub struct MediaSession {
 }
 
 impl MediaSession {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited() -> MediaSession {
         let media_session = MediaSession {
             reflector_: Reflector::new(),
