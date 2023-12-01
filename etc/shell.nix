@@ -45,6 +45,9 @@ clangStdenv.mkDerivation rec {
 
   # Provide libraries that aren’t linked against but somehow required
   LD_LIBRARY_PATH = lib.makeLibraryPath [
+    # webrender build.rs
+    stdenv.cc.cc
+
     # Fixes missing library errors
     xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon
 
