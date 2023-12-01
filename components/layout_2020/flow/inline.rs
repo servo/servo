@@ -2025,8 +2025,6 @@ impl TextRunLineItem {
     }
 
     fn layout(self, state: &mut LineItemLayoutState) -> Option<TextFragment> {
-        // This happens after updating the `max_block_size`, because even trimmed newlines
-        // should affect the height of the line.
         if self.text.is_empty() {
             return None;
         }
