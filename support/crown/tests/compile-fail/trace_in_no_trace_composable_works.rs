@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
+// compile-flags: --error-format=human
 /// Mock `JSTraceable`
 pub trait JSTraceable {}
 
@@ -20,5 +20,6 @@ struct NoTraceComposable<Traceable, NoTraceable> {
 
 // The lint should fail because TraceableStruct is traceable
 struct Foo(NoTraceComposable<TraceableStruct, TraceableStruct>);
+//~^ ERROR: must_not_have_traceable marked wrapper must not have jsmanaged inside on 1-th position. Consider removing the wrapper.
 
 fn main() {}

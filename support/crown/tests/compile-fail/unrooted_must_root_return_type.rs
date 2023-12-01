@@ -4,6 +4,10 @@
 
 #[crown::unrooted_must_root_lint::must_root]
 struct Foo(i32);
-struct Bar(Foo);
+
+fn foo2() -> Foo {
+    //~^ ERROR: Type must be rooted
+    unimplemented!()
+}
 
 fn main() {}
