@@ -85,8 +85,12 @@ pub(crate) struct TextFragment {
     #[serde(skip_serializing)]
     pub font_key: FontInstanceKey,
     pub glyphs: Vec<Arc<GlyphStore>>,
+
     /// A flag that represents the _used_ value of the text-decoration property.
     pub text_decoration_line: TextDecorationLine,
+
+    /// Extra space to add for each justification opportunity.
+    pub justification_adjustment: Length,
 }
 
 #[derive(Serialize)]
