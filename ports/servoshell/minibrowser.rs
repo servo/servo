@@ -84,22 +84,29 @@ impl Minibrowser {
             TopBottomPanel::top("toolbar").show(ctx, |ui| {
                 ui.allocate_ui_with_layout(
                     ui.available_size(),
-                    egui::Layout::right_to_left(egui::Align::Center),
+                    egui::Layout::left_to_right(egui::Align::Center),
                     |ui| {
-                        if ui.button("go").clicked() {
-                            event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                            location_dirty.set(false);
-                        }
                         if ui.button("back").clicked() {
                             event_queue.borrow_mut().push(MinibrowserEvent::Back);
                         }
                         if ui.button("forward").clicked() {
                             event_queue.borrow_mut().push(MinibrowserEvent::Forward);
                         }
+
+                        // As we are using the `left_to_right` layout, we reserve space for the "Go" button
+                        // at the end by subtracting its estimated width from the available width.
+                        let button_space = 30.0;
+                        let text_edit_width = ui.available_width() - button_space;
+
                         let location_field = ui.add_sized(
-                            ui.available_size(),
+                            [text_edit_width, ui.available_height()],
                             egui::TextEdit::singleline(&mut *location.borrow_mut()),
                         );
+
+                        if ui.button("go").clicked() {
+                            event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                            location_dirty.set(false);
+                        }
                         if location_field.changed() {
                             location_dirty.set(true);
                         }
@@ -147,11 +154,17 @@ impl Minibrowser {
                 },
                 MinibrowserEvent::Back => {
                     let browser_id = browser.browser_id().unwrap();
-                    app_event_queue.push(EmbedderEvent::Navigation(browser_id, TraversalDirection::Back(1)));
+                    app_event_queue.push(EmbedderEvent::Navigation(
+                        browser_id,
+                        TraversalDirection::Back(1),
+                    ));
                 },
                 MinibrowserEvent::Forward => {
                     let browser_id = browser.browser_id().unwrap();
-                    app_event_queue.push(EmbedderEvent::Navigation(browser_id, TraversalDirection::Forward(1)));
+                    app_event_queue.push(EmbedderEvent::Navigation(
+                        browser_id,
+                        TraversalDirection::Forward(1),
+                    ));
                 },
             }
         }
