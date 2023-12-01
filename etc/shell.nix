@@ -1,17 +1,15 @@
 # This provides a shell with all the necesarry packages required to run mach and build servo
 # NOTE: This does not work offline or for nix-build
 
-with import <nixpkgs> {};
-let
-    pinnedSha = "6adf48f53d819a7b6e15672817fa1e78e5f4e84f";
-    pinnedNixpkgs = import (builtins.fetchTarball {
-        url = "https://github.com/NixOS/nixpkgs/archive/${pinnedSha}.tar.gz";
+with import (builtins.fetchTarball {
+        url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
     }) {};
-in
 clangStdenv.mkDerivation rec {
   name = "servo-env";
 
   buildInputs = [
+    # stdenv.cc.cc.lib
+
     # Native dependencies
     fontconfig freetype libunwind
     xorg.libxcb
@@ -32,7 +30,7 @@ clangStdenv.mkDerivation rec {
     # functionality in mozjs and causes builds to be extremely
     # slow as it behaves as if -j1 was passed.
     # See https://github.com/servo/mozjs/issues/375
-    pinnedNixpkgs.gnumake
+    gnumake
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
   ]);
