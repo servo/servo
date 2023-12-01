@@ -4,10 +4,8 @@
 with import (builtins.fetchTarball {
         url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
     }) {};
-clangStdenv.mkDerivation rec {
-  name = "servo-env";
-
-  buildInputs = [
+let
+  inputs = [
     # stdenv.cc.cc.lib
 
     # Native dependencies
@@ -34,6 +32,11 @@ clangStdenv.mkDerivation rec {
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
   ]);
+in
+clangStdenv.mkDerivation rec {
+  name = "servo-env";
+
+  buildInputs = inputs;
 
   LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
 
@@ -44,7 +47,7 @@ clangStdenv.mkDerivation rec {
   TERMINFO = "${ncurses.out}/share/terminfo";
 
   # Provide libraries that aren’t linked against but somehow required
-  LD_LIBRARY_PATH = lib.makeLibraryPath [
+  LD_LIBRARY_PATH = lib.makeLibraryPath (inputs ++ [
     # webrender build.rs
     stdenv.cc.cc
 
@@ -54,7 +57,7 @@ clangStdenv.mkDerivation rec {
     # [WARN  script::dom::gpu] Could not get GPUAdapter ("NotFound")
     # TLA Err: Error: Couldn't request WebGPU adapter.
     vulkan-loader
-  ];
+  ]);
 
   shellHook = ''
     # Fix invalid option errors during linking
