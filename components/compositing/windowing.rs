@@ -10,6 +10,7 @@ use std::time::Duration;
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use euclid::Scale;
 use keyboard_types::KeyboardEvent;
+use libc::c_void;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, TraversalDirection};
 use script_traits::{MediaSessionActionType, MouseButton, TouchEventType, TouchId, WheelDelta};
 use servo_geometry::DeviceIndependentPixel;
@@ -19,8 +20,6 @@ use style_traits::DevicePixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint};
 use webrender_api::ScrollLocation;
 use webrender_surfman::WebrenderSurfman;
-
-use libc::c_void;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -107,9 +106,9 @@ pub enum EmbedderEvent {
     ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
-    /// TODO Pause the compository when underlying native surface is lost,
+    /// Pause the compositor when underlying native surface is lost
     PauseCompositor,
-    /// TODO Resume the compository when underlying native surface is regained
+    /// Resume the compositor when underlying native surface is regained
     ResumeCompositor(*mut c_void, DeviceIntSize)
 }
 

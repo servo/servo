@@ -218,7 +218,7 @@ impl WebrenderSurfman {
     }
 
     pub fn unbind_native_surface_from_context(&self) -> Result<(), Error> {
-        let mut device = self.0.device.borrow_mut();
+        let device = self.0.device.borrow_mut();
         let mut context = self.0.context.borrow_mut();
         let mut surface = device.unbind_surface_from_context(&mut context)?.unwrap();
         let _ = device.destroy_surface(&mut context, &mut surface)?;

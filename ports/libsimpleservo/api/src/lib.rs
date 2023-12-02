@@ -801,6 +801,9 @@ impl ServoGlue {
                 EmbedderMsg::Panic(reason, backtrace) => {
                     self.callbacks.host_callbacks.on_panic(reason, backtrace);
                 },
+                EmbedderMsg::ReadyToPresent => {
+                    self.servo.present();
+                },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |
@@ -810,7 +813,6 @@ impl ServoGlue {
                 EmbedderMsg::NewFavicon(..) |
                 EmbedderMsg::HeadParsed |
                 EmbedderMsg::SetFullscreenState(..) |
-                EmbedderMsg::ReadyToPresent |
                 EmbedderMsg::ReportProfile(..) |
                 EmbedderMsg::EventDelivered(..) => {},
             }
