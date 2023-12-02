@@ -22,8 +22,6 @@ env:
   SCCACHE_GHA_ENABLED: "true"
   CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
-  RUST_FONTCONFIG_DLOPEN: "on" # FIXME: avoid link failure on fontconfig
-  HARFBUZZ_SYS_NO_PKG_CONFIG: "true"
 
 jobs:
   build:
@@ -55,8 +53,6 @@ jobs:
         run: python3 -m pip install --upgrade pip virtualenv
       - name: Bootstrap dependencies
         run: sudo apt update && python3 ./mach bootstrap
-      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Build (arch ${{ matrix.arch }} profile ${{ inputs.profile }})
         run: |
           export JAVA_HOME="${JAVA_HOME_17_X64}"

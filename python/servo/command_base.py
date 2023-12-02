@@ -557,28 +557,12 @@ class CommandBase(object):
         if self.config["android"]["platform"]:
             env["ANDROID_PLATFORM"] = self.config["android"]["platform"]
 
-        # These are set because they are the variable names that build-apk
-        # expects. However, other submodules have makefiles that reference
-        # the env var names above. Once winit is enabled and set as the
-        # default, we could modify the subproject makefiles to use the names
-        # below and remove the vars above, to avoid duplication.
-        if "ANDROID_SDK_ROOT" in env:
-            env["ANDROID_HOME"] = env["ANDROID_SDK_ROOT"]
-        if "ANDROID_NDK_ROOT" in env:
-            env["NDK_HOME"] = env["ANDROID_NDK_ROOT"]
-        if "ANDROID_TOOLCHAIN" in env:
-            env["NDK_STANDALONE"] = env["ANDROID_TOOLCHAIN"]
 
-        # FIXME: is this still needed?
         toolchains = path.join(self.context.topdir, "android-toolchains")
         for kind in ["sdk", "ndk"]:
             default = os.path.join(toolchains, kind)
             if os.path.isdir(default):
-                env.setdefault("ANDROID_" + kind.upper(), default)
-
-        tools = os.path.join(toolchains, "sdk", "platform-tools")
-        if os.path.isdir(tools):
-            env["PATH"] = "%s%s%s" % (tools, os.pathsep, env["PATH"])
+                env.setdefault(f"ANDROID_{kind.upper()}_ROOT", default)
 
         if "ANDROID_NDK_ROOT" not in env:
             print("Please set the ANDROID_NDK_ROOT environment variable.")
@@ -593,8 +577,9 @@ class CommandBase(object):
         android_lib = self.config["android"]["lib"]
         android_arch = self.config["android"]["arch"]
 
+        android_api = android_platform.replace('android-', '')
 
-        # Check if the NDK version is 21
+        # Check if the NDK version is 25
         if not os.path.isfile(path.join(env["ANDROID_NDK_ROOT"], 'source.properties')):
             print("ANDROID_NDK should have file `source.properties`.")
             print("The environment variable ANDROID_NDK_ROOT may be set at a wrong path.")
@@ -602,7 +587,7 @@ class CommandBase(object):
         with open(path.join(env["ANDROID_NDK_ROOT"], 'source.properties'), encoding="utf8") as ndk_properties:
             lines = ndk_properties.readlines()
             if lines[1].split(' = ')[1].split('.')[0] != '25':
-                print("Currently only support NDK 21. Please re-run `./mach bootstrap-android`.")
+                print("Servo currently only supports NDK r25c.")
                 sys.exit(1)
 
         # Android builds also require having the gcc bits on the PATH and various INCLUDE
@@ -624,51 +609,27 @@ class CommandBase(object):
         host_cxx = env.get('HOST_CXX') or shutil.which("clang++") or shutil.which("g++")
 
         llvm_toolchain = path.join(env['ANDROID_NDK_ROOT'], "toolchains", "llvm", "prebuilt", host)
-        gcc_toolchain = path.join(env['ANDROID_NDK_ROOT'], "toolchains",
-                                  android_toolchain_prefix + "-4.9", "prebuilt", host)
         env['PATH'] = (path.join(llvm_toolchain, "bin") + ':' + env['PATH'])
-        #gcc_libs = path.join(gcc_toolchain, "lib", "gcc", android_toolchain_name, "4.9.x")
 
-        env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK_ROOT'], "sysroot")
-        #support_include = path.join(env['ANDROID_NDK'], "sources", "android", "support", "include")
-        #cpufeatures_include = path.join(env['ANDROID_NDK'], "sources", "android", "cpufeatures")
-        #cxx_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl",
-        #                        "llvm-libc++", "include")
-        #clang_include = path.join(llvm_toolchain, "lib64", "clang", "3.8", "include")
-        #cxxabi_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl",
-        #                           "llvm-libc++abi", "include")
-        sysroot_include = path.join(env['ANDROID_SYSROOT'], "usr", "include")
-        stl_include = path.join(llvm_toolchain, "sysroot", "usr", "include", "c++", "v1")
-
-        arch_include = path.join(sysroot_include, android_toolchain_name)
-        android_platform_dir = path.join(env['ANDROID_NDK_ROOT'], "platforms", android_platform, "arch-" + android_arch)
-        #arch_libs = path.join(android_platform_dir, "usr", "lib")
-        #clang_include = path.join(llvm_toolchain, "lib64", "clang", "5.0", "include")
-        android_api = android_platform.replace('android-', '')
-
-        env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
+        to_ndk_bin = lambda prog: path.join(llvm_toolchain, "bin", prog)
         env["RUST_TARGET"] = self.cross_compile_target
         env['HOST_CC'] = host_cc
         env['HOST_CXX'] = host_cxx
         env['HOST_CFLAGS'] = ''
         env['HOST_CXXFLAGS'] = ''
-        env['CC'] = path.join(llvm_toolchain, "bin", "clang")
-        env['CPP'] = path.join(llvm_toolchain, "bin", "clang") + " -E"
-        env['CXX'] = path.join(llvm_toolchain, "bin", "clang++")
-        env['ANDROID_API_LEVEL'] = "30"
-        env['ANDROID_TOOLCHAIN'] = gcc_toolchain
-        env['ANDROID_TOOLCHAIN_DIR'] = gcc_toolchain
-        env['ANDROID_VERSION'] = android_api
-        #env['ANDROID_PLATFORM_DIR'] = android_platform_dir
-        env['ANDROID_PLATFORM_DIR'] = env['ANDROID_SYSROOT']
-        # env['GCC_TOOLCHAIN'] = gcc_toolchain
-        #gcc_toolchain_bin = path.join(gcc_toolchain, android_toolchain_name, "bin")
+        env['CC'] = to_ndk_bin("clang")
+        env['CPP'] = to_ndk_bin("clang") + " -E"
+        env['CXX'] = to_ndk_bin("clang++")
 
-        env['AR'] = check_output([env['CC'], "--print-prog-name=ar"]).strip()
-        env['RANLIB'] = check_output([env['CC'], "--print-prog-name=ranlib"]).strip()
-        env['OBJCOPY'] = check_output([env['CC'], "--print-prog-name=objcopy"]).strip()
-        env['YASM'] = check_output([env['CC'], "--print-prog-name=yasm"]).strip()
-        env['STRIP'] = check_output([env['CC'], "--print-prog-name=strip"]).strip()
+        env['AR'] = to_ndk_bin("llvm-ar")
+        env['RANLIB'] = to_ndk_bin("llvm-ranlib")
+        env['OBJCOPY'] = to_ndk_bin("llvm-objcopy")
+        env['YASM'] = to_ndk_bin("yasm")
+        env['STRIP'] = to_ndk_bin("llvm-strip")
+        env['HARFBUZZ_SYS_NO_PKG_CONFIG'] = "true"
+        env['RUST_FONTCONFIG_DLOPEN'] = "on"
+
+        env["LIBCLANG_PATH"] = path.join(llvm_toolchain, "lib64")
         # A cheat-sheet for some of the build errors caused by getting the search path wrong...
         #
         # fatal error: 'limits' file not found
@@ -680,47 +641,21 @@ class CommandBase(object):
         #
         # Also worth remembering: autoconf uses C for its configuration,
         # even for C++ builds, so the C flags need to line up with the C++ flags.
-        env['CFLAGS'] = ' '.join([
-            "--target=" + android_toolchain_name,
-            #"--sysroot=" + env['ANDROID_SYSROOT'],
-            #"--gcc-toolchain=" + gcc_toolchain,
-            #"-isystem", sysroot_include,
-            "-I" + arch_include,
-            #"-B" + arch_libs,
-            #"-L" + arch_libs,
-            #"-D__ANDROID_API__=" + android_api,
-        ])
-        env['CXXFLAGS'] = ' '.join([
-            "--target=" + android_toolchain_name,
-            #"--sysroot=" + env['ANDROID_SYSROOT'],
-            # "--gcc-toolchain=" + gcc_toolchain,
-            #"-I" + cpufeatures_include,
-            #"-I" + cxx_include,
-            #"-I" + clang_include,
-            #"-isystem", sysroot_include,
-            #"-I" + cxxabi_include,
-            #"-I" + clang_include,
-            "-I" + arch_include,
-            "-I" + stl_include,
-            #"-I" + support_include,
-            #"-L" + gcc_libs,
-            #"-B" + arch_libs,
-            #"-L" + arch_libs,
-            #"-D__ANDROID_API__=" + android_api,
-            #"-D__STDC_CONSTANT_MACROS",
-            #"-D__NDK_FPABI__=",
-        ])
-        env['CPPFLAGS'] = ' '.join([
-        #    "--target=" + self.cross_compile_target,
-        #    "--sysroot=" + env['ANDROID_SYSROOT'],
-            "-I" + stl_include,
-            "-I" + arch_include,
-        ])
-        env["NDK_ANDROID_VERSION"] = android_api
+        env['CFLAGS'] = "--target=" + android_toolchain_name
+        env['CXXFLAGS'] = "--target=" + android_toolchain_name
+
+        # needed by mozjs
+        env['ANDROID_API_LEVEL'] = android_api
+        env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
+
+        # The two vars set below are passed by our custom
+        # support/android/toolchain.cmake to the NDK's cmake toolchain file
         env["ANDROID_ABI"] = android_lib
         env["ANDROID_PLATFORM"] = android_platform
-        env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(env['ANDROID_NDK_ROOT'], "build", "cmake", "android.toolchain.cmake")
-        env["CMAKE_TOOLCHAIN_FILE"] = path.join(self.context.topdir, "support", "android", "toolchain.cmake")
+        env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(
+            env['ANDROID_NDK_ROOT'], "build", "cmake", "android.toolchain.cmake")
+        env["CMAKE_TOOLCHAIN_FILE"] = path.join(
+            self.context.topdir, "support", "android", "toolchain.cmake")
 
         # Set output dir for gradle aar files
         env["AAR_OUT_DIR"] = path.join(self.context.topdir, "target", "android", "aar")
