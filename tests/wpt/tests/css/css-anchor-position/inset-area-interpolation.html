@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: inset-area interpolation</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#inset-area">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+<body>
+<script>
+  test_no_interpolation({
+    property: "inset-area",
+    from: "none",
+    to: "all / left"
+  });
+</script>

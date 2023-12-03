@@ -16,11 +16,6 @@
 
 const INTERNAL_OVERHEAD_DELAY_EPSILON = 5;
 
-  // Accessibility code may schedule tasks that confuse this test code.
-  if (window.accessibilityController) {
-    accessibilityController.reset();
-  }
-
 promise_test(async t => {
   const button = document.createElement("button");
   button.innerText = "Click";

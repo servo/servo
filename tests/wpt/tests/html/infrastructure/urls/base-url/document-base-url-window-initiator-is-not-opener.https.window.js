@@ -21,9 +21,9 @@ const runTest = (description) => {
       <body></body>
       `;
 
-      const popup_unloaded = new Promise(r => window.popup.onunload = e => r());
+      const popup_navigated = new Promise(r => window.popup.onpagehide = e => r());
       document.body.append(iframe);
-      await popup_unloaded;  // This makes sure the old child has unloaded, but
+      await popup_navigated;  // This makes sure the old child has unloaded, but
                              // with the timeout below it's really not needed.
 
       // This is necessary, or else the test times out. The about:blank load

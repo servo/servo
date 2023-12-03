@@ -1,4 +1,5 @@
 # META: timeout=long
+import pytest
 
 from tests.classic.release_actions.support.refine import get_events, get_keys
 from tests.support.helpers import filter_dict, filter_supported_key_events
@@ -29,19 +30,31 @@ def test_release_char_sequence_sends_keyup_events_in_reverse(session,
     assert events == expected
 
 
+@pytest.mark.parametrize(
+    "release_actions",
+    [True, False],
+    ids=["with release actions", "without release actions"],
+)
 def test_release_mouse_sequence_resets_dblclick_state(session,
                                                       test_actions_page,
-                                                      mouse_chain):
+                                                      mouse_chain,
+                                                      release_actions):
     reporter = session.find.css("#outer", all=False)
 
     mouse_chain \
         .click(element=reporter) \
         .perform()
-    session.actions.release()
+
+    if release_actions:
+        session.actions.release()
+
     mouse_chain \
         .perform()
     events = get_events(session)
 
+    # The expeced data here might vary between the vendors since the spec at the moment
+    # is not clear on how the double/triple click should be tracked. It should be
+    # clarified in the scope of https://github.com/w3c/webdriver/issues/1772.
     expected = [
         {"type": "mousedown", "button": 0},
         {"type": "mouseup", "button": 0},
@@ -49,31 +62,6 @@ def test_release_mouse_sequence_resets_dblclick_state(session,
         {"type": "mousedown", "button": 0},
         {"type": "mouseup", "button": 0},
         {"type": "click", "button": 0},
-    ]
-    filtered_events = [filter_dict(e, expected[0]) for e in events]
-    assert expected == filtered_events[1:]
-
-
-def test_no_release_mouse_sequence_keeps_dblclick_state(session,
-                                                        test_actions_page,
-                                                        mouse_chain):
-    reporter = session.find.css("#outer", all=False)
-
-    mouse_chain \
-        .click(element=reporter) \
-        .perform()
-    mouse_chain \
-        .perform()
-    events = get_events(session)
-
-    expected = [
-        {"type": "mousedown", "button": 0},
-        {"type": "mouseup", "button": 0},
-        {"type": "click", "button": 0},
-        {"type": "mousedown", "button": 0},
-        {"type": "mouseup", "button": 0},
-        {"type": "click", "button": 0},
-        {"type": "dblclick", "button": 0},
     ]
     filtered_events = [filter_dict(e, expected[0]) for e in events]
     assert expected == filtered_events[1:]

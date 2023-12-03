@@ -85,9 +85,7 @@ async def test_tripleclick_at_coordinates(
     desired outcome as taps are handled differently on mobile.
     """
     url = inline(
-        f"""<div>
-          {lots_of_text}
-        </div>"""
+        f"""<div>{lots_of_text}</div>"""
     )
 
     await bidi_session.browsing_context.navigate(

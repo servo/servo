@@ -204,5 +204,6 @@ test_length_equals('sign(10px - 1em)', '0', 'fontSize=10px');
 test_length_equals('sign(10px - 2em)', '-1', 'fontSize=10px');
 document.getElementById('container').style.fontSize = '20px';
 
+test_math_used('calc(sign(10%) * 100px)', '100px');
 
 </script>

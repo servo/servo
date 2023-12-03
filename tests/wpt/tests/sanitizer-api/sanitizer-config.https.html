@@ -42,24 +42,27 @@
     // The probe determines whether the Sanitizer modifies the probe string.
     const probe_string = "<div id=\"i\">balabala</div><p>test</p>";
     const probe = sanitizer => {
-        const div = document.createElement("div");
-        div.setHTML(probe_string, {sanitizer: sanitizer});
+        let template = document.createElement("template");
+        template.innerHTML = probe_string;
+        let fragment = sanitizer.sanitize(template.content);
+        let div = document.createElement("div");
+        div.append(fragment);
         return probe_string == div.innerHTML;
     };
 
     const should_stay_the_same = {
-      allowElements: [ "div", "p" ],
-      blockElements: [ "test" ],
-      dropElements: [ "test" ],
-      allowAttributes: [{ name: "id", elements: "*"}],
-      dropAttributes: [{ name: "bla", elements: ["blubb"]}],
+      elements: [ "div", "p" ],
+      replaceWithChildrenElements: [ "test" ],
+      removeElements: [ "test" ],
+      attributes: ["id"],
+      removeAttributes: ["bla"],
     };
     const should_modify = {
-      allowElements: [ "div", "span" ],
-      blockElements: [ "div" ],
-      dropElements: [ "p" ],
-      allowAttributes: [{ name: "id", elements: ["p"] }],
-      dropAttributes: [{ name: "id", elements: ["div"] }],
+      elements: [ "div", "span" ],
+      replaceWithChildrenElements: [ "div" ],
+      removeElements: [ "p" ],
+      attributes: ["test"],
+      removeAttributes: ["id"],
     };
 
     assert_array_equals(Object.keys(should_stay_the_same), Object.keys(should_modify));

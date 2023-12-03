@@ -1,5 +1,6 @@
 <!doctype html>
 <title>img parse a sizes attribute: sizes=auto</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#parse-a-sizes-attribute">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -61,16 +62,16 @@ const tests = [
   // Actual tests
   {loading: 'lazy', sizes: 'auto', width: '10', 'data-ref': 'ref1'},
   {loading: 'lazy', sizes: 'AUTO', width: '10', 'data-ref': 'ref1'},
-  {loading: 'lazy', width: '10', 'data-ref': 'ref1'},
-  {loading: 'lazy', style: 'width: 10px', 'data-ref': 'ref1'},
-  {loading: 'lazy', style: 'max-width: 10px', 'data-ref': 'ref2'}, // no specified width -> 0 -> 100vw
-  {loading: 'lazy', style: 'width: 100%; max-width: 10px', 'data-ref': 'ref1'},
+  {loading: 'lazy', width: '10', 'data-ref': 'ref2'}, // no `sizes: 'auto'` -> 100vw
+  {loading: 'lazy', style: 'width: 10px', 'data-ref': 'ref2'}, // no `sizes: 'auto'` -> 100vw
+  {loading: 'lazy', style: 'max-width: 10px', 'data-ref': 'ref2'}, // no `sizes: 'auto'` -> 100vw
+  {loading: 'lazy', style: 'width: 100%; max-width: 10px', 'data-ref': 'ref2'}, // no `sizes: 'auto'` -> 100vw
   {loading: 'lazy', sizes: 'auto', width: '500', 'data-ref': 'ref2'},
   {loading: 'lazy', sizes: 'auto', width: '10', style: 'visibility: hidden', 'data-ref': 'ref1'},
   {loading: 'lazy', sizes: 'auto', width: '10', style: 'display: inline', hidden: '', 'data-ref': 'ref1'},
-  {loading: 'lazy', sizes: 'auto', width: '0', 'data-ref': 'ref2'}, // 0 -> 100vw
-  {loading: 'lazy', sizes: 'auto', style: 'width: 0px', 'data-ref': 'ref2'}, // 0 -> 100vw
-  {loading: 'lazy', sizes: 'auto', 'data-ref': 'ref2'}, // no specified width -> 0 -> 100vw
+  {loading: 'lazy', sizes: 'auto', width: '0', 'data-ref': 'ref1'},
+  {loading: 'lazy', sizes: 'auto', style: 'width: 0px', 'data-ref': 'ref1'},
+  {loading: 'lazy', sizes: 'auto', 'data-ref': 'ref2'}, // no width -> UA default of 300px
   {loading: 'lazy', sizes: 'auto, 100vw', width: '10', 'data-ref': 'ref1'},
   {loading: 'lazy', sizes: '100vw, auto', width: '10', 'data-ref': 'ref2'},
   {loading: 'eager', sizes: 'auto', width: '10', 'data-ref': 'ref2'},
@@ -81,11 +82,11 @@ const tests = [
   {loading: 'lazy', sizes: 'auto', style: 'min-height: 10px; aspect-ratio: 10 / 10', 'data-ref': 'ref1'},
   {loading: 'lazy', sizes: 'auto', style: 'min-height: 10px; aspect-ratio: 500 / 10', 'data-ref': 'ref2'},
   {loading: 'lazy', sizes: 'auto', style: 'inline-size: 10px', 'data-ref': 'ref1'},
-  {loading: 'lazy', sizes: 'auto', style: 'min-inline-size: 10px', 'data-ref': 'ref1'},
+  {loading: 'lazy', sizes: 'auto', style: 'min-inline-size: 10px', 'data-ref': 'ref2'}, // no width -> UA default of 300px
   {loading: 'lazy', sizes: 'auto', style: 'block-size: 10px; aspect-ratio: 10 / 10', 'data-ref': 'ref1'},
   {loading: 'lazy', sizes: 'auto', style: 'min-block-size: 10px; aspect-ratio: 10 / 10', 'data-ref': 'ref1'},
   {loading: 'lazy', sizes: 'auto', style: 'block-size: 10px; writing-mode: vertical-rl', 'data-ref': 'ref1'},
-  {loading: 'lazy', sizes: 'auto', style: 'min-block-size: 10px; writing-mode: vertical-rl', 'data-ref': 'ref1'},
+  {loading: 'lazy', sizes: 'auto', style: 'min-block-size: 10px; writing-mode: vertical-rl', 'data-ref': 'ref2'}, // no width -> UA default of 300px
   {loading: 'lazy', sizes: 'auto', style: 'inline-size: 10px; aspect-ratio: 10/10; writing-mode: vertical-rl', 'data-ref': 'ref1'},
   {loading: 'lazy', sizes: 'auto', style: 'min-inline-size: 10px; aspect-ratio: 10/10; writing-mode: vertical-rl', 'data-ref': 'ref1'},
   {loading: 'lazy', sizes: 'auto', style: '--my-width: 10px; width: var(--my-width)', 'data-ref': 'ref1'},
@@ -119,6 +120,11 @@ function test_picture(obj, i) {
         parent = document.getElementById(obj.parent);
         break;
       case 'sizes':
+        // Authors have to specify sizes="auto" on the img to use auto-sizes.
+        if(obj[attr].toLowerCase().startsWith("auto")) {
+          img.setAttribute(attr, obj[attr]);
+          break;
+        }
       case 'type':
       case 'media':
         source.setAttribute(attr, obj[attr]);

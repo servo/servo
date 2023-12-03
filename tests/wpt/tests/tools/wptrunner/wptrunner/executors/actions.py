@@ -277,6 +277,18 @@ class SetSPCTransactionModeAction:
         self.logger.debug("Setting SPC transaction mode to %s" % mode)
         return self.protocol.spc_transactions.set_spc_transaction_mode(mode)
 
+class SetRPHRegistrationModeAction:
+    name = "set_rph_registration_mode"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        mode = payload["mode"]
+        self.logger.debug("Setting RPH registration mode to %s" % mode)
+        return self.protocol.rph_registrations.set_rph_registration_mode(mode)
+
 class CancelFedCMDialogAction:
     name = "cancel_fedcm_dialog"
 
@@ -442,6 +454,7 @@ actions = [ClickAction,
            RemoveAllCredentialsAction,
            SetUserVerifiedAction,
            SetSPCTransactionModeAction,
+           SetRPHRegistrationModeAction,
            CancelFedCMDialogAction,
            ConfirmIDPLoginAction,
            SelectFedCMAccountAction,

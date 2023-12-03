@@ -238,13 +238,13 @@
       invokee.muted = false;
     });
     assert_false(invokee.muted);
-    invokerbutton.setAttribute("invokeaction", "mute");
+    invokerbutton.setAttribute("invokeaction", "toggleMuted");
     await clickOn(invokerbutton);
     await new Promise(resolve => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.muted);
-  }, "invoking audio with mute action mutes it");
+  }, "invoking audio with toggleMuted action mutes it");
 
   promise_test(async function (t) {
     t.add_cleanup(async () => {
@@ -257,13 +257,13 @@
       once: true,
     });
     assert_false(invokee.muted);
-    invokerbutton.setAttribute("invokeaction", "mute");
+    invokerbutton.setAttribute("invokeaction", "toggleMuted");
     await clickOn(invokerbutton);
     await new Promise(resolve => {
       requestAnimationFrame(resolve);
     });
     assert_false(invokee.muted);
-  }, "invoking audio with mute action and preventDefault is a no-op");
+  }, "invoking audio with toggleMuted action and preventDefault is a no-op");
 
   promise_test(async function (t) {
     t.add_cleanup(async () => {
@@ -274,12 +274,12 @@
     });
     invokee.muted = true;
     assert_true(invokee.muted);
-    invokerbutton.setAttribute("invokeaction", "mute");
+    invokerbutton.setAttribute("invokeaction", "toggleMuted");
     await clickOn(invokerbutton);
     await new Promise(resolve => {
       requestAnimationFrame(resolve);
     });
     assert_false(invokee.muted);
-  }, "invoking muted audio with mute action unmutes it");
+  }, "invoking muted audio with toggleMuted action unmutes it");
 
 </script>

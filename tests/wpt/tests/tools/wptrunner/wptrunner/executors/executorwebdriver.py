@@ -32,6 +32,7 @@ from .protocol import (BaseProtocolPart,
                        WindowProtocolPart,
                        DebugProtocolPart,
                        SPCTransactionsProtocolPart,
+                       RPHRegistrationsProtocolPart,
                        FedCMProtocolPart,
                        VirtualSensorProtocolPart,
                        merge_dicts)
@@ -363,6 +364,13 @@ class WebDriverSPCTransactionsProtocolPart(SPCTransactionsProtocolPart):
         body = {"mode": mode}
         return self.webdriver.send_session_command("POST", "secure-payment-confirmation/set-mode", body)
 
+class WebDriverRPHRegistrationsProtocolPart(RPHRegistrationsProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def set_rph_registration_mode(self, mode):
+        body = {"mode": mode}
+        return self.webdriver.send_session_command("POST", "custom-handlers/set-mode", body)
 
 class WebDriverFedCMProtocolPart(FedCMProtocolPart):
     def setup(self):
@@ -432,6 +440,7 @@ class WebDriverProtocol(Protocol):
                   WebDriverSetPermissionProtocolPart,
                   WebDriverVirtualAuthenticatorProtocolPart,
                   WebDriverSPCTransactionsProtocolPart,
+                  WebDriverRPHRegistrationsProtocolPart,
                   WebDriverFedCMProtocolPart,
                   WebDriverDebugProtocolPart,
                   WebDriverVirtualSensorPart]

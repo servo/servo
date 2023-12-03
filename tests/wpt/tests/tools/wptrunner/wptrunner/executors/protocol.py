@@ -616,6 +616,18 @@ class SPCTransactionsProtocolPart(ProtocolPart):
         :param str mode: The automation mode to set"""
         pass
 
+class RPHRegistrationsProtocolPart(ProtocolPart):
+    """Protocol part for Custom Handlers registrations"""
+    __metaclass__ = ABCMeta
+
+    name = "rph_registrations"
+
+    @abstractmethod
+    def set_rph_registration_mode(self, mode):
+        """Set the RPH registration automation mode
+
+        :param str mode: The automation mode to set"""
+        pass
 
 class FedCMProtocolPart(ProtocolPart):
     """Protocol part for Federated Credential Management"""

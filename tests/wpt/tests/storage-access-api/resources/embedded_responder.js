@@ -1,5 +1,3 @@
-// META: script=/resources/testdriver.js
-// META: script=/resources/testdriver-vendor.js
 "use strict";
 
 test_driver.set_test_context(window.top);
@@ -13,6 +11,20 @@ function waitForWorkerMessage(worker) {
       resolve(event.data);
     };
     worker.addEventListener("message", listener);
+  });
+}
+
+function connectAndGetRequestCookiesFrom(origin) {
+  return new Promise((resolve, reject) => {
+      const ws = new WebSocket(origin +'/echo-cookie');
+      ws.onmessage = event => {
+          const cookies = event.data;
+          resolve(cookies);
+          ws.onerror = undefined;
+          ws.onclose = undefined;
+      };
+      ws.onerror = () => reject(new Error('Unexpected error event'));
+      ws.onclose = evt => reject('Unexpected close event: ' + JSON.stringify(evt));
   });
 }
 
@@ -71,6 +83,10 @@ window.addEventListener("message", async (event) => {
       const p = waitForWorkerMessage(worker);
       worker.postMessage(event.data.message);
       reply(await p.then(resp => resp.data))
+      break;
+    }
+    case "get_cookie_via_websocket":{
+      reply(await connectAndGetRequestCookiesFrom(event.data.origin));
       break;
     }
     default:
