@@ -23,6 +23,7 @@ use super::geom::{
     FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2, MainStartCrossStart,
 };
 use super::{FlexContainer, FlexLevelBox};
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
@@ -75,6 +76,13 @@ struct FlexItem<'a> {
     hypothetical_main_size: Length,
     /// This is `align-self`, defaulting to `align-items` if `auto`
     align_self: AlignItems,
+}
+
+/// Child of a FlexContainer. Can either be absolutely positioned, or not. If not,
+/// a placeholder is used and flex content is stored outside of this enum.
+enum FlexContent {
+    AbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
+    FlexItemPlaceholder,
 }
 
 /// A flex line with some intermediate results
@@ -169,7 +177,7 @@ impl FlexContainer {
                 let borrowed = arcrefcell.borrow_mut();
                 match &*borrowed {
                     FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(absolutely_positioned) => {
-                        Some(absolutely_positioned.clone())
+                        FlexContent::AbsolutelyPositionedBox(absolutely_positioned.clone())
                     },
                     FlexLevelBox::FlexItem(_) => {
                         let item = AtomicRefMut::map(borrowed, |child| match child {
@@ -177,7 +185,7 @@ impl FlexContainer {
                             _ => unreachable!(),
                         });
                         flex_items.push(item);
-                        None
+                        FlexContent::FlexItemPlaceholder
                     },
                 }
             })
@@ -193,7 +201,7 @@ impl FlexContainer {
         let fragments = absolutely_positioned_items_with_original_order
             .into_iter()
             .map(|child_as_abspos| match child_as_abspos {
-                Some(absolutely_positioned) => {
+                FlexContent::AbsolutelyPositionedBox(absolutely_positioned) => {
                     let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
                         absolutely_positioned,
                         LogicalVec2::zero(),
@@ -203,7 +211,7 @@ impl FlexContainer {
                     positioning_context.push(hoisted_box);
                     Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
                 },
-                None => {
+                FlexContent::FlexItemPlaceholder => {
                     // The `flex_item_fragments` iterator yields one fragment
                     // per flex item, in the original order.
                     let (fragment, mut child_positioning_context) =
