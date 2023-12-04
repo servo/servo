@@ -91,7 +91,7 @@ style_traits = { path = "components/style_traits", features = ["servo"] }
 surfman = { version = "0.8", features = ["chains", "sm-angle", "sm-angle-default"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
-thin-vec = "0.2.1"
+thin-vec = "0.2.13"
 time = "0.1.41"
 tokio = "1"
 tokio-rustls = "0.24"
