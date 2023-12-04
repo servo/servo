@@ -50,6 +50,11 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     shutdown_requested: bool,
 }
 
+pub struct ServoEventResponse {
+    pub need_present: bool,
+    pub history_changed: bool,
+}
+
 impl<Window> Browser<Window>
 where
     Window: WindowPortsMethods + ?Sized,
@@ -277,9 +282,13 @@ where
         self.event_queue.push(event);
     }
 
-    /// Returns true iff the caller needs to manually present a new frame.
-    pub fn handle_servo_events(&mut self, events: Vec<(Option<BrowserId>, EmbedderMsg)>) -> bool {
+    /// Returns true if the caller needs to manually present a new frame.
+    pub fn handle_servo_events(
+        &mut self,
+        events: Vec<(Option<BrowserId>, EmbedderMsg)>,
+    ) -> ServoEventResponse {
         let mut need_present = false;
+        let mut history_changed = false;
         for (browser_id, msg) in events {
             trace!(
                 "embedder <- servo EmbedderMsg ({:?}, {:?})",
@@ -456,6 +465,7 @@ where
                 EmbedderMsg::HistoryChanged(urls, current) => {
                     self.current_url = Some(urls[current].clone());
                     self.current_url_string = Some(urls[current].clone().into_string());
+                    history_changed = true;
                 },
                 EmbedderMsg::SetFullscreenState(state) => {
                     self.window.set_fullscreen(state);
@@ -538,7 +548,10 @@ where
             }
         }
 
-        need_present
+        ServoEventResponse {
+            need_present,
+            history_changed,
+        }
     }
 }
 
