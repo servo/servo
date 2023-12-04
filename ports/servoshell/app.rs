@@ -299,7 +299,6 @@ impl App {
                     present,
                 } => {
                     if history_changed {
-                        // The history was chnaged.
                         if let Some(mut minibrowser) = app.minibrowser() {
                             let browser = &mut app.browser.borrow_mut();
                             if minibrowser.update_location_in_toolbar(browser) {
