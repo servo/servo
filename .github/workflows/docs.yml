@@ -27,6 +27,7 @@ jobs:
       - name: Upload docs
         run: |
           cd target/doc
+          git config --global init.defaultBranch main
           git init
           git add .
           git -c user.name="Workflow" -c user.email="" \
