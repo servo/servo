@@ -93,32 +93,34 @@ impl Minibrowser {
                             event_queue.borrow_mut().push(MinibrowserEvent::Forward);
                         }
 
-                        // As we are using the `left_to_right` layout, we reserve space for the "Go" button
-                        // at the end by subtracting its estimated width from the available width.
-                        let button_space = 30.0;
-                        let text_edit_width = ui.available_width() - button_space;
+                        ui.allocate_ui_with_layout(
+                            ui.available_size(),
+                            egui::Layout::right_to_left(egui::Align::Center),
+                            |ui| {
+                                if ui.button("go").clicked() {
+                                    event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                                    location_dirty.set(false);
+                                }
 
-                        let location_field = ui.add_sized(
-                            [text_edit_width, ui.available_height()],
-                            egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                                let location_field = ui.add_sized(
+                                    ui.available_size(),
+                                    egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                                );
+
+                                if location_field.changed() {
+                                    location_dirty.set(true);
+                                }
+                                if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
+                                    location_field.request_focus();
+                                }
+                                if location_field.lost_focus() &&
+                                    ui.input(|i| i.clone().key_pressed(Key::Enter))
+                                {
+                                    event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                                    location_dirty.set(false);
+                                }
+                            },
                         );
-
-                        if ui.button("go").clicked() {
-                            event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                            location_dirty.set(false);
-                        }
-                        if location_field.changed() {
-                            location_dirty.set(true);
-                        }
-                        if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
-                            location_field.request_focus();
-                        }
-                        if location_field.lost_focus() &&
-                            ui.input(|i| i.clone().key_pressed(Key::Enter))
-                        {
-                            event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                            location_dirty.set(false);
-                        }
                     },
                 );
             });
