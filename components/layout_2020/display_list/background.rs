@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use euclid::{Size2D, Vector2D};
 use style::computed_values::background_clip::single_value::T as Clip;
 use style::computed_values::background_origin::single_value::T as Origin;
@@ -130,8 +131,8 @@ pub(super) fn layout_layer(
             if width.is_none() && height.is_none() {
                 // Both computed values are 'auto':
                 // use intrinsic sizes, treating missing width or height as 'auto'
-                width = intrinsic.width;
-                height = intrinsic.height;
+                width = intrinsic.width.map(|v| v.into());
+                height = intrinsic.height.map(|v| v.into());
             }
 
             match (width, height) {
@@ -140,10 +141,10 @@ pub(super) fn layout_layer(
                     let h = if let Some(intrinsic_ratio) = intrinsic.ratio {
                         w / intrinsic_ratio
                     } else if let Some(intrinsic_height) = intrinsic.height {
-                        intrinsic_height
+                        intrinsic_height.into()
                     } else {
                         // Treated as 100%
-                        Length::new(positioning_area.size.height)
+                        Au::from_f32_px(positioning_area.size.height).into()
                     };
                     units::LayoutSize::new(w.px(), h.px())
                 },
@@ -151,10 +152,10 @@ pub(super) fn layout_layer(
                     let w = if let Some(intrinsic_ratio) = intrinsic.ratio {
                         h * intrinsic_ratio
                     } else if let Some(intrinsic_width) = intrinsic.width {
-                        intrinsic_width
+                        intrinsic_width.into()
                     } else {
                         // Treated as 100%
-                        Length::new(positioning_area.size.width)
+                        Au::from_f32_px(positioning_area.size.width).into()
                     };
                     units::LayoutSize::new(w.px(), h.px())
                 },
