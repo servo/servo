@@ -7,6 +7,7 @@
 
 mod construct;
 
+pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, UnknownUnit, Vector2D};
 use serde::Serialize;

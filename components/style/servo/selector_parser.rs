@@ -54,13 +54,13 @@ pub enum PseudoElement {
     DetailsSummary,
     DetailsContent,
     ServoAnonymousBox,
+    ServoAnonymousTableCell,
+    ServoAnonymousTableRow,
     ServoLegacyText,
     ServoLegacyInputText,
     ServoLegacyTableWrapper,
     ServoLegacyAnonymousTableWrapper,
     ServoLegacyAnonymousTable,
-    ServoLegacyAnonymousTableRow,
-    ServoLegacyAnonymousTableCell,
     ServoLegacyAnonymousBlock,
     ServoLegacyInlineBlockWrapper,
     ServoLegacyInlineAbsolute,
@@ -82,13 +82,13 @@ impl ToCss for PseudoElement {
             DetailsSummary => "::-servo-details-summary",
             DetailsContent => "::-servo-details-content",
             ServoAnonymousBox => "::-servo-anonymous-box",
+            ServoAnonymousTableCell => "::-servo-anonymous-table-cell",
+            ServoAnonymousTableRow => "::-servo-anonymous-table-row",
             ServoLegacyText => "::-servo-legacy-text",
             ServoLegacyInputText => "::-servo-legacy-input-text",
             ServoLegacyTableWrapper => "::-servo-legacy-table-wrapper",
             ServoLegacyAnonymousTableWrapper => "::-servo-legacy-anonymous-table-wrapper",
             ServoLegacyAnonymousTable => "::-servo-legacy-anonymous-table",
-            ServoLegacyAnonymousTableRow => "::-servo-legacy-anonymous-table-row",
-            ServoLegacyAnonymousTableCell => "::-servo-legacy-anonymous-table-cell",
             ServoLegacyAnonymousBlock => "::-servo-legacy-anonymous-block",
             ServoLegacyInlineBlockWrapper => "::-servo-legacy-inline-block-wrapper",
             ServoLegacyInlineAbsolute => "::-servo-legacy-inline-absolute",
@@ -229,13 +229,13 @@ impl PseudoElement {
             PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::DetailsContent |
             PseudoElement::ServoAnonymousBox |
+            PseudoElement::ServoAnonymousTableCell |
+            PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoLegacyText |
             PseudoElement::ServoLegacyInputText |
             PseudoElement::ServoLegacyTableWrapper |
             PseudoElement::ServoLegacyAnonymousTableWrapper |
             PseudoElement::ServoLegacyAnonymousTable |
-            PseudoElement::ServoLegacyAnonymousTableRow |
-            PseudoElement::ServoLegacyAnonymousTableCell |
             PseudoElement::ServoLegacyAnonymousBlock |
             PseudoElement::ServoLegacyInlineBlockWrapper |
             PseudoElement::ServoLegacyInlineAbsolute => PseudoElementCascadeType::Precomputed,
@@ -554,17 +554,17 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 }
                 ServoLegacyAnonymousTable
             },
-            "-servo-legacy-anonymous-table-row" => {
+            "-servo-anonymous-table-row" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoLegacyAnonymousTableRow
+                ServoAnonymousTableRow
             },
-            "-servo-legacy-anonymous-table-cell" => {
+            "-servo-anonymous-table-cell" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
                 }
-                ServoLegacyAnonymousTableCell
+                ServoAnonymousTableCell
             },
             "-servo-legacy-anonymous-block" => {
                 if !self.in_user_agent_stylesheet() {

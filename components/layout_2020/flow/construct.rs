@@ -11,6 +11,7 @@ use style::computed_values::white_space::T as WhiteSpace;
 use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
+use style::str::char_is_whitespace;
 use style::values::specified::text::TextDecorationLine;
 
 use crate::cell::ArcRefCell;
@@ -23,9 +24,10 @@ use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
+use crate::table::{AnonymousTableContent, Table};
 
 impl BlockFormattingContext {
-    pub fn construct<'dom, Node>(
+    pub(crate) fn construct<'dom, Node>(
         context: &LayoutContext,
         info: &NodeAndStyleInfo<Node>,
         contents: NonReplacedContents,
@@ -35,15 +37,17 @@ impl BlockFormattingContext {
     where
         Node: NodeExt<'dom>,
     {
-        let contents = BlockContainer::construct(
+        Self::from_block_container(BlockContainer::construct(
             context,
             info,
             contents,
             propagated_text_decoration_line,
             is_list_item,
-        );
-        let contains_floats = contents.contains_floats();
+        ))
+    }
 
+    pub(crate) fn from_block_container(contents: BlockContainer) -> Self {
+        let contains_floats = contents.contains_floats();
         Self {
             contents,
             contains_floats,
@@ -96,6 +100,9 @@ enum BlockLevelCreator {
         display_inside: DisplayInside,
         contents: Contents,
     },
+    AnonymousTable {
+        table_block: ArcRefCell<BlockLevelBox>,
+    },
 }
 
 /// A block container that may still have to be constructed.
@@ -118,7 +125,7 @@ enum IntermediateBlockContainer {
 ///
 /// This builder starts from the first child of a given DOM node
 /// and does a preorder traversal of all of its inclusive siblings.
-struct BlockContainerBuilder<'dom, 'style, Node> {
+pub(crate) struct BlockContainerBuilder<'dom, 'style, Node> {
     context: &'style LayoutContext<'style>,
 
     /// This NodeAndStyleInfo contains the root node, the corresponding pseudo
@@ -167,6 +174,11 @@ struct BlockContainerBuilder<'dom, 'style, Node> {
     /// The style of the anonymous block boxes pushed to the list of block-level
     /// boxes, if any (see `end_ongoing_inline_formatting_context`).
     anonymous_style: Option<Arc<ComputedValues>>,
+
+    /// A collection of content that is being added to an anonymous table. This is
+    /// composed of any sequence of internal table elements or table captions that
+    /// are found outside of a table.
+    anonymous_table_content: Vec<AnonymousTableContent<'dom, Node>>,
 }
 
 impl BlockContainer {
@@ -180,20 +192,8 @@ impl BlockContainer {
     where
         Node: NodeExt<'dom>,
     {
-        let text_decoration_line =
-            propagated_text_decoration_line | info.style.clone_text_decoration_line();
-        let mut builder = BlockContainerBuilder {
-            context,
-            info,
-            block_level_boxes: Vec::new(),
-            ongoing_inline_formatting_context: InlineFormattingContext::new(
-                text_decoration_line,
-                /* has_first_formatted_line = */ true,
-                /* ends_with_whitespace */ false,
-            ),
-            ongoing_inline_boxes_stack: Vec::new(),
-            anonymous_style: None,
-        };
+        let mut builder =
+            BlockContainerBuilder::new(context, info, propagated_text_decoration_line);
 
         if is_list_item {
             if let Some(marker_contents) = crate::lists::make_marker(context, info) {
@@ -214,33 +214,123 @@ impl BlockContainer {
         }
 
         contents.traverse(context, info, &mut builder);
+        builder.finish()
+    }
+}
 
-        debug_assert!(builder.ongoing_inline_boxes_stack.is_empty());
+impl<'dom, 'style, Node> BlockContainerBuilder<'dom, 'style, Node>
+where
+    Node: NodeExt<'dom>,
+{
+    pub(crate) fn new(
+        context: &'style LayoutContext,
+        info: &'style NodeAndStyleInfo<Node>,
+        propagated_text_decoration_line: TextDecorationLine,
+    ) -> Self {
+        let text_decoration_line =
+            propagated_text_decoration_line | info.style.clone_text_decoration_line();
+        BlockContainerBuilder {
+            context,
+            info,
+            block_level_boxes: Vec::new(),
+            ongoing_inline_formatting_context: InlineFormattingContext::new(
+                text_decoration_line,
+                /* has_first_formatted_line = */ true,
+                /* ends_with_whitespace */ false,
+            ),
+            ongoing_inline_boxes_stack: Vec::new(),
+            anonymous_style: None,
+            anonymous_table_content: Vec::new(),
+        }
+    }
 
-        if !builder.ongoing_inline_formatting_context.is_empty() {
-            if builder.block_level_boxes.is_empty() {
+    pub(crate) fn finish(mut self) -> BlockContainer {
+        debug_assert!(self.ongoing_inline_boxes_stack.is_empty());
+
+        self.finish_anonymous_table_if_needed();
+
+        if !self.ongoing_inline_formatting_context.is_empty() {
+            if self.block_level_boxes.is_empty() {
                 return BlockContainer::InlineFormattingContext(
-                    builder.ongoing_inline_formatting_context,
+                    self.ongoing_inline_formatting_context,
                 );
             }
-            builder.end_ongoing_inline_formatting_context();
+            self.end_ongoing_inline_formatting_context();
         }
 
-        let block_level_boxes = if context.use_rayon {
-            builder
-                .block_level_boxes
+        let context = self.context;
+        let block_level_boxes = if self.context.use_rayon {
+            self.block_level_boxes
                 .into_par_iter()
                 .map(|block_level_job| block_level_job.finish(context))
                 .collect()
         } else {
-            builder
-                .block_level_boxes
+            self.block_level_boxes
                 .into_iter()
                 .map(|block_level_job| block_level_job.finish(context))
                 .collect()
         };
 
         BlockContainer::BlockLevelBoxes(block_level_boxes)
+    }
+
+    fn finish_anonymous_table_if_needed(&mut self) {
+        if self.anonymous_table_content.is_empty() {
+            return;
+        }
+
+        // Text decorations are not propagated to atomic inline-level descendants.
+        // From https://drafts.csswg.org/css2/#lining-striking-props:
+        // >  Note that text decorations are not propagated to floating and absolutely
+        // > positioned descendants, nor to the contents of atomic inline-level descendants
+        // > such as inline blocks and inline tables.
+        let inline_table = !self.ongoing_inline_boxes_stack.is_empty();
+        let propagated_text_decoration_line = if inline_table {
+            TextDecorationLine::NONE
+        } else {
+            self.ongoing_inline_formatting_context.text_decoration_line
+        };
+
+        let contents: Vec<AnonymousTableContent<'dom, Node>> =
+            self.anonymous_table_content.drain(..).collect();
+        let last_text = match contents.last() {
+            Some(AnonymousTableContent::Text(info, text)) => Some((info.clone(), text.clone())),
+            _ => None,
+        };
+
+        let ifc = Table::construct_anonymous(
+            self.context,
+            self.info,
+            contents,
+            propagated_text_decoration_line,
+        );
+
+        if inline_table {
+            self.ongoing_inline_formatting_context.ends_with_whitespace = false;
+            self.current_inline_level_boxes()
+                .push(ArcRefCell::new(InlineLevelBox::Atomic(ifc)));
+        } else {
+            let anonymous_info = self.info.new_replacing_style(ifc.style().clone());
+            let table_block = ArcRefCell::new(BlockLevelBox::Independent(ifc));
+            self.block_level_boxes.push(BlockLevelJob {
+                info: anonymous_info,
+                box_slot: BoxSlot::dummy(),
+                kind: BlockLevelCreator::AnonymousTable { table_block },
+            });
+        }
+
+        // If the last element in the anonymous table content is whitespace, that
+        // whitespace doesn't actually belong to the table. It should be processed outside
+        // ie become a space between the anonymous table and the rest of the block
+        // content. Anonymous tables are really only constructed around internal table
+        // elements and the whitespace between them, so this trailing whitespace should
+        // not be included.
+        //
+        // See https://drafts.csswg.org/css-tables/#fixup-algorithm sections "Remove
+        // irrelevant boxes" and "Generate missing parents."
+        if let Some((info, text)) = last_text {
+            self.handle_text(&info, text);
+        }
     }
 }
 
@@ -256,25 +346,37 @@ where
         box_slot: BoxSlot<'dom>,
     ) {
         match display {
-            DisplayGeneratingBox::OutsideInside { outside, inside } => match outside {
-                DisplayOutside::Inline => box_slot.set(LayoutBox::InlineLevel(
-                    self.handle_inline_level_element(info, inside, contents),
-                )),
-                DisplayOutside::Block => {
-                    let box_style = info.style.get_box();
-                    // Floats and abspos cause blockification, so they only happen in this case.
-                    // https://drafts.csswg.org/css2/visuren.html#dis-pos-flo
-                    if box_style.position.is_absolutely_positioned() {
-                        self.handle_absolutely_positioned_element(info, inside, contents, box_slot)
-                    } else if box_style.float.is_floating() {
-                        self.handle_float_element(info, inside, contents, box_slot)
-                    } else {
-                        self.handle_block_level_element(info, inside, contents, box_slot)
-                    }
-                },
+            DisplayGeneratingBox::OutsideInside { outside, inside } => {
+                self.finish_anonymous_table_if_needed();
+
+                match outside {
+                    DisplayOutside::Inline => box_slot.set(LayoutBox::InlineLevel(
+                        self.handle_inline_level_element(info, inside, contents),
+                    )),
+                    DisplayOutside::Block => {
+                        let box_style = info.style.get_box();
+                        // Floats and abspos cause blockification, so they only happen in this case.
+                        // https://drafts.csswg.org/css2/visuren.html#dis-pos-flo
+                        if box_style.position.is_absolutely_positioned() {
+                            self.handle_absolutely_positioned_element(
+                                info, inside, contents, box_slot,
+                            )
+                        } else if box_style.float.is_floating() {
+                            self.handle_float_element(info, inside, contents, box_slot)
+                        } else {
+                            self.handle_block_level_element(info, inside, contents, box_slot)
+                        }
+                    },
+                };
             },
             DisplayGeneratingBox::LayoutInternal(_) => {
-                unreachable!("The result of blockification should never be layout-internal value.");
+                self.anonymous_table_content
+                    .push(AnonymousTableContent::Element {
+                        info: info.clone(),
+                        display,
+                        contents,
+                        box_slot,
+                    });
             },
         }
     }
@@ -282,6 +384,17 @@ where
     fn handle_text(&mut self, info: &NodeAndStyleInfo<Node>, input: Cow<'dom, str>) {
         if input.is_empty() {
             return;
+        }
+
+        // If we are building an anonymous table ie this text directly followed internal
+        // table elements that did not have a `<table>` ancestor, then we forward all
+        // whitespace to the table builder.
+        if !self.anonymous_table_content.is_empty() && input.chars().all(char_is_whitespace) {
+            self.anonymous_table_content
+                .push(AnonymousTableContent::Text(info.clone(), input));
+            return;
+        } else {
+            self.finish_anonymous_table_if_needed();
         }
 
         let (output, has_uncollapsible_content) = collapse_and_transform_whitespace(
@@ -776,6 +889,7 @@ where
                 display_inside,
                 contents,
             ))),
+            BlockLevelCreator::AnonymousTable { table_block } => table_block,
         };
         self.box_slot
             .set(LayoutBox::BlockLevel(block_level_box.clone()));
