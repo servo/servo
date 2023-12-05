@@ -212,7 +212,10 @@ impl ReplacedContent {
     }
 
     fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> LogicalVec2<Option<Length>> {
-        let intrinsic_size = PhysicalSize::new(self.intrinsic.width.map(|v| v.into()), self.intrinsic.height.map(|v| v.into()));
+        let intrinsic_size = PhysicalSize::new(
+            self.intrinsic.width.map(|v| v.into()),
+            self.intrinsic.height.map(|v| v.into()),
+        );
         LogicalVec2::from_physical_size(&intrinsic_size, style.writing_mode)
     }
 
