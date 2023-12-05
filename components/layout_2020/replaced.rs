@@ -69,8 +69,8 @@ impl IntrinsicSizes {
         };
 
         Self {
-            width: Some(Au::from_f32_px(width)),
-            height: Some(Au::from_f32_px(width)),
+            width: Some(Length::new(width).into()),
+            height: Some(Length::new(width).into()),
             ratio,
         }
     }
