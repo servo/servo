@@ -4,11 +4,13 @@
 
 //! Property-based randomized testing for the core float layout algorithm.
 
+use std::f32::INFINITY;
 use std::ops::Range;
 use std::panic::{self, PanicInfo};
 use std::sync::{Mutex, MutexGuard};
-use std::{f32, thread, u32};
+use std::{thread, u32};
 
+use app_units::Au;
 use euclid::num::Zero;
 use layout_2020::flow::float::{
     ContainingBlockPositionInfo, FloatBand, FloatBandNode, FloatBandTree, FloatContext, FloatSide,
@@ -17,7 +19,7 @@ use layout_2020::flow::float::{
 use layout_2020::geom::{LogicalRect, LogicalVec2};
 use lazy_static::lazy_static;
 use quickcheck::{Arbitrary, Gen};
-use style::values::computed::{Clear, Length};
+use style::values::computed::Clear;
 
 lazy_static! {
     static ref PANIC_HOOK_MUTEX: Mutex<()> = Mutex::new(());
@@ -57,13 +59,14 @@ struct FloatBandWrapper(FloatBand);
 
 impl Arbitrary for FloatBandWrapper {
     fn arbitrary(generator: &mut Gen) -> FloatBandWrapper {
-        let top: u32 = Arbitrary::arbitrary(generator);
-        let left: Option<u32> = Arbitrary::arbitrary(generator);
-        let right: Option<u32> = Arbitrary::arbitrary(generator);
+        let top: u32 = u32::arbitrary(generator);
+        let left: Option<u32> = Some(u32::arbitrary(generator));
+        let right: Option<u32> = Some(u32::arbitrary(generator));
+
         FloatBandWrapper(FloatBand {
-            top: Length::new(top as f32),
-            left: left.map(|value| Length::new(value as f32)),
-            right: right.map(|value| Length::new(value as f32)),
+            top: Au::from_f32_px(top as f32),
+            left: left.map(|value| Au::from_f32_px(value as f32)),
+            right: right.map(|value| Au::from_f32_px(value as f32)),
         })
     }
 }
@@ -148,7 +151,7 @@ fn check_tree_balance(tree: FloatBandTree) {
     }
 }
 
-fn check_tree_find(tree: &FloatBandTree, block_position: Length, sorted_bands: &[FloatBand]) {
+fn check_tree_find(tree: &FloatBandTree, block_position: Au, sorted_bands: &[FloatBand]) {
     let found_band = tree
         .find(block_position)
         .expect("Couldn't find the band in the tree!");
@@ -163,7 +166,7 @@ fn check_tree_find(tree: &FloatBandTree, block_position: Length, sorted_bands: &
     assert_eq!(found_band.right, reference_band.right);
 }
 
-fn check_tree_find_next(tree: &FloatBandTree, block_position: Length, sorted_bands: &[FloatBand]) {
+fn check_tree_find_next(tree: &FloatBandTree, block_position: Au, sorted_bands: &[FloatBand]) {
     let found_band = tree
         .find_next(block_position)
         .expect("Couldn't find the band in the tree!");
@@ -179,9 +182,9 @@ fn check_tree_find_next(tree: &FloatBandTree, block_position: Length, sorted_ban
 
 fn check_node_range_setting(
     node: &FloatBandNode,
-    block_range: &Range<Length>,
+    block_range: &Range<Au>,
     side: FloatSide,
-    value: Length,
+    value: Au,
 ) {
     if node.band.top >= block_range.start && node.band.top < block_range.end {
         match side {
@@ -200,9 +203,9 @@ fn check_node_range_setting(
 
 fn check_tree_range_setting(
     tree: &FloatBandTree,
-    block_range: &Range<Length>,
+    block_range: &Range<Au>,
     side: FloatSide,
-    value: Length,
+    value: Au,
 ) {
     if let Some(ref root) = tree.root.0 {
         check_node_range_setting(root, block_range, side, value)
@@ -242,17 +245,17 @@ fn test_tree_balance() {
 // Tests that the `find()` method works.
 #[test]
 fn test_tree_find() {
-    let f: fn(Vec<FloatBandWrapper>, Vec<u32>) = check;
+    let f: fn(Vec<FloatBandWrapper>, Vec<u16>) = check;
     quickcheck::quickcheck(f);
-    fn check(bands: Vec<FloatBandWrapper>, lookups: Vec<u32>) {
+    fn check(bands: Vec<FloatBandWrapper>, lookups: Vec<u16>) {
         let mut bands: Vec<FloatBand> = bands.into_iter().map(|band| band.0).collect();
         bands.push(FloatBand {
-            top: Length::zero(),
+            top: Au::zero(),
             left: None,
             right: None,
         });
         bands.push(FloatBand {
-            top: Length::new(f32::INFINITY),
+            top: Au::from_f32_px(INFINITY),
             left: None,
             right: None,
         });
@@ -262,7 +265,7 @@ fn test_tree_find() {
         }
         bands.sort_by(|a, b| a.top.partial_cmp(&b.top).unwrap());
         for lookup in lookups {
-            check_tree_find(&tree, Length::new(lookup as f32), &bands);
+            check_tree_find(&tree, Au::from_f32_px(lookup as f32), &bands);
         }
     }
 }
@@ -270,17 +273,17 @@ fn test_tree_find() {
 // Tests that the `find_next()` method works.
 #[test]
 fn test_tree_find_next() {
-    let f: fn(Vec<FloatBandWrapper>, Vec<u32>) = check;
+    let f: fn(Vec<FloatBandWrapper>, Vec<u16>) = check;
     quickcheck::quickcheck(f);
-    fn check(bands: Vec<FloatBandWrapper>, lookups: Vec<u32>) {
+    fn check(bands: Vec<FloatBandWrapper>, lookups: Vec<u16>) {
         let mut bands: Vec<FloatBand> = bands.into_iter().map(|band| band.0).collect();
         bands.push(FloatBand {
-            top: Length::zero(),
+            top: Au::zero(),
             left: None,
             right: None,
         });
         bands.push(FloatBand {
-            top: Length::new(f32::INFINITY),
+            top: Au::from_f32_px(INFINITY),
             left: None,
             right: None,
         });
@@ -291,7 +294,7 @@ fn test_tree_find_next() {
             tree = tree.insert((*band).clone());
         }
         for lookup in lookups {
-            check_tree_find_next(&tree, Length::new(lookup as f32), &bands);
+            check_tree_find_next(&tree, Au::from_f32_px(lookup as f32), &bands);
         }
     }
 }
@@ -307,15 +310,15 @@ fn test_tree_range_setting() {
             tree = tree.insert((*band).clone());
         }
 
-        let mut tops: Vec<Length> = bands.iter().map(|band| band.0.top).collect();
-        tops.push(Length::new(f32::INFINITY));
-        tops.sort_by(|a, b| a.px().partial_cmp(&b.px()).unwrap());
+        let mut tops: Vec<Au> = bands.iter().map(|band| band.0.top).collect();
+        tops.push(Au::from_f32_px(INFINITY));
+        tops.sort_by(|a, b| a.to_px().partial_cmp(&b.to_px()).unwrap());
 
         for range in ranges {
             let start = range.start_index.min(tops.len() as u32 - 1);
             let end = (range.start_index as u64 + range.length as u64).min(tops.len() as u64 - 1);
             let block_range = tops[start as usize]..tops[end as usize];
-            let length = Length::new(range.length as f32);
+            let length = Au::from_px(range.length as i32);
             let new_tree = tree.set_range(&block_range, range.side, length);
             check_tree_range_setting(&new_tree, &block_range, range.side, length);
         }
@@ -330,7 +333,7 @@ struct FloatInput {
     info: PlacementInfo,
     // The float may be placed no higher than this line. This simulates the effect of line boxes
     // per CSS 2.1 § 9.5.1 rule 6.
-    ceiling: u32,
+    ceiling: Au,
     /// Containing block positioning information, which is used to track the current offsets
     /// from the float containing block formatting context to the current containing block.
     containing_block_info: ContainingBlockPositionInfo,
@@ -353,8 +356,8 @@ impl Arbitrary for FloatInput {
         FloatInput {
             info: PlacementInfo {
                 size: LogicalVec2 {
-                    inline: Length::new(width as f32),
-                    block: Length::new(height as f32),
+                    inline: Au::from_f32_px(width as f32),
+                    block: Au::from_f32_px(height as f32),
                 },
                 side: if is_left {
                     FloatSide::Left
@@ -363,10 +366,10 @@ impl Arbitrary for FloatInput {
                 },
                 clear: new_clear(clear),
             },
-            ceiling,
+            ceiling: Au::from_f32_px(ceiling as f32),
             containing_block_info: ContainingBlockPositionInfo::new_with_inline_offsets(
-                Length::new(left as f32),
-                Length::new(left as f32 + containing_block_width as f32),
+                Au::from_f32_px(left as f32),
+                Au::from_f32_px(left as f32 + containing_block_width as f32),
             ),
         }
     }
@@ -374,28 +377,40 @@ impl Arbitrary for FloatInput {
     fn shrink(&self) -> Box<dyn Iterator<Item = FloatInput>> {
         let mut this = (*self).clone();
         let mut shrunk = false;
-        if let Some(inline_size) = self.info.size.inline.px().shrink().next() {
-            this.info.size.inline = Length::new(inline_size);
+        if let Some(inline_size) = self.info.size.inline.to_px().shrink().next() {
+            this.info.size.inline = Au::from_px(inline_size);
             shrunk = true;
         }
-        if let Some(block_size) = self.info.size.block.px().shrink().next() {
-            this.info.size.block = Length::new(block_size);
+        if let Some(block_size) = self.info.size.block.to_px().shrink().next() {
+            this.info.size.block = Au::from_px(block_size);
             shrunk = true;
         }
         if let Some(clear) = (self.info.clear as u8).shrink().next() {
             this.info.clear = new_clear(clear);
             shrunk = true;
         }
-        if let Some(left) = self.containing_block_info.inline_start.px().shrink().next() {
-            this.containing_block_info.inline_start = Length::new(left);
+        if let Some(left) = self
+            .containing_block_info
+            .inline_start
+            .to_px()
+            .shrink()
+            .next()
+        {
+            this.containing_block_info.inline_start = Au::from_px(left);
             shrunk = true;
         }
-        if let Some(right) = self.containing_block_info.inline_end.px().shrink().next() {
-            this.containing_block_info.inline_end = Length::new(right);
+        if let Some(right) = self
+            .containing_block_info
+            .inline_end
+            .to_px()
+            .shrink()
+            .next()
+        {
+            this.containing_block_info.inline_end = Au::from_px(right);
             shrunk = true;
         }
-        if let Some(ceiling) = self.ceiling.shrink().next() {
-            this.ceiling = ceiling;
+        if let Some(ceiling) = self.ceiling.to_px().shrink().next() {
+            this.ceiling = Au::from_px(ceiling);
             shrunk = true;
         }
         if shrunk {
@@ -424,9 +439,9 @@ struct FloatPlacement {
 // Information about the placement of a float.
 #[derive(Clone)]
 struct PlacedFloat {
-    origin: LogicalVec2<Length>,
+    origin: LogicalVec2<Au>,
     info: PlacementInfo,
-    ceiling: Length,
+    ceiling: Au,
     containing_block_info: ContainingBlockPositionInfo,
 }
 
@@ -453,7 +468,7 @@ impl Drop for FloatPlacement {
 }
 
 impl PlacedFloat {
-    fn rect(&self) -> LogicalRect<Length> {
+    fn rect(&self) -> LogicalRect<Au> {
         LogicalRect {
             start_corner: self.origin.clone(),
             size: self.info.size.clone(),
@@ -463,10 +478,10 @@ impl PlacedFloat {
 
 impl FloatPlacement {
     fn place(floats: Vec<FloatInput>) -> FloatPlacement {
-        let mut float_context = FloatContext::new(Length::new(f32::INFINITY));
+        let mut float_context = FloatContext::new(Au::from_f32_px(INFINITY));
         let mut placed_floats = vec![];
         for float in floats {
-            let ceiling = Length::new(float.ceiling as f32);
+            let ceiling = float.ceiling;
             float_context.set_ceiling_from_non_floats(ceiling);
             float_context.containing_block_info = float.containing_block_info;
             placed_floats.push(PlacedFloat {
@@ -547,9 +562,9 @@ fn check_floats_rule_3(placement: &FloatPlacement) {
             // Where the top of `b` should probably be 32px per Rule 3, but unless this distinction
             // is made the top of `b` could legally be 0px.
             if this_float.origin.block >= other_float.rect().max_block_position() ||
-                (this_float.info.size.block == Length::zero() &&
+                (this_float.info.size.block == Au::zero() &&
                     this_float.rect().max_block_position() < other_float.origin.block) ||
-                (this_float.info.size.block > Length::zero() &&
+                (this_float.info.size.block > Au::zero() &&
                     this_float.rect().max_block_position() <= other_float.origin.block)
             {
                 continue;
@@ -574,14 +589,14 @@ fn check_floats_rule_3(placement: &FloatPlacement) {
 //    is defined by the rules in the section on margin collapsing.
 fn check_floats_rule_4(placement: &FloatPlacement) {
     for placed_float in &placement.placed_floats {
-        assert!(placed_float.origin.block >= Length::zero());
+        assert!(placed_float.origin.block >= Au::zero());
     }
 }
 
 // 5. The outer top of a floating box may not be higher than the outer top of any block or floated
 //    box generated by an element earlier in the source document.
 fn check_floats_rule_5(placement: &FloatPlacement) {
-    let mut block_position = Length::zero();
+    let mut block_position = Au::zero();
     for placed_float in &placement.placed_floats {
         assert!(placed_float.origin.block >= block_position);
         block_position = placed_float.origin.block;
@@ -644,7 +659,8 @@ fn check_floats_rule_8(floats_and_perturbations: Vec<(FloatInput, u32)>) {
 
         let mut placement = placement.clone();
         placement.placed_floats[float_index].origin.block =
-            placement.placed_floats[float_index].origin.block - Length::new(perturbation as f32);
+            placement.placed_floats[float_index].origin.block -
+                Au::from_f32_px(perturbation as f32);
 
         let result = {
             let mutex_guard = PANIC_HOOK_MUTEX.lock().unwrap();
@@ -673,7 +689,7 @@ fn check_floats_rule_9(floats_and_perturbations: Vec<(FloatInput, u32)>) {
         let mut placement = placement.clone();
         {
             let placed_float = &mut placement.placed_floats[float_index];
-            let perturbation = Length::new(perturbation as f32);
+            let perturbation = Au::from_f32_px(perturbation as f32);
             match placed_float.info.side {
                 FloatSide::Left => {
                     placed_float.origin.inline = placed_float.origin.inline - perturbation
@@ -699,7 +715,7 @@ fn check_floats_rule_9(floats_and_perturbations: Vec<(FloatInput, u32)>) {
 //     left-floating boxes (in the case of 'clear: left'), or all earlier right-floating boxes (in
 //     the case of 'clear: right'), or both ('clear: both').
 fn check_floats_rule_10(placement: &FloatPlacement) {
-    let mut block_position = Length::zero();
+    let mut block_position = Au::zero();
     for placed_float in &placement.placed_floats {
         assert!(placed_float.origin.block >= block_position);
         block_position = placed_float.origin.block;
@@ -721,9 +737,9 @@ fn check_floats_rule_10(placement: &FloatPlacement) {
             // Where the top of `b` should probably be 32px per Rule 3, but unless this distinction
             // is made the top of `b` could legally be 0px.
             if this_float.origin.block >= other_float.rect().max_block_position() ||
-                (this_float.info.size.block == Length::zero() &&
+                (this_float.info.size.block == Au::zero() &&
                     this_float.rect().max_block_position() < other_float.origin.block) ||
-                (this_float.info.size.block > Length::zero() &&
+                (this_float.info.size.block > Au::zero() &&
                     this_float.rect().max_block_position() <= other_float.origin.block)
             {
                 continue;
