@@ -68,13 +68,13 @@ impl<LengthPercentage> LengthPercentageOrAuto<LengthPercentage> {
     }
 }
 
-impl<LengthPercentage> LengthPercentageOrAuto<LengthPercentage>
+impl<U> LengthPercentageOrAuto<U>
 where
-    LengthPercentage: Clone,
+    U: Clone,
 {
     /// Resolves `auto` values by calling `f`.
     #[inline]
-    pub fn auto_is(&self, f: impl FnOnce() -> LengthPercentage) -> LengthPercentage {
+    pub fn auto_is(&self, f: impl FnOnce() -> U) -> U {
         match self {
             LengthPercentageOrAuto::LengthPercentage(length) => length.clone(),
             LengthPercentageOrAuto::Auto => f(),
@@ -83,7 +83,7 @@ where
 
     /// Returns the non-`auto` value, if any.
     #[inline]
-    pub fn non_auto(&self) -> Option<LengthPercentage> {
+    pub fn non_auto(&self) -> Option<U> {
         match self {
             LengthPercentageOrAuto::LengthPercentage(length) => Some(length.clone()),
             LengthPercentageOrAuto::Auto => None,
@@ -91,7 +91,7 @@ where
     }
 
     /// Maps the length of this value.
-    pub fn map<T>(&self, f: impl FnOnce(LengthPercentage) -> T) -> LengthPercentageOrAuto<T> {
+    pub fn map<T>(&self, f: impl FnOnce(U) -> T) -> LengthPercentageOrAuto<T> {
         match self {
             LengthPercentageOrAuto::LengthPercentage(l) => {
                 LengthPercentageOrAuto::LengthPercentage(f(l.clone()))
