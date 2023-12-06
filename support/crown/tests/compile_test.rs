@@ -34,7 +34,6 @@ fn run_mode(mode: &'static str, bless: bool) {
     ));
     // Does not work reliably: https://github.com/servo/servo/pull/30508#issuecomment-1834542203
     //config.link_deps();
-    config.clean_rmeta();
     config.strict_headers = true;
 
     compiletest::run_tests(&config);
