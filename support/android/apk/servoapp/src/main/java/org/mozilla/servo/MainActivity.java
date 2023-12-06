@@ -229,41 +229,41 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     public void onMediaSessionMetadata(String title, String artist, String album) {
-      // if (mMediaSession == null) {
-      //   mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
-      // }
-      // Log.d("onMediaSessionMetadata", title + " " + artist + " " + album);
-      // mMediaSession.updateMetadata(title, artist, album);
+        if (mMediaSession == null) {
+            mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+        }
+        Log.d("onMediaSessionMetadata", title + " " + artist + " " + album);
+        mMediaSession.updateMetadata(title, artist, album);
     }
 
     @Override
     public void onMediaSessionPlaybackStateChange(int state) {
-      Log.d("onMediaSessionPlaybackStateChange", String.valueOf(state));
-      // if (mMediaSession == null) {
-      //   mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
-      // }
-      //
-      // mMediaSession.setPlaybackState(state);
-      //
-      // if (state == MediaSession.PLAYBACK_STATE_NONE) {
-      //     mMediaSession.hideMediaSessionControls();
-      //     return;
-      // }
-      // if (state == MediaSession.PLAYBACK_STATE_PLAYING ||
-      //     state == MediaSession.PLAYBACK_STATE_PAUSED) {
-      //     mMediaSession.showMediaSessionControls();
-      //     return;
-      // }
+        Log.d("onMediaSessionPlaybackStateChange", String.valueOf(state));
+        if (mMediaSession == null) {
+            mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+        }
+
+        mMediaSession.setPlaybackState(state);
+
+        if (state == MediaSession.PLAYBACK_STATE_NONE) {
+            mMediaSession.hideMediaSessionControls();
+            return;
+        }
+        if (state == MediaSession.PLAYBACK_STATE_PLAYING ||
+                state == MediaSession.PLAYBACK_STATE_PAUSED) {
+            mMediaSession.showMediaSessionControls();
+            return;
+        }
     }
 
     @Override
     public void onMediaSessionSetPositionState(float duration, float position, float playbackRate) {
         Log.d("onMediaSessionSetPositionState", duration + " " + position + " " + playbackRate);
-        // if (mMediaSession == null) {
-        //     mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
-        // }
-        //
-        // mMediaSession.setPositionState(duration, position, playbackRate);
-        // return;
+        if (mMediaSession == null) {
+            mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+        }
+
+        mMediaSession.setPositionState(duration, position, playbackRate);
+        return;
     }
 }
