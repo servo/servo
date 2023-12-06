@@ -845,9 +845,6 @@ fn get_options(
     let log = get_non_null_field(env, opts, "enableLogs", "Z")?
         .z()
         .map_err(|_| "enableLogs not a boolean")?;
-    let vr_pointer = get_non_null_field(env, opts, "VRExternalContext", "J")?
-        .j()
-        .map_err(|_| "VRExternalContext is not a long")? as *mut c_void;
     let coordinates = get_non_null_field(
         env,
         opts,
@@ -864,12 +861,6 @@ fn get_options(
         None => None,
     };
 
-        // enable_subpixel_text_antialiasing,
-        // vr_init: if vr_pointer.is_null() {
-        //     VRInitOptions::None
-        // } else {
-        //     VRInitOptions::VRExternal(vr_pointer)
-        // },
     let native_window = unsafe {
         ANativeWindow_fromSurface(env.get_native_interface(), surface)
     };

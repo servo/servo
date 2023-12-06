@@ -9,12 +9,10 @@ import android.app.Activity;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.net.Uri;
-import android.opengl.GLUtils;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.View;
 import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.SurfaceHolder;
@@ -87,14 +85,10 @@ public class ServoView extends SurfaceView
         initGestures(context);
 
         mGLThread = new GLThread(mActivity, this);
-        // this requires API level 34
-        //setSurfaceLifecycle(SurfaceView.SURFACE_LIFECYCLE_FOLLOWS_ATTACHMENT);
         getHolder().addCallback(mGLThread);
         mGLThread.start();
     }
 
-
-    // Scroll and click
 
     public void setClient(Client client) {
         mClient = client;
@@ -105,6 +99,7 @@ public class ServoView extends SurfaceView
         mServoLog = log;
     }
 
+
     // RunCallback
     public void inGLThread(Runnable r) {
         mGLLooperHandler.post(r);
@@ -114,24 +109,13 @@ public class ServoView extends SurfaceView
         post(r);
     }
 
-    // public void shutdown() {
-    //     Log.d(LOGTAG, "shutdown");
-    //     mServo.shutdown();
-    //     mServo = null;
-    //     mGLThread.shutdown();
-    //     try {
-    //         Log.d(LOGTAG, "Waiting for GL thread to shutdown");
-    //         mGLThread.join();
-    //     } catch (InterruptedException e) {
-    //         e.printStackTrace();
-    //     }
-    // }
-    //
 
     // GfxCallbacks
     public void flushGLBuffers() {
     }
 
+
+    // Scroll and click
     public void animationStateChanged(boolean animating) {
         if (!mAnimating && animating) {
             post(() -> startLooping());
@@ -149,7 +133,6 @@ public class ServoView extends SurfaceView
 
       Choreographer.getInstance().postFrameCallback(this);
     }
-
 
     public void doFrame(long frameTimeNanos) {
         Log.i(LOGTAG, ":::doFrame");

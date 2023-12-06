@@ -33,12 +33,6 @@ android {
     productFlavors {
         basic {
         }
-        googlevr {
-            minSdkVersion 21
-        }
-        oculusvr {
-            minSdkVersion 21
-        }
     }
 
     splits {
@@ -191,7 +185,7 @@ dependencies {
     ]
     // Iterate all build types and dependencies
     // For each dependency call the proper implementation command and set the correct dependency path
-    def list = ['armv7', 'arm64', 'x86'] //TODO: document removal of arm
+    def list = ['armv7', 'arm64', 'x86']
     for (arch in list) {
         for (debug in [true, false]) {
             String basePath = getTargetDir(debug, arch) + "/build"
@@ -206,9 +200,6 @@ dependencies {
         }
     }
 
-    googlevrImplementation 'com.google.vr:sdk-base:1.140.0'
-    googlevrImplementation(name: 'GVRService', ext: 'aar')
-    oculusvrImplementation(name: 'OVRService', ext: 'aar')
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.3'

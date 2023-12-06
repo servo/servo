@@ -32,10 +32,6 @@ android {
     productFlavors {
         basic {
         }
-        googlevr {
-        }
-        oculusvr {
-        }
     }
 
    splits {

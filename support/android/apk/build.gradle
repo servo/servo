@@ -25,7 +25,6 @@ ext.getJniLibsPath = { boolean debug, String arch ->
 
 ext.getRustTarget = { String arch ->
     switch (arch.toLowerCase()) {
-        //XXX case 'arm' : return 'arm-linux-androideabi'
         case 'armv7' : return 'armv7-linux-androideabi'
         case 'arm64' : return 'aarch64-linux-android'
         case 'x86' : return 'i686-linux-android'
@@ -35,7 +34,6 @@ ext.getRustTarget = { String arch ->
 
 ext.getNDKAbi = { String arch ->
     switch (arch.toLowerCase()) {
-        //XXX case 'arm' : return 'armeabi'
         case 'armv7' : return 'armeabi-v7a'
         case 'arm64' : return 'arm64-v8a'
         case 'x86' : return 'x86'
