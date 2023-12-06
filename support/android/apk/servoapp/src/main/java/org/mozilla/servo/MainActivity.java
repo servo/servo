@@ -24,7 +24,7 @@ import android.widget.TextView;
 import android.util.Log;
 
 import org.mozilla.servo.MediaSession;
-import org.mozilla.servoview.ServoSurface;
+import org.mozilla.servoview.ServoView;
 import org.mozilla.servoview.Servo;
 
 import java.io.File;
@@ -33,7 +33,7 @@ public class MainActivity extends Activity implements Servo.Client {
 
     private static final String LOGTAG = "MainActivity";
 
-    ServoSurface mServoView;
+    ServoView mServoView;
     Button mBackButton;
     Button mFwdButton;
     Button mReloadButton;
@@ -49,7 +49,7 @@ public class MainActivity extends Activity implements Servo.Client {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mServoView = findViewById(R.id.servosurface);
+        mServoView = findViewById(R.id.servoview);
         mBackButton = findViewById(R.id.backbutton);
         mFwdButton = findViewById(R.id.forwardbutton);
         mReloadButton = findViewById(R.id.reloadbutton);
