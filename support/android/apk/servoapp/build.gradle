@@ -15,7 +15,7 @@ android {
 
     defaultConfig {
         applicationId "org.mozilla.servo"
-        minSdk 21
+        minSdk 30
         targetSdk 30
         versionCode 1
         versionName "1.0.0"
