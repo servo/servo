@@ -33,7 +33,9 @@ promise_test(async(t) => {
   fencedframe.element.allow = "attribution-reporting 'none'";
 
   await fencedframe.execute(async () => {
-    location.reload();
+    window.executor.suspend(() => {
+      location.reload();
+    });
   }, []);
 
   await fencedframe.execute(async () => {

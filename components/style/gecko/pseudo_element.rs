@@ -14,8 +14,8 @@ use crate::properties::{ComputedValues, PropertyFlags};
 use crate::selector_parser::{PseudoElementCascadeType, SelectorImpl};
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use crate::string_cache::Atom;
-use crate::values::AtomIdent;
 use crate::values::serialize_atom_identifier;
+use crate::values::AtomIdent;
 use cssparser::ToCss;
 use static_prefs::pref;
 use std::fmt;
@@ -159,7 +159,7 @@ impl PseudoElement {
     pub fn highlight_name(&self) -> Option<&AtomIdent> {
         match &*self {
             PseudoElement::Highlight(name) => Some(&name),
-            _ => None
+            _ => None,
         }
     }
 
@@ -178,7 +178,7 @@ impl PseudoElement {
         if self.is_highlight() && !pref!("dom.customHighlightAPI.enabled") {
             return false;
         }
-        return self.flags() & structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME == 0
+        return self.flags() & structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME == 0;
     }
 
     /// Whether this pseudo is enabled explicitly in UA sheets.

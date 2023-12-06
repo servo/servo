@@ -20,7 +20,17 @@
         if (!!window.sessionStorage.getItem("test")) {
           message = "Handle should not override window Session Storage";
         }
-        handle.sessionStorage.clear();
+        window.onstorage = (e) => {
+          if (e.key == "window_event") {
+            if (e.newValue != id) {
+              handle.sessionStorage.setItem("handle_event", "wrong data " + e.newValue);
+            } else if (e.storageArea != handle.sessionStorage) {
+              handle.sessionStorage.setItem("handle_event", "storage area mismatch");
+            } else {
+              handle.sessionStorage.setItem("handle_event", id);
+            }
+          }
+        };
         break;
       }
       case "localStorage": {
@@ -31,7 +41,17 @@
         if (!!window.localStorage.getItem("test")) {
           message = "Handle should not override window Local Storage";
         }
-        handle.localStorage.clear();
+        window.onstorage = (e) => {
+          if (e.key == "window_event") {
+            if (e.newValue != id) {
+              handle.localStorage.setItem("handle_event", "wrong data " + e.newValue);
+            } else if (e.storageArea != handle.localStorage) {
+              handle.localStorage.setItem("handle_event", "storage area mismatch");
+            } else {
+              handle.localStorage.setItem("handle_event", id);
+            }
+          }
+        };
         break;
       }
       case "indexedDB": {

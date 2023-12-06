@@ -92,12 +92,14 @@ rt { display: ruby-text; }
  * disables style sharing, so we want to apply pseudo-class selectors to as few elements as
  * possible.
  */
-a:link, area:link { color: #0000EE; }
-a:visited, area:visited { color: #551A8B; }
+a:link, area:link, link:link { color: #0000EE; }
+a:visited, area:visited, link:visited { color: #551A8B; }
 a:link, a:visited,
-area:link, area:visited { text-decoration: underline; cursor: pointer; }
+area:link, area:visited,
+link:link, link:visited { text-decoration: underline; cursor: pointer; }
 a:link[rel~=help], a:visited[rel~=help],
-area:link[rel~=help], area:visited[rel~=help] { cursor: help; }
+area:link[rel~=help], area:visited[rel~=help],
+link:link[rel~=help], link:visited[rel~=help] { cursor: help; }
 
 /*
  * FIXME: use `outline: auto;`

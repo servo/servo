@@ -18,14 +18,8 @@ interface StorageBucketManager {
     Promise<undefined> delete(DOMString name);
 };
 
-enum StorageBucketDurability {
-  "strict",
-  "relaxed"
-};
-
 dictionary StorageBucketOptions {
-  boolean? persisted = null;
-  StorageBucketDurability? durability = null;
+  boolean persisted = false;
   unsigned long long? quota = null;
   DOMHighResTimeStamp? expires = null;
 };
@@ -39,8 +33,6 @@ interface StorageBucket {
   Promise<boolean> persisted();
 
   Promise<StorageEstimate> estimate();
-
-  Promise<StorageBucketDurability> durability();
 
   Promise<undefined> setExpires(DOMHighResTimeStamp expires);
   Promise<DOMHighResTimeStamp?> expires();

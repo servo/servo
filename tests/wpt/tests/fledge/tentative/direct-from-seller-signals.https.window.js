@@ -18,15 +18,14 @@ subsetTest(promise_test, async test => {
   await runReportTest(
       test, uuid,
       directFromSellerSignalsValidatorCode(
-          uuid, /*expectedSellerSignals=*/null,
-          /*expectedAuctionSignals=*/null, /*expectedPerBuyerSignals=*/null),
+          uuid, /*expectedSellerSignals=*/ null,
+          /*expectedAuctionSignals=*/ null, /*expectedPerBuyerSignals=*/ null),
       // expectedReportUrls
       [createSellerReportURL(uuid), createBidderReportURL(uuid)],
       // renderURLOverride
       null,
       // auctionConfigOverrides
-      { directFromSellerSignalsHeaderAdSlot: 'adSlot/0'}
-  );
+      {directFromSellerSignalsHeaderAdSlot: 'adSlot/0'});
 }, 'Test directFromSellerSignals with empty Ad-Auction-Signals header.');
 
 subsetTest(promise_test, async test => {
@@ -495,3 +494,11 @@ subsetTest(promise_test, async test => {
       { directFromSellerSignalsHeaderAdSlot: 'adSlot' }
   );
 }, 'Test directFromSellerSignals with network error.');
+
+subsetTest(promise_test, async test => {
+  let dfss = false;
+  navigator.runAdAuction({
+      get directFromSellerSignalsHeaderAdSlot() { dfss = true; }
+  }).catch((e) => {});
+  assert_true(dfss);
+}, 'Test directFromSellerSignals feature detection.');

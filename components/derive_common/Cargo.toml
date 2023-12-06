@@ -13,5 +13,5 @@ path = "lib.rs"
 darling = { workspace = true }
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
-syn = { version = "1", default-features = false, features = ["clone-impls", "derive", "parsing"] }
-synstructure = "0.12"
+syn = { workspace = true }
+synstructure = { workspace = true }

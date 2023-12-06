@@ -4,11 +4,12 @@
 <link rel="author" title="Sam Weinig" href="mailto:weinig@apple.com">
 <link rel="help" href="https://drafts.csswg.org/css-color-4/#valdef-color-xyz">
 <link rel="match" href="xyz-d65-003-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1;totalPixels=0-18432">
 <meta name="assert" content="xyz-d65 with no alpha">
 <style>
     body { background-color: grey; }
     .test { background-color: red; width: 12em; height: 6em; margin-top: 0; }
-    .ref { background-color: lab(100.115% 9.06448 5.80177); width: 12em; height: 6em; margin-bottom: 0; } /* color(xyz-d65 1 1 1) converted to Lab */
+    .ref { background-color: color(srgb 1.08516 0.97699 0.958832); width: 12em; height: 6em; margin-bottom: 0; } /* color(xyz-d65 1 1 1) converted to sRGB */
     .test { background-color: color(xyz-d65 1 1 1); }
 </style>
 <body>

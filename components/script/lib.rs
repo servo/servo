@@ -2,24 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![feature(core_intrinsics)]
-#![feature(drain_filter)]
 #![feature(once_cell)]
 #![feature(plugin)]
 #![feature(register_tool)]
 #![deny(unsafe_code)]
 #![doc = "The script crate contains all matters DOM."]
-#![cfg_attr(
-    not(any(
-        feature = "unrooted_must_root_lint",
-        feature = "trace_in_no_trace_lint"
-    )),
-    allow(unknown_lints)
-)]
-#![allow(deprecated)] // FIXME: Can we make `allow` only apply to the `plugin` crate attribute?
-#![plugin(script_plugins)]
-#![register_tool(unrooted_must_root_lint)]
-#![register_tool(trace_in_no_trace_lint)]
+#![register_tool(crown)]
+// Issue a warning if `crown` cannot be found.
+#![warn(unknown_lints)]
+#![deny(crown_is_not_used)]
 
 // These are used a lot so let's keep them for now
 #[macro_use]

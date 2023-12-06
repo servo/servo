@@ -12,12 +12,16 @@
 
 <div id=fixup>
   <button id=button1 tabindex="0">Button1</button>
+  <div popover id=popover0  tabindex="0" style="top:300px">
+  </div>
   <div popover id=popover1 style="top:100px">
     <button id=inside_popover1 tabindex="0">Inside1</button>
     <button id=invoker2 popovertarget=popover2 tabindex="0">Nested Invoker 2</button>
     <button id=inside_popover2 tabindex="0">Inside2</button>
   </div>
   <button id=button2 tabindex="0">Button2</button>
+  <div popover id=popover_no_invoker tabindex="0" style="top:300px"></div>
+  <button popovertarget=popover0 id=invoker0 tabindex="0">Invoker0</button>
   <button popovertarget=popover1 id=invoker1 tabindex="0">Invoker1</button>
   <button id=button3 tabindex="0">Button3</button>
   <div popover id=popover2 style="top:200px">
@@ -55,17 +59,31 @@ promise_test(async t => {
   assert_equals(document.activeElement,button2,'Hidden popover should be skipped');
   await sendShiftTab();
   assert_equals(document.activeElement,button1,'Hidden popover should be skipped backwards');
+  popover_no_invoker.showPopover();
   await sendTab();
   await sendTab();
-  assert_equals(document.activeElement,invoker1);
+  assert_equals(document.activeElement,popover_no_invoker,"Focusable popover that is opened without an invoker should get focused");
+  await sendTab();
+  assert_equals(document.activeElement,invoker0);
+  await sendEnter(); // Activate the invoker0
+  assert_true(popover0.matches(':popover-open'), 'popover0 should be invoked by invoker0');
+  assert_equals(document.activeElement,invoker0,'Focus should not move when popover is shown');
+  await sendTab();
   await sendEnter(); // Activate the invoker
   assert_true(popover1.matches(':popover-open'), 'popover1 should be invoked by invoker1');
   assert_equals(document.activeElement,invoker1,'Focus should not move when popover is shown');
   await sendTab();
+  // Make invoker1 non-focusable.
+  invoker1.disabled = true;
   assert_equals(document.activeElement,inside_popover1,'Focus should move from invoker into the open popover');
   await sendTab();
   assert_equals(document.activeElement,invoker2,'Focus should move within popover');
-  await verifyFocusOrder([button1, button2, invoker1, inside_popover1, invoker2, inside_popover2, button3, button4],'set 1');
+  await sendShiftTab();
+  await sendShiftTab();
+  assert_equals(document.activeElement, button1 ,'Focus should not move back to invoker as it is non-focusable');
+  // Reset invoker1 to focusable.
+  invoker1.disabled = false;
+  await verifyFocusOrder([button1, button2, invoker0, invoker1, inside_popover1, invoker2, inside_popover2, button3, button4],'set 1');
   invoker2.focus();
   await sendEnter(); // Activate the nested invoker
   assert_true(popover2.matches(':popover-open'), 'popover2 should be invoked by nested invoker');
@@ -88,7 +106,7 @@ promise_test(async t => {
   await sendTab();
   assert_equals(document.activeElement,button4,'Focus should skip popovers');
   button1.focus();
-  await verifyFocusOrder([button1, button2, invoker1, inside_popover1, invoker2, inside_popover3, invoker3, inside_popover2, button3, button4],'set 2');
+  await verifyFocusOrder([button1, button2, invoker0, invoker1, inside_popover1, invoker2, inside_popover3, invoker3, inside_popover2, button3, button4],'set 2');
 }, "Popover focus navigation");
 </script>
 

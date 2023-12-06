@@ -9,13 +9,15 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 
 <body>
 <script>
 promise_test(async(t) => {
   const actions = new test_driver.Actions();
   const fencedframe = await attachFencedFrameContext(
-      {generator_api: 'sharedstorage'});
+      {generator_api: 'sharedstorage',
+       origin: get_host_info().HTTPS_REMOTE_ORIGIN});
   const new_url = new URL("resources/dummy.html", location.href);
   const start_beacon_data = "This is the start beacon data!";
   const commit_beacon_data = "This is the commit beacon data!";
@@ -44,10 +46,10 @@ promise_test(async(t) => {
                .pointerUp()
                .send();
 
-  const received_beacon_data_1 = await nextAutomaticBeacon(start_beacon_data);
-  assert_equals(received_beacon_data_1, start_beacon_data);
-  const received_beacon_data_2 = await nextAutomaticBeacon(commit_beacon_data);
-  assert_equals(received_beacon_data_2, commit_beacon_data);
+  const beacon_1_initiator_origin = await nextAutomaticBeacon(start_beacon_data);
+  assert_equals(beacon_1_initiator_origin, get_host_info().HTTPS_ORIGIN);
+  const beacon_2_initiator_origin = await nextAutomaticBeacon(commit_beacon_data);
+  assert_equals(beacon_2_initiator_origin, get_host_info().HTTPS_ORIGIN);
 }, 'Set and trigger an automatic beacon in a click handler for SharedStorage');
 
 </script>

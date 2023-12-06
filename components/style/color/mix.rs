@@ -4,9 +4,8 @@
 
 //! Color mixing/interpolation.
 
-use super::{AbsoluteColor, ColorComponents, ColorSpace};
+use super::{AbsoluteColor, ColorComponents, ColorFlags, ColorSpace};
 use crate::parser::{Parse, ParserContext};
-use crate::values::animated::color::AnimatedRGBA as RGBA;
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
@@ -65,10 +64,32 @@ pub struct ColorInterpolationMethod {
 
 impl ColorInterpolationMethod {
     /// Returns the srgb interpolation method.
-    pub fn srgb() -> Self {
+    pub const fn srgb() -> Self {
         Self {
             space: ColorSpace::Srgb,
             hue: HueInterpolationMethod::Shorter,
+        }
+    }
+
+    /// Return the oklab interpolation method used for default color
+    /// interpolcation.
+    pub const fn oklab() -> Self {
+        Self {
+            space: ColorSpace::Oklab,
+            hue: HueInterpolationMethod::Shorter,
+        }
+    }
+
+    /// Decides the best method for interpolating between the given colors.
+    /// https://drafts.csswg.org/css-color-4/#interpolation-space
+    pub fn best_interpolation_between(left: &AbsoluteColor, right: &AbsoluteColor) -> Self {
+        // The preferred color space to use for interpolating colors is Oklab.
+        // However, if either of the colors are in legacy rgb(), hsl() or hwb(),
+        // then interpolation is done in sRGB.
+        if !left.is_legacy_color() || !right.is_legacy_color() {
+            Self::oklab()
+        } else {
+            Self::srgb()
         }
     }
 }
@@ -114,27 +135,9 @@ impl ToCss for ColorInterpolationMethod {
     }
 }
 
-/// A color modelled in a specific color space (such as sRGB or CIE XYZ).
-///
-/// For now, colors modelled in other spaces need to be convertible to and from
-/// `RGBA` because we use sRGB for displaying colors.
-trait ModelledColor: Clone + Copy + From<RGBA> + Into<RGBA> {
-    /// Linearly interpolate between the left and right colors.
-    ///
-    /// The HueInterpolationMethod parameter is only for color spaces where the hue is
-    /// represented as an angle (e.g., CIE LCH).
-    fn lerp(
-        left_bg: &Self,
-        left_weight: f32,
-        right_bg: &Self,
-        right_weight: f32,
-        hue_interpolation: HueInterpolationMethod,
-    ) -> Self;
-}
-
 /// Mix two colors into one.
 pub fn mix(
-    interpolation: &ColorInterpolationMethod,
+    interpolation: ColorInterpolationMethod,
     left_color: &AbsoluteColor,
     mut left_weight: f32,
     right_color: &AbsoluteColor,
@@ -166,6 +169,38 @@ pub fn mix(
     )
 }
 
+/// What the outcome of each component should be in a mix result.
+#[derive(Clone, Copy)]
+#[repr(u8)]
+enum ComponentMixOutcome {
+    /// Mix the left and right sides to give the result.
+    Mix,
+    /// Carry the left side forward to the result.
+    UseLeft,
+    /// Carry the right side forward to the result.
+    UseRight,
+    /// The resulting component should also be none.
+    None,
+}
+
+impl ComponentMixOutcome {
+    fn from_colors(
+        left: &AbsoluteColor,
+        right: &AbsoluteColor,
+        flags_to_check: ColorFlags,
+    ) -> Self {
+        match (
+            left.flags.contains(flags_to_check),
+            right.flags.contains(flags_to_check),
+        ) {
+            (true, true) => Self::None,
+            (true, false) => Self::UseRight,
+            (false, true) => Self::UseLeft,
+            (false, false) => Self::Mix,
+        }
+    }
+}
+
 fn mix_in(
     color_space: ColorSpace,
     left_color: &AbsoluteColor,
@@ -175,6 +210,13 @@ fn mix_in(
     hue_interpolation: HueInterpolationMethod,
     alpha_multiplier: f32,
 ) -> AbsoluteColor {
+    let outcomes = [
+        ComponentMixOutcome::from_colors(left_color, right_color, ColorFlags::C1_IS_NONE),
+        ComponentMixOutcome::from_colors(left_color, right_color, ColorFlags::C2_IS_NONE),
+        ComponentMixOutcome::from_colors(left_color, right_color, ColorFlags::C3_IS_NONE),
+        ComponentMixOutcome::from_colors(left_color, right_color, ColorFlags::ALPHA_IS_NONE),
+    ];
+
     // Convert both colors into the interpolation color space.
     let left = left_color.to_color_space(color_space);
     let left = left.raw_components();
@@ -182,13 +224,14 @@ fn mix_in(
     let right = right_color.to_color_space(color_space);
     let right = right.raw_components();
 
-    let result = interpolate_premultiplied(
+    let (result, result_flags) = interpolate_premultiplied(
         &left,
         left_weight,
         &right,
         right_weight,
         color_space.hue_index(),
         hue_interpolation,
+        &outcomes,
     );
 
     let alpha = if alpha_multiplier != 1.0 {
@@ -204,11 +247,19 @@ fn mix_in(
     //        then divide after calculations?
     let alpha = (alpha * 1000.0).round() / 1000.0;
 
-    AbsoluteColor::new(
+    let mut result = AbsoluteColor::new(
         color_space,
         ColorComponents(result[0], result[1], result[2]),
         alpha,
-    )
+    );
+
+    result.flags = result_flags;
+    // If both sides are legacy RGB, then the result stays in legacy RGB.
+    if !left_color.is_legacy_color() || !right_color.is_legacy_color() {
+        result.flags.insert(ColorFlags::AS_COLOR_FUNCTION);
+    }
+
+    result
 }
 
 fn interpolate_premultiplied_component(
@@ -218,9 +269,8 @@ fn interpolate_premultiplied_component(
     right: f32,
     right_weight: f32,
     right_alpha: f32,
-    inverse_of_result_alpha: f32,
 ) -> f32 {
-    (left * left_weight * left_alpha + right * right_weight * right_alpha) * inverse_of_result_alpha
+    left * left_weight * left_alpha + right * right_weight * right_alpha
 }
 
 // Normalize hue into [0, 360)
@@ -302,6 +352,63 @@ fn interpolate_hue(
     left * left_weight + right * right_weight
 }
 
+struct InterpolatedAlpha {
+    /// The adjusted left alpha value.
+    left: f32,
+    /// The adjusted right alpha value.
+    right: f32,
+    /// The interpolated alpha value.
+    interpolated: f32,
+    /// Whether the alpha component should be `none`.
+    is_none: bool,
+}
+
+fn interpolate_alpha(
+    left: f32,
+    left_weight: f32,
+    right: f32,
+    right_weight: f32,
+    outcome: ComponentMixOutcome,
+) -> InterpolatedAlpha {
+    // <https://drafts.csswg.org/css-color-4/#interpolation-missing>
+    let mut result = match outcome {
+        ComponentMixOutcome::Mix => {
+            let interpolated = left * left_weight + right * right_weight;
+            InterpolatedAlpha {
+                left,
+                right,
+                interpolated,
+                is_none: false,
+            }
+        },
+        ComponentMixOutcome::UseLeft => InterpolatedAlpha {
+            left,
+            right: left,
+            interpolated: left,
+            is_none: false,
+        },
+        ComponentMixOutcome::UseRight => InterpolatedAlpha {
+            left: right,
+            right,
+            interpolated: right,
+            is_none: false,
+        },
+        ComponentMixOutcome::None => InterpolatedAlpha {
+            left: 1.0,
+            right: 1.0,
+            interpolated: 0.0,
+            is_none: true,
+        },
+    };
+
+    // Clip all alpha values to [0.0..1.0].
+    result.left = result.left.clamp(0.0, 1.0);
+    result.right = result.right.clamp(0.0, 1.0);
+    result.interpolated = result.interpolated.clamp(0.0, 1.0);
+
+    result
+}
+
 fn interpolate_premultiplied(
     left: &[f32; 4],
     left_weight: f32,
@@ -309,39 +416,60 @@ fn interpolate_premultiplied(
     right_weight: f32,
     hue_index: Option<usize>,
     hue_interpolation: HueInterpolationMethod,
-) -> [f32; 4] {
-    let left_alpha = left[3];
-    let right_alpha = right[3];
-    let result_alpha = (left_alpha * left_weight + right_alpha * right_weight).min(1.);
+    outcomes: &[ComponentMixOutcome; 4],
+) -> ([f32; 4], ColorFlags) {
+    let alpha = interpolate_alpha(left[3], left_weight, right[3], right_weight, outcomes[3]);
+    let mut flags = if alpha.is_none {
+        ColorFlags::ALPHA_IS_NONE
+    } else {
+        ColorFlags::empty()
+    };
+
     let mut result = [0.; 4];
-    if result_alpha <= 0. {
-        return result;
-    }
 
-    let inverse_of_result_alpha = 1. / result_alpha;
     for i in 0..3 {
-        let is_hue = hue_index == Some(i);
-        result[i] = if is_hue {
-            interpolate_hue(
-                left[i],
-                left_weight,
-                right[i],
-                right_weight,
-                hue_interpolation,
-            )
-        } else {
-            interpolate_premultiplied_component(
-                left[i],
-                left_weight,
-                left_alpha,
-                right[i],
-                right_weight,
-                right_alpha,
-                inverse_of_result_alpha,
-            )
-        };
-    }
-    result[3] = result_alpha;
+        match outcomes[i] {
+            ComponentMixOutcome::Mix => {
+                let is_hue = hue_index == Some(i);
+                result[i] = if is_hue {
+                    normalize_hue(interpolate_hue(
+                        left[i],
+                        left_weight,
+                        right[i],
+                        right_weight,
+                        hue_interpolation,
+                    ))
+                } else {
+                    let interpolated = interpolate_premultiplied_component(
+                        left[i],
+                        left_weight,
+                        alpha.left,
+                        right[i],
+                        right_weight,
+                        alpha.right,
+                    );
 
-    result
+                    if alpha.interpolated == 0.0 {
+                        interpolated
+                    } else {
+                        interpolated / alpha.interpolated
+                    }
+                };
+            },
+            ComponentMixOutcome::UseLeft => result[i] = left[i],
+            ComponentMixOutcome::UseRight => result[i] = right[i],
+            ComponentMixOutcome::None => {
+                result[i] = 0.0;
+                match i {
+                    0 => flags.insert(ColorFlags::C1_IS_NONE),
+                    1 => flags.insert(ColorFlags::C2_IS_NONE),
+                    2 => flags.insert(ColorFlags::C3_IS_NONE),
+                    _ => unreachable!(),
+                }
+            },
+        }
+    }
+    result[3] = alpha.interpolated;
+
+    (result, flags)
 }

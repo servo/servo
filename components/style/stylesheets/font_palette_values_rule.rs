@@ -7,7 +7,6 @@
 //! [font-palette-values]: https://drafts.csswg.org/css-fonts/#font-palette-values
 
 use crate::error_reporting::ContextualParseError;
-use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::{
     bindings::Gecko_AppendPaletteValueHashEntry,
@@ -16,20 +15,22 @@ use crate::gecko_bindings::{
     structs::gfx::FontPaletteValueSet_PaletteValues_kDark,
     structs::gfx::FontPaletteValueSet_PaletteValues_kLight,
 };
+use crate::parser::{Parse, ParserContext};
 use crate::shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
+use crate::stylesheets::font_feature_values_rule::parse_family_name_list;
 use crate::values::computed::font::FamilyName;
 use crate::values::specified::Color as SpecifiedColor;
 use crate::values::specified::NonNegativeInteger;
 use crate::values::DashedIdent;
-use cssparser::{AtRuleParser, CowRcStr};
-use cssparser::{DeclarationParser, DeclarationListParser, Parser};
-use cssparser::{QualifiedRuleParser, SourceLocation};
-use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use style_traits::{Comma, OneOrMoreSeparated};
+use cssparser::{
+    AtRuleParser, CowRcStr, DeclarationParser, Parser, QualifiedRuleParser, RuleBodyItemParser,
+    RuleBodyParser, SourceLocation,
+};
 use selectors::parser::SelectorParseErrorKind;
-use crate::stylesheets::font_feature_values_rule::parse_family_name_list;
+use std::fmt::{self, Write};
+use style_traits::{Comma, OneOrMoreSeparated};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
@@ -121,18 +122,17 @@ impl FontPaletteValuesRule {
         location: SourceLocation,
     ) -> Self {
         let mut rule = FontPaletteValuesRule::new(name, location);
-        {
-            let parser = FontPaletteValuesDeclarationParser {
-                context: context,
-                rule: &mut rule,
-            };
-            let mut iter = DeclarationListParser::new(input, parser);
-            while let Some(declaration) = iter.next() {
-                if let Err((error, slice)) = declaration {
-                    let location = error.location;
-                    let error = ContextualParseError::UnsupportedFontPaletteValuesDescriptor(slice, error);
-                    context.log_css_error(location, error);
-                }
+        let mut parser = FontPaletteValuesDeclarationParser {
+            context,
+            rule: &mut rule,
+        };
+        let mut iter = RuleBodyParser::new(input, &mut parser);
+        while let Some(declaration) = iter.next() {
+            if let Err((error, slice)) = declaration {
+                let location = error.location;
+                let error =
+                    ContextualParseError::UnsupportedFontPaletteValuesDescriptor(slice, error);
+                context.log_css_error(location, error);
             }
         }
         rule
@@ -167,26 +167,28 @@ impl FontPaletteValuesRule {
         for ref family in self.family_names.iter() {
             let family = family.name.to_ascii_lowercase();
             let palette_values = unsafe {
-                Gecko_AppendPaletteValueHashEntry(
-                    dest,
-                    family.as_ptr(),
-                    self.name.0.as_ptr()
-                )
+                Gecko_AppendPaletteValueHashEntry(dest, family.as_ptr(), self.name.0.as_ptr())
             };
             if let Some(base_palette) = &self.base_palette {
                 unsafe {
-                    Gecko_SetFontPaletteBase(palette_values, match &base_palette {
-                        FontPaletteBase::Light => FontPaletteValueSet_PaletteValues_kLight,
-                        FontPaletteBase::Dark => FontPaletteValueSet_PaletteValues_kDark,
-                        FontPaletteBase::Index(i) => i.0.value() as i32,
-                    });
+                    Gecko_SetFontPaletteBase(
+                        palette_values,
+                        match &base_palette {
+                            FontPaletteBase::Light => FontPaletteValueSet_PaletteValues_kLight,
+                            FontPaletteBase::Dark => FontPaletteValueSet_PaletteValues_kDark,
+                            FontPaletteBase::Index(i) => i.0.value() as i32,
+                        },
+                    );
                 }
             }
             for c in &self.override_colors {
                 if let SpecifiedColor::Absolute(ref absolute) = c.color {
-                    let rgba = absolute.color.to_rgba();
                     unsafe {
-                        Gecko_SetFontPaletteOverride(palette_values, c.index.0.value(), rgba);
+                        Gecko_SetFontPaletteOverride(
+                            palette_values,
+                            c.index.0.value(),
+                            (&absolute.color) as *const _ as *mut _,
+                        );
                     }
                 }
             }
@@ -230,13 +232,13 @@ fn parse_override_colors<'i, 't>(
 }
 
 impl<'a, 'b, 'i> DeclarationParser<'i> for FontPaletteValuesDeclarationParser<'a> {
-   type Declaration = ();
-   type Error = StyleParseErrorKind<'i>;
+    type Declaration = ();
+    type Error = StyleParseErrorKind<'i>;
 
-   fn parse_value<'t>(
-       &mut self,
-       name: CowRcStr<'i>,
-       input: &mut Parser<'i, 't>,
+    fn parse_value<'t>(
+        &mut self,
+        name: CowRcStr<'i>,
+        input: &mut Parser<'i, 't>,
     ) -> Result<(), ParseError<'i>> {
         match_ignore_ascii_case! { &*name,
             "font-family" => {
@@ -251,5 +253,16 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for FontPaletteValuesDeclarationParser<'a
             _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone()))),
         }
         Ok(())
+    }
+}
+
+impl<'a, 'i> RuleBodyItemParser<'i, (), StyleParseErrorKind<'i>>
+    for FontPaletteValuesDeclarationParser<'a>
+{
+    fn parse_declarations(&self) -> bool {
+        true
+    }
+    fn parse_qualified(&self) -> bool {
+        false
     }
 }

@@ -481,7 +481,7 @@
       }
     },
     {
-      "name": "pow (square) float32 4D base tensor and broadcastable 1D integer exponent tensor",
+      "name": "pow (square) float32 4D base tensor and broadcastable 0D integer exponent scalar",
       "inputs": {
         "a": {
           "shape": [2, 2, 2, 3],
@@ -514,7 +514,7 @@
           "type": "float32"
         },
         "b": {
-          "shape": [1],
+          "shape": [],
           "data": [2], // square
           "type": "float32",
           "constant": true
@@ -553,7 +553,7 @@
       }
     },
     {
-      "name": "pow (sqrt) float32 4D positive base tensor and broadcastable 1D integer exponent tensor",
+      "name": "pow (sqrt) float32 4D positive base tensor and broadcastable 0D integer exponent scalar",
       "inputs": {
         "a": {
           "shape": [2, 2, 2, 3],
@@ -586,7 +586,7 @@
           "type": "float32"
         },
         "b": {
-          "shape": [1],
+          "shape": [],
           "data": [0.5], // sqrt
           "type": "float32",
           "constant": true

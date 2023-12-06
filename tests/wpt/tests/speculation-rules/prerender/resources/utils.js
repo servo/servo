@@ -1,7 +1,10 @@
 const STORE_URL = '/speculation-rules/prerender/resources/key-value-store.py';
 
 // Starts prerendering for `url`.
-function startPrerendering(url) {
+//
+// `rule_extras` provides additional parameters for the speculation rule used
+// to trigger prerendering.
+function startPrerendering(url, rule_extras = {}) {
   // Adds <script type="speculationrules"> and specifies a prerender candidate
   // for the given URL.
   // TODO(https://crbug.com/1174978): <script type="speculationrules"> may not
@@ -9,7 +12,8 @@ function startPrerendering(url) {
   // WebDriver API to force prerendering.
   const script = document.createElement('script');
   script.type = 'speculationrules';
-  script.text = `{"prerender": [{"source": "list", "urls": ["${url}"] }] }`;
+  script.text = JSON.stringify(
+      {prerender: [{source: 'list', urls: [url], ...rule_extras}]});
   document.head.appendChild(script);
 }
 
@@ -98,7 +102,10 @@ async function writeValueToServer(key, value) {
 
 // Loads the initiator page, and navigates to the prerendered page after it
 // receives the 'readyToActivate' message.
-function loadInitiatorPage() {
+//
+// `rule_extras` provides additional parameters for the speculation rule used
+// to trigger prerendering.
+function loadInitiatorPage(rule_extras = {}) {
   // Used to communicate with the prerendering page.
   const prerenderChannel = new PrerenderChannel('prerender-channel');
   window.addEventListener('unload', () => {
@@ -121,11 +128,15 @@ function loadInitiatorPage() {
   url.searchParams.append('prerendering', '');
   // Prerender a page that notifies the initiator page of the page's ready to be
   // activated via the 'readyToActivate'.
-  startPrerendering(url.toString());
+  startPrerendering(url.toString(), rule_extras);
 
   // Navigate to the prerendered page after being informed.
   readyToActivate.then(() => {
-    window.location = url.toString();
+    if (rule_extras['target_hint'] === '_blank') {
+      window.open(url.toString(), '_blank', 'noopener');
+    } else {
+      window.location = url.toString();
+    }
   }).catch(e => {
     const testChannel = new PrerenderChannel('test-channel');
     testChannel.postMessage(
@@ -422,4 +433,16 @@ function failTest(reason, uid) {
   const bc = new PrerenderChannel('test-channel', uid);
   bc.postMessage({result: 'FAILED', reason});
   bc.close();
+}
+
+// Retrieves a target hint from URLSearchParams of the current window and
+// returns it. Throw an Error if it doesn't have the valid target hint param.
+function getTargetHint() {
+  const params = new URLSearchParams(window.location.search);
+  const target_hint = params.get('target_hint');
+  if (target_hint === null)
+    throw new Error('window.location does not have a target hint param');
+  if (target_hint !== '_self' && target_hint !== '_blank')
+    throw new Error('window.location does not have a valid target hint param');
+  return target_hint;
 }

@@ -457,6 +457,9 @@ mod gen {
                     enabled: bool,
                 },
                 legacy_layout: bool,
+                tables: {
+                    enabled: bool,
+                },
                 #[serde(default = "default_layout_threads")]
                 threads: i64,
                 writing_mode: {

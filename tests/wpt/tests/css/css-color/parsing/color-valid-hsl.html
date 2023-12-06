@@ -33,6 +33,19 @@ test_valid_value("color", "hsl(120 100% 50% / 0)", "rgba(0, 255, 0, 0)");
 test_valid_value("color", "hsl(none 100% 50%)", "rgb(255, 0, 0)");
 test_valid_value("color", "hsl(0 100% 50%)", "rgb(255, 0, 0)");
 
+// Test with number components.
+test_valid_value("color", "hsl(120 30 50)", "rgb(89, 166, 89)");
+test_valid_value("color", "hsl(120 30 50 / 0.5)", "rgba(89, 166, 89, 0.5)");
+test_valid_value("color", "hsl(120 30% 50)", "rgb(89, 166, 89)");
+test_valid_value("color", "hsl(120 30% 50 / 0.5)", "rgba(89, 166, 89, 0.5)");
+test_valid_value("color", "hsl(120 30 50%)", "rgb(89, 166, 89)");
+test_valid_value("color", "hsl(120 30 50% / 0.5)", "rgba(89, 166, 89, 0.5)");
+test_valid_value("color", "hsl(120 none 50)", "rgb(128, 128, 128)");
+test_valid_value("color", "hsl(120 none 50 / 0.5)", "rgba(128, 128, 128, 0.5)");
+test_valid_value("color", "hsl(120 30 none)", "rgb(0, 0, 0)");
+test_valid_value("color", "hsl(120 30 none / 0.5)", "rgba(0, 0, 0, 0.5)");
+test_valid_value("color", "hsl(120 30 50 / none)", "rgba(89, 166, 89, 0)");
+
 // Test non-finite values. calc(infinity) goes to upper bound while calc(-infinity) and NaN go to the lower bound.
 // See: https://github.com/w3c/csswg-drafts/issues/8629
 test_valid_value("color", "hsl(calc(infinity) 100% 50%)", "rgb(255, 0, 0)"); // hsl(360 100% 50%)

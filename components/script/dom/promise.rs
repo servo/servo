@@ -42,7 +42,7 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
-#[unrooted_must_root_lint::allow_unrooted_in_rc]
+#[crown::unrooted_must_root_lint::allow_unrooted_in_rc]
 pub struct Promise {
     reflector: Reflector,
     /// Since Promise values are natively reference counted without the knowledge of
@@ -106,7 +106,7 @@ impl Promise {
         Promise::new_with_js_promise(self.reflector().get_jsobject(), cx)
     }
 
-    #[allow(unsafe_code, unrooted_must_root)]
+    #[allow(unsafe_code, crown::unrooted_must_root)]
     pub fn new_with_js_promise(obj: HandleObject, cx: SafeJSContext) -> Rc<Promise> {
         unsafe {
             assert!(IsPromiseObject(obj));
@@ -145,7 +145,7 @@ impl Promise {
         }
     }
 
-    #[allow(unrooted_must_root, unsafe_code)]
+    #[allow(crown::unrooted_must_root, unsafe_code)]
     pub fn new_resolved(
         global: &GlobalScope,
         cx: SafeJSContext,
@@ -157,7 +157,7 @@ impl Promise {
         Ok(Promise::new_with_js_promise(p.handle(), cx))
     }
 
-    #[allow(unrooted_must_root, unsafe_code)]
+    #[allow(crown::unrooted_must_root, unsafe_code)]
     pub fn new_rejected(
         global: &GlobalScope,
         cx: SafeJSContext,
@@ -183,7 +183,7 @@ impl Promise {
         self.resolve(cx, v.handle());
     }
 
-    #[allow(unrooted_must_root, unsafe_code)]
+    #[allow(crown::unrooted_must_root, unsafe_code)]
     pub fn resolve(&self, cx: SafeJSContext, value: HandleValue) {
         unsafe {
             if !ResolvePromise(*cx, self.promise_obj(), value) {
@@ -217,7 +217,7 @@ impl Promise {
         self.reject(cx, v.handle());
     }
 
-    #[allow(unrooted_must_root, unsafe_code)]
+    #[allow(crown::unrooted_must_root, unsafe_code)]
     pub fn reject(&self, cx: SafeJSContext, value: HandleValue) {
         unsafe {
             if !RejectPromise(*cx, self.promise_obj(), value) {

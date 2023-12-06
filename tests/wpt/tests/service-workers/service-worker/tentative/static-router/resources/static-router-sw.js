@@ -1,33 +1,13 @@
 'use strict';
 
+import {routerRules} from './router-rules.js';
+
 var requests = [];
 
-self.addEventListener('install', e => {
-  e.registerRouter([
-    {condition: {requestMode: 'no-cors'}, source: 'network'}, {
-      condition: {urlPattern: '/**/*.txt??*'},
-      // Note: "??*" is for allowing arbitrary query strings.
-      // Upon my experiment, the URLPattern needs two '?'s for specifying
-      // a coming string as a query.
-      source: 'network'
-    },
-    {
-      condition:
-          {urlPattern: '/**/simple-test-for-condition-main-resource.html'},
-      source: 'network'
-    },
-    {
-      condition: {
-        or: [
-          {
-            or: [{urlPattern: '/**/or-test/direct1.*??*'}],
-          },
-          {urlPattern: '/**/or-test/direct2.*??*'}
-        ]
-      },
-      source: 'network'
-    }
-  ]);
+self.addEventListener('install', async e => {
+  const params = new URLSearchParams(location.search);
+  const key = params.get('key');
+  await e.addRoutes(routerRules[key]);
   self.skipWaiting();
 });
 

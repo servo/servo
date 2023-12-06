@@ -39,7 +39,7 @@ pub struct CSSStyleDeclaration {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub enum CSSStyleOwner {
     Element(Dom<Element>),
     CSSRule(
@@ -209,7 +209,7 @@ fn remove_property(decls: &mut PropertyDeclarationBlock, id: &PropertyId) -> boo
 }
 
 impl CSSStyleDeclaration {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(
         owner: CSSStyleOwner,
         pseudo: Option<PseudoElement>,
@@ -223,7 +223,7 @@ impl CSSStyleDeclaration {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         global: &Window,
         owner: CSSStyleOwner,
@@ -301,7 +301,7 @@ impl CSSStyleDeclaration {
             // Step 5
             let window = self.owner.window();
             let quirks_mode = window.Document().quirks_mode();
-            let mut declarations = SourcePropertyDeclaration::new();
+            let mut declarations = SourcePropertyDeclaration::default();
             let result = parse_one_declaration_into(
                 &mut declarations,
                 id,

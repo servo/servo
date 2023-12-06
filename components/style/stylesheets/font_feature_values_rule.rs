@@ -18,9 +18,10 @@ use crate::stylesheets::CssRuleType;
 use crate::values::computed::font::FamilyName;
 use crate::values::serialize_atom_identifier;
 use crate::Atom;
-use cssparser::{AtRuleParser, BasicParseErrorKind, CowRcStr};
-use cssparser::{DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{ParserState, QualifiedRuleParser, RuleListParser, SourceLocation, Token};
+use cssparser::{
+    AtRuleParser, BasicParseErrorKind, CowRcStr, DeclarationParser, Parser, ParserState,
+    QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser, SourceLocation, Token,
+};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
@@ -193,6 +194,12 @@ impl<'a, 'b, 'i, T> AtRuleParser<'i> for FFVDeclarationsParser<'a, 'b, T> {
     type Error = StyleParseErrorKind<'i>;
 }
 
+impl<'a, 'b, 'i, T> QualifiedRuleParser<'i> for FFVDeclarationsParser<'a, 'b, T> {
+    type Prelude = ();
+    type QualifiedRule = ();
+    type Error = StyleParseErrorKind<'i>;
+}
+
 impl<'a, 'b, 'i, T> DeclarationParser<'i> for FFVDeclarationsParser<'a, 'b, T>
 where
     T: Parse,
@@ -208,10 +215,23 @@ where
         let value = input.parse_entirely(|i| T::parse(self.context, i))?;
         let new = FFVDeclaration {
             name: Atom::from(&*name),
-            value: value,
+            value,
         };
         update_or_push(&mut self.declarations, new);
         Ok(())
+    }
+}
+
+impl<'a, 'b, 'i, T> RuleBodyItemParser<'i, (), StyleParseErrorKind<'i>>
+    for FFVDeclarationsParser<'a, 'b, T>
+where
+    T: Parse,
+{
+    fn parse_declarations(&self) -> bool {
+        true
+    }
+    fn parse_qualified(&self) -> bool {
+        false
     }
 }
 
@@ -258,18 +278,16 @@ macro_rules! font_feature_values_blocks {
                 location: SourceLocation,
             ) -> Self {
                 let mut rule = FontFeatureValuesRule::new(family_names, location);
-
-                {
-                    let mut iter = RuleListParser::new_for_nested_rule(input, FontFeatureValuesRuleParser {
-                        context: context,
-                        rule: &mut rule,
-                    });
-                    while let Some(result) = iter.next() {
-                        if let Err((error, slice)) = result {
-                            let location = error.location;
-                            let error = ContextualParseError::UnsupportedRule(slice, error);
-                            context.log_css_error(location, error);
-                        }
+                let mut parser = FontFeatureValuesRuleParser {
+                    context,
+                    rule: &mut rule,
+                };
+                let mut iter = RuleBodyParser::new(input, &mut parser);
+                while let Some(result) = iter.next() {
+                    if let Err((error, slice)) = result {
+                        let location = error.location;
+                        let error = ContextualParseError::UnsupportedRule(slice, error);
+                        context.log_css_error(location, error);
                     }
                 }
                 rule
@@ -341,9 +359,8 @@ macro_rules! font_feature_values_blocks {
 
         /// Updates with new value if same `ident` exists, otherwise pushes to the vector.
         fn update_or_push<T>(vec: &mut Vec<FFVDeclaration<T>>, element: FFVDeclaration<T>) {
-            let position = vec.iter().position(|ref val| val.name == element.name);
-            if let Some(index) = position {
-                vec[index].value = element.value;
+            if let Some(item) = vec.iter_mut().find(|item| item.name == element.name) {
+                item.value = element.value;
             } else {
                 vec.push(element);
             }
@@ -398,16 +415,16 @@ macro_rules! font_feature_values_blocks {
                 _: &ParserState,
                 input: &mut Parser<'i, 't>
             ) -> Result<Self::AtRule, ParseError<'i>> {
-                debug_assert_eq!(self.context.rule_type(), CssRuleType::FontFeatureValues);
+                debug_assert!(self.context.rule_types().contains(CssRuleType::FontFeatureValues));
                 match prelude {
                     $(
                         BlockType::$ident_camel => {
-                            let parser = FFVDeclarationsParser {
+                            let mut parser = FFVDeclarationsParser {
                                 context: &self.context,
                                 declarations: &mut self.rule.$ident,
                             };
 
-                            let mut iter = DeclarationListParser::new(input, parser);
+                            let mut iter = RuleBodyParser::new(input, &mut parser);
                             while let Some(declaration) = iter.next() {
                                 if let Err((error, slice)) = declaration {
                                     let location = error.location;
@@ -423,6 +440,16 @@ macro_rules! font_feature_values_blocks {
 
                 Ok(())
             }
+        }
+
+        impl<'a, 'i> DeclarationParser<'i> for FontFeatureValuesRuleParser<'a> {
+            type Declaration = ();
+            type Error = StyleParseErrorKind<'i>;
+        }
+
+        impl<'a, 'i> RuleBodyItemParser<'i, (), StyleParseErrorKind<'i>> for FontFeatureValuesRuleParser<'a> {
+            fn parse_declarations(&self) -> bool { false }
+            fn parse_qualified(&self) -> bool { true }
         }
     }
 }

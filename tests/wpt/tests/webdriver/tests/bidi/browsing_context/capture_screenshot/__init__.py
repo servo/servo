@@ -1,6 +1,7 @@
 from math import floor
 from ... import (
     get_device_pixel_ratio,
+    get_document_dimensions,
     get_element_dimensions,
     get_viewport_dimensions,
     remote_mapping_to_dict,
@@ -70,6 +71,18 @@ async def get_physical_viewport_dimensions(bidi_session, context):
     viewport = await get_viewport_dimensions(bidi_session, context)
     dpr = await get_device_pixel_ratio(bidi_session, context)
     return (floor(viewport["width"] * dpr), floor(viewport["height"] * dpr))
+
+
+async def get_physical_document_dimensions(bidi_session, context):
+    """Get the physical dimensions of the context's document.
+
+    :param bidi_session: BiDiSession
+    :param context: Browsing context ID
+    :returns: Tuple of (int, int) containing document width, document height.
+    """
+    document = await get_document_dimensions(bidi_session, context)
+    dpr = await get_device_pixel_ratio(bidi_session, context)
+    return (floor(document["width"] * dpr), floor(document["height"] * dpr))
 
 
 async def get_reference_screenshot(bidi_session, inline, context, html):

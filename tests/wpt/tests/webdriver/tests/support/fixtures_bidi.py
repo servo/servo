@@ -110,7 +110,7 @@ def wait_for_future_safe(configuration):
 
     async def wait_for_future_safe(future: Coroutine, timeout: float = 2.0):
         try:
-            await asyncio.wait_for(
+            return await asyncio.wait_for(
                 asyncio.shield(future),
                 timeout=timeout * configuration["timeout_multiplier"],
             )

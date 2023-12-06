@@ -13,7 +13,7 @@ PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
 
 @pytest.mark.asyncio
 async def test_same_navigation_id(
-    bidi_session, top_context, wait_for_event, url, setup_network_test
+    bidi_session, top_context, wait_for_event, wait_for_future_safe, url, setup_network_test
 ):
     network_events = await setup_network_test(
         events=[
@@ -31,7 +31,7 @@ async def test_same_navigation_id(
         url=html_url,
         wait="complete",
     )
-    await on_response_completed
+    await wait_for_future_safe(on_response_completed)
 
     assert len(network_events["network.beforeRequestSent"]) == 1
     assert len(network_events["network.responseStarted"]) == 1
@@ -59,7 +59,7 @@ async def test_same_navigation_id(
 
 
 @pytest.mark.asyncio
-async def test_same_request_id(wait_for_event, url, setup_network_test, fetch):
+async def test_same_request_id(wait_for_event, wait_for_future_safe, url, setup_network_test, fetch):
     network_events = await setup_network_test(
         events=[
             "network.beforeRequestSent",
@@ -74,7 +74,7 @@ async def test_same_request_id(wait_for_event, url, setup_network_test, fetch):
     text_url = url(PAGE_EMPTY_TEXT)
     on_response_completed = wait_for_event("network.responseCompleted")
     await fetch(text_url)
-    await on_response_completed
+    await wait_for_future_safe(on_response_completed)
 
     assert len(before_request_sent_events) == 1
     assert len(response_started_events) == 1
@@ -97,19 +97,17 @@ async def test_same_request_id(wait_for_event, url, setup_network_test, fetch):
     )
 
     assert (
-        before_request_sent_events[0]["request"]["request"]
-        == response_started_events[0]["request"]["request"]
+        before_request_sent_events[0]["request"]["request"] == response_started_events[0]["request"]["request"]
     )
 
     assert (
-        before_request_sent_events[0]["request"]["request"]
-        == response_completed_events[0]["request"]["request"]
+        before_request_sent_events[0]["request"]["request"] == response_completed_events[0]["request"]["request"]
     )
 
 
 @pytest.mark.asyncio
 async def test_subscribe_to_one_context(
-    bidi_session, top_context, wait_for_event, url, fetch, setup_network_test
+    bidi_session, top_context, wait_for_event, wait_for_future_safe, url, fetch, setup_network_test
 ):
     other_context = await bidi_session.browsing_context.create(type_hint="tab")
     await bidi_session.browsing_context.navigate(
@@ -131,7 +129,7 @@ async def test_subscribe_to_one_context(
     text_url = url(PAGE_EMPTY_TEXT)
     on_response_completed = wait_for_event("network.responseCompleted")
     await fetch(text_url, context=top_context)
-    await on_response_completed
+    await wait_for_future_safe(on_response_completed)
 
     assert len(network_events["network.beforeRequestSent"]) == 1
     assert len(network_events["network.responseStarted"]) == 1

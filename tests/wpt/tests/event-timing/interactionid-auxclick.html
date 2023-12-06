@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing: interactionId-auxclick.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/event-timing-test-utils.js></script>
+<div id='target'>Right click me to bring up OS level contextmenu popup.</div>
+
+<script>
+  const map = new Map();
+  const events = ['pointerdown', 'pointerup'];
+
+  promise_test(async t => {
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+
+    const callback = (entryList) => { entryList.getEntries().filter(filterAndAddToMap(events, map)); };
+    const readyToResolve = () => { return map.has('pointerup'); };
+    const observerPromise = createPerformanceObserverPromise(['event'], callback, readyToResolve);
+
+    await interactAndObserve('auxclick', document.getElementById('target'), observerPromise);
+
+    assert_true(map.has('pointerdown'), 'Pointerdown should be reported.');
+    assert_greater_than(map.get('pointerdown'), 0, 'The pointerdown entry should have a non-trivial interactionId');
+    assert_equals(map.get('pointerdown'), map.get('pointerup'), 'The pointerdown and the pointerup should have the same interactionId');
+  }, "Event Timing: verify pointerdown & pointerup reporting for mouse aux click triggered contextmenu.");
+
+</script>
+</html>

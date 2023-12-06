@@ -8,22 +8,20 @@
   started = false;
   gone = false;
   pages = []
-  timer = null;
-  start_test_wait = t.step_func(
+  timer = setInterval(
     function() {
-      clearTimeout(timer);
-      timer = setTimeout(t.step_func(
+      if (pages.length < 3)
+        return;
+      clearInterval(timer);
+      setTimeout(t.step_func(
         function() {
-          try {
-            assert_array_equals(pages, [3, 2, 2], "Pages opened during history navigation");
-            t.done();
-          } finally {
-            win.close();
-          }
+          assert_array_equals(pages, [3, 2, 2], "Pages opened during history navigation");
+          t.done();
         }
       ), 500);
-    }
-  );
-  t.step(function() {win = window.open("history_entry.html?urls=history_go_zero-1.html,history_forward-2.html");
-});
+    }, 50);
+  t.step(function() {
+    win = window.open("history_entry.html?urls=history_go_zero-1.html,history_forward-2.html");
+    t.add_cleanup(function() { win.close(); });
+  });
 </script>

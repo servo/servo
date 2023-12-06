@@ -670,7 +670,7 @@ const gCSSProperties1 = {
   'grid-template-areas': {
     // https://drafts.csswg.org/css-template/#grid-template-areas
     types: [
-      { type: 'discrete', options: [ [ '". . a b" ". .a b"', 'none' ] ] }
+      { type: 'discrete', options: [ [ '". . a b" ". . a b"', 'none' ] ] }
     ]
   },
   'height': {
@@ -1433,6 +1433,12 @@ const gCSSProperties2 = {
   'vertical-align': {
     // https://drafts.csswg.org/css21/visudet.html#propdef-vertical-align
     types: [
+    ]
+  },
+  'view-transition-name': {
+    // https://drafts.csswg.org/css-view-transitions/#propdef-view-transition-name
+    types: [
+      { type: 'discrete', options: [ [ 'none', 'header' ] ] },
     ]
   },
   'visibility': {

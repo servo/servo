@@ -20,9 +20,11 @@ where
             return Err(());
         }
         match (self, other) {
-            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => Ok(
-                SVGStrokeDashArray::Values(super::lists::repeatable_list::animate(this, other, procedure)?),
-            ),
+            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
+                Ok(SVGStrokeDashArray::Values(
+                    super::lists::repeatable_list::animate(this, other, procedure)?,
+                ))
+            },
             _ => Err(()),
         }
     }

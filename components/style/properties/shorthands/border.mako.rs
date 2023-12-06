@@ -90,13 +90,10 @@ pub fn parse_border<'i, 't>(
         }
         break
     }
-    if any {
-        Ok((color.unwrap_or_else(|| Color::currentcolor()),
-            style.unwrap_or(BorderStyle::None),
-            width.unwrap_or(BorderSideWidth::Medium)))
-    } else {
-        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+    if !any {
+        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
+    Ok((color.unwrap_or(Color::CurrentColor), style.unwrap_or(BorderStyle::None), width.unwrap_or(BorderSideWidth::medium())))
 }
 
 % for side, logical in ALL_SIDES:
@@ -110,7 +107,7 @@ pub fn parse_border<'i, 't>(
         engines="gecko servo"
         sub_properties="${' '.join(
             'border-%s-%s' % (side, prop)
-            for prop in ['color', 'style', 'width']
+            for prop in ['width', 'style', 'color']
         )}"
         aliases="${maybe_moz_logical_alias(engine, (side, logical), '-moz-border-%s')}"
         spec="${spec}">
@@ -129,7 +126,7 @@ pub fn parse_border<'i, 't>(
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            super::serialize_directional_border(
+            crate::values::specified::border::serialize_directional_border(
                 dest,
                 self.border_${to_rust_ident(side)}_width,
                 self.border_${to_rust_ident(side)}_style,
@@ -144,8 +141,8 @@ pub fn parse_border<'i, 't>(
 <%helpers:shorthand name="border"
     engines="gecko servo"
     sub_properties="${' '.join('border-%s-%s' % (side, prop)
-        for side in PHYSICAL_SIDES
-        for prop in ['color', 'style', 'width'])}
+        for side in PHYSICAL_SIDES for prop in ['width', 'style', 'color']
+        )}
         ${' '.join('border-image-%s' % name
         for name in ['outset', 'repeat', 'slice', 'source', 'width'])}"
     derive_value_info="False"
@@ -208,16 +205,15 @@ pub fn parse_border<'i, 't>(
 
             // If all longhands are all present, then all sides should be the same,
             // so we can just one set of color/style/width
-            if all_equal {
-                super::serialize_directional_border(
-                    dest,
-                    self.border_${side}_width,
-                    self.border_${side}_style,
-                    self.border_${side}_color
-                )
-            } else {
-                Ok(())
+            if !all_equal {
+                return Ok(())
             }
+            crate::values::specified::border::serialize_directional_border(
+                dest,
+                self.border_${side}_width,
+                self.border_${side}_style,
+                self.border_${side}_color
+            )
         }
     }
 
@@ -297,90 +293,106 @@ pub fn parse_border<'i, 't>(
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
         % for name in "outset repeat slice source width".split():
-            let mut border_image_${name} = border_image_${name}::get_initial_specified_value();
+        let mut ${name} = border_image_${name}::get_initial_specified_value();
         % endfor
+        let mut any = false;
+        let mut parsed_slice = false;
+        let mut parsed_source = false;
+        let mut parsed_repeat = false;
+        loop {
+            if !parsed_slice {
+                if let Ok(value) = input.try_parse(|input| border_image_slice::parse(context, input)) {
+                    parsed_slice = true;
+                    any = true;
+                    slice = value;
+                    // Parse border image width and outset, if applicable.
+                    let maybe_width_outset: Result<_, ParseError> = input.try_parse(|input| {
+                        input.expect_delim('/')?;
 
-        let result: Result<_, ParseError> = input.try_parse(|input| {
-            % for name in "outset repeat slice source width".split():
-                let mut ${name} = None;
-            % endfor
-            loop {
-                if slice.is_none() {
-                    if let Ok(value) = input.try_parse(|input| border_image_slice::parse(context, input)) {
-                        slice = Some(value);
-                        // Parse border image width and outset, if applicable.
-                        let maybe_width_outset: Result<_, ParseError> = input.try_parse(|input| {
+                        // Parse border image width, if applicable.
+                        let w = input.try_parse(|input| border_image_width::parse(context, input)).ok();
+
+                        // Parse border image outset if applicable.
+                        let o = input.try_parse(|input| {
                             input.expect_delim('/')?;
-
-                            // Parse border image width, if applicable.
-                            let w = input.try_parse(|input|
-                                border_image_width::parse(context, input)).ok();
-
-                            // Parse border image outset if applicable.
-                            let o = input.try_parse(|input| {
-                                input.expect_delim('/')?;
-                                border_image_outset::parse(context, input)
-                            }).ok();
-                            if w.is_none() && o.is_none() {
-                               Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-                            }
-                            else {
-                               Ok((w, o))
-                            }
-                        });
-                        if let Ok((w, o)) = maybe_width_outset {
+                            border_image_outset::parse(context, input)
+                        }).ok();
+                        if w.is_none() && o.is_none() {
+                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                        }
+                        Ok((w, o))
+                    });
+                    if let Ok((w, o)) = maybe_width_outset {
+                        if let Some(w) = w {
                             width = w;
+                        }
+                        if let Some(o) = o {
                             outset = o;
                         }
-
+                    }
+                    continue;
+                }
+            }
+            % for name in "source repeat".split():
+                if !parsed_${name} {
+                    if let Ok(value) = input.try_parse(|input| border_image_${name}::parse(context, input)) {
+                        ${name} = value;
+                        parsed_${name} = true;
+                        any = true;
                         continue
                     }
                 }
-                % for name in "source repeat".split():
-                    if ${name}.is_none() {
-                        if let Ok(value) = input.try_parse(|input| border_image_${name}::parse(context, input)) {
-                            ${name} = Some(value);
-                            continue
-                        }
-                    }
-                % endfor
-                break
-            }
-            let mut any = false;
-            % for name in "outset repeat slice source width".split():
-                any = any || ${name}.is_some();
             % endfor
-            if any {
-                % for name in "outset repeat slice source width".split():
-                    if let Some(b_${name}) = ${name} {
-                        border_image_${name} = b_${name};
-                    }
-                % endfor
-                Ok(())
-            } else {
-                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-            }
-        });
-        result?;
-
+            break
+        }
+        if !any {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
         Ok(expanded! {
             % for name in "outset repeat slice source width".split():
-                border_image_${name}: border_image_${name},
+                border_image_${name}: ${name},
             % endfor
          })
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            self.border_image_source.to_css(dest)?;
-            dest.write_char(' ')?;
-            self.border_image_slice.to_css(dest)?;
-            dest.write_str(" / ")?;
-            self.border_image_width.to_css(dest)?;
-            dest.write_str(" / ")?;
-            self.border_image_outset.to_css(dest)?;
-            dest.write_char(' ')?;
-            self.border_image_repeat.to_css(dest)
+            let mut has_any = false;
+            % for name in "source slice outset width repeat".split():
+            let has_${name} = *self.border_image_${name} != border_image_${name}::get_initial_specified_value();
+            has_any = has_any || has_${name};
+            % endfor
+            if has_source || !has_any {
+                self.border_image_source.to_css(dest)?;
+                if !has_any {
+                    return Ok(());
+                }
+            }
+            let needs_slice = has_slice || has_width || has_outset;
+            if needs_slice {
+                if has_source {
+                    dest.write_char(' ')?;
+                }
+                self.border_image_slice.to_css(dest)?;
+                if has_width || has_outset {
+                    dest.write_str(" /")?;
+                    if has_width {
+                        dest.write_char(' ')?;
+                        self.border_image_width.to_css(dest)?;
+                    }
+                    if has_outset {
+                        dest.write_str(" / ")?;
+                        self.border_image_outset.to_css(dest)?;
+                    }
+                }
+            }
+            if has_repeat {
+                if has_source || needs_slice {
+                    dest.write_char(' ')?;
+                }
+                self.border_image_repeat.to_css(dest)?;
+            }
+            Ok(())
         }
     }
 </%helpers:shorthand>
@@ -468,7 +480,7 @@ pub fn parse_border<'i, 't>(
 
         impl<'a> ToCss for LonghandsToSerialize<'a>  {
             fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-                super::serialize_directional_border(
+                crate::values::specified::border::serialize_directional_border(
                     dest,
                     self.border_${axis}_start_width,
                     self.border_${axis}_start_style,

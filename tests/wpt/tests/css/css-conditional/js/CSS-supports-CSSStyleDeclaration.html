@@ -85,7 +85,9 @@ const properties = [
   "-moz-tab-size",
   "-moz-text-align-last",
   "-moz-text-size-adjust",
-  "-moz-transform",
+  // No -moz-transform here, because it might intentionally break the
+  // expectations of this test for compat reasons, see:
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=1865332
   "-moz-transform-origin",
   "-moz-transform-style",
   "-moz-transition",

@@ -1,9 +1,0 @@
-<!DOCTYPE html>
-<body>
-  <script>
-    var portal = document.createElement("portal");
-    portal.src = "simple-portal.html";
-    portal.onload = e => window.portalHost.postMessage(e.data);
-    document.body.appendChild(portal);
-  </script>
-</body>

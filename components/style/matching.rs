@@ -75,13 +75,6 @@ pub enum ChildRestyleRequirement {
     MustMatchDescendants = 4,
 }
 
-impl ChildRestyleRequirement {
-    /// Whether we can unconditionally skip the cascade.
-    pub fn can_skip_cascade(&self) -> bool {
-        matches!(*self, ChildRestyleRequirement::CanSkipCascade)
-    }
-}
-
 /// Determines which styles are being cascaded currently.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum CascadeVisitedMode {
@@ -418,6 +411,21 @@ trait PrivateMatchMethods: TElement {
         // in addition to the unvisited styles.
 
         let mut tasks = UpdateAnimationsTasks::empty();
+
+        if old_values.as_deref().map_or_else(
+            || new_values.get_ui().specifies_scroll_timelines(),
+            |old| !old.get_ui().scroll_timelines_equals(new_values.get_ui()),
+        ) {
+            tasks.insert(UpdateAnimationsTasks::SCROLL_TIMELINES);
+        }
+
+        if old_values.as_deref().map_or_else(
+            || new_values.get_ui().specifies_view_timelines(),
+            |old| !old.get_ui().view_timelines_equals(new_values.get_ui()),
+        ) {
+            tasks.insert(UpdateAnimationsTasks::VIEW_TIMELINES);
+        }
+
         if self.needs_animations_update(
             context,
             old_values.as_deref(),

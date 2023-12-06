@@ -40,18 +40,20 @@ pub struct App {
     minibrowser: Option<RefCell<Minibrowser>>,
 }
 
+enum Present {
+    Immediate,
+    Deferred,
+    None,
+}
+
 /// Action to be taken by the caller of [`App::handle_events`].
 enum PumpResult {
     /// The caller should shut down Servo and its related context.
     Shutdown,
-    /// A new frame is ready to present. The caller can paint other things themselves during this
-    /// period, but has to call [`Servo::present`] to perform page flip and tell Servo compositor
-    /// to continue rendering.
-    ReadyToPresent,
-    /// The size has changed. The caller can paint other things themselves during this
-    /// period, but has to call [`Servo::present`] to perform page flip and tell Servo compositor
-    /// to continue rendering.
-    Resize,
+    Continue {
+        history_changed: bool,
+        present: Present,
+    },
 }
 
 impl App {
@@ -109,8 +111,15 @@ impl App {
             webrender_surfman.make_gl_context_current().unwrap();
             debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
 
-            app.minibrowser =
-                Some(Minibrowser::new(&webrender_surfman, &events_loop, window.as_ref()).into());
+            app.minibrowser = Some(
+                Minibrowser::new(
+                    &webrender_surfman,
+                    &events_loop,
+                    window.as_ref(),
+                    initial_url.clone(),
+                )
+                .into(),
+            );
         }
 
         if let Some(mut minibrowser) = app.minibrowser() {
@@ -286,64 +295,76 @@ impl App {
             }
 
             // Consume and handle any events from the Minibrowser.
-            if let Some(mut minibrowser) = app.minibrowser() {
+            if let Some(minibrowser) = app.minibrowser() {
                 let browser = &mut app.browser.borrow_mut();
                 let app_event_queue = &mut app.event_queue.borrow_mut();
                 minibrowser.queue_embedder_events_for_minibrowser_events(browser, app_event_queue);
-                if minibrowser.update_location_in_toolbar(browser) {
-                    // Update the minibrowser immediately. While we could update by requesting a
-                    // redraw, doing so would delay the location update by two frames.
-                    minibrowser.update(
-                        window.winit_window().unwrap(),
-                        app.servo.as_ref().unwrap().output_framebuffer_id(),
-                        "update_location_in_toolbar",
-                    );
-                }
             }
 
             match app.handle_events() {
-                Some(PumpResult::Shutdown) => {
+                PumpResult::Shutdown => {
                     *control_flow = winit::event_loop::ControlFlow::Exit;
                     app.servo.take().unwrap().deinit();
                     if let Some(mut minibrowser) = app.minibrowser() {
                         minibrowser.context.destroy();
                     }
                 },
-                Some(PumpResult::ReadyToPresent) => {
-                    // The compositor has painted to this frame.
-                    trace!("PumpResult::ReadyToPresent");
-
-                    // Request a winit redraw event, so we can paint the minibrowser and present.
-                    // Otherwise, it's in headless mode and we present directly.
-                    if let Some(window) = window.winit_window() {
-                        window.request_redraw();
-                    } else {
-                        app.servo.as_mut().unwrap().present();
+                PumpResult::Continue {
+                    history_changed,
+                    present,
+                } => {
+                    if history_changed {
+                        if let Some(mut minibrowser) = app.minibrowser() {
+                            let browser = &mut app.browser.borrow_mut();
+                            if minibrowser.update_location_in_toolbar(browser) {
+                                // Update the minibrowser immediately. While we could update by requesting a
+                                // redraw, doing so would delay the location update by two frames.
+                                minibrowser.update(
+                                    window.winit_window().unwrap(),
+                                    app.servo.as_ref().unwrap().output_framebuffer_id(),
+                                    "update_location_in_toolbar",
+                                );
+                            }
+                        }
                     }
+                    match present {
+                        Present::Immediate => {
+                            // The window was resized.
+                            trace!("PumpResult::Present::Immediate");
 
-                    // We don’t need the compositor to paint to this frame during the redraw event.
-                    // TODO(servo#30331) broken on macOS?
-                    // need_recomposite = false;
-                },
-                Some(PumpResult::Resize) => {
-                    // The window was resized.
-                    trace!("PumpResult::Resize");
+                            // Resizes are unusual in that we need to repaint synchronously.
+                            // TODO(servo#30049) can we replace this with the simpler Servo::recomposite?
+                            app.servo.as_mut().unwrap().repaint_synchronously();
 
-                    // Resizes are unusual in that we need to repaint synchronously.
-                    // TODO(servo#30049) can we replace this with the simpler Servo::recomposite?
-                    app.servo.as_mut().unwrap().repaint_synchronously();
+                            if let Some(mut minibrowser) = app.minibrowser() {
+                                minibrowser.update(
+                                    window.winit_window().unwrap(),
+                                    app.servo.as_ref().unwrap().output_framebuffer_id(),
+                                    "PumpResult::Present::Immediate",
+                                );
+                                minibrowser.paint(window.winit_window().unwrap());
+                            }
+                            app.servo.as_mut().unwrap().present();
+                        },
+                        Present::Deferred => {
+                            // The compositor has painted to this frame.
+                            trace!("PumpResult::Present::Deferred");
 
-                    if let Some(mut minibrowser) = app.minibrowser() {
-                        minibrowser.update(
-                            window.winit_window().unwrap(),
-                            app.servo.as_ref().unwrap().output_framebuffer_id(),
-                            "PumpResult::Resize",
-                        );
-                        minibrowser.paint(window.winit_window().unwrap());
+                            // Request a winit redraw event, so we can paint the minibrowser and present.
+                            // Otherwise, it's in headless mode and we present directly.
+                            if let Some(window) = window.winit_window() {
+                                window.request_redraw();
+                            } else {
+                                app.servo.as_mut().unwrap().present();
+                            }
+
+                            // We don’t need the compositor to paint to this frame during the redraw event.
+                            // TODO(servo#30331) broken on macOS?
+                            // need_recomposite = false;
+                        },
+                        Present::None => {},
                     }
-                    app.servo.as_mut().unwrap().present();
                 },
-                None => {},
             }
         });
     }
@@ -403,7 +424,7 @@ impl App {
     /// Window queues to the Browser queue, and from the Browser queue to Servo. We receive and
     /// collect embedder messages from the various Servo components, then take them out of the
     /// Servo interface so that the Browser can handle them.
-    fn handle_events(&mut self) -> Option<PumpResult> {
+    fn handle_events(&mut self) -> PumpResult {
         let mut browser = self.browser.borrow_mut();
 
         // FIXME:
@@ -426,9 +447,12 @@ impl App {
         let mut embedder_messages = self.servo.as_mut().unwrap().get_events();
         let mut need_resize = false;
         let mut need_present = false;
+        let mut history_changed = false;
         loop {
             // Consume and handle those embedder messages.
-            need_present |= browser.handle_servo_events(embedder_messages);
+            let servo_event_response = browser.handle_servo_events(embedder_messages);
+            need_present |= servo_event_response.need_present;
+            history_changed |= servo_event_response.history_changed;
 
             // Route embedder events from the Browser to the relevant Servo components,
             // receives and collects embedder messages from various Servo components,
@@ -439,7 +463,7 @@ impl App {
                 .unwrap()
                 .handle_events(browser.get_events());
             if browser.shutdown_requested() {
-                return Some(PumpResult::Shutdown);
+                return PumpResult::Shutdown;
             }
 
             // Take any new embedder messages from Servo itself.
@@ -449,12 +473,17 @@ impl App {
             }
         }
 
-        if need_resize {
-            Some(PumpResult::Resize)
+        let present = if need_resize {
+            Present::Immediate
         } else if need_present {
-            Some(PumpResult::ReadyToPresent)
+            Present::Deferred
         } else {
-            None
+            Present::None
+        };
+
+        PumpResult::Continue {
+            history_changed,
+            present,
         }
     }
 

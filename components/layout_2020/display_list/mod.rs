@@ -13,6 +13,7 @@ use gfx_traits::WebRenderEpochToU16;
 use msg::constellation_msg::BrowsingContextId;
 use net_traits::image_cache::UsePlaceholder;
 use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId};
+use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
@@ -318,7 +319,7 @@ impl Fragment {
             let mut rect = rect;
             rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.underline_offset;
             rect.size.height = round_to_nearest_device_pixel(font_metrics.underline_size);
-            self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
+            self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
         }
 
         // Overline.
@@ -328,7 +329,7 @@ impl Fragment {
         {
             let mut rect = rect;
             rect.size.height = round_to_nearest_device_pixel(font_metrics.underline_size);
-            self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
+            self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
         }
 
         // Text.
@@ -351,7 +352,7 @@ impl Fragment {
             rect.origin.y = rect.origin.y + font_metrics.ascent - font_metrics.strikeout_offset;
             // XXX(ferjm) This does not work on MacOS #942
             rect.size.height = round_to_nearest_device_pixel(font_metrics.strikeout_size);
-            self.build_display_list_for_text_decoration(fragment, builder, &rect, color);
+            self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
         }
     }
 
@@ -360,14 +361,14 @@ impl Fragment {
         fragment: &TextFragment,
         builder: &mut DisplayListBuilder,
         rect: &PhysicalRect<Length>,
-        color: cssparser::RGBA,
+        color: &AbsoluteColor,
     ) {
         let rect = rect.to_webrender();
         let wavy_line_thickness = (0.33 * rect.size.height).ceil();
         let text_decoration_color = fragment
             .parent_style
             .clone_text_decoration_color()
-            .into_rgba(color);
+            .resolve_to_absolute(color);
         let text_decoration_style = fragment.parent_style.clone_text_decoration_style();
         if text_decoration_style == ComputedTextDecorationStyle::MozNone {
             return;
@@ -685,10 +686,10 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn build_border(&mut self, builder: &mut DisplayListBuilder) {
         let border = self.fragment.style.get_border();
         let widths = SideOffsets2D::new(
-            border.border_top_width.px(),
-            border.border_right_width.px(),
-            border.border_bottom_width.px(),
-            border.border_left_width.px(),
+            border.border_top_width.to_f32_px(),
+            border.border_right_width.to_f32_px(),
+            border.border_bottom_width.to_f32_px(),
+            border.border_left_width.to_f32_px(),
         );
         if widths == SideOffsets2D::zero() {
             return;
@@ -714,7 +715,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
     fn build_outline(&mut self, builder: &mut DisplayListBuilder) {
         let outline = self.fragment.style.get_outline();
-        let width = outline.outline_width.px();
+        let width = outline.outline_width.to_f32_px();
         if width == 0.0 {
             return;
         }
@@ -748,12 +749,13 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 }
 
-fn rgba(rgba: cssparser::RGBA) -> wr::ColorF {
+fn rgba(color: AbsoluteColor) -> wr::ColorF {
+    let rgba = color.to_color_space(ColorSpace::Srgb);
     wr::ColorF::new(
-        rgba.red_f32(),
-        rgba.green_f32(),
-        rgba.blue_f32(),
-        rgba.alpha_f32(),
+        rgba.components.0.clamp(0.0, 1.0),
+        rgba.components.1.clamp(0.0, 1.0),
+        rgba.components.2.clamp(0.0, 1.0),
+        rgba.alpha,
     )
 }
 

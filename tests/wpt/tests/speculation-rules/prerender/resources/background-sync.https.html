@@ -5,15 +5,15 @@
 <script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
 <script>
 
-const params = new URLSearchParams(location.search);
-
 // The main test page (restriction-background-sync.tentative.https.html)
 // loads the initiator page, then the initiator page will prerender itself
 // with the `prerendering` parameter.
+const params = new URLSearchParams(location.search);
 const isPrerendering = params.has('prerendering');
 
 if (!isPrerendering) {
-  loadInitiatorPage();
+  const rule_extras = {'target_hint': getTargetHint()};
+  loadInitiatorPage(rule_extras);
 } else {
   async function loadPrerenderPage() {
     const prerenderEventCollector = new PrerenderEventCollector();

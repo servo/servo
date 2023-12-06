@@ -6,7 +6,7 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/dom/events/scrolling/scroll_support.js"></script>
-  <script src="resources/common.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/common.js"></script>
   <style>
     #scroller {
       overflow-y: scroll;
@@ -61,7 +61,7 @@
   <script>
     let unreached_func = null;
     promise_test(async (t) => {
-      checkSnapchangedSupport();
+      checkSnapEventSupport("snapchanged");
       await waitForCompositorCommit();
       unreached_func = t.unreached_func("snapchanged shouldn't fire " +
           "since the scroller is snapped to the same elements.");
@@ -82,7 +82,7 @@
     "elements");
 
     promise_test(async (t) => {
-      checkSnapchangedSupport();
+      checkSnapEventSupport("snapchanged");
       await waitForCompositorCommit();
       unreached_func = t.unreached_func("snapchanged shouldn't fire " +
           "since the scroller is snapped to the same elements.");

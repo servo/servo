@@ -50,15 +50,4 @@ impl CSSConditionRuleMethods for CSSConditionRule {
             unreachable!()
         }
     }
-
-    /// <https://drafts.csswg.org/css-conditional-3/#dom-cssconditionrule-conditiontext>
-    fn SetConditionText(&self, text: DOMString) {
-        if let Some(rule) = self.downcast::<CSSMediaRule>() {
-            rule.set_condition_text(text)
-        } else if let Some(rule) = self.downcast::<CSSSupportsRule>() {
-            rule.set_condition_text(text)
-        } else {
-            unreachable!()
-        }
-    }
 }

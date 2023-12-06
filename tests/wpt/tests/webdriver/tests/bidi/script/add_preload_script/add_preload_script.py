@@ -125,10 +125,10 @@ async def test_add_preload_script_in_iframe(
 
 @pytest.mark.asyncio
 async def test_add_preload_script_with_error(
-    bidi_session, add_preload_script, subscribe_events, inline, new_tab, wait_for_event
+    bidi_session, add_preload_script, subscribe_events, inline, new_tab, wait_for_event, wait_for_future_safe
 ):
     await add_preload_script(
-        function_declaration=f"() => {{ throw Error('error in preload script') }}"
+        function_declaration="() => {{ throw Error('error in preload script') }}"
     )
 
     await subscribe_events(events=["browsingContext.load", "log.entryAdded"])
@@ -138,10 +138,10 @@ async def test_add_preload_script_with_error(
 
     url = inline("<div>foo</div>")
     await bidi_session.browsing_context.navigate(context=new_tab["context"], url=url)
-    error_event = await on_entry
+    error_event = await wait_for_future_safe(on_entry)
 
     # Make sure that page is loaded
-    await on_load
+    await wait_for_future_safe(on_load)
 
     # Make sure that exception from preloaded script was reported
     assert error_event["level"] == "error"

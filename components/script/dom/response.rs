@@ -455,7 +455,7 @@ impl Response {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn finish(&self) {
         if let Some(body) = self.body_stream.get() {
             body.close_native();

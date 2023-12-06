@@ -54,14 +54,16 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
   CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
 
 jobs:
   build:
     name: Linux Build
-    runs-on: ubuntu-22.04
+    # Ubuntu 22.04 has glibc 2.34 so the binaries produced
+    # won't run on systems with older glibc e.g wpt.fyi
+    # runners which still use 20.04.
+    runs-on: ubuntu-${{ inputs.upload && '20.04' || '22.04' }}
     steps:
       - uses: actions/checkout@v3
         if: github.event_name != 'pull_request_target'
@@ -77,6 +79,7 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
+        if: ${{ !inputs.upload  }} # not needed on ubuntu 20.04 used for nightly
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Install taplo
         uses: baptiste0928/cargo-install@v2

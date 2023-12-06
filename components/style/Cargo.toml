@@ -17,7 +17,7 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["style_traits/gecko", "bindgen", "regex", "toml", "num_cpus", "mozbuild"]
+gecko = ["style_traits/gecko", "bindgen", "regex", "toml", "mozbuild"]
 servo = [
     "serde",
     "style_traits/servo",
@@ -59,7 +59,7 @@ new_debug_unreachable = "1.0"
 num-derive = "0.3"
 num-integer = "0.1"
 num-traits = "0.2"
-num_cpus = { version = "1.1.0", optional = true }
+num_cpus = { version = "1.1.0" }
 owning_ref = "0.4"
 parking_lot = "0.12"
 precomputed-hash = "0.1.1"
@@ -77,6 +77,7 @@ string_cache = { version = "0.8", optional = true }
 style_derive = { path = "../style_derive" }
 style_traits = { workspace = true }
 time = "0.1"
+thin-vec = { workspace = true }
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
 uluru = "3.0"
@@ -85,7 +86,7 @@ unicode-segmentation = "1.0"
 void = "1.0.2"
 
 [build-dependencies]
-bindgen = { version = "0.63", optional = true, default-features = false }
+bindgen = { version = "0.64", optional = true, default-features = false }
 lazy_static = "1"
 log = "0.4"
 mozbuild = { version = "0.1", optional = true }

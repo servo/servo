@@ -226,14 +226,3 @@ impl ToCssWithGuard for LayerStatementRule {
         writer.write_char(';')
     }
 }
-
-impl DeepCloneWithLock for LayerStatementRule {
-    fn deep_clone_with_lock(
-        &self,
-        _: &SharedRwLock,
-        _: &SharedRwLockReadGuard,
-        _: &DeepCloneParams,
-    ) -> Self {
-        self.clone()
-    }
-}

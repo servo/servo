@@ -39,9 +39,9 @@
 
   promise_test(async (t) => {
     t.add_cleanup(makeCleanup());
+    const iframe = await attachIframe();
     await test_driver.bless("request full screen");
     await document.documentElement.requestFullscreen();
-    const iframe = await attachIframe();
     const promise = iframe.contentWindow.screen.orientation.lock(
       getOppositeOrientation()
     );

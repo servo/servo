@@ -33,14 +33,14 @@ use crate::dom::bindings::trace::JSTraceable;
 pub const DOM_WEAK_SLOT: u32 = 1;
 
 /// A weak reference to a JS-managed DOM object.
-#[allow(unrooted_must_root)]
-#[unrooted_must_root_lint::allow_unrooted_interior]
+#[allow(crown::unrooted_must_root)]
+#[crown::unrooted_must_root_lint::allow_unrooted_interior]
 pub struct WeakRef<T: WeakReferenceable> {
     ptr: ptr::NonNull<WeakBox<T>>,
 }
 
 /// The inner box of weak references, public for the finalization in codegen.
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct WeakBox<T: WeakReferenceable> {
     /// The reference count. When it reaches zero, the `value` field should
     /// have already been set to `None`. The pointee contributes one to the count.
@@ -218,7 +218,7 @@ unsafe impl<T: WeakReferenceable> JSTraceable for MutableWeakRef<T> {
 
 /// A vector of weak references. On tracing, the vector retains
 /// only references which still point to live objects.
-#[unrooted_must_root_lint::allow_unrooted_interior]
+#[crown::unrooted_must_root_lint::allow_unrooted_interior]
 #[derive(MallocSizeOf)]
 pub struct WeakRefVec<T: WeakReferenceable> {
     vec: Vec<WeakRef<T>>,
@@ -268,7 +268,7 @@ impl<T: WeakReferenceable> DerefMut for WeakRefVec<T> {
 
 /// An entry of a vector of weak references. Passed to the closure
 /// given to `WeakRefVec::update`.
-#[unrooted_must_root_lint::allow_unrooted_interior]
+#[crown::unrooted_must_root_lint::allow_unrooted_interior]
 pub struct WeakRefEntry<'a, T: WeakReferenceable> {
     vec: &'a mut WeakRefVec<T>,
     index: &'a mut usize,

@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use style::color::AbsoluteColor;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::{Filter as ComputedFilter, Length};
-use style::values::RGBA;
 use webrender_api::{units, FilterOp, LineStyle, MixBlendMode, Shadow, TransformStyle};
 
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
@@ -18,12 +18,12 @@ pub trait ToWebRender {
 
 pub trait FilterToWebRender {
     type Type;
-    fn to_webrender(&self, current_color: &RGBA) -> Self::Type;
+    fn to_webrender(&self, current_color: &AbsoluteColor) -> Self::Type;
 }
 
 impl FilterToWebRender for ComputedFilter {
     type Type = FilterOp;
-    fn to_webrender(&self, current_color: &RGBA) -> Self::Type {
+    fn to_webrender(&self, current_color: &AbsoluteColor) -> Self::Type {
         match *self {
             ComputedFilter::Blur(radius) => FilterOp::Blur(radius.px(), radius.px()),
             ComputedFilter::Brightness(amount) => FilterOp::Brightness(amount.0),
@@ -37,7 +37,7 @@ impl FilterToWebRender for ComputedFilter {
             ComputedFilter::DropShadow(ref shadow) => FilterOp::DropShadow(Shadow {
                 blur_radius: shadow.blur.px(),
                 offset: units::LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
-                color: super::rgba(shadow.color.clone().into_rgba(*current_color)),
+                color: super::rgba(shadow.color.clone().resolve_to_absolute(current_color)),
             }),
             // Statically check that Url is impossible.
             ComputedFilter::Url(ref url) => match *url {},

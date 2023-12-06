@@ -168,7 +168,7 @@ impl<L> GenericPerspectiveFunction<L> {
     /// Returns `f32::INFINITY` or the result of a function on the length value.
     pub fn infinity_or(&self, f: impl FnOnce(&L) -> f32) -> f32 {
         match *self {
-            Self::None => std::f32::INFINITY,
+            Self::None => f32::INFINITY,
             Self::Length(ref l) => f(l),
         }
     }
@@ -471,7 +471,6 @@ where
         reference_box: Option<&Rect<ComputedLength>>,
     ) -> Result<Transform3D<f64>, ()> {
         use self::TransformOperation::*;
-        use std::f64;
 
         let reference_width = reference_box.map(|v| v.size.width);
         let reference_height = reference_box.map(|v| v.size.height);
@@ -501,7 +500,7 @@ where
             },
             Perspective(ref p) => {
                 let px = match p {
-                    PerspectiveFunction::None => std::f32::INFINITY,
+                    PerspectiveFunction::None => f32::INFINITY,
                     PerspectiveFunction::Length(ref p) => p.to_pixel_length(None)?,
                 };
                 create_perspective_matrix(px).cast()

@@ -8,6 +8,7 @@
 //! computed values and need yet another intermediate representation. This
 //! module's raison d'être is to ultimately contain all these types.
 
+use crate::color::AbsoluteColor;
 use crate::properties::PropertyId;
 use crate::values::computed::length::LengthPercentage;
 use crate::values::computed::url::ComputedUrl;
@@ -21,9 +22,9 @@ use std::cmp;
 
 pub mod color;
 pub mod effects;
-pub mod lists;
 mod font;
 mod grid;
+pub mod lists;
 mod svg;
 pub mod transform;
 
@@ -196,8 +197,6 @@ impl Animate for i32 {
 impl Animate for f32 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        use std::f32;
-
         let ret = (*self as f64).animate(&(*other as f64), procedure)?;
         Ok(ret.min(f32::MAX as f64).max(f32::MIN as f64) as f32)
     }
@@ -207,8 +206,6 @@ impl Animate for f32 {
 impl Animate for f64 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        use std::f64;
-
         let (self_weight, other_weight) = procedure.weights();
 
         let ret = *self * self_weight + *other * other_weight;
@@ -380,6 +377,7 @@ trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);
 trivial_to_animated_value!(i32);
+trivial_to_animated_value!(AbsoluteColor);
 // Note: This implementation is for ToAnimatedValue of ShapeSource.
 //
 // SVGPathData uses Box<[T]>. If we want to derive ToAnimatedValue for all the

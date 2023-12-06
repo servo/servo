@@ -9,7 +9,7 @@ pytestmark = pytest.mark.asyncio
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 
-async def test_alert(bidi_session, wait_for_event, top_context, subscribe_events):
+async def test_alert(bidi_session, wait_for_event, wait_for_future_safe, top_context, subscribe_events):
     await subscribe_events([USER_PROMPT_OPENED_EVENT])
     on_entry = wait_for_event(USER_PROMPT_OPENED_EVENT)
 
@@ -23,7 +23,7 @@ async def test_alert(bidi_session, wait_for_event, top_context, subscribe_events
     )
 
     # Wait for prompt to appear.
-    await on_entry
+    await wait_for_future_safe(on_entry)
 
     await bidi_session.browsing_context.handle_user_prompt(
         context=top_context["context"]
@@ -37,7 +37,7 @@ async def test_alert(bidi_session, wait_for_event, top_context, subscribe_events
 
 @pytest.mark.parametrize("accept", [True, False])
 async def test_confirm(
-    bidi_session, wait_for_event, top_context, subscribe_events, accept
+    bidi_session, wait_for_event, wait_for_future_safe, top_context, subscribe_events, accept
 ):
     await subscribe_events([USER_PROMPT_OPENED_EVENT])
     on_entry = wait_for_event(USER_PROMPT_OPENED_EVENT)
@@ -52,7 +52,7 @@ async def test_confirm(
     )
 
     # Wait for prompt to appear.
-    await on_entry
+    await wait_for_future_safe(on_entry)
 
     await bidi_session.browsing_context.handle_user_prompt(
         context=top_context["context"], accept=accept
@@ -66,7 +66,7 @@ async def test_confirm(
 
 @pytest.mark.parametrize("accept", [True, False])
 async def test_prompt(
-    bidi_session, wait_for_event, top_context, subscribe_events, accept
+    bidi_session, wait_for_event, wait_for_future_safe, top_context, subscribe_events, accept
 ):
     await subscribe_events([USER_PROMPT_OPENED_EVENT])
     on_entry = wait_for_event(USER_PROMPT_OPENED_EVENT)
@@ -81,7 +81,7 @@ async def test_prompt(
     )
 
     # Wait for prompt to appear.
-    await on_entry
+    await wait_for_future_safe(on_entry)
 
     test_user_text = "Test"
     await bidi_session.browsing_context.handle_user_prompt(
@@ -99,7 +99,8 @@ async def test_prompt(
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_two_top_level_contexts(
-    bidi_session, top_context, inline, subscribe_events, wait_for_event, type_hint
+    bidi_session, top_context, inline, subscribe_events, wait_for_event,
+    wait_for_future_safe, type_hint
 ):
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
 
@@ -112,7 +113,7 @@ async def test_two_top_level_contexts(
     )
 
     # Wait for prompt to appear.
-    await on_entry
+    await wait_for_future_safe(on_entry)
 
     # Try to close the prompt in another context.
     with pytest.raises(error.NoSuchAlertException):
@@ -135,6 +136,7 @@ async def test_multiple_frames(
     test_page_multiple_frames,
     subscribe_events,
     wait_for_event,
+    wait_for_future_safe,
 ):
     await subscribe_events([USER_PROMPT_OPENED_EVENT])
     on_entry = wait_for_event(USER_PROMPT_OPENED_EVENT)
@@ -159,7 +161,7 @@ async def test_multiple_frames(
     )
 
     # Wait for prompt to appear.
-    await on_entry
+    await wait_for_future_safe(on_entry)
 
     # Close prompt from the second frame.
     await bidi_session.browsing_context.handle_user_prompt(

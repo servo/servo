@@ -10,7 +10,7 @@
 <script src="resources/invoker-utils.js"></script>
 
 <details id="invokee">
-  Details Contents
+    Details Contents
 </details>
 <button id="invokerbutton" invoketarget="invokee"></button>
 
@@ -27,7 +27,7 @@
   promise_test(async function (t) {
     assert_false(invokee.matches("[open]"));
     invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-      once: true,
+        once: true,
     });
     await clickOn(invokerbutton);
     t.add_cleanup(() => invokee.removeAttribute('open'));
@@ -39,18 +39,43 @@
     assert_true(invokee.matches("[open]"));
     await clickOn(invokerbutton);
     assert_false(invokee.matches("[open]"));
-  }, "invoking open details with auto action opens");
+  }, "invoking open details with auto action closes");
 
   promise_test(async function (t) {
     invokee.setAttribute('open', '');
     t.add_cleanup(() => invokee.removeAttribute('open'));
     invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-      once: true,
+        once: true,
     });
     assert_true(invokee.matches("[open]"));
     await clickOn(invokerbutton);
     assert_true(invokee.matches("[open]"));
   }, "invoking open details with auto action and preventDefault does not close");
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => invokee.removeAttribute('open'));
+    invokee.addEventListener("invoke", (e) => {
+        invokee.setAttribute('open', '');
+    }, {
+        once: true,
+    });
+    assert_false(invokee.matches("[open]"));
+    await clickOn(invokerbutton);
+    assert_false(invokee.matches("[open]"));
+  }, "invoking details with auto action where event listener opens leads to a closed details");
+
+  promise_test(async function (t) {
+    invokee.setAttribute('open', '');
+    t.add_cleanup(() => invokee.removeAttribute('open'));
+    invokee.addEventListener("invoke", (e) => {
+        invokee.removeAttribute('open');
+    }, {
+        once: true,
+    });
+    assert_true(invokee.matches("[open]"));
+    await clickOn(invokerbutton);
+    assert_true(invokee.matches("[open]"));
+  }, "invoking open details with auto action where event listener closes leads to an open details");
 
   // toggle
 
@@ -77,7 +102,7 @@
     invokerbutton.setAttribute("invokeaction", "toggle");
     t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
     invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-      once: true,
+        once: true,
     });
     await clickOn(invokerbutton);
     t.add_cleanup(() => invokee.removeAttribute('open'));
@@ -99,7 +124,7 @@
     invokerbutton.setAttribute("invokeaction", "toggle");
     t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
     invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-      once: true,
+        once: true,
     });
     assert_true(invokee.matches("[open]"));
     await clickOn(invokerbutton);
@@ -141,7 +166,7 @@
     t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
     assert_false(invokee.matches("[open]"));
     invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-      once: true,
+        once: true,
     });
     await clickOn(invokerbutton);
     t.add_cleanup(() => invokee.removeAttribute('open'));
@@ -185,7 +210,7 @@
     t.add_cleanup(() => invokee.removeAttribute('open'));
     assert_true(invokee.matches("[open]"));
     invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-      once: true,
+        once: true,
     });
     await clickOn(invokerbutton);
     assert_true(invokee.matches("[open]"));

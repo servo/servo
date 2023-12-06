@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <title>Access to the Battery Status API is deferred</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -22,7 +24,7 @@ promise_test(async t => {
       once: true
     });
   });
-  const url = `resources/battery-status.https.html?uid=${uid}`;
+  const url = `resources/battery-status.https.html?uid=${uid}&target_hint=${getTargetHint()}`;
   window.open(url, '_blank', 'noopener');
 
   const result = await gotMessage;

@@ -136,7 +136,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
 }
 
 // https://fetch.spec.whatwg.org/#fetch-method
-#[allow(unrooted_must_root, non_snake_case)]
+#[allow(crown::unrooted_must_root, non_snake_case)]
 pub fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
@@ -211,7 +211,7 @@ impl FetchResponseListener for FetchContext {
         // TODO
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn process_response(&mut self, fetch_metadata: Result<FetchMetadata, NetworkError>) {
         let promise = self
             .fetch_promise

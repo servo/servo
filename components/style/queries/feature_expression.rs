@@ -322,6 +322,20 @@ fn disabled_by_pref(feature: &Atom, context: &ParserContext) -> bool {
             return !context.in_ua_or_chrome_sheet() &&
                 !static_prefs::pref!("layout.css.prefers-contrast.enabled");
         }
+
+        // prefers-reduced-transparency is always enabled in the ua and chrome. On
+        // the web it is hidden behind a preference (see Bug 1822176).
+        if *feature == atom!("prefers-reduced-transparency") {
+            return !context.in_ua_or_chrome_sheet() &&
+                !static_prefs::pref!("layout.css.prefers-reduced-transparency.enabled");
+        }
+
+        // inverted-colors is always enabled in the ua and chrome. On
+        // the web it is hidden behind a preferenc.
+        if *feature == atom!("inverted-colors") {
+            return !context.in_ua_or_chrome_sheet() &&
+                !static_prefs::pref!("layout.css.inverted-colors.enabled");
+        }
     }
     false
 }
@@ -637,7 +651,7 @@ impl QueryFeatureExpression {
                     .kind
                     .non_ranged_value()
                     .map(|v| *expect!(Enumerated, v));
-                return evaluator(context, computed)
+                return evaluator(context, computed);
             },
             Evaluator::BoolInteger(eval) => {
                 let computed = self

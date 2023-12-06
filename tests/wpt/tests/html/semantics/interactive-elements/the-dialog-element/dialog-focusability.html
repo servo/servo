@@ -10,10 +10,29 @@
 <script src="/resources/testdriver-actions.js"></script>
 
 <button id="before">before</button>
-<dialog id="dialog" open>
-  <button id="within">button</button>
+<dialog id="dialog1" open>
+  <button id="within1">button</button>
 </dialog>
-<button id="after">after</button>
+<button id="after1">after 1</button>
+<dialog tabindex=0 id="dialog2" open>
+  <button id="within2">button</button>
+</dialog>
+<button id="after2">after 2</button>
+<dialog tabindex="-1" id="dialog3" open>
+  <button id="within3">button</button>
+</dialog>
+<button id="after3">after 3</button>
+<dialog contenteditable="true" id="dialog4" open>
+  <button id="within4">button</button>
+</dialog>
+<button id="after4">after 4</button>
+
+<style>
+  #dialog1 { top: 25px; }
+  #dialog2 { top: 100px; }
+  #dialog3 { top: 175px; }
+  #dialog4 { top: 250px; }
+</style>
 
 <script>
   function navigateForward() {
@@ -31,7 +50,8 @@
 
   async_test((t) => {
     window.onload = async () => {
-      await assert_focus_order([before,within,after]);
+      await assert_focus_order([before,within1,after1,dialog2,within2,after2,
+        within3,after3,dialog4,within4,after4]);
       t.done();
     };
   }, "The dialog element itself should not be keyboard focusable.");

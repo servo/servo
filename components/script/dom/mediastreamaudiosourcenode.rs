@@ -26,7 +26,7 @@ pub struct MediaStreamAudioSourceNode {
 }
 
 impl MediaStreamAudioSourceNode {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(
         context: &AudioContext,
         stream: &MediaStream,
@@ -58,7 +58,7 @@ impl MediaStreamAudioSourceNode {
         Self::new_with_proto(window, None, context, stream)
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,

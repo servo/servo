@@ -99,8 +99,21 @@ fn nan_inf_enabled() -> bool {
     return false;
 }
 
+/// Serialize a number with calc, and NaN/infinity handling (if enabled)
+pub fn serialize_number<W>(v: f32, was_calc: bool, dest: &mut CssWriter<W>) -> fmt::Result
+where
+    W: Write,
+{
+    serialize_specified_dimension(v, "", was_calc, dest)
+}
+
 /// Serialize a specified dimension with unit, calc, and NaN/infinity handling (if enabled)
-pub fn serialize_specified_dimension<W>(v: f32, unit: &str, was_calc: bool, dest: &mut CssWriter<W>) -> fmt::Result
+pub fn serialize_specified_dimension<W>(
+    v: f32,
+    unit: &str,
+    was_calc: bool,
+    dest: &mut CssWriter<W>,
+) -> fmt::Result
 where
     W: Write,
 {
@@ -109,12 +122,21 @@ where
     }
 
     if !v.is_finite() && nan_inf_enabled() {
+        // https://drafts.csswg.org/css-values/#calc-error-constants:
+        // "While not technically numbers, these keywords act as numeric values,
+        // similar to e and pi. Thus to get an infinite length, for example,
+        // requires an expression like calc(infinity * 1px)."
+
         if v.is_nan() {
-            dest.write_str("NaN * 1")?;
+            dest.write_str("NaN")?;
         } else if v == f32::INFINITY {
-            dest.write_str("infinity * 1")?;
+            dest.write_str("infinity")?;
         } else if v == f32::NEG_INFINITY {
-            dest.write_str("-infinity * 1")?;
+            dest.write_str("-infinity")?;
+        }
+
+        if !unit.is_empty() {
+            dest.write_str(" * 1")?;
         }
     } else {
         v.to_css(dest)?;
@@ -380,6 +402,14 @@ impl AtomIdent {
             callback(&*atom)
         })
     }
+
+    /// Cast an atom ref to an AtomIdent ref.
+    #[inline]
+    pub fn cast<'a>(atom: &'a Atom) -> &'a Self {
+        let ptr = atom as *const _ as *const Self;
+        // safety: repr(transparent)
+        unsafe { &*ptr }
+    }
 }
 
 #[cfg(feature = "gecko")]
@@ -390,8 +420,16 @@ impl std::borrow::Borrow<crate::gecko_string_cache::WeakAtom> for AtomIdent {
     }
 }
 
-/// Serialize a normalized value into percentage.
+/// Serialize a value into percentage.
 pub fn serialize_percentage<W>(value: CSSFloat, dest: &mut CssWriter<W>) -> fmt::Result
+where
+    W: Write,
+{
+    serialize_specified_dimension(value * 100., "%", /* was_calc = */ false, dest)
+}
+
+/// Serialize a value into normalized (no NaN/inf serialization) percentage.
+pub fn serialize_normalized_percentage<W>(value: CSSFloat, dest: &mut CssWriter<W>) -> fmt::Result
 where
     W: Write,
 {
@@ -546,7 +584,10 @@ impl ToCss for CustomIdent {
 pub struct DashedIdent(pub Atom);
 
 impl Parse for DashedIdent {
-    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         let ident = input.expect_ident()?;
         if ident.starts_with("--") {

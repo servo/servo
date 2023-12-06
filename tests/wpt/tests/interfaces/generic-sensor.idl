@@ -28,33 +28,3 @@ interface SensorErrorEvent : Event {
 dictionary SensorErrorEventInit : EventInit {
   required DOMException error;
 };
-
-dictionary MockSensorConfiguration {
-  required MockSensorType mockSensorType;
-  boolean connected = true;
-  double? maxSamplingFrequency;
-  double? minSamplingFrequency;
-};
-
-dictionary MockSensor {
-  double maxSamplingFrequency;
-  double minSamplingFrequency;
-  double requestedSamplingFrequency;
-};
-
-enum MockSensorType {
-  "ambient-light",
-  "accelerometer",
-  "linear-acceleration",
-  "gravity",
-  "gyroscope",
-  "magnetometer",
-  "uncalibrated-magnetometer",
-  "absolute-orientation",
-  "relative-orientation",
-  "geolocation",
-  "proximity",
-};
-
-dictionary MockSensorReadingValues {
-};

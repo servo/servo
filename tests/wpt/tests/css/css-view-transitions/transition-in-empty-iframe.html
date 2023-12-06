@@ -24,6 +24,8 @@
     }
   </style>
   <script>
+    failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
     onload = () => {
       requestAnimationFrame(()=>{requestAnimationFrame(()=> {
         frames[0].window.startTransition();

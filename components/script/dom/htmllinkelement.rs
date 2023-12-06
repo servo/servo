@@ -92,7 +92,7 @@ impl HTMLLinkElement {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
@@ -115,7 +115,7 @@ impl HTMLLinkElement {
 
     // FIXME(emilio): These methods are duplicated with
     // HTMLStyleElement::set_stylesheet.
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
         let stylesheets_owner = stylesheets_owner_from_node(self);
         if let Some(ref s) = *self.stylesheet.borrow() {
@@ -321,6 +321,7 @@ impl HTMLLinkElement {
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             document.quirks_mode(),
+            /* namespaces = */ Default::default(),
             window.css_error_reporter(),
             None,
         );

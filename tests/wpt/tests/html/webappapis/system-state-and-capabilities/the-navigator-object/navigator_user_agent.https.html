@@ -26,7 +26,9 @@
     assert_equals(typeof highEntropyData["architecture"], "string", "Architecture should be a string");
     assert_equals(typeof highEntropyData["model"], "string", "Model should be a string");
     assert_equals(typeof highEntropyData["uaFullVersion"], "string", "UAFullVersion should be a string");
-    assert_equals(typeof highEntropyData["formFactor"], "string", "FormFactor should be a string");
+    for (formFactor of highEntropyData['formFactor']) {
+      assert_equals(typeof formFactor, "string", "Each FormFactor should be a string");
+    }
     for (brandVersionPair of highEntropyData['fullVersionList']) {
       assert_equals(typeof brandVersionPair.brand, "string", "brand should be a string");
       assert_regexp_match(brandVersionPair.brand, brandRegex, "brand should not contain unexpected characters");
@@ -39,7 +41,7 @@
     assert_false("model" in highEntropyData2, "Model should be an empty string");
     assert_false("uaFullVersion" in highEntropyData2, "UAFullVersion should be an empty string");
     assert_false("formFactor" in highEntropyData2, "FormFactor should be an empty string");
-    assert_false("fullVersionList" in highEntropyData2, "fullVersionList should be an empty string");
+    assert_false("fullVersionList" in highEntropyData2, "fullVersionList should not be present");
     let finalPromise = uaData.getHighEntropyValues([]).then(() => {
       assert_true(didMicrotaskRun, "getHighEntropyValues queued on a task");
     });

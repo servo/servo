@@ -7,7 +7,7 @@
 use crate::values::animated::ToAnimatedValue;
 use crate::values::generics::NonNegative;
 use crate::values::specified::percentage::ToPercentage;
-use crate::values::{serialize_percentage, CSSFloat};
+use crate::values::{serialize_normalized_percentage, CSSFloat};
 use crate::Zero;
 use std::fmt;
 use style_traits::{CssWriter, ToCss};
@@ -106,7 +106,7 @@ impl ToCss for Percentage {
     where
         W: fmt::Write,
     {
-        serialize_percentage(self.0, dest)
+        serialize_normalized_percentage(self.0, dest)
     }
 }
 

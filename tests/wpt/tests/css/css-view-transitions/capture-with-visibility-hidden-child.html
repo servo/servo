@@ -33,6 +33,8 @@
 </div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 function runTest() {
   const transition = document.startViewTransition();
   transition.ready.then(takeScreenshot);

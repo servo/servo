@@ -29,6 +29,19 @@ test_valid_value("color", "hwb(120 30% 50% / 0)", "rgba(77, 128, 77, 0)");
 test_valid_value("color", "hwb(none 100% 50% / none)", "rgba(170, 170, 170, 0)");
 test_valid_value("color", "hwb(0 100% 50% / 0)", "rgba(170, 170, 170, 0)");
 
+// Test with number components.
+test_valid_value("color", "hwb(120 30 50)", "rgb(77, 128, 77)");
+test_valid_value("color", "hwb(120 30 50 / 0.5)", "rgba(77, 128, 77, 0.5)");
+test_valid_value("color", "hwb(120 30% 50)", "rgb(77, 128, 77)");
+test_valid_value("color", "hwb(120 30% 50 / 0.5)", "rgba(77, 128, 77, 0.5)");
+test_valid_value("color", "hwb(120 30 50%)", "rgb(77, 128, 77)");
+test_valid_value("color", "hwb(120 30 50% / 0.5)", "rgba(77, 128, 77, 0.5)");
+test_valid_value("color", "hwb(120 none 50)", "rgb(0, 128, 0)");
+test_valid_value("color", "hwb(120 none 50 / 0.5)", "rgba(0, 128, 0, 0.5)");
+test_valid_value("color", "hwb(120 30 none)", "rgb(77, 255, 77)");
+test_valid_value("color", "hwb(120 30 none / 0.5)", "rgba(77, 255, 77, 0.5)");
+test_valid_value("color", "hwb(120 30 50 / none)", "rgba(77, 128, 77, 0)");
+
 // Test that rounding happens properly. hwb(320deg 30% 40%) in sRGB has a blue
 // channel of exactly one-half.
 // 0.5 * 255 = 127.5. This value should be rounded UP to 128, not down to 127.

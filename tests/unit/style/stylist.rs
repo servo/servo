@@ -39,6 +39,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                         PropertyDeclaration::Display(longhands::display::SpecifiedValue::Block),
                         Importance::Normal,
                     ))),
+                    rules: None,
                     source_location: SourceLocation { line: 0, column: 0 },
                 }));
 
@@ -205,13 +206,13 @@ fn test_insert() {
         0,
         selector_map
             .class_hash
-            .get(&Atom::from("intro"), QuirksMode::NoQuirks)
+            .get(&Atom::from("foo"), QuirksMode::NoQuirks)
             .unwrap()[0]
             .source_order
     );
     assert!(selector_map
         .class_hash
-        .get(&Atom::from("foo"), QuirksMode::NoQuirks)
+        .get(&Atom::from("intro"), QuirksMode::NoQuirks)
         .is_none());
 }
 

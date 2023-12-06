@@ -477,14 +477,12 @@ impl FragmentBorderBoxIterator for FragmentClientRectQueryIterator {
             border_left_width: left_width,
             ..
         } = *fragment.style.get_border();
-        let (left_width, right_width) = (left_width.px(), right_width.px());
-        let (top_width, bottom_width) = (top_width.px(), bottom_width.px());
-        self.client_rect.origin.y = top_width as i32;
-        self.client_rect.origin.x = left_width as i32;
-        self.client_rect.size.width =
-            (border_box.size.width.to_f32_px() - left_width - right_width) as i32;
-        self.client_rect.size.height =
-            (border_box.size.height.to_f32_px() - top_width - bottom_width) as i32;
+        let (left_width, right_width) = (left_width.to_px(), right_width.to_px());
+        let (top_width, bottom_width) = (top_width.to_px(), bottom_width.to_px());
+        self.client_rect.origin.y = top_width;
+        self.client_rect.origin.x = left_width;
+        self.client_rect.size.width = border_box.size.width.to_px() - left_width - right_width;
+        self.client_rect.size.height = border_box.size.height.to_px() - top_width - bottom_width;
     }
 
     fn should_process(&mut self, fragment: &Fragment) -> bool {
@@ -507,11 +505,10 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
             border_left_width: left_border,
             ..
         } = *fragment.style.get_border();
-        let (left_border, right_border) = (left_border.px(), right_border.px());
-        let (top_border, bottom_border) = (top_border.px(), bottom_border.px());
-        let right_padding = (border_box.size.width.to_f32_px() - right_border - left_border) as i32;
-        let bottom_padding =
-            (border_box.size.height.to_f32_px() - bottom_border - top_border) as i32;
+        let (left_border, right_border) = (left_border.to_px(), right_border.to_px());
+        let (top_border, bottom_border) = (top_border.to_px(), bottom_border.to_px());
+        let right_padding = border_box.size.width.to_px() - right_border - left_border;
+        let bottom_padding = border_box.size.height.to_px() - bottom_border - top_border;
         let top_padding = top_border as i32;
         let left_padding = left_border as i32;
 
@@ -795,7 +792,7 @@ fn create_font_declaration(
     url_data: &ServoUrl,
     quirks_mode: QuirksMode,
 ) -> Option<PropertyDeclarationBlock> {
-    let mut declarations = SourcePropertyDeclaration::new();
+    let mut declarations = SourcePropertyDeclaration::default();
     let result = parse_one_declaration_into(
         &mut declarations,
         property.clone(),

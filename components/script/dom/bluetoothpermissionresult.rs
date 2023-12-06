@@ -34,7 +34,7 @@ pub struct BluetoothPermissionResult {
 }
 
 impl BluetoothPermissionResult {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(status: &PermissionStatus) -> BluetoothPermissionResult {
         let result = BluetoothPermissionResult {
             status: PermissionStatus::new_inherited(status.get_query()),
@@ -74,7 +74,7 @@ impl BluetoothPermissionResult {
         self.status.State()
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn set_devices(&self, devices: Vec<Dom<BluetoothDevice>>) {
         *self.devices.borrow_mut() = devices;
     }

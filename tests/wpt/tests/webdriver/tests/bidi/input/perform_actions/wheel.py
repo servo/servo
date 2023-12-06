@@ -118,20 +118,20 @@ async def test_scroll_shadow_tree(
 
     # Add a simplified event recorder to track events in the test ShadowRoot.
     scrollable = await bidi_session.script.call_function(
-        function_declaration="""shadowRoot => {{
+        function_declaration="""shadowRoot => {
             window.wheelEvents = [];
             const scrollable = shadowRoot.querySelector("#scrollableShadowTree");
             scrollable.addEventListener("wheel",
-                function(event) {{
-                    window.wheelEvents.push({{
+                function(event) {
+                    window.wheelEvents.push({
                         "deltaX": event.deltaX,
                         "deltaY": event.deltaY,
                         "target": event.target.id
-                    }});
-                }}
+                    });
+                }
             );
             return scrollable;
-        }}
+        }
         """,
         arguments=[shadow_root],
         target=ContextTarget(top_context["context"]),

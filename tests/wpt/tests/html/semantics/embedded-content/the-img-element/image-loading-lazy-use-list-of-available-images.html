@@ -12,7 +12,7 @@
 <div id="below-viewport-img-container"></div>
 
 <script>
-const image_path = location.origin + '/html/semantics/embedded-content/the-img-element/resources/image.png';
+const image_path = location.origin + '/html/semantics/embedded-content/the-img-element/resources/image.png?image-loading-lazy-use-list-of-available-images-' + Math.random();
 
 promise_test(async t => {
   const eager_image_promise = new Promise((resolve, reject) => {

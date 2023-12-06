@@ -52,7 +52,7 @@ pub enum RulesSource {
 }
 
 impl CSSRuleList {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(parent_stylesheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
         let guard = parent_stylesheet.shared_lock().read();
         let dom_rules = match rules {
@@ -78,7 +78,7 @@ impl CSSRuleList {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,
@@ -112,17 +112,15 @@ impl CSSRuleList {
         let loader = owner
             .as_ref()
             .map(|element| StylesheetLoader::for_element(&**element));
-        let new_rule = css_rules.with_raw_offset_arc(|arc| {
-            arc.insert_rule(
-                &parent_stylesheet.shared_lock,
-                rule,
-                &parent_stylesheet.contents,
-                index,
-                nested,
-                loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
-                AllowImportRules::Yes,
-            )
-        })?;
+        let new_rule = css_rules.insert_rule(
+            &parent_stylesheet.shared_lock,
+            rule,
+            &parent_stylesheet.contents,
+            index,
+            nested,
+            loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
+            AllowImportRules::Yes,
+        )?;
 
         let parent_stylesheet = &*self.parent_stylesheet;
         let dom_rule = CSSRule::new_specific(&window, parent_stylesheet, new_rule);

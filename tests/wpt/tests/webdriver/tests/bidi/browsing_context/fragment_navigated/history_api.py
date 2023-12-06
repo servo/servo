@@ -20,7 +20,8 @@ FRAGMENT_NAVIGATED_EVENT = "browsingContext.fragmentNavigated"
     ]
 )
 async def test_history_push_state(
-    bidi_session, new_tab, url, subscribe_events, wait_for_event, hash_before, hash_after
+    bidi_session, new_tab, url, subscribe_events, wait_for_event,
+    wait_for_future_safe, hash_before, hash_after
 ):
     target_context = new_tab["context"]
 
@@ -52,5 +53,5 @@ async def test_history_push_state(
             'timestamp': any_int,
             'url': target_url
         },
-        await on_frame_navigated,
+        await wait_for_future_safe(on_frame_navigated),
     )

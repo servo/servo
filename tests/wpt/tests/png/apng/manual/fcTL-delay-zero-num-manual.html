@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>PNG Third Edition: animated PNG, delays</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://www.w3.org/TR/png-3/#apng-frame-based-animation">
+<link rel="help" href="https://www.w3.org/TR/png-3/#fcTL-chunk">
+<meta name="assert" content="If the the value of the numerator is 0 the decoder should render the next frame as quickly as possible, though viewers may impose a reasonable lower bound.">
+<style>
+    .test {
+        width: 128px;
+        height: 64px;
+        background-color: white;
+        background-image:
+        linear-gradient(45deg, #ccc 25%, transparent 25%),
+        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ccc 75%),
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+        background-size: 16px 16px;
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+    }
+</style>
+<body>
+    <p><i>There may be some brief cyan and magenta flashes; ignore these.</i></p>
+    <p>Test passes if this flashes blue for half a second, then yellow for one second, then repeats forever. </p>
+    <div class="test"><img src="../support/029.png" alt=""></div>
+</body>

@@ -885,10 +885,10 @@ pub fn clamp_floor_256_f32(val: f32) -> u8 {
 impl ToRaqoteGradientStop for CanvasGradientStop {
     fn to_raqote(&self) -> raqote::GradientStop {
         let color = raqote::Color::new(
-            clamp_unit_f32(self.color.alpha),
-            self.color.red,
-            self.color.green,
-            self.color.blue,
+            self.color.alpha.map(clamp_unit_f32).unwrap_or(0),
+            self.color.red.unwrap_or(0),
+            self.color.green.unwrap_or(0),
+            self.color.blue.unwrap_or(0),
         );
         let position = self.offset as f32;
         raqote::GradientStop { position, color }
@@ -902,10 +902,10 @@ impl<'a> ToRaqotePattern<'_> for FillOrStrokeStyle {
 
         match self {
             Color(color) => Some(Pattern::Color(
-                clamp_unit_f32(color.alpha),
-                color.red,
-                color.green,
-                color.blue,
+                color.alpha.map(clamp_unit_f32).unwrap_or(0),
+                color.red.unwrap_or(0),
+                color.green.unwrap_or(0),
+                color.blue.unwrap_or(0),
             )),
             LinearGradient(style) => {
                 let start = Point2D::new(style.x0 as f32, style.y0 as f32);
@@ -961,10 +961,10 @@ impl ToRaqoteStyle for RGBA {
 
     fn to_raqote_style(self) -> Self::Target {
         raqote::SolidSource::from_unpremultiplied_argb(
-            clamp_unit_f32(self.alpha),
-            self.red,
-            self.green,
-            self.blue,
+            self.alpha.map(clamp_unit_f32).unwrap_or(0),
+            self.red.unwrap_or(0),
+            self.green.unwrap_or(0),
+            self.blue.unwrap_or(0),
         )
     }
 }

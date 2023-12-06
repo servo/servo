@@ -12,20 +12,26 @@ iframe.onload = setup_test.step_func_done(function() {
     // we need the empty stylesheet to avoid default XSLT views of the XML
     const style = iframe.contentDocument.createElementNS("http://www.w3.org/1999/xhtml", "style");
     root.appendChild(style);
-    const cs = iframe.contentWindow.getComputedStyle(root);
+
+    // Grab initial styles from a random element, as the root can get non-initial UA styling.
+    const div = iframe.contentDocument.createElementNS("http://www.w3.org/1999/xhtml", "div");
+    root.appendChild(div);
+    const cs = iframe.contentWindow.getComputedStyle(div);
+
     let actual_initial = Object.create(null);
     for (let i = 0; i < cs.length; i++) {
         let prop_name = cs[i];
         actual_initial[prop_name] = cs[prop_name];
     }
+    const rootCS = iframe.contentWindow.getComputedStyle(root);
     test(() => {
         style.textContent = ":root { color: blue }";
-        assert_equals(cs["color"], "rgb(0, 0, 255)");
+        assert_equals(rootCS["color"], "rgb(0, 0, 255)");
     }, "stylesheet takes effect");
     style.textContent = ":root { all: initial; direction: initial; unicode-bidi: initial; } style { display: none; }";
     for (let prop_name in actual_initial) {
         test(() => {
-            assert_equals(cs[prop_name], actual_initial[prop_name]);
+            assert_equals(rootCS[prop_name], actual_initial[prop_name]);
         }, prop_name);
     }
 });

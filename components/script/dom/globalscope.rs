@@ -418,7 +418,7 @@ enum BlobResult {
 
 /// Data representing a message-port managed by this global.
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct ManagedMessagePort {
     /// The DOM port.
     dom_port: Dom<MessagePort>,
@@ -438,7 +438,7 @@ pub struct ManagedMessagePort {
 
 /// State representing whether this global is currently managing broadcast channels.
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub enum BroadcastChannelState {
     /// The broadcast-channel router id for this global, and a queue of managed channels.
     /// Step 9, "sort destinations"
@@ -455,7 +455,7 @@ pub enum BroadcastChannelState {
 
 /// State representing whether this global is currently managing messageports.
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub enum MessagePortState {
     /// The message-port router id for this global, and a map of managed ports.
     Managed(

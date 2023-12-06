@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: inset-area getComputedStyle()</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#inset-area">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  test_computed_value("inset-area", "none");
+  test_computed_value("inset-area", "all");
+  test_computed_value("inset-area", "x-start");
+  test_computed_value("inset-area", "center");
+  test_computed_value("inset-area", "all / all", "all");
+  test_computed_value("inset-area", "top center");
+  test_computed_value("inset-area", "bottom center / all", "center bottom");
+  test_computed_value("inset-area", "x-start center x-end", "x-start x-end");
+  test_computed_value("inset-area", "x-start / x-end");
+
+  assert_not_inherited("inset-area", "none", "all");
+</script>

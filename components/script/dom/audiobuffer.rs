@@ -63,7 +63,7 @@ pub struct AudioBuffer {
 }
 
 impl AudioBuffer {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     #[allow(unsafe_code)]
     pub fn new_inherited(number_of_channels: u32, length: u32, sample_rate: f32) -> AudioBuffer {
         let vec = (0..number_of_channels).map(|_| Heap::default()).collect();
@@ -95,7 +95,7 @@ impl AudioBuffer {
         )
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_with_proto(
         global: &Window,
         proto: Option<HandleObject>,

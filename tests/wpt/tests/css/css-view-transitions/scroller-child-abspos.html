@@ -48,6 +48,8 @@ html::view-transition-new(target) {
 </div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 function runTest() {
   scroller.scrollTop = 300;
 

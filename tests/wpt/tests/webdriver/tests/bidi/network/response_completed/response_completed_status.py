@@ -22,7 +22,7 @@ RESPONSE_COMPLETED_EVENT = "network.responseCompleted"
 )
 @pytest.mark.asyncio
 async def test_response_status(
-    wait_for_event, url, fetch, setup_network_test, status, status_text
+    wait_for_event, wait_for_future_safe, url, fetch, setup_network_test, status, status_text
 ):
     status_url = url(
         f"/webdriver/tests/support/http_handlers/status.py?status={status}&nocache={RESPONSE_COMPLETED_EVENT}"
@@ -33,7 +33,7 @@ async def test_response_status(
 
     on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
     await fetch(status_url)
-    await on_response_completed
+    await wait_for_future_safe(on_response_completed)
 
     assert len(events) == 1
     expected_request = {"method": "GET", "url": status_url}

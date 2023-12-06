@@ -34,7 +34,7 @@ async def test_unsubscribe(bidi_session, top_context):
     remove_listener()
 
 
-async def test_subscribe(bidi_session, subscribe_events, top_context, wait_for_event):
+async def test_subscribe(bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe):
     await subscribe_events(events=[MESSAGE_EVENT])
 
     on_script_message = wait_for_event(MESSAGE_EVENT)
@@ -45,7 +45,7 @@ async def test_subscribe(bidi_session, subscribe_events, top_context, wait_for_e
         await_promise=False,
         target=ContextTarget(top_context["context"]),
     )
-    event = await on_script_message
+    event = await wait_for_future_safe(on_script_message)
 
     assert event == {
         "channel": "channel_name",

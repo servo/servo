@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/common.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+</head>
+
+<body>
+  <style>
+    #scroller {
+      height: 400px;
+      width: 400px;
+      position: relative;
+      overflow: scroll;
+      scroll-snap-type: y mandatory;
+      border: solid 1px black;
+    }
+
+    .box {
+      position: absolute;
+      left: 150px;
+      height: 350px;
+      width: 100px;
+      border: solid 1px white;
+    }
+
+    .snap {
+      scroll-snap-align: start;
+    }
+
+    .blue {
+      background-color: blue;
+    }
+
+    .green {
+      background-color: green;
+    }
+
+    .yellow {
+      background-color: yellow;
+    }
+
+    #snap_area_1 {
+      top: 0px;
+    }
+
+    #snap_area_2 {
+      top: 352px;
+    }
+
+    #snap_area_3 {
+      top: 704px;
+    }
+
+    .large_space {
+      height: 400vh;
+      width: 400vw;
+      position: absolute;
+    }
+  </style>
+  <div id="scroller">
+    <div class="large_space"></div>
+    <div id="snap_area_1" class="blue snap box"></div>
+    <div id="snap_area_2" class="green snap box"></div>
+    <div id="snap_area_3" class="yellow snap box"></div>
+  </div>
+  <script>
+    const scroller = document.getElementById("scroller");
+
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+      const test_data = {
+        scroller: scroller,
+        scrolling_function: async () => {
+          scroller.scrollTo(0, snap_area_2.offsetTop);
+        },
+        expected_snap_targets: [snap_area_2.id],
+        expected_scroll_offsets: {
+          x: 0,
+          y: snap_area_2.offsetTop
+        }
+      };
+      await test_snap_event(t, test_data, "snapchanging");
+    }, "snapchanging fires on programmatic scrolls that changes a scroller's" +
+    " snap targets.");
+
+    promise_test(async (t) => {
+      checkSnapEventSupport("snapchanging");
+      await waitForScrollReset(t, scroller);
+      await waitForCompositorCommit();
+      let snap_event_promise = waitForSnapEvent(scroller, "snapchanging", false);
+      // The snap areas are far apart enough that 10px is not enough to trigger
+      // a change in snap targets.
+      const small_scroll_offset = 10;
+      // Set the scroll destination to just a little off (0, 0) top so we snap
+      // back to the top box.
+      scroller.scrollTo(0, small_scroll_offset);
+      let evt = await snap_event_promise;
+      assert_equals(evt, null, "no snap event since scroller is back to top");
+      assert_equals(scroller.scrollTop, 0, "scroller snaps back to the top");
+      assert_equals(scroller.scrollLeft, 0, "scroller snaps back to the left");
+    });
+  </script>
+</body>
+
+</html>

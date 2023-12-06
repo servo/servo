@@ -43,4 +43,8 @@ test(t => { // https://bugs.chromium.org/p/chromium/issues/detail?id=1418727
 
 }, '`Date.prototype.toLocaleString` produces `yyyy-mm-dd` instead of `m/d/yyyy` for `en-CA` locale');
 
+test(t => { // https://bugzilla.mozilla.org/show_bug.cgi?id=1864612
+  assert_true(new Intl.DateTimeFormat('sv-SE', {}).format(0).endsWith('-01-01'));
+});
+
 </script>

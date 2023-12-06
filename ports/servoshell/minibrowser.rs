@@ -16,6 +16,7 @@ use glow::NativeFramebuffer;
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::servo_geometry::DeviceIndependentPixel;
+use servo::servo_url::ServoUrl;
 use servo::webrender_surfman::WebrenderSurfman;
 
 use crate::browser::Browser;
@@ -48,6 +49,7 @@ impl Minibrowser {
         webrender_surfman: &WebrenderSurfman,
         events_loop: &EventsLoop,
         window: &dyn WindowPortsMethods,
+        initial_url: ServoUrl,
     ) -> Self {
         let gl = unsafe {
             glow::Context::from_loader_function(|s| webrender_surfman.get_proc_address(s))
@@ -75,7 +77,7 @@ impl Minibrowser {
             widget_surface_fbo,
             last_update: Instant::now(),
             last_mouse_position: None,
-            location: RefCell::new(String::default()),
+            location: RefCell::new(initial_url.to_string()),
             location_dirty: false.into(),
         }
     }

@@ -187,40 +187,6 @@ test_invalid_fallback('<length>', '40px', 'red');
 test_invalid_fallback('<length> | none', '40px', 'nolength');
 test_invalid_fallback('<length>', '40px', 'var(--novar)');
 
-function test_using_valid_fallback(syntax, fallback, expected) {
-    test(function(){
-        let name = generate_property(syntax);
-        try {
-            element.style = `--x:var(${name},${fallback})`;
-            let computedStyle = getComputedStyle(element);
-            assert_equals(computedStyle.getPropertyValue('--x'), expected);
-        } finally {
-            element.style = '';
-        }
-    }, `Fallback must adhere to registered syntax [${syntax}, ${fallback}]`);
-}
-
-function test_using_invalid_fallback(syntax, fallback) {
-    test(function(){
-        let name = generate_property(syntax);
-        try {
-            element.style = `--x:var(${name},${fallback})`;
-            let computedStyle = getComputedStyle(element);
-            assert_equals(computedStyle.getPropertyValue('--x'), '');
-        } finally {
-            element.style = '';
-        }
-    }, `Invalid fallback is not used [${syntax}, ${fallback}]`);
-}
-
-test_using_valid_fallback('<length>', '10px', '10px');
-test_using_valid_fallback('<length> | none', 'none', 'none');
-test_using_valid_fallback('<length>', 'var(--length-1)', '20px');
-
-test_using_invalid_fallback('<length>', 'red');
-test_using_invalid_fallback('<length> | none', 'nolength');
-test_using_invalid_fallback('<color>', 'var(--length-1)');
-
 test(function(t){
     CSS.registerProperty({
         name: '--registered-universal-no-initial',

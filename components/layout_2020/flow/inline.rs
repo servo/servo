@@ -21,7 +21,7 @@ use style::values::generics::text::LineHeight;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::Zero;
 use webrender_api::FontInstanceKey;
-use xi_unicode::LineBreakLeafIter;
+use xi_unicode::{linebreak_property, LineBreakLeafIter};
 
 use super::float::PlacementAmongFloats;
 use super::CollapsibleWithParentStartMargin;
@@ -43,6 +43,12 @@ use crate::style_ext::{
     ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside, PaddingBorderMargin,
 };
 use crate::ContainingBlock;
+
+// These constants are the xi-unicode line breaking classes that are defined in
+// `table.rs`. Unfortunately, they are only identified by number.
+const XI_LINE_BREAKING_CLASS_GL: u8 = 12;
+const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
+const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 40;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct InlineFormattingContext {
@@ -363,6 +369,17 @@ struct InlineFormattingContextState<'a, 'b> {
 
     /// The line breaking state for this inline formatting context.
     linebreaker: Option<LineBreakLeafIter>,
+
+    /// Whether or not a soft wrap opportunity is queued. Soft wrap opportunities are
+    /// queued after replaced content and they are processed when the next text content
+    /// is encountered.
+    have_deferred_soft_wrap_opportunity: bool,
+
+    /// Whether or not a soft wrap opportunity should be prevented before the next atomic
+    /// element encountered in the inline formatting context. See
+    /// `char_prevents_soft_wrap_opportunity_when_before_or_after_atomic` for more
+    /// details.
+    prevent_soft_wrap_opportunity_before_next_atomic: bool,
 
     /// The currently white-space setting of this line. This is stored on the
     /// [`InlineFormattingContextState`] because when a soft wrap opportunity is defined
@@ -1248,6 +1265,8 @@ impl InlineFormattingContext {
             linebreak_before_new_content: false,
             white_space: containing_block.style.get_inherited_text().white_space,
             linebreaker: None,
+            have_deferred_soft_wrap_opportunity: false,
+            prevent_soft_wrap_opportunity_before_next_atomic: false,
             root_nesting_level: InlineContainerState {
                 nested_block_size: line_height_from_style(layout_context, &containing_block.style),
                 has_content: false,
@@ -1529,7 +1548,11 @@ impl IndependentFormattingContext {
             },
         };
 
-        if ifc.white_space.allow_wrap() {
+        let soft_wrap_opportunity_prevented = mem::replace(
+            &mut ifc.prevent_soft_wrap_opportunity_before_next_atomic,
+            false,
+        );
+        if ifc.white_space.allow_wrap() && !soft_wrap_opportunity_prevented {
             ifc.process_soft_wrap_opportunity();
         }
 
@@ -1544,9 +1567,8 @@ impl IndependentFormattingContext {
             true,
         );
 
-        if let Some(linebreaker) = ifc.linebreaker.as_mut() {
-            linebreaker.next(" ");
-        }
+        // Defer a soft wrap opportunity for when we next process text content.
+        ifc.have_deferred_soft_wrap_opportunity = true;
     }
 }
 
@@ -1665,6 +1687,26 @@ impl TextRun {
                 return;
             },
         };
+
+        // We either have a soft wrap opportunity if specified by the breaker or if we are
+        // following replaced content.
+        let have_deferred_soft_wrap_opportunity =
+            mem::replace(&mut ifc.have_deferred_soft_wrap_opportunity, false);
+        let mut break_at_start = break_at_start || have_deferred_soft_wrap_opportunity;
+
+        if have_deferred_soft_wrap_opportunity {
+            if let Some(first_character) = self.text.chars().nth(0) {
+                break_at_start = break_at_start &&
+                    !char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(
+                        first_character,
+                    )
+            }
+        }
+
+        if let Some(last_character) = self.text.chars().last() {
+            ifc.prevent_soft_wrap_opportunity_before_next_atomic =
+                char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(last_character);
+        }
 
         for (run_index, run) in runs.into_iter().enumerate() {
             ifc.possibly_flush_deferred_forced_line_break();
@@ -1983,8 +2025,6 @@ impl TextRunLineItem {
     }
 
     fn layout(self, state: &mut LineItemLayoutState) -> Option<TextFragment> {
-        // This happens after updating the `max_block_size`, because even trimmed newlines
-        // should affect the height of the line.
         if self.text.is_empty() {
             return None;
         }
@@ -2208,6 +2248,11 @@ impl AbsolutelyPositionedLineItem {
                     block: Length::zero(),
                 }
             },
+            Display::GeneratingBox(DisplayGeneratingBox::LayoutInternal(_)) => {
+                unreachable!(
+                    "The result of blockification should never be a layout-internal value."
+                );
+            },
             Display::Contents => {
                 panic!("display:contents does not generate an abspos box")
             },
@@ -2249,4 +2294,25 @@ impl FloatLineItem {
             &self.fragment.content_rect.start_corner - &distance_from_parent_to_ifc;
         self.fragment
     }
+}
+
+/// Whether or not this character prevents a soft line wrap opportunity when it
+/// comes before or after an atomic inline element.
+///
+/// From https://www.w3.org/TR/css-text-3/#line-break-details:
+///
+/// > For Web-compatibility there is a soft wrap opportunity before and after each
+/// > replaced element or other atomic inline, even when adjacent to a character that
+/// > would normally suppress them, including U+00A0 NO-BREAK SPACE. However, with
+/// > the exception of U+00A0 NO-BREAK SPACE, there must be no soft wrap opportunity
+/// > between atomic inlines and adjacent characters belonging to the Unicode GL, WJ,
+/// > or ZWJ line breaking classes.
+fn char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character: char) -> bool {
+    if character == '\u{00A0}' {
+        return false;
+    }
+    let class = linebreak_property(character);
+    class == XI_LINE_BREAKING_CLASS_GL ||
+        class == XI_LINE_BREAKING_CLASS_WJ ||
+        class == XI_LINE_BREAKING_CLASS_ZWJ
 }

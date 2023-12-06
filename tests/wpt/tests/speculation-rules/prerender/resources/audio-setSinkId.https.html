@@ -6,15 +6,15 @@
 <audio controls id="beat" src="./bear-av1-opus.mp4" loop></audio>
 <script>
 
-const params = new URLSearchParams(location.search);
-
 // The main test page (restriction-audio-setSinkId.https.html) loads the
 // initiator page, then the initiator page will prerender itself with the
 // `prerendering` parameter.
+const params = new URLSearchParams(location.search);
 const isPrerendering = params.has('prerendering');
 
 if (!isPrerendering) {
-  loadInitiatorPage();
+  const rule_extras = {'target_hint': getTargetHint()};
+  loadInitiatorPage(rule_extras);
 } else {
   const prerenderEventCollector = new PrerenderEventCollector();
 

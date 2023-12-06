@@ -13,7 +13,7 @@ use crate::stylesheets::stylesheet::StylesheetContents;
 use crate::stylesheets::{AllowImportRules, CssRule, RulesMutateError};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOfOps};
-use servo_arc::{Arc, RawOffsetArc};
+use servo_arc::Arc;
 use std::fmt::{self, Write};
 
 /// A list of CSS rules.
@@ -102,6 +102,15 @@ impl CssRules {
         dest: &mut CssStringWriter,
     ) -> fmt::Result {
         dest.write_str(" {")?;
+        self.to_css_block_without_opening(guard, dest)
+    }
+
+    /// As above, but without the opening curly bracket. That's needed for nesting.
+    pub fn to_css_block_without_opening(
+        &self,
+        guard: &SharedRwLockReadGuard,
+        dest: &mut CssStringWriter,
+    ) -> fmt::Result {
         for rule in self.0.iter() {
             dest.write_str("\n  ")?;
             rule.to_css(guard, dest)?;
@@ -132,7 +141,7 @@ pub trait CssRulesHelpers {
     ) -> Result<CssRule, RulesMutateError>;
 }
 
-impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
+impl CssRulesHelpers for Locked<CssRules> {
     fn insert_rule(
         &self,
         lock: &SharedRwLock,

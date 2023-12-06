@@ -100,7 +100,7 @@ unsafe impl<T: JSTraceable> CustomTraceable for OnceCell<T> {
 ///
 /// SAFETY: Inner type must not impl JSTraceable
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[trace_in_no_trace_lint::must_not_have_traceable]
+#[crown::trace_in_no_trace_lint::must_not_have_traceable]
 pub struct NoTrace<T>(pub T);
 
 impl<T: Display> Display for NoTrace<T> {
@@ -130,7 +130,7 @@ impl<T: MallocSizeOf> MallocSizeOf for NoTrace<T> {
 /// HashMap wrapper, that has non-jsmanaged keys
 ///
 /// Not all methods are reexposed, but you can access inner type via .0
-#[trace_in_no_trace_lint::must_not_have_traceable(0)]
+#[crown::trace_in_no_trace_lint::must_not_have_traceable(0)]
 #[derive(Clone, Debug)]
 pub struct HashMapTracedValues<K, V, S = RandomState>(pub HashMap<K, V, S>);
 
@@ -276,7 +276,7 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
 }
 
 /// Trace the `JSObject` held by `reflector`.
-#[allow(unrooted_must_root)]
+#[allow(crown::unrooted_must_root)]
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
     trace!("tracing reflector {}", description);
     trace_object(tracer, description, reflector.rootable())
@@ -482,7 +482,7 @@ pub use js::gc::RootedTraceableSet;
 /// If you have GC things like *mut JSObject or JSVal, use rooted!.
 /// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
-#[unrooted_must_root_lint::allow_unrooted_interior]
+#[crown::unrooted_must_root_lint::allow_unrooted_interior]
 pub struct RootedTraceableBox<T: JSTraceable + 'static>(js::gc::RootedTraceableBox<T>);
 
 unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {
@@ -547,9 +547,9 @@ impl<T: JSTraceable> DerefMut for RootedTraceableBox<T> {
 /// Guaranteed to be empty when not rooted.
 /// Usage: `rooted_vec!(let mut v);` or if you have an
 /// iterator of `DomRoot`s, `rooted_vec!(let v <- iterator);`.
-#[allow(unrooted_must_root)]
+#[allow(crown::unrooted_must_root)]
 #[derive(JSTraceable)]
-#[unrooted_must_root_lint::allow_unrooted_interior]
+#[crown::unrooted_must_root_lint::allow_unrooted_interior]
 pub struct RootableVec<T: JSTraceable> {
     v: Vec<T>,
 }
@@ -562,7 +562,7 @@ impl<T: JSTraceable> RootableVec<T> {
 }
 
 /// A vector of items that are rooted for the lifetime 'a.
-#[unrooted_must_root_lint::allow_unrooted_interior]
+#[crown::unrooted_must_root_lint::allow_unrooted_interior]
 pub struct RootedVec<'a, T: 'static + JSTraceable> {
     root: &'a mut RootableVec<T>,
 }

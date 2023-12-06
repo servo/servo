@@ -26,7 +26,7 @@ async def test_web_window_reference_created_in_classic(
     assert window.id == contexts[1]["context"]
 
     result = await bidi_session.script.evaluate(
-        expression=f"window.foo",
+        expression="window.foo",
         target=ContextTarget(window.id),
         await_promise=False,
     )
@@ -54,7 +54,7 @@ async def test_web_frame_reference_created_in_classic(
     assert frame.id == contexts[1]["children"][0]["context"]
 
     result = await bidi_session.script.evaluate(
-        expression=f"window.bar",
+        expression="window.bar",
         target=ContextTarget(frame.id),
         await_promise=False,
     )

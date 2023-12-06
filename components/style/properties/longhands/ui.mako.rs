@@ -386,7 +386,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "view-timeline-inset",
     "ViewTimelineInset",
-    "computed::ViewTimelineInset::zero()",
+    "computed::ViewTimelineInset::default()",
     vector=True,
     need_index=True,
     engines="gecko",

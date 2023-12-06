@@ -44,7 +44,14 @@
   promise_test(async (t) => {
     t.add_cleanup(makeCleanup());
     const iframe = await attachIframe();
-    const opposite = getOppositeOrientation();
+    let opposite = getOppositeOrientation();
+
+    // Fail fast in case the API is not supported
+    await test_driver.bless("request fullscreen", null, iframe.contentWindow);
+    await iframe.contentDocument.documentElement.requestFullscreen();
+    await iframe.contentWindow.screen.orientation.lock(opposite);
+    iframe.contentWindow.screen.orientation.unlock();
+    opposite = getOppositeOrientation();
 
     const topEventPromise = new EventWatcher(
       t,
@@ -58,8 +65,8 @@
     ).wait_for("change");
 
     // Lock from the iframe
-    await test_driver.bless("request fullscreen");
-    await document.documentElement.requestFullscreen();
+    await test_driver.bless("request fullscreen", null, iframe.contentWindow);
+    await iframe.contentDocument.documentElement.requestFullscreen();
     const lockPromise = iframe.contentWindow.screen.orientation.lock(opposite);
 
     const winningEvent = await Promise.race([

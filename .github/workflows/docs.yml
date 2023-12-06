@@ -2,7 +2,7 @@ name: Docs upload
 
 on:
   push:
-    branches: ["master"]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -27,11 +27,12 @@ jobs:
       - name: Upload docs
         run: |
           cd target/doc
+          git config --global init.defaultBranch main
           git init
           git add .
           git -c user.name="Workflow" -c user.email="" \
               commit -q -m "Rebuild Servo documentation"
           git remote add origin https://git:${DOC_SERVO_ORG}@github.com/servo/doc.servo.org
-          git push --force origin master:gh-pages
+          git push --force origin main:gh-pages
         env:
           DOC_SERVO_ORG: ${{ secrets.DOC_SERVO_ORG }}

@@ -12,10 +12,11 @@
 #![crate_name = "to_shmem"]
 #![crate_type = "rlib"]
 
+extern crate thin_vec;
+
 use std::alloc::Layout;
 #[cfg(debug_assertions)]
 use std::any::TypeId;
-#[cfg(debug_assertions)]
 use std::collections::HashSet;
 use std::ffi::CString;
 use std::marker::PhantomData;
@@ -31,6 +32,7 @@ use std::{isize, slice, str};
 use servo_arc::{Arc, ThinArc};
 use smallbitvec::{InternalStorage, SmallBitVec};
 use smallvec::{Array, SmallVec};
+use thin_vec::ThinVec;
 
 /// Result type for ToShmem::to_shmem.
 ///
@@ -170,7 +172,7 @@ impl SharedMemoryBuilder {
         assert!(end <= self.capacity);
 
         self.index = end;
-        unsafe { self.buffer.offset(start as isize) as *mut T }
+        unsafe { self.buffer.add(start) as *mut T }
     }
 }
 
@@ -224,7 +226,6 @@ impl_trivial_to_shmem!(
     usize
 );
 
-impl_trivial_to_shmem!(cssparser::RGBA);
 impl_trivial_to_shmem!(cssparser::SourceLocation);
 impl_trivial_to_shmem!(cssparser::TokenSerializationType);
 
@@ -424,6 +425,21 @@ impl<T: ToShmem> ToShmem for Option<T> {
     }
 }
 
+impl<T: ToShmem, S> ToShmem for HashSet<T, S>
+where
+    Self: Default,
+{
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> Result<Self> {
+        if !self.is_empty() {
+            return Err(format!(
+                "ToShmem failed for HashSet: We only support empty sets \
+                 (we don't expect custom properties in UA sheets, they're observable by content)",
+            ));
+        }
+        Ok(ManuallyDrop::new(Self::default()))
+    }
+}
+
 impl<T: 'static + ToShmem> ToShmem for Arc<T> {
     fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
         // Assert that we don't encounter any shared references to values we
@@ -495,6 +511,62 @@ impl<H: 'static + ToShmem, T: 'static + ToShmem> ToShmem for ThinArc<H, T> {
             builder.shared_values.insert(self.heap_ptr());
 
             Ok(ManuallyDrop::new(static_arc))
+        }
+    }
+}
+
+impl<T: ToShmem> ToShmem for ThinVec<T> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
+        let len = self.len();
+        if len == 0 {
+            return Ok(ManuallyDrop::new(Self::new()));
+        }
+
+        assert_eq!(mem::size_of::<Self>(), mem::size_of::<*const ()>());
+
+        // nsTArrayHeader size.
+        // FIXME: Would be nice not to hard-code this, but in practice thin-vec crate also relies
+        // on this.
+        let header_size = 2 * mem::size_of::<u32>();
+        let header_align = mem::size_of::<u32>();
+
+        let item_size = mem::size_of::<T>();
+        let item_align = mem::align_of::<T>();
+
+        // We don't need to support underalignment for now, this could be supported if needed.
+        assert!(item_align >= header_align);
+
+        // This is explicitly unsupported by ThinVec, see:
+        // https://searchfox.org/mozilla-central/rev/ad732108b073742d7324f998c085f459674a6846/third_party/rust/thin-vec/src/lib.rs#375-386
+        assert!(item_align <= header_size);
+        let header_padding = 0;
+
+        let layout = Layout::from_size_align(
+            header_size + header_padding + padded_size(item_size, item_align) * len,
+            item_align,
+        )
+        .unwrap();
+
+        let shmem_header_ptr = builder.alloc::<u8>(layout);
+        let shmem_data_ptr = unsafe { shmem_header_ptr.add(header_size + header_padding) };
+
+        let data_ptr = self.as_ptr() as *const T as *const u8;
+        let header_ptr = unsafe { data_ptr.sub(header_size + header_padding) };
+
+        unsafe {
+            // Copy the header. Note this might copy a wrong capacity, but it doesn't matter,
+            // because shared memory ptrs are immutable anyways, and we can't relocate.
+            ptr::copy(header_ptr, shmem_header_ptr, header_size);
+            // ToShmem + copy the contents into the shared buffer.
+            to_shmem_slice_ptr(self.iter(), shmem_data_ptr as *mut T, builder)?;
+            // Return the new ThinVec, which is just a pointer to the shared memory buffer.
+            let shmem_thinvec: Self = mem::transmute(shmem_header_ptr);
+
+            // Sanity-check that the ptr and length match.
+            debug_assert_eq!(shmem_thinvec.as_ptr(), shmem_data_ptr as *const T);
+            debug_assert_eq!(shmem_thinvec.len(), len);
+
+            Ok(ManuallyDrop::new(shmem_thinvec))
         }
     }
 }

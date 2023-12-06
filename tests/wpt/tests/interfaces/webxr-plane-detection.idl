@@ -1,0 +1,32 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebXR Plane Detection Module (https://immersive-web.github.io/real-world-geometry/plane-detection.html)
+
+enum XRPlaneOrientation {
+    "horizontal",
+    "vertical"
+};
+
+[Exposed=Window]
+interface XRPlane {
+    [SameObject] readonly attribute XRSpace planeSpace;
+
+    readonly attribute FrozenArray<DOMPointReadOnly> polygon;
+    readonly attribute XRPlaneOrientation? orientation;
+    readonly attribute DOMHighResTimeStamp lastChangedTime;
+    readonly attribute DOMString? semanticLabel;
+};
+
+[Exposed=Window]
+interface XRPlaneSet {
+  readonly setlike<XRPlane>;
+};
+
+partial interface XRFrame {
+  readonly attribute XRPlaneSet detectedPlanes;
+};
+
+partial interface XRSession {
+  Promise<undefined> initiateRoomCapture();
+};

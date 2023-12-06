@@ -5,5 +5,5 @@
 // https://drafts.csswg.org/css-conditional/#cssconditionrule
 [Abstract, Exposed=Window]
 interface CSSConditionRule : CSSGroupingRule {
-    attribute DOMString conditionText;
+    readonly attribute DOMString conditionText;
 };

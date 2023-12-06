@@ -5,29 +5,41 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<body></body>
 <script type="module">
   import {
     getOppositeOrientation,
     attachIframe,
+    makeCleanup,
   } from "./resources/orientation-utils.js";
 
   promise_test(async (t) => {
+    t.add_cleanup(makeCleanup());
     await test_driver.bless("request full screen");
     await document.documentElement.requestFullscreen();
-    const lockPromise = screen.orientation.lock(getOppositeOrientation());
-    await document.exitFullscreen();
-    await promise_rejects_dom(t, "AbortError", lockPromise);
-  }, "Fully unlocking the screen orientation causes a pending lock to be aborted");
+    const currentOrientation = screen.orientation.type;
+    await screen.orientation.lock(
+      getOppositeOrientation()
+    );
+  }, "fullscreen and orientation support");
 
   promise_test(async (t) => {
     const iframe = await attachIframe();
+    t.add_cleanup(makeCleanup(iframe));
+    const iframeWindow = iframe.contentWindow;
     await test_driver.bless("request full screen");
     await document.documentElement.requestFullscreen();
-    const lockPromise = iframe.contentWindow.screen.orientation.lock(
+    const currentOrientation = window.screen.orientation.type;
+    const lockPromise = iframeWindow.screen.orientation.lock(
       getOppositeOrientation()
     );
-    await document.exitFullscreen();
-    const frameDOMException = iframe.contentWindow.DOMException;
-    await promise_rejects_dom(t, "AbortError", frameDOMException, lockPromise);
-  }, "Fully unlocking the screen orientation causes a pending lock in a nested browsing context to be aborted");
+    const fsExitPromise = document.exitFullscreen();
+    await promise_rejects_dom(
+      t,
+      "SecurityError",
+      iframeWindow.DOMException,
+      lockPromise
+    );
+    await fsExitPromise;
+  }, "Iframe can't itself know if it's parent is fullscreen when changing orientation");
 </script>

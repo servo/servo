@@ -238,7 +238,7 @@ where
         }
     }
 
-    fn set_selector_flags(&self, _flags: ElementSelectorFlags) {
+    fn apply_selector_flags(&self, _flags: ElementSelectorFlags) {
         debug_assert!(false, "Shouldn't need selector flags for invalidation");
     }
 

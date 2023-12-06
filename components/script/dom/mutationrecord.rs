@@ -27,7 +27,7 @@ pub struct MutationRecord {
 }
 
 impl MutationRecord {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn attribute_mutated(
         target: &Node,
         attribute_name: &LocalName,

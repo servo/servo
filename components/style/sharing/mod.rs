@@ -66,6 +66,7 @@
 
 use crate::applicable_declarations::ApplicableDeclarationBlock;
 use crate::bloom::StyleBloom;
+use crate::computed_value_flags::ComputedValueFlags;
 use crate::context::{SharedStyleContext, StyleContext};
 use crate::dom::{SendElement, TElement};
 use crate::properties::ComputedValues;
@@ -275,11 +276,13 @@ pub struct StyleSharingCandidate<E: TElement> {
     /// The element.
     element: E,
     validation_data: ValidationData,
+    considered_relative_selector: bool,
 }
 
 struct FakeCandidate {
     _element: usize,
     _validation_data: ValidationData,
+    _considered_relative_selector: bool,
 }
 
 impl<E: TElement> Deref for StyleSharingCandidate<E> {
@@ -466,13 +469,19 @@ impl<Candidate> SharingCacheBase<Candidate> {
 }
 
 impl<E: TElement> SharingCache<E> {
-    fn insert(&mut self, element: E, validation_data_holder: Option<&mut StyleSharingTarget<E>>) {
+    fn insert(
+        &mut self,
+        element: E,
+        considered_relative_selector: bool,
+        validation_data_holder: Option<&mut StyleSharingTarget<E>>,
+    ) {
         let validation_data = match validation_data_holder {
             Some(v) => v.take_validation_data(),
             None => ValidationData::default(),
         };
         self.entries.insert(StyleSharingCandidate {
             element,
+            considered_relative_selector,
             validation_data,
         });
     }
@@ -584,8 +593,8 @@ impl<E: TElement> StyleSharingCache<E> {
             },
         };
 
-        if element.is_in_native_anonymous_subtree() {
-            debug!("Failing to insert into the cache: NAC");
+        if !element.matches_user_and_content_rules() {
+            debug!("Failing to insert into the cache: no tree rules:");
             return;
         }
 
@@ -609,6 +618,26 @@ impl<E: TElement> StyleSharingCache<E> {
         //     a sequential task and an additional traversal.
         if element.has_animations(shared_context) {
             debug!("Failing to insert to the cache: running animations");
+            return;
+        }
+
+        // If this element was considered for matching a relative selector, we can't
+        // share style, as that requires evaluating the relative selector in the
+        // first place. A couple notes:
+        // - This means that a document that contains a standalone `:has()`
+        //   rule would basically turn style sharing off.
+        // - Since the flag is set on the element, we may be overly pessimistic:
+        //   For example, given `<div class="foo"><div class="bar"></div></div>`,
+        //   if we run into a `.foo:has(.bar) .baz` selector, we refuse any selector
+        //   matching `.foo`, even if `:has()` may not even be used. Ideally we'd
+        //   have something like `RelativeSelectorConsidered::RightMost`, but the
+        //   element flag is required for invalidation, and this reduces more tracking.
+        if style
+            .style
+            .0
+            .flags
+            .intersects(ComputedValueFlags::ANCHORS_RELATIVE_SELECTOR) {
+            debug!("Failing to insert to the cache: may anchor relative selector");
             return;
         }
 
@@ -642,7 +671,15 @@ impl<E: TElement> StyleSharingCache<E> {
             self.clear();
             self.dom_depth = dom_depth;
         }
-        self.cache_mut().insert(*element, validation_data_holder);
+        self.cache_mut().insert(
+            *element,
+            style
+                .style
+                .0
+                .flags
+                .intersects(ComputedValueFlags::CONSIDERED_RELATIVE_SELECTOR),
+            validation_data_holder,
+        );
     }
 
     /// Clear the style sharing candidate cache.
@@ -674,8 +711,8 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        if target.is_in_native_anonymous_subtree() {
-            debug!("{:?} Cannot share style: NAC", target.element);
+        if !target.matches_user_and_content_rules() {
+            debug!("{:?} Cannot share style: content rules", target.element);
             return None;
         }
 
@@ -699,7 +736,7 @@ impl<E: TElement> StyleSharingCache<E> {
         nth_index_cache: &mut NthIndexCache,
         shared_context: &SharedStyleContext,
     ) -> Option<ResolvedElementStyles> {
-        debug_assert!(!target.is_in_native_anonymous_subtree());
+        debug_assert!(target.matches_user_and_content_rules());
 
         // Check that we have the same parent, or at least that the parents
         // share styles and permit sharing across their children. The latter
@@ -762,8 +799,8 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        if target.matches_user_and_author_rules() !=
-            candidate.element.matches_user_and_author_rules()
+        if target.matches_user_and_content_rules() !=
+            candidate.element.matches_user_and_content_rules()
         {
             trace!("Miss: User and Author Rules");
             return None;
@@ -799,11 +836,6 @@ impl<E: TElement> StyleSharingCache<E> {
             trace!("Miss: Revalidation");
             return None;
         }
-
-        debug_assert!(target.has_current_styles_for_traversal(
-            &candidate.element.borrow_data().unwrap(),
-            shared.traversal_flags,
-        ));
 
         debug!(
             "Sharing allowed between {:?} and {:?}",
@@ -845,25 +877,30 @@ impl<E: TElement> StyleSharingCache<E> {
             // NOTE(emilio): We only need to check name / namespace because we
             // do name-dependent style adjustments, like the display: contents
             // to display: none adjustment.
-            if target.namespace() != candidate.element.namespace() {
+            if target.namespace() != candidate.element.namespace() ||
+                target.local_name() != candidate.element.local_name()
+            {
                 return None;
             }
-            if target.local_name() != candidate.element.local_name() {
+            // When using container units, inherited style + rules matched aren't enough to
+            // determine whether the style is the same. We could actually do a full container
+            // lookup but for now we just check that our actual traversal parent matches.
+            if data
+                .styles
+                .primary()
+                .flags
+                .intersects(ComputedValueFlags::USES_CONTAINER_UNITS) &&
+                candidate.element.traversal_parent() != target.traversal_parent()
+            {
                 return None;
             }
-            // Rule nodes and styles are computed independent of the element's
-            // actual visitedness, but at the end of the cascade (in
-            // `adjust_for_visited`) we do store the visitedness as a flag in
-            // style.  (This is a subtle change from initial visited work that
-            // landed when computed values were fused, see
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1381635.)
-            // So at the moment, we need to additionally compare visitedness,
-            // since that is not accounted for by rule nodes alone.
-            // FIXME(jryans): This seems like it breaks the constant time
-            // requirements of visited, assuming we get a cache hit on only one
-            // of unvisited vs. visited.
-            // TODO(emilio): We no longer have such a flag, remove this check.
-            if target.is_visited_link() != candidate.element.is_visited_link() {
+            // Rule nodes and styles are computed independent of the element's actual visitedness,
+            // but at the end of the cascade (in `adjust_for_visited`) we do store the
+            // RELEVANT_LINK_VISITED flag, so we can't share by rule node between visited and
+            // unvisited styles. We don't check for visitedness and just refuse to share for links
+            // entirely, so that visitedness doesn't affect timing.
+            debug_assert_eq!(target.is_link(), candidate.element.is_link(), "Linkness mismatch");
+            if target.is_link() {
                 return None;
             }
 

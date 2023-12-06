@@ -47,7 +47,6 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
   CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
 
@@ -56,6 +55,13 @@ jobs:
     name: Mac Build
     runs-on: macos-13
     steps:
+      # XProtect can cause random failures if it decides that the DMG we create
+      # during the packaging phase is malware.
+      # TODO(mrobinson): Is there a way we can do things in a less suspicious way so
+      # we don't have to kill this service?
+      - name: Kill XProtectBehaviorService
+        run: |
+          echo Killing XProtect.; sudo pkill -9 XProtect >/dev/null || true;
       - uses: actions/checkout@v3
         if: github.event_name != 'pull_request_target'
         with:
@@ -83,7 +89,11 @@ jobs:
         run: |
           python3 ./mach build --${{ inputs.profile }}
       - name: Smoketest
-        run: python3 ./mach smoketest --${{ inputs.profile }}
+        uses: nick-fields/retry@v2
+        with: # See https://github.com/servo/servo/issues/30757
+          timeout_minutes: 5
+          max_attempts: 2
+          command: python3 ./mach smoketest --${{ inputs.profile }}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
@@ -96,7 +106,11 @@ jobs:
       - name: Build mach package
         run: python3 ./mach package --${{ inputs.profile }}
       - name: Run smoketest for mach package
-        run: ./etc/ci/macos_package_smoketest.sh target/${{ inputs.profile }}/servo-tech-demo.dmg
+        uses: nick-fields/retry@v2
+        with: # See https://github.com/servo/servo/issues/30757
+          timeout_minutes: 5
+          max_attempts: 2
+          command: ./etc/ci/macos_package_smoketest.sh target/${{ inputs.profile }}/servo-tech-demo.dmg
       - name: Rename build timing
         run: cp -r target/cargo-timings target/cargo-timings-macos
       - name: Archive build timing
@@ -121,7 +135,7 @@ jobs:
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
       - name: Build package for target
-        run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servo target/${{ inputs.profile }}/*.dylib target/${{ inputs.profile }}/lib/*.dylib resources
+        run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servo target/${{ inputs.profile }}/lib/*.dylib resources
       - name: Upload package for target
         uses: actions/upload-artifact@v3
         with:

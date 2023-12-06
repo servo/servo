@@ -23,6 +23,7 @@ use super::geom::{
     FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2, MainStartCrossStart,
 };
 use super::{FlexContainer, FlexLevelBox};
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
@@ -75,6 +76,13 @@ struct FlexItem<'a> {
     hypothetical_main_size: Length,
     /// This is `align-self`, defaulting to `align-items` if `auto`
     align_self: AlignItems,
+}
+
+/// Child of a FlexContainer. Can either be absolutely positioned, or not. If not,
+/// a placeholder is used and flex content is stored outside of this enum.
+enum FlexContent {
+    AbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
+    FlexItemPlaceholder,
 }
 
 /// A flex line with some intermediate results
@@ -158,14 +166,18 @@ impl FlexContainer {
         // Absolutely-positioned children of the flex container may be interleaved
         // with flex items. We need to preserve their relative order for correct painting order,
         // which is the order of `Fragment`s in this function’s return value.
-        let original_order_with_absolutely_positioned = self
+        //
+        // Example:
+        // absolutely_positioned_items_with_original_order = [Some(item), Some(item), None, Some(item), None]
+        // flex_items                                      =                         [item,             item]
+        let absolutely_positioned_items_with_original_order = self
             .children
             .iter()
             .map(|arcrefcell| {
                 let borrowed = arcrefcell.borrow_mut();
                 match &*borrowed {
                     FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(absolutely_positioned) => {
-                        Ok(absolutely_positioned.clone())
+                        FlexContent::AbsolutelyPositionedBox(absolutely_positioned.clone())
                     },
                     FlexLevelBox::FlexItem(_) => {
                         let item = AtomicRefMut::map(borrowed, |child| match child {
@@ -173,24 +185,211 @@ impl FlexContainer {
                             _ => unreachable!(),
                         });
                         flex_items.push(item);
-                        Err(())
+                        FlexContent::FlexItemPlaceholder
                     },
                 }
             })
             .collect::<Vec<_>>();
 
-        let (mut flex_item_fragments, content_block_size) = layout(
+        let flex_item_boxes = flex_items.iter_mut().map(|child| &mut **child);
+
+        // FIXME: get actual min/max cross size for the flex container.
+        // We have access to style for the flex container in `containing_block.style`,
+        // but resolving percentages there requires access
+        // to the flex container’s own containing block which we don’t have.
+        // For now, use incorrect values instead of panicking:
+        let container_min_cross_size = Length::zero();
+        let container_max_cross_size = None;
+
+        let flex_container_position_style = containing_block.style.get_position();
+        let flex_wrap = flex_container_position_style.flex_wrap;
+        let flex_direction = flex_container_position_style.flex_direction;
+
+        // Column flex containers are not fully implemented yet,
+        // so give a different layout instead of panicking.
+        // FIXME: implement `todo!`s for FlexAxis::Column below, and remove this
+        let flex_direction = match flex_direction {
+            FlexDirection::Row | FlexDirection::Column => FlexDirection::Row,
+            FlexDirection::RowReverse | FlexDirection::ColumnReverse => FlexDirection::RowReverse,
+        };
+
+        let container_is_single_line = match containing_block.style.get_position().flex_wrap {
+            FlexWrap::Nowrap => true,
+            FlexWrap::Wrap | FlexWrap::WrapReverse => false,
+        };
+        let flex_axis = FlexAxis::from(flex_direction);
+        let flex_wrap_reverse = match flex_wrap {
+            FlexWrap::Nowrap | FlexWrap::Wrap => false,
+            FlexWrap::WrapReverse => true,
+        };
+        let align_content = containing_block.style.clone_align_content();
+        let align_items = containing_block.style.clone_align_items();
+        let justify_content = containing_block.style.clone_justify_content();
+
+        let mut flex_context = FlexContext {
             layout_context,
             positioning_context,
             containing_block,
-            flex_items.iter_mut().map(|child| &mut **child),
+            container_min_cross_size,
+            container_max_cross_size,
+            container_is_single_line,
+            flex_axis,
+            align_content,
+            align_items,
+            justify_content,
+            main_start_cross_start_sides_are: MainStartCrossStart::from(
+                flex_direction,
+                flex_wrap_reverse,
+            ),
+            // https://drafts.csswg.org/css-flexbox/#definite-sizes
+            container_definite_inner_size: flex_axis.vec2_to_flex_relative(LogicalVec2 {
+                inline: Some(containing_block.inline_size),
+                block: containing_block.block_size.non_auto(),
+            }),
+        };
+
+        let mut flex_items = flex_item_boxes
+            .map(|box_| FlexItem::new(&flex_context, box_))
+            .collect::<Vec<_>>();
+
+        // “Determine the main size of the flex container”
+        // https://drafts.csswg.org/css-flexbox/#algo-main-container
+        let container_main_size = match flex_axis {
+            FlexAxis::Row => containing_block.inline_size,
+            FlexAxis::Column => {
+                // FIXME “using the rules of the formatting context in which it participates”
+                // but if block-level with `block-size: max-auto` that requires
+                // layout of the content to be fully done:
+                // https://github.com/w3c/csswg-drafts/issues/4905
+                // Gecko reportedly uses `block-size: fit-content` in this case
+                // (which requires running another pass of the "full" layout algorithm)
+                todo!()
+                // Note: this panic shouldn’t happen since the start of `FlexContainer::layout`
+                // forces `FlexAxis::Row`.
+            },
+        };
+
+        // “Resolve the flexible lengths of all the flex items to find their *used main size*.”
+        // https://drafts.csswg.org/css-flexbox/#algo-flex
+        let flex_lines = collect_flex_lines(
+            &mut flex_context,
+            container_main_size,
+            &mut flex_items,
+            |flex_context, mut line| line.layout(flex_context, container_main_size),
         );
 
-        let fragments = original_order_with_absolutely_positioned
+        let content_cross_size = flex_lines
+            .iter()
+            .map(|line| line.cross_size)
+            .sum::<Length>();
+
+        // https://drafts.csswg.org/css-flexbox/#algo-cross-container
+        let container_cross_size = flex_context
+            .container_definite_inner_size
+            .cross
+            .unwrap_or(content_cross_size)
+            .clamp_between_extremums(
+                flex_context.container_min_cross_size,
+                flex_context.container_max_cross_size,
+            );
+
+        // https://drafts.csswg.org/css-flexbox/#algo-line-align
+        // Align all flex lines per `align-content`.
+        let line_count = flex_lines.len();
+        let mut cross_start_position_cursor = Length::zero();
+
+        let line_interval = match flex_context.container_definite_inner_size.cross {
+            Some(cross_size) if line_count >= 2 => {
+                let free_space = cross_size - content_cross_size;
+
+                cross_start_position_cursor = match flex_context.align_content {
+                    AlignContent::Center => free_space / 2.0,
+                    AlignContent::SpaceAround => free_space / (line_count * 2) as CSSFloat,
+                    AlignContent::FlexEnd => free_space,
+                    _ => Length::zero(),
+                };
+
+                match flex_context.align_content {
+                    AlignContent::SpaceBetween => free_space / (line_count - 1) as CSSFloat,
+                    AlignContent::SpaceAround => free_space / line_count as CSSFloat,
+                    _ => Length::zero(),
+                }
+            },
+            _ => Length::zero(),
+        };
+
+        let line_cross_start_positions = flex_lines
+            .iter()
+            .map(|line| {
+                let cross_start = cross_start_position_cursor;
+                let cross_end = cross_start + line.cross_size + line_interval;
+                cross_start_position_cursor = cross_end;
+                cross_start
+            })
+            .collect::<Vec<_>>();
+
+        let content_block_size = match flex_context.flex_axis {
+            FlexAxis::Row => {
+                // `container_main_size` ends up unused here but in this case that’s fine
+                // since it was already exactly the one decided by the outer formatting context.
+                container_cross_size
+            },
+            FlexAxis::Column => {
+                // FIXME: `container_cross_size` ends up unused here, which is a bug.
+                // It is meant to be the used inline-size, but the parent formatting context
+                // has already decided a possibly-different used inline-size.
+                // The spec is missing something to resolve this conflict:
+                // https://github.com/w3c/csswg-drafts/issues/5190
+                // And we’ll need to change the signature of `IndependentFormattingContext::layout`
+                // to allow the inner formatting context to “negotiate” a used inline-size
+                // with the outer one somehow.
+                container_main_size
+            },
+        };
+
+        let mut flex_item_fragments = flex_lines
+            .into_iter()
+            .zip(line_cross_start_positions)
+            .flat_map(move |(mut line, line_cross_start_position)| {
+                let flow_relative_line_position = match (flex_axis, flex_wrap_reverse) {
+                    (FlexAxis::Row, false) => LogicalVec2 {
+                        block: line_cross_start_position,
+                        inline: Length::zero(),
+                    },
+                    (FlexAxis::Row, true) => LogicalVec2 {
+                        block: container_cross_size - line_cross_start_position - line.cross_size,
+                        inline: Length::zero(),
+                    },
+                    (FlexAxis::Column, false) => LogicalVec2 {
+                        block: Length::zero(),
+                        inline: line_cross_start_position,
+                    },
+                    (FlexAxis::Column, true) => LogicalVec2 {
+                        block: Length::zero(),
+                        inline: container_cross_size - line_cross_start_position - line.cross_size,
+                    },
+                };
+                for (fragment, _) in &mut line.item_fragments {
+                    fragment.content_rect.start_corner += &flow_relative_line_position
+                }
+                line.item_fragments
+            })
+            .into_iter();
+
+        let fragments = absolutely_positioned_items_with_original_order
             .into_iter()
             .map(|child_as_abspos| match child_as_abspos {
-                Err(()) => {
-                    // The `()` here is a place-holder for a flex item.
+                FlexContent::AbsolutelyPositionedBox(absolutely_positioned) => {
+                    let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
+                        absolutely_positioned,
+                        LogicalVec2::zero(),
+                        containing_block,
+                    );
+                    let hoisted_fragment = hoisted_box.fragment.clone();
+                    positioning_context.push(hoisted_box);
+                    Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
+                },
+                FlexContent::FlexItemPlaceholder => {
                     // The `flex_item_fragments` iterator yields one fragment
                     // per flex item, in the original order.
                     let (fragment, mut child_positioning_context) =
@@ -203,16 +402,6 @@ impl FlexContainer {
                     positioning_context.append(child_positioning_context);
                     fragment
                 },
-                Ok(absolutely_positioned) => {
-                    let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
-                        absolutely_positioned,
-                        LogicalVec2::zero(),
-                        containing_block,
-                    );
-                    let hoisted_fragment = hoisted_box.fragment.clone();
-                    positioning_context.push(hoisted_box);
-                    Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
-                },
             })
             .collect::<Vec<_>>();
 
@@ -224,200 +413,6 @@ impl FlexContainer {
             content_block_size,
         }
     }
-}
-
-/// Return one fragment for each flex item, in the provided order, and the used block-size.
-fn layout<'context, 'boxes>(
-    layout_context: &LayoutContext,
-    positioning_context: &mut PositioningContext,
-    containing_block: &ContainingBlock,
-    flex_item_boxes: impl Iterator<Item = &'boxes mut IndependentFormattingContext>,
-) -> (
-    impl Iterator<Item = (BoxFragment, PositioningContext)>,
-    Length,
-) {
-    // FIXME: get actual min/max cross size for the flex container.
-    // We have access to style for the flex container in `containing_block.style`,
-    // but resolving percentages there requires access
-    // to the flex container’s own containing block which we don’t have.
-    // For now, use incorrect values instead of panicking:
-    let container_min_cross_size = Length::zero();
-    let container_max_cross_size = None;
-
-    let flex_container_position_style = containing_block.style.get_position();
-    let flex_wrap = flex_container_position_style.flex_wrap;
-    let flex_direction = flex_container_position_style.flex_direction;
-
-    // Column flex containers are not fully implemented yet,
-    // so give a different layout instead of panicking.
-    // FIXME: implement `todo!`s for FlexAxis::Column below, and remove this
-    let flex_direction = match flex_direction {
-        FlexDirection::Row | FlexDirection::Column => FlexDirection::Row,
-        FlexDirection::RowReverse | FlexDirection::ColumnReverse => FlexDirection::RowReverse,
-    };
-
-    let container_is_single_line = match containing_block.style.get_position().flex_wrap {
-        FlexWrap::Nowrap => true,
-        FlexWrap::Wrap | FlexWrap::WrapReverse => false,
-    };
-    let flex_axis = FlexAxis::from(flex_direction);
-    let flex_wrap_reverse = match flex_wrap {
-        FlexWrap::Nowrap | FlexWrap::Wrap => false,
-        FlexWrap::WrapReverse => true,
-    };
-    let align_content = containing_block.style.clone_align_content();
-    let align_items = containing_block.style.clone_align_items();
-    let justify_content = containing_block.style.clone_justify_content();
-
-    let mut flex_context = FlexContext {
-        layout_context,
-        positioning_context,
-        containing_block,
-        container_min_cross_size,
-        container_max_cross_size,
-        container_is_single_line,
-        flex_axis,
-        align_content,
-        align_items,
-        justify_content,
-        main_start_cross_start_sides_are: MainStartCrossStart::from(
-            flex_direction,
-            flex_wrap_reverse,
-        ),
-        // https://drafts.csswg.org/css-flexbox/#definite-sizes
-        container_definite_inner_size: flex_axis.vec2_to_flex_relative(LogicalVec2 {
-            inline: Some(containing_block.inline_size),
-            block: containing_block.block_size.non_auto(),
-        }),
-    };
-
-    let mut flex_items = flex_item_boxes
-        .map(|box_| FlexItem::new(&flex_context, box_))
-        .collect::<Vec<_>>();
-
-    // “Determine the main size of the flex container”
-    // https://drafts.csswg.org/css-flexbox/#algo-main-container
-    let container_main_size = match flex_axis {
-        FlexAxis::Row => containing_block.inline_size,
-        FlexAxis::Column => {
-            // FIXME “using the rules of the formatting context in which it participates”
-            // but if block-level with `block-size: max-auto` that requires
-            // layout of the content to be fully done:
-            // https://github.com/w3c/csswg-drafts/issues/4905
-            // Gecko reportedly uses `block-size: fit-content` in this case
-            // (which requires running another pass of the "full" layout algorithm)
-            todo!()
-            // Note: this panic shouldn’t happen since the start of `FlexContainer::layout`
-            // forces `FlexAxis::Row`.
-        },
-    };
-
-    // “Resolve the flexible lengths of all the flex items to find their *used main size*.”
-    // https://drafts.csswg.org/css-flexbox/#algo-flex
-    let flex_lines = collect_flex_lines(
-        &mut flex_context,
-        container_main_size,
-        &mut flex_items,
-        |flex_context, mut line| line.layout(flex_context, container_main_size),
-    );
-
-    let content_cross_size = flex_lines
-        .iter()
-        .map(|line| line.cross_size)
-        .sum::<Length>();
-
-    // https://drafts.csswg.org/css-flexbox/#algo-cross-container
-    let container_cross_size = flex_context
-        .container_definite_inner_size
-        .cross
-        .unwrap_or(content_cross_size)
-        .clamp_between_extremums(
-            flex_context.container_min_cross_size,
-            flex_context.container_max_cross_size,
-        );
-
-    // https://drafts.csswg.org/css-flexbox/#algo-line-align
-    // Align all flex lines per `align-content`.
-    let line_count = flex_lines.len();
-    let mut cross_start_position_cursor = Length::zero();
-
-    let line_interval = match flex_context.container_definite_inner_size.cross {
-        Some(cross_size) if line_count >= 2 => {
-            let free_space = cross_size - content_cross_size;
-
-            cross_start_position_cursor = match flex_context.align_content {
-                AlignContent::Center => free_space / 2.0,
-                AlignContent::SpaceAround => free_space / (line_count * 2) as CSSFloat,
-                AlignContent::FlexEnd => free_space,
-                _ => Length::zero(),
-            };
-
-            match flex_context.align_content {
-                AlignContent::SpaceBetween => free_space / (line_count - 1) as CSSFloat,
-                AlignContent::SpaceAround => free_space / line_count as CSSFloat,
-                _ => Length::zero(),
-            }
-        },
-        _ => Length::zero(),
-    };
-
-    let line_cross_start_positions = flex_lines
-        .iter()
-        .map(|line| {
-            let cross_start = cross_start_position_cursor;
-            let cross_end = cross_start + line.cross_size + line_interval;
-            cross_start_position_cursor = cross_end;
-            cross_start
-        })
-        .collect::<Vec<_>>();
-
-    let content_block_size = match flex_context.flex_axis {
-        FlexAxis::Row => {
-            // `container_main_size` ends up unused here but in this case that’s fine
-            // since it was already exactly the one decided by the outer formatting context.
-            container_cross_size
-        },
-        FlexAxis::Column => {
-            // FIXME: `container_cross_size` ends up unused here, which is a bug.
-            // It is meant to be the used inline-size, but the parent formatting context
-            // has already decided a possibly-different used inline-size.
-            // The spec is missing something to resolve this conflict:
-            // https://github.com/w3c/csswg-drafts/issues/5190
-            // And we’ll need to change the signature of `IndependentFormattingContext::layout`
-            // to allow the inner formatting context to “negotiate” a used inline-size
-            // with the outer one somehow.
-            container_main_size
-        },
-    };
-    let fragments_and_positioning_contexts = flex_lines
-        .into_iter()
-        .zip(line_cross_start_positions)
-        .flat_map(move |(mut line, line_cross_start_position)| {
-            let flow_relative_line_position = match (flex_axis, flex_wrap_reverse) {
-                (FlexAxis::Row, false) => LogicalVec2 {
-                    block: line_cross_start_position,
-                    inline: Length::zero(),
-                },
-                (FlexAxis::Row, true) => LogicalVec2 {
-                    block: container_cross_size - line_cross_start_position - line.cross_size,
-                    inline: Length::zero(),
-                },
-                (FlexAxis::Column, false) => LogicalVec2 {
-                    block: Length::zero(),
-                    inline: line_cross_start_position,
-                },
-                (FlexAxis::Column, true) => LogicalVec2 {
-                    block: Length::zero(),
-                    inline: container_cross_size - line_cross_start_position - line.cross_size,
-                },
-            };
-            for (fragment, _) in &mut line.item_fragments {
-                fragment.content_rect.start_corner += &flow_relative_line_position
-            }
-            line.item_fragments
-        })
-        .into_iter();
-    (fragments_and_positioning_contexts, content_block_size)
 }
 
 impl<'a> FlexItem<'a> {

@@ -27,7 +27,7 @@ pub struct File {
 }
 
 impl File {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(blob_impl: &BlobImpl, name: DOMString, modified: Option<i64>) -> File {
         File {
             blob: Blob::new_inherited(blob_impl),
@@ -52,7 +52,7 @@ impl File {
         Self::new_with_proto(global, None, blob_impl, name, modified)
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,

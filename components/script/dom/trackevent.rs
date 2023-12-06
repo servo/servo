@@ -22,7 +22,7 @@ use crate::dom::texttrack::TextTrack;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::window::Window;
 
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 enum MediaTrack {
     Video(Dom<VideoTrack>),
@@ -38,7 +38,7 @@ pub struct TrackEvent {
 
 #[allow(non_snake_case)]
 impl TrackEvent {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(track: &Option<VideoTrackOrAudioTrackOrTextTrack>) -> TrackEvent {
         let media_track = match track {
             Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(VideoTrack)) => {

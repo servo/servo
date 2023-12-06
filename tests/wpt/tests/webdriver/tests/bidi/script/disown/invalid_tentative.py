@@ -19,13 +19,16 @@ async def test_params_target_invalid_value(bidi_session, top_context):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.disown(
             handles=[],
-            target={"context": top_context["context"], "realm": result["realm"]},
+            target={
+                "context": top_context["context"],
+                "realm": result["realm"]
+            },
         )
 
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.disown(
             handles=[],
-             target={"sandbox": "foo", "realm": result["realm"]},
+            target={"sandbox": "foo", "realm": result["realm"]},
         )
 
     with pytest.raises(error.InvalidArgumentException):

@@ -29,7 +29,7 @@ impl HTMLHtmlElement {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         localName: LocalName,
         prefix: Option<Prefix>,

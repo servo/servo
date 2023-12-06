@@ -34,7 +34,7 @@ pub struct PromiseRejectionEvent {
 }
 
 impl PromiseRejectionEvent {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(promise: Rc<Promise>) -> Self {
         PromiseRejectionEvent {
             event: Event::new_inherited(),
@@ -54,7 +54,7 @@ impl PromiseRejectionEvent {
         Self::new_with_proto(global, None, type_, bubbles, cancelable, promise, reason)
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -79,7 +79,7 @@ impl PromiseRejectionEvent {
         ev
     }
 
-    #[allow(unrooted_must_root, non_snake_case)]
+    #[allow(crown::unrooted_must_root, non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,

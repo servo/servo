@@ -1103,11 +1103,6 @@ impl WindowMethods for Window {
     }
 
     #[allow(unsafe_code)]
-    fn Trap(&self) {
-        unsafe { ::std::intrinsics::breakpoint() }
-    }
-
-    #[allow(unsafe_code)]
     fn Js_backtrace(&self) {
         unsafe {
             capture_stack!(in(*self.get_cx()) let stack);
@@ -1338,6 +1333,7 @@ impl WindowMethods for Window {
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             quirks_mode,
+            /* namespaces = */ Default::default(),
             self.css_error_reporter(),
             None,
         );

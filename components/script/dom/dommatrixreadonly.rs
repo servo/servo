@@ -46,7 +46,7 @@ impl DOMMatrixReadOnly {
         Self::new_with_proto(global, None, is2D, matrix)
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -844,6 +844,7 @@ pub fn transform_to_matrix(value: String) -> Fallible<(bool, Transform3D<f64>)> 
         Some(::style::stylesheets::CssRuleType::Style),
         ::style_traits::ParsingMode::DEFAULT,
         ::style::context::QuirksMode::NoQuirks,
+        /* namespaces = */ Default::default(),
         None,
         None,
     );

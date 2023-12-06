@@ -7,16 +7,16 @@ def product(a, b):
     return [(a, item) for item in b]
 
 
-def flatten(l):
-    return [item for x in l for item in x]
+def flatten(a):
+    return [item for x in a for item in x]
 
 
 @pytest.fixture(name="add_browser_capabilities")
 def fixture_add_browser_capabilities(configuration):
-
     def add_browser_capabilities(capabilities):
         # Make sure there aren't keys in common.
-        assert not set(configuration["capabilities"]).intersection(set(capabilities))
+        assert not set(configuration["capabilities"]).intersection(
+            set(capabilities))
         result = dict(configuration["capabilities"])
         result.update(capabilities)
 
@@ -27,16 +27,17 @@ def fixture_add_browser_capabilities(configuration):
 
 @pytest.fixture(name="configuration")
 def fixture_configuration(configuration):
-  """Remove "acceptInsecureCerts" from capabilities if it exists.
+    """Remove "acceptInsecureCerts" from capabilities if it exists.
 
   Some browser configurations add acceptInsecureCerts capability by default.
   Remove it during new_session tests to avoid interference.
   """
 
-  if "acceptInsecureCerts" in configuration["capabilities"]:
-    configuration = dict(configuration)
-    del configuration["capabilities"]["acceptInsecureCerts"]
-  return configuration
+    if "acceptInsecureCerts" in configuration["capabilities"]:
+        configuration = dict(configuration)
+        del configuration["capabilities"]["acceptInsecureCerts"]
+    return configuration
+
 
 @pytest.fixture(name="new_session")
 def fixture_new_session(request, configuration, current_session):
@@ -52,7 +53,9 @@ def fixture_new_session(request, configuration, current_session):
     custom_session = {}
 
     transport = HTTPWireProtocol(
-        configuration["host"], configuration["port"], url_prefix="/",
+        configuration["host"],
+        configuration["port"],
+        url_prefix="/",
     )
 
     def _delete_session(session_id):

@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 
 <body>
 <script>
@@ -16,6 +17,7 @@ promise_test(async (t) => {
   const fencedframe = await attachFencedFrameContext({
     generator_api: "fledge",
     automatic_beacon: true,
+    origin: get_host_info().HTTPS_REMOTE_ORIGIN
   });
   const new_url = new URL("resources/dummy.html", location.href);
   const beacon_data = "This is the beacon data!";
@@ -45,8 +47,8 @@ promise_test(async (t) => {
   // of the beacon because the "buyer" destination was not specified in
   // setReportEventDataForAutomaticBeacons().
   const expected_data = "<No data>";
-  const received_beacon_data = await nextAutomaticBeacon(expected_data);
-  assert_equals(received_beacon_data, expected_data);
+  const beacon_initiator_origin = await nextAutomaticBeacon(expected_data);
+  assert_equals(beacon_initiator_origin, get_host_info().HTTPS_ORIGIN);
 }, "Set and trigger an automatic beacon with no destination specified");
 
 </script>

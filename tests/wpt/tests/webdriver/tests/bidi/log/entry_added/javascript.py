@@ -6,7 +6,7 @@ from ... import int_interval
 
 @pytest.mark.asyncio
 async def test_types_and_values(
-    bidi_session, subscribe_events, current_time, top_context, wait_for_event
+    bidi_session, subscribe_events, current_time, top_context, wait_for_event, wait_for_future_safe
 ):
     await subscribe_events(events=["log.entryAdded"])
 
@@ -15,7 +15,7 @@ async def test_types_and_values(
     time_start = await current_time()
 
     expected_text = await create_log(bidi_session, top_context, "javascript_error", "cached_message")
-    event_data = await on_entry_added
+    event_data = await wait_for_future_safe(on_entry_added)
 
     time_end = await current_time()
 

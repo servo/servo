@@ -141,7 +141,7 @@ enum ImageRequestPhase {
     Current,
 }
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 struct ImageRequest {
     state: State,
     #[no_trace]
@@ -690,6 +690,7 @@ impl HTMLImageElement {
             Some(CssRuleType::Style),
             ParsingMode::all(),
             quirks_mode,
+            /* namespaces = */ Default::default(),
             None,
             None,
         );
@@ -1248,7 +1249,7 @@ impl HTMLImageElement {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
@@ -1442,6 +1443,7 @@ pub fn parse_a_sizes_attribute(value: DOMString) -> SourceSizeList {
         // browsers do regarding quirks-mode in a media list?
         ParsingMode::empty(),
         QuirksMode::NoQuirks,
+        /* namespaces = */ Default::default(),
         None,
         None,
     );
