@@ -42,11 +42,12 @@ public class Servo {
             mJNI.init(activity, options, mServoCallbacks, surface);
         });
 
-        // try {
-        //   GStreamer.init((Context) activity);
-        // } catch (Exception e) {
-        //   e.printStackTrace();
-        // }
+        try {
+          // FIXME: GStreamer support
+          // GStreamer.init((Context) activity);
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
     }
 
     public void resetGfxCallbacks(GfxCallbacks gfxcb) {

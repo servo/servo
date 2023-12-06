@@ -14,6 +14,7 @@ import android.view.Surface;
 public class JNIServo {
     JNIServo() {
         System.loadLibrary("c++_shared");
+        // FIXME: GStreamer support
         // System.loadLibrary("gstreamer_android");
         System.loadLibrary("simpleservo");
     }
