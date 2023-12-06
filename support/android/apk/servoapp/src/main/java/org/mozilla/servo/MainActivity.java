@@ -89,8 +89,10 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     protected void onDestroy() {
-      super.onDestroy();
-      mMediaSession.hideMediaSessionControls();
+        super.onDestroy();
+        if (mMediaSession != null) {
+            mMediaSession.hideMediaSessionControls();
+        }
     }
 
     private void setupUrlField() {
