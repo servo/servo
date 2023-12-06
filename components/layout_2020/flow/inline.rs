@@ -8,6 +8,7 @@ use std::vec::IntoIter;
 
 use app_units::Au;
 use atomic_refcell::AtomicRef;
+use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx::text::text_run::GlyphRun;
 use log::warn;
@@ -32,7 +33,7 @@ use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{
     AnonymousFragment, BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
-    FontMetrics, Fragment, HoistedSharedFragment, TextFragment,
+    Fragment, HoistedSharedFragment, TextFragment,
 };
 use crate::geom::{LogicalRect, LogicalVec2};
 use crate::positioned::{
@@ -893,7 +894,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         glyph_store: std::sync::Arc<GlyphStore>,
         base_fragment_info: BaseFragmentInfo,
         parent_style: &Arc<ComputedValues>,
-        font_metrics: FontMetrics,
+        font_metrics: &FontMetrics,
         font_key: FontInstanceKey,
     ) {
         let inline_advance = Length::from(glyph_store.total_advance());
@@ -926,7 +927,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 text: vec![glyph_store],
                 base_fragment_info: base_fragment_info.into(),
                 parent_style: parent_style.clone(),
-                font_metrics,
+                font_metrics: font_metrics.clone(),
                 font_key,
                 text_decoration_line: self.current_inline_container_state().text_decoration_line,
             }),
@@ -1644,7 +1645,7 @@ impl TextRun {
             );
 
             Ok(BreakAndShapeResult {
-                font_metrics: (&font.metrics).into(),
+                font_metrics: font.metrics.clone(),
                 font_key: font.font_key,
                 runs,
                 break_at_start,
@@ -1729,7 +1730,7 @@ impl TextRun {
                 run.glyph_store,
                 self.base_fragment_info,
                 &self.parent_style,
-                font_metrics,
+                &font_metrics,
                 font_key,
             );
         }
@@ -1930,7 +1931,7 @@ struct TextRunLineItem {
 fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Length {
     let font_size = parent_style.get_font().font_size.computed_size();
     match parent_style.get_inherited_text().line_height {
-        LineHeight::Normal => font_metrics.line_gap,
+        LineHeight::Normal => Length::from(font_metrics.line_gap),
         LineHeight::Number(number) => font_size * number.0,
         LineHeight::Length(length) => length.0,
     }
@@ -1946,8 +1947,8 @@ fn line_gap_from_style(layout_context: &LayoutContext, style: &ComputedValues) -
                 return Length::zero();
             },
         };
-        let font_metrics: FontMetrics = (&font.borrow().metrics).into();
-        font_metrics.line_gap
+        let font = font.borrow();
+        Length::from(font.metrics.line_gap)
     })
 }
 
@@ -1961,8 +1962,8 @@ fn line_height_from_style(layout_context: &LayoutContext, style: &ComputedValues
                 return Length::zero();
             },
         };
-        let font_metrics: FontMetrics = (&font.borrow().metrics).into();
-        line_height(style, &font_metrics)
+        let font = font.borrow();
+        line_height(style, &font.metrics)
     })
 }
 
