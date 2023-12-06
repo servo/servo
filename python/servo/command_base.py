@@ -302,7 +302,6 @@ class CommandBase(object):
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
         self.config["build"].setdefault("incremental", None)
-        self.config["build"].setdefault("thinlto", False)
         self.config["build"].setdefault("webgl-backtrace", False)
         self.config["build"].setdefault("dom-backtrace", False)
 
@@ -541,9 +540,6 @@ class CommandBase(object):
             env['RUSTFLAGS'] += " -C target-feature=+neon"
 
         env["CARGO_TARGET_DIR"] = servo.util.get_target_dir()
-
-        if self.config["build"]["thinlto"]:
-            env['RUSTFLAGS'] += " -Z thinlto"
 
         # Work around https://github.com/servo/servo/issues/24446
         # Argument-less str.split normalizes leading, trailing, and double spaces
