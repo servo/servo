@@ -64,6 +64,11 @@ pub(crate) struct IndependentLayout {
 
     /// https://drafts.csswg.org/css2/visudet.html#root-height
     pub content_block_size: Length,
+
+    /// The offset of the last inflow baseline of this layout in the content area, if
+    /// there was one. This is used to propagate baselines to the ancestors of `display:
+    /// inline-block`.
+    pub last_inflow_baseline_offset: Option<Length>,
 }
 
 impl IndependentFormattingContext {

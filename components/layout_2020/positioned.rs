@@ -703,7 +703,10 @@ impl HoistedAbsolutelyPositionedBox {
                 pbm.padding,
                 pbm.border,
                 margin,
-                None,
+                None, /* clearance */
+                // We do not set the baseline offset, because absolutely positioned
+                // elements are not inflow.
+                None, /* last_inflow_baseline_offset */
                 CollapsedBlockMargins::zero(),
                 physical_overconstrained,
             )

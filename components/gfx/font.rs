@@ -121,6 +121,27 @@ pub struct FontMetrics {
     pub line_gap: Au,
 }
 
+impl FontMetrics {
+    /// Create an empty [`FontMetrics`] mainly to be used in situations where
+    /// no font can be found.
+    pub fn empty() -> Self {
+        Self {
+            underline_size: Au(0),
+            underline_offset: Au(0),
+            strikeout_size: Au(0),
+            strikeout_offset: Au(0),
+            leading: Au(0),
+            x_height: Au(0),
+            em_size: Au(0),
+            ascent: Au(0),
+            descent: Au(0),
+            max_advance: Au(0),
+            average_advance: Au(0),
+            line_gap: Au(0),
+        }
+    }
+}
+
 /// `FontDescriptor` describes the parameters of a `Font`. It represents rendering a given font
 /// template at a particular size, with a particular font-variant-caps applied, etc. This contrasts
 /// with `FontTemplateDescriptor` in that the latter represents only the parameters inherent in the

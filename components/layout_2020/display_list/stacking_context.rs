@@ -1242,7 +1242,7 @@ impl BoxFragment {
     ) -> Option<(ScrollTreeNodeId, wr::ClipChainId, LayoutSize)> {
         let overflow_x = self.style.get_box().overflow_x;
         let overflow_y = self.style.get_box().overflow_y;
-        if overflow_x == ComputedOverflow::Visible && overflow_y == ComputedOverflow::Visible {
+        if !self.style.establishes_scroll_container() {
             return None;
         }
 
