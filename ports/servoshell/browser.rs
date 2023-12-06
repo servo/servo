@@ -452,11 +452,11 @@ where
                     self.browsers.insert(new_browser_id, Browser { rect });
                     self.creation_order.push(new_browser_id);
                     self.event_queue
+                        .push(EmbedderEvent::FocusBrowser(new_browser_id));
+                    self.event_queue
                         .push(EmbedderEvent::MoveResizeBrowser(new_browser_id, rect));
                     self.event_queue
                         .push(EmbedderEvent::RaiseBrowserToTop(new_browser_id));
-                    self.event_queue
-                        .push(EmbedderEvent::FocusBrowser(new_browser_id));
                 },
                 EmbedderMsg::BrowserClosed(top_level_browsing_context_id) => {
                     self.browsers

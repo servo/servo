@@ -39,7 +39,7 @@ canvas = { path = "../canvas", default-features = false }
 canvas_traits = { workspace = true }
 compositing = { path = "../compositing", features = ["gl"] }
 compositing_traits = { workspace = true }
-constellation = { path = "../constellation" }
+constellation = { path = "../constellation", features = [] }
 crossbeam-channel = { workspace = true }
 devtools = { path = "../devtools" }
 devtools_traits = { workspace = true }

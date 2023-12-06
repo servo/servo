@@ -1553,6 +1553,9 @@ where
                     Some(top_level_browsing_context_id),
                     EmbedderMsg::BrowserFocused(top_level_browsing_context_id),
                 ));
+                if !cfg!(feature = "multiview") {
+                    self.update_browser(top_level_browsing_context_id);
+                }
             },
             FromCompositorMsg::UnfocusBrowser => {
                 self.browsers.unfocus();
@@ -5509,6 +5512,15 @@ where
 
     /// Send the frame tree for the given browser to the compositor.
     fn update_browser(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+        if !cfg!(feature = "multiview") {
+            if let Some(focused_browser_id) = self.browsers.focused_browser().map(|(id, _)| id) {
+                if top_level_browsing_context_id != focused_browser_id {
+                    return;
+                }
+            } else {
+                self.browsers.focus(top_level_browsing_context_id);
+            }
+        }
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
