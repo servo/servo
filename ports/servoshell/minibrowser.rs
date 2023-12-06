@@ -29,6 +29,7 @@ pub struct Minibrowser {
     pub context: EguiGlow,
     pub event_queue: RefCell<Vec<MinibrowserEvent>>,
     pub toolbar_height: Length<f32, DeviceIndependentPixel>,
+    widget_surface_fbo: gl::GLuint,
     last_update: Instant,
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
     location: RefCell<String>,
@@ -58,10 +59,20 @@ impl Minibrowser {
             .egui_ctx
             .set_pixels_per_point(window.hidpi_factor().get());
 
+        let widget_surface_fbo = match webrender_surfman.context_surface_info() {
+            Ok(Some(info)) => info.framebuffer_object,
+            Ok(None) => panic!("Failed to get widget surface info from surfman!"),
+            Err(error) => panic!(
+                "Failed to get widget surface info from surfman! {:?}",
+                error
+            ),
+        };
+
         Self {
             context,
             event_queue: RefCell::new(vec![]),
             toolbar_height: Default::default(),
+            widget_surface_fbo,
             last_update: Instant::now(),
             last_mouse_position: None,
             location: RefCell::new(String::default()),
@@ -114,11 +125,13 @@ impl Minibrowser {
             context,
             event_queue,
             toolbar_height,
+            widget_surface_fbo,
             last_update,
             location,
             location_dirty,
             ..
         } = self;
+        let our_fbo = *widget_surface_fbo;
         let _duration = context.run(window, |ctx| {
             let InnerResponse { inner: height, .. } =
                 TopBottomPanel::top("toolbar").show(ctx, |ui| {
@@ -161,7 +174,7 @@ impl Minibrowser {
                     let rect = egui::Rect::from_min_size(min, size);
                     ui.allocate_space(size);
 
-                    if let Some(fbo) = servo_framebuffer_id {
+                    if let Some(servo_fbo) = servo_framebuffer_id {
                         ui.painter().add(PaintCallback {
                             rect,
                             callback: Arc::new(CallbackFn::new(move |info, painter| {
@@ -178,11 +191,13 @@ impl Minibrowser {
                                     painter.gl().clear(gl::COLOR_BUFFER_BIT);
                                     painter.gl().disable(gl::SCISSOR_TEST);
 
-                                    let fbo = NativeFramebuffer(NonZeroU32::new(fbo).unwrap());
+                                    let servo_fbo =
+                                        NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
+                                    let our_fbo = NonZeroU32::new(our_fbo).map(NativeFramebuffer);
                                     painter
                                         .gl()
-                                        .bind_framebuffer(gl::READ_FRAMEBUFFER, Some(fbo));
-                                    painter.gl().bind_framebuffer(gl::DRAW_FRAMEBUFFER, None);
+                                        .bind_framebuffer(gl::READ_FRAMEBUFFER, servo_fbo);
+                                    painter.gl().bind_framebuffer(gl::DRAW_FRAMEBUFFER, our_fbo);
                                     painter.gl().blit_framebuffer(
                                         x,
                                         y,
@@ -195,7 +210,7 @@ impl Minibrowser {
                                         gl::COLOR_BUFFER_BIT,
                                         gl::NEAREST,
                                     );
-                                    painter.gl().bind_framebuffer(gl::FRAMEBUFFER, None);
+                                    painter.gl().bind_framebuffer(gl::FRAMEBUFFER, our_fbo);
                                 }
                             })),
                         });
