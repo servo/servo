@@ -913,7 +913,7 @@ impl LayoutThread {
         }
 
         // Flush shadow roots stylesheets if dirty.
-        document.flush_shadow_roots_stylesheets(&mut self.stylist, guards.author.clone());
+        document.flush_shadow_roots_stylesheets(&mut self.stylist, guards.author);
 
         let restyles = std::mem::take(&mut data.pending_restyles);
         debug!("Draining restyles: {}", restyles.len());
