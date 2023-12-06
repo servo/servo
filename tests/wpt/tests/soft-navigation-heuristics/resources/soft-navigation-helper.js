@@ -20,7 +20,7 @@ const testSoftNavigation =
       const testName = options.testName;
       const pushUrl = readValue(options.pushUrl, true);
       const eventType = readValue(options.eventType, "click");
-      const interactionType = readValue(options.interactionType, 'click');
+      const interactionFunc = options.interactionFunc;
       const eventPrepWork = options.eventPrepWork;
       promise_test(async t => {
         await waitInitialLCP();
@@ -33,7 +33,7 @@ const testSoftNavigation =
           let paint_entries_promise =
               waitOnPaintEntriesPromise(firstClick);
           interacted = false;
-          interact(link, interactionType);
+          interact(link, interactionFunc);
 
           const navigation_id = await waitOnSoftNav();
           if (!first_navigation_id) {
@@ -129,12 +129,12 @@ const runEntryValidations =
 };
 
 const interact =
-    (link, interactionType = 'click') => {
+    (link, interactionFunc = undefined) => {
       if (test_driver) {
-        if (interactionType == 'click') {
-          test_driver.click(link);
+        if (interactionFunc) {
+          interactionFunc();
         } else {
-          test_driver.send_keys(link, 'j');
+          test_driver.click(link);
         }
         timestamps[counter] = {"syncPostInteraction": performance.now()};
       }

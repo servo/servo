@@ -548,12 +548,16 @@ impl StylesheetInvalidationSet {
                 // It's not clear what handling changes for this correctly would
                 // look like.
             },
+            LayerStatement(..) => {
+                // Layer statement insertions might alter styling order, so we need to always
+                // invalidate fully.
+                return self.invalidate_fully();
+            },
             CounterStyle(..) |
             Page(..) |
-            Viewport(..) |
+            Property(..) |
             FontFeatureValues(..) |
             FontPaletteValues(..) |
-            LayerStatement(..) |
             FontFace(..) |
             Keyframes(..) |
             Container(..) |
@@ -633,12 +637,12 @@ impl StylesheetInvalidationSet {
                     // existing elements.
                 }
             },
-            CounterStyle(..) | Page(..) | Viewport(..) | FontFeatureValues(..) |
+            CounterStyle(..) |
+            Page(..) |
+            Property(..) |
+            FontFeatureValues(..) |
             FontPaletteValues(..) => {
-                debug!(
-                    " > Found unsupported rule, marking the whole subtree \
-                     invalid."
-                );
+                debug!(" > Found unsupported rule, marking the whole subtree invalid.");
 
                 // TODO(emilio): Can we do better here?
                 //

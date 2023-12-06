@@ -501,65 +501,8 @@ impl_to_css_for_predefined_type!(i8);
 impl_to_css_for_predefined_type!(i32);
 impl_to_css_for_predefined_type!(u16);
 impl_to_css_for_predefined_type!(u32);
-impl_to_css_for_predefined_type!(::cssparser::RGBA);
 impl_to_css_for_predefined_type!(::cssparser::Token<'a>);
 impl_to_css_for_predefined_type!(::cssparser::UnicodeRange);
-
-/// Define an enum type with unit variants that each correspond to a CSS keyword.
-macro_rules! define_css_keyword_enum {
-    (pub enum $name:ident { $($variant:ident = $css:expr,)+ }) => {
-        #[allow(missing_docs)]
-        #[cfg_attr(feature = "servo", derive(serde::Deserialize, serde::Serialize))]
-        #[derive(Clone, Copy, Debug, Eq, Hash,
-            malloc_size_of_derive::MallocSizeOf, PartialEq, to_shmem_derive::ToShmem)]
-        pub enum $name {
-            $($variant),+
-        }
-
-        impl $name {
-            /// Parse this property from a CSS input stream.
-            pub fn parse<'i, 't>(input: &mut ::cssparser::Parser<'i, 't>)
-                                 -> Result<$name, $crate::ParseError<'i>> {
-                use cssparser::Token;
-                let location = input.current_source_location();
-                match *input.next()? {
-                    Token::Ident(ref ident) => {
-                        Self::from_ident(ident).map_err(|()| {
-                            location.new_unexpected_token_error(
-                                Token::Ident(ident.clone()),
-                            )
-                        })
-                    }
-                    ref token => {
-                        Err(location.new_unexpected_token_error(token.clone()))
-                    }
-                }
-            }
-
-            /// Parse this property from an already-tokenized identifier.
-            pub fn from_ident(ident: &str) -> Result<$name, ()> {
-                cssparser::match_ignore_ascii_case! { ident,
-                    $($css => Ok($name::$variant),)+
-                    _ => Err(())
-                }
-            }
-        }
-
-        impl $crate::ToCss for $name {
-            fn to_css<W>(
-                &self,
-                dest: &mut $crate::CssWriter<W>,
-            ) -> ::std::fmt::Result
-            where
-                W: ::std::fmt::Write,
-            {
-                match *self {
-                    $( $name::$variant => ::std::fmt::Write::write_str(dest, $css) ),+
-                }
-            }
-        }
-    };
-}
 
 /// Helper types for the handling of specified values.
 pub mod specified {

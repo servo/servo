@@ -741,7 +741,7 @@ where
         ::std::mem::replace(&mut self.messages_for_embedder, Vec::new())
     }
 
-    pub fn handle_events(&mut self, events: Vec<EmbedderEvent>) -> bool {
+    pub fn handle_events(&mut self, events: impl IntoIterator<Item = EmbedderEvent>) -> bool {
         if self.compositor.receive_messages() {
             self.receive_messages();
         }

@@ -6,12 +6,12 @@ from tests.support.keys import Keys
 
 
 @pytest.mark.parametrize("modifier, prop", [
-   (Keys.ALT, "altKey"),
-   (Keys.R_ALT, "altKey"),
-   (Keys.META, "metaKey"),
-   (Keys.R_META, "metaKey"),
-   (Keys.SHIFT, "shiftKey"),
-   (Keys.R_SHIFT, "shiftKey"),
+    (Keys.ALT, "altKey"),
+    (Keys.R_ALT, "altKey"),
+    (Keys.META, "metaKey"),
+    (Keys.R_META, "metaKey"),
+    (Keys.SHIFT, "shiftKey"),
+    (Keys.R_SHIFT, "shiftKey"),
 ])
 def test_modifier_click(session, test_actions_page, key_chain, mouse_chain, modifier, prop):
     key_chain \

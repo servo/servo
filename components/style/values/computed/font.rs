@@ -26,11 +26,11 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, ToCss};
 
 pub use crate::values::computed::Length as MozScriptMinSize;
-pub use crate::values::specified::font::{FontPalette, FontSynthesis};
 pub use crate::values::specified::font::MozScriptSizeMultiplier;
+pub use crate::values::specified::font::{FontPalette, FontSynthesis};
 pub use crate::values::specified::font::{
     FontVariantAlternates, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric, XLang,
-    XTextZoom,
+    XTextScale,
 };
 pub use crate::values::specified::Integer as SpecifiedInteger;
 pub use crate::values::specified::Number as SpecifiedNumber;
@@ -869,7 +869,7 @@ where
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem
+    ToShmem,
 )]
 #[repr(C)]
 #[value_info(other_values = "normal")]

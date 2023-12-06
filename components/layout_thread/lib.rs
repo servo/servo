@@ -1786,12 +1786,7 @@ fn get_root_flow_background_color(flow: &mut dyn Flow) -> ColorF {
             .background_color
             .clone(),
     );
-    ColorF::new(
-        color.red_f32(),
-        color.green_f32(),
-        color.blue_f32(),
-        color.alpha_f32(),
-    )
+    color.to_layout()
 }
 
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {

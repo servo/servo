@@ -1,7 +1,4 @@
-import asyncio
-
 import pytest
-from webdriver.bidi.modules.script import ScriptEvaluateResultException
 
 from .. import (
     assert_before_request_sent_event,
@@ -19,6 +16,7 @@ async def test_basic_authentication(
     bidi_session,
     new_tab,
     wait_for_event,
+    wait_for_future_safe,
     url,
     setup_network_test,
     add_intercept,
@@ -51,7 +49,7 @@ async def test_basic_authentication(
         wait="none",
     )
 
-    await on_auth_required
+    await wait_for_future_safe(on_auth_required)
     expected_request = {"method": "GET", "url": auth_url}
 
     assert len(before_request_sent_events) == 1
@@ -80,12 +78,12 @@ async def test_basic_authentication(
 
 
 async def test_no_authentication(
-    bidi_session,
     wait_for_event,
     url,
     setup_network_test,
     add_intercept,
     fetch,
+    wait_for_future_safe,
 ):
     network_events = await setup_network_test(
         events=[
@@ -111,7 +109,7 @@ async def test_no_authentication(
     on_network_event = wait_for_event("network.responseCompleted")
 
     await fetch(text_url)
-    await on_network_event
+    await wait_for_future_safe(on_network_event)
 
     expected_request = {"method": "GET", "url": text_url}
 

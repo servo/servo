@@ -28,7 +28,8 @@ enum MediaSessionAction {
   "togglecamera",
   "hangup",
   "previousslide",
-  "nextslide"
+  "nextslide",
+  "enterpictureinpicture"
 };
 
 callback MediaSessionActionHandler = undefined(MediaSessionActionDetails details);

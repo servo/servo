@@ -124,13 +124,12 @@ macro_rules! lnf_int_variable {
     }};
 }
 
-static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 7] = [
+static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 6] = [
     lnf_int_variable!(
         atom!("-moz-gtk-csd-titlebar-radius"),
         TitlebarRadius,
         int_pixels
     ),
-    lnf_int_variable!(atom!("-moz-gtk-csd-menu-radius"), GtkMenuRadius, int_pixels),
     lnf_int_variable!(
         atom!("-moz-gtk-csd-close-button-position"),
         GTKCSDCloseButtonPosition,
@@ -150,10 +149,7 @@ static CHROME_ENVIRONMENT_VARIABLES: [EnvironmentVariable; 7] = [
         atom!("-moz-content-preferred-color-scheme"),
         get_content_preferred_color_scheme
     ),
-    make_variable!(
-        atom!("scrollbar-inline-size"),
-        get_scrollbar_inline_size
-    ),
+    make_variable!(atom!("scrollbar-inline-size"), get_scrollbar_inline_size),
 ];
 
 impl CssEnvironment {
@@ -162,7 +158,7 @@ impl CssEnvironment {
         if let Some(var) = ENVIRONMENT_VARIABLES.iter().find(|var| var.name == *name) {
             return Some((var.evaluator)(device));
         }
-        if !device.is_chrome_document() {
+        if !device.chrome_rules_enabled_for_document() {
             return None;
         }
         let var = CHROME_ENVIRONMENT_VARIABLES

@@ -112,8 +112,8 @@ def test_middle_click(session, test_actions_page, mouse_chain):
     assert len(events) == 3
 
     expected = [
-      {"type": "mousedown", "button": 1, "buttons": 4},
-      {"type": "mouseup", "button": 1, "buttons": 0},
+        {"type": "mousedown", "button": 1, "buttons": 4},
+        {"type": "mouseup", "button": 1, "buttons": 0},
     ]
     filtered_events = [filter_dict(e, expected[0]) for e in events]
     mousedown_mouseup_events = [

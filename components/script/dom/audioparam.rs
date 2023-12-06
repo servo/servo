@@ -58,7 +58,7 @@ impl AudioParam {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         window: &Window,
         context: &BaseAudioContext,

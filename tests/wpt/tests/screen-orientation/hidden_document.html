@@ -14,21 +14,58 @@
 
   promise_test(async (t) => {
     const { minimize, restore } = window_state_context(t);
-    t.add_cleanup(makeCleanup());
+    t.add_cleanup(restore);
 
     await minimize();
 
     assert_equals(document.visibilityState, "hidden", "Document must be hidden");
-    const opposite = getOppositeOrientation();
-    await promise_rejects_dom(t, "SecurityError", screen.orientation.lock(opposite) );
+    await promise_rejects_dom(t, "SecurityError", screen.orientation.lock(getOppositeOrientation()));
   }, "hidden documents must reject went trying to call lock or unlock");
 
   promise_test(async (t) => {
     const { minimize, restore } = window_state_context(t);
+    t.add_cleanup(restore);
 
     await minimize();
 
     assert_equals(document.visibilityState, "hidden", "Document must be hidden");
     assert_throws_dom("SecurityError", () => screen.orientation.unlock());
   }, "hidden documents must reject went trying to call unlock");
+
+  promise_test(async (t) => {
+    const { minimize, restore } = window_state_context(t);
+    t.add_cleanup(makeCleanup());
+
+    await test_driver.bless("request full screen");
+    await document.documentElement.requestFullscreen();
+    await screen.orientation.lock(getOppositeOrientation());
+
+    await minimize();
+
+    assert_equals(document.visibilityState, "hidden", "Document must be hidden");
+    assert_throws_dom("SecurityError", () => screen.orientation.unlock());
+  }, "hidden documents must not unlock the screen orientation");
+
+  promise_test(async (t) => {
+    const { minimize, restore } = window_state_context(t);
+    t.add_cleanup(makeCleanup());
+    await test_driver.bless("request full screen");
+    await document.documentElement.requestFullscreen();
+    await screen.orientation.lock(getOppositeOrientation());
+
+    await minimize();
+
+    assert_equals(document.visibilityState, "hidden");
+    await promise_rejects_dom(t, "SecurityError", screen.orientation.lock(getOppositeOrientation()));
+
+    // Maximize, now everything should work as expected.
+    await restore();
+
+    assert_equals(document.visibilityState, "visible");
+
+    await test_driver.bless("request full screen");
+    await document.documentElement.requestFullscreen();
+    await screen.orientation.lock(getOppositeOrientation());
+    screen.orientation.unlock();
+  }, "Once maximized, a minimized window can lock or unlock the screen orientation again");
 </script>

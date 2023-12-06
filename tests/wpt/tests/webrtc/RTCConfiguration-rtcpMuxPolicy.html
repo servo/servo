@@ -116,6 +116,14 @@
 
   test(() => {
     let pc;
+    pc = new RTCPeerConnection({ rtcpMuxPolicy: 'require' });
+    // default rtcpMuxPolicy is 'require', so this is allowed
+    pc.setConfiguration({});
+    assert_equals(pc.getConfiguration().rtcpMuxPolicy, 'require');
+  }, `setConfiguration({}) with initial rtcpMuxPolicy require should leave rtcpMuxPolicy to require`);
+
+  test(() => {
+    let pc;
     try {
       pc = new RTCPeerConnection({ rtcpMuxPolicy: 'negotiate' });
     } catch(err) {

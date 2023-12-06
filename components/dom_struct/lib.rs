@@ -13,7 +13,7 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
     }
     let attributes = quote! {
         #[derive(deny_public_fields::DenyPublicFields, domobject_derive::DomObject, JSTraceable, MallocSizeOf)]
-        #[unrooted_must_root_lint::must_root]
+        #[crown::unrooted_must_root_lint::must_root]
         #[repr(C)]
     };
 

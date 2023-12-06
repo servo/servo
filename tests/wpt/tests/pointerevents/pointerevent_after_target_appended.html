@@ -161,7 +161,7 @@
   addPromiseTestForNewChild("pointerdown", "pointer", [
     "pointerover@parent", "pointerenter@parent",
     "pointerdown@parent", "(child-attached)",
-    "pointerover@child", "pointerenter@child",
+    "pointerout@parent", "pointerover@child", "pointerenter@child",
     "pointerup@child",
     "pointerdown@child", "pointerup@child",
     "pointerout@child", "pointerleave@child", "pointerleave@parent"
@@ -169,7 +169,7 @@
   addPromiseTestForNewChild("pointerup", "pointer", [
     "pointerover@parent", "pointerenter@parent",
     "pointerdown@parent", "pointerup@parent", "(child-attached)",
-    "pointerover@child", "pointerenter@child",
+    "pointerout@parent", "pointerover@child", "pointerenter@child",
     "pointerdown@child", "pointerup@child",
     "pointerout@child", "pointerleave@child", "pointerleave@parent"
   ]);
@@ -193,7 +193,7 @@
   addPromiseTestForNewChild("mousedown", "mouse", [
     "mouseover@parent", "mouseenter@parent",
     "mousedown@parent", "(child-attached)",
-    "mouseover@child", "mouseenter@child",
+    "mouseout@parent", "mouseover@child", "mouseenter@child",
     "mouseup@child",
     "mousedown@child", "mouseup@child",
     "mouseout@child", "mouseleave@child", "mouseleave@parent"
@@ -201,7 +201,7 @@
   addPromiseTestForNewChild("mouseup", "mouse", [
     "mouseover@parent", "mouseenter@parent",
     "mousedown@parent", "mouseup@parent", "(child-attached)",
-    "mouseover@child", "mouseenter@child",
+    "mouseout@parent", "mouseover@child", "mouseenter@child",
     "mousedown@child", "mouseup@child",
     "mouseout@child", "mouseleave@child", "mouseleave@parent"
   ]);

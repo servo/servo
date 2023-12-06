@@ -2,8 +2,6 @@
 
 import pytest
 
-from webdriver.error import NoSuchCookieException
-
 from tests.support.asserts import assert_dialog_handled, assert_error, assert_success
 
 

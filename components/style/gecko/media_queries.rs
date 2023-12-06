@@ -4,10 +4,11 @@
 
 //! Gecko's media-query device and expression representation.
 
+use crate::color::AbsoluteColor;
 use crate::context::QuirksMode;
 use crate::custom_properties::CssEnvironment;
 use crate::font_metrics::FontMetrics;
-use crate::gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
+use crate::gecko::values::{convert_absolute_color_to_nscolor, convert_nscolor_to_absolute_color};
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
 use crate::media_queries::MediaType;
@@ -20,13 +21,11 @@ use crate::values::specified::font::FONT_MEDIUM_PX;
 use crate::values::specified::ViewportVariant;
 use crate::values::{CustomIdent, KeyframesName};
 use app_units::{Au, AU_PER_PX};
-use cssparser::RGBA;
 use euclid::default::Size2D;
 use euclid::{Scale, SideOffsets2D};
 use servo_arc::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
 use std::{cmp, fmt};
-use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
 
 /// The `Device` in Gecko wraps a pres context, has a default values computed,
@@ -73,10 +72,7 @@ impl fmt::Debug for Device {
 
         let mut doc_uri = nsCString::new();
         unsafe {
-            bindings::Gecko_nsIURI_Debug(
-                (*self.document()).mDocumentURI.raw::<structs::nsIURI>(),
-                &mut doc_uri,
-            )
+            bindings::Gecko_nsIURI_Debug((*self.document()).mDocumentURI.raw(), &mut doc_uri)
         };
 
         f.debug_struct("Device")
@@ -131,18 +127,11 @@ impl Device {
                 line_height,
                 pres_context.map_or(std::ptr::null(), |pc| pc),
                 vertical,
-                font.gecko(),
-                element.map_or(std::ptr::null(), |e| e.0)
+                &**font,
+                element.map_or(std::ptr::null(), |e| e.0),
             )
         });
         NonNegativeLength::new(au.to_f32_px())
-    }
-
-
-    /// Tells the device that a new viewport rule has been found, and stores the
-    /// relevant viewport constraints.
-    pub fn account_for_viewport_rule(&mut self, _constraints: &ViewportConstraints) {
-        unreachable!("Gecko doesn't support @viewport");
     }
 
     /// Whether any animation name may be referenced from the style of any
@@ -189,9 +178,11 @@ impl Device {
     /// Sets the body text color for the "inherit color from body" quirk.
     ///
     /// <https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk>
-    pub fn set_body_text_color(&self, color: RGBA) {
-        self.body_text_color
-            .store(convert_rgba_to_nscolor(&color) as usize, Ordering::Relaxed)
+    pub fn set_body_text_color(&self, color: AbsoluteColor) {
+        self.body_text_color.store(
+            convert_absolute_color_to_nscolor(&color) as usize,
+            Ordering::Relaxed,
+        )
     }
 
     /// Gets the base size given a generic font family and a language.
@@ -206,9 +197,7 @@ impl Device {
             // XXX: we could have a more reasonable default perhaps.
             None => return Length::new(0.0),
         };
-        Length::new(unsafe {
-            bindings::Gecko_GetScrollbarInlineSize(pc)
-        })
+        Length::new(unsafe { bindings::Gecko_GetScrollbarInlineSize(pc) })
     }
 
     /// Queries font metrics
@@ -229,7 +218,7 @@ impl Device {
             bindings::Gecko_GetFontMetrics(
                 pc,
                 vertical,
-                font.gecko(),
+                &**font,
                 base_size,
                 // we don't use the user font set in a media query
                 !in_media_query,
@@ -268,8 +257,8 @@ impl Device {
     }
 
     /// Returns the body text color.
-    pub fn body_text_color(&self) -> RGBA {
-        convert_nscolor_to_rgba(self.body_text_color.load(Ordering::Relaxed) as u32)
+    pub fn body_text_color(&self) -> AbsoluteColor {
+        convert_nscolor_to_absolute_color(self.body_text_color.load(Ordering::Relaxed) as u32)
     }
 
     /// Gets the document pointer.
@@ -455,6 +444,14 @@ impl Device {
         unsafe { bindings::Gecko_VisitedStylesEnabled(self.document()) }
     }
 
+    /// Returns the number of app units per device pixel we're using currently.
+    pub fn app_units_per_device_pixel(&self) -> i32 {
+        match self.pres_context() {
+            Some(pc) => pc.mCurAppUnitsPerDevPixel,
+            None => AU_PER_PX,
+        }
+    }
+
     /// Returns the device pixel ratio.
     pub fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
         let pc = match self.pres_context() {
@@ -494,39 +491,39 @@ impl Device {
     ///
     /// This is only for forced-colors/high-contrast, so looking at light colors
     /// is ok.
-    pub fn default_background_color(&self) -> RGBA {
+    pub fn default_background_color(&self) -> AbsoluteColor {
         let normal = ColorScheme::normal();
-        convert_nscolor_to_rgba(self.system_nscolor(SystemColor::Canvas, &normal))
+        convert_nscolor_to_absolute_color(self.system_nscolor(SystemColor::Canvas, &normal))
     }
 
     /// Returns the default foreground color.
     ///
     /// See above for looking at light colors only.
-    pub fn default_color(&self) -> RGBA {
+    pub fn default_color(&self) -> AbsoluteColor {
         let normal = ColorScheme::normal();
-        convert_nscolor_to_rgba(self.system_nscolor(SystemColor::Canvastext, &normal))
+        convert_nscolor_to_absolute_color(self.system_nscolor(SystemColor::Canvastext, &normal))
     }
 
     /// Returns the current effective text zoom.
     #[inline]
-    fn effective_text_zoom(&self) -> f32 {
+    fn text_zoom(&self) -> f32 {
         let pc = match self.pres_context() {
             Some(pc) => pc,
             None => return 1.,
         };
-        pc.mEffectiveTextZoom
+        pc.mTextZoom
     }
 
     /// Applies text zoom to a font-size or line-height value (see nsStyleFont::ZoomText).
     #[inline]
     pub fn zoom_text(&self, size: Length) -> Length {
-        size.scale_by(self.effective_text_zoom())
+        size.scale_by(self.text_zoom())
     }
 
     /// Un-apply text zoom.
     #[inline]
     pub fn unzoom_text(&self, size: Length) -> Length {
-        size.scale_by(1. / self.effective_text_zoom())
+        size.scale_by(1. / self.text_zoom())
     }
 
     /// Returns safe area insets
@@ -557,7 +554,7 @@ impl Device {
     /// This check is consistent with how we enable chrome rules for chrome:// and resource://
     /// stylesheets (and thus chrome:// documents).
     #[inline]
-    pub fn is_chrome_document(&self) -> bool {
-        self.document().mDocURISchemeIsChrome()
+    pub fn chrome_rules_enabled_for_document(&self) -> bool {
+        self.document().mChromeRulesEnabled()
     }
 }

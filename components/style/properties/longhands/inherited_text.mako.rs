@@ -9,9 +9,9 @@
 ${helpers.predefined_type(
     "color",
     "ColorPropertyValue",
-    "::cssparser::RGBA::new(0, 0, 0, 1.0)",
+    "crate::color::AbsoluteColor::black()",
     engines="gecko servo",
-    animation_value_type="AnimatedRGBA",
+    animation_value_type="AbsoluteColor",
     ignored_when_colors_disabled="True",
     spec="https://drafts.csswg.org/css-color/#color",
 )}
@@ -283,11 +283,10 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "-webkit-text-stroke-width",
-    "BorderSideWidth",
-    "crate::values::computed::NonNegativeLength::new(0.)",
+    "LineWidth",
+    "app_units::Au(0)",
     engines="gecko",
-    initial_specified_value="specified::BorderSideWidth::zero()",
-    computed_type="crate::values::computed::NonNegativeLength",
+    initial_specified_value="specified::LineWidth::zero()",
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
     animation_value_type="discrete",
 )}
@@ -398,4 +397,13 @@ ${helpers.predefined_type(
     has_effect_on_gecko_scrollbars=False,
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-color-adjust-1/#forced-color-adjust-prop",
+)}
+
+${helpers.single_keyword(
+    "-webkit-text-security",
+    "none circle disc square",
+    engines="gecko",
+    gecko_enum_prefix="StyleTextSecurity",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-text/#MISSING",
 )}

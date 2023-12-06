@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 from webdriver.bidi.modules.script import ScriptEvaluateResultException
 
@@ -28,6 +26,7 @@ async def test_request_response_phases(
     setup_network_test,
     add_intercept,
     fetch,
+    wait_for_future_safe,
     phases,
     intercepted_phase,
 ):
@@ -57,7 +56,7 @@ async def test_request_response_phases(
     with pytest.raises(ScriptEvaluateResultException):
         await fetch(text_url)
 
-    await on_network_event
+    await wait_for_future_safe(on_network_event)
     expected_request = {"method": "GET", "url": text_url}
 
     if intercepted_phase == "beforeRequestSent":

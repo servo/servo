@@ -68,8 +68,6 @@ pub mod dom;
 pub mod specified_value_info;
 #[macro_use]
 pub mod values;
-#[macro_use]
-pub mod viewport;
 pub mod owned_slice;
 pub mod owned_str;
 
@@ -113,6 +111,8 @@ pub enum StyleParseErrorKind<'i> {
     RangedExpressionWithNoValue,
     /// A function was encountered that was not expected.
     UnexpectedFunction(CowRcStr<'i>),
+    /// Error encountered parsing a @property's `syntax` descriptor
+    PropertySyntaxField(PropertySyntaxParseError),
     /// @namespace must be before any rule but @charset and @import
     UnexpectedNamespaceRule,
     /// @import must be before any rule but @charset
@@ -121,8 +121,8 @@ pub enum StyleParseErrorKind<'i> {
     DisallowedImportRule,
     /// Unexpected @charset rule encountered.
     UnexpectedCharsetRule,
-    /// Unsupported @ rule
-    UnsupportedAtRule(CowRcStr<'i>),
+    /// The @property `<custom-property-name>` must start with `--`
+    UnexpectedIdent(CowRcStr<'i>),
     /// A placeholder for many sources of errors that require more specific variants.
     UnspecifiedError,
     /// An unexpected token was found within a namespace rule.
@@ -196,6 +196,31 @@ impl<'i> StyleParseErrorKind<'i> {
             location: value_error.location,
         }
     }
+}
+
+/// Errors that can be encountered while parsing the @property rule's syntax descriptor.
+#[derive(Clone, Debug, PartialEq)]
+pub enum PropertySyntaxParseError {
+    /// The string's length was 0.
+    EmptyInput,
+    /// A non-whitespace, non-pipe character was fount after parsing a component.
+    ExpectedPipeBetweenComponents,
+    /// The start of an identifier was expected but not found.
+    ///
+    /// <https://drafts.csswg.org/css-syntax-3/#name-start-code-point>
+    InvalidNameStart,
+    /// The name is not a valid `<ident>`.
+    InvalidName,
+    /// The data type name was not closed.
+    ///
+    /// <https://drafts.css-houdini.org/css-properties-values-api-1/#consume-data-type-name>
+    UnclosedDataTypeName,
+    /// The next byte was expected while parsing, but EOF was found instead.
+    UnexpectedEOF,
+    /// The data type is not a supported syntax component name.
+    ///
+    /// <https://drafts.css-houdini.org/css-properties-values-api-1/#supported-names>
+    UnknownDataTypeName,
 }
 
 bitflags! {

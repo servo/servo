@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 
 <body>
 <script>
@@ -12,8 +13,8 @@
     // '../automatic-beacon-unfenced-top.https.html'. An automatic beacon will
     // have been sent as a result of the navigation.
     const beacon_data = "This is the beacon data!";
-    const received_beacon_data = await nextAutomaticBeacon(beacon_data);
-    assert_equals(received_beacon_data, beacon_data);
+    const beacon_initiator_origin = await nextAutomaticBeacon(beacon_data);
+    assert_equals(beacon_initiator_origin, get_host_info().HTTPS_ORIGIN);
   });
 </script>
 </body>

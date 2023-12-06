@@ -7,6 +7,9 @@
 <body>
 <script>
 const SCRIPT = 'resources/static-router-sw.js';
+const ROUTER_RULE_KEY_URL_PATTERN = 'condition-url-pattern-source-network'
+const ROUTER_RULE_KEY_REQUEST = 'condition-request-source-network'
+const ROUTER_RULE_KEY_OR = 'condition-or-source-network'
 const SCOPE = 'resources/';
 const HTML_FILE = 'resources/simple.html';
 const TXT_FILE = 'resources/direct.txt';
@@ -20,9 +23,11 @@ const OR_TEST_FILES = [
 ];
 
 // Register a service worker, then create an iframe at url.
-function iframeTest(url, callback, name) {
+function iframeTest(url, ruleKey, callback, name) {
   return promise_test(async t => {
-    const reg = await service_worker_unregister_and_register(t, SCRIPT, SCOPE);
+    const swURL = `${SCRIPT}?key=${ruleKey}`;
+    const reg = await service_worker_unregister_and_register(
+      t, swURL, SCOPE, {type: 'module'});
     add_completion_callback(() => reg.unregister());
     await wait_for_state(t, reg.installing, 'activated');
     const iframe = await with_iframe(url);
@@ -40,37 +45,37 @@ function randomString() {
   return result;
 }
 
-iframeTest(HTML_FILE, async (t, iwin) => {
+iframeTest(HTML_FILE, ROUTER_RULE_KEY_URL_PATTERN, async (t, iwin) => {
   const rnd = randomString();
   const response = await iwin.fetch('?nonce=' + rnd);
   assert_equals(await response.text(), rnd);
 }, 'Subresource load not matched with URLPattern condition');
 
-iframeTest(TXT_FILE, async (t, iwin) => {
+iframeTest(TXT_FILE, ROUTER_RULE_KEY_URL_PATTERN, async (t, iwin) => {
   const rnd = randomString();
   const response = await iwin.fetch('?nonce=' + rnd);
   assert_equals(await response.text(), "Network\n");
 }, 'Subresource load matched with URLPattern condition');
 
-iframeTest(CSV_FILE, async (t, iwin) => {
+iframeTest(CSV_FILE, ROUTER_RULE_KEY_REQUEST, async (t, iwin) => {
   const rnd = randomString();
   const response = await iwin.fetch('?nonce=' + rnd, { mode: 'no-cors' });
   assert_equals(await response.text(), "matched,with,non-url,conditions\n");
 }, 'Subresource load matched with RequestMode condition');
 
-iframeTest(OR_TEST_FILES[0], async (t, iwin) => {
+iframeTest(OR_TEST_FILES[0], ROUTER_RULE_KEY_OR, async (t, iwin) => {
   const rnd = randomString();
   const response = await iwin.fetch('?nonce=' + rnd);
   assert_equals(await response.text(), "Network\n");
 }, 'Subresource load matched with the nested `or` condition');
 
-iframeTest(OR_TEST_FILES[1], async (t, iwin) => {
+iframeTest(OR_TEST_FILES[1], ROUTER_RULE_KEY_OR, async (t, iwin) => {
   const rnd = randomString();
   const response = await iwin.fetch('?nonce=' + rnd);
   assert_equals(await response.text(), "Network\n");
 }, 'Subresource load matched with the next `or` condition');
 
-iframeTest(OR_TEST_FILES[2], async (t, iwin) => {
+iframeTest(OR_TEST_FILES[2], ROUTER_RULE_KEY_OR, async (t, iwin) => {
   const rnd = randomString();
   const response = await iwin.fetch('?nonce=' + rnd);
   assert_equals(await response.text(), rnd);

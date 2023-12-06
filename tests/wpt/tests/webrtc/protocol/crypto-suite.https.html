@@ -33,15 +33,10 @@ const acceptableSrtpCiphersuites = new Set([
   'AES_CM_128_HMAC_SHA1_80',
 ]);
 
-const acceptableTlsGroups = new Set([
-  'P-256',
-]);
-
 const acceptableValues = {
   'tlsVersion': acceptableTlsVersions,
   'dtlsCipher': acceptableDtlsCiphersuites,
   'srtpCipher': acceptableSrtpCiphersuites,
-  'tlsGroup': acceptableTlsGroups,
 };
 
 function verifyStat(name, transportStats) {

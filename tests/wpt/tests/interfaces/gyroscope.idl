@@ -16,9 +16,3 @@ enum GyroscopeLocalCoordinateSystem { "device", "screen" };
 dictionary GyroscopeSensorOptions : SensorOptions {
   GyroscopeLocalCoordinateSystem referenceFrame = "device";
 };
-
-dictionary GyroscopeReadingValues {
-  required double? x;
-  required double? y;
-  required double? z;
-};

@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <title>Prerendering cannot invoke the Screen Capture API</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -26,7 +28,9 @@ promise_test(async t => {
   // Start prerendering a page that attempts to invoke the Screen Capture API.
   // This API is activated-gated so it's expected to fail:
   // https://wicg.github.io/nav-speculation/prerendering.html#implicitly-restricted
-  startPrerendering(`resources/screen-capture.https.html?uid=${uid}`);
+  const rule_extras = {'target_hint': getTargetHint()};
+  startPrerendering(
+      `resources/screen-capture.https.html?uid=${uid}`, rule_extras);
   const result = await gotMessage;
   assert_equals(result, 'InvalidStateError');
   bc.close();

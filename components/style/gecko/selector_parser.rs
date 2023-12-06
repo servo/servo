@@ -5,8 +5,6 @@
 //! Gecko-specific bits for selector-parsing.
 
 use crate::computed_value_flags::ComputedValueFlags;
-use crate::gecko_bindings::structs::RawServoSelectorList;
-use crate::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use crate::invalidation::element::document_state::InvalidationMatchingData;
 use crate::properties::ComputedValues;
 use crate::selector_parser::{Direction, HorizontalDirection, SelectorParser};
@@ -17,9 +15,9 @@ use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
 use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
 use dom::{DocumentState, ElementState};
 use selectors::parser::SelectorParseErrorKind;
-use selectors::SelectorList;
 use std::fmt;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
+use thin_vec::ThinVec;
 
 pub use crate::gecko::pseudo_element::{
     PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT,
@@ -38,7 +36,9 @@ bitflags! {
 }
 
 /// The type used to store the language argument to the `:lang` pseudo-class.
-pub type Lang = AtomIdent;
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[css(comma)]
+pub struct Lang(#[css(iterable)] pub ThinVec<AtomIdent>);
 
 macro_rules! pseudo_class_name {
     ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
@@ -69,9 +69,9 @@ impl ToCss for NonTSPseudoClass {
             ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
-                    NonTSPseudoClass::Lang(ref s) => {
+                    NonTSPseudoClass::Lang(ref lang) => {
                         dest.write_str(":lang(")?;
-                        cssparser::ToCss::to_css(s, dest)?;
+                        lang.to_css(&mut CssWriter::new(dest))?;
                         return dest.write_char(')');
                     },
                     NonTSPseudoClass::MozLocaleDir(ref dir) => {
@@ -141,6 +141,9 @@ impl NonTSPseudoClass {
     /// Returns whether the pseudo-class is enabled in content sheets.
     #[inline]
     fn is_enabled_in_content(&self) -> bool {
+        if matches!(*self, Self::PopoverOpen) {
+            return static_prefs::pref!("dom.element.popover.enabled");
+        }
         !self.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME)
     }
 
@@ -308,6 +311,10 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseErrorKind<'i>;
 
+    fn parse_parent_selector(&self) -> bool {
+        static_prefs::pref!("layout.css.nesting.enabled")
+    }
+
     #[inline]
     fn parse_slotted(&self) -> bool {
         true
@@ -320,7 +327,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
 
     #[inline]
     fn parse_nth_child_of(&self) -> bool {
-        static_prefs::pref!("layout.css.nth-child-of.enabled")
+        true
     }
 
     #[inline]
@@ -372,8 +379,13 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         let pseudo_class = match_ignore_ascii_case! { &name,
             "lang" => {
-                let name = parser.expect_ident_or_string()?;
-                NonTSPseudoClass::Lang(Lang::from(name.as_ref()))
+                let result = parser.parse_comma_separated(|input| {
+                    Ok(AtomIdent::from(input.expect_ident_or_string()?.as_ref()))
+                })?;
+                if result.is_empty() {
+                    return Err(parser.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                }
+                NonTSPseudoClass::Lang(Lang(result.into()))
             },
             "-moz-locale-dir" => {
                 NonTSPseudoClass::MozLocaleDir(Direction::parse(parser)?)
@@ -423,7 +435,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         if starts_with_ignore_ascii_case(&name, "-moz-tree-") {
             // Tree pseudo-elements can have zero or more arguments, separated
             // by either comma or space.
-            let mut args = Vec::new();
+            let mut args = ThinVec::new();
             loop {
                 let location = parser.current_source_location();
                 match parser.next() {
@@ -437,7 +449,6 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                     _ => unreachable!("Parser::next() shouldn't return any other error"),
                 }
             }
-            let args = args.into_boxed_slice();
             if let Some(pseudo) = PseudoElement::tree_pseudo_element(&name, args) {
                 if self.is_pseudo_element_enabled(&pseudo) {
                     return Ok(pseudo);
@@ -478,12 +489,6 @@ impl SelectorImpl {
         }
     }
 }
-
-unsafe impl HasFFI for SelectorList<SelectorImpl> {
-    type FFIType = RawServoSelectorList;
-}
-unsafe impl HasSimpleFFI for SelectorList<SelectorImpl> {}
-unsafe impl HasBoxFFI for SelectorList<SelectorImpl> {}
 
 // Selector and component sizes are important for matching performance.
 size_of_test!(selectors::parser::Selector<SelectorImpl>, 8);

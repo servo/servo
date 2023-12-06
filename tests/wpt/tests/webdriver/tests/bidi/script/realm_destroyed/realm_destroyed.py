@@ -30,7 +30,7 @@ async def test_unsubscribe(bidi_session):
 
 
 @pytest.mark.parametrize("type_hint", ["window", "tab"])
-async def test_close_context(bidi_session, subscribe_events, wait_for_event, type_hint):
+async def test_close_context(bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, type_hint):
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
     await subscribe_events(events=[REALM_DESTROYED_EVENT])
 
@@ -40,13 +40,13 @@ async def test_close_context(bidi_session, subscribe_events, wait_for_event, typ
 
     await bidi_session.browsing_context.close(context=new_context["context"])
 
-    event = await on_realm_destroyed
+    event = await wait_for_future_safe(on_realm_destroyed)
 
     assert event == {"realm": result[0]["realm"]}
 
 
 async def test_navigate(
-    bidi_session, subscribe_events, wait_for_event, inline, new_tab
+    bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, inline, new_tab
 ):
     await subscribe_events(events=[REALM_DESTROYED_EVENT])
 
@@ -58,13 +58,13 @@ async def test_navigate(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
     )
 
-    event = await on_realm_destroyed
+    event = await wait_for_future_safe(on_realm_destroyed)
 
     assert event == {"realm": result[0]["realm"]}
 
 
 async def test_reload_context(
-    bidi_session, subscribe_events, wait_for_event, top_context
+    bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, top_context
 ):
     await subscribe_events(events=[REALM_DESTROYED_EVENT])
 
@@ -74,7 +74,7 @@ async def test_reload_context(
 
     await bidi_session.browsing_context.reload(context=top_context["context"])
 
-    event = await on_realm_destroyed
+    event = await wait_for_future_safe(on_realm_destroyed)
 
     assert event == {"realm": result[0]["realm"]}
 
@@ -134,7 +134,7 @@ async def test_subscribe_after_sandbox_creation(
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
 async def test_iframe(
-    bidi_session, subscribe_events, top_context, inline, wait_for_event, domain
+    bidi_session, subscribe_events, top_context, inline, wait_for_event, wait_for_future_safe, domain
 ):
     frame_url = inline("<div>foo</div>")
     url = inline(f"<iframe src='{frame_url}'></iframe>", domain=domain)
@@ -155,7 +155,7 @@ async def test_iframe(
         context=frame_context, url=inline("<div>foo</div>"), wait="complete"
     )
 
-    event = await on_realm_destroyed
+    event = await wait_for_future_safe(on_realm_destroyed)
 
     assert event == {"realm": result[0]["realm"]}
 

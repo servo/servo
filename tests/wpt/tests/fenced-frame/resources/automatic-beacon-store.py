@@ -31,7 +31,8 @@ def main(request, response):
         # that this only stores the most recent beacon that was sent.
         if request.method == "POST":
             request_body = request.body or NO_DATA_STRING
-            stash.put(string_to_uuid(request_body), request_body)
+            request_headers = request.headers.get("Origin") or NO_DATA_STRING
+            stash.put(string_to_uuid(request_body), request_headers)
             return (200, [], b"")
 
         # Requests without a body imply they were sent as the request from

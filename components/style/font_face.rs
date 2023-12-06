@@ -16,18 +16,20 @@ use crate::values::computed::font::{FamilyName, FontStretch};
 use crate::values::generics::font::FontStyle as GenericFontStyle;
 #[cfg(feature = "gecko")]
 use crate::values::specified::font::MetricsOverride;
-#[cfg(feature = "gecko")]
-use crate::values::specified::font::{FontFeatureSettings, FontVariationSettings};
 use crate::values::specified::font::SpecifiedFontStyle;
 use crate::values::specified::font::{AbsoluteFontWeight, FontStretch as SpecifiedFontStretch};
+#[cfg(feature = "gecko")]
+use crate::values::specified::font::{FontFeatureSettings, FontVariationSettings};
 use crate::values::specified::url::SpecifiedUrl;
 use crate::values::specified::Angle;
 #[cfg(feature = "gecko")]
 use crate::values::specified::NonNegativePercentage;
 #[cfg(feature = "gecko")]
 use cssparser::UnicodeRange;
-use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{CowRcStr, SourceLocation};
+use cssparser::{
+    AtRuleParser, CowRcStr, DeclarationParser, Parser, QualifiedRuleParser, RuleBodyItemParser,
+    RuleBodyParser, SourceLocation,
+};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError};
@@ -468,11 +470,11 @@ pub fn parse_font_face_block(
 ) -> FontFaceRuleData {
     let mut rule = FontFaceRuleData::empty(location);
     {
-        let parser = FontFaceRuleParser {
-            context: context,
+        let mut parser = FontFaceRuleParser {
+            context,
             rule: &mut rule,
         };
-        let mut iter = DeclarationListParser::new(input, parser);
+        let mut iter = RuleBodyParser::new(input, &mut parser);
         while let Some(declaration) = iter.next() {
             if let Err((error, slice)) = declaration {
                 let location = error.location;
@@ -556,6 +558,23 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = ();
     type Error = StyleParseErrorKind<'i>;
+}
+
+impl<'a, 'b, 'i> QualifiedRuleParser<'i> for FontFaceRuleParser<'a, 'b> {
+    type Prelude = ();
+    type QualifiedRule = ();
+    type Error = StyleParseErrorKind<'i>;
+}
+
+impl<'a, 'b, 'i> RuleBodyItemParser<'i, (), StyleParseErrorKind<'i>>
+    for FontFaceRuleParser<'a, 'b>
+{
+    fn parse_qualified(&self) -> bool {
+        false
+    }
+    fn parse_declarations(&self) -> bool {
+        true
+    }
 }
 
 fn font_tech_enabled() -> bool {

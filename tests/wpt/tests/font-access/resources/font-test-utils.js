@@ -50,8 +50,8 @@ async function getTableData(fontBlob, numTables) {
 }
 
 async function getTag(blob, offset) {
-  return (new TextDecoder).decode(
-      await blob.slice(offset, offset + 4).arrayBuffer());
+  return (new TextDecoder)
+      .decode(await blob.slice(offset, offset + 4).arrayBuffer());
 }
 
 async function getUint16(blob, offset) {
@@ -91,8 +91,7 @@ function isPlatformSupported() {
 function font_access_test(test_function, name, properties) {
   return promise_test(async (t) => {
     if (!isPlatformSupported()) {
-      await promise_rejects_dom(
-          t, 'NotSupportedError', self.queryLocalFonts());
+      await promise_rejects_dom(t, 'NotSupportedError', self.queryLocalFonts());
       return;
     }
     await test_driver.set_permission({name: 'local-fonts'}, 'granted');

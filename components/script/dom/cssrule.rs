@@ -36,7 +36,7 @@ pub struct CSSRule {
 }
 
 impl CSSRule {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSRule {
         CSSRule {
             reflector_: Reflector::new(),
@@ -102,10 +102,10 @@ impl CSSRule {
             StyleCssRule::Page(_) => unreachable!(),
             StyleCssRule::Container(_) => unimplemented!(), // TODO
             StyleCssRule::Document(_) => unimplemented!(),  // TODO
-            StyleCssRule::Viewport(_) => unimplemented!(),  // TODO
             StyleCssRule::LayerBlock(_) => unimplemented!(), // TODO
             StyleCssRule::LayerStatement(_) => unimplemented!(), // TODO
             StyleCssRule::FontPaletteValues(_) => unimplemented!(), // TODO
+            StyleCssRule::Property(_) => unimplemented!(),  // TODO
         }
     }
 

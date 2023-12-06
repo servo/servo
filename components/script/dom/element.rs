@@ -12,7 +12,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::{fmt, mem};
 
-use cssparser::{_cssparser_internal_to_lowercase, match_ignore_ascii_case};
+use cssparser::match_ignore_ascii_case;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
@@ -702,9 +702,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = bgcolor {
+            use cssparser::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BackgroundColor(color.into()),
+                PropertyDeclaration::BackgroundColor(
+                    specified::Color::from_rgba(color.red, color.green, color.blue, color.alpha)
+                        .into(),
+                ),
             ));
         }
 
@@ -736,9 +740,13 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = color {
+            use cssparser::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::Color(longhands::color::SpecifiedValue(color.into())),
+                PropertyDeclaration::Color(longhands::color::SpecifiedValue(
+                    specified::Color::from_rgba(color.red, color.green, color.blue, color.alpha)
+                        .into(),
+                )),
             ));
         }
 
@@ -963,9 +971,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(border) = border {
-            let width_value = specified::BorderSideWidth::Length(NonNegative(
-                specified::Length::from_px(border as f32),
-            ));
+            let width_value = specified::BorderSideWidth::from_px(border as f32);
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BorderTopWidth(width_value.clone()),
@@ -3311,12 +3317,29 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         self.is_html_element() && self.local_name() == &local_name!("slot")
     }
 
-    fn set_selector_flags(&self, flags: ElementSelectorFlags) {
-        #[allow(unsafe_code)]
-        unsafe {
-            Dom::from_ref(self.deref())
-                .to_layout()
-                .insert_selector_flags(flags);
+    fn apply_selector_flags(&self, flags: ElementSelectorFlags) {
+        // Handle flags that apply to the element.
+        let self_flags = flags.for_self();
+        if !self_flags.is_empty() {
+            #[allow(unsafe_code)]
+            unsafe {
+                Dom::from_ref(self.deref())
+                    .to_layout()
+                    .insert_selector_flags(self_flags);
+            }
+        }
+
+        // Handle flags that apply to the parent.
+        let parent_flags = flags.for_parent();
+        if !parent_flags.is_empty() {
+            if let Some(p) = self.parent_element() {
+                #[allow(unsafe_code)]
+                unsafe {
+                    Dom::from_ref(p.deref())
+                        .to_layout()
+                        .insert_selector_flags(parent_flags);
+                }
+            }
         }
     }
 }
@@ -3746,7 +3769,7 @@ impl ElementPerformFullscreenEnter {
 }
 
 impl TaskOnce for ElementPerformFullscreenEnter {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn run_once(self) {
         let element = self.element.root();
         let promise = self.promise.root();
@@ -3797,7 +3820,7 @@ impl ElementPerformFullscreenExit {
 }
 
 impl TaskOnce for ElementPerformFullscreenExit {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn run_once(self) {
         let element = self.element.root();
         let document = document_from_node(&*element);

@@ -63,15 +63,21 @@ where
         *effective = true;
         match *rule {
             CssRule::Namespace(_) |
-            CssRule::Style(_) |
             CssRule::FontFace(_) |
             CssRule::CounterStyle(_) |
-            CssRule::Viewport(_) |
             CssRule::Keyframes(_) |
             CssRule::Page(_) |
+            CssRule::Property(_) |
             CssRule::LayerStatement(_) |
             CssRule::FontFeatureValues(_) |
             CssRule::FontPaletteValues(_) => None,
+            CssRule::Style(ref style_rule) => {
+                let style_rule = style_rule.read_with(guard);
+                style_rule
+                    .rules
+                    .as_ref()
+                    .map(|r| r.read_with(guard).0.iter())
+            },
             CssRule::Import(ref import_rule) => {
                 let import_rule = import_rule.read_with(guard);
                 if !C::process_import(guard, device, quirks_mode, import_rule) {
@@ -81,37 +87,30 @@ where
                 Some(import_rule.stylesheet.rules(guard).iter())
             },
             CssRule::Document(ref doc_rule) => {
-                let doc_rule = doc_rule.read_with(guard);
                 if !C::process_document(guard, device, quirks_mode, doc_rule) {
                     *effective = false;
                     return None;
                 }
                 Some(doc_rule.rules.read_with(guard).0.iter())
             },
-            CssRule::Container(ref lock) => {
-                let container_rule = lock.read_with(guard);
+            CssRule::Container(ref container_rule) => {
                 Some(container_rule.rules.read_with(guard).0.iter())
             },
-            CssRule::Media(ref lock) => {
-                let media_rule = lock.read_with(guard);
+            CssRule::Media(ref media_rule) => {
                 if !C::process_media(guard, device, quirks_mode, media_rule) {
                     *effective = false;
                     return None;
                 }
                 Some(media_rule.rules.read_with(guard).0.iter())
             },
-            CssRule::Supports(ref lock) => {
-                let supports_rule = lock.read_with(guard);
+            CssRule::Supports(ref supports_rule) => {
                 if !C::process_supports(guard, device, quirks_mode, supports_rule) {
                     *effective = false;
                     return None;
                 }
                 Some(supports_rule.rules.read_with(guard).0.iter())
             },
-            CssRule::LayerBlock(ref lock) => {
-                let layer_rule = lock.read_with(guard);
-                Some(layer_rule.rules.read_with(guard).0.iter())
-            },
+            CssRule::LayerBlock(ref layer_rule) => Some(layer_rule.rules.read_with(guard).0.iter()),
         }
     }
 }
@@ -214,15 +213,12 @@ impl EffectiveRules {
                 Self::process_import(guard, device, quirks_mode, import_rule)
             },
             CssRule::Document(ref doc_rule) => {
-                let doc_rule = doc_rule.read_with(guard);
                 Self::process_document(guard, device, quirks_mode, doc_rule)
             },
-            CssRule::Media(ref lock) => {
-                let media_rule = lock.read_with(guard);
+            CssRule::Media(ref media_rule) => {
                 Self::process_media(guard, device, quirks_mode, media_rule)
             },
-            CssRule::Supports(ref lock) => {
-                let supports_rule = lock.read_with(guard);
+            CssRule::Supports(ref supports_rule) => {
                 Self::process_supports(guard, device, quirks_mode, supports_rule)
             },
             _ => true,

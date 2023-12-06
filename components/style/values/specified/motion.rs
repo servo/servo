@@ -7,14 +7,21 @@
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::motion::OffsetRotate as ComputedOffsetRotate;
 use crate::values::computed::{Context, ToComputedValue};
-use crate::values::generics::motion::{GenericOffsetPath, RayFunction, RaySize};
-use crate::values::specified::{Angle, SVGPathData};
+use crate::values::generics::motion as generics;
+use crate::values::specified::position::{HorizontalPosition, VerticalPosition};
+use crate::values::specified::{Angle, Position};
 use crate::Zero;
 use cssparser::Parser;
 use style_traits::{ParseError, StyleParseErrorKind};
 
+/// The specified value of ray() function.
+pub type RayFunction = generics::GenericRayFunction<Angle, Position>;
+
 /// The specified value of `offset-path`.
-pub type OffsetPath = GenericOffsetPath<Angle>;
+pub type OffsetPath = generics::GenericOffsetPath<RayFunction>;
+
+/// The specified value of `offset-position`.
+pub type OffsetPosition = generics::GenericOffsetPosition<HorizontalPosition, VerticalPosition>;
 
 #[cfg(feature = "gecko")]
 fn is_ray_enabled() -> bool {
@@ -25,11 +32,13 @@ fn is_ray_enabled() -> bool {
     false
 }
 
-impl Parse for RayFunction<Angle> {
+impl Parse for RayFunction {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
+        use crate::values::specified::PositionOrAuto;
+
         if !is_ray_enabled() {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
@@ -37,13 +46,14 @@ impl Parse for RayFunction<Angle> {
         let mut angle = None;
         let mut size = None;
         let mut contain = false;
+        let mut position = None;
         loop {
             if angle.is_none() {
                 angle = input.try_parse(|i| Angle::parse(context, i)).ok();
             }
 
             if size.is_none() {
-                size = input.try_parse(RaySize::parse).ok();
+                size = input.try_parse(generics::RaySize::parse).ok();
                 if size.is_some() {
                     continue;
                 }
@@ -57,6 +67,17 @@ impl Parse for RayFunction<Angle> {
                     continue;
                 }
             }
+
+            if position.is_none() {
+                if input.try_parse(|i| i.expect_ident_matching("at")).is_ok() {
+                    let pos = Position::parse(context, input)?;
+                    position = Some(PositionOrAuto::Position(pos));
+                }
+
+                if position.is_some() {
+                    continue;
+                }
+            }
             break;
         }
 
@@ -67,8 +88,9 @@ impl Parse for RayFunction<Angle> {
         Ok(RayFunction {
             angle: angle.unwrap(),
             // If no <ray-size> is specified it defaults to closest-side.
-            size: size.unwrap_or(RaySize::ClosestSide),
+            size: size.unwrap_or(generics::RaySize::ClosestSide),
             contain,
+            position: position.unwrap_or(PositionOrAuto::auto()),
         })
     }
 }
@@ -78,6 +100,8 @@ impl Parse for OffsetPath {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
+        use crate::values::specified::svg_path::{AllowEmpty, SVGPathData};
+
         // Parse none.
         if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(OffsetPath::none());
@@ -90,8 +114,8 @@ impl Parse for OffsetPath {
             match_ignore_ascii_case! { &function,
                 // Bug 1186329: Implement the parser for <basic-shape>, <geometry-box>,
                 // and <url>.
-                "path" => SVGPathData::parse(context, i).map(GenericOffsetPath::Path),
-                "ray" => RayFunction::parse(context, i).map(GenericOffsetPath::Ray),
+                "path" => SVGPathData::parse(i, AllowEmpty::No).map(OffsetPath::Path),
+                "ray" => RayFunction::parse(context, i).map(|v| OffsetPath::Ray(Box::new(v))),
                 _ => {
                     Err(location.new_custom_error(
                         StyleParseErrorKind::UnexpectedFunction(function.clone())

@@ -15,5 +15,5 @@ darling = { workspace = true, default-features = false }
 derive_common = { path = "../derive_common" }
 proc-macro2 = "1"
 quote = "1"
-syn = { version = "1", default-features = false, features = ["clone-impls", "derive", "parsing"] }
-synstructure = "0.12"
+syn = { workspace = true }
+synstructure = { workspace = true }

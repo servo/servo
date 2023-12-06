@@ -141,8 +141,6 @@ partial interface Window {
   [Pref="dom.servo_helpers.enabled"]
   undefined gc();
   [Pref="dom.servo_helpers.enabled"]
-  undefined trap();
-  [Pref="dom.servo_helpers.enabled"]
   undefined js_backtrace();
 };
 

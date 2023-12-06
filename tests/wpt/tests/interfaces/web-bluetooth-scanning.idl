@@ -1,0 +1,67 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Web Bluetooth Scanning (https://webbluetoothcg.github.io/web-bluetooth/scanning.html)
+
+dictionary BluetoothLEScanOptions {
+  sequence<BluetoothLEScanFilterInit> filters;
+  boolean keepRepeatedDevices = false;
+  boolean acceptAllAdvertisements = false;
+};
+
+partial interface Bluetooth {
+  [SecureContext]
+  Promise<BluetoothLEScan> requestLEScan(optional BluetoothLEScanOptions options = {});
+};
+
+[Exposed=Window, SecureContext]
+interface BluetoothDataFilter {
+  constructor(optional BluetoothDataFilterInit init = {});
+  readonly attribute ArrayBuffer dataPrefix;
+  readonly attribute ArrayBuffer mask;
+};
+
+[Exposed=Window, SecureContext]
+interface BluetoothManufacturerDataFilter {
+  constructor(optional object init);
+  readonly maplike<unsigned short, BluetoothDataFilter>;
+};
+
+[Exposed=Window, SecureContext]
+interface BluetoothServiceDataFilter {
+  constructor(optional object init);
+  readonly maplike<UUID, BluetoothDataFilter>;
+};
+
+[Exposed=Window, SecureContext]
+interface BluetoothLEScanFilter {
+  constructor(optional BluetoothLEScanFilterInit init = {});
+  readonly attribute DOMString? name;
+  readonly attribute DOMString? namePrefix;
+  readonly attribute FrozenArray<UUID> services;
+  readonly attribute BluetoothManufacturerDataFilter manufacturerData;
+  readonly attribute BluetoothServiceDataFilter serviceData;
+};
+
+[Exposed=Window, SecureContext]
+interface BluetoothLEScan {
+  readonly attribute FrozenArray<BluetoothLEScanFilter> filters;
+  readonly attribute boolean keepRepeatedDevices;
+  readonly attribute boolean acceptAllAdvertisements;
+
+  readonly attribute boolean active;
+
+  undefined stop();
+};
+
+dictionary BluetoothLEScanPermissionDescriptor : PermissionDescriptor {
+  // These match BluetoothLEScanOptions.
+  sequence<BluetoothLEScanFilterInit> filters;
+  boolean keepRepeatedDevices = false;
+  boolean acceptAllAdvertisements = false;
+};
+
+[Exposed=Window, SecureContext]
+interface BluetoothLEScanPermissionResult : PermissionStatus {
+  attribute FrozenArray<BluetoothLEScan> scans;
+};

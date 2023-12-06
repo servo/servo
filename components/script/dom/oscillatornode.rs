@@ -38,7 +38,7 @@ pub struct OscillatorNode {
 }
 
 impl OscillatorNode {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
@@ -92,7 +92,7 @@ impl OscillatorNode {
         Self::new_with_proto(window, None, context, options)
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,

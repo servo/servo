@@ -32,7 +32,7 @@ async def test_unsubscribe(bidi_session, new_tab):
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_new_context(bidi_session, wait_for_event, subscribe_events, type_hint):
+async def test_new_context(bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, type_hint):
     await subscribe_events([CONTEXT_DESTROYED_EVENT])
 
     on_entry = wait_for_event(CONTEXT_DESTROYED_EVENT)
@@ -40,7 +40,7 @@ async def test_new_context(bidi_session, wait_for_event, subscribe_events, type_
 
     await bidi_session.browsing_context.close(context=new_context["context"])
 
-    context_info = await on_entry
+    context_info = await wait_for_future_safe(on_entry)
 
     assert_browsing_context(
         context_info,
@@ -63,7 +63,7 @@ async def test_navigate(bidi_session, subscribe_events, new_tab, inline, domain)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_DESTROYED_EVENT, on_event)
 
-    url = inline(f"<div>test</div>", domain=domain)
+    url = inline("<div>test</div>", domain=domain)
     await bidi_session.browsing_context.navigate(
         url=url, context=new_tab["context"], wait="complete"
     )
@@ -78,7 +78,7 @@ async def test_navigate(bidi_session, subscribe_events, new_tab, inline, domain)
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
 async def test_navigate_iframe(
-    bidi_session, wait_for_event, subscribe_events, new_tab, inline, domain
+    bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, new_tab, inline, domain
 ):
     await subscribe_events([CONTEXT_DESTROYED_EVENT])
 
@@ -99,7 +99,7 @@ async def test_navigate_iframe(
         url=url, context=new_tab["context"], wait="complete"
     )
 
-    context_info = await on_entry
+    context_info = await wait_for_future_safe(on_entry)
 
     assert_browsing_context(
         context_info,
@@ -111,7 +111,7 @@ async def test_navigate_iframe(
 
 
 async def test_delete_iframe(
-    bidi_session, wait_for_event, subscribe_events, new_tab, inline
+    bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, new_tab, inline
 ):
     await subscribe_events([CONTEXT_DESTROYED_EVENT])
 
@@ -133,7 +133,7 @@ async def test_delete_iframe(
         await_promise=False,
     )
 
-    context_info = await on_entry
+    context_info = await wait_for_future_safe(on_entry)
 
     assert_browsing_context(
         context_info,

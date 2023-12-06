@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
 <meta name="timeout" content="long">
 <script src="/common/utils.js"></script>
 <script src="/resources/testharness.js"></script>
@@ -17,7 +19,7 @@ promise_test(async t => {
   // Open the test runner in a popup - it will prerender itself, record the
   // test results, and send them back to this harness.
   const url =
-    `resources/csp-script-src-strict-dynamic.html?key=${key}`;
+    `resources/csp-script-src-strict-dynamic.html?key=${key}&target_hint=${getTargetHint()}`;
   window.open(url, '_blank', 'noopener');
 
   // Wait until the test sends us the results.

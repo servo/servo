@@ -19,6 +19,12 @@ use app_units::Au;
 
 pub use crate::values::specified::border::BorderImageRepeat;
 
+/// A computed value for -webkit-text-stroke-width.
+pub type LineWidth = Au;
+
+/// A computed value for border-width (and the like).
+pub type BorderSideWidth = Au;
+
 /// A computed value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
 

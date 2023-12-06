@@ -270,11 +270,7 @@ impl AnimationValue {
                 let longhand_id = unsafe {
                     *(&decl_repr.tag as *const u16 as *const LonghandId)
                 };
-                % if inherit:
-                context.for_non_inherited_property = None;
-                % else:
-                context.for_non_inherited_property = Some(longhand_id);
-                % endif
+                context.for_non_inherited_property = ${"false" if inherit else "true"};
                 % if system:
                 if let Some(sf) = value.get_system() {
                     longhands::system_font::resolve_system_font(sf, context)

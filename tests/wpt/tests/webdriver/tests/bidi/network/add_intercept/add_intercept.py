@@ -103,6 +103,7 @@ async def test_two_intercepts(
     add_intercept,
     fetch,
     setup_network_test,
+    wait_for_future_safe,
 ):
     await setup_network_test(
         events=[
@@ -127,7 +128,7 @@ async def test_two_intercepts(
     # Perform a request to PAGE_EMPTY_TEXT, which should match both intercepts
     on_network_event = wait_for_event("network.beforeRequestSent")
     asyncio.ensure_future(fetch(text_url))
-    event = await on_network_event
+    event = await wait_for_future_safe(on_network_event)
 
     assert_before_request_sent_event(
         event, is_blocked=True, intercepts=[string_intercept, global_intercept]
@@ -138,7 +139,7 @@ async def test_two_intercepts(
 
     on_network_event = wait_for_event("network.beforeRequestSent")
     asyncio.ensure_future(fetch(other_url))
-    event = await on_network_event
+    event = await wait_for_future_safe(on_network_event)
 
     assert_before_request_sent_event(
         event, is_blocked=True, intercepts=[global_intercept]
@@ -153,7 +154,7 @@ async def test_two_intercepts(
     # intercept.
     on_network_event = wait_for_event("network.beforeRequestSent")
     asyncio.ensure_future(fetch(text_url))
-    event = await on_network_event
+    event = await wait_for_future_safe(on_network_event)
 
     assert_before_request_sent_event(
         event, is_blocked=True, intercepts=[string_intercept]

@@ -73,7 +73,7 @@ enum MIDIPortConnectionState {
 [SecureContext, Exposed=Window]
 interface MIDIMessageEvent : Event {
   constructor(DOMString type, optional MIDIMessageEventInit eventInitDict = {});
-  readonly attribute Uint8Array data;
+  readonly attribute Uint8Array? data;
 };
 
 dictionary MIDIMessageEventInit: EventInit {
@@ -83,7 +83,7 @@ dictionary MIDIMessageEventInit: EventInit {
 [SecureContext, Exposed=Window]
 interface MIDIConnectionEvent : Event {
   constructor(DOMString type, optional MIDIConnectionEventInit eventInitDict = {});
-  readonly attribute MIDIPort port;
+  readonly attribute MIDIPort? port;
 };
 
 dictionary MIDIConnectionEventInit: EventInit {

@@ -419,6 +419,10 @@ bitflags! {
         /// the second animation restyles for the script animations in the case where
         /// the display property was changed from 'none' to others.
         const DISPLAY_CHANGED_FROM_NONE = structs::UpdateAnimationsTasks_DisplayChangedFromNone;
+        /// Update CSS named scroll progress timelines.
+        const SCROLL_TIMELINES = structs::UpdateAnimationsTasks_ScrollTimelines;
+        /// Update CSS named view progress timelines.
+        const VIEW_TIMELINES = structs::UpdateAnimationsTasks_ViewTimelines;
     }
 }
 

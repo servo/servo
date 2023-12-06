@@ -190,7 +190,7 @@ class CreateOrUpdateBranchForPRStep(Step):
             return branch_name
         finally:
             try:
-                run.sync.local_wpt_repo.run("checkout", "master")
+                run.sync.local_wpt_repo.run("checkout", "main")
                 run.sync.local_wpt_repo.run("branch", "-D", branch_name)
             except Exception:
                 pass

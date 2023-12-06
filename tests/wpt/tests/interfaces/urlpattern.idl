@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: URLPattern API (https://wicg.github.io/urlpattern/)
+// Source: URL Pattern Standard (https://urlpattern.spec.whatwg.org/)
 
 typedef (USVString or URLPatternInit) URLPatternInput;
 

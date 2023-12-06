@@ -1786,7 +1786,7 @@ impl Node {
         Node::new_(NodeFlags::new(), Some(doc))
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_document_node() -> Node {
         Node::new_(
             NodeFlags::new() | NodeFlags::IS_IN_DOC | NodeFlags::IS_CONNECTED,
@@ -1794,7 +1794,7 @@ impl Node {
         )
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_(flags: NodeFlags, doc: Option<&Document>) -> Node {
         Node {
             eventtarget: EventTarget::new_inherited(),
@@ -3150,7 +3150,7 @@ pub fn containing_shadow_root<T: DerivedFrom<Node> + DomObject>(
     derived.upcast().containing_shadow_root()
 }
 
-#[allow(unrooted_must_root)]
+#[allow(crown::unrooted_must_root)]
 pub fn stylesheets_owner_from_node<T: DerivedFrom<Node> + DomObject>(
     derived: &T,
 ) -> StyleSheetListOwner {

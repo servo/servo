@@ -8,7 +8,7 @@ def get_events(session):
         if "key" in e and e["key"].startswith(u"U+"):
             key = e["key"]
             hex_suffix = key[key.index("+") + 1:]
-            e["key"] = unichr(int(hex_suffix, 16))
+            e["key"] = chr(int(hex_suffix, 16))
 
         # WebKit sets code as 'Unidentified' for unidentified key codes, but
         # tests expect ''.

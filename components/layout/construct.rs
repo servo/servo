@@ -2208,14 +2208,15 @@ fn has_padding_or_border(values: &ComputedValues) -> bool {
     let padding = values.get_padding();
     let border = values.get_border();
 
+    use style::Zero;
     !padding.padding_top.is_definitely_zero() ||
         !padding.padding_right.is_definitely_zero() ||
         !padding.padding_bottom.is_definitely_zero() ||
         !padding.padding_left.is_definitely_zero() ||
-        border.border_top_width.px() != 0. ||
-        border.border_right_width.px() != 0. ||
-        border.border_bottom_width.px() != 0. ||
-        border.border_left_width.px() != 0.
+        !border.border_top_width.is_zero() ||
+        !border.border_right_width.is_zero() ||
+        !border.border_bottom_width.is_zero() ||
+        !border.border_left_width.is_zero()
 }
 
 /// Maintains a stack of anonymous boxes needed to ensure that the flow tree is *legal*. The tree

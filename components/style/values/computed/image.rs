@@ -78,28 +78,30 @@ impl ToComputedValue for specified::ImageSet {
         let items = self.items.to_computed_value(context);
         let dpr = context.device().device_pixel_ratio().get();
 
-        // If no item have a supported MIME type, the behavior is undefined by the standard
-        // By default, we select the first item
         let mut supported_image = false;
-        let mut selected_index = 0;
-        let mut selected_resolution = items[0].resolution.dppx();
+        let mut selected_index = std::usize::MAX;
+        let mut selected_resolution = 0.0;
 
         for (i, item) in items.iter().enumerate() {
-            // If the MIME type is not supported, we discard the ImageSetItem
             if item.has_mime_type && !context.device().is_supported_mime_type(&item.mime_type) {
+                // If the MIME type is not supported, we discard the ImageSetItem.
                 continue;
             }
 
             let candidate_resolution = item.resolution.dppx();
+            debug_assert!(candidate_resolution >= 0.0, "Resolutions should be non-negative");
+            if candidate_resolution == 0.0 {
+                // If the resolution is 0, we also treat it as an invalid image.
+                continue;
+            }
 
             // https://drafts.csswg.org/css-images-4/#image-set-notation:
             //
-            //     Make a UA-specific choice of which to load, based on whatever
-            //     criteria deemed relevant (such as the resolution of the
-            //     display, connection speed, etc).
+            //     Make a UA-specific choice of which to load, based on whatever criteria deemed
+            //     relevant (such as the resolution of the display, connection speed, etc).
             //
-            // For now, select the lowest resolution greater than display
-            // density, otherwise the greatest resolution available
+            // For now, select the lowest resolution greater than display density, otherwise the
+            // greatest resolution available.
             let better_candidate = || {
                 if selected_resolution < dpr && candidate_resolution > selected_resolution {
                     return true;
@@ -126,7 +128,7 @@ impl ToComputedValue for specified::ImageSet {
 
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         Self {
-            selected_index: 0,
+            selected_index: std::usize::MAX,
             items: ToComputedValue::from_computed_value(&computed.items),
         }
     }

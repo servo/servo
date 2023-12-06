@@ -241,7 +241,7 @@ impl LengthPercentage {
         // TODO: This could in theory take ownership of the calc node in `v` if
         // possible instead of cloning.
         let mut node = v.to_calc_node().into_owned();
-        node.negate();
+        node.map(std::ops::Neg::neg);
 
         let new_node = CalcNode::Sum(
             vec![
@@ -679,10 +679,14 @@ impl calc::CalcNodeLeaf for CalcLengthPercentageLeaf {
         }
     }
 
-    fn mul_by(&mut self, scalar: f32) {
-        match *self {
-            Self::Length(ref mut l) => *l = *l * scalar,
-            Self::Percentage(ref mut p) => p.0 *= scalar,
+    fn map(&mut self, mut op: impl FnMut(f32) -> f32) {
+        match self {
+            CalcLengthPercentageLeaf::Length(value) => {
+                *value = Length::new(op(value.px()));
+            },
+            CalcLengthPercentageLeaf::Percentage(value) => {
+                *value = Percentage(op(value.0));
+            },
         }
     }
 
@@ -770,7 +774,7 @@ impl specified::CalcLengthPercentage {
                     result
                 }
             }),
-            Leaf::Number(..) | Leaf::Angle(..) | Leaf::Time(..) => {
+            Leaf::Number(..) | Leaf::Angle(..) | Leaf::Time(..) | Leaf::Resolution(..) => {
                 unreachable!("Shouldn't have parsed")
             },
         });

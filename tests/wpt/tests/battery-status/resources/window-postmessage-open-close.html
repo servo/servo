@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- Used when testing access of a closed/detached window's properties -->
 <html>
-<body onunload="opener.postMessage('closed', '*');">
+<body onpagehide="opener.postMessage('closed', '*');">
 <script>
 opener.postMessage("opened", "*");
 </script>

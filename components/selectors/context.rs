@@ -99,6 +99,21 @@ impl QuirksMode {
     }
 }
 
+/// Whether or not this matching considered relative selector.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum RelativeSelectorMatchingState {
+    /// Was not considered for any relative selector.
+    None,
+    /// Relative selector was considered for a match, but the element to be
+    /// under matching would not anchor the relative selector. i.e. The
+    /// relative selector was not part of the first compound selector (in match
+    /// order).
+    Considered,
+    /// Same as above, but the relative selector was part of the first compound
+    /// selector (in match order).
+    ConsideredAnchor,
+}
+
 /// Data associated with the matching process for a element.  This context is
 /// used across many selectors for an element, so it's not appropriate for
 /// transient data that applies to only a single selector.
@@ -132,9 +147,6 @@ where
     visited_handling: VisitedHandlingMode,
 
     /// The current nesting level of selectors that we're matching.
-    ///
-    /// FIXME(emilio): Consider putting the mutable stuff in a Cell, then make
-    /// MatchingContext immutable again.
     nesting_level: usize,
 
     /// Whether we're inside a negation or not.
@@ -146,6 +158,10 @@ where
 
     /// Extra implementation-dependent matching data.
     pub extra_data: Impl::ExtraMatchingData<'a>,
+
+    /// The current element we're anchoring on for evaluating the relative selector.
+    current_relative_selector_anchor: Option<OpaqueElement>,
+    pub considered_relative_selector: RelativeSelectorMatchingState,
 
     quirks_mode: QuirksMode,
     needs_selector_flags: NeedsSelectorFlags,
@@ -198,6 +214,8 @@ where
             in_negation: false,
             pseudo_element_matching_fn: None,
             extra_data: Default::default(),
+            current_relative_selector_anchor: None,
+            considered_relative_selector: RelativeSelectorMatchingState::None,
             _impl: ::std::marker::PhantomData,
         }
     }
@@ -317,5 +335,29 @@ where
     #[inline]
     pub fn shadow_host(&self) -> Option<OpaqueElement> {
         self.current_host
+    }
+
+    /// Runs F with a deeper nesting level, with the given element as the anchor,
+    /// for a :has(...) selector, for example.
+    #[inline]
+    pub fn nest_for_relative_selector<F, R>(&mut self, anchor: OpaqueElement, f: F) -> R
+    where
+        F: FnOnce(&mut Self) -> R,
+    {
+        debug_assert!(
+            self.current_relative_selector_anchor.is_none(),
+            "Nesting should've been rejected at parse time"
+        );
+        self.current_relative_selector_anchor = Some(anchor);
+        self.considered_relative_selector = RelativeSelectorMatchingState::Considered;
+        let result = self.nest(f);
+        self.current_relative_selector_anchor = None;
+        result
+    }
+
+    /// Returns the current anchor element to evaluate the relative selector against.
+    #[inline]
+    pub fn relative_selector_anchor(&self) -> Option<OpaqueElement> {
+        self.current_relative_selector_anchor
     }
 }

@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::target-text color rendering - overlap targets</title>
+<link rel="author" title="Stephen Chenney (Igalia)" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#selectordef-target-text">
+<link rel="match" href="target-text-five-words-ref.html">
+<style>
+  p::target-text {
+    color: darkgrey;
+    background-color: orange;
+  }
+</style>
+<p>PASS if</p>
+<p>"<span style="color:darkgrey;background:orange">match me and me</span>"</p>
+<p>is rendered dark grey on an orange background.</p>
+<script>
+  window.location.hash = "#:~:text=match%20me&text=me%20and%20me";
+</script>

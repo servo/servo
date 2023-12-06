@@ -64,6 +64,7 @@ async def test_channel(
     bidi_session,
     subscribe_events,
     wait_for_event,
+    wait_for_future_safe,
     add_preload_script,
     channel,
     expected_data,
@@ -77,7 +78,7 @@ async def test_channel(
     )
 
     new_tab = await bidi_session.browsing_context.create(type_hint="tab")
-    event_data = await on_script_message
+    event_data = await wait_for_future_safe(on_script_message)
 
     recursive_compare(
         {
@@ -93,7 +94,7 @@ async def test_channel(
 
 
 async def test_channel_with_multiple_arguments(
-    bidi_session, subscribe_events, wait_for_event, add_preload_script
+    bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, add_preload_script
 ):
     await subscribe_events(["script.message"])
 
@@ -104,7 +105,7 @@ async def test_channel_with_multiple_arguments(
     )
 
     new_tab = await bidi_session.browsing_context.create(type_hint="tab")
-    event_data = await on_script_message
+    event_data = await wait_for_future_safe(on_script_message)
 
     recursive_compare(
         {
@@ -123,6 +124,7 @@ async def test_mutation_observer(
     bidi_session,
     subscribe_events,
     wait_for_event,
+    wait_for_future_safe,
     new_tab,
     inline,
     add_preload_script,
@@ -157,7 +159,7 @@ async def test_mutation_observer(
         target=ContextTarget(new_tab["context"]),
     )
 
-    event_data = await on_script_message
+    event_data = await wait_for_future_safe(on_script_message)
 
     recursive_compare(
         {

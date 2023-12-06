@@ -104,15 +104,15 @@
   fuzzy_test_computed_color(`rgb(from rebeccapurple r calc(b * .5 - g * .5) 10)`, `color(srgb 0.4 0.2 0.0392)`);
   fuzzy_test_computed_color(`rgb(from rgb(20%, 40%, 60%, 80%) calc(r) calc(g) calc(b) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
 
-  // Testing with 'none'.
-  fuzzy_test_computed_color(`rgb(from rebeccapurple none none none)`, `color(srgb none none none)`);
-  fuzzy_test_computed_color(`rgb(from rebeccapurple none none none / none)`, `color(srgb none none none / none)`);
-  fuzzy_test_computed_color(`rgb(from rebeccapurple r g none)`, `color(srgb 0.4 0.2 none)`);
-  fuzzy_test_computed_color(`rgb(from rebeccapurple r g none / alpha)`, `color(srgb 0.4 0.2 none)`);
+  // Testing with 'none'. Missing components are resolved to zero during color space conversion.
+  // https://drafts.csswg.org/css-color-4/#missing
+  fuzzy_test_computed_color(`rgb(from rebeccapurple none none none)`, `color(srgb 0 0 0)`);
+  fuzzy_test_computed_color(`rgb(from rebeccapurple none none none / none)`, `color(srgb 0 0 0 / none)`);
+  fuzzy_test_computed_color(`rgb(from rebeccapurple r g none)`, `color(srgb 0.4 0.2 0)`);
+  fuzzy_test_computed_color(`rgb(from rebeccapurple r g none / alpha)`, `color(srgb 0.4 0.2 0)`);
   fuzzy_test_computed_color(`rgb(from rebeccapurple r g b / none)`, `color(srgb 0.4 0.2 0.6 / none)`);
-  fuzzy_test_computed_color(`rgb(from rgb(20% 40% 60% / 80%) r g none / alpha)`, `color(srgb 0.2 0.4 none / 0.8)`);
+  fuzzy_test_computed_color(`rgb(from rgb(20% 40% 60% / 80%) r g none / alpha)`, `color(srgb 0.2 0.4 0 / 0.8)`);
   fuzzy_test_computed_color(`rgb(from rgb(20% 40% 60% / 80%) r g b / none)`, `color(srgb 0.2 0.4 0.6 / none)`);
-  // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
   fuzzy_test_computed_color(`rgb(from rgb(none none none) r g b)`, `color(srgb 0 0 0)`);
   fuzzy_test_computed_color(`rgb(from rgb(none none none / none) r g b / alpha)`, `color(srgb 0 0 0 / 0)`);
   fuzzy_test_computed_color(`rgb(from rgb(20% none 60%) r g b)`, `color(srgb 0.2 0 0.6)`);
@@ -173,17 +173,17 @@
   fuzzy_test_computed_color(`hsl(from rebeccapurple calc(h) calc(s) calc(l))`, `color(srgb 0.4 0.2 0.6)`);
   fuzzy_test_computed_color(`hsl(from rgb(20%, 40%, 60%, 80%) calc(h) calc(s) calc(l) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
 
-  // Testing with 'none'.
-  fuzzy_test_computed_color(`hsl(from rebeccapurple none none none)`, `color(srgb none none none)`);
-  fuzzy_test_computed_color(`hsl(from rebeccapurple none none none / none)`, `color(srgb none none none / none)`);
-  fuzzy_test_computed_color(`hsl(from rebeccapurple h s none)`, `color(srgb 0 0 none)`);
-  fuzzy_test_computed_color(`hsl(from rebeccapurple h s none / alpha)`, `color(srgb 0 0 none)`);
+  // Testing with 'none'. Missing components are resolved to zero during color space conversion.
+  // https://drafts.csswg.org/css-color-4/#missing
+  fuzzy_test_computed_color(`hsl(from rebeccapurple none none none)`, `color(srgb 0 0 0)`);
+  fuzzy_test_computed_color(`hsl(from rebeccapurple none none none / none)`, `color(srgb 0 0 0 / none)`);
+  fuzzy_test_computed_color(`hsl(from rebeccapurple h s none)`, `color(srgb 0 0 0)`);
+  fuzzy_test_computed_color(`hsl(from rebeccapurple h s none / alpha)`, `color(srgb 0 0 0)`);
   fuzzy_test_computed_color(`hsl(from rebeccapurple h s l / none)`, `color(srgb 0.4 0.2 0.6 / none)`);
-  fuzzy_test_computed_color(`hsl(from rebeccapurple none s l / alpha)`, `color(srgb none 0.2 0.2)`);
-  fuzzy_test_computed_color(`hsl(from hsl(120deg 20% 50% / .5) h s none / alpha)`, `color(srgb 0 0 none / 0.5)`);
+  fuzzy_test_computed_color(`hsl(from rebeccapurple none s l / alpha)`, `color(srgb 0.6 0.2 0.2)`);
+  fuzzy_test_computed_color(`hsl(from hsl(120deg 20% 50% / .5) h s none / alpha)`, `color(srgb 0 0 0 / 0.5)`);
   fuzzy_test_computed_color(`hsl(from hsl(120deg 20% 50% / .5) h s l / none)`, `color(srgb 0.4 0.6 0.4 / none)`);
-  fuzzy_test_computed_color(`hsl(from hsl(120deg 20% 50% / .5) none s l / alpha)`, `color(srgb none 0.4 0.4 / 0.5)`);
-  // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
+  fuzzy_test_computed_color(`hsl(from hsl(120deg 20% 50% / .5) none s l / alpha)`, `color(srgb 0.6 0.4 0.4 / 0.5)`);
   fuzzy_test_computed_color(`hsl(from hsl(none none none) h s l)`, `color(srgb 0 0 0)`);
   fuzzy_test_computed_color(`hsl(from hsl(none none none / none) h s l / alpha)`, `color(srgb 0 0 0 / 0)`);
   fuzzy_test_computed_color(`hsl(from hsl(120deg none 50% / .5) h s l)`, `color(srgb 0.5 0.5 0.5 / 0.5)`);
@@ -243,17 +243,17 @@
   fuzzy_test_computed_color(`hwb(from rebeccapurple calc(h) calc(w) calc(b))`, `color(srgb 0.4 0.2 0.6)`);
   fuzzy_test_computed_color(`hwb(from rgb(20%, 40%, 60%, 80%) calc(h) calc(w) calc(b) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
 
-  // Testing with 'none'.
-  fuzzy_test_computed_color(`hwb(from rebeccapurple none none none)`, `color(srgb none none none)`);
-  fuzzy_test_computed_color(`hwb(from rebeccapurple none none none / none)`, `color(srgb none none none / none)`);
-  fuzzy_test_computed_color(`hwb(from rebeccapurple h w none)`, `color(srgb 0.6 0.2 none)`);
-  fuzzy_test_computed_color(`hwb(from rebeccapurple h w none / alpha)`, `color(srgb 0.6 0.2 none)`);
+  // Testing with 'none'. Missing components are resolved to zero during color space conversion.
+  // https://drafts.csswg.org/css-color-4/#missing
+  fuzzy_test_computed_color(`hwb(from rebeccapurple none none none)`, `color(srgb 1 0 0)`);
+  fuzzy_test_computed_color(`hwb(from rebeccapurple none none none / none)`, `color(srgb 1 0 0 / none)`);
+  fuzzy_test_computed_color(`hwb(from rebeccapurple h w none)`, `color(srgb 0.6 0.2 1)`);
+  fuzzy_test_computed_color(`hwb(from rebeccapurple h w none / alpha)`, `color(srgb 0.6 0.2 1)`);
   fuzzy_test_computed_color(`hwb(from rebeccapurple h w b / none)`, `color(srgb 0.4 0.2 0.6 / none)`);
-  fuzzy_test_computed_color(`hwb(from rebeccapurple none w b / alpha)`, `color(srgb none 0.2 0.2)`);
-  fuzzy_test_computed_color(`hwb(from hwb(120deg 20% 50% / .5) h w none / alpha)`, `color(srgb 0.2 1 none / 0.5)`);
+  fuzzy_test_computed_color(`hwb(from rebeccapurple none w b / alpha)`, `color(srgb 0.6 0.2 0.2)`);
+  fuzzy_test_computed_color(`hwb(from hwb(120deg 20% 50% / .5) h w none / alpha)`, `color(srgb 0.2 1 0.2 / 0.5)`);
   fuzzy_test_computed_color(`hwb(from hwb(120deg 20% 50% / .5) h w b / none)`, `color(srgb 0.2 0.5 0.2 / none)`);
-  fuzzy_test_computed_color(`hwb(from hwb(120deg 20% 50% / .5) none w b / alpha)`, `color(srgb none 0.2 0.2 / 0.5)`);
-  // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
+  fuzzy_test_computed_color(`hwb(from hwb(120deg 20% 50% / .5) none w b / alpha)`, `color(srgb 0.5 0.2 0.2 / 0.5)`);
   fuzzy_test_computed_color(`hwb(from hwb(none none none) h w b)`, `color(srgb 1 0 0)`);
   fuzzy_test_computed_color(`hwb(from hwb(none none none / none) h w b / alpha)`, `color(srgb 1 0 0 / 0)`);
   fuzzy_test_computed_color(`hwb(from hwb(120deg none 50% / .5) h w b)`, `color(srgb 0 0.5 0 / 0.5)`);

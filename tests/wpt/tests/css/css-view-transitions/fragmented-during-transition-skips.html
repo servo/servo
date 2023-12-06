@@ -50,6 +50,8 @@
 <div id=unrelated></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 function runTransition() {
   let t = document.startViewTransition();
   t.ready.then(() => {

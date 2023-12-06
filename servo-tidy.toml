@@ -69,6 +69,7 @@ files = [
     "./components/selectors/",
     "./components/style/",
     "./components/style_derive/parse.rs",
+    "./components/to_shmem/lib.rs",
     "./resources/hsts_preload.json",
     "./tests/wpt/meta/MANIFEST.json",
     "./tests/wpt/meta-legacy-layout/MANIFEST.json",
@@ -95,6 +96,8 @@ files = [
 ]
 # Directories that are ignored for the non-WPT tidy check.
 directories = [
+    # Test have expectations in them, causing tidy to fail.
+    "./support/crown/tests",
     # Upstream
     "./support/android/apk",
     "./tests/wpt/harness",

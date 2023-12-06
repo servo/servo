@@ -6,14 +6,14 @@
 
 use crate::dom::TElement;
 use crate::gecko_bindings::bindings;
-use crate::gecko_bindings::structs::{self, RawServoStyleSet, ServoStyleSetSizes};
-use crate::gecko_bindings::structs::{StyleSheet as DomStyleSheet, StyleSheetInfo};
-use crate::gecko_bindings::sugar::ownership::{HasArcFFI, HasBoxFFI, HasFFI, HasSimpleFFI};
+use crate::gecko_bindings::structs::{
+    self, ServoStyleSetSizes, StyleSheet as DomStyleSheet, StyleSheetInfo,
+};
 use crate::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use crate::media_queries::{Device, MediaList};
 use crate::properties::ComputedValues;
 use crate::selector_parser::SnapshotMap;
-use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
+use crate::shared_lock::{SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheets::{StylesheetContents, StylesheetInDocument};
 use crate::stylist::Stylist;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
@@ -24,6 +24,16 @@ use std::fmt;
 /// Little wrapper to a Gecko style sheet.
 #[derive(Eq, PartialEq)]
 pub struct GeckoStyleSheet(*const DomStyleSheet);
+
+// NOTE(emilio): These are kind of a lie. We allow to make these Send + Sync so that other data
+// structures can also be Send and Sync, but Gecko's stylesheets are main-thread-reference-counted.
+//
+// We assert that we reference-count in the right thread (in the Addref/Release implementations).
+// Sending these to a different thread can't really happen (it could theoretically really happen if
+// we allowed @import rules inside a nested style rule, but that can't happen per spec and would be
+// a parser bug, caught by the asserts).
+unsafe impl Send for GeckoStyleSheet {}
+unsafe impl Sync for GeckoStyleSheet {}
 
 impl fmt::Debug for GeckoStyleSheet {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -93,15 +103,12 @@ impl Clone for GeckoStyleSheet {
 impl StylesheetInDocument for GeckoStyleSheet {
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
         use crate::gecko_bindings::structs::mozilla::dom::MediaList as DomMediaList;
-        use std::mem;
-
         unsafe {
             let dom_media_list = self.raw().mMedia.mRawPtr as *const DomMediaList;
             if dom_media_list.is_null() {
                 return None;
             }
-            let raw_list = &*(*dom_media_list).mRawList.mRawPtr;
-            let list = Locked::<MediaList>::as_arc(mem::transmute(&raw_list));
+            let list = &*(*dom_media_list).mRawList.mRawPtr;
             Some(list.read_with(guard))
         }
     }
@@ -116,11 +123,7 @@ impl StylesheetInDocument for GeckoStyleSheet {
     #[inline]
     fn contents(&self) -> &StylesheetContents {
         debug_assert!(!self.inner().mContents.mRawPtr.is_null());
-        unsafe {
-            let contents =
-                (&**StylesheetContents::as_arc(&&*self.inner().mContents.mRawPtr)) as *const _;
-            &*contents
-        }
+        unsafe { &*self.inner().mContents.mRawPtr }
     }
 }
 
@@ -191,8 +194,5 @@ impl PerDocumentStyleDataImpl {
     }
 }
 
-unsafe impl HasFFI for PerDocumentStyleData {
-    type FFIType = RawServoStyleSet;
-}
-unsafe impl HasSimpleFFI for PerDocumentStyleData {}
-unsafe impl HasBoxFFI for PerDocumentStyleData {}
+/// The gecko-specific AuthorStyles instantiation.
+pub type AuthorStyles = crate::author_styles::AuthorStyles<GeckoStyleSheet>;

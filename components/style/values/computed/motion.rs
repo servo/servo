@@ -4,12 +4,20 @@
 
 //! Computed types for CSS values that are related to motion path.
 
-use crate::values::computed::Angle;
-use crate::values::generics::motion::GenericOffsetPath;
+use crate::values::computed::{Angle, LengthPercentage, Position};
+use crate::values::generics::motion::{
+    GenericOffsetPath, GenericOffsetPosition, GenericRayFunction,
+};
 use crate::Zero;
 
+/// The computed value of ray() function.
+pub type RayFunction = GenericRayFunction<Angle, Position>;
+
 /// The computed value of `offset-path`.
-pub type OffsetPath = GenericOffsetPath<Angle>;
+pub type OffsetPath = GenericOffsetPath<RayFunction>;
+
+/// The computed value of `offset-position`.
+pub type OffsetPosition = GenericOffsetPosition<LengthPercentage, LengthPercentage>;
 
 #[inline]
 fn is_auto_zero_angle(auto: &bool, angle: &Angle) -> bool {

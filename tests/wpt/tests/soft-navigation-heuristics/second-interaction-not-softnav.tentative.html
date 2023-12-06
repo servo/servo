@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/soft-navigation-helper.js"></script>
+</head>
+<body>
+  <main id=main>
+  <p><a id=link>Click me!</a></p>
+  <p><a id=secondlink>Then click me!</a></p>
+  </main>
+  <script>
+    const link = document.getElementById("link");
+    testSoftNavigation({
+      addContent: async () => {
+        if (test_driver) {
+          const secondlink = document.getElementById("secondlink");
+          const clickPromise = new Promise(r => {
+            secondlink.addEventListener("click", r);
+          });
+          test_driver.click(secondlink);
+          await clickPromise;
+        }
+        addImageToMain();
+      },
+      link: link,
+      test: "Second interaction in the middle of a soft navigation"});
+  </script>
+</body>
+</html>
+

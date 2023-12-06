@@ -50,7 +50,7 @@ pub struct ShadowRoot {
 }
 
 impl ShadowRoot {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(host: &Element, document: &Document) -> ShadowRoot {
         let document_fragment = DocumentFragment::new_inherited(document);
         let node = document_fragment.upcast::<Node>();
@@ -104,7 +104,7 @@ impl ShadowRoot {
 
     /// Add a stylesheet owned by `owner` to the list of shadow root sheets, in the
     /// correct tree position.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut self.author_styles.borrow_mut().stylesheets;
         let insertion_point = stylesheets
@@ -125,7 +125,7 @@ impl ShadowRoot {
     }
 
     /// Remove a stylesheet owned by `owner` from the list of shadow root sheets.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
         DocumentOrShadowRoot::remove_stylesheet(
             owner,

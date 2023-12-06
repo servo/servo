@@ -13,13 +13,9 @@ jobs:
         run: echo "PR_FETCH_DEPTH=$(( ${{ github.event.pull_request.commits }} + 1 ))" >> "${GITHUB_ENV}"
       - name: Check out shallow servo PR
         run: |
-          mkdir servo
+          git clone --depth 1 ${{ github.event.repository.clone_url}} servo
           cd servo
-          git init -b main
-          git remote add origin ${{ github.event.repository.clone_url}}
           git fetch origin pull/${{ github.event.pull_request.number}}/head:pr --depth ${{ env.PR_FETCH_DEPTH }}
-          git fetch origin master:master --depth 1
-          git checkout master
       - name: Check out wpt
         uses: actions/checkout@v3
         with:

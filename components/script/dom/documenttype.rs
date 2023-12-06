@@ -37,7 +37,7 @@ impl DocumentType {
             system_id: system_id.unwrap_or_default(),
         }
     }
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         name: DOMString,
         public_id: Option<DOMString>,

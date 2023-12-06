@@ -8,7 +8,7 @@ use crate::parser::{Parse, ParserContext};
 use crate::values::generics::ui as generics;
 use crate::values::specified::color::Color;
 use crate::values::specified::image::Image;
-use crate::values::specified::{LengthPercentage, Number};
+use crate::values::specified::Number;
 use cssparser::Parser;
 use std::fmt::{self, Write};
 use style_traits::{
@@ -229,24 +229,4 @@ pub enum CursorKind {
     #[parse(aliases = "-moz-zoom-out")]
     ZoomOut,
     Auto,
-}
-
-/// A specified value for the `view-timeline-inset` property.
-pub type ViewTimelineInset = generics::GenericViewTimelineInset<LengthPercentage>;
-
-impl Parse for ViewTimelineInset {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        use crate::values::specified::LengthPercentageOrAuto;
-
-        let start = LengthPercentageOrAuto::parse(context, input)?;
-        let end = match input.try_parse(|input| LengthPercentageOrAuto::parse(context, input)) {
-            Ok(end) => end,
-            Err(_) => start.clone(),
-        };
-
-        Ok(Self { start, end })
-    }
 }

@@ -21,6 +21,8 @@
 <body>
 <img class="target" src="support/cat.png">
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 function runTest() {
   let transition = document.startViewTransition();
   transition.ready.then(takeScreenshot);

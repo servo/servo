@@ -25,8 +25,12 @@
   .container > div {
     height: 1em;
   }
-  #target    { scroll-margin:    1em 0 0;
-               scroll-snap-align: center; } /* set up a snap position      */
+  /* Note: we use "start" for #target to avoid spec ambiguity where
+   * scroll-snap-align conflicts with default ScrollIntoViewOptions.
+   * See https://github.com/w3c/csswg-drafts/issues/9576.
+   */
+  #target    { scroll-margin:    2em 0 0;
+               scroll-snap-align: start;  } /* set up a snap position      */
   #stripe    { background: green;         } /* color part of the snap area */
   .fail      { color: red;                } /* make failing more obvious   */
 

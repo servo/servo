@@ -1,0 +1,20 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>RTCConfiguration validation</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCConfiguration-helper.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+  test(() => {
+    // Check that a configuration change gets applied only if it's entirely valid
+    // see https://github.com/w3c/webrtc-pc/issues/2688
+    // and https://github.com/w3c/webrtc-pc/pull/2689
+    const pc = new RTCPeerConnection();
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
+    assert_throws_dom('SyntaxError', () =>
+      pc.setConfiguration({iceTransportPolicy: 'relay', iceServers: [{urls: ""}]})
+    );
+    assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
+  }, `setConfiguration only applies if the entire configuration is valid`);
+</script>

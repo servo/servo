@@ -19,7 +19,8 @@ async def test_params_request_invalid_value(bidi_session, value):
 
 
 async def test_params_request_no_such_request(bidi_session, setup_network_test,
-                                              wait_for_event, fetch, url):
+                                              wait_for_event, wait_for_future_safe,
+                                              fetch, url):
     await setup_network_test(events=[
         "network.responseCompleted",
     ])
@@ -28,7 +29,7 @@ async def test_params_request_no_such_request(bidi_session, setup_network_test,
     text_url = url(PAGE_EMPTY_TEXT)
     await fetch(text_url)
 
-    response_completed_event = await on_response_completed
+    response_completed_event = await wait_for_future_safe(on_response_completed)
     request = response_completed_event["request"]["request"]
 
     with pytest.raises(error.NoSuchRequestException):

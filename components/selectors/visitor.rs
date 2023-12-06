@@ -8,6 +8,7 @@
 
 use crate::attr::NamespaceConstraint;
 use crate::parser::{Combinator, Component, Selector, SelectorImpl};
+use bitflags::bitflags;
 
 /// A trait to visit selector properties.
 ///
@@ -38,7 +39,11 @@ pub trait SelectorVisitor: Sized {
     /// into the internal selectors if / as needed.
     ///
     /// The default implementation does this.
-    fn visit_selector_list(&mut self, list: &[Selector<Self::Impl>]) -> bool {
+    fn visit_selector_list(
+        &mut self,
+        _list_kind: SelectorListKind,
+        list: &[Selector<Self::Impl>],
+    ) -> bool {
         for nested in list {
             if !nested.visit(self) {
                 return false;
@@ -53,5 +58,55 @@ pub trait SelectorVisitor: Sized {
     /// selector is the rightmost one.
     fn visit_complex_selector(&mut self, _combinator_to_right: Option<Combinator>) -> bool {
         true
+    }
+}
+
+bitflags! {
+    /// The kinds of components the visitor is visiting the selector list of, if any
+    #[derive(Default)]
+    pub struct SelectorListKind: u8 {
+        /// The visitor is inside :not(..)
+        const NEGATION = 1 << 0;
+        /// The visitor is inside :is(..)
+        const IS = 1 << 1;
+        /// The visitor is inside :where(..)
+        const WHERE = 1 << 2;
+        /// The visitor is inside :nth-child(.. of <selector list>) or
+        /// :nth-last-child(.. of <selector list>)
+        const NTH_OF = 1 << 3;
+    }
+}
+
+impl SelectorListKind {
+    /// Construct a SelectorListKind for the corresponding component.
+    pub fn from_component<Impl: SelectorImpl>(component: &Component<Impl>) -> Self {
+        match component {
+            Component::Negation(_) => SelectorListKind::NEGATION,
+            Component::Is(_) => SelectorListKind::IS,
+            Component::Where(_) => SelectorListKind::WHERE,
+            Component::NthOf(_) => SelectorListKind::NTH_OF,
+            _ => SelectorListKind::empty(),
+        }
+    }
+
+    /// Whether the visitor is inside :not(..)
+    pub fn in_negation(&self) -> bool {
+        self.intersects(SelectorListKind::NEGATION)
+    }
+
+    /// Whether the visitor is inside :is(..)
+    pub fn in_is(&self) -> bool {
+        self.intersects(SelectorListKind::IS)
+    }
+
+    /// Whether the visitor is inside :where(..)
+    pub fn in_where(&self) -> bool {
+        self.intersects(SelectorListKind::WHERE)
+    }
+
+    /// Whether the visitor is inside :nth-child(.. of <selector list>) or
+    /// :nth-last-child(.. of <selector list>)
+    pub fn in_nth_of(&self) -> bool {
+        self.intersects(SelectorListKind::NTH_OF)
     }
 }

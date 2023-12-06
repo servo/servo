@@ -105,7 +105,7 @@ class Keys(object):
     R_DELETE = u"\uE05D"
 
 
-ALL_KEYS = getmembers(Keys, lambda x: type(x) == str)
+ALL_KEYS = getmembers(Keys, lambda x: type(x) is str)
 
 ALL_EVENTS = OrderedDict(
     [

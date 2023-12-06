@@ -29,7 +29,7 @@ MIME_TYPES = {
 def build_inline(build_url, src,
                  doctype: str = "html",
                  mime: Optional[str] = None, charset: Optional[str] = None,
-                 parameters = None, **kwargs):
+                 parameters=None, **kwargs):
     if mime is None:
         mime = MIME_TYPES[doctype]
     if charset is None:

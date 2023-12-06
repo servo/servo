@@ -172,7 +172,7 @@ is where we actually call the SpiderMonkey trace hooks:
 
 ```rust
 /// Trace the `JSObject` held by `reflector`.
-#[allow(unrooted_must_root)]
+#[allow(crown::unrooted_must_root)]
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
     trace!("tracing reflector {}", description);
     trace_object(tracer, description, reflector.rootable())

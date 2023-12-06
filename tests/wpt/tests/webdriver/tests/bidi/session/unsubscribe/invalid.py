@@ -40,7 +40,7 @@ async def test_params_events_value_invalid_event_name(send_blocking_command, val
 
 @pytest.mark.asyncio
 async def test_params_events_value_valid_and_invalid_event_name(
-    bidi_session, subscribe_events, send_blocking_command, wait_for_event, top_context
+    bidi_session, subscribe_events, send_blocking_command, wait_for_event, wait_for_future_safe, top_context
 ):
     # Subscribe to a valid event
     await subscribe_events(events=["log.entryAdded"])
@@ -64,7 +64,7 @@ async def test_params_events_value_valid_and_invalid_event_name(
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message(bidi_session, top_context, "text1")
-    await on_entry_added
+    await wait_for_future_safe(on_entry_added)
 
     assert len(events) == 1
 
@@ -137,7 +137,7 @@ async def test_params_contexts_value_invalid_value(send_blocking_command):
 
 @pytest.mark.asyncio
 async def test_params_contexts_value_valid_and_invalid_value(
-    bidi_session, subscribe_events, send_blocking_command, wait_for_event, top_context
+    bidi_session, subscribe_events, send_blocking_command, wait_for_event, wait_for_future_safe, top_context
 ):
     # Subscribe to a valid context
     await subscribe_events(events=["log.entryAdded"], contexts=[top_context["context"]])
@@ -162,7 +162,7 @@ async def test_params_contexts_value_valid_and_invalid_value(
 
     on_entry_added = wait_for_event("log.entryAdded")
     await create_console_api_message(bidi_session, top_context, "text1")
-    await on_entry_added
+    await wait_for_future_safe(on_entry_added)
 
     assert len(events) == 1
 

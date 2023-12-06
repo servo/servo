@@ -101,27 +101,38 @@ test(() => {
   const error = new Error("error");
   const results = [];
   let errorReported = null;
+  let innerSubscriber = null;
+  let subscriptionActivityInFinallyAfterThrow;
+  let subscriptionActivityInErrorHandlerAfterThrow;
 
   self.addEventListener("error", e => errorReported = e, {once: true});
 
   const source = new Observable((subscriber) => {
+    innerSubscriber = subscriber;
     subscriber.next(1);
-    throw error;
-    // TODO(https://github.com/WICG/observable/issues/76): If we add the
-    // `subscriber.closed` attribute, consider a try-finally block to assert
-    // that `subscriber.closed` is true after throwing. Also TODO: ensure that
-    // that would even be the right behavior.
+    try {
+      throw error;
+    } finally {
+      subscriptionActivityInFinallyAfterThrow = subscriber.active;
+    }
   });
 
   source.subscribe({
     next: (x) => results.push(x),
-    error: (e) => results.push(e),
+    error: (e) => {
+      subscriptionActivityInErrorHandlerAfterThrow = innerSubscriber.active;
+      results.push(e);
+    },
     complete: () => assert_unreached("complete should not be called"),
   });
 
   assert_equals(errorReported, null, "The global error handler should not be " +
       "invoked when the subscribe callback throws an error and the " +
       "subscriber has given an error handler");
+  assert_true(subscriptionActivityInFinallyAfterThrow, "Subscriber is " +
+      "considered active in finally block before error handler is invoked");
+  assert_false(subscriptionActivityInErrorHandlerAfterThrow, "Subscriber is " +
+      "considered inactive in error handler block after thrown error");
   assert_array_equals(
     results,
     [1, error],
@@ -129,14 +140,68 @@ test(() => {
   );
 }, "Observable should error if initializer throws");
 
-// TODO(https://github.com/WICG/observable/issues/76): If we decide the
-// `subscriber.closed` attribute is needed, re-visit these two tests that were
-// originally included:
-// https://github.com/web-platform-tests/wpt/blob/0246526ca46ef4e5eae8b8e4a87dd905c40f5326/dom/observable/tentative/observable-ctor.any.js#L123-L137.
+test(t => {
+  let innerSubscriber = null;
+  let activeAfterComplete = false;
+  let activeDuringComplete = false;
 
-// TODO(domfarolino): Add a test asserting that `Subscriber#signal` != the
-// actual `AbortSignal` passed into `subscribe()`. See
-// https://github.com/web-platform-tests/wpt/pull/42219#discussion_r1361243283.
+  const source = new Observable((subscriber) => {
+    innerSubscriber = subscriber;
+
+    subscriber.complete();
+    activeAfterComplete = subscriber.active;
+  });
+
+  source.subscribe({complete: () => activeDuringComplete = innerSubscriber.active});
+  assert_false(activeDuringComplete, "Subscription is not active during complete");
+  assert_false(activeAfterComplete, "Subscription is not active after complete");
+}, "Subscription is inactive after complete()");
+
+test(t => {
+  let innerSubscriber = null;
+  let activeAfterError = false;
+  let activeDuringError = false;
+
+  const error = new Error("error");
+  const source = new Observable((subscriber) => {
+    innerSubscriber = subscriber;
+
+    subscriber.error(error);
+    activeAfterError = subscriber.active;
+  });
+
+  source.subscribe({error: () => activeDuringError = innerSubscriber.active});
+  assert_false(activeDuringError, "Subscription is not active during error");
+  assert_false(activeAfterError, "Subscription is not active after error");
+}, "Subscription is inactive after error()");
+
+test(t => {
+  let innerSubscriber;
+  let initialActivity;
+  let initialSignalAborted;
+
+  const source = new Observable((subscriber) => {
+    innerSubscriber = subscriber;
+    initialActivity = subscriber.active;
+    initialSignalAborted = subscriber.signal.aborted;
+  });
+
+  source.subscribe({}, {signal: AbortSignal.abort('Initially aborted')});
+  assert_false(initialActivity);
+  assert_true(initialSignalAborted);
+  assert_equals(innerSubscriber.signal.reason, 'Initially aborted');
+}, "Subscription is inactive when aborted signal is passed in");
+
+test(() => {
+  let outerSubscriber = null;
+
+  const source = new Observable(subscriber => outerSubscriber = subscriber);
+
+  const controller = new AbortController();
+  source.subscribe({}, {signal: controller.signal});
+
+  assert_not_equals(controller.signal, outerSubscriber.signal);
+}, "Subscriber#signal is not the same AbortSignal as the one passed into `subscribe()`");
 
 test(() => {
   const results = [];
@@ -396,6 +461,116 @@ test(() => {
 }, "Errors pushed by initializer function after subscriber is closed by " +
    "error are reported");
 
+test(() => {
+  const results = [];
+  const target = new EventTarget();
+
+  const source = new Observable((subscriber) => {
+    target.addEventListener('custom event', e => {
+      subscriber.next(1);
+      subscriber.complete();
+      subscriber.error('not a real error');
+    });
+  });
+
+  source.subscribe({
+    next: (x) => results.push(x),
+    error: (error) => results.push(error),
+    complete: () => {
+      results.push('complete'),
+      // Re-entrantly tries to invoke `complete()`. However, this function must
+      // only ever run once.
+      target.dispatchEvent(new Event('custom event'));
+    },
+  });
+
+  target.dispatchEvent(new Event('custom event'));
+
+  assert_array_equals(
+    results,
+    [1, 'complete'],
+    "complete() can only be called once, and cannot invoke other Observer methods"
+  );
+}, "Subscriber#complete() cannot re-entrantly invoke itself");
+
+test(() => {
+  const results = [];
+  const target = new EventTarget();
+
+  const source = new Observable((subscriber) => {
+    target.addEventListener('custom event', e => {
+      subscriber.next(1);
+      subscriber.error('not a real error');
+      subscriber.complete();
+    });
+  });
+
+  source.subscribe({
+    next: (x) => results.push(x),
+    error: (error) => {
+      results.push('error'),
+      // Re-entrantly tries to invoke `error()`. However, this function must
+      // only ever run once.
+      target.dispatchEvent(new Event('custom event'));
+    },
+    complete: () => results.push('complete'),
+  });
+
+  target.dispatchEvent(new Event('custom event'));
+
+  assert_array_equals(
+    results,
+    [1, 'error'],
+    "error() can only be called once, and cannot invoke other Observer methods"
+  );
+}, "Subscriber#error() cannot re-entrantly invoke itself");
+
+// TODO(domfarolino): Once `Subscriber#addTeardown()` and `Subscriber#active`
+// are implemented, add corresponding code for them here so we can assert the following order of everything:
+//   1. The passed-in `Observer#signal` is marked as `aborted`
+//   2. Abort event handlers are invoked for the that outer, passed-in signal.
+//   3. `Subscriber#closed` is true
+//   4. `Subscriber#signal` is marked as aborted
+//   5. Teardown callbacks are executed in the right order
+//   6. Abort event handlers are invoked for `Subscriber#signal`.
+// This ensures we have the "dependent signal" logic wired up correctly:
+// https://dom.spec.whatwg.org/#create-a-dependent-abort-signal.
+test(() => {
+  const results = [];
+  let innerSubscriber = null;
+
+  const source = new Observable((subscriber) => {
+    results.push('subscribe() callback');
+    innerSubscriber = subscriber;
+
+    subscriber.signal.addEventListener('abort', () => {
+      assert_true(subscriber.signal.aborted);
+      results.push('inner abort handler');
+      subscriber.next('next from inner abort handler');
+      subscriber.complete();
+    });
+  });
+
+  const ac = new AbortController();
+  source.subscribe({
+    // This should never get called. If it is, the array assertion below will fail.
+    next: (x) => results.push(x),
+    complete: () => results.push('complete()')
+  }, {signal: ac.signal});
+
+  ac.signal.addEventListener('abort', () => {
+    results.push('outer abort handler');
+    assert_true(ac.signal.aborted);
+    assert_false(innerSubscriber.signal.aborted);
+  });
+
+  assert_array_equals(results, ['subscribe() callback']);
+  ac.abort();
+  results.push('abort() returned');
+  assert_array_equals(results, ['subscribe() callback',
+      'outer abort handler', 'inner abort handler', 'abort() returned']);
+}, "Unsubscription lifecycle");
+
 // TODO(domfarolino): If we add `subscriber.closed`, assert that its value is
 // `true` in this test. See https://github.com/WICG/observable/issues/76.
 test(t => {
@@ -420,9 +595,8 @@ test(t => {
       }
     },
     error: () => results.push('error'),
-    complete: () => results.push('complete'),
-    signal: ac.signal,
-  });
+    complete: () => results.push('complete')
+  }, {signal: ac.signal});
 
   assert_array_equals(
     results,
@@ -477,4 +651,166 @@ test(() => {
   assert_equals(errorReported.error, error, "Error object is equivalent");
 }, "Calling subscribe should never throw an error synchronously, subscriber pushes error");
 
-// TODO(domfarolino): Add back the teardown tests that Ben wrote.
+test(() => {
+  let addTeardownCalled = false;
+  let activeDuringTeardown;
+
+  const source = new Observable((subscriber) => {
+    subscriber.addTeardown(() => {
+      addTeardownCalled = true;
+      activeDuringTeardown = subscriber.active;
+    });
+  });
+
+  const ac = new AbortController();
+  source.subscribe({}, {signal: ac.signal});
+
+  assert_false(addTeardownCalled, "Teardown is not be called upon subscription");
+  ac.abort();
+  assert_true(addTeardownCalled, "Teardown is called when subscription is aborted");
+  assert_false(activeDuringTeardown, "Teardown observers inactive subscription");
+}, "Teardown should be called when subscription is aborted");
+
+test(() => {
+  const addTeardownsCalled = [];
+  // This is used to snapshot `addTeardownsCalled` from within the subscribe
+  // callback, for assertion/comparison later.
+  let teardownsSnapshot = [];
+  const results = [];
+
+  const source = new Observable((subscriber) => {
+    subscriber.addTeardown(() => addTeardownsCalled.push("teardown 1"));
+    subscriber.addTeardown(() => addTeardownsCalled.push("teardown 2"));
+
+    subscriber.next(1);
+    subscriber.next(2);
+    subscriber.next(3);
+    subscriber.complete();
+
+    // We don't run the actual `assert_array_equals` here because if it fails,
+    // it won't be properly caught. This is because assertion failures throw an
+    // error, and in subscriber callback, thrown errors result in
+    // `window.onerror` handlers being called, which this test file doesn't
+    // record as an error (see the first line of this file).
+    teardownsSnapshot = addTeardownsCalled;
+  });
+
+  source.subscribe({
+    next: (x) => results.push(x),
+    error: () => results.push("unreached"),
+    complete: () => results.push("complete"),
+  });
+
+  assert_array_equals(
+    results,
+    [1, 2, 3, "complete"],
+    "should emit values and complete synchronously"
+  );
+
+  assert_array_equals(teardownsSnapshot, addTeardownsCalled);
+  assert_array_equals(addTeardownsCalled, ["teardown 2", "teardown 1"],
+      "Teardowns called in LIFO order synchronously after complete()");
+}, "Teardowns should be called when subscription is closed by completion");
+
+test(() => {
+  const addTeardownsCalled = [];
+  let teardownsSnapshot = [];
+  const error = new Error("error");
+  const results = [];
+
+  const source = new Observable((subscriber) => {
+    subscriber.addTeardown(() => addTeardownsCalled.push("teardown 1"));
+    subscriber.addTeardown(() => addTeardownsCalled.push("teardown 2"));
+
+    subscriber.next(1);
+    subscriber.next(2);
+    subscriber.next(3);
+    subscriber.error(error);
+
+    teardownsSnapshot = addTeardownsCalled;
+  });
+
+  source.subscribe({
+    next: (x) => results.push(x),
+    error: (error) => results.push(error),
+    complete: () => assert_unreached("complete should not be called"),
+  });
+
+  assert_array_equals(
+    results,
+    [1, 2, 3, error],
+    "should emit values and error synchronously"
+  );
+
+  assert_array_equals(teardownsSnapshot, addTeardownsCalled);
+  assert_array_equals(addTeardownsCalled, ["teardown 2", "teardown 1"],
+      "Teardowns called in LIFO order synchronously after error()");
+}, "Teardowns should be called when subscription is closed by subscriber pushing an error");
+
+test(() => {
+  const addTeardownsCalled = [];
+  const error = new Error("error");
+  const results = [];
+
+  const source = new Observable((subscriber) => {
+    subscriber.addTeardown(() => addTeardownsCalled.push("teardown 1"));
+    subscriber.addTeardown(() => addTeardownsCalled.push("teardown 2"));
+
+    subscriber.next(1);
+    subscriber.next(2);
+    subscriber.next(3);
+    throw error;
+  });
+
+  source.subscribe({
+    next: (x) => results.push(x),
+    error: (error) => results.push(error),
+    complete: () => assert_unreached("complete should not be called"),
+  });
+
+  assert_array_equals(
+    results,
+    [1, 2, 3, error],
+    "should emit values and error synchronously"
+  );
+
+  assert_array_equals(addTeardownsCalled, ["teardown 2", "teardown 1"],
+      "Teardowns called in LIFO order synchronously after thrown error");
+}, "Teardowns should be called when subscription is closed by subscriber throwing error");
+
+test(() => {
+  const addTeardownsCalled = [];
+  const results = [];
+  let firstTeardownInvokedSynchronously = false;
+  let secondTeardownInvokedSynchronously = false;
+
+  const source = new Observable((subscriber) => {
+    subscriber.addTeardown(() => addTeardownsCalled.push("teardown 1"));
+    if (addTeardownsCalled.length === 1) {
+      firstTeardownInvokedSynchronously = true;
+    }
+    subscriber.addTeardown(() => addTeardownsCalled.push("teardown 2"));
+    if (addTeardownsCalled.length === 2) {
+      secondTeardownInvokedSynchronously = true;
+    }
+
+    subscriber.next(1);
+    subscriber.next(2);
+    subscriber.next(3);
+    subscriber.complete();
+  });
+
+  const ac = new AbortController();
+  ac.abort();
+  source.subscribe({
+    next: (x) => results.push(x),
+    error: (error) => results.push(error),
+    complete: () => results.push('complete')
+  }, {signal: ac.signal});
+
+  assert_array_equals(results, []);
+  assert_true(firstTeardownInvokedSynchronously, "First teardown callback is invoked during addTeardown()");
+  assert_true(secondTeardownInvokedSynchronously, "Second teardown callback is invoked during addTeardown()");
+  assert_array_equals(addTeardownsCalled, ["teardown 1", "teardown 2"],
+      "Teardowns called synchronously upon addition end up in FIFO order");
+}, "Teardowns should be called synchronously during addTeardown() if the subscription is inactive");

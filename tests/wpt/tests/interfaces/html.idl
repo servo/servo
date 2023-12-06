@@ -48,6 +48,8 @@ typedef (HTMLScriptElement or SVGScriptElement) HTMLOrSVGScriptElement;
 
 [LegacyOverrideBuiltIns]
 partial interface Document {
+  static Document parseHTMLUnsafe(DOMString html);
+
   // resource metadata management
   [PutForwards=href, LegacyUnforgeable] readonly attribute Location? location;
   attribute USVString domain;
@@ -1196,6 +1198,7 @@ dictionary FormDataEventInit : EventInit {
 interface HTMLDetailsElement : HTMLElement {
   [HTMLConstructor] constructor();
 
+  [CEReactions] attribute DOMString name;
   [CEReactions] attribute boolean open;
 };
 
@@ -1236,6 +1239,8 @@ interface HTMLTemplateElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   readonly attribute DocumentFragment content;
+  [CEReactions] attribute DOMString shadowRootMode;
+  [CEReactions] attribute boolean shadowRootDelegatesFocus;
 };
 
 [Exposed=Window]
@@ -1684,6 +1689,22 @@ interface mixin ElementContentEditable {
   [CEReactions] attribute DOMString enterKeyHint;
   readonly attribute boolean isContentEditable;
   [CEReactions] attribute DOMString inputMode;
+};
+
+[Exposed=Window]
+interface CloseWatcher : EventTarget {
+  constructor(optional CloseWatcherOptions options = {});
+
+  undefined requestClose();
+  undefined close();
+  undefined destroy();
+
+  attribute EventHandler oncancel;
+  attribute EventHandler onclose;
+};
+
+dictionary CloseWatcherOptions {
+  AbortSignal signal;
 };
 
 [Exposed=Window]
@@ -2223,6 +2244,14 @@ enum DOMParserSupportedType {
   "application/xml",
   "application/xhtml+xml",
   "image/svg+xml"
+};
+
+partial interface Element {
+  undefined setHTMLUnsafe(DOMString html);
+};
+
+partial interface ShadowRoot {
+  undefined setHTMLUnsafe(DOMString html);
 };
 
 [Exposed=Window]

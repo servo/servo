@@ -52,6 +52,7 @@ let matchedColor = "rgb(255, 0, 0)";
 let notMatchedColor = "rgb(0, 0, 255)";
 
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     document.documentElement.style.viewTransitionName = "root";
     target.style.viewTransitionName = "none";
@@ -71,6 +72,7 @@ promise_test(() => {
 }, ":only-child should match because ::view-transition-new is not generated (root to none)");
 
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     document.documentElement.style.viewTransitionName = "root";
     target.style.viewTransitionName = "none";
@@ -88,6 +90,7 @@ promise_test(() => {
 }, ":only-child should not match because ::view-transition-new is generated (root to root)");
 
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     document.documentElement.style.viewTransitionName = "root";
     target.style.viewTransitionName = "none";
@@ -108,6 +111,7 @@ promise_test(() => {
 }, ":only-child should not match because ::view-transition-new is generated (root to element)");
 
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     target.style.viewTransitionName = "target";
     document.documentElement.style.viewTransitionName = "none";
@@ -127,6 +131,7 @@ promise_test(() => {
 }, ":only-child should match because ::view-transition-new is not generated (element to none)");
 
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     target.style.viewTransitionName = "root";
     document.documentElement.style.viewTransitionName = "none";
@@ -147,6 +152,7 @@ promise_test(() => {
 }, ":only-child should not match because ::view-transition-new is generated (element to root)");
 
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     target.style.viewTransitionName = "target";
     document.documentElement.style.viewTransitionName = "none";

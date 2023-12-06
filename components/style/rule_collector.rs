@@ -73,7 +73,7 @@ where
     rule_inclusion: RuleInclusion,
     rules: &'a mut ApplicableDeclarationList,
     context: &'a mut MatchingContext<'b, E::Impl>,
-    matches_user_and_author_rules: bool,
+    matches_user_and_content_rules: bool,
     matches_document_author_rules: bool,
     in_sort_scope: bool,
 }
@@ -102,7 +102,7 @@ where
             MatchingMode::Normal => element.rule_hash_target(),
         };
 
-        let matches_user_and_author_rules = rule_hash_target.matches_user_and_author_rules();
+        let matches_user_and_content_rules = rule_hash_target.matches_user_and_content_rules();
 
         // Gecko definitely has pseudo-elements with style attributes, like
         // ::-moz-color-swatch.
@@ -123,8 +123,8 @@ where
             rule_inclusion,
             context,
             rules,
-            matches_user_and_author_rules,
-            matches_document_author_rules: matches_user_and_author_rules,
+            matches_user_and_content_rules,
+            matches_document_author_rules: matches_user_and_content_rules,
             in_sort_scope: false,
         }
     }
@@ -179,7 +179,7 @@ where
     }
 
     fn collect_user_rules(&mut self) {
-        if !self.matches_user_and_author_rules {
+        if !self.matches_user_and_content_rules {
             return;
         }
 
@@ -257,7 +257,7 @@ where
 
         while let Some(slot) = current {
             debug_assert!(
-                self.matches_user_and_author_rules,
+                self.matches_user_and_content_rules,
                 "We should not slot NAC anywhere"
             );
             slots.push(slot);
@@ -292,7 +292,7 @@ where
     }
 
     fn collect_rules_from_containing_shadow_tree(&mut self) {
-        if !self.matches_user_and_author_rules {
+        if !self.matches_user_and_content_rules {
             return;
         }
 
@@ -340,11 +340,6 @@ where
             Some(s) => s,
             None => return,
         };
-
-        debug_assert!(
-            self.matches_user_and_author_rules,
-            "NAC should not be a shadow host"
-        );
 
         let style_data = match shadow.style_data() {
             Some(d) => d,

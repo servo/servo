@@ -25,36 +25,42 @@ promise_test(async t => {
   assert_implements(window.LayoutShift, 'Layout Instability is not supported.');
   // Wait for the initial render to complete.
   await waitForAnimationFrames(2);
-
   const startTime = performance.now();
-  return new Promise(resolve => {
+
+  const observerPromise = new Promise(resolve => {
     const observer = new PerformanceObserver(
-      t.step_func(entryList => {
-        const endTime = performance.now();
-        assert_equals(entryList.getEntries().length, 1);
-        const entry = entryList.getEntries()[0];
-        assert_equals(entry.entryType, "layout-shift");
-        assert_equals(entry.name, "");
-        assert_greater_than_equal(entry.startTime, startTime);
-        assert_less_than_equal(entry.startTime, endTime);
-        assert_equals(entry.duration, 0.0);
-        // The layout shift value should be:
-        // 300 * (100 + 60) * (60 / maxDimension) / viewport size.
-        assert_equals(entry.value, computeExpectedScore(300 * (100 + 60), 60));
-        // We should see that there was a click input entry.
-        assert_equals(entry.hadRecentInput, true);
-        assert_greater_than_equal(timeAfterClick, entry.lastInputTime);
-        resolve();
-      })
-    );
-    observer.observe({entryTypes: ['layout-shift']});
-    // User input event
-    clickAndBlockMain('button').then(() => {
-      timeAfterClick = performance.now();
-      // Modify the position of the div.
-      document.getElementById('myDiv').style = "top: 60px";
-    });
+      entryList => {
+        resolve(entryList);
+      }
+    ).observe({ entryTypes: ['layout-shift'] });
   });
+
+  // User input event
+  await clickAndBlockMain('button');
+
+  // Modify the position of the div to trigger layout shift.
+  document.getElementById('myDiv').style = "top: 60px";
+
+  const layoutShiftEntryList = await observerPromise;
+  const endTime = performance.now();
+
+  assert_equals(layoutShiftEntryList.getEntries().length, 1);
+  const entry = layoutShiftEntryList.getEntries()[0];
+  assert_equals(entry.entryType, "layout-shift");
+  assert_equals(entry.name, "");
+  assert_greater_than(entry.startTime, startTime,
+    "The layout shift entry startTime should be greater than the test startTime.");
+  assert_less_than(entry.startTime, endTime,
+    "The layout shift entry startTime should be less than the test endTime.");
+  assert_equals(entry.duration, 0.0);
+  // The layout shift value should be:
+  // 300 * (100 + 60) * (60 / maxDimension) / viewport size.
+  assert_equals(entry.value, computeExpectedScore(300 * (100 + 60), 60));
+  // We should see that there was a click input entry.
+  assert_equals(entry.hadRecentInput, true);
+  assert_less_than(entry.lastInputTime, entry.startTime,
+    "The lastInputTime should be less than the layout shift startTime.");
+
 }, 'Layout shift right after user input is observable via PerformanceObserver.');
 </script>
 

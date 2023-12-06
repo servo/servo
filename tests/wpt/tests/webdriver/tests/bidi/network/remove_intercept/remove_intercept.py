@@ -1,7 +1,6 @@
 # META: timeout=long
 
 import pytest
-from webdriver.bidi.modules.script import ScriptEvaluateResultException
 
 from .. import (
     assert_before_request_sent_event,
@@ -19,7 +18,7 @@ PAGE_OTHER_TEXT = "/webdriver/tests/bidi/network/support/other.txt"
     "responseStarted",
 ])
 async def test_remove_intercept(
-    bidi_session, wait_for_event, url, setup_network_test, add_intercept, fetch, top_context, wait_for_future_safe, phase
+    bidi_session, wait_for_event, url, setup_network_test, add_intercept, subscribe_events, top_context, wait_for_future_safe, phase
 ):
     network_events = await setup_network_test(
         events=[
@@ -40,10 +39,18 @@ async def test_remove_intercept(
 
     on_network_event = wait_for_event(f"network.{phase}")
 
-    # Request to top_context should be blocked and throw a ScriptEvaluateResultException
-    # from the AbortController.
-    with pytest.raises(ScriptEvaluateResultException):
-        await fetch(text_url)
+    await subscribe_events(events=["browsingContext.load"], contexts=[top_context["context"]])
+
+    browsing_context_load_events = []
+
+    async def on_browsing_context_load_event(method, data):
+        browsing_context_load_events.append(data)
+
+    remove_listener = bidi_session.add_event_listener("browsingContext.load", on_browsing_context_load_event)
+
+    # Request to top_context should be blocked.
+    # TODO(https://github.com/w3c/webdriver-bidi/issues/188): Use a timeout argument when available.
+    await bidi_session.browsing_context.navigate(context=top_context["context"], url=text_url, wait="complete")
 
     await wait_for_future_safe(on_network_event)
 
@@ -72,7 +79,7 @@ async def test_remove_intercept(
     # The next request should not be blocked
     on_response_completed = wait_for_event("network.responseCompleted")
     await bidi_session.browsing_context.navigate(context=top_context["context"], url=text_url, wait="complete")
-    await on_response_completed
+    await wait_for_future_safe(on_response_completed)
 
     # Assert the network events have the expected interception properties
     assert len(before_request_sent_events) == 2
@@ -87,6 +94,9 @@ async def test_remove_intercept(
 
     assert len(response_completed_events) == 1
     assert_response_event(response_completed_events[0], is_blocked=False)
+
+    assert len(browsing_context_load_events) == 0
+    remove_listener()
 
 
 @pytest.mark.asyncio

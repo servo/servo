@@ -1064,7 +1064,7 @@ impl RangeMethods for Range {
 }
 
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct BoundaryPoint {
     node: MutDom<Node>,
     offset: Cell<u32>,
@@ -1090,7 +1090,7 @@ impl BoundaryPoint {
     }
 }
 
-#[allow(unrooted_must_root)]
+#[allow(crown::unrooted_must_root)]
 impl PartialOrd for BoundaryPoint {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         bp_position(
@@ -1102,7 +1102,7 @@ impl PartialOrd for BoundaryPoint {
     }
 }
 
-#[allow(unrooted_must_root)]
+#[allow(crown::unrooted_must_root)]
 impl PartialEq for BoundaryPoint {
     fn eq(&self, other: &Self) -> bool {
         self.node.get() == other.node.get() && self.offset.get() == other.offset.get()

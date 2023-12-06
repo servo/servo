@@ -42,7 +42,7 @@ impl CSSKeyframesRule {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         window: &Window,
         parent_stylesheet: &CSSStyleSheet,

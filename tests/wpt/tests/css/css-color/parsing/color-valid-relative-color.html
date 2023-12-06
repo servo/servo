@@ -319,6 +319,8 @@
     // Testing with calc().
     fuzzy_test_valid_color(`lab(from lab(25 20 50) calc(l) calc(a) calc(b))`, `lab(25 20 50)`);
     fuzzy_test_valid_color(`lab(from lab(25 20 50 / 40%) calc(l) calc(a) calc(b) / calc(alpha))`, `lab(25 20 50 / 0.4)`);
+    fuzzy_test_valid_color(`lab(from lab(50 -30 40) calc(l - 20) a b)`, `lab(30 -30 40)`);
+    fuzzy_test_valid_color(`lab(from lab(50 -30 40) l calc(a / 3) calc(b / 2))`, `lab(50 -10 20)`);
 
     // Testing with 'none'.
     fuzzy_test_valid_color(`lab(from lab(25 20 50) none none none)`, `lab(none none none)`);
@@ -385,6 +387,8 @@
     // Testing with calc().
     fuzzy_test_valid_color(`oklab(from oklab(0.25 0.2 0.5) calc(l) calc(a) calc(b))`, `oklab(0.25 0.2 0.5)`);
     fuzzy_test_valid_color(`oklab(from oklab(0.25 0.2 0.5 / 40%) calc(l) calc(a) calc(b) / calc(alpha))`, `oklab(0.25 0.2 0.5 / 0.4)`);
+    fuzzy_test_valid_color(`oklab(from oklab(0.7 0.25 -0.15) calc(l - 0.2) a b)`, `oklab(0.5 0.25 -0.15)`);
+    fuzzy_test_valid_color(`oklab(from oklab(0.7 0.25 -0.15) l calc(a / 2) calc(b / 3))`, `oklab(0.7 0.125 -0.075)`);
 
     // Testing with 'none'.
     fuzzy_test_valid_color(`oklab(from oklab(0.25 0.2 0.5) none none none)`, `oklab(none none none)`);
@@ -459,6 +463,9 @@
     // Testing with calc().
     fuzzy_test_valid_color(`lch(from lch(0.7 45 30) calc(l) calc(c) calc(h))`, `lch(0.7 45 30)`);
     fuzzy_test_valid_color(`lch(from lch(0.7 45 30 / 40%) calc(l) calc(c) calc(h) / calc(alpha))`, `lch(0.7 45 30 / 0.4)`);
+    fuzzy_test_valid_color(`lch(from lch(50 100 300) calc(l - 20) c h)`, `lch(30 100 300)`);
+    fuzzy_test_valid_color(`lch(from lch(50 100 300) l calc(c / 2) h)`, `lch(50 50 300)`);
+    fuzzy_test_valid_color(`lch(from lch(50 100 300) l c calc(h * 2.5))`, `lch(50 100 30)`);
 
     // Testing with 'none'.
     fuzzy_test_valid_color(`lch(from lch(0.7 45 30) none none none)`,                                   `lch(none none none)`);
@@ -534,6 +541,9 @@
     // Testing with calc().
     fuzzy_test_valid_color(`oklch(from oklch(0.7 0.45 30) calc(l) calc(c) calc(h))`, `oklch(0.7 0.45 30)`);
     fuzzy_test_valid_color(`oklch(from oklch(0.7 0.45 30 / 40%) calc(l) calc(c) calc(h) / calc(alpha))`, `oklch(0.7 0.45 30 / 0.4)`);
+    fuzzy_test_valid_color(`oklch(from oklch(0.7 0.2 300) calc(l - 0.2) c h)`, `oklch(0.5 0.2 300)`);
+    fuzzy_test_valid_color(`oklch(from oklch(0.7 0.2 300) l calc(c / 2) h)`, `oklch(0.7 0.1 300)`);
+    fuzzy_test_valid_color(`oklch(from oklch(0.7 0.2 300) l c calc(h * 2.5))`, `oklch(0.7 0.2 30)`);
 
     // Testing with 'none'.
     fuzzy_test_valid_color(`oklch(from oklch(0.7 0.45 30) none none none)`,                                   `oklch(none none none)`);

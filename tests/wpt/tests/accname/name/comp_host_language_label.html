@@ -16,7 +16,7 @@
 
 <h2>HTML input with value, alt, etc.</h2>
 <input type="button" value="button label" data-expectedlabel="button label" data-testname="html: input[type=button]" class="ex">
-<input type="image" src="#" alt="image input label" data-expectedlabel="image input label" data-testname="html: input[type=image]" class="ex">
+<input type="image" alt="image input label" data-expectedlabel="image input label" data-testname="html: input[type=image]" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
 <input type="reset" value="reset label" data-expectedlabel="reset label" data-testname="html: input[type=reset]" class="ex">
 <input type="submit" value="submit label" data-expectedlabel="submit label" data-testname="html: input[type=submit]" class="ex">
 
@@ -117,10 +117,10 @@
 <h2>HTML img/picture</h2>
 <!-- skipped: img:not([alt]) -->
 <!-- skipped: img[alt=""] -->
-<img src="#" alt="image label" data-expectedlabel="image label" data-testname="html: img[alt] (non-empty)" class="ex">
+<img alt="image label" data-expectedlabel="image label" data-testname="html: img[alt] (non-empty)" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
 <picture>
   <source srcset="#">
-  <img src="#" alt="picture label" data-expectedlabel="picture label" data-testname="html: picture > img[alt] (non-empty)" class="ex">
+  <img alt="picture label" data-expectedlabel="picture label" data-testname="html: picture > img[alt] (non-empty)" class="ex" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
 </picture>
 <!-- elsewhere: image map area alt -> ./fragile/area-alt.html -->
 
@@ -140,27 +140,8 @@
 </table>
 
 
-<h2>SVG title</h2>
-<svg viewbox="0 0 300 100">
-  <circle cx="26" cy="26" r="25" data-expectedlabel="circle label" data-testname="svg: circle > title" class="ex">
-    <title>circle label</title>
-  </circle>
+<!-- SVG: -> /svg-aam/name/ -->
 
-  <rect x="60" y="1" width="50" height="50" data-expectedlabel="rect label" data-testname="svg: rect > title" class="ex">
-    <title>rect label</title>
-  </rect>
-  <polygon points="100,100 150,25 150,75 200,0" fill="none" stroke="black" data-expectedlabel="polygon label" data-testname="svg: polygon > title" class="ex">
-    <title>polygon label</title>
-  </polygon>
-</svg><br>
-<svg viewbox="0 0 200 90">
-  <g fill="white" stroke="green" stroke-width="5" data-expectedlabel="group label" data-testname="svg: g > title" class="ex">
-    <title>group label</title>
-    <circle cx="40" cy="40" r="25" />
-    <circle cx="60" cy="60" r="25" />
-  </g>
-</svg><br>
-<!-- todo: more SVG tests -->
 
 <!-- todo: Ruby? -->
 <!-- todo: MathML? -->

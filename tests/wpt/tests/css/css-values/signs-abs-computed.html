@@ -47,6 +47,8 @@ test_math_used('abs(10px + 10%)', '20px', {type:'length'});
 test_math_used('calc(10px + abs(10%))', '20px', {type:'length'});
 test_math_used('abs(-10px)', '10px', {type:'length'});
 test_math_used('abs(-10%)', '10px', {type:'length'});
+// (20px + 1px) * (sign(20px - 10px - 10px) + 1)
+test_math_used('calc((1em + 1px) * (sign(1em - 10px - 10%) + 1))', '21px', {type:'length'});
 
 // Test sign for zero
 test_zero('calc(sign(-0))', {is_negative: true});
@@ -57,7 +59,16 @@ test_math_used('abs(infinity)', 'calc(infinity)', {type:'number'});
 test_math_used('abs(-infinity)', 'calc(infinity)', {type:'number'});
 test_math_used('abs(NaN)', 'calc(NaN)', {type:'number'});
 
-//Type checking sign
+// Test abs/sign with negate
+test_math_used('calc(20 - abs(-10))', '10', {type:'number'});
+test_math_used('calc(20 - abs(10))', '10', {type:'number'});
+test_math_used('calc(10 - abs(10 - abs(-30))', '-10', {type:'number'});
+test_math_used('calc(2 - sign(1))', '1', {type:'number'});
+test_math_used('calc(2 - sign(-1))', '3', {type:'number'});
+test_math_used('calc(2 - sign(1 - sign(-1)))', '1', {type:'number'});
+test_math_used('calc(10 - abs(20 - sign(2 - abs(-20))))', '-11', {type:'number'});
+
+// Type checking sign
 test_math_used('sign(1px)', '1', {type:'integer'});
 test_math_used('sign(1cm)', '1', {type:'integer'});
 test_math_used('sign(1mm)', '1', {type:'integer'});
@@ -143,7 +154,7 @@ test_zero('sign(-0grad)', {is_negative: true});
 test_zero('sign(-0rad)', {is_negative: true});
 test_zero('sign(-0turn)', {is_negative: true});
 
-//Type checking abs
+// Type checking abs
 test_math_used('abs(1px)', '1px');
 test_math_used('abs(1cm)', '1cm');
 test_math_used('abs(1mm)', '1mm');

@@ -136,7 +136,11 @@ where
             return;
         }
     }
-    debug_assert!(false, "Should've found {:?} as an ancestor of {:?}", ancestor, child);
+    debug_assert!(
+        false,
+        "Should've found {:?} as an ancestor of {:?}",
+        ancestor, child
+    );
 }
 
 /// Propagates the bits after invalidating a descendant child, if needed.
@@ -169,13 +173,20 @@ pub fn invalidated_sibling<E>(element: E, of: E)
 where
     E: TElement,
 {
-    debug_assert_eq!(element.as_node().parent_node(), of.as_node().parent_node(), "Should be siblings");
+    debug_assert_eq!(
+        element.as_node().parent_node(),
+        of.as_node().parent_node(),
+        "Should be siblings"
+    );
     if !invalidated_self(element) {
         return;
     }
     if element.traversal_parent() != of.traversal_parent() {
         let parent = element.as_node().parent_element_or_host();
-        debug_assert!(parent.is_some(), "How can we have siblings without parent nodes?");
+        debug_assert!(
+            parent.is_some(),
+            "How can we have siblings without parent nodes?"
+        );
         if let Some(e) = parent {
             propagate_dirty_bit_up_to(e, element)
         }
@@ -223,20 +234,6 @@ where
 
         if !snapshot.has_attrs() && state_changes.is_empty() {
             return false;
-        }
-
-        // If we the visited state changed, we force a restyle here. Matching
-        // doesn't depend on the actual visited state at all, so we can't look
-        // at matching results to decide what to do for this case.
-        //
-        // TODO(emilio): This piece of code should be removed when
-        // layout.css.always-repaint-on-unvisited is true, since we cannot get
-        // into this situation in that case.
-        if state_changes.contains(ElementState::VISITED_OR_UNVISITED) {
-            trace!(" > visitedness change, force subtree restyle");
-            // We can't just return here because there may also be attribute
-            // changes as well that imply additional hints for siblings.
-            self.data.hint.insert(RestyleHint::restyle_subtree());
         }
 
         let mut classes_removed = SmallVec::<[Atom; 8]>::new();

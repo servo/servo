@@ -5,7 +5,7 @@
 //! Specified types for SVG Path.
 
 use crate::parser::{Parse, ParserContext};
-use crate::values::animated::{Animate, Procedure, ToAnimatedZero, lists};
+use crate::values::animated::{lists, Animate, Procedure, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::CSSFloat;
 use cssparser::Parser;
@@ -14,6 +14,14 @@ use std::iter::{Cloned, Peekable};
 use std::slice;
 use style_traits::values::SequenceWriter;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+
+/// Whether to allow empty string in the parser.
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[allow(missing_docs)]
+pub enum AllowEmpty {
+    Yes,
+    No,
+}
 
 /// The SVG path data.
 ///
@@ -160,6 +168,41 @@ impl SVGPathData {
 
         Ok(SVGPathData(crate::ArcSlice::from_iter(result.into_iter())))
     }
+
+    /// Parse this SVG path string with the argument that indicates whether we should allow the
+    /// empty string.
+    // We cannot use cssparser::Parser to parse a SVG path string because the spec wants to make
+    // the SVG path string as compact as possible. (i.e. The whitespaces may be dropped.)
+    // e.g. "M100 200L100 200" is a valid SVG path string. If we use tokenizer, the first ident
+    // is "M100", instead of "M", and this is not correct. Therefore, we use a Peekable
+    // str::Char iterator to check each character.
+    pub fn parse<'i, 't>(
+        input: &mut Parser<'i, 't>,
+        allow_empty: AllowEmpty,
+    ) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
+        let path_string = input.expect_string()?.as_ref();
+
+        // Parse the svg path string as multiple sub-paths.
+        let mut path_parser = PathParser::new(path_string);
+        while skip_wsp(&mut path_parser.chars) {
+            if path_parser.parse_subpath().is_err() {
+                return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+            }
+        }
+
+        // The css-shapes-1 says a path data string that does conform but defines an empty path is
+        // invalid and causes the entire path() to be invalid, so we use the argement to decide
+        // whether we should allow the empty string.
+        // https://drafts.csswg.org/css-shapes-1/#typedef-basic-shape
+        if matches!(allow_empty, AllowEmpty::No) && path_parser.path.is_empty() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        Ok(SVGPathData(crate::ArcSlice::from_iter(
+            path_parser.path.into_iter(),
+        )))
+    }
 }
 
 impl ToCss for SVGPathData {
@@ -180,29 +223,14 @@ impl ToCss for SVGPathData {
 }
 
 impl Parse for SVGPathData {
-    // We cannot use cssparser::Parser to parse a SVG path string because the spec wants to make
-    // the SVG path string as compact as possible. (i.e. The whitespaces may be dropped.)
-    // e.g. "M100 200L100 200" is a valid SVG path string. If we use tokenizer, the first ident
-    // is "M100", instead of "M", and this is not correct. Therefore, we use a Peekable
-    // str::Char iterator to check each character.
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let location = input.current_source_location();
-        let path_string = input.expect_string()?.as_ref();
-
-        // Parse the svg path string as multiple sub-paths.
-        let mut path_parser = PathParser::new(path_string);
-        while skip_wsp(&mut path_parser.chars) {
-            if path_parser.parse_subpath().is_err() {
-                return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-            }
-        }
-
-        Ok(SVGPathData(crate::ArcSlice::from_iter(
-            path_parser.path.into_iter(),
-        )))
+        // Note that the EBNF allows the path data string in the d property to be empty, so we
+        // don't reject empty SVG path data.
+        // https://svgwg.org/svg2-draft/single-page.html#paths-PathDataBNF
+        SVGPathData::parse(input, AllowEmpty::Yes)
     }
 }
 
@@ -363,9 +391,9 @@ impl PathCommand {
             },
             HorizontalLineTo { mut x, absolute } => {
                 if !absolute.is_yes() {
-                    x += state.pos.0;
+                    x += state.pos.x;
                 }
-                state.pos.0 = x;
+                state.pos.x = x;
                 HorizontalLineTo {
                     x,
                     absolute: IsAbsolute::Yes,
@@ -373,9 +401,9 @@ impl PathCommand {
             },
             VerticalLineTo { mut y, absolute } => {
                 if !absolute.is_yes() {
-                    y += state.pos.1;
+                    y += state.pos.y;
                 }
-                state.pos.1 = y;
+                state.pos.y = y;
                 VerticalLineTo {
                     y,
                     absolute: IsAbsolute::Yes,
@@ -613,6 +641,7 @@ impl IsAbsolute {
 }
 
 /// The path coord type.
+#[allow(missing_docs)]
 #[derive(
     AddAssign,
     Animate,
@@ -632,13 +661,16 @@ impl IsAbsolute {
     ToShmem,
 )]
 #[repr(C)]
-pub struct CoordPair(CSSFloat, CSSFloat);
+pub struct CoordPair {
+    x: CSSFloat,
+    y: CSSFloat,
+}
 
 impl CoordPair {
     /// Create a CoordPair.
     #[inline]
     pub fn new(x: CSSFloat, y: CSSFloat) -> Self {
-        CoordPair(x, y)
+        CoordPair { x, y }
     }
 }
 
@@ -963,9 +995,7 @@ fn parse_number(iter: &mut Peekable<Cloned<slice::Iter<u8>>>) -> Result<CSSFloat
     }
 
     if value.is_finite() {
-        Ok(value
-            .min(::std::f32::MAX as f64)
-            .max(::std::f32::MIN as f64) as CSSFloat)
+        Ok(value.min(f32::MAX as f64).max(f32::MIN as f64) as CSSFloat)
     } else {
         Err(())
     }

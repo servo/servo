@@ -33,7 +33,7 @@ pub enum TexParameterValue {
 
 // Textures generated for WebXR are owned by the WebXR device, not by the WebGL thread
 // so the GL texture should not be deleted when the texture is garbage collected.
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 enum WebGLTextureOwner {
     WebGL,

@@ -28,9 +28,9 @@ use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheet_set::{DataValidity, DocumentStylesheetSet, SheetRebuildKind};
 use crate::stylesheet_set::{DocumentStylesheetFlusher, SheetCollectionFlusher};
 use crate::stylesheets::container_rule::ContainerCondition;
+use crate::stylesheets::import_rule::ImportLayer;
 use crate::stylesheets::keyframes_rule::KeyframesAnimation;
 use crate::stylesheets::layer_rule::{LayerName, LayerOrder};
-use crate::stylesheets::viewport_rule::{self, MaybeNew, ViewportRule};
 #[cfg(feature = "gecko")]
 use crate::stylesheets::{
     CounterStyleRule, FontFaceRule, FontFeatureValuesRule, FontPaletteValuesRule, PageRule,
@@ -49,18 +49,20 @@ use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::BloomFilter;
 use selectors::matching::VisitedHandlingMode;
 use selectors::matching::{matches_selector, MatchingContext, MatchingMode, NeedsSelectorFlags};
-use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorIter};
-use selectors::visitor::SelectorVisitor;
+use selectors::parser::{
+    AncestorHashes, Combinator, Component, Selector, SelectorIter, SelectorList,
+};
+use selectors::visitor::{SelectorListKind, SelectorVisitor};
 use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
 use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::sync::Mutex;
 use std::{mem, ops};
 use style_traits::dom::{DocumentState, ElementState};
-use style_traits::viewport::ViewportConstraints;
 
 /// The type of the stylesheets that the stylist contains.
 #[cfg(feature = "servo")]
@@ -499,9 +501,6 @@ pub struct Stylist {
     /// `set_device`.
     device: Device,
 
-    /// Viewport constraints based on the current device.
-    viewport_constraints: Option<ViewportConstraints>,
-
     /// The list of stylesheets.
     stylesheets: StylistStylesheetSet,
 
@@ -549,33 +548,39 @@ impl From<StyleRuleInclusion> for RuleInclusion {
     }
 }
 
+type AncestorSelectorList<'a> = Cow<'a, SelectorList<SelectorImpl>>;
+
 /// A struct containing state from ancestor rules like @layer / @import /
-/// @container.
-struct ContainingRuleState {
+/// @container / nesting.
+struct ContainingRuleState<'a> {
     layer_name: LayerName,
     layer_id: LayerId,
     container_condition_id: ContainerConditionId,
+    ancestor_selector_lists: SmallVec<[AncestorSelectorList<'a>; 2]>,
 }
 
-impl Default for ContainingRuleState {
+impl<'a> Default for ContainingRuleState<'a> {
     fn default() -> Self {
         Self {
             layer_name: LayerName::new_empty(),
             layer_id: LayerId::root(),
             container_condition_id: ContainerConditionId::none(),
+            ancestor_selector_lists: Default::default(),
         }
     }
 }
 
 struct SavedContainingRuleState {
+    ancestor_selector_lists_len: usize,
     layer_name_len: usize,
     layer_id: LayerId,
     container_condition_id: ContainerConditionId,
 }
 
-impl ContainingRuleState {
+impl<'a> ContainingRuleState<'a> {
     fn save(&self) -> SavedContainingRuleState {
         SavedContainingRuleState {
+            ancestor_selector_lists_len: self.ancestor_selector_lists.len(),
             layer_name_len: self.layer_name.0.len(),
             layer_id: self.layer_id,
             container_condition_id: self.container_condition_id,
@@ -584,6 +589,9 @@ impl ContainingRuleState {
 
     fn restore(&mut self, saved: &SavedContainingRuleState) {
         debug_assert!(self.layer_name.0.len() >= saved.layer_name_len);
+        debug_assert!(self.ancestor_selector_lists.len() >= saved.ancestor_selector_lists_len);
+        self.ancestor_selector_lists
+            .truncate(saved.ancestor_selector_lists_len);
         self.layer_name.0.truncate(saved.layer_name_len);
         self.layer_id = saved.layer_id;
         self.container_condition_id = saved.container_condition_id;
@@ -597,7 +605,6 @@ impl Stylist {
     #[inline]
     pub fn new(device: Device, quirks_mode: QuirksMode) -> Self {
         Self {
-            viewport_constraints: None,
             device,
             quirks_mode,
             stylesheets: StylistStylesheetSet::new(),
@@ -720,37 +727,6 @@ impl Stylist {
         }
 
         self.num_rebuilds += 1;
-
-        // Update viewport_constraints regardless of which origins'
-        // `CascadeData` we're updating.
-        self.viewport_constraints = None;
-        if viewport_rule::enabled() {
-            // TODO(emilio): This doesn't look so efficient.
-            //
-            // Presumably when we properly implement this we can at least have a
-            // bit on the stylesheet that says whether it contains viewport
-            // rules to skip it entirely?
-            //
-            // Processing it with the rest of rules seems tricky since it
-            // overrides the viewport size which may change the evaluation of
-            // media queries (or may not? how are viewport units in media
-            // queries defined?)
-            let cascaded_rule = ViewportRule {
-                declarations: viewport_rule::Cascade::from_stylesheets(
-                    self.stylesheets.iter(),
-                    guards,
-                    &self.device,
-                )
-                .finish(),
-            };
-
-            self.viewport_constraints =
-                ViewportConstraints::maybe_new(&self.device, &cascaded_rule, self.quirks_mode);
-
-            if let Some(ref constraints) = self.viewport_constraints {
-                self.device.account_for_viewport_rule(constraints);
-            }
-        }
 
         let flusher = self.stylesheets.flush(document_element, snapshots);
 
@@ -1144,8 +1120,7 @@ impl Stylist {
         );
 
         matching_context.pseudo_element_matching_fn = matching_fn;
-        matching_context.extra_data.originating_element_style =
-            Some(originating_element_style);
+        matching_context.extra_data.originating_element_style = Some(originating_element_style);
 
         self.push_applicable_declarations(
             element,
@@ -1178,8 +1153,7 @@ impl Stylist {
                 needs_selector_flags,
             );
             matching_context.pseudo_element_matching_fn = matching_fn;
-            matching_context.extra_data.originating_element_style =
-                Some(originating_element_style);
+            matching_context.extra_data.originating_element_style = Some(originating_element_style);
 
             self.push_applicable_declarations(
                 element,
@@ -1219,29 +1193,7 @@ impl Stylist {
     ///
     /// Also, the device that arrives here may need to take the viewport rules
     /// into account.
-    pub fn set_device(&mut self, mut device: Device, guards: &StylesheetGuards) -> OriginSet {
-        if viewport_rule::enabled() {
-            let cascaded_rule = {
-                let stylesheets = self.stylesheets.iter();
-
-                ViewportRule {
-                    declarations: viewport_rule::Cascade::from_stylesheets(
-                        stylesheets,
-                        guards,
-                        &device,
-                    )
-                    .finish(),
-                }
-            };
-
-            self.viewport_constraints =
-                ViewportConstraints::maybe_new(&device, &cascaded_rule, self.quirks_mode);
-
-            if let Some(ref constraints) = self.viewport_constraints {
-                device.account_for_viewport_rule(constraints);
-            }
-        }
-
+    pub fn set_device(&mut self, device: Device, guards: &StylesheetGuards) -> OriginSet {
         self.device = device;
         self.media_features_change_changed_style(guards, &self.device)
     }
@@ -1280,12 +1232,6 @@ impl Stylist {
         }
 
         origins
-    }
-
-    /// Returns the viewport constraints that apply to this document because of
-    /// a @viewport rule.
-    pub fn viewport_constraints(&self) -> Option<&ViewportConstraints> {
-        self.viewport_constraints.as_ref()
     }
 
     /// Returns the Quirks Mode of the document.
@@ -1700,11 +1646,11 @@ pub struct ExtraStyleData {
 
     /// A list of effective font-feature-values rules.
     #[cfg(feature = "gecko")]
-    pub font_feature_values: LayerOrderedVec<Arc<Locked<FontFeatureValuesRule>>>,
+    pub font_feature_values: LayerOrderedVec<Arc<FontFeatureValuesRule>>,
 
     /// A list of effective font-palette-values rules.
     #[cfg(feature = "gecko")]
-    pub font_palette_values: LayerOrderedVec<Arc<Locked<FontPaletteValuesRule>>>,
+    pub font_palette_values: LayerOrderedVec<Arc<FontPaletteValuesRule>>,
 
     /// A map of effective counter-style rules.
     #[cfg(feature = "gecko")]
@@ -1723,20 +1669,12 @@ impl ExtraStyleData {
     }
 
     /// Add the given @font-feature-values rule.
-    fn add_font_feature_values(
-        &mut self,
-        rule: &Arc<Locked<FontFeatureValuesRule>>,
-        layer: LayerId,
-    ) {
+    fn add_font_feature_values(&mut self, rule: &Arc<FontFeatureValuesRule>, layer: LayerId) {
         self.font_feature_values.push(rule.clone(), layer);
     }
 
     /// Add the given @font-palette-values rule.
-    fn add_font_palette_values(
-        &mut self,
-        rule: &Arc<Locked<FontPaletteValuesRule>>,
-        layer: LayerId,
-    ) {
+    fn add_font_palette_values(&mut self, rule: &Arc<FontPaletteValuesRule>, layer: LayerId) {
         self.font_palette_values.push(rule.clone(), layer);
     }
 
@@ -1891,15 +1829,41 @@ struct StylistSelectorVisitor<'a> {
     /// Whether we've past the rightmost compound selector, not counting
     /// pseudo-elements.
     passed_rightmost_selector: bool,
+
     /// Whether the selector needs revalidation for the style sharing cache.
     needs_revalidation: &'a mut bool,
+
+    /// Flags for which selector list-containing components the visitor is
+    /// inside of, if any
+    in_selector_list_of: SelectorListKind,
+
     /// The filter with all the id's getting referenced from rightmost
     /// selectors.
     mapped_ids: &'a mut PrecomputedHashSet<Atom>,
+
+    /// The filter with the IDs getting referenced from the selector list of
+    /// :nth-child(... of <selector list>) selectors.
+    nth_of_mapped_ids: &'a mut PrecomputedHashSet<Atom>,
+
     /// The filter with the local names of attributes there are selectors for.
     attribute_dependencies: &'a mut PrecomputedHashSet<LocalName>,
+
+    /// The filter with the classes getting referenced from the selector list of
+    /// :nth-child(... of <selector list>) selectors.
+    nth_of_class_dependencies: &'a mut PrecomputedHashSet<Atom>,
+
+    /// The filter with the local names of attributes there are selectors for
+    /// within the selector list of :nth-child(... of <selector list>)
+    /// selectors.
+    nth_of_attribute_dependencies: &'a mut PrecomputedHashSet<LocalName>,
+
     /// All the states selectors in the page reference.
     state_dependencies: &'a mut ElementState,
+
+    /// All the state selectors in the page reference within the selector list
+    /// of :nth-child(... of <selector list>) selectors.
+    nth_of_state_dependencies: &'a mut ElementState,
+
     /// All the document states selectors in the page reference.
     document_state_dependencies: &'a mut DocumentState,
 }
@@ -1944,15 +1908,25 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
         true
     }
 
-    fn visit_selector_list(&mut self, list: &[Selector<Self::Impl>]) -> bool {
+    fn visit_selector_list(
+        &mut self,
+        list_kind: SelectorListKind,
+        list: &[Selector<Self::Impl>],
+    ) -> bool {
+        let in_selector_list_of = self.in_selector_list_of | list_kind;
         for selector in list {
             let mut nested = StylistSelectorVisitor {
                 passed_rightmost_selector: false,
                 needs_revalidation: &mut *self.needs_revalidation,
-                attribute_dependencies: &mut *self.attribute_dependencies,
-                state_dependencies: &mut *self.state_dependencies,
-                document_state_dependencies: &mut *self.document_state_dependencies,
+                in_selector_list_of,
                 mapped_ids: &mut *self.mapped_ids,
+                nth_of_mapped_ids: &mut *self.nth_of_mapped_ids,
+                attribute_dependencies: &mut *self.attribute_dependencies,
+                nth_of_class_dependencies: &mut *self.nth_of_class_dependencies,
+                nth_of_attribute_dependencies: &mut *self.nth_of_attribute_dependencies,
+                state_dependencies: &mut *self.state_dependencies,
+                nth_of_state_dependencies: &mut *self.nth_of_state_dependencies,
+                document_state_dependencies: &mut *self.document_state_dependencies,
             };
             let _ret = selector.visit(&mut nested);
             debug_assert!(_ret, "We never return false");
@@ -1966,8 +1940,19 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
         name: &LocalName,
         lower_name: &LocalName,
     ) -> bool {
+        if self.in_selector_list_of.in_nth_of() {
+            self.nth_of_attribute_dependencies.insert(name.clone());
+            if name != lower_name {
+                self.nth_of_attribute_dependencies
+                    .insert(lower_name.clone());
+            }
+        }
+
         self.attribute_dependencies.insert(name.clone());
-        self.attribute_dependencies.insert(lower_name.clone());
+        if name != lower_name {
+            self.attribute_dependencies.insert(lower_name.clone());
+        }
+
         true
     }
 
@@ -1980,8 +1965,12 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
                 self.state_dependencies.insert(p.state_flag());
                 self.document_state_dependencies
                     .insert(p.document_state_flag());
+
+                if self.in_selector_list_of.in_nth_of() {
+                    self.nth_of_state_dependencies.insert(p.state_flag());
+                }
             },
-            Component::ID(ref id) if !self.passed_rightmost_selector => {
+            Component::ID(ref id) => {
                 // We want to stop storing mapped ids as soon as we've moved off
                 // the rightmost ComplexSelector that is not a pseudo-element.
                 //
@@ -1993,7 +1982,16 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
                 //
                 // NOTE(emilio): See the comment regarding on when this may
                 // break in visit_complex_selector.
-                self.mapped_ids.insert(id.0.clone());
+                if !self.passed_rightmost_selector {
+                    self.mapped_ids.insert(id.0.clone());
+                }
+
+                if self.in_selector_list_of.in_nth_of() {
+                    self.nth_of_mapped_ids.insert(id.0.clone());
+                }
+            },
+            Component::Class(ref class) if self.in_selector_list_of.in_nth_of() => {
+                self.nth_of_class_dependencies.insert(class.0.clone());
             },
             _ => {},
         }
@@ -2181,10 +2179,24 @@ pub struct CascadeData {
     /// rare.)
     attribute_dependencies: PrecomputedHashSet<LocalName>,
 
+    /// The classes that appear in the selector list of
+    /// :nth-child(... of <selector list>). Used to avoid restyling siblings of
+    /// an element when an irrelevant class changes.
+    nth_of_class_dependencies: PrecomputedHashSet<Atom>,
+
+    /// The attributes that appear in the selector list of
+    /// :nth-child(... of <selector list>). Used to avoid restyling siblings of
+    /// an element when an irrelevant attribute changes.
+    nth_of_attribute_dependencies: PrecomputedHashSet<LocalName>,
+
     /// The element state bits that are relied on by selectors.  Like
     /// `attribute_dependencies`, this is used to avoid taking element snapshots
     /// when an irrelevant element state bit changes.
     state_dependencies: ElementState,
+
+    /// The element state bits that are relied on by selectors that appear in
+    /// the selector list of :nth-child(... of <selector list>).
+    nth_of_state_dependencies: ElementState,
 
     /// The document state bits that are relied on by selectors.  This is used
     /// to tell whether we need to restyle the entire document when a document
@@ -2196,6 +2208,11 @@ pub struct CascadeData {
     /// safe: we disallow style sharing for elements whose id matches this
     /// filter, and hence might be in one of our selector maps.
     mapped_ids: PrecomputedHashSet<Atom>,
+
+    /// The IDs that appear in the selector list of
+    /// :nth-child(... of <selector list>). Used to avoid restyling siblings
+    /// of an element when an irrelevant ID changes.
+    nth_of_mapped_ids: PrecomputedHashSet<Atom>,
 
     /// Selectors that require explicit cache revalidation (i.e. which depend
     /// on state that is not otherwise visible to the cache, like attributes or
@@ -2242,6 +2259,10 @@ impl CascadeData {
             slotted_rules: None,
             part_rules: None,
             invalidation_map: InvalidationMap::new(),
+            nth_of_mapped_ids: PrecomputedHashSet::default(),
+            nth_of_class_dependencies: PrecomputedHashSet::default(),
+            nth_of_attribute_dependencies: PrecomputedHashSet::default(),
+            nth_of_state_dependencies: ElementState::empty(),
             attribute_dependencies: PrecomputedHashSet::default(),
             state_dependencies: ElementState::empty(),
             document_state_dependencies: DocumentState::empty(),
@@ -2322,11 +2343,39 @@ impl CascadeData {
         self.state_dependencies.intersects(state)
     }
 
+    /// Returns whether the given ElementState bit is relied upon by a selector
+    /// of some rule in the selector list of :nth-child(... of <selector list>).
+    #[inline]
+    pub fn has_nth_of_state_dependency(&self, state: ElementState) -> bool {
+        self.nth_of_state_dependencies.intersects(state)
+    }
+
     /// Returns whether the given attribute might appear in an attribute
     /// selector of some rule.
     #[inline]
     pub fn might_have_attribute_dependency(&self, local_name: &LocalName) -> bool {
         self.attribute_dependencies.contains(local_name)
+    }
+
+    /// Returns whether the given ID might appear in an ID selector in the
+    /// selector list of :nth-child(... of <selector list>).
+    #[inline]
+    pub fn might_have_nth_of_id_dependency(&self, id: &Atom) -> bool {
+        self.nth_of_mapped_ids.contains(id)
+    }
+
+    /// Returns whether the given class might appear in a class selector in the
+    /// selector list of :nth-child(... of <selector list>).
+    #[inline]
+    pub fn might_have_nth_of_class_dependency(&self, class: &Atom) -> bool {
+        self.nth_of_class_dependencies.contains(class)
+    }
+
+    /// Returns whether the given attribute might appear in an attribute
+    /// selector in the selector list of :nth-child(... of <selector list>).
+    #[inline]
+    pub fn might_have_nth_of_attribute_dependency(&self, local_name: &LocalName) -> bool {
+        self.nth_of_attribute_dependencies.contains(local_name)
     }
 
     /// Returns the normal rule map for a given pseudo-element.
@@ -2419,6 +2468,9 @@ impl CascadeData {
         }
         self.invalidation_map.shrink_if_needed();
         self.attribute_dependencies.shrink_if_needed();
+        self.nth_of_attribute_dependencies.shrink_if_needed();
+        self.nth_of_class_dependencies.shrink_if_needed();
+        self.nth_of_mapped_ids.shrink_if_needed();
         self.mapped_ids.shrink_if_needed();
         self.layer_id.shrink_if_needed();
         self.selectors_for_cache_revalidation.shrink_if_needed();
@@ -2506,8 +2558,7 @@ impl CascadeData {
                     debug!(" + {:?}", import_rule.stylesheet.media(guard));
                     results.push(import_rule.to_media_list_key());
                 },
-                CssRule::Media(ref lock) => {
-                    let media_rule = lock.read_with(guard);
+                CssRule::Media(ref media_rule) => {
                     debug!(" + {:?}", media_rule.media_queries.read_with(guard));
                     results.push(media_rule.to_media_list_key());
                 },
@@ -2516,15 +2567,15 @@ impl CascadeData {
         }
     }
 
-    fn add_rule_list<S>(
+    fn add_rule_list<'a, S>(
         &mut self,
-        rules: std::slice::Iter<'_, CssRule>,
-        device: &Device,
+        rules: std::slice::Iter<'a, CssRule>,
+        device: &'a Device,
         quirks_mode: QuirksMode,
         stylesheet: &S,
-        guard: &SharedRwLockReadGuard,
+        guard: &'a SharedRwLockReadGuard,
         rebuild_kind: SheetRebuildKind,
-        containing_rule_state: &mut ContainingRuleState,
+        containing_rule_state: &mut ContainingRuleState<'a>,
         mut precomputed_pseudo_element_decls: Option<&mut PrecomputedPseudoElementDeclarations>,
     ) -> Result<(), AllocErr>
     where
@@ -2534,18 +2585,31 @@ impl CascadeData {
             // Handle leaf rules first, as those are by far the most common
             // ones, and are always effective, so we can skip some checks.
             let mut handled = true;
+            let mut selectors_for_nested_rules = None;
             match *rule {
                 CssRule::Style(ref locked) => {
-                    let style_rule = locked.read_with(&guard);
+                    let style_rule = locked.read_with(guard);
                     self.num_declarations += style_rule.block.read_with(&guard).len();
+
+                    let has_nested_rules = style_rule.rules.is_some();
+                    let ancestor_selectors = containing_rule_state.ancestor_selector_lists.last();
+                    if has_nested_rules {
+                        selectors_for_nested_rules = Some(if ancestor_selectors.is_some() {
+                            Cow::Owned(SelectorList(Default::default()))
+                        } else {
+                            Cow::Borrowed(&style_rule.selectors)
+                        });
+                    }
+
                     for selector in &style_rule.selectors.0 {
                         self.num_selectors += 1;
 
                         let pseudo_element = selector.pseudo_element();
-
                         if let Some(pseudo) = pseudo_element {
                             if pseudo.is_precomputed() {
                                 debug_assert!(selector.is_universal());
+                                debug_assert!(ancestor_selectors.is_none());
+                                debug_assert!(!has_nested_rules);
                                 debug_assert_eq!(stylesheet.contents().origin, Origin::UserAgent);
                                 debug_assert_eq!(containing_rule_state.layer_id, LayerId::root());
 
@@ -2567,10 +2631,15 @@ impl CascadeData {
                             }
                         }
 
+                        let selector = match ancestor_selectors {
+                            Some(s) => selector.replace_parent_selector(&s.0),
+                            None => selector.clone(),
+                        };
+
                         let hashes = AncestorHashes::new(&selector, quirks_mode);
 
                         let rule = Rule::new(
-                            selector.clone(),
+                            selector,
                             hashes,
                             locked.clone(),
                             self.rules_source_order,
@@ -2578,18 +2647,30 @@ impl CascadeData {
                             containing_rule_state.container_condition_id,
                         );
 
+                        if let Some(Cow::Owned(ref mut nested_selectors)) =
+                            selectors_for_nested_rules
+                        {
+                            nested_selectors.0.push(rule.selector.clone())
+                        }
+
                         if rebuild_kind.should_rebuild_invalidation() {
-                            self.invalidation_map.note_selector(selector, quirks_mode)?;
+                            self.invalidation_map
+                                .note_selector(&rule.selector, quirks_mode)?;
                             let mut needs_revalidation = false;
                             let mut visitor = StylistSelectorVisitor {
                                 needs_revalidation: &mut needs_revalidation,
                                 passed_rightmost_selector: false,
-                                attribute_dependencies: &mut self.attribute_dependencies,
-                                state_dependencies: &mut self.state_dependencies,
-                                document_state_dependencies: &mut self.document_state_dependencies,
+                                in_selector_list_of: SelectorListKind::default(),
                                 mapped_ids: &mut self.mapped_ids,
+                                nth_of_mapped_ids: &mut self.nth_of_mapped_ids,
+                                attribute_dependencies: &mut self.attribute_dependencies,
+                                nth_of_class_dependencies: &mut self.nth_of_class_dependencies,
+                                nth_of_attribute_dependencies: &mut self
+                                    .nth_of_attribute_dependencies,
+                                state_dependencies: &mut self.state_dependencies,
+                                nth_of_state_dependencies: &mut self.nth_of_state_dependencies,
+                                document_state_dependencies: &mut self.document_state_dependencies,
                             };
-
                             rule.selector.visit(&mut visitor);
 
                             if needs_revalidation {
@@ -2606,7 +2687,7 @@ impl CascadeData {
                         // Part is special, since given it doesn't have any
                         // selectors inside, it's not worth using a whole
                         // SelectorMap for it.
-                        if let Some(parts) = selector.parts() {
+                        if let Some(parts) = rule.selector.parts() {
                             // ::part() has all semantics, so we just need to
                             // put any of them in the selector map.
                             //
@@ -2625,21 +2706,24 @@ impl CascadeData {
                             // NOTE(emilio): It's fine to look at :host and then at
                             // ::slotted(..), since :host::slotted(..) could never
                             // possibly match, as <slot> is not a valid shadow host.
-                            let rules =
-                                if selector.is_featureless_host_selector_or_pseudo_element() {
-                                    self.host_rules
-                                        .get_or_insert_with(|| Box::new(Default::default()))
-                                } else if selector.is_slotted() {
-                                    self.slotted_rules
-                                        .get_or_insert_with(|| Box::new(Default::default()))
-                                } else {
-                                    &mut self.normal_rules
-                                }
-                                .for_insertion(pseudo_element);
+                            let rules = if rule
+                                .selector
+                                .is_featureless_host_selector_or_pseudo_element()
+                            {
+                                self.host_rules
+                                    .get_or_insert_with(|| Box::new(Default::default()))
+                            } else if rule.selector.is_slotted() {
+                                self.slotted_rules
+                                    .get_or_insert_with(|| Box::new(Default::default()))
+                            } else {
+                                &mut self.normal_rules
+                            }
+                            .for_insertion(pseudo_element);
                             rules.insert(rule, quirks_mode)?;
                         }
                     }
                     self.rules_source_order += 1;
+                    handled = !has_nested_rules;
                 },
                 CssRule::Keyframes(ref keyframes_rule) => {
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
@@ -2695,7 +2779,6 @@ impl CascadeData {
                     self.extra_data
                         .add_page(guard, rule, containing_rule_state.layer_id)?;
                 },
-                CssRule::Viewport(..) => {},
                 _ => {
                     handled = false;
                 },
@@ -2791,34 +2874,42 @@ impl CascadeData {
                         self.effective_media_query_results
                             .saw_effective(import_rule);
                     }
-                    if let Some(ref layer) = import_rule.layer {
-                        maybe_register_layers(self, layer.name.as_ref(), containing_rule_state);
+                    match import_rule.layer {
+                        ImportLayer::Named(ref name) => {
+                            maybe_register_layers(self, Some(name), containing_rule_state)
+                        },
+                        ImportLayer::Anonymous => {
+                            maybe_register_layers(self, None, containing_rule_state)
+                        },
+                        ImportLayer::None => {},
                     }
                 },
-                CssRule::Media(ref lock) => {
+                CssRule::Media(ref media_rule) => {
                     if rebuild_kind.should_rebuild_invalidation() {
-                        let media_rule = lock.read_with(guard);
-                        self.effective_media_query_results.saw_effective(media_rule);
+                        self.effective_media_query_results
+                            .saw_effective(&**media_rule);
                     }
                 },
-                CssRule::LayerBlock(ref lock) => {
-                    let layer_rule = lock.read_with(guard);
-                    maybe_register_layers(self, layer_rule.name.as_ref(), containing_rule_state);
+                CssRule::LayerBlock(ref rule) => {
+                    maybe_register_layers(self, rule.name.as_ref(), containing_rule_state);
                 },
-                CssRule::LayerStatement(ref lock) => {
-                    let layer_rule = lock.read_with(guard);
-                    for name in &*layer_rule.names {
+                CssRule::LayerStatement(ref rule) => {
+                    for name in &*rule.names {
                         maybe_register_layers(self, Some(name), containing_rule_state);
                         // Register each layer individually.
                         containing_rule_state.restore(&saved_containing_rule_state);
                     }
                 },
-                CssRule::Container(ref lock) => {
-                    let container_rule = lock.read_with(guard);
+                CssRule::Style(..) => {
+                    if let Some(s) = selectors_for_nested_rules {
+                        containing_rule_state.ancestor_selector_lists.push(s);
+                    }
+                },
+                CssRule::Container(ref rule) => {
                     let id = ContainerConditionId(self.container_conditions.len() as u16);
                     self.container_conditions.push(ContainerConditionReference {
                         parent: containing_rule_state.container_condition_id,
-                        condition: Some(container_rule.condition.clone()),
+                        condition: Some(rule.condition.clone()),
                     });
                     containing_rule_state.container_condition_id = id;
                 },
@@ -2929,7 +3020,7 @@ impl CascadeData {
                 CssRule::Supports(..) |
                 CssRule::Keyframes(..) |
                 CssRule::Page(..) |
-                CssRule::Viewport(..) |
+                CssRule::Property(..) |
                 CssRule::Document(..) |
                 CssRule::LayerBlock(..) |
                 CssRule::LayerStatement(..) |
@@ -2961,12 +3052,12 @@ impl CascadeData {
                         iter.skip_children();
                     }
                 },
-                CssRule::Media(ref lock) => {
-                    let media_rule = lock.read_with(guard);
+                CssRule::Media(ref media_rule) => {
                     let mq = media_rule.media_queries.read_with(guard);
                     let effective_now = mq.evaluate(device, quirks_mode);
-                    let effective_then =
-                        self.effective_media_query_results.was_effective(media_rule);
+                    let effective_then = self
+                        .effective_media_query_results
+                        .was_effective(&**media_rule);
 
                     if effective_now != effective_then {
                         debug!(
@@ -3018,9 +3109,13 @@ impl CascadeData {
         self.clear_cascade_data();
         self.invalidation_map.clear();
         self.attribute_dependencies.clear();
+        self.nth_of_attribute_dependencies.clear();
+        self.nth_of_class_dependencies.clear();
         self.state_dependencies = ElementState::empty();
+        self.nth_of_state_dependencies = ElementState::empty();
         self.document_state_dependencies = DocumentState::empty();
         self.mapped_ids.clear();
+        self.nth_of_mapped_ids.clear();
         self.selectors_for_cache_revalidation.clear();
         self.effective_media_query_results.clear();
     }
@@ -3168,18 +3263,27 @@ size_of_test!(Rule, 40);
 
 /// A function to be able to test the revalidation stuff.
 pub fn needs_revalidation_for_testing(s: &Selector<SelectorImpl>) -> bool {
-    let mut attribute_dependencies = Default::default();
-    let mut mapped_ids = Default::default();
-    let mut state_dependencies = ElementState::empty();
-    let mut document_state_dependencies = DocumentState::empty();
     let mut needs_revalidation = false;
+    let mut mapped_ids = Default::default();
+    let mut nth_of_mapped_ids = Default::default();
+    let mut attribute_dependencies = Default::default();
+    let mut nth_of_class_dependencies = Default::default();
+    let mut nth_of_attribute_dependencies = Default::default();
+    let mut state_dependencies = ElementState::empty();
+    let mut nth_of_state_dependencies = ElementState::empty();
+    let mut document_state_dependencies = DocumentState::empty();
     let mut visitor = StylistSelectorVisitor {
         passed_rightmost_selector: false,
         needs_revalidation: &mut needs_revalidation,
-        attribute_dependencies: &mut attribute_dependencies,
-        state_dependencies: &mut state_dependencies,
-        document_state_dependencies: &mut document_state_dependencies,
+        in_selector_list_of: SelectorListKind::default(),
         mapped_ids: &mut mapped_ids,
+        nth_of_mapped_ids: &mut nth_of_mapped_ids,
+        attribute_dependencies: &mut attribute_dependencies,
+        nth_of_class_dependencies: &mut nth_of_class_dependencies,
+        nth_of_attribute_dependencies: &mut nth_of_attribute_dependencies,
+        state_dependencies: &mut state_dependencies,
+        nth_of_state_dependencies: &mut nth_of_state_dependencies,
+        document_state_dependencies: &mut document_state_dependencies,
     };
     s.visit(&mut visitor);
     needs_revalidation

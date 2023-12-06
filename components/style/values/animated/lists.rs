@@ -8,7 +8,10 @@
 
 /// https://drafts.csswg.org/web-animations-1/#by-computed-value
 pub mod by_computed_value {
-    use crate::values::{animated::{Animate, Procedure}, distance::{ComputeSquaredDistance, SquaredDistance}};
+    use crate::values::{
+        animated::{Animate, Procedure},
+        distance::{ComputeSquaredDistance, SquaredDistance},
+    };
     use std::iter::FromIterator;
 
     #[allow(missing_docs)]
@@ -18,11 +21,12 @@ pub mod by_computed_value {
         C: FromIterator<T>,
     {
         if left.len() != right.len() {
-            return Err(())
+            return Err(());
         }
-        left.iter().zip(right.iter()).map(|(left, right)| {
-            left.animate(right, procedure)
-        }).collect()
+        left.iter()
+            .zip(right.iter())
+            .map(|(left, right)| left.animate(right, procedure))
+            .collect()
     }
 
     #[allow(missing_docs)]
@@ -31,11 +35,12 @@ pub mod by_computed_value {
         T: ComputeSquaredDistance,
     {
         if left.len() != right.len() {
-            return Err(())
+            return Err(());
         }
-        left.iter().zip(right.iter()).map(|(left, right)| {
-            left.compute_squared_distance(right)
-        }).sum()
+        left.iter()
+            .zip(right.iter())
+            .map(|(left, right)| left.compute_squared_distance(right))
+            .sum()
     }
 }
 
@@ -44,8 +49,11 @@ pub mod by_computed_value {
 ///
 /// https://drafts.csswg.org/web-animations-1/#animating-shadow-lists
 pub mod with_zero {
-    use crate::values::{animated::{Animate, Procedure}, distance::{ComputeSquaredDistance, SquaredDistance}};
     use crate::values::animated::ToAnimatedZero;
+    use crate::values::{
+        animated::{Animate, Procedure},
+        distance::{ComputeSquaredDistance, SquaredDistance},
+    };
     use itertools::{EitherOrBoth, Itertools};
     use std::iter::FromIterator;
 
@@ -56,23 +64,16 @@ pub mod with_zero {
         C: FromIterator<T>,
     {
         if procedure == Procedure::Add {
-            return Ok(
-                left.iter().chain(right.iter()).cloned().collect()
-            );
+            return Ok(left.iter().chain(right.iter()).cloned().collect());
         }
-        left.iter().zip_longest(right.iter()).map(|it| {
-            match it {
-                EitherOrBoth::Both(left, right) => {
-                    left.animate(right, procedure)
-                },
-                EitherOrBoth::Left(left) => {
-                    left.animate(&left.to_animated_zero()?, procedure)
-                },
-                EitherOrBoth::Right(right) => {
-                    right.to_animated_zero()?.animate(right, procedure)
-                }
-            }
-        }).collect()
+        left.iter()
+            .zip_longest(right.iter())
+            .map(|it| match it {
+                EitherOrBoth::Both(left, right) => left.animate(right, procedure),
+                EitherOrBoth::Left(left) => left.animate(&left.to_animated_zero()?, procedure),
+                EitherOrBoth::Right(right) => right.to_animated_zero()?.animate(right, procedure),
+            })
+            .collect()
     }
 
     #[allow(missing_docs)]
@@ -80,22 +81,24 @@ pub mod with_zero {
     where
         T: ToAnimatedZero + ComputeSquaredDistance,
     {
-        left.iter().zip_longest(right.iter()).map(|it| {
-            match it {
-                EitherOrBoth::Both(left, right) => {
-                    left.compute_squared_distance(right)
-                },
+        left.iter()
+            .zip_longest(right.iter())
+            .map(|it| match it {
+                EitherOrBoth::Both(left, right) => left.compute_squared_distance(right),
                 EitherOrBoth::Left(item) | EitherOrBoth::Right(item) => {
                     item.to_animated_zero()?.compute_squared_distance(item)
                 },
-            }
-        }).sum()
+            })
+            .sum()
     }
 }
 
 /// https://drafts.csswg.org/web-animations-1/#repeatable-list
-pub mod repeatable_list  {
-    use crate::values::{animated::{Animate, Procedure}, distance::{ComputeSquaredDistance, SquaredDistance}};
+pub mod repeatable_list {
+    use crate::values::{
+        animated::{Animate, Procedure},
+        distance::{ComputeSquaredDistance, SquaredDistance},
+    };
     use std::iter::FromIterator;
 
     #[allow(missing_docs)]
@@ -110,9 +113,12 @@ pub mod repeatable_list  {
             return Err(());
         }
         let len = lcm(left.len(), right.len());
-        left.iter().cycle().zip(right.iter().cycle()).take(len).map(|(left, right)| {
-            left.animate(right, procedure)
-        }).collect()
+        left.iter()
+            .cycle()
+            .zip(right.iter().cycle())
+            .take(len)
+            .map(|(left, right)| left.animate(right, procedure))
+            .collect()
     }
 
     #[allow(missing_docs)]
@@ -125,8 +131,11 @@ pub mod repeatable_list  {
             return Err(());
         }
         let len = lcm(left.len(), right.len());
-        left.iter().cycle().zip(right.iter().cycle()).take(len).map(|(left, right)| {
-            left.compute_squared_distance(right)
-        }).sum()
+        left.iter()
+            .cycle()
+            .zip(right.iter().cycle())
+            .take(len)
+            .map(|(left, right)| left.compute_squared_distance(right))
+            .sum()
     }
 }

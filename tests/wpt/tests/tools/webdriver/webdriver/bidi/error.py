@@ -63,6 +63,10 @@ class NoSuchHandleException(BidiException):
     error_code = "no such handle"
 
 
+class NoSuchHistoryEntryException(BidiException):
+    error_code = "no such history entry"
+
+
 class NoSuchNodeException(BidiException):
     error_code = "no such node"
 

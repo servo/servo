@@ -13,6 +13,7 @@ use style_traits::{CssWriter, ToCss};
 
 /// The 3 components that make up a color.  (Does not include the alpha component)
 #[derive(Copy, Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[repr(C)]
 pub struct ColorComponents(pub f32, pub f32, pub f32);
 
 impl ColorComponents {
@@ -25,11 +26,6 @@ impl ColorComponents {
 /// A color space representation in the CSS specification.
 ///
 /// https://drafts.csswg.org/css-color-4/#typedef-color-space
-///
-/// NOTE: Right now HSL and HWB colors can not be constructed by the user. They
-///       are converted to RGB in the parser. The parser should return the
-///       HSL/HWB values as is to avoid unnescessary conversions to/from RGB.
-///       See: https://bugzilla.mozilla.org/show_bug.cgi?id=1817035
 #[derive(
     Clone,
     Copy,
@@ -46,6 +42,11 @@ impl ColorComponents {
 )]
 #[repr(u8)]
 pub enum ColorSpace {
+    /// A color specified in the sRGB color space with either the rgb/rgba(..)
+    /// functions or the newer color(srgb ..) function. If the color(..)
+    /// function is used, the AS_COLOR_FUNCTION flag will be set. Examples:
+    /// "color(srgb 0.691 0.139 0.259)", "rgb(176, 35, 66)"
+    Srgb = 0,
     /// A color specified in the Hsl notation in the sRGB color space, e.g.
     /// "hsl(289.18 93.136% 65.531%)"
     /// https://drafts.csswg.org/css-color-4/#the-hsl-notation
@@ -70,9 +71,6 @@ pub enum ColorSpace {
     /// "oklch(40.101% 0.12332 21.555)".
     /// https://w3c.github.io/csswg-drafts/css-color-4/#lch-colors
     Oklch,
-    /// A color specified with the color(..) function and the "srgb" color
-    /// space, e.g. "color(srgb 0.691 0.139 0.259)".
-    Srgb,
     /// A color specified with the color(..) function and the "srgb-linear"
     /// color space, e.g. "color(srgb-linear 0.435 0.017 0.055)".
     SrgbLinear,
@@ -132,16 +130,24 @@ bitflags! {
     /// Flags used when serializing colors.
     #[derive(Default, MallocSizeOf, ToShmem)]
     #[repr(C)]
-    pub struct SerializationFlags : u8 {
+    pub struct ColorFlags : u8 {
         /// If set, serializes sRGB colors into `color(srgb ...)` instead of
         /// `rgba(...)`.
-        const AS_COLOR_FUNCTION = 0x01;
+        const AS_COLOR_FUNCTION = 1 << 0;
+        /// Whether the 1st color component is `none`.
+        const C1_IS_NONE = 1 << 1;
+        /// Whether the 2nd color component is `none`.
+        const C2_IS_NONE = 1 << 2;
+        /// Whether the 3rd color component is `none`.
+        const C3_IS_NONE = 1 << 3;
+        /// Whether the alpha component is `none`.
+        const ALPHA_IS_NONE = 1 << 4;
     }
 }
 
 /// An absolutely specified color, using either rgb(), rgba(), lab(), lch(),
 /// oklab(), oklch() or color().
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Copy, Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 #[repr(C)]
 pub struct AbsoluteColor {
     /// The 3 components that make up colors in any color space.
@@ -151,7 +157,7 @@ pub struct AbsoluteColor {
     /// The current color space that the components represent.
     pub color_space: ColorSpace,
     /// Extra flags used durring serialization of this color.
-    pub flags: SerializationFlags,
+    pub flags: ColorFlags,
 }
 
 /// Given an [`AbsoluteColor`], return the 4 float components as the type given,
@@ -179,20 +185,67 @@ macro_rules! color_components_as {
 }
 
 impl AbsoluteColor {
-    /// Create a new [AbsoluteColor] with the given [ColorSpace] and components.
+    /// Create a new [`AbsoluteColor`] with the given [`ColorSpace`] and
+    /// components.
     pub fn new(color_space: ColorSpace, components: ColorComponents, alpha: f32) -> Self {
+        let mut components = components;
+
+        // Lightness must not be less than 0.
+        if matches!(
+            color_space,
+            ColorSpace::Lab | ColorSpace::Lch | ColorSpace::Oklab | ColorSpace::Oklch
+        ) {
+            components.0 = components.0.max(0.0);
+        }
+
+        // Chroma must not be less than 0.
+        if matches!(color_space, ColorSpace::Lch | ColorSpace::Oklch) {
+            components.1 = components.1.max(0.0);
+        }
+
         Self {
             components,
-            alpha,
+            alpha: alpha.clamp(0.0, 1.0),
             color_space,
-            flags: SerializationFlags::empty(),
+            flags: ColorFlags::empty(),
         }
+    }
+
+    /// Create a new [`AbsoluteColor`] from rgba values in the sRGB color space.
+    pub fn srgb(red: f32, green: f32, blue: f32, alpha: f32) -> Self {
+        Self::new(ColorSpace::Srgb, ColorComponents(red, green, blue), alpha)
+    }
+
+    /// Create a new transparent color.
+    pub fn transparent() -> Self {
+        Self::srgb(0.0, 0.0, 0.0, 0.0)
+    }
+
+    /// Create a new opaque black color.
+    pub fn black() -> Self {
+        Self::srgb(0.0, 0.0, 0.0, 1.0)
+    }
+
+    /// Create a new opaque white color.
+    pub fn white() -> Self {
+        Self::srgb(1.0, 1.0, 1.0, 1.0)
     }
 
     /// Return all the components of the color in an array.  (Includes alpha)
     #[inline]
     pub fn raw_components(&self) -> &[f32; 4] {
         unsafe { color_components_as!(self, [f32; 4]) }
+    }
+
+    /// Returns true if this color is in one of the legacy color formats.
+    #[inline]
+    pub fn is_legacy_color(&self) -> bool {
+        // rgb(), rgba(), hsl(), hsla(), hwb(), hwba()
+        match self.color_space {
+            ColorSpace::Srgb => !self.flags.contains(ColorFlags::AS_COLOR_FUNCTION),
+            ColorSpace::Hsl | ColorSpace::Hwb => true,
+            _ => false,
+        }
     }
 
     /// Return the alpha component.
@@ -209,20 +262,69 @@ impl AbsoluteColor {
             return self.clone();
         }
 
+        // We have simplified conversions that do not need to convert to XYZ
+        // first.  This improves performance, because it skips 2 matrix
+        // multiplications and reduces float rounding errors.
+        match (self.color_space, color_space) {
+            (Srgb, Hsl) => {
+                return Self::new(
+                    color_space,
+                    convert::rgb_to_hsl(&self.components),
+                    self.alpha,
+                );
+            },
+
+            (Srgb, Hwb) => {
+                return Self::new(
+                    color_space,
+                    convert::rgb_to_hwb(&self.components),
+                    self.alpha,
+                );
+            },
+
+            (Hsl, Srgb) => {
+                return Self::new(
+                    color_space,
+                    convert::hsl_to_rgb(&self.components),
+                    self.alpha,
+                );
+            },
+
+            (Hwb, Srgb) => {
+                return Self::new(
+                    color_space,
+                    convert::hwb_to_rgb(&self.components),
+                    self.alpha,
+                );
+            },
+
+            (Lab, Lch) | (Oklab, Oklch) => {
+                return Self::new(
+                    color_space,
+                    convert::lab_to_lch(&self.components),
+                    self.alpha,
+                );
+            },
+
+            (Lch, Lab) | (Oklch, Oklab) => {
+                return Self::new(
+                    color_space,
+                    convert::lch_to_lab(&self.components),
+                    self.alpha,
+                );
+            },
+
+            _ => {},
+        }
+
         let (xyz, white_point) = match self.color_space {
-            Hsl => {
-                let rgb = convert::hsl_to_rgb(&self.components);
-                convert::to_xyz::<convert::Srgb>(&rgb)
-            },
-            Hwb => {
-                let rgb = convert::hwb_to_rgb(&self.components);
-                convert::to_xyz::<convert::Srgb>(&rgb)
-            },
             Lab => convert::to_xyz::<convert::Lab>(&self.components),
             Lch => convert::to_xyz::<convert::Lch>(&self.components),
             Oklab => convert::to_xyz::<convert::Oklab>(&self.components),
             Oklch => convert::to_xyz::<convert::Oklch>(&self.components),
             Srgb => convert::to_xyz::<convert::Srgb>(&self.components),
+            Hsl => convert::to_xyz::<convert::Hsl>(&self.components),
+            Hwb => convert::to_xyz::<convert::Hwb>(&self.components),
             SrgbLinear => convert::to_xyz::<convert::SrgbLinear>(&self.components),
             DisplayP3 => convert::to_xyz::<convert::DisplayP3>(&self.components),
             A98Rgb => convert::to_xyz::<convert::A98Rgb>(&self.components),
@@ -233,19 +335,13 @@ impl AbsoluteColor {
         };
 
         let result = match color_space {
-            Hsl => {
-                let rgb = convert::from_xyz::<convert::Srgb>(&xyz, white_point);
-                convert::rgb_to_hsl(&rgb)
-            },
-            Hwb => {
-                let rgb = convert::from_xyz::<convert::Srgb>(&xyz, white_point);
-                convert::rgb_to_hwb(&rgb)
-            },
             Lab => convert::from_xyz::<convert::Lab>(&xyz, white_point),
             Lch => convert::from_xyz::<convert::Lch>(&xyz, white_point),
             Oklab => convert::from_xyz::<convert::Oklab>(&xyz, white_point),
             Oklch => convert::from_xyz::<convert::Oklch>(&xyz, white_point),
             Srgb => convert::from_xyz::<convert::Srgb>(&xyz, white_point),
+            Hsl => convert::from_xyz::<convert::Hsl>(&xyz, white_point),
+            Hwb => convert::from_xyz::<convert::Hwb>(&xyz, white_point),
             SrgbLinear => convert::from_xyz::<convert::SrgbLinear>(&xyz, white_point),
             DisplayP3 => convert::from_xyz::<convert::DisplayP3>(&xyz, white_point),
             A98Rgb => convert::from_xyz::<convert::A98Rgb>(&xyz, white_point),
@@ -279,6 +375,21 @@ impl ToCss for AbsoluteColor {
     where
         W: Write,
     {
+        macro_rules! value_or_none {
+            ($v:expr,$flag:tt) => {{
+                if self.flags.contains(ColorFlags::$flag) {
+                    None
+                } else {
+                    Some($v)
+                }
+            }};
+        }
+
+        let maybe_c1 = value_or_none!(self.components.0, C1_IS_NONE);
+        let maybe_c2 = value_or_none!(self.components.1, C2_IS_NONE);
+        let maybe_c3 = value_or_none!(self.components.2, C3_IS_NONE);
+        let maybe_alpha = value_or_none!(self.alpha, ALPHA_IS_NONE);
+
         match self.color_space {
             ColorSpace::Hsl => {
                 let rgb = convert::hsl_to_rgb(&self.components);
@@ -291,38 +402,36 @@ impl ToCss for AbsoluteColor {
                 Self::new(ColorSpace::Srgb, rgb, self.alpha).to_css(dest)
             },
 
-            ColorSpace::Srgb if !self.flags.contains(SerializationFlags::AS_COLOR_FUNCTION) => {
+            ColorSpace::Srgb if !self.flags.contains(ColorFlags::AS_COLOR_FUNCTION) => {
+                // Althought we are passing Option<_> in here, the to_css fn
+                // knows that the "none" keyword is not supported in the
+                // rgb/rgba legacy syntax.
                 cssparser::ToCss::to_css(
-                    &cssparser::RGBA::from_floats(
-                        self.components.0,
-                        self.components.1,
-                        self.components.2,
-                        self.alpha(),
-                    ),
+                    &cssparser::RGBA::from_floats(maybe_c1, maybe_c2, maybe_c3, maybe_alpha),
                     dest,
                 )
             },
             ColorSpace::Lab => cssparser::ToCss::to_css(
-                unsafe { color_components_as!(self, cssparser::Lab) },
+                &cssparser::Lab::new(maybe_c1, maybe_c2, maybe_c3, maybe_alpha),
                 dest,
             ),
             ColorSpace::Lch => cssparser::ToCss::to_css(
-                unsafe { color_components_as!(self, cssparser::Lch) },
+                &cssparser::Lch::new(maybe_c1, maybe_c2, maybe_c3, maybe_alpha),
                 dest,
             ),
             ColorSpace::Oklab => cssparser::ToCss::to_css(
-                unsafe { color_components_as!(self, cssparser::Oklab) },
+                &cssparser::Oklab::new(maybe_c1, maybe_c2, maybe_c3, maybe_alpha),
                 dest,
             ),
             ColorSpace::Oklch => cssparser::ToCss::to_css(
-                unsafe { color_components_as!(self, cssparser::Oklch) },
+                &cssparser::Oklch::new(maybe_c1, maybe_c2, maybe_c3, maybe_alpha),
                 dest,
             ),
             _ => {
                 let color_space = match self.color_space {
                     ColorSpace::Srgb => {
                         debug_assert!(
-                            self.flags.contains(SerializationFlags::AS_COLOR_FUNCTION),
+                            self.flags.contains(ColorFlags::AS_COLOR_FUNCTION),
                              "The case without this flag should be handled in the wrapping match case!!"
                           );
 
@@ -343,10 +452,10 @@ impl ToCss for AbsoluteColor {
 
                 let color_function = cssparser::ColorFunction {
                     color_space,
-                    c1: self.components.0,
-                    c2: self.components.1,
-                    c3: self.components.2,
-                    alpha: self.alpha,
+                    c1: maybe_c1,
+                    c2: maybe_c2,
+                    c3: maybe_c3,
+                    alpha: maybe_alpha,
                 };
                 let color = cssparser::Color::ColorFunction(color_function);
                 cssparser::ToCss::to_css(&color, dest)

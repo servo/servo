@@ -2,7 +2,7 @@ import pytest
 
 from webdriver import NoSuchElementException, NoSuchWindowException
 
-from tests.support.asserts import assert_error, assert_success, errors
+from tests.support.asserts import assert_error, assert_success
 from tests.support.sync import Poll
 
 

@@ -61,7 +61,7 @@ impl ServiceWorkerRegistration {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         global: &GlobalScope,
         scope: ServoUrl,

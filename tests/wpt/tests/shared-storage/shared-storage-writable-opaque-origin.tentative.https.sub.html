@@ -1,0 +1,41 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script>
+    'use strict';
+    const rawSetHeader = 'set;key=hello;value=world';
+    const setHeader = encodeURIComponent(rawSetHeader);
+
+    promise_test(async t => {
+      const fetchUrl =
+        `/shared-storage/resources/shared-storage-write.py?write=${setHeader}`;
+      const fetchCode =
+        `try {
+           new Request(fetchUrl,{sharedStorageWritable: true});
+         } catch (e) {
+           assert_equals(e.name, 'TypeError');
+           assert_equals(e.message, "Failed to construct 'Request': "
+                      + "sharedStorageWritable: sharedStorage operations "
+                      + "are not available for opaque origins.");
+           return;
+         }
+         assert_unreached("did not catch an error");`
+
+      const dataURL = 'data:text/javascript;base64,'
+        + btoa(unescape(encodeURIComponent(fetchCode)));
+      let frame = document.createElement('iframe');
+      frame.src = dataURL;
+      const promise = new Promise((resolve, reject) => {
+       frame.addEventListener('load', () => {
+          resolve();
+        });
+        frame.addEventListener('error', () => {
+          reject(new Error('Navigation failed'));
+        });
+      });
+      document.body.appendChild(frame);
+      await promise;
+    }, 'shared storage fetch request disallowed for opaque origin');
+  </script>
+</body>

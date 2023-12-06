@@ -9,6 +9,7 @@
 
 <script>
 promise_test(() => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise(async (resolve, reject) => {
     let transition = document.startViewTransition();
     transition.ready.then(() => {

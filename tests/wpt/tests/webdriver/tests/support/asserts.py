@@ -223,7 +223,7 @@ def assert_png(screenshot):
 
     Returns the bytestring for the PNG, if the assert passes
     """
-    if type(screenshot) == str:
+    if type(screenshot) is str:
         image = decodebytes(screenshot.encode())
     else:
         image = screenshot

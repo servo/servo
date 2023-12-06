@@ -58,6 +58,8 @@ body {
 <div id=target class="parent named"><div class=child></div></div>
 
 <script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
 function runTest() {
   let transition = document.startViewTransition();
   transition.ready.then(() => {

@@ -45,7 +45,7 @@ impl ServiceWorkerContainer {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
         let client = Client::new(&global.as_window());
         let container = ServiceWorkerContainer::new_inherited(&*client);

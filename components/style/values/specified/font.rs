@@ -19,7 +19,7 @@ use crate::values::generics::NonNegative;
 use crate::values::specified::length::{FontBaseSize, PX_PER_PT};
 use crate::values::specified::{AllowQuirks, Angle, Integer, LengthPercentage};
 use crate::values::specified::{NoCalcLength, NonNegativeNumber, NonNegativePercentage, Number};
-use crate::values::{CustomIdent, SelectorParseErrorKind, serialize_atom_identifier};
+use crate::values::{serialize_atom_identifier, CustomIdent, SelectorParseErrorKind};
 use crate::Atom;
 use cssparser::{Parser, Token};
 #[cfg(feature = "gecko")]
@@ -775,13 +775,13 @@ impl FontSizeKeyword {
     #[cfg(feature = "gecko")]
     #[inline]
     fn to_length(&self, cx: &Context) -> NonNegativeLength {
-        let gecko_font = cx.style().get_font().gecko();
-        let family = &gecko_font.mFont.family.families;
+        let font = cx.style().get_font();
+        let family = &font.mFont.family.families;
         let generic = family
             .single_generic()
             .unwrap_or(computed::GenericFontFamily::None);
         let base_size = unsafe {
-            Atom::with(gecko_font.mLanguage.mRawPtr, |language| {
+            Atom::with(font.mLanguage.mRawPtr, |language| {
                 cx.device().base_size_for_generic(language, generic)
             })
         };
@@ -1034,7 +1034,15 @@ bitflags! {
 }
 
 #[derive(
-    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToComputedValue, ToResolvedValue, ToShmem,
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(C, u8)]
 /// Set of variant alternates
@@ -1817,9 +1825,15 @@ pub struct FontPalette(Atom);
 
 #[allow(missing_docs)]
 impl FontPalette {
-    pub fn normal() -> Self { Self(atom!("normal")) }
-    pub fn light() -> Self { Self(atom!("light")) }
-    pub fn dark() -> Self { Self(atom!("dark")) }
+    pub fn normal() -> Self {
+        Self(atom!("normal"))
+    }
+    pub fn light() -> Self {
+        Self(atom!("light"))
+    }
+    pub fn dark() -> Self {
+        Self(atom!("dark"))
+    }
 }
 
 impl Parse for FontPalette {
@@ -1936,6 +1950,7 @@ impl MetricsOverride {
     Copy,
     Debug,
     MallocSizeOf,
+    Parse,
     PartialEq,
     SpecifiedValueInfo,
     ToComputedValue,
@@ -1943,19 +1958,22 @@ impl MetricsOverride {
     ToResolvedValue,
     ToShmem,
 )]
-/// text-zoom. Enable if true, disable if false
-pub struct XTextZoom(#[css(skip)] pub bool);
+#[repr(u8)]
+/// How to do font-size scaling.
+pub enum XTextScale {
+    /// Both min-font-size and text zoom are enabled.
+    All,
+    /// Text-only zoom is enabled, but min-font-size is not honored.
+    ZoomOnly,
+    /// Neither of them is enabled.
+    None,
+}
 
-impl Parse for XTextZoom {
-    fn parse<'i, 't>(
-        _: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<XTextZoom, ParseError<'i>> {
-        debug_assert!(
-            false,
-            "Should be set directly by presentation attributes only."
-        );
-        Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+impl XTextScale {
+    /// Returns whether text zoom is enabled.
+    #[inline]
+    pub fn text_zoom_enabled(self) -> bool {
+        self != Self::None
     }
 }
 

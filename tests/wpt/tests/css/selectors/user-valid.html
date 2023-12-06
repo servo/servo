@@ -47,6 +47,16 @@ promise_test(async () => {
   assert_false(input.matches(":user-valid"), "No change happened, still does not match :user-valid");
   assert_false(input.matches(":user-invalid"), "No change happened, still does not match :user-invalid");
 
+  input.value = "test@example.com";
+
+  assert_false(input.matches(":user-valid"), "Programatically set value, :user-valid should not match");
+  assert_false(input.matches(":user-invalid"), "Programatically set value, :user-invalid should not match");
+
+  input.value = "";
+
+  assert_false(input.matches(":user-valid"), "Programatically cleared value, :user-valid should not match");
+  assert_false(input.matches(":user-invalid"), "Programatically cleared value, :user-invalid should not match");
+
   await test_driver.click(input);
   await test_driver.send_keys(input, "test@example.com");
   input.blur();

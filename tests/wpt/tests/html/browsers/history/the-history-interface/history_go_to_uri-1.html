@@ -8,7 +8,6 @@
       queue_next();
     } else {
       opener.pages.push(id);
-      opener.start_test_wait();
       if (!opener.gone) {
         // This is meant to test that passing a string is not supported.
         // According to the spec, the value passed to 'go' must be an int.

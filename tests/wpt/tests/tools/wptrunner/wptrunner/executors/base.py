@@ -760,7 +760,10 @@ class CallbackHandler:
                 except AttributeError as e:
                     # If we fail to get an attribute from the protocol presumably that's a
                     # ProtocolPart we don't implement
-                    if getattr(e, "obj") == self.protocol:
+                    # AttributeError got an obj property in Python 3.10, for older versions we
+                    # fall back to looking at the error message.
+                    if ((hasattr(e, "obj") and getattr(e, "obj") == self.protocol) or
+                        "'{self.protocol.__class__.__name__}' has no attribute" in str(e)):
                         raise NotImplementedError from e
         except self.unimplemented_exc:
             self.logger.warning("Action %s not implemented" % action)

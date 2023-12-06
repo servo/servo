@@ -73,7 +73,7 @@ impl AngleDimension {
             AngleDimension::Deg(_) => "deg",
             AngleDimension::Rad(_) => "rad",
             AngleDimension::Turn(_) => "turn",
-            AngleDimension::Grad(_) => "grad"
+            AngleDimension::Grad(_) => "grad",
         }
     }
 }
@@ -105,7 +105,12 @@ impl ToCss for Angle {
     where
         W: Write,
     {
-        crate::values::serialize_specified_dimension(self.value.unitless_value(), self.value.unit(), self.was_calc, dest)
+        crate::values::serialize_specified_dimension(
+            self.value.unitless_value(),
+            self.value.unit(),
+            self.was_calc,
+            dest,
+        )
     }
 }
 
@@ -114,7 +119,10 @@ impl ToComputedValue for Angle {
 
     #[inline]
     fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue {
-        ComputedAngle::from_degrees(crate::values::normalize(self.degrees()))
+        let degrees = self.degrees();
+
+        // NaN and +-infinity should degenerate to 0: https://github.com/w3c/csswg-drafts/issues/6105
+        ComputedAngle::from_degrees(if degrees.is_finite() { degrees } else { 0.0 })
     }
 
     #[inline]
@@ -253,7 +261,7 @@ impl Angle {
                 }
             },
             Token::Function(ref name) => {
-                let function = CalcNode::math_function(name, location)?;
+                let function = CalcNode::math_function(context, name, location)?;
                 CalcNode::parse_angle(context, input, function)
             },
             Token::Number { value, .. } if value == 0. && allow_unitless_zero => Ok(Angle::zero()),

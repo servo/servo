@@ -17,6 +17,7 @@ async def add_intercept(bidi_session):
     ensure the intercept is removed at the end of the test."""
 
     intercepts = []
+
     async def add_intercept(phases, url_patterns):
         nonlocal intercepts
         intercept = await bidi_session.network.add_intercept(
@@ -76,7 +77,7 @@ def fetch(bidi_session, top_context, configuration):
 
 @pytest_asyncio.fixture
 async def setup_network_test(
-    bidi_session, subscribe_events, wait_for_event, top_context, url
+    bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, top_context, url
 ):
     """Navigate the current top level context to the provided url and subscribe
     to network.beforeRequestSent.
@@ -102,7 +103,7 @@ async def setup_network_test(
             url=test_url,
             wait="complete",
         )
-        await on_response_completed
+        await wait_for_future_safe(on_response_completed)
         await bidi_session.session.unsubscribe(
             events=[RESPONSE_COMPLETED_EVENT], contexts=[top_context["context"]]
         )

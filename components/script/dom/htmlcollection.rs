@@ -69,7 +69,7 @@ pub struct HTMLCollection {
 }
 
 impl HTMLCollection {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
@@ -99,7 +99,7 @@ impl HTMLCollection {
         Self::new(window, root, Box::new(NoFilter))
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         window: &Window,
         root: &Node,
