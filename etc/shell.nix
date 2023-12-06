@@ -143,15 +143,12 @@ stdenv.mkDerivation rec {
     darwin.apple_sdk.frameworks.AppKit
   ]);
 
-  #LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
+  LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
 
-
-  RUST_FONTCONFIG_DLOPEN = "on"; # to avoid link failure on fontconfig
+  # Required by ./mach build --android
   ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
-  ANDROID_HOME = "${androidSdk}/libexec/android-sdk";
   ANDROID_NDK_ROOT = "${ANDROID_SDK_ROOT}/ndk-bundle";
-  APP_PLATFORM = "30"; # blurdroid
-  ANDROID_SDK_PLATFORM = "30"; # blurdroid
+
   # Allow cargo to download crates
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
 
