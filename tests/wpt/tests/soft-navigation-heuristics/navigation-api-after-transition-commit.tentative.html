@@ -16,11 +16,11 @@
   <script>
     const link = document.getElementById("link");
     testNavigationApi("Test soft navigation when navigate event intecepts with { commit: 'after-transition' }", e => {
-        timestamps[counter]["eventStart"] = performance.now();
         e.intercept({commit: "after-transition", handler: async () => {
           await addImageToMain();
           e.commit();
         }});
+        timestamps[counter]["eventEnd"] = performance.now();
       }, link);
   </script>
 </body>

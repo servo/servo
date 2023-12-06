@@ -82,9 +82,13 @@ async function runFullCycleTest(t, options) {
   await checkEncoderSupport(t, encoder_config);
   let decoder = new VideoDecoder({
     output(frame) {
+      t.add_cleanup(() => { frame.close() });
+
       assert_equals(frame.visibleRect.width, w, "visibleRect.width");
       assert_equals(frame.visibleRect.height, h, "visibleRect.height");
-      assert_equals(frame.timestamp, next_ts++, "decode timestamp");
+      if (!options.realTimeLatencyMode) {
+        assert_equals(frame.timestamp, next_ts++, "decode timestamp");
+      }
 
       // The encoder is allowed to change the color space to satisfy the
       // encoder when readback is needed to send the frame for encoding, but
@@ -105,7 +109,6 @@ async function runFullCycleTest(t, options) {
       frames_decoded++;
       assert_true(validateBlackDots(frame, frame.timestamp),
         "frame doesn't match. ts: " + frame.timestamp);
-      frame.close();
     },
     error(e) {
       assert_unreached(e.message);
@@ -129,7 +132,9 @@ async function runFullCycleTest(t, options) {
       }
       decoder.decode(chunk);
       frames_encoded++;
-      assert_equals(chunk.timestamp, next_encode_ts++, "encode timestamp");
+      if (!options.realTimeLatencyMode) {
+        assert_equals(chunk.timestamp, next_encode_ts++, "encode timestamp");
+      }
     },
     error(e) {
       assert_unreached(e.message);

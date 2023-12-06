@@ -636,7 +636,7 @@ interface mixin GPUPipelineBase {
 
 dictionary GPUProgrammableStage {
     required GPUShaderModule module;
-    required USVString entryPoint;
+    USVString entryPoint;
     record<USVString, GPUPipelineConstantValue> constants;
 };
 
@@ -938,8 +938,6 @@ interface GPUCommandEncoder {
         GPUBuffer buffer,
         optional GPUSize64 offset = 0,
         optional GPUSize64 size);
-
-    undefined writeTimestamp(GPUQuerySet querySet, GPUSize32 queryIndex);
 
     undefined resolveQuerySet(
         GPUQuerySet querySet,

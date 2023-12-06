@@ -144,10 +144,17 @@ const setEvent = (t, button, pushState, addContent, pushUrl, eventType, prepWork
   const eventObject =
       (eventType == 'click' || eventType.startsWith("key")) ? button : window;
   eventObject.addEventListener(eventType, async e => {
+    let prepWorkFailed = false;
     if (prepWork &&!prepWork(t)) {
+      prepWorkFailed = true;
+    }
+    // This is the end of the event's sync processing.
+    if (!timestamps[counter]["eventEnd"]) {
+      timestamps[counter]["eventEnd"] = performance.now();
+    }
+    if (prepWorkFailed) {
       return;
     }
-    timestamps[counter]["eventStart"] = performance.now();
     // Jump through a task, to ensure task tracking is working properly.
     await new Promise(r => t.step_timeout(r, 0));
 
@@ -165,9 +172,9 @@ const setEvent = (t, button, pushState, addContent, pushUrl, eventType, prepWork
     await new Promise(r => t.step_timeout(r, 10));
 
     await addContent(url);
-    ++counter;
 
     interacted = true;
+    ++counter;
   });
 };
 
@@ -190,7 +197,7 @@ const validateSoftNavigationEntry = async (clicks, extraValidations,
     assert_less_than_equal(timestamps[i]["syncPostInteraction"], entryTimestamp,
                 "Entry timestamp is lower than the post interaction one");
     assert_greater_than_equal(
-        timestamps[i]['eventStart'], entryTimestamp,
+        entryTimestamp, timestamps[i]['eventEnd'],
         'Event start timestamp matches');
     assert_not_equals(entry.navigationId,
                       performance.getEntriesByType("navigation")[0].navigationId,

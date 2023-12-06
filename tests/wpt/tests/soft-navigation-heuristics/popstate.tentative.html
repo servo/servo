@@ -22,7 +22,10 @@
     history.pushState({}, "", "another_one.html");
 
     const link = document.getElementById("link");
-    link.addEventListener("click", () => history.back());
+    link.addEventListener("click", () => {
+      history.back();
+      timestamps[counter]["eventEnd"] = performance.now();
+    });
     testSoftNavigation({
       addContent: () => {
         // Add the content to the main element

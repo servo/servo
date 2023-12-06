@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  position: absolute;
+}
+.scroller-x {
+  overflow: scroll;
+  scroll-snap-type: x mandatory;
+  width: 500px;
+  height: 500px;
+}
+.scroller-y {
+  overflow: scroll;
+  scroll-snap-type: y mandatory;
+  width: 500px;
+  height: 500px;
+}
+.space {
+  width: 4000px;
+  height: 4000px;
+}
+.target {
+  scroll-snap-align: start;
+  height: 400px;
+  width: 400px;
+}
+.large-x {
+  width: 3000px;
+  background-color: yellow;
+}
+.large-y {
+  height: 2000px;
+  background-color: yellow;
+}
+.small {
+  height: 200px;
+  width: 200px;
+  background-color: black;
+}
+</style>
+<div class="scroller-x" id="one-target">
+  <div class="space"></div>
+  <div class="large-x target" id="single" style="left: 200px;"></div>
+</div>
+
+<div class="scroller-x" id="x">
+  <div class="space"></div>
+  <div style="left: 200px;">
+    <div class="target large-x"></div>
+    <div class="target small" style="left: 200px"></div>
+    <div class="target small" style="left: 600px"></div>
+    <div class="target small" style="left: 1200px"></div>
+  </div>
+</div>
+
+<div class="scroller-y" id="y">
+  <div class="space"></div>
+  <div style="top: 200px;">
+    <div class="target large-y"></div>
+    <div class="target small" style="top: 200px"></div>
+    <div class="target small" style="top: 600px"></div>
+    <div class="target small" style="top: 1200px"></div>
+    <div class="target large-y" style="top: 2000px"></div>
+  </div>
+</div>
+
+<div class="scroller-x" id="two-axes" style="scroll-snap-type: both mandatory">
+  <div class="space"></div>
+  <div class="target large-x" style="top: 200px"></div>
+</div>
+
+<div class="scroller-x" id="overlapping-overflow" style="scroll-snap-type: both mandatory">
+  <div class="space"></div>
+  <div style="left: 200px; top: 200px;">
+    <div class="target small"></div>
+    <div class="target small"></div>
+    <div class="target small"></div>
+    <div class="target large-y large-x"></div>
+    <div class="target small"></div>
+    <div class="target small"></div>
+    <div class="target small"></div>
+  </div>
+</div>
+
+<script>
+var one_target_scroller = document.getElementById("one-target");
+var scroller_x = document.getElementById("x");
+var scroller_y = document.getElementById("y");
+var two_axes_scroller = document.getElementById("two-axes");
+var overlapping_scroller = document.getElementById("overlapping-overflow");
+
+test(() => {
+  scroller_x.scrollTo(950, 0);
+  assert_equals(scroller_x.scrollLeft, 1000);
+  assert_equals(scroller_x.scrollTop, 0);
+}, "Snap within a snap area which covers snapport on x selects a valid snap " +
+   "position that avoids the overlapping areas at 800-1000 and 1400-1600.");
+
+test(() => {
+  scroller_y.scrollTo(0, 950);
+  assert_equals(scroller_y.scrollLeft, 0);
+  assert_equals(scroller_y.scrollTop, 1000);
+}, "Snap within a snap area which covers snapport on y selects a valid snap " +
+   "position that avoids the overlapping areas at 800-1000 and 1400-1600.");
+</script>

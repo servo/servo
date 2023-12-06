@@ -113,7 +113,7 @@ components:
     scopes:
       - "docker-worker:capability:privileged"
     chunks-override:
-      testharness: 20
+      testharness: 24
 
   tox-python3_7:
     env:

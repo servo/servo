@@ -78,16 +78,16 @@ const testcases = [
     message: "invalid config_input",
   },
   {
-    config_input: { dropElements: [] },
+    config_input: { removeElements: [] },
     value: "test",
     result: "test",
-    message: "empty dropElements list",
+    message: "empty removeElements list",
   },
   {
-    config_input: { dropElements: ["div"] },
+    config_input: { removeElements: ["div"] },
     value: "<div>test</div><p>bla",
     result: "<p>bla</p>",
-    message: "test html without close tag with dropElements list ['div']",
+    message: "test html without close tag with removeElements list ['div']",
   },
   {
     config_input: {},
@@ -96,120 +96,168 @@ const testcases = [
     message: "default behavior for custom elements",
   },
   {
-    config_input: { allowCustomElements: true },
+    config_input: { customElements: true },
     value: "<custom-element>test</custom-element>bla",
     result: "testbla",
     message: "allow custom elements",
   },
   {
     config_input: {
-      allowCustomElements: true,
-      allowElements: ["custom-element"],
+      customElements: true,
+      elements: ["custom-element"],
     },
     value: "<custom-element>test</custom-element>bla",
     result: "<custom-element>test</custom-element>bla",
     message: "allow custom elements with allow elements",
   },
   {
-    config_input: { allowCustomElements: false },
+    config_input: { customElements: false },
     value: "<custom-element>test</custom-element>bla",
     result: "bla",
     message: "disallow custom elements",
   },
   {
     config_input: {
-      dropElements: ["custom-element"],
-      allowCustomElements: true,
+      removeElements: ["custom-element"],
+      customElements: true,
     },
     value: "<custom-element>test</custom-element>bla",
     result: "bla",
     message: 'allow custom elements with drop list contains ["custom-element"]',
   },
   {
-    config_input: { dropElements: ["script"] },
+    config_input: { removeElements: ["script"] },
     value: "<script>alert('i am a test')</script>",
     result: "",
-    message: 'test script with ["script"] as dropElements list',
+    message: 'test script with ["script"] as removeElements list',
   },
   {
-    config_input: { dropElements: ["test-element", "i"] },
+    config_input: { removeElements: ["test-element", "i"] },
     value: "<div>balabala<i>test</i></div><test-element>t</test-element>",
     result: "<div>balabala</div>",
-    message: 'dropElements list ["test-element", "i"]}',
+    message: 'removeElements list ["test-element", "i"]}',
   },
   {
-    config_input: { dropElements: ["dl", "p"] },
+    config_input: { removeElements: ["dl", "p"] },
     value: "<div>balabala<i>i</i><p>t</p></div>",
     result: "<div>balabala<i>i</i></div>",
-    message: 'dropElements list ["dl", "p"]}',
+    message: 'removeElements list ["dl", "p"]}',
   },
   {
-    config_input: { allowElements: ["p"] },
+    config_input: { elements: ["p"] },
     value: "<div>test<div>p</div>tt<p>div</p></div>",
     result: "testptt<p>div</p>",
-    message: 'allowElements list ["p"]',
+    message: 'elements list ["p"]',
   },
   {
-    config_input: { dropElements: ["div"], allowElements: ["div"] },
+    config_input: { removeElements: ["div"], elements: ["div"] },
     value: "<div>test</div><p>bla",
     result: "bla",
-    message: "allowElements list has no influence to dropElements",
+    message: "elements list has no influence to removeElements",
   },
   {
-    config_input: { dropAttributes: [{ name: "style", elements: ["p"] }] },
-    value:
-      "<p style='color: black'>Click.</p><div style='color: white'>div</div>",
-    result: '<p>Click.</p><div style="color: white">div</div>',
-    message: 'dropAttributes list {"style": ["p"]} with style attribute',
-  },
-  // {config_input: {dropAttributes: [{name: "*": ["a"]}}, value: "<a id='a' style='color: black'>Click.</a><div style='color: white'>div</div>", result: "<a>Click.</a><div style=\"color: white\">div</div>", message: "dropAttributes list {\"*\": [\"a\"]} with style attribute"},
-  {
-    config_input: { dropAttributes: [] },
+    config_input: { removeAttributes: [] },
     value: "<p id='test'>Click.</p>",
     result: '<p id="test">Click.</p>',
-    message: "empty dropAttributes list with id attribute",
+    message: "empty removeAttributes list with id attribute",
   },
   {
-    config_input: { dropAttributes: [{ name: "id", elements: "*" }] },
+    config_input: { removeAttributes: ["id"] },
     value: "<p id='test'>Click.</p>",
     result: "<p>Click.</p>",
-    message: 'dropAttributes list {"id": ["*"]} with id attribute',
+    message: 'removeAttributes list ["id"] with id attribute',
   },
   {
     config_input: {
-      dropAttributes: [{ name: "data-attribute-with-dashes", elements: "*" }],
+      removeAttributes: ["data-attribute-with-dashes"],
     },
     value:
       "<p id='p' data-attribute-with-dashes='123'>Click.</p><script>document.getElementById('p').dataset.attributeWithDashes=123;</script>",
     result: '<p id="p">Click.</p>',
     message:
-      'dropAttributes list {"data-attribute-with-dashes": ["*"]} with dom dataset js access',
+      'removeAttributes list ["data-attribute-with-dashes"] with dom dataset js access',
   },
   {
-    config_input: { allowAttributes: [{ name: "id", elements: ["div"] }] },
-    value: "<p id='p'>P</p><div id='div'>DIV</div>",
-    result: '<p>P</p><div id="div">DIV</div>',
-    message: 'allowAttributes list {"id": ["div"]} with id attribute',
+    config_input: {
+      elements: [
+        { name: "p", attributes: ["title"] },
+        { name: "div", attributes: ["id"] },
+      ],
+    },
+    value: "<p id='p' title='p'>P</p><div id='div' title='div'>DIV</div>",
+    result: '<p title="p">P</p><div id="div">DIV</div>',
+    message:
+      'elements list with <p> attributes: ["title"] and div attributes: ["id"] lists',
   },
   {
-    config_input: { allowAttributes: [{ name: "id", elements: "*" }] },
+    config_input: {
+      elements: [
+        { name: "p", removeAttributes: ["title"] },
+        { name: "div", removeAttributes: ["id"] },
+      ],
+    },
+    value: "<p id='p' title='p'>P</p><div id='div' title='div'>DIV</div>",
+    result: '<p id="p">P</p><div title="div">DIV</div>',
+    message:
+      'elements list with <p> removeAttributes: ["title"]  and div removeAttributes: ["id"] lists',
+  },
+  {
+    config_input: {
+      elements: [{ name: "div", attributes: ["id"], removeAttributes: ["id"] }],
+    },
+    value: "<div id='div' title='div'>DIV</div>",
+    result: "<div>DIV</div>",
+    message:
+      'elements list with <div> attributes: ["id"] and removeAttributes: ["id"] lists',
+  },
+  {
+    config_input: {
+      elements: [{ name: "div", attributes: ["id", "title"] }],
+      attributes: []
+    },
+    value: "<div id='div' title='div'>DIV</div>",
+    result: "<div>DIV</div>",
+    message:
+      'elements list with <div> attributes: ["id", "title"] does not override empty attributes: [] list',
+  },
+  {
+    config_input: {
+      elements: [{ name: "div", attributes: ["id", "title"] }],
+      removeAttributes: ["id", "title"]
+    },
+    value: "<div id='div' title='div'>DIV</div>",
+    result: "<div>DIV</div>",
+    message:
+      'elements list with <div> attributes: ["id", "title"] does not override removeAttributes: ["id", "title"] list',
+  },
+  {
+    config_input: {
+      elements: [{ name: "div", removeAttributes: ["id", "title"] }],
+      attributes: ["id", "title"]
+    },
+    value: "<div id='div' title='div'>DIV</div>",
+    result: "<div>DIV</div>",
+    message:
+      'elements list with <div> removeAttributes: ["id", "title"] is effective even with attributes: ["id", "title"] list',
+  },
+  {
+    config_input: { attributes: ["id"] },
     value: "<p id='test' onclick='a= 123'>Click.</p>",
     result: '<p id="test">Click.</p>',
-    message:
-      'allowAttributes list {"id": ["*"]} with id attribute and onclick scripts',
+    message: 'attributes list ["id"] with id attribute and onclick scripts',
   },
   // {config_input: {allowAttributes: {"*": ["a"]}}, value: "<a id='a' style='color: black'>Click.</a><div style='color: white'>div</div>", result: "<a id=\"a\" style=\"color: black\">Click.</a><div>div</div>", message: "allowAttributes list {\"*\": [\"a\"]} with style attribute"},
   {
     config_input: {
-      dropAttributes: [{ name: "style", elements: "*" }],
-      allowAttributes: [{ name: "style", elements: "*" }],
+      removeAttributes: ["style"],
+      attributes: ["style"],
     },
     value: "<p style='color: black'>Click.</p>",
     result: "<p>Click.</p>",
-    message: "allowAttributes list has no influence to dropAttributes",
+    message: "attributes list has no influence to removeAttributes list",
   },
   {
-    config_input: { allowElements: ["template", "div"] },
+    config_input: { elements: ["template", "div"] },
     value: "<template><script>test</script><div>hello</div></template>",
     result: "<template><div>hello</div></template>",
     message: "Template element",
@@ -318,16 +366,16 @@ const testcases = [
     message: "HTML with comments; comments not allowed",
   },
   {
-    config_input: { allowComments: true },
+    config_input: { comments: true },
     value: "<p>Some text</p><!-- 1 --><!-- 2 --><p>Some more text</p>",
     result: "<p>Some text</p><!-- 1 --><!-- 2 --><p>Some more text</p>",
-    message: "HTML with comments; allowComments",
+    message: "HTML with comments; comments",
   },
   {
-    config_input: { allowComments: false },
+    config_input: { comments: false },
     value: "<p>Some text</p><!-- 1 --><!-- 2 --><p>Some more text</p>",
     result: "<p>Some text</p><p>Some more text</p>",
-    message: "HTML with comments; !allowComments",
+    message: "HTML with comments; !comments",
   },
   {
     config_input: {},
@@ -336,26 +384,26 @@ const testcases = [
     message: "HTML with comments deeper in the tree",
   },
   {
-    config_input: { allowComments: true },
+    config_input: { comments: true },
     value: "<p>comment<!-- hello -->in<!-- </p> -->text</p>",
     result: "<p>comment<!-- hello -->in<!-- </p> -->text</p>",
-    message: "HTML with comments deeper in the tree, allowComments",
+    message: "HTML with comments deeper in the tree, comments",
   },
   {
-    config_input: { allowComments: false },
+    config_input: { comments: false },
     value: "<p>comment<!-- hello -->in<!-- </p> -->text</p>",
     result: "<p>commentintext</p>",
-    message: "HTML with comments deeper in the tree, !allowComments",
+    message: "HTML with comments deeper in the tree, !comments",
   },
   {
-    config_input: { allowElements: ["svg"] },
+    config_input: { elements: ["svg"] },
     value: "<svg></svg>",
     result: "",
     message:
       "Unknown HTML names (HTMLUnknownElement instances) should not match elements parsed as non-HTML namespaces.",
   },
   {
-    config_input: { allowElements: ["div", "svg"] },
+    config_input: { elements: ["div", "svg"] },
     value: "<div><svg></svg></div>",
     result: "<div></div>",
     message:
@@ -364,139 +412,127 @@ const testcases = [
 
   // Case normalization (actually: lack of)
   {
-    config_input: { dropElements: ["I", "DL"] },
+    config_input: { removeElements: ["I", "DL"] },
     value: "<div>balabala<dl>test</dl></div>",
     result: "<div>balabala<dl>test</dl></div>",
-    message: 'dropElements list ["I", "DL"]}',
+    message: 'removeElements list ["I", "DL"]}',
   },
   {
-    config_input: { dropElements: ["i", "dl"] },
+    config_input: { removeElements: ["i", "dl"] },
     value: "<div>balabala<dl>test</dl></div>",
     result: "<div>balabala</div>",
-    message: 'dropElements list ["i", "dl"]}',
+    message: 'removeElements list ["i", "dl"]}',
   },
   {
-    config_input: { dropElements: ["i", "dl"] },
+    config_input: { removeElements: ["i", "dl"] },
     value: "<DIV>balabala<DL>test</DL></DIV>",
     result: "<div>balabala</div>",
-    message: 'dropElements list ["i", "dl"]} with uppercase HTML',
+    message: 'removeElements list ["i", "dl"]} with uppercase HTML',
   },
   {
-    config_input: { dropAttributes: [{ name: "ID", elements: "*" }] },
+    config_input: { removeAttributes: ["ID"] },
     value: '<p id="test">Click.</p>',
     result: '<p id="test">Click.</p>',
-    message: 'dropAttributes list {"ID": ["*"]} with id attribute',
+    message: 'removeAttributes list ["ID"] with id attribute',
   },
   {
-    config_input: { dropAttributes: [{ name: "ID", elements: "*" }] },
+    config_input: { removeAttributes: ["ID"] },
     value: '<p ID="test">Click.</p>',
     result: '<p id="test">Click.</p>',
-    message: 'dropAttributes list {"ID": ["*"]} with ID attribute',
+    message: 'removeAttributes list ["ID"] with ID attribute',
   },
   {
-    config_input: { dropAttributes: [{ name: "id", elements: "*" }] },
+    config_input: { removeAttributes: ["id"] },
     value: '<p ID="test">Click.</p>',
     result: "<p>Click.</p>",
-    message: 'dropAttributes list {"id": ["*"]} with ID attribute',
+    message: 'removeAttributes list ["id"] with ID attribute',
   },
 
-  // allowUnknownMarkup for elements (with and without)
+  // unknownMarkup for elements (with and without)
   {
-    config_input: { dropElements: [123, "test", "i", "custom-element"] },
+    config_input: { removeElements: [123, "test", "i", "custom-element"] },
     value:
       "<div>balabala<i>test</i></div><test>t</test><custom-element>custom-element</custom-element>",
     result: "<div>balabala</div>",
-    message:
-      "dropElements with unknown elements and without allowUnknownMarkup",
+    message: "removeElements with unknown elements and without unknownMarkup",
   },
   {
-    config_input: { blockElements: [123, "test", "i", "custom-element"] },
+    config_input: {
+      replaceWithChildrenElements: [123, "test", "i", "custom-element"],
+    },
     value:
       "<div>balabala<i>test</i></div><test>t</test><custom-element>custom-element</custom-element>",
     result: "<div>balabalatest</div>",
     message:
-      "blockElements with unknown elements and without allowUnknownMarkup",
+      "replaceWithChildrenElements with unknown elements and without unknownMarkup",
   },
   {
-    config_input: { allowElements: ["p", "test"] },
+    config_input: { elements: ["p", "test"] },
     value: "<div>test<div>p</div>tt<p>div</p></div><test>test</test>",
     result: "testptt<p>div</p>",
-    message:
-      "allowElements with unknown elements and without allowUnknownMarkup",
+    message: "elements with unknown elements and without unknownMarkup",
   },
   {
     config_input: {
-      dropElements: [123, "test", "i", "custom-element"],
-      allowUnknownMarkup: true,
+      removeElements: [123, "test", "i", "custom-element"],
+      unknownMarkup: true,
     },
     value:
       "<div>balabala<i>test</i></div><test>t</test><custom-element>custom-element</custom-element>",
     result: "<div>balabala</div>",
-    message: "dropElements with unknown elements and with allowUnknownMarkup",
+    message: "removeElements with unknown elements and with unknownMarkup",
   },
   {
     config_input: {
-      blockElements: [123, "test", "i", "custom-element"],
-      allowUnknownMarkup: true,
+      replaceWithChildrenElements: [123, "test", "i", "custom-element"],
+      unknownMarkup: true,
     },
     value:
       "<div>balabala<i>test</i></div><test>t</test><custom-element>custom-element</custom-element>",
     result: "<div>balabalatest</div>t",
-    message: "blockElements with unknown elements and with allowUnknownMarkup",
+    message:
+      "replaceWithChildrenElements with unknown elements and with unknownMarkup",
   },
   {
-    config_input: { allowElements: ["p", "test"], allowUnknownMarkup: true },
+    config_input: { elements: ["p", "test"], unknownMarkup: true },
     value: "<div>test<div>p</div>tt<p>div</p><test>test</test></div>",
     result: "testptt<p>div</p><test>test</test>",
-    message: "allowElements with unknown elements and with allowUnknownMarkup",
+    message: "elements with unknown elements and with unknownMarkup",
   },
 
-  // allowUnknownMarkup for attributes (with and without)
+  // unknownMarkup for attributes (with and without)
   {
     config_input: {
-      allowAttributes: [
-        { name: "hello", elements: "*" },
-        { name: "world", elements: ["b"] },
-      ],
+      attributes: ["hello", "world"],
     },
     value: "<div hello='1' world='2'><b hello='3' world='4'>",
     result: "<div><b></b></div>",
-    message:
-      "allowAttributes unknown attributes and without allowUnknownMarkup",
+    message: "attributes: unknown attributes and without unknownMarkup",
   },
   {
     config_input: {
-      allowAttributes: [
-        { name: "hello", elements: "*" },
-        { name: "world", elements: ["b"] },
-      ],
-      allowUnknownMarkup: true,
+      attributes: ["hello", "world"],
+      unknownMarkup: true,
     },
     value: "<div hello='1' world='2'><b hello='3' world='4'>",
-    result: '<div hello="1"><b hello="3" world="4"></b></div>',
-    message: "allowAttributes unknown attributes and with allowUnknownMarkup",
+    result: '<div hello="1" world="2"><b hello="3" world="4"></b></div>',
+    message: "attributes: unknown attributes and with unknownMarkup",
   },
   {
     config_input: {
-      dropAttributes: [
-        { name: "hello", elements: "*" },
-        { name: "world", elements: ["b"] },
-      ],
+      removeAttributes: ["hello", "world"],
     },
     value: "<div hello='1' world='2'><b hello='3' world='4'>",
     result: "<div><b></b></div>",
-    message: "dropAttributes unknown attributes and without allowUnknownMarkup",
+    message: "removeAttributes: unknown attributes and without unknownMarkup",
   },
   {
     config_input: {
-      dropAttributes: [
-        { name: "hello", elements: "*" },
-        { name: "world", elements: ["b"] },
-      ],
-      allowUnknownMarkup: true,
+      removeAttributes: ["hello", "world"],
+      unknownMarkup: true,
     },
     value: "<div hello='1' world='2'><b hello='3' world='4'>",
     result: "<div><b></b></div>",
-    message: "dropAttributes unknown attributes and with allowUnknownMarkup",
+    message: "removeAttributes unknown attributes and with allowUnknownMarkup",
   },
 ];

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Anchor</title>
+<body></body>
+<script>
+  window.onmessage = (event) => {
+    window.onmessage = (event) => parent.postMessage(event.data, "*");
+    const { url } = event.data;
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.rel = 'opener';
+    anchor.target = '_blank';
+    document.body.appendChild(anchor);
+    anchor.click();
+  };
+</script>

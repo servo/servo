@@ -16,8 +16,8 @@
 <body>
   <h1>
     Test passes if outline widths are rounded up
-    when they are greater than 0 and less than 1,
-    and rounded down when they are greater than 1.
+    when they are greater than 0px and less than 1px,
+    and rounded down when they are greater than 1px.
   </h1>
 
   <script>
@@ -32,7 +32,8 @@
       { input: "1.5px", expected: "1px" },
       { input: "2px", expected: "2px" },
       { input: "2.75px", expected: "2px" },
-      { input: "2.999px", expected: "2px" },
+      { input: "2.99px", expected: "2px" },
+      { input: "3px", expected: "3px" },
     ];
 
     for (const value of values) {
@@ -41,13 +42,13 @@
       document.body.appendChild(div);
     }
 
-    test(function() {
-      var targets = document.querySelectorAll("div");
+    var targets = document.querySelectorAll("div");
 
-      for (var i=0; i < targets.length; ++i) {
+    for (var i=0; i < targets.length; ++i) {
+      test(() => {
         assert_equals(getComputedStyle(targets[i]).outlineWidth, values[i].expected);
-      }
-    }, "Test that outline widths are rounded up when they are greater than 0px but less than 1px, and rounded down when they are greater than 1px.");
+      }, values[i].input);
+    }
     </script>
 </body>
 </html>

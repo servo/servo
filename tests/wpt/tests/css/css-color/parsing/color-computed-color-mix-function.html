@@ -254,6 +254,8 @@
     fuzzy_test_computed_color(`color-mix(in lch, lch(0.1 0.2 30deg / 25%) 0%, lch(0.5 0.5 none / none))`, `lch(0.5 0.5 30 / 0.25)`);
     fuzzy_test_computed_color(`color-mix(in lch, lch(0.1 0.2 30deg / 25%) 0%, lch(none none none / 0.5))`, `lch(0.1 0.2 30 / 0.5)`);
     fuzzy_test_computed_color(`color-mix(in lch, lch(0.1 0.2 30deg / 25%) 0%, lch(0.5 none none / 0.5))`, `lch(0.5 0.2 30 / 0.5)`);
+    // Achromatic colors should have powerless hues. https://www.w3.org/TR/css-color-4/#lab-to-lch
+    fuzzy_test_computed_color(`color-mix(in lch, lab(50 0 0), black)`, `lch(25 0 none)`);
 
     // oklch()
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(0.1 0.2 30deg), oklch(0.5 0.6 70deg))`, `oklch(0.3 0.4 50)`);
@@ -332,6 +334,8 @@
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(0.1 0.2 30deg / 25%) 0%, oklch(0.5 0.5 none / none))`, `oklch(0.5 0.5 30 / 0.25)`);
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(0.1 0.2 30deg / 25%) 0%, oklch(none none none / 0.5))`, `oklch(0.1 0.2 30 / 0.5)`);
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(0.1 0.2 30deg / 25%) 0%, oklch(0.5 none none / 0.5))`, `oklch(0.5 0.2 30 / 0.5)`);
+    // Achromatic colors should have powerless hues. https://www.w3.org/TR/css-color-4/#lab-to-lch
+    fuzzy_test_computed_color(`color-mix(in oklch, oklab(0.5 0 0), black)`, `oklch(0.25 0 none)`);
 
     // lab()
     fuzzy_test_computed_color(`color-mix(in lab, lab(10 20 30), lab(50 60 70))`, `lab(30 40 50)`);

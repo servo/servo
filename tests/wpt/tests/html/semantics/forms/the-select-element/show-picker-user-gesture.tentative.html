@@ -15,6 +15,7 @@
 
     promise_test(async t => {
         const select = document.createElement("select");
+        document.body.append(select)
 
         await test_driver.bless('show picker');
         select.showPicker();

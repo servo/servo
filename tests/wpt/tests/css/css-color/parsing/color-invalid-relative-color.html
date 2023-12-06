@@ -36,11 +36,7 @@
     // hsl(from ...)
 
     // Testing invalid values.
-    test_invalid_value(`color`, `hsl(from rebeccapurple h 10% 10)`);
-    test_invalid_value(`color`, `hsl(from rebeccapurple h 10 10%)`);
     test_invalid_value(`color`, `hsl(from rebeccapurple 10% s l)`);
-    test_invalid_value(`color`, `hsl(from rgb(10%, 20%, 30%, 40%) h 10% 10)`);
-    test_invalid_value(`color`, `hsl(from rgb(10%, 20%, 30%, 40%) h 10 10%)`);
     test_invalid_value(`color`, `hsl(from rgb(10%, 20%, 30%, 40%) 10% s l)`);
 
     // Testing invalid component names
@@ -55,11 +51,7 @@
     // hwb(from ...)
 
     // Testing invalid values.
-    test_invalid_value(`color`, `hwb(from rebeccapurple h 10% 10)`);
-    test_invalid_value(`color`, `hwb(from rebeccapurple h 10 10%)`);
     test_invalid_value(`color`, `hwb(from rebeccapurple 10% w b)`);
-    test_invalid_value(`color`, `hwb(from rgb(10%, 20%, 30%, 40%) h 10% 10)`);
-    test_invalid_value(`color`, `hwb(from rgb(10%, 20%, 30%, 40%) h 10 10%)`);
     test_invalid_value(`color`, `hwb(from rgb(10%, 20%, 30%, 40%) 10% w b)`);
 
     // Testing invalid component names

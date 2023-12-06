@@ -17,3 +17,12 @@ interface TaskAttributionTiming : PerformanceEntry {
     readonly attribute DOMString containerName;
     [Default] object toJSON();
 };
+
+[Exposed=Window]
+interface PerformanceLongAnimationFrameTiming : PerformanceEntry {
+    readonly attribute DOMHighResTimeStamp renderStart;
+    readonly attribute DOMHighResTimeStamp styleAndLayoutStart;
+    readonly attribute DOMHighResTimeStamp blockingDuration;
+
+    [Default] object toJSON();
+};
