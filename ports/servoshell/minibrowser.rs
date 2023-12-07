@@ -225,6 +225,14 @@ impl Minibrowser {
 
     /// Paint the minibrowser, as of the last update.
     pub fn paint(&mut self, window: &winit::window::Window) {
+        let our_fbo = NonZeroU32::new(self.widget_surface_fbo).map(NativeFramebuffer);
+        unsafe {
+            use glow::HasContext as _;
+            self.context
+                .painter
+                .gl()
+                .bind_framebuffer(gl::FRAMEBUFFER, our_fbo);
+        }
         self.context.paint(window);
     }
 
