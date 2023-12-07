@@ -128,7 +128,6 @@ impl WebGLShader {
             EXT_frag_depth: ext.is_enabled::<EXTFragDepth>() as c_int,
 
             FragmentPrecisionHigh: 1,
-            //..default_validator()
             ..Default::default()
         };
 
