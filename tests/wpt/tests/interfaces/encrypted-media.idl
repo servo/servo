@@ -43,7 +43,24 @@ enum MediaKeySessionType {
 
 [Exposed=Window, SecureContext] interface MediaKeys {
     MediaKeySession  createSession (optional MediaKeySessionType sessionType = "temporary");
+    Promise<MediaKeyStatus> getStatusForPolicy (optional MediaKeysPolicy policy = {});
     Promise<boolean> setServerCertificate (BufferSource serverCertificate);
+};
+
+dictionary MediaKeysPolicy {
+    HDCPVersion minHdcpVersion;
+};
+
+enum HDCPVersion {
+    "1.0",
+    "1.1",
+    "1.2",
+    "1.3",
+    "1.4",
+    "2.0",
+    "2.1",
+    "2.2",
+    "2.3",
 };
 
 enum MediaKeySessionClosedReason {

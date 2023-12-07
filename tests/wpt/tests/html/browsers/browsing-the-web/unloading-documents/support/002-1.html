@@ -5,7 +5,11 @@
  var do_test = t.step_func(function() {
    localStorage.test6564729 += '1';
    var d = document;
-   var e = document.open(); // unload triggered here - beforeunload 2, 3 in 002b; pagehide 4, unload 5, pagehide 6 in 002b, unload 7 in 002b
+   // This document's unload not triggered here because `document.open` erases
+   // all of the document's handlers. However the iframe's event handlers (002b)
+   // will fire. The `beforeunload` event handler will not fire because this is
+   // not a navigation resulting from a user interaction.
+   var e = document.open();
    localStorage.test6564729 += (e == d) ? '8' : 'X';
    var s = 'FAIL if you see this | ' + localStorage.test6564729;
    document.write(s);

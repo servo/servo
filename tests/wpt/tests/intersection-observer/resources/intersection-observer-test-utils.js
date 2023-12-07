@@ -159,27 +159,27 @@ function rectArea(rect) {
   return (rect.left - rect.right) * (rect.bottom - rect.top);
 }
 
-function checkRect(actual, expected, description, all) {
+function checkRect(actual, expected, description, epsilon = 0) {
   if (!expected.length)
     return;
-  assert_equals(actual.left | 0, expected[0] | 0, description + '.left');
-  assert_equals(actual.right | 0, expected[1] | 0, description + '.right');
-  assert_equals(actual.top | 0, expected[2] | 0, description + '.top');
-  assert_equals(actual.bottom | 0, expected[3] | 0, description + '.bottom');
+  assert_approx_equals(actual.left, expected[0], epsilon, description + '.left');
+  assert_approx_equals(actual.right, expected[1], epsilon, description + '.right');
+  assert_approx_equals(actual.top, expected[2], epsilon, description + '.top');
+  assert_approx_equals(actual.bottom, expected[3], epsilon, description + '.bottom');
 }
 
-function checkLastEntry(entries, i, expected) {
+function checkLastEntry(entries, i, expected, epsilon = 0) {
   assert_equals(entries.length, i + 1, 'entries.length');
   if (expected) {
     checkRect(
         entries[i].boundingClientRect, expected.slice(0, 4),
-        'entries[' + i + '].boundingClientRect', entries[i]);
+        'entries[' + i + '].boundingClientRect', epsilon);
     checkRect(
         entries[i].intersectionRect, expected.slice(4, 8),
-        'entries[' + i + '].intersectionRect', entries[i]);
+        'entries[' + i + '].intersectionRect', epsilon);
     checkRect(
         entries[i].rootBounds, expected.slice(8, 12),
-        'entries[' + i + '].rootBounds', entries[i]);
+        'entries[' + i + '].rootBounds', epsilon);
     if (expected.length > 12) {
       assert_equals(
           entries[i].isIntersecting, expected[12],

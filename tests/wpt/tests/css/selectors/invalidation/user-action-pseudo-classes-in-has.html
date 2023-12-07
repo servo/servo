@@ -22,6 +22,7 @@
 </style>
 <div id=subject1 class=ancestor>
   <div>
+    <div id=unhoverme>No :hover</div>
     <div id=hoverme class=descendant1>Hover and click me</div>
     <div id=focusme1 tabindex=1>Focus me</div>
     <div id=focusme2 class=descendant2 tabindex=2>Focus me</div>
@@ -37,47 +38,66 @@
 </div>
 <script>
   const tab_key = '\ue004';
-  const hovermeRect = hoverme.getBoundingClientRect();
-  const focusme1Rect = focusme1.getBoundingClientRect();
 
   promise_test(async () => {
     assert_equals(getComputedStyle(subject1).color, "rgb(0, 0, 0)", "subject1 initially black");
     assert_equals(getComputedStyle(subject2).color, "rgb(0, 0, 0)", "subject3 initially black");
 
     await new test_driver
-      .Actions()
-      .pointerMove(hovermeRect.x + 1, hovermeRect.y + 1, {origin: "viewport"})
-      .send();
+        .Actions()
+        .pointerMove(0, 0, {origin: hoverme})
+        .send();
     assert_equals(getComputedStyle(subject1).color, "rgb(0, 0, 255)",
                   "subject1 should be blue");
     assert_equals(getComputedStyle(subject3).color, "rgb(0, 0, 128)",
                   "subject3 should be navy");
 
     await new test_driver
-      .Actions()
-      .pointerMove(hovermeRect.x + 1, hovermeRect.y + 1, {origin: "viewport"})
-      .pointerDown()
-      .send();
+        .Actions()
+        .pointerMove(0, 0, {origin: unhoverme})
+        .send();
+    assert_equals(getComputedStyle(subject1).color, "rgb(0, 0, 0)",
+                  "subject1 should be back to black");
+    assert_equals(getComputedStyle(subject3).color, "rgb(0, 0, 0)",
+                  "subject3 should be back to black");
+
+    await new test_driver
+        .Actions()
+        .pointerMove(0, 0, {origin: hoverme})
+        .pointerDown()
+        .send();
     assert_equals(getComputedStyle(subject1).color, "rgb(135, 206, 235)",
                   "subject1 should be skyblue");
     assert_equals(getComputedStyle(subject3).color, "rgb(173, 216, 230)",
                   "subject3 should be lightblue");
 
+    // Clean up `pointerDown` from above. We want to test invalidation from
+    // `:hover:active` to `:hover`, but there's no guarantee that pointer
+    // state will stay the same between actions.
     await new test_driver
-      .Actions()
-      .pointerUp()
-      .send();
+        .Actions()
+        .pointerUp()
+        .pointerMove(0, 0, {origin: unhoverme})
+        .send();
+
+    // Perform the entire activation chain again, then perform `pointerUp`.
+    await new test_driver
+        .Actions()
+        .pointerMove(0, 0, {origin: hoverme})
+        .pointerDown()
+        .pointerUp()
+        .send();
     assert_equals(getComputedStyle(subject1).color, "rgb(0, 0, 255)",
-                  "subject1 should be blue again");
+                  "subject1 should be blue");
     assert_equals(getComputedStyle(subject3).color, "rgb(0, 0, 128)",
-                  "subject3 should be navy again");
+                  "subject3 should be navy");
 
     await new test_driver
-      .Actions()
-      .pointerMove(focusme1Rect.x + 1, focusme1Rect.y + 1, {origin: "viewport"})
-      .pointerDown()
-      .pointerUp()
-      .send();
+        .Actions()
+        .pointerMove(0, 0, {origin: focusme1})
+        .pointerDown()
+        .pointerUp()
+        .send();
     assert_equals(getComputedStyle(subject1).color, "rgb(0, 128, 0)",
                   "subject1 should be green");
     assert_equals(getComputedStyle(subject3).color, "rgb(0, 100, 0)",

@@ -76,10 +76,18 @@ async def test_params_viewport_invalid_value(bidi_session, new_tab, viewport):
 @pytest.mark.parametrize("device_pixel_ratio", [False, "", {}, []])
 async def test_params_devicePixelRatio_invalid_type(bidi_session, new_tab,device_pixel_ratio):
     with pytest.raises(error.InvalidArgumentException):
-        await bidi_session.browsing_context.set_viewport(context=new_tab["context"], device_pixel_ratio=device_pixel_ratio)
+        await bidi_session.browsing_context.set_viewport(
+            context=new_tab["context"],
+            device_pixel_ratio=device_pixel_ratio,
+            viewport=None
+        )
 
 
 @pytest.mark.parametrize("device_pixel_ratio", [0, -1])
 async def test_params_devicePixelRatio_invalid_value(bidi_session, new_tab, device_pixel_ratio):
     with pytest.raises(error.InvalidArgumentException):
-        await bidi_session.browsing_context.set_viewport(context=new_tab["context"], device_pixel_ratio=device_pixel_ratio)
+        await bidi_session.browsing_context.set_viewport(
+            context=new_tab["context"],
+            device_pixel_ratio=device_pixel_ratio,
+            viewport=None
+        )

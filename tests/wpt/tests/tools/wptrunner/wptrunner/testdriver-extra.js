@@ -269,6 +269,10 @@
         return create_action("set_spc_transaction_mode", {mode, context});
     };
 
+    window.test_driver_internal.set_rph_registration_mode = function(mode, context = null) {
+        return create_action("set_rph_registration_mode", {mode, context});
+    };
+
     window.test_driver_internal.cancel_fedcm_dialog = function(context = null) {
         return create_action("cancel_fedcm_dialog", {context});
     };

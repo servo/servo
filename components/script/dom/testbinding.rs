@@ -5,7 +5,6 @@
 // check-tidy: no specs after this line
 
 use std::borrow::ToOwned;
-use std::ptr;
 use std::ptr::NonNull;
 use std::rc::Rc;
 
@@ -1043,11 +1042,7 @@ impl TestBindingMethods for TestBinding {
 
     #[allow(unsafe_code)]
     fn CrashHard(&self) {
-        static READ_ONLY_VALUE: i32 = 0;
-        unsafe {
-            let p: *mut u32 = &READ_ONLY_VALUE as *const _ as *mut _;
-            ptr::write_volatile(p, 0xbaadc0de);
-        }
+        unsafe { std::ptr::null_mut::<i32>().write(42) }
     }
 
     fn AdvanceClock(&self, ms: i32) {

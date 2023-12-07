@@ -16,11 +16,11 @@
   <script>
     const link = document.getElementById("link");
     testNavigationApi("Test intercepted and rejected navigate event", e => {
-        timestamps[counter]["eventStart"] = performance.now();
         e.intercept({handler: async () => {
           await addImageToMain();
           throw new Error("This navigation handler rejected");
         }});
+        timestamps[counter]["eventEnd"] = performance.now();
       }, link);
   </script>
 </body>

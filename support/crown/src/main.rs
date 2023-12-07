@@ -42,7 +42,8 @@ impl Callbacks for MyCallbacks {
         config.register_lints = Some(Box::new(move |sess, lint_store| {
             // Skip checks for proc-macro crates.
             if sess
-                .crate_types()
+                .opts
+                .crate_types
                 .contains(&rustc_session::config::CrateType::ProcMacro)
             {
                 return;
@@ -58,7 +59,9 @@ impl Callbacks for MyCallbacks {
 }
 
 fn main() -> ExitCode {
-    rustc_driver::init_env_logger("CROWN_LOG");
+    let handler =
+        rustc_session::EarlyErrorHandler::new(rustc_session::config::ErrorOutputType::default());
+    rustc_driver::init_env_logger(&handler, "CROWN_LOG");
     let args: Vec<_> = std::env::args().collect();
 
     match rustc_driver::RunCompiler::new(&args, &mut MyCallbacks).run() {

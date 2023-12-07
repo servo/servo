@@ -4,8 +4,8 @@
 <body></body>
 <script>
   window.onmessage = (event) => {
+    window.onmessage = (event) => parent.postMessage(event.data, "*");
     const { url } = event.data;
-    const popup = window.open(url);
-    parent.postMessage(popup ? "success" : "failure", "*");
+    window.open(url);
   };
 </script>

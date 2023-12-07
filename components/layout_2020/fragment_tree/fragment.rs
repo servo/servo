@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use gfx::font::FontMetrics as GfxFontMetrics;
+use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
@@ -73,29 +73,6 @@ pub(crate) struct AnonymousFragment {
 
     /// The scrollable overflow of this anonymous fragment's children.
     pub scrollable_overflow: PhysicalRect<Length>,
-}
-
-#[derive(Clone, Copy, Serialize)]
-pub(crate) struct FontMetrics {
-    pub ascent: Length,
-    pub line_gap: Length,
-    pub underline_offset: Length,
-    pub underline_size: Length,
-    pub strikeout_offset: Length,
-    pub strikeout_size: Length,
-}
-
-impl From<&GfxFontMetrics> for FontMetrics {
-    fn from(metrics: &GfxFontMetrics) -> FontMetrics {
-        FontMetrics {
-            ascent: metrics.ascent.into(),
-            line_gap: metrics.line_gap.into(),
-            underline_offset: metrics.underline_offset.into(),
-            underline_size: metrics.underline_size.into(),
-            strikeout_offset: metrics.strikeout_offset.into(),
-            strikeout_size: metrics.strikeout_size.into(),
-        }
-    }
 }
 
 #[derive(Serialize)]

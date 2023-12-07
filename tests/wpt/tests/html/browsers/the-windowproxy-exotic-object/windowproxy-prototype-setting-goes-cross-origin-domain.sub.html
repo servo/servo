@@ -12,8 +12,6 @@
 
 <script>
 "use strict";
-setup({ explicit_done: true });
-
 window.onload = () => {
   const target = frames[0];
   const origProto = Object.getPrototypeOf(target);
@@ -33,7 +31,5 @@ window.onload = () => {
   testSettingImmutablePrototypeToNewValueOnly(
     "Became cross-origin via document.domain", target, origProto,
     "the original value from before going cross-origin", { isSameOriginDomain: false });
-
-  done();
 };
 </script>

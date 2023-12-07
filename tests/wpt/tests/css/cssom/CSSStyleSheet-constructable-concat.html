@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <meta charset="utf-8">
 <title>Adoptedstylesheets.concat should work when starting empty</title>
 <link rel="author" href="mailto:masonf@chromium.org">
@@ -7,15 +8,13 @@
 
 <span>This should be green</span>
 <div id=host></div>
-<pre id=errors></pre>
+<pre id=tests>Tests:
+</pre>
 
 <script>
 function assert_equals(val1,val2) {
-  if (val1 === val2) {
-    return;
-  }
-  const t = document.createTextNode(`FAIL! ${val1} should be equal to ${val2}\n`);
-  errors.appendChild(t);
+  const t = val1 === val2 ? 'PASS' : `FAIL! ${val1} !== ${val2}`;
+  tests.appendChild(document.createTextNode(`${t}\n`));
 }
 window.onload = () => {
   const sheet = new CSSStyleSheet();
@@ -30,5 +29,6 @@ window.onload = () => {
   assert_equals(shadow.adoptedStyleSheets.length,0);
   shadow.adoptedStyleSheets = shadow.adoptedStyleSheets.concat([sheet]);
   assert_equals(shadow.adoptedStyleSheets.length,1);
+  document.documentElement.classList.remove("reftest-wait");
 };
 </script>

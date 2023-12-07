@@ -15,49 +15,81 @@
 
 const {REMOTE_ORIGIN} = get_host_info();
 
-function crossOriginRedirectURL(path) {
-  const url = new URL(`/common/redirect.py`, REMOTE_ORIGIN);
-  url.searchParams.set("location", path);
+function corsify(url, cors) {
+  if (!cors)
+    return url.href;
+  url.searchParams.set("pipe", "header(Access-Control-Allow-Origin, *)");
   return url.href;
 }
 
-function test_source_location_pre_redirect({path, type, name}) {
-  promise_test(async t => {
-    const very_long_frame_duration = 360;
-    const url = crossOriginRedirectURL(path);
-    let [entry, script] = await expect_long_frame_with_script(() => {
-      const script = document.createElement("script");
-      script.src = url;
-      document.body.appendChild(script);
-      t.add_cleanup(() => script.remove());
-    }, script => (
-          script.type === type &&
-          (!name || script.name.startsWith(name)) &&
-          script.duration >= very_long_frame_duration), t);
+const targetURL = (path, cors) =>
+  corsify(new URL(path, REMOTE_ORIGIN), cors);
 
-      assert_true(script.sourceLocation.includes("redirect.py"),
-        `${script.sourceLocation} should be pre-redirect`);
-    }, `${type} doesn't expose post-redirect source location`);
+function crossOriginRedirectURL(path, cors) {
+  const url = new URL(`/common/redirect.py`, REMOTE_ORIGIN);
+  url.searchParams.set("location", targetURL(path, cors));
+  return corsify(url, cors);
 }
 
-test_source_location_pre_redirect({
+function test_source_location_with_redirect({path, type, name}) {
+  for (let scriptType of ["classic-opaque", "classic-cors", "module"]) {
+    const cors = scriptType !== "classic-opaque";
+    promise_test(async t => {
+      const VERY_LONG_FRAME_DURATION = 360;
+      const preRedirectURL = crossOriginRedirectURL(path, cors);
+      const postRedirectURL = targetURL(path, cors);
+      let [entry, script] = await expect_long_frame_with_script(() => {
+        const script = document.createElement("script");
+        script.src = preRedirectURL;
+        if (scriptType === "module")
+          script.type = "module";
+        else if (cors)
+          script.crossOrigin = "anonymous";
+        document.body.appendChild(script);
+        t.add_cleanup(() => script.remove());
+      }, script => script.duration >= VERY_LONG_FRAME_DURATION, t);
+
+      const result =
+        script.sourceLocation.startsWith(postRedirectURL) ? "post-redirect" :
+        script.sourceLocation.startsWith(preRedirectURL) ? "pre-redirect" :
+        script.sourceLocation === "" ?
+        "empty" : "other";
+
+      assert_not_equals(result, "other", `Unexpected source location ${script.sourceLocation}`);
+
+      if (cors) {
+        assert_not_equals(result, "empty", "CORS-ok scripts should expose sourceLocation");
+      } else {
+        const char_index = result === "empty" ? 0 :
+          parseInt(script.sourceLocation.match(/\:(\d+)$/)?.[1] ?? "0");
+        assert_not_equals(result, "post-redirect", "No-CORS classic scripts should not expose post-redirect URL");
+        assert_equals(char_index, 0, "No-CORS classic scripts should not expose character index");
+      }
+    }, `Test ${type} with ${scriptType}`);
+  }
+}
+
+test_source_location_with_redirect({
   path: "/long-animation-frame/tentative/resources/busy.js",
-  type: "classic-script"
+  type: "script-block"
 });
-test_source_location_pre_redirect({
+
+test_source_location_with_redirect({
   path: "/long-animation-frame/tentative/resources/raf-generates-loaf.js",
   name: "FrameRequestCallback",
   type: "user-callback"
 });
-test_source_location_pre_redirect({
-  path: "/long-animation-frame/tentative/resources/promise-generates-loaf.js",
-  type: "resolve-promise",
-  name: "Window.fetch.then"
-});
-test_source_location_pre_redirect({
+test_source_location_with_redirect({
   path: "/long-animation-frame/tentative/resources/event-generates-loaf.js",
   type: "event-listener",
   name: "XMLHttpRequest.onload"
 });
+
+test_source_location_with_redirect({
+  path: "/long-animation-frame/tentative/resources/promise-generates-loaf.js",
+  type: "resolve-promise",
+  name: "Window.fetch.then"
+});
+
 </script>
 </body>

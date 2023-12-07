@@ -104,8 +104,18 @@ async function exchangeOfferAnswer(pc1, pc2) {
   await pc1.setRemoteDescription(answer);
 }
 
-async function exchangeOfferAnswerReverse(pc1, pc2) {
+async function exchangeOfferAnswerReverse(pc1, pc2, encodedStreamsCallback) {
   const offer = await pc2.createOffer({offerToReceiveAudio: true, offerToReceiveVideo: true});
+  if (encodedStreamsCallback) {
+    // RTCRtpReceivers will have been created during the above createOffer call, so if the caller
+    // wants to createEncodedStreams synchronously after creation to ensure all frames pass
+    // through the transform, it will have to be done now.
+    encodedStreamsCallback(
+      pc2.getReceivers().map(r => {
+        return {kind: r.track.kind, streams: r.createEncodedStreams()};
+      }));
+  }
+
   // Munge the SDP to enable the GFD extension in order to get correct metadata.
   const sdpABS = enableExtension(offer.sdp, ABS_V00_EXTENSION);
   const sdpGFD = enableExtension(sdpABS, GFD_V00_EXTENSION);

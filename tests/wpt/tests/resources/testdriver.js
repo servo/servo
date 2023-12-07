@@ -647,7 +647,7 @@
          *
          * This function places `Secure Payment
          * Confirmation <https://w3c.github.io/secure-payment-confirmation>`_ into
-         * an automated 'autoaccept' or 'autoreject' mode, to allow testing
+         * an automated 'autoAccept' or 'autoReject' mode, to allow testing
          * without user interaction with the transaction UX prompt.
          *
          * Matches the `Set SPC Transaction Mode
@@ -667,8 +667,8 @@
          * @param {String} mode - The `transaction mode
          *                        <https://w3c.github.io/secure-payment-confirmation/#enumdef-transactionautomationmode>`_
          *                        to set. Must be one of "``none``",
-         *                        "``autoaccept``", or
-         *                        "``autoreject``".
+         *                        "``autoAccept``", or
+         *                        "``autoReject``".
          * @param {WindowProxy} context - Browsing context in which
          *                                to run the call, or null for the current
          *                                browsing context.
@@ -678,6 +678,42 @@
          */
         set_spc_transaction_mode: function(mode, context=null) {
           return window.test_driver_internal.set_spc_transaction_mode(mode, context);
+        },
+
+        /**
+         * Sets the current registration automation mode for Register Protocol Handlers.
+         *
+         * This function places `Register Protocol Handlers
+         * <https://html.spec.whatwg.org/multipage/system-state.html#custom-handlers>`_ into
+         * an automated 'autoAccept' or 'autoReject' mode, to allow testing
+         * without user interaction with the transaction UX prompt.
+         *
+         * Matches the `Set Register Protocol Handler Mode
+         * <https://html.spec.whatwg.org/multipage/system-state.html#set-rph-registration-mode>`_
+         * WebDriver command.
+         *
+         * @example
+         * await test_driver.set_rph_registration_mode("autoAccept");
+         * test.add_cleanup(() => {
+         *   return test_driver.set_rph_registration_mode("none");
+         * });
+         *
+         * navigator.registerProtocolHandler('web+soup', 'soup?url=%s');
+         *
+         * @param {String} mode - The `registration mode
+         *                        <https://html.spec.whatwg.org/multipage/system-state.html#registerprotocolhandler()-automation-mode>`_
+         *                        to set. Must be one of "``none``",
+         *                        "``autoAccept``", or
+         *                        "``autoReject``".
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         *
+         * @returns {Promise} Fulfilled after the transaction mode has been set,
+         *                    or rejected if setting the mode fails.
+         */
+        set_rph_registration_mode: function(mode, context=null) {
+          return window.test_driver_internal.set_rph_registration_mode(mode, context);
         },
 
         /**
@@ -1092,6 +1128,10 @@
 
         async set_spc_transaction_mode(mode, context=null) {
             throw new Error("set_spc_transaction_mode() is not implemented by testdriver-vendor.js");
+        },
+
+        set_rph_registration_mode: function(mode, context=null) {
+            return Promise.reject(new Error("unimplemented"));
         },
 
         async cancel_fedcm_dialog(context=null) {

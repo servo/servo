@@ -23,7 +23,6 @@
       await new Promise(r => step_timeout(r, 0));
 
       const navigate_callback = e => {
-        timestamps[counter]["eventStart"] = performance.now();
         e.intercept({
           async handler() {
             const lcp_promise = new Promise(resolve => {
@@ -41,6 +40,7 @@
             await lcp_promise;
           }
         });
+        timestamps[counter]["eventEnd"] = performance.now();
       };
 
       const link = document.getElementById("link");

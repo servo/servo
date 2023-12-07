@@ -6,7 +6,7 @@
 async_test(t => {
   let events = [];
   function finish() {
-    assert_array_equals(events, ["onnavigate", "readystateinteractive", "domcontentloaded", "readystatecomplete", "onload", "onpageshow"]);
+    assert_array_equals(events, ["onnavigate", "onunload", "readystateinteractive", "domcontentloaded", "readystatecomplete", "onload", "onpageshow"]);
     t.done();
   };
 
@@ -24,6 +24,7 @@ async_test(t => {
       i.contentDocument.addEventListener("DOMContentLoaded", () => events.push("domcontentloaded"));
       i.contentDocument.onreadystatechange = () => events.push("readystate" + i.contentDocument.readyState);
     };
+    i.contentWindow.onunload = () => events.push("onunload");
     i.contentWindow.navigation.onnavigate = () => events.push("onnavigate");
     i.contentWindow.navigation.navigate("?1").committed.then(
         () => events.push("promisefulfilled"), () => events.push("promiserejected"));
