@@ -35,7 +35,7 @@ jobs:
       - uses: actions/download-artifact@v3
       - name: Prep environment
         run: |
-          python3 -m pip install --upgrade pip virtualenv
+          python3 -m pip install --upgrade pip
           sudo apt update
           python3 ./mach bootstrap
       - name: Add upstream remote
