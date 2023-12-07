@@ -123,9 +123,8 @@ class MachCommands(CommandBase):
             for key in env:
                 print((key, env[key]))
 
-        self.download_and_build_android_dependencies_if_needed(env)
-        import pprint
-        pprint.pprint(env)
+        # FIXME: disabled until GStreamer support is enabled
+        # self.download_and_build_android_dependencies_if_needed(env)
 
         status = self.run_cargo_build_like_command(
             "build", opts, env=env, verbose=verbose,
@@ -225,33 +224,33 @@ class MachCommands(CommandBase):
 
         # Build the name of the package containing all GStreamer dependencies
         # according to the build target.
-        #android_lib = self.config["android"]["lib"]
-        #gst_lib = f"gst-build-{android_lib}"
-        #gst_lib_zip = f"gstreamer-{android_lib}-1.16.0-20190517-095630.zip"
-        #gst_lib_path = os.path.join(self.target_path, "gstreamer", gst_lib)
-        #pkg_config_path = os.path.join(gst_lib_path, "pkgconfig")
-        #env["PKG_CONFIG_PATH"] = pkg_config_path
-        #if not os.path.exists(gst_lib_path):
-        #    # Download GStreamer dependencies if they have not already been downloaded
-        #    # This bundle is generated with `libgstreamer_android_gen`
-        #    # Follow these instructions to build and deploy new binaries
-        #    # https://github.com/servo/libgstreamer_android_gen#build
-        #    gst_url = f"https://servo-deps-2.s3.amazonaws.com/gstreamer/{gst_lib_zip}"
-        #    print(f"Downloading GStreamer dependencies ({gst_url})")
+        android_lib = self.config["android"]["lib"]
+        gst_lib = f"gst-build-{android_lib}"
+        gst_lib_zip = f"gstreamer-{android_lib}-1.16.0-20190517-095630.zip"
+        gst_lib_path = os.path.join(self.target_path, "gstreamer", gst_lib)
+        pkg_config_path = os.path.join(gst_lib_path, "pkgconfig")
+        env["PKG_CONFIG_PATH"] = pkg_config_path
+        if not os.path.exists(gst_lib_path):
+            # Download GStreamer dependencies if they have not already been downloaded
+            # This bundle is generated with `libgstreamer_android_gen`
+            # Follow these instructions to build and deploy new binaries
+            # https://github.com/servo/libgstreamer_android_gen#build
+            gst_url = f"https://servo-deps-2.s3.amazonaws.com/gstreamer/{gst_lib_zip}"
+            print(f"Downloading GStreamer dependencies ({gst_url})")
 
-        #    urllib.request.urlretrieve(gst_url, gst_lib_zip)
-        #    zip_ref = zipfile.ZipFile(gst_lib_zip, "r")
-        #    zip_ref.extractall(os.path.join(self.target_path, "gstreamer"))
-        #    os.remove(gst_lib_zip)
+            urllib.request.urlretrieve(gst_url, gst_lib_zip)
+            zip_ref = zipfile.ZipFile(gst_lib_zip, "r")
+            zip_ref.extractall(os.path.join(self.target_path, "gstreamer"))
+            os.remove(gst_lib_zip)
 
-        #    # Change pkgconfig info to make all GStreamer dependencies point
-        #    # to the libgstreamer_android.so bundle.
-        #    for each in os.listdir(pkg_config_path):
-        #        if each.endswith('.pc'):
-        #            print(f"Setting pkgconfig info for {each}")
-        #            target_path = os.path.join(pkg_config_path, each)
-        #            expr = f"s#libdir=.*#libdir={gst_lib_path}#g"
-        #            subprocess.call(["perl", "-i", "-pe", expr, target_path])
+            # Change pkgconfig info to make all GStreamer dependencies point
+            # to the libgstreamer_android.so bundle.
+            for each in os.listdir(pkg_config_path):
+                if each.endswith('.pc'):
+                    print(f"Setting pkgconfig info for {each}")
+                    target_path = os.path.join(pkg_config_path, each)
+                    expr = f"s#libdir=.*#libdir={gst_lib_path}#g"
+                    subprocess.call(["perl", "-i", "-pe", expr, target_path])
 
     @Command('clean',
              description='Clean the target/ and python/_venv[version]/ directories',
