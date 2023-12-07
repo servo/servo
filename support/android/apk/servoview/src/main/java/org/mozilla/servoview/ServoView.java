@@ -263,7 +263,7 @@ public class ServoView extends SurfaceView
     }
 
     @Override
-    public boolean onTouchEvent(MotionEvent e) {
+    public boolean onTouchEvent(final MotionEvent e) {
         mGestureDetector.onTouchEvent(e);
         mScaleGestureDetector.onTouchEvent(e);
 
@@ -274,6 +274,7 @@ public class ServoView extends SurfaceView
 
         int pointerIndex = e.getActionIndex();
         int pointerId = e.getPointerId(pointerIndex);
+
         switch (action) {
             case (MotionEvent.ACTION_DOWN):
             case (MotionEvent.ACTION_POINTER_DOWN):
@@ -354,28 +355,24 @@ public class ServoView extends SurfaceView
 
     class GLThread extends Thread implements SurfaceHolder.Callback {
         private Activity mActivity;
-        private ServoView mSurface;
-        GLThread(Activity activity, ServoView surface) {
+        private ServoView mServoView;
+        GLThread(Activity activity, ServoView servoView) {
             mActivity = activity;
-            mSurface = surface;
-        }
-
-        public void inUIThread(Runnable r) {
-            mSurface.inUIThread(r);
+            mServoView = servoView;
         }
 
         public void surfaceCreated(SurfaceHolder holder) {
             Log.d(LOGTAG, "GLThread::surfaceCreated");
 
             ServoCoordinates coords = new ServoCoordinates();
-            coords.width = mSurface.getWidth();
-            coords.height = mSurface.getHeight();
-            coords.fb_width = mSurface.getWidth();
-            coords.fb_height = mSurface.getHeight();
+            coords.width = mServoView.getWidth();
+            coords.height = mServoView.getHeight();
+            coords.fb_width = mServoView.getWidth();
+            coords.fb_height = mServoView.getHeight();
 
             Surface surface = holder.getSurface();
             ServoOptions options = new ServoOptions();
-            options.args = mSurface.mServoArgs;
+            options.args = mServoView.mServoArgs;
             options.coordinates = coords;
             options.enableLogs = true;
             options.enableSubpixelTextAntialiasing = true;
@@ -383,11 +380,12 @@ public class ServoView extends SurfaceView
             DisplayMetrics metrics = new DisplayMetrics();
             mActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
             options.density = metrics.density;
-            if (mSurface.mServo == null && !mPaused) {
-                mSurface.mServo = new Servo(options, mSurface, mSurface, mClient, mActivity, surface);
+            if (mServoView.mServo == null && !mPaused) {
+                mServoView.mServo = new Servo(
+                        options, mServoView, mServoView, mClient, mActivity, surface);
             } else {
                 mPaused = false;
-                mSurface.mServo.resumeCompositor(surface, coords);
+                mServoView.mServo.resumeCompositor(surface, coords);
             }
 
         }
@@ -400,15 +398,13 @@ public class ServoView extends SurfaceView
             coords.fb_width = width;
             coords.fb_height = height;
 
-            if (mSurface.mServo != null) {
-                mSurface.mServo.resize(coords);
-            }
+            mServoView.mServo.resize(coords);
         }
 
         public void surfaceDestroyed(SurfaceHolder holder) {
             Log.d(LOGTAG, "GLThread::surfaceDestroyed");
             mPaused = true;
-            mSurface.mServo.pauseCompositor();
+            mServoView.mServo.pauseCompositor();
         }
 
         public void shutdown() {
