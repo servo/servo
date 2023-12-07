@@ -133,7 +133,7 @@ def _activate_virtualenv(topdir):
     virtualenv_path = os.path.join(topdir, "python", "_venv%d.%d" % (sys.version_info[0], sys.version_info[1]))
     python = sys.executable
 
-    if os.environ.get("VIRUTAL_ENV") != virtualenv_path:
+    if os.environ.get("VIRTUAL_ENV") != virtualenv_path:
         venv_script_path = os.path.join(virtualenv_path, _get_virtualenv_script_dir())
         if not os.path.exists(virtualenv_path):
             _process_exec([python, "-m", "venv", "--system-site-packages", virtualenv_path])
