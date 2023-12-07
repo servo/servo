@@ -150,6 +150,10 @@ def _activate_virtualenv(topdir):
         sys.real_prefix = sys.prefix
         sys.prefix = virtualenv_path
 
+        # Use the python in our venv for subprocesses, not the python we were originally run with.
+        # Otherwise pip may still try to write to the wrong site-packages directory.
+        python = os.path.join(venv_script_path, "python")
+
     # TODO: Right now, we iteratively install all the requirements by invoking
     # `pip install` each time. If it were the case that there were conflicting
     # requirements, we wouldn't know about them. Once
