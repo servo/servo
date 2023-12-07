@@ -135,7 +135,6 @@ public class ServoView extends SurfaceView
     }
 
     public void doFrame(long frameTimeNanos) {
-        Log.i(LOGTAG, ":::doFrame");
         if (!mRedrawing) {
             mRedrawing = true;
             mClient.onRedrawing(mRedrawing);
@@ -278,7 +277,6 @@ public class ServoView extends SurfaceView
         switch (action) {
             case (MotionEvent.ACTION_DOWN):
             case (MotionEvent.ACTION_POINTER_DOWN):
-                //mServo.touchDown(x, y, pointerId);
                 mFlinging = false;
                 mScroller.forceFinished(true);
                 mCurX = (int) x;
@@ -289,14 +287,11 @@ public class ServoView extends SurfaceView
             case (MotionEvent.ACTION_MOVE):
                 mCurX = (int) x;
                 mCurY = (int) y;
-                //mServo.touchMove(x, y, pointerId);
                 return true;
             case (MotionEvent.ACTION_UP):
             case (MotionEvent.ACTION_POINTER_UP):
-                //mServo.touchUp(x, y, pointerId);
                 return true;
             case (MotionEvent.ACTION_CANCEL):
-                //mServo.touchCancel(x, y, pointerId);
                 return true;
             default:
                 return true;
@@ -308,13 +303,11 @@ public class ServoView extends SurfaceView
     }
 
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        Log.i(LOGTAG, ":::::::onScroll");
         mServo.scroll((int) -distanceX, (int) -distanceY, (int) e1.getX(), (int) e1.getY());
         return true;
     }
 
     public boolean onSingleTapUp(MotionEvent e) {
-        Log.i(LOGTAG, String.format("::onSingleTapUp %1$f %2$f", e.getX(), e.getY()));
         click(e.getX(), e.getY());
         return false;
     }
@@ -420,7 +413,6 @@ public class ServoView extends SurfaceView
 
         public void shutdown() {
             Log.d(LOGTAG, "GLThread::shutdown");
-            // mSurface.destroy();
             mGLLooperHandler.getLooper().quitSafely();
         }
 
