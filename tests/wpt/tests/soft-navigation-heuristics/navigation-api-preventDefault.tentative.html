@@ -19,12 +19,12 @@
     testSoftNavigationNotDetected({
       testName: "Aborted navigate event is not a soft navigation",
       eventHandler: e => {
-        timestamps[counter]["eventStart"] = performance.now();
         e.intercept({handler: async () => {
           await addImageToMain();
           main.appendChild(img);
         }});
         e.preventDefault();
+        timestamps[counter]["eventEnd"] = performance.now();
       },
       eventTarget: navigation,
       eventName: "navigate",

@@ -18,13 +18,13 @@
     </svg>
 </div>
 <script>
-    addEventListener("load", () => {
-        setTimeout(() => {
-            requestAnimationFrame(() => {
-                container.classList.add("green");
-                document.documentElement.classList.remove("reftest-wait");
-            });
-        }, 0);
+  addEventListener("load", () => {
+    requestAnimationFrame(() => {
+      container.classList.add("green");
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove("reftest-wait");
+      });
     });
+  });
 </script>
 </html>

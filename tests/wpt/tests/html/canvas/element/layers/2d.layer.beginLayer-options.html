@@ -36,12 +36,14 @@ _addTest(function(canvas, ctx) {
   ctx.beginLayer({filter: []}); ctx.endLayer();
   ctx.beginLayer({filter: {}}); ctx.endLayer();
   ctx.beginLayer({filter: {name: "unknown"}}); ctx.endLayer();
+  ctx.beginLayer({filter: ''}); ctx.endLayer();
 
-  assert_throws_js(TypeError, function() { ctx.beginLayer({filter: ''}); });
-  assert_throws_js(TypeError, function() { ctx.beginLayer({filter: 0}); });
-  assert_throws_js(TypeError, function() { ctx.beginLayer({filter: 1}); });
-  assert_throws_js(TypeError, function() { ctx.beginLayer({filter: true}); });
-  assert_throws_js(TypeError, function() { ctx.beginLayer({filter: false}); });
+  // These cases don't throw TypeError since they can be casted to a
+  // DOMString.
+  ctx.beginLayer({filter: 0}); ctx.endLayer();
+  ctx.beginLayer({filter: 1}); ctx.endLayer();
+  ctx.beginLayer({filter: true}); ctx.endLayer();
+  ctx.beginLayer({filter: false}); ctx.endLayer();
 
 });
 </script>

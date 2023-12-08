@@ -50,10 +50,14 @@
 </div>
 
 <script>
-promise_test(t => new Promise(async (resolve, reject) => {
-    await new Promise((waited, _) => {
-        requestAnimationFrame(() => requestAnimationFrame(waited));
-    });
+function tick() {
+  return new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve));
+  });
+}
+
+promise_test(async () => {
+    await tick();
 
     function waitForEvent() {
         return new Promise(resolve => e3.addEventListener('contentvisibilityautostatechange', resolve));
@@ -73,9 +77,7 @@ promise_test(t => new Promise(async (resolve, reject) => {
     target.scrollIntoView();
     await waitForEvent();
     await waitForEvent();
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-        assert_equals(eventCounter, 2, "There should be two contentvisibilityautostatechange events.");
-        resolve();
-    }));
-}), "ContentVisibilityAutoStateChange fires twice when `scrollIntoView` a descendant of `content-visibility:auto` which is hidden after scrolling");
+    await tick();
+    assert_equals(eventCounter, 2, "There should be two contentvisibilityautostatechange events.");
+}, "ContentVisibilityAutoStateChange fires twice when `scrollIntoView` a descendant of `content-visibility:auto` which is hidden after scrolling");
 </script>

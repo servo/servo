@@ -17,6 +17,7 @@ use gleam::gl;
 use glow::NativeFramebuffer;
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
+use servo::msg::constellation_msg::TraversalDirection;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
@@ -45,6 +46,8 @@ pub struct Minibrowser {
 pub enum MinibrowserEvent {
     /// Go button clicked.
     Go,
+    Back,
+    Forward,
 }
 
 impl Minibrowser {
@@ -143,29 +146,44 @@ impl Minibrowser {
                 TopBottomPanel::top("toolbar").show(ctx, |ui| {
                     ui.allocate_ui_with_layout(
                         ui.available_size(),
-                        egui::Layout::right_to_left(egui::Align::Center),
+                        egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
-                            if ui.button("go").clicked() {
-                                event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                location_dirty.set(false);
+                            if ui.button("back").clicked() {
+                                event_queue.borrow_mut().push(MinibrowserEvent::Back);
                             }
-
-                            let location_field = ui.add_sized(
+                            if ui.button("forward").clicked() {
+                                event_queue.borrow_mut().push(MinibrowserEvent::Forward);
+                            }
+                            ui.allocate_ui_with_layout(
                                 ui.available_size(),
-                                egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.button("go").clicked() {
+                                        event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                                        location_dirty.set(false);
+                                    }
+
+                                    let location_field = ui.add_sized(
+                                        ui.available_size(),
+                                        egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                                    );
+
+                                    if location_field.changed() {
+                                        location_dirty.set(true);
+                                    }
+                                    if ui.input(|i| {
+                                        i.clone().consume_key(Modifiers::COMMAND, Key::L)
+                                    }) {
+                                        location_field.request_focus();
+                                    }
+                                    if location_field.lost_focus() &&
+                                        ui.input(|i| i.clone().key_pressed(Key::Enter))
+                                    {
+                                        event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                                        location_dirty.set(false);
+                                    }
+                                },
                             );
-                            if location_field.changed() {
-                                location_dirty.set(true);
-                            }
-                            if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
-                                location_field.request_focus();
-                            }
-                            if location_field.lost_focus() &&
-                                ui.input(|i| i.clone().key_pressed(Key::Enter))
-                            {
-                                event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                location_dirty.set(false);
-                            }
                         },
                     );
                     ui.cursor().min.y
@@ -248,6 +266,14 @@ impl Minibrowser {
 
     /// Paint the minibrowser, as of the last update.
     pub fn paint(&mut self, window: &winit::window::Window) {
+        let our_fbo = NonZeroU32::new(self.widget_surface_fbo).map(NativeFramebuffer);
+        unsafe {
+            use glow::HasContext as _;
+            self.context
+                .painter
+                .gl()
+                .bind_framebuffer(gl::FRAMEBUFFER, our_fbo);
+        }
         self.context.paint(window);
     }
 
@@ -269,6 +295,20 @@ impl Minibrowser {
                         warn!("failed to parse location");
                         break;
                     }
+                },
+                MinibrowserEvent::Back => {
+                    let browser_id = browser.browser_id().unwrap();
+                    app_event_queue.push(EmbedderEvent::Navigation(
+                        browser_id,
+                        TraversalDirection::Back(1),
+                    ));
+                },
+                MinibrowserEvent::Forward => {
+                    let browser_id = browser.browser_id().unwrap();
+                    app_event_queue.push(EmbedderEvent::Navigation(
+                        browser_id,
+                        TraversalDirection::Forward(1),
+                    ));
                 },
             }
         }

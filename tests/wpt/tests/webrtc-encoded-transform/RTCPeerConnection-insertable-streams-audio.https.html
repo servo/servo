@@ -12,10 +12,10 @@
 </head>
 <body>
 <script>
-async function testAudioFlow(t, negotiationFunction, perFrameCallback = () => {}) {
-  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
+async function testAudioFlow(t, negotiationFunction, setConstructorParam, perFrameCallback = () => {}) {
+  const caller = new RTCPeerConnection(setConstructorParam ? {encodedInsertableStreams:true} : {});
   t.add_cleanup(() => caller.close());
-  const callee = new RTCPeerConnection({encodedInsertableStreams:true});
+  const callee = new RTCPeerConnection(setConstructorParam ? {encodedInsertableStreams:true} : {});
   t.add_cleanup(() => callee.close());
 
   await setMediaPermission("granted", ["microphone"]);
@@ -34,15 +34,26 @@ async function testAudioFlow(t, negotiationFunction, perFrameCallback = () => {}
   const numFramesModifyData = 5;
   const numFramesToSend = numFramesPassthrough + numFramesReplaceData + numFramesModifyData;
 
+  let streamsCreatedAtNegotiation;
+
   const ontrackPromise = new Promise(resolve => {
     callee.ontrack = t.step_func(() => {
       const audioReceiver = callee.getReceivers().find(r => r.track.kind === 'audio');
       assert_not_equals(audioReceiver, undefined);
 
-      const receiverStreams =
+      let receiverReader;
+      let receiverWriter;
+      if (streamsCreatedAtNegotiation) {
+        const audioStreams = streamsCreatedAtNegotiation.find(r => r.kind === 'audio');
+        assert_true(!!audioStreams);
+        receiverReader = audioStreams.streams.readable.getReader();
+        receiverWriter = audioStreams.streams.writable.getWriter();
+      } else {
+        const receiverStreams =
           audioReceiver.createEncodedStreams();
-      const receiverReader = receiverStreams.readable.getReader();
-      const receiverWriter = receiverStreams.writable.getWriter();
+        receiverReader = receiverStreams.readable.getReader();
+        receiverWriter = receiverStreams.writable.getWriter();
+      }
 
       const maxFramesToReceive = numFramesToSend;
       let numVerifiedFrames = 0;
@@ -66,7 +77,7 @@ async function testAudioFlow(t, negotiationFunction, perFrameCallback = () => {}
   });
 
   exchangeIceCandidates(caller, callee);
-  await negotiationFunction(caller, callee);
+  await negotiationFunction(caller, callee, (streams) => {streamsCreatedAtNegotiation = streams;});
 
   // Pass frames as they come from the encoder.
   for (let i = 0; i < numFramesPassthrough; i++) {
@@ -125,53 +136,15 @@ async function testAudioFlow(t, negotiationFunction, perFrameCallback = () => {}
   return ontrackPromise;
 }
 
-promise_test(async t => {
-  return testAudioFlow(t, exchangeOfferAnswer);
-}, 'Frames flow correctly using insertable streams');
+for (const setConstructorParam of [false, true]) {
+  promise_test(async t => {
+    return testAudioFlow(t, exchangeOfferAnswer, setConstructorParam);
+  }, 'Frames flow correctly using insertable streams' + (setConstructorParam ? ' with param' : ''));
 
-promise_test(async t => {
-  return testAudioFlow(t, exchangeOfferAnswerReverse);
-}, 'Frames flow correctly using insertable streams when receiver starts negotiation');
-
-promise_test(async t => {
-  const caller = new RTCPeerConnection();
-  t.add_cleanup(() => caller.close());
-  const callee = new RTCPeerConnection();
-  t.add_cleanup(() => callee.close());
-  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  const audioTrack = stream.getAudioTracks()[0];
-  t.add_cleanup(() => audioTrack.stop());
-
-  exchangeIceCandidates(caller, callee);
-  await exchangeOfferAnswer(caller, callee);
-
-  const audioSender = caller.addTrack(audioTrack);
-  assert_throws_dom("InvalidStateError", () => audioSender.createEncodedStreams());
-}, 'RTCRtpSender.createEncodedStream() throws if not requested in PC configuration');
-
-promise_test(async t => {
-  const caller = new RTCPeerConnection();
-  t.add_cleanup(() => caller.close());
-  const callee = new RTCPeerConnection();
-  t.add_cleanup(() => callee.close());
-  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  const audioTrack = stream.getAudioTracks()[0];
-  t.add_cleanup(() => audioTrack.stop());
-
-  const audioSender = caller.addTrack(audioTrack);
-  const ontrackPromise = new Promise(resolve => {
-    callee.ontrack = t.step_func(() => {
-      const audioReceiver = callee.getReceivers().find(r => r.track.kind === 'audio');
-      assert_not_equals(audioReceiver, undefined);
-      assert_throws_dom("InvalidStateError", () => audioReceiver.createEncodedStreams());
-      resolve();
-    });
-  });
-
-  exchangeIceCandidates(caller, callee);
-  await exchangeOfferAnswer(caller, callee);
-  return ontrackPromise;
-}, 'RTCRtpReceiver.createEncodedStream() throws if not requested in PC configuration');
+  promise_test(async t => {
+    return testAudioFlow(t, exchangeOfferAnswerReverse, setConstructorParam);
+  }, 'Frames flow correctly using insertable streams when receiver starts negotiation' + (setConstructorParam ? ' with param' : ''));
+}
 
 promise_test(async t => {
   const caller = new RTCPeerConnection({encodedInsertableStreams:true});
@@ -223,7 +196,7 @@ promise_test(async t => {
   };
 
   await testAudioFlow(
-    t, exchangeOfferAnswer, verifyFramesSerializeAndDeserialize);
+    t, exchangeOfferAnswer, /*setConstructorParam=*/false, verifyFramesSerializeAndDeserialize);
 
   // Ensure all of our cloned frames are still alive and well, despite the
   // originals having been sent through the PeerConnection.
@@ -247,7 +220,7 @@ promise_test(async t => {
   // Run audio flows which will assert that the frames received have the
   // rtp timestamp set by our modification.
   await testAudioFlow(
-    t, exchangeOfferAnswer, rewriteFrameTimestamps);
+    t, exchangeOfferAnswer, /*setConstructorParam=*/false, rewriteFrameTimestamps);
 }, 'Modifying rtp timestamp');
 
 </script>

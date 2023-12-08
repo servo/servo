@@ -1,0 +1,22 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script>
+    function loadImage(url, hasSharedStorageWritableAttribute) {
+      return new Promise(function(resolve, reject) {
+        var img = document.createElement('img');
+        document.body.appendChild(img);
+        img.onload = function() {
+          resolve(img);
+        };
+        img.onerror = function() {
+          reject(new Error('Image load failed'));
+        };
+        if (hasSharedStorageWritableAttribute) {
+          img.sharedStorageWritable = true;
+        }
+        img.src = url;
+      });
+    }
+  </script>
+</body>

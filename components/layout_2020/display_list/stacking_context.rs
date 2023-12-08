@@ -586,10 +586,15 @@ impl StackingContext {
             return;
         };
 
-        let StackingContextContent::Fragment { fragment, scroll_node_id, containing_block, .. }
-            = first_stacking_context_fragment else {
-                debug_panic!("Expected a fragment, not a stacking container");
-            };
+        let StackingContextContent::Fragment {
+            fragment,
+            scroll_node_id,
+            containing_block,
+            ..
+        } = first_stacking_context_fragment
+        else {
+            debug_panic!("Expected a fragment, not a stacking container");
+        };
         let fragment = fragment.borrow();
         let box_fragment = match &*fragment {
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => box_fragment,

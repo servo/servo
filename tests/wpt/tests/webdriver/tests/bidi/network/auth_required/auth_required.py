@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 
 from .. import assert_response_event
@@ -54,23 +52,12 @@ async def test_subscribe_status(
         redirect_count=0,
     )
 
-    await bidi_session.session.unsubscribe(events=[AUTH_REQUIRED_EVENT])
-
-    # Navigate to authentication.py again and check no new event is received.
-    await bidi_session.browsing_context.navigate(
-        context=new_tab["context"],
-        url=auth_url,
-        wait="none",
-    )
-    await asyncio.sleep(0.5)
-    assert len(events) == 1
-
     remove_listener()
 
 
 @pytest.mark.asyncio
 async def test_no_authentication(
-    bidi_session, new_tab, subscribe_events, wait_for_event, url
+    bidi_session, new_tab, subscribe_events, url
 ):
     await subscribe_events(events=[AUTH_REQUIRED_EVENT])
 

@@ -588,7 +588,32 @@ test(function() {
   el.setAttributeNode(attr2);
   assert_equals(el.getAttributeNodeNS("ns1", "name").value, "value1");
   assert_equals(el.getAttributeNodeNS("ns1", "NAME").value, "VALUE2");
-}, "setAttributeNode doesn't have case-insensitivity even with an HTMLElement")
+}, "setAttributeNode doesn't have case-insensitivity even with an HTMLElement 1")
+
+test(function() {
+  var el = document.createElement("div");
+  var attr1 = document.createAttributeNS("ns1", "FOOBAR");
+  var attr2 = document.createAttributeNS("ns1", "FOOBAR");
+  assert_equals(el.setAttributeNode(attr1), null);
+  assert_equals(attr1.ownerElement, el);
+  assert_equals(attr2.ownerElement, null);
+  var oldAttr = el.setAttributeNode(attr2);
+  assert_equals(oldAttr, attr1);
+  assert_equals(attr1.ownerElement, null);
+  assert_equals(attr2.ownerElement, el);
+}, "setAttributeNode doesn't have case-insensitivity even with an HTMLElement 2")
+
+test(function() {
+  var el = document.createElement("div");
+  var attr1 = document.createAttributeNS("ns1", "foobar");
+  var attr2 = document.createAttributeNS("ns1", "FOOBAR");
+  assert_equals(el.setAttributeNode(attr1), null);
+  assert_equals(attr1.ownerElement, el);
+  assert_equals(attr2.ownerElement, null);
+  assert_equals(el.setAttributeNode(attr2), null);
+  assert_equals(attr1.ownerElement, el);
+  assert_equals(attr2.ownerElement, el);
+}, "setAttributeNode doesn't have case-insensitivity even with an HTMLElement 3")
 
 test(function() {
   var el = document.createElement("div")

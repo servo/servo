@@ -640,7 +640,7 @@ class TestRunnerManager(threading.Thread):
         self.recording.set(["testrunner", "test"] + self.state.test.id.split("/")[1:])
         self.logger.test_start(self.state.test.id, subsuite=self.state.subsuite)
         if self.rerun > 1:
-            self.logger.info("Run %d/%d" % (self.run_count, self.rerun))
+            self.logger.info(f"Run {self.run_count + 1}/{self.rerun}")
             self.send_message("reset")
         self.run_count += 1
         if self.debug_info is None:

@@ -1,0 +1,33 @@
+<!doctype html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script>
+promise_test(async t => {
+  let i = document.createElement("iframe");
+  i.src = "resources/cross-origin-redirect-on-second-visit.py?key=" + token();
+  document.body.appendChild(i);
+
+  // Wait for after the load event so that the navigation doesn't get converted
+  // into a replace navigation.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  let original_iframe_url = i.contentWindow.location.href;
+
+  // Do a cross-document push navigation in the iframe.
+  i.contentWindow.navigation.navigate("/common/blank.html");
+  await new Promise(resolve => i.onload = resolve);
+
+  // Go back. This will trigger a cross-origin redirect, but the navigate event
+  // should still fire, and the event url should be the pre-redirect url (which
+  // is same-origin).
+  history.back();
+  let navigate_event_url = await new Promise(resolve => i.contentWindow.navigation.onnavigate = e => {
+    resolve(e.destination.url);
+  });
+  await new Promise(resolve => i.onload = resolve);
+  assert_equals(navigate_event_url, original_iframe_url);
+}, "A traversal that redirects from same-origin to cross-origin fires the navigate event");
+</script>
+</body>

@@ -86,7 +86,7 @@ window.onload = () => {
       assert_equals(0,hideCount);
       assert_equals(0,afterShowCount);
       assert_equals(0,afterHideCount);
-      await waitForTick();
+      await waitForRender();
       assert_equals(1,afterShowCount,'toggle show is fired asynchronously');
       assert_equals(0,afterHideCount);
       assert_true(popover.matches(':popover-open'));
@@ -96,12 +96,12 @@ window.onload = () => {
       assert_equals(1,hideCount);
       assert_equals(1,afterShowCount);
       assert_equals(0,afterHideCount);
-      await waitForTick();
+      await waitForRender();
       assert_equals(1,afterShowCount);
       assert_equals(1,afterHideCount,'toggle hide is fired asynchronously');
       // No additional events
-      await waitForTick();
-      await waitForTick();
+      await waitForRender();
+      await waitForRender();
       assert_false(popover.matches(':popover-open'));
       assert_equals(1,showCount);
       assert_equals(1,hideCount);
@@ -139,8 +139,8 @@ window.onload = () => {
     assert_true(popover.matches(':popover-open'));
     t.add_cleanup(() => {document.body.appendChild(popover);});
     popover.remove();
-    await waitForTick(); // Check for async events also
-    await waitForTick(); // Check for async events also
+    await waitForRender(); // Check for async events also
+    await waitForRender(); // Check for async events also
     assert_false(popover.matches(':popover-open'));
   }, 'The "beforetoggle" event is not fired for element removal');
 
@@ -188,27 +188,27 @@ window.onload = () => {
     assertOnly('none');
     assert_false(popover.matches(':popover-open'));
     popover.showPopover();
-    await waitForTick();
+    await waitForRender();
     assert_true(popover.matches(':popover-open'));
     assertOnly('singleShow','Single event should have been fired, which is a "show"');
 
     resetEvents();
     popover.hidePopover();
     popover.showPopover(); // Immediate re-show
-    await waitForTick();
+    await waitForRender();
     assert_true(popover.matches(':popover-open'));
     assertOnly('coalescedShow','Single coalesced event should have been fired, which is a "show"');
 
     resetEvents();
     popover.hidePopover();
-    await waitForTick();
+    await waitForRender();
     assertOnly('singleHide','Single event should have been fired, which is a "hide"');
     assert_false(popover.matches(':popover-open'));
 
     resetEvents();
     popover.showPopover();
     popover.hidePopover(); // Immediate re-hide
-    await waitForTick();
+    await waitForRender();
     assertOnly('coalescedHide','Single coalesced event should have been fired, which is a "hide"');
     assert_false(popover.matches(':popover-open'));
   }, 'The "toggle" event is coalesced');

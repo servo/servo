@@ -13,47 +13,6 @@
 <body>
 <script>
 promise_test(async t => {
-  const caller = new RTCPeerConnection();
-  t.add_cleanup(() => caller.close());
-  const callee = new RTCPeerConnection();
-  t.add_cleanup(() => callee.close());
-  await setMediaPermission("granted", ["camera"]);
-  const stream = await navigator.mediaDevices.getUserMedia({video:true});
-  const videoTrack = stream.getVideoTracks()[0];
-  t.add_cleanup(() => videoTrack.stop());
-
-  exchangeIceCandidates(caller, callee);
-  await exchangeOfferAnswer(caller, callee);
-
-  const videoSender = caller.addTrack(videoTrack);
-  assert_throws_dom("InvalidStateError", () => videoSender.createEncodedStreams());
-}, 'RTCRtpSender.createEncodedStream() throws if not requested in PC configuration');
-
-promise_test(async t => {
-  const caller = new RTCPeerConnection();
-  t.add_cleanup(() => caller.close());
-  const callee = new RTCPeerConnection();
-  t.add_cleanup(() => callee.close());
-  const stream = await navigator.mediaDevices.getUserMedia({video:true});
-  const videoTrack = stream.getVideoTracks()[0];
-  t.add_cleanup(() => videoTrack.stop());
-
-  const videoSender = caller.addTrack(videoTrack);
-  const ontrackPromise = new Promise(resolve => {
-    callee.ontrack = t.step_func(() => {
-      const videoReceiver = callee.getReceivers().find(r => r.track.kind === 'video');
-      assert_not_equals(videoReceiver, undefined);
-      assert_throws_dom("InvalidStateError", () => videoReceiver.createEncodedStreams());
-      resolve();
-    });
-  });
-
-  exchangeIceCandidates(caller, callee);
-  await exchangeOfferAnswer(caller, callee);
-  return ontrackPromise;
-}, 'RTCRtpReceiver.createEncodedStream() throws if not requested in PC configuration');
-
-promise_test(async t => {
   const caller = new RTCPeerConnection({encodedInsertableStreams:true});
   t.add_cleanup(() => caller.close());
   const callee = new RTCPeerConnection();

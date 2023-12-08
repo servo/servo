@@ -118,7 +118,7 @@ fn incorrect_no_trace<'tcx, I: Into<MultiSpan> + Copy>(
     let mut walker = ty.walk();
     while let Some(generic_arg) = walker.next() {
         let t = match generic_arg.unpack() {
-            rustc_middle::ty::subst::GenericArgKind::Type(t) => t,
+            rustc_middle::ty::GenericArgKind::Type(t) => t,
             _ => {
                 walker.skip_current_subtree();
                 continue;
@@ -171,7 +171,7 @@ impl<'tcx> LateLintPass<'tcx> for NotracePass {
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
             for ref field in def.fields() {
                 let field_type = cx.tcx.type_of(field.def_id);
-                incorrect_no_trace(&self.symbols, cx, field_type.0, field.span);
+                incorrect_no_trace(&self.symbols, cx, field_type.skip_binder(), field.span);
             }
         }
     }
@@ -181,7 +181,7 @@ impl<'tcx> LateLintPass<'tcx> for NotracePass {
             hir::VariantData::Tuple(fields, ..) => {
                 for field in fields {
                     let field_type = cx.tcx.type_of(field.def_id);
-                    incorrect_no_trace(&self.symbols, cx, field_type.0, field.ty.span);
+                    incorrect_no_trace(&self.symbols, cx, field_type.skip_binder(), field.ty.span);
                 }
             },
             _ => (), // Struct variants already caught by check_struct_def

@@ -66,6 +66,9 @@ async def test_release_mouse_sequence_resets_dblclick_state(
     )
     events = await get_events(bidi_session, top_context["context"])
 
+    # The expeced data here might vary between the vendors since the spec at the moment
+    # is not clear on how the double/triple click should be tracked. It should be
+    # clarified in the scope of https://github.com/w3c/webdriver/issues/1772.
     expected = [
         {"type": "mousedown", "button": 0},
         {"type": "mouseup", "button": 0},
@@ -74,9 +77,6 @@ async def test_release_mouse_sequence_resets_dblclick_state(
         {"type": "mouseup", "button": 0},
         {"type": "click", "button": 0},
     ]
-
-    if not release_actions:
-        expected.append({"type": "dblclick", "button": 0})
 
     filtered_events = [filter_dict(e, expected[0]) for e in events]
     assert expected == filtered_events[1:]

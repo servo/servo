@@ -129,20 +129,6 @@ test(() => {
    "the space between snap areas (600) within the larger snap area on y.");
 
 test(() => {
-  scroller_x.scrollTo(950, 0);
-  assert_equals(scroller_x.scrollLeft, 1000);
-  assert_equals(scroller_x.scrollTop, 0);
-}, "Snap within a snap area which covers snapport on x selects a valid snap " +
-   "position that avoids the overlapping areas at 800-1000 and 1400-1600.");
-
-test(() => {
-  scroller_y.scrollTo(0, 950);
-  assert_equals(scroller_y.scrollLeft, 0);
-  assert_equals(scroller_y.scrollTop, 1000);
-}, "Snap within a snap area which covers snapport on y selects a valid snap " +
-   "position that avoids the overlapping areas at 800-1000 and 1400-1600.");
-
-test(() => {
   scroller_x.scrollTo(1650, 0);
   assert_equals(scroller_x.scrollLeft, 1650);
   assert_equals(scroller_x.scrollTop, 0);

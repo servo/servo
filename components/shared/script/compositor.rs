@@ -97,7 +97,7 @@ impl ScrollTreeNode {
         &mut self,
         scroll_location: ScrollLocation,
     ) -> Option<(ExternalScrollId, LayoutVector2D)> {
-        let mut info = match self.scroll_info {
+        let info = match self.scroll_info {
             Some(ref mut data) => data,
             None => return None,
         };

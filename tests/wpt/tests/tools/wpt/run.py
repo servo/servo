@@ -411,7 +411,7 @@ class FirefoxAndroid(BrowserSetup):
             self._logcat.start(device_serial)
             if self.browser.apk_path:
                 device.uninstall_app(app)
-                device.install_app(self.browser.apk_path)
+                device.install_app(self.browser.apk_path, timeout=600)
             elif not device.is_app_installed(app):
                 raise WptrunError("app %s not installed on device %s" %
                                   (app, device_serial))
