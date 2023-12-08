@@ -60,7 +60,7 @@ log = "0.4"
 malloc_size_of_derive = "0.1"
 mime = "0.3.13"
 mime_guess = "2.0.3"
-mozangle = "0.4"
+mozangle = "0.5.0"
 msg = { path = "components/shared/msg" }
 net_traits = { path = "components/shared/net" }
 num-traits = "0.2"
