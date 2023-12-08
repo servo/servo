@@ -189,7 +189,7 @@ impl WebGLShader {
             options.set_unfoldShortCircuit(1);
             // Work around that Mac drivers handle struct scopes incorrectly.
             options.set_regenerateStructNames(1);
-            // mac intel
+            // TODO: Only apply this workaround to Intel hardware
             // Work around that Intel drivers on Mac OSX handle for-loop incorrectly.
             options.set_addAndTrueToLoopCondition(1);
             options.set_rewriteTexelFetchOffsetToTexelFetch(1);
