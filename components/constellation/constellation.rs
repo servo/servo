@@ -113,7 +113,8 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg,
 };
 use embedder_traits::{
-    Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent, MediaSessionPlaybackState,
+    CompositorEventVariant, Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent,
+    MediaSessionPlaybackState,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
@@ -1548,9 +1549,10 @@ where
 
     fn handle_request_from_script(&mut self, message: (PipelineId, FromScriptMsg)) {
         let (source_pipeline_id, content) = message;
-        debug!(
+        trace!(
             "{}: Message from pipeline: {:?}",
-            source_pipeline_id, content,
+            source_pipeline_id,
+            content,
         );
 
         let source_top_ctx_id = match self
@@ -2904,15 +2906,29 @@ where
             self.pressed_mouse_buttons = 0;
         }
 
-        let msg = ConstellationControlMsg::SendEvent(destination_pipeline_id, event);
-        let result = match self.pipelines.get(&destination_pipeline_id) {
+        let pipeline = match self.pipelines.get(&destination_pipeline_id) {
             None => {
                 debug!("{}: Got event after closure", destination_pipeline_id);
                 return;
             },
-            Some(pipeline) => pipeline.event_loop.send(msg),
+            Some(pipeline) => pipeline,
         };
-        if let Err(e) = result {
+        let event_variant = match event {
+            CompositorEvent::ResizeEvent(..) => CompositorEventVariant::ResizeEvent,
+            MouseButtonEvent(..) => CompositorEventVariant::MouseButtonEvent,
+            MouseMoveEvent(..) => CompositorEventVariant::MouseMoveEvent,
+            CompositorEvent::TouchEvent(..) => CompositorEventVariant::TouchEvent,
+            CompositorEvent::WheelEvent(..) => CompositorEventVariant::WheelEvent,
+            CompositorEvent::KeyboardEvent(..) => CompositorEventVariant::KeyboardEvent,
+            CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
+            CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
+        };
+        let msg = EmbedderMsg::EventDelivered(event_variant);
+        self.embedder_proxy
+            .send((Some(pipeline.top_level_browsing_context_id), msg));
+
+        let msg = ConstellationControlMsg::SendEvent(destination_pipeline_id, event);
+        if let Err(e) = pipeline.event_loop.send(msg) {
             self.handle_send_error(destination_pipeline_id, e);
         }
     }
