@@ -86,6 +86,7 @@ jobs:
         with:
           crate: taplo-cli
           locked: true
+          hash: ${{ inputs.upload && '20.04' || '22.04' }}
       - name: Bootstrap Python
         run: python3 -m pip install --upgrade pip
       - name: Bootstrap dependencies
