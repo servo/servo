@@ -89,7 +89,7 @@ pub enum EmbedderEvent {
     SendError(Option<TopLevelBrowsingContextId>, String),
     /// Make a top level browsing context visible, hiding the previous
     /// visible one.
-    SelectBrowser(TopLevelBrowsingContextId),
+    FocusBrowser(TopLevelBrowsingContextId),
     /// Toggles a debug flag in WebRender
     ToggleWebRenderDebug(WebRenderDebugOption),
     /// Capture current WebRender
@@ -101,8 +101,8 @@ pub enum EmbedderEvent {
     /// Sent when the user triggers a media action through the UA exposed media UI
     /// (play, pause, seek, etc.).
     MediaSessionAction(MediaSessionActionType),
-    /// Set browser visibility. A hidden browser will not tick the animations.
-    ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
+    /// The visibility of the native window has changed.
+    WindowVisibility(bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
 }
@@ -130,13 +130,13 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::NewBrowser(..) => write!(f, "NewBrowser"),
             EmbedderEvent::SendError(..) => write!(f, "SendError"),
             EmbedderEvent::CloseBrowser(..) => write!(f, "CloseBrowser"),
-            EmbedderEvent::SelectBrowser(..) => write!(f, "SelectBrowser"),
+            EmbedderEvent::FocusBrowser(..) => write!(f, "FocusBrowser"),
             EmbedderEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
             EmbedderEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
             EmbedderEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
             EmbedderEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
             EmbedderEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
-            EmbedderEvent::ChangeBrowserVisibility(..) => write!(f, "ChangeBrowserVisibility"),
+            EmbedderEvent::WindowVisibility(..) => write!(f, "WindowVisibility"),
             EmbedderEvent::IMEDismissed => write!(f, "IMEDismissed"),
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
         }

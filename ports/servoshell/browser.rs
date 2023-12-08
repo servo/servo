@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::rc::Rc;
@@ -28,19 +29,21 @@ use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use crate::parser::location_bar_input_to_url;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
-pub struct Browser<Window: WindowPortsMethods + ?Sized> {
+pub struct BrowserManager<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
     current_url_string: Option<String>,
 
-    /// id of the top level browsing context. It is unique as tabs
-    /// are not supported yet. None until created.
-    browser_id: Option<BrowserId>,
+    /// List of top-level browsing contexts.
+    /// Modified by EmbedderMsg::BrowserOpened and EmbedderMsg::BrowserClosed,
+    /// and we exit if it ever becomes empty.
+    browsers: HashMap<BrowserId, Browser>,
 
-    // A rudimentary stack of "tabs".
-    // EmbedderMsg::BrowserCreated will push onto it.
-    // EmbedderMsg::CloseBrowser will pop from it,
-    // and exit if it is empty afterwards.
-    browsers: Vec<BrowserId>,
+    /// The order in which the browsers were created.
+    creation_order: Vec<BrowserId>,
+
+    /// The browser that is currently focused.
+    /// Modified by EmbedderMsg::BrowserFocused and EmbedderMsg::BrowserUnfocused.
+    focused_browser_id: Option<BrowserId>,
 
     title: Option<String>,
 
@@ -50,22 +53,26 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     shutdown_requested: bool,
 }
 
+#[derive(Debug)]
+pub struct Browser {}
+
 pub struct ServoEventResponse {
     pub need_present: bool,
     pub history_changed: bool,
 }
 
-impl<Window> Browser<Window>
+impl<Window> BrowserManager<Window>
 where
     Window: WindowPortsMethods + ?Sized,
 {
-    pub fn new(window: Rc<Window>) -> Browser<Window> {
-        Browser {
+    pub fn new(window: Rc<Window>) -> BrowserManager<Window> {
+        BrowserManager {
             title: None,
             current_url: None,
             current_url_string: None,
-            browser_id: None,
-            browsers: Vec::new(),
+            browsers: HashMap::default(),
+            creation_order: vec![],
+            focused_browser_id: None,
             window,
             clipboard: match Clipboard::new() {
                 Ok(c) => Some(c),
@@ -80,7 +87,7 @@ where
     }
 
     pub fn browser_id(&self) -> Option<BrowserId> {
-        self.browser_id
+        self.focused_browser_id
     }
 
     pub fn current_url_string(&self) -> Option<&str> {
@@ -113,7 +120,7 @@ where
     fn handle_key_from_window(&mut self, key_event: KeyboardEvent) {
         ShortcutMatcher::from_event(key_event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || {
-                if let Some(id) = self.browser_id {
+                if let Some(id) = self.focused_browser_id {
                     self.event_queue.push(EmbedderEvent::Reload(id));
                 }
             })
@@ -128,7 +135,7 @@ where
                     let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
                     if let Some(input) = input {
                         if let Some(url) = location_bar_input_to_url(&input) {
-                            if let Some(id) = self.browser_id {
+                            if let Some(id) = self.focused_browser_id {
                                 self.event_queue.push(EmbedderEvent::LoadUrl(id, url));
                             }
                         }
@@ -171,13 +178,13 @@ where
                 ));
             })
             .shortcut(CMD_OR_ALT, Key::ArrowRight, || {
-                if let Some(id) = self.browser_id {
+                if let Some(id) = self.focused_browser_id {
                     let event = EmbedderEvent::Navigation(id, TraversalDirection::Forward(1));
                     self.event_queue.push(event);
                 }
             })
             .shortcut(CMD_OR_ALT, Key::ArrowLeft, || {
-                if let Some(id) = self.browser_id {
+                if let Some(id) = self.focused_browser_id {
                     let event = EmbedderEvent::Navigation(id, TraversalDirection::Back(1));
                     self.event_queue.push(event);
                 }
@@ -185,7 +192,7 @@ where
             .shortcut(Modifiers::empty(), Key::Escape, || {
                 let state = self.window.get_fullscreen();
                 if state {
-                    if let Some(id) = self.browser_id {
+                    if let Some(id) = self.focused_browser_id {
                         let event = EmbedderEvent::ExitFullScreen(id);
                         self.event_queue.push(event);
                     }
@@ -198,7 +205,7 @@ where
 
     #[cfg(not(target_os = "win"))]
     fn platform_handle_key(&mut self, key_event: KeyboardEvent) {
-        if let Some(id) = self.browser_id {
+        if let Some(id) = self.focused_browser_id {
             if let Some(event) = ShortcutMatcher::from_event(key_event.clone())
                 .shortcut(CMD_OR_CONTROL, '[', || {
                     EmbedderEvent::Navigation(id, TraversalDirection::Back(1))
@@ -419,16 +426,30 @@ where
                         warn!("Failed to send AllowOpeningBrowser response: {}", e);
                     };
                 },
-                EmbedderMsg::BrowserCreated(new_browser_id) => {
-                    // TODO: properly handle a new "tab"
-                    self.browsers.push(new_browser_id);
-                    if self.browser_id.is_none() {
-                        self.browser_id = Some(new_browser_id);
-                    } else {
-                        error!("Multiple top level browsing contexts not supported yet.");
-                    }
+                EmbedderMsg::BrowserOpened(new_browser_id) => {
+                    self.browsers.insert(new_browser_id, Browser {});
+                    self.creation_order.push(new_browser_id);
                     self.event_queue
-                        .push(EmbedderEvent::SelectBrowser(new_browser_id));
+                        .push(EmbedderEvent::FocusBrowser(new_browser_id));
+                },
+                EmbedderMsg::BrowserClosed(top_level_browsing_context_id) => {
+                    self.browsers
+                        .retain(|&id, _| id != top_level_browsing_context_id);
+                    self.creation_order
+                        .retain(|&id| id != top_level_browsing_context_id);
+                    self.focused_browser_id = None;
+                    if let Some(&newest_browser_id) = self.creation_order.last() {
+                        self.event_queue
+                            .push(EmbedderEvent::FocusBrowser(newest_browser_id));
+                    } else {
+                        self.event_queue.push(EmbedderEvent::Quit);
+                    }
+                },
+                EmbedderMsg::BrowserFocused(top_level_browsing_context_id) => {
+                    self.focused_browser_id = Some(top_level_browsing_context_id);
+                },
+                EmbedderMsg::BrowserUnfocused => {
+                    self.focused_browser_id = None;
                 },
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(browser_id, key_event);
@@ -475,17 +496,6 @@ where
                 },
                 EmbedderMsg::LoadComplete => {
                     // FIXME: surface the loading state in the UI somehow
-                },
-                EmbedderMsg::CloseBrowser => {
-                    // TODO: close the appropriate "tab".
-                    let _ = self.browsers.pop();
-                    if let Some(prev_browser_id) = self.browsers.last() {
-                        self.browser_id = Some(*prev_browser_id);
-                        self.event_queue
-                            .push(EmbedderEvent::SelectBrowser(*prev_browser_id));
-                    } else {
-                        self.event_queue.push(EmbedderEvent::Quit);
-                    }
                 },
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;

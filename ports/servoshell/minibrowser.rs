@@ -20,7 +20,7 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::webrender_surfman::WebrenderSurfman;
 
-use crate::browser::Browser;
+use crate::browser::BrowserManager;
 use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
 use crate::geometry::winit_position_to_euclid_point;
@@ -260,7 +260,7 @@ impl Minibrowser {
     /// routing those to the App event queue.
     pub fn queue_embedder_events_for_minibrowser_events(
         &self,
-        browser: &Browser<dyn WindowPortsMethods>,
+        browser: &BrowserManager<dyn WindowPortsMethods>,
         app_event_queue: &mut Vec<EmbedderEvent>,
     ) {
         for event in self.event_queue.borrow_mut().drain(..) {
@@ -293,11 +293,11 @@ impl Minibrowser {
         }
     }
 
-    /// Updates the location field from the given [Browser], unless the user has started editing it
-    /// without clicking Go, returning true iff the location has changed (needing an egui update).
+    /// Updates the location field from the given [BrowserManager], unless the user has started
+    /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
     pub fn update_location_in_toolbar(
         &mut self,
-        browser: &mut Browser<dyn WindowPortsMethods>,
+        browser: &mut BrowserManager<dyn WindowPortsMethods>,
     ) -> bool {
         // User edited without clicking Go?
         if self.location_dirty.get() {

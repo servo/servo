@@ -4,6 +4,7 @@
 
 #![deny(unsafe_code)]
 
+mod browser;
 mod browsingcontext;
 mod constellation;
 mod event_loop;

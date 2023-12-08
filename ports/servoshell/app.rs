@@ -23,7 +23,7 @@ use winit::event::WindowEvent;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::WindowId;
 
-use crate::browser::Browser;
+use crate::browser::BrowserManager;
 use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::minibrowser::Minibrowser;
@@ -33,7 +33,7 @@ use crate::{headed_window, headless_window};
 
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
-    browser: RefCell<Browser<dyn WindowPortsMethods>>,
+    browser: RefCell<BrowserManager<dyn WindowPortsMethods>>,
     event_queue: RefCell<Vec<EmbedderEvent>>,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
@@ -81,7 +81,7 @@ impl App {
         };
 
         // Handle browser state.
-        let browser = Browser::new(window.clone());
+        let browser = BrowserManager::new(window.clone());
         let initial_url = get_default_url(
             url.as_ref().map(String::as_str),
             env::current_dir().unwrap(),

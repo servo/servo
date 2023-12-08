@@ -156,8 +156,14 @@ pub enum EmbedderMsg {
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningBrowser(IpcSender<bool>),
-    /// A new browser was created by script
-    BrowserCreated(TopLevelBrowsingContextId),
+    /// A browser was created
+    BrowserOpened(TopLevelBrowsingContextId),
+    /// A browser was destroyed
+    BrowserClosed(TopLevelBrowsingContextId),
+    /// A browser gained focus for keyboard events
+    BrowserFocused(TopLevelBrowsingContextId),
+    /// All browsers lost focus for keyboard events
+    BrowserUnfocused,
     /// Wether or not to unload a document
     AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
@@ -180,8 +186,6 @@ pub enum EmbedderMsg {
     LoadStart,
     /// The load of a page has completed
     LoadComplete,
-    /// A browser is to be closed
-    CloseBrowser,
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(String, Option<String>),
     /// Open dialog to select bluetooth device.
@@ -241,7 +245,6 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
             EmbedderMsg::HeadParsed => write!(f, "HeadParsed"),
-            EmbedderMsg::CloseBrowser => write!(f, "CloseBrowser"),
             EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
             EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
             EmbedderMsg::LoadStart => write!(f, "LoadStart"),
@@ -254,7 +257,10 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::HideIME => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
             EmbedderMsg::AllowOpeningBrowser(..) => write!(f, "AllowOpeningBrowser"),
-            EmbedderMsg::BrowserCreated(..) => write!(f, "BrowserCreated"),
+            EmbedderMsg::BrowserOpened(..) => write!(f, "BrowserOpened"),
+            EmbedderMsg::BrowserClosed(..) => write!(f, "BrowserClosed"),
+            EmbedderMsg::BrowserFocused(..) => write!(f, "BrowserFocused"),
+            EmbedderMsg::BrowserUnfocused => write!(f, "BrowserUnfocused"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),

@@ -60,8 +60,10 @@ pub enum ConstellationMsg {
     CloseBrowser(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
-    /// Make browser visible.
-    SelectBrowser(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context focused.
+    FocusBrowser(TopLevelBrowsingContextId),
+    /// Make none of the top-level browsing contexts focused.
+    UnfocusBrowser,
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
@@ -74,8 +76,8 @@ pub enum ConstellationMsg {
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
-    /// Toggle browser visibility.
-    ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
+    /// The visibility of the native window has changed.
+    WindowVisibility(bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Compositing done, but external code needs to present.
@@ -102,15 +104,16 @@ impl fmt::Debug for ConstellationMsg {
             LogEntry(..) => "LogEntry",
             NewBrowser(..) => "NewBrowser",
             CloseBrowser(..) => "CloseBrowser",
+            FocusBrowser(..) => "FocusBrowser",
+            UnfocusBrowser => "UnfocusBrowser",
             SendError(..) => "SendError",
-            SelectBrowser(..) => "SelectBrowser",
             ForwardEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",
             EnableProfiler(..) => "EnableProfiler",
             DisableProfiler => "DisableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
-            ChangeBrowserVisibility(..) => "ChangeBrowserVisibility",
+            WindowVisibility(..) => "WindowVisibility",
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",

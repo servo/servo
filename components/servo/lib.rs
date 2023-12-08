@@ -636,11 +636,11 @@ where
                 }
             },
 
-            EmbedderEvent::SelectBrowser(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::SelectBrowser(top_level_browsing_context_id);
+            EmbedderEvent::FocusBrowser(top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::FocusBrowser(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
-                        "Sending SelectBrowser message to constellation failed ({:?}).",
+                        "Sending FocusBrowser message to constellation failed ({:?}).",
                         e
                     );
                 }
@@ -676,14 +676,11 @@ where
                 }
             },
 
-            EmbedderEvent::ChangeBrowserVisibility(top_level_browsing_context_id, visible) => {
-                let msg = ConstellationMsg::ChangeBrowserVisibility(
-                    top_level_browsing_context_id,
-                    visible,
-                );
+            EmbedderEvent::WindowVisibility(visible) => {
+                let msg = ConstellationMsg::WindowVisibility(visible);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
-                        "Sending ChangeBrowserVisibility to constellation failed ({:?}).",
+                        "Sending WindowVisibility to constellation failed ({:?}).",
                         e
                     );
                 }
