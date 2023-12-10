@@ -13,22 +13,27 @@ pressure_test(async (t, mockPressureService) => {
   const minPenaltyTimeInMs = 5000;
   const maxChangesThreshold = 100;
   const minChangesThreshold = 50;
+  let gotPenalty = false;
   await new Promise(async resolve => {
     const observerChanges = [];
     const observer = new PressureObserver(changes => {
-      if (observerChanges.length >= minChangesThreshold) {
+      if (observerChanges.length >= minChangesThreshold && !gotPenalty) {
         // Add an assert to the maximum threshold possible.
         t.step(() => {
           assert_less_than_equal(observerChanges.length, maxChangesThreshold,
                                  "Sample count reaching maxChangesThreshold.");
         });
 
-        if (observerChanges.length > 0) {
-          const lastSample = observerChanges.at(-1);
-          if ((changes[0].time - lastSample[0].time) >= minPenaltyTimeInMs) {
-            observer.disconnect();
-            resolve();
-          }
+        const lastSample = observerChanges.at(-1);
+        if ((changes[0].time - lastSample[0].time) >= minPenaltyTimeInMs) {
+          // The update delivery might still be working even if
+          // maxChangesThreshold have been reached and before disconnect() is
+          // processed. This will corrupt the result for the above t.step().
+          // Therefore we are adding a flag to dismiss any updates after the
+          // penalty is detected, which is the condition for the test to pass.
+          gotPenalty = true;
+          observer.disconnect();
+          resolve();
         }
       }
       observerChanges.push(changes);

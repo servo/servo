@@ -5,7 +5,7 @@ import json, sys
 
 def assert_non_empty_string(obj, field):
     assert field in obj, 'Missing field "%s"' % field
-    assert isinstance(obj[field], basestring), \
+    assert isinstance(obj[field], str), \
         'Field "%s" must be a string' % field
     assert len(obj[field]) > 0, 'Field "%s" must not be empty' % field
 
@@ -34,7 +34,7 @@ def assert_value_from(obj, field, items):
 
 
 def assert_atom_or_list_items_from(obj, field, items):
-    if isinstance(obj[field], basestring) or isinstance(
+    if isinstance(obj[field], str) or isinstance(
             obj[field], int) or obj[field] is None:
         assert_value_from(obj, field, items)
         return
@@ -236,7 +236,7 @@ def assert_valid_spec_json(spec_json):
     try:
         validate(spec_json, error_details)
     except AssertionError as err:
-        print('ERROR:', err.message)
+        print('ERROR:', err)
         print(json.dumps(error_details, indent=4))
         sys.exit(1)
 

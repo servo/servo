@@ -41,6 +41,10 @@ test_valid_value("color", "rgba(-20% 20% 40% / 50%)", "rgba(0, 51, 102, 0.5)");
 test_valid_value("color", "rgba(257 30 40 / 50%)", "rgba(255, 30, 40, 0.5)");
 test_valid_value("color", "rgba(250% 20% 40% / .5)", "rgba(255, 51, 102, 0.5)");
 
+// Test with mixed components.
+test_valid_value("color", "rgb(250% 51 40%)", "rgb(255, 51, 102)");
+test_valid_value("color", "rgb(255 20% 102)", "rgb(255, 51, 102)");
+
 // rgb are in the range [0, 255], alpha is in the range [0, 1].
 // Values above or below these numbers should get resolved to the upper/lower bound.
 test_valid_value("color", "rgb(500, 0, 0)", "rgb(255, 0, 0)");

@@ -6,6 +6,7 @@
 <link rel="help" href="https://drafts.csswg.org/cssom-view/#scrolling-box">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <script src="support/scroll-behavior.js"></script>
 <style>
   .scrollable {
@@ -23,6 +24,10 @@
   </div>
 </div>
 <script>
+  promise_test(async () => {
+    await waitForCompositorReady();
+  }, "Make sure the page is ready for animation.");
+
   // For smooth behavior, evolution of scroll positions over time is not specified by CSSOM View.
   // This test relies on the minimal assumption that scroll position functions are monotonic.
   ["scroll", "scrollTo", "scrollBy", "scrollIntoView"].forEach(function(scrollFunction) {

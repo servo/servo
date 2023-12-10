@@ -38,7 +38,7 @@ promise_test(async t => {
 
   // If the newly-opened window tries to navigate, fail the test.
   const failPromise = new Promise((resolve, reject) => {
-    win.onunload = () =>
+    win.onpagehide = () =>
         reject(new Error("Navigation was attempted to unparseable URL"));
   });
 

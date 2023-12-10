@@ -21,12 +21,13 @@ promise_test(async (t) => {
   });
   const new_url = new URL("resources/dummy.html", location.href);
   const beacon_data = "This is the beacon data!";
+  const beacon_type = "reserved.top_navigation_commit";
 
   await fencedframe.execute(
-    (new_url, beacon_data) => {
+    (new_url, beacon_data, beacon_type) => {
       addEventListener("click", (event) => {
         let beacon_event = {
-          eventType: "reserved.top_navigation_commit",
+          eventType: beacon_type,
           eventData: beacon_data,
           destination: ["component-seller"],
         };
@@ -34,7 +35,7 @@ promise_test(async (t) => {
         window.open(new_url, "_blank");
       });
     },
-    [new_url, beacon_data]
+    [new_url, beacon_data, beacon_type]
   );
 
   await actions
@@ -47,7 +48,8 @@ promise_test(async (t) => {
   // of the beacon because the "buyer" destination was not specified in
   // setReportEventDataForAutomaticBeacons().
   const expected_data = "<No data>";
-  const beacon_initiator_origin = await nextAutomaticBeacon(expected_data);
+  const beacon_initiator_origin =
+      await nextAutomaticBeacon(beacon_type, expected_data);
   assert_equals(beacon_initiator_origin, get_host_info().HTTPS_ORIGIN);
 }, "Set and trigger an automatic beacon with no destination specified");
 

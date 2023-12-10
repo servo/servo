@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>Test window.fence.setReportEventDataForAutomaticBeacons from
+    SharedStorage</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge',
+    automatic_beacon: true,
+  });
+  const new_url = new URL("resources/close.html", location.href);
+  const beacon_type = "reserved.top_navigation_start";
+
+  await fencedframe.execute(async (new_url, beacon_type) => {
+    let beacon_event = {
+      eventType: beacon_type,
+      eventData: "this is the beacon data",
+      destination: ["buyer"],
+      crossOriginExposed: false,
+    }
+    window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
+
+    // Add a cross-origin iframe that will perform the top-level navigation.
+    const iframe = await attachIFrameContext({
+      origin: get_host_info().HTTPS_REMOTE_ORIGIN,
+      headers: [["Allow-Fenced-Frame-Automatic-Beacons", "true"]],
+    });
+    await iframe.execute(async (new_url) => {
+      addEventListener("click", (event) => {
+        window.open(new_url);
+      });
+    }, [new_url]);
+  }, [new_url, beacon_type]);
+
+  await actions.pointerMove(0, 0, {origin: fencedframe.element})
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+  const expected_beacon_data = "<No data>";
+  const received_beacon_data = await nextAutomaticBeacon(
+          "reserved.top_navigation_start", expected_beacon_data);
+}, 'Automatic beacon in a cross-origin subframe should send without data ' +
+   'when crossOrigin=false.');
+</script>
+</body>

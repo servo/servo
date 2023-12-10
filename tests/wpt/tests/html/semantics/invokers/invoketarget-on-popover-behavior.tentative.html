@@ -37,9 +37,16 @@
   promise_test(async function (t) {
     invokee.showPopover();
     assert_true(invokee.matches(":popover-open"));
-    await clickOn(invokerbutton2);
+    await clickOn(invokerbutton);
     assert_false(invokee.matches(":popover-open"));
   }, "invoking (as auto) open popover closes");
+
+  promise_test(async function (t) {
+    invokee.showPopover();
+    assert_true(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton2);
+    assert_false(invokee.matches(":popover-open"));
+  }, "invoking (as auto) from within open popover closes");
 
   promise_test(async function (t) {
     invokee.showPopover();
@@ -89,9 +96,18 @@
     invokerbutton2.setAttribute("invokeaction", "togglepopover");
     t.add_cleanup(() => invokerbutton2.removeAttribute("invokeaction"));
     assert_true(invokee.matches(":popover-open"));
-    await clickOn(invokerbutton2);
+    await clickOn(invokerbutton);
     assert_false(invokee.matches(":popover-open"));
   }, "invoking (as togglepopover) open popover closes");
+
+  promise_test(async function (t) {
+    invokee.showPopover();
+    invokerbutton2.setAttribute("invokeaction", "togglepopover");
+    t.add_cleanup(() => invokerbutton2.removeAttribute("invokeaction"));
+    assert_true(invokee.matches(":popover-open"));
+    await clickOn(invokerbutton2);
+    assert_false(invokee.matches(":popover-open"));
+  }, "invoking (as togglepopover) from within open popover closes");
 
   promise_test(async function (t) {
     invokee.showPopover();

@@ -6,19 +6,19 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from tests.support.sync import AsyncPoll
 
-from .. import assert_before_request_sent_event
-
-PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
-PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
-PAGE_REDIRECT_HTTP_EQUIV = (
-    "/webdriver/tests/bidi/network/support/redirect_http_equiv.html"
+from .. import (
+    assert_before_request_sent_event,
+    PAGE_EMPTY_HTML,
+    PAGE_EMPTY_TEXT,
+    PAGE_REDIRECT_HTTP_EQUIV,
+    PAGE_REDIRECTED_HTML,
+    BEFORE_REQUEST_SENT_EVENT,
 )
-PAGE_REDIRECTED_HTML = "/webdriver/tests/bidi/network/support/redirected.html"
 
 
 @pytest.mark.asyncio
 async def test_subscribe_status(bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe, url, fetch):
-    await subscribe_events(events=["network.beforeRequestSent"])
+    await subscribe_events(events=[BEFORE_REQUEST_SENT_EVENT])
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
@@ -33,11 +33,11 @@ async def test_subscribe_status(bidi_session, subscribe_events, top_context, wai
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(
-        "network.beforeRequestSent", on_event
+        BEFORE_REQUEST_SENT_EVENT, on_event
     )
 
     text_url = url(PAGE_EMPTY_TEXT)
-    on_before_request_sent = wait_for_event("network.beforeRequestSent")
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
     await fetch(text_url)
     await wait_for_future_safe(on_before_request_sent)
 
@@ -49,7 +49,7 @@ async def test_subscribe_status(bidi_session, subscribe_events, top_context, wai
         redirect_count=0,
     )
 
-    await bidi_session.session.unsubscribe(events=["network.beforeRequestSent"])
+    await bidi_session.session.unsubscribe(events=[BEFORE_REQUEST_SENT_EVENT])
 
     # Fetch the text url again, with an additional parameter to bypass the cache
     # and check no new event is received.
@@ -66,10 +66,10 @@ async def test_load_page_twice(
 ):
     html_url = url(PAGE_EMPTY_HTML)
 
-    network_events = await setup_network_test(events=["network.beforeRequestSent"])
-    events = network_events["network.beforeRequestSent"]
+    network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
-    on_before_request_sent = wait_for_event("network.beforeRequestSent")
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
         url=html_url,
@@ -92,10 +92,10 @@ async def test_navigation_id(
 ):
     html_url = url(PAGE_EMPTY_HTML)
 
-    network_events = await setup_network_test(events=["network.beforeRequestSent"])
-    events = network_events["network.beforeRequestSent"]
+    network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
-    on_before_request_sent = wait_for_event("network.beforeRequestSent")
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
     result = await bidi_session.browsing_context.navigate(
         context=top_context["context"],
         url=html_url,
@@ -111,7 +111,7 @@ async def test_navigation_id(
     assert events[0]["navigation"] is not None
 
     text_url = url(PAGE_EMPTY_TEXT)
-    on_before_request_sent = wait_for_event("network.beforeRequestSent")
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
     await fetch(text_url, method="GET")
     await wait_for_future_safe(on_before_request_sent)
 
@@ -143,10 +143,10 @@ async def test_request_method(
 ):
     text_url = url(PAGE_EMPTY_TEXT)
 
-    network_events = await setup_network_test(events=["network.beforeRequestSent"])
-    events = network_events["network.beforeRequestSent"]
+    network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
-    on_before_request_sent = wait_for_event("network.beforeRequestSent")
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
     await fetch(text_url, method=method)
     await wait_for_future_safe(on_before_request_sent)
 
@@ -165,10 +165,10 @@ async def test_request_headers(
 ):
     text_url = url(PAGE_EMPTY_TEXT)
 
-    network_events = await setup_network_test(events=["network.beforeRequestSent"])
-    events = network_events["network.beforeRequestSent"]
+    network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
-    on_before_request_sent = wait_for_event("network.beforeRequestSent")
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
     await fetch(text_url, method="GET", headers={"foo": "bar"})
     await wait_for_future_safe(on_before_request_sent)
 
@@ -191,8 +191,8 @@ async def test_request_cookies(
 ):
     text_url = url(PAGE_EMPTY_TEXT)
 
-    network_events = await setup_network_test(events=["network.beforeRequestSent"])
-    events = network_events["network.beforeRequestSent"]
+    network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
     await bidi_session.script.evaluate(
         expression="document.cookie = 'foo=bar';",
@@ -200,7 +200,7 @@ async def test_request_cookies(
         await_promise=False,
     )
 
-    on_before_request_sent = wait_for_event("network.beforeRequestSent")
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
     await fetch(text_url, method="GET")
     await wait_for_future_safe(on_before_request_sent)
 
@@ -222,7 +222,7 @@ async def test_request_cookies(
         await_promise=False,
     )
 
-    on_before_request_sent = wait_for_event("network.beforeRequestSent")
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
     await fetch(text_url, method="GET")
     await wait_for_future_safe(on_before_request_sent)
 
@@ -250,8 +250,8 @@ async def test_redirect(bidi_session, wait_for_event, url, fetch, setup_network_
         f"/webdriver/tests/support/http_handlers/redirect.py?location={text_url}"
     )
 
-    network_events = await setup_network_test(events=["network.beforeRequestSent"])
-    events = network_events["network.beforeRequestSent"]
+    network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
     await fetch(redirect_url, method="GET")
 
@@ -284,8 +284,8 @@ async def test_redirect_http_equiv(
     http_equiv_url = url(PAGE_REDIRECT_HTTP_EQUIV)
     redirected_url = url(PAGE_REDIRECTED_HTML)
 
-    network_events = await setup_network_test(events=["network.beforeRequestSent"])
-    events = network_events["network.beforeRequestSent"]
+    network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
     result = await bidi_session.browsing_context.navigate(
         context=top_context["context"],
@@ -333,8 +333,8 @@ async def test_redirect_navigation(
         f"/webdriver/tests/support/http_handlers/redirect.py?location={html_url}"
     )
 
-    network_events = await setup_network_test(events=["network.beforeRequestSent"])
-    events = network_events["network.beforeRequestSent"]
+    network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
 
     result = await bidi_session.browsing_context.navigate(
         context=top_context["context"],

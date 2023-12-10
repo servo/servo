@@ -6,7 +6,7 @@ const MAX_CLICKS = 50;
 const MAX_PAINT_ENTRIES = 51;
 const URL = "foobar.html";
 const readValue = (value, defaultValue) => {
-  return value != undefined ? value : defaultValue;
+  return value !== undefined ? value : defaultValue;
 }
 const testSoftNavigation =
     options => {
@@ -291,15 +291,16 @@ const getLcpEntriesWithoutSoftNavs = async () => {
   return entries;
 };
 
-const addImage = async (element, url="blue.png") => {
+const addImage = async (element, url="blue.png", id = "imagelcp") => {
   const img = new Image();
   img.src = '/images/'+ url + "?" + Math.random();
-  img.id="imagelcp";
+  img.id=id
+  img.setAttribute("elementtiming", id);
   await img.decode();
   element.appendChild(img);
 };
-const addImageToMain = async (url="blue.png") => {
-  await addImage(document.getElementById('main'), url);
+const addImageToMain = async (url="blue.png", id = "imagelcp") => {
+  await addImage(document.getElementById('main'), url, id);
 };
 
 const addTextParagraphToMain = (text, element_timing = "") => {

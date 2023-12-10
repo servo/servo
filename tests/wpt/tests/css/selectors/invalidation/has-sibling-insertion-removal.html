@@ -19,6 +19,7 @@ div, main { color: grey }
 #subject10:has(+ #sibling10_2 ~ #sibling10_3) { color: green }
 #subject11:has(+ #sibling11_1 + #sibling11_2 ~ #sibling11_3 > #siblingchild11_3_1) { color: blue }
 #subject12:has(+ #sibling12_2 ~ #sibling12_3 > #siblingchild12_3_1) { color: yellow }
+.sibling13:has(~ .sibling13) { color: green }
 </style>
 
 <main id="main">
@@ -103,6 +104,10 @@ div, main { color: grey }
     </div>
     <div id="sibling12_4"></div>
   </div>
+  <div id="parent13">
+    <div class="sibling13"></div>
+    <div id="subject13" class="sibling13"></div>
+  </div>
 </main>
 <script>
 
@@ -183,4 +188,11 @@ testColor(`subject12: initial color should be ${grey}`, subject12, grey);
 sibling12_1.remove();
 testColor(`subject12: color after #sibling12_1 removed should be ${yellow}`,
           subject12, yellow);
+
+testColor(`subject13: initial color should be ${grey}`, subject13, grey);
+const d = document.createElement("div");
+d.classList.add("sibling13");
+parent13.appendChild(d);
+testColor(`subject13: color after #sibling12_1 removed should be ${green}`,
+          subject13, green);
 </script>

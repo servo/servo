@@ -35,8 +35,29 @@ def main(request, response):
         return body
     if error != b"no-scoreAd":
         body += b"""
+            // Comparison function checks if two arguments are the same.
+            // Not intended for use on anything other than built-in types
+            // (Arrays, objects, and primitive types).
+            function deepEquals(a, b) {
+              if (typeof a !== typeof b)
+                return false;
+              if (typeof a !== 'object' || a === null || b === null)
+                return a === b;
+
+              let aKeys = Object.keys(a);
+              if (aKeys.length != Object.keys(b).length)
+                return false;
+              for (key in aKeys) {
+                if (a.hasOwnProperty(key) != b.hasOwnProperty(key) ||
+                    !deepEquals(a[key], b[key])) {
+                  return false;
+                }
+              }
+              return true;
+            }
+
             function scoreAd(adMetadata, bid, auctionConfig, trustedScoringSignals,
-                            browserSignals, directFromSellerSignals) {
+                             browserSignals, directFromSellerSignals) {
               // Don't bid on interest group with the wrong uuid. This is to prevent
               // left over interest groups from other tests from affecting auction
               // results.

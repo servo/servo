@@ -6,11 +6,13 @@ import pytest
 from .. import (
     assert_before_request_sent_event,
     assert_response_event,
+    PAGE_EMPTY_HTML,
+    PAGE_EMPTY_TEXT,
+    PAGE_OTHER_TEXT,
+    BEFORE_REQUEST_SENT_EVENT,
+    RESPONSE_COMPLETED_EVENT,
+    RESPONSE_STARTED_EVENT,
 )
-
-PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
-PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
-PAGE_OTHER_TEXT = "/webdriver/tests/bidi/network/support/other.txt"
 
 
 @pytest.mark.asyncio
@@ -23,14 +25,14 @@ async def test_remove_intercept(
 ):
     network_events = await setup_network_test(
         events=[
-            "network.beforeRequestSent",
-            "network.responseStarted",
-            "network.responseCompleted",
+            BEFORE_REQUEST_SENT_EVENT,
+            RESPONSE_STARTED_EVENT,
+            RESPONSE_COMPLETED_EVENT,
         ]
     )
-    before_request_sent_events = network_events["network.beforeRequestSent"]
-    response_started_events = network_events["network.responseStarted"]
-    response_completed_events = network_events["network.responseCompleted"]
+    before_request_sent_events = network_events[BEFORE_REQUEST_SENT_EVENT]
+    response_started_events = network_events[RESPONSE_STARTED_EVENT]
+    response_completed_events = network_events[RESPONSE_COMPLETED_EVENT]
 
     text_url = url(PAGE_EMPTY_TEXT)
     intercept = await add_intercept(
@@ -74,7 +76,7 @@ async def test_remove_intercept(
     await bidi_session.network.remove_intercept(intercept=intercept)
 
     # The next request should not be blocked
-    on_response_completed = wait_for_event("network.responseCompleted")
+    on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
     await bidi_session.browsing_context.navigate(context=top_context["context"], url=text_url, wait="complete")
     await wait_for_future_safe(on_response_completed)
 

@@ -38,8 +38,10 @@ async function runSelectRawURL(href, resolve_to_config = false) {
   return await sharedStorage.selectURL(
       'test-url-selection-operation', [{url: href,
           reportingMetadata: {
-            'reserved.top_navigation_start': BEACON_URL,
-            'reserved.top_navigation_commit': BEACON_URL,
+            'reserved.top_navigation_start': BEACON_URL +
+                "?type=reserved.top_navigation_start",
+            'reserved.top_navigation_commit': BEACON_URL +
+                "?type=reserved.top_navigation_commit",
           }}], {
         data: {'mockResult': 0},
         resolveToConfig: resolve_to_config,
@@ -497,10 +499,12 @@ async function nextValueFromServer(key) {
   }
 }
 
-// Reads the data from the latest automatic beacon sent to the server.
-async function readAutomaticBeaconDataFromServer(expected_body) {
+// Checks the automatic beacon data server to see if it has received an
+// automatic beacon with a given event type and body.
+async function readAutomaticBeaconDataFromServer(event_type, expected_body) {
   let serverURL = `${BEACON_URL}`;
   const response = await fetch(serverURL + "?" + new URLSearchParams({
+    type: event_type,
     expected_body: expected_body,
   }));
   if (!response.ok)
@@ -515,12 +519,14 @@ async function readAutomaticBeaconDataFromServer(expected_body) {
 }
 
 // Convenience wrapper around the above getter that will wait until a value is
-// available on the server.
-async function nextAutomaticBeacon(expected_body) {
+// available on the server. The server uses a hash of the concatenated event
+// type and beacon data as the key when storing the beacon in the database. To
+// retrieve it, we need to supply the endpoint with both pieces of information.
+async function nextAutomaticBeacon(event_type, expected_body) {
   while (true) {
     // Fetches the test result from the server.
     const { status, value } =
-        await readAutomaticBeaconDataFromServer(expected_body);
+        await readAutomaticBeaconDataFromServer(event_type, expected_body);
     if (!status) {
       // The test result has not been stored yet. Retry after a while.
       await new Promise(resolve => setTimeout(resolve, 20));

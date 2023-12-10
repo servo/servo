@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Test document.activeElement</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext();
+
+  assert_equals(document.activeElement, document.body);
+
+  await actions.pointerMove(0, 0, {origin: fencedframe.element})
+               .pointerDown()
+               .pointerUp()
+               .send();
+
+  assert_equals(document.activeElement, fencedframe.element);
+}, 'document.activeElement should be the fenced frame when it has focus');
+
+promise_test(async(t) => {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext();
+
+  await fencedframe.execute(() => {
+    assert_equals(document.activeElement, document.body);
+  })
+
+}, "a fenced frame's document.activeElement should be its body when it " +
+   "doesn't have focus");
+
+</script>
+</body>

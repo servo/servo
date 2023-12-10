@@ -14,9 +14,7 @@
     insertSpeculationRules({ prefetch: [{ source: 'list', urls: urls }] });
     await new Promise(resolve => t.step_timeout(resolve, 2000));
 
-    let prefetched_count = (await Promise.all(urls.map(isUrlPrefetched))).reduce(
-      (count, was_prefetched) => count + (was_prefetched ? 1 : 0), 0);
-
+    let prefetched_count = await isUrlPrefetched(urls[0]);
     assert_equals(prefetched_count, 1, "url should be prefetched just once.");
   }, "browser should remove duplicate urls from prefetch buffer.");
 </script>

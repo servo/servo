@@ -5,10 +5,12 @@ import pytest
 from .. import (
     assert_before_request_sent_event,
     assert_response_event,
+    PAGE_EMPTY_HTML,
+    PAGE_EMPTY_TEXT,
+    BEFORE_REQUEST_SENT_EVENT,
+    RESPONSE_COMPLETED_EVENT,
+    RESPONSE_STARTED_EVENT,
 )
-
-PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
-PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
 
 
 @pytest.mark.asyncio
@@ -17,15 +19,15 @@ async def test_same_navigation_id(
 ):
     network_events = await setup_network_test(
         events=[
-            "network.beforeRequestSent",
-            "network.responseStarted",
-            "network.responseCompleted",
+            BEFORE_REQUEST_SENT_EVENT,
+            RESPONSE_STARTED_EVENT,
+            RESPONSE_COMPLETED_EVENT,
         ],
         contexts=[top_context["context"]],
     )
 
     html_url = url(PAGE_EMPTY_HTML)
-    on_response_completed = wait_for_event("network.responseCompleted")
+    on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
     result = await bidi_session.browsing_context.navigate(
         context=top_context["context"],
         url=html_url,
@@ -33,25 +35,25 @@ async def test_same_navigation_id(
     )
     await wait_for_future_safe(on_response_completed)
 
-    assert len(network_events["network.beforeRequestSent"]) == 1
-    assert len(network_events["network.responseStarted"]) == 1
-    assert len(network_events["network.responseCompleted"]) == 1
+    assert len(network_events[BEFORE_REQUEST_SENT_EVENT]) == 1
+    assert len(network_events[RESPONSE_STARTED_EVENT]) == 1
+    assert len(network_events[RESPONSE_COMPLETED_EVENT]) == 1
     expected_request = {"method": "GET", "url": html_url}
     expected_response = {"url": html_url}
     assert_before_request_sent_event(
-        network_events["network.beforeRequestSent"][0],
+        network_events[BEFORE_REQUEST_SENT_EVENT][0],
         expected_request=expected_request,
         context=top_context["context"],
         navigation=result["navigation"],
     )
     assert_response_event(
-        network_events["network.responseStarted"][0],
+        network_events[RESPONSE_STARTED_EVENT][0],
         expected_response=expected_response,
         context=top_context["context"],
         navigation=result["navigation"],
     )
     assert_response_event(
-        network_events["network.responseCompleted"][0],
+        network_events[RESPONSE_COMPLETED_EVENT][0],
         expected_response=expected_response,
         context=top_context["context"],
         navigation=result["navigation"],
@@ -62,17 +64,17 @@ async def test_same_navigation_id(
 async def test_same_request_id(wait_for_event, wait_for_future_safe, url, setup_network_test, fetch):
     network_events = await setup_network_test(
         events=[
-            "network.beforeRequestSent",
-            "network.responseStarted",
-            "network.responseCompleted",
+            BEFORE_REQUEST_SENT_EVENT,
+            RESPONSE_STARTED_EVENT,
+            RESPONSE_COMPLETED_EVENT,
         ]
     )
-    before_request_sent_events = network_events["network.beforeRequestSent"]
-    response_started_events = network_events["network.responseStarted"]
-    response_completed_events = network_events["network.responseCompleted"]
+    before_request_sent_events = network_events[BEFORE_REQUEST_SENT_EVENT]
+    response_started_events = network_events[RESPONSE_STARTED_EVENT]
+    response_completed_events = network_events[RESPONSE_COMPLETED_EVENT]
 
     text_url = url(PAGE_EMPTY_TEXT)
-    on_response_completed = wait_for_event("network.responseCompleted")
+    on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
     await fetch(text_url)
     await wait_for_future_safe(on_response_completed)
 
@@ -118,38 +120,38 @@ async def test_subscribe_to_one_context(
 
     network_events = await setup_network_test(
         events=[
-            "network.beforeRequestSent",
-            "network.responseStarted",
-            "network.responseCompleted",
+            BEFORE_REQUEST_SENT_EVENT,
+            RESPONSE_STARTED_EVENT,
+            RESPONSE_COMPLETED_EVENT,
         ],
         contexts=[top_context["context"]],
     )
 
     # Perform a fetch request in the subscribed context and wait for the response completed event.
     text_url = url(PAGE_EMPTY_TEXT)
-    on_response_completed = wait_for_event("network.responseCompleted")
+    on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
     await fetch(text_url, context=top_context)
     await wait_for_future_safe(on_response_completed)
 
-    assert len(network_events["network.beforeRequestSent"]) == 1
-    assert len(network_events["network.responseStarted"]) == 1
-    assert len(network_events["network.responseCompleted"]) == 1
+    assert len(network_events[BEFORE_REQUEST_SENT_EVENT]) == 1
+    assert len(network_events[RESPONSE_STARTED_EVENT]) == 1
+    assert len(network_events[RESPONSE_COMPLETED_EVENT]) == 1
 
     # Check the received events have the correct context.
     expected_request = {"method": "GET", "url": text_url}
     expected_response = {"url": text_url}
     assert_before_request_sent_event(
-        network_events["network.beforeRequestSent"][0],
+        network_events[BEFORE_REQUEST_SENT_EVENT][0],
         expected_request=expected_request,
         context=top_context["context"],
     )
     assert_response_event(
-        network_events["network.responseStarted"][0],
+        network_events[RESPONSE_STARTED_EVENT][0],
         expected_response=expected_response,
         context=top_context["context"],
     )
     assert_response_event(
-        network_events["network.responseCompleted"][0],
+        network_events[RESPONSE_COMPLETED_EVENT][0],
         expected_response=expected_response,
         context=top_context["context"],
     )
@@ -159,6 +161,6 @@ async def test_subscribe_to_one_context(
     await asyncio.sleep(0.5)
 
     # Check that no other event was received.
-    assert len(network_events["network.beforeRequestSent"]) == 1
-    assert len(network_events["network.responseStarted"]) == 1
-    assert len(network_events["network.responseCompleted"]) == 1
+    assert len(network_events[BEFORE_REQUEST_SENT_EVENT]) == 1
+    assert len(network_events[RESPONSE_STARTED_EVENT]) == 1
+    assert len(network_events[RESPONSE_COMPLETED_EVENT]) == 1

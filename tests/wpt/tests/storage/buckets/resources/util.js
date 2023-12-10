@@ -4,7 +4,7 @@
 // is over (whether it passes or fails).
 async function prepareForBucketTest(test) {
   // Verify initial state.
-  assert_equals('', (await navigator.storageBuckets.keys()).join());
+  assert_equals((await navigator.storageBuckets.keys()).join(), '');
   // Clean up after test.
   test.add_cleanup(async function() {
     const keys = await navigator.storageBuckets.keys();

@@ -13,6 +13,7 @@ RUN apt-get -qqy update \
     curl \
     dbus-x11 \
     earlyoom \
+    fonts-noto \
     fluxbox \
     gdebi \
     git \

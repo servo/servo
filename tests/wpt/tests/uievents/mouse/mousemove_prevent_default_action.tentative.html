@@ -25,15 +25,17 @@
     event_log.push(e.type);
   }
 
-  // Deliberately avoiding mouseup here because the last selectionchange
-  // may be fired before or after the mouseup.
-  document.addEventListener("mousedown", logEvents);
-  document.addEventListener("mousemove", e => e.preventDefault());
+  function initialize(test) {
+    // Deliberately avoiding mouseup here because the last selectionchange
+    // may be fired before or after the mouseup.
+    addTestScopedListener(document, "mousedown", logEvents, test);
+    addTestScopedListener(document, "mousemove", e => e.preventDefault(), test);
+    event_log = [];
+  }
 
   promise_test(async test => {
-    document.addEventListener("selectionchange", logEvents);
-    test.add_cleanup(() => { document.removeEventListener("selectionchange", logEvents); });
-    event_log = [];
+    initialize(test);
+    addTestScopedListener(document, "selectionchange", logEvents, test);
 
     const a = document.getElementById("a");
     const b = document.getElementById("b");
@@ -60,18 +62,20 @@
   }, "selectionchange event firing when mousemove event is prevented");
 
   promise_test(async test => {
-    document.addEventListener("dragstart", logEvents);
-    test.add_cleanup(() => { document.removeEventListener("dragstart", logEvents); });
-    event_log = [];
+    initialize(test);
+    addTestScopedListener(document, 'dragstart', (event) => {
+      // For this test, it is enough to see the dragstart event. The event is
+      // cancelled here to suppress the actual drag operation because Blink's
+      // implementation of test_driver doesn't seem to be able to dispatch any
+      // event once the dragging is active.
+      event.preventDefault();
+      logEvents(event);
+    }, test);
 
     const b = document.getElementById("b");
     const c = document.getElementById("c");
 
-    let dragstart_promise = getEvent("dragstart", document);
-
-    // A mouseup event is not expected.  This avoids timing out when the
-    // dragstart event is missing.
-    let mouseup_promise = getEvent("mouseup", document);
+    const mouseup_promise = getEvent('mouseup', document);
 
     await new test_driver.Actions()
         .pointerMove(0, 0, {origin: c})
@@ -84,7 +88,7 @@
         .pointerUp()
         .send();
 
-    await Promise.race([dragstart_promise, mouseup_promise]);
+    await mouseup_promise;
 
     const expected_events = ["mousedown", "dragstart"];
 

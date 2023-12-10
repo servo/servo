@@ -36,6 +36,7 @@ async function init() {
       eventType: "reserved.top_navigation_commit",
       eventData: beacon_data,
       destination: ["buyer"],
+      randomField: "blah",
     }
     window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
     addEventListener("click", (event) => {

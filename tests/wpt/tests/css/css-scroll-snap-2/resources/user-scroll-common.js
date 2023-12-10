@@ -25,17 +25,17 @@ function snap_event_scrollbar_drag_helper(scroller, scrollbar_width, drag_amt) {
   let x, y, bounds;
   if (scroller == document.scrollingElement) {
     bounds = document.documentElement.getBoundingClientRect();
-    x = window.innerWidth - Math.round(scrollbar_width / 2);
+    x = Math.round(window.innerWidth - scrollbar_width / 2);
   } else {
     bounds = scroller.getBoundingClientRect();
-    x = bounds.right - Math.round(scrollbar_width / 2);
+    x = Math.round(bounds.right - Math.round(scrollbar_width / 2));
   }
-  y = bounds.top + vertical_offset_into_scrollbar;
+  y = Math.round(bounds.top + vertical_offset_into_scrollbar);
   return new test_driver.Actions()
     .addPointer('TestPointer', 'mouse')
     .pointerMove(x, y)
     .pointerDown()
-    .pointerMove(x, y + drag_amt)
+    .pointerMove(x, Math.round(y + drag_amt))
     .addTick()
     .pointerUp()
     .send();
@@ -63,4 +63,8 @@ async function test_no_snap_event(test, scroller, delta, event_type) {
 
 async function test_no_snapchanged(t, scroller, delta) {
   await test_no_snap_event(t, scroller, delta, "snapchanged");
+}
+
+async function test_no_snapchanging(t, scroller, delta) {
+  await test_no_snap_event(t, scroller, delta, "snapchanging");
 }

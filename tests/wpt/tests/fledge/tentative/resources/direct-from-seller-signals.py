@@ -91,34 +91,78 @@ def main(request, response):
 
     response.status = (200, b"OK")
     buyerOrigin = request.headers.get("Buyer-Origin").decode('utf-8')
-    adAuctionSignals = json.dumps(
-      [{
-        "adSlot": "adSlot/0",
-      },
-      {
-        "adSlot": "adSlot/1",
-        "sellerSignals": "sellerSignals/1",
-      },
-      {
-        "adSlot": "adSlot/2",
-        "auctionSignals": "auctionSignals/2",
-      },
-      {
-        "adSlot": "adSlot/3",
-        "perBuyerSignals": { buyerOrigin: "perBuyerSignals/3" }
-      },
-      {
-        "adSlot": "adSlot/4",
-        "sellerSignals": "sellerSignals/4",
-        "auctionSignals": "auctionSignals/4",
-        "perBuyerSignals": { buyerOrigin: "perBuyerSignals/4" }
-      },
-      {
-        "adSlot": "adSlot/5",
-        "sellerSignals": "sellerSignals/5",
-        "auctionSignals": "auctionSignals/5",
-        "perBuyerSignals": { "mismatchOrigin": "perBuyerSignals/5" }
-      }])
+
+    altResponse = request.headers.get("Alternative-Response")
+
+    if altResponse == b"Overwrite adSlot/1":
+      adAuctionSignals = json.dumps(
+        [{
+          "adSlot": "adSlot/1",
+          "sellerSignals": "altSellerSignals/1",
+        }])
+    elif altResponse == b"Overwrite adSlot/1 v2":
+      adAuctionSignals = json.dumps(
+        [{
+          "adSlot": "adSlot/1",
+          "sellerSignals": "altV2SellerSignals/1",
+        }])
+    elif altResponse == b"Two keys with same values":
+      adAuctionSignals = json.dumps(
+        [{
+          "adSlot": "adSlot/1",
+          "sellerSignals": "sameSellerSignals",
+          "auctionSignals": "sameAuctionSignals",
+          "perBuyerSignals": { buyerOrigin: "samePerBuyerSignals" }
+        },
+        {
+          "adSlot": "adSlot/2",
+          "sellerSignals": "sameSellerSignals",
+          "auctionSignals": "sameAuctionSignals",
+          "perBuyerSignals": { buyerOrigin: "samePerBuyerSignals" }
+        }])
+    elif altResponse == b"Duplicate adSlot/1":
+      adAuctionSignals = json.dumps(
+        [{
+          "adSlot": "adSlot/1",
+          "sellerSignals": "firstSellerSignals/1",
+        },
+        {
+          "adSlot": "adSlot/2",
+          "sellerSignals": "nonDupSellerSignals/2",
+        },
+        {
+          "adSlot": "adSlot/1",
+          "sellerSignals": "secondSellerSignals/1",
+        }])
+    else:
+      adAuctionSignals = json.dumps(
+        [{
+          "adSlot": "adSlot/0",
+        },
+        {
+          "adSlot": "adSlot/1",
+          "sellerSignals": "sellerSignals/1",
+        },
+        {
+          "adSlot": "adSlot/2",
+          "auctionSignals": "auctionSignals/2",
+        },
+        {
+          "adSlot": "adSlot/3",
+          "perBuyerSignals": { buyerOrigin: "perBuyerSignals/3" }
+        },
+        {
+          "adSlot": "adSlot/4",
+          "sellerSignals": "sellerSignals/4",
+          "auctionSignals": "auctionSignals/4",
+          "perBuyerSignals": { buyerOrigin: "perBuyerSignals/4" }
+        },
+        {
+          "adSlot": "adSlot/5",
+          "sellerSignals": "sellerSignals/5",
+          "auctionSignals": "auctionSignals/5",
+          "perBuyerSignals": { "mismatchOrigin": "perBuyerSignals/5" }
+        }])
 
     response.headers.set("Ad-Auction-Signals", adAuctionSignals)
     response.headers.set(b"Content-Type", b"text/plain")

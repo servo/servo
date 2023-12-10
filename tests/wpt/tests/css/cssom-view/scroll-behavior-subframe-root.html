@@ -6,6 +6,7 @@
 <link rel="help" href="https://drafts.csswg.org/cssom-view/#scrolling-box">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <script src="support/scroll-behavior.js"></script>
 <div id="log">
 </div>
@@ -30,6 +31,10 @@
 </html>">
 </iframe>
 <script>
+  promise_test(async () => {
+    await waitForCompositorReady();
+  }, "Make sure the page is ready for animation.");
+
   var iframeLoadTest = async_test("iframe loaded");
   var scrollingElement, styledElement, elementToReveal;
   var elementToRevealLeft = 500;

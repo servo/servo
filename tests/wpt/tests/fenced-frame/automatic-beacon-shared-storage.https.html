@@ -46,9 +46,11 @@ promise_test(async(t) => {
                .pointerUp()
                .send();
 
-  const beacon_1_initiator_origin = await nextAutomaticBeacon(start_beacon_data);
+  const beacon_1_initiator_origin = await nextAutomaticBeacon(
+      "reserved.top_navigation_start", start_beacon_data);
   assert_equals(beacon_1_initiator_origin, get_host_info().HTTPS_ORIGIN);
-  const beacon_2_initiator_origin = await nextAutomaticBeacon(commit_beacon_data);
+  const beacon_2_initiator_origin = await nextAutomaticBeacon(
+      "reserved.top_navigation_commit", commit_beacon_data);
   assert_equals(beacon_2_initiator_origin, get_host_info().HTTPS_ORIGIN);
 }, 'Set and trigger an automatic beacon in a click handler for SharedStorage');
 

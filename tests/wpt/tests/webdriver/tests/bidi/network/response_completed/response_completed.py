@@ -5,15 +5,16 @@ import pytest
 
 from tests.support.sync import AsyncPoll
 
-from .. import assert_response_event, HTTP_STATUS_AND_STATUS_TEXT
-
-PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
-PAGE_EMPTY_IMAGE = "/webdriver/tests/bidi/network/support/empty.png"
-PAGE_EMPTY_SCRIPT = "/webdriver/tests/bidi/network/support/empty.js"
-PAGE_EMPTY_SVG = "/webdriver/tests/bidi/network/support/empty.svg"
-PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
-
-RESPONSE_COMPLETED_EVENT = "network.responseCompleted"
+from .. import (
+    assert_response_event,
+    HTTP_STATUS_AND_STATUS_TEXT,
+    PAGE_EMPTY_HTML,
+    PAGE_EMPTY_IMAGE,
+    PAGE_EMPTY_SCRIPT,
+    PAGE_EMPTY_SVG,
+    PAGE_EMPTY_TEXT,
+    RESPONSE_COMPLETED_EVENT,
+)
 
 
 @pytest.mark.asyncio

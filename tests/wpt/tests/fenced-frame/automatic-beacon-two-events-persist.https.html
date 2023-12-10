@@ -19,11 +19,12 @@ promise_test(async(t) => {
        origin: get_host_info().HTTPS_REMOTE_ORIGIN});
   const new_url = new URL("resources/dummy.html", location.href);
   const beacon_data = "This is the beacon data!";
+  const beacon_type = "reserved.top_navigation_commit";
 
-  await fencedframe.execute((new_url, beacon_data) => {
+  await fencedframe.execute((new_url, beacon_data, beacon_type) => {
     // `once` defaults to false.
     let beacon_event = {
-      eventType: "reserved.top_navigation_commit",
+      eventType: beacon_type,
       eventData: beacon_data,
       destination: ["buyer"],
     }
@@ -31,7 +32,7 @@ promise_test(async(t) => {
     addEventListener("click", (event) => {
       window.open(new_url, "_blank");
     });
-  }, [new_url, beacon_data]);
+  }, [new_url, beacon_data, beacon_type]);
 
   // The first click should trigger the automatic beacon, but the beacon data
   // should not be cleared out.
@@ -39,7 +40,8 @@ promise_test(async(t) => {
                .pointerDown()
                .pointerUp()
                .send();
-  const beacon_1_initiator_origin = await nextAutomaticBeacon(beacon_data);
+  const beacon_1_initiator_origin =
+      await nextAutomaticBeacon(beacon_type, beacon_data);
   assert_equals(beacon_1_initiator_origin, get_host_info().HTTPS_ORIGIN);
 
   // The second click should still have associated automatic beacon data, and a
@@ -48,7 +50,8 @@ promise_test(async(t) => {
                .pointerDown()
                .pointerUp()
                .send();
-  const beacon_2_initiator_origin = await nextAutomaticBeacon(beacon_data);
+  const beacon_2_initiator_origin =
+      await nextAutomaticBeacon(beacon_type, beacon_data);
   assert_equals(beacon_2_initiator_origin, get_host_info().HTTPS_ORIGIN);
 }, 'Set persisting automatic beacon but trigger two events in a click handler');
 
