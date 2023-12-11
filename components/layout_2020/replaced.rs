@@ -70,7 +70,7 @@ impl IntrinsicSizes {
 
         Self {
             width: Some(Length::new(width).into()),
-            height: Some(Length::new(width).into()),
+            height: Some(Length::new(height).into()),
             ratio,
         }
     }
