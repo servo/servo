@@ -18,7 +18,7 @@ path = "lib.rs"
 cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
-glib = "0.9"
+glib = "0.18"
 gstreamer = "0.15"
 gstreamer-base = "0.15"
 gstreamer-gl = "0.15"
