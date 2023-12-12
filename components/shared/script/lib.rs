@@ -27,7 +27,7 @@ use canvas_traits::webgl::WebGLPipeline;
 use compositor::ScrollTreeNodeId;
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use embedder_traits::Cursor;
+use embedder_traits::{CompositorEventVariant, Cursor};
 use euclid::default::Point2D;
 use euclid::{Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use gfx_traits::Epoch;
@@ -569,6 +569,21 @@ pub enum CompositorEvent {
     CompositionEvent(CompositionEvent),
     /// Virtual keyboard was dismissed
     IMEDismissedEvent,
+}
+
+impl From<&CompositorEvent> for CompositorEventVariant {
+    fn from(value: &CompositorEvent) -> Self {
+        match value {
+            CompositorEvent::ResizeEvent(..) => CompositorEventVariant::ResizeEvent,
+            CompositorEvent::MouseButtonEvent(..) => CompositorEventVariant::MouseButtonEvent,
+            CompositorEvent::MouseMoveEvent(..) => CompositorEventVariant::MouseMoveEvent,
+            CompositorEvent::TouchEvent(..) => CompositorEventVariant::TouchEvent,
+            CompositorEvent::WheelEvent(..) => CompositorEventVariant::WheelEvent,
+            CompositorEvent::KeyboardEvent(..) => CompositorEventVariant::KeyboardEvent,
+            CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
+            CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
+        }
+    }
 }
 
 /// Requests a TimerEvent-Message be sent after the given duration.

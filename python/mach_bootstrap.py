@@ -4,8 +4,9 @@
 
 import os
 import platform
-import sys
+import site
 import shutil
+import sys
 
 from subprocess import Popen
 from tempfile import TemporaryFile
@@ -80,25 +81,24 @@ CATEGORIES = {
     }
 }
 
-# Possible names of executables
-# NOTE: Windows Python doesn't provide versioned executables, so we must use
-# the plain names. On MSYS, we still use Windows Python.
-PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
 
-
-def _get_exec_path(names, is_valid_path=lambda _path: True):
-    for name in names:
-        path = shutil.which(name)
-        if path and is_valid_path(path):
-            return path
-    return None
-
-
+# venv calls its scripts folder "bin" on non-Windows and "Scripts" on Windows.
 def _get_virtualenv_script_dir():
-    # Virtualenv calls its scripts folder "bin" on linux/OSX/MSYS64 but "Scripts" on Windows
     if os.name == "nt" and os.sep != "/":
         return "Scripts"
     return "bin"
+
+
+# venv names its lib folder something like "lib/python3.11/site-packages" on
+# non-Windows and "Lib\site-packages" on Window.
+def _get_virtualenv_lib_dir():
+    if os.name == "nt" and os.sep != "/":
+        return os.path.join("Lib", "site-packages")
+    return os.path.join(
+        "lib",
+        f"python{sys.version_info[0]}.{sys.version_info[1]}",
+        "site-packages"
+    )
 
 
 def _process_exec(args):
@@ -130,32 +130,29 @@ def _process_exec(args):
 
 
 def _activate_virtualenv(topdir):
-    virtualenv_path = os.path.join(topdir, "python", "_virtualenv%d.%d" % (sys.version_info[0], sys.version_info[1]))
-    python = sys.executable   # If there was no python, mach wouldn't have run at all!
-    if not python:
-        sys.exit('Failed to find python executable for starting virtualenv.')
+    virtualenv_path = os.path.join(topdir, "python", "_venv%d.%d" % (sys.version_info[0], sys.version_info[1]))
+    python = sys.executable
 
-    script_dir = _get_virtualenv_script_dir()
-    activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
-    need_pip_upgrade = False
-    if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
-        import importlib
-        try:
-            importlib.import_module('virtualenv')
-        except ModuleNotFoundError:
-            sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
+    if os.environ.get("VIRTUAL_ENV") != virtualenv_path:
+        venv_script_path = os.path.join(virtualenv_path, _get_virtualenv_script_dir())
+        if not os.path.exists(virtualenv_path):
+            _process_exec([python, "-m", "venv", "--system-site-packages", virtualenv_path])
 
-        _process_exec([python, "-m", "virtualenv", "-p", python, "--system-site-packages", virtualenv_path])
+        # This general approach is taken from virtualenv's `activate_this.py`.
+        os.environ["PATH"] = os.pathsep.join([venv_script_path, *os.environ.get("PATH", "").split(os.pathsep)])
+        os.environ["VIRTUAL_ENV"] = virtualenv_path
 
-        # We want to upgrade pip when virtualenv created for the first time
-        need_pip_upgrade = True
+        prev_length = len(sys.path)
+        lib_path = os.path.realpath(os.path.join(virtualenv_path, _get_virtualenv_lib_dir()))
+        site.addsitedir(lib_path)
+        sys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]
 
-    exec(compile(open(activate_path).read(), activate_path, 'exec'), dict(__file__=activate_path))
+        sys.real_prefix = sys.prefix
+        sys.prefix = virtualenv_path
 
-    python = _get_exec_path(PYTHON_NAMES,
-                            is_valid_path=lambda path: path.startswith(virtualenv_path))
-    if not python:
-        sys.exit("Python executable in virtualenv failed to activate.")
+        # Use the python in our venv for subprocesses, not the python we were originally run with.
+        # Otherwise pip may still try to write to the wrong site-packages directory.
+        python = os.path.join(venv_script_path, "python")
 
     # TODO: Right now, we iteratively install all the requirements by invoking
     # `pip install` each time. If it were the case that there were conflicting
@@ -167,11 +164,6 @@ def _activate_virtualenv(topdir):
         os.path.join("python", "requirements.txt"),
         os.path.join(WPT_RUNNER_PATH, "requirements.txt",),
     ]
-
-    if need_pip_upgrade:
-        # Upgrade pip when virtualenv is created to fix the issue
-        # https://github.com/servo/servo/issues/11074
-        _process_exec([python, "-m", "pip", "install", "-I", "-U", "pip"])
 
     for req_rel_path in requirements_paths:
         req_path = os.path.join(topdir, req_rel_path)

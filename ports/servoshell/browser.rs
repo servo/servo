@@ -14,8 +14,8 @@ use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{debug, error, info, trace, warn};
 use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
 use servo::embedder_traits::{
-    ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt, PermissionRequest,
-    PromptDefinition, PromptOrigin, PromptResult,
+    CompositorEventVariant, ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt,
+    PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
 };
 use servo::msg::constellation_msg::{TopLevelBrowsingContextId as BrowserId, TraversalDirection};
 use servo::script_traits::TouchEventType;
@@ -544,6 +544,13 @@ where
                 },
                 EmbedderMsg::ReadyToPresent => {
                     need_present = true;
+                },
+                EmbedderMsg::EventDelivered(event) => match (browser_id, event) {
+                    (Some(browser_id), CompositorEventVariant::MouseButtonEvent) => {
+                        // TODO Focus browser and/or raise to top if needed.
+                        trace!("{}: Got a mouse button event", browser_id);
+                    },
+                    (_, _) => {},
                 },
             }
         }

@@ -24,7 +24,7 @@ jobs:
         run: echo nightly > rust-toolchain
       - name: Bootstrap
         run: |
-          python3 -m pip install --upgrade pip virtualenv
+          python3 -m pip install --upgrade pip
           sudo apt update
           python3 ./mach bootstrap
       - name: Release build

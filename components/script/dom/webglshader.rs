@@ -12,7 +12,7 @@ use canvas_traits::webgl::{
     WebGLShaderId, WebGLVersion,
 };
 use dom_struct::dom_struct;
-use mozangle::shaders::{ffi, BuiltInResources, Output, ShaderValidator};
+use mozangle::shaders::{BuiltInResources, CompileOptions, Output, ShaderValidator};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
@@ -84,121 +84,6 @@ impl WebGLShader {
     }
 }
 
-// Based on https://searchfox.org/mozilla-central/rev/efdf9bb55789ea782ae3a431bda6be74a87b041e/gfx/angle/checkout/src/compiler/translator/ShaderLang.cpp#173
-fn default_validator() -> BuiltInResources {
-    BuiltInResources {
-        // Constants.
-        MaxVertexAttribs: 8,
-        MaxVertexUniformVectors: 128,
-        MaxVaryingVectors: 8,
-        MaxVertexTextureImageUnits: 0,
-        MaxCombinedTextureImageUnits: 8,
-        MaxTextureImageUnits: 8,
-        MaxFragmentUniformVectors: 16,
-        MaxDrawBuffers: 1,
-
-        // Extensions.
-        OES_standard_derivatives: 0,
-        OES_EGL_image_external: 0,
-        OES_EGL_image_external_essl3: 0,
-        NV_EGL_stream_consumer_external: 0,
-        ARB_texture_rectangle: 0,
-        EXT_blend_func_extended: 0,
-        EXT_draw_buffers: 0,
-        EXT_frag_depth: 0,
-        EXT_shader_texture_lod: 0,
-        WEBGL_debug_shader_precision: 0,
-        EXT_shader_framebuffer_fetch: 0,
-        NV_shader_framebuffer_fetch: 0,
-        NV_draw_buffers: 0,
-        ARM_shader_framebuffer_fetch: 0,
-        //OVR_multiview: 0,
-        OVR_multiview2: 0,
-        EXT_YUV_target: 0,
-        EXT_geometry_shader: 0,
-        OES_texture_storage_multisample_2d_array: 0,
-        //OES_texture_3d: 0,
-        ANGLE_texture_multisample: 0,
-        ANGLE_multi_draw: 0,
-
-        // Disable highp precision in fragment shader by default.
-        FragmentPrecisionHigh: 0,
-
-        // GLSL ES 3.0 constants.
-        MaxVertexOutputVectors: 16,
-        MaxFragmentInputVectors: 15,
-        MinProgramTexelOffset: -8,
-        MaxProgramTexelOffset: 7,
-
-        // Extension constants.
-        MaxDualSourceDrawBuffers: 0,
-        MaxViewsOVR: 4,
-
-        // Disable name hashing by default.
-        HashFunction: None,
-        ArrayIndexClampingStrategy:
-            ffi::ShArrayIndexClampingStrategy::SH_CLAMP_WITH_CLAMP_INTRINSIC,
-
-        MaxExpressionComplexity: 256,
-        MaxCallStackDepth: 256,
-        MaxFunctionParameters: 1024,
-
-        // ES 3.1 Revision 4, 7.2 Built-in Constants
-
-        // ES 3.1, Revision 4, 8.13 Texture minification
-        // "The value of MIN_PROGRAM_TEXTURE_GATHER_OFFSET must be less than or equal to the value of
-        // MIN_PROGRAM_TEXEL_OFFSET. The value of MAX_PROGRAM_TEXTURE_GATHER_OFFSET must be greater than
-        // or equal to the value of MAX_PROGRAM_TEXEL_OFFSET"
-        MinProgramTextureGatherOffset: -8,
-        MaxProgramTextureGatherOffset: 7,
-
-        MaxImageUnits: 4,
-        MaxVertexImageUniforms: 0,
-        MaxFragmentImageUniforms: 0,
-        MaxComputeImageUniforms: 0,
-        MaxCombinedImageUniforms: 0,
-
-        MaxUniformLocations: 1024,
-
-        MaxCombinedShaderOutputResources: 4,
-
-        MaxComputeWorkGroupCount: [65535, 65535, 65535],
-        MaxComputeWorkGroupSize: [128, 128, 64],
-        MaxComputeUniformComponents: 512,
-        MaxComputeTextureImageUnits: 16,
-
-        MaxComputeAtomicCounters: 8,
-        MaxComputeAtomicCounterBuffers: 1,
-
-        MaxVertexAtomicCounters: 0,
-        MaxFragmentAtomicCounters: 0,
-        MaxCombinedAtomicCounters: 8,
-        MaxAtomicCounterBindings: 1,
-
-        MaxVertexAtomicCounterBuffers: 0,
-        MaxFragmentAtomicCounterBuffers: 0,
-        MaxCombinedAtomicCounterBuffers: 1,
-        MaxAtomicCounterBufferSize: 32,
-
-        MaxUniformBufferBindings: 32,
-        MaxShaderStorageBufferBindings: 4,
-        MaxPointSize: 0.0,
-
-        MaxGeometryUniformComponents: 1024,
-        MaxGeometryUniformBlocks: 12,
-        MaxGeometryInputComponents: 64,
-        MaxGeometryOutputComponents: 64,
-        MaxGeometryOutputVertices: 256,
-        MaxGeometryTotalOutputComponents: 1024,
-        MaxGeometryTextureImageUnits: 16,
-        MaxGeometryAtomicCounterBuffers: 0,
-        MaxGeometryAtomicCounters: 0,
-        MaxGeometryShaderStorageBlocks: 0,
-        MaxGeometryShaderInvocations: 32,
-        MaxGeometryImageUniforms: 0,
-    }
-}
-
 impl WebGLShader {
     pub fn id(&self) -> WebGLShaderId {
         self.id
@@ -243,7 +128,7 @@ impl WebGLShader {
             EXT_frag_depth: ext.is_enabled::<EXTFragDepth>() as c_int,
 
             FragmentPrecisionHigh: 1,
-            ..default_validator()
+            ..Default::default()
         };
 
         if webgl_version == WebGLVersion::WebGL2 {
@@ -284,44 +169,36 @@ impl WebGLShader {
         };
 
         // Replicating
-        // https://searchfox.org/mozilla-central/rev/c621276fbdd9591f52009042d959b9e19b66d49f/dom/canvas/WebGLShaderValidator.cpp#32
-        let options = mozangle::shaders::ffi::SH_VARIABLES |
-            mozangle::shaders::ffi::SH_ENFORCE_PACKING_RESTRICTIONS |
-            mozangle::shaders::ffi::SH_OBJECT_CODE |
-            mozangle::shaders::ffi::SH_INIT_GL_POSITION |
-            mozangle::shaders::ffi::SH_INITIALIZE_UNINITIALIZED_LOCALS |
-            mozangle::shaders::ffi::SH_INIT_OUTPUT_VARIABLES |
-            mozangle::shaders::ffi::SH_LIMIT_EXPRESSION_COMPLEXITY |
-            mozangle::shaders::ffi::SH_LIMIT_CALL_STACK_DEPTH |
-            if cfg!(target_os = "macos") {
-                // Work around https://bugs.webkit.org/show_bug.cgi?id=124684,
-                // https://chromium.googlesource.com/angle/angle/+/5e70cf9d0b1bb
-                mozangle::shaders::ffi::SH_UNFOLD_SHORT_CIRCUIT |
-                // Work around that Mac drivers handle struct scopes incorrectly.
-                mozangle::shaders::ffi::SH_REGENERATE_STRUCT_NAMES |
-                // Work around that Intel drivers on Mac OSX handle for-loop incorrectly.
-                mozangle::shaders::ffi::SH_ADD_AND_TRUE_TO_LOOP_CONDITION
-            } else {
-                // We want to do this everywhere, but to do this on Mac, we need
-                // to do it only on Mac OSX > 10.6 as this causes the shader
-                // compiler in 10.6 to crash
-                mozangle::shaders::ffi::SH_CLAMP_INDIRECT_ARRAY_BOUNDS
-            };
+        // https://searchfox.org/mozilla-esr115/rev/f1fb0868dc63b89ccf9eea157960d1ec27fb55a2/dom/canvas/WebGLShaderValidator.cpp#29
+        let mut options = CompileOptions::mozangle();
+        options.set_variables(1);
+        options.set_enforcePackingRestrictions(1);
+        options.set_objectCode(1);
+        options.set_initGLPosition(1);
+        options.set_initializeUninitializedLocals(1);
+        options.set_initOutputVariables(1);
 
-        // Replicating
-        // https://github.com/servo/mozangle/blob/706a9baaf8026c1a3cb6c67ba63aa5f4734264d0/src/shaders/mod.rs#L226
-        let options = options |
-            mozangle::shaders::ffi::SH_VALIDATE |
-            mozangle::shaders::ffi::SH_OBJECT_CODE |
-            mozangle::shaders::ffi::SH_VARIABLES | // For uniform_name_map()
-            mozangle::shaders::ffi::SH_EMULATE_ABS_INT_FUNCTION | // To workaround drivers
-            mozangle::shaders::ffi::SH_EMULATE_ISNAN_FLOAT_FUNCTION | // To workaround drivers
-            mozangle::shaders::ffi::SH_EMULATE_ATAN2_FLOAT_FUNCTION | // To workaround drivers
-            mozangle::shaders::ffi::SH_CLAMP_INDIRECT_ARRAY_BOUNDS |
-            mozangle::shaders::ffi::SH_INIT_GL_POSITION |
-            mozangle::shaders::ffi::SH_ENFORCE_PACKING_RESTRICTIONS |
-            mozangle::shaders::ffi::SH_LIMIT_EXPRESSION_COMPLEXITY |
-            mozangle::shaders::ffi::SH_LIMIT_CALL_STACK_DEPTH;
+        options.set_limitExpressionComplexity(1);
+        options.set_limitCallStackDepth(1);
+
+        if cfg!(target_os = "macos") {
+            options.set_removeInvariantAndCentroidForESSL3(1);
+
+            // Work around https://bugs.webkit.org/show_bug.cgi?id=124684,
+            // https://chromium.googlesource.com/angle/angle/+/5e70cf9d0b1bb
+            options.set_unfoldShortCircuit(1);
+            // Work around that Mac drivers handle struct scopes incorrectly.
+            options.set_regenerateStructNames(1);
+            // TODO: Only apply this workaround to Intel hardware
+            // Work around that Intel drivers on Mac OSX handle for-loop incorrectly.
+            options.set_addAndTrueToLoopCondition(1);
+            options.set_rewriteTexelFetchOffsetToTexelFetch(1);
+        } else {
+            // We want to do this everywhere, but to do this on Mac, we need
+            // to do it only on Mac OSX > 10.6 as this causes the shader
+            // compiler in 10.6 to crash
+            options.set_clampIndirectArrayBounds(1);
+        }
 
         match validator.compile(&[&source], options) {
             Ok(()) => {

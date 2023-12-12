@@ -60,7 +60,7 @@ log = "0.4"
 malloc_size_of_derive = "0.1"
 mime = "0.3.13"
 mime_guess = "2.0.3"
-mozangle = "0.4"
+mozangle = "0.5.0"
 msg = { path = "components/shared/msg" }
 net_traits = { path = "components/shared/net" }
 num-traits = "0.2"
@@ -74,7 +74,7 @@ rand_core = "0.6"
 rand_isaac = "0.3"
 rayon = "1"
 regex = "1.10"
-rustls = { version = "0.21.9", features = ["dangerous_configuration"] }
+rustls = { version = "0.21.10", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
@@ -96,7 +96,7 @@ time = "0.1.41"
 tokio = "1"
 tokio-rustls = "0.24"
 tungstenite = "0.20"
-unicode-bidi = "0.3.4"
+unicode-bidi = "0.3.14"
 unicode-script = "0.5"
 url = "2.5"
 uuid = { version = "1.6.1", features = ["v4"] }

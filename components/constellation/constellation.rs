@@ -1548,9 +1548,10 @@ where
 
     fn handle_request_from_script(&mut self, message: (PipelineId, FromScriptMsg)) {
         let (source_pipeline_id, content) = message;
-        debug!(
+        trace!(
             "{}: Message from pipeline: {:?}",
-            source_pipeline_id, content,
+            source_pipeline_id,
+            content,
         );
 
         let source_top_ctx_id = match self
@@ -2904,15 +2905,23 @@ where
             self.pressed_mouse_buttons = 0;
         }
 
-        let msg = ConstellationControlMsg::SendEvent(destination_pipeline_id, event);
-        let result = match self.pipelines.get(&destination_pipeline_id) {
+        let pipeline = match self.pipelines.get(&destination_pipeline_id) {
             None => {
                 debug!("{}: Got event after closure", destination_pipeline_id);
                 return;
             },
-            Some(pipeline) => pipeline.event_loop.send(msg),
+            Some(pipeline) => pipeline,
         };
-        if let Err(e) = result {
+
+        self.embedder_proxy.send((
+            Some(pipeline.top_level_browsing_context_id),
+            EmbedderMsg::EventDelivered((&event).into()),
+        ));
+
+        if let Err(e) = pipeline.event_loop.send(ConstellationControlMsg::SendEvent(
+            destination_pipeline_id,
+            event,
+        )) {
             self.handle_send_error(destination_pipeline_id, e);
         }
     }

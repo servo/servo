@@ -86,8 +86,9 @@ jobs:
         with:
           crate: taplo-cli
           locked: true
+          cache-key: ${{ inputs.upload && '20.04' || '22.04' }}
       - name: Bootstrap Python
-        run: python3 -m pip install --upgrade pip virtualenv
+        run: python3 -m pip install --upgrade pip
       - name: Bootstrap dependencies
         run: sudo apt update && python3 ./mach bootstrap
       - name: Tidy
@@ -179,4 +180,3 @@ jobs:
       - name: Mark the job as unsuccessful
         run: exit 1
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
-

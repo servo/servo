@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [features]
 default = []
+multiview = []
 
 [dependencies]
 canvas = { path = "../canvas" }
