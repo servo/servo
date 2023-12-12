@@ -86,7 +86,8 @@ impl Minibrowser {
     }
 
     /// Preprocess the given [winit::event::WindowEvent], returning unconsumed for mouse events in
-    /// the Servo browser rect.
+    /// the Servo browser rect. This is needed because the CentralPanel we create for our webview
+    /// would otherwise make egui report events in that area as consumed.
     pub fn on_event(&mut self, event: &winit::event::WindowEvent<'_>) -> EventResponse {
         let mut result = self.context.on_event(event);
         result.consumed &= match event {
