@@ -23,7 +23,6 @@ use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
 use gfx_traits::{Epoch, FontData, WebRenderEpochToU16};
-#[cfg(feature = "gl")]
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
 use libc::c_void;
@@ -33,7 +32,6 @@ use msg::constellation_msg::{
 };
 use net_traits::image::base::Image;
 use net_traits::image_cache::CorsStatus;
-#[cfg(feature = "gl")]
 use pixels::PixelFormat;
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_traits::compositor::{HitTestInfo, ScrollTree};
@@ -59,14 +57,12 @@ use webrender_api::{
 };
 use webrender_surfman::WebrenderSurfman;
 
-#[cfg(feature = "gl")]
-use crate::gl;
 use crate::gl::RenderTargetInfo;
 use crate::touch::{TouchAction, TouchHandler};
 use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
 };
-use crate::InitialCompositorState;
+use crate::{gl, InitialCompositorState};
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -1725,34 +1721,30 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             }
         }
 
-        cfg_if! {
-            if #[cfg(feature = "gl")] {
-                if needs_fbo {
-                    if self.current_render_target.is_none() {
-                        self.current_render_target = Some(RenderTargetInfo::new(
-                            self.webrender_gl.clone(),
-                            FramebufferUintLength::new(size.width),
-                            FramebufferUintLength::new(size.height),
-                        ));
-                    }
-                    self.current_render_target
-                        .as_ref()
-                        .expect("Initialised above")
-                        .bind();
-                } else {
-                    // Bind the webrender framebuffer
-                    let framebuffer_object = self
-                        .webrender_surfman
-                        .context_surface_info()
-                        .unwrap_or(None)
-                        .map(|info| info.framebuffer_object)
-                        .unwrap_or(0);
-                    self.webrender_gl
-                        .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
-                    self.assert_gl_framebuffer_complete();
-                }
+        if needs_fbo {
+            if self.current_render_target.is_none() {
+                self.current_render_target = Some(RenderTargetInfo::new(
+                    self.webrender_gl.clone(),
+                    FramebufferUintLength::new(size.width),
+                    FramebufferUintLength::new(size.height),
+                ));
             }
-        };
+            self.current_render_target
+                .as_ref()
+                .expect("Initialised above")
+                .bind();
+        } else {
+            // Bind the webrender framebuffer
+            let framebuffer_object = self
+                .webrender_surfman
+                .context_surface_info()
+                .unwrap_or(None)
+                .map(|info| info.framebuffer_object)
+                .unwrap_or(0);
+            self.webrender_gl
+                .bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
+            self.assert_gl_framebuffer_complete();
+        }
 
         profile(
             ProfilerCategory::Compositing,
@@ -1824,67 +1816,72 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             (0, 0, size.width, size.height)
         };
 
-        cfg_if! {
-            if #[cfg(feature = "gl")] {
-                let rv = match target {
-                    CompositeTarget::Window => None,
-                    CompositeTarget::Fbo => {
-                        self.current_render_target.as_ref().expect("Guaranteed by needs_fbo").unbind();
-                        if self.invalidate_last_render_target {
-                            // Do not reuse the last render target as the new current render target.
-                            self.last_render_target = None;
-                            self.invalidate_last_render_target = false;
-                        }
-                        swap(&mut self.current_render_target, &mut self.last_render_target);
-                        None
+        let rv = match target {
+            CompositeTarget::Window => None,
+            CompositeTarget::Fbo => {
+                self.current_render_target
+                    .as_ref()
+                    .expect("Guaranteed by needs_fbo")
+                    .unbind();
+                if self.invalidate_last_render_target {
+                    // Do not reuse the last render target as the new current render target.
+                    self.last_render_target = None;
+                    self.invalidate_last_render_target = false;
+                }
+                swap(
+                    &mut self.current_render_target,
+                    &mut self.last_render_target,
+                );
+                None
+            },
+            CompositeTarget::SharedMemory => {
+                let render_target_info = self
+                    .current_render_target
+                    .take()
+                    .expect("Guaranteed by needs_fbo");
+                let img = render_target_info.read(
+                    x,
+                    y,
+                    FramebufferUintLength::new(width),
+                    FramebufferUintLength::new(height),
+                );
+                Some(Image {
+                    width: img.width(),
+                    height: img.height(),
+                    format: PixelFormat::RGB8,
+                    bytes: ipc::IpcSharedMemory::from_bytes(&*img),
+                    id: None,
+                    cors_status: CorsStatus::Safe,
+                })
+            },
+            CompositeTarget::PngFile(path) => {
+                profile(
+                    ProfilerCategory::ImageSaving,
+                    None,
+                    self.time_profiler_chan.clone(),
+                    || match File::create(&*path) {
+                        Ok(mut file) => {
+                            let render_target_info = self
+                                .current_render_target
+                                .take()
+                                .expect("Guaranteed by needs_fbo");
+                            let img = render_target_info.read(
+                                x,
+                                y,
+                                FramebufferUintLength::new(width),
+                                FramebufferUintLength::new(height),
+                            );
+                            let dynamic_image = DynamicImage::ImageRgb8(img);
+                            if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::Png) {
+                                error!("Failed to save {} ({}).", path, e);
+                            }
+                        },
+                        Err(e) => error!("Failed to create {} ({}).", path, e),
                     },
-                    CompositeTarget::SharedMemory => {
-                        let render_target_info = self.current_render_target.take().expect("Guaranteed by needs_fbo");
-                        let img = render_target_info.read(
-                            x,
-                            y,
-                            FramebufferUintLength::new(width),
-                            FramebufferUintLength::new(height),
-                        );
-                        Some(Image {
-                            width: img.width(),
-                            height: img.height(),
-                            format: PixelFormat::RGB8,
-                            bytes: ipc::IpcSharedMemory::from_bytes(&*img),
-                            id: None,
-                            cors_status: CorsStatus::Safe,
-                        })
-                    },
-                    CompositeTarget::PngFile(path) => {
-                        profile(
-                            ProfilerCategory::ImageSaving,
-                            None,
-                            self.time_profiler_chan.clone(),
-                            || match File::create(&*path) {
-                                Ok(mut file) => {
-                                    let render_target_info = self.current_render_target.take()
-                                        .expect("Guaranteed by needs_fbo");
-                                    let img = render_target_info.read(
-                                        x,
-                                        y,
-                                        FramebufferUintLength::new(width),
-                                        FramebufferUintLength::new(height),
-                                    );
-                                    let dynamic_image = DynamicImage::ImageRgb8(img);
-                                    if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::Png) {
-                                        error!("Failed to save {} ({}).", path, e);
-                                    }
-                                },
-                                Err(e) => error!("Failed to create {} ({}).", path, e),
-                            },
-                        );
-                        None
-                    },
-                };
-            } else {
-                let rv = None;
-            }
-        }
+                );
+                None
+            },
+        };
 
         // Nottify embedder that servo is ready to present.
         // Embedder should call `present` to tell compositor to continue rendering.

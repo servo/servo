@@ -16,7 +16,6 @@ use webrender_surfman::WebrenderSurfman;
 pub use crate::compositor::{CompositeTarget, IOCompositor, ShutdownState};
 
 mod compositor;
-#[cfg(feature = "gl")]
 mod gl;
 mod touch;
 pub mod windowing;

@@ -13,7 +13,6 @@ path = "lib.rs"
 
 [features]
 default = []
-gl = ["gleam", "pixels"]
 
 [dependencies]
 canvas = { path = "../canvas" }
@@ -24,7 +23,7 @@ embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 gfx_traits = { workspace = true }
-gleam = { workspace = true, optional = true }
+gleam = { workspace = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
@@ -33,7 +32,7 @@ log = { workspace = true }
 msg = { workspace = true }
 net_traits = { workspace = true }
 num-traits = { workspace = true }
-pixels = { path = "../pixels", optional = true }
+pixels = { path = "../pixels" }
 profile_traits = { workspace = true }
 script_traits = { workspace = true }
 servo_config = { path = "../config" }
