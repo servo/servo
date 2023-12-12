@@ -116,7 +116,8 @@ pub mod gl {
             include!(concat!(env!("OUT_DIR"), "/glx_bindings.rs"));
         }
 
-        let lib = match Library::new("libGL.so.1").or_else(|_| Library::new("libGL.so")) {
+        let lib = match unsafe { Library::new("libGL.so.1").or_else(|_| Library::new("libGL.so")) }
+        {
             Ok(lib) => lib,
             Err(_) => return Err("Can't find libGL.so, OpenGL isn't configured/installed"),
         };
