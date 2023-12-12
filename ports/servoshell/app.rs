@@ -123,6 +123,7 @@ impl App {
         }
 
         if let Some(mut minibrowser) = app.minibrowser() {
+            // Servo is not yet initialised, so there is no `servo_framebuffer_id`.
             minibrowser.update(window.winit_window().unwrap(), None, "init");
             window.set_toolbar_height(minibrowser.toolbar_height);
         }
