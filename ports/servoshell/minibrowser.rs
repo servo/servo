@@ -67,10 +67,7 @@ impl Minibrowser {
         let widget_surface_fbo = match webrender_surfman.context_surface_info() {
             Ok(Some(info)) => info.framebuffer_object,
             Ok(None) => panic!("Failed to get widget surface info from surfman!"),
-            Err(error) => panic!(
-                "Failed to get widget surface info from surfman! {:?}",
-                error
-            ),
+            Err(error) => panic!("Failed to get widget surface info from surfman! {error:?}"),
         };
 
         Self {
