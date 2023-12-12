@@ -31,7 +31,11 @@ pub struct Minibrowser {
     pub context: EguiGlow,
     pub event_queue: RefCell<Vec<MinibrowserEvent>>,
     pub toolbar_height: Length<f32, DeviceIndependentPixel>,
-    widget_surface_fbo: gl::GLuint,
+
+    /// The framebuffer object name for the widget surface we should draw to, or None if our widget
+    /// surface does not use a framebuffer object.
+    widget_surface_fbo: Option<NativeFramebuffer>,
+
     last_update: Instant,
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
     location: RefCell<String>,
@@ -65,7 +69,7 @@ impl Minibrowser {
             .set_pixels_per_point(window.hidpi_factor().get());
 
         let widget_surface_fbo = match webrender_surfman.context_surface_info() {
-            Ok(Some(info)) => info.framebuffer_object,
+            Ok(Some(info)) => NonZeroU32::new(info.framebuffer_object).map(NativeFramebuffer),
             Ok(None) => panic!("Failed to get widget surface info from surfman!"),
             Err(error) => panic!("Failed to get widget surface info from surfman! {error:?}"),
         };
@@ -136,7 +140,7 @@ impl Minibrowser {
             location_dirty,
             ..
         } = self;
-        let our_fbo = *widget_surface_fbo;
+        let widget_fbo = *widget_surface_fbo;
         let _duration = context.run(window, |ctx| {
             let InnerResponse { inner: height, .. } =
                 TopBottomPanel::top("toolbar").show(ctx, |ui| {
@@ -212,11 +216,12 @@ impl Minibrowser {
                                 painter.gl().disable(gl::SCISSOR_TEST);
 
                                 let servo_fbo = NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
-                                let our_fbo = NonZeroU32::new(our_fbo).map(NativeFramebuffer);
                                 painter
                                     .gl()
                                     .bind_framebuffer(gl::READ_FRAMEBUFFER, servo_fbo);
-                                painter.gl().bind_framebuffer(gl::DRAW_FRAMEBUFFER, our_fbo);
+                                painter
+                                    .gl()
+                                    .bind_framebuffer(gl::DRAW_FRAMEBUFFER, widget_fbo);
                                 painter.gl().blit_framebuffer(
                                     x,
                                     y,
@@ -229,7 +234,7 @@ impl Minibrowser {
                                     gl::COLOR_BUFFER_BIT,
                                     gl::NEAREST,
                                 );
-                                painter.gl().bind_framebuffer(gl::FRAMEBUFFER, our_fbo);
+                                painter.gl().bind_framebuffer(gl::FRAMEBUFFER, widget_fbo);
                             }
                         })),
                     });
@@ -241,13 +246,12 @@ impl Minibrowser {
 
     /// Paint the minibrowser, as of the last update.
     pub fn paint(&mut self, window: &winit::window::Window) {
-        let our_fbo = NonZeroU32::new(self.widget_surface_fbo).map(NativeFramebuffer);
         unsafe {
             use glow::HasContext as _;
             self.context
                 .painter
                 .gl()
-                .bind_framebuffer(gl::FRAMEBUFFER, our_fbo);
+                .bind_framebuffer(gl::FRAMEBUFFER, self.widget_surface_fbo);
         }
         self.context.paint(window);
     }
