@@ -546,21 +546,11 @@ where
                     need_present = true;
                 },
                 EmbedderMsg::EventDelivered(event) => match (browser_id, event) {
-                    (None, _) => {},
-                    (
-                        _,
-                        CompositorEventVariant::ResizeEvent |
-                        CompositorEventVariant::MouseMoveEvent |
-                        CompositorEventVariant::TouchEvent |
-                        CompositorEventVariant::WheelEvent |
-                        CompositorEventVariant::KeyboardEvent |
-                        CompositorEventVariant::CompositionEvent |
-                        CompositorEventVariant::IMEDismissedEvent,
-                    ) => {},
                     (Some(browser_id), CompositorEventVariant::MouseButtonEvent) => {
                         // TODO Focus browser and/or raise to top if needed.
                         trace!("{}: Got a mouse button event", browser_id);
                     },
+                    (_, _) => {},
                 },
             }
         }
