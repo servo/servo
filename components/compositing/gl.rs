@@ -141,7 +141,7 @@ impl RenderTargetInfo {
 
 impl Drop for RenderTargetInfo {
     fn drop(&mut self) {
-        trace!("Dropping fbo {}", self.framebuffer_id());
+        trace!("Dropping FBO {}", self.framebuffer_id());
         self.unbind();
         self.gl.delete_textures(&self.texture_ids);
         self.gl.delete_renderbuffers(&self.renderbuffer_ids);
