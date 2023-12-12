@@ -535,7 +535,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (CompositorMsg::CreatePng(rect, reply), ShutdownState::NotShuttingDown) => {
-                let res = self.composite_specific_target(Some(CompositeTarget::SharedMemory), rect);
+                let res = self.composite_specific_target(CompositeTarget::SharedMemory, rect);
                 if let Err(ref e) = res {
                     info!("Error retrieving PNG: {:?}", e);
                 }
@@ -1655,7 +1655,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn composite(&mut self) {
-        match self.composite_specific_target(None, None) {
+        match self.composite_specific_target(self.composite_target.clone(), None) {
             Ok(_) => {
                 if matches!(self.composite_target, CompositeTarget::PngFile(_)) ||
                     self.exit_after_load
@@ -1682,7 +1682,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// GPU and returned as Ok(Some(png::Image)), otherwise we return Ok(None).
     fn composite_specific_target(
         &mut self,
-        target_override: Option<CompositeTarget>,
+        target: CompositeTarget,
         rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
         if self.waiting_on_present {
@@ -1701,7 +1701,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         self.webrender.update();
 
-        let target = target_override.unwrap_or_else(|| self.composite_target.clone());
         let wait_for_stable_image = matches!(
             target,
             CompositeTarget::SharedMemory | CompositeTarget::PngFile(_)
