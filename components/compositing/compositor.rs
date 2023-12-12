@@ -2,17 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::env;
 use std::fs::{create_dir_all, File};
 use std::io::Write;
-use std::mem::swap;
 use std::num::NonZeroU32;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use canvas::canvas_paint_thread::ImageUpdate;
-use cfg_if::cfg_if;
 use compositing_traits::{
     CanvasToCompositorMsg, CompositingReason, CompositionPipeline, CompositorMsg,
     CompositorReceiver, ConstellationMsg, FontToCompositorMsg, ForwardedToCompositorMsg,
@@ -224,14 +223,16 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Current cursor position.
     cursor_pos: DevicePoint,
 
-    /// Offscreen framebuffer object to render to.
-    current_render_target: Option<gl::RenderTargetInfo>,
+    /// Offscreen framebuffer object to render our next frame to.
+    /// We use this and `prev_offscreen_framebuffer` for double buffering.
+    next_offscreen_framebuffer: OnceCell<gl::RenderTargetInfo>,
 
-    /// Offscreen framebuffer object that our last frame was rendered to.
-    last_render_target: Option<gl::RenderTargetInfo>,
+    /// Offscreen framebuffer object for our most-recently-completed frame.
+    /// We use this and `next_offscreen_framebuffer` for double buffering.
+    prev_offscreen_framebuffer: Option<gl::RenderTargetInfo>,
 
-    /// Whether to invalidate the last render target at the end of the next frame.
-    invalidate_last_render_target: bool,
+    /// Whether to invalidate `prev_offscreen_framebuffer` at the end of the next frame.
+    invalidate_prev_offscreen_framebuffer: bool,
 
     is_running_problem_test: bool,
 
@@ -405,9 +406,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
             cursor_pos: DevicePoint::new(0.0, 0.0),
-            current_render_target: None,
-            last_render_target: None,
-            invalidate_last_render_target: false,
+            next_offscreen_framebuffer: OnceCell::new(),
+            prev_offscreen_framebuffer: None,
+            invalidate_prev_offscreen_framebuffer: false,
             is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
@@ -1071,8 +1072,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // If the framebuffer size has changed, invalidate the current framebuffer object, and mark
         // the last framebuffer object as needing to be invalidated at the end of the next frame.
         if self.embedder_coordinates.framebuffer != old_coords.framebuffer {
-            self.current_render_target = None;
-            self.invalidate_last_render_target = true;
+            self.next_offscreen_framebuffer = OnceCell::new();
+            self.invalidate_prev_offscreen_framebuffer = true;
         }
 
         if self.embedder_coordinates.viewport == old_coords.viewport {
@@ -1722,16 +1723,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         if needs_fbo {
-            if self.current_render_target.is_none() {
-                self.current_render_target = Some(RenderTargetInfo::new(
-                    self.webrender_gl.clone(),
-                    FramebufferUintLength::new(size.width),
-                    FramebufferUintLength::new(size.height),
-                ));
-            }
-            self.current_render_target
-                .as_ref()
-                .expect("Initialised above")
+            self.next_offscreen_framebuffer
+                .get_or_init(|| {
+                    RenderTargetInfo::new(
+                        self.webrender_gl.clone(),
+                        FramebufferUintLength::new(size.width),
+                        FramebufferUintLength::new(size.height),
+                    )
+                })
                 .bind();
         } else {
             // Bind the webrender framebuffer
@@ -1819,24 +1818,25 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let rv = match target {
             CompositeTarget::Window => None,
             CompositeTarget::Fbo => {
-                self.current_render_target
-                    .as_ref()
+                self.next_offscreen_framebuffer
+                    .get()
                     .expect("Guaranteed by needs_fbo")
                     .unbind();
-                if self.invalidate_last_render_target {
+                if self.invalidate_prev_offscreen_framebuffer {
                     // Do not reuse the last render target as the new current render target.
-                    self.last_render_target = None;
-                    self.invalidate_last_render_target = false;
+                    self.prev_offscreen_framebuffer = None;
+                    self.invalidate_prev_offscreen_framebuffer = false;
                 }
-                swap(
-                    &mut self.current_render_target,
-                    &mut self.last_render_target,
-                );
+                let old_prev = self.prev_offscreen_framebuffer.take();
+                self.prev_offscreen_framebuffer = self.next_offscreen_framebuffer.take();
+                if let Some(old_prev) = old_prev {
+                    self.next_offscreen_framebuffer.set(old_prev);
+                }
                 None
             },
             CompositeTarget::SharedMemory => {
                 let render_target_info = self
-                    .current_render_target
+                    .next_offscreen_framebuffer
                     .take()
                     .expect("Guaranteed by needs_fbo");
                 let img = render_target_info.read(
@@ -1862,7 +1862,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     || match File::create(&*path) {
                         Ok(mut file) => {
                             let render_target_info = self
-                                .current_render_target
+                                .next_offscreen_framebuffer
                                 .take()
                                 .expect("Guaranteed by needs_fbo");
                             let img = render_target_info.read(
@@ -1902,7 +1902,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn output_framebuffer_id(&self) -> Option<gleam::gl::GLuint> {
-        self.last_render_target
+        self.prev_offscreen_framebuffer
             .as_ref()
             .map(|info| info.framebuffer_id())
     }
