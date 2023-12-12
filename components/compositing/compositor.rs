@@ -1830,7 +1830,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let old_prev = self.prev_offscreen_framebuffer.take();
                 self.prev_offscreen_framebuffer = self.next_offscreen_framebuffer.take();
                 if let Some(old_prev) = old_prev {
-                    self.next_offscreen_framebuffer.set(old_prev);
+                    let result = self.next_offscreen_framebuffer.set(old_prev);
+                    debug_assert!(result.is_ok(), "Guaranteed by take");
                 }
                 None
             },
