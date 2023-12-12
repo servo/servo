@@ -799,7 +799,8 @@ impl ServoGlue {
                 EmbedderMsg::HeadParsed |
                 EmbedderMsg::SetFullscreenState(..) |
                 EmbedderMsg::ReadyToPresent |
-                EmbedderMsg::ReportProfile(..) => {},
+                EmbedderMsg::ReportProfile(..) |
+                EmbedderMsg::EventDelivered(..) => {},
             }
         }
         Ok(())
