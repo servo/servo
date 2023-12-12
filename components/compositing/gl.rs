@@ -95,7 +95,7 @@ impl RenderTargetInfo {
     }
 
     pub fn unbind(&self) {
-        trace!("Unbinding fbo {}", self.framebuffer_id());
+        trace!("Unbinding FBO {}", self.framebuffer_id());
         self.gl.bind_framebuffer(gl::FRAMEBUFFER, 0);
     }
 
