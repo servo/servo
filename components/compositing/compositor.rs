@@ -1702,7 +1702,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             target,
             CompositeTarget::SharedMemory | CompositeTarget::PngFile(_)
         ) || self.exit_after_load;
-        let needs_fbo = matches!(
+        let use_offscreen_framebuffer = matches!(
             target,
             CompositeTarget::SharedMemory | CompositeTarget::PngFile(_) | CompositeTarget::Fbo
         );
@@ -1722,7 +1722,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             }
         }
 
-        if needs_fbo {
+        if use_offscreen_framebuffer {
             self.next_offscreen_framebuffer
                 .get_or_init(|| {
                     RenderTargetInfo::new(
