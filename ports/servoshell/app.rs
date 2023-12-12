@@ -231,7 +231,7 @@ impl App {
                 if let Some(mut minibrowser) = app.minibrowser() {
                     minibrowser.update(
                         window.winit_window().unwrap(),
-                        app.servo.as_ref().unwrap().output_framebuffer_id(),
+                        app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                         "RedrawRequested",
                     );
                     minibrowser.paint(window.winit_window().unwrap());
@@ -322,7 +322,7 @@ impl App {
                                 // redraw, doing so would delay the location update by two frames.
                                 minibrowser.update(
                                     window.winit_window().unwrap(),
-                                    app.servo.as_ref().unwrap().output_framebuffer_id(),
+                                    app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                                     "update_location_in_toolbar",
                                 );
                             }
@@ -340,7 +340,7 @@ impl App {
                             if let Some(mut minibrowser) = app.minibrowser() {
                                 minibrowser.update(
                                     window.winit_window().unwrap(),
-                                    app.servo.as_ref().unwrap().output_framebuffer_id(),
+                                    app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                                     "PumpResult::Present::Immediate",
                                 );
                                 minibrowser.paint(window.winit_window().unwrap());

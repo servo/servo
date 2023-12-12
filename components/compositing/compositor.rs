@@ -224,11 +224,13 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     cursor_pos: DevicePoint,
 
     /// Offscreen framebuffer object to render our next frame to.
-    /// We use this and `prev_offscreen_framebuffer` for double buffering.
+    /// We use this and `prev_offscreen_framebuffer` for double buffering when compositing to
+    /// [`CompositeTarget::Fbo`].
     next_offscreen_framebuffer: OnceCell<gl::RenderTargetInfo>,
 
     /// Offscreen framebuffer object for our most-recently-completed frame.
-    /// We use this and `next_offscreen_framebuffer` for double buffering.
+    /// We use this and `next_offscreen_framebuffer` for double buffering when compositing to
+    /// [`CompositeTarget::Fbo`].
     prev_offscreen_framebuffer: Option<gl::RenderTargetInfo>,
 
     /// Whether to invalidate `prev_offscreen_framebuffer` at the end of the next frame.
@@ -351,7 +353,8 @@ pub enum CompositeTarget {
     /// Draw directly to a window.
     Window,
 
-    /// Draw to an offscreen OpenGL framebuffer object ([IOCompositor::output_framebuffer_id]).
+    /// Draw to an offscreen OpenGL framebuffer object, which can be retrieved once complete at
+    /// [`IOCompositor::offscreen_framebuffer_id`].
     Fbo,
 
     /// Draw to an uncompressed image in shared memory.
@@ -1902,7 +1905,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         Ok(rv)
     }
 
-    pub fn output_framebuffer_id(&self) -> Option<gleam::gl::GLuint> {
+    /// Return the OpenGL framebuffer name of the most-recently-completed frame when compositing to
+    /// [`CompositeTarget::Fbo`], or None otherwise.
+    pub fn offscreen_framebuffer_id(&self) -> Option<gleam::gl::GLuint> {
         self.prev_offscreen_framebuffer
             .as_ref()
             .map(|info| info.framebuffer_id())
