@@ -89,7 +89,7 @@ impl RenderTargetInfo {
     }
 
     pub fn bind(&self) {
-        trace!("Binding fbo {}", self.framebuffer_id());
+        trace!("Binding FBO {}", self.framebuffer_id());
         self.gl
             .bind_framebuffer(gl::FRAMEBUFFER, self.framebuffer_id());
     }
