@@ -1839,7 +1839,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .next_offscreen_framebuffer
                     .take()
                     .expect("Guaranteed by needs_fbo");
-                let img = render_target_info.read(
+                let img = render_target_info.read_back_from_gpu(
                     x,
                     y,
                     FramebufferUintLength::new(width),
@@ -1865,7 +1865,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                                 .next_offscreen_framebuffer
                                 .take()
                                 .expect("Guaranteed by needs_fbo");
-                            let img = render_target_info.read(
+                            let img = render_target_info.read_back_from_gpu(
                                 x,
                                 y,
                                 FramebufferUintLength::new(width),

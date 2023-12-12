@@ -99,7 +99,7 @@ impl RenderTargetInfo {
         self.gl.bind_framebuffer(gl::FRAMEBUFFER, 0);
     }
 
-    pub fn read(
+    pub fn read_back_from_gpu(
         self,
         x: i32,
         y: i32,
