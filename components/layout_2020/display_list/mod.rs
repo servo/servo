@@ -783,7 +783,9 @@ fn glyphs(
                     point,
                 };
                 glyphs.push(glyph);
-            } else {
+            }
+
+            if glyph.char_is_word_separator() {
                 origin.x += justification_adjustment;
             }
             origin.x += Length::from(glyph.advance());
