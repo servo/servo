@@ -113,8 +113,7 @@ use devtools_traits::{
     ScriptToDevtoolsControlMsg,
 };
 use embedder_traits::{
-    CompositorEventVariant, Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent,
-    MediaSessionPlaybackState,
+    Cursor, EmbedderMsg, EmbedderProxy, MediaSessionEvent, MediaSessionPlaybackState,
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
@@ -2913,12 +2912,16 @@ where
             },
             Some(pipeline) => pipeline,
         };
-        let msg = EmbedderMsg::EventDelivered((&event).into());
-        self.embedder_proxy
-            .send((Some(pipeline.top_level_browsing_context_id), msg));
 
-        let msg = ConstellationControlMsg::SendEvent(destination_pipeline_id, event);
-        if let Err(e) = pipeline.event_loop.send(msg) {
+        self.embedder_proxy.send((
+            Some(pipeline.top_level_browsing_context_id),
+            EmbedderMsg::EventDelivered((&event).into()),
+        ));
+
+        if let Err(e) = pipeline.event_loop.send(ConstellationControlMsg::SendEvent(
+            destination_pipeline_id,
+            event,
+        )) {
             self.handle_send_error(destination_pipeline_id, e);
         }
     }
