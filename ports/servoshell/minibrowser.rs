@@ -114,6 +114,8 @@ impl Minibrowser {
     }
 
     /// Update the minibrowser, but don’t paint.
+    /// If `servo_framebuffer_id` is given, set up a paint callback to blit its contents to our
+    /// CentralPanel when [`Minibrowser::paint`] is called.
     pub fn update(
         &mut self,
         window: &winit::window::Window,
