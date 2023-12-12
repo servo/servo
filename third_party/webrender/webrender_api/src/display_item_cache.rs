@@ -58,13 +58,13 @@ pub struct DisplayItemCache {
 
 impl DisplayItemCache {
     fn add_item(&mut self, key: ItemKey, item: CachedDisplayItem) {
-        let mut entry = &mut self.entries[key as usize];
+        let entry = &mut self.entries[key as usize];
         entry.items.push(item);
         entry.occupied = true;
     }
 
     fn clear_entry(&mut self, key: ItemKey) {
-        let mut entry = &mut self.entries[key as usize];
+        let entry = &mut self.entries[key as usize];
         entry.items.clear();
         entry.occupied = false;
     }
