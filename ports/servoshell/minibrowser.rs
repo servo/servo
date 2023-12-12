@@ -197,47 +197,45 @@ impl Minibrowser {
                     let rect = egui::Rect::from_min_size(min, size);
                     ui.allocate_space(size);
 
-                    if let Some(servo_fbo) = servo_framebuffer_id {
-                        ui.painter().add(PaintCallback {
-                            rect,
-                            callback: Arc::new(CallbackFn::new(move |info, painter| {
-                                use glow::HasContext as _;
-                                let clip = info.viewport_in_pixels();
-                                let x = clip.left_px as gl::GLint;
-                                let y = clip.from_bottom_px as gl::GLint;
-                                let width = clip.width_px as gl::GLsizei;
-                                let height = clip.height_px as gl::GLsizei;
-                                unsafe {
-                                    painter.gl().clear_color(0.0, 0.0, 0.0, 0.0);
-                                    painter.gl().scissor(x, y, width, height);
-                                    painter.gl().enable(gl::SCISSOR_TEST);
-                                    painter.gl().clear(gl::COLOR_BUFFER_BIT);
-                                    painter.gl().disable(gl::SCISSOR_TEST);
+                    let Some(servo_fbo) = servo_framebuffer_id else { return };
+                    ui.painter().add(PaintCallback {
+                        rect,
+                        callback: Arc::new(CallbackFn::new(move |info, painter| {
+                            use glow::HasContext as _;
+                            let clip = info.viewport_in_pixels();
+                            let x = clip.left_px as gl::GLint;
+                            let y = clip.from_bottom_px as gl::GLint;
+                            let width = clip.width_px as gl::GLsizei;
+                            let height = clip.height_px as gl::GLsizei;
+                            unsafe {
+                                painter.gl().clear_color(0.0, 0.0, 0.0, 0.0);
+                                painter.gl().scissor(x, y, width, height);
+                                painter.gl().enable(gl::SCISSOR_TEST);
+                                painter.gl().clear(gl::COLOR_BUFFER_BIT);
+                                painter.gl().disable(gl::SCISSOR_TEST);
 
-                                    let servo_fbo =
-                                        NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
-                                    let our_fbo = NonZeroU32::new(our_fbo).map(NativeFramebuffer);
-                                    painter
-                                        .gl()
-                                        .bind_framebuffer(gl::READ_FRAMEBUFFER, servo_fbo);
-                                    painter.gl().bind_framebuffer(gl::DRAW_FRAMEBUFFER, our_fbo);
-                                    painter.gl().blit_framebuffer(
-                                        x,
-                                        y,
-                                        x + width,
-                                        y + height,
-                                        x,
-                                        y,
-                                        x + width,
-                                        y + height,
-                                        gl::COLOR_BUFFER_BIT,
-                                        gl::NEAREST,
-                                    );
-                                    painter.gl().bind_framebuffer(gl::FRAMEBUFFER, our_fbo);
-                                }
-                            })),
-                        });
-                    }
+                                let servo_fbo = NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
+                                let our_fbo = NonZeroU32::new(our_fbo).map(NativeFramebuffer);
+                                painter
+                                    .gl()
+                                    .bind_framebuffer(gl::READ_FRAMEBUFFER, servo_fbo);
+                                painter.gl().bind_framebuffer(gl::DRAW_FRAMEBUFFER, our_fbo);
+                                painter.gl().blit_framebuffer(
+                                    x,
+                                    y,
+                                    x + width,
+                                    y + height,
+                                    x,
+                                    y,
+                                    x + width,
+                                    y + height,
+                                    gl::COLOR_BUFFER_BIT,
+                                    gl::NEAREST,
+                                );
+                                painter.gl().bind_framebuffer(gl::FRAMEBUFFER, our_fbo);
+                            }
+                        })),
+                    });
                 });
 
             *last_update = now;
