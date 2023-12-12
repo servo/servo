@@ -2913,17 +2913,7 @@ where
             },
             Some(pipeline) => pipeline,
         };
-        let event_variant = match event {
-            CompositorEvent::ResizeEvent(..) => CompositorEventVariant::ResizeEvent,
-            MouseButtonEvent(..) => CompositorEventVariant::MouseButtonEvent,
-            MouseMoveEvent(..) => CompositorEventVariant::MouseMoveEvent,
-            CompositorEvent::TouchEvent(..) => CompositorEventVariant::TouchEvent,
-            CompositorEvent::WheelEvent(..) => CompositorEventVariant::WheelEvent,
-            CompositorEvent::KeyboardEvent(..) => CompositorEventVariant::KeyboardEvent,
-            CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
-            CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
-        };
-        let msg = EmbedderMsg::EventDelivered(event_variant);
+        let msg = EmbedderMsg::EventDelivered((&event).into());
         self.embedder_proxy
             .send((Some(pipeline.top_level_browsing_context_id), msg));
 
