@@ -10,6 +10,10 @@ publish = false
 name = "constellation"
 path = "lib.rs"
 
+[features]
+default = []
+multiview = []
+
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }
 backtrace = { workspace = true }

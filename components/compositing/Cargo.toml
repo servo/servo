@@ -14,6 +14,7 @@ path = "lib.rs"
 [features]
 default = []
 gl = ["gleam", "pixels"]
+multiview = []
 
 [dependencies]
 canvas = { path = "../canvas" }
