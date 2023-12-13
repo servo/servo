@@ -4,7 +4,7 @@ name = "servoshell"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
+edition = "2021"
 build = "build.rs"
 publish = false
 

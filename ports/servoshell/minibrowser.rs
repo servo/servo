@@ -3,11 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
+use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{Key, Modifiers, TopBottomPanel};
-use euclid::Length;
+use egui::{CentralPanel, Frame, InnerResponse, Key, Modifiers, PaintCallback, TopBottomPanel};
+use egui_glow::CallbackFn;
+use egui_winit::EventResponse;
+use euclid::{Length, Point2D, Scale};
+use gleam::gl;
+use glow::NativeFramebuffer;
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::msg::constellation_msg::TraversalDirection;
@@ -18,14 +23,21 @@ use servo::webrender_surfman::WebrenderSurfman;
 use crate::browser::Browser;
 use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
+use crate::geometry::winit_position_to_euclid_point;
 use crate::parser::location_bar_input_to_url;
 use crate::window_trait::WindowPortsMethods;
 
 pub struct Minibrowser {
     pub context: EguiGlow,
     pub event_queue: RefCell<Vec<MinibrowserEvent>>,
-    pub toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
+    pub toolbar_height: Length<f32, DeviceIndependentPixel>,
+
+    /// The framebuffer object name for the widget surface we should draw to, or None if our widget
+    /// surface does not use a framebuffer object.
+    widget_surface_fbo: Option<NativeFramebuffer>,
+
     last_update: Instant,
+    last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
     location: RefCell<String>,
 
     /// Whether the location has been edited by the user without clicking Go.
@@ -56,18 +68,62 @@ impl Minibrowser {
             .egui_ctx
             .set_pixels_per_point(window.hidpi_factor().get());
 
+        let widget_surface_fbo = match webrender_surfman.context_surface_info() {
+            Ok(Some(info)) => NonZeroU32::new(info.framebuffer_object).map(NativeFramebuffer),
+            Ok(None) => panic!("Failed to get widget surface info from surfman!"),
+            Err(error) => panic!("Failed to get widget surface info from surfman! {error:?}"),
+        };
+
         Self {
             context,
             event_queue: RefCell::new(vec![]),
             toolbar_height: Default::default(),
+            widget_surface_fbo,
             last_update: Instant::now(),
+            last_mouse_position: None,
             location: RefCell::new(initial_url.to_string()),
             location_dirty: false.into(),
         }
     }
 
+    /// Preprocess the given [winit::event::WindowEvent], returning unconsumed for mouse events in
+    /// the Servo browser rect. This is needed because the CentralPanel we create for our webview
+    /// would otherwise make egui report events in that area as consumed.
+    pub fn on_event(&mut self, event: &winit::event::WindowEvent<'_>) -> EventResponse {
+        let mut result = self.context.on_event(event);
+        result.consumed &= match event {
+            winit::event::WindowEvent::CursorMoved { position, .. } => {
+                let scale = Scale::<_, DeviceIndependentPixel, _>::new(
+                    self.context.egui_ctx.pixels_per_point(),
+                );
+                self.last_mouse_position =
+                    Some(winit_position_to_euclid_point(*position).to_f32() / scale);
+                self.last_mouse_position
+                    .map_or(false, |p| self.is_in_browser_rect(p))
+            },
+            winit::event::WindowEvent::MouseWheel { .. } |
+            winit::event::WindowEvent::MouseInput { .. } => self
+                .last_mouse_position
+                .map_or(false, |p| self.is_in_browser_rect(p)),
+            _ => true,
+        };
+        result
+    }
+
+    /// Return true iff the given position is in the Servo browser rect.
+    fn is_in_browser_rect(&self, position: Point2D<f32, DeviceIndependentPixel>) -> bool {
+        position.y < self.toolbar_height.get()
+    }
+
     /// Update the minibrowser, but don’t paint.
-    pub fn update(&mut self, window: &winit::window::Window, reason: &'static str) {
+    /// If `servo_framebuffer_id` is given, set up a paint callback to blit its contents to our
+    /// CentralPanel when [`Minibrowser::paint`] is called.
+    pub fn update(
+        &mut self,
+        window: &winit::window::Window,
+        servo_framebuffer_id: Option<gl::GLuint>,
+        reason: &'static str,
+    ) {
         let now = Instant::now();
         trace!(
             "{:?} since last update ({})",
@@ -78,62 +134,125 @@ impl Minibrowser {
             context,
             event_queue,
             toolbar_height,
+            widget_surface_fbo,
             last_update,
             location,
             location_dirty,
+            ..
         } = self;
+        let widget_fbo = *widget_surface_fbo;
         let _duration = context.run(window, |ctx| {
-            TopBottomPanel::top("toolbar").show(ctx, |ui| {
-                ui.allocate_ui_with_layout(
-                    ui.available_size(),
-                    egui::Layout::left_to_right(egui::Align::Center),
-                    |ui| {
-                        if ui.button("back").clicked() {
-                            event_queue.borrow_mut().push(MinibrowserEvent::Back);
-                        }
-                        if ui.button("forward").clicked() {
-                            event_queue.borrow_mut().push(MinibrowserEvent::Forward);
-                        }
+            let InnerResponse { inner: height, .. } =
+                TopBottomPanel::top("toolbar").show(ctx, |ui| {
+                    ui.allocate_ui_with_layout(
+                        ui.available_size(),
+                        egui::Layout::left_to_right(egui::Align::Center),
+                        |ui| {
+                            if ui.button("back").clicked() {
+                                event_queue.borrow_mut().push(MinibrowserEvent::Back);
+                            }
+                            if ui.button("forward").clicked() {
+                                event_queue.borrow_mut().push(MinibrowserEvent::Forward);
+                            }
+                            ui.allocate_ui_with_layout(
+                                ui.available_size(),
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.button("go").clicked() {
+                                        event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                                        location_dirty.set(false);
+                                    }
 
-                        ui.allocate_ui_with_layout(
-                            ui.available_size(),
-                            egui::Layout::right_to_left(egui::Align::Center),
-                            |ui| {
-                                if ui.button("go").clicked() {
-                                    event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                    location_dirty.set(false);
-                                }
+                                    let location_field = ui.add_sized(
+                                        ui.available_size(),
+                                        egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                                    );
 
-                                let location_field = ui.add_sized(
-                                    ui.available_size(),
-                                    egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                                    if location_field.changed() {
+                                        location_dirty.set(true);
+                                    }
+                                    if ui.input(|i| {
+                                        i.clone().consume_key(Modifiers::COMMAND, Key::L)
+                                    }) {
+                                        location_field.request_focus();
+                                    }
+                                    if location_field.lost_focus() &&
+                                        ui.input(|i| i.clone().key_pressed(Key::Enter))
+                                    {
+                                        event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                                        location_dirty.set(false);
+                                    }
+                                },
+                            );
+                        },
+                    );
+                    ui.cursor().min.y
+                });
+            *toolbar_height = Length::new(height);
+
+            CentralPanel::default()
+                .frame(Frame::none())
+                .show(ctx, |ui| {
+                    let min = ui.cursor().min;
+                    let size = ui.available_size();
+                    let rect = egui::Rect::from_min_size(min, size);
+                    ui.allocate_space(size);
+
+                    let Some(servo_fbo) = servo_framebuffer_id else { return };
+                    ui.painter().add(PaintCallback {
+                        rect,
+                        callback: Arc::new(CallbackFn::new(move |info, painter| {
+                            use glow::HasContext as _;
+                            let clip = info.viewport_in_pixels();
+                            let x = clip.left_px as gl::GLint;
+                            let y = clip.from_bottom_px as gl::GLint;
+                            let width = clip.width_px as gl::GLsizei;
+                            let height = clip.height_px as gl::GLsizei;
+                            unsafe {
+                                painter.gl().clear_color(0.0, 0.0, 0.0, 0.0);
+                                painter.gl().scissor(x, y, width, height);
+                                painter.gl().enable(gl::SCISSOR_TEST);
+                                painter.gl().clear(gl::COLOR_BUFFER_BIT);
+                                painter.gl().disable(gl::SCISSOR_TEST);
+
+                                let servo_fbo = NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
+                                painter
+                                    .gl()
+                                    .bind_framebuffer(gl::READ_FRAMEBUFFER, servo_fbo);
+                                painter
+                                    .gl()
+                                    .bind_framebuffer(gl::DRAW_FRAMEBUFFER, widget_fbo);
+                                painter.gl().blit_framebuffer(
+                                    x,
+                                    y,
+                                    x + width,
+                                    y + height,
+                                    x,
+                                    y,
+                                    x + width,
+                                    y + height,
+                                    gl::COLOR_BUFFER_BIT,
+                                    gl::NEAREST,
                                 );
+                                painter.gl().bind_framebuffer(gl::FRAMEBUFFER, widget_fbo);
+                            }
+                        })),
+                    });
+                });
 
-                                if location_field.changed() {
-                                    location_dirty.set(true);
-                                }
-                                if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
-                                    location_field.request_focus();
-                                }
-                                if location_field.lost_focus() &&
-                                    ui.input(|i| i.clone().key_pressed(Key::Enter))
-                                {
-                                    event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                    location_dirty.set(false);
-                                }
-                            },
-                        );
-                    },
-                );
-            });
-
-            toolbar_height.set(Length::new(ctx.used_rect().height()));
             *last_update = now;
         });
     }
 
     /// Paint the minibrowser, as of the last update.
     pub fn paint(&mut self, window: &winit::window::Window) {
+        unsafe {
+            use glow::HasContext as _;
+            self.context
+                .painter
+                .gl()
+                .bind_framebuffer(gl::FRAMEBUFFER, self.widget_surface_fbo);
+        }
         self.context.paint(window);
     }
 

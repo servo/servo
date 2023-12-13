@@ -13,6 +13,7 @@ use std::{env, fs};
 use gleam::gl;
 use log::{info, trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
+use servo::compositing::CompositeTarget;
 use servo::config::opts;
 use servo::servo_config::pref;
 use servo::Servo;
@@ -122,8 +123,9 @@ impl App {
         }
 
         if let Some(mut minibrowser) = app.minibrowser() {
-            minibrowser.update(window.winit_window().unwrap(), "init");
-            window.set_toolbar_height(minibrowser.toolbar_height.get());
+            // Servo is not yet initialised, so there is no `servo_framebuffer_id`.
+            minibrowser.update(window.winit_window().unwrap(), None, "init");
+            window.set_toolbar_height(minibrowser.toolbar_height);
         }
 
         // Whether or not to recomposite during the next RedrawRequested event.
@@ -185,7 +187,17 @@ impl App {
                     // Implements embedder methods, used by libservo and constellation.
                     let embedder = Box::new(EmbedderCallbacks::new(ev_waker.clone(), xr_discovery));
 
-                    let servo_data = Servo::new(embedder, window.clone(), user_agent.clone());
+                    let composite_target = if app.minibrowser.is_some() {
+                        CompositeTarget::Fbo
+                    } else {
+                        CompositeTarget::Window
+                    };
+                    let servo_data = Servo::new(
+                        embedder,
+                        window.clone(),
+                        user_agent.clone(),
+                        composite_target,
+                    );
                     let mut servo = servo_data.servo;
 
                     servo.handle_events(vec![EmbedderEvent::NewBrowser(
@@ -217,7 +229,11 @@ impl App {
                     app.servo.as_mut().unwrap().recomposite();
                 }
                 if let Some(mut minibrowser) = app.minibrowser() {
-                    minibrowser.update(window.winit_window().unwrap(), "RedrawRequested");
+                    minibrowser.update(
+                        window.winit_window().unwrap(),
+                        app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
+                        "RedrawRequested",
+                    );
                     minibrowser.paint(window.winit_window().unwrap());
                 }
                 app.servo.as_mut().unwrap().present();
@@ -252,7 +268,7 @@ impl App {
                         window.winit_window().unwrap().request_redraw();
                     },
                     winit::event::Event::WindowEvent { ref event, .. } => {
-                        let response = minibrowser.context.on_event(&event);
+                        let response = minibrowser.on_event(&event);
                         if response.repaint {
                             // Request a winit redraw event, so we can recomposite, update and paint
                             // the minibrowser, and present the new frame.
@@ -306,6 +322,7 @@ impl App {
                                 // redraw, doing so would delay the location update by two frames.
                                 minibrowser.update(
                                     window.winit_window().unwrap(),
+                                    app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                                     "update_location_in_toolbar",
                                 );
                             }
@@ -323,6 +340,7 @@ impl App {
                             if let Some(mut minibrowser) = app.minibrowser() {
                                 minibrowser.update(
                                     window.winit_window().unwrap(),
+                                    app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                                     "PumpResult::Present::Immediate",
                                 );
                                 minibrowser.paint(window.winit_window().unwrap());
