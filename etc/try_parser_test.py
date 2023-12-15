@@ -28,8 +28,10 @@ class TestParser(unittest.TestCase):
         self.assertEqual(conf.matrix[0].profile, 'debug')
         self.assertEqual(conf.matrix[0].unit_tests, False)
 
-# linux(key=value, key2="val2", key3='val3')
-# mac linux(profile=debug, unit-tests=false) windows()
+    def test_special(self):
+        conf = Config("fail-fast try")
+        self.assertEqual(conf.fail_fast, True)
+        self.assertEqual(len(conf.matrix), 3)
 
 
 if __name__ == "__main__":
