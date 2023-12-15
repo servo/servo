@@ -55,9 +55,10 @@ class GithubRepository:
     This class allows interacting with a single GitHub repository.
     """
 
-    def __init__(self, sync: WPTSync, repo: str):
+    def __init__(self, sync: WPTSync, repo: str, default_branch: str):
         self.sync = sync
         self.repo = repo
+        self.default_branch = default_branch
         self.org = repo.split("/")[0]
         self.pulls_url = f"repos/{self.repo}/pulls"
 
@@ -105,7 +106,7 @@ class GithubRepository:
         data = {
             "title": title,
             "head": branch.get_pr_head_reference_for_repo(self),
-            "base": "main",
+            "base": self.default_branch,
             "body": body,
             "maintainer_can_modify": False,
         }

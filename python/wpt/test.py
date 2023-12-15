@@ -644,17 +644,17 @@ def setUpModule():
         suppress_force_push=True,
     )
 
-    def setup_mock_repo(repo_name, local_repo):
+    def setup_mock_repo(repo_name, local_repo, default_branch: str):
         subprocess.check_output(
             ["cp", "-R", "-p", os.path.join(TESTS_DIR, repo_name), local_repo.path])
-        local_repo.run("init", "-b", "main")
+        local_repo.run("init", "-b", default_branch)
         local_repo.run("add", ".")
         local_repo.run("commit", "-a", "-m", "Initial commit")
 
     logging.info("=" * 80)
     logging.info("Setting up mock repositories")
-    setup_mock_repo("servo-mock", SYNC.local_servo_repo)
-    setup_mock_repo("wpt-mock", SYNC.local_wpt_repo)
+    setup_mock_repo("servo-mock", SYNC.local_servo_repo, "main")
+    setup_mock_repo("wpt-mock", SYNC.local_wpt_repo, "master")
     logging.info("=" * 80)
 
 
