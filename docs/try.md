@@ -16,16 +16,16 @@ You can trigger try runs via:
 
 Try string can contain:
 
-- `full` keyword that will be expanded to `linux mac windows`
+- `full`/`try` keyword that will be expanded to `linux mac windows`
 - `fail-fast` as marker keyword that will set [matrix fail-fast](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstrategyfail-fast) to true
-- config tuples: `name(option=value, option2=value)` (`name()` or `name` is also valid if name is preset)
+- config tuples: `name(option=value, option2=value)` (`name` is also valid if `name` is preset)
 
 ### Options
 
 - `os` (possible values: `linux` (default), `windows` or `mac`)
 - `layout` (selects layout for wpt tests; possible values: `all`, `2020`, `2013`, `none`)
-- `unit-tests` (default `true`)
-- `profile` (`release` [default], `debug`, `production`)
+- `unit-tests` (default: `true`)
+- `profile` (`release` (default), `debug`, `production`)
 
 ### Presets
 
