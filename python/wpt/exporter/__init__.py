@@ -142,9 +142,9 @@ class WPTSync:
     suppress_force_push: bool = False
 
     def __post_init__(self):
-        self.servo = GithubRepository(self, self.servo_repo)
-        self.wpt = GithubRepository(self, self.wpt_repo)
-        self.downstream_wpt = GithubRepository(self, self.downstream_wpt_repo)
+        self.servo = GithubRepository(self, self.servo_repo, "main")
+        self.wpt = GithubRepository(self, self.wpt_repo, "master")
+        self.downstream_wpt = GithubRepository(self, self.downstream_wpt_repo, "master")
         self.local_servo_repo = LocalGitRepo(self.servo_path, self)
         self.local_wpt_repo = LocalGitRepo(self.wpt_path, self)
 

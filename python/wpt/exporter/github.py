@@ -55,9 +55,10 @@ class GithubRepository:
     This class allows interacting with a single GitHub repository.
     """
 
-    def __init__(self, sync: WPTSync, repo: str):
+    def __init__(self, sync: WPTSync, repo: str, main_branch_name: str):
         self.sync = sync
         self.repo = repo
+        self.main_branch_name = main_branch_name
         self.org = repo.split("/")[0]
         self.pulls_url = f"repos/{self.repo}/pulls"
 
@@ -74,7 +75,7 @@ class GithubRepository:
         self, branch: GithubBranch
     ) -> Optional[PullRequest]:
         """If this repository has an open pull request with the
-        given source head reference targeting the master branch,
+        given source head reference targeting the main branch,
         return the first matching pull request, otherwise return None."""
 
         params = "+".join([
@@ -105,7 +106,7 @@ class GithubRepository:
         data = {
             "title": title,
             "head": branch.get_pr_head_reference_for_repo(self),
-            "base": "master",
+            "base": self.main_branch_name,
             "body": body,
             "maintainer_can_modify": False,
         }
