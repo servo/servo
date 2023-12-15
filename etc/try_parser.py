@@ -10,148 +10,101 @@
 # except according to those terms.
 
 import json
-
 from enum import Enum
+from typing import Any, Tuple
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "third_party", "ply"))
+from ply.lex import lex  # noqa: E402
+from ply.yacc import yacc  # noqa: E402
 
 
-# lexer
-class TokenType(Enum):
-    Illegal = 0
-    Eof = 1
-    #
-    Comma = 2
-    SemiColon = 3
-    Assign = 4
-    # ()
-    Lparen = 5
-    Rparen = 6
-    #
-    String = 7
-    # Keyword
-    FailFast = 8
-    Full = 9
-    Try = 10  # nop token
+tokens = ("STRING",)
 
-    def __str__(self) -> str:
-        return self.name
+literals = ["(", ")", "=", ","]
 
-    def __repr__(self) -> str:
-        return self.name
+t_ignore = " \t\r"
 
 
-class Token:
-    m_type: TokenType
-    m_lit: str
-
-    def __init__(self, typ: TokenType, lit: str):
-        self.m_type: TokenType = typ
-        self.m_lit: str = lit
-
-    def is_seperator(self) -> bool:
-        return self.m_type in [TokenType.Comma, TokenType.SemiColon]
-
-    def __str__(self) -> str:
-        return str(self.m_type) + ": '" + self.m_lit + "'"
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, Token):
-            return self.m_lit == other.m_lit and self.m_type == other.m_type
-        return False
+def t_STRING(t):
+    # r"""('.*'|".*"|[a-zA-Z_0-9\-]+)"""
+    r"""\"([^\\"]+|\\"|\\\\)"|'([^\\']+|\\'|\\\\)'|[a-zA-Z_0-9\-]+"""
+    if t.value[0] in "\"'":
+        t.value = t.value[1:-1].encode().decode("unicode_escape")
+    return t
 
 
-class Lexer:
-    input: str = ""
-    pos: int = 0
-    read_pos: int = 0
-    ch: str = '\0'
-    _peek_token: Token = Token(TokenType.Eof, "EOF")
+def t_ignore_newline(t):
+    r"\n+"
+    t.lexer.lineno += t.value.count("\n")
 
-    def __init__(self, s: str) -> None:
-        self.input = s
-        self.read_char()
-        self._next_token()
 
-    def read_char(self) -> None:
-        self.ch = '\0' if self.read_pos >= len(self.input) else self.input[self.read_pos]
-        self.pos = self.read_pos
-        self.read_pos += 1
+def t_error(t):
+    print(f"Illegal character {t.value!r} at line {t.lineno}")
+    t.lexer.skip(1)
 
-    def skip_whitespace(self) -> None:
-        while self.ch.isspace():
-            self.read_char()
 
-    def read_string(self, end: str = '"') -> str:
-        pos = self.pos + 1
-        while True:
-            self.read_char()
-            if self.ch == end or self.ch == '\0':
-                break
-        return self.input[pos:self.pos]
+# --------------- Parser ---------------
 
-    def read_ident(self) -> str:
-        pos = self.pos
-        while self.ch.isalnum() or (self.ch == '-' or self.ch == '_'):
-            self.read_char()
-        return self.input[pos:self.pos]
 
-    def keyword(self, s: str) -> TokenType:
-        if s == "fail-fast":
-            return TokenType.FailFast
-        elif s == "full":
-            return TokenType.Full
-        elif s == "try":
-            return TokenType.Try
+def p_dists(p):
+    """
+    dists : dist
+          | dist ',' dists
+          | dist dists
+    """
+    if len(p) == 4:
+        p[0] = [p[1]] + p[3]
+    elif len(p) == 3:
+        p[0] = [p[1]] + p[2]
+    else:
+        p[0] = [p[1]]
+
+
+def p_dist(p):
+    """
+    dist : STRING
+         | STRING '(' key_value_pairs ')'
+    """
+    # load dict into job config
+    # handle full and try
+    if len(p) == 2:
+        if p[1] in ["full", "try"]:
+            p[0] = [
+                JobConfig("Linux", OS.linux),
+                JobConfig("MacOS", OS.mac),
+                JobConfig("Windows", OS.win)
+            ]
+        elif p[1] in ["fail_fast", "fail-fast"]:
+            p[0] = []
         else:
-            return TokenType.String
+            p[0] = [JobConfig.parse(p[1])]
+    else:
+        p[0] = [JobConfig.parse(p[1], p[3])]
 
-    def next_token(self) -> Token:
-        t = self._peek_token
-        self._next_token()
-        return t
 
-    def peek_token(self) -> Token:
-        return self._peek_token
+def p_key_value_pairs(p):
+    """
+    key_value_pairs : pair
+                    | pair ',' key_value_pairs
+    """
+    # join all pairs into dist
+    p[0] = [p[1]] + p[3] if len(p) == 4 else [p[1]]
 
-    def _next_token(self) -> None:
-        self.skip_whitespace()
-        tok: Token
-        if self.ch == '=':
-            tok = Token(TokenType.Assign, self.ch)
-        elif self.ch == '"' or self.ch == "'":
-            tok = Token(TokenType.String, self.read_string(self.ch))
-        elif self.ch == '(':
-            tok = Token(TokenType.Lparen, self.ch)
-        elif self.ch == ')':
-            tok = Token(TokenType.Rparen, self.ch)
-        elif self.ch == ',':
-            tok = Token(TokenType.Comma, self.ch)
-        elif self.ch == ';':
-            tok = Token(TokenType.SemiColon, self.ch)
-        elif self.ch == '\0':
-            tok = Token(TokenType.Eof, "EOF")
-        else:
-            c = self.ch
-            if not c.isalnum():
-                self.read_char()
-                tok = Token(TokenType.Illegal, c)
-            else:
-                s = self.read_ident()
-                tok = Token(self.keyword(s), s)
-            self._peek_token = tok
-            return
 
-        self.read_char()
-        self._peek_token = tok
+def p_pair(p):
+    "pair : STRING '=' STRING"
+    p[0] = parse_option(p[1], p[3])
 
-    def collect(self) -> list[Token]:
-        tokens = list()
-        while self.peek_token().m_type != TokenType.Eof:
-            tokens.append(self.next_token())
-        tokens.append(self.next_token())
-        return tokens
+
+def p_error(p):
+    print(f"Syntax error at {p.value!r} at line {p.lineno}")
+
+
+lexer = lex()
+parser = yacc(write_tables=False, debug=False)
+
+# ---------------- Real Stuff -----------------
 
 
 class Layout(str, Enum):
@@ -172,10 +125,10 @@ class Layout(str, Enum):
         elif "2020" in s:
             return Layout.layout2020
         else:
-            raise RuntimeError("Wrong layout option")
+            return None
 
 
-class OS(str, Enum):
+class OS(str, Enum, ):
     linux = 'linux'
     mac = 'mac'
     win = 'windows'
@@ -190,7 +143,27 @@ class OS(str, Enum):
         elif "win" in s:
             return OS.win
         else:
-            raise RuntimeError("Wrong OS; only `linux`, `mac` and `windows` are supported")
+            return None
+
+
+def parse_option(k: str, v: str) -> Tuple[str, Any]:
+    kk = k.lower()
+    if kk == "os":
+        val = OS.parse(v)
+    elif kk == "layout":
+        val = Layout.parse(v)
+    elif kk == "unit-tests" or kk == "unit-test":
+        kk = "unit_tests"
+        val = (v.lower() == "true")
+    elif kk in ["profile", "wpt"]:
+        val = v
+    else:
+        raise RuntimeError(f"`{k}` is unknown option.")
+
+    if val is None:
+        raise RuntimeError(f"`{v}` is wrong value for `{k}`.")
+
+    return (kk, val)
 
 
 class JobConfig(object):
@@ -210,23 +183,12 @@ class JobConfig(object):
         self.wpt: str = wpt
 
     @staticmethod
-    def parse(name: str, overrides: dict[str, str]):
+    def parse(name: str, overrides: list[Tuple[str, str]] = []):
         job = preset(name)
         if job is None:
             job = JobConfig(name, OS.linux)
-        for k, v in overrides.items():
-            if k == "os":
-                job.os = OS.parse(v)
-            elif k == "layout":
-                job.layout = Layout.parse(v)
-            elif k == "profile":
-                job.profile = v
-            elif k == "wpt":
-                job.wpt = v
-            elif k == "unit-tests" or k == "unit-test":
-                job.unit_tests = (v.lower() == "true")
-            else:
-                raise RuntimeError(f"Unknown key `{k}`; only `os`, `layout`, `profile` and `unit-tests` are supported.")
+        for (k, v) in overrides:
+            job.__dict__[k] = v
         return job
 
 
@@ -276,45 +238,22 @@ class Config(object):
 
     def parse(self, s: str):
         s = s.strip()
+        if "fail_fast" in s or "fail-fast" in s:
+            self.fail_fast = True
         # if no input provided default to full build
         if not s:
             s = "full"
-        lex = Lexer(s)
-        while lex.peek_token().m_type != TokenType.Eof:
-            token = lex.next_token()
-            if token.m_type == TokenType.String:
-                name = token.m_lit
-                overrides: dict[str, str] = dict()
-                if lex.peek_token().m_type == TokenType.Lparen:
-                    lex.next_token()  # skip over (
-                    # read tuple
-                    while (lex.peek_token().m_type not in [TokenType.Rparen, TokenType.Eof]):
-                        key = lex.next_token().m_lit
-                        lex.next_token()  # over =
-                        val = lex.next_token().m_lit
-                        overrides[key] = val
-                        # last one has no comma
-                        if lex.peek_token().is_seperator():
-                            lex.next_token()  # over , or ;
-                    lex.next_token()  # skip over )
-                    if lex.peek_token().is_seperator():
-                        lex.next_token()  # over , or ;
-                self.matrix.append(JobConfig.parse(name, overrides))
-            elif token.m_type == TokenType.FailFast:
-                self.fail_fast = True
-            elif token.m_type == TokenType.Full:
-                self.matrix.append(JobConfig("Linux", OS.linux))
-                self.matrix.append(JobConfig("MacOS", OS.mac))
-                self.matrix.append(JobConfig("Windows", OS.win))
-            else:
-                pass
+        ast = parser.parse(
+            s
+        )
+        # flatten
+        self.matrix = [item for row in ast for item in row]
 
     def toJSON(self) -> str:
         return json.dumps(self, cls=Encoder)
 
 
 def main():
-    import sys
     conf = Config()
     conf.parse(" ".join(sys.argv[1:]))
     print(conf.toJSON())
