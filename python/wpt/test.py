@@ -644,10 +644,10 @@ def setUpModule():
         suppress_force_push=True,
     )
 
-    def setup_mock_repo(repo_name, local_repo, main_branch_name: str):
+    def setup_mock_repo(repo_name, local_repo, default_branch: str):
         subprocess.check_output(
             ["cp", "-R", "-p", os.path.join(TESTS_DIR, repo_name), local_repo.path])
-        local_repo.run("init", "-b", main_branch_name)
+        local_repo.run("init", "-b", default_branch)
         local_repo.run("add", ".")
         local_repo.run("commit", "-a", "-m", "Initial commit")
 
