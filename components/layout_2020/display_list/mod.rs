@@ -282,7 +282,11 @@ impl Fragment {
             .translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin.clone();
         baseline_origin.y += Length::from(fragment.font_metrics.ascent);
-        let glyphs = glyphs(&fragment.glyphs, baseline_origin);
+        let glyphs = glyphs(
+            &fragment.glyphs,
+            baseline_origin,
+            fragment.justification_adjustment,
+        );
         if glyphs.is_empty() {
             return;
         }
@@ -760,6 +764,7 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
 fn glyphs(
     glyph_runs: &[Arc<GlyphStore>],
     mut origin: PhysicalPoint<Length>,
+    justification_adjustment: Length,
 ) -> Vec<wr::GlyphInstance> {
     use gfx_traits::ByteIndex;
     use range::Range;
@@ -778,6 +783,8 @@ fn glyphs(
                     point,
                 };
                 glyphs.push(glyph);
+            } else {
+                origin.x += justification_adjustment;
             }
             origin.x += Length::from(glyph.advance());
         }

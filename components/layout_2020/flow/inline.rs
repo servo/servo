@@ -20,6 +20,7 @@ use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::generics::text::LineHeight;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
+use style::values::specified::TextJustify;
 use style::Zero;
 use webrender_api::FontInstanceKey;
 use xi_unicode::{linebreak_property, LineBreakLeafIter};
@@ -134,6 +135,9 @@ struct LineUnderConstruction {
     /// The LineItems for the current line under construction that have already
     /// been committed to this line.
     line_items: Vec<LineItem>,
+
+    /// The number of justification opportunities in this line.
+    justification_opportunities: usize,
 }
 
 impl LineUnderConstruction {
@@ -146,6 +150,7 @@ impl LineUnderConstruction {
             has_floats_waiting_to_be_placed: false,
             placement_among_floats: OnceCell::new(),
             line_items: Vec::new(),
+            justification_opportunities: 0,
         }
     }
 
@@ -159,6 +164,23 @@ impl LineUnderConstruction {
     fn replace_placement_among_floats(&mut self, new_placement: LogicalRect<Length>) {
         self.placement_among_floats.take();
         let _ = self.placement_among_floats.set(new_placement);
+    }
+
+    /// Trim the trailing whitespace in this line and return the width of the whitespace trimmed.
+    fn trim_trailing_whitespace(&mut self) -> Length {
+        // From <https://www.w3.org/TR/css-text-3/#white-space-phase-2>:
+        // > 3. A sequence of collapsible spaces at the end of a line is removed,
+        // >    as well as any trailing U+1680   OGHAM SPACE MARK whose white-space
+        // >    property is normal, nowrap, or pre-line.
+        let mut whitespace_trimmed = Length::zero();
+        let mut spaces_trimmed = 0;
+        for item in self.line_items.iter_mut().rev() {
+            if !item.trim_whitespace_at_end(&mut whitespace_trimmed, &mut spaces_trimmed) {
+                break;
+            }
+        }
+        self.justification_opportunities -= spaces_trimmed;
+        whitespace_trimmed
     }
 }
 
@@ -183,6 +205,9 @@ struct UnbreakableSegmentUnderConstruction {
 
     /// The inline size of any trailing whitespace in this segment.
     trailing_whitespace_size: Length,
+
+    /// The number of justification opportunities in this unbreakable segment.
+    justification_opportunities: usize,
 }
 
 impl UnbreakableSegmentUnderConstruction {
@@ -193,6 +218,7 @@ impl UnbreakableSegmentUnderConstruction {
             inline_box_hierarchy_depth: None,
             has_content: false,
             trailing_whitespace_size: Length::zero(),
+            justification_opportunities: 0,
         }
     }
 
@@ -203,6 +229,7 @@ impl UnbreakableSegmentUnderConstruction {
         self.inline_box_hierarchy_depth = None;
         self.has_content = false;
         self.trailing_whitespace_size = Length::zero();
+        self.justification_opportunities = 0;
     }
 
     /// Push a single line item to this segment. In addition, record the inline box
@@ -228,12 +255,14 @@ impl UnbreakableSegmentUnderConstruction {
     /// This prevents whitespace from being added to the beginning of a line.
     fn trim_leading_whitespace(&mut self) {
         let mut whitespace_trimmed = Length::zero();
+        let mut spaces_trimmed = 0;
         for item in self.line_items.iter_mut() {
-            if !item.trim_whitespace_at_start(&mut whitespace_trimmed) {
+            if !item.trim_whitespace_at_start(&mut whitespace_trimmed, &mut spaces_trimmed) {
                 break;
             }
         }
         self.size.inline -= whitespace_trimmed;
+        self.justification_opportunities -= spaces_trimmed;
     }
 
     /// Prepare this segment for placement on a new and empty line. This happens when the
@@ -494,29 +523,38 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         }
     }
 
+    fn finish_last_line(&mut self) {
+        // We are at the end of the IFC, and we need to do a few things to make sure that
+        // the current segment is committed and that the final line is finished.
+        //
+        // A soft wrap opportunity makes it so the current segment is placed on a new line
+        // if it doesn't fit on the current line under construction.
+        self.process_soft_wrap_opportunity();
+
+        // `process_soft_line_wrap_opportunity` does not commit the segment to a line if
+        // there is no line wrapping, so this forces the segment into the current line.
+        self.commit_current_segment_to_line();
+
+        // This has the effect of preventing the application of `text-align: justify` to
+        // this line because no justification opportunities means no justification.
+        self.current_line.justification_opportunities = 0;
+
+        // Finally we finish the line itself and convert all of the LineItems into
+        // fragments.
+        self.finish_current_line_and_reset();
+    }
+
     /// Finish layout of all inline boxes for the current line. This will gather all
     /// [`LineItem`]s and turn them into [`Fragment`]s, then reset the
     /// [`InlineFormattingContextState`] preparing it for laying out a new line.
     fn finish_current_line_and_reset(&mut self) {
-        let mut line_items = std::mem::take(&mut self.current_line.line_items);
+        let whitespace_trimmed = self.current_line.trim_trailing_whitespace();
+        let (inline_start_position, justification_adjustment) = self
+            .calculate_current_line_inline_start_and_justification_adjustment(whitespace_trimmed);
 
-        // From <https://www.w3.org/TR/css-text-3/#white-space-phase-2>:
-        // > 3. A sequence of collapsible spaces at the end of a line is removed,
-        // >    as well as any trailing U+1680   OGHAM SPACE MARK whose white-space
-        // >    property is normal, nowrap, or pre-line.
-        let mut whitespace_trimmed = Length::zero();
-        for item in line_items.iter_mut().rev() {
-            if !item.trim_whitespace_at_end(&mut whitespace_trimmed) {
-                break;
-            }
-        }
-
-        let inline_start_position =
-            self.calculate_inline_start_for_current_line(self.containing_block, whitespace_trimmed);
         let block_start_position = self
             .current_line
             .line_block_start_considering_placement_among_floats();
-
         let had_inline_advance =
             self.current_line.inline_position != self.current_line.start_position.inline;
 
@@ -537,6 +575,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             sequential_layout_state.advance_block_position(increment);
         }
 
+        let mut line_items = std::mem::take(&mut self.current_line.line_items);
         if self.current_line.has_floats_waiting_to_be_placed {
             place_pending_floats(self, &mut line_items);
         }
@@ -547,6 +586,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             ifc_containing_block: self.containing_block,
             positioning_context: &mut self.positioning_context,
             line_block_start: block_start_position,
+            justification_adjustment,
         };
 
         let positioning_context_length = state.positioning_context.len();
@@ -597,22 +637,24 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
     /// Given the amount of whitespace trimmed from the line and taking into consideration
     /// the `text-align` property, calculate where the line under construction starts in
-    /// the inline axis.
-    fn calculate_inline_start_for_current_line(
+    /// the inline axis as well as the adjustment needed for every justification opportunity
+    /// to account for `text-align: justify`.
+    fn calculate_current_line_inline_start_and_justification_adjustment(
         &self,
-        containing_block: &ContainingBlock,
         whitespace_trimmed: Length,
-    ) -> Length {
+    ) -> (Length, Length) {
         enum TextAlign {
             Start,
             Center,
             End,
         }
-        let line_left_is_inline_start = containing_block
+        let line_left_is_inline_start = self
+            .containing_block
             .style
             .writing_mode
             .line_left_is_inline_start();
-        let text_align = match containing_block.style.clone_text_align() {
+        let text_align_keyword = self.containing_block.style.clone_text_align();
+        let text_align = match text_align_keyword {
             TextAlignKeyword::Start => TextAlign::Start,
             TextAlignKeyword::Center => TextAlign::Center,
             TextAlignKeyword::End => TextAlign::End,
@@ -630,10 +672,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                     TextAlign::Start
                 }
             },
-            TextAlignKeyword::Justify => {
-                // TODO: Add support for justfied text.
-                TextAlign::Start
-            },
+            TextAlignKeyword::Justify => TextAlign::Start,
             TextAlignKeyword::ServoCenter |
             TextAlignKeyword::ServoLeft |
             TextAlignKeyword::ServoRight => {
@@ -658,12 +697,29 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // line box."
         let text_indent = self.current_line.start_position.inline;
         let line_length = self.current_line.inline_position - whitespace_trimmed - text_indent;
-        line_start +
+        let adjusted_line_start = line_start +
             match text_align {
                 TextAlign::Start => text_indent,
                 TextAlign::End => (available_space - line_length).max(text_indent),
                 TextAlign::Center => (available_space - line_length + text_indent) / 2.,
-            }
+            };
+
+        // Calculate the justification adjustment. This is simply the remaining space on the line,
+        // dividided by the number of justficiation opportunities that we recorded when building
+        // the line.
+        let num_justification_opportunities = self.current_line.justification_opportunities as f32;
+        let text_justify = self.containing_block.style.clone_text_justify();
+        let justification_adjustment = match (text_align_keyword, text_justify) {
+            // `text-justify: none` should disable text justification.
+            // TODO: Handle more `text-justify` values.
+            (TextAlignKeyword::Justify, TextJustify::None) => Length::zero(),
+            (TextAlignKeyword::Justify, _) if num_justification_opportunities > 0. => {
+                (available_space - line_length) / num_justification_opportunities
+            },
+            _ => Length::zero(),
+        };
+
+        (adjusted_line_start, justification_adjustment)
     }
 
     fn place_float_fragment(&mut self, fragment: &mut BoxFragment) {
@@ -908,6 +964,10 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             self.current_line_segment.trailing_whitespace_size = inline_advance;
         }
 
+        if glyph_store.is_whitespace() {
+            self.current_line_segment.justification_opportunities += 1;
+        }
+
         match self.current_line_segment.line_items.last_mut() {
             Some(LineItem::TextRun(text_run)) => {
                 debug_assert!(font_key == text_run.font_key);
@@ -1012,6 +1072,8 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         self.current_line.max_block_size = self
             .current_line_max_block_size()
             .max(self.current_line_segment.size.block);
+        self.current_line.justification_opportunities +=
+            self.current_line_segment.justification_opportunities;
         let line_inline_size_without_trailing_whitespace =
             self.current_line.inline_position - self.current_line_segment.trailing_whitespace_size;
 
@@ -1334,20 +1396,7 @@ impl InlineFormattingContext {
             }
         }
 
-        // We are at the end of the IFC, and we need to do a few things to make sure that
-        // the current segment is committed and that the final line is finished.
-        //
-        // A soft wrap opportunity makes it so the current segment is placed on a new line
-        // if it doesn't fit on the current line under construction.
-        ifc.process_soft_wrap_opportunity();
-
-        // `process_soft_line_wrap_opportunity` does not commit the segment to a line if
-        // there is no line wrapping, so this forces the segment into the current line.
-        ifc.commit_current_segment_to_line();
-
-        // Finally we finish the line itself and convert all of the LineItems into
-        // fragments.
-        ifc.finish_current_line_and_reset();
+        ifc.finish_last_line();
 
         let mut collapsible_margins_in_children = CollapsedBlockMargins::zero();
         let content_block_size = ifc.current_line.start_position.block;
@@ -1818,6 +1867,10 @@ struct LineItemLayoutState<'a> {
     ifc_containing_block: &'a ContainingBlock<'a>,
     positioning_context: &'a mut PositioningContext,
     line_block_start: Length,
+
+    /// The amount of space to add to each justification opportunity in order to implement
+    /// `text-align: justify`.
+    justification_adjustment: Length,
 }
 
 fn layout_line_items(
@@ -1882,9 +1935,15 @@ enum LineItem {
 }
 
 impl LineItem {
-    fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Length) -> bool {
+    fn trim_whitespace_at_end(
+        &mut self,
+        whitespace_trimmed: &mut Length,
+        spaces_trimmed: &mut usize,
+    ) -> bool {
         match self {
-            LineItem::TextRun(ref mut item) => item.trim_whitespace_at_end(whitespace_trimmed),
+            LineItem::TextRun(ref mut item) => {
+                item.trim_whitespace_at_end(whitespace_trimmed, spaces_trimmed)
+            },
             LineItem::StartInlineBox(_) => true,
             LineItem::EndInlineBox => true,
             LineItem::Atomic(_) => false,
@@ -1893,9 +1952,15 @@ impl LineItem {
         }
     }
 
-    fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Length) -> bool {
+    fn trim_whitespace_at_start(
+        &mut self,
+        whitespace_trimmed: &mut Length,
+        spaces_trimmed: &mut usize,
+    ) -> bool {
         match self {
-            LineItem::TextRun(ref mut item) => item.trim_whitespace_at_start(whitespace_trimmed),
+            LineItem::TextRun(ref mut item) => {
+                item.trim_whitespace_at_start(whitespace_trimmed, spaces_trimmed)
+            },
             LineItem::StartInlineBox(_) => true,
             LineItem::EndInlineBox => true,
             LineItem::Atomic(_) => false,
@@ -1968,7 +2033,11 @@ fn line_height_from_style(layout_context: &LayoutContext, style: &ComputedValues
 }
 
 impl TextRunLineItem {
-    fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Length) -> bool {
+    fn trim_whitespace_at_end(
+        &mut self,
+        whitespace_trimmed: &mut Length,
+        spaces_trimmed: &mut usize,
+    ) -> bool {
         if self
             .parent_style
             .get_inherited_text()
@@ -1986,6 +2055,7 @@ impl TextRunLineItem {
             .map(|offset_from_end| self.text.len() - offset_from_end);
 
         let first_whitespace_index = index_of_last_non_whitespace.unwrap_or(0);
+        *spaces_trimmed += self.text.len() - first_whitespace_index;
         *whitespace_trimmed += self
             .text
             .drain(first_whitespace_index..)
@@ -1996,7 +2066,11 @@ impl TextRunLineItem {
         index_of_last_non_whitespace.is_none()
     }
 
-    fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Length) -> bool {
+    fn trim_whitespace_at_start(
+        &mut self,
+        whitespace_trimmed: &mut Length,
+        spaces_trimmed: &mut usize,
+    ) -> bool {
         if self
             .parent_style
             .get_inherited_text()
@@ -2011,6 +2085,8 @@ impl TextRunLineItem {
             .iter()
             .position(|glyph| !glyph.is_whitespace())
             .unwrap_or(self.text.len());
+
+        *spaces_trimmed += index_of_first_non_whitespace;
         *whitespace_trimmed += self
             .text
             .drain(0..index_of_first_non_whitespace)
@@ -2030,11 +2106,23 @@ impl TextRunLineItem {
             return None;
         }
 
-        let inline_advance: Length = self
+        let mut number_of_justification_opportunities = 0;
+        let mut inline_advance: Length = self
             .text
             .iter()
-            .map(|glyph_store| Length::from(glyph_store.total_advance()))
+            .map(|glyph_store| {
+                if glyph_store.is_whitespace() {
+                    number_of_justification_opportunities += 1
+                }
+                Length::from(glyph_store.total_advance())
+            })
             .sum();
+
+        if !state.justification_adjustment.is_zero() {
+            inline_advance +=
+                state.justification_adjustment * number_of_justification_opportunities as f32;
+        }
+
         let rect = LogicalRect {
             start_corner: LogicalVec2 {
                 block: Length::zero(),
@@ -2055,6 +2143,7 @@ impl TextRunLineItem {
             font_key: self.font_key,
             glyphs: self.text,
             text_decoration_line: self.text_decoration_line,
+            justification_adjustment: state.justification_adjustment,
         })
     }
 }
@@ -2115,6 +2204,7 @@ impl InlineBoxLineItem {
             ifc_containing_block: state.ifc_containing_block,
             positioning_context: nested_positioning_context,
             line_block_start: state.line_block_start,
+            justification_adjustment: state.justification_adjustment,
         };
 
         let mut saw_end = false;
