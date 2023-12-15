@@ -357,7 +357,7 @@ In some cases, extensive tests for the feature you're working on already exist u
 
 - Make a release build
 - run `./mach test-wpt --release --log-raw=/path/to/some/logfile`
-- run [`update-wpt` on it](https://github.com/servo/servo/blob/master/tests/wpt/README.md#updating-test-expectations)
+- run [`update-wpt` on it](https://github.com/servo/servo/blob/main/tests/wpt/README.md#updating-test-expectations)
 
 This may create a new commit with changes to expectation ini files. If there are lots of changes,
 it's likely that your feature had tests in wpt already.
