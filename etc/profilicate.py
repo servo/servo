@@ -13,9 +13,9 @@
 # output a [processed profile]. Based largely on [this script] and
 # [this documentation].
 #
-# [processed profile]: https://github.com/firefox-devtools/profiler/blob/master/docs-developer/processed-profile-format.md
-# [this script]: https://github.com/firefox-devtools/profiler/blob/master/src/profile-logic/import/linux-perf.js
-# [this documentation]: https://github.com/firefox-devtools/profiler/blob/master/src/types/profile.js
+# [processed profile]: https://github.com/firefox-devtools/profiler/blob/main/docs-developer/processed-profile-format.md
+# [this script]: https://github.com/firefox-devtools/profiler/blob/main/src/profile-logic/import/linux-perf.js
+# [this documentation]: https://github.com/firefox-devtools/profiler/blob/main/src/types/profile.js
 
 from collections import defaultdict
 import json

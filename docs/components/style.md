@@ -148,6 +148,6 @@ that you didn't find it here so it can be added :)
 [selectors-rule]: https://doc.servo.org/style/stylist/struct.Rule.html
 [per-pseudo-selectormap]: https://doc.servo.org/style/selector_parser/struct.PerPseudoElementMap.html
 [per-origin-selectormap]: https://doc.servo.org/style/stylist/struct.PerOriginSelectorMap.html
-[docs-pipeline]: https://github.com/servo/servo/blob/master/docs/glossary.md#pipeline
+[docs-pipeline]: https://github.com/servo/servo/blob/main/docs/glossary.md#pipeline
 [properties-module]: https://doc.servo.org/style/properties/index.html
 [properties-cascade-fn]: https://doc.servo.org/style/properties/fn.cascade.html

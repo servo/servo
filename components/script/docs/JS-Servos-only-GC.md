@@ -134,7 +134,7 @@ or a custom attribute `#[dom_struct]` which implies it.
 Let's look at [Servo's implementation][document-rs] of the DOM's
 [`Document`][document-mdn] interface:
 
-[document-rs]: https://github.com/servo/servo/blob/master/components/script/dom/document.rs
+[document-rs]: https://github.com/servo/servo/blob/main/components/script/dom/document.rs
 [document-mdn]: https://developer.mozilla.org/en-US/docs/Web/API/document
 
 ```rust
