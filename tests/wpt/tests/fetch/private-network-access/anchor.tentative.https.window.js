@@ -2,6 +2,7 @@
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=/common/utils.js
 // META: script=resources/support.sub.js
+// META: timeout=long
 // META: variant=?include=from-local
 // META: variant=?include=from-private
 // META: variant=?include=from-public

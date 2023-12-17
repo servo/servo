@@ -13,7 +13,6 @@ run_infra_test() {
 main() {
   run_infra_test "chrome" "dev"
   run_infra_test "firefox" "nightly"
-  run_infra_test "firefox_android" "nightly"
 }
 
 main

@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Storage Buckets API on detached iframe</title>
+<link rel='help' href=''>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async testCase => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  const bucketManager = iframe.contentWindow.navigator.storageBuckets;
+  await bucketManager.open('iframe-bucket');
+
+  let bucketKeys = await bucketManager.keys();
+  assert_equals(bucketKeys.length, 1);
+
+  // Note that these tests cannot make use of `prepareForBucketTest` because the
+  // iframe is detached before the test ends, so the test's cleanup step comes
+  // too late to delete buckets.
+  await bucketManager.delete('iframe-bucket');
+
+  iframe.remove();
+
+  // Calling open() from a detached iframe should fail but not crash.
+  assert_equals(bucketManager.open('iframe-bucket'), undefined);
+}, 'Verify open() on detached iframe returns an error');
+
+promise_test(async testCase => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  const bucketManager = iframe.contentWindow.navigator.storageBuckets;
+  await bucketManager.open('iframe-bucket');
+
+  let bucketKeys = await bucketManager.keys();
+  assert_equals(bucketKeys.length, 1);
+  await bucketManager.delete('iframe-bucket');
+
+  iframe.remove();
+
+  // Calling keys() from a detached iframe should fail but not crash.
+  assert_equals(bucketManager.keys(), undefined);
+}, 'Verify keys() on detached iframe returns an error');
+
+promise_test(async testCase => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  const bucketManager = iframe.contentWindow.navigator.storageBuckets;
+  await bucketManager.open('iframe-bucket');
+  await bucketManager.delete('iframe-bucket');
+
+  iframe.remove();
+
+  // Calling delete() from a detached iframe should fail but not crash.
+  assert_equals(bucketManager.delete('foo-bucket'), undefined);
+}, 'Verify delete() on detached iframe returns an error');
+
+</script>
+</body>

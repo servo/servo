@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>Media attribute changes in the body to apply, but has no effect</title>
+
+<link id=link rel=expect href="#last" blocking="render" media="(max-width: 10px)">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_false(!!document.getElementById("last")));
+    t.done();
+  });
+}, "changing media to matching in the body has no effect");
+</script>
+</head>
+<body>
+<script>
+link.media = "(min-width: 10px)";
+</script>
+
+  <div id="first"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="second"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="last"></div>
+</body>

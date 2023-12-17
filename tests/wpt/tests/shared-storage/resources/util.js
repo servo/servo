@@ -196,3 +196,22 @@ async function deleteKeyForOrigin(key, origin) {
   const result = await nextValueFromServer(outerKey);
   assert_equals(result, 'delete_key_loaded');
 }
+
+function getFetchedUrls(worker) {
+  return new Promise(function(resolve) {
+    var channel = new MessageChannel();
+    channel.port1.onmessage = function(msg) {
+      resolve(msg);
+    };
+    worker.postMessage({port: channel.port2}, [channel.port2]);
+  });
+}
+
+function checkInterceptedUrls(worker, expectedRequests) {
+  return getFetchedUrls(worker).then(function(msg) {
+    let actualRequests = msg.data.requests;
+    assert_equals(actualRequests.length, expectedRequests.length);
+    assert_equals(
+        JSON.stringify(actualRequests), JSON.stringify(expectedRequests));
+  });
+}

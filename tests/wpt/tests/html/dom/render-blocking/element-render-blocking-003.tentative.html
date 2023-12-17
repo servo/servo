@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>Adding link in the head has an effect</title>
+
+<script>
+let link = document.createElement("link");
+link.rel = "expect";
+link.href = "#last";
+link.blocking = "render";
+document.head.appendChild(link)
+
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementById("last")));
+    t.done();
+  });
+}, "adding link in the head defers frames");
+</script>
+</head>
+<body>
+  <div id="first"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="second"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="last"></div>
+</body>

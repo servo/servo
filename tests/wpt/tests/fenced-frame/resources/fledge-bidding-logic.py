@@ -58,10 +58,10 @@ def main(request, response):
     '''registerAdBeacon({
         'reserved.top_navigation_start':
         browserSignals.interestGroupOwner +
-        '/fenced-frame/resources/automatic-beacon-store.py',
+        '/fenced-frame/resources/automatic-beacon-store.py?type=reserved.top_navigation_start',
         'reserved.top_navigation_commit':
         browserSignals.interestGroupOwner +
-        '/fenced-frame/resources/automatic-beacon-store.py',
+        '/fenced-frame/resources/automatic-beacon-store.py?type=reserved.top_navigation_commit',
       });
     '''
   )

@@ -69,6 +69,45 @@ async def test_dblclick_at_coordinates(
     assert expected == filtered_events[1:]
 
 
+async def test_no_dblclick_when_mouse_moves(
+    bidi_session, top_context, load_static_test_page
+):
+    await load_static_test_page(page="test_actions.html")
+
+    div_point = {
+        "x": 82,
+        "y": 187,
+    }
+    actions = Actions()
+    (
+        actions.add_pointer()
+        .pointer_move(x=div_point["x"], y=div_point["y"])
+        .pointer_down(button=0)
+        .pointer_up(button=0)
+        .pointer_move(x=div_point["x"] + 10, y=div_point["y"] + 10)
+        .pointer_down(button=0)
+        .pointer_up(button=0)
+    )
+
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+
+    events = await get_events(bidi_session, top_context["context"])
+
+    expected = [
+        {"type": "mousedown", "button": 0},
+        {"type": "mouseup", "button": 0},
+        {"type": "click", "button": 0},
+        {"type": "mousedown", "button": 0},
+        {"type": "mouseup", "button": 0},
+        {"type": "click", "button": 0},
+    ]
+
+    filtered_events = [filter_dict(e, expected[0]) for e in events]
+    assert expected == filtered_events[1:]
+
+
 lots_of_text = (
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor "
     "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud "

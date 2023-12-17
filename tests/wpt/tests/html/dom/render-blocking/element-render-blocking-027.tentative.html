@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>Unknown href causes the whole document to be blocked</title>
+
+<link id=link rel=expect href="#unknown" blocking="render">
+<script>
+link.href = "#stillunknown";
+
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementById("last")));
+    t.done();
+  });
+}, "unknown href causes the whole document to be blocked (with href changes!)");
+</script>
+</head>
+<body>
+  <div id="notfirst"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="second"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="third"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="fourth"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="last"></div>
+</body>

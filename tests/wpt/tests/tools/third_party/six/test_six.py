@@ -1,4 +1,4 @@
-# Copyright (c) 2010-2019 Benjamin Peterson
+# Copyright (c) 2010-2020 Benjamin Peterson
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -121,34 +121,23 @@ def test_move_items(item_name):
         item = getattr(six.moves, item_name)
         if isinstance(item, types.ModuleType):
             __import__("six.moves." + item_name)
-    except AttributeError:
-        if item_name == "zip_longest" and sys.version_info < (2, 6):
-            pytest.skip("zip_longest only available on 2.6+")
     except ImportError:
         if item_name == "winreg" and not sys.platform.startswith("win"):
             pytest.skip("Windows only module")
         if item_name.startswith("tkinter"):
             if not have_tkinter:
                 pytest.skip("requires tkinter")
-            if item_name == "tkinter_ttk" and sys.version_info[:2] <= (2, 6):
-                pytest.skip("ttk only available on 2.7+")
         if item_name.startswith("dbm_gnu") and not have_gdbm:
             pytest.skip("requires gdbm")
         raise
-    if sys.version_info[:2] >= (2, 6):
-        assert item_name in dir(six.moves)
+    assert item_name in dir(six.moves)
 
 
 @pytest.mark.parametrize("item_name",
                           [item.name for item in six._urllib_parse_moved_attributes])
 def test_move_items_urllib_parse(item_name):
     """Ensure that everything loads correctly."""
-    if item_name == "ParseResult" and sys.version_info < (2, 5):
-        pytest.skip("ParseResult is only found on 2.5+")
-    if item_name in ("parse_qs", "parse_qsl") and sys.version_info < (2, 6):
-        pytest.skip("parse_qs[l] is new in 2.6")
-    if sys.version_info[:2] >= (2, 6):
-        assert item_name in dir(six.moves.urllib.parse)
+    assert item_name in dir(six.moves.urllib.parse)
     getattr(six.moves.urllib.parse, item_name)
 
 
@@ -156,8 +145,7 @@ def test_move_items_urllib_parse(item_name):
                           [item.name for item in six._urllib_error_moved_attributes])
 def test_move_items_urllib_error(item_name):
     """Ensure that everything loads correctly."""
-    if sys.version_info[:2] >= (2, 6):
-        assert item_name in dir(six.moves.urllib.error)
+    assert item_name in dir(six.moves.urllib.error)
     getattr(six.moves.urllib.error, item_name)
 
 
@@ -165,8 +153,7 @@ def test_move_items_urllib_error(item_name):
                           [item.name for item in six._urllib_request_moved_attributes])
 def test_move_items_urllib_request(item_name):
     """Ensure that everything loads correctly."""
-    if sys.version_info[:2] >= (2, 6):
-        assert item_name in dir(six.moves.urllib.request)
+    assert item_name in dir(six.moves.urllib.request)
     getattr(six.moves.urllib.request, item_name)
 
 
@@ -174,8 +161,7 @@ def test_move_items_urllib_request(item_name):
                           [item.name for item in six._urllib_response_moved_attributes])
 def test_move_items_urllib_response(item_name):
     """Ensure that everything loads correctly."""
-    if sys.version_info[:2] >= (2, 6):
-        assert item_name in dir(six.moves.urllib.response)
+    assert item_name in dir(six.moves.urllib.response)
     getattr(six.moves.urllib.response, item_name)
 
 
@@ -183,8 +169,7 @@ def test_move_items_urllib_response(item_name):
                           [item.name for item in six._urllib_robotparser_moved_attributes])
 def test_move_items_urllib_robotparser(item_name):
     """Ensure that everything loads correctly."""
-    if sys.version_info[:2] >= (2, 6):
-        assert item_name in dir(six.moves.urllib.robotparser)
+    assert item_name in dir(six.moves.urllib.robotparser)
     getattr(six.moves.urllib.robotparser, item_name)
 
 
@@ -244,7 +229,6 @@ def test_zip():
     assert six.advance_iterator(zip(range(2), range(2))) == (0, 0)
 
 
-@pytest.mark.skipif("sys.version_info < (2, 6)")
 def test_zip_longest():
     from six.moves import zip_longest
     it = zip_longest(range(2), range(1))
@@ -417,8 +401,6 @@ def test_dictionary_iterators(monkeypatch):
         monkeypatch.undo()
 
 
-@pytest.mark.skipif("sys.version_info[:2] < (2, 7)",
-                reason="view methods on dictionaries only available on 2.7+")
 def test_dictionary_views():
     d = dict(zip(range(10), (range(11, 20))))
     for name in "keys", "values", "items":
@@ -636,7 +618,6 @@ def test_raise_from():
         # We should have done a raise f from None equivalent.
         assert val.__cause__ is None
         assert val.__context__ is ctx
-    if sys.version_info[:2] >= (3, 3):
         # And that should suppress the context on the exception.
         assert val.__suppress_context__
     # For all versions the outer exception should have raised successfully.
@@ -682,24 +663,6 @@ def test_print_():
     assert out.flushed
 
 
-@pytest.mark.skipif("sys.version_info[:2] >= (2, 6)")
-def test_print_encoding(monkeypatch):
-    # Fool the type checking in print_.
-    monkeypatch.setattr(six, "file", six.BytesIO, raising=False)
-    out = six.BytesIO()
-    out.encoding = "utf-8"
-    out.errors = None
-    six.print_(six.u("\u053c"), end="", file=out)
-    assert out.getvalue() == six.b("\xd4\xbc")
-    out = six.BytesIO()
-    out.encoding = "ascii"
-    out.errors = "strict"
-    pytest.raises(UnicodeEncodeError, six.print_, six.u("\u053c"), file=out)
-    out.errors = "backslashreplace"
-    six.print_(six.u("\u053c"), end="", file=out)
-    assert out.getvalue() == six.b("\\u053c")
-
-
 def test_print_exceptions():
     pytest.raises(TypeError, six.print_, x=3)
     pytest.raises(TypeError, six.print_, end=3)
@@ -737,7 +700,6 @@ def test_with_metaclass():
     assert Y.__mro__ == (Y, X, object)
 
 
-@pytest.mark.skipif("sys.version_info[:2] < (2, 7)")
 def test_with_metaclass_typing():
     try:
         import typing
@@ -832,14 +794,33 @@ def test_wraps():
     def f(g, assign, update):
         def w():
             return 42
-        w.glue = {"foo" : "bar"}
+        w.glue = {"foo": "bar"}
+        w.xyzzy = {"qux": "quux"}
         return six.wraps(g, assign, update)(w)
-    k.glue = {"melon" : "egg"}
+    k.glue = {"melon": "egg"}
     k.turnip = 43
-    k = f(k, ["turnip"], ["glue"])
+    k = f(k, ["turnip", "baz"], ["glue", "xyzzy"])
     assert k.__name__ == "w"
     assert k.turnip == 43
-    assert k.glue == {"melon" : "egg", "foo" : "bar"}
+    assert not hasattr(k, "baz")
+    assert k.glue == {"melon": "egg", "foo": "bar"}
+    assert k.xyzzy == {"qux": "quux"}
+
+
+def test_wraps_raises_on_missing_updated_field_on_wrapper():
+    """Ensure six.wraps doesn't ignore missing attrs wrapper.
+
+    Because that's what happens in Py3's functools.update_wrapper.
+    """
+    def wrapped():
+        pass
+
+    def wrapper():
+        pass
+
+    with pytest.raises(AttributeError, match='has no attribute.*xyzzy'):
+        six.wraps(wrapped, [], ['xyzzy'])(wrapper)
+
 
 
 def test_add_metaclass():
@@ -935,7 +916,6 @@ def test_add_metaclass_nested():
     assert A.B.__qualname__ == expected
 
 
-@pytest.mark.skipif("sys.version_info[:2] < (2, 7) or sys.version_info[:2] in ((3, 0), (3, 1))")
 def test_assertCountEqual():
     class TestAssertCountEqual(unittest.TestCase):
         def test(self):
@@ -947,7 +927,6 @@ def test_assertCountEqual():
     TestAssertCountEqual('test').test()
 
 
-@pytest.mark.skipif("sys.version_info[:2] < (2, 7)")
 def test_assertRegex():
     class TestAssertRegex(unittest.TestCase):
         def test(self):
@@ -959,7 +938,17 @@ def test_assertRegex():
     TestAssertRegex('test').test()
 
 
-@pytest.mark.skipif("sys.version_info[:2] < (2, 7)")
+def test_assertNotRegex():
+    class TestAssertNotRegex(unittest.TestCase):
+        def test(self):
+            with self.assertRaises(AssertionError):
+                six.assertNotRegex(self, 'test', r'^t')
+
+            six.assertNotRegex(self, 'test', r'^a')
+
+    TestAssertNotRegex('test').test()
+
+
 def test_assertRaisesRegex():
     class TestAssertRaisesRegex(unittest.TestCase):
         def test(self):

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>Href attribute changes in the head to not apply</title>
+
+<link id=link rel=expect href="#last" blocking="render">
+<script>
+link.href = "";
+
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_false(!!document.getElementById("last")));
+    t.done();
+  });
+}, "removing href makes it no longer blocking");
+</script>
+</head>
+<body>
+  <div id="first"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="second"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="last"></div>
+</body>

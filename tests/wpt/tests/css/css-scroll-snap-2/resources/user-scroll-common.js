@@ -7,11 +7,11 @@
 function snap_event_touch_scroll_helper(start_pos, end_pos) {
   return new test_driver.Actions()
     .addPointer("TestPointer", "touch")
-    .pointerMove(start_pos.x, start_pos.y)
+    .pointerMove(Math.round(start_pos.x), Math.round(start_pos.y))
     .pointerDown()
     .addTick()
     .pause(200)
-    .pointerMove(end_pos.x, end_pos.y)
+    .pointerMove(Math.round(end_pos.x), Math.round(end_pos.y))
     .addTick()
     .pointerUp()
     .send();
@@ -25,17 +25,17 @@ function snap_event_scrollbar_drag_helper(scroller, scrollbar_width, drag_amt) {
   let x, y, bounds;
   if (scroller == document.scrollingElement) {
     bounds = document.documentElement.getBoundingClientRect();
-    x = window.innerWidth - Math.round(scrollbar_width / 2);
+    x = Math.round(window.innerWidth - scrollbar_width / 2);
   } else {
     bounds = scroller.getBoundingClientRect();
-    x = bounds.right - Math.round(scrollbar_width / 2);
+    x = Math.round(bounds.right - Math.round(scrollbar_width / 2));
   }
-  y = bounds.top + vertical_offset_into_scrollbar;
+  y = Math.round(bounds.top + vertical_offset_into_scrollbar);
   return new test_driver.Actions()
     .addPointer('TestPointer', 'mouse')
     .pointerMove(x, y)
     .pointerDown()
-    .pointerMove(x, y + drag_amt)
+    .pointerMove(x, Math.round(y + drag_amt))
     .addTick()
     .pointerUp()
     .send();
@@ -54,7 +54,8 @@ async function test_no_snap_event(test, scroller, delta, event_type) {
   let snap_event_promise = waitForSnapEvent(listening_element, event_type);
   // Set the scroll destination to just a little off (0, 0) top so we snap
   // back to the top box.
-  await new test_driver.Actions().scroll(0, 0, delta, delta).send();
+  await new test_driver.Actions().scroll(0, 0, delta, delta,
+      { origin: scroller }).send();
   let evt = await snap_event_promise;
   assert_equals(evt, null, "no snap event since scroller is back to top");
   assert_equals(scroller.scrollTop, 0, "scroller snaps back to the top");
@@ -63,4 +64,8 @@ async function test_no_snap_event(test, scroller, delta, event_type) {
 
 async function test_no_snapchanged(t, scroller, delta) {
   await test_no_snap_event(t, scroller, delta, "snapchanged");
+}
+
+async function test_no_snapchanging(t, scroller, delta) {
+  await test_no_snap_event(t, scroller, delta, "snapchanging");
 }

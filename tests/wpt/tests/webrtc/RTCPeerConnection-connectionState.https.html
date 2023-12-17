@@ -271,6 +271,50 @@
     assert_array_equals(states, ['connecting', 'connected']);
   }, 'connectionState transitions to connected via connecting');
 
+
+  // Make the callee act as if not bundle-aware
+  async function exchangeOfferAnswerUnbundled(caller, callee) {
+    const offer = await caller.createOffer();
+    const sdp = offer.sdp.replace('BUNDLE', 'SOMETHING')
+          .replace(/rtp-hdrext:sdes/g, 'rtp-hdrext:something')
+          .replace(/a=ssrc:/g, 'a=notssrc');
+    await caller.setLocalDescription(offer);
+    await callee.setRemoteDescription({type: 'offer', sdp});
+
+    await exchangeAnswer(caller, callee);
+  }
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection({bundlePolicy: 'max-compat'});
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const stream = await getNoiseStream({ audio: true });
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    stream.getTracks().forEach(track => pc1.addTrack(track, stream));
+    exchangeIceCandidates(pc1, pc2);
+    exchangeOfferAnswerUnbundled(pc1, pc2);
+    await listenToConnected(pc1);
+
+    // https://github.com/w3c/webrtc-pc/issues/2678#issuecomment-948554126
+    let had_intermediary_connecting = false
+    let channel;
+    const onConnectionStateChange = t.step_func(() => {
+      const {connectionState, iceConnectionState} = pc1;
+      if (connectionState === 'connecting') {
+        had_intermediary_connecting = true;
+      }
+    });
+
+    pc1.addEventListener('connectionstatechange', onConnectionStateChange);
+    channel = pc1.createDataChannel('test');
+    await exchangeOfferAnswer(pc1, pc2);
+    await listenToConnected(pc1);
+
+    assert_true(had_intermediary_connecting, "state should re-pass connecting before reaching connected");
+  }, 'when adding a datachannel to an existing unbundled connected PC, it should go through a connecting state');
+
+
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());

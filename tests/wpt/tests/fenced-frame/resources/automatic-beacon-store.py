@@ -23,6 +23,7 @@ def string_to_uuid(input):
 
 def main(request, response):
     stash = request.server.stash;
+    event_type = request.GET.first(b"type", NO_DATA_STRING)
 
     # The stash is accessed concurrently by many clients. A lock is used to
     # avoid interleaved read/write from different clients.
@@ -32,11 +33,12 @@ def main(request, response):
         if request.method == "POST":
             request_body = request.body or NO_DATA_STRING
             request_headers = request.headers.get("Origin") or NO_DATA_STRING
-            stash.put(string_to_uuid(request_body), request_headers)
+            stash.put(string_to_uuid(event_type + request_body),
+                request_headers)
             return (200, [], b"")
 
         # Requests without a body imply they were sent as the request from
         # nextAutomaticBeacon().
         expected_body = request.GET.first(b"expected_body", NO_DATA_STRING)
-        data = stash.take(string_to_uuid(expected_body)) or NOT_SET_STRING
+        data = stash.take(string_to_uuid(event_type + expected_body)) or NOT_SET_STRING
         return(200, [], data)

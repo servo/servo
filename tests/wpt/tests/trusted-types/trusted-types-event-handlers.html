@@ -37,7 +37,9 @@ const element = document.createElement("div");
 // element about which attributes it knows.
 const div = document.createElement("div");
 for(name in div.__proto__) {
-  const should_be_event_handler = name.startsWith("on");
+  // This captures all "on{foo}" handlers, but not "on" itself, which is an IDL
+  // attribute that returns an Observable.
+  const should_be_event_handler = name.startsWith("on") && name !== "on";
   if (should_be_event_handler) {
     test(t => {
       assert_throws_js(TypeError,

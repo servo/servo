@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>Animating the "translate" property with percent values while also animating "width" and "height"</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms/">
+<link rel="match" href="translate-percent-with-width-and-height-ref.html">
+<script src="../../../common/reftest-wait.js"></script>
+<style>
+
+div {
+    width: 10px;
+    height: 10px;
+    background-color: black;
+    animation: anim 10s linear forwards;
+}
+
+@keyframes anim {
+    0.000000001%, to {
+        width: 200px;
+        height: 200px;
+        translate: 50%, 50%;
+    }
+}
+
+</style>
+</head>
+<body>
+<div></div>
+<script>
+(async function() {
+    await Promise.all(document.getAnimations().map(animation => animation.ready));
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    takeScreenshot();
+})();
+</script>
+</body>
+</html>

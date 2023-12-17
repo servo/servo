@@ -45,7 +45,7 @@ async_test(t => {
 
     assert_identical_barProps(barProps, openee, barPropObjects, true);
 
-    openee.onunload = t.step_func(() => {
+    openee.onpagehide = t.step_func(() => {
       assert_identical_barProps(barProps, openee, barPropObjects, true);
       t.step_timeout(() => {
         assert_identical_barProps(barProps, openee, barPropObjects, false);

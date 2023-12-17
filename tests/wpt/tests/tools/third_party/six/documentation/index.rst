@@ -257,9 +257,10 @@ functions and methods is the stdlib :mod:`py3:inspect` module.
 
 .. decorator:: wraps(wrapped, assigned=functools.WRAPPER_ASSIGNMENTS, updated=functools.WRAPPER_UPDATES)
 
-   This is exactly the :func:`py3:functools.wraps` decorator, but it sets the
-   ``__wrapped__`` attribute on what it decorates as :func:`py3:functools.wraps`
-   does on Python versions after 3.2.
+   This is Python 3.2's :func:`py3:functools.wraps` decorator.  It sets the
+   ``__wrapped__`` attribute on what it decorates.  It doesn't raise an error if
+   any of the attributes mentioned in ``assigned`` and ``updated`` are missing
+   on ``wrapped`` object.
 
 
 Syntax compatibility
@@ -451,7 +452,7 @@ string data in all Python versions.
 .. function:: ensure_text(s, encoding='utf-8', errors='strict')
 
    Coerce *s* to :data:`text_type`. *encoding*, *errors* are the same as
-   :meth:`py3:str.encode`
+   :meth:`py3:bytes.decode`
 
 
 .. data:: StringIO
@@ -508,6 +509,11 @@ Note these functions are only available on Python 2.7 or later.
 
    Alias for :meth:`~py3:unittest.TestCase.assertRegex` on Python 3 and
    :meth:`~py2:unittest.TestCase.assertRegexpMatches` on Python 2.
+
+.. function:: assertNotRegex()
+
+   Alias for :meth:`~py3:unittest.TestCase.assertNotRegex` on Python 3 and
+   :meth:`~py2:unittest.TestCase.assertNotRegexpMatches` on Python 2.
 
 
 Renamed modules and attributes compatibility
@@ -590,7 +596,8 @@ Supported renames:
 +------------------------------+-------------------------------------+---------------------------------------+
 | ``dbm_ndbm``                 | :mod:`py2:dbm`                      | :mod:`py3:dbm.ndbm`                   |
 +------------------------------+-------------------------------------+---------------------------------------+
-| ``_dummy_thread``            | :mod:`py2:dummy_thread`             | :mod:`py3:_dummy_thread`              |
+| ``_dummy_thread``            | :mod:`py2:dummy_thread`             | :mod:`py3:_dummy_thread` (< 3.9)      |
+|                              |                                     | :mod:`py3:_thread` (3.9+)             |
 +------------------------------+-------------------------------------+---------------------------------------+
 | ``email_mime_base``          | :mod:`py2:email.MIMEBase`           | :mod:`py3:email.mime.base`            |
 +------------------------------+-------------------------------------+---------------------------------------+

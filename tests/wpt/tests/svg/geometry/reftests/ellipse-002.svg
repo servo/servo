@@ -3,7 +3,8 @@
   xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Ellipse coordinates and radii specified in user units</title>
   <html:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html"/>
-  <html:link rel="match"  href="ellipse-ref.svg" />
+  <html:link rel="match" href="ellipse-ref.svg" />
+  <html:meta name="fuzzy" content="maxDifference=0-53; totalPixels=0-278" />
   <style>
     ellipse {
       cx: 6150px;

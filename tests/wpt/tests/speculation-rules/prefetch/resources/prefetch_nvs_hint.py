@@ -1,6 +1,7 @@
 import time
 
 def main(request, response):
+  response.headers.set("Cache-Control", "no-store")
   uuid = request.GET[b"uuid"]
   wait_for_prefetch_start_uuid = None
   if b"wait_for_prefetch_uuid" in request.GET:

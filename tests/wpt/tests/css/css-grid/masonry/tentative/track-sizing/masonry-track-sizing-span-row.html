@@ -11,46 +11,45 @@
 
 <body>
 <style>
-grid {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: masonry;
-    width: 300px;
-    height: 100px;
-}
+    grid {
+        display: grid;
+        grid-template-columns: 50px 1fr;
+        grid-template-rows: masonry;
+        width: 300px;
+        height: 100px;
+    }
 
-box1 {
-    height: 50px;
-    width: 50px;
-    background-color: blue;
-}
+    box1 {
+        height: 50px;
+        width: 50px;
+        background-color: blue;
+    }
 
-box2 {
-    height: 50px;
-    background-color: red;
-}
+    box2 {
+        height: 50px;
+        background-color: red;
+    }
 
-box3 {
-    width: 100px;
-    height: 50px;
-    background-color: purple;
-    z-index: 1;
-}
+    box3 {
+        width: 100px;
+        height: 50px;
+        background-color: purple;
+        z-index: 1;
+    }
 
-box4 {
-    height: 50px;
-    width: 300px;
-    grid-column-start: 1;
-    grid-column-end: 3;
-    background-color: green;
-}
+    box4 {
+        height: 50px;
+        width: 300px;
+        grid-column: span 2;
+        background-color: green;
+    }
 </style>
 
 <grid>
     <box1>1</box1>
     <box2>2</box2>
-    <box3>3</box3>
     <box4>4</box4>
+    <box3>3</box3>
 </grid>
 
 </body>

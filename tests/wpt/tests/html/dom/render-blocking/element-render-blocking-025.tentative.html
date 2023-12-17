@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>Adding an id to parsed element satisfies render block</title>
+
+<link rel=expect href="#first" blocking="render">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementById("first")));
+    t.step(() => assert_false(!!document.getElementById("last")));
+    t.done();
+  });
+}, "adding an id in the body satisfies render block");
+</script>
+</head>
+<body>
+  <div id="willbefirst"></div>
+  <script>
+    willbefirst.id = "first";
+    jankMany(100, 10);
+  </script>
+  <div id="second"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="third"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="fourth"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="last"></div>
+</body>

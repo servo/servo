@@ -29,7 +29,8 @@ promise_test(async (t) => {
   );
 
   // An automatic beacon should not be sent out, as the document did not opt in
-  // through the call to setReportEventDataForAutomaticBeacons().
+  // through the call to setReportEventDataForAutomaticBeacons(), nor through
+  // the 'Allow-Fenced-Frame-Automatic-Beacons' header.
   // Set up a timeout to ensure that there's enough time to send any potential
   // automatic beacons.
   await actions
@@ -39,7 +40,8 @@ promise_test(async (t) => {
     .send();
   const timeout = new Promise(resolve => t.step_timeout(resolve, 1000));
   const result = await Promise.race(
-      [nextAutomaticBeacon("<No data>"), timeout]);
+      [nextAutomaticBeacon("reserved.top_navigation_start", "<No data>"),
+       timeout]);
   assert_true(typeof result === "undefined");
 }, "Automatic beacons will not send if the document does not opt in.");
 

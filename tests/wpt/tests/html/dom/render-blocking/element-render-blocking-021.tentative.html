@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>Rel attribute changes in the body to apply, but has no effect</title>
+
+<link id=link rel=stylesheet href="#last" blocking="render">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_false(!!document.getElementById("last")));
+    t.done();
+  });
+}, "changing rel to expect in the body has no effect");
+</script>
+</head>
+<body>
+<script>
+link.rel = "expect";
+</script>
+  <div id="first"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="second"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="third"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="last"></div>
+</body>

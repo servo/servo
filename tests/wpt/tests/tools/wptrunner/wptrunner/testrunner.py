@@ -679,7 +679,7 @@ class TestRunnerManager(threading.Thread):
             # Due to inherent race conditions in EXTERNAL-TIMEOUT, we might
             # receive multiple test_ended for a test (e.g. from both Executor
             # and TestRunner), in which case we ignore the duplicate message.
-            self.logger.error("Received unexpected test_ended for %s" % test)
+            self.logger.warning("Received unexpected test_ended for %s" % test)
             return
         if self.timer is not None:
             self.timer.cancel()

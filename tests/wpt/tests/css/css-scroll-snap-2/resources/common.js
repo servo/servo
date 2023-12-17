@@ -67,6 +67,20 @@ function waitForEventUntil(event_target, event_type, wait_until) {
   });
 }
 
+function waitForEventsUntil(event_target, event_type, wait_until) {
+  return new Promise(resolve => {
+    let result = [];
+    const listener = (evt) => {
+      result.push(evt);
+    };
+    event_target.addEventListener(event_type, listener);
+    wait_until.then(() => {
+      event_target.removeEventListener(event_type, listener);
+      resolve(result);
+    });
+  });
+}
+
 // Proxy a wait for a snap event. We want to avoid having a test
 // timeout in the event of an expected snap event not firing in a particular
 // test case as that would cause the entire file to fail.

@@ -102,7 +102,6 @@
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
         ctx.shadowBlur = 3;
 
-
 - name: 2d.layer.global-states.filter
   desc: Checks that layers with filters correctly use global render states.
   size: [200, 200]
@@ -953,14 +952,14 @@
 - name: 2d.layer.css-filters
   desc: Checks that beginLayer works with a CSS filter string as input.
   size: [200, 200]
-  code: |
-    ctx.beginLayer({filter: '{{ css_filter }}'});
+  code: &filter-test-code |
+    ctx.beginLayer({filter: {{ ctx_filter }}});
 
     ctx.fillStyle = 'teal';
     ctx.fillRect(50, 50, 100, 100);
 
     ctx.endLayer();
-  html_reference: |
+  html_reference: &filter-test-reference |
     <svg xmlns="http://www.w3.org/2000/svg"
           width="{{ size[0] }}" height="{{ size[1] }}"
           color-interpolation-filters="sRGB">
@@ -973,17 +972,53 @@
     </svg>
   variants:
     blur:
-      css_filter: blur(10px)
-      svg_filter: <feGaussianBlur stdDeviation="10" />
+      ctx_filter: |-
+        'blur(10px)'
+      svg_filter: |-
+        <feGaussianBlur stdDeviation="10" />
     shadow:
-      css_filter: drop-shadow(-10px -10px 5px purple)
+      ctx_filter: |-
+        'drop-shadow(-10px -10px 5px purple)'
       svg_filter: |-
         <feDropShadow dx="-10" dy="-10" stdDeviation="5" flood-color="purple" />
     blur-and-shadow:
-      css_filter: blur(5px) drop-shadow(10px 10px 5px orange)
+      ctx_filter: |-
+        'blur(5px) drop-shadow(10px 10px 5px orange)'
       svg_filter: |-
         <feGaussianBlur stdDeviation="5" />
         <feDropShadow dx="10" dy="10" stdDeviation="5" flood-color="orange" />
+
+- name: 2d.layer.anisotropic-blur
+  desc: Checks that layers allow gaussian blur with separate X and Y components.
+  size: [200, 200]
+  code: *filter-test-code
+  html_reference: *filter-test-reference
+  variants:
+    x-only:
+      ctx_filter: |-
+        { name: 'gaussianBlur', stdDeviation: [4, 0] }
+      svg_filter: |-
+        <feGaussianBlur stdDeviation="4 0" />
+    mostly-x:
+      ctx_filter: |-
+        { name: 'gaussianBlur', stdDeviation: [4, 1] }
+      svg_filter: |-
+        <feGaussianBlur stdDeviation="4 1" />
+    isotropic:
+      ctx_filter: |-
+        { name: 'gaussianBlur', stdDeviation: [4, 4] }
+      svg_filter: |-
+        <feGaussianBlur stdDeviation="4 4" />
+    mostly-y:
+      ctx_filter: |-
+        { name: 'gaussianBlur', stdDeviation: [1, 4] }
+      svg_filter: |-
+        <feGaussianBlur stdDeviation="1 4" />
+    y-only:
+      ctx_filter: |-
+        { name: 'gaussianBlur', stdDeviation: [0, 4] }
+      svg_filter: |-
+        <feGaussianBlur stdDeviation="0 4" />
 
 - name: 2d.layer.nested-filters
   desc: Checks that nested layers work properly when both apply filters.

@@ -18,5 +18,39 @@
         img.src = url;
       });
     }
+
+    function loadFrame(url, hasSharedStorageWritableAttribute) {
+      return new Promise(function(resolve, reject) {
+        var frame = document.createElement('iframe');
+        document.body.appendChild(frame);
+        frame.onload = function() {
+          window.parent.postMessage({msg: 'iframe loaded'}, "*");
+          resolve(frame);
+        };
+        frame.onerror = function() {
+          reject(new Error('Nested iframe load failed'));
+        };
+        if (hasSharedStorageWritableAttribute) {
+          frame.sharedStorageWritable = true;
+        }
+        frame.src = url;
+      });
+    }
+
+    function fetchUrl(url, hasSharedStorageWritableAttribute) {
+      return new Promise(function(resolve, reject) {
+        fetch(url, {sharedStorageWritable:
+                    hasSharedStorageWritableAttribute})
+          .then(response => {
+              if (!response.ok) {
+                throw new Error('Failed to fetch ' + url + '; '
+                  + String(response.status) + ' ' + response.statusText);
+              }
+              resolve(response);
+          }).catch(error => {
+              reject(error);
+          });
+      });
+    }
   </script>
 </body>

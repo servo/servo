@@ -6,6 +6,7 @@
 <link rel="help" href="https://drafts.csswg.org/cssom-view/#scrolling-box">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <script src="support/scroll-behavior.js"></script>
 <style>
   .scrollable {
@@ -48,6 +49,10 @@
   </div>
 </div>
 <script>
+  promise_test(async () => {
+    await waitForCompositorReady();
+  }, "Make sure the page is ready for animation.");
+
   // The CSSOM-View spec and implementations follow different algorithms (scrolls performed in parallel, as inner-to-outer sequence or as outer-to-inner sequence).
   // See https://github.com/w3c/csswg-drafts/issues/3127
   promise_test(() => {

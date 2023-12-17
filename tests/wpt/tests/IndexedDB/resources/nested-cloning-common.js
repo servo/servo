@@ -109,6 +109,7 @@ function checkValue(testCase, value, descriptor) {
 function cloningTestInternal(label, valueDescriptors, options) {
   promise_test(testCase => {
     return createDatabase(testCase, (database, transaction) => {
+      testCase.add_cleanup(() => database.close());
       let store;
       if (options.useKeyGenerator) {
         store = database.createObjectStore(

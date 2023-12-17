@@ -30,12 +30,13 @@ promise_test(async testCase => {
   txn3.objectStore('objectStore').add({'key': 'secondItem', 'indexedOn': 2});
 
   const txn4 = db.transaction(['objectStore'], 'readonly');
+  const txnWaiter = promiseForTransaction(testCase, txn4);
   cursor = txn4.objectStore('objectStore').index('index').openCursor(IDBKeyRange.bound(0, 10), "prev");
   let results = await iterateAndReturnAllCursorResult(testCase, cursor);
 
   assert_equals(results.length, 1);
 
-  await promiseForTransaction(testCase, txn4);
+  await txnWaiter;
   db.close();
 }, 'Reverse cursor sees update from separate transactions.');
 
@@ -50,11 +51,12 @@ promise_test(async testCase => {
   txn.objectStore('objectStore').add({'key': '2', 'indexedOn': 1});
 
   const txn2 = db.transaction(['objectStore'], 'readonly');
+  const txnWaiter = promiseForTransaction(testCase, txn2);
   cursor = txn2.objectStore('objectStore').index('index').openCursor(IDBKeyRange.bound(0, 10), "prev");
   let results = await iterateAndReturnAllCursorResult(testCase, cursor);
 
   assert_equals(1, results.length);
 
-  await promiseForTransaction(testCase, txn2);
+  await txnWaiter;
   db.close();
 }, 'Reverse cursor sees in-transaction update.');

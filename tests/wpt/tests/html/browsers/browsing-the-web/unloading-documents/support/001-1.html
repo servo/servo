@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <script>
  t = opener.t;
- do_test = t.step(function () {
+ do_test = t.step_func(function () {
    localStorage.test6564729 += '4';
    var d = document;
    var e = document.open(); // has no effect (ignore-opens-during-unload > 0)

@@ -52,6 +52,32 @@ test(() => {
     subscriber.next(1);
     subscriber.next(2);
     subscriber.next(3);
+  });
+
+  assert_false(
+    initializerCalled,
+    "initializer should not be called by construction"
+  );
+
+  source.subscribe(x => results.push(x));
+
+  assert_true(initializerCalled, "initializer should be called by subscribe");
+  assert_array_equals(
+    results,
+    [1, 2, 3],
+    "should emit values synchronously, but not complete"
+  );
+}, "Subscribe with just a function as the next handler");
+
+test(() => {
+  let initializerCalled = false;
+  const results = [];
+
+  const source = new Observable((subscriber) => {
+    initializerCalled = true;
+    subscriber.next(1);
+    subscriber.next(2);
+    subscriber.next(3);
     subscriber.complete();
   });
 

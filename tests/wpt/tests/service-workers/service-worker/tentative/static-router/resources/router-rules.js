@@ -12,6 +12,18 @@ const routerRules = {
   'condition-urlpattern-string-source-network': [
     {condition: {urlPattern: '/**/direct.txt'}, source: 'network'},
   ],
+  'condition-urlpattern-constructed-ignore-case-source-network': [{
+    condition: {
+      urlPattern: new URLPattern(
+          {pathname: '/**/DiReCT.TxT'},
+          {ignoreCase: true})
+    },
+    source: 'network'
+  }],
+  'condition-urlpattern-constructed-respect-case-source-network': [{
+    condition: {urlPattern: new URLPattern({pathname: '/**/DiReCT.TxT'})},
+    source: 'network'
+  }],
   'condition-request-source-network':
       [{condition: {requestMode: 'no-cors'}, source: 'network'}],
   'condition-or-source-network': [{

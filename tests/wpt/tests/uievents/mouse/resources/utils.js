@@ -11,6 +11,14 @@ function getEvent(event_type, target) {
   });
 }
 
+// Adds a listener that is automatically removed at the end of the test.
+function addTestScopedListener(target, type, listener, test) {
+  target.addEventListener(type, listener);
+  test.add_cleanup(() => {
+    target.removeEventListener(type, listener);
+  });
+}
+
 // Returns a |Promise| that gets resolved with |event.data| when |window|
 // receives from |source| a "message" event whose |event.data.type| matches the string
 // |message_data_type|.
