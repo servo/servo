@@ -126,8 +126,8 @@ test_serialization(
 
 test_serialization(
     'max((min(10%, 30px) + 10px) * 2 + 10px, 5em + 5%)',
-    'max(10px + (10px + min(10%, 30px)) * 2, 5% + 5em)',
-    'max(10px + (10px + min(10%, 30px)) * 2, 5% + 80px)',
+    'max(10px + ((10px + min(10%, 30px)) * 2), 5% + 5em)',
+    'max(10px + ((10px + min(10%, 30px)) * 2), 5% + 80px)',
     '85px',
     prop='width');
 </script>

@@ -5,13 +5,16 @@
 <link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
 <link rel="match" href="content-visibility-079-ref.html">
 <meta name="assert" content="content-visibility auto element paints in an overflow hidden element that is not sized">
-
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
-.auto { content-visibility: auto; }
+.auto {
+ content-visibility: auto;
+ font: 25px/1 Ahem;
+}
 .overflow { overflow: hidden; }
 </style>
 
-<p>Test passes if you see the word “PASS” below.
+<p>Test passes if you see a black rectangle below.
 <div class=overflow>
   <div class=auto>PASS</div>
 </div>

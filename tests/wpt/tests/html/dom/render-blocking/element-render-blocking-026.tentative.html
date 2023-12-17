@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>Removing id keeps render block satisfied</title>
+
+<link rel=expect href="#first" blocking="render">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementById("wasfirst")));
+    t.step(() => assert_false(!!document.getElementById("last")));
+    t.done();
+  });
+}, "removing id after it was renderer keeps render block satisfied");
+</script>
+</head>
+<body>
+  <div id="first"></div>
+  <script>
+    first.id = "wasfirst";
+    jankMany(100, 10);
+  </script>
+  <div id="second"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="third"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="fourth"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="last"></div>
+</body>

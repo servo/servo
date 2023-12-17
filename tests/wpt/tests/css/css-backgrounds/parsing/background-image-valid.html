@@ -30,6 +30,10 @@ test_valid_value(
 test_valid_value(
     "background-image",
     "cross-fade(blue, linear-gradient(90deg, rgb(2, 0, 36) 0%, rgb(0, 212, 255) 100%))");
+test_valid_value("background-image", "cross-fade( 1% red, green)", "cross-fade(1% red, green)");
+test_valid_value("background-image", "cross-fade(1% red , green)", "cross-fade(1% red, green)");
+test_valid_value("background-image", "cross-fade(1% red, green )", "cross-fade(1% red, green)");
+test_valid_value("background-image", "cross-fade(1% red, cross-fade(2% red, green))");
 </script>
 </body>
 </html>

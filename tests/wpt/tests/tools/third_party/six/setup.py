@@ -1,4 +1,4 @@
-# Copyright (c) 2010-2019 Benjamin Peterson
+# Copyright (c) 2010-2020 Benjamin Peterson
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -54,5 +54,5 @@ setup(name="six",
       long_description=six_long_description,
       license="MIT",
       classifiers=six_classifiers,
-      python_requires=">=2.6, !=3.0.*, !=3.1.*",
+      python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*",
       )

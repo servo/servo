@@ -6,8 +6,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<script src="/common/utils.js"></script>
-<script src="stash.js"></script>
 <script src="resources/util.js"></script>
 <style>
   .target {
@@ -16,86 +14,69 @@
   }
 </style>
 <script>
-const params = new URLSearchParams(location.search);
-const is_popup = params.has('key');
 
-// This test opens a popup to this document which invokes a text directive. The
-// popup checks the result of navigating the text directive and communicates it
-// back to the original page via Stash (since text fragments require noopener).
-if (is_popup) {
-  const key = params.get('key');
+function determineResult() {
+  if (window.scrollY == 0)
+    return 'noscroll';
 
-  function sendResult() {
-    let result = 'unknown';
-    if (window.scrollY == 0)
-      result = 'noscroll';
-    else {
-      for (let target of document.querySelectorAll('.target')) {
-        if (isInViewport(target)) {
-          result = target.id;
-          break;
-        }
-      }
+  for (let target of document.querySelectorAll('.target')) {
+    if (isInViewport(target)) {
+      return target.id;
     }
-
-    stashResultsThenClose(key, result);
   }
+  return 'UNEXPECTED';
+}
 
-  // Ensure two animation frames on load to test the fallback to element anchor,
-  // which gets queued for the next frame if the text fragment is not found.
-  onload = () => { requestAnimationFrame( () => requestAnimationFrame(sendResult) ); };
-} else {
-  let test_cases = [
-    {
-      fragment: '#:~:text=%25',
-      expect: 'singlepercent',
-      description: 'Percent-encoded "%" char.'
-    },
-    {
-      fragment: '#:~:text=%',
-      expect: 'noscroll',
-      description: 'Percent char without hex digits is invalid.'
-    },
-    {
-      fragment: '#:~:text=%%',
-      expect: 'noscroll',
-      description: 'Percent char followed by percent char is invalid.'
-    },
-    {
-      fragment: '#:~:text=%F',
-      expect: 'noscroll',
-      description: 'Single digit percent-encoding is invalid.'
-    },
-    {
-      fragment: '#:~:text=%25F',
-      expect: 'percentf',
-      description: 'Percent-encoding limited to two digits.'
-    },
-    {
-      fragment: '#:~:text=%25%25F',
-      expect: 'doublepercentf',
-      description: 'Percent-encoded "%%F"'
-    },
-    {
-      fragment: '#:~:text=%E2%9C%85',
-      expect: 'checkmark',
-      description: 'Percent-encoding multibyte codepoint (CHECKMARK).'
-    },
-  ];
+let test_cases = [
+  {
+    fragment: '#:~:text=%25',
+    expect: 'singlepercent',
+    description: 'Percent-encoded "%" char.'
+  },
+  {
+    fragment: '#:~:text=%',
+    expect: 'noscroll',
+    description: 'Percent char without hex digits is invalid.'
+  },
+  {
+    fragment: '#:~:text=%%',
+    expect: 'noscroll',
+    description: 'Percent char followed by percent char is invalid.'
+  },
+  {
+    fragment: '#:~:text=%F',
+    expect: 'noscroll',
+    description: 'Single digit percent-encoding is invalid.'
+  },
+  {
+    fragment: '#:~:text=%25F',
+    expect: 'percentf',
+    description: 'Percent-encoding limited to two digits.'
+  },
+  {
+    fragment: '#:~:text=%25%25F',
+    expect: 'doublepercentf',
+    description: 'Percent-encoded "%%F"'
+  },
+  {
+    fragment: '#:~:text=%E2%9C%85',
+    expect: 'checkmark',
+    description: 'Percent-encoding multibyte codepoint (CHECKMARK).'
+  },
+];
 
-  for (const test_case of test_cases) {
-    promise_test(t => new Promise((resolve, reject) => {
-      let key = token();
+for (const test_case of test_cases) {
+  promise_test(t => new Promise(resolve => {
+    // Clear the fragment and reset the scroll offset to prepare for the next
+    // test case.
+    location = `${location.pathname}#`;
+    scrollTo(0, 0);
 
-      test_driver.bless('Open a URL with a text fragment directive', () => {
-        window.open(`${location.href}?key=${key}${test_case.fragment}`, '_blank', 'noopener');
-      });
-
-      fetchResults(key, resolve, reject);
-    }).then(result => {
-      assert_equals(result, test_case.expect);
-    }), `Test navigation with fragment: ${test_case.description}.`);
-  }
+    location = `${location.pathname}${test_case.fragment}`;
+    requestAnimationFrame( () => requestAnimationFrame(resolve) );
+  }).then(() => {
+    assert_equals(determineResult(), test_case.expect);
+  }), `Test navigation with fragment: ${test_case.description}.`);
 }
 </script>
 

@@ -23,6 +23,20 @@ self.addEventListener('message', function(event) {
         client.postMessage("dummyValue");
       }
       event.data.port.postMessage("PASS");
+    } else if (event.data.type == 'storeMessagePort') {
+      let isCloseEventFired = false;
+      const port = event.ports[0];
+      port.start();
+      port.onmessage = (event) => {
+        if (event.data == 'Confirm the ports can communicate') {
+          port.postMessage('Receive message');
+        } else if (event.data == 'Ask if the close event was fired') {
+          port.postMessage(isCloseEventFired);
+        }
+      };
+      port.onclose = () => {
+        isCloseEventFired = true;
+      };
     }
   });
 

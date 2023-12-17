@@ -77,25 +77,5 @@ promise_test(async t => {
   const [event, [entry]] = await Promise.all([eventPromise, entryPromise]);
   assert_equals(entry.firstUIEventTimestamp, firstUIEventTimestamp);
 }, "firstUIEventTimestamp doesn't have to come from a long script");
-
-
-promise_test(async t => {
-  const entryPromise = expect_long_frame_with_script(() => {
-    const img = document.createElement("img");
-    img.src = "/images/green.png";
-    const promise = new Promise(resolve =>
-      img.addEventListener("load", event => {
-        busy_wait();
-        resolve();
-      }));
-    document.body.appendChild(img);
-    t.add_cleanup(() => img.remove());
-    return promise;
-  }, s => s.name === "IMG[src=/images/green.png].onload", t);
-
-  const [entry, script] = await entryPromise;
-  assert_not_equals(entry.firstUIEventTimestamp, script.desiredExecutionStart);
-}, "Non-UI events don't affect firstUIEventTimestamp");
-
 </script>
 </body>

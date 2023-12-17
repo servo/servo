@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+
+body { height: 4000px; }
+div { height: 100px; }
+
+.scroller {
+  overflow: scroll;
+  position: fixed;
+  width: 300px;
+  height: 300px;
+  background-color: green;
+}
+
+#posSticky {
+  top: 300px;
+  position: relative;
+  height: 50px;
+  width: 50px;
+  background-color: blue;
+}
+
+#content {
+  background-color: #D3D3D3;
+  height: 50px;
+  width: 50px;
+  position: relative;
+  top: 500px;
+}
+
+</style>
+<div id="scroller" class="scroller">
+    <div id="content"></div>
+
+  <div id="posSticky">
+    <div id="block1" tabindex="-1">abc</div>
+  </div>
+</div>
+
+<script>
+
+// Tests that a focused element doesn't become the
+// priority candidate of the main frame if it is
+// in an excluded subtree
+
+promise_test(async function() {
+  var scroller = document.querySelector("#scroller");
+  var focusElement = document.querySelector("#block1");
+  focusElement.focus();
+  scroller.scrollBy(0,150);
+  document.scrollingElement.scrollBy(0,100);
+
+  await new Promise(resolve => {
+     document.addEventListener("scroll", () => step_timeout(resolve, 0));
+   });
+
+  assert_equals(document.scrollingElement.scrollTop, 100);
+}, "Ensure there is no scroll anchoring adjustment in the main frame.");
+
+</script>

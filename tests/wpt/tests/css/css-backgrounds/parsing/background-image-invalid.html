@@ -25,6 +25,10 @@ test_invalid_value("background-image", "radial-gradient(20px -30px at center, re
 test_invalid_value("background-image", "repeating-radial-gradient(20px -30px ellipse at center, red, blue)");
 
 test_invalid_value("background-image", "cross-fade(auto blue, 50% red)");
+test_invalid_value("background-image", "cross-fade(1px red, green)");
+test_invalid_value("background-image", "cross-fade(calc(1% + 1px) red, green)");
+test_invalid_value("background-image", "cross-fade(-1% red, green)");
+test_invalid_value("background-image", "cross-fade(101% red, green)");
 </script>
 </body>
 </html>

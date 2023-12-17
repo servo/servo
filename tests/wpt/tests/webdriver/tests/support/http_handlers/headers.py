@@ -16,4 +16,7 @@ def main(request, response):
         except ValueError:
             pass
 
+    if b"Content-Type" not in response.headers:
+        response.headers.set(b"Content-Type", "text/plain")
+
     response.content = "HTTP Response Headers"

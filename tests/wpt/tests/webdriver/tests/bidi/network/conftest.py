@@ -1,14 +1,13 @@
 import json
 
+import asyncio
 import pytest
 import pytest_asyncio
 
 from webdriver.bidi.error import NoSuchInterceptException
 from webdriver.bidi.modules.script import ContextTarget
 
-RESPONSE_COMPLETED_EVENT = "network.responseCompleted"
-
-PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
+from . import PAGE_EMPTY_HTML, PAGE_EMPTY_TEXT, RESPONSE_COMPLETED_EVENT
 
 
 @pytest_asyncio.fixture
@@ -126,3 +125,36 @@ async def setup_network_test(
     # cleanup
     for remove_listener in listeners:
         remove_listener()
+
+
+@pytest_asyncio.fixture
+async def setup_blocked_request(
+    setup_network_test, url, add_intercept, fetch, wait_for_event
+):
+    async def setup_blocked_request(phase):
+        await setup_network_test(events=[f"network.{phase}"])
+
+        if phase == "authRequired":
+            blocked_url = url(
+                "/webdriver/tests/support/http_handlers/authentication.py?realm=testrealm"
+            )
+        else:
+            blocked_url = url(PAGE_EMPTY_TEXT)
+
+        await add_intercept(
+            phases=[phase],
+            url_patterns=[
+                {
+                    "type": "string",
+                    "pattern": blocked_url,
+                }
+            ],
+        )
+
+        asyncio.ensure_future(fetch(blocked_url))
+        event = await wait_for_event(f"network.{phase}")
+        request = event["request"]["request"]
+
+        return request
+
+    return setup_blocked_request

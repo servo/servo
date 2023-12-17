@@ -5,9 +5,15 @@ from .. import (
     assert_response_event,
 )
 
-PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
-
-AUTH_REQUIRED_EVENT = "network.authRequired"
+from .. import (
+    assert_before_request_sent_event,
+    assert_response_event,
+    PAGE_EMPTY_TEXT,
+    AUTH_REQUIRED_EVENT,
+    BEFORE_REQUEST_SENT_EVENT,
+    RESPONSE_COMPLETED_EVENT,
+    RESPONSE_STARTED_EVENT,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -23,16 +29,16 @@ async def test_basic_authentication(
 ):
     network_events = await setup_network_test(
         events=[
-            "network.beforeRequestSent",
-            "network.responseStarted",
-            "network.authRequired",
-            "network.responseCompleted",
+            BEFORE_REQUEST_SENT_EVENT,
+            RESPONSE_STARTED_EVENT,
+            AUTH_REQUIRED_EVENT,
+            RESPONSE_COMPLETED_EVENT,
         ]
     )
-    before_request_sent_events = network_events["network.beforeRequestSent"]
-    response_started_events = network_events["network.responseStarted"]
-    auth_required_events = network_events["network.authRequired"]
-    response_completed_events = network_events["network.responseCompleted"]
+    before_request_sent_events = network_events[BEFORE_REQUEST_SENT_EVENT]
+    response_started_events = network_events[RESPONSE_STARTED_EVENT]
+    auth_required_events = network_events[AUTH_REQUIRED_EVENT]
+    response_completed_events = network_events[RESPONSE_COMPLETED_EVENT]
 
     auth_url = url("/webdriver/tests/support/http_handlers/authentication.py")
     intercept = await add_intercept(
@@ -87,16 +93,16 @@ async def test_no_authentication(
 ):
     network_events = await setup_network_test(
         events=[
-            "network.beforeRequestSent",
-            "network.responseStarted",
-            "network.authRequired",
-            "network.responseCompleted",
+            BEFORE_REQUEST_SENT_EVENT,
+            RESPONSE_STARTED_EVENT,
+            AUTH_REQUIRED_EVENT,
+            RESPONSE_COMPLETED_EVENT,
         ]
     )
-    before_request_sent_events = network_events["network.beforeRequestSent"]
-    response_started_events = network_events["network.responseStarted"]
-    auth_required_events = network_events["network.authRequired"]
-    response_completed_events = network_events["network.responseCompleted"]
+    before_request_sent_events = network_events[BEFORE_REQUEST_SENT_EVENT]
+    response_started_events = network_events[RESPONSE_STARTED_EVENT]
+    auth_required_events = network_events[AUTH_REQUIRED_EVENT]
+    response_completed_events = network_events[RESPONSE_COMPLETED_EVENT]
 
     text_url = url(PAGE_EMPTY_TEXT)
     intercept = await add_intercept(
@@ -106,7 +112,7 @@ async def test_no_authentication(
 
     assert isinstance(intercept, str)
 
-    on_network_event = wait_for_event("network.responseCompleted")
+    on_network_event = wait_for_event(RESPONSE_COMPLETED_EVENT)
 
     await fetch(text_url)
     await wait_for_future_safe(on_network_event)

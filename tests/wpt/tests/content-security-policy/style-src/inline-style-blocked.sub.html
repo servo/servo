@@ -2,32 +2,32 @@
 <html>
 
 <head>
-    <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
-    <meta http-equiv="Content-Security-Policy" content="style-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-inline'; connect-src 'self';">
+    <meta http-equiv="Content-Security-Policy" content="style-src 'none'; script-src 'self' 'unsafe-inline'">
     <title>inline-style-blocked</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src='../support/logTest.sub.js?logs=["PASS"]'></script>
-    <script src="../support/alertAssert.sub.js?alerts=[]"></script>
     <script>
-       window.addEventListener('securitypolicyviolation', function(e) {
-            log("violated-directive=" + e.violatedDirective);
-       });
+      async_test(t => {
+        window.addEventListener('securitypolicyviolation', t.step_func(e => {
+          if (e.blockedURI !== 'inline') return;
+          assert_equals(e.violatedDirective, 'style-src-elem');
+          t.done();
+        }));
+      }, "Triggers securitypolicyviolation.");
     </script>
     <style>
         .target {
             background-color: blue;
         }
-
     </style>
 </head>
 
-<body class="target">
-    <script>
-        log(document.styleSheets.length > 0 ? 'FAIL' : 'PASS');
-
-    </script>
-    <div id="log"></div>
+<body>
+  <script>
+    test(t => {
+      assert_equals(document.styleSheets.length, 0);
+    }, "Inline style element is blocked by CSP.");
+  </script>
 </body>
 
 </html>

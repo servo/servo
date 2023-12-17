@@ -16,8 +16,8 @@ function requestWatcher(testCase, request) {
 // EventWatcher covering all the events defined on IndexedDB transactions.
 //
 // The events cover IDBTransaction.
-function transactionWatcher(testCase, request) {
-  return new EventWatcher(testCase, request, ['abort', 'complete', 'error']);
+function transactionWatcher(testCase, transaction) {
+  return new EventWatcher(testCase, transaction, ['abort', 'complete', 'error']);
 }
 
 // Promise that resolves with an IDBRequest's result.
@@ -35,9 +35,18 @@ function promiseForRequest(testCase, request) {
 //
 // The promise resolves with undefined if IDBTransaction receives the "complete"
 // event, and rejects with an error for any other event.
-function promiseForTransaction(testCase, request) {
-  const eventWatcher = transactionWatcher(testCase, request);
-  return eventWatcher.wait_for('complete').then(() => {});
+//
+// NB: be careful NOT to invoke this after the transaction may have already
+// completed due to racing transaction auto-commit. A problematic sequence might
+// look like:
+//
+//   const txn = db.transaction('store', 'readwrite');
+//   txn.objectStore('store').put(value, key);
+//   await foo();
+//   await promiseForTransaction(t, txn);
+function promiseForTransaction(testCase, transaction) {
+  const eventWatcher = transactionWatcher(testCase, transaction);
+  return eventWatcher.wait_for('complete');
 }
 
 // Migrates an IndexedDB database whose name is unique for the test case.

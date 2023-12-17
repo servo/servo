@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <link rel="author" title="Jonathan Watt" href="mailto:jwatt@jwatt.org">
+  <link rel="help" href="https://drafts.csswg.org/css-page/#page-orientation-prop">
+  <meta name="assert" content="page-orientation rotates square page">
+  <link rel="match" href="page-orientation-square-ref.html">
+  <meta name="reftest-pages" content="2">
+  <style>
+
+@page {
+  size: 3in 3in;
+  margin: 0.5in;
+}
+@page second-page {
+  page-orientation: rotate-right;
+}
+div:nth-of-type(2) {
+  page: second-page;
+  break-before: page;
+
+  box-sizing: border-box;
+  width: 2in;
+  height: 2in;
+  border-top: 15px solid orange;
+  border-right: none;
+  border-bottom: 15px solid blue;
+  border-left: none;
+}
+body {
+  margin: 0;
+}
+
+  </style>
+  <body>
+    <div>Page 1. Not compared. Just bumps testing to page 2.</div>
+    <div></div>
+  </body>
+</html>

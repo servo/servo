@@ -32,7 +32,9 @@
   div::first-letter
     {
       background-color: red;
-      background-image: url("support/1x1-green.png"), url("../support/60x60-red.png");
+      background-image:
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' style='background: green'></svg>"),
+        url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' style='background: red'></svg>");
       font-family: Ahem;
       font-size: 100px;
     }

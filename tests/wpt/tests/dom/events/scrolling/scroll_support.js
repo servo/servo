@@ -115,10 +115,10 @@ function waitForCompositorCommit() {
   });
 }
 
-// Please don't remove this. This is necessary for chromium-based browsers.
-// This shouldn't be necessary if the test harness deferred running the tests
-// until after paint holding. This can be a no-op on user-agents that do not
-// have a separate compositor thread.
+// Please don't remove this. This is necessary for chromium-based browsers. It
+// can be a no-op on user-agents that do not have a separate compositor thread.
+// TODO(crbug.com/1509054): This shouldn't be necessary if the test harness
+// deferred running the tests until after paint holding.
 async function waitForCompositorReady() {
   const animation =
       document.body.animate({ opacity: [ 1, 1 ] }, {duration: 1 });

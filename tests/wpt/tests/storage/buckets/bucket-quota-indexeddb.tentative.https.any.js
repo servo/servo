@@ -2,6 +2,7 @@
 // META: script=/storage/buckets/resources/util.js
 
 promise_test(async t => {
+  prepareForBucketTest(t);
   const arraySize = 1e6;
   const objectStoreName = "storageManager";
   const dbname =

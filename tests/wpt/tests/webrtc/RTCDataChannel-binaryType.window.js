@@ -8,7 +8,7 @@ test((t) => {
   t.add_cleanup(() => pc.close());
   const dc = pc.createDataChannel('test-binary-type');
 
-  assert_equals(dc.binaryType, "blob", `dc.binaryType should be 'blob'`);
+  assert_equals(dc.binaryType, "arraybuffer", `dc.binaryType should be 'arraybuffer'`);
 }, `Default binaryType value`);
 
 for (const binaryType of validBinaryTypes) {

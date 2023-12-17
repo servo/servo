@@ -4,9 +4,7 @@ import pytest
 
 pytestmark = pytest.mark.asyncio
 
-PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
-
-AUTH_REQUIRED_EVENT = "network.authRequired"
+from .. import AUTH_REQUIRED_EVENT, PAGE_EMPTY_HTML
 
 
 # This test can be moved back to `auth_required.py` when all implementations

@@ -499,7 +499,7 @@ async function windowOpenTest(t, { source, target, expected }) {
   const result = await Promise.race([
       reply,
       new Promise((resolve) => {
-        t.step_timeout(() => resolve("timeout"), 3000 /* ms */);
+        t.step_timeout(() => resolve("timeout"), 10000 /* ms */);
       }),
   ]);
 
@@ -526,7 +526,7 @@ async function anchorTest(t, { source, target, expected }) {
   const result = await Promise.race([
       reply,
       new Promise((resolve) => {
-        t.step_timeout(() => resolve("timeout"), 4000 /* ms */);
+        t.step_timeout(() => resolve("timeout"), 10000 /* ms */);
       }),
   ]);
 

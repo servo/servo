@@ -35,5 +35,20 @@ promise_test(async t => {
   assert_true(releaseFired, "The 'release' event fires immediately after release() is called");
 
   return releasePromise;
-}, "Ensure onreleased is called before WakeLockSentinel.release() resolves");
+}, "Ensure onrelease is called before WakeLockSentinel.release() resolves");
+
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'screen-wake-lock' }, 'granted');
+
+  const lock = await navigator.wakeLock.request("screen");
+
+  let eventCount = 0;
+  lock.onrelease = t.step_func(() => {
+    eventCount++;
+  });
+
+  await lock.release();
+  await lock.release();
+  assert_equals(eventCount, 1, "The 'release' event was fired once");
+}, "Ensure onrelease is fired exactly once");
 </script>

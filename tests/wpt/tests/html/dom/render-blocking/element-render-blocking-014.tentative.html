@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>Blocking link added in the body has no effect</title>
+
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_false(!!document.getElementById("last")));
+    t.done();
+  });
+}, "link in the body has no effect");
+</script>
+</head>
+<body>
+<link rel=expect href="#last" blocking="render">
+<script>
+let link = document.createElement("link");
+link.rel = "rel";
+link.href = "#last";
+link.blocking = "render";
+document.head.appendChild(link);
+</script>
+
+  <div id="first"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="second"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="last"></div>
+</body>

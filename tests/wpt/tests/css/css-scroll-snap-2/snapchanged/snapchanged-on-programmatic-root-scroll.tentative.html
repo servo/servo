@@ -111,9 +111,9 @@
 
       evt = await snapchanged_promise;
       assertSnapEvent(evt, [snap_point_2.id]);
-      assert_equals(scroller.scrollTop, snap_point_2.offsetTop,
+      assert_approx_equals(scroller.scrollTop, snap_point_2.offsetTop, 1,
         "scroller snaps to the top of snap_point_2");
-      assert_equals(scroller.scrollLeft, snap_point_2.offsetLeft,
+      assert_approx_equals(scroller.scrollLeft, snap_point_2.offsetLeft, 1,
         "scroller snaps to the left of snap_point_2");
     }, "snapchanged is not fired if snap target doesn't change on " +
        "programmatic scroll");

@@ -10,6 +10,10 @@
 const SCRIPT = 'resources/static-router-sw.js';
 const ROUTER_RULE_KEY_URL_PATTERN_CONSTRUCTED =
   'condition-urlpattern-constructed-source-network';
+const ROUTER_RULE_KEY_URL_PATTERN_CONSTRUCTED_IGNORE_CASE =
+  'condition-urlpattern-constructed-ignore-case-source-network';
+const ROUTER_RULE_KEY_URL_PATTERN_CONSTRUCTED_RESPECT_CASE =
+  'condition-urlpattern-constructed-respect-case-source-network';
 const ROUTER_RULE_KEY_URL_PATTERN_URLPATTERNINIT =
   'condition-urlpattern-urlpatterninit-source-network';
 const ROUTER_RULE_KEY_URL_PATTERN_STRING =
@@ -88,6 +92,18 @@ iframeTest(TXT_FILE, ROUTER_RULE_KEY_URL_PATTERN_CONSTRUCTED, async (t, iwin, wo
   assert_equals(requests.length, 0);
   assert_equals(response.type, 'opaque');
 }, 'Subresource cross origin load matched with URLPattern condition via constructed object');
+
+iframeTest(TXT_FILE, ROUTER_RULE_KEY_URL_PATTERN_CONSTRUCTED_IGNORE_CASE, async (t, iwin) => {
+  const rnd = randomString();
+  const response = await iwin.fetch('?nonce=' + rnd);
+  assert_equals(await response.text(), "Network\n");
+}, 'Subresource load matched with ignoreCase URLPattern condition');
+
+iframeTest(TXT_FILE, ROUTER_RULE_KEY_URL_PATTERN_CONSTRUCTED_RESPECT_CASE, async (t, iwin) => {
+  const rnd = randomString();
+  const response = await iwin.fetch('?nonce=' + rnd);
+  assert_equals(await response.text(), rnd);
+}, 'Subresource load matched without ignoreCase URLPattern condition');
 
 iframeTest(TXT_FILE, ROUTER_RULE_KEY_URL_PATTERN_URLPATTERNINIT, async (t, iwin) => {
   const rnd = randomString();

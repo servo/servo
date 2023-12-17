@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/common.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/user-scroll-common.js"></script>
+</head>
+
+<body>
+    <style>
+      #scroller {
+        height: 400px;
+        width: 400px;
+        position: relative;
+        overflow: scroll;
+        scroll-snap-type: y mandatory;
+        border: solid 1px black;
+      }
+      .box {
+        position: absolute;
+        left: 150px;
+        height: 350px;
+        width: 100px;
+        border: solid 1px white;
+      }
+      .snap {
+        scroll-snap-align: start;
+      }
+      .blue {
+        background-color: blue;
+      }
+      .green {
+        background-color: green;
+      }
+      .yellow {
+        background-color: yellow;
+      }
+      #snap_area_1 {
+        top: 0px;
+      }
+      #snap_area_2 {
+        top: 352px;
+      }
+      #snap_area_3 {
+        top: 704px;
+      }
+      .large_space {
+        height: 400vh;
+        width: 400vw;
+        position: absolute;
+      }
+    </style>
+    <div id="scroller">
+      <div class="large_space"></div>
+      <div id="snap_area_1" class="blue snap box"></div>
+      <div id="snap_area_2" class="green snap box"></div>
+      <div id="snap_area_3" class="yellow snap box"></div>
+    </div>
+    <script>
+      const scroller = document.getElementById("scroller");
+
+      // Touch scroll test.
+      promise_test(async (t) => {
+        await waitForCompositorCommit();
+        const scroller_middle = Math.round(scroller.clientWidth / 2);
+        const test_data = {
+          scroller: scroller,
+          scrolling_function: async () => {
+            const start_pos = { x: scroller_middle, y: snap_area_2.offsetTop };
+            const end_pos = { x: scroller_middle, y: 0 };
+            await snap_event_touch_scroll_helper(start_pos, end_pos);
+          },
+          expected_snap_targets: [snap_area_2.id],
+          expected_scroll_offsets: {
+            x: 0,
+            y: snap_area_2.offsetTop
+          }
+        };
+        await test_snap_event(t, test_data, "snapchanging");
+      }, "touch scrolling fires snapchanging.");
+
+      // Wheel scroll test.
+      promise_test(async (t) => {
+        await waitForCompositorCommit();
+        const test_data = {
+          scroller: scroller,
+          scrolling_function: async () => {
+            await new test_driver.Actions().scroll(0, 0, 0,
+              Math.round(snap_area_2.offsetTop / 2) + 1,
+              { origin: scroller }).send();
+          },
+          expected_snap_targets: [snap_area_2.id],
+          expected_scroll_offsets: {
+            x: 0,
+            y: snap_area_2.offsetTop
+          }
+        };
+        await test_snap_event(t, test_data, "snapchanging");
+      }, "mouse wheel scroll triggers snapchanging.");
+
+      // Scrollbar drag test.
+      promise_test(async (t) => {
+        await waitForCompositorCommit();
+        // Skip test on platforms that do not have a visible scrollbar (e.g.
+        // overlay scrollbar).
+        const scrollbar_width = scroller.offsetWidth - scroller.clientWidth;
+        if (scrollbar_width == 0)
+          return;
+        const test_data = {
+          scroller: scroller,
+          scrolling_function: async () => {
+            const scrollbar_to_scroller_ratio =
+              getScrollbarToScrollerRatio(scroller);
+            // Scroll by just over half of the top box's height.
+            const drag_amt = (snap_area_2.offsetTop / 2 + 1) *
+              scrollbar_to_scroller_ratio;
+            await snap_event_scrollbar_drag_helper(scroller, scrollbar_width, drag_amt);
+          },
+          expected_snap_targets: [snap_area_2.id],
+          expected_scroll_offsets: {
+             x: 0,
+             y: snap_area_2.offsetTop
+          }
+         };
+        await test_snap_event(t, test_data, "snapchanging");
+      }, "scrollbar dragging fires snapchanging.");
+
+      // Keyboard test.
+      promise_test(async (t) => {
+        await waitForCompositorCommit();
+        const test_data = {
+          scroller: scroller,
+          scrolling_function: async () => {
+            scroller.focus();
+            window.test_driver.send_keys(scroller, '\ue015'/*ArrowDown*/);
+          },
+          expected_snap_targets: [snap_area_2.id],
+          expected_scroll_offsets: {
+             x: 0,
+             y: snap_area_2.offsetTop
+          }
+         };
+        await test_snap_event(t, test_data, "snapchanging");
+      }, "keyboard scroll triggers snapchanging.");
+
+      // Touch scroll test: peek at snap_area_2 and then drag back to
+      // snap_area_1.
+      promise_test(async (t) => {
+        await waitForScrollReset(t, scroller);
+        await waitForCompositorCommit();
+        const pos_x = Math.round(scroller.clientWidth / 2);
+        const start_pos_y = Math.round(snap_area_2.offsetTop);
+        let evts_promise = waitForEventsUntil(scroller, "snapchanging",
+        waitForScrollendEventNoTimeout(scroller));
+        await new test_driver.Actions()
+        .addPointer("TestPointer", "touch")
+        .pointerMove(pos_x, start_pos_y)
+        .pointerDown()
+        .addTick()
+        .pause(200)
+        // Drag up to y=0, which should trigger a snapchanging event.
+        .pointerMove(pos_x, 0)
+        .addTick()
+        .pause(200)
+        // Drag down again to start position, which should trigger a
+        // snapchanging event.
+        .pointerMove(pos_x, start_pos_y)
+        .pointerUp()
+          .send();
+        let evts = await evts_promise;
+        assert_equals(evts.length, 2, "2 snapchanging events are seens");
+        assertSnapEvent(evts[0], [snap_area_2.id]);
+        assertSnapEvent(evts[1], [snap_area_1.id]);
+      }, "snapchanging fires as scroll moves through different snap targets.");
+
+    // snapchanging doesn't fire test.
+    promise_test(async (t) => {
+      test_no_snapchanging(t, scroller, 10);
+    }, "snapchanging doesn't fire if scroll doesn't reach different snap " +
+    "targets.");
+    </script>
+  </body>
+</html>

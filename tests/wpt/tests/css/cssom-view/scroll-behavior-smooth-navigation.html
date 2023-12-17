@@ -4,6 +4,7 @@
 <link rel="help" href="https://drafts.csswg.org/cssom-view/#smooth-scrolling">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
 <style>
   .filler { height: 10000px }
 
@@ -24,6 +25,10 @@
   <div class="filler"></div>
 </div>
 <script>
+  promise_test(async () => {
+    await waitForCompositorReady();
+  }, "Make sure the page is ready for animation.");
+
   var instantHistoryNavigationTest =
     async_test("Instant scrolling while doing history navigation.");
   var smoothHistoryNavigationTest =

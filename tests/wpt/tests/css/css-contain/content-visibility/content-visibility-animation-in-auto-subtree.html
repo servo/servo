@@ -14,7 +14,7 @@
   to { opacity: 0;  }
 }
 #target {
-  background: 'green';
+  background: green;
   height: 100px;
   width: 100px;
 }
@@ -184,5 +184,56 @@ promise_test(async t => {
               'owning element');
 }, 'Events and promises are handled normally for animations without an ' +
    'owning element');
+
+promise_test(async t => {
+  // The animation is hidden when it is created.
+  document.getElementById("spacer").style.height = "300vh";
+  const container = document.getElementById('container');
+  const target = createAnimatingElement(t, 'animate');
+  const animation = target.getAnimations()[0];
+  await waitForAnimationFrames(2);
+  // Make this animation no longer associated with its owning element.
+  target.className = '';
+  assert_equals(target.getAnimations().length, 0);
+
+  // Though originally a CSS animation, it is no longer associated with
+  // CSS rules and no longer has an owning element. It now behaves like a
+  // programmatic web animation. Animation playback events (but not CSS
+  // animation events) should be dispatched and promises resolved despite
+  // being in a content visibility subtree.
+
+  let cssAnimationEndEvent = false;
+  target.addEventListener('animationend', () => {
+    cssAnimationEndEvent = true;
+  });
+
+  let animationFinishEvent = false;
+  animation.addEventListener('finish', () => {
+    animationFinishEvent = true;
+  });
+
+  let animationFinished = false;
+  animation.finished.then(() => {
+    animationFinished = true;
+  });
+
+  animation.play();
+  assert_equals(target.getAnimations().length, 1);
+
+  animation.currentTime = 1999;
+  await animation.ready;
+  await waitForAnimationFrames(2);
+
+  assert_true(animationFinishEvent,
+              'Animation event not blocked on content visibility subtree if ' +
+              'no owning element');
+  assert_true(animationFinished,
+              'Finished promise not blocked on content visibility subtree if ' +
+              'no owning element');
+  assert_false(cssAnimationEndEvent,
+              'CSS animation events should not be dispatched if there is no ' +
+              'owning element');
+}, 'CSS animations without an owning element should handle events and promises ' +
+              'normally, even c-v value does change');
 
 </script>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>Multiple links and all but one removed</title>
+
+<link rel=expect href="#third" blocking="render">
+<link id=one rel=expect href="#third" blocking="render">
+<link id=two rel=expect href="#third" blocking="render">
+<link id=three rel=expect href="#third" blocking="render">
+<link id=four rel=expect href="#third" blocking="render">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementById("third")));
+    t.step(() => assert_false(!!document.getElementById("last")));
+    t.done();
+  });
+}, "removing some links but not all keeps at least the matching link blocking");
+
+one.remove();
+two.remove();
+</script>
+</head>
+<body>
+<script>
+three.remove();
+four.remove();
+</script>
+  <div id="first"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="second"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="third"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="fourth"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="last"></div>
+</body>

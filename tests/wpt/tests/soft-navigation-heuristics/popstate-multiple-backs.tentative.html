@@ -39,10 +39,7 @@
       return t.popped == 2;
     }
     const link = document.getElementById("link");
-    link.addEventListener("click", () => {
-      history.back();
-      timestamps[counter]["eventEnd"] = performance.now();
-    });
+    link.addEventListener("click", () => history.back());
     testSoftNavigation({
       addContent: () => {
         // Add the content to the main element

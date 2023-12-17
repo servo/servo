@@ -56,6 +56,8 @@ function test_source_location_with_redirect({path, type, name}) {
         "empty" : "other";
 
       assert_not_equals(result, "other", `Unexpected source location ${script.sourceLocation}`);
+      if (!cors)
+        assert_equals(script.executionStart, script.startTime, "Opaque scripts should hide execution start time");
 
       if (cors) {
         assert_not_equals(result, "empty", "CORS-ok scripts should expose sourceLocation");

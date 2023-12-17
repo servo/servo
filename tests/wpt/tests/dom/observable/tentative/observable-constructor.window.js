@@ -98,3 +98,30 @@ promise_test(async t => {
 
   assert_array_equals(results, ["detached"], "Subscribe callback is never invoked");
 }, "Cannot subscribe to an Observable in a detached document");
+
+promise_test(async t => {
+  // Make this available off the global so the child can reach it.
+  window.results = [];
+  const contentWin = await loadIframeAndReturnContentWindow();
+
+  contentWin.eval(`
+    const parentResults = parent.results;
+    const event_target = new EventTarget();
+    // Set up two event listeners, both of which will mutate |parentResults|:
+    //   1. A traditional event listener
+    //   2. An observable
+    event_target.addEventListener('customevent', e => parentResults.push(e));
+    const source = event_target.on('customevent');
+    source.subscribe(e => parentResults.push(e));
+
+    // Detach the iframe and fire an event at the event target. The parent will
+    // confirm that the observable's next handler did not get invoked, because
+    // the window is detached.
+    const event = new Event('customevent');
+    window.frameElement.remove();
+    parentResults.push('detached');
+    event_target.dispatchEvent(event);
+  `);
+
+  assert_array_equals(results, ["detached"], "Subscribe callback is never invoked");
+}, "Observable from EventTarget does not get notified for events in detached documents");

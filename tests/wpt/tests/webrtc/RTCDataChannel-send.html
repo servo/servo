@@ -261,24 +261,18 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
   promise_test(t => {
     return createDataChannelPair(t, options)
     .then(([channel1, channel2]) => {
-      assert_equals(channel2.binaryType, 'blob',
-        'Expect initial binaryType value to be blob');
+      assert_equals(channel2.binaryType, 'arraybuffer',
+        'Expect initial binaryType value to be arraybuffer');
 
       channel1.send(helloBuffer);
       return awaitMessage(channel2);
-    })
-    .then(messageBlob => {
-      assert_true(messageBlob instanceof Blob,
-        'Expect received messageBlob to be a Blob');
-
-      return blobToArrayBuffer(messageBlob);
     }).then(messageBuffer => {
       assert_true(messageBuffer instanceof ArrayBuffer,
         'Expect messageBuffer to be an ArrayBuffer');
 
       assert_equals_typed_array(messageBuffer, helloBuffer.buffer);
     });
-  }, `${mode} binaryType should receive message as Blob by default`);
+  }, `${mode} binaryType should receive message as ArrayBuffer by default`);
 
   // Test sending 3 messages: helloBuffer, unicodeString, helloBlob
   async_test(t => {

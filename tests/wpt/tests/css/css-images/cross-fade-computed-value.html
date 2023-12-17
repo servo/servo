@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>cross-fade() computed value</title>
+    <link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+    <link rel="help" href="https://drafts.csswg.org/css-images-4/#cross-fade-function">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/css/support/computed-testcommon.js"></script>
+    <style>
+      #target {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="target"></div>
+    <script>
+      // https://drafts.csswg.org/css-images-4/#serialization specifies that
+      // “For cross-fade(), always serialize the <percentage>.”, but it's not clear what
+      // “the” percentage is, since the implicit percentages are different for drawing and
+      // sizing, and may not be known computed-value time, so we assume one that is not
+      // given should also not be serialized.
+      test_computed_value(
+        'background-image',
+        'cross-fade(30% color-mix(in srgb, currentcolor, blue), white)',
+        'cross-fade(30% color(srgb 0.5 0 0.5), rgb(255, 255, 255))');
+
+      // Unneccessary percentages should be kept.
+      test_computed_value('background-image', 'cross-fade(50% red, 50% green)',
+        'cross-fade(50% rgb(255, 0, 0), 50% rgb(0, 128, 0))');
+
+      // Percentage normalization should not be visible computed-value time.
+      test_computed_value('background-image', 'cross-fade(20% red, 20% green)',
+        'cross-fade(20% rgb(255, 0, 0), 20% rgb(0, 128, 0))');
+
+      // More than two values.
+      test_computed_value('background-image',
+        'cross-fade(50% red, 50% green, 50% blue)',
+        'cross-fade(50% rgb(255, 0, 0), 50% rgb(0, 128, 0), 50% rgb(0, 0, 255))');
+
+      // More-than-100% should be invalid, but in calc() we can't reject it parse-time;
+      // it will be clamped on serialization.
+      test_computed_value('background-image',
+        'cross-fade(calc(101%) red, green)',
+        'cross-fade(100% rgb(255, 0, 0), rgb(0, 128, 0))');
+      test_computed_value('background-image',
+        'cross-fade(calc(-200%) red, green)',
+        'cross-fade(0% rgb(255, 0, 0), rgb(0, 128, 0))');
+    </script>
+  </body>
+</html>

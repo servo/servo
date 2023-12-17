@@ -1,3 +1,5 @@
+from pathlib import Path
+
 # General decision logic script. Depending on query parameters, it can
 # simulate a variety of network errors, and its scoreAd() and
 # reportResult() functions can have arbitrary Javascript code injected
@@ -30,13 +32,14 @@ def main(request, response):
     elif error != b"no-allow-fledge":
         response.headers.set(b"Ad-Auction-Allowed", b"true")
 
-    body = b''
     if error == b"no-body":
-        return body
+        return b''
+
+    body = (Path(__file__).parent.resolve() / 'worklet-helpers.js').read_text().encode("ASCII")
     if error != b"no-scoreAd":
         body += b"""
             function scoreAd(adMetadata, bid, auctionConfig, trustedScoringSignals,
-                            browserSignals, directFromSellerSignals) {
+                             browserSignals, directFromSellerSignals) {
               // Don't bid on interest group with the wrong uuid. This is to prevent
               // left over interest groups from other tests from affecting auction
               // results.

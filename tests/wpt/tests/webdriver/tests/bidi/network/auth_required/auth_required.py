@@ -1,10 +1,6 @@
 import pytest
 
-from .. import assert_response_event
-
-PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
-
-AUTH_REQUIRED_EVENT = "network.authRequired"
+from .. import assert_response_event, AUTH_REQUIRED_EVENT, PAGE_EMPTY_HTML
 
 
 @pytest.mark.asyncio

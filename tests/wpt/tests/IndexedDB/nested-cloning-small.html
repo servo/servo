@@ -10,14 +10,6 @@
 <script src="resources/nested-cloning-common.js"></script>
 <script>
 
-cloningTest('small typed array', [
-  { type: 'buffer', size: 64, seed: 1 },
-]);
-
-cloningTest('blob', [
-  { type: 'blob', size: wrapThreshold, mimeType: 'text/x-blink-1', seed: 1 },
-]);
-
 cloningTestWithKeyGenerator('blob with small typed array', [
   {
     blob: { type: 'blob', size: wrapThreshold, mimeType: 'text/x-blink-01',
