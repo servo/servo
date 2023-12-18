@@ -29,7 +29,6 @@ packages = [
     "nix",
     "num-rational",
     "redox_syscall",
-    "socket2",
     "time",
     "wasi",
     "wayland-sys",
