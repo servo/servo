@@ -2043,42 +2043,37 @@ where
             return warn!("Browsing context group not found");
         };
         let webgpu_chan = match browsing_context_group.webgpus.entry(host) {
-            Entry::Vacant(v) => v
-                .insert(
-                    match WebGPU::new(
-                        self.webrender_wgpu.webrender_api.create_sender(),
-                        self.webrender_document,
-                        self.webrender_wgpu.webrender_external_images.clone(),
-                        self.webrender_wgpu.wgpu_image_map.clone(),
-                    ) {
-                        Some(webgpu) => {
-                            let msg = ConstellationControlMsg::SetWebGPUPort(webgpu.1);
-                            if let Err(e) = source_pipeline.event_loop.send(msg) {
-                                warn!(
-                                    "{}: Failed to send SetWebGPUPort to pipeline ({:?})",
-                                    source_pipeline_id, e
-                                );
-                            }
-                            webgpu.0
-                        },
-                        None => {
-                            return warn!("Failed to create new WebGPU thread");
-                        },
-                    },
-                )
-                .clone(),
-            Entry::Occupied(o) => o.get().clone(),
+            Entry::Vacant(v) => WebGPU::new(
+                self.webrender_wgpu.webrender_api.create_sender(),
+                self.webrender_document,
+                self.webrender_wgpu.webrender_external_images.clone(),
+                self.webrender_wgpu.wgpu_image_map.clone(),
+            )
+            .map(|webgpu| {
+                let msg = ConstellationControlMsg::SetWebGPUPort(webgpu.1);
+                if let Err(e) = source_pipeline.event_loop.send(msg) {
+                    warn!(
+                        "{}: Failed to send SetWebGPUPort to pipeline ({:?})",
+                        source_pipeline_id, e
+                    );
+                }
+                v.insert(webgpu.0).clone()
+            }),
+            Entry::Occupied(o) => Some(o.get().clone()),
         };
         match request {
-            FromScriptMsg::RequestAdapter(response_sender, options, ids) => {
-                let adapter_request = WebGPURequest::RequestAdapter {
-                    sender: response_sender,
-                    options,
-                    ids,
-                };
-                if webgpu_chan.0.send((None, adapter_request)).is_err() {
-                    return warn!("Failed to send request adapter message on WebGPU channel");
-                }
+            FromScriptMsg::RequestAdapter(response_sender, options, ids) => match webgpu_chan {
+                None => warn!("Failed to send request adapter message, missing WebGPU channel"),
+                Some(webgpu_chan) => {
+                    let adapter_request = WebGPURequest::RequestAdapter {
+                        sender: response_sender,
+                        options,
+                        ids,
+                    };
+                    if webgpu_chan.0.send((None, adapter_request)).is_err() {
+                        warn!("Failed to send request adapter message on WebGPU channel");
+                    }
+                },
             },
             FromScriptMsg::GetWebGPUChan(response_sender) => {
                 if response_sender.send(webgpu_chan).is_err() {
