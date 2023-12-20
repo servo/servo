@@ -823,12 +823,12 @@ impl Document {
         self.quirks_mode.get()
     }
 
-    pub fn set_quirks_mode(&self, mode: QuirksMode) {
-        self.quirks_mode.set(mode);
+    pub fn set_quirks_mode(&self, new_mode: QuirksMode) {
+        let old_mode = self.quirks_mode.replace(new_mode);
 
-        if mode == QuirksMode::Quirks {
+        if old_mode != new_mode {
             match self.window.layout_chan() {
-                Some(chan) => chan.send(Msg::SetQuirksMode(mode)).unwrap(),
+                Some(chan) => chan.send(Msg::SetQuirksMode(new_mode)).unwrap(),
                 None => warn!("Layout channel unavailable"),
             }
         }
