@@ -179,7 +179,10 @@ impl LineUnderConstruction {
                 break;
             }
         }
-        self.justification_opportunities -= spaces_trimmed;
+        self.justification_opportunities = self
+            .justification_opportunities
+            .checked_sub(spaces_trimmed)
+            .unwrap_or(0);
         whitespace_trimmed
     }
 }
