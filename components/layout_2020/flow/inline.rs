@@ -20,7 +20,7 @@ use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::generics::text::LineHeight;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
-use style::values::specified::TextJustify;
+use style::values::specified::{TextAlignLast, TextJustify};
 use style::Zero;
 use webrender_api::FontInstanceKey;
 use xi_unicode::{linebreak_property, LineBreakLeafIter};
@@ -537,20 +537,19 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
         // Finally we finish the line itself and convert all of the LineItems into
         // fragments.
-        self.finish_current_line_and_reset(true /* last_line */);
+        self.finish_current_line_and_reset(true /* last_line_or_forced_line_break */);
     }
 
     /// Finish layout of all inline boxes for the current line. This will gather all
     /// [`LineItem`]s and turn them into [`Fragment`]s, then reset the
     /// [`InlineFormattingContextState`] preparing it for laying out a new line.
-    fn finish_current_line_and_reset(&mut self, last_line: bool) {
+    fn finish_current_line_and_reset(&mut self, last_line_or_forced_line_break: bool) {
         let whitespace_trimmed = self.current_line.trim_trailing_whitespace();
-        let (inline_start_position, mut justification_adjustment) = self
-            .calculate_current_line_inline_start_and_justification_adjustment(whitespace_trimmed);
-
-        if last_line {
-            justification_adjustment = Length::zero();
-        }
+        let (inline_start_position, justification_adjustment) = self
+            .calculate_current_line_inline_start_and_justification_adjustment(
+                whitespace_trimmed,
+                last_line_or_forced_line_break,
+            );
 
         let block_start_position = self
             .current_line
@@ -642,18 +641,32 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     fn calculate_current_line_inline_start_and_justification_adjustment(
         &self,
         whitespace_trimmed: Length,
+        last_line_or_forced_line_break: bool,
     ) -> (Length, Length) {
         enum TextAlign {
             Start,
             Center,
             End,
         }
-        let line_left_is_inline_start = self
-            .containing_block
-            .style
-            .writing_mode
-            .line_left_is_inline_start();
-        let text_align_keyword = self.containing_block.style.clone_text_align();
+        let style = self.containing_block.style;
+        let line_left_is_inline_start = style.writing_mode.line_left_is_inline_start();
+        let mut text_align_keyword = style.clone_text_align();
+
+        if last_line_or_forced_line_break {
+            text_align_keyword = match style.clone_text_align_last() {
+                TextAlignLast::Auto if text_align_keyword == TextAlignKeyword::Justify => {
+                    TextAlignKeyword::Start
+                },
+                TextAlignLast::Auto => text_align_keyword,
+                TextAlignLast::Start => TextAlignKeyword::Start,
+                TextAlignLast::End => TextAlignKeyword::End,
+                TextAlignLast::Left => TextAlignKeyword::Left,
+                TextAlignLast::Right => TextAlignKeyword::Right,
+                TextAlignLast::Center => TextAlignKeyword::Center,
+                TextAlignLast::Justify => TextAlignKeyword::Justify,
+            };
+        }
+
         let text_align = match text_align_keyword {
             TextAlignKeyword::Start => TextAlign::Start,
             TextAlignKeyword::Center => TextAlign::Center,
@@ -936,7 +949,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         }
 
         self.commit_current_segment_to_line();
-        self.process_line_break();
+        self.process_line_break(true /* forced_line_break */);
         self.linebreak_before_new_content = false;
     }
 
@@ -1023,13 +1036,13 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         self.propagate_current_nesting_level_white_space_style();
     }
 
-    fn process_line_break(&mut self) {
+    fn process_line_break(&mut self, forced_line_break: bool) {
         self.current_line_segment
             .prepare_for_placement_on_empty_line(
                 &self.current_line,
                 self.inline_box_state_stack.len(),
             );
-        self.finish_current_line_and_reset(false /* last_line */);
+        self.finish_current_line_and_reset(forced_line_break);
     }
 
     /// Process a soft wrap opportunity. This will either commit the current unbreakble
@@ -1052,7 +1065,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         };
 
         if self.new_potential_line_size_causes_line_break(&potential_line_size) {
-            self.process_line_break();
+            self.process_line_break(false /* forced_line_break */);
         }
         self.commit_current_segment_to_line();
     }
