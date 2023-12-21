@@ -535,22 +535,22 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // there is no line wrapping, so this forces the segment into the current line.
         self.commit_current_segment_to_line();
 
-        // This has the effect of preventing the application of `text-align: justify` to
-        // this line because no justification opportunities means no justification.
-        self.current_line.justification_opportunities = 0;
-
         // Finally we finish the line itself and convert all of the LineItems into
         // fragments.
-        self.finish_current_line_and_reset();
+        self.finish_current_line_and_reset(true /* last_line */);
     }
 
     /// Finish layout of all inline boxes for the current line. This will gather all
     /// [`LineItem`]s and turn them into [`Fragment`]s, then reset the
     /// [`InlineFormattingContextState`] preparing it for laying out a new line.
-    fn finish_current_line_and_reset(&mut self) {
+    fn finish_current_line_and_reset(&mut self, last_line: bool) {
         let whitespace_trimmed = self.current_line.trim_trailing_whitespace();
-        let (inline_start_position, justification_adjustment) = self
+        let (inline_start_position, mut justification_adjustment) = self
             .calculate_current_line_inline_start_and_justification_adjustment(whitespace_trimmed);
+
+        if last_line {
+            justification_adjustment = Length::zero();
+        }
 
         let block_start_position = self
             .current_line
@@ -1029,7 +1029,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 &self.current_line,
                 self.inline_box_state_stack.len(),
             );
-        self.finish_current_line_and_reset();
+        self.finish_current_line_and_reset(false /* last_line */);
     }
 
     /// Process a soft wrap opportunity. This will either commit the current unbreakble
