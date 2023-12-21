@@ -3,6 +3,8 @@ name: Try
 on:
   pull_request_target:
     types: [labeled]
+  push:
+    branches: ["try", "try-linux", "try-mac", "try-wpt-mac", "try-wpt-mac-2020", "try-wpt", "try-wpt-2020", "try-windows"]
 
 jobs:
   parse-comment:
@@ -19,6 +21,10 @@ jobs:
           script: |
             function makeComment(body) {
                 console.log(body);
+
+                if (github.event_name != 'pull_request_target')
+                  return;
+
                 github.rest.issues.createComment({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
@@ -62,7 +68,7 @@ jobs:
                 if (tryString.includes("linux")) {
                   addPlatformToConfiguration("linux", configuration);
                   configuration.unit_tests = true;
-                } else if (tryString.includes("macos")) {
+                } else if (tryString.includes("mac")) {
                   addPlatformToConfiguration("macos", configuration);
                   configuration.unit_tests = true;
                 } else if (tryString.includes("win")) {
@@ -86,28 +92,36 @@ jobs:
               unit_tests: false,
             };
 
-            let try_labels = [];
-            for (const label of context.payload.pull_request.labels) {
-              if (!label.name.startsWith("T-")) {
-                continue;
-              }
+            if (github.event_name == 'pull_request_target') {
+              for (const label of context.payload.pull_request.labels) {
+                if (!label.name.startsWith("T-")) {
+                  continue;
+                }
 
-              // Try to remove the label. If that fails, it's likely that another
-              // workflow has already processed it or a user has removed it.
-              try {
-                await github.rest.issues.removeLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  name: label.name,
-                });
-              } catch (exception) {
-                console.log("Assuming '" + label.name + "' is already removed: " + exception);
-                continue;
-              }
+                // Try to remove the label. If that fails, it's likely that another
+                // workflow has already processed it or a user has removed it.
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    name: label.name,
+                  });
+                } catch (exception) {
+                  console.log("Assuming '" + label.name + "' is already removed: " + exception);
+                  continue;
+                }
 
-              console.log("Found label: " + label.name);
-              updateConfigurationFromString(label.name, configuration);
+                console.log("Found label: " + label.name);
+                updateConfigurationFromString(label.name, configuration);
+              }
+            } else {
+              let ref_name = "${{ github.ref_name || 'empty' }}";
+              if (ref_name == "try") {
+                updateConfigurationFromString("full", configuration);
+              } else {
+                updateConfigurationFromString(ref_name, configuration);
+              }
             }
 
             console.log(JSON.stringify(configuration));
@@ -152,7 +166,7 @@ jobs:
     if: ${{ always() && fromJson(needs.parse-comment.outputs.configuration).platforms[0] != null }}
     steps:
       - name: Success
-        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        if: ${{ github.event_name == 'pull_request_target' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         uses: actions/github-script@v6
         with:
           script: |
@@ -168,7 +182,7 @@ jobs:
                 body: "✨ Try run (" + formattedURL + ") " + "succeeded.",
               });
       - name: Failure
-        if: ${{ contains(needs.*.result, 'failure') }}
+        if: ${{ github.event_name == 'pull_request_target' && contains(needs.*.result, 'failure') }}
         uses: actions/github-script@v6
         with:
           script: |

@@ -47,8 +47,6 @@ on:
         required: false
         default: false
         type: boolean
-  push:
-    branches: ["try-linux", "try-wpt", "try-wpt-2020"]
 
 env:
   RUST_BACKTRACE: 1
@@ -96,11 +94,11 @@ jobs:
       - name: Build (${{ inputs.profile }})
         run: python3 ./mach build --${{ inputs.profile }}
       - name: Smoketest
-        run: xvfb-run python3 ./mach smoketest --${{ inputs.profile }}
+        run: xvfb-run python3 ./mach smoketest --${{ inputs.profile  }}
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
-        if: ${{ inputs.unit-tests || github.ref_name == 'try-linux' }}
+        if: ${{ inputs.unit-tests }}
         uses: nick-fields/retry@v2
         with:
           timeout_minutes: 20
@@ -142,7 +140,7 @@ jobs:
           path: target.tar.gz
 
   wpt-2020:
-    if: ${{ github.ref_name == 'try-wpt-2020' || inputs.layout == '2020' || inputs.layout == 'all' }}
+    if: ${{ inputs.layout == '2020' || inputs.layout == 'all' }}
     name: Linux WPT Tests 2020
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
@@ -153,7 +151,7 @@ jobs:
     secrets: inherit
 
   wpt-2013:
-    if: ${{ github.ref_name == 'try-wpt' || inputs.layout == '2013' || inputs.layout == 'all' }}
+    if: ${{ inputs.layout == '2013' || inputs.layout == 'all' }}
     name: Linux WPT Tests 2013
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
