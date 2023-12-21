@@ -6,3 +6,19 @@ ignore =
     W503,
     # 80 character line length; the standard tidy process will enforce line length
     E501
+exclude =
+    # temporary local files
+    target
+    __pycache__
+    python/_venv*
+    # upstream
+    third_party
+    python/mach
+    components
+    tests
+    # We should fix those
+    etc/ci
+    ./python/wpt/run.py
+    ./python/tidy/tidy.py
+    ./etc/servo_automation_screenshot.py
+    ./etc/memory_reports_over_time.py
