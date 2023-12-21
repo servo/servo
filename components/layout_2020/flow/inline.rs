@@ -976,10 +976,8 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         if is_non_preserved_whitespace {
             self.current_line_segment.trailing_whitespace_size = inline_advance;
         }
-
-        if glyph_store.is_whitespace() {
-            self.current_line_segment.justification_opportunities += 1;
-        }
+        self.current_line_segment.justification_opportunities +=
+            glyph_store.total_word_separators() as usize;
 
         match self.current_line_segment.line_items.last_mut() {
             Some(LineItem::TextRun(text_run)) => {
@@ -2124,9 +2122,7 @@ impl TextRunLineItem {
             .text
             .iter()
             .map(|glyph_store| {
-                if glyph_store.is_whitespace() {
-                    number_of_justification_opportunities += 1
-                }
+                number_of_justification_opportunities += glyph_store.total_word_separators();
                 Length::from(glyph_store.total_advance())
             })
             .sum();

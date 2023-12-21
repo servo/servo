@@ -1156,7 +1156,7 @@ impl InlineFlow {
                 .run
                 .character_slices_in_range(&fragment_range)
             {
-                expansion_opportunities += slice.glyphs.space_count_in_range(&slice.range)
+                expansion_opportunities += slice.glyphs.word_separator_count_in_range(&slice.range)
             }
         }
 
