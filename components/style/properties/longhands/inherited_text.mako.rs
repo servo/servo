@@ -111,7 +111,7 @@ ${helpers.predefined_type(
     "text-align-last",
     "TextAlignLast",
     "computed::text::TextAlignLast::Auto",
-    engines="gecko",
+    engines="gecko servo",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text/#propdef-text-align-last",
 )}
