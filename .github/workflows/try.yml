@@ -22,7 +22,7 @@ jobs:
             function makeComment(body) {
                 console.log(body);
 
-                if (github.event_name != 'pull_request_target')
+                if (context.eventName != 'pull_request_target')
                   return;
 
                 github.rest.issues.createComment({
@@ -94,7 +94,7 @@ jobs:
               wpt_tests_to_run: "",
             };
 
-            if (github.event_name == 'pull_request_target') {
+            if (context.eventName == 'pull_request_target') {
               for (const label of context.payload.pull_request.labels) {
                 if (!label.name.startsWith("T-")) {
                   continue;
