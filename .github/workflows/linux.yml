@@ -6,15 +6,15 @@ on:
         required: false
         default: "release"
         type: string
-      wpt:
+      wpt-tests-to-run:
         default: ""
         required: false
         type: string
-      wpt-sync:
+      wpt-sync-from-upstream:
         required: false
         default: false
         type: boolean
-      layout:
+      wpt-layout:
         required: false
         type: string
       unit-tests:
@@ -35,15 +35,15 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
-      wpt:
+      wpt-tests-to-run:
         default: ""
         required: false
         type: string
-      wpt-sync:
+      wpt-sync-from-upstream:
         default: false
         required: false
         type: boolean
-      layout:
+      wpt-layout:
         required: false
         type: choice
         options: ["none", "2013", "2020", "all"]
@@ -148,27 +148,27 @@ jobs:
           path: target.tar.gz
 
   wpt-2020:
-    if: ${{ inputs.layout == '2020' || inputs.layout == 'all' }}
+    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
     name: Linux WPT Tests 2020
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
-      wpt: ${{ inputs.wpt }}
+      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
       profile: ${{ inputs.profile }}
-      wpt-sync: ${{ inputs.wpt-sync }}
-      layout: "layout-2020"
+      wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
+      wpt-layout: "layout-2020"
     secrets: inherit
 
   wpt-2013:
-    if: ${{ inputs.layout == '2013' || inputs.layout == 'all' }}
+    if: ${{ inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
     name: Linux WPT Tests 2013
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
-      wpt: ${{ inputs.wpt }}
+      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
       profile: ${{ inputs.profile }}
-      wpt-sync: ${{ inputs.wpt-sync }}
-      layout: "layout-2013"
+      wpt-sync-from-upstream: ${{ inputs.wpt-sync-from-upstream }}
+      wpt-layout: "layout-2013"
     secrets: inherit
 
   result:

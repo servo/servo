@@ -7,7 +7,7 @@ on:
         required: false
         default: "release"
         type: string
-      wpt:
+      wpt-tests-to-run:
         default: ""
         required: false
         type: string
@@ -32,7 +32,7 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
-      wpt:
+      wpt-tests-to-run:
         default: ""
         required: false
         type: string
@@ -155,8 +155,8 @@ jobs:
     uses: ./.github/workflows/mac-wpt.yml
     with:
       profile: ${{ inputs.profile }}
-      layout: "layout-2020"
-      wpt: ${{ inputs.wpt }}
+      wpt-layout: "layout-2020"
+      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
     secrets: inherit
 
   wpt-2013:
@@ -166,8 +166,8 @@ jobs:
     uses: ./.github/workflows/mac-wpt.yml
     with:
       profile: ${{ inputs.profile }}
-      layout: "layout-2013"
-      wpt: ${{ inputs.wpt }}
+      wpt-layout: "layout-2013"
+      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
     secrets: inherit
 
   result:

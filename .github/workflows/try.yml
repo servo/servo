@@ -88,10 +88,10 @@ jobs:
 
             let configuration = {
               platforms: [],
-              layout: "none",
+              wpt-layout: "none",
               unit_tests: false,
               profile: release,
-              wpt: "",
+              wpt-tests-to-run: "",
             };
 
             if (github.event_name == 'pull_request_target') {
