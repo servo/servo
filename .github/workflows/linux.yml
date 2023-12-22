@@ -6,6 +6,10 @@ on:
         required: false
         default: "release"
         type: string
+      wpt:
+        default: ""
+        required: false
+        type: string
       wpt-sync:
         required: false
         default: false
@@ -31,6 +35,10 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
+      wpt:
+        default: ""
+        required: false
+        type: string
       wpt-sync:
         default: false
         required: false
@@ -145,6 +153,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
+      wpt: ${{ inputs.wpt }}
       profile: ${{ inputs.profile }}
       wpt-sync: ${{ inputs.wpt-sync }}
       layout: "layout-2020"
@@ -156,6 +165,7 @@ jobs:
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
+      wpt: ${{ inputs.wpt }}
       profile: ${{ inputs.profile }}
       wpt-sync: ${{ inputs.wpt-sync }}
       layout: "layout-2013"

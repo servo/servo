@@ -91,6 +91,7 @@ jobs:
               layout: "none",
               unit_tests: false,
               profile: release,
+              wpt: "",
             };
 
             if (github.event_name == 'pull_request_target') {

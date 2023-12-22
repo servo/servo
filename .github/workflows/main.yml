@@ -23,6 +23,10 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
+      wpt:
+        default: ""
+        required: false
+        type: string
       platform:
         required: false
         type: choice
@@ -60,6 +64,7 @@ jobs:
             let platform = "${{ inputs.platform }}" || "linux";
             let profile = "${{ inputs.profile }}" || "release";
             let layout = "${{ inputs.layout }}" || "none";
+            let wpt = "${{ inputs.wpt }}" || "";
             let unit_tests = Boolean(${{ inputs.unit-tests }})
 
             // Merge queue runs and pushes to `main` should always trigger a full build and test.
@@ -81,6 +86,7 @@ jobs:
               layout,
               unit_tests,
               profile,
+              wpt,
             };
 
             console.log("Using configuration: " + JSON.stringify(returnValue));
@@ -102,6 +108,7 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'macos') }}
     uses: ./.github/workflows/mac.yml
     with:
+      wpt: ${{ fromJson(needs.decision.outputs.configuration).wpt }}
       profile: ${{ fromJson(needs.decision.outputs.configuration).profile }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
     secrets: inherit
@@ -112,6 +119,7 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'linux') }}
     uses: ./.github/workflows/linux.yml
     with:
+      wpt: ${{ fromJson(needs.decision.outputs.configuration).wpt }}
       profile: ${{ fromJson(needs.decision.outputs.configuration).profile }}
       layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
