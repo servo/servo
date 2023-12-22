@@ -90,6 +90,7 @@ jobs:
               platforms: [],
               layout: "none",
               unit_tests: false,
+              profile: release,
             };
 
             if (github.event_name == 'pull_request_target') {
