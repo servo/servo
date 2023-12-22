@@ -38,6 +38,7 @@ pub mod float;
 pub mod inline;
 mod root;
 
+pub(crate) use construct::BlockContainerBuilder;
 pub use root::{BoxTree, CanvasBackground};
 
 #[derive(Debug, Serialize)]

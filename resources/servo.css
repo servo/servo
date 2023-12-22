@@ -230,7 +230,7 @@ svg > * {
     overflow: visible;
 }
 
-*|*::-servo-legacy-anonymous-table-row {
+*|*::-servo-anonymous-table-row {
     display: table-row;
     position: static;
     border: none;
@@ -238,7 +238,7 @@ svg > * {
     overflow: visible;
 }
 
-*|*::-servo-legacy-anonymous-table-cell {
+*|*::-servo-anonymous-table-cell {
     display: table-cell;
     position: static;
     border: none;
