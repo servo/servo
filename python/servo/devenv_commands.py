@@ -8,6 +8,7 @@
 # except according to those terms.
 
 from os import path, listdir, getcwd
+import os
 
 import signal
 import subprocess
@@ -22,17 +23,6 @@ from mach.decorators import (
 )
 
 from servo.command_base import CommandBase, cd, call
-
-VALID_TRY_BRACHES = [
-    "try",
-    "try-linux",
-    "try-mac",
-    "try-windows",
-    "try-wpt",
-    "try-wpt-2020",
-    "try-wpt-mac",
-    "try-wpt-mac-2020"
-]
 
 
 @CommandProvider
@@ -284,22 +274,22 @@ class MachCommands(CommandBase):
         return p.wait()
 
     @Command('try',
-             description='Runs try jobs by force pushing to personal fork try branches',
+             description='Runs try jobs by force pushing to try branch',
              category='devenv')
     @CommandArgument(
-        'jobs', default=["try"], nargs='...',
-        help="Name(s) of job(s) (ex: try, linux, mac, windows, wpt)")
+        'jobs', default=None, nargs='...',
+        help="Job(s) tuples")
     def try_jobs(self, jobs):
-        branches = []
-        # we validate branches because force pushing is destructive
-        for job in jobs:
-            # branches must start with try-
-            if "try" not in job:
-                job = "try-" + job
-            if job not in VALID_TRY_BRACHES:
-                print(job + " job doesn't exist")
-                return -1
-            branches.append(job)
+        # if jobs is empty we just push last commit to try and it will do full run
+        if jobs:
+            jobs = " ".join(jobs)
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "etc"))
+            from try_parser import Config
+            conf = Config()
+            conf.parse(jobs)
+            res = call(["git", "commit", "--allow-empty", "-m", f"{jobs}\n\n{conf.toJSON()}"], env=self.build_env())
+            if res != 0:
+                return res
         remote = "origin"
         if "servo/servo" in subprocess.check_output(["git", "config", "--get", "remote.origin.url"]).decode():
             # if we have servo/servo for origin check try remote
@@ -314,8 +304,8 @@ class MachCommands(CommandBase):
                 print("It looks like you are patching in upstream servo.")
                 print("Set try remote to your personal fork with `git remote add try https://github.com/user/servo`")
                 return -1
-        for b in branches:
-            res = call(["git", "push", remote, "--force", f"HEAD:{b}"], env=self.build_env())
-            if res != 0:
-                return res
-        return 0
+        res = call(["git", "push", remote, "--force", "HEAD:try"], env=self.build_env())
+        # if we got jobs we need to delete last commit
+        if jobs:
+            res += call(["git", "reset", "--hard", "HEAD~1"], env=self.build_env())
+        return res

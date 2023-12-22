@@ -2,10 +2,13 @@ name: Main
 
 on:
   push:
-    # Run the entire pipeline for 'main' even though the merge queue already runs checks
-    # for every change. This just offers an extra layer of testing and covers the case of
-    # random force pushes.
-    branches: ["main"]
+    branches:
+      # Run the entire pipeline for 'main' even though the merge queue already runs checks
+      # for every change. This just offers an extra layer of testing and covers the case of
+      # random force pushes.
+      - "main"
+      # For try runs
+      - "try"
   pull_request:
     types: ['opened', 'synchronize']
     branches: ["**"]
@@ -59,71 +62,105 @@ jobs:
               return configuration;
             }
 
-            // We need to pick defaults if the inputs are not provided. Unprovided inputs
-            // are empty strings in this template.
-            let platform = "${{ inputs.platform }}" || "linux";
-            let profile = "${{ inputs.profile }}" || "release";
-            let wpt_layout = "${{ inputs.wpt-layout }}" || "none";
-            let wpt_tests_to_run = "${{ inputs.wpt-tests-to-run }}" || "";
-            let unit_tests = Boolean(${{ inputs.unit-tests }})
-
-            // Merge queue runs and pushes to `main` should always trigger a full build and test.
-            if (["push", "merge_group"].includes(context.eventName)) {
-              platform = "all";
-              wpt_layout = "all";
-              unit_tests = true;
+            if (context.eventName == "pull_request") {
+              return {
+                "fail_fast": false,
+                "matrix": [
+                  {
+                    "os": "linux",
+                    "name": "Linux",
+                    "wpt_layout": "none",
+                    "profile": "release",
+                    "unit_tests": true,
+                    "wpt_tests_to_run": "",
+                  },
+                ],
+              };
             }
 
-            let platforms = [];
-            if (platform == "all") {
-              platforms = [ "linux", "windows", "macos" ];
-            } else {
-              platforms = [ platform ];
+            // try runs can have config in last commit msg
+            if (${{ github.ref_name == 'try' }}) {
+              let commit_msg = context.payload.head_commit.message;
+              try {
+                var o = JSON.parse(commit_msg.split('\n').slice(-1));
+
+                if (o && typeof o === "object") {
+                  console.log("Using try commit configuration: " + JSON.stringify(o));
+                  return o;
+                }
+              }
+              catch (e) { } // try with bad commit msg will do full run
             }
 
-            let returnValue = {
-              platforms,
-              wpt_layout,
-              unit_tests,
-              profile,
-              wpt_tests_to_run,
+            // If we reach here we are likely doing full run
+            configuration = {
+              "fail_fast": false,
+              "matrix": [
+                {
+                  "os": "linux",
+                  "name": "Linux",
+                  "wpt_layout": "all",
+                  "profile": "release",
+                  "unit_tests": true,
+                  "wpt_tests_to_run": "",
+                },
+                {
+                  "os": "windows",
+                  "name": "Windows",
+                  "wpt_layout": "none", // not used
+                  "profile": "release",
+                  "unit_tests": true,
+                  "wpt_tests_to_run": "",
+                },
+                {
+                  "os": "mac",
+                  "name": "MacOS",
+                  "wpt_layout": "none",
+                  "profile": "release",
+                  "unit_tests": true,
+                  "wpt_tests_to_run": "",
+                }
+              ],
             };
 
-            console.log("Using configuration: " + JSON.stringify(returnValue));
-            return returnValue;
+            // Make merge queue fast
+            if (context.eventName == "merge_group") {
+              configuration.fail_fast = true;
+            }
 
-  build-win:
-    name: Windows
-    needs: ["decision"]
-    if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'windows') }}
-    uses: ./.github/workflows/windows.yml
-    with:
-      profile: ${{ fromJson(needs.decision.outputs.configuration).profile }}
-      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
-    secrets: inherit
+            // user provided overrides of full run
+            if (context.eventName == "workflow_dispatch") {
+              // only linux-wpt
+              configuration.matrix.linux.wpt_layout = "${{ inputs.wpt-layout }}" || "none";
+              configuration.matrix.linux.wpt_tests_to_run = "${{ inputs.wpt-tests-to-run }}" || "";
 
-  build-mac:
-    name: Mac
-    needs: ["decision"]
-    if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'macos') }}
-    uses: ./.github/workflows/mac.yml
-    with:
-      wpt-tests-to-run: ${{ fromJson(needs.decision.outputs.configuration).wpt_tests_to_run }}
-      profile: ${{ fromJson(needs.decision.outputs.configuration).profile }}
-      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
-    secrets: inherit
+              let unit_tests = Boolean(${{ inputs.unit-tests }});
+              let profile = '${{ inputs.profile }}';
+              for (const platform of configuration.matrix) {
+                platform.profile = profile;
+                platfrom.unit_tests = unit_tests;
+              }
+            }
 
-  build-linux:
-    name: Linux
+            console.log("Using configuration: " + JSON.stringify(configuration));
+            return configuration;
+
+  build:
     needs: ["decision"]
-    if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'linux') }}
-    uses: ./.github/workflows/linux.yml
-    with:
-      wpt-tests-to-run: ${{ fromJson(needs.decision.outputs.configuration).wpt_tests_to_run }}
-      profile: ${{ fromJson(needs.decision.outputs.configuration).profile }}
-      wpt-layout: ${{ fromJson(needs.decision.outputs.configuration).wpt_layout }}
-      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: ${{ fromJson(needs.decision.outputs.configuration).fail_fast }}
+      matrix:
+        include: ${{ fromJson(needs.decision.outputs.configuration).matrix }}
+    # we need dipatch os because workflows do not support uses: ${}
+    uses: ./.github/workflows/dispatch-os.yml
     secrets: inherit
+    with:
+      os: ${{ matrix.os }}
+      wpt-layout: ${{ matrix.wpt_layout }}
+      profile: ${{ matrix.profile }}
+      unit-tests: ${{ matrix.unit_tests }}
+      wpt-tests-to-run: ${{ matrix.wpt_tests_to_run }}
 
   build-result:
     name: Result
@@ -132,14 +169,9 @@ jobs:
     # needs all build to detect cancellation
     needs:
       - "decision"
-      - "build-win"
-      - "build-mac"
-      - "build-linux"
+      - "build"
 
     steps:
-      - name: Mark skipped jobs as successful
-        if: ${{ fromJson(needs.decision.outputs.configuration).platforms[0] != null }}
-        run: exit 0
       - name: Mark the job as successful
         if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         run: exit 0
