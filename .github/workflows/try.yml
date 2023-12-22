@@ -22,7 +22,7 @@ jobs:
             function makeComment(body) {
                 console.log(body);
 
-                if (github.event_name != 'pull_request_target')
+                if (context.eventName != 'pull_request_target')
                   return;
 
                 github.rest.issues.createComment({
@@ -61,7 +61,7 @@ jobs:
                 if (tryString.includes("full")) {
                   configuration.platforms = ["linux", "macos", "windows"];
                   configuration.unit_tests = true;
-                  configuration.layout = "all";
+                  configuration.wpt_layout = "all";
                   return configuration;
                 }
 
@@ -79,20 +79,22 @@ jobs:
                 if (tryString.includes("wpt")) {
                   addPlatformToConfiguration("linux", configuration);
                   if (tryString.includes("2020")) {
-                    configuration.layout = combineWPTLayoutOptions(configuration.layout, "2020");
+                    configuration.wpt_layout = combineWPTLayoutOptions(configuration.layout, "2020");
                   } else {
-                    configuration.layout = combineWPTLayoutOptions(configuration.layout, "2013");
+                    configuration.wpt_layout = combineWPTLayoutOptions(configuration.layout, "2013");
                   }
                 }
             }
 
             let configuration = {
               platforms: [],
-              layout: "none",
+              wpt_layout: "none",
               unit_tests: false,
+              profile: "release",
+              wpt_tests_to_run: "",
             };
 
-            if (github.event_name == 'pull_request_target') {
+            if (context.eventName == 'pull_request_target') {
               for (const label of context.payload.pull_request.labels) {
                 if (!label.name.startsWith("T-")) {
                   continue;
