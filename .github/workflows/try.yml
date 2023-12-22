@@ -90,7 +90,7 @@ jobs:
               platforms: [],
               wpt_layout: "none",
               unit_tests: false,
-              profile: release,
+              profile: "release",
               wpt_tests_to_run: "",
             };
 
