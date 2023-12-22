@@ -476,7 +476,7 @@ def check_shell(file_name, lines):
             if next_idx < len(stripped):
                 next_char = stripped[next_idx]
                 if not (next_char == '{' or next_char == '('):
-                    yield(idx + 1, "variable substitutions should use the full \"${VAR}\" form")
+                    yield (idx + 1, "variable substitutions should use the full \"${VAR}\" form")
 
 
 def rec_parse(current_path, root_node):
@@ -491,7 +491,7 @@ def rec_parse(current_path, root_node):
 
 def check_manifest_dirs(config_file, print_text=True):
     if not os.path.exists(config_file):
-        yield(config_file, 0, "%s manifest file is required but was not found" % config_file)
+        yield (config_file, 0, "%s manifest file is required but was not found" % config_file)
         return
 
     # Load configs from include.ini
@@ -508,7 +508,7 @@ def check_manifest_dirs(config_file, print_text=True):
         if '_mozilla' in path or '_webgl' in path or '_webgpu' in path:
             continue
         if not os.path.isdir(path):
-            yield(config_file, idx + 1, "Path in manifest was not found: {}".format(path))
+            yield (config_file, idx + 1, "Path in manifest was not found: {}".format(path))
 
 
 def check_rust(file_name, lines):
@@ -647,14 +647,14 @@ def check_rust(file_name, lines):
                 features = list(map(lambda w: w.strip(), match.group(1).split(',')))
                 sorted_features = sorted(features)
                 if sorted_features != features and check_alphabetical_order:
-                    yield(idx + 1, decl_message.format("feature attribute")
-                          + decl_expected.format(tuple(sorted_features))
-                          + decl_found.format(tuple(features)))
+                    yield (idx + 1, decl_message.format("feature attribute")
+                           + decl_expected.format(tuple(sorted_features))
+                           + decl_found.format(tuple(features)))
 
                 if prev_feature_name > sorted_features[0] and check_alphabetical_order:
-                    yield(idx + 1, decl_message.format("feature attribute")
-                          + decl_expected.format(prev_feature_name + " after " + sorted_features[0])
-                          + decl_found.format(prev_feature_name + " before " + sorted_features[0]))
+                    yield (idx + 1, decl_message.format("feature attribute")
+                           + decl_expected.format(prev_feature_name + " after " + sorted_features[0])
+                           + decl_found.format(prev_feature_name + " before " + sorted_features[0]))
 
                 prev_feature_name = sorted_features[0]
             else:
@@ -678,9 +678,9 @@ def check_rust(file_name, lines):
                 if match == -1 and not line.endswith(";"):
                     yield (idx + 1, "mod declaration spans multiple lines")
                 if prev_mod[indent] and mod < prev_mod[indent] and check_alphabetical_order:
-                    yield(idx + 1, decl_message.format("mod declaration")
-                          + decl_expected.format(prev_mod[indent])
-                          + decl_found.format(mod))
+                    yield (idx + 1, decl_message.format("mod declaration")
+                           + decl_expected.format(prev_mod[indent])
+                           + decl_found.format(mod))
                 prev_mod[indent] = mod
         else:
             # we now erase previous entries
@@ -695,9 +695,9 @@ def check_rust(file_name, lines):
                 # sort, compare and report
                 sorted_derives = sorted(derives)
                 if sorted_derives != derives and check_alphabetical_order:
-                    yield(idx + 1, decl_message.format("derivable traits list")
-                              + decl_expected.format(", ".join(sorted_derives))
-                              + decl_found.format(", ".join(derives)))
+                    yield (idx + 1, decl_message.format("derivable traits list")
+                           + decl_expected.format(", ".join(sorted_derives))
+                           + decl_found.format(", ".join(derives)))
 
 
 # Avoid flagging <Item=Foo> constructs

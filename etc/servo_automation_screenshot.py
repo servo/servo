@@ -37,7 +37,7 @@ def print_help():
 
 
 def servo_ready_to_accept(url, payload, headers):
-    while(True):
+    while (True):
 
         try:
             # Before sending an additional request, we wait for one second each time

@@ -63,7 +63,7 @@ Shutting down the Constellation after generating an output file or exit flag spe
         "loadEventEnd": None
     }]
     result = runner.parse_log(mock_log, mock_url)
-    assert(expected == list(result))
+    assert (expected == list(result))
 
 
 def test_log_parser_complex():
@@ -146,7 +146,7 @@ Shutting down the Constellation after generating an output file or exit flag spe
         "loadEventEnd": None
     }]
     result = runner.parse_log(mock_log, mock_url)
-    assert(expected == list(result))
+    assert (expected == list(result))
 
 
 def test_log_parser_empty():
@@ -187,7 +187,7 @@ def test_log_parser_empty():
         "loadEventEnd": -1
     }]
     result = runner.parse_log(mock_log, mock_testcase)
-    assert(expected == list(result))
+    assert (expected == list(result))
 
 
 def test_log_parser_error():
@@ -220,7 +220,7 @@ def test_log_parser_error():
         "loadEventEnd": -1
     }]
     result = runner.parse_log(mock_log, mock_testcase)
-    assert(expected == list(result))
+    assert (expected == list(result))
 
 
 def test_log_parser_bad_testcase_name():
@@ -280,7 +280,7 @@ Shutting down the Constellation after generating an output file or exit flag spe
         "loadEventEnd": -1
     }]
     result = runner.parse_log(mock_log, mock_testcase)
-    assert(expected == list(result))
+    assert (expected == list(result))
 
 
 def test_manifest_loader():
@@ -297,7 +297,7 @@ http://localhost/page_load_test/tp5n/aljazeera.net/aljazeera.net/portal.html
         ("http://localhost/page_load_test/tp5n/56.com/www.56.com/index.html", False),
         ("http://localhost/page_load_test/tp5n/aljazeera.net/aljazeera.net/portal.html", False)
     ]
-    assert(expected == list(runner.parse_manifest(text)))
+    assert (expected == list(runner.parse_manifest(text)))
 
 
 def test_manifest_loader_async():
@@ -310,7 +310,7 @@ async http://localhost/page_load_test/tp5n/56.com/www.56.com/index.html
         ("http://localhost/page_load_test/tp5n/163.com/www.163.com/index.html", False),
         ("http://localhost/page_load_test/tp5n/56.com/www.56.com/index.html", True),
     ]
-    assert(expected == list(runner.parse_manifest(text)))
+    assert (expected == list(runner.parse_manifest(text)))
 
 
 def test_filter_result_by_manifest():
@@ -334,7 +334,7 @@ def test_filter_result_by_manifest():
         ("http://localhost:8000/page_load_test/56.com/www.56.com/index.html", False)
     ]
 
-    assert(expected == runner.filter_result_by_manifest(input_json, manifest))
+    assert (expected == runner.filter_result_by_manifest(input_json, manifest))
 
 
 def test_filter_result_by_manifest_error():
@@ -374,7 +374,7 @@ def test_take_result_median_odd():
         "domLoading": 1460358380002
     }]
 
-    assert(expected == runner.take_result_median(input_json, len(input_json)))
+    assert (expected == runner.take_result_median(input_json, len(input_json)))
 
 
 def test_take_result_median_even():
@@ -394,7 +394,7 @@ def test_take_result_median_even():
         "domLoading": 1460358380001.5
     }]
 
-    assert(expected == runner.take_result_median(input_json, len(input_json)))
+    assert (expected == runner.take_result_median(input_json, len(input_json)))
 
 
 def test_take_result_median_error():
@@ -414,7 +414,7 @@ def test_take_result_median_error():
         "domLoading": 1460358380001.5
     }]
 
-    assert(expected == runner.take_result_median(input_json, len(input_json)))
+    assert (expected == runner.take_result_median(input_json, len(input_json)))
 
 
 def test_log_result():
@@ -437,4 +437,4 @@ Failure summary:
  - http://localhost:8000/page_load_test/56.com/www.56.com/index.html
 ========================================
 """
-    assert(expected == runner.format_result_summary(results))
+    assert (expected == runner.format_result_summary(results))

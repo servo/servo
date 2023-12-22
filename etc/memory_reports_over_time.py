@@ -38,7 +38,7 @@ def parse_memory_report(lines):
     parents = []
     last_separator_index = None
     for line in lines:
-        assert(line[0] == '|')
+        assert (line[0] == '|')
         line = line[1:]
         if not line:
             continue
@@ -80,7 +80,7 @@ def test_extract_memory_reports():
              "|     107.88 MiB -- system-heap-unclassified\n",
              "End memory reports\n"]
     expected = ([['|', '|     107.88 MiB -- system-heap-unclassified']], ['reports'])
-    assert(extract_memory_reports(input) == expected)
+    assert (extract_memory_reports(input) == expected)
     return 0
 
 
@@ -114,9 +114,9 @@ def test():
     }
     report = parse_memory_report(input.split('\n'))
     transformed = transform_report_for_test(report)
-    assert(sorted(transformed.keys()) == sorted(expected.keys()))
+    assert (sorted(transformed.keys()) == sorted(expected.keys()))
     for k, v in transformed.items():
-        assert(v == expected[k])
+        assert (v == expected[k])
     test_extract_memory_reports()
     return 0
 
