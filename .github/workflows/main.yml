@@ -106,7 +106,6 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       profile: "release"
-      wpt: 'test'
       layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
     secrets: inherit

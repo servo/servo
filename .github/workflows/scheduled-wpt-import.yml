@@ -15,7 +15,7 @@ jobs:
     name: Linux
     uses: ./.github/workflows/linux.yml
     with:
-      wpt: 'sync'
+      wpt-sync: false
       layout: 'all'
       unit-tests: false
 
