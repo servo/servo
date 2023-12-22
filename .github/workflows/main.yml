@@ -63,14 +63,14 @@ jobs:
             // are empty strings in this template.
             let platform = "${{ inputs.platform }}" || "linux";
             let profile = "${{ inputs.profile }}" || "release";
-            let layout = "${{ inputs.wpt-layout }}" || "none";
-            let wpt = "${{ inputs.wpt-tests-to-run }}" || "";
+            let wpt_layout = "${{ inputs.wpt-layout }}" || "none";
+            let wpt_tests_to_run = "${{ inputs.wpt-tests-to-run }}" || "";
             let unit_tests = Boolean(${{ inputs.unit-tests }})
 
             // Merge queue runs and pushes to `main` should always trigger a full build and test.
             if (["push", "merge_group"].includes(context.eventName)) {
               platform = "all";
-              layout = "all";
+              wpt_layout = "all";
               unit_tests = true;
             }
 
@@ -83,10 +83,10 @@ jobs:
 
             let returnValue = {
               platforms,
-              layout,
+              wpt_layout,
               unit_tests,
               profile,
-              wpt,
+              wpt_tests_to_run,
             };
 
             console.log("Using configuration: " + JSON.stringify(returnValue));
@@ -108,7 +108,7 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'macos') }}
     uses: ./.github/workflows/mac.yml
     with:
-      wpt-tests-to-run: ${{ fromJson(needs.decision.outputs.configuration).wpt }}
+      wpt-tests-to-run: ${{ fromJson(needs.decision.outputs.configuration).wpt_tests_to_run }}
       profile: ${{ fromJson(needs.decision.outputs.configuration).profile }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
     secrets: inherit
@@ -119,9 +119,9 @@ jobs:
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'linux') }}
     uses: ./.github/workflows/linux.yml
     with:
-      wpt-tests-to-run: ${{ fromJson(needs.decision.outputs.configuration).wpt }}
+      wpt-tests-to-run: ${{ fromJson(needs.decision.outputs.configuration).wpt_tests_to_run }}
       profile: ${{ fromJson(needs.decision.outputs.configuration).profile }}
-      wpt-layout: ${{ fromJson(needs.decision.outputs.configuration).layout }}
+      wpt-layout: ${{ fromJson(needs.decision.outputs.configuration).wpt_layout }}
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
     secrets: inherit
 
