@@ -377,6 +377,7 @@ impl<'a> WGPU<'a> {
                 InstanceDescriptor {
                     backends: wgt::Backends::PRIMARY,
                     dx12_shader_compiler: Dx12Compiler::default(),
+                    ..Default::default()
                 },
             ),
             adapters: Vec::new(),
