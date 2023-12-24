@@ -16,9 +16,3 @@ exclude =
     python/mach
     components
     tests
-    # We should fix those
-    etc/ci
-    ./python/wpt/run.py
-    ./python/tidy/tidy.py
-    ./etc/servo_automation_screenshot.py
-    ./etc/memory_reports_over_time.py

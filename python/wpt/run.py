@@ -271,7 +271,7 @@ class TrackerDashboardFilter():
         except urllib.error.HTTPError as e:
             print(e)
             print(e.readlines())
-            raise(e)
+            raise (e)
 
         for result in unexpected_results:
             result.issues = known_intermittents.get(result.path, [])
