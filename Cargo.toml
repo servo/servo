@@ -106,6 +106,8 @@ webpki-roots = "0.25"
 webrender = { git = "https://github.com/servo/webrender", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender" }
 webrender_traits = { path = "components/shared/webrender" }
+wgpu-core = "0.18"
+wgpu-types = "0.18"
 winapi = "0.3"
 xi-unicode = "0.1.0"
 xml5ever = "0.17"

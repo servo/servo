@@ -23,17 +23,17 @@ smallvec = { workspace = true, features = ["serde"] }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-wgpu-core = { version = "0.17", features = ["replay", "trace", "serial-pass", "wgsl"] }
-wgpu-types = { version = "0.17" }
+wgpu-core = { workspace = true, features = ["replay", "trace", "serial-pass", "wgsl"] }
+wgpu-types = { workspace = true }
 
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies.wgpu-core]
-version = "0.17"
+workspace = true
 features = ["replay", "trace", "serial-pass", "metal"]
 
 [target.'cfg(all(unix, not(target_os = "ios"), not(target_os = "macos")))'.dependencies.wgpu-core]
-version = "0.17"
+workspace = true
 features = ["replay", "trace", "serial-pass", "vulkan"]
 
 [target.'cfg(windows)'.dependencies.wgpu-core]
-version = "0.17"
+workspace = true
 features = ["replay", "trace", "serial-pass", "dx11", "dx12", "vulkan"]
