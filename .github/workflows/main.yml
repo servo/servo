@@ -131,8 +131,8 @@ jobs:
             // user provided overrides of full run
             if (context.eventName == "workflow_dispatch") {
               // only linux-wpt
-              configuration.matrix.linux.wpt_layout = "${{ inputs.wpt-layout }}" || "none";
-              configuration.matrix.linux.wpt_tests_to_run = "${{ inputs.wpt-tests-to-run }}" || "";
+              configuration.matrix[0].wpt_layout = "${{ inputs.wpt-layout }}" || "none";
+              configuration.matrix[0].wpt_tests_to_run = "${{ inputs.wpt-tests-to-run }}" || "";
 
               let unit_tests = Boolean(${{ inputs.unit-tests }});
               let profile = '${{ inputs.profile }}';
