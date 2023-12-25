@@ -20,11 +20,11 @@ class TestParser(unittest.TestCase):
  "name": "Linux", "wpt_layout": "none", "profile": "release", "unit_tests": true, "wpt_tests_to_run": ""}]}')
 
     def test_tuple1(self):
-        conf = Config("linux(profile='debug')")
+        conf = Config("linux[profile='debug']")
         self.assertEqual(conf.matrix[0].profile, "debug")
 
     def test_tuple2(self):
-        conf = Config("linux(profile=debug, unit-tests=false)")
+        conf = Config("linux[profile=debug, unit-tests=false]")
         self.assertEqual(conf.matrix[0].profile, 'debug')
         self.assertEqual(conf.matrix[0].unit_tests, False)
 

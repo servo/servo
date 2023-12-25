@@ -8,17 +8,17 @@ You can trigger try runs via:
 
 - adding `T-` labels on PR (servo organization members only)
 - dispatching workflows from personal fork
-- running `mach try [try string]` command
+- running `mach try $try_string` command
 
-`mach try` will  send git `HEAD` (patches that are committed in current checkout) to try branch.
+`mach try` will send git `HEAD` (patches that are committed in current checkout) to try branch.
 
 ## Try strings
 
 Try string can contain:
 
 - `full`/`try` keyword that will be expanded to `linux mac windows`
-- `fail-fast` as marker keyword that will set [matrix fail-fast](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstrategyfail-fast) to true
-- config tuples: `name(option=value, option2=value)` (`name` is also valid if `name` is preset)
+- `fail-fast` marker keyword that will set [matrix fail-fast](https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstrategyfail-fast) to true
+- config tuples: `name[option=value, option2=value]` (`name` is also valid if `name` is preset)
 
 ### Options
 

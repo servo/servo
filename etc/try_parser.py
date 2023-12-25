@@ -21,7 +21,7 @@ from ply.yacc import yacc  # noqa: E402
 
 tokens = ("STRING",)
 
-literals = ["(", ")", "=", ","]
+literals = ["[", "]", "=", ","]
 
 t_ignore = " \t\r"
 
@@ -64,9 +64,8 @@ def p_dists(p):
 def p_dist(p):
     """
     dist : STRING
-         | STRING '(' key_value_pairs ')'
+         | STRING '[' key_value_pairs ']'
     """
-    # load dict into job config
     # handle full and try
     if len(p) == 2:
         if p[1] in ["full", "try"]:
@@ -174,7 +173,7 @@ class JobConfig(object):
     """
     Represents one config tuple
 
-    name(os=_, layout=_, ...)
+    name[os=_, layout=_, ...]
     """
 
     def __init__(self, name: str, os: OS, layout: Layout = Layout.none,
