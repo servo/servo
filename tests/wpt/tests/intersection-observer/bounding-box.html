@@ -75,8 +75,8 @@ function step3() {
       176  // root width including border
       -8   // root left border
       -20  // target left margin * target zoom
-  ) / 2;   // convert to target's zoom factor.
-  var intersectionHeight = (216 - 8 - 20) / 2;
+  )
+  var intersectionHeight = (216 - 8 - 20);
   var intersectionRect = [targetBounds[0], targetBounds[0] + intersectionWidth,
                           targetBounds[2], targetBounds[2] + intersectionHeight];
   checkLastEntry(entries, 3, targetBounds.concat(intersectionRect).concat(8, 184, 8, 224, true));

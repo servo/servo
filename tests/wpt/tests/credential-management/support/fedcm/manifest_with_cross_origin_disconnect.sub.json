@@ -1,0 +1,7 @@
+{
+  "accounts_endpoint": "accounts.py",
+  "client_metadata_endpoint": "client_metadata.py",
+  "id_assertion_endpoint": "token.py",
+  "disconnect_endpoint": "https://{{hosts[alt][]}}:{{ports[https][0]}}/credential-management/support/fedcm/disconnect.py",
+  "login_url": "login.html"
+}

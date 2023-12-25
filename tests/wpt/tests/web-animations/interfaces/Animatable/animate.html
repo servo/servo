@@ -331,7 +331,6 @@ for (const pseudo of [
   'before',
   ':abc',
   '::abc',
-  '::placeholder',
 ]) {
   test(t => {
     const div = createDiv(t);
@@ -341,6 +340,11 @@ for (const pseudo of [
   }, `animate() with a non-null invalid pseudoElement '${pseudo}' throws a ` +
      `SyntaxError`);
 }
+
+test(t => {
+  const div = createDiv(t);
+  div.animate(null, { pseudoElement: '::placeHOLDER' });
+}, `animate() with pseudoElement ::placeholder does not throw`);
 
 promise_test(async t => {
   const div = createDiv(t);

@@ -253,7 +253,6 @@ for (const pseudo of [
   'before',
   ':abc',
   '::abc',
-  '::placeholder',
 ]) {
   test(t => {
     const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
@@ -261,6 +260,12 @@ for (const pseudo of [
   }, `Changing pseudoElement to a non-null invalid pseudo-selector ` +
      `'${pseudo}' throws a SyntaxError`);
 }
+
+test(t => {
+  const effect = new KeyframeEffect(null, gKeyFrames, 100 * MS_PER_SEC);
+  effect.pseudoElement = '::placeHOLDER';
+  assert_equals(effect.pseudoElement, '::placeholder');
+}, `Changing pseudoElement to ::placeHOLDER works`);
 
 </script>
 </body>

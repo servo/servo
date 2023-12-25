@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>DOM Parts: Valid node types for constructors</title>
+<meta name="author" href="mailto:masonf@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/domparts-utils.js"></script>
+
+<body>
+<template foo></template>
+<script>
+  const root = document.getPartRoot();
+  const xml = new DOMParser().parseFromString("<xml></xml>", "application/xml");
+  const cdata = xml.createCDATASection('cdata');
+  document.body.appendChild(cdata);
+  const pi = document.createProcessingInstruction('processing','instruction');
+  document.body.appendChild(pi);
+  const invalidNodes = {
+    document: document.documentElement,
+    documentType: document.doctype,
+    attributeNode: document.querySelector('[foo]').attributes[0],
+    cdataSection: cdata,
+    processingInstruction: pi,
+    documentFragment: document.querySelector('[foo]').content,
+  };
+
+  const types = Object.keys(invalidNodes);
+  for(let i=0;i<types.length;++i) {
+    const type = types[i];
+    const obj = invalidNodes[types[i]];
+    const otherObj = invalidNodes[types[(i+1) % types.length]];
+    test((t) => {
+      assert_throws_dom("INVALID_NODE_TYPE_ERR", () => {
+        new NodePart(root, obj, {});
+      });
+      assert_throws_dom("INVALID_NODE_TYPE_ERR", () => {
+        new ChildNodePart(root, obj, otherObj, {});
+      });
+      assert_throws_dom("INVALID_NODE_TYPE_ERR", () => {
+        new ChildNodePart(root, otherObj, obj, {});
+      });
+    },`Invalid node types (${type})`);
+  }
+
+  test((t) => {
+    try {
+      const cnp = new ChildNodePart(root, invalidNodes.documentType, invalidNodes.document, {});
+      cnp.clone();
+    } catch {};
+    try {
+      const np = new NodePart(root, invalidNodes.documentType, {});
+      np.clone();
+    } catch {};
+    // This test passes if it does not crash.
+  },'Crash test');
+</script>

@@ -213,6 +213,42 @@ export function fedcm_get_and_select_first_account(t, options) {
   return credentialPromise;
 }
 
+export function fedcm_error_dialog_dismiss(t) {
+  return new Promise(resolve => {
+    async function helper() {
+      // Try to select the account. If the UI is not up yet, we'll catch an exception
+      // and try again in 100ms.
+      try {
+        let type = await fedcm_get_dialog_type_promise(t);
+        assert_equals(type, "Error");
+        await window.test_driver.cancel_fedcm_dialog();
+        resolve();
+      } catch (ex) {
+        t.step_timeout(helper, 100);
+      }
+    }
+    helper();
+  });
+}
+
+export function fedcm_error_dialog_click_button(t, button) {
+  return new Promise(resolve => {
+    async function helper() {
+      // Try to select the account. If the UI is not up yet, we'll catch an exception
+      // and try again in 100ms.
+      try {
+        let type = await fedcm_get_dialog_type_promise(t);
+        assert_equals(type, "Error");
+        await window.test_driver.click_fedcm_dialog_button(button);
+        resolve();
+      } catch (ex) {
+        t.step_timeout(helper, 100);
+      }
+    }
+    helper();
+  });
+}
+
 export function disconnect_options(accountHint, manifest_filename) {
   if (manifest_filename === undefined) {
     manifest_filename = "manifest.py";

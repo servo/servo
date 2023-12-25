@@ -119,3 +119,14 @@ def test_invalid_text_type(session, inline, value):
 
     response = element_send_keys(session, element, value)
     assert_error(response, "invalid argument")
+
+
+def test_surrogates(session, inline):
+    session.url = inline("<input>")
+    element = session.find.css("input", all=False)
+
+    text = "🦥🍄"
+    response = element_send_keys(session, element, text)
+    assert_success(response)
+
+    assert element.property("value") == text

@@ -13,9 +13,12 @@ promise_test(async () => {
   const allowed_height = 50;
 
   // Create an opaque-ads fenced frame with an invalid size.
-  const frame = await attachFencedFrameContext({generator_api: "fledge",
-      resolve_to_config: true,
-      attributes: [["width", allowed_width+1], ["height", allowed_height+1]]});
+  const frame = await attachFencedFrameContext({
+    generator_api: "fledge",
+    resolve_to_config: true,
+    attributes: [["width", allowed_width+1], ["height", allowed_height+1]],
+    num_components: 1
+  });
 
   await frame.execute(async (allowed_width, allowed_height) => {
     // Observe that the size gets coerced to the nearest allowed size.
@@ -24,10 +27,7 @@ promise_test(async () => {
     assert_equals(window.innerHeight, allowed_height,
         "The outer opaque-ads fenced frame has its height coerced.");
 
-    // TODO(crbug.com/1427455): This currently fails. Add support for component
-    // ads being loaded through attachFencedFrameContext().
-    // Create a nested (component) opaque-ads fenced frame.
-    const component_ad_frame = await attachFencedFrameContext({
+    const component_ad_frame = await attachComponentFencedFrameContext(0, {
         attributes:
         [["width", allowed_width+1], ["height", allowed_height+1]]});
 

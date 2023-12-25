@@ -22,7 +22,7 @@ async def test_locate_nodes_in_sandbox(bidi_session, inline, top_context):
     # Since the node was found in the sandbox, it should be available
     # to scripts running in the sandbox.
     result_in_sandbox = await bidi_session.script.call_function(
-        function_declaration="() => arguments[0]",
+        function_declaration="function(){ return arguments[0]; }",
         target=ContextTarget(top_context["context"], "sandbox"),
         await_promise=True,
         arguments=[
@@ -48,7 +48,6 @@ async def test_locate_same_node_in_different_sandboxes_returns_same_id(bidi_sess
         sandbox="first_sandbox"
     )
 
-    assert first_result["context"] == top_context["context"]
     assert len(first_result["nodes"]) == 1
 
     second_result = await bidi_session.browsing_context.locate_nodes(
@@ -94,18 +93,17 @@ async def test_locate_same_node_in_different_sandboxes_with_root_ownership_retur
     first_result = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
         locator={ "type": "css", "value": "div[data-class='one']" },
-        sandbox="first_sandbox",
-        ownership=OwnershipModel.ROOT
+        ownership=OwnershipModel.ROOT.value,
+        sandbox="first_sandbox"
     )
 
-    assert first_result["context"] == top_context["context"]
     assert len(first_result["nodes"]) == 1
 
     second_result = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
         locator={ "type": "css", "value": "div[data-class='one']" },
-        sandbox="second_sandbox",
-        ownership=OwnershipModel.ROOT
+        ownership=OwnershipModel.ROOT.value,
+        sandbox="second_sandbox"
     )
 
     assert len(second_result["nodes"]) == 1

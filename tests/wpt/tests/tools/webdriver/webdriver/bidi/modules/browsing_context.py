@@ -155,9 +155,6 @@ class BrowsingContext(BidiModule):
 
     @locate_nodes.result
     def _locate_nodes(self, result: Mapping[str, Any]) -> Any:
-        assert result["context"] is not None
-        assert isinstance(result["context"], str)
-
         assert result["nodes"] is not None
         assert isinstance(result["nodes"], List)
 

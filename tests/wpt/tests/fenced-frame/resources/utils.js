@@ -274,13 +274,26 @@ function attachContext(object_constructor, html, headers, origin) {
 // 2. crbug.com/1394559: unfenced-top.https.html
 async function attachOpaqueContext(
     generator_api, resolve_to_config, ad_with_size, requested_size,
-    automatic_beacon, object_constructor, html, headers, origin) {
+    automatic_beacon, object_constructor, html, headers, origin,
+    num_components) {
   const [uuid, url] = generateRemoteContextURL(headers, origin);
+
+  let components_list = [];
+  for (let i = 0; i < num_components; i++) {
+    let [component_uuid, component_url] =
+        generateRemoteContextURL(headers, origin);
+    // This field will be read by attachComponentFrameContext() in order to
+    // know what uuid to point to when building the remote context.
+    html += '<input type=\'hidden\' id=\'component_uuid_' + i + '\' value=\'' +
+        component_uuid + '\'>';
+    components_list.push(component_url);
+  }
+
   const id = await (
       generator_api == 'fledge' ?
           generateURNFromFledge(
-              url, [], [], resolve_to_config, ad_with_size, requested_size,
-              automatic_beacon) :
+              url, [], components_list, resolve_to_config, ad_with_size,
+              requested_size, automatic_beacon) :
           runSelectURL(url, [], resolve_to_config));
   const object = object_constructor(id);
   return buildRemoteContextForObject(object, uuid, html);
@@ -288,12 +301,14 @@ async function attachOpaqueContext(
 
 function attachPotentiallyOpaqueContext(
     generator_api, resolve_to_config, ad_with_size, requested_size,
-    automatic_beacon, frame_constructor, html, headers, origin) {
+    automatic_beacon, frame_constructor, html, headers, origin,
+    num_components) {
   generator_api = generator_api.toLowerCase();
   if (generator_api == 'fledge' || generator_api == 'sharedstorage') {
     return attachOpaqueContext(
         generator_api, resolve_to_config, ad_with_size, requested_size,
-        automatic_beacon, frame_constructor, html, headers, origin);
+        automatic_beacon, frame_constructor, html, headers, origin,
+        num_components);
   } else {
     return attachContext(frame_constructor, html, headers, origin);
   }
@@ -301,7 +316,8 @@ function attachPotentiallyOpaqueContext(
 
 function attachFrameContext(
     element_name, generator_api, resolve_to_config, ad_with_size,
-    requested_size, automatic_beacon, html, headers, attributes, origin) {
+    requested_size, automatic_beacon, html, headers, attributes, origin,
+    num_components) {
   frame_constructor = (id) => {
     frame = document.createElement(element_name);
     attributes.forEach(attribute => {
@@ -320,7 +336,8 @@ function attachFrameContext(
   };
   return attachPotentiallyOpaqueContext(
       generator_api, resolve_to_config, ad_with_size, requested_size,
-      automatic_beacon, frame_constructor, html, headers, origin);
+      automatic_beacon, frame_constructor, html, headers, origin,
+      num_components);
 }
 
 function replaceFrameContext(frame_proxy, {
@@ -382,11 +399,13 @@ function attachFencedFrameContext({
   html = '',
   headers = [],
   attributes = [],
-  origin = ''
+  origin = '',
+  num_components = 0
 } = {}) {
   return attachFrameContext(
       'fencedframe', generator_api, resolve_to_config, ad_with_size,
-      requested_size, automatic_beacon, html, headers, attributes, origin);
+      requested_size, automatic_beacon, html, headers, attributes, origin,
+      num_components);
 }
 
 // Attach an iframe that waits for scripts to execute.
@@ -397,12 +416,13 @@ function attachIFrameContext({
   html = '',
   headers = [],
   attributes = [],
-  origin = ''
+  origin = '',
+  num_components = 0
 } = {}) {
   return attachFrameContext(
       'iframe', generator_api, resolve_to_config = false, ad_with_size = false,
       requested_size = null, automatic_beacon, html, headers, attributes,
-      origin);
+      origin, num_components);
 }
 
 // Open a window that waits for scripts to execute.
@@ -414,6 +434,45 @@ function attachWindowContext({target="_blank", html="", headers=[], origin=""}={
   }
 
   return attachContext(window_constructor, html, headers, origin);
+}
+
+// Attaches an ad component in a fenced frame. For this to work, this must be
+// called in a frame that was generated with attachFrameContext() using the
+// Protected Audience API (generator_api: 'fledge').
+function attachComponentFencedFrameContext(
+    index = 0, {attributes = [], html = ''} = {}) {
+  const urn = window.fence.getNestedConfigs()[index];
+  return attachComponentFrameContext(
+      index, 'fencedframe', urn, attributes, html);
+}
+
+// Same as attachComponentFencedFrameContext, but in a urn iframe.
+function attachComponentIFrameContext(
+    index = 0, {attributes = [], html = ''} = {}) {
+  const urn = navigator.adAuctionComponents(index + 1)[index];
+  return attachComponentFrameContext(index, 'iframe', urn, attributes, html);
+}
+
+function attachComponentFrameContext(
+    index, element_name, urn, attributes, html) {
+  assert_not_equals(
+      document.getElementById('component_uuid_' + index), null,
+      'Component frames can only be attached to frames loaded with ' +
+          'attach*FrameContext() with `num_components` set to at least ' +
+          (index + 1) + '.');
+
+  let frame = document.createElement(element_name);
+  attributes.forEach(attribute => {
+    frame.setAttribute(attribute[0], attribute[1]);
+  });
+  if (element_name == 'iframe') {
+    frame.src = urn;
+  } else {
+    frame.config = urn;
+  }
+  document.body.append(frame);
+  const context_uuid = document.getElementById('component_uuid_' + index).value;
+  return buildRemoteContextForObject(frame, context_uuid, html);
 }
 
 // Converts a key string into a key uuid using a cryptographic hash function.

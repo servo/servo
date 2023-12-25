@@ -55,7 +55,40 @@
 #contents-pseudos-dynamic.contents::after {
   display: contents;
 }
+#pseudo-invalid::backdrop {
+  color: rgb(0, 128, 0);
+}
+#pseudo-invalid::file-selector-button {
+  color: rgb(0, 128, 0);
+}
+#pseudo-invalid::grammar-error {
+  color: rgb(0, 128, 0);
+}
+#pseudo-invalid::highlight(name) {
+  color: rgb(0, 128, 0);
+}
 #pseudo-invalid::marker {
+  color: rgb(0, 128, 0);
+}
+#pseudo-invalid::placeholder {
+  color: rgb(0, 128, 0);
+}
+#pseudo-invalid::spelling-error {
+  color: rgb(0, 128, 0);
+}
+#pseudo-invalid::view-transition {
+  color: rgb(0, 128, 0);
+}
+#pseudo-invalid::view-transition-image-pair(name) {
+  color: rgb(0, 128, 0);
+}
+#pseudo-invalid::view-transition-group(name) {
+  color: rgb(0, 128, 0);
+}
+#pseudo-invalid::view-transition-old(name) {
+  color: rgb(0, 128, 0);
+}
+#pseudo-invalid::view-transition-new(name) {
   color: rgb(0, 128, 0);
 }
 #pseudo-invalid {
@@ -78,6 +111,12 @@ test(function() {
     assert_equals(getComputedStyle(div, pseudo).width, "50px");
   });
 }, "Resolution of width is correct for ::before and ::after pseudo-elements");
+test(function() {
+  const div = document.getElementById('test');
+  [":bef\\oRE", "::\\000041fter"].forEach(pseudo => {
+    assert_equals(getComputedStyle(div, pseudo).width, "50px");
+  });
+}, "Pseudo-elements can use the full range of CSS syntax");
 test(function() {
   var contents = document.getElementById('contents');
   [":before", ":after"].forEach(function(pseudo) {
@@ -158,19 +197,38 @@ test(function() {
     getComputedStyle(div, ":totallynotapseudo").length == 0,
     "Should return an empty style for unknown pseudo-elements starting with colon");
 }, "Unknown pseudo-elements");
-test(function() {
-  let li = document.querySelector('li');
-  assert_true(
-    getComputedStyle(li, ':marker').length == 0,
-    "Should return an empty style for :marker");
-  assert_true(
-    getComputedStyle(li, 'marker').length != 0,
-    "Should return the element style for marker");
-  assert_equals(
-    getComputedStyle(li, 'marker').color, "rgb(255, 0, 0)",
-    "Should return the element style for marker (ex: color is rgb(255, 0, 0), not rgb(0, 128, 0)");
-  assert_equals(
-  getComputedStyle(li, '::marker').color, "rgb(0, 128, 0)",
-  "Should return the element style for marker (ex: color is rgb(0, 128, 0)");
-}, "Unknown pseudo-element with a known string (ex: marker)");
+
+// If you add a pseudo-element identifier here, don't forget to add the corresponding style rule in
+// <style> above.
+[
+  "backdrop",
+  "file-selector-button",
+  "grammar-error",
+  "highlight(name)",
+  "marker",
+  "placeholder",
+  "spelling-error",
+  "view-transition",
+  "view-transition-image-pair(name)",
+  "view-transition-group(name)",
+  "view-transition-old(name)",
+  "view-transition-new(name)"
+].forEach(pseudoIdentifier => {
+  test(function() {
+    assert_implements_optional(CSS.supports(`selector(::${pseudoIdentifier})`), `::${pseudoIdentifier}`);
+    const li = document.querySelector('li');
+    assert_true(
+      getComputedStyle(li, `:${pseudoIdentifier}`).length == 0,
+      `Should return an empty style for :${pseudoIdentifier}`);
+    assert_true(
+      getComputedStyle(li, pseudoIdentifier).length != 0,
+      `Should return the element style for ${pseudoIdentifier}`);
+    assert_equals(
+      getComputedStyle(li, pseudoIdentifier).color, "rgb(255, 0, 0)",
+      `Should return the element style for ${pseudoIdentifier}`);
+    assert_equals(
+    getComputedStyle(li, `::${pseudoIdentifier}`).color, "rgb(0, 128, 0)",
+    `Should return the ::${pseudoIdentifier} style`);
+  }, `Unknown pseudo-element with a known identifier: ${pseudoIdentifier}`);
+});
 </script>

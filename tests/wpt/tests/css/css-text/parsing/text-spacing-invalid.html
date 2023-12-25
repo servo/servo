@@ -11,7 +11,7 @@
 <body>
 <script>
 // These keywords must appear alone.
-for (const keyword of ['normal', 'none', 'auto']) {
+for (const keyword of ['none', 'auto']) {
   test_invalid_value("text-spacing", `${keyword} ${keyword}`);
   for (const keyword2 of ['no-autospace', 'space-first']) {
     test_invalid_value("text-spacing", `${keyword} ${keyword2}`);

@@ -1,7 +1,6 @@
-from typing import Any, Callable, cast, Dict, Sequence, Set, TypeVar, Union
+from typing import Any, Callable, cast, Dict, Sequence, Set, Type, TypeVar, Union
 
 T = TypeVar("T")
-
 
 def validate_dict(obj: Any, required_keys: Set[str] = set(), optional_keys: Set[str] = set()) -> None:
     """
@@ -76,3 +75,14 @@ class SchemaValue():
         if not isinstance(x, list):
             raise ValueError(f"Input value {x} is not a list")
         return [f(y) for y in x]
+
+
+    @staticmethod
+    def from_class(cls: Type[T]) -> Callable[[Any], T]:
+        def class_converter(x: Any) -> T:
+            try:
+                # https://github.com/python/mypy/issues/10343
+                return cls(x)  # type: ignore [call-arg]
+            except Exception:
+                raise ValueError(f"Input value {x} could not be converted to {cls}")
+        return class_converter

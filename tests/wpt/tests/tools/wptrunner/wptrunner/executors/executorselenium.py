@@ -219,6 +219,9 @@ class SeleniumWindowProtocolPart(WindowProtocolPart):
         self.logger.info("Setting window rect")
         self.webdriver.window.rect = rect
 
+    def get_rect(self):
+        self.logger.info("Getting window rect")
+        return self.webdriver.window.rect
 
 class SeleniumSendKeysProtocolPart(SendKeysProtocolPart):
     def setup(self):

@@ -19,17 +19,14 @@ test_computed_value("text-spacing", "auto");
 test_computed_value("text-spacing", "no-autospace");
 
 // `text-spacing-trim`.
-test_computed_value("text-spacing", "space-first", "normal");
+test_computed_value("text-spacing", "trim-start");
 test_computed_value("text-spacing", "space-all");
-// Two values syntax.
-test_computed_value("text-spacing", "allow-end space-first");
-test_computed_value("text-spacing", "space-first allow-end", "allow-end space-first");
 
 // `text-autospace` and `text-spacing-trim`.
-test_computed_value("text-spacing", "no-autospace space-first", "no-autospace");
+test_computed_value("text-spacing", "no-autospace normal", "no-autospace");
 test_computed_value("text-spacing", "no-autospace space-all", "none");
 // Test the reversed order.
-test_computed_value("text-spacing", "space-first no-autospace", "no-autospace");
+test_computed_value("text-spacing", "normal no-autospace", "no-autospace");
 test_computed_value("text-spacing", "space-all no-autospace", "none");
 </script>
 </body>
