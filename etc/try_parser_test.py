@@ -10,7 +10,7 @@
 # except according to those terms.
 
 import unittest
-from try_parser import Config
+from try_parser import Config, Layout
 
 
 class TestParser(unittest.TestCase):
@@ -23,10 +23,13 @@ class TestParser(unittest.TestCase):
         conf = Config("linux[profile='debug']")
         self.assertEqual(conf.matrix[0].profile, "debug")
 
-    def test_tuple2(self):
-        conf = Config("linux[profile=debug, unit-tests=false]")
+    def test_tuple5(self):
+        conf = Config("linux[name=linux2020, profile=debug, unit-tests=false,layout=2020, wpt=\"some/wpt/test\"]")
+        self.assertEqual(conf.matrix[0].name, 'linux2020')
         self.assertEqual(conf.matrix[0].profile, 'debug')
         self.assertEqual(conf.matrix[0].unit_tests, False)
+        self.assertEqual(conf.matrix[0].wpt_layout, Layout.layout2020)
+        self.assertEqual(conf.matrix[0].wpt_tests_to_run, "some/wpt/test")
 
     def test_special(self):
         conf = Config("fail-fast try")

@@ -47,57 +47,60 @@ def t_error(t):
 # --------------- Parser ---------------
 
 
-def p_dists(p):
+def p_config(p):
     """
-    dists : dist
-          | dist ',' dists
-          | dist dists
+    config : job_config
+            | job_config ',' config
+            | job_config config
     """
-    if len(p) == 4:
-        p[0] = [p[1]] + p[3]
-    elif len(p) == 3:
-        p[0] = [p[1]] + p[2]
-    else:
-        p[0] = [p[1]]
-
-
-def p_dist(p):
-    """
-    dist : STRING
-         | STRING '[' key_value_pairs ']'
-    """
-    # handle full and try
     if len(p) == 2:
-        if p[1] in ["full", "try"]:
+        p[0] = [p[1]]
+    elif len(p) == 4:
+        p[0] = [p[1]] + p[3]
+    else:
+        p[0] = [p[1]] + p[2]
+
+
+def p_job_config(p):
+    """
+    job_config : STRING
+               | STRING '[' pairs ']'
+    """
+    if len(p) == 2:
+        if p[1] in ["full", "try"]:  # keywords
             p[0] = [
                 JobConfig("Linux", OS.linux),
                 JobConfig("MacOS", OS.mac),
                 JobConfig("Windows", OS.win)
             ]
-        elif p[1] in ["fail_fast", "fail-fast"]:
+        elif p[1] in ["fail_fast", "fail-fast"]:  # marker keywords
+            # are handled before this parser was run
             p[0] = []
-        else:
+        else:  # single string without config
             p[0] = [JobConfig.parse(p[1])]
     else:
         p[0] = [JobConfig.parse(p[1], p[3])]
 
 
-def p_key_value_pairs(p):
+def p_pairs(p):
     """
-    key_value_pairs : pair
-                    | pair ',' key_value_pairs
+    pairs : pair
+          | pair ',' pairs
     """
-    # join all pairs into dist
-    p[0] = [p[1]] + p[3] if len(p) == 4 else [p[1]]
+    # join all pairs into array
+    if len(p) == 2:
+        p[0] = [p[1]]
+    else:
+        p[0] = [p[1]] + p[3]
 
 
 def p_pair(p):
     "pair : STRING '=' STRING"
-    p[0] = parse_option(p[1], p[3])
+    p[0] = parse_kv(p[1], p[3])
 
 
 def p_error(p):
-    print(f"Syntax error at {p.value!r} at line {p.lineno}")
+    raise RuntimeError(f"Syntax error at {p.value!r} at line {p.lineno}")
 
 
 lexer = lex()
@@ -127,7 +130,7 @@ class Layout(str, Enum):
             return None
 
 
-class OS(str, Enum, ):
+class OS(str, Enum):
     linux = 'linux'
     mac = 'mac'
     win = 'windows'
@@ -145,7 +148,7 @@ class OS(str, Enum, ):
             return None
 
 
-def parse_option(k: str, v: str) -> Tuple[str, Any]:
+def parse_kv(k: str, v: str) -> Tuple[str, Any]:
     kk = k.lower()
     if kk == "os":
         val = OS.parse(v)
@@ -158,7 +161,7 @@ def parse_option(k: str, v: str) -> Tuple[str, Any]:
     elif kk in ["wpt", "wpt_tests_to_run", "wpt-tests-to-run"]:
         kk = "wpt_tests_to_run"
         val = v
-    elif kk in ["profile"]:
+    elif kk in ["profile", "name"]:
         val = v
     else:
         raise RuntimeError(f"`{k}` is unknown option.")
@@ -176,7 +179,7 @@ class JobConfig(object):
     name[os=_, layout=_, ...]
     """
 
-    def __init__(self, name: str, os: OS, layout: Layout = Layout.none,
+    def __init__(self, name: str, os: OS = OS.linux, layout: Layout = Layout.none,
                  profile: str = "release", unit_test: bool = True, wpt: str = ""):
         self.os: OS = os
         self.name: str = name
@@ -188,15 +191,20 @@ class JobConfig(object):
     @staticmethod
     def parse(name: str, overrides: list[Tuple[str, str]] = []):
         job = preset(name)
-        if job is None:
-            job = JobConfig(name, OS.linux)
+
+        if job is None:  # job name is not a preset
+            job = JobConfig(name)
+
+        # apply all overrides on job
         for (k, v) in overrides:
             job.__dict__[k] = v
+
         return job
 
 
-# preset from name
 def preset(s: str) -> JobConfig | None:
+    """returns JobConfig for a preset if exists"""
+
     s = s.lower()
 
     if s == "linux":
@@ -241,14 +249,14 @@ class Config(object):
 
     def parse(self, s: str):
         s = s.strip()
+        # handle marker keyword
         if "fail_fast" in s or "fail-fast" in s:
             self.fail_fast = True
         # if no input provided default to full build
         if not s:
             s = "full"
-        ast = parser.parse(
-            s
-        )
+
+        ast = parser.parse(s)
         # flatten
         self.matrix = [item for row in ast for item in row]
 
@@ -257,8 +265,7 @@ class Config(object):
 
 
 def main():
-    conf = Config()
-    conf.parse(" ".join(sys.argv[1:]))
+    conf = Config(" ".join(sys.argv[1:]))
     print(conf.toJSON())
 
 
