@@ -142,7 +142,7 @@ impl Window {
             .expect("Failed to create WR surfman");
 
         debug!("Created window {:?}", winit_window.id());
-        let window = Window {
+        Window {
             winit_window,
             webrender_surfman,
             event_queue: RefCell::new(vec![]),
@@ -160,10 +160,8 @@ impl Window {
             xr_window_poses: RefCell::new(vec![]),
             modifiers_state: Cell::new(ModifiersState::empty()),
             toolbar_height: Cell::new(Default::default()),
-        };
-        window
+        }
     }
-
     fn handle_received_character(&self, mut ch: char) {
         info!("winit received character: {:?}", ch);
         if ch.is_control() {
