@@ -20,7 +20,6 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
-    "ahash",
     "bitflags",
     "cfg-if",
     "cookie",
