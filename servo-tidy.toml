@@ -28,6 +28,8 @@ packages = [
     "nix",
     "num-rational",
     "redox_syscall",
+    "syn",
+    "synstructure",
     "time",
     "wasi",
     "wayland-sys",
@@ -52,16 +54,14 @@ packages = [
     "foreign-types-shared",
     "metal",
     "paste",
-    # Duplicated by gpu-descriptor and indexmap
+
+    # Duplicated by indexmap.
     "hashbrown",
-    # Duplicated by script, style, cbindgen, clap, ...
+
+    # Duplicated by style, cbindgen, clap.
     "indexmap",
 
-    # Duplicated by Gecko crates that haven't been updated yet (style, shmem, derive_common, ...).
-    "syn",
-    "synstructure",
-
-    # style/webxr (0.62) vs. mozjs_sys (0.66)
+    # style (0.64) vs. webxr (0.66) vs. mozjs_sys (0.68).
     "bindgen",
 ]
 # Files that are ignored for all tidy and lint checks.
