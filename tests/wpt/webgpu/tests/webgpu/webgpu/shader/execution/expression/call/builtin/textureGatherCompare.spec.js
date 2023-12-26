@@ -1,6 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Execution tests for the 'textureGatherCompare' builtin function
 
 A texture gather compare operation performs a depth comparison on four texels in a depth texture and collects the results into a single vector, as follows:
@@ -16,18 +16,17 @@ A texture gather compare operation performs a depth comparison on four texels in
     y                (umax,vmax)
     z                (umax,vmin)
     w                (umin,vmin)
-`;
-import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
 
 import { generateCoordBoundaries, generateOffsets } from './utils.js';
 
 export const g = makeTestGroup(GPUTest);
 
-g.test('array_2d_coords')
-  .specURL('https://www.w3.org/TR/WGSL/#texturegathercompare')
-  .desc(
-    `
+g.test('array_2d_coords').
+specURL('https://www.w3.org/TR/WGSL/#texturegathercompare').
+desc(
+  `
 C: i32, u32
 
 fn textureGatherCompare(t: texture_depth_2d_array, s: sampler_comparison, coords: vec2<f32>, array_index: C, depth_ref: f32) -> vec4<f32>
@@ -46,22 +45,22 @@ Parameters:
     - Each offset component must be at least -8 and at most 7.
       Values outside of this range will result in a shader-creation error.
 `
-  )
-  .paramsSubcasesOnly(u =>
-    u
-      .combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat'])
-      .combine('C', ['i32', 'u32'])
-      .combine('C_value', [-1, 0, 1, 2, 3, 4])
-      .combine('coords', generateCoordBoundaries(2))
-      .combine('depth_ref', [-1 /* smaller ref */, 0 /* equal ref */, 1 /* larger ref */])
-      .combine('offset', generateOffsets(2))
-  )
-  .unimplemented();
+).
+paramsSubcasesOnly((u) =>
+u.
+combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
+combine('C', ['i32', 'u32']).
+combine('C_value', [-1, 0, 1, 2, 3, 4]).
+combine('coords', generateCoordBoundaries(2)).
+combine('depth_ref', [-1 /* smaller ref */, 0 /* equal ref */, 1 /* larger ref */]).
+combine('offset', generateOffsets(2))
+).
+unimplemented();
 
-g.test('array_3d_coords')
-  .specURL('https://www.w3.org/TR/WGSL/#texturegathercompare')
-  .desc(
-    `
+g.test('array_3d_coords').
+specURL('https://www.w3.org/TR/WGSL/#texturegathercompare').
+desc(
+  `
 C: i32, u32
 
 fn textureGatherCompare(t: texture_depth_cube_array, s: sampler_comparison, coords: vec3<f32>, array_index: C, depth_ref: f32) -> vec4<f32>
@@ -73,21 +72,21 @@ Parameters:
  * array_index: The 0-based array index.
  * depth_ref: The reference value to compare the sampled depth value against
 `
-  )
-  .paramsSubcasesOnly(u =>
-    u
-      .combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat'])
-      .combine('C', ['i32', 'u32'])
-      .combine('C_value', [-1, 0, 1, 2, 3, 4])
-      .combine('coords', generateCoordBoundaries(3))
-      .combine('depth_ref', [-1 /* smaller ref */, 0 /* equal ref */, 1 /* larger ref */])
-  )
-  .unimplemented();
+).
+paramsSubcasesOnly((u) =>
+u.
+combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
+combine('C', ['i32', 'u32']).
+combine('C_value', [-1, 0, 1, 2, 3, 4]).
+combine('coords', generateCoordBoundaries(3)).
+combine('depth_ref', [-1 /* smaller ref */, 0 /* equal ref */, 1 /* larger ref */])
+).
+unimplemented();
 
-g.test('sampled_array_2d_coords')
-  .specURL('https://www.w3.org/TR/WGSL/#texturegathercompare')
-  .desc(
-    `
+g.test('sampled_array_2d_coords').
+specURL('https://www.w3.org/TR/WGSL/#texturegathercompare').
+desc(
+  `
 fn textureGatherCompare(t: texture_depth_2d, s: sampler_comparison, coords: vec2<f32>, depth_ref: f32) -> vec4<f32>
 fn textureGatherCompare(t: texture_depth_2d, s: sampler_comparison, coords: vec2<f32>, depth_ref: f32, offset: vec2<i32>) -> vec4<f32>
 
@@ -103,20 +102,20 @@ Parameters:
     - Each offset component must be at least -8 and at most 7.
       Values outside of this range will result in a shader-creation error.
 `
-  )
-  .paramsSubcasesOnly(u =>
-    u
-      .combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat'])
-      .combine('coords', generateCoordBoundaries(2))
-      .combine('depth_ref', [-1 /* smaller ref */, 0 /* equal ref */, 1 /* larger ref */])
-      .combine('offset', generateOffsets(2))
-  )
-  .unimplemented();
+).
+paramsSubcasesOnly((u) =>
+u.
+combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
+combine('coords', generateCoordBoundaries(2)).
+combine('depth_ref', [-1 /* smaller ref */, 0 /* equal ref */, 1 /* larger ref */]).
+combine('offset', generateOffsets(2))
+).
+unimplemented();
 
-g.test('sampled_array_3d_coords')
-  .specURL('https://www.w3.org/TR/WGSL/#texturegathercompare')
-  .desc(
-    `
+g.test('sampled_array_3d_coords').
+specURL('https://www.w3.org/TR/WGSL/#texturegathercompare').
+desc(
+  `
 fn textureGatherCompare(t: texture_depth_cube, s: sampler_comparison, coords: vec3<f32>, depth_ref: f32) -> vec4<f32>
 
 Parameters:
@@ -125,11 +124,11 @@ Parameters:
  * coords: The texture coordinates
  * depth_ref: The reference value to compare the sampled depth value against
 `
-  )
-  .paramsSubcasesOnly(u =>
-    u
-      .combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat'])
-      .combine('coords', generateCoordBoundaries(3))
-      .combine('depth_ref', [-1 /* smaller ref */, 0 /* equal ref */, 1 /* larger ref */])
-  )
-  .unimplemented();
+).
+paramsSubcasesOnly((u) =>
+u.
+combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
+combine('coords', generateCoordBoundaries(3)).
+combine('depth_ref', [-1 /* smaller ref */, 0 /* equal ref */, 1 /* larger ref */])
+).
+unimplemented();

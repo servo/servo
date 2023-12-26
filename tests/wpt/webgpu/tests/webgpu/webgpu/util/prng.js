@@ -1,7 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert } from '../../common/util/util.js';
-import { kValue } from './constants.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { assert } from '../../common/util/util.js';import { kValue } from './constants.js';
 
 /**
  * Seed-able deterministic pseudo random generator for the WebGPU CTS
@@ -25,10 +24,13 @@ export class PRNG {
   // Storing variables for temper() as members, so they don't need to be
   // reallocated per call to temper()
 
+
   // Storing variables for next() as members, so they don't need to be
   // reallocated per call to next()
 
+
   // Generator internal state
+
 
   // Default tuning parameters for TinyMT.
   // These are tested to not generate an all zero initial state.
@@ -64,16 +66,16 @@ export class PRNG {
     this.state = new Uint32Array([Math.round(seed), PRNG.kMat1, PRNG.kMat2, PRNG.kTMat]);
     for (let i = 1; i < PRNG.kMinLoop; i++) {
       this.state[i & 3] ^=
-        i + Math.imul(1812433253, this.state[(i - 1) & 3] ^ (this.state[(i - 1) & 3] >>> 30));
+      i + Math.imul(1812433253, this.state[i - 1 & 3] ^ this.state[i - 1 & 3] >>> 30);
     }
 
     // Check that the initial state isn't all 0s, since the algorithm assumes
     // that this never occurs
     assert(
       (this.state[0] & PRNG.kMask) !== 0 ||
-        this.state[1] !== 0 ||
-        this.state[2] !== 0 ||
-        this.state[2] !== 0,
+      this.state[1] !== 0 ||
+      this.state[2] !== 0 ||
+      this.state[2] !== 0,
       'Initialization of PRNG unexpectedly generated all 0s initial state, this means the tuning parameters are bad'
     );
 
@@ -84,13 +86,13 @@ export class PRNG {
 
   /** Advances the internal state to the next values */
   next() {
-    this.n_vars[0] = (this.state[0] & PRNG.kMask) ^ this.state[1] ^ this.state[2];
+    this.n_vars[0] = this.state[0] & PRNG.kMask ^ this.state[1] ^ this.state[2];
     this.n_vars[1] = this.state[3];
     this.n_vars[0] ^= this.n_vars[0] << PRNG.kSH0;
-    this.n_vars[1] ^= (this.n_vars[1] >>> PRNG.kSH0) ^ this.n_vars[0];
+    this.n_vars[1] ^= this.n_vars[1] >>> PRNG.kSH0 ^ this.n_vars[0];
     this.state[0] = this.state[1];
     this.state[1] = this.state[2];
-    this.state[2] = this.n_vars[0] ^ (this.n_vars[1] << PRNG.kSH1);
+    this.state[2] = this.n_vars[0] ^ this.n_vars[1] << PRNG.kSH1;
     this.state[3] = this.n_vars[1];
     if ((this.n_vars[1] & 1) !== 0) {
       this.state[1] ^= PRNG.kMat1;

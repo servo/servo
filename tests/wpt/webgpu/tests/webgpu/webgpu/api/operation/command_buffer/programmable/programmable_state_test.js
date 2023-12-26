@@ -1,7 +1,12 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { unreachable } from '../../../../../common/util/util.js';
-import { GPUTest } from '../../../../gpu_test.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { unreachable } from '../../../../../common/util/util.js';import { GPUTest } from '../../../../gpu_test.js';
+
+
+
+
+
+
 
 export class ProgrammableStateTest extends GPUTest {
   commonBindGroupLayouts = new Map();
@@ -12,12 +17,12 @@ export class ProgrammableStateTest extends GPUTest {
         type,
         this.device.createBindGroupLayout({
           entries: [
-            {
-              binding: 0,
-              visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
-              buffer: { type },
-            },
-          ],
+          {
+            binding: 0,
+            visibility: GPUShaderStage.COMPUTE | GPUShaderStage.FRAGMENT,
+            buffer: { type }
+          }]
+
         })
       );
     }
@@ -35,20 +40,28 @@ export class ProgrammableStateTest extends GPUTest {
   createBindGroup(buffer, type) {
     return this.device.createBindGroup({
       layout: this.getBindGroupLayout(type),
-      entries: [{ binding: 0, resource: { buffer } }],
+      entries: [{ binding: 0, resource: { buffer } }]
     });
   }
 
-  setBindGroup(encoder, index, factory) {
+  setBindGroup(
+  encoder,
+  index,
+  factory)
+  {
     encoder.setBindGroup(index, factory(index));
   }
 
   // Create a compute pipeline that performs an operation on data from two bind groups,
   // then writes the result to a third bind group.
-  createBindingStatePipeline(encoderType, groups, algorithm = 'a.value - b.value') {
+  createBindingStatePipeline(
+  encoderType,
+  groups,
+  algorithm = 'a.value - b.value')
+  {
     switch (encoderType) {
-      case 'compute pass': {
-        const wgsl = `struct Data {
+      case 'compute pass':{
+          const wgsl = `struct Data {
             value : i32
           };
 
@@ -62,28 +75,28 @@ export class ProgrammableStateTest extends GPUTest {
           }
         `;
 
-        return this.device.createComputePipeline({
-          layout: this.device.createPipelineLayout({
-            bindGroupLayouts: this.getBindGroupLayouts(groups),
-          }),
-          compute: {
-            module: this.device.createShaderModule({
-              code: wgsl,
+          return this.device.createComputePipeline({
+            layout: this.device.createPipelineLayout({
+              bindGroupLayouts: this.getBindGroupLayouts(groups)
             }),
-            entryPoint: 'main',
-          },
-        });
-      }
+            compute: {
+              module: this.device.createShaderModule({
+                code: wgsl
+              }),
+              entryPoint: 'main'
+            }
+          });
+        }
       case 'render pass':
-      case 'render bundle': {
-        const wgslShaders = {
-          vertex: `
+      case 'render bundle':{
+          const wgslShaders = {
+            vertex: `
             @vertex fn vert_main() -> @builtin(position) vec4<f32> {
               return vec4<f32>(0.5, 0.5, 0.0, 1.0);
             }
           `,
 
-          fragment: `
+            fragment: `
             struct Data {
               value : i32
             };
@@ -96,29 +109,29 @@ export class ProgrammableStateTest extends GPUTest {
               out.value = ${algorithm};
               return vec4<f32>(1.0, 0.0, 0.0, 1.0);
             }
-          `,
-        };
+          `
+          };
 
-        return this.device.createRenderPipeline({
-          layout: this.device.createPipelineLayout({
-            bindGroupLayouts: this.getBindGroupLayouts(groups),
-          }),
-          vertex: {
-            module: this.device.createShaderModule({
-              code: wgslShaders.vertex,
+          return this.device.createRenderPipeline({
+            layout: this.device.createPipelineLayout({
+              bindGroupLayouts: this.getBindGroupLayouts(groups)
             }),
-            entryPoint: 'vert_main',
-          },
-          fragment: {
-            module: this.device.createShaderModule({
-              code: wgslShaders.fragment,
-            }),
-            entryPoint: 'frag_main',
-            targets: [{ format: 'rgba8unorm' }],
-          },
-          primitive: { topology: 'point-list' },
-        });
-      }
+            vertex: {
+              module: this.device.createShaderModule({
+                code: wgslShaders.vertex
+              }),
+              entryPoint: 'vert_main'
+            },
+            fragment: {
+              module: this.device.createShaderModule({
+                code: wgslShaders.fragment
+              }),
+              entryPoint: 'frag_main',
+              targets: [{ format: 'rgba8unorm' }]
+            },
+            primitive: { topology: 'point-list' }
+          });
+        }
       default:
         unreachable();
     }

@@ -1,6 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Test vertex attributes behave correctly (no crash / data leak) when accessed out of bounds
 
 Test coverage:
@@ -59,26 +59,36 @@ TODO:
 Currently firstInstance is not tested, as for drawIndexed it is CPU validated, and for drawIndirect
 and drawIndexedIndirect it should always be 0. Once there is an extension to allow making them non-zero,
 it should be added into drawCallTestParameter list.
-`;
-import { makeTestGroup } from '../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert } from '../../../common/util/util.js';
 import { GPUTest, TextureTestMixin } from '../../gpu_test.js';
 
 // Encapsulates a draw call (either indexed or non-indexed)
 class DrawCall {
+
+
+
   // Add a float offset when binding vertex buffer
+
 
   // Keep instance step mode vertex buffer in range, in order to test vertex step
   // mode buffer OOB in drawIndexed. Setting true will suppress partialLastNumber
   // and offsetVertexBuffer for instance step mode vertex buffer.
 
+
   // Draw
+
+
 
   // DrawIndexed
   // For generating index buffer in drawIndexed and drawIndexedIndirect
   // For accessing index buffer in drawIndexed and drawIndexedIndirect
 
+
+
   // Both Draw and DrawIndexed
+
+
 
   constructor({
     test,
@@ -86,7 +96,14 @@ class DrawCall {
     vertexCount,
     partialLastNumber,
     offsetVertexBuffer,
-    keepInstanceStepModeBufferInRange,
+    keepInstanceStepModeBufferInRange
+
+
+
+
+
+
+
   }) {
     this.test = test;
 
@@ -195,7 +212,7 @@ class DrawCall {
     }
     const buffer = this.test.device.createBuffer({
       size,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST, // Ensure that buffer can be used by writeBuffer
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST // Ensure that buffer can be used by writeBuffer
     });
     this.test.device.queue.writeBuffer(buffer, 0, vertexArray.slice(0, length));
     return buffer;
@@ -204,57 +221,66 @@ class DrawCall {
   // Create an indirect buffer containing draw call values
   generateIndirectBuffer() {
     const indirectArray = new Int32Array([
-      this.vertexCount,
-      this.instanceCount,
-      this.firstVertex,
-      this.firstInstance,
-    ]);
-
+    this.vertexCount,
+    this.instanceCount,
+    this.firstVertex,
+    this.firstInstance]
+    );
     return this.test.makeBufferWithContents(indirectArray, GPUBufferUsage.INDIRECT);
   }
 
   // Create an indirect buffer containing indexed draw call values
   generateIndexedIndirectBuffer() {
     const indirectArray = new Int32Array([
-      this.indexCount,
-      this.instanceCount,
-      this.firstIndex,
-      this.baseVertex,
-      this.firstInstance,
-    ]);
-
+    this.indexCount,
+    this.instanceCount,
+    this.firstIndex,
+    this.baseVertex,
+    this.firstInstance]
+    );
     return this.test.makeBufferWithContents(indirectArray, GPUBufferUsage.INDIRECT);
   }
 }
 
 // Parameterize different sized types
 
+
+
+
+
+
 const typeInfoMap = {
   float32: {
     wgslType: 'f32',
     sizeInBytes: 4,
-    validationFunc: 'return valid(v);',
+    validationFunc: 'return valid(v);'
   },
   float32x2: {
     wgslType: 'vec2<f32>',
     sizeInBytes: 8,
-    validationFunc: 'return valid(v.x) && valid(v.y);',
+    validationFunc: 'return valid(v.x) && valid(v.y);'
   },
   float32x3: {
     wgslType: 'vec3<f32>',
     sizeInBytes: 12,
-    validationFunc: 'return valid(v.x) && valid(v.y) && valid(v.z);',
+    validationFunc: 'return valid(v.x) && valid(v.y) && valid(v.z);'
   },
   float32x4: {
     wgslType: 'vec4<f32>',
     sizeInBytes: 16,
     validationFunc: `return (valid(v.x) && valid(v.y) && valid(v.z) && valid(v.w)) ||
-                            (v.x == 0.0 && v.y == 0.0 && v.z == 0.0 && (v.w == 0.0 || v.w == 1.0));`,
-  },
+                            (v.x == 0.0 && v.y == 0.0 && v.z == 0.0 && (v.w == 0.0 || v.w == 1.0));`
+  }
 };
 
 class F extends TextureTestMixin(GPUTest) {
-  generateBufferContents(numVertices, attributesPerBuffer, typeInfo, arbitraryValues, bufferCount) {
+  generateBufferContents(
+  numVertices,
+  attributesPerBuffer,
+  typeInfo,
+  arbitraryValues,
+  bufferCount)
+  {
     // Make an array big enough for the vertices, attributes, and size of each element
     const vertexArray = new Float32Array(
       numVertices * attributesPerBuffer * (typeInfo.sizeInBytes / 4)
@@ -274,7 +300,11 @@ class F extends TextureTestMixin(GPUTest) {
     return bufferContents;
   }
 
-  generateVertexBufferDescriptors(bufferCount, attributesPerBuffer, format) {
+  generateVertexBufferDescriptors(
+  bufferCount,
+  attributesPerBuffer,
+  format)
+  {
     const typeInfo = typeInfoMap[format];
     // Vertex buffer descriptors
     const buffers = [];
@@ -284,13 +314,13 @@ class F extends TextureTestMixin(GPUTest) {
         buffers.push({
           arrayStride: attributesPerBuffer * typeInfo.sizeInBytes,
           stepMode: i === 0 ? 'instance' : 'vertex',
-          attributes: Array(attributesPerBuffer)
-            .fill(0)
-            .map((_, i) => ({
-              shaderLocation: currAttribute++,
-              offset: i * typeInfo.sizeInBytes,
-              format,
-            })),
+          attributes: Array(attributesPerBuffer).
+          fill(0).
+          map((_, i) => ({
+            shaderLocation: currAttribute++,
+            offset: i * typeInfo.sizeInBytes,
+            format
+          }))
         });
       }
     }
@@ -304,7 +334,15 @@ class F extends TextureTestMixin(GPUTest) {
     typeInfo,
     vertexIndexOffset,
     numVertices,
-    isIndexed,
+    isIndexed
+
+
+
+
+
+
+
+
   }) {
     // Create layout and attributes listing
     let layoutStr = 'struct Attributes {';
@@ -325,7 +363,7 @@ class F extends TextureTestMixin(GPUTest) {
       ${layoutStr}
 
       fn valid(f : f32) -> bool {
-        return ${validValues.map(v => `f == ${v}.0`).join(' || ')};
+        return ${validValues.map((v) => `f == ${v}.0`).join(' || ')};
       }
 
       fn validationFunc(v : ${typeInfo.wgslType}) -> bool {
@@ -336,9 +374,9 @@ class F extends TextureTestMixin(GPUTest) {
         @builtin(vertex_index) VertexIndex : u32,
         attributes : Attributes
         ) -> @builtin(position) vec4<f32> {
-        var attributesInBounds = ${attributeNames
-          .map(a => `validationFunc(attributes.${a})`)
-          .join(' && ')};
+        var attributesInBounds = ${attributeNames.
+    map((a) => `validationFunc(attributes.${a})`).
+    join(' && ')};
 
         var indexInBoundsCountFromBaseVertex =
             (VertexIndex >= ${vertexIndexOffset}u &&
@@ -366,7 +404,16 @@ class F extends TextureTestMixin(GPUTest) {
     vertexIndexOffset,
     numVertices,
     isIndexed,
-    buffers,
+    buffers
+
+
+
+
+
+
+
+
+
   }) {
     const pipeline = this.device.createRenderPipeline({
       layout: 'auto',
@@ -379,23 +426,23 @@ class F extends TextureTestMixin(GPUTest) {
             typeInfo,
             vertexIndexOffset,
             numVertices,
-            isIndexed,
-          }),
+            isIndexed
+          })
         }),
         entryPoint: 'main',
-        buffers,
+        buffers
       },
       fragment: {
         module: this.device.createShaderModule({
           code: `
             @fragment fn main() -> @location(0) vec4<f32> {
               return vec4<f32>(1.0, 0.0, 0.0, 1.0);
-            }`,
+            }`
         }),
         entryPoint: 'main',
-        targets: [{ format: 'rgba8unorm' }],
+        targets: [{ format: 'rgba8unorm' }]
       },
-      primitive: { topology: 'point-list' },
+      primitive: { topology: 'point-list' }
     });
     return pipeline;
   }
@@ -409,7 +456,17 @@ class F extends TextureTestMixin(GPUTest) {
     numVertices,
     isIndexed,
     isIndirect,
-    drawCall,
+    drawCall
+
+
+
+
+
+
+
+
+
+
   }) {
     // Vertex buffer descriptors
     const buffers = this.generateVertexBufferDescriptors(
@@ -427,26 +484,26 @@ class F extends TextureTestMixin(GPUTest) {
       vertexIndexOffset,
       numVertices,
       isIndexed,
-      buffers,
+      buffers
     });
 
     const colorAttachment = this.device.createTexture({
       format: 'rgba8unorm',
       size: { width: 2, height: 1, depthOrArrayLayers: 1 },
-      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
     });
     const colorAttachmentView = colorAttachment.createView();
 
     const encoder = this.device.createCommandEncoder();
     const pass = encoder.beginRenderPass({
       colorAttachments: [
-        {
-          view: colorAttachmentView,
-          storeOp: 'store',
-          clearValue: { r: 0.0, g: 1.0, b: 0.0, a: 1.0 },
-          loadOp: 'clear',
-        },
-      ],
+      {
+        view: colorAttachmentView,
+        storeOp: 'store',
+        clearValue: { r: 0.0, g: 1.0, b: 0.0, a: 1.0 },
+        loadOp: 'clear'
+      }]
+
     });
     pass.setPipeline(pipeline);
 
@@ -458,93 +515,93 @@ class F extends TextureTestMixin(GPUTest) {
 
     // Validate we see green on the left pixel, showing that no failure case is detected
     this.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, [
-      { coord: { x: 0, y: 0 }, exp: new Uint8Array([0x00, 0xff, 0x00, 0xff]) },
-    ]);
+    { coord: { x: 0, y: 0 }, exp: new Uint8Array([0x00, 0xff, 0x00, 0xff]) }]
+    );
   }
 }
 
 export const g = makeTestGroup(F);
 
-g.test('vertex_buffer_access')
-  .params(
-    u =>
-      u
-        .combineWithParams([
-          { indexed: false, indirect: true },
-          { indexed: true, indirect: false },
-          { indexed: true, indirect: true },
-        ])
-        .expand('drawCallTestParameter', function* (p) {
-          if (p.indexed) {
-            yield* ['baseVertex', 'vertexCountInIndexBuffer'];
-            if (p.indirect) {
-              yield* ['indexCount', 'instanceCount', 'firstIndex'];
-            }
-          } else if (p.indirect) {
-            yield* ['vertexCount', 'instanceCount', 'firstVertex'];
-          }
-        })
-        .combine('type', Object.keys(typeInfoMap))
-        .combine('additionalBuffers', [0, 4])
-        .combine('partialLastNumber', [false, true])
-        .combine('offsetVertexBuffer', [false, true])
-        .combine('errorScale', [0, 1, 4, 10 ** 2, 10 ** 4, 10 ** 6])
-        .unless(p => p.drawCallTestParameter === 'instanceCount' && p.errorScale > 10 ** 4) // To avoid timeout
-  )
-  .fn(t => {
-    const p = t.params;
-    const typeInfo = typeInfoMap[p.type];
-
-    // Number of vertices to draw
-    const numVertices = 4;
-    // Each buffer is bound to this many attributes (2 would mean 2 attributes per buffer)
-    const attributesPerBuffer = 2;
-    // Some arbitrary values to fill our buffer with to avoid collisions with other tests
-    const arbitraryValues = [990, 685, 446, 175];
-
-    // A valid value is 0 or one in the buffer
-    const validValues =
-      p.errorScale === 0 && !p.offsetVertexBuffer && !p.partialLastNumber
-        ? arbitraryValues // Control case with no OOB access, must read back valid values in buffer
-        : [0, ...arbitraryValues]; // Testing case with OOB access, can be 0 for OOB data
-
-    // Generate vertex buffer contents. Only the first buffer is instance step mode, all others are vertex step mode
-    const bufferCount = p.additionalBuffers + 2; // At least one instance step mode and one vertex step mode buffer
-    const bufferContents = t.generateBufferContents(
-      numVertices,
-      attributesPerBuffer,
-      typeInfo,
-      arbitraryValues,
-      bufferCount
-    );
-
-    // Mutable draw call
-    const draw = new DrawCall({
-      test: t,
-      vertexArrays: bufferContents,
-      vertexCount: numVertices,
-      partialLastNumber: p.partialLastNumber,
-      offsetVertexBuffer: p.offsetVertexBuffer,
-      keepInstanceStepModeBufferInRange: p.indexed && !p.indirect, // keep instance step mode buffer in range for drawIndexed
-    });
-
-    // Offset the draw call parameter we are testing by |errorScale|
-    draw[p.drawCallTestParameter] += p.errorScale;
-    // Offset the range checks for gl_VertexIndex in the shader if we use BaseVertex
-    let vertexIndexOffset = 0;
-    if (p.drawCallTestParameter === 'baseVertex') {
-      vertexIndexOffset += p.errorScale;
+g.test('vertex_buffer_access').
+params(
+  (u) =>
+  u.
+  combineWithParams([
+  { indexed: false, indirect: true },
+  { indexed: true, indirect: false },
+  { indexed: true, indirect: true }]
+  ).
+  expand('drawCallTestParameter', function* (p) {
+    if (p.indexed) {
+      yield* ['baseVertex', 'vertexCountInIndexBuffer'];
+      if (p.indirect) {
+        yield* ['indexCount', 'instanceCount', 'firstIndex'];
+      }
+    } else if (p.indirect) {
+      yield* ['vertexCount', 'instanceCount', 'firstVertex'];
     }
+  }).
+  combine('type', Object.keys(typeInfoMap)).
+  combine('additionalBuffers', [0, 4]).
+  combine('partialLastNumber', [false, true]).
+  combine('offsetVertexBuffer', [false, true]).
+  combine('errorScale', [0, 1, 4, 10 ** 2, 10 ** 4, 10 ** 6]).
+  unless((p) => p.drawCallTestParameter === 'instanceCount' && p.errorScale > 10 ** 4) // To avoid timeout
+).
+fn((t) => {
+  const p = t.params;
+  const typeInfo = typeInfoMap[p.type];
 
-    t.doTest({
-      bufferCount,
-      attributesPerBuffer,
-      dataType: p.type,
-      validValues,
-      vertexIndexOffset,
-      numVertices,
-      isIndexed: p.indexed,
-      isIndirect: p.indirect,
-      drawCall: draw,
-    });
+  // Number of vertices to draw
+  const numVertices = 4;
+  // Each buffer is bound to this many attributes (2 would mean 2 attributes per buffer)
+  const attributesPerBuffer = 2;
+  // Some arbitrary values to fill our buffer with to avoid collisions with other tests
+  const arbitraryValues = [990, 685, 446, 175];
+
+  // A valid value is 0 or one in the buffer
+  const validValues =
+  p.errorScale === 0 && !p.offsetVertexBuffer && !p.partialLastNumber ?
+  arbitraryValues // Control case with no OOB access, must read back valid values in buffer
+  : [0, ...arbitraryValues]; // Testing case with OOB access, can be 0 for OOB data
+
+  // Generate vertex buffer contents. Only the first buffer is instance step mode, all others are vertex step mode
+  const bufferCount = p.additionalBuffers + 2; // At least one instance step mode and one vertex step mode buffer
+  const bufferContents = t.generateBufferContents(
+    numVertices,
+    attributesPerBuffer,
+    typeInfo,
+    arbitraryValues,
+    bufferCount
+  );
+
+  // Mutable draw call
+  const draw = new DrawCall({
+    test: t,
+    vertexArrays: bufferContents,
+    vertexCount: numVertices,
+    partialLastNumber: p.partialLastNumber,
+    offsetVertexBuffer: p.offsetVertexBuffer,
+    keepInstanceStepModeBufferInRange: p.indexed && !p.indirect // keep instance step mode buffer in range for drawIndexed
   });
+
+  // Offset the draw call parameter we are testing by |errorScale|
+  draw[p.drawCallTestParameter] += p.errorScale;
+  // Offset the range checks for gl_VertexIndex in the shader if we use BaseVertex
+  let vertexIndexOffset = 0;
+  if (p.drawCallTestParameter === 'baseVertex') {
+    vertexIndexOffset += p.errorScale;
+  }
+
+  t.doTest({
+    bufferCount,
+    attributesPerBuffer,
+    dataType: p.type,
+    validValues,
+    vertexIndexOffset,
+    numVertices,
+    isIndexed: p.indexed,
+    isIndirect: p.indirect,
+    drawCall: draw
+  });
+});

@@ -1,22 +1,31 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { kAccessModeInfo, kAddressSpaceInfo } from '../../types.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import {
+
+  kAccessModeInfo,
+  kAddressSpaceInfo } from
+'../../types.js';
 
 /** An enumerator of shader stages */
+
 
 /** The list of all shader stages */
 export const kShaderStages = ['vertex', 'fragment', 'compute'];
 
 /**
  * declareEntrypoint emits the WGSL to declare an entry point with the name, stage and body.
- * The generated function will have an appropriate return type and return statement, so that @p body
+ * The generated function will have an appropriate return type and return statement, so that `body`
  * does not have to change between stage.
  * @param arg - arg specifies the
  * optional entry point function name, the shader stage, and the body of the
  * function, excluding any automatically generated return statements.
  * @returns the WGSL string for the entry point
  */
-export function declareEntryPoint(arg) {
+export function declareEntryPoint(arg)
+
+
+
+{
   if (arg.name === undefined) {
     arg.name = 'main';
   }
@@ -71,7 +80,10 @@ export function explicitSpaceExpander(p) {
  * @returns a list of usable access modes under given experiment conditions, or undefined
  * if none are allowed.
  */
-export function accessModeExpander(p) {
+export function accessModeExpander(p)
+
+
+{
   const info = kAddressSpaceInfo[p.addressSpace];
   return p.explicitAccess && info.spellAccessMode !== 'never' ? info.accessModes : [''];
 }
@@ -81,10 +93,15 @@ export function accessModeExpander(p) {
  * given parameterization
  */
 export function getVarDeclShader(
-  p,
+p,
 
-  additionalBody
-) {
+
+
+
+
+
+additionalBody)
+{
   const info = kAddressSpaceInfo[p.addressSpace];
   const decl = declareVarX(
     p.explicitSpace ? p.addressSpace : '',
@@ -106,26 +123,40 @@ export function getVarDeclShader(
  * @returns the WGSL spelling of a pointer type corresponding to a variable
  * declared with the given parameters.
  */
-export function pointerType(p) {
+export function pointerType(p)
+
+
+
+
+{
   const space = p.explicitSpace ? p.addressSpace : 'function';
   const modePart = p.accessMode ? ',' + p.accessMode : '';
   return `ptr<${space},${p.ptrStoreType}${modePart}>`;
 }
 
 /** @returns the effective access mode for the given experiment.  */
-export function effectiveAccessMode(info, accessMode) {
+export function effectiveAccessMode(
+info,
+accessMode)
+{
   return accessMode || info.accessModes[0]; // default is first.
 }
 
 /** @returns whether the setup allows reads */
-export function supportsRead(p) {
+export function supportsRead(p)
+
+
+{
   const info = kAddressSpaceInfo[p.addressSpace];
   const mode = effectiveAccessMode(info, p.accessMode);
   return info.accessModes.includes(mode) && kAccessModeInfo[mode].read;
 }
 
 /** @returns whether the setup allows writes */
-export function supportsWrite(p) {
+export function supportsWrite(p)
+
+
+{
   const info = kAddressSpaceInfo[p.addressSpace];
   const mode = effectiveAccessMode(info, p.accessMode);
   return info.accessModes.includes(mode) && kAccessModeInfo[mode].write;

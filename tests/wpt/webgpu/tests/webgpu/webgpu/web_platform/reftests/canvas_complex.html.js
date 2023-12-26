@@ -1,14 +1,26 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert, unreachable } from '../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../format_info.js';
-import { gammaDecompress, float32ToFloat16Bits } from '../../util/conversion.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { assert, unreachable } from '../../../common/util/util.js';import { kTextureFormatInfo } from '../../format_info.js';import { gammaDecompress, float32ToFloat16Bits } from '../../util/conversion.js';
 import { align } from '../../util/math.js';
 
 import { runRefTest } from './gpu_ref_test.js';
 
-export function run(format, targets) {
-  runRefTest(async t => {
+
+
+
+
+
+
+
+
+
+
+
+export function run(
+format,
+targets)
+{
+  runRefTest(async (t) => {
     let shaderValue = 0x66 / 0xff;
     let isOutputSrgb = false;
     switch (format) {
@@ -27,7 +39,6 @@ export function run(format, targets) {
       default:
         unreachable();
     }
-
     const shaderValueStr = shaderValue.toFixed(5);
 
     function copyBufferToTexture(ctx) {
@@ -42,8 +53,9 @@ export function run(format, targets) {
       const buffer = t.device.createBuffer({
         mappedAtCreation: true,
         size: rows * bytesPerRow,
-        usage: GPUBufferUsage.COPY_SRC,
+        usage: GPUBufferUsage.COPY_SRC
       });
+      // These are run only once per test, so there are no wasted reallocations below.
       let red;
       let green;
       let blue;
@@ -76,87 +88,82 @@ export function run(format, targets) {
           {
             data = new Uint16Array(mapping);
             red = new Uint16Array([
-              float32ToFloat16Bits(0.4),
-              float32ToFloat16Bits(0.0),
-              float32ToFloat16Bits(0.0),
-              float32ToFloat16Bits(1.0),
-            ]);
-
+            float32ToFloat16Bits(0.4),
+            float32ToFloat16Bits(0.0),
+            float32ToFloat16Bits(0.0),
+            float32ToFloat16Bits(1.0)]
+            );
             green = new Uint16Array([
-              float32ToFloat16Bits(0.0),
-              float32ToFloat16Bits(0.4),
-              float32ToFloat16Bits(0.0),
-              float32ToFloat16Bits(1.0),
-            ]);
-
+            float32ToFloat16Bits(0.0),
+            float32ToFloat16Bits(0.4),
+            float32ToFloat16Bits(0.0),
+            float32ToFloat16Bits(1.0)]
+            );
             blue = new Uint16Array([
-              float32ToFloat16Bits(0.0),
-              float32ToFloat16Bits(0.0),
-              float32ToFloat16Bits(0.4),
-              float32ToFloat16Bits(1.0),
-            ]);
-
+            float32ToFloat16Bits(0.0),
+            float32ToFloat16Bits(0.0),
+            float32ToFloat16Bits(0.4),
+            float32ToFloat16Bits(1.0)]
+            );
             yellow = new Uint16Array([
-              float32ToFloat16Bits(0.4),
-              float32ToFloat16Bits(0.4),
-              float32ToFloat16Bits(0.0),
-              float32ToFloat16Bits(1.0),
-            ]);
+            float32ToFloat16Bits(0.4),
+            float32ToFloat16Bits(0.4),
+            float32ToFloat16Bits(0.0),
+            float32ToFloat16Bits(1.0)]
+            );
           }
           break;
         default:
           unreachable();
       }
-
       for (let i = 0; i < ctx.canvas.width; ++i)
-        for (let j = 0; j < ctx.canvas.height; ++j) {
-          let pixel;
-          if (i < ctx.canvas.width / 2) {
-            if (j < ctx.canvas.height / 2) {
-              pixel = red;
-            } else {
-              pixel = blue;
-            }
+      for (let j = 0; j < ctx.canvas.height; ++j) {
+        let pixel;
+        if (i < ctx.canvas.width / 2) {
+          if (j < ctx.canvas.height / 2) {
+            pixel = red;
           } else {
-            if (j < ctx.canvas.height / 2) {
-              pixel = green;
-            } else {
-              pixel = yellow;
-            }
+            pixel = blue;
           }
-          data.set(pixel, (i + j * (bytesPerRow / bytesPerPixel)) * componentsPerPixel);
+        } else {
+          if (j < ctx.canvas.height / 2) {
+            pixel = green;
+          } else {
+            pixel = yellow;
+          }
         }
+        data.set(pixel, (i + j * (bytesPerRow / bytesPerPixel)) * componentsPerPixel);
+      }
       buffer.unmap();
 
       const encoder = t.device.createCommandEncoder();
       encoder.copyBufferToTexture({ buffer, bytesPerRow }, { texture: ctx.getCurrentTexture() }, [
-        ctx.canvas.width,
-        ctx.canvas.height,
-        1,
-      ]);
-
+      ctx.canvas.width,
+      ctx.canvas.height,
+      1]
+      );
       t.device.queue.submit([encoder.finish()]);
     }
 
     function getImageBitmap(ctx) {
       const data = new Uint8ClampedArray(ctx.canvas.width * ctx.canvas.height * 4);
       for (let i = 0; i < ctx.canvas.width; ++i)
-        for (let j = 0; j < ctx.canvas.height; ++j) {
-          const offset = (i + j * ctx.canvas.width) * 4;
-          if (i < ctx.canvas.width / 2) {
-            if (j < ctx.canvas.height / 2) {
-              data.set([0x66, 0x00, 0x00, 0xff], offset);
-            } else {
-              data.set([0x00, 0x00, 0x66, 0xff], offset);
-            }
+      for (let j = 0; j < ctx.canvas.height; ++j) {
+        const offset = (i + j * ctx.canvas.width) * 4;
+        if (i < ctx.canvas.width / 2) {
+          if (j < ctx.canvas.height / 2) {
+            data.set([0x66, 0x00, 0x00, 0xff], offset);
           } else {
-            if (j < ctx.canvas.height / 2) {
-              data.set([0x00, 0x66, 0x00, 0xff], offset);
-            } else {
-              data.set([0x66, 0x66, 0x00, 0xff], offset);
-            }
+            data.set([0x00, 0x00, 0x66, 0xff], offset);
+          }
+        } else {
+          if (j < ctx.canvas.height / 2) {
+            data.set([0x00, 0x66, 0x00, 0xff], offset);
+          } else {
+            data.set([0x66, 0x66, 0x00, 0xff], offset);
           }
         }
+      }
       const imageData = new ImageData(data, ctx.canvas.width, ctx.canvas.height);
       return createImageBitmap(imageData);
     }
@@ -167,16 +174,15 @@ export function run(format, targets) {
         size: [srcWidth, srcHeight, 1],
         format,
         usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.RENDER_ATTACHMENT |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.COPY_SRC,
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.COPY_SRC
       });
       t.device.queue.copyExternalImageToTexture({ source: imageBitmap }, { texture: srcTexture }, [
-        imageBitmap.width,
-        imageBitmap.height,
-      ]);
-
+      imageBitmap.width,
+      imageBitmap.height]
+      );
       return srcTexture;
     }
 
@@ -199,7 +205,6 @@ export function run(format, targets) {
         { texture: ctx.getCurrentTexture(), mipLevel: 0, origin: { x: 0, y: 0, z: 0 } },
         [imageBitmap.width, imageBitmap.height, 1]
       );
-
       t.device.queue.submit([encoder.finish()]);
     }
 
@@ -240,9 +245,9 @@ fn main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
   output.fragUV = uv[VertexIndex];
   return output;
 }
-            `,
+            `
           }),
-          entryPoint: 'main',
+          entryPoint: 'main'
         },
         fragment: {
           module: t.device.createShaderModule({
@@ -275,45 +280,45 @@ fn srgbMain(@location(0) fragUV: vec2<f32>) -> @location(0) vec4<f32> {
 fn linearMain(@location(0) fragUV: vec2<f32>) -> @location(0) vec4<f32> {
   return textureSample(myTexture, mySampler, fragUV);
 }
-            `,
+            `
           }),
           entryPoint: isOutputSrgb ? 'srgbMain' : 'linearMain',
-          targets: [{ format }],
+          targets: [{ format }]
         },
         primitive: {
-          topology: 'triangle-list',
-        },
+          topology: 'triangle-list'
+        }
       });
 
       const sampler = t.device.createSampler({
         magFilter: 'nearest',
-        minFilter: 'nearest',
+        minFilter: 'nearest'
       });
 
       const uniformBindGroup = t.device.createBindGroup({
         layout: pipeline.getBindGroupLayout(0),
         entries: [
-          {
-            binding: 0,
-            resource: sampler,
-          },
-          {
-            binding: 1,
-            resource: srcTexture.createView(),
-          },
-        ],
+        {
+          binding: 0,
+          resource: sampler
+        },
+        {
+          binding: 1,
+          resource: srcTexture.createView()
+        }]
+
       });
 
       const renderPassDescriptor = {
         colorAttachments: [
-          {
-            view: ctx.getCurrentTexture().createView(),
+        {
+          view: ctx.getCurrentTexture().createView(),
 
-            clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
-            loadOp: 'clear',
-            storeOp: 'store',
-          },
-        ],
+          clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+
       };
 
       const commandEncoder = t.device.createCommandEncoder();
@@ -363,9 +368,9 @@ fn main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
   output.fragColor = color[VertexIndex / 6u];
   return output;
 }
-            `,
+            `
           }),
-          entryPoint: 'main',
+          entryPoint: 'main'
         },
         fragment: {
           module: t.device.createShaderModule({
@@ -374,26 +379,26 @@ fn main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
 fn main(@location(0) fragColor: vec4<f32>) -> @location(0) vec4<f32> {
   return fragColor;
 }
-            `,
+            `
           }),
           entryPoint: 'main',
-          targets: [{ format }],
+          targets: [{ format }]
         },
         primitive: {
-          topology: 'triangle-list',
-        },
+          topology: 'triangle-list'
+        }
       });
 
       const renderPassDescriptor = {
         colorAttachments: [
-          {
-            view: ctx.getCurrentTexture().createView(),
+        {
+          view: ctx.getCurrentTexture().createView(),
 
-            clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
-            loadOp: 'clear',
-            storeOp: 'store',
-          },
-        ],
+          clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+
       };
 
       const commandEncoder = t.device.createCommandEncoder();
@@ -430,9 +435,9 @@ fn main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
   output.Position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);
   return output;
 }
-            `,
+            `
           }),
-          entryPoint: 'main',
+          entryPoint: 'main'
         },
         fragment: {
           module: t.device.createShaderModule({
@@ -460,26 +465,26 @@ fn main(@builtin(position) fragcoord: vec4<f32>) -> @location(0) vec4<f32> {
   }
   return color;
 }
-            `,
+            `
           }),
           entryPoint: 'main',
-          targets: [{ format }],
+          targets: [{ format }]
         },
         primitive: {
-          topology: 'triangle-list',
-        },
+          topology: 'triangle-list'
+        }
       });
 
       const renderPassDescriptor = {
         colorAttachments: [
-          {
-            view: ctx.getCurrentTexture().createView(),
+        {
+          view: ctx.getCurrentTexture().createView(),
 
-            clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
-            loadOp: 'clear',
-            storeOp: 'store',
-          },
-        ],
+          clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+
       };
 
       const commandEncoder = t.device.createCommandEncoder();
@@ -516,9 +521,9 @@ fn main(@builtin(vertex_index) VertexIndex : u32) -> VertexOutput {
   output.Position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);
   return output;
 }
-            `,
+            `
           }),
-          entryPoint: 'main',
+          entryPoint: 'main'
         },
         fragment: {
           module: t.device.createShaderModule({
@@ -546,37 +551,37 @@ fn main(@builtin(position) fragcoord: vec4<f32>) -> @location(0) vec4<f32> {
   textureStore(outImage, vec2<i32>(coord), color);
   return color;
 }
-            `,
+            `
           }),
           entryPoint: 'main',
-          targets: [{ format }],
+          targets: [{ format }]
         },
         primitive: {
-          topology: 'triangle-list',
-        },
+          topology: 'triangle-list'
+        }
       });
 
       const bg = t.device.createBindGroup({
         entries: [{ binding: 0, resource: ctx.getCurrentTexture().createView() }],
-        layout: pipeline.getBindGroupLayout(0),
+        layout: pipeline.getBindGroupLayout(0)
       });
 
       const outputTexture = t.device.createTexture({
         format,
         size: [ctx.canvas.width, ctx.canvas.height, 1],
-        usage: GPUTextureUsage.RENDER_ATTACHMENT,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT
       });
 
       const renderPassDescriptor = {
         colorAttachments: [
-          {
-            view: outputTexture.createView(),
+        {
+          view: outputTexture.createView(),
 
-            clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
-            loadOp: 'clear',
-            storeOp: 'store',
-          },
-        ],
+          clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 1.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+
       };
 
       const commandEncoder = t.device.createCommandEncoder();
@@ -618,15 +623,15 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
   textureStore(outImage, vec2<i32>(GlobalInvocationID.xy), color);
   return;
 }
-          `,
+          `
           }),
-          entryPoint: 'main',
-        },
+          entryPoint: 'main'
+        }
       });
 
       const bg = t.device.createBindGroup({
         entries: [{ binding: 0, resource: ctx.getCurrentTexture().createView() }],
-        layout: pipeline.getBindGroupLayout(0),
+        layout: pipeline.getBindGroupLayout(0)
       });
 
       const encoder = t.device.createCommandEncoder();
@@ -674,15 +679,15 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
   textureStore(outImage, vec2<i32>(GlobalInvocationID.xy), color);
   return;
 }
-            `,
+            `
           }),
-          entryPoint: 'main',
-        },
+          entryPoint: 'main'
+        }
       });
 
       const bg = t.device.createBindGroup({
         entries: [{ binding: 0, resource: ctx.getCurrentTexture().createView() }],
-        layout: pipeline.getBindGroupLayout(0),
+        layout: pipeline.getBindGroupLayout(0)
       });
 
       const encoder = t.device.createCommandEncoder();
@@ -694,7 +699,6 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
         align(ctx.canvas.height, 16) / 16,
         1
       );
-
       pass.end();
       t.device.queue.submit([encoder.finish()]);
     }
@@ -729,7 +733,7 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
       ctx.configure({
         device: t.device,
         format,
-        usage,
+        usage
       });
 
       switch (writeCanvasMethod) {

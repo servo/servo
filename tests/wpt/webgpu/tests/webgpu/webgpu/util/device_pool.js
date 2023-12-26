@@ -1,15 +1,21 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { SkipTestCase } from '../../common/framework/fixture.js';
-import { attemptGarbageCollection } from '../../common/util/collect_garbage.js';
-import { getGPU, getDefaultRequestAdapterOptions } from '../../common/util/navigator_gpu.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { SkipTestCase } from '../../common/framework/fixture.js';import { attemptGarbageCollection } from '../../common/util/collect_garbage.js';import { getGPU, getDefaultRequestAdapterOptions } from '../../common/util/navigator_gpu.js';
 import {
   assert,
   raceWithRejectOnTimeout,
   assertReject,
-  unreachable,
-} from '../../common/util/util.js';
+  unreachable } from
+'../../common/util/util.js';
 import { getDefaultLimits, kLimits } from '../capability_info.js';
+
+// MUST_NOT_BE_IMPORTED_BY_DATA_CACHE
+// This file should not be transitively imported by .cache.ts files
+
+
+
+
+
 
 class TestFailedButDeviceReusable extends Error {}
 class FeaturesNotSupported extends Error {}
@@ -19,7 +25,10 @@ export class DevicePool {
   holders = 'uninitialized';
 
   /** Acquire a device from the pool and begin the error scopes. */
-  async acquire(recorder, descriptor) {
+  async acquire(
+  recorder,
+  descriptor)
+  {
     let errorMessage = '';
     if (this.holders === 'uninitialized') {
       this.holders = new DescriptorToHolderMap();
@@ -87,9 +96,9 @@ export class DevicePool {
       // The device lost is expected when `holder.expectedLostReason` is equal to
       // `holder.lostInfo.reason`.
       const expectedDeviceLost =
-        holder.expectedLostReason !== undefined &&
-        holder.lostInfo !== undefined &&
-        holder.expectedLostReason === holder.lostInfo.reason;
+      holder.expectedLostReason !== undefined &&
+      holder.lostInfo !== undefined &&
+      holder.expectedLostReason === holder.lostInfo.reason;
       if (!expectedDeviceLost) {
         throw ex;
       }
@@ -128,7 +137,10 @@ class DescriptorToHolderMap {
    *
    * Throws SkipTestCase if devices with this descriptor are unsupported.
    */
-  async getOrCreate(recorder, uncanonicalizedDescriptor) {
+  async getOrCreate(
+  recorder,
+  uncanonicalizedDescriptor)
+  {
     const [descriptor, key] = canonicalizeDescriptor(uncanonicalizedDescriptor);
     // Quick-reject descriptors that are known to be unsupported already.
     if (this.unsupported.has(key)) {
@@ -181,6 +193,22 @@ class DescriptorToHolderMap {
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * Make a stringified map-key from a GPUDeviceDescriptor.
  * Tries to make sure all defaults are resolved, first - but it's okay if some are missed
@@ -190,20 +218,23 @@ class DescriptorToHolderMap {
  * GPUDeviceDescriptor. This is just because `undefined` is a common case and we want to use it
  * as a sanity check that WebGPU is working.
  */
-function canonicalizeDescriptor(desc) {
+function canonicalizeDescriptor(
+desc)
+{
   if (desc === undefined) {
     return [undefined, ''];
   }
 
-  const featuresCanonicalized = desc.requiredFeatures
-    ? Array.from(new Set(desc.requiredFeatures)).sort()
-    : [];
+  const featuresCanonicalized = desc.requiredFeatures ?
+  Array.from(new Set(desc.requiredFeatures)).sort() :
+  [];
 
   /** Canonicalized version of the requested limits: in canonical order, with only values which are
    * specified _and_ non-default. */
   const limitsCanonicalized = {};
   // MAINTENANCE_TODO: Remove cast when @webgpu/types includes compatibilityMode
   const adapterOptions = getDefaultRequestAdapterOptions();
+
 
   const featureLevel = adapterOptions?.compatibilityMode ? 'compatibility' : 'core';
   const defaultLimits = getDefaultLimits(featureLevel);
@@ -222,12 +253,15 @@ function canonicalizeDescriptor(desc) {
   const descriptorCanonicalized = {
     requiredFeatures: featuresCanonicalized,
     requiredLimits: limitsCanonicalized,
-    defaultQueue: {},
+    defaultQueue: {}
   };
   return [descriptorCanonicalized, JSON.stringify(descriptorCanonicalized)];
 }
 
-function supportsFeature(adapter, descriptor) {
+function supportsFeature(
+adapter,
+descriptor)
+{
   if (descriptor === undefined) {
     return true;
   }
@@ -247,6 +281,7 @@ function supportsFeature(adapter, descriptor) {
  * - 'acquired': In use by a running test.
  */
 
+
 /**
  * Holds a GPUDevice and tracks its state (free/acquired) and handles device loss.
  */
@@ -257,9 +292,15 @@ class DeviceHolder {
   state = 'free';
   /** initially undefined; becomes set when the device is lost */
 
+  /** Set if the device is expected to be lost. */
+
+
   // Gets a device and creates a DeviceHolder.
   // If the device is lost, DeviceHolder.lost gets set.
-  static async create(recorder, descriptor) {
+  static async create(
+  recorder,
+  descriptor)
+  {
     const gpu = getGPU(recorder);
     const adapter = await gpu.requestAdapter();
     assert(adapter !== null, 'requestAdapter returned null');
@@ -274,7 +315,7 @@ class DeviceHolder {
 
   constructor(device) {
     this._device = device;
-    void this._device.lost.then(ev => {
+    void this._device.lost.then((ev) => {
       this.lostInfo = ev;
     });
   }
@@ -326,10 +367,10 @@ class DeviceHolder {
     try {
       // May reject if the device was lost.
       [gpuOutOfMemoryError, gpuInternalError, gpuValidationError] = await Promise.all([
-        this.device.popErrorScope(),
-        this.device.popErrorScope(),
-        this.device.popErrorScope(),
-      ]);
+      this.device.popErrorScope(),
+      this.device.popErrorScope(),
+      this.device.popErrorScope()]
+      );
     } catch (ex) {
       assert(this.lostInfo !== undefined, 'popErrorScope failed; did beginTestScope get missed?');
       throw ex;
@@ -340,10 +381,10 @@ class DeviceHolder {
       await this.device.queue.onSubmittedWorkDone();
     }
 
-    await assertReject(
-      this.device.popErrorScope(),
-      'There was an extra error scope on the stack after a test'
-    );
+    await assertReject('OperationError', this.device.popErrorScope(), {
+      allowMissingStack: true,
+      message: 'There was an extra error scope on the stack after a test'
+    });
 
     if (gpuOutOfMemoryError !== null) {
       assert(gpuOutOfMemoryError instanceof GPUOutOfMemoryError);

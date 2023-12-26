@@ -1,16 +1,17 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Tests that you can not create a render pipeline with different per target blend state or write mask in compat mode.
-`;
-import { makeTestGroup } from '../../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../../common/util/data_tables.js';
 import { CompatibilityTest } from '../../../compatibility_test.js';
 
 export const g = makeTestGroup(CompatibilityTest);
 
+
+
 const cases = {
-  default(targets) {
+  default(_targets) {
     return true;
   },
   noBlendTarget0(targets) {
@@ -48,26 +49,26 @@ const cases = {
   writeMask(targets) {
     targets[2].writeMask = GPUColorWrite.GREEN;
     return false;
-  },
+  }
 };
 const caseNames = keysOf(cases);
 
-g.test('colorState')
-  .desc(
-    `
+g.test('colorState').
+desc(
+  `
 Tests that you can not create a render pipeline with different per target blend state or write mask in compat mode.
 
 - Test no blend state vs some blend state
 - Test different operation, srcFactor, dstFactor for color and alpha
 - Test different writeMask
     `
-  )
-  .params(u => u.combine('caseName', caseNames))
-  .fn(t => {
-    const { caseName } = t.params;
+).
+params((u) => u.combine('caseName', caseNames)).
+fn((t) => {
+  const { caseName } = t.params;
 
-    const module = t.device.createShaderModule({
-      code: `
+  const module = t.device.createShaderModule({
+    code: `
         @vertex fn vs() -> @builtin(position) vec4f {
             return vec4f(0);
         }
@@ -85,43 +86,43 @@ Tests that you can not create a render pipeline with different per target blend 
             output.fragColor2 = vec4f(0);
             return output;
         }
-      `,
-    });
-
-    const targets = [
-      {
-        format: 'rgba8unorm',
-        blend: {
-          color: {},
-          alpha: {},
-        },
-      },
-      null,
-      {
-        format: 'rgba8unorm',
-        blend: {
-          color: {},
-          alpha: {},
-        },
-      },
-    ];
-
-    const pipelineDescriptor = {
-      layout: 'auto',
-      vertex: {
-        module,
-        entryPoint: 'vs',
-      },
-      fragment: {
-        module,
-        entryPoint: 'fs',
-        targets,
-      },
-    };
-    const isValid = cases[caseName](targets);
-    t.expectGPUError(
-      'validation',
-      () => t.device.createRenderPipeline(pipelineDescriptor),
-      !isValid
-    );
+      `
   });
+
+  const targets = [
+  {
+    format: 'rgba8unorm',
+    blend: {
+      color: {},
+      alpha: {}
+    }
+  },
+  null,
+  {
+    format: 'rgba8unorm',
+    blend: {
+      color: {},
+      alpha: {}
+    }
+  }];
+
+
+  const pipelineDescriptor = {
+    layout: 'auto',
+    vertex: {
+      module,
+      entryPoint: 'vs'
+    },
+    fragment: {
+      module,
+      entryPoint: 'fs',
+      targets
+    }
+  };
+  const isValid = cases[caseName](targets);
+  t.expectGPUError(
+    'validation',
+    () => t.device.createRenderPipeline(pipelineDescriptor),
+    !isValid
+  );
+});

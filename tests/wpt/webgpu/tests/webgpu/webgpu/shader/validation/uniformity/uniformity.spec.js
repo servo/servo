@@ -1,7 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `Validation tests for uniformity analysis`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `Validation tests for uniformity analysis`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../common/util/data_tables.js';
 import { unreachable } from '../../../../common/util/util.js';
 import { ShaderValidationTest } from '../shader_validation_test.js';
@@ -9,120 +8,120 @@ import { ShaderValidationTest } from '../shader_validation_test.js';
 export const g = makeTestGroup(ShaderValidationTest);
 
 const kCollectiveOps = [
-  { op: 'textureSample', stage: 'fragment' },
-  { op: 'textureSampleBias', stage: 'fragment' },
-  { op: 'textureSampleCompare', stage: 'fragment' },
-  { op: 'dpdx', stage: 'fragment' },
-  { op: 'dpdxCoarse', stage: 'fragment' },
-  { op: 'dpdxFine', stage: 'fragment' },
-  { op: 'dpdy', stage: 'fragment' },
-  { op: 'dpdyCoarse', stage: 'fragment' },
-  { op: 'dpdyFine', stage: 'fragment' },
-  { op: 'fwidth', stage: 'fragment' },
-  { op: 'fwidthCoarse', stage: 'fragment' },
-  { op: 'fwidthFine', stage: 'fragment' },
-  { op: 'storageBarrier', stage: 'compute' },
-  { op: 'workgroupBarrier', stage: 'compute' },
-  { op: 'workgroupUniformLoad', stage: 'compute' },
-];
+{ op: 'textureSample', stage: 'fragment' },
+{ op: 'textureSampleBias', stage: 'fragment' },
+{ op: 'textureSampleCompare', stage: 'fragment' },
+{ op: 'dpdx', stage: 'fragment' },
+{ op: 'dpdxCoarse', stage: 'fragment' },
+{ op: 'dpdxFine', stage: 'fragment' },
+{ op: 'dpdy', stage: 'fragment' },
+{ op: 'dpdyCoarse', stage: 'fragment' },
+{ op: 'dpdyFine', stage: 'fragment' },
+{ op: 'fwidth', stage: 'fragment' },
+{ op: 'fwidthCoarse', stage: 'fragment' },
+{ op: 'fwidthFine', stage: 'fragment' },
+{ op: 'storageBarrier', stage: 'compute' },
+{ op: 'workgroupBarrier', stage: 'compute' },
+{ op: 'workgroupUniformLoad', stage: 'compute' }];
+
 
 const kConditions = [
-  { cond: 'uniform_storage_ro', expectation: true },
-  { cond: 'nonuniform_storage_ro', expectation: false },
-  { cond: 'nonuniform_storage_rw', expectation: false },
-  { cond: 'nonuniform_builtin', expectation: false },
-  { cond: 'uniform_literal', expectation: true },
-  { cond: 'uniform_const', expectation: true },
-  { cond: 'uniform_override', expectation: true },
-  { cond: 'uniform_let', expectation: true },
-  { cond: 'nonuniform_let', expectation: false },
-  { cond: 'uniform_or', expectation: true },
-  { cond: 'nonuniform_or1', expectation: false },
-  { cond: 'nonuniform_or2', expectation: false },
-  { cond: 'uniform_and', expectation: true },
-  { cond: 'nonuniform_and1', expectation: false },
-  { cond: 'nonuniform_and2', expectation: false },
-  { cond: 'uniform_func_var', expectation: true },
-  { cond: 'nonuniform_func_var', expectation: false },
-];
+{ cond: 'uniform_storage_ro', expectation: true },
+{ cond: 'nonuniform_storage_ro', expectation: false },
+{ cond: 'nonuniform_storage_rw', expectation: false },
+{ cond: 'nonuniform_builtin', expectation: false },
+{ cond: 'uniform_literal', expectation: true },
+{ cond: 'uniform_const', expectation: true },
+{ cond: 'uniform_override', expectation: true },
+{ cond: 'uniform_let', expectation: true },
+{ cond: 'nonuniform_let', expectation: false },
+{ cond: 'uniform_or', expectation: true },
+{ cond: 'nonuniform_or1', expectation: false },
+{ cond: 'nonuniform_or2', expectation: false },
+{ cond: 'uniform_and', expectation: true },
+{ cond: 'nonuniform_and1', expectation: false },
+{ cond: 'nonuniform_and2', expectation: false },
+{ cond: 'uniform_func_var', expectation: true },
+{ cond: 'nonuniform_func_var', expectation: false }];
+
 
 function generateCondition(condition) {
   switch (condition) {
-    case 'uniform_storage_ro': {
-      return `ro_buffer[0] == 0`;
-    }
-    case 'nonuniform_storage_ro': {
-      return `ro_buffer[priv_var[0]] == 0`;
-    }
-    case 'nonuniform_storage_rw': {
-      return `rw_buffer[0] == 0`;
-    }
-    case 'nonuniform_builtin': {
-      return `p.x == 0`;
-    }
-    case 'uniform_literal': {
-      return `false`;
-    }
-    case 'uniform_const': {
-      return `c`;
-    }
-    case 'uniform_override': {
-      return `o == 0`;
-    }
-    case 'uniform_let': {
-      return `u_let == 0`;
-    }
-    case 'nonuniform_let': {
-      return `n_let == 0`;
-    }
-    case 'uniform_or': {
-      return `u_let == 0 || uniform_buffer.y > 1`;
-    }
-    case 'nonuniform_or1': {
-      return `u_let == 0 || n_let == 0`;
-    }
-    case 'nonuniform_or2': {
-      return `n_let == 0 || u_let == 0`;
-    }
-    case 'uniform_and': {
-      return `u_let == 0 && uniform_buffer.y > 1`;
-    }
-    case 'nonuniform_and1': {
-      return `u_let == 0 && n_let == 0`;
-    }
-    case 'nonuniform_and2': {
-      return `n_let == 0 && u_let == 0`;
-    }
-    case 'uniform_func_var': {
-      return `u_f == 0`;
-    }
-    case 'nonuniform_func_var': {
-      return `n_f == 0`;
-    }
-    default: {
-      unreachable(`Unhandled condition`);
-    }
+    case 'uniform_storage_ro':{
+        return `ro_buffer[0] == 0`;
+      }
+    case 'nonuniform_storage_ro':{
+        return `ro_buffer[priv_var[0]] == 0`;
+      }
+    case 'nonuniform_storage_rw':{
+        return `rw_buffer[0] == 0`;
+      }
+    case 'nonuniform_builtin':{
+        return `p.x == 0`;
+      }
+    case 'uniform_literal':{
+        return `false`;
+      }
+    case 'uniform_const':{
+        return `c`;
+      }
+    case 'uniform_override':{
+        return `o == 0`;
+      }
+    case 'uniform_let':{
+        return `u_let == 0`;
+      }
+    case 'nonuniform_let':{
+        return `n_let == 0`;
+      }
+    case 'uniform_or':{
+        return `u_let == 0 || uniform_buffer.y > 1`;
+      }
+    case 'nonuniform_or1':{
+        return `u_let == 0 || n_let == 0`;
+      }
+    case 'nonuniform_or2':{
+        return `n_let == 0 || u_let == 0`;
+      }
+    case 'uniform_and':{
+        return `u_let == 0 && uniform_buffer.y > 1`;
+      }
+    case 'nonuniform_and1':{
+        return `u_let == 0 && n_let == 0`;
+      }
+    case 'nonuniform_and2':{
+        return `n_let == 0 && u_let == 0`;
+      }
+    case 'uniform_func_var':{
+        return `u_f == 0`;
+      }
+    case 'nonuniform_func_var':{
+        return `n_f == 0`;
+      }
+    default:{
+        unreachable(`Unhandled condition`);
+      }
   }
 }
 
 function generateOp(op) {
   switch (op) {
-    case 'textureSample': {
-      return `let x = ${op}(tex, s, vec2(0,0));\n`;
-    }
-    case 'textureSampleBias': {
-      return `let x = ${op}(tex, s, vec2(0,0), 0);\n`;
-    }
-    case 'textureSampleCompare': {
-      return `let x = ${op}(tex_depth, s_comp, vec2(0,0), 0);\n`;
-    }
+    case 'textureSample':{
+        return `let x = ${op}(tex, s, vec2(0,0));\n`;
+      }
+    case 'textureSampleBias':{
+        return `let x = ${op}(tex, s, vec2(0,0), 0);\n`;
+      }
+    case 'textureSampleCompare':{
+        return `let x = ${op}(tex_depth, s_comp, vec2(0,0), 0);\n`;
+      }
     case 'storageBarrier':
-    case 'workgroupBarrier': {
-      return `${op}();\n`;
-    }
-    case 'workgroupUniformLoad': {
-      return `let x = ${op}(&wg);`;
-    }
+    case 'workgroupBarrier':{
+        return `${op}();\n`;
+      }
+    case 'workgroupUniformLoad':{
+        return `let x = ${op}(&wg);`;
+      }
     case 'dpdx':
     case 'dpdxCoarse':
     case 'dpdxFine':
@@ -131,64 +130,64 @@ function generateOp(op) {
     case 'dpdyFine':
     case 'fwidth':
     case 'fwidthCoarse':
-    case 'fwidthFine': {
-      return `let x = ${op}(0);\n`;
-    }
-    default: {
-      unreachable(`Unhandled op`);
-    }
+    case 'fwidthFine':{
+        return `let x = ${op}(0);\n`;
+      }
+    default:{
+        unreachable(`Unhandled op`);
+      }
   }
 }
 
 function generateConditionalStatement(statement, condition, op) {
   const code = ``;
   switch (statement) {
-    case 'if': {
-      return `if ${generateCondition(condition)} {
+    case 'if':{
+        return `if ${generateCondition(condition)} {
         ${generateOp(op)};
       }
       `;
-    }
-    case 'for': {
-      return `for (; ${generateCondition(condition)};) {
+      }
+    case 'for':{
+        return `for (; ${generateCondition(condition)};) {
         ${generateOp(op)};
       }
       `;
-    }
-    case 'while': {
-      return `while ${generateCondition(condition)} {
+      }
+    case 'while':{
+        return `while ${generateCondition(condition)} {
         ${generateOp(op)};
       }
       `;
-    }
-    case 'switch': {
-      return `switch u32(${generateCondition(condition)}) {
+      }
+    case 'switch':{
+        return `switch u32(${generateCondition(condition)}) {
         case 0: {
           ${generateOp(op)};
         }
         default: { }
       }
       `;
-    }
-    default: {
-      unreachable(`Unhandled statement`);
-    }
+      }
+    default:{
+        unreachable(`Unhandled statement`);
+      }
   }
 
   return code;
 }
 
-g.test('basics')
-  .desc(`Test collective operations in simple uniform or non-uniform control flow.`)
-  .params(u =>
-    u
-      .combineWithParams(kCollectiveOps)
-      .combineWithParams(kConditions)
-      .combine('statement', ['if', 'for', 'while', 'switch'])
-      .beginSubcases()
-  )
-  .fn(t => {
-    let code = `
+g.test('basics').
+desc(`Test collective operations in simple uniform or non-uniform control flow.`).
+params((u) =>
+u.
+combineWithParams(kCollectiveOps).
+combineWithParams(kConditions).
+combine('statement', ['if', 'for', 'while', 'switch']).
+beginSubcases()
+).
+fn((t) => {
+  let code = `
  @group(0) @binding(0) var s : sampler;
  @group(0) @binding(1) var s_comp : sampler_comparison;
  @group(0) @binding(2) var tex : texture_2d<f32>;
@@ -204,79 +203,78 @@ g.test('basics')
  override o : f32;
 `;
 
-    if (t.params.stage === 'compute') {
-      code += `var<workgroup> wg : f32;\n`;
-      code += ` @workgroup_size(16, 1, 1)`;
-    }
-    code += `@${t.params.stage}`;
-    code += `\nfn main(`;
-    if (t.params.stage === 'compute') {
-      code += `@builtin(global_invocation_id) p : vec3<u32>`;
-    } else {
-      code += `@builtin(position) p : vec4<f32>`;
-    }
-    code += `) {
+  if (t.params.stage === 'compute') {
+    code += `var<workgroup> wg : f32;\n`;
+    code += ` @workgroup_size(16, 1, 1)`;
+  }
+  code += `@${t.params.stage}`;
+  code += `\nfn main(`;
+  if (t.params.stage === 'compute') {
+    code += `@builtin(global_invocation_id) p : vec3<u32>`;
+  } else {
+    code += `@builtin(position) p : vec4<f32>`;
+  }
+  code += `) {
       let u_let = uniform_buffer.x;
       let n_let = rw_buffer[0];
       var u_f = uniform_buffer.z;
       var n_f = rw_buffer[1];
     `;
 
-    // Simple control statement containing the op.
-    code += generateConditionalStatement(t.params.statement, t.params.cond, t.params.op);
+  // Simple control statement containing the op.
+  code += generateConditionalStatement(t.params.statement, t.params.cond, t.params.op);
 
-    code += `\n}\n`;
+  code += `\n}\n`;
 
-    t.expectCompileResult(t.params.expectation, code);
-  });
+  t.expectCompileResult(t.params.expectation, code);
+});
 
 const kFragmentBuiltinValues = [
-  {
-    builtin: `position`,
-    type: `vec4<f32>`,
-  },
-  {
-    builtin: `front_facing`,
-    type: `bool`,
-  },
-  {
-    builtin: `sample_index`,
-    type: `u32`,
-  },
-  {
-    builtin: `sample_mask`,
-    type: `u32`,
-  },
-];
+{
+  builtin: `position`,
+  type: `vec4<f32>`
+},
+{
+  builtin: `front_facing`,
+  type: `bool`
+},
+{
+  builtin: `sample_index`,
+  type: `u32`
+},
+{
+  builtin: `sample_mask`,
+  type: `u32`
+}];
 
-g.test('fragment_builtin_values')
-  .desc(`Test uniformity of fragment built-in values`)
-  .params(u => u.combineWithParams(kFragmentBuiltinValues).beginSubcases())
-  .fn(t => {
-    let cond = ``;
-    switch (t.params.type) {
-      case `u32`:
-      case `i32`:
-      case `f32`: {
+
+g.test('fragment_builtin_values').
+desc(`Test uniformity of fragment built-in values`).
+params((u) => u.combineWithParams(kFragmentBuiltinValues).beginSubcases()).
+fn((t) => {
+  let cond = ``;
+  switch (t.params.type) {
+    case `u32`:
+    case `i32`:
+    case `f32`:{
         cond = `p > 0`;
         break;
       }
-      case `vec4<u32>`:
-      case `vec4<i32>`:
-      case `vec4<f32>`: {
+    case `vec4<u32>`:
+    case `vec4<i32>`:
+    case `vec4<f32>`:{
         cond = `p.x > 0`;
         break;
       }
-      case `bool`: {
+    case `bool`:{
         cond = `p`;
         break;
       }
-      default: {
+    default:{
         unreachable(`Unhandled type`);
       }
-    }
-
-    const code = `
+  }
+  const code = `
 @group(0) @binding(0) var s : sampler;
 @group(0) @binding(1) var tex : texture_2d<f32>;
 
@@ -288,66 +286,65 @@ fn main(@builtin(${t.params.builtin}) p : ${t.params.type}) {
 }
 `;
 
-    t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
-    t.expectCompileResult(false, code);
-  });
+  t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
+  t.expectCompileResult(false, code);
+});
 
 const kComputeBuiltinValues = [
-  {
-    builtin: `local_invocation_id`,
-    type: `vec3<f32>`,
-    uniform: false,
-  },
-  {
-    builtin: `local_invocation_index`,
-    type: `u32`,
-    uniform: false,
-  },
-  {
-    builtin: `global_invocation_id`,
-    type: `vec3<u32>`,
-    uniform: false,
-  },
-  {
-    builtin: `workgroup_id`,
-    type: `vec3<u32>`,
-    uniform: true,
-  },
-  {
-    builtin: `num_workgroups`,
-    type: `vec3<u32>`,
-    uniform: true,
-  },
-];
+{
+  builtin: `local_invocation_id`,
+  type: `vec3<f32>`,
+  uniform: false
+},
+{
+  builtin: `local_invocation_index`,
+  type: `u32`,
+  uniform: false
+},
+{
+  builtin: `global_invocation_id`,
+  type: `vec3<u32>`,
+  uniform: false
+},
+{
+  builtin: `workgroup_id`,
+  type: `vec3<u32>`,
+  uniform: true
+},
+{
+  builtin: `num_workgroups`,
+  type: `vec3<u32>`,
+  uniform: true
+}];
 
-g.test('compute_builtin_values')
-  .desc(`Test uniformity of compute built-in values`)
-  .params(u => u.combineWithParams(kComputeBuiltinValues).beginSubcases())
-  .fn(t => {
-    let cond = ``;
-    switch (t.params.type) {
-      case `u32`:
-      case `i32`:
-      case `f32`: {
+
+g.test('compute_builtin_values').
+desc(`Test uniformity of compute built-in values`).
+params((u) => u.combineWithParams(kComputeBuiltinValues).beginSubcases()).
+fn((t) => {
+  let cond = ``;
+  switch (t.params.type) {
+    case `u32`:
+    case `i32`:
+    case `f32`:{
         cond = `p > 0`;
         break;
       }
-      case `vec3<u32>`:
-      case `vec3<i32>`:
-      case `vec3<f32>`: {
+    case `vec3<u32>`:
+    case `vec3<i32>`:
+    case `vec3<f32>`:{
         cond = `p.x > 0`;
         break;
       }
-      case `bool`: {
+    case `bool`:{
         cond = `p`;
         break;
       }
-      default: {
+    default:{
         unreachable(`Unhandled type`);
       }
-    }
-
-    const code = `
+  }
+  const code = `
 @compute @workgroup_size(16,1,1)
 fn main(@builtin(${t.params.builtin}) p : ${t.params.type}) {
   if ${cond} {
@@ -356,8 +353,8 @@ fn main(@builtin(${t.params.builtin}) p : ${t.params.type}) {
 }
 `;
 
-    t.expectCompileResult(t.params.uniform, code);
-  });
+  t.expectCompileResult(t.params.uniform, code);
+});
 
 function generatePointerCheck(check) {
   if (check === `address`) {
@@ -374,17 +371,17 @@ const kPointerCases = {
   address_uniform_literal: {
     code: `let ptr = &wg_array[0];`,
     check: `address`,
-    uniform: true,
+    uniform: true
   },
   address_uniform_value: {
     code: `let ptr = &wg_array[uniform_value];`,
     check: `address`,
-    uniform: true,
+    uniform: true
   },
   address_nonuniform_value: {
     code: `let ptr = &wg_array[nonuniform_value];`,
     check: `address`,
-    uniform: false,
+    uniform: false
   },
   address_uniform_chain: {
     code: `let p1 = &wg_struct.x;
@@ -392,7 +389,7 @@ const kPointerCases = {
     let p3 = &(*p2).x;
     let ptr = &(*p3)[uniform_value];`,
     check: `address`,
-    uniform: true,
+    uniform: true
   },
   address_nonuniform_chain1: {
     code: `let p1 = &wg_struct.x;
@@ -400,7 +397,7 @@ const kPointerCases = {
     let p3 = &(*p2).x;
     let ptr = &(*p3)[uniform_value];`,
     check: `address`,
-    uniform: false,
+    uniform: false
   },
   address_nonuniform_chain2: {
     code: `let p1 = &wg_struct.x;
@@ -408,18 +405,18 @@ const kPointerCases = {
     let p3 = &(*p2).x;
     let ptr = &(*p3)[nonuniform_value];`,
     check: `address`,
-    uniform: false,
+    uniform: false
   },
   wg_uniform_load_is_uniform: {
     code: `let test_val = workgroupUniformLoad(&wg_scalar);`,
     check: `contents`,
-    uniform: true,
+    uniform: true
   },
   contents_scalar_uniform1: {
     code: `let ptr = &func_scalar;
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: true,
+    uniform: true
   },
   contents_scalar_uniform2: {
     code: `func_scalar = nonuniform_value;
@@ -427,7 +424,7 @@ const kPointerCases = {
     func_scalar = 0;
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: true,
+    uniform: true
   },
   contents_scalar_uniform3: {
     code: `let ptr = &func_scalar;
@@ -435,28 +432,28 @@ const kPointerCases = {
     func_scalar = uniform_value;
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: true,
+    uniform: true
   },
   contents_scalar_nonuniform1: {
     code: `func_scalar = nonuniform_value;
     let ptr = &func_scalar;
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_scalar_nonuniform2: {
     code: `let ptr = &func_scalar;
     *ptr = nonuniform_value;
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_scalar_alias_uniform: {
     code: `let p = &func_scalar;
     let ptr = p;
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: true,
+    uniform: true
   },
   contents_scalar_alias_nonuniform1: {
     code: `func_scalar = nonuniform_value;
@@ -464,7 +461,7 @@ const kPointerCases = {
     let ptr = p;
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_scalar_alias_nonuniform2: {
     code: `let p = &func_scalar;
@@ -472,7 +469,7 @@ const kPointerCases = {
     let ptr = p;
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_scalar_alias_nonuniform3: {
     code: `let p = &func_scalar;
@@ -480,69 +477,69 @@ const kPointerCases = {
     *p = nonuniform_value;
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_scalar_alias_nonuniform4: {
     code: `let p = &func_scalar;
     func_scalar = nonuniform_value;
     let test_val = *p;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_scalar_alias_nonuniform5: {
     code: `let p = &func_scalar;
     *p = nonuniform_value;
     let test_val = func_scalar;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_array_uniform_index: {
     code: `let ptr = &func_array[uniform_value];
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: true,
+    uniform: true
   },
   contents_array_nonuniform_index1: {
     code: `let ptr = &func_array[nonuniform_value];
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_array_nonuniform_index2: {
     code: `let ptr = &func_array[lid.x];
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_array_nonuniform_index3: {
     code: `let ptr = &func_array[gid.x];
     let test_val = *ptr;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_struct_uniform: {
     code: `let p1 = &func_struct.x[uniform_value].x[uniform_value].x[uniform_value];
     let test_val = *p1;`,
     check: `contents`,
-    uniform: true,
+    uniform: true
   },
   contents_struct_nonuniform1: {
     code: `let p1 = &func_struct.x[nonuniform_value].x[uniform_value].x[uniform_value];
     let test_val = *p1;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_struct_nonuniform2: {
     code: `let p1 = &func_struct.x[uniform_value].x[gid.x].x[uniform_value];
     let test_val = *p1;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_struct_nonuniform3: {
     code: `let p1 = &func_struct.x[uniform_value].x[uniform_value].x[lid.y];
     let test_val = *p1;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_struct_chain_uniform: {
     code: `let p1 = &func_struct.x;
@@ -553,7 +550,7 @@ const kPointerCases = {
     let p6 = &(*p5)[uniform_value];
     let test_val = *p6;`,
     check: `contents`,
-    uniform: true,
+    uniform: true
   },
   contents_struct_chain_nonuniform1: {
     code: `let p1 = &func_struct.x;
@@ -564,7 +561,7 @@ const kPointerCases = {
     let p6 = &(*p5)[uniform_value];
     let test_val = *p6;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_struct_chain_nonuniform2: {
     code: `let p1 = &func_struct.x;
@@ -575,7 +572,7 @@ const kPointerCases = {
     let p6 = &(*p5)[uniform_value];
     let test_val = *p6;`,
     check: `contents`,
-    uniform: false,
+    uniform: false
   },
   contents_struct_chain_nonuniform3: {
     code: `let p1 = &func_struct.x;
@@ -586,16 +583,16 @@ const kPointerCases = {
     let p6 = &(*p5)[lid.y];
     let test_val = *p6;`,
     check: `contents`,
-    uniform: false,
-  },
+    uniform: false
+  }
 };
 
-g.test('pointers')
-  .desc(`Test pointer uniformity (contents and addresses)`)
-  .params(u => u.combine('case', keysOf(kPointerCases)).beginSubcases())
-  .fn(t => {
-    const testcase = kPointerCases[t.params.case];
-    const code = `
+g.test('pointers').
+desc(`Test pointer uniformity (contents and addresses)`).
+params((u) => u.combine('case', keysOf(kPointerCases)).beginSubcases()).
+fn((t) => {
+  const testcase = kPointerCases[t.params.case];
+  const code = `
 var<workgroup> wg_scalar : u32;
 var<workgroup> wg_array : array<u32, 16>;
 
@@ -625,17 +622,17 @@ fn main(@builtin(local_invocation_id) lid : vec3<u32>,
   ${testcase.code}
 `;
 
-    const with_check =
-      code +
-      `
+  const with_check =
+  code +
+  `
 ${generatePointerCheck(testcase.check)}
 }`;
-    if (!testcase.uniform) {
-      const without_check = code + `}\n`;
-      t.expectCompileResult(true, without_check);
-    }
-    t.expectCompileResult(testcase.uniform, with_check);
-  });
+  if (!testcase.uniform) {
+    const without_check = code + `}\n`;
+    t.expectCompileResult(true, without_check);
+  }
+  t.expectCompileResult(testcase.uniform, with_check);
+});
 
 function expectedUniformity(uniform, init) {
   if (uniform === `always`) {
@@ -654,35 +651,35 @@ const kFuncVarCases = {
     typedecl: ``,
     assignment: ``,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   simple_uniform: {
     typename: `u32`,
     typedecl: ``,
     assignment: `x = uniform_value[0];`,
     cond: `x > 0`,
-    uniform: `always`,
+    uniform: `always`
   },
   simple_nonuniform: {
     typename: `u32`,
     typedecl: ``,
     assignment: `x = nonuniform_value[0];`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   compound_assign_uniform: {
     typename: `u32`,
     typedecl: ``,
     assignment: `x += uniform_value[0];`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   compound_assign_nonuniform: {
     typename: `u32`,
     typedecl: ``,
     assignment: `x -= nonuniform_value[0];`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   unreachable_uniform: {
     typename: `u32`,
@@ -692,7 +689,7 @@ const kFuncVarCases = {
       x = uniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   unreachable_nonuniform: {
     typename: `u32`,
@@ -702,7 +699,7 @@ const kFuncVarCases = {
       x = nonuniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   if_no_else_uniform: {
     typename: `u32`,
@@ -711,7 +708,7 @@ const kFuncVarCases = {
       x = uniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   if_no_else_nonuniform: {
     typename: `u32`,
@@ -720,7 +717,7 @@ const kFuncVarCases = {
       x = nonuniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   if_no_then_uniform: {
     typename: `u32`,
@@ -730,7 +727,7 @@ const kFuncVarCases = {
       x = uniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   if_no_then_nonuniform: {
     typename: `u32`,
@@ -740,7 +737,7 @@ const kFuncVarCases = {
       x = nonuniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   if_else_uniform: {
     typename: `u32`,
@@ -751,7 +748,7 @@ const kFuncVarCases = {
       x = uniform_value[1];
     }`,
     cond: `x > 0`,
-    uniform: `always`,
+    uniform: `always`
   },
   if_else_nonuniform: {
     typename: `u32`,
@@ -762,7 +759,7 @@ const kFuncVarCases = {
       x = nonuniform_value[1];
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   if_else_split: {
     typename: `u32`,
@@ -773,7 +770,7 @@ const kFuncVarCases = {
       x = nonuniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   if_unreachable_else_none: {
     typename: `u32`,
@@ -783,7 +780,7 @@ const kFuncVarCases = {
       return;
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   if_unreachable_else_uniform: {
     typename: `u32`,
@@ -794,7 +791,7 @@ const kFuncVarCases = {
       return;
     }`,
     cond: `x > 0`,
-    uniform: `always`,
+    uniform: `always`
   },
   if_unreachable_else_nonuniform: {
     typename: `u32`,
@@ -805,7 +802,7 @@ const kFuncVarCases = {
       return;
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   if_unreachable_then_none: {
     typename: `u32`,
@@ -814,7 +811,7 @@ const kFuncVarCases = {
       return;
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   if_unreachable_then_uniform: {
     typename: `u32`,
@@ -825,7 +822,7 @@ const kFuncVarCases = {
       x = uniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `always`,
+    uniform: `always`
   },
   if_unreachable_then_nonuniform: {
     typename: `u32`,
@@ -836,7 +833,7 @@ const kFuncVarCases = {
       x = nonuniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   if_nonescaping_nonuniform: {
     typename: `u32`,
@@ -846,7 +843,7 @@ const kFuncVarCases = {
       return;
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   loop_body_depends_on_continuing_uniform: {
     typename: `u32`,
@@ -861,7 +858,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override the standard check
-    uniform: `init`,
+    uniform: `init`
   },
   loop_body_depends_on_continuing_nonuniform: {
     typename: `u32`,
@@ -876,7 +873,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override the standard check
-    uniform: `never`,
+    uniform: `never`
   },
   loop_body_uniform: {
     typename: `u32`,
@@ -888,7 +885,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `always`,
+    uniform: `always`
   },
   loop_body_nonuniform: {
     typename: `u32`,
@@ -900,7 +897,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   loop_body_nonuniform_cond: {
     typename: `u32`,
@@ -913,7 +910,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   loop_unreachable_continuing: {
     typename: `u32`,
@@ -925,7 +922,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   loop_continuing_from_body_uniform: {
     typename: `u32`,
@@ -940,7 +937,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override the standard check
-    uniform: `always`,
+    uniform: `always`
   },
   loop_continuing_from_body_nonuniform: {
     typename: `u32`,
@@ -955,7 +952,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override the standard check
-    uniform: `never`,
+    uniform: `never`
   },
   loop_continuing_from_body_split1: {
     typename: `u32`,
@@ -972,7 +969,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override the standard check
-    uniform: `init`,
+    uniform: `init`
   },
   loop_continuing_from_body_split2: {
     typename: `u32`,
@@ -989,7 +986,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override the standard check
-    uniform: `never`,
+    uniform: `never`
   },
   loop_continuing_from_body_split3: {
     typename: `u32`,
@@ -1008,7 +1005,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override the standard check
-    uniform: `always`,
+    uniform: `always`
   },
   loop_continuing_from_body_split4: {
     typename: `u32`,
@@ -1027,7 +1024,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override the standard check
-    uniform: `never`,
+    uniform: `never`
   },
   loop_continuing_from_body_split5: {
     typename: `u32`,
@@ -1047,7 +1044,7 @@ const kFuncVarCases = {
     }`,
     cond: `true`, // override the standard check
     // The analysis doesn't recognize that uniform_value[0] is assignment on all paths.
-    uniform: `never`,
+    uniform: `never`
   },
   loop_in_loop_with_continue_uniform: {
     typename: `u32`,
@@ -1069,7 +1066,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override the standard check
-    uniform: `always`,
+    uniform: `always`
   },
   loop_in_loop_with_continue_nonuniform: {
     typename: `u32`,
@@ -1091,7 +1088,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override the standard check
-    uniform: `never`,
+    uniform: `never`
   },
   after_loop_with_uniform_break_uniform: {
     typename: `u32`,
@@ -1103,7 +1100,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `always`,
+    uniform: `always`
   },
   after_loop_with_uniform_break_nonuniform: {
     typename: `u32`,
@@ -1115,7 +1112,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   after_loop_with_nonuniform_break: {
     typename: `u32`,
@@ -1127,7 +1124,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   after_loop_with_uniform_breaks: {
     typename: `u32`,
@@ -1141,7 +1138,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   switch_uniform_case: {
     typename: `u32`,
@@ -1156,7 +1153,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override default check
-    uniform: `init`,
+    uniform: `init`
   },
   switch_nonuniform_case: {
     typename: `u32`,
@@ -1171,7 +1168,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `true`, // override default check
-    uniform: `never`,
+    uniform: `never`
   },
   after_switch_all_uniform: {
     typename: `u32`,
@@ -1188,7 +1185,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `always`,
+    uniform: `always`
   },
   after_switch_some_assign: {
     typename: `u32`,
@@ -1204,7 +1201,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   after_switch_nonuniform: {
     typename: `u32`,
@@ -1221,7 +1218,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   after_switch_with_break_nonuniform1: {
     typename: `u32`,
@@ -1236,7 +1233,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   after_switch_with_break_nonuniform2: {
     typename: `u32`,
@@ -1251,7 +1248,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   for_loop_uniform_body: {
     typename: `u32`,
@@ -1260,7 +1257,7 @@ const kFuncVarCases = {
       x = uniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   for_loop_nonuniform_body: {
     typename: `u32`,
@@ -1269,7 +1266,7 @@ const kFuncVarCases = {
       x = nonuniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   for_loop_uniform_body_no_condition: {
     typename: `u32`,
@@ -1281,7 +1278,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `always`,
+    uniform: `always`
   },
   for_loop_nonuniform_body_no_condition: {
     typename: `u32`,
@@ -1293,7 +1290,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   for_loop_uniform_increment: {
     typename: `u32`,
@@ -1301,7 +1298,7 @@ const kFuncVarCases = {
     assignment: `for (; uniform_cond; x += uniform_value[0]) {
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   for_loop_nonuniform_increment: {
     typename: `u32`,
@@ -1309,7 +1306,7 @@ const kFuncVarCases = {
     assignment: `for (; uniform_cond; x += nonuniform_value[0]) {
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   for_loop_uniform_init: {
     typename: `u32`,
@@ -1317,7 +1314,7 @@ const kFuncVarCases = {
     assignment: `for (x = uniform_value[0]; uniform_cond; ) {
     }`,
     cond: `x > 0`,
-    uniform: `always`,
+    uniform: `always`
   },
   for_loop_nonuniform_init: {
     typename: `u32`,
@@ -1325,7 +1322,7 @@ const kFuncVarCases = {
     assignment: `for (x = nonuniform_value[0]; uniform_cond;) {
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   while_loop_uniform_body: {
     typename: `u32`,
@@ -1334,7 +1331,7 @@ const kFuncVarCases = {
       x = uniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   while_loop_nonuniform_body: {
     typename: `u32`,
@@ -1343,7 +1340,7 @@ const kFuncVarCases = {
       x = nonuniform_value[0];
     }`,
     cond: `x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   partial_assignment_uniform: {
     typename: `block`,
@@ -1353,7 +1350,7 @@ const kFuncVarCases = {
     }`,
     assignment: `x.x = uniform_value[0].x;`,
     cond: `x.x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   partial_assignment_nonuniform: {
     typename: `block`,
@@ -1363,7 +1360,7 @@ const kFuncVarCases = {
     }`,
     assignment: `x.x = nonuniform_value[0].x;`,
     cond: `x.x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   partial_assignment_all_members_uniform: {
     typename: `block`,
@@ -1374,7 +1371,7 @@ const kFuncVarCases = {
     assignment: `x.x = uniform_value[0].x;
     x.y = uniform_value[1].y;`,
     cond: `x.x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   partial_assignment_all_members_nonuniform: {
     typename: `block`,
@@ -1385,7 +1382,7 @@ const kFuncVarCases = {
     assignment: `x.x = nonuniform_value[0].x;
     x.y = uniform_value[0].x;`,
     cond: `x.x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   partial_assignment_single_element_struct_uniform: {
     typename: `block`,
@@ -1394,7 +1391,7 @@ const kFuncVarCases = {
     }`,
     assignment: `x.x = uniform_value[0].x;`,
     cond: `x.x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   partial_assignment_single_element_struct_nonuniform: {
     typename: `block`,
@@ -1403,21 +1400,21 @@ const kFuncVarCases = {
     }`,
     assignment: `x.x = nonuniform_value[0].x;`,
     cond: `x.x > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   partial_assignment_single_element_array_uniform: {
     typename: `array<u32, 1>`,
     typedecl: ``,
     assignment: `x[0] = uniform_value[0][0];`,
     cond: `x[0] > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   partial_assignment_single_element_array_nonuniform: {
     typename: `array<u32, 1>`,
     typedecl: ``,
     assignment: `x[0] = nonuniform_value[0][0];`,
     cond: `x[0] > 0`,
-    uniform: `never`,
+    uniform: `never`
   },
   nested1: {
     typename: `block`,
@@ -1438,7 +1435,7 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x.x > 0`,
-    uniform: `init`,
+    uniform: `init`
   },
   nested2: {
     typename: `block`,
@@ -1459,22 +1456,22 @@ const kFuncVarCases = {
       }
     }`,
     cond: `x.x > 0`,
-    uniform: `never`,
-  },
+    uniform: `never`
+  }
 };
 
 const kVarInit = {
   no_init: ``,
   uniform: `= uniform_value[3];`,
-  nonuniform: `= nonuniform_value[3];`,
+  nonuniform: `= nonuniform_value[3];`
 };
 
-g.test('function_variables')
-  .desc(`Test uniformity of function variables`)
-  .params(u => u.combine('case', keysOf(kFuncVarCases)).combine('init', keysOf(kVarInit)))
-  .fn(t => {
-    const func_case = kFuncVarCases[t.params.case];
-    const code = `
+g.test('function_variables').
+desc(`Test uniformity of function variables`).
+params((u) => u.combine('case', keysOf(kFuncVarCases)).combine('init', keysOf(kVarInit))).
+fn((t) => {
+  const func_case = kFuncVarCases[t.params.case];
+  const code = `
 ${func_case.typedecl}
 
 @group(0) @binding(0)
@@ -1504,12 +1501,12 @@ fn main() {
 }
 `;
 
-    const result = expectedUniformity(func_case.uniform, t.params.init);
-    if (!result) {
-      t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
-    }
-    t.expectCompileResult(result, code);
-  });
+  const result = expectedUniformity(func_case.uniform, t.params.init);
+  if (!result) {
+    t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
+  }
+  t.expectCompileResult(result, code);
+});
 
 const kShortCircuitExpressionCases = {
   or_uniform_uniform: {
@@ -1519,7 +1516,7 @@ const kShortCircuitExpressionCases = {
         let tmp = textureSample(t, s, vec2f(0,0));
       }
     `,
-    uniform: true,
+    uniform: true
   },
   or_uniform_nonuniform: {
     code: `
@@ -1528,7 +1525,7 @@ const kShortCircuitExpressionCases = {
         let tmp = textureSample(t, s, vec2f(0,0));
       }
     `,
-    uniform: false,
+    uniform: false
   },
   or_nonuniform_uniform: {
     code: `
@@ -1537,7 +1534,7 @@ const kShortCircuitExpressionCases = {
         let tmp = textureSample(t, s, vec2f(0,0));
       }
     `,
-    uniform: false,
+    uniform: false
   },
   or_nonuniform_nonuniform: {
     code: `
@@ -1546,19 +1543,19 @@ const kShortCircuitExpressionCases = {
         let tmp = textureSample(t, s, vec2f(0,0));
       }
     `,
-    uniform: false,
+    uniform: false
   },
   or_uniform_first_nonuniform: {
     code: `
       let x = textureSample(t, s, vec2f(0,0)).x == 0 || nonuniform_cond;
     `,
-    uniform: true,
+    uniform: true
   },
   or_uniform_second_nonuniform: {
     code: `
       let x = nonuniform_cond || textureSample(t, s, vec2f(0,0)).x == 0;
     `,
-    uniform: false,
+    uniform: false
   },
   and_uniform_uniform: {
     code: `
@@ -1567,7 +1564,7 @@ const kShortCircuitExpressionCases = {
         let tmp = textureSample(t, s, vec2f(0,0));
       }
     `,
-    uniform: true,
+    uniform: true
   },
   and_uniform_nonuniform: {
     code: `
@@ -1576,7 +1573,7 @@ const kShortCircuitExpressionCases = {
         let tmp = textureSample(t, s, vec2f(0,0));
       }
     `,
-    uniform: false,
+    uniform: false
   },
   and_nonuniform_uniform: {
     code: `
@@ -1585,7 +1582,7 @@ const kShortCircuitExpressionCases = {
         let tmp = textureSample(t, s, vec2f(0,0));
       }
     `,
-    uniform: false,
+    uniform: false
   },
   and_nonuniform_nonuniform: {
     code: `
@@ -1594,20 +1591,20 @@ const kShortCircuitExpressionCases = {
         let tmp = textureSample(t, s, vec2f(0,0));
       }
     `,
-    uniform: false,
+    uniform: false
   },
   and_uniform_first_nonuniform: {
     code: `
       let x = textureSample(t, s, vec2f(0,0)).x == 0 && nonuniform_cond;
     `,
-    uniform: true,
+    uniform: true
   },
   and_uniform_second_nonuniform: {
     code: `
       let x = nonuniform_cond && textureSample(t, s, vec2f(0,0)).x == 0;
     `,
-    uniform: false,
-  },
+    uniform: false
+  }
 };
 
 const kPointerParamCases = {
@@ -1618,7 +1615,7 @@ const kPointerParamCases = {
     call: `var x = uniform_values[0];
     let call = foo(&x);`,
     cond: `x > 0`,
-    uniform: true,
+    uniform: true
   },
   pointer_nonuniform_passthrough_value: {
     function: `fn foo(p : ptr<function, u32>) -> u32 {
@@ -1627,7 +1624,7 @@ const kPointerParamCases = {
     call: `var x = uniform_values[0];
     let call = foo(&x);`,
     cond: `x > 0`,
-    uniform: true,
+    uniform: true
   },
   pointer_store_uniform_value: {
     function: `fn foo(p : ptr<function, u32>) {
@@ -1636,7 +1633,7 @@ const kPointerParamCases = {
     call: `var x = nonuniform_values[0];
     foo(&x);`,
     cond: `x > 0`,
-    uniform: true,
+    uniform: true
   },
   pointer_store_nonuniform_value: {
     function: `fn foo(p : ptr<function, u32>) {
@@ -1645,7 +1642,7 @@ const kPointerParamCases = {
     call: `var x = uniform_values[0];
     foo(&x);`,
     cond: `x > 0`,
-    uniform: false,
+    uniform: false
   },
   pointer_depends_on_nonpointer_param_uniform: {
     function: `fn foo(p : ptr<function, u32>, x : u32) {
@@ -1654,7 +1651,7 @@ const kPointerParamCases = {
     call: `var x = nonuniform_values[0];
     foo(&x, uniform_values[0]);`,
     cond: `x > 0`,
-    uniform: true,
+    uniform: true
   },
   pointer_depends_on_nonpointer_param_nonuniform: {
     function: `fn foo(p : ptr<function, u32>, x : u32) {
@@ -1663,7 +1660,7 @@ const kPointerParamCases = {
     call: `var x = uniform_values[0];
     foo(&x, nonuniform_values[0]);`,
     cond: `x > 0`,
-    uniform: false,
+    uniform: false
   },
   pointer_depends_on_pointer_param_uniform: {
     function: `fn foo(p : ptr<function, u32>, q : ptr<function, u32>) {
@@ -1673,7 +1670,7 @@ const kPointerParamCases = {
     var y = uniform_values[0];
     foo(&x, &y);`,
     cond: `x > 0`,
-    uniform: true,
+    uniform: true
   },
   pointer_depends_on_pointer_param_nonuniform: {
     function: `fn foo(p : ptr<function, u32>, q : ptr<function, u32>) {
@@ -1683,7 +1680,7 @@ const kPointerParamCases = {
     var y = nonuniform_values[0];
     foo(&x, &y);`,
     cond: `x > 0`,
-    uniform: false,
+    uniform: false
   },
   pointer_codependent1: {
     function: `fn foo(p : ptr<function, u32>, q : ptr<function, u32>) {
@@ -1698,7 +1695,7 @@ const kPointerParamCases = {
     foo(&x, &y);
     let a = x + y;`,
     cond: `a > 0`,
-    uniform: true,
+    uniform: true
   },
   pointer_codependent2: {
     function: `fn foo(p : ptr<function, u32>, q : ptr<function, u32>) {
@@ -1713,7 +1710,7 @@ const kPointerParamCases = {
     foo(&x, &y);
     let a = x + y;`,
     cond: `a > 0`,
-    uniform: false,
+    uniform: false
   },
   pointer_codependent3: {
     function: `fn foo(p : ptr<function, u32>, q : ptr<function, u32>) {
@@ -1728,7 +1725,7 @@ const kPointerParamCases = {
     foo(&x, &y);
     let a = x + y;`,
     cond: `a > 0`,
-    uniform: false,
+    uniform: false
   },
   pointer_codependent4: {
     function: `fn foo(p : ptr<function, u32>, q : ptr<function, u32>) {
@@ -1743,7 +1740,7 @@ const kPointerParamCases = {
     foo(&x, &y);
     let a = x + y;`,
     cond: `a > 0`,
-    uniform: false,
+    uniform: false
   },
   uniform_param_uniform_assignment: {
     function: `fn foo(p : ptr<function, array<u32, 2>>, idx : u32) {
@@ -1752,7 +1749,7 @@ const kPointerParamCases = {
     call: `var x = array(uniform_values[0], uniform_values[1]);
     foo(&x, uniform_values[3]);`,
     cond: `x[0] > 0`,
-    uniform: true,
+    uniform: true
   },
   uniform_param_nonuniform_assignment: {
     function: `fn foo(p : ptr<function, array<u32, 2>>, idx : u32) {
@@ -1761,7 +1758,7 @@ const kPointerParamCases = {
     call: `var x = array(uniform_values[0], uniform_values[1]);
     foo(&x, uniform_values[3]);`,
     cond: `x[0] > 0`,
-    uniform: false,
+    uniform: false
   },
   nonuniform_param_uniform_assignment: {
     function: `fn foo(p : ptr<function, array<u32, 2>>, idx : u32) {
@@ -1770,7 +1767,7 @@ const kPointerParamCases = {
     call: `var x = array(uniform_values[0], uniform_values[1]);
     foo(&x, u32(clamp(pos.x, 0, 1)));`,
     cond: `x[0] > 0`,
-    uniform: false,
+    uniform: false
   },
   nonuniform_param_nonuniform_assignment: {
     function: `fn foo(p : ptr<function, array<u32, 2>>, idx : u32) {
@@ -1779,7 +1776,7 @@ const kPointerParamCases = {
     call: `var x = array(uniform_values[0], uniform_values[1]);
     foo(&x, u32(clamp(pos.x, 0, 1)));`,
     cond: `x[0] > 0`,
-    uniform: false,
+    uniform: false
   },
   required_uniform_success: {
     function: `fn foo(p : ptr<function, u32>) {
@@ -1790,7 +1787,7 @@ const kPointerParamCases = {
     call: `var x = uniform_values[0];
     foo(&x);`,
     cond: `uniform_cond`,
-    uniform: true,
+    uniform: true
   },
   required_uniform_failure: {
     function: `fn foo(p : ptr<function, u32>) {
@@ -1801,7 +1798,7 @@ const kPointerParamCases = {
     call: `var x = nonuniform_values[0];
     foo(&x);`,
     cond: `uniform_cond`,
-    uniform: false,
+    uniform: false
   },
   uniform_conditional_call_assign_uniform: {
     function: `fn foo(p : ptr<function, u32>) {
@@ -1812,7 +1809,7 @@ const kPointerParamCases = {
       foo(&x);
     }`,
     cond: `x > 0`,
-    uniform: true,
+    uniform: true
   },
   uniform_conditional_call_assign_nonuniform1: {
     function: `fn foo(p : ptr<function, u32>) {
@@ -1823,7 +1820,7 @@ const kPointerParamCases = {
       foo(&x);
     }`,
     cond: `x > 0`,
-    uniform: false,
+    uniform: false
   },
   uniform_conditional_call_assign_nonuniform2: {
     function: `fn foo(p : ptr<function, u32>) {
@@ -1834,7 +1831,7 @@ const kPointerParamCases = {
       foo(&x);
     }`,
     cond: `x > 0`,
-    uniform: false,
+    uniform: false
   },
   nonuniform_conditional_call_assign_uniform: {
     function: `fn foo(p : ptr<function, u32>) {
@@ -1845,16 +1842,16 @@ const kPointerParamCases = {
       foo(&x);
     }`,
     cond: `x > 0`,
-    uniform: false,
-  },
+    uniform: false
+  }
 };
 
-g.test('function_pointer_parameters')
-  .desc(`Test functions and calls with pointer parameters`)
-  .params(u => u.combine('case', keysOf(kPointerParamCases)))
-  .fn(t => {
-    const pointer_case = kPointerParamCases[t.params.case];
-    const code = `
+g.test('function_pointer_parameters').
+desc(`Test functions and calls with pointer parameters`).
+params((u) => u.combine('case', keysOf(kPointerParamCases))).
+fn((t) => {
+  const pointer_case = kPointerParamCases[t.params.case];
+  const code = `
 @group(0) @binding(0)
 var t : texture_2d<f32>;
 @group(0) @binding(1)
@@ -1880,19 +1877,19 @@ fn main(@builtin(position) pos : vec4f) {
 }
 `;
 
-    const res = pointer_case.uniform;
-    if (!res) {
-      t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
-    }
-    t.expectCompileResult(res, code);
-  });
+  const res = pointer_case.uniform;
+  if (!res) {
+    t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
+  }
+  t.expectCompileResult(res, code);
+});
 
-g.test('short_circuit_expressions')
-  .desc(`Test uniformity of expressions`)
-  .params(u => u.combine('case', keysOf(kShortCircuitExpressionCases)))
-  .fn(t => {
-    const testcase = kShortCircuitExpressionCases[t.params.case];
-    const code = `
+g.test('short_circuit_expressions').
+desc(`Test uniformity of expressions`).
+params((u) => u.combine('case', keysOf(kShortCircuitExpressionCases))).
+fn((t) => {
+  const testcase = kShortCircuitExpressionCases[t.params.case];
+  const code = `
 @group(1) @binding(0)
 var t : texture_2d<f32>;
 @group(1) @binding(1)
@@ -1907,128 +1904,128 @@ fn main() {
 }
 `;
 
-    const res = testcase.uniform;
-    if (!res) {
-      t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
-    }
-    t.expectCompileResult(res, code);
-  });
+  const res = testcase.uniform;
+  if (!res) {
+    t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
+  }
+  t.expectCompileResult(res, code);
+});
 
 const kExpressionCases = {
   literal: {
     code: `1u`,
-    uniform: true,
+    uniform: true
   },
   uniform: {
     code: `uniform_val`,
-    uniform: true,
+    uniform: true
   },
   nonuniform: {
     code: `nonuniform_val`,
-    uniform: false,
+    uniform: false
   },
   uniform_index: {
     code: `uniform_value[uniform_val]`,
-    uniform: true,
+    uniform: true
   },
   nonuniform_index1: {
     code: `uniform_value[nonuniform_val]`,
-    uniform: false,
+    uniform: false
   },
   nonuniform_index2: {
     code: `nonuniform_value[uniform_val]`,
-    uniform: false,
+    uniform: false
   },
   uniform_struct: {
     code: `uniform_struct.x`,
-    uniform: true,
+    uniform: true
   },
   nonuniform_struct: {
     code: `nonuniform_struct.x`,
-    uniform: false,
-  },
+    uniform: false
+  }
 };
 
 const kBinOps = {
   plus: {
     code: '+',
-    test: '> 0',
+    test: '> 0'
   },
   minus: {
     code: '-',
-    test: '> 0',
+    test: '> 0'
   },
   times: {
     code: '*',
-    test: '> 0',
+    test: '> 0'
   },
   div: {
     code: '/',
-    test: '> 0',
+    test: '> 0'
   },
   rem: {
     code: '%',
-    test: '> 0',
+    test: '> 0'
   },
   and: {
     code: '&',
-    test: '> 0',
+    test: '> 0'
   },
   or: {
     code: '|',
-    test: '> 0',
+    test: '> 0'
   },
   xor: {
     code: '^',
-    test: '> 0',
+    test: '> 0'
   },
   shl: {
     code: '<<',
-    test: '> 0',
+    test: '> 0'
   },
   shr: {
     code: '>>',
-    test: '> 0',
+    test: '> 0'
   },
   less: {
     code: '<',
-    test: '',
+    test: ''
   },
   lessequal: {
     code: '<=',
-    test: '',
+    test: ''
   },
   greater: {
     code: '>',
-    test: '',
+    test: ''
   },
   greaterequal: {
     code: '>=',
-    test: '',
+    test: ''
   },
   equal: {
     code: '==',
-    test: '',
+    test: ''
   },
   notequal: {
     code: '!=',
-    test: '',
-  },
+    test: ''
+  }
 };
 
-g.test('binary_expressions')
-  .desc(`Test uniformity of binary expressions`)
-  .params(u =>
-    u
-      .combine('e1', keysOf(kExpressionCases))
-      .combine('e2', keysOf(kExpressionCases))
-      .combine('op', keysOf(kBinOps))
-  )
-  .fn(t => {
-    const e1 = kExpressionCases[t.params.e1];
-    const e2 = kExpressionCases[t.params.e2];
-    const op = kBinOps[t.params.op];
-    const code = `
+g.test('binary_expressions').
+desc(`Test uniformity of binary expressions`).
+params((u) =>
+u.
+combine('e1', keysOf(kExpressionCases)).
+combine('e2', keysOf(kExpressionCases)).
+combine('op', keysOf(kBinOps))
+).
+fn((t) => {
+  const e1 = kExpressionCases[t.params.e1];
+  const e2 = kExpressionCases[t.params.e2];
+  const op = kBinOps[t.params.op];
+  const code = `
 @group(0) @binding(0)
 var t : texture_2d<f32>;
 @group(0) @binding(1)
@@ -2056,23 +2053,23 @@ fn main() {
 }
 `;
 
-    const res = e1.uniform && e2.uniform;
-    if (!res) {
-      t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
-    }
-    t.expectCompileResult(res, code);
-  });
+  const res = e1.uniform && e2.uniform;
+  if (!res) {
+    t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
+  }
+  t.expectCompileResult(res, code);
+});
 
-g.test('unary_expressions')
-  .desc(`Test uniformity of uniary expressions`)
-  .params(u =>
-    u
-      .combine('e', keysOf(kExpressionCases))
-      .combine('op', ['!b_tmp', '~i_tmp > 0', '-i32(i_tmp) > 0'])
-  )
-  .fn(t => {
-    const e = kExpressionCases[t.params.e];
-    const code = `
+g.test('unary_expressions').
+desc(`Test uniformity of uniary expressions`).
+params((u) =>
+u.
+combine('e', keysOf(kExpressionCases)).
+combine('op', ['!b_tmp', '~i_tmp > 0', '-i32(i_tmp) > 0'])
+).
+fn((t) => {
+  const e = kExpressionCases[t.params.e];
+  const code = `
 @group(0) @binding(0)
 var t : texture_2d<f32>;
 @group(0) @binding(1)
@@ -2102,12 +2099,12 @@ fn main() {
 }
 `;
 
-    const res = e.uniform;
-    if (!res) {
-      t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
-    }
-    t.expectCompileResult(res, code);
-  });
+  const res = e.uniform;
+  if (!res) {
+    t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
+  }
+  t.expectCompileResult(res, code);
+});
 
 const kFunctionCases = {
   uniform_result: {
@@ -2116,7 +2113,7 @@ const kFunctionCases = {
     }`,
     call: `let call = foo();`,
     cond: `call > 0`,
-    uniform: true,
+    uniform: true
   },
   nonuniform_result: {
     function: `fn foo() -> u32 {
@@ -2124,7 +2121,7 @@ const kFunctionCases = {
     }`,
     call: `let call = foo();`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   nonuniform_return_is_uniform_after_call: {
     function: `fn foo() {
@@ -2136,7 +2133,7 @@ const kFunctionCases = {
     }`,
     call: `foo();`,
     cond: `uniform_cond`,
-    uniform: true,
+    uniform: true
   },
   uniform_passthrough_parameter: {
     function: `fn foo(x : u32) -> u32 {
@@ -2144,7 +2141,7 @@ const kFunctionCases = {
     }`,
     call: `let call = foo(uniform_values[0]);`,
     cond: `call > 0`,
-    uniform: true,
+    uniform: true
   },
   nonuniform_passthrough_parameter: {
     function: `fn foo(x : u32) -> u32 {
@@ -2152,7 +2149,7 @@ const kFunctionCases = {
     }`,
     call: `let call = foo(nonuniform_values[0]);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   combined_parameters1: {
     function: `fn foo(x : u32, y : u32) -> u32 {
@@ -2160,7 +2157,7 @@ const kFunctionCases = {
     }`,
     call: `let call = foo(uniform_values[0], uniform_values[1]);`,
     cond: `call > 0`,
-    uniform: true,
+    uniform: true
   },
   combined_parameters2: {
     function: `fn foo(x : u32, y : u32) -> u32 {
@@ -2168,7 +2165,7 @@ const kFunctionCases = {
     }`,
     call: `let call = foo(nonuniform_values[0], uniform_values[1]);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   combined_parameters3: {
     function: `fn foo(x : u32, y : u32) -> u32 {
@@ -2176,7 +2173,7 @@ const kFunctionCases = {
     }`,
     call: `let call = foo(uniform_values[0], nonuniform_values[1]);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   combined_parameters4: {
     function: `fn foo(x : u32, y : u32) -> u32 {
@@ -2184,7 +2181,7 @@ const kFunctionCases = {
     }`,
     call: `let call = foo(nonuniform_values[0], nonuniform_values[1]);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   uniform_parameter_cf_after_nonuniform_expr: {
     function: `fn foo(x : bool, y : vec4f) -> f32 {
@@ -2192,7 +2189,7 @@ const kFunctionCases = {
     }`,
     call: `let call = foo(nonuniform_cond || uniform_cond, textureSample(t,s,vec2f(0,0)));`,
     cond: `uniform_cond`,
-    uniform: true,
+    uniform: true
   },
   required_uniform_function_call_in_uniform_cf: {
     function: `fn foo() -> vec4f {
@@ -2202,7 +2199,7 @@ const kFunctionCases = {
       let call = foo();
     }`,
     cond: `uniform_cond`,
-    uniform: true,
+    uniform: true
   },
   required_uniform_function_call_in_nonuniform_cf: {
     function: `fn foo() -> vec4f {
@@ -2212,7 +2209,7 @@ const kFunctionCases = {
       let call = foo();
     }`,
     cond: `uniform_cond`,
-    uniform: false,
+    uniform: false
   },
   required_uniform_function_call_in_nonuniform_cf2: {
     function: `@diagnostic(warning, derivative_uniformity)
@@ -2224,7 +2221,7 @@ const kFunctionCases = {
       let sample = textureSample(t,s,vec2f(0,0));
     }`,
     cond: `uniform_cond`,
-    uniform: false,
+    uniform: false
   },
   required_uniform_function_call_depends_on_uniform_param: {
     function: `fn foo(x : bool) -> vec4f {
@@ -2235,7 +2232,7 @@ const kFunctionCases = {
     }`,
     call: `let call = foo(uniform_cond);`,
     cond: `uniform_cond`,
-    uniform: true,
+    uniform: true
   },
   required_uniform_function_call_depends_on_nonuniform_param: {
     function: `fn foo(x : bool) -> vec4f {
@@ -2246,166 +2243,166 @@ const kFunctionCases = {
     }`,
     call: `let call = foo(nonuniform_cond);`,
     cond: `uniform_cond`,
-    uniform: false,
+    uniform: false
   },
   dpdx_nonuniform_result: {
     function: ``,
     call: `let call = dpdx(1);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   dpdy_nonuniform_result: {
     function: ``,
     call: `let call = dpdy(1);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   dpdxCoarse_nonuniform_result: {
     function: ``,
     call: `let call = dpdxCoarse(1);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   dpdyCoarse_nonuniform_result: {
     function: ``,
     call: `let call = dpdyCoarse(1);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   dpdxFine_nonuniform_result: {
     function: ``,
     call: `let call = dpdxFine(1);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   dpdyFine_nonuniform_result: {
     function: ``,
     call: `let call = dpdyFine(1);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   fwidth_nonuniform_result: {
     function: ``,
     call: `let call = fwidth(1);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   fwidthCoarse_nonuniform_result: {
     function: ``,
     call: `let call = fwidthCoarse(1);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   fwidthFine_nonuniform_result: {
     function: ``,
     call: `let call = fwidthFine(1);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   textureSample_nonuniform_result: {
     function: ``,
     call: `let call = textureSample(t,s,vec2f(0,0));`,
     cond: `call.x > 0`,
-    uniform: false,
+    uniform: false
   },
   textureSampleBias_nonuniform_result: {
     function: ``,
     call: `let call = textureSampleBias(t,s,vec2f(0,0), 0);`,
     cond: `call.x > 0`,
-    uniform: false,
+    uniform: false
   },
   textureSampleCompare_nonuniform_result: {
     function: ``,
     call: `let call = textureSampleCompare(td,sd,vec2f(0,0), 0);`,
     cond: `call > 0`,
-    uniform: false,
+    uniform: false
   },
   textureDimensions_uniform_input_uniform_result: {
     function: ``,
     call: `let call = textureDimensions(t);`,
     cond: `call.x > 0`,
-    uniform: true,
+    uniform: true
   },
   textureGather_uniform_input_uniform_result: {
     function: ``,
     call: `let call = textureGather(0,t,s,vec2f(0,0));`,
     cond: `call.x > 0`,
-    uniform: true,
+    uniform: true
   },
   textureGatherCompare_uniform_input_uniform_result: {
     function: ``,
     call: `let call = textureGatherCompare(td,sd,vec2f(0,0), 0);`,
     cond: `call.x > 0`,
-    uniform: true,
+    uniform: true
   },
   textureLoad_uniform_input_uniform_result: {
     function: ``,
     call: `let call = textureLoad(t,vec2u(0,0),0);`,
     cond: `call.x > 0`,
-    uniform: true,
+    uniform: true
   },
   textureNumLayers_uniform_input_uniform_result: {
     function: ``,
     call: `let call = textureNumLayers(ta);`,
     cond: `call > 0`,
-    uniform: true,
+    uniform: true
   },
   textureNumLevels_uniform_input_uniform_result: {
     function: ``,
     call: `let call = textureNumLevels(t);`,
     cond: `call > 0`,
-    uniform: true,
+    uniform: true
   },
   textureNumSamples_uniform_input_uniform_result: {
     function: ``,
     call: `let call = textureNumSamples(ts);`,
     cond: `call > 0`,
-    uniform: true,
+    uniform: true
   },
   textureSampleLevel_uniform_input_uniform_result: {
     function: ``,
     call: `let call = textureSampleLevel(t,s,vec2f(0,0),0);`,
     cond: `call.x > 0`,
-    uniform: true,
+    uniform: true
   },
   textureSampleGrad_uniform_input_uniform_result: {
     function: ``,
     call: `let call = textureSampleGrad(t,s,vec2f(0,0),vec2f(0,0),vec2f(0,0));`,
     cond: `call.x > 0`,
-    uniform: true,
+    uniform: true
   },
   textureSampleCompareLevel_uniform_input_uniform_result: {
     function: ``,
     call: `let call = textureSampleCompareLevel(td,sd,vec2f(0,0), 0);`,
     cond: `call > 0`,
-    uniform: true,
+    uniform: true
   },
   textureSampleBaseClampToEdge_uniform_input_uniform_result: {
     function: ``,
     call: `let call = textureSampleBaseClampToEdge(t,s,vec2f(0,0));`,
     cond: `call.x > 0`,
-    uniform: true,
+    uniform: true
   },
   min_uniform_input_uniform_result: {
     function: ``,
     call: `let call = min(0,0);`,
     cond: `call > 0`,
-    uniform: true,
+    uniform: true
   },
   value_constructor_uniform_input_uniform_result: {
     function: ``,
     call: `let call = vec2u(0,0);`,
     cond: `call.x > 0`,
-    uniform: true,
-  },
+    uniform: true
+  }
 };
 
-g.test('functions')
-  .desc(`Test uniformity of function calls (non-pointer parameters)`)
-  .params(u => u.combine('case', keysOf(kFunctionCases)))
-  .fn(t => {
-    const func_case = kFunctionCases[t.params.case];
-    const code = `
+g.test('functions').
+desc(`Test uniformity of function calls (non-pointer parameters)`).
+params((u) => u.combine('case', keysOf(kFunctionCases))).
+fn((t) => {
+  const func_case = kFunctionCases[t.params.case];
+  const code = `
 @group(0) @binding(0)
 var t : texture_2d<f32>;
 @group(0) @binding(1)
@@ -2439,9 +2436,9 @@ fn main() {
 }
 `;
 
-    const res = func_case.uniform;
-    if (!res) {
-      t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
-    }
-    t.expectCompileResult(res, code);
-  });
+  const res = func_case.uniform;
+  if (!res) {
+    t.expectCompileResult(true, `diagnostic(off, derivative_uniformity);\n` + code);
+  }
+  t.expectCompileResult(res, code);
+});

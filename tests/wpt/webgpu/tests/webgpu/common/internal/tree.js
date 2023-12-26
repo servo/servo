@@ -1,16 +1,18 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { loadMetadataForSuite } from '../framework/metadata.js';
-import { globalTestConfig } from '../framework/test_config.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { loadMetadataForSuite } from '../framework/metadata.js';import { globalTestConfig } from '../framework/test_config.js';
 import { assert, now } from '../util/util.js';
+
+
 
 import { comparePublicParamsPaths, compareQueries, Ordering } from './query/compare.js';
 import {
+
   TestQueryMultiCase,
   TestQuerySingleCase,
   TestQueryMultiFile,
-  TestQueryMultiTest,
-} from './query/query.js';
+  TestQueryMultiTest } from
+'./query/query.js';
 import { kBigSeparator, kWildcard, kPathSeparator, kParamSeparator } from './query/separators.js';
 import { stringifySingleParam } from './query/stringify_params.js';
 import { StacklessError } from './util.js';
@@ -39,6 +41,45 @@ import { StacklessError } from './util.js';
 //   - Enables developers to put any number of tests in one file as appropriate, without worrying
 //     about expectation granularity.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * When iterating through "collapsed" tree nodes, indicates how many "query levels" to traverse
+ * through before starting to collapse nodes.
+ *
+ * Corresponds with TestQueryLevel, but excludes 4 (SingleCase):
+ * - 1 = MultiFile. Expands so every file is in the collapsed tree.
+ * - 2 = MultiTest. Expands so every test is in the collapsed tree.
+ * - 3 = MultiCase. Expands so every case is in the collapsed tree (i.e. collapsing disabled).
+ */
+
+
 export class TestTree {
   /**
    * The `queryToLoad` that this test tree was created for.
@@ -49,6 +90,8 @@ export class TestTree {
    * `TestQueryLevel` after `forQuery`.
    */
 
+
+
   constructor(forQuery, root) {
     this.forQuery = forQuery;
     this.root = root;
@@ -58,7 +101,11 @@ export class TestTree {
     );
   }
 
-  static async create(forQuery, root, maxChunkTime) {
+  static async create(
+  forQuery,
+  root,
+  maxChunkTime)
+  {
     const suite = forQuery.suite;
 
     let chunking = undefined;
@@ -81,13 +128,20 @@ export class TestTree {
   iterateCollapsedNodes({
     includeIntermediateNodes = false,
     includeEmptySubtrees = false,
-    alwaysExpandThroughLevel,
+    alwaysExpandThroughLevel
+
+
+
+
+
+
+
   }) {
     const expandThroughLevel = Math.max(this.forQuery.level, alwaysExpandThroughLevel);
     return TestTree.iterateSubtreeNodes(this.root, {
       includeIntermediateNodes,
       includeEmptySubtrees,
-      expandThroughLevel,
+      expandThroughLevel
     });
   }
 
@@ -111,7 +165,14 @@ export class TestTree {
     return TestTree.subtreeToString('(root)', this.root, '');
   }
 
-  static *iterateSubtreeNodes(subtree, opts) {
+  static *iterateSubtreeNodes(
+  subtree,
+  opts)
+
+
+
+
+  {
     if (opts.includeIntermediateNodes) {
       yield subtree;
     }
@@ -144,7 +205,10 @@ export class TestTree {
   }
 
   /** Propagate the subtreeTODOs/subtreeTests state upward from leaves to parent nodes. */
-  static async propagateCounts(subtree, chunking) {
+  static async propagateCounts(
+  subtree,
+  chunking)
+  {
     subtree.subtreeCounts ??= { tests: 0, nodesWithTODO: 0, totalTimeMS: 0 };
     subtree.subcaseCount = 0;
     for (const [, child] of subtree.children) {
@@ -200,8 +264,8 @@ export class TestTree {
   static subtreeToString(name, tree, indent) {
     const collapsible = 'run' in tree ? '>' : tree.collapsible ? '+' : '-';
     let s =
-      indent +
-      `${collapsible} ${TestTree.countsToString(tree)} ${JSON.stringify(name)} => ${tree.query}`;
+    indent +
+    `${collapsible} ${TestTree.countsToString(tree)} ${JSON.stringify(name)} => ${tree.query}`;
     if ('children' in tree) {
       if (tree.description !== undefined) {
         s += `\n${indent}  | ${JSON.stringify(tree.description)}`;
@@ -218,10 +282,13 @@ export class TestTree {
 // MAINTENANCE_TODO: Consider having subqueriesToExpand actually impact the depth-order of params
 // in the tree.
 export async function loadTreeForQuery(
-  loader,
-  queryToLoad,
-  { subqueriesToExpand, maxChunkTime = Infinity }
-) {
+loader,
+queryToLoad,
+{
+  subqueriesToExpand,
+  maxChunkTime = Infinity
+})
+{
   const suite = queryToLoad.suite;
   const specs = await loader.listing(suite);
 
@@ -229,14 +296,14 @@ export async function loadTreeForQuery(
   const seenSubqueriesToExpand = new Array(subqueriesToExpand.length);
   seenSubqueriesToExpand.fill(false);
 
-  const isCollapsible = subquery =>
-    subqueriesToExpandEntries.every(([i, toExpand]) => {
-      const ordering = compareQueries(toExpand, subquery);
+  const isCollapsible = (subquery) =>
+  subqueriesToExpandEntries.every(([i, toExpand]) => {
+    const ordering = compareQueries(toExpand, subquery);
 
-      // If toExpand == subquery, no expansion is needed (but it's still "seen").
-      if (ordering === Ordering.Equal) seenSubqueriesToExpand[i] = true;
-      return ordering !== Ordering.StrictSubset;
-    });
+    // If toExpand == subquery, no expansion is needed (but it's still "seen").
+    if (ordering === Ordering.Equal) seenSubqueriesToExpand[i] = true;
+    return ordering !== Ordering.StrictSubset;
+  });
 
   // L0 = suite-level, e.g. suite:*
   // L1 =  file-level, e.g. suite:a,b:*
@@ -271,7 +338,7 @@ export async function loadTreeForQuery(
       } else {
         return {
           ...entry,
-          importedSpec: await loader.importSpecFile(queryToLoad.suite, entry.file),
+          importedSpec: await loader.importSpecFile(queryToLoad.suite, entry.file)
         };
       }
     })();
@@ -299,8 +366,11 @@ export async function loadTreeForQuery(
       // readmeSubtree is suite:a,b,*
       // (This is always going to dedup with a file path, if there are any test spec files under
       // the directory that has the README).
-      const readmeSubtree = addSubtreeForDirPath(subtreeL0, entry.file, isCollapsible);
-
+      const readmeSubtree = addSubtreeForDirPath(
+        subtreeL0,
+        entry.file,
+        isCollapsible
+      );
       setSubtreeDescriptionAndCountTODOs(readmeSubtree, entry.readme);
       continue;
     }
@@ -308,8 +378,11 @@ export async function loadTreeForQuery(
     // Entry is a spec file.
     const spec = entry.importedSpec;
     // subtreeL1 is suite:a,b:*
-    const subtreeL1 = addSubtreeForFilePath(subtreeL0, entry.file, isCollapsible);
-
+    const subtreeL1 = addSubtreeForFilePath(
+      subtreeL0,
+      entry.file,
+      isCollapsible
+    );
     setSubtreeDescriptionAndCountTODOs(subtreeL1, spec.description);
 
     let groupHasTests = false;
@@ -331,7 +404,6 @@ export async function loadTreeForQuery(
         t.testCreationStack,
         isCollapsible
       );
-
       // This is 1 test. Set tests=1 then count TODOs.
       subtreeL2.subtreeCounts ??= { tests: 1, nodesWithTODO: 0, totalTimeMS: 0 };
       if (t.description) setSubtreeDescriptionAndCountTODOs(subtreeL2, t.description);
@@ -380,7 +452,10 @@ export async function loadTreeForQuery(
   return TestTree.create(queryToLoad, subtreeL0, maxChunkTime);
 }
 
-function setSubtreeDescriptionAndCountTODOs(subtree, description) {
+function setSubtreeDescriptionAndCountTODOs(
+subtree,
+description)
+{
   assert(subtree.description === undefined);
   subtree.description = description.trim();
   subtree.subtreeCounts ??= { tests: 0, nodesWithTODO: 0, totalTimeMS: 0 };
@@ -389,17 +464,24 @@ function setSubtreeDescriptionAndCountTODOs(subtree, description) {
   }
 }
 
-function makeTreeForSuite(suite, isCollapsible) {
+function makeTreeForSuite(
+suite,
+isCollapsible)
+{
   const query = new TestQueryMultiFile(suite, []);
   return {
     readableRelativeName: suite + kBigSeparator,
     query,
     children: new Map(),
-    collapsible: isCollapsible(query),
+    collapsible: isCollapsible(query)
   };
 }
 
-function addSubtreeForDirPath(tree, file, isCollapsible) {
+function addSubtreeForDirPath(
+tree,
+file,
+isCollapsible)
+{
   const subqueryFile = [];
   // To start, tree is suite:*
   // This loop goes from that -> suite:a,* -> suite:a,b,*
@@ -410,14 +492,18 @@ function addSubtreeForDirPath(tree, file, isCollapsible) {
       return {
         readableRelativeName: part + kPathSeparator + kWildcard,
         query,
-        collapsible: isCollapsible(query),
+        collapsible: isCollapsible(query)
       };
     });
   }
   return tree;
 }
 
-function addSubtreeForFilePath(tree, file, isCollapsible) {
+function addSubtreeForFilePath(
+tree,
+file,
+isCollapsible)
+{
   // To start, tree is suite:*
   // This goes from that -> suite:a,* -> suite:a,b,*
   tree = addSubtreeForDirPath(tree, file, isCollapsible);
@@ -428,13 +514,18 @@ function addSubtreeForFilePath(tree, file, isCollapsible) {
     return {
       readableRelativeName: file[file.length - 1] + kBigSeparator + kWildcard,
       query,
-      collapsible: isCollapsible(query),
+      collapsible: isCollapsible(query)
     };
   });
   return subtree;
 }
 
-function addSubtreeForTestPath(tree, test, testCreationStack, isCollapsible) {
+function addSubtreeForTestPath(
+tree,
+test,
+testCreationStack,
+isCollapsible)
+{
   const subqueryTest = [];
   // To start, tree is suite:a,b:*
   // This loop goes from that -> suite:a,b:c,* -> suite:a,b:c,d,*
@@ -446,11 +537,10 @@ function addSubtreeForTestPath(tree, test, testCreationStack, isCollapsible) {
         tree.query.filePathParts,
         subqueryTest
       );
-
       return {
         readableRelativeName: part + kPathSeparator + kWildcard,
         query,
-        collapsible: isCollapsible(query),
+        collapsible: isCollapsible(query)
       };
     });
   }
@@ -462,19 +552,22 @@ function addSubtreeForTestPath(tree, test, testCreationStack, isCollapsible) {
       subqueryTest,
       {}
     );
-
     assert(subqueryTest.length > 0, 'subqueryTest is empty');
     return {
       readableRelativeName: subqueryTest[subqueryTest.length - 1] + kBigSeparator + kWildcard,
       kWildcard,
       query,
       testCreationStack,
-      collapsible: isCollapsible(query),
+      collapsible: isCollapsible(query)
     };
   });
 }
 
-function addLeafForCase(tree, t, checkCollapsible) {
+function addLeafForCase(
+tree,
+t,
+checkCollapsible)
+{
   const query = tree.query;
   let name = '';
   const subqueryParams = {};
@@ -492,11 +585,10 @@ function addLeafForCase(tree, t, checkCollapsible) {
         query.testPathParts,
         subqueryParams
       );
-
       return {
         readableRelativeName: name + kParamSeparator + kWildcard,
         query: subquery,
-        collapsible: checkCollapsible(subquery),
+        collapsible: checkCollapsible(subquery)
       };
     });
   }
@@ -508,12 +600,15 @@ function addLeafForCase(tree, t, checkCollapsible) {
     query.testPathParts,
     subqueryParams
   );
-
   checkCollapsible(subquery); // mark seenSubqueriesToExpand
   insertLeaf(tree, subquery, t);
 }
 
-function getOrInsertSubtree(key, parent, createSubtree) {
+function getOrInsertSubtree(
+key,
+parent,
+createSubtree)
+{
   let v;
   const child = parent.children.get(key);
   if (child !== undefined) {
@@ -532,7 +627,7 @@ function insertLeaf(parent, query, t) {
     query,
     run: (rec, expectations) => t.run(rec, query, expectations || []),
     isUnimplemented: t.isUnimplemented,
-    subcaseCount: t.computeSubcaseCount(),
+    subcaseCount: t.computeSubcaseCount()
   };
 
   // This is a leaf (e.g. s:f:t:x=1;* -> s:f:t:x=1). The key is always ''.
@@ -544,7 +639,7 @@ function insertLeaf(parent, query, t) {
 function dissolveSingleChildTrees(tree) {
   if ('children' in tree) {
     const shouldDissolveThisTree =
-      tree.children.size === 1 && tree.query.depthInLevel !== 0 && tree.description === undefined;
+    tree.children.size === 1 && tree.query.depthInLevel !== 0 && tree.description === undefined;
     if (shouldDissolveThisTree) {
       // Loops exactly once
       for (const [, child] of tree.children) {

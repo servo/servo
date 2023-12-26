@@ -1,7 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert, ErrorWithExtra, unreachable } from '../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../format_info.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { assert, ErrorWithExtra, unreachable } from '../../../common/util/util.js';import { kTextureFormatInfo } from '../../format_info.js';
 import { numbersApproximatelyEqual } from '../conversion.js';
 import { generatePrettyTable } from '../pretty_diff_tables.js';
 import { reifyExtent3D, reifyOrigin3D } from '../unions.js';
@@ -11,12 +10,47 @@ import { getTextureSubCopyLayout } from './layout.js';
 import { kTexelRepresentationInfo } from './texel_data.js';
 import { TexelView } from './texel_view.js';
 
-function makeTexelViewComparer(format, { actTexelView, expTexelView }, opts) {
+
+
+/** Threshold options for comparing texels of different formats (norm/float/int). */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function makeTexelViewComparer(
+format,
+{ actTexelView, expTexelView },
+opts)
+{
   const {
     maxIntDiff = 0,
     maxFractionalDiff,
     maxDiffULPsForNormFormat,
-    maxDiffULPsForFloatFormat,
+    maxDiffULPsForFloatFormat
   } = opts;
 
   assert(maxIntDiff >= 0, 'threshold must be non-negative');
@@ -36,29 +70,29 @@ function makeTexelViewComparer(format, { actTexelView, expTexelView }, opts) {
 
   const tvc = {};
   if (fmtIsInt) {
-    tvc.predicate = coords =>
-      comparePerComponent(actTexelView.color(coords), expTexelView.color(coords), maxIntDiff);
+    tvc.predicate = (coords) =>
+    comparePerComponent(actTexelView.color(coords), expTexelView.color(coords), maxIntDiff);
   } else if (fmtIsNorm && maxDiffULPsForNormFormat !== undefined) {
-    tvc.predicate = coords =>
-      comparePerComponent(
-        actTexelView.ulpFromZero(coords),
-        expTexelView.ulpFromZero(coords),
-        maxDiffULPsForNormFormat
-      );
+    tvc.predicate = (coords) =>
+    comparePerComponent(
+      actTexelView.ulpFromZero(coords),
+      expTexelView.ulpFromZero(coords),
+      maxDiffULPsForNormFormat
+    );
   } else if (fmtIsFloat && maxDiffULPsForFloatFormat !== undefined) {
-    tvc.predicate = coords =>
-      comparePerComponent(
-        actTexelView.ulpFromZero(coords),
-        expTexelView.ulpFromZero(coords),
-        maxDiffULPsForFloatFormat
-      );
+    tvc.predicate = (coords) =>
+    comparePerComponent(
+      actTexelView.ulpFromZero(coords),
+      expTexelView.ulpFromZero(coords),
+      maxDiffULPsForFloatFormat
+    );
   } else if (maxFractionalDiff !== undefined) {
-    tvc.predicate = coords =>
-      comparePerComponent(
-        actTexelView.color(coords),
-        expTexelView.color(coords),
-        maxFractionalDiff
-      );
+    tvc.predicate = (coords) =>
+    comparePerComponent(
+      actTexelView.color(coords),
+      expTexelView.color(coords),
+      maxFractionalDiff
+    );
   } else {
     if (fmtIsNorm) {
       unreachable('need maxFractionalDiff or maxDiffULPsForNormFormat to compare norm textures');
@@ -71,53 +105,57 @@ function makeTexelViewComparer(format, { actTexelView, expTexelView }, opts) {
 
   const repr = kTexelRepresentationInfo[format];
   if (fmtIsInt) {
-    tvc.tableRows = failedCoords => [
-      [`tolerance ± ${maxIntDiff}`],
-      (function* () {
-        yield* [` diff (act - exp)`, '==', ''];
-        for (const coords of failedCoords) {
-          const act = actTexelView.color(coords);
-          const exp = expTexelView.color(coords);
-          yield repr.componentOrder.map(ch => act[ch] - exp[ch]).join(',');
-        }
-      })(),
-    ];
+    tvc.tableRows = (failedCoords) => [
+    [`tolerance ± ${maxIntDiff}`],
+    function* () {
+      yield* [` diff (act - exp)`, '==', ''];
+      for (const coords of failedCoords) {
+        const act = actTexelView.color(coords);
+        const exp = expTexelView.color(coords);
+        yield repr.componentOrder.map((ch) => act[ch] - exp[ch]).join(',');
+      }
+    }()];
+
   } else if (
-    (fmtIsNorm && maxDiffULPsForNormFormat !== undefined) ||
-    (fmtIsFloat && maxDiffULPsForFloatFormat !== undefined)
-  ) {
+  fmtIsNorm && maxDiffULPsForNormFormat !== undefined ||
+  fmtIsFloat && maxDiffULPsForFloatFormat !== undefined)
+  {
     const toleranceULPs = fmtIsNorm ? maxDiffULPsForNormFormat : maxDiffULPsForFloatFormat;
-    tvc.tableRows = failedCoords => [
-      [`tolerance ± ${toleranceULPs} normal-ULPs`],
-      (function* () {
-        yield* [` diff (act - exp) in normal-ULPs`, '==', ''];
-        for (const coords of failedCoords) {
-          const act = actTexelView.ulpFromZero(coords);
-          const exp = expTexelView.ulpFromZero(coords);
-          yield repr.componentOrder.map(ch => act[ch] - exp[ch]).join(',');
-        }
-      })(),
-    ];
+    tvc.tableRows = (failedCoords) => [
+    [`tolerance ± ${toleranceULPs} normal-ULPs`],
+    function* () {
+      yield* [` diff (act - exp) in normal-ULPs`, '==', ''];
+      for (const coords of failedCoords) {
+        const act = actTexelView.ulpFromZero(coords);
+        const exp = expTexelView.ulpFromZero(coords);
+        yield repr.componentOrder.map((ch) => act[ch] - exp[ch]).join(',');
+      }
+    }()];
+
   } else {
     assert(maxFractionalDiff !== undefined);
-    tvc.tableRows = failedCoords => [
-      [`tolerance ± ${maxFractionalDiff}`],
-      (function* () {
-        yield* [` diff (act - exp)`, '==', ''];
-        for (const coords of failedCoords) {
-          const act = actTexelView.color(coords);
-          const exp = expTexelView.color(coords);
-          yield repr.componentOrder.map(ch => (act[ch] - exp[ch]).toPrecision(4)).join(',');
-        }
-      })(),
-    ];
+    tvc.tableRows = (failedCoords) => [
+    [`tolerance ± ${maxFractionalDiff}`],
+    function* () {
+      yield* [` diff (act - exp)`, '==', ''];
+      for (const coords of failedCoords) {
+        const act = actTexelView.color(coords);
+        const exp = expTexelView.color(coords);
+        yield repr.componentOrder.map((ch) => (act[ch] - exp[ch]).toPrecision(4)).join(',');
+      }
+    }()];
+
   }
 
   return tvc;
 }
 
-function comparePerComponent(actual, expected, maxDiff) {
-  return Object.keys(actual).every(key => {
+function comparePerComponent(
+actual,
+expected,
+maxDiff)
+{
+  return Object.keys(actual).every((key) => {
     const k = key;
     const act = actual[k];
     const exp = expected[k];
@@ -127,14 +165,19 @@ function comparePerComponent(actual, expected, maxDiff) {
 }
 
 /** Create a new mappable GPUBuffer, and copy a subrectangle of GPUTexture data into it. */
-function createTextureCopyForMapRead(t, source, copySize, { format }) {
+function createTextureCopyForMapRead(
+t,
+source,
+copySize,
+{ format })
+{
   const { byteLength, bytesPerRow, rowsPerImage } = getTextureSubCopyLayout(format, copySize, {
-    aspect: source.aspect,
+    aspect: source.aspect
   });
 
   const buffer = t.device.createBuffer({
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-    size: byteLength,
+    size: byteLength
   });
   t.trackForCleanup(buffer);
 
@@ -146,13 +189,13 @@ function createTextureCopyForMapRead(t, source, copySize, { format }) {
 }
 
 export function findFailedPixels(
-  format,
-  subrectOrigin,
-  subrectSize,
-  { actTexelView, expTexelView },
-  texelCompareOptions,
-  coords
-) {
+format,
+subrectOrigin,
+subrectSize,
+{ actTexelView, expTexelView },
+texelCompareOptions,
+coords)
+{
   const comparer = makeTexelViewComparer(
     format,
     { actTexelView, expTexelView },
@@ -182,52 +225,54 @@ export function findFailedPixels(
   const repr = kTexelRepresentationInfo[format];
 
   const integerSampleType = info.sampleType === 'uint' || info.sampleType === 'sint';
-  const numberToString = integerSampleType ? n => n.toFixed() : n => n.toPrecision(6);
+  const numberToString = integerSampleType ?
+  (n) => n.toFixed() :
+  (n) => n.toPrecision(6);
 
   const componentOrderStr = repr.componentOrder.join(',') + ':';
 
-  const printCoords = (function* () {
+  const printCoords = function* () {
     yield* [' coords', '==', 'X,Y,Z:'];
     for (const coords of failedPixels) yield `${coords.x},${coords.y},${coords.z}`;
-  })();
-  const printActualBytes = (function* () {
+  }();
+  const printActualBytes = function* () {
     yield* [' act. texel bytes (little-endian)', '==', '0x:'];
     for (const coords of failedPixels) {
-      yield Array.from(actTexelView.bytes(coords), b => b.toString(16).padStart(2, '0')).join(' ');
+      yield Array.from(actTexelView.bytes(coords), (b) => b.toString(16).padStart(2, '0')).join(' ');
     }
-  })();
-  const printActualColors = (function* () {
+  }();
+  const printActualColors = function* () {
     yield* [' act. colors', '==', componentOrderStr];
     for (const coords of failedPixels) {
       const pixel = actTexelView.color(coords);
-      yield `${repr.componentOrder.map(ch => numberToString(pixel[ch])).join(',')}`;
+      yield `${repr.componentOrder.map((ch) => numberToString(pixel[ch])).join(',')}`;
     }
-  })();
-  const printExpectedColors = (function* () {
+  }();
+  const printExpectedColors = function* () {
     yield* [' exp. colors', '==', componentOrderStr];
     for (const coords of failedPixels) {
       const pixel = expTexelView.color(coords);
-      yield `${repr.componentOrder.map(ch => numberToString(pixel[ch])).join(',')}`;
+      yield `${repr.componentOrder.map((ch) => numberToString(pixel[ch])).join(',')}`;
     }
-  })();
-  const printActualULPs = (function* () {
+  }();
+  const printActualULPs = function* () {
     yield* [' act. normal-ULPs-from-zero', '==', componentOrderStr];
     for (const coords of failedPixels) {
       const pixel = actTexelView.ulpFromZero(coords);
-      yield `${repr.componentOrder.map(ch => pixel[ch]).join(',')}`;
+      yield `${repr.componentOrder.map((ch) => pixel[ch]).join(',')}`;
     }
-  })();
-  const printExpectedULPs = (function* () {
+  }();
+  const printExpectedULPs = function* () {
     yield* [` exp. normal-ULPs-from-zero`, '==', componentOrderStr];
     for (const coords of failedPixels) {
       const pixel = expTexelView.ulpFromZero(coords);
-      yield `${repr.componentOrder.map(ch => pixel[ch]).join(',')}`;
+      yield `${repr.componentOrder.map((ch) => pixel[ch]).join(',')}`;
     }
-  })();
+  }();
 
   const opts = {
     fillToWidth: 120,
-    numberToString,
+    numberToString
   };
   return `\
  between ${lowerCorner} and ${upperCorner} inclusive:
@@ -238,8 +283,8 @@ ${generatePrettyTable(opts, [
   printExpectedColors,
   printActualULPs,
   printExpectedULPs,
-  ...comparer.tableRows(failedPixels),
-])}`;
+  ...comparer.tableRows(failedPixels)]
+  )}`;
 }
 
 /**
@@ -251,13 +296,13 @@ ${generatePrettyTable(opts, [
  * subnormal numbers (where ULP is defined for float, normalized, and integer formats).
  */
 export async function textureContentIsOKByT2B(
-  t,
-  source,
-  copySize_,
-  { expTexelView },
-  texelCompareOptions,
-  coords
-) {
+t,
+source,
+copySize_,
+{ expTexelView },
+texelCompareOptions,
+coords)
+{
   const subrectOrigin = reifyOrigin3D(source.origin ?? [0, 0, 0]);
   const subrectSize = reifyExtent3D(copySize_);
   const format = expTexelView.format;
@@ -276,7 +321,7 @@ export async function textureContentIsOKByT2B(
     bytesPerRow,
     rowsPerImage,
     subrectOrigin,
-    subrectSize,
+    subrectSize
   };
 
   const actTexelView = TexelView.fromTextureDataByReference(format, data, texelViewConfig);
@@ -298,6 +343,6 @@ export async function textureContentIsOKByT2B(
   return new ErrorWithExtra(msg, () => ({
     expTexelView,
     // Make a new TexelView with a copy of the data so we can unmap the buffer (debug mode only).
-    actTexelView: TexelView.fromTextureDataByReference(format, data.slice(), texelViewConfig),
+    actTexelView: TexelView.fromTextureDataByReference(format, data.slice(), texelViewConfig)
   }));
 }

@@ -1,8 +1,8 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert } from '../../../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../../../format_info.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { assert } from '../../../../../common/util/util.js';import { kTextureFormatInfo } from '../../../../format_info.js';
 import { virtualMipSize } from '../../../../util/texture/base.js';
+
 
 function makeFullscreenVertexModule(device) {
   return device.createShaderModule({
@@ -16,16 +16,21 @@ function makeFullscreenVertexModule(device) {
         vec2<f32>(-1.0,  1.0));
       return vec4<f32>(pos[VertexIndex], 0.0, 1.0);
     }
-    `,
+    `
   });
 }
 
-function getDepthTestEqualPipeline(t, format, sampleCount, expected) {
+function getDepthTestEqualPipeline(
+t,
+format,
+sampleCount,
+expected)
+{
   return t.device.createRenderPipeline({
     layout: 'auto',
     vertex: {
       entryPoint: 'main',
-      module: makeFullscreenVertexModule(t.device),
+      module: makeFullscreenVertexModule(t.device)
     },
     fragment: {
       entryPoint: 'main',
@@ -43,26 +48,30 @@ function getDepthTestEqualPipeline(t, format, sampleCount, expected) {
           output.outSuccess = 1.0;
           return output;
         }
-        `,
+        `
       }),
-      targets: [{ format: 'r8unorm' }],
+      targets: [{ format: 'r8unorm' }]
     },
     depthStencil: {
       format,
       depthCompare: 'equal',
-      depthWriteEnabled: false,
+      depthWriteEnabled: false
     },
     primitive: { topology: 'triangle-list' },
-    multisample: { count: sampleCount },
+    multisample: { count: sampleCount }
   });
 }
 
-function getStencilTestEqualPipeline(t, format, sampleCount) {
+function getStencilTestEqualPipeline(
+t,
+format,
+sampleCount)
+{
   return t.device.createRenderPipeline({
     layout: 'auto',
     vertex: {
       entryPoint: 'main',
-      module: makeFullscreenVertexModule(t.device),
+      module: makeFullscreenVertexModule(t.device)
     },
     fragment: {
       entryPoint: 'main',
@@ -72,23 +81,30 @@ function getStencilTestEqualPipeline(t, format, sampleCount) {
         fn main() -> @location(0) f32 {
           return 1.0;
         }
-        `,
+        `
       }),
-      targets: [{ format: 'r8unorm' }],
+      targets: [{ format: 'r8unorm' }]
     },
     depthStencil: {
       depthWriteEnabled: false,
       depthCompare: 'always',
       format,
       stencilFront: { compare: 'equal' },
-      stencilBack: { compare: 'equal' },
+      stencilBack: { compare: 'equal' }
     },
     primitive: { topology: 'triangle-list' },
-    multisample: { count: sampleCount },
+    multisample: { count: sampleCount }
   });
 }
 
-const checkContents = (type, t, params, texture, state, subresourceRange) => {
+const checkContents = (
+type,
+t,
+params,
+texture,
+state,
+subresourceRange) =>
+{
   const formatInfo = kTextureFormatInfo[params.format];
 
   assert(params.dimension === '2d');
@@ -107,7 +123,7 @@ const checkContents = (type, t, params, texture, state, subresourceRange) => {
       size: [width, height, 1],
       format: 'r8unorm',
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
-      sampleCount: params.sampleCount,
+      sampleCount: params.sampleCount
     });
 
     let resolveTexture = undefined;
@@ -116,7 +132,7 @@ const checkContents = (type, t, params, texture, state, subresourceRange) => {
       resolveTexture = t.device.createTexture({
         size: [width, height, 1],
         format: 'r8unorm',
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
       });
       resolveTarget = resolveTexture.createView();
     }
@@ -126,44 +142,42 @@ const checkContents = (type, t, params, texture, state, subresourceRange) => {
 
     const pass = commandEncoder.beginRenderPass({
       colorAttachments: [
-        {
-          view: renderTexture.createView(),
-          resolveTarget,
-          clearValue: [0, 0, 0, 0],
-          loadOp: 'load',
-          storeOp: 'store',
-        },
-      ],
+      {
+        view: renderTexture.createView(),
+        resolveTarget,
+        clearValue: [0, 0, 0, 0],
+        loadOp: 'load',
+        storeOp: 'store'
+      }],
 
       depthStencilAttachment: {
         view: texture.createView(viewDescriptor),
         depthStoreOp: formatInfo.depth ? 'store' : undefined,
         depthLoadOp: formatInfo.depth ? 'load' : undefined,
         stencilStoreOp: formatInfo.stencil ? 'store' : undefined,
-        stencilLoadOp: formatInfo.stencil ? 'load' : undefined,
-      },
+        stencilLoadOp: formatInfo.stencil ? 'load' : undefined
+      }
     });
 
     switch (type) {
-      case 'depth': {
-        const expectedDepth = t.stateToTexelComponents[state].Depth;
-        assert(expectedDepth !== undefined);
+      case 'depth':{
+          const expectedDepth = t.stateToTexelComponents[state].Depth;
+          assert(expectedDepth !== undefined);
 
-        pass.setPipeline(
-          getDepthTestEqualPipeline(t, params.format, params.sampleCount, expectedDepth)
-        );
+          pass.setPipeline(
+            getDepthTestEqualPipeline(t, params.format, params.sampleCount, expectedDepth)
+          );
+          break;
+        }
 
-        break;
-      }
+      case 'stencil':{
+          const expectedStencil = t.stateToTexelComponents[state].Stencil;
+          assert(expectedStencil !== undefined);
 
-      case 'stencil': {
-        const expectedStencil = t.stateToTexelComponents[state].Stencil;
-        assert(expectedStencil !== undefined);
-
-        pass.setPipeline(getStencilTestEqualPipeline(t, params.format, params.sampleCount));
-        pass.setStencilReference(expectedStencil);
-        break;
-      }
+          pass.setPipeline(getStencilTestEqualPipeline(t, params.format, params.sampleCount));
+          pass.setStencilReference(expectedStencil);
+          break;
+        }
     }
 
     pass.draw(3);
@@ -174,11 +188,13 @@ const checkContents = (type, t, params, texture, state, subresourceRange) => {
 
     t.expectSingleColor(resolveTexture || renderTexture, 'r8unorm', {
       size: [width, height, 1],
-      exp: { R: 1 },
+      exp: { R: 1 }
     });
   }
 };
 
-export const checkContentsByDepthTest = (...args) => checkContents('depth', ...args);
+export const checkContentsByDepthTest = (...args) =>
+checkContents('depth', ...args);
 
-export const checkContentsByStencilTest = (...args) => checkContents('stencil', ...args);
+export const checkContentsByStencilTest = (...args) =>
+checkContents('stencil', ...args);

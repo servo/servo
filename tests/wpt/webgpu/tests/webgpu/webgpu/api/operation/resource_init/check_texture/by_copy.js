@@ -1,10 +1,15 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert } from '../../../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../../../format_info.js';
-import { virtualMipSize } from '../../../../util/texture/base.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { assert } from '../../../../../common/util/util.js';import { kTextureFormatInfo } from '../../../../format_info.js';import { virtualMipSize } from '../../../../util/texture/base.js';
 
-export const checkContentsByBufferCopy = (t, params, texture, state, subresourceRange) => {
+
+export const checkContentsByBufferCopy = (
+t,
+params,
+texture,
+state,
+subresourceRange) =>
+{
   for (const { level: mipLevel, layer } of subresourceRange.each()) {
     assert(params.format in kTextureFormatInfo);
     const format = params.format;
@@ -14,12 +19,18 @@ export const checkContentsByBufferCopy = (t, params, texture, state, subresource
       dimension: params.dimension,
       slice: params.dimension === '2d' ? layer : 0,
       layout: { mipLevel, aspect: params.aspect },
-      exp: t.stateToTexelComponents[state],
+      exp: t.stateToTexelComponents[state]
     });
   }
 };
 
-export const checkContentsByTextureCopy = (t, params, texture, state, subresourceRange) => {
+export const checkContentsByTextureCopy = (
+t,
+params,
+texture,
+state,
+subresourceRange) =>
+{
   for (const { level, layer } of subresourceRange.each()) {
     assert(params.format in kTextureFormatInfo);
     const format = params.format;
@@ -34,7 +45,7 @@ export const checkContentsByTextureCopy = (t, params, texture, state, subresourc
       dimension: params.dimension,
       size: [width, height, depth],
       format: params.format,
-      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
     });
     t.trackForCleanup(dst);
 
@@ -44,13 +55,12 @@ export const checkContentsByTextureCopy = (t, params, texture, state, subresourc
       { texture: dst, mipLevel: 0 },
       { width, height, depthOrArrayLayers: depth }
     );
-
     t.queue.submit([commandEncoder.finish()]);
 
     t.expectSingleColor(dst, format, {
       size: [width, height, depth],
       exp: t.stateToTexelComponents[state],
-      layout: { mipLevel: 0, aspect: params.aspect },
+      layout: { mipLevel: 0, aspect: params.aspect }
     });
   }
 };

@@ -1,6 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert, sortObjectByKey, isPlainObject } from '../../util/util.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { assert, sortObjectByKey, isPlainObject } from '../../util/util.js';
 // JSON can't represent various values and by default stores them as `null`.
 // Instead, storing them as a magic string values in JSON.
 const jsUndefinedMagicValue = '_undef_';
@@ -17,23 +17,23 @@ const jsNegativeZeroMagicValue = '_negzero_';
 const jsBigIntMagicPattern = /^(\d+)n$/;
 
 const toStringMagicValue = new Map([
-  [undefined, jsUndefinedMagicValue],
-  [NaN, jsNaNMagicValue],
-  [Number.POSITIVE_INFINITY, jsPositiveInfinityMagicValue],
-  [Number.NEGATIVE_INFINITY, jsNegativeInfinityMagicValue],
-  // No -0 handling because it is special cased.
+[undefined, jsUndefinedMagicValue],
+[NaN, jsNaNMagicValue],
+[Number.POSITIVE_INFINITY, jsPositiveInfinityMagicValue],
+[Number.NEGATIVE_INFINITY, jsNegativeInfinityMagicValue]
+// No -0 handling because it is special cased.
 ]);
 
 const fromStringMagicValue = new Map([
-  [jsUndefinedMagicValue, undefined],
-  [jsNaNMagicValue, NaN],
-  [jsPositiveInfinityMagicValue, Number.POSITIVE_INFINITY],
-  [jsNegativeInfinityMagicValue, Number.NEGATIVE_INFINITY],
-  // -0 is handled in this direction because there is no comparison issue.
-  [jsNegativeZeroMagicValue, -0],
-]);
+[jsUndefinedMagicValue, undefined],
+[jsNaNMagicValue, NaN],
+[jsPositiveInfinityMagicValue, Number.POSITIVE_INFINITY],
+[jsNegativeInfinityMagicValue, Number.NEGATIVE_INFINITY],
+// -0 is handled in this direction because there is no comparison issue.
+[jsNegativeZeroMagicValue, -0]]
+);
 
-function stringifyFilter(k, v) {
+function stringifyFilter(_k, v) {
   // Make sure no one actually uses a magic value as a parameter.
   if (typeof v === 'string') {
     assert(
@@ -57,7 +57,7 @@ function stringifyFilter(k, v) {
     assert(
       isPlainObject(v),
       `value must be a plain object but it appears to be a '${
-        Object.getPrototypeOf(v).constructor.name
+      Object.getPrototypeOf(v).constructor.name
       }`
     );
   }
@@ -93,7 +93,7 @@ export function stringifyParamValueUniquely(value) {
 
 // 'any' is part of the JSON.parse reviver interface, so cannot be avoided.
 
-function parseParamValueReviver(k, v) {
+function parseParamValueReviver(_k, v) {
   if (fromStringMagicValue.has(v)) {
     return fromStringMagicValue.get(v);
   }

@@ -1,10 +1,9 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ /**
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/ /**
  * A helper class that generates ranges of dummy data for buffer or texture operations
  * efficiently. Tries to minimize allocations and data updates.
- */ export class DataArrayGenerator {
-  dataBuffer = new Uint8Array(256);
+ */export class DataArrayGenerator {dataBuffer = new Uint8Array(256);
 
   lastOffset = 0;
   lastStart = 0;
@@ -12,7 +11,7 @@
 
   /** Find the nearest power of two greater than or equal to the input value. */
   nextPowerOfTwo(value) {
-    return 1 << (32 - Math.clz32(value - 1));
+    return 1 << 32 - Math.clz32(value - 1);
   }
 
   generateData(byteSize, start = 0, offset = 0) {
@@ -42,7 +41,7 @@
     // Generate any new values that are required
     if (this.lastByteSize < byteSize) {
       for (let i = this.lastByteSize; i < byteSize - offset; ++i) {
-        this.dataBuffer[i + offset] = ((i ** 3 + i + start) % 251) + 1; // Ensure data is always non-zero
+        this.dataBuffer[i + offset] = (i ** 3 + i + start) % 251 + 1; // Ensure data is always non-zero
       }
 
       this.lastOffset = offset;

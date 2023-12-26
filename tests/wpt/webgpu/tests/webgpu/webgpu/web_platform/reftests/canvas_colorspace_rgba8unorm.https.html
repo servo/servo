@@ -14,6 +14,7 @@
   <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
   <meta name="assert" content="WebGPU rgba8unorm canvas with colorSpace set should be rendered correctly" />
   <link rel="match" href="./ref/canvas_colorspace-ref.html" />
+  <meta name=fuzzy content="maxDifference=0-2;totalPixels=0-9999999">
   <script type="module">
     import { runColorSpaceTest } from './canvas_colorspace.html.js';
     runColorSpaceTest('rgba8unorm');

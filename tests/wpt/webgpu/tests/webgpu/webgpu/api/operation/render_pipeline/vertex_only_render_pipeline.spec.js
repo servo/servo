@@ -1,18 +1,17 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Test vertex-only render pipeline.
-`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../gpu_test.js';
 
 class F extends GPUTest {}
 
 export const g = makeTestGroup(F);
 
-g.test('draw_depth_and_stencil_with_vertex_only_pipeline')
-  .desc(
-    `
+g.test('draw_depth_and_stencil_with_vertex_only_pipeline').
+desc(
+  `
 TODO:
 - Test drawing depth and stencil with vertex-only render pipelines by
   1. Create a color attachment and depth-stencil attachment of 4 pixels in a line, clear the color
@@ -26,5 +25,5 @@ TODO:
   5. Validate that only the third pixel is of color RGBA(0.0, 1.0, 0.0, 1.0), and all other pixels
      are RGBA(0.0, 0.0, 0.0, 0.0).
 `
-  )
-  .unimplemented();
+).
+unimplemented();
