@@ -487,7 +487,7 @@ dictionary GPUPipelineLayoutDescriptor : GPUObjectDescriptorBase {
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUShaderModule {
     [Throws]
-    Promise<GPUCompilationInfo> compilationInfo();
+    Promise<GPUCompilationInfo> getCompilationInfo();
 };
 GPUShaderModule includes GPUObjectBase;
 
