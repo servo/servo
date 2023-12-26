@@ -27,8 +27,7 @@ t_ignore = " \t\r"
 
 
 def t_STRING(t):
-    # r"""('.*'|".*"|[a-zA-Z_0-9\-]+)"""
-    r"""\"([^\\"]+|\\"|\\\\)"|'([^\\']+|\\'|\\\\)'|[a-zA-Z_0-9\-]+"""
+    r"""\"([^\\"]+|\\"|\\\\)"|'([^\\']+|\\'|\\\\)'|[a-zA-Z_0-9/\-]+"""
     if t.value[0] in "\"'":
         t.value = t.value[1:-1].encode().decode("unicode_escape")
     return t
