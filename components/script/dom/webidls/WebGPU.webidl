@@ -1101,8 +1101,9 @@ interface GPUOutOfMemoryError {
 typedef (GPUOutOfMemoryError or GPUValidationError) GPUError;
 
 enum GPUErrorFilter {
+    "validation",
     "out-of-memory",
-    "validation"
+    "internal",
 };
 
 partial interface GPUDevice {
