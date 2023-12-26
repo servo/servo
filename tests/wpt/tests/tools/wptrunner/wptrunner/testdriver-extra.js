@@ -204,6 +204,10 @@
         return create_action("set_window_rect", {rect, context});
     };
 
+    window.test_driver_internal.get_window_rect = function(context=null) {
+        return create_action("get_window_rect", {context});
+    };
+
     window.test_driver_internal.send_keys = function(element, keys) {
         const selector = get_selector(element);
         const context = get_context(element);
@@ -277,8 +281,8 @@
         return create_action("cancel_fedcm_dialog", {context});
     };
 
-    window.test_driver_internal.confirm_idp_login = function(context = null) {
-        return create_action("confirm_idp_login", {context});
+    window.test_driver_internal.click_fedcm_dialog_button = function(dialog_button, context = null) {
+        return create_action("click_fedcm_dialog_button", {dialog_button, context});
     };
 
     window.test_driver_internal.select_fedcm_account = function(account_index, context = null) {

@@ -358,6 +358,25 @@
         },
 
         /**
+         * Gets a rect with the size and position on the screen from the current window state.
+         *
+         * Matches the behaviour of the `Get Window Rect
+         * <https://www.w3.org/TR/webdriver/#get-window-rect>`_
+         * WebDriver command
+         *
+         * @param {WindowProxy} context - Browsing context in which
+         *                                to run the call, or null for the current
+         *                                browsing context.
+         *
+         * @returns {Promise} fulfilled after the window rect is returned, or rejected
+         * in cases the WebDriver command returns errors. Returns a
+         * `WindowRect <https://www.w3.org/TR/webdriver/#dfn-windowrect-object>`_
+         */
+        get_window_rect: function(context=null) {
+            return window.test_driver_internal.get_window_rect(context);
+        },
+
+        /**
          * Send a sequence of actions
          *
          * This function sends a sequence of actions to perform.
@@ -1080,6 +1099,10 @@
 
         async set_window_rect(rect, context=null) {
             throw new Error("set_window_rect() is not implemented by testdriver-vendor.js");
+        },
+
+        async get_window_rect(context=null) {
+            throw new Error("get_window_rect() is not implemented by testdriver-vendor.js");
         },
 
         async action_sequence(actions, context=null) {

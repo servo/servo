@@ -1,6 +1,6 @@
 import pytest
 
-from webdriver.bidi.modules.script import assert_handle
+from ... import assert_handle
 
 
 @pytest.mark.parametrize("ownership,has_handle", [
@@ -20,7 +20,7 @@ async def test_root_ownership_of_located_nodes(bidi_session, inline, top_context
         ownership=ownership
     )
 
-    assert result["nodes"].length == 1
+    assert len(result["nodes"]) == 1
     result_node = result["nodes"][0]
 
     assert_handle(result_node, has_handle)

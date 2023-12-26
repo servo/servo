@@ -34,20 +34,20 @@ promise_test(() => {
   return new Promise(async (resolve, reject) => {
     let transition = document.startViewTransition();
     transition.ready.then(() => {
-      assert_equals(getComputedStyle(document.documentElement, ":view-transition").backgroundColor, "rgb(255, 0, 0)", ":view-transition");
+      assert_equals(getComputedStyle(document.documentElement, "::view-transition").backgroundColor, "rgb(255, 0, 0)", "::view-transition");
 
-      assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(root)").backgroundColor, "rgb(255, 0, 0)", "group");
-      assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(root)").color, "rgb(0, 0, 255)", "group");
-      assert_equals(getComputedStyle(document.documentElement, ":view-transition-group(root)").animationDuration, "0.321s", "group");
+      assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").backgroundColor, "rgb(255, 0, 0)", "group");
+      assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").color, "rgb(0, 0, 255)", "group");
+      assert_equals(getComputedStyle(document.documentElement, "::view-transition-group(root)").animationDuration, "0.321s", "group");
 
-      assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(root)").color, "rgb(0, 0, 255)", "wrapper");
-      assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(root)").overflowX, "clip", "wrapper");
-      assert_equals(getComputedStyle(document.documentElement, ":view-transition-image-pair(root)").animationDuration, "0.321s", "wrapper");
+      assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").color, "rgb(0, 0, 255)", "wrapper");
+      assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").overflowX, "clip", "wrapper");
+      assert_equals(getComputedStyle(document.documentElement, "::view-transition-image-pair(root)").animationDuration, "0.321s", "wrapper");
 
-      assert_equals(getComputedStyle(document.documentElement, ":view-transition-old(root)").overflowX, "clip", "outgoing");
-      assert_equals(getComputedStyle(document.documentElement, ":view-transition-old(root)").animationDuration, "0.321s", "outgoing");
-      assert_equals(getComputedStyle(document.documentElement, ":view-transition-new(root)").overflowX, "clip", "incoming");
-      assert_equals(getComputedStyle(document.documentElement, ":view-transition-new(root)").animationDuration, "0.321s", "incoming");
+      assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").overflowX, "clip", "outgoing");
+      assert_equals(getComputedStyle(document.documentElement, "::view-transition-old(root)").animationDuration, "0.321s", "outgoing");
+      assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").overflowX, "clip", "incoming");
+      assert_equals(getComputedStyle(document.documentElement, "::view-transition-new(root)").animationDuration, "0.321s", "incoming");
     });
     await transition.finished;
     resolve();

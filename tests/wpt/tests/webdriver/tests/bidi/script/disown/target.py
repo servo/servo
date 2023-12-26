@@ -4,7 +4,7 @@ import webdriver.bidi.error as error
 
 from webdriver.bidi.modules.script import ContextTarget, RealmTarget
 
-from .. import assert_handle
+from ... import assert_handle
 
 pytestmark = pytest.mark.asyncio
 

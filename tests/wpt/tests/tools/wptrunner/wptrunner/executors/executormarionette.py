@@ -497,6 +497,8 @@ class MarionetteWindowProtocolPart(WindowProtocolPart):
     def set_rect(self, rect):
         self.marionette.set_window_rect(rect["x"], rect["y"], rect["height"], rect["width"])
 
+    def get_rect(self):
+        return self.marionette.window_rect
 
 class MarionetteActionSequenceProtocolPart(ActionSequenceProtocolPart):
     def setup(self):

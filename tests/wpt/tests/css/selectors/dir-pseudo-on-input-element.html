@@ -84,7 +84,7 @@ test(() => {
     document.body.removeChild(container);
 }, 'input element whose type attribute is in the telephone state in a RTL block');
 
-for (const type of ['password', 'text', 'search', 'url', 'email', 'submit', 'reset', 'button']) {
+for (const type of ['password', 'text', 'search', 'url', 'email', 'submit', 'reset', 'button', 'hidden']) {
     test(() => {
         const input = document.createElement('input');
         input.type = type;

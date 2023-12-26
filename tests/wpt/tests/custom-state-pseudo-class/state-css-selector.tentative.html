@@ -28,9 +28,9 @@
         color: #0f0;
       }
       body:has(custom-state:state(--green)) p {
-        color: #f00;
+        color: #0ff;
       }
-      custom-state:state(--green) + p {
+      custom-state:state(--green) + p[id] {
         color: #00f;
       }
       custom-state:--green + p {
@@ -72,7 +72,7 @@
         myCE.elementInternals.states.add('--green');
         t.add_cleanup(() => { myCE.elementInternals.states.delete('--green') });
         assert_true(myCE.elementInternals.states.has('--green'));
-        assert_equals(getComputedStyle(myHas).getPropertyValue('color'), 'rgb(0, 0, 255)');
+        assert_equals(getComputedStyle(myHas).getPropertyValue('color'), 'rgb(0, 255, 255)');
     }, "state selector influences has() when state is applied");
 
     test(function(t) {

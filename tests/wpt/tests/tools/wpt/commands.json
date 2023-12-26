@@ -88,7 +88,8 @@
     "help": "Start the x86 android emulator",
     "virtualenv": true,
     "requirements": [
-      "requirements.txt"
+      "requirements.txt",
+      "requirements_android.txt"
     ]
   }
 }

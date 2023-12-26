@@ -100,7 +100,7 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     # Shorten delay for Reporting <https://w3c.github.io/reporting/>.
     chrome_options["args"].append("--short-reporting-delay")
     # Point all .test domains to localhost for Chrome
-    chrome_options["args"].append("--host-resolver-rules=MAP nonexistent.*.test ^NOTFOUND, MAP *.test 127.0.0.1")
+    chrome_options["args"].append("--host-resolver-rules=MAP nonexistent.*.test ^NOTFOUND, MAP *.test 127.0.0.1, MAP *.test. 127.0.0.1")
     # Enable Secure Payment Confirmation for Chrome. This is normally disabled
     # on Linux as it hasn't shipped there yet, but in WPT we enable virtual
     # authenticator devices anyway for testing and so SPC works.

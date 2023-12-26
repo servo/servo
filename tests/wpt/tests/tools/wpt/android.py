@@ -3,8 +3,10 @@
 import argparse
 import os
 import platform
+import signal
 import shutil
 import subprocess
+import threading
 
 import requests
 from .wpt import venv_dir
@@ -77,6 +79,43 @@ def get_parser_start():
     parser.add_argument("--device-serial", action="store", default=None,
                         help="Device serial number for Android emulator, if not emulator-5554")
     return parser
+
+
+def install_fixed_emulator_version(logger, paths):
+    # Downgrade to a pinned emulator version
+    # See https://developer.android.com/studio/emulator_archive for what we're doing here
+    from xml.etree import ElementTree
+
+    version = "32.1.15"
+    urls = {"linux": "https://redirector.gvt1.com/edgedl/android/repository/emulator-linux_x64-10696886.zip"}
+
+    os_name = platform.system().lower()
+    if os_name not in urls:
+        logger.error(f"Don't know how to install old emulator for {os_name}, using latest version")
+        # For now try with the latest version if this fails
+        return
+
+    logger.info(f"Downgrading emulator to {version}")
+    url = urls[os_name]
+
+    emulator_path = os.path.join(paths["sdk"], "emulator")
+    latest_emulator_path = os.path.join(paths["sdk"], "emulator_latest")
+    os.rename(emulator_path, latest_emulator_path)
+
+    download_and_extract(url, paths["sdk"])
+    package_path = os.path.join(emulator_path, "package.xml")
+    shutil.copyfile(os.path.join(latest_emulator_path, "package.xml"),
+                    package_path)
+
+    with open(package_path) as f:
+        tree = ElementTree.parse(f)
+    node = tree.find("localPackage").find("revision")
+    assert len(node) == 3
+    parts = version.split(".")
+    for version_part, node in zip(parts, node):
+        node.text = version_part
+    with open(package_path, "wb") as f:
+        tree.write(f, encoding="utf8")
 
 
 def get_paths(dest):
@@ -257,8 +296,16 @@ def install(logger, dest=None, reinstall=False, prompt=True):
 
             install_avd(logger, paths, prompt=prompt)
 
+            install_fixed_emulator_version(logger, paths)
+
         emulator = get_emulator(paths)
     return emulator
+
+
+def cancel_start(thread_id):
+    def cancel_func():
+        raise signal.pthread_kill(thread_id, signal.SIGINT)
+    return cancel_func
 
 
 def start(logger, dest=None, reinstall=False, prompt=True, device_serial=None):
@@ -274,7 +321,10 @@ def start(logger, dest=None, reinstall=False, prompt=True, device_serial=None):
             raise OSError
 
         emulator.start()
+        timer = threading.Timer(300, cancel_start(threading.get_ident()))
+        timer.start()
         emulator.wait_for_start()
+        timer.cancel()
     return emulator
 
 

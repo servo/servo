@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-flex-tracks">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Grid with size containment, an indefinite height, and min-height will properly size flex rows">
+<style>
+grid {
+    display: grid;
+    min-height: 100px;
+    grid-template-rows: 1fr;
+    contain: size;
+}
+.absolute {
+    position: absolute;
+}
+.align-last-baseline{
+    align-self: last baseline;
+}
+.item {
+    width: 100px;
+    height: 50px;
+    background-color: green;
+}
+</style>
+</head>
+<body>
+    <p>Test passes if there is a filled green square.</p>
+    <grid>
+        <div class="absolute item"></div>
+        <div class="item align-last-baseline"></div>
+    </grid>
+</body>
+</html>

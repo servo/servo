@@ -116,6 +116,15 @@ class SetWindowRectAction:
         rect = payload["rect"]
         self.protocol.window.set_rect(rect)
 
+class GetWindowRectAction:
+    name = "get_window_rect"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        return self.protocol.window.get_rect()
 
 class ActionSequenceAction:
     name = "action_sequence"
@@ -300,16 +309,17 @@ class CancelFedCMDialogAction:
         self.logger.debug("Canceling FedCM dialog")
         return self.protocol.fedcm.cancel_fedcm_dialog()
 
-class ConfirmIDPLoginAction:
-    name = "confirm_idp_login"
+class ClickFedCMDialogButtonAction:
+    name = "click_fedcm_dialog_button"
 
     def __init__(self, logger, protocol):
         self.logger = logger
         self.protocol = protocol
 
     def __call__(self, payload):
-        self.logger.debug("Confirming IDP login")
-        return self.protocol.fedcm.confirm_idp_login()
+        dialog_button = payload["dialog_button"]
+        self.logger.debug(f"Clicking FedCM dialog button: {dialog_button}")
+        return self.protocol.fedcm.click_fedcm_dialog_button()
 
 class SelectFedCMAccountAction:
     name = "select_fedcm_account"
@@ -443,6 +453,7 @@ actions = [ClickAction,
            SendKeysAction,
            MinimizeWindowAction,
            SetWindowRectAction,
+           GetWindowRectAction,
            ActionSequenceAction,
            GenerateTestReportAction,
            SetPermissionAction,
@@ -456,7 +467,7 @@ actions = [ClickAction,
            SetSPCTransactionModeAction,
            SetRPHRegistrationModeAction,
            CancelFedCMDialogAction,
-           ConfirmIDPLoginAction,
+           ClickFedCMDialogButtonAction,
            SelectFedCMAccountAction,
            GetFedCMAccountListAction,
            GetFedCMDialogTitleAction,

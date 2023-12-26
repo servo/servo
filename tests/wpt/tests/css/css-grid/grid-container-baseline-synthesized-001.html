@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Grid Test: Grid container synthesizing baseline from empty item</title>
+<meta name="assert" content="An inline-grid with an empty grid item should reliably synthesize an alphabetic (not central) baseline when aligning in a 'horizontal-tb' block's line-box.">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-4/#text-baselines">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#grid-baselines">
+<link rel="match" href="reference/grid-container-baseline-synthesized-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+:root {
+  font: 20px/1 Ahem;
+}
+.container {
+  display: inline-grid;
+  grid-template-rows: 60px;
+  grid-template-columns: 60px;
+  background: cyan;
+}
+.f { display: flex; }
+.g { display: grid; }
+.t { display: table; }
+.container > * {
+  border: 3px solid black;
+}
+.vrl-items > * { writing-mode: vertical-rl; }
+.vlr-items > * { writing-mode: vertical-lr; }
+.srl-items > * { writing-mode: sideways-rl; }
+.slr-items > * { writing-mode: sideways-lr; }
+</style>
+X
+<div class="container"><div></div></div>
+<div class="container"><div class="g"></div></div>
+<div class="container"><div class="f"></div></div>
+<div class="container"><div class="t"></div></div>
+<br><br>
+X
+<div class="container vrl-items"><div></div></div>
+<div class="container vrl-items"><div class="g"></div></div>
+<div class="container vrl-items"><div class="f"></div></div>
+<div class="container vrl-items"><div class="t"></div></div>
+<br><br>
+X
+<div class="container vlr-items"><div></div></div>
+<div class="container vlr-items"><div class="g"></div></div>
+<div class="container vlr-items"><div class="f"></div></div>
+<div class="container vlr-items"><div class="t"></div></div>
+<br><br>
+X
+<div class="container srl-items"><div></div></div>
+<div class="container srl-items"><div class="g"></div></div>
+<div class="container srl-items"><div class="f"></div></div>
+<div class="container srl-items"><div class="t"></div></div>
+<br><br>
+X
+<div class="container slr-items"><div></div></div>
+<div class="container slr-items"><div class="g"></div></div>
+<div class="container slr-items"><div class="f"></div></div>
+<div class="container slr-items"><div class="t"></div></div>

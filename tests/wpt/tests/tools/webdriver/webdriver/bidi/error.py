@@ -35,7 +35,7 @@ class InvalidArgumentException(BidiException):
     error_code = "invalid argument"
 
 
-class InvalidSelectorError(BidiException):
+class InvalidSelectorException(BidiException):
     error_code = "invalid selector"
 
 

@@ -7,6 +7,7 @@
  <input type="button">
  <input type="submit">
  <input type="color">
+ <input type="image">
  <button></button>
 </div>
 <script>
@@ -32,5 +33,20 @@ for (const val of displayValues) {
       assert_equals(getComputedStyle(el).display, expectedVal);
     }, `computed display of ${tag} with display: ${val}`);
   });
+}
+
+for (let input of document.querySelectorAll("input")) {
+  test(() => {
+    if (input.type == "image") {
+      assert_equals(getComputedStyle(input).overflow, "visible", "Should not be clip by default");
+      return;
+    }
+    assert_equals(getComputedStyle(input).overflow, "clip", "Should be clip by default");
+    assert_equals(getComputedStyle(input).overflowClipMargin, "0px", "Should use 0 margin");
+    input.style.overflow = "visible";
+    input.style.overflowClipMargin = "10px";
+    assert_equals(getComputedStyle(input).overflow, "clip", "Clip be !important");
+    assert_equals(getComputedStyle(input).overflowClipMargin, "0px", "Clip margin should be !important too");
+  }, `<input type=${input.type}> overflow/overflow-clip-margin`);
 }
 </script>

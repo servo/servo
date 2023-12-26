@@ -257,6 +257,9 @@ class WebDriverWindowProtocolPart(WindowProtocolPart):
         self.logger.info("Restoring")
         self.webdriver.window.rect = rect
 
+    def get_rect(self):
+        self.logger.info("Getting rect")
+        return self.webdriver.window.rect
 
 class WebDriverSendKeysProtocolPart(SendKeysProtocolPart):
     def setup(self):
@@ -378,6 +381,10 @@ class WebDriverFedCMProtocolPart(FedCMProtocolPart):
 
     def cancel_fedcm_dialog(self):
         return self.webdriver.send_session_command("POST", "fedcm/canceldialog")
+
+    def click_fedcm_dialog_button(self, dialog_button):
+        body = {"dialogButton": dialog_button}
+        return self.webdriver.send_session_command("POST", "fedcm/clickdialogbutton", body)
 
     def select_fedcm_account(self, account_index):
         body = {"accountIndex": account_index}

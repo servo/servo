@@ -45,6 +45,9 @@
   test_valid('@scope (.a) to (> .b)');
   test_valid('@scope (.a) to (+ .b)');
   test_valid('@scope (.a) to (~ .b)');
+  test_valid('@scope ()', '@scope');
+  test_valid('@scope to ()', '@scope');
+  test_valid('@scope () to ()', '@scope');
 
   // Forgiving behavior (keep invalid selector as-is for the serialization):
   test_valid('@scope (.c <> .d)');
@@ -69,4 +72,7 @@
   test_invalid('@scope ( {}');
   test_invalid('@scope to');
   test_invalid('@scope }');
+  test_invalid('@scope (.a');
+  test_invalid('@scope (.a to (.b)');
+  test_invalid('@scope ( to (.b)');
 </script>

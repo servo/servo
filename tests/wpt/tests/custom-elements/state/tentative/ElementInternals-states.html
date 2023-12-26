@@ -27,8 +27,6 @@ test(() => {
 test(() => {
   let i = (new TestElement()).internals;
   assert_throws_js(TypeError, () => { i.states.supports('foo'); });
-  assert_throws_dom('SyntaxError', () => { i.states.add(''); });
-  assert_throws_dom('SyntaxError', () => { i.states.add('--a\tb'); });
 }, 'CustomStateSet behavior of ElementInternals.states: Exceptions');
 
 test(() => {

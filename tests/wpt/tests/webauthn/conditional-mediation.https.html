@@ -10,8 +10,7 @@
 <script>
 "use strict";
 
-// Test that a configuration that must support conditional mediation reports
-// supporting it.
+// Test that conditional mediation is supported.
 virtualAuthenticatorPromiseTest(async t => {
   assert_own_property(window.PublicKeyCredential, "isConditionalMediationAvailable");
   assert_true(await window.PublicKeyCredential.isConditionalMediationAvailable());
@@ -21,17 +20,5 @@ virtualAuthenticatorPromiseTest(async t => {
   hasUserVerification: true,
   transport: "internal",
 }, "Conditional mediation supported");
-
-// Test that a configuration that cannot possibly support conditional mediation
-// does not report supporting it.
-virtualAuthenticatorPromiseTest(async t => {
-  assert_own_property(window.PublicKeyCredential, "isConditionalMediationAvailable");
-  assert_false(await window.PublicKeyCredential.isConditionalMediationAvailable());
-}, {
-  protocol: "ctap2",
-  hasResidentKey: false,
-  hasUserVerification: false,
-  transport: "nfc",
-}, "Conditional mediation not supported");
 
 </script>

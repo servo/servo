@@ -776,6 +776,156 @@ def test_css_missing_file_in_css():
          None),
     ]
 
+def test_valid_meta_file():
+    code = b"""\
+spec: url
+suggested_reviewers:
+  - username
+"""
+    errors = check_file_contents("", "css/META.yml", io.BytesIO(code))
+    check_errors(errors)
+
+    assert errors == []
+
+def test_invalid_meta_file():
+    code = b"""\
+- test
+"""
+    # Check when the file is named correctly. It should find the error.
+    errors = check_file_contents("", "css/META.yml", io.BytesIO(code))
+    check_errors(errors)
+
+    assert errors == [
+        ('INVALID-META-FILE',
+         'The META.yml is not a YAML file with the expected structure',
+         "css/META.yml",
+         None),
+    ]
+
+    # Check when the file is named incorrectly. It should not find the error.
+    errors = check_file_contents("", "css/OTHER_META.yml", io.BytesIO(code))
+    check_errors(errors)
+
+    assert errors == []
+
+
+@pytest.mark.parametrize("files,yml,expected_errors", [
+    (
+        ["file1.txt", "file2.txt", "file3.txt"],
+        b"""\
+features:
+- name: feature1
+  files:
+  - file1.txt
+""",
+        []
+    ),
+    (
+        ["file1.txt", "file2.txt", "file3.txt"],
+        b"""\
+features:
+- name: feature1
+  files:
+  - file*.txt
+""",
+        []
+    ),
+    (
+        ["file1.txt", "file2.txt", "file3.txt"],
+        b"""\
+features:
+- name: feature1
+  files:
+  - file*.txt
+  - foo.txt
+""",
+        [
+            ("MISSING-WEB-FEATURES-FILE",
+             "The WEB_FEATURES.yml file references a test that does not exist: 'foo.txt'",
+             "css/WEB_FEATURES.yml",
+             None),
+        ]
+    ),
+    (
+        ["bar1.txt", "bar2.txt", "bar3.txt"],
+        b"""\
+features:
+- name: feature1
+  files:
+  - file*.txt
+  - bar*.txt
+""",
+        [
+            ("MISSING-WEB-FEATURES-FILE",
+             "The WEB_FEATURES.yml file references a test that does not exist: 'file*.txt'",
+             "css/WEB_FEATURES.yml",
+             None),
+        ]
+    ),
+    (
+        ["file1.txt", "file2.txt", "file3.txt"],
+        b"""\
+features:
+- name: feature1
+  files:
+  - foo.txt
+""",
+        [
+            ("MISSING-WEB-FEATURES-FILE",
+             "The WEB_FEATURES.yml file references a test that does not exist: 'foo.txt'",
+             "css/WEB_FEATURES.yml",
+             None),
+        ]
+    ),
+    (
+        ["file1.txt", "file2.txt", "file3.txt"],
+        b"""\
+features:
+- name: feature1
+  files: "**"
+""",
+        []
+    ),
+])
+def test_valid_web_features_file(monkeypatch, files, yml, expected_errors):
+    def listdir(dir):
+        if dir.endswith("css"):
+            return files
+
+    def is_file(file):
+        if os.path.basename(file) in files:
+            return True
+        return False
+
+    monkeypatch.setattr(os.path, "isfile", is_file)
+    monkeypatch.setattr(os, "listdir", listdir)
+    errors = check_file_contents("", "css/WEB_FEATURES.yml", io.BytesIO(yml))
+    check_errors(errors)
+
+    assert errors == expected_errors
+
+
+def test_invalid_web_features_file():
+    code = b"""\
+- test
+"""
+    # Check when the value is named correctly. It should find the error.
+    errors = check_file_contents("", "css/WEB_FEATURES.yml", io.BytesIO(code))
+    check_errors(errors)
+
+    assert errors == [
+        ('INVALID-WEB-FEATURES-FILE',
+         'The WEB_FEATURES.yml file contains an invalid structure',
+         "css/WEB_FEATURES.yml",
+         None),
+    ]
+
+    # Check when the value is named incorrectly. It should not find the error.
+    errors = check_file_contents("", "css/OTHER_WEB_FEATURES.yml", io.BytesIO(code))
+    check_errors(errors)
+
+    assert errors == []
+
 
 def test_css_missing_file_manual():
     errors = check_file_contents("", "css/foo/bar-manual.html", io.BytesIO(b""))

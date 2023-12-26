@@ -18,9 +18,19 @@
     t.add_cleanup(() => input.remove());
     input.type = type;
     assert_equals(input.type, type);
-    input.dir = "auto";
-    input.value = "\u05D0"; // The Hebrew letter Alef (strongly RTL)
     document.body.append(input);
+
+    input.setAttribute("value", "\u05D0"); // The Hebrew letter Alef (strongly RTL)
+    assert_true(input.matches(":dir(ltr)"));
+    input.removeAttribute("value");
+
+    input.dir = "auto";
+    input.setAttribute("value", "\u05D0");
+    assert_true(input.matches(":dir(rtl)"));
+    input.removeAttribute("value");
+    assert_true(input.matches(":dir(ltr)"));
+
+    input.value = "\u05D0";
     assert_true(input.matches(":dir(rtl)"));
   }, `<input dir=auto type=${type}> directionality`);
 });
