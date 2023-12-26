@@ -14,8 +14,9 @@ from tempfile import TemporaryFile
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 TOP_DIR = os.path.abspath(os.path.join(SCRIPT_PATH, ".."))
 WPT_PATH = os.path.join(TOP_DIR, "tests", "wpt")
-WPT_RUNNER_PATH = os.path.join(WPT_PATH, "tests", "tools", "wptrunner")
-WPT_SERVE_PATH = os.path.join(WPT_PATH, "tests", "tools", "wptserve")
+WPT_TOOLS_PATH = os.path.join(WPT_PATH, "tests", "tools")
+WPT_RUNNER_PATH = os.path.join(WPT_TOOLS_PATH, "wptrunner")
+WPT_SERVE_PATH = os.path.join(WPT_TOOLS_PATH, "wptserve")
 
 SEARCH_PATHS = [
     os.path.join("python", "mach"),
@@ -162,6 +163,7 @@ def _activate_virtualenv(topdir):
     # and it will check for conflicts.
     requirements_paths = [
         os.path.join("python", "requirements.txt"),
+        os.path.join(WPT_TOOLS_PATH, "requirements_tests.txt",),
         os.path.join(WPT_RUNNER_PATH, "requirements.txt",),
     ]
 

@@ -16,9 +16,12 @@ from . import tidy
 
 BASE_PATH = 'python/tidy/tests/'
 
+def test_file_path(name):
+    return os.path.join(BASE_PATH, name)
+
 
 def iterFile(name):
-    return iter([os.path.join(BASE_PATH, name)])
+    return iter([test_file_path(name)])
 
 
 class CheckTidiness(unittest.TestCase):
@@ -33,15 +36,6 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('invalid config table [wrong]', next(errors)[2])
         self.assertEqual("ignored file './fake/file.html' doesn't exist", next(errors)[2])
         self.assertEqual("ignored directory './fake/dir' doesn't exist", next(errors)[2])
-        self.assertNoMoreErrors(errors)
-
-    def test_non_existing_wpt_manifest_checks(self):
-        wrong_path = "/wrong/path.ini"
-        errors = tidy.check_manifest_dirs(wrong_path, print_text=False)
-        self.assertEqual("%s manifest file is required but was not found" % wrong_path, next(errors)[2])
-        self.assertNoMoreErrors(errors)
-        errors = tidy.check_manifest_dirs(os.path.join(BASE_PATH, 'manifest-include.ini'), print_text=False)
-        self.assertTrue(next(errors)[2].endswith("never_going_to_exist"))
         self.assertNoMoreErrors(errors)
 
     def test_directory_checks(self):
@@ -180,7 +174,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(errors)
 
     def test_lock(self):
-        errors = tidy.collect_errors_for_files(iterFile('duplicated_package.lock'), [tidy.check_lock], [], print_text=False)
+        errors = tidy.check_cargo_lock_file(test_file_path('duplicated_package.lock'), print_text=False)
         msg = """duplicate versions for package `test`
 \t\x1b[93mThe following packages depend on version 0.4.9 from 'crates.io':\x1b[0m
 \t\ttest2 0.1.0
@@ -197,7 +191,7 @@ class CheckTidiness(unittest.TestCase):
 
     def test_lock_ignore_without_duplicates(self):
         tidy.config["ignore"]["packages"] = ["test", "test2", "test3", "test5"]
-        errors = tidy.collect_errors_for_files(iterFile('duplicated_package.lock'), [tidy.check_lock], [], print_text=False)
+        errors = tidy.check_cargo_lock_file(test_file_path('duplicated_package.lock'), print_text=False)
 
         msg = (
             "duplicates for `test2` are allowed, but only single version found"
@@ -215,7 +209,7 @@ class CheckTidiness(unittest.TestCase):
 
     def test_lock_exceptions(self):
         tidy.config["blocked-packages"]["rand"] = ["test_exception", "test_unneeded_exception"]
-        errors = tidy.collect_errors_for_files(iterFile('blocked_package.lock'), [tidy.check_lock], [], print_text=False)
+        errors = tidy.check_cargo_lock_file(test_file_path('blocked_package.lock'), print_text=False)
 
         msg = (
             "Package test_blocked 0.0.2 depends on blocked package rand."
