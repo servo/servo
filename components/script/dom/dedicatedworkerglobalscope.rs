@@ -457,6 +457,7 @@ impl DedicatedWorkerGlobalScope {
                 }
 
                 if scope.is_closing() {
+                    scope.clear_js_runtime(context_for_interrupt);
                     return;
                 }
 
