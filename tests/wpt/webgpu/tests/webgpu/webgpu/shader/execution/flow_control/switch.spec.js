@@ -1,22 +1,21 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Flow control tests for switch statements.
-`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../gpu_test.js';
 
 import { runFlowControlTest } from './harness.js';
 
 export const g = makeTestGroup(GPUTest);
 
-g.test('switch')
-  .desc('Test that flow control executes the correct switch case block')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f => `
+g.test('switch').
+desc('Test that flow control executes the correct switch case block').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) => `
   ${f.expect_order(0)}
   switch (${f.value(1)}) {
     case 0: {
@@ -38,18 +37,18 @@ g.test('switch')
   }
   ${f.expect_order(2)}
 `
-    );
-  });
+  );
+});
 
-g.test('switch_multiple_case')
-  .desc(
-    'Test that flow control executes the correct switch case block with multiple cases per block'
-  )
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f => `
+g.test('switch_multiple_case').
+desc(
+  'Test that flow control executes the correct switch case block with multiple cases per block'
+).
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) => `
   ${f.expect_order(0)}
   switch (${f.value(2)}) {
     case 0, 1: {
@@ -67,18 +66,18 @@ g.test('switch_multiple_case')
   }
   ${f.expect_order(2)}
 `
-    );
-  });
+  );
+});
 
-g.test('switch_multiple_case_default')
-  .desc(
-    'Test that flow control executes the correct switch case block with multiple cases per block (combined with default)'
-  )
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f => `
+g.test('switch_multiple_case_default').
+desc(
+  'Test that flow control executes the correct switch case block with multiple cases per block (combined with default)'
+).
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) => `
   ${f.expect_order(0)}
   switch (${f.value(2)}) {
     case 0, 1: {
@@ -103,16 +102,16 @@ g.test('switch_multiple_case_default')
   }
   ${f.expect_order(4)}
 `
-    );
-  });
+  );
+});
 
-g.test('switch_default')
-  .desc('Test that flow control executes the switch default block')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f => `
+g.test('switch_default').
+desc('Test that flow control executes the switch default block').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) => `
 ${f.expect_order(0)}
 switch (${f.value(4)}) {
   case 0: {
@@ -134,16 +133,16 @@ switch (${f.value(4)}) {
 }
 ${f.expect_order(2)}
 `
-    );
-  });
+  );
+});
 
-g.test('switch_default_only')
-  .desc('Test that flow control executes the switch default block, which is the only case')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f => `
+g.test('switch_default_only').
+desc('Test that flow control executes the switch default block, which is the only case').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) => `
 ${f.expect_order(0)}
 switch (${f.value(4)}) {
 default: {
@@ -153,5 +152,5 @@ default: {
 }
 ${f.expect_order(2)}
 `
-    );
-  });
+  );
+});

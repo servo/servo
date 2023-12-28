@@ -1,6 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Tests the behavior of anisotropic filtering.
 
 TODO:
@@ -10,12 +10,12 @@ things. If there are no guarantees we can issue warnings instead of failures. Id
     sample values come out of the sample operation.
   - Check anisotropy is done in the correct direction (by having a 2D gradient and checking we get
     more of the color in the correct direction).
-`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert } from '../../../../common/util/util.js';
 import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { checkElementsEqual } from '../../../util/check_contents.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
+
 
 const kRTSize = 16;
 const kBytesPerRow = 256;
@@ -23,14 +23,14 @@ const xMiddle = kRTSize / 2; // we check the pixel value in the middle of the re
 const kColorAttachmentFormat = 'rgba8unorm';
 const kTextureFormat = 'rgba8unorm';
 const colors = [
-  new Uint8Array([0xff, 0x00, 0x00, 0xff]), // miplevel = 0
-  new Uint8Array([0x00, 0xff, 0x00, 0xff]), // miplevel = 1
-  new Uint8Array([0x00, 0x00, 0xff, 0xff]), // miplevel = 2
+new Uint8Array([0xff, 0x00, 0x00, 0xff]), // miplevel = 0
+new Uint8Array([0x00, 0xff, 0x00, 0xff]), // miplevel = 1
+new Uint8Array([0x00, 0x00, 0xff, 0xff]) // miplevel = 2
 ];
 const checkerColors = [
-  new Uint8Array([0xff, 0x00, 0x00, 0xff]),
-  new Uint8Array([0x00, 0xff, 0x00, 0xff]),
-];
+new Uint8Array([0xff, 0x00, 0x00, 0xff]),
+new Uint8Array([0x00, 0xff, 0x00, 0xff])];
+
 
 // renders texture a slanted plane placed in a specific way
 class SamplerAnisotropicFilteringSlantedPlaneTest extends GPUTest {
@@ -38,7 +38,7 @@ class SamplerAnisotropicFilteringSlantedPlaneTest extends GPUTest {
     const byteLength = kRTSize * kBytesPerRow;
     const buffer = this.device.createBuffer({
       size: byteLength,
-      usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+      usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
     });
 
     const commandEncoder = this.device.createCommandEncoder();
@@ -47,11 +47,11 @@ class SamplerAnisotropicFilteringSlantedPlaneTest extends GPUTest {
       { buffer, bytesPerRow: kBytesPerRow, rowsPerImage: kRTSize },
       { width: kRTSize, height: kRTSize, depthOrArrayLayers: 1 }
     );
-
     this.queue.submit([commandEncoder.finish()]);
 
     return buffer;
   }
+
 
   async init() {
     await super.init();
@@ -95,9 +95,9 @@ class SamplerAnisotropicFilteringSlantedPlaneTest extends GPUTest {
               output.Position = matrix * vec4<f32>(position[VertexIndex], 1.0);
               return output;
             }
-            `,
+            `
         }),
-        entryPoint: 'main',
+        entryPoint: 'main'
       },
       fragment: {
         module: this.device.createShaderModule({
@@ -111,12 +111,12 @@ class SamplerAnisotropicFilteringSlantedPlaneTest extends GPUTest {
               -> @location(0) vec4<f32> {
                 return textureSample(texture0, sampler0, fragUV);
             }
-            `,
+            `
         }),
         entryPoint: 'main',
-        targets: [{ format: 'rgba8unorm' }],
+        targets: [{ format: 'rgba8unorm' }]
       },
-      primitive: { topology: 'triangle-list' },
+      primitive: { topology: 'triangle-list' }
     });
   }
 
@@ -127,30 +127,29 @@ class SamplerAnisotropicFilteringSlantedPlaneTest extends GPUTest {
 
     const bindGroup = this.device.createBindGroup({
       entries: [
-        { binding: 0, resource: sampler },
-        { binding: 1, resource: textureView },
-      ],
+      { binding: 0, resource: sampler },
+      { binding: 1, resource: textureView }],
 
-      layout: this.pipeline.getBindGroupLayout(0),
+      layout: this.pipeline.getBindGroupLayout(0)
     });
 
     const colorAttachment = this.device.createTexture({
       format: kColorAttachmentFormat,
       size: { width: kRTSize, height: kRTSize, depthOrArrayLayers: 1 },
-      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
     });
     const colorAttachmentView = colorAttachment.createView();
 
     const encoder = this.device.createCommandEncoder();
     const pass = encoder.beginRenderPass({
       colorAttachments: [
-        {
-          view: colorAttachmentView,
-          storeOp: 'store',
-          clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-          loadOp: 'clear',
-        },
-      ],
+      {
+        view: colorAttachmentView,
+        storeOp: 'store',
+        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+        loadOp: 'clear'
+      }]
+
     });
     pass.setPipeline(this.pipeline);
     pass.setBindGroup(0, bindGroup);
@@ -164,168 +163,163 @@ class SamplerAnisotropicFilteringSlantedPlaneTest extends GPUTest {
 
 export const g = makeTestGroup(TextureTestMixin(SamplerAnisotropicFilteringSlantedPlaneTest));
 
-g.test('anisotropic_filter_checkerboard')
-  .desc(
-    `Anisotropic filter rendering tests that draws a slanted plane and samples from a texture
+g.test('anisotropic_filter_checkerboard').
+desc(
+  `Anisotropic filter rendering tests that draws a slanted plane and samples from a texture
     that only has a top level mipmap, the content of which is like a checkerboard.
     We will check the rendering result using sampler with maxAnisotropy values to be
     different from each other, as the sampling rate is different.
     We will also check if those large maxAnisotropy values are clamped so that rendering is the
     same as the supported upper limit say 16.
     A similar webgl demo is at https://jsfiddle.net/yqnbez24`
-  )
-  .fn(async t => {
-    // init texture with only a top level mipmap
-    const textureSize = 32;
-    const texture = t.device.createTexture({
-      mipLevelCount: 1,
-      size: { width: textureSize, height: textureSize, depthOrArrayLayers: 1 },
-      format: kTextureFormat,
-      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-    });
-
-    const textureEncoder = t.device.createCommandEncoder();
-
-    const bufferSize = kBytesPerRow * textureSize; // RGBA8 for each pixel (256 > 16 * 4)
-
-    // init checkerboard texture data
-    const data = new Uint8Array(bufferSize);
-    for (let r = 0; r < textureSize; r++) {
-      const o = r * kBytesPerRow;
-      for (let c = o, end = o + textureSize * 4; c < end; c += 4) {
-        const cid = (r + (c - o) / 4) % 2;
-        const color = checkerColors[cid];
-        data[c] = color[0];
-        data[c + 1] = color[1];
-        data[c + 2] = color[2];
-        data[c + 3] = color[3];
-      }
-    }
-    const buffer = t.makeBufferWithContents(
-      data,
-      GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
-    );
-
-    const bytesPerRow = kBytesPerRow;
-    const rowsPerImage = textureSize;
-
-    textureEncoder.copyBufferToTexture(
-      {
-        buffer,
-        bytesPerRow,
-        rowsPerImage,
-      },
-      {
-        texture,
-        mipLevel: 0,
-        origin: [0, 0, 0],
-      },
-      [textureSize, textureSize, 1]
-    );
-
-    t.device.queue.submit([textureEncoder.finish()]);
-
-    const textureView = texture.createView();
-    const byteLength = kRTSize * kBytesPerRow;
-    const results = [];
-
-    for (const maxAnisotropy of [1, 16, 1024]) {
-      const sampler = t.device.createSampler({
-        magFilter: 'linear',
-        minFilter: 'linear',
-        mipmapFilter: 'linear',
-        maxAnisotropy,
-      });
-      const result = await t.readGPUBufferRangeTyped(
-        t.copyRenderTargetToBuffer(t.drawSlantedPlane(textureView, sampler)),
-        { type: Uint8Array, typedLength: byteLength }
-      );
-
-      results.push(result);
-    }
-
-    const check0 = checkElementsEqual(results[0].data, results[1].data);
-    if (check0 === undefined) {
-      t.warn('Render results with sampler.maxAnisotropy being 1 and 16 should be different.');
-    }
-    const check1 = checkElementsEqual(results[1].data, results[2].data);
-    if (check1 !== undefined) {
-      t.expect(
-        false,
-        'Render results with sampler.maxAnisotropy being 16 and 1024 should be the same.'
-      );
-    }
-
-    for (const result of results) {
-      result.cleanup();
-    }
+).
+fn(async (t) => {
+  // init texture with only a top level mipmap
+  const textureSize = 32;
+  const texture = t.device.createTexture({
+    mipLevelCount: 1,
+    size: { width: textureSize, height: textureSize, depthOrArrayLayers: 1 },
+    format: kTextureFormat,
+    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
   });
 
-g.test('anisotropic_filter_mipmap_color')
-  .desc(
-    `Anisotropic filter rendering tests that draws a slanted plane and samples from a texture
+  const textureEncoder = t.device.createCommandEncoder();
+
+  const bufferSize = kBytesPerRow * textureSize; // RGBA8 for each pixel (256 > 16 * 4)
+
+  // init checkerboard texture data
+  const data = new Uint8Array(bufferSize);
+  for (let r = 0; r < textureSize; r++) {
+    const o = r * kBytesPerRow;
+    for (let c = o, end = o + textureSize * 4; c < end; c += 4) {
+      const cid = (r + (c - o) / 4) % 2;
+      const color = checkerColors[cid];
+      data[c] = color[0];
+      data[c + 1] = color[1];
+      data[c + 2] = color[2];
+      data[c + 3] = color[3];
+    }
+  }
+  const buffer = t.makeBufferWithContents(
+    data,
+    GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+  );
+  const bytesPerRow = kBytesPerRow;
+  const rowsPerImage = textureSize;
+
+  textureEncoder.copyBufferToTexture(
+    {
+      buffer,
+      bytesPerRow,
+      rowsPerImage
+    },
+    {
+      texture,
+      mipLevel: 0,
+      origin: [0, 0, 0]
+    },
+    [textureSize, textureSize, 1]
+  );
+
+  t.device.queue.submit([textureEncoder.finish()]);
+
+  const textureView = texture.createView();
+  const byteLength = kRTSize * kBytesPerRow;
+  const results = [];
+
+  for (const maxAnisotropy of [1, 16, 1024]) {
+    const sampler = t.device.createSampler({
+      magFilter: 'linear',
+      minFilter: 'linear',
+      mipmapFilter: 'linear',
+      maxAnisotropy
+    });
+    const result = await t.readGPUBufferRangeTyped(
+      t.copyRenderTargetToBuffer(t.drawSlantedPlane(textureView, sampler)),
+      { type: Uint8Array, typedLength: byteLength }
+    );
+    results.push(result);
+  }
+
+  const check0 = checkElementsEqual(results[0].data, results[1].data);
+  if (check0 === undefined) {
+    t.warn('Render results with sampler.maxAnisotropy being 1 and 16 should be different.');
+  }
+  const check1 = checkElementsEqual(results[1].data, results[2].data);
+  if (check1 !== undefined) {
+    t.expect(
+      false,
+      'Render results with sampler.maxAnisotropy being 16 and 1024 should be the same.'
+    );
+  }
+
+  for (const result of results) {
+    result.cleanup();
+  }
+});
+
+g.test('anisotropic_filter_mipmap_color').
+desc(
+  `Anisotropic filter rendering tests that draws a slanted plane and samples from a texture
     containing mipmaps of different colors. Given the same fragment with dFdx and dFdy for uv being different,
     sampler with bigger maxAnisotropy value tends to bigger mip levels to provide better details.
     We can then look at the color of the fragment to know which mip level is being sampled from and to see
     if it fits expectations.
     A similar webgl demo is at https://jsfiddle.net/t8k7c95o/5/`
-  )
-  .paramsSimple([
-    {
-      maxAnisotropy: 1,
-      _results: [
-        { coord: { x: xMiddle, y: 2 }, expected: colors[2] },
-        { coord: { x: xMiddle, y: 6 }, expected: [colors[0], colors[1]] },
-      ],
+).
+paramsSimple([
+{
+  maxAnisotropy: 1,
+  _results: [
+  { coord: { x: xMiddle, y: 2 }, expected: colors[2] },
+  { coord: { x: xMiddle, y: 6 }, expected: [colors[0], colors[1]] }],
 
-      _generateWarningOnly: false,
-    },
-    {
-      maxAnisotropy: 4,
-      _results: [
-        { coord: { x: xMiddle, y: 2 }, expected: [colors[0], colors[1]] },
-        { coord: { x: xMiddle, y: 6 }, expected: colors[0] },
-      ],
+  _generateWarningOnly: false
+},
+{
+  maxAnisotropy: 4,
+  _results: [
+  { coord: { x: xMiddle, y: 2 }, expected: [colors[0], colors[1]] },
+  { coord: { x: xMiddle, y: 6 }, expected: colors[0] }],
 
-      _generateWarningOnly: true,
-    },
-  ])
-  .fn(t => {
-    const texture = t.createTextureFromTexelViewsMultipleMipmaps(
-      colors.map(value => TexelView.fromTexelsAsBytes(kTextureFormat, coords_ => value)),
-      { size: [4, 4, 1], usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING }
-    );
+  _generateWarningOnly: true
+}]
+).
+fn((t) => {
+  const texture = t.createTextureFromTexelViewsMultipleMipmaps(
+    colors.map((value) => TexelView.fromTexelsAsBytes(kTextureFormat, (_coords) => value)),
+    { size: [4, 4, 1], usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING }
+  );
+  const textureView = texture.createView();
 
-    const textureView = texture.createView();
-
-    const sampler = t.device.createSampler({
-      magFilter: 'linear',
-      minFilter: 'linear',
-      mipmapFilter: 'linear',
-      maxAnisotropy: t.params.maxAnisotropy,
-    });
-
-    const colorAttachment = t.drawSlantedPlane(textureView, sampler);
-
-    const pixelComparisons = [];
-    for (const entry of t.params._results) {
-      if (entry.expected instanceof Uint8Array) {
-        // equal exactly one color
-        pixelComparisons.push({ coord: entry.coord, exp: entry.expected });
-      } else {
-        // a lerp between two colors
-        // MAINTENANCE_TODO: Unify comparison to allow for a strict in-between comparison to support
-        //                   this kind of expectation.
-        t.expectSinglePixelBetweenTwoValuesIn2DTexture(
-          colorAttachment,
-          kColorAttachmentFormat,
-          entry.coord,
-          {
-            exp: entry.expected,
-            generateWarningOnly: t.params._generateWarningOnly,
-          }
-        );
-      }
-    }
-    t.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, pixelComparisons);
+  const sampler = t.device.createSampler({
+    magFilter: 'linear',
+    minFilter: 'linear',
+    mipmapFilter: 'linear',
+    maxAnisotropy: t.params.maxAnisotropy
   });
+
+  const colorAttachment = t.drawSlantedPlane(textureView, sampler);
+
+  const pixelComparisons = [];
+  for (const entry of t.params._results) {
+    if (entry.expected instanceof Uint8Array) {
+      // equal exactly one color
+      pixelComparisons.push({ coord: entry.coord, exp: entry.expected });
+    } else {
+      // a lerp between two colors
+      // MAINTENANCE_TODO: Unify comparison to allow for a strict in-between comparison to support
+      //                   this kind of expectation.
+      t.expectSinglePixelBetweenTwoValuesIn2DTexture(
+        colorAttachment,
+        kColorAttachmentFormat,
+        entry.coord,
+        {
+          exp: entry.expected,
+          generateWarningOnly: t.params._generateWarningOnly
+        }
+      );
+    }
+  }
+  t.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, pixelComparisons);
+});

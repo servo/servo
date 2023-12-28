@@ -1,14 +1,13 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert, memcpy } from '../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../format_info.js';
-import { generatePrettyTable } from '../pretty_diff_tables.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { assert, memcpy } from '../../../common/util/util.js';import { kTextureFormatInfo } from '../../format_info.js';import { generatePrettyTable } from '../pretty_diff_tables.js';
 import { reifyExtent3D, reifyOrigin3D } from '../unions.js';
 
 import { fullSubrectCoordinates } from './base.js';
 import { kTexelRepresentationInfo, makeClampToRange } from './texel_data.js';
 
 /** Function taking some x,y,z coordinates and returning `Readonly<T>`. */
+
 
 /**
  * Wrapper to view various representations of texture data in other ways. E.g., can:
@@ -27,7 +26,19 @@ export class TexelView {
 
   /** Generates the color for the texel at the given coordinates. */
 
-  constructor(format, { bytes, ulpFromZero, color }) {
+
+  constructor(
+  format,
+  {
+    bytes,
+    ulpFromZero,
+    color
+
+
+
+
+  })
+  {
     this.format = format;
     this.bytes = bytes;
     this.ulpFromZero = ulpFromZero;
@@ -39,24 +50,34 @@ export class TexelView {
    * reference to the input `subrectData`, so any changes to it will be visible in the TexelView.
    */
   static fromTextureDataByReference(
-    format,
-    subrectData,
-    { bytesPerRow, rowsPerImage, subrectOrigin, subrectSize }
-  ) {
+  format,
+  subrectData,
+  {
+    bytesPerRow,
+    rowsPerImage,
+    subrectOrigin,
+    subrectSize
+
+
+
+
+
+  })
+  {
     const origin = reifyOrigin3D(subrectOrigin);
     const size = reifyExtent3D(subrectSize);
 
     const info = kTextureFormatInfo[format];
     assert(info.blockWidth === 1 && info.blockHeight === 1, 'unimplemented for block formats');
 
-    return TexelView.fromTexelsAsBytes(format, coords => {
+    return TexelView.fromTexelsAsBytes(format, (coords) => {
       assert(
         coords.x >= origin.x &&
-          coords.y >= origin.y &&
-          coords.z >= origin.z &&
-          coords.x < origin.x + size.width &&
-          coords.y < origin.y + size.height &&
-          coords.z < origin.z + size.depthOrArrayLayers,
+        coords.y >= origin.y &&
+        coords.z >= origin.z &&
+        coords.x < origin.x + size.width &&
+        coords.y < origin.y + size.height &&
+        coords.z < origin.z + size.depthOrArrayLayers,
         () => `coordinate (${coords.x},${coords.y},${coords.z}) out of bounds`
       );
 
@@ -70,42 +91,59 @@ export class TexelView {
   }
 
   /** Produces a TexelView from a generator of bytes for individual texel blocks. */
-  static fromTexelsAsBytes(format, generator) {
+  static fromTexelsAsBytes(
+  format,
+  generator)
+  {
     const info = kTextureFormatInfo[format];
     assert(info.blockWidth === 1 && info.blockHeight === 1, 'unimplemented for block formats');
 
     const repr = kTexelRepresentationInfo[format];
     return new TexelView(format, {
       bytes: generator,
-      ulpFromZero: coords => repr.bitsToULPFromZero(repr.unpackBits(generator(coords))),
-      color: coords => repr.bitsToNumber(repr.unpackBits(generator(coords))),
+      ulpFromZero: (coords) => repr.bitsToULPFromZero(repr.unpackBits(generator(coords))),
+      color: (coords) => repr.bitsToNumber(repr.unpackBits(generator(coords)))
     });
   }
 
   /** Produces a TexelView from a generator of numeric "color" values for each texel. */
-  static fromTexelsAsColors(format, generator, { clampToFormatRange = false } = {}) {
+  static fromTexelsAsColors(
+  format,
+  generator,
+  { clampToFormatRange = false } = {})
+  {
     const info = kTextureFormatInfo[format];
     assert(info.blockWidth === 1 && info.blockHeight === 1, 'unimplemented for block formats');
 
     if (clampToFormatRange) {
       const applyClamp = makeClampToRange(format);
       const oldGenerator = generator;
-      generator = coords => applyClamp(oldGenerator(coords));
+      generator = (coords) => applyClamp(oldGenerator(coords));
     }
 
     const repr = kTexelRepresentationInfo[format];
     return new TexelView(format, {
-      bytes: coords => new Uint8Array(repr.pack(repr.encode(generator(coords)))),
-      ulpFromZero: coords => repr.bitsToULPFromZero(repr.numberToBits(generator(coords))),
-      color: generator,
+      bytes: (coords) => new Uint8Array(repr.pack(repr.encode(generator(coords)))),
+      ulpFromZero: (coords) => repr.bitsToULPFromZero(repr.numberToBits(generator(coords))),
+      color: generator
     });
   }
 
   /** Writes the contents of a TexelView as "linear image data", i.e. the `writeTexture` format. */
   writeTextureData(
-    subrectData,
-    { bytesPerRow, rowsPerImage, subrectOrigin: subrectOrigin_, subrectSize: subrectSize_ }
-  ) {
+  subrectData,
+  {
+    bytesPerRow,
+    rowsPerImage,
+    subrectOrigin: subrectOrigin_,
+    subrectSize: subrectSize_
+
+
+
+
+
+  })
+  {
     const subrectOrigin = reifyOrigin3D(subrectOrigin_);
     const subrectSize = reifyExtent3D(subrectSize_);
 
@@ -129,32 +167,34 @@ export class TexelView {
     const repr = kTexelRepresentationInfo[this.format];
 
     const integerSampleType = info.sampleType === 'uint' || info.sampleType === 'sint';
-    const numberToString = integerSampleType ? n => n.toFixed() : n => n.toPrecision(6);
+    const numberToString = integerSampleType ?
+    (n) => n.toFixed() :
+    (n) => n.toPrecision(6);
 
     const componentOrderStr = repr.componentOrder.join(',') + ':';
     const subrectCoords = [...fullSubrectCoordinates(subrectOrigin, subrectSize)];
 
-    const printCoords = (function* () {
+    const printCoords = function* () {
       yield* [' coords', '==', 'X,Y,Z:'];
       for (const coords of subrectCoords) yield `${coords.x},${coords.y},${coords.z}`;
-    })();
-    const printActualBytes = (function* (t) {
+    }();
+    const printActualBytes = function* (t) {
       yield* [' act. texel bytes (little-endian)', '==', '0x:'];
       for (const coords of subrectCoords) {
-        yield Array.from(t.bytes(coords), b => b.toString(16).padStart(2, '0')).join(' ');
+        yield Array.from(t.bytes(coords), (b) => b.toString(16).padStart(2, '0')).join(' ');
       }
-    })(this);
-    const printActualColors = (function* (t) {
+    }(this);
+    const printActualColors = function* (t) {
       yield* [' act. colors', '==', componentOrderStr];
       for (const coords of subrectCoords) {
         const pixel = t.color(coords);
-        yield `${repr.componentOrder.map(ch => numberToString(pixel[ch])).join(',')}`;
+        yield `${repr.componentOrder.map((ch) => numberToString(pixel[ch])).join(',')}`;
       }
-    })(this);
+    }(this);
 
     const opts = {
       fillToWidth: 120,
-      numberToString,
+      numberToString
     };
     return `${generatePrettyTable(opts, [printCoords, printActualBytes, printActualColors])}`;
   }

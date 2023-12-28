@@ -1,20 +1,20 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Tests for properties of the WebGPU memory model involving two memory locations.
 Specifically, the acquire/release ordering provided by WebGPU's barriers can be used to disallow
-weak behaviors in several classic memory model litmus tests.`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+weak behaviors in several classic memory model litmus tests.`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../gpu_test.js';
 
 import {
+
   MemoryModelTester,
   buildTestShader,
   MemoryType,
   TestType,
   buildResultShader,
-  ResultType,
-} from './memory_model_setup.js';
+  ResultType } from
+'./memory_model_setup.js';
 
 export const g = makeTestGroup(GPUTest);
 
@@ -41,7 +41,7 @@ const memoryModelTestParams = {
   permuteSecond: 419,
   memStride: 2,
   aliasedMemory: false,
-  numBehaviors: 4,
+  numBehaviors: 4
 };
 
 const workgroupMemoryMessagePassingTestCode = `
@@ -66,29 +66,28 @@ const storageMemoryMessagePassingTestCode = `
   atomicStore(&results.value[shuffled_workgroup * u32(workgroupXSize) + id_1].r1, r1);
 `;
 
-g.test('message_passing')
-  .desc(
-    `Checks whether two reads on one thread can observe two writes in another thread in a way
+g.test('message_passing').
+desc(
+  `Checks whether two reads on one thread can observe two writes in another thread in a way
     that is inconsistent with sequential consistency. In the message passing litmus test, one
     thread writes the value 1 to some location x and then 1 to some location y. The second thread
     reads y and then x. If the second thread reads y == 1 and x == 0, then sequential consistency
     has not been respected. The acquire/release semantics of WebGPU's barrier functions should disallow
     this behavior within a workgroup.
     `
-  )
-  .paramsSimple([
-    { memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemoryMessagePassingTestCode },
-    { memType: MemoryType.AtomicStorageClass, _testCode: storageMemoryMessagePassingTestCode },
-  ])
-  .fn(async t => {
-    const testShader = buildTestShader(
-      t.params._testCode,
-      t.params.memType,
-      TestType.IntraWorkgroup
-    );
-
-    const messagePassingResultShader = buildResultShader(
-      `
+).
+paramsSimple([
+{ memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemoryMessagePassingTestCode },
+{ memType: MemoryType.AtomicStorageClass, _testCode: storageMemoryMessagePassingTestCode }]
+).
+fn(async (t) => {
+  const testShader = buildTestShader(
+    t.params._testCode,
+    t.params.memType,
+    TestType.IntraWorkgroup
+  );
+  const messagePassingResultShader = buildResultShader(
+    `
       if ((r0 == 0u && r1 == 0u)) {
         atomicAdd(&test_results.seq0, 1u);
       } else if ((r0 == 1u && r1 == 1u)) {
@@ -99,19 +98,17 @@ g.test('message_passing')
         atomicAdd(&test_results.weak, 1u);
       }
       `,
-      TestType.IntraWorkgroup,
-      ResultType.FourBehavior
-    );
-
-    const memModelTester = new MemoryModelTester(
-      t,
-      memoryModelTestParams,
-      testShader,
-      messagePassingResultShader
-    );
-
-    await memModelTester.run(40, 3);
-  });
+    TestType.IntraWorkgroup,
+    ResultType.FourBehavior
+  );
+  const memModelTester = new MemoryModelTester(
+    t,
+    memoryModelTestParams,
+    testShader,
+    messagePassingResultShader
+  );
+  await memModelTester.run(40, 3);
+});
 
 const workgroupMemoryStoreTestCode = `
   atomicStore(&wg_test_locations[x_0], 2u);
@@ -135,27 +132,26 @@ const storageMemoryStoreTestCode = `
   atomicStore(&results.value[shuffled_workgroup * workgroupXSize + id_1].r0, r0);
 `;
 
-g.test('store')
-  .desc(
-    `In the store litmus test, one thread writes 2 to some memory location x and then 1 to some memory location
+g.test('store').
+desc(
+  `In the store litmus test, one thread writes 2 to some memory location x and then 1 to some memory location
      y. A second thread reads the value of y and then writes 1 to x. If the read on the second thread returns 1,
      but the value of x in memory after the test ends is 2, then there has been a re-ordering which is not allowed
      when using WebGPU's barriers.
     `
-  )
-  .paramsSimple([
-    { memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemoryStoreTestCode },
-    { memType: MemoryType.AtomicStorageClass, _testCode: storageMemoryStoreTestCode },
-  ])
-  .fn(async t => {
-    const testShader = buildTestShader(
-      t.params._testCode,
-      t.params.memType,
-      TestType.IntraWorkgroup
-    );
-
-    const messagePassingResultShader = buildResultShader(
-      `
+).
+paramsSimple([
+{ memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemoryStoreTestCode },
+{ memType: MemoryType.AtomicStorageClass, _testCode: storageMemoryStoreTestCode }]
+).
+fn(async (t) => {
+  const testShader = buildTestShader(
+    t.params._testCode,
+    t.params.memType,
+    TestType.IntraWorkgroup
+  );
+  const messagePassingResultShader = buildResultShader(
+    `
       if ((r0 == 1u && mem_x_0 == 1u)) {
         atomicAdd(&test_results.seq0, 1u);
       } else if ((r0 == 0u && mem_x_0 == 2u)) {
@@ -166,19 +162,17 @@ g.test('store')
         atomicAdd(&test_results.weak, 1u);
       }
       `,
-      TestType.IntraWorkgroup,
-      ResultType.FourBehavior
-    );
-
-    const memModelTester = new MemoryModelTester(
-      t,
-      memoryModelTestParams,
-      testShader,
-      messagePassingResultShader
-    );
-
-    await memModelTester.run(40, 3);
-  });
+    TestType.IntraWorkgroup,
+    ResultType.FourBehavior
+  );
+  const memModelTester = new MemoryModelTester(
+    t,
+    memoryModelTestParams,
+    testShader,
+    messagePassingResultShader
+  );
+  await memModelTester.run(40, 3);
+});
 
 const workgroupMemoryLoadBufferTestCode = `
   let r0 = atomicLoad(&wg_test_locations[y_0]);
@@ -202,26 +196,25 @@ const storageMemoryLoadBufferTestCode = `
   atomicStore(&results.value[shuffled_workgroup * workgroupXSize + id_1].r1, r1);
 `;
 
-g.test('load_buffer')
-  .desc(
-    `In the load buffer litmus test, one thread reads from memory location y and then writes 1 to memory location x.
+g.test('load_buffer').
+desc(
+  `In the load buffer litmus test, one thread reads from memory location y and then writes 1 to memory location x.
      A second thread reads from x and then writes 1 to y. If both threads read the value 0, then the loads have been
      buffered or re-ordered, which is not allowed when used in conjunction with WebGPU's barriers.
     `
-  )
-  .paramsSimple([
-    { memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemoryLoadBufferTestCode },
-    { memType: MemoryType.AtomicStorageClass, _testCode: storageMemoryLoadBufferTestCode },
-  ])
-  .fn(async t => {
-    const testShader = buildTestShader(
-      t.params._testCode,
-      t.params.memType,
-      TestType.IntraWorkgroup
-    );
-
-    const messagePassingResultShader = buildResultShader(
-      `
+).
+paramsSimple([
+{ memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemoryLoadBufferTestCode },
+{ memType: MemoryType.AtomicStorageClass, _testCode: storageMemoryLoadBufferTestCode }]
+).
+fn(async (t) => {
+  const testShader = buildTestShader(
+    t.params._testCode,
+    t.params.memType,
+    TestType.IntraWorkgroup
+  );
+  const messagePassingResultShader = buildResultShader(
+    `
       if ((r0 == 1u && r1 == 0u)) {
         atomicAdd(&test_results.seq0, 1u);
       } else if ((r0 == 0u && r1 == 1u)) {
@@ -232,19 +225,17 @@ g.test('load_buffer')
         atomicAdd(&test_results.weak, 1u);
       }
       `,
-      TestType.IntraWorkgroup,
-      ResultType.FourBehavior
-    );
-
-    const memModelTester = new MemoryModelTester(
-      t,
-      memoryModelTestParams,
-      testShader,
-      messagePassingResultShader
-    );
-
-    await memModelTester.run(40, 3);
-  });
+    TestType.IntraWorkgroup,
+    ResultType.FourBehavior
+  );
+  const memModelTester = new MemoryModelTester(
+    t,
+    memoryModelTestParams,
+    testShader,
+    messagePassingResultShader
+  );
+  await memModelTester.run(40, 3);
+});
 
 const workgroupMemoryReadTestCode = `
   atomicStore(&wg_test_locations[x_0], 1u);
@@ -268,28 +259,27 @@ const storageMemoryReadTestCode = `
   atomicStore(&results.value[shuffled_workgroup * workgroupXSize + id_1].r0, r0);
 `;
 
-g.test('read')
-  .desc(
-    `In the read litmus test, one thread writes 1 to memory location x and then 1 to memory location y. A second thread
+g.test('read').
+desc(
+  `In the read litmus test, one thread writes 1 to memory location x and then 1 to memory location y. A second thread
      first writes 2 to y and then reads from x. If the value read by the second thread is 0 but the value in memory of y
      after the test completes is 2, then there has been some re-ordering of instructions disallowed when using WebGPU's
      barrier. Additionally, both writes to y are RMWs, so that the barrier forces the correct acquire/release memory ordering
      synchronization.
     `
-  )
-  .paramsSimple([
-    { memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemoryReadTestCode },
-    { memType: MemoryType.AtomicStorageClass, _testCode: storageMemoryReadTestCode },
-  ])
-  .fn(async t => {
-    const testShader = buildTestShader(
-      t.params._testCode,
-      t.params.memType,
-      TestType.IntraWorkgroup
-    );
-
-    const messagePassingResultShader = buildResultShader(
-      `
+).
+paramsSimple([
+{ memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemoryReadTestCode },
+{ memType: MemoryType.AtomicStorageClass, _testCode: storageMemoryReadTestCode }]
+).
+fn(async (t) => {
+  const testShader = buildTestShader(
+    t.params._testCode,
+    t.params.memType,
+    TestType.IntraWorkgroup
+  );
+  const messagePassingResultShader = buildResultShader(
+    `
       if ((r0 == 1u && mem_y_0 == 2u)) {
         atomicAdd(&test_results.seq0, 1u);
       } else if ((r0 == 0u && mem_y_0 == 1u)) {
@@ -300,19 +290,17 @@ g.test('read')
         atomicAdd(&test_results.weak, 1u);
       }
       `,
-      TestType.IntraWorkgroup,
-      ResultType.FourBehavior
-    );
-
-    const memModelTester = new MemoryModelTester(
-      t,
-      memoryModelTestParams,
-      testShader,
-      messagePassingResultShader
-    );
-
-    await memModelTester.run(40, 3);
-  });
+    TestType.IntraWorkgroup,
+    ResultType.FourBehavior
+  );
+  const memModelTester = new MemoryModelTester(
+    t,
+    memoryModelTestParams,
+    testShader,
+    messagePassingResultShader
+  );
+  await memModelTester.run(40, 3);
+});
 
 const workgroupMemoryStoreBufferTestCode = `
   atomicStore(&wg_test_locations[x_0], 1u);
@@ -336,27 +324,26 @@ const storageMemoryStoreBufferTestCode = `
   atomicStore(&results.value[shuffled_workgroup * workgroupXSize + id_1].r1, r1);
 `;
 
-g.test('store_buffer')
-  .desc(
-    `In the store buffer litmus test, one thread writes 1 to memory location x and then reads from memory location
+g.test('store_buffer').
+desc(
+  `In the store buffer litmus test, one thread writes 1 to memory location x and then reads from memory location
      y. A second thread writes 1 to y and then reads from x. If both reads return 0, then stores have been buffered
      or some other re-ordering has occurred that is disallowed by WebGPU's barriers. Additionally, both the read
      and store to y are RMWs to achieve the necessary synchronization across threads.
     `
-  )
-  .paramsSimple([
-    { memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemoryStoreBufferTestCode },
-    { memType: MemoryType.AtomicStorageClass, _testCode: storageMemoryStoreBufferTestCode },
-  ])
-  .fn(async t => {
-    const testShader = buildTestShader(
-      t.params._testCode,
-      t.params.memType,
-      TestType.IntraWorkgroup
-    );
-
-    const messagePassingResultShader = buildResultShader(
-      `
+).
+paramsSimple([
+{ memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemoryStoreBufferTestCode },
+{ memType: MemoryType.AtomicStorageClass, _testCode: storageMemoryStoreBufferTestCode }]
+).
+fn(async (t) => {
+  const testShader = buildTestShader(
+    t.params._testCode,
+    t.params.memType,
+    TestType.IntraWorkgroup
+  );
+  const messagePassingResultShader = buildResultShader(
+    `
       if ((r0 == 1u && r1 == 0u)) {
         atomicAdd(&test_results.seq0, 1u);
       } else if ((r0 == 0u && r1 == 1u)) {
@@ -367,19 +354,17 @@ g.test('store_buffer')
         atomicAdd(&test_results.weak, 1u);
       }
       `,
-      TestType.IntraWorkgroup,
-      ResultType.FourBehavior
-    );
-
-    const memModelTester = new MemoryModelTester(
-      t,
-      memoryModelTestParams,
-      testShader,
-      messagePassingResultShader
-    );
-
-    await memModelTester.run(40, 3);
-  });
+    TestType.IntraWorkgroup,
+    ResultType.FourBehavior
+  );
+  const memModelTester = new MemoryModelTester(
+    t,
+    memoryModelTestParams,
+    testShader,
+    messagePassingResultShader
+  );
+  await memModelTester.run(40, 3);
+});
 
 const workgroupMemory2P2WTestCode = `
   atomicStore(&wg_test_locations[x_0], 2u);
@@ -402,26 +387,25 @@ const storageMemory2P2WTestCode = `
   atomicStore(&test_locations.value[x_1], 1u);
 `;
 
-g.test('2_plus_2_write')
-  .desc(
-    `In the 2+2 write litmus test, one thread stores 2 to memory location x and then 1 to memory location y.
+g.test('2_plus_2_write').
+desc(
+  `In the 2+2 write litmus test, one thread stores 2 to memory location x and then 1 to memory location y.
      A second thread stores 2 to y and then 1 to x. If at the end of the test both memory locations are set to 2,
      then some disallowed re-ordering has occurred. Both writes to y are RMWs to achieve the required synchronization.
     `
-  )
-  .paramsSimple([
-    { memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemory2P2WTestCode },
-    { memType: MemoryType.AtomicStorageClass, _testCode: storageMemory2P2WTestCode },
-  ])
-  .fn(async t => {
-    const testShader = buildTestShader(
-      t.params._testCode,
-      t.params.memType,
-      TestType.IntraWorkgroup
-    );
-
-    const messagePassingResultShader = buildResultShader(
-      `
+).
+paramsSimple([
+{ memType: MemoryType.AtomicWorkgroupClass, _testCode: workgroupMemory2P2WTestCode },
+{ memType: MemoryType.AtomicStorageClass, _testCode: storageMemory2P2WTestCode }]
+).
+fn(async (t) => {
+  const testShader = buildTestShader(
+    t.params._testCode,
+    t.params.memType,
+    TestType.IntraWorkgroup
+  );
+  const messagePassingResultShader = buildResultShader(
+    `
       if ((mem_x_0 == 1u && mem_y_0 == 2u)) {
         atomicAdd(&test_results.seq0, 1u);
       } else if ((mem_x_0 == 2u && mem_y_0 == 1u)) {
@@ -432,16 +416,14 @@ g.test('2_plus_2_write')
         atomicAdd(&test_results.weak, 1u);
       }
       `,
-      TestType.IntraWorkgroup,
-      ResultType.FourBehavior
-    );
-
-    const memModelTester = new MemoryModelTester(
-      t,
-      memoryModelTestParams,
-      testShader,
-      messagePassingResultShader
-    );
-
-    await memModelTester.run(40, 3);
-  });
+    TestType.IntraWorkgroup,
+    ResultType.FourBehavior
+  );
+  const memModelTester = new MemoryModelTester(
+    t,
+    memoryModelTestParams,
+    testShader,
+    messagePassingResultShader
+  );
+  await memModelTester.run(40, 3);
+});

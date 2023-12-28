@@ -1,30 +1,29 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `Validation tests for discard`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `Validation tests for discard`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { ShaderValidationTest } from '../shader_validation_test.js';
 
 export const g = makeTestGroup(ShaderValidationTest);
 
-g.test('placement')
-  .desc('Test that discard usage is validated')
-  .params(u =>
-    u.combine('place', ['compute', 'vertex', 'fragment', 'module', 'subfrag', 'subvert', 'subcomp'])
-  )
-  .fn(t => {
-    const pos = {
-      module: '',
-      subvert: '',
-      subfrag: '',
-      subcomp: '',
-      vertex: '',
-      fragment: '',
-      compute: '',
-    };
+g.test('placement').
+desc('Test that discard usage is validated').
+params((u) =>
+u.combine('place', ['compute', 'vertex', 'fragment', 'module', 'subfrag', 'subvert', 'subcomp'])
+).
+fn((t) => {
+  const pos = {
+    module: '',
+    subvert: '',
+    subfrag: '',
+    subcomp: '',
+    vertex: '',
+    fragment: '',
+    compute: ''
+  };
 
-    pos[t.params.place] = 'discard;';
+  pos[t.params.place] = 'discard;';
 
-    const code = `
+  const code = `
 ${pos.module}
 
 fn subvert() {
@@ -61,6 +60,6 @@ fn comp() {
 }
 `;
 
-    const pass = ['fragment', 'subfrag'].includes(t.params.place);
-    t.expectCompileResult(pass, code);
-  });
+  const pass = ['fragment', 'subfrag'].includes(t.params.place);
+  t.expectCompileResult(pass, code);
+});

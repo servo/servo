@@ -1,31 +1,30 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `Validation tests for @const`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `Validation tests for @const`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { ShaderValidationTest } from '../shader_validation_test.js';
 
 export const g = makeTestGroup(ShaderValidationTest);
 
-g.test('placement')
-  .desc('Tests @const is not allowed to appear')
-  .params(u =>
-    u.combine('scope', [
-      'private-var',
-      'storage-var',
-      'struct-member',
-      'fn-decl',
-      'fn-param',
-      'fn-var',
-      'fn-return',
-      'while-stmt',
-      undefined,
-    ])
-  )
-  .fn(t => {
-    const scope = t.params.scope;
+g.test('placement').
+desc('Tests @const is not allowed to appear').
+params((u) =>
+u.combine('scope', [
+'private-var',
+'storage-var',
+'struct-member',
+'fn-decl',
+'fn-param',
+'fn-var',
+'fn-return',
+'while-stmt',
+undefined]
+)
+).
+fn((t) => {
+  const scope = t.params.scope;
 
-    const attr = '@const';
-    const code = `
+  const attr = '@const';
+  const code = `
       ${scope === 'private-var' ? attr : ''}
       var<private> priv_var : i32;
 
@@ -54,5 +53,5 @@ g.test('placement')
       }
     `;
 
-    t.expectCompileResult(scope === undefined, code);
-  });
+  t.expectCompileResult(scope === undefined, code);
+});

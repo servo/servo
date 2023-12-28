@@ -1,11 +1,11 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ /**
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/ /**
  * - 'uninitialized' means we haven't tried to connect yet
  * - Promise means it's pending
  * - 'failed' means it failed (this is the most common case, where the logger isn't running)
  * - WebSocket means it succeeded
- */ let connection = 'uninitialized';
+ */let connection = 'uninitialized';
 
 /**
  * Log a string to a websocket at `localhost:59497`. See `tools/websocket-logger`.
@@ -18,7 +18,7 @@ export function logToWebsocket(msg) {
   }
 
   if (connection === 'uninitialized') {
-    connection = new Promise(resolve => {
+    connection = new Promise((resolve) => {
       if (typeof WebSocket === 'undefined') {
         resolve('failed');
         return;
@@ -37,7 +37,7 @@ export function logToWebsocket(msg) {
         resolve('failed');
       };
     });
-    void connection.then(resolved => {
+    void connection.then((resolved) => {
       connection = resolved;
     });
   }

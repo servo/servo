@@ -1,7 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `Special and sample values for WGSL scalar types`;
-import { assert } from '../../common/util/util.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `Special and sample values for WGSL scalar types`;import { assert } from '../../common/util/util.js';
 import { uint32ToFloat32 } from '../util/conversion.js';
 
 /** Returns an array of subnormal f32 numbers.
@@ -30,8 +29,7 @@ export function subnormalF32Examples() {
     result_as_bits.length === 2 * (1 + 23),
     'subnormal number sample count is ' + result_as_bits.length.toString()
   );
-
-  return result_as_bits.map(u => uint32ToFloat32(u));
+  return result_as_bits.map((u) => uint32ToFloat32(u));
 }
 
 /** Returns an array of normal f32 numbers.
@@ -63,7 +61,6 @@ export function normalF32Examples() {
     result.length === 2 + 2 * 254 * 25,
     'normal number sample count is ' + result.length.toString()
   );
-
   return result;
 }
 

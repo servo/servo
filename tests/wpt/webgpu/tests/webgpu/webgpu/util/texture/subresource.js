@@ -1,6 +1,14 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/ /** A range of indices expressed as `{ begin, count }`. */
+
+
+
+/* A range of indices, expressed as `{ begin, end }`. */
+
+
+
+
 
 function endOfRange(r) {
   return 'count' in r ? r.begin + r.count : r.end;
@@ -17,14 +25,20 @@ function* rangeAsIterator(r) {
  * a min/max mip level and min/max array layer.
  */
 export class SubresourceRange {
-  constructor(subresources) {
+
+
+
+  constructor(subresources)
+
+
+  {
     this.mipRange = {
       begin: subresources.mipRange.begin,
-      end: endOfRange(subresources.mipRange),
+      end: endOfRange(subresources.mipRange)
     };
     this.layerRange = {
       begin: subresources.layerRange.begin,
-      end: endOfRange(subresources.layerRange),
+      end: endOfRange(subresources.layerRange)
     };
   }
 
@@ -47,7 +61,7 @@ export class SubresourceRange {
     for (let level = this.mipRange.begin; level < this.mipRange.end; ++level) {
       yield {
         level,
-        layers: rangeAsIterator(this.layerRange),
+        layers: rangeAsIterator(this.layerRange)
       };
     }
   }

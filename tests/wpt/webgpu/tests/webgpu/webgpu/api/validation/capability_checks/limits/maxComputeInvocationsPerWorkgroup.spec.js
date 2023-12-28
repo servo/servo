@@ -1,6 +1,11 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { kMaximumLimitBaseParams, makeLimitTestGroup } from './limit_utils.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import {
+  kMaximumLimitBaseParams,
+
+
+  makeLimitTestGroup } from
+'./limit_utils.js';
 
 /**
  * Given a 3 dimensional size, and a limit, compute
@@ -52,7 +57,11 @@ function getClosestSizeUnderOrAtLimit(size, limit) {
   return closestSize;
 }
 
-function getDeviceLimitToRequest(limitValueTest, defaultLimit, maximumLimit) {
+function getDeviceLimitToRequest(
+limitValueTest,
+defaultLimit,
+maximumLimit)
+{
   switch (limitValueTest) {
     case 'atDefault':
       return defaultLimit;
@@ -67,12 +76,16 @@ function getDeviceLimitToRequest(limitValueTest, defaultLimit, maximumLimit) {
   }
 }
 
-function getTestWorkgroupSize(t, testValueName, requestedLimit) {
+function getTestWorkgroupSize(
+t,
+testValueName,
+requestedLimit)
+{
   const maxDimensions = [
-    t.getDefaultLimit('maxComputeWorkgroupSizeX'),
-    t.getDefaultLimit('maxComputeWorkgroupSizeY'),
-    t.getDefaultLimit('maxComputeWorkgroupSizeZ'),
-  ];
+  t.getDefaultLimit('maxComputeWorkgroupSizeX'),
+  t.getDefaultLimit('maxComputeWorkgroupSizeY'),
+  t.getDefaultLimit('maxComputeWorkgroupSizeZ')];
+
 
   switch (testValueName) {
     case 'atLimit':
@@ -83,53 +96,52 @@ function getTestWorkgroupSize(t, testValueName, requestedLimit) {
 }
 
 function getDeviceLimitToRequestAndValueToTest(
-  t,
-  limitValueTest,
-  testValueName,
-  defaultLimit,
-  maximumLimit
-) {
+t,
+limitValueTest,
+testValueName,
+defaultLimit,
+maximumLimit)
+{
   const requestedLimit = getDeviceLimitToRequest(limitValueTest, defaultLimit, maximumLimit);
   const workgroupSize = getTestWorkgroupSize(t, testValueName, requestedLimit);
   return {
     requestedLimit,
-    workgroupSize,
+    workgroupSize
   };
 }
 
 const limit = 'maxComputeInvocationsPerWorkgroup';
 export const { g, description } = makeLimitTestGroup(limit);
 
-g.test('createComputePipeline,at_over')
-  .desc(`Test using createComputePipeline(Async) at and over ${limit} limit`)
-  .params(kMaximumLimitBaseParams.combine('async', [false, true]))
-  .fn(async t => {
-    const { limitTest, testValueName, async } = t.params;
-    const { defaultLimit, adapterLimit: maximumLimit } = t;
+g.test('createComputePipeline,at_over').
+desc(`Test using createComputePipeline(Async) at and over ${limit} limit`).
+params(kMaximumLimitBaseParams.combine('async', [false, true])).
+fn(async (t) => {
+  const { limitTest, testValueName, async } = t.params;
+  const { defaultLimit, adapterLimit: maximumLimit } = t;
 
-    const { requestedLimit, workgroupSize } = getDeviceLimitToRequestAndValueToTest(
-      t,
-      limitTest,
-      testValueName,
-      defaultLimit,
-      maximumLimit
-    );
+  const { requestedLimit, workgroupSize } = getDeviceLimitToRequestAndValueToTest(
+    t,
+    limitTest,
+    testValueName,
+    defaultLimit,
+    maximumLimit
+  );
+  const testValue = workgroupSize.reduce((a, b) => a * b, 1);
 
-    const testValue = workgroupSize.reduce((a, b) => a * b, 1);
+  await t.testDeviceWithSpecificLimits(
+    requestedLimit,
+    testValue,
+    async ({ testValue, actualLimit, shouldError }) => {
+      const { module, code } = t.getModuleForWorkgroupSize(workgroupSize);
 
-    await t.testDeviceWithSpecificLimits(
-      requestedLimit,
-      testValue,
-      async ({ testValue, actualLimit, shouldError }) => {
-        const { module, code } = t.getModuleForWorkgroupSize(workgroupSize);
-
-        await t.testCreatePipeline(
-          'createComputePipeline',
-          async,
-          module,
-          shouldError,
-          `workgroupSize: [${workgroupSize}], size: ${testValue}, limit: ${actualLimit}\n${code}`
-        );
-      }
-    );
-  });
+      await t.testCreatePipeline(
+        'createComputePipeline',
+        async,
+        module,
+        shouldError,
+        `workgroupSize: [${workgroupSize}], size: ${testValue}, limit: ${actualLimit}\n${code}`
+      );
+    }
+  );
+});

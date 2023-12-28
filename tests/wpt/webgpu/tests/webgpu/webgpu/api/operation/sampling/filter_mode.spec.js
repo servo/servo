@@ -1,11 +1,14 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Tests the behavior of different filtering modes in minFilter/magFilter/mipmapFilter.
-`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { kAddressModes, kMipmapFilterModes } from '../../../capability_info.js';
-import { kRenderableColorTextureFormats, kTextureFormatInfo } from '../../../format_info.js';
+import {
+
+  kRenderableColorTextureFormats,
+  kTextureFormatInfo } from
+'../../../format_info.js';
 import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { getTextureCopyLayout } from '../../../util/texture/layout.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
@@ -13,59 +16,65 @@ import { TexelView } from '../../../util/texture/texel_view.js';
 // Simple checkerboard 2x2 texture used as a base for the sampling.
 const kCheckerTextureSize = 2;
 const kCheckerTextureData = [
-  { R: 1.0, G: 1.0, B: 1.0, A: 1.0 },
-  { R: 0.0, G: 0.0, B: 0.0, A: 1.0 },
-  { R: 0.0, G: 0.0, B: 0.0, A: 1.0 },
-  { R: 1.0, G: 1.0, B: 1.0, A: 1.0 },
-];
+{ R: 1.0, G: 1.0, B: 1.0, A: 1.0 },
+{ R: 0.0, G: 0.0, B: 0.0, A: 1.0 },
+{ R: 0.0, G: 0.0, B: 0.0, A: 1.0 },
+{ R: 1.0, G: 1.0, B: 1.0, A: 1.0 }];
+
 
 class FilterModeTest extends TextureTestMixin(GPUTest) {
-  runFilterRenderPipeline(sampler, module, format, renderSize, vertexCount, instanceCount) {
+  runFilterRenderPipeline(
+  sampler,
+  module,
+  format,
+  renderSize,
+  vertexCount,
+  instanceCount)
+  {
     const sampleTexture = this.createTextureFromTexelView(
-      TexelView.fromTexelsAsColors(format, coord => {
+      TexelView.fromTexelsAsColors(format, (coord) => {
         const id = coord.x + coord.y * kCheckerTextureSize;
         return kCheckerTextureData[id];
       }),
       {
         size: [kCheckerTextureSize, kCheckerTextureSize],
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
       }
     );
-
     const renderTexture = this.device.createTexture({
       format,
       size: renderSize,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
     });
     const pipeline = this.device.createRenderPipeline({
       layout: 'auto',
       vertex: {
         module,
-        entryPoint: 'vs_main',
+        entryPoint: 'vs_main'
       },
       fragment: {
         module,
         entryPoint: 'fs_main',
-        targets: [{ format }],
-      },
+        targets: [{ format }]
+      }
     });
     const bindgroup = this.device.createBindGroup({
       layout: pipeline.getBindGroupLayout(0),
       entries: [
-        { binding: 0, resource: sampler },
-        { binding: 1, resource: sampleTexture.createView() },
-      ],
+      { binding: 0, resource: sampler },
+      { binding: 1, resource: sampleTexture.createView() }]
+
     });
     const commandEncoder = this.device.createCommandEncoder();
     const renderPass = commandEncoder.beginRenderPass({
       colorAttachments: [
-        {
-          view: renderTexture.createView(),
-          clearValue: [0, 0, 0, 0],
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
+      {
+        view: renderTexture.createView(),
+        clearValue: [0, 0, 0, 0],
+        loadOp: 'clear',
+        storeOp: 'store'
+      }]
+
     });
     renderPass.setPipeline(pipeline);
     renderPass.setBindGroup(0, bindgroup);
@@ -77,6 +86,8 @@ class FilterModeTest extends TextureTestMixin(GPUTest) {
 }
 
 export const g = makeTestGroup(FilterModeTest);
+
+
 
 /* For filter mode 'nearest', we need to check a 6x6 of pixels because 4x4s are identical when using
  * address mode 'clamp-to-edge' and 'mirror-repeat'. The minFilter and magFilter tests are setup so
@@ -106,89 +117,81 @@ export const g = makeTestGroup(FilterModeTest);
  *          mirror-repeat    │ │█│ │█│ │█│  │ │ │ │█│█│█│  │█│ │ │█│█│ │
  *                           │ │█│ │█│ │█│  │ │ │ │█│█│█│  │█│ │ │█│█│ │
  *                           │█│ │█│ │█│ │  │█│█│█│ │ │ │  │ │█│█│ │ │█│
- */
+*/
 const kNearestRenderSize = 6;
 const kNearestRenderDim = [kNearestRenderSize, kNearestRenderSize];
 const kNearestURepeatVRepeat = [
-  [1, 0, 1, 0, 1, 0],
-  [0, 1, 0, 1, 0, 1],
-  [1, 0, 1, 0, 1, 0],
-  [0, 1, 0, 1, 0, 1],
-  [1, 0, 1, 0, 1, 0],
-  [0, 1, 0, 1, 0, 1],
-];
+[1, 0, 1, 0, 1, 0],
+[0, 1, 0, 1, 0, 1],
+[1, 0, 1, 0, 1, 0],
+[0, 1, 0, 1, 0, 1],
+[1, 0, 1, 0, 1, 0],
+[0, 1, 0, 1, 0, 1]];
 
 const kNearestURepeatVClamped = [
-  [1, 0, 1, 0, 1, 0],
-  [1, 0, 1, 0, 1, 0],
-  [1, 0, 1, 0, 1, 0],
-  [0, 1, 0, 1, 0, 1],
-  [0, 1, 0, 1, 0, 1],
-  [0, 1, 0, 1, 0, 1],
-];
+[1, 0, 1, 0, 1, 0],
+[1, 0, 1, 0, 1, 0],
+[1, 0, 1, 0, 1, 0],
+[0, 1, 0, 1, 0, 1],
+[0, 1, 0, 1, 0, 1],
+[0, 1, 0, 1, 0, 1]];
 
 const kNearestURepeatVMirror = [
-  [0, 1, 0, 1, 0, 1],
-  [1, 0, 1, 0, 1, 0],
-  [1, 0, 1, 0, 1, 0],
-  [0, 1, 0, 1, 0, 1],
-  [0, 1, 0, 1, 0, 1],
-  [1, 0, 1, 0, 1, 0],
-];
+[0, 1, 0, 1, 0, 1],
+[1, 0, 1, 0, 1, 0],
+[1, 0, 1, 0, 1, 0],
+[0, 1, 0, 1, 0, 1],
+[0, 1, 0, 1, 0, 1],
+[1, 0, 1, 0, 1, 0]];
 
 const kNearestUClampedVRepeat = [
-  [1, 1, 1, 0, 0, 0],
-  [0, 0, 0, 1, 1, 1],
-  [1, 1, 1, 0, 0, 0],
-  [0, 0, 0, 1, 1, 1],
-  [1, 1, 1, 0, 0, 0],
-  [0, 0, 0, 1, 1, 1],
-];
+[1, 1, 1, 0, 0, 0],
+[0, 0, 0, 1, 1, 1],
+[1, 1, 1, 0, 0, 0],
+[0, 0, 0, 1, 1, 1],
+[1, 1, 1, 0, 0, 0],
+[0, 0, 0, 1, 1, 1]];
 
 const kNearestUClampedVClamped = [
-  [1, 1, 1, 0, 0, 0],
-  [1, 1, 1, 0, 0, 0],
-  [1, 1, 1, 0, 0, 0],
-  [0, 0, 0, 1, 1, 1],
-  [0, 0, 0, 1, 1, 1],
-  [0, 0, 0, 1, 1, 1],
-];
+[1, 1, 1, 0, 0, 0],
+[1, 1, 1, 0, 0, 0],
+[1, 1, 1, 0, 0, 0],
+[0, 0, 0, 1, 1, 1],
+[0, 0, 0, 1, 1, 1],
+[0, 0, 0, 1, 1, 1]];
 
 const kNearestUClampedVMirror = [
-  [0, 0, 0, 1, 1, 1],
-  [1, 1, 1, 0, 0, 0],
-  [1, 1, 1, 0, 0, 0],
-  [0, 0, 0, 1, 1, 1],
-  [0, 0, 0, 1, 1, 1],
-  [1, 1, 1, 0, 0, 0],
-];
+[0, 0, 0, 1, 1, 1],
+[1, 1, 1, 0, 0, 0],
+[1, 1, 1, 0, 0, 0],
+[0, 0, 0, 1, 1, 1],
+[0, 0, 0, 1, 1, 1],
+[1, 1, 1, 0, 0, 0]];
 
 const kNearestUMirrorVRepeat = [
-  [0, 1, 1, 0, 0, 1],
-  [1, 0, 0, 1, 1, 0],
-  [0, 1, 1, 0, 0, 1],
-  [1, 0, 0, 1, 1, 0],
-  [0, 1, 1, 0, 0, 1],
-  [1, 0, 0, 1, 1, 0],
-];
+[0, 1, 1, 0, 0, 1],
+[1, 0, 0, 1, 1, 0],
+[0, 1, 1, 0, 0, 1],
+[1, 0, 0, 1, 1, 0],
+[0, 1, 1, 0, 0, 1],
+[1, 0, 0, 1, 1, 0]];
 
 const kNearestUMirrorVClamped = [
-  [0, 1, 1, 0, 0, 1],
-  [0, 1, 1, 0, 0, 1],
-  [0, 1, 1, 0, 0, 1],
-  [1, 0, 0, 1, 1, 0],
-  [1, 0, 0, 1, 1, 0],
-  [1, 0, 0, 1, 1, 0],
-];
+[0, 1, 1, 0, 0, 1],
+[0, 1, 1, 0, 0, 1],
+[0, 1, 1, 0, 0, 1],
+[1, 0, 0, 1, 1, 0],
+[1, 0, 0, 1, 1, 0],
+[1, 0, 0, 1, 1, 0]];
 
 const kNearestUMirrorVMirror = [
-  [1, 0, 0, 1, 1, 0],
-  [0, 1, 1, 0, 0, 1],
-  [0, 1, 1, 0, 0, 1],
-  [1, 0, 0, 1, 1, 0],
-  [1, 0, 0, 1, 1, 0],
-  [0, 1, 1, 0, 0, 1],
-];
+[1, 0, 0, 1, 1, 0],
+[0, 1, 1, 0, 0, 1],
+[0, 1, 1, 0, 0, 1],
+[1, 0, 0, 1, 1, 0],
+[1, 0, 0, 1, 1, 0],
+[0, 1, 1, 0, 0, 1]];
+
 
 /* For filter mode 'linear', the tests samples 16 points (to create a 4x4) on what the effective 8x8
  * expanded texture via the address modes looks like (see table below for what those look like). The
@@ -254,86 +257,83 @@ const kNearestUMirrorVMirror = [
 const kLinearRenderSize = 4;
 const kLinearRenderDim = [kLinearRenderSize, kLinearRenderSize];
 const kLinearURepeatVRepeat = [
-  [10, 6, 10, 6],
-  [10, 6, 10, 6],
-  [6, 10, 6, 10],
-  [6, 10, 6, 10],
-];
+[10, 6, 10, 6],
+[10, 6, 10, 6],
+[6, 10, 6, 10],
+[6, 10, 6, 10]];
 
 const kLinearURepeatVClamped = [
-  [12, 4, 12, 4],
-  [12, 4, 12, 4],
-  [4, 12, 4, 12],
-  [4, 12, 4, 12],
-];
+[12, 4, 12, 4],
+[12, 4, 12, 4],
+[4, 12, 4, 12],
+[4, 12, 4, 12]];
 
 const kLinearURepeatVMirror = [
-  [4, 12, 4, 12],
-  [12, 4, 12, 4],
-  [4, 12, 4, 12],
-  [12, 4, 12, 4],
-];
+[4, 12, 4, 12],
+[12, 4, 12, 4],
+[4, 12, 4, 12],
+[12, 4, 12, 4]];
 
 const kLinearUClampedVRepeat = [
-  [12, 12, 4, 4],
-  [12, 12, 4, 4],
-  [4, 4, 12, 12],
-  [4, 4, 12, 12],
-];
+[12, 12, 4, 4],
+[12, 12, 4, 4],
+[4, 4, 12, 12],
+[4, 4, 12, 12]];
 
 const kLinearUClampedVClamped = [
-  [16, 16, 0, 0],
-  [16, 16, 0, 0],
-  [0, 0, 16, 16],
-  [0, 0, 16, 16],
-];
+[16, 16, 0, 0],
+[16, 16, 0, 0],
+[0, 0, 16, 16],
+[0, 0, 16, 16]];
 
 const kLinearUClampedVMirror = [
-  [0, 0, 16, 16],
-  [16, 16, 0, 0],
-  [0, 0, 16, 16],
-  [16, 16, 0, 0],
-];
+[0, 0, 16, 16],
+[16, 16, 0, 0],
+[0, 0, 16, 16],
+[16, 16, 0, 0]];
 
 const kLinearUMirrorVRepeat = [
-  [4, 12, 4, 12],
-  [4, 12, 4, 12],
-  [12, 4, 12, 4],
-  [12, 4, 12, 4],
-];
+[4, 12, 4, 12],
+[4, 12, 4, 12],
+[12, 4, 12, 4],
+[12, 4, 12, 4]];
 
 const kLinearUMirrorVClamped = [
-  [0, 16, 0, 16],
-  [0, 16, 0, 16],
-  [16, 0, 16, 0],
-  [16, 0, 16, 0],
-];
+[0, 16, 0, 16],
+[0, 16, 0, 16],
+[16, 0, 16, 0],
+[16, 0, 16, 0]];
 
 const kLinearUMirrorVMirror = [
-  [16, 0, 16, 0],
-  [0, 16, 0, 16],
-  [16, 0, 16, 0],
-  [0, 16, 0, 16],
-];
+[16, 0, 16, 0],
+[0, 16, 0, 16],
+[16, 0, 16, 0],
+[0, 16, 0, 16]];
 
-function expectedNearestColors(format, addressModeU, addressModeV) {
+
+
+
+function expectedNearestColors(
+format,
+addressModeU,
+addressModeV)
+{
   let expectedColors;
   switch (addressModeU) {
-    case 'clamp-to-edge': {
-      switch (addressModeV) {
-        case 'clamp-to-edge':
-          expectedColors = kNearestUClampedVClamped;
-          break;
-        case 'repeat':
-          expectedColors = kNearestUClampedVRepeat;
-          break;
-        case 'mirror-repeat':
-          expectedColors = kNearestUClampedVMirror;
-          break;
+    case 'clamp-to-edge':{
+        switch (addressModeV) {
+          case 'clamp-to-edge':
+            expectedColors = kNearestUClampedVClamped;
+            break;
+          case 'repeat':
+            expectedColors = kNearestUClampedVRepeat;
+            break;
+          case 'mirror-repeat':
+            expectedColors = kNearestUClampedVMirror;
+            break;
+        }
+        break;
       }
-
-      break;
-    }
     case 'repeat':
       switch (addressModeV) {
         case 'clamp-to-edge':
@@ -346,7 +346,6 @@ function expectedNearestColors(format, addressModeU, addressModeV) {
           expectedColors = kNearestURepeatVMirror;
           break;
       }
-
       break;
     case 'mirror-repeat':
       switch (addressModeV) {
@@ -360,33 +359,34 @@ function expectedNearestColors(format, addressModeU, addressModeV) {
           expectedColors = kNearestUMirrorVMirror;
           break;
       }
-
       break;
   }
-
-  return TexelView.fromTexelsAsColors(format, coord => {
+  return TexelView.fromTexelsAsColors(format, (coord) => {
     const c = expectedColors[coord.y][coord.x];
     return { R: c, G: c, B: c, A: 1.0 };
   });
 }
-function expectedLinearColors(format, addressModeU, addressModeV) {
+function expectedLinearColors(
+format,
+addressModeU,
+addressModeV)
+{
   let expectedColors;
   switch (addressModeU) {
-    case 'clamp-to-edge': {
-      switch (addressModeV) {
-        case 'clamp-to-edge':
-          expectedColors = kLinearUClampedVClamped;
-          break;
-        case 'repeat':
-          expectedColors = kLinearUClampedVRepeat;
-          break;
-        case 'mirror-repeat':
-          expectedColors = kLinearUClampedVMirror;
-          break;
+    case 'clamp-to-edge':{
+        switch (addressModeV) {
+          case 'clamp-to-edge':
+            expectedColors = kLinearUClampedVClamped;
+            break;
+          case 'repeat':
+            expectedColors = kLinearUClampedVRepeat;
+            break;
+          case 'mirror-repeat':
+            expectedColors = kLinearUClampedVMirror;
+            break;
+        }
+        break;
       }
-
-      break;
-    }
     case 'repeat':
       switch (addressModeV) {
         case 'clamp-to-edge':
@@ -399,7 +399,6 @@ function expectedLinearColors(format, addressModeU, addressModeV) {
           expectedColors = kLinearURepeatVMirror;
           break;
       }
-
       break;
     case 'mirror-repeat':
       switch (addressModeV) {
@@ -413,16 +412,19 @@ function expectedLinearColors(format, addressModeU, addressModeV) {
           expectedColors = kLinearUMirrorVMirror;
           break;
       }
-
       break;
   }
-
-  return TexelView.fromTexelsAsColors(format, coord => {
+  return TexelView.fromTexelsAsColors(format, (coord) => {
     const c = expectedColors[coord.y][coord.x];
     return { R: c / 16, G: c / 16, B: c / 16, A: 1.0 };
   });
 }
-function expectedColors(format, filterMode, addressModeU, addressModeV) {
+function expectedColors(
+format,
+filterMode,
+addressModeU,
+addressModeV)
+{
   switch (filterMode) {
     case 'nearest':
       return expectedNearestColors(format, addressModeU, addressModeV);
@@ -455,42 +457,43 @@ function expectedColors(format, filterMode, addressModeU, addressModeV) {
  *                    ╚═╝─┴─┴─┴─┴─┘                            ╚═╝
  *                                                 (-.875,1.875) (-.625,1.875)
  */
-g.test('magFilter,nearest')
-  .desc(
-    `
+g.test('magFilter,nearest').
+desc(
+  `
   Test that for filterable formats, magFilter 'nearest' mode correctly modifies the sampling.
     - format= {<filterable formats>}
     - addressModeU= {'clamp-to-edge', 'repeat', 'mirror-repeat'}
     - addressModeV= {'clamp-to-edge', 'repeat', 'mirror-repeat'}
   `
-  )
-  .params(u =>
-    u
-      .combine('format', kRenderableColorTextureFormats)
-      .filter(t => {
-        return (
-          kTextureFormatInfo[t.format].color.type === 'float' ||
-          kTextureFormatInfo[t.format].color.type === 'unfilterable-float'
-        );
-      })
-      .beginSubcases()
-      .combine('addressModeU', kAddressModes)
-      .combine('addressModeV', kAddressModes)
-  )
-  .beforeAllSubcases(t => {
-    if (kTextureFormatInfo[t.params.format].color.type === 'unfilterable-float') {
-      t.selectDeviceOrSkipTestCase('float32-filterable');
-    }
-  })
-  .fn(t => {
-    const { format, addressModeU, addressModeV } = t.params;
-    const sampler = t.device.createSampler({
-      addressModeU,
-      addressModeV,
-      magFilter: 'nearest',
-    });
-    const module = t.device.createShaderModule({
-      code: `
+).
+params((u) =>
+u.
+combine('format', kRenderableColorTextureFormats).
+filter((t) => {
+  return (
+    kTextureFormatInfo[t.format].color.type === 'float' ||
+    kTextureFormatInfo[t.format].color.type === 'unfilterable-float');
+
+}).
+beginSubcases().
+combine('addressModeU', kAddressModes).
+combine('addressModeV', kAddressModes)
+).
+beforeAllSubcases((t) => {
+  t.skipIfTextureFormatNotSupported(t.params.format);
+  if (kTextureFormatInfo[t.params.format].color.type === 'unfilterable-float') {
+    t.selectDeviceOrSkipTestCase('float32-filterable');
+  }
+}).
+fn((t) => {
+  const { format, addressModeU, addressModeV } = t.params;
+  const sampler = t.device.createSampler({
+    addressModeU,
+    addressModeV,
+    magFilter: 'nearest'
+  });
+  const module = t.device.createShaderModule({
+    code: `
       @group(0) @binding(0) var s : sampler;
       @group(0) @binding(1) var t : texture_2d<f32>;
 
@@ -527,25 +530,24 @@ g.test('magFilter,nearest')
       fn fs_main(@location(0) uv : vec2f) -> @location(0) vec4f {
         return textureSample(t, s, uv);
       }
-      `,
-    });
-    const vertexCount = 6;
-    const instanceCount = kNearestRenderDim.reduce((sink, current) => sink * current);
-    const render = t.runFilterRenderPipeline(
-      sampler,
-      module,
-      format,
-      kNearestRenderDim,
-      vertexCount,
-      instanceCount
-    );
-
-    t.expectTexelViewComparisonIsOkInTexture(
-      { texture: render },
-      expectedColors(format, 'nearest', addressModeU, addressModeV),
-      kNearestRenderDim
-    );
+      `
   });
+  const vertexCount = 6;
+  const instanceCount = kNearestRenderDim.reduce((sink, current) => sink * current);
+  const render = t.runFilterRenderPipeline(
+    sampler,
+    module,
+    format,
+    kNearestRenderDim,
+    vertexCount,
+    instanceCount
+  );
+  t.expectTexelViewComparisonIsOkInTexture(
+    { texture: render },
+    expectedColors(format, 'nearest', addressModeU, addressModeV),
+    kNearestRenderDim
+  );
+});
 
 /* The following diagram shows the UV shift (almost to scale) for what the pixel at cell (0,0) (the
  * dark square) looks like w.r.t the UV of the texture if we just mapped the entire 2x2 texture to
@@ -578,42 +580,43 @@ g.test('magFilter,nearest')
  *             │    │    │    │    │    │    │    │    │
  *             └────┴────┴────┴────┴────┴────┴────┴────┘
  */
-g.test('magFilter,linear')
-  .desc(
-    `
+g.test('magFilter,linear').
+desc(
+  `
   Test that for filterable formats, magFilter 'linear' mode correctly modifies the sampling.
     - format= {<filterable formats>}
     - addressModeU= {'clamp-to-edge', 'repeat', 'mirror-repeat'}
     - addressModeV= {'clamp-to-edge', 'repeat', 'mirror-repeat'}
   `
-  )
-  .params(u =>
-    u
-      .combine('format', kRenderableColorTextureFormats)
-      .filter(t => {
-        return (
-          kTextureFormatInfo[t.format].color.type === 'float' ||
-          kTextureFormatInfo[t.format].color.type === 'unfilterable-float'
-        );
-      })
-      .beginSubcases()
-      .combine('addressModeU', kAddressModes)
-      .combine('addressModeV', kAddressModes)
-  )
-  .beforeAllSubcases(t => {
-    if (kTextureFormatInfo[t.params.format].color.type === 'unfilterable-float') {
-      t.selectDeviceOrSkipTestCase('float32-filterable');
-    }
-  })
-  .fn(t => {
-    const { format, addressModeU, addressModeV } = t.params;
-    const sampler = t.device.createSampler({
-      addressModeU,
-      addressModeV,
-      magFilter: 'linear',
-    });
-    const module = t.device.createShaderModule({
-      code: `
+).
+params((u) =>
+u.
+combine('format', kRenderableColorTextureFormats).
+filter((t) => {
+  return (
+    kTextureFormatInfo[t.format].color.type === 'float' ||
+    kTextureFormatInfo[t.format].color.type === 'unfilterable-float');
+
+}).
+beginSubcases().
+combine('addressModeU', kAddressModes).
+combine('addressModeV', kAddressModes)
+).
+beforeAllSubcases((t) => {
+  t.skipIfTextureFormatNotSupported(t.params.format);
+  if (kTextureFormatInfo[t.params.format].color.type === 'unfilterable-float') {
+    t.selectDeviceOrSkipTestCase('float32-filterable');
+  }
+}).
+fn((t) => {
+  const { format, addressModeU, addressModeV } = t.params;
+  const sampler = t.device.createSampler({
+    addressModeU,
+    addressModeV,
+    magFilter: 'linear'
+  });
+  const module = t.device.createShaderModule({
+    code: `
       @group(0) @binding(0) var s : sampler;
       @group(0) @binding(1) var t : texture_2d<f32>;
 
@@ -652,25 +655,24 @@ g.test('magFilter,linear')
       fn fs_main(@location(0) uv : vec2f) -> @location(0) vec4f {
         return textureSample(t, s, uv);
       }
-      `,
-    });
-    const vertexCount = 6;
-    const instanceCount = kLinearRenderDim.reduce((sink, current) => sink * current);
-    const render = t.runFilterRenderPipeline(
-      sampler,
-      module,
-      format,
-      kLinearRenderDim,
-      vertexCount,
-      instanceCount
-    );
-
-    t.expectTexelViewComparisonIsOkInTexture(
-      { texture: render },
-      expectedColors(format, 'linear', addressModeU, addressModeV),
-      kLinearRenderDim
-    );
+      `
   });
+  const vertexCount = 6;
+  const instanceCount = kLinearRenderDim.reduce((sink, current) => sink * current);
+  const render = t.runFilterRenderPipeline(
+    sampler,
+    module,
+    format,
+    kLinearRenderDim,
+    vertexCount,
+    instanceCount
+  );
+  t.expectTexelViewComparisonIsOkInTexture(
+    { texture: render },
+    expectedColors(format, 'linear', addressModeU, addressModeV),
+    kLinearRenderDim
+  );
+});
 
 /* For the minFilter tests, each rendered pixel is a small instanced quad that is UV mapped such
  * that it is either the 6x6 or 8x8 textures from above. Each quad in each cell is then offsetted
@@ -713,42 +715,43 @@ g.test('magFilter,linear')
  *              │                                               │
  *              └───────────────────────────────────────────────┘
  */
-g.test('minFilter,nearest')
-  .desc(
-    `
+g.test('minFilter,nearest').
+desc(
+  `
   Test that for filterable formats, minFilter 'nearest' mode correctly modifies the sampling.
     - format= {<filterable formats>}
     - addressModeU= {'clamp-to-edge', 'repeat', 'mirror-repeat'}
     - addressModeV= {'clamp-to-edge', 'repeat', 'mirror-repeat'}
   `
-  )
-  .params(u =>
-    u
-      .combine('format', kRenderableColorTextureFormats)
-      .filter(t => {
-        return (
-          kTextureFormatInfo[t.format].color.type === 'float' ||
-          kTextureFormatInfo[t.format].color.type === 'unfilterable-float'
-        );
-      })
-      .beginSubcases()
-      .combine('addressModeU', kAddressModes)
-      .combine('addressModeV', kAddressModes)
-  )
-  .beforeAllSubcases(t => {
-    if (kTextureFormatInfo[t.params.format].color.type === 'unfilterable-float') {
-      t.selectDeviceOrSkipTestCase('float32-filterable');
-    }
-  })
-  .fn(t => {
-    const { format, addressModeU, addressModeV } = t.params;
-    const sampler = t.device.createSampler({
-      addressModeU,
-      addressModeV,
-      minFilter: 'nearest',
-    });
-    const module = t.device.createShaderModule({
-      code: `
+).
+params((u) =>
+u.
+combine('format', kRenderableColorTextureFormats).
+filter((t) => {
+  return (
+    kTextureFormatInfo[t.format].color.type === 'float' ||
+    kTextureFormatInfo[t.format].color.type === 'unfilterable-float');
+
+}).
+beginSubcases().
+combine('addressModeU', kAddressModes).
+combine('addressModeV', kAddressModes)
+).
+beforeAllSubcases((t) => {
+  t.skipIfTextureFormatNotSupported(t.params.format);
+  if (kTextureFormatInfo[t.params.format].color.type === 'unfilterable-float') {
+    t.selectDeviceOrSkipTestCase('float32-filterable');
+  }
+}).
+fn((t) => {
+  const { format, addressModeU, addressModeV } = t.params;
+  const sampler = t.device.createSampler({
+    addressModeU,
+    addressModeV,
+    minFilter: 'nearest'
+  });
+  const module = t.device.createShaderModule({
+    code: `
       @group(0) @binding(0) var s : sampler;
       @group(0) @binding(1) var t : texture_2d<f32>;
 
@@ -789,25 +792,24 @@ g.test('minFilter,nearest')
       fn fs_main(@location(0) uv : vec2f) -> @location(0) vec4f {
         return textureSample(t, s, uv);
       }
-      `,
-    });
-    const vertexCount = 6;
-    const instanceCount = kNearestRenderDim.reduce((sink, current) => sink * current);
-    const render = t.runFilterRenderPipeline(
-      sampler,
-      module,
-      format,
-      kNearestRenderDim,
-      vertexCount,
-      instanceCount
-    );
-
-    t.expectTexelViewComparisonIsOkInTexture(
-      { texture: render },
-      expectedColors(format, 'nearest', addressModeU, addressModeV),
-      kNearestRenderDim
-    );
+      `
   });
+  const vertexCount = 6;
+  const instanceCount = kNearestRenderDim.reduce((sink, current) => sink * current);
+  const render = t.runFilterRenderPipeline(
+    sampler,
+    module,
+    format,
+    kNearestRenderDim,
+    vertexCount,
+    instanceCount
+  );
+  t.expectTexelViewComparisonIsOkInTexture(
+    { texture: render },
+    expectedColors(format, 'nearest', addressModeU, addressModeV),
+    kNearestRenderDim
+  );
+});
 
 /* The following diagram shows the sub-pixel quad and the relative distances between the sample
  * points and the origin. The pixel is not shown in this diagram but is a 2x bounding box around the
@@ -846,42 +848,43 @@ g.test('minFilter,nearest')
  *             │    │    │    │    │    │    │    │    │
  *             └────┴────┴────┴────┴────┴────┴────┴────┘
  */
-g.test('minFilter,linear')
-  .desc(
-    `
+g.test('minFilter,linear').
+desc(
+  `
   Test that for filterable formats, minFilter 'linear' mode correctly modifies the sampling.
     - format= {<filterable formats>}
     - addressModeU= {'clamp-to-edge', 'repeat', 'mirror-repeat'}
     - addressModeV= {'clamp-to-edge', 'repeat', 'mirror-repeat'}
   `
-  )
-  .params(u =>
-    u
-      .combine('format', kRenderableColorTextureFormats)
-      .filter(t => {
-        return (
-          kTextureFormatInfo[t.format].color.type === 'float' ||
-          kTextureFormatInfo[t.format].color.type === 'unfilterable-float'
-        );
-      })
-      .beginSubcases()
-      .combine('addressModeU', kAddressModes)
-      .combine('addressModeV', kAddressModes)
-  )
-  .beforeAllSubcases(t => {
-    if (kTextureFormatInfo[t.params.format].color.type === 'unfilterable-float') {
-      t.selectDeviceOrSkipTestCase('float32-filterable');
-    }
-  })
-  .fn(t => {
-    const { format, addressModeU, addressModeV } = t.params;
-    const sampler = t.device.createSampler({
-      addressModeU,
-      addressModeV,
-      minFilter: 'linear',
-    });
-    const module = t.device.createShaderModule({
-      code: `
+).
+params((u) =>
+u.
+combine('format', kRenderableColorTextureFormats).
+filter((t) => {
+  return (
+    kTextureFormatInfo[t.format].color.type === 'float' ||
+    kTextureFormatInfo[t.format].color.type === 'unfilterable-float');
+
+}).
+beginSubcases().
+combine('addressModeU', kAddressModes).
+combine('addressModeV', kAddressModes)
+).
+beforeAllSubcases((t) => {
+  t.skipIfTextureFormatNotSupported(t.params.format);
+  if (kTextureFormatInfo[t.params.format].color.type === 'unfilterable-float') {
+    t.selectDeviceOrSkipTestCase('float32-filterable');
+  }
+}).
+fn((t) => {
+  const { format, addressModeU, addressModeV } = t.params;
+  const sampler = t.device.createSampler({
+    addressModeU,
+    addressModeV,
+    minFilter: 'linear'
+  });
+  const module = t.device.createShaderModule({
+    code: `
       @group(0) @binding(0) var s : sampler;
       @group(0) @binding(1) var t : texture_2d<f32>;
 
@@ -924,88 +927,86 @@ g.test('minFilter,linear')
       fn fs_main(@location(0) uv : vec2f) -> @location(0) vec4f {
         return textureSample(t, s, uv);
       }
-      `,
-    });
-    const vertexCount = 6;
-    const instanceCount = kLinearRenderDim.reduce((sink, current) => sink * current);
-    const render = t.runFilterRenderPipeline(
-      sampler,
-      module,
-      format,
-      kLinearRenderDim,
-      vertexCount,
-      instanceCount
-    );
-
-    t.expectTexelViewComparisonIsOkInTexture(
-      { texture: render },
-      expectedColors(format, 'linear', addressModeU, addressModeV),
-      kLinearRenderDim
-    );
+      `
   });
+  const vertexCount = 6;
+  const instanceCount = kLinearRenderDim.reduce((sink, current) => sink * current);
+  const render = t.runFilterRenderPipeline(
+    sampler,
+    module,
+    format,
+    kLinearRenderDim,
+    vertexCount,
+    instanceCount
+  );
+  t.expectTexelViewComparisonIsOkInTexture(
+    { texture: render },
+    expectedColors(format, 'linear', addressModeU, addressModeV),
+    kLinearRenderDim
+  );
+});
 
-g.test('mipmapFilter')
-  .desc(
-    `
+g.test('mipmapFilter').
+desc(
+  `
   Test that for filterable formats, mipmapFilter modes correctly modifies the sampling.
     - format= {<filterable formats>}
     - filterMode= {'nearest', 'linear'}
   `
-  )
-  .params(u =>
-    u
-      .combine('format', kRenderableColorTextureFormats)
-      .filter(t => {
-        return (
-          kTextureFormatInfo[t.format].color.type === 'float' ||
-          kTextureFormatInfo[t.format].color.type === 'unfilterable-float'
-        );
-      })
-      .beginSubcases()
-      .combine('filterMode', kMipmapFilterModes)
-  )
-  .beforeAllSubcases(t => {
-    if (kTextureFormatInfo[t.params.format].color.type === 'unfilterable-float') {
-      t.selectDeviceOrSkipTestCase('float32-filterable');
+).
+params((u) =>
+u.
+combine('format', kRenderableColorTextureFormats).
+filter((t) => {
+  return (
+    kTextureFormatInfo[t.format].color.type === 'float' ||
+    kTextureFormatInfo[t.format].color.type === 'unfilterable-float');
+
+}).
+beginSubcases().
+combine('filterMode', kMipmapFilterModes)
+).
+beforeAllSubcases((t) => {
+  t.skipIfTextureFormatNotSupported(t.params.format);
+  if (kTextureFormatInfo[t.params.format].color.type === 'unfilterable-float') {
+    t.selectDeviceOrSkipTestCase('float32-filterable');
+  }
+}).
+fn((t) => {
+  const { format, filterMode } = t.params;
+  // Takes a 8x8/4x4 mipmapped texture and renders it on multiple quads with different UVs such
+  // that each instanced quad from left to right emulates moving the quad further and further from
+  // the camera. Each quad is then rendered to a single pixel in a 1-dimensional texture. Since
+  // the 8x8 is fully black and the 4x4 is fully white, we should see the pixels increase in
+  // brightness from left to right when sampling linearly, and jump from black to white when
+  // sampling for the nearest mip level.
+  const kTextureSize = 8;
+  const kRenderSize = 8;
+
+  const sampler = t.device.createSampler({
+    mipmapFilter: filterMode
+  });
+  const sampleTexture = t.createTextureFromTexelViewsMultipleMipmaps(
+    [
+    TexelView.fromTexelsAsColors(format, () => {
+      return { R: 0.0, G: 0.0, B: 0.0, A: 1.0 };
+    }),
+    TexelView.fromTexelsAsColors(format, (_coords) => {
+      return { R: 1.0, G: 1.0, B: 1.0, A: 1.0 };
+    })],
+
+    {
+      size: [kTextureSize, 1],
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
     }
-  })
-  .fn(t => {
-    const { format, filterMode } = t.params;
-    // Takes a 8x8/4x4 mipmapped texture and renders it on multiple quads with different UVs such
-    // that each instanced quad from left to right emulates moving the quad further and further from
-    // the camera. Each quad is then rendered to a single pixel in a 1-dimensional texture. Since
-    // the 8x8 is fully black and the 4x4 is fully white, we should see the pixels increase in
-    // brightness from left to right when sampling linearly, and jump from black to white when
-    // sampling for the nearest mip level.
-    const kTextureSize = 8;
-    const kRenderSize = 8;
-
-    const sampler = t.device.createSampler({
-      mipmapFilter: filterMode,
-    });
-    const sampleTexture = t.createTextureFromTexelViewsMultipleMipmaps(
-      [
-        TexelView.fromTexelsAsColors(format, () => {
-          return { R: 0.0, G: 0.0, B: 0.0, A: 1.0 };
-        }),
-        TexelView.fromTexelsAsColors(format, coord => {
-          return { R: 1.0, G: 1.0, B: 1.0, A: 1.0 };
-        }),
-      ],
-
-      {
-        size: [kTextureSize, 1],
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-      }
-    );
-
-    const renderTexture = t.device.createTexture({
-      format,
-      size: [kRenderSize, 1],
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
-    });
-    const module = t.device.createShaderModule({
-      code: `
+  );
+  const renderTexture = t.device.createTexture({
+    format,
+    size: [kRenderSize, 1],
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+  });
+  const module = t.device.createShaderModule({
+    code: `
       @group(0) @binding(0) var s : sampler;
       @group(0) @binding(1) var t : texture_2d<f32>;
 
@@ -1039,63 +1040,63 @@ g.test('mipmapFilter')
       fn fs_main(@location(0) uv : vec2f) -> @location(0) vec4f {
         return textureSample(t, s, uv);
       }
-      `,
-    });
-    const pipeline = t.device.createRenderPipeline({
-      layout: 'auto',
-      vertex: {
-        module,
-        entryPoint: 'vs_main',
-      },
-      fragment: {
-        module,
-        entryPoint: 'fs_main',
-        targets: [{ format }],
-      },
-    });
-    const bindgroup = t.device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: sampler },
-        { binding: 1, resource: sampleTexture.createView() },
-      ],
-    });
-    const commandEncoder = t.device.createCommandEncoder();
-    const renderPass = commandEncoder.beginRenderPass({
-      colorAttachments: [
-        {
-          view: renderTexture.createView(),
-          clearValue: [0, 0, 0, 0],
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
-    });
-    renderPass.setPipeline(pipeline);
-    renderPass.setBindGroup(0, bindgroup);
-    renderPass.draw(6, kRenderSize);
-    renderPass.end();
-    t.device.queue.submit([commandEncoder.finish()]);
+      `
+  });
+  const pipeline = t.device.createRenderPipeline({
+    layout: 'auto',
+    vertex: {
+      module,
+      entryPoint: 'vs_main'
+    },
+    fragment: {
+      module,
+      entryPoint: 'fs_main',
+      targets: [{ format }]
+    }
+  });
+  const bindgroup = t.device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+    { binding: 0, resource: sampler },
+    { binding: 1, resource: sampleTexture.createView() }]
 
-    // Since mipmap filtering varies across different backends, we verify that the result exhibits
-    // filtered characteristics without strict value equalities via copies to a buffer.
-    const buffer = t.copyWholeTextureToNewBufferSimple(renderTexture, 0);
-    t.expectGPUBufferValuesPassCheck(
-      buffer,
-      actual => {
-        // Convert the buffer to texel view so we can do comparisons.
-        const layout = getTextureCopyLayout(format, '2d', [kRenderSize, 1, 1]);
-        const view = TexelView.fromTextureDataByReference(format, actual, {
-          bytesPerRow: layout.bytesPerRow,
-          rowsPerImage: layout.rowsPerImage,
-          subrectOrigin: [0, 0, 0],
-          subrectSize: [kRenderSize, 1, 1],
-        });
+  });
+  const commandEncoder = t.device.createCommandEncoder();
+  const renderPass = commandEncoder.beginRenderPass({
+    colorAttachments: [
+    {
+      view: renderTexture.createView(),
+      clearValue: [0, 0, 0, 0],
+      loadOp: 'clear',
+      storeOp: 'store'
+    }]
 
-        // We only check the R component for the conditions, since all components should be equal if
-        // specified in the format.
-        switch (filterMode) {
-          case 'linear': {
+  });
+  renderPass.setPipeline(pipeline);
+  renderPass.setBindGroup(0, bindgroup);
+  renderPass.draw(6, kRenderSize);
+  renderPass.end();
+  t.device.queue.submit([commandEncoder.finish()]);
+
+  // Since mipmap filtering varies across different backends, we verify that the result exhibits
+  // filtered characteristics without strict value equalities via copies to a buffer.
+  const buffer = t.copyWholeTextureToNewBufferSimple(renderTexture, 0);
+  t.expectGPUBufferValuesPassCheck(
+    buffer,
+    (actual) => {
+      // Convert the buffer to texel view so we can do comparisons.
+      const layout = getTextureCopyLayout(format, '2d', [kRenderSize, 1, 1]);
+      const view = TexelView.fromTextureDataByReference(format, actual, {
+        bytesPerRow: layout.bytesPerRow,
+        rowsPerImage: layout.rowsPerImage,
+        subrectOrigin: [0, 0, 0],
+        subrectSize: [kRenderSize, 1, 1]
+      });
+
+      // We only check the R component for the conditions, since all components should be equal if
+      // specified in the format.
+      switch (filterMode) {
+        case 'linear':{
             // For 'linear' mode, we check that the resulting 1d image is monotonically increasing.
             for (let x = 1; x < kRenderSize; x++) {
               const { R: Ri } = view.color({ x: x - 1, y: 0, z: 0 });
@@ -1103,16 +1104,16 @@ g.test('mipmapFilter')
               if (Ri >= Rj) {
                 return Error(
                   'Linear filtering on mipmaps should be a monotonically increasing sequence:\n' +
-                    view.toString(
-                      { x: 0, y: 0, z: 0 },
-                      { width: kRenderSize, height: 1, depthOrArrayLayers: 1 }
-                    )
+                  view.toString(
+                    { x: 0, y: 0, z: 0 },
+                    { width: kRenderSize, height: 1, depthOrArrayLayers: 1 }
+                  )
                 );
               }
             }
             break;
           }
-          case 'nearest': {
+        case 'nearest':{
             // For 'nearest' mode, we check that the resulting 1d image changes from 0.0 to 1.0
             // exactly once.
             let changes = 0;
@@ -1126,18 +1127,17 @@ g.test('mipmapFilter')
             if (changes !== 1) {
               return Error(
                 `Nearest filtering on mipmaps should change exacly once but found (${changes}):\n` +
-                  view.toString(
-                    { x: 0, y: 0, z: 0 },
-                    { width: kRenderSize, height: 1, depthOrArrayLayers: 1 }
-                  )
+                view.toString(
+                  { x: 0, y: 0, z: 0 },
+                  { width: kRenderSize, height: 1, depthOrArrayLayers: 1 }
+                )
               );
             }
             break;
           }
-        }
-
-        return undefined;
-      },
-      { srcByteOffset: 0, type: Uint8Array, typedLength: buffer.size }
-    );
-  });
+      }
+      return undefined;
+    },
+    { srcByteOffset: 0, type: Uint8Array, typedLength: buffer.size }
+  );
+});

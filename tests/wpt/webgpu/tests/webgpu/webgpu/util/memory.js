@@ -1,10 +1,9 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ /**
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/ /**
  * Helper to exhaust VRAM until there is less than 64 MB of capacity. Returns
  * an opaque closure which can be called to free the allocated resources later.
- */ export async function exhaustVramUntilUnder64MB(device) {
-  const allocateUntilOom = async (device, size) => {
+ */export async function exhaustVramUntilUnder64MB(device) {const allocateUntilOom = async (device, size) => {
     const buffers = [];
     for (;;) {
       device.pushErrorScope('out-of-memory');
@@ -21,6 +20,6 @@
   const buffers = await allocateUntilOom(device, kLargeChunkSize);
   buffers.push(...(await allocateUntilOom(device, kSmallChunkSize)));
   return () => {
-    buffers.forEach(buffer => buffer.destroy());
+    buffers.forEach((buffer) => buffer.destroy());
   };
 }

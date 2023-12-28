@@ -1,101 +1,130 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { dataCache } from '../../../../common/framework/data_cache.js';
-import { unreachable } from '../../../../common/util/util.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { dataCache } from '../../../../common/framework/data_cache.js';import { unreachable } from '../../../../common/util/util.js';import BinaryStream from '../../../util/binary_stream.js';
 import { deserializeComparator, serializeComparator } from '../../../util/compare.js';
 import {
-  Scalar,
-  Vector,
-  serializeValue,
-  deserializeValue,
   Matrix,
-} from '../../../util/conversion.js';
+  Scalar,
+
+  Vector,
+  deserializeValue,
+  serializeValue } from
+'../../../util/conversion.js';
 import {
-  deserializeFPInterval,
   FPInterval,
-  serializeFPInterval,
-} from '../../../util/floating_point.js';
+  deserializeFPInterval,
+  serializeFPInterval } from
+'../../../util/floating_point.js';
 import { flatten2DArray, unflatten2DArray } from '../../../util/math.js';
 
-import { isComparator } from './expression.js';
 
-/**
- * SerializedExpectationValue holds the serialized form of an Expectation when
- * the Expectation is a Value
- * This form can be safely encoded to JSON.
- */
+import { isComparator } from './expectation.js';var
 
-/** serializeExpectation() converts an Expectation to a SerializedExpectation */
-export function serializeExpectation(e) {
+SerializedExpectationKind = /*#__PURE__*/function (SerializedExpectationKind) {SerializedExpectationKind[SerializedExpectationKind["Value"] = 0] = "Value";SerializedExpectationKind[SerializedExpectationKind["Interval"] = 1] = "Interval";SerializedExpectationKind[SerializedExpectationKind["Interval1DArray"] = 2] = "Interval1DArray";SerializedExpectationKind[SerializedExpectationKind["Interval2DArray"] = 3] = "Interval2DArray";SerializedExpectationKind[SerializedExpectationKind["Array"] = 4] = "Array";SerializedExpectationKind[SerializedExpectationKind["Comparator"] = 5] = "Comparator";return SerializedExpectationKind;}(SerializedExpectationKind || {});
+
+
+
+
+
+
+
+
+/** serializeExpectation() serializes an Expectation to a BinaryStream */
+export function serializeExpectation(s, e) {
   if (e instanceof Scalar || e instanceof Vector || e instanceof Matrix) {
-    return { kind: 'value', value: serializeValue(e) };
+    s.writeU8(SerializedExpectationKind.Value);
+    serializeValue(s, e);
+    return;
   }
   if (e instanceof FPInterval) {
-    return { kind: 'interval', value: serializeFPInterval(e) };
+    s.writeU8(SerializedExpectationKind.Interval);
+    serializeFPInterval(s, e);
+    return;
   }
   if (e instanceof Array) {
     if (e[0] instanceof Array) {
       e = e;
       const cols = e.length;
       const rows = e[0].length;
-      return {
-        kind: '2d-interval-array',
-        cols,
-        rows,
-        value: flatten2DArray(e).map(serializeFPInterval),
-      };
+      s.writeU8(SerializedExpectationKind.Interval2DArray);
+      s.writeU16(cols);
+      s.writeU16(rows);
+      s.writeArray(flatten2DArray(e), serializeFPInterval);
     } else {
       e = e;
-      return { kind: 'intervals', value: e.map(serializeFPInterval) };
+      s.writeU8(SerializedExpectationKind.Interval1DArray);
+      s.writeArray(e, serializeFPInterval);
     }
+    return;
   }
   if (isComparator(e)) {
-    return { kind: 'comparator', value: serializeComparator(e) };
+    s.writeU8(SerializedExpectationKind.Comparator);
+    serializeComparator(s, e);
+    return;
   }
   unreachable(`cannot serialize Expectation ${e}`);
 }
 
-/** deserializeExpectation() converts a SerializedExpectation to a Expectation */
-export function deserializeExpectation(data) {
-  switch (data.kind) {
-    case 'value':
-      return deserializeValue(data.value);
-    case 'interval':
-      return deserializeFPInterval(data.value);
-    case 'intervals':
-      return data.value.map(deserializeFPInterval);
-    case '2d-interval-array':
-      return unflatten2DArray(data.value.map(deserializeFPInterval), data.cols, data.rows);
-    case 'comparator':
-      return deserializeComparator(data.value);
+/** deserializeExpectation() deserializes an Expectation from a BinaryStream */
+export function deserializeExpectation(s) {
+  const kind = s.readU8();
+  switch (kind) {
+    case SerializedExpectationKind.Value:{
+        return deserializeValue(s);
+      }
+    case SerializedExpectationKind.Interval:{
+        return deserializeFPInterval(s);
+      }
+    case SerializedExpectationKind.Interval1DArray:{
+        return s.readArray(deserializeFPInterval);
+      }
+    case SerializedExpectationKind.Interval2DArray:{
+        const cols = s.readU16();
+        const rows = s.readU16();
+        return unflatten2DArray(s.readArray(deserializeFPInterval), cols, rows);
+      }
+    case SerializedExpectationKind.Comparator:{
+        return deserializeComparator(s);
+      }
+    default:{
+        unreachable(`invalid serialized expectation kind: ${kind}`);
+      }
   }
 }
 
-/**
- * SerializedCase holds the serialized form of a Case.
- * This form can be safely encoded to JSON.
- */
-
-/** serializeCase() converts an Case to a SerializedCase */
-export function serializeCase(c) {
-  return {
-    input: c.input instanceof Array ? c.input.map(v => serializeValue(v)) : serializeValue(c.input),
-    expected: serializeExpectation(c.expected),
-  };
+/** serializeCase() serializes a Case to a BinaryStream */
+export function serializeCase(s, c) {
+  s.writeCond(c.input instanceof Array, {
+    if_true: () => {
+      // c.input is array
+      s.writeArray(c.input, serializeValue);
+    },
+    if_false: () => {
+      // c.input is not array
+      serializeValue(s, c.input);
+    }
+  });
+  serializeExpectation(s, c.expected);
 }
 
-/** serializeCase() converts an SerializedCase to a Case */
-export function deserializeCase(data) {
-  return {
-    input:
-      data.input instanceof Array
-        ? data.input.map(v => deserializeValue(v))
-        : deserializeValue(data.input),
-    expected: deserializeExpectation(data.expected),
-  };
+/** deserializeCase() deserializes a Case from a BinaryStream */
+export function deserializeCase(s) {
+  const input = s.readCond({
+    if_true: () => {
+      // c.input is array
+      return s.readArray(deserializeValue);
+    },
+    if_false: () => {
+      // c.input is not array
+      return deserializeValue(s);
+    }
+  });
+  const expected = deserializeExpectation(s);
+  return { input, expected };
 }
 
 /** CaseListBuilder is a function that builds a CaseList */
+
 
 /**
  * CaseCache is a cache of CaseList.
@@ -109,7 +138,7 @@ export class CaseCache {
    * @param builders a Record of case-list name to case-list builder.
    */
   constructor(name, builders) {
-    this.path = `webgpu/shader/execution/case-cache/${name}.json`;
+    this.path = `webgpu/shader/execution/${name}.bin`;
     this.builders = builders;
   }
 
@@ -137,26 +166,34 @@ export class CaseCache {
    * @returns the serialized data.
    */
   serialize(data) {
-    const serialized = {};
+    const maxSize = 32 << 20; // 32MB - max size for a file
+    const stream = new BinaryStream(new ArrayBuffer(maxSize));
+    stream.writeU32(Object.keys(data).length);
     for (const name in data) {
-      serialized[name] = data[name].map(c => serializeCase(c));
+      stream.writeString(name);
+      stream.writeArray(data[name], serializeCase);
     }
-    return JSON.stringify(serialized);
+    return stream.buffer();
   }
 
   /**
    * deserialize() implements the Cacheable.deserialize interface.
    * @returns the deserialize data.
    */
-  deserialize(serialized) {
-    const data = JSON.parse(serialized);
+  deserialize(array) {
+    const s = new BinaryStream(array.buffer);
     const casesByName = {};
-    for (const name in data) {
-      const cases = data[name].map(caseData => deserializeCase(caseData));
+    const numRecords = s.readU32();
+    for (let i = 0; i < numRecords; i++) {
+      const name = s.readString();
+      const cases = s.readArray(deserializeCase);
       casesByName[name] = cases;
     }
     return casesByName;
   }
+
+
+
 }
 
 export function makeCaseCache(name, builders) {

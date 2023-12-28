@@ -1,7 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `Validation tests for @must_use`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `Validation tests for @must_use`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../common/util/data_tables.js';
 import { ShaderValidationTest } from '../shader_validation_test.js';
 
@@ -11,51 +10,51 @@ const kMustUseDeclarations = {
   var: {
     code: `@must_use @group(0) @binding(0)
     var<storage> x : array<u32>;`,
-    valid: false,
+    valid: false
   },
   function_no_return: {
     code: `@must_use fn foo() { }`,
-    valid: false,
+    valid: false
   },
   function_scalar_return: {
     code: `@must_use fn foo() -> u32 { return 0; }`,
-    valid: true,
+    valid: true
   },
   function_struct_return: {
     code: `struct S { x : u32 }
     @must_use fn foo() -> S { return S(); }`,
-    valid: true,
+    valid: true
   },
   function_var: {
     code: `fn foo() { @must_use var x = 0; }`,
-    valid: false,
+    valid: false
   },
   function_call: {
     code: `fn bar() -> u32 { return 0; }
     fn foo() { @must_use bar(); }`,
-    valid: false,
+    valid: false
   },
   function_parameter: {
     code: `fn foo(@must_use param : u32) -> u32 { return param; }`,
-    valid: false,
+    valid: false
   },
   empty_parameter: {
     code: `@must_use() fn foo() -> u32 { return 0; }`,
-    valid: false,
+    valid: false
   },
   parameter: {
     code: `@must_use(0) fn foo() -> u32 { return 0; }`,
-    valid: false,
-  },
+    valid: false
+  }
 };
 
-g.test('declaration')
-  .desc(`Validate attribute can only be applied to a function declaration with a return type`)
-  .params(u => u.combine('test', keysOf(kMustUseDeclarations)))
-  .fn(t => {
-    const test = kMustUseDeclarations[t.params.test];
-    t.expectCompileResult(test.valid, test.code);
-  });
+g.test('declaration').
+desc(`Validate attribute can only be applied to a function declaration with a return type`).
+params((u) => u.combine('test', keysOf(kMustUseDeclarations))).
+fn((t) => {
+  const test = kMustUseDeclarations[t.params.test];
+  t.expectCompileResult(test.valid, test.code);
+});
 
 const kMustUseCalls = {
   phony: `_ = bar();`,
@@ -63,23 +62,23 @@ const kMustUseCalls = {
   var: `var tmp = bar();`,
   condition: `if bar() == 0 { }`,
   param: `baz(bar());`,
-  statement: `bar();`,
+  statement: `bar();`
 };
 
-g.test('call')
-  .desc(`Validate that a call to must_use function cannot be the whole function call statement`)
-  .params(u => u.combine('use', ['@must_use', '']).combine('call', keysOf(kMustUseCalls)))
-  .fn(t => {
-    const test = kMustUseCalls[t.params.call];
-    const code = `
+g.test('call').
+desc(`Validate that a call to must_use function cannot be the whole function call statement`).
+params((u) => u.combine('use', ['@must_use', '']).combine('call', keysOf(kMustUseCalls))).
+fn((t) => {
+  const test = kMustUseCalls[t.params.call];
+  const code = `
     fn baz(param : u32) { }
     ${t.params.use} fn bar() -> u32 { return 0; }
     fn foo() {
       ${test}
     }`;
-    const res = t.params.call !== 'statement' || t.params.use === '';
-    t.expectCompileResult(res, code);
-  });
+  const res = t.params.call !== 'statement' || t.params.use === '';
+  t.expectCompileResult(res, code);
+});
 
 const kMustUseBuiltinCalls = {
   // Type constructors
@@ -192,18 +191,20 @@ const kMustUseBuiltinCalls = {
   unpack2x16unorm: `unpack2x16unorm(0)`,
   unpack2x16float: `unpack2x16float(0)`,
   // Synchronization
-  workgroupUniformLoad: `workgroupUniformLoad(&wg_var)`,
+  workgroupUniformLoad: `workgroupUniformLoad(&wg_var)`
 };
 
-g.test('builtin_must_use')
-  .desc(`Validate must_use built-in functions`)
-  .params(u => u.combine('call', keysOf(kMustUseBuiltinCalls)).combine('use', [true, false]))
-  .fn(t => {
-    let call = kMustUseBuiltinCalls[t.params.call];
-    if (t.params.use) {
-      call = `_ = ${call}`;
-    }
-    const code = `
+g.test('builtin_must_use').
+desc(`Validate must_use built-in functions`).
+params((u) =>
+u.combine('call', keysOf(kMustUseBuiltinCalls)).combine('use', [true, false])
+).
+fn((t) => {
+  let call = kMustUseBuiltinCalls[t.params.call];
+  if (t.params.use) {
+    call = `_ = ${call}`;
+  }
+  const code = `
 struct S {
   x : u32
 }
@@ -231,8 +232,8 @@ fn foo() {
   ${call};
 }`;
 
-    t.expectCompileResult(t.params.use, code);
-  });
+  t.expectCompileResult(t.params.use, code);
+});
 
 const kNoMustUseBuiltinCalls = {
   atomicLoad: `atomicLoad(&a)`,
@@ -244,23 +245,25 @@ const kNoMustUseBuiltinCalls = {
   atomicOr: `atomicOr(&a, 0)`,
   atomicXor: `atomicXor(&a, 0)`,
   atomicExchange: `atomicExchange(&a, 0)`,
-  atomicCompareExchangeWeak: `atomicCompareExchangeWeak(&a, 0, 0)`,
+  atomicCompareExchangeWeak: `atomicCompareExchangeWeak(&a, 0, 0)`
 };
 
-g.test('builtin_no_must_use')
-  .desc(`Validate built-in functions without must_use`)
-  .params(u => u.combine('call', keysOf(kNoMustUseBuiltinCalls)).combine('use', [true, false]))
-  .fn(t => {
-    let call = kNoMustUseBuiltinCalls[t.params.call];
-    if (t.params.use) {
-      call = `_ = ${call}`;
-    }
-    const code = `
+g.test('builtin_no_must_use').
+desc(`Validate built-in functions without must_use`).
+params((u) =>
+u.combine('call', keysOf(kNoMustUseBuiltinCalls)).combine('use', [true, false])
+).
+fn((t) => {
+  let call = kNoMustUseBuiltinCalls[t.params.call];
+  if (t.params.use) {
+    call = `_ = ${call}`;
+  }
+  const code = `
 var<workgroup> a : atomic<u32>;
 
 fn foo() {
   ${call};
 }`;
 
-    t.expectCompileResult(true, code);
-  });
+  t.expectCompileResult(true, code);
+});

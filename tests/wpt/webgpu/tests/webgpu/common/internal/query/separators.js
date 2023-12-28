@@ -1,6 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ /** Separator between big parts: suite:file:test:case */ export const kBigSeparator = ':';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/ /** Separator between big parts: suite:file:test:case */export const kBigSeparator = ':';
 /** Separator between path,to,file or path,to,test */
 export const kPathSeparator = ',';
 

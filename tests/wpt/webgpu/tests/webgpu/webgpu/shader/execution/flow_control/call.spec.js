@@ -1,43 +1,42 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Flow control tests for function calls.
-`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../gpu_test.js';
 
 import { runFlowControlTest } from './harness.js';
 
 export const g = makeTestGroup(GPUTest);
 
-g.test('call_basic')
-  .desc('Test that flow control enters a called function')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(t, f => ({
-      entrypoint: `
+g.test('call_basic').
+desc('Test that flow control enters a called function').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(t, (f) => ({
+    entrypoint: `
   ${f.expect_order(0)}
   f();
   ${f.expect_order(2)}
 `,
-      extra: `
+    extra: `
 fn f() {
   ${f.expect_order(1)}
-}`,
-    }));
-  });
+}`
+  }));
+});
 
-g.test('call_nested')
-  .desc('Test that flow control enters a nested function calls')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(t, f => ({
-      entrypoint: `
+g.test('call_nested').
+desc('Test that flow control enters a nested function calls').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(t, (f) => ({
+    entrypoint: `
   ${f.expect_order(0)}
   a();
   ${f.expect_order(6)}
 `,
-      extra: `
+    extra: `
 fn a() {
   ${f.expect_order(1)}
   b();
@@ -50,21 +49,21 @@ fn b() {
 }
 fn c() {
   ${f.expect_order(3)}
-}`,
-    }));
-  });
+}`
+  }));
+});
 
-g.test('call_repeated')
-  .desc('Test that flow control enters a nested function calls')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(t, f => ({
-      entrypoint: `
+g.test('call_repeated').
+desc('Test that flow control enters a nested function calls').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(t, (f) => ({
+    entrypoint: `
   ${f.expect_order(0)}
   a();
   ${f.expect_order(10)}
 `,
-      extra: `
+    extra: `
 fn a() {
   ${f.expect_order(1)}
   b();
@@ -79,6 +78,6 @@ fn b() {
 }
 fn c() {
   ${f.expect_order(3, 7)}
-}`,
-    }));
-  });
+}`
+  }));
+});

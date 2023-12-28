@@ -1054,10 +1054,12 @@ impl GPUDeviceMethods for GPUDevice {
                     .map(|f| Some(convert_texture_format(*f)))
                     .collect::<Vec<_>>(),
             ),
-            depth_stencil: Some(wgt::RenderBundleDepthStencil {
-                format: convert_texture_format(descriptor.parent.depthStencilFormat.unwrap()),
-                depth_read_only: descriptor.depthReadOnly,
-                stencil_read_only: descriptor.stencilReadOnly,
+            depth_stencil: descriptor.parent.depthStencilFormat.map(|dsf| {
+                wgt::RenderBundleDepthStencil {
+                    format: convert_texture_format(dsf),
+                    depth_read_only: descriptor.depthReadOnly,
+                    stencil_read_only: descriptor.stencilReadOnly,
+                }
             }),
             sample_count: descriptor.parent.sampleCount,
             multiview: None,

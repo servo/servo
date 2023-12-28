@@ -1,9 +1,8 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Execution Tests for shadowing
-`;
-import { makeTestGroup } from '../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { iterRange } from '../../../common/util/util.js';
 import { GPUTest } from '../../gpu_test.js';
 
@@ -21,19 +20,18 @@ function runShaderTest(t, wgsl, expected) {
     layout: 'auto',
     compute: {
       module: t.device.createShaderModule({ code: wgsl }),
-      entryPoint: 'main',
-    },
+      entryPoint: 'main'
+    }
   });
 
   // Allocate a buffer and fill it with 0xdeadbeef words.
   const outputBuffer = t.makeBufferWithContents(
-    new Uint32Array([...iterRange(expected.length, x => 0xdeadbeef)]),
+    new Uint32Array([...iterRange(expected.length, (_i) => 0xdeadbeef)]),
     GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   );
-
   const bindGroup = t.device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: { buffer: outputBuffer } }],
+    entries: [{ binding: 0, resource: { buffer: outputBuffer } }]
   });
 
   // Run the shader.
@@ -49,10 +47,10 @@ function runShaderTest(t, wgsl, expected) {
   t.expectGPUBufferValuesEqual(outputBuffer, expected);
 }
 
-g.test('declaration')
-  .desc(`Test that shadowing is handled correctly`)
-  .fn(t => {
-    const wgsl = `
+g.test('declaration').
+desc(`Test that shadowing is handled correctly`).
+fn((t) => {
+  const wgsl = `
       struct S {
         my_var_start: u32,
         my_var_block_shadow: u32,
@@ -131,39 +129,39 @@ g.test('declaration')
         }
       }
     `;
-    runShaderTest(
-      t,
-      wgsl,
-      new Uint32Array([
-        // my_var
-        1, // my_var_start
-        10, // my_var_block_shadow
-        1, // my_var_unshadow
-        20, // my_var_param_shadow
-        30, // my_var_param_reshadow
-        1, // my_var_after_func
-        // my_const
-        100, // my_const_start
-        110, // my_const_block_shadow
-        100, // my_const_unshadow
-        120, // my_const_param_shadow
-        130, // my_const_param_reshadow
-        100, // my_const_after_func
-        // my_let
-        210, // my_let_block_shadow
-        220, // my_let_param_reshadow
-        200, // my_let_after_func
-        // my_func
-        300, // my_func_param_shadow
-        310, // my_func_shadow
-      ])
-    );
-  });
+  runShaderTest(
+    t,
+    wgsl,
+    new Uint32Array([
+    // my_var
+    1, // my_var_start
+    10, // my_var_block_shadow
+    1, // my_var_unshadow
+    20, // my_var_param_shadow
+    30, // my_var_param_reshadow
+    1, // my_var_after_func
+    // my_const
+    100, // my_const_start
+    110, // my_const_block_shadow
+    100, // my_const_unshadow
+    120, // my_const_param_shadow
+    130, // my_const_param_reshadow
+    100, // my_const_after_func
+    // my_let
+    210, // my_let_block_shadow
+    220, // my_let_param_reshadow
+    200, // my_let_after_func
+    // my_func
+    300, // my_func_param_shadow
+    310 // my_func_shadow
+    ])
+  );
+});
 
-g.test('builtin')
-  .desc(`Test that shadowing a builtin name is handled correctly`)
-  .fn(t => {
-    const wgsl = `
+g.test('builtin').
+desc(`Test that shadowing a builtin name is handled correctly`).
+fn((t) => {
+  const wgsl = `
       struct S {
         my_max_shadow: u32,
         max_call: u32,
@@ -182,21 +180,21 @@ g.test('builtin')
         buffer.max_call = max(310u, 410u);
       }
     `;
-    runShaderTest(
-      t,
-      wgsl,
-      new Uint32Array([
-        // my_max
-        400, // my_max_shadow
-        410, // max_call
-      ])
-    );
-  });
+  runShaderTest(
+    t,
+    wgsl,
+    new Uint32Array([
+    // my_max
+    400, // my_max_shadow
+    410 // max_call
+    ])
+  );
+});
 
-g.test('for_loop')
-  .desc(`Test that shadowing is handled correctly with for loops`)
-  .fn(t => {
-    const wgsl = `
+g.test('for_loop').
+desc(`Test that shadowing is handled correctly with for loops`).
+fn((t) => {
+  const wgsl = `
       struct S {
         my_idx_before: u32,
         my_idx_loop: array<u32, 2>,
@@ -216,22 +214,22 @@ g.test('for_loop')
         buffer.my_idx_after = my_idx; // 500;
       };
     `;
-    runShaderTest(
-      t,
-      wgsl,
-      new Uint32Array([
-        500, // my_idx_before
-        501, // my_idx_loop[0]
-        502, // my_idx_loop[1]
-        500, // my_idx_after
-      ])
-    );
-  });
+  runShaderTest(
+    t,
+    wgsl,
+    new Uint32Array([
+    500, // my_idx_before
+    501, // my_idx_loop[0]
+    502, // my_idx_loop[1]
+    500 // my_idx_after
+    ])
+  );
+});
 
-g.test('while')
-  .desc(`Test that shadowing is handled correctly with while loops`)
-  .fn(t => {
-    const wgsl = `
+g.test('while').
+desc(`Test that shadowing is handled correctly with while loops`).
+fn((t) => {
+  const wgsl = `
       struct S {
         my_idx_before: u32,
         my_idx_loop: array<u32, 2>,
@@ -255,22 +253,22 @@ g.test('while')
         buffer.my_idx_after = my_idx; // 1;
       };
     `;
-    runShaderTest(
-      t,
-      wgsl,
-      new Uint32Array([
-        0, // my_idx_before
-        500, // my_idx_loop[0]
-        501, // my_idx_loop[1]
-        0, // my_idx_after
-      ])
-    );
-  });
+  runShaderTest(
+    t,
+    wgsl,
+    new Uint32Array([
+    0, // my_idx_before
+    500, // my_idx_loop[0]
+    501, // my_idx_loop[1]
+    0 // my_idx_after
+    ])
+  );
+});
 
-g.test('loop')
-  .desc(`Test that shadowing is handled correctly with loops`)
-  .fn(t => {
-    const wgsl = `
+g.test('loop').
+desc(`Test that shadowing is handled correctly with loops`).
+fn((t) => {
+  const wgsl = `
       struct S {
         my_idx_before: u32,
         my_idx_loop: array<u32, 2>,
@@ -301,24 +299,24 @@ g.test('loop')
         buffer.my_idx_after = my_idx; // 1;
       };
     `;
-    runShaderTest(
-      t,
-      wgsl,
-      new Uint32Array([
-        0, // my_idx_before
-        500, // my_idx_loop[0]
-        501, // my_idx_loop[1]
-        600, // my_idx_continuing[0]
-        601, // my_idx_continuing[1]
-        0, // my_idx_after
-      ])
-    );
-  });
+  runShaderTest(
+    t,
+    wgsl,
+    new Uint32Array([
+    0, // my_idx_before
+    500, // my_idx_loop[0]
+    501, // my_idx_loop[1]
+    600, // my_idx_continuing[0]
+    601, // my_idx_continuing[1]
+    0 // my_idx_after
+    ])
+  );
+});
 
-g.test('switch')
-  .desc(`Test that shadowing is handled correctly with a switch`)
-  .fn(t => {
-    const wgsl = `
+g.test('switch').
+desc(`Test that shadowing is handled correctly with a switch`).
+fn((t) => {
+  const wgsl = `
       struct S {
         my_idx_before: u32,
         my_idx_case: u32,
@@ -348,22 +346,22 @@ g.test('switch')
         buffer.my_idx_after = my_idx; // 1;
       };
     `;
-    runShaderTest(
-      t,
-      wgsl,
-      new Uint32Array([
-        0, // my_idx_before
-        10, // my_idx_case
-        20, // my_idx_default
-        0, // my_idx_after
-      ])
-    );
-  });
+  runShaderTest(
+    t,
+    wgsl,
+    new Uint32Array([
+    0, // my_idx_before
+    10, // my_idx_case
+    20, // my_idx_default
+    0 // my_idx_after
+    ])
+  );
+});
 
-g.test('if')
-  .desc(`Test that shadowing is handled correctly with a switch`)
-  .fn(t => {
-    const wgsl = `
+g.test('if').
+desc(`Test that shadowing is handled correctly with a switch`).
+fn((t) => {
+  const wgsl = `
       struct S {
         my_idx_before: u32,
         my_idx_if: u32,
@@ -394,15 +392,15 @@ g.test('if')
         buffer.my_idx_after = my_idx; // 1;
       };
     `;
-    runShaderTest(
-      t,
-      wgsl,
-      new Uint32Array([
-        0, // my_idx_before
-        10, // my_idx_if
-        20, // my_idx_elseif
-        30, // my_idx_else
-        0, // my_idx_after
-      ])
-    );
-  });
+  runShaderTest(
+    t,
+    wgsl,
+    new Uint32Array([
+    0, // my_idx_before
+    10, // my_idx_if
+    20, // my_idx_elseif
+    30, // my_idx_else
+    0 // my_idx_after
+    ])
+  );
+});
