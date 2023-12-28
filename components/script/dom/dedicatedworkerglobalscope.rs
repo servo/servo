@@ -443,6 +443,7 @@ impl DedicatedWorkerGlobalScope {
                                 TaskSourceName::DOMManipulation,
                             ))
                             .unwrap();
+                        scope.clear_js_runtime(context_for_interrupt);
                         return;
                     },
                     Ok((metadata, bytes)) => (metadata, bytes),
