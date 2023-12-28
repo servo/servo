@@ -393,6 +393,8 @@ impl Window {
 
     #[allow(unsafe_code)]
     pub fn clear_js_runtime_for_script_deallocation(&self) {
+        self.upcast::<GlobalScope>()
+            .remove_web_messaging_and_dedicated_workers_infra();
         unsafe {
             *self.js_runtime.borrow_for_script_deallocation() = None;
             self.window_proxy.set(None);
