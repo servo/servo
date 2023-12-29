@@ -140,7 +140,7 @@ Both folder are git repositories.
 
 To make it so that servo uses `~/my-projects/mozjs/`, first ascertain which version of the crate Servo is using and whether it is a git dependency or one from crates.io.  
 
-Both information can be found using, in this example, `/mach cargo pkgid mozjs_sys`(`mozjs_sys` is the actual crate name, which doesn't necessarily match the repo folder name).
+Both information can be found using, in this example, `./mach cargo pkgid mozjs_sys`(`mozjs_sys` is the actual crate name, which doesn't necessarily match the repo folder name).
 
 If the output is in the format `https://github.com/servo/mozjs#mozjs_sys:0.0.0`, you are dealing with a git dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` file and add at the bottom:
 
