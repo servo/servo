@@ -3719,7 +3719,7 @@ checksum = "903970ae2f248d7275214cf8f387f8ba0c4ea7e3d87a320e85493db60ce28616"
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#8c4bbc259af4f18be3aa2e3bb0bcde02e9597c3e"
+source = "git+https://github.com/servo/mozjs#7184f658b7e2de8a8d288ff39001364513115782"
 dependencies = [
  "bindgen 0.68.1",
  "cc",
@@ -3733,7 +3733,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.68.2"
-source = "git+https://github.com/servo/mozjs#8c4bbc259af4f18be3aa2e3bb0bcde02e9597c3e"
+source = "git+https://github.com/servo/mozjs#7184f658b7e2de8a8d288ff39001364513115782"
 dependencies = [
  "bindgen 0.68.1",
  "cc",
