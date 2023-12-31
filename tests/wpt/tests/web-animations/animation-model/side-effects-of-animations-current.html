@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>
+  Current animations should effectively apply will-change (i.e. force a
+  stacking context)
+</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#side-effects-section">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="side-effects-of-animations-current-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  .testcase {
+    position: relative;
+    margin: 2px;
+    border: 1px solid black;
+    width: 250px;
+    height: 25px;
+  }
+  .container {
+    background-color: lightgrey;
+    margin: 4px;
+    display: flex;
+    width: 600px;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .label {
+    flex-grow: 1;
+  }
+  .target {
+    width: 100%;
+    height: 100%;
+  }
+  .absolutebox {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .pass {
+    background-color: limegreen;
+  }
+  .fail {
+    background-color: red;
+  }
+</style>
+
+<script>
+const PROPERTY_OPACITY = 0;
+const PROPERTY_TRANSFORM = 1;
+const PROPERTY_BGCOLOR = 2;
+
+const PHASE_BEFORE = 10;
+const PHASE_ACTIVE = 11;
+const PHASE_AFTER = 12;
+
+// Setup an animation and put it in a state where it is current but, if outside
+// the active phase, not in effect.
+function setupAnimation(testcase, property, phase) {
+  const root = document.querySelector(testcase);
+  const effect_target = root.querySelector('.target');
+  let keyframe;
+  if (property == PROPERTY_OPACITY)
+    keyframe = { opacity: 1};
+  else if (property == PROPERTY_TRANSFORM)
+    keyframe = { transform: 'translateX(0px)' };
+  else if (property == PROPERTY_BGCOLOR)
+    keyframe = { backgroundColor: 'red' };
+  else
+    throw new Error('Unexpected property');
+
+  const options = { duration: 1000, delay: 1000, endDelay: 1000 };
+
+  const animation = effect_target.animate(
+    [ keyframe, keyframe ], options);
+
+  if (phase == PHASE_BEFORE) {
+    animation.currentTime = 500;
+  } else if (phase == PHASE_ACTIVE) {
+    animation.currentTime = 1500;
+  } else if (phase == PHASE_AFTER) {
+    animation.currentTime = 2500;
+    animation.playbackRate = -1;
+  } else {
+    throw new Error('Unexpected phase');
+  }
+
+  animation.pause();
+}
+
+onload = requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+</script>
+
+<!-- OPACITY -->
+
+<!-- Is current - before phase playing forwards -->
+<div class="container">
+  <div class="label">Opacity - before phase</div>
+  <div class="testcase" id="opacity-before">
+    <div class="absolutebox fail"></div>
+    <div class="target pass"></div>
+  </div>
+</div>
+<script>
+  setupAnimation('#opacity-before', PROPERTY_OPACITY, PHASE_BEFORE);
+</script>
+
+<!-- Is current - in play-->
+<div class="container">
+  <div class="label">Opacity - active phase</div>
+  <div class="testcase" id="opacity-active">
+    <div class="absolutebox fail"></div>
+    <div class="target pass"></div>
+  </div>
+</div>
+<script>
+  setupAnimation('#opacity-active', PROPERTY_OPACITY, PHASE_ACTIVE);
+</script>
+
+<!-- Is current - after phase playing backwards-->
+<div class="container">
+  <div class="label">Opacity - after phase</div>
+  <div class="testcase" id="opacity-after">
+    <div class="absolutebox fail"></div>
+    <div class="target pass"></div>
+  </div>
+</div>
+<script>
+  setupAnimation('#opacity-after', PROPERTY_OPACITY, PHASE_AFTER);
+</script>
+
+<!-- TRANSFORM -->
+
+<!-- Is current - before phase playing forwards -->
+<div class="container">
+  <div class="label">Transform - before phase</div>
+  <div class="testcase" id="transform-before">
+    <div class="absolutebox fail"></div>
+    <div class="target pass"></div>
+  </div>
+</div>
+<script>
+  setupAnimation('#transform-before', PROPERTY_TRANSFORM, PHASE_BEFORE);
+</script>
+
+<!-- Is current - in play-->
+<div class="container">
+  <div class="label">Transform - active phase</div>
+  <div class="testcase" id="transform-active">
+    <div class="absolutebox fail"></div>
+    <div class="target pass"></div>
+  </div>
+</div>
+<script>
+  setupAnimation('#transform-active', PROPERTY_TRANSFORM, PHASE_ACTIVE);
+</script>
+
+<!-- Is current - after phase playing backwards-->
+<div class="container">
+  <div class="label">Transform - after phase</div>
+  <div class="testcase" id="transform-after">
+    <div class="absolutebox fail"></div>
+    <div class="target pass"></div>
+  </div>
+</div>
+<script>
+  setupAnimation('#transform-after', PROPERTY_TRANSFORM, PHASE_AFTER);
+</script>
+
+<!-- BACKGROUND COLOR -->
+<!--
+  unlike opacity and transform, background color shouldn't create a stacking
+  context.
+-->
+
+<!-- Is current - before phase playing forwards -->
+<div class="container">
+  <div class="label">Background-color - before phase</div>
+  <div class="testcase" id="bgcolor-before">
+    <div class="absolutebox pass"></div>
+    <div class="target fail"></div>
+  </div>
+</div>
+<script>
+  setupAnimation('#bgcolor-before', PROPERTY_BGCOLOR, PHASE_BEFORE);
+</script>
+
+<!-- Is current - in play-->
+<div class="container">
+  <div class="label">Background-color - active phase</div>
+  <div class="testcase" id="bgcolor-active">
+    <div class="absolutebox pass"></div>
+    <div class="target fail"></div>
+  </div>
+</div>
+<script>
+  setupAnimation('#bgcolor-active', PROPERTY_BGCOLOR, PHASE_ACTIVE);
+</script>
+
+<!-- Is current - after phase playing backwards-->
+<div class="container">
+  <div class="label">Background-color - after phase</div>
+  <div class="testcase" id="bgcolor-after">
+    <div class="absolutebox pass"></div>
+    <div class="target fail"></div>
+  </div>
+</div>
+<script>
+  setupAnimation('#bgcolor-after', PROPERTY_BGCOLOR, PHASE_AFTER);
+</script>
+
+</html>

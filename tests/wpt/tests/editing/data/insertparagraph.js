@@ -2410,4 +2410,15 @@ var browserTests = [
      "<ul><li><span style=\"color:rgb(0, 0, 255)\"><span style=\"background-color:rgb(0, 0, 255)\">foo</span></span><br></li><li><span style=\"color:rgb(0, 0, 255)\"><span style=\"background-color:rgb(0, 0, 255)\"><br></span></span></li></ul>"],
     [true,true],
     {"insertparagraph":[false,false,"",false,false,""]}],
+
+["<p>[X]<span contenteditable=false>abc</span></p>",
+    [["insertparagraph",""]],
+    "<p><br></p><p><span contenteditable=\"false\">abc</span></p>",
+    [true],
+    {}],
+["<p><span contenteditable=false>abc</span>[X]</p>",
+    [["insertparagraph",""]],
+    "<p><span contenteditable=\"false\">abc</span></p><p><br></p>",
+    [true],
+    {}],
 ]
