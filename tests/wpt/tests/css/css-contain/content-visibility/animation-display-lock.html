@@ -52,6 +52,10 @@ function createAnimatingElement(test, name) {
   return target;
 }
 
+function waitForEvent(element, eventName) {
+  return new Promise(resolve => element.addEventListener(eventName, resolve, { once: true }));
+}
+
 promise_test(async t => {
   const container = document.getElementById('container');
   const target = createAnimatingElement(t, 'animate');
@@ -73,7 +77,7 @@ promise_test(async t => {
                'Animation events do not fire while the animation is ' +
                'running in a display locked subtree');
   container.style.contentVisibility = 'visible';
-  await waitForAnimationFrames(2);
+  await waitForEvent(target, 'animationiteration');
   assert_true(animationIterationEvent,
               'The animationiteration event fires once the animation is ' +
               'no longer display locked');
@@ -171,7 +175,7 @@ promise_test(async t => {
 
   animation.currentTime = 1999;
   await animation.ready;
-  await waitForAnimationFrames(2);
+  await waitForEvent(animation, 'finish');
 
   assert_true(animationFinishEvent,
               'Animation event not blocked on display locked subtree if ' +

@@ -13,17 +13,17 @@ test_computed_value('transition-behavior', 'normal');
 test_valid_value('transition-behavior', 'allow-discrete');
 test_computed_value('transition-behavior', 'allow-discrete');
 
-test_valid_value('transition', 'allow-discrete display', 'display 0s ease 0s allow-discrete');
-test_computed_value('transition', 'allow-discrete display', 'display 0s ease 0s allow-discrete');
+test_valid_value('transition', 'allow-discrete display', 'display allow-discrete');
+test_computed_value('transition', 'allow-discrete display', 'display allow-discrete');
 
-test_valid_value('transition', 'allow-discrete display 3s', 'display 3s ease 0s allow-discrete');
-test_computed_value('transition', 'allow-discrete display 3s', 'display 3s ease 0s allow-discrete');
+test_valid_value('transition', 'allow-discrete display 3s', 'display 3s allow-discrete');
+test_computed_value('transition', 'allow-discrete display 3s', 'display 3s allow-discrete');
 
-test_valid_value('transition', 'allow-discrete display 3s 1s', 'display 3s ease 1s allow-discrete');
-test_computed_value('transition', 'allow-discrete display 3s 1s', 'display 3s ease 1s allow-discrete');
+test_valid_value('transition', 'allow-discrete display 3s 1s', 'display 3s 1s allow-discrete');
+test_computed_value('transition', 'allow-discrete display 3s 1s', 'display 3s 1s allow-discrete');
 
-test_valid_value('transition', 'allow-discrete display 3s ease-in-out', 'display 3s ease-in-out 0s allow-discrete');
-test_computed_value('transition', 'allow-discrete display 3s ease-in-out', 'display 3s ease-in-out 0s allow-discrete');
+test_valid_value('transition', 'allow-discrete display 3s ease-in-out', 'display 3s ease-in-out allow-discrete');
+test_computed_value('transition', 'allow-discrete display 3s ease-in-out', 'display 3s ease-in-out allow-discrete');
 
 test_valid_value('transition', 'allow-discrete display 3s ease-in-out 1s', 'display 3s ease-in-out 1s allow-discrete');
 test_computed_value('transition', 'allow-discrete display 3s ease-in-out 1s', 'display 3s ease-in-out 1s allow-discrete');
@@ -44,14 +44,14 @@ test_computed_value('transition', 'display 3s ease-in-out 1s allow-discrete', 'd
 // Serialization with multiple shorthands, including different order
 test_valid_value('transition',
   'allow-discrete display, normal opacity, color',
-  'display 0s ease 0s allow-discrete, opacity 0s ease 0s, color 0s ease 0s');
+  'display allow-discrete, opacity, color');
 test_computed_value('transition',
   'allow-discrete display, normal opacity, color',
-  'display 0s ease 0s allow-discrete, opacity 0s ease 0s, color 0s ease 0s');
+  'display allow-discrete, opacity, color');
 test_valid_value('transition',
   'normal opacity, color, allow-discrete display',
-  'opacity 0s ease 0s, color 0s ease 0s, display 0s ease 0s allow-discrete');
+  'opacity, color, display allow-discrete');
 test_computed_value('transition',
   'normal opacity, color, allow-discrete display',
-  'opacity 0s ease 0s, color 0s ease 0s, display 0s ease 0s allow-discrete');
+  'opacity, color, display allow-discrete');
 </script>

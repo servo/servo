@@ -590,4 +590,17 @@ var browserTests = [
     "<div class=\"d1\"></div><div class=\"d2\"><span class=\"s1\">some text</span><a href=\"foo.html\"></a></div>",
     [true],
     {"inserthtml":[false,false,"",false,false,""]}],
+
+// Do not delete non-editable when clearing the original style
+["<p><b>[X]<span contenteditable=false>abc</span></b><i>def</i></p>",
+    [["inserthtml","<i>Z</i>"]],
+    "<p><i>Z</i><b><span contenteditable=\"false\">abc</span></b><i>def</i></p>",
+    [true],
+    {}],
+["<p><b><span contenteditable=false>abc</span>[Y]</b><i>def</i></p>",
+    [["inserthtml","<i>Z</i>"]],
+    ["<p><b><span contenteditable=\"false\">abc</span></b><i>Z</i><i>def</i></p>",
+     "<p><b><span contenteditable=\"false\">abc</span></b><i>Zdef</i></p>"],
+    [true],
+    {}],
 ]
