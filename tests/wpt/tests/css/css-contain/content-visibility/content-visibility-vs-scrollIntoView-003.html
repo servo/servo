@@ -56,12 +56,13 @@ function tick() {
   });
 }
 
-promise_test(async () => {
-    await tick();
+function waitForEvent() {
+    return new Promise(resolve => e3.addEventListener('contentvisibilityautostatechange', resolve));
+}
 
-    function waitForEvent() {
-        return new Promise(resolve => e3.addEventListener('contentvisibilityautostatechange', resolve));
-    }
+promise_test(async (t) => {
+    // Make sure the first event has fired.
+    await waitForEvent();
 
     var eventCounter = 0;
     function eventHandler(e) {

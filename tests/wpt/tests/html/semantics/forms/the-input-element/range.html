@@ -57,6 +57,10 @@
         "range type support on input element"
       );
 
+      test(function() {
+        assert_equals(getComputedStyle(document.getElementById('range_basic')).overflow, "visible");
+      }, "range overflow styles");
+
       test(
         function() {
           assert_equals(document.getElementById('range_basic').min, "0")

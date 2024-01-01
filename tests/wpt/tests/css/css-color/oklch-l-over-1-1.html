@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Color 4: Verify lightness in Oklch is always clamped to a value between 0 to 1</title>
+<link rel="help" href="https://drafts.csswg.org/css-color/#ok-lab">
+<link rel="match" href="oklch-l-over-1-ref.html">
+<meta name="assert" content="oklch() with lightness greater than 1">
+<style>
+    .ref { background-color: oklch(1 0.5 50); width: 100px; height: 100px}
+    /* l = 1.5 should clamp back to 1 */
+    .test { background-color: oklch(1.5 0.5 50); width: 100px; height: 100px}
+</style>
+
+<body>
+    <p>Test passes if you see a single color.</p>
+    <div class="ref"></div>
+    <div class="test"></div>
+</body>
