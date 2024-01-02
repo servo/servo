@@ -483,7 +483,10 @@ version = "0.0.1"
 dependencies = [
  "bitflags 2.4.1",
  "bluetooth_traits",
- "device",
+ "blurdroid",
+ "blurmac",
+ "blurmock",
+ "blurz",
  "embedder_traits",
  "ipc-channel",
  "log",
@@ -511,7 +514,6 @@ checksum = "19b23557dd27704797128f9db2816416bef20dad62d4a9768714eeb65f07d296"
 [[package]]
 name = "blurmac"
 version = "0.1.0"
-source = "git+https://github.com/servo/devices?rev=cb28c4725ffbfece99dab842d17d3e8c50774778#cb28c4725ffbfece99dab842d17d3e8c50774778"
 dependencies = [
  "log",
  "objc",
@@ -1334,17 +1336,6 @@ dependencies = [
  "quote",
  "rustc_version",
  "syn 1.0.103",
-]
-
-[[package]]
-name = "device"
-version = "0.0.1"
-source = "git+https://github.com/servo/devices?rev=cb28c4725ffbfece99dab842d17d3e8c50774778#cb28c4725ffbfece99dab842d17d3e8c50774778"
-dependencies = [
- "blurdroid",
- "blurmac",
- "blurmock",
- "blurz",
 ]
 
 [[package]]
