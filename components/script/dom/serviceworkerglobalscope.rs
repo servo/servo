@@ -348,9 +348,8 @@ impl ServiceWorkerGlobalScope {
                     control_receiver,
                     closing,
                 );
-                
+
                 let scope = global.upcast::<WorkerGlobalScope>();
-                let _ac = enter_realm(&*scope);
 
                 let referrer = referrer_url
                     .map(|url| Referrer::ReferrerUrl(url))
@@ -383,7 +382,11 @@ impl ServiceWorkerGlobalScope {
                     JS_AddInterruptCallback(*scope.get_cx(), Some(interrupt_callback));
                 }
 
-                scope.execute_script(DOMString::from(source));
+                {
+                    // TODO: use AutoWorkerReset as in dedicated worker?
+                    let _ac = enter_realm(&*scope);
+                    scope.execute_script(DOMString::from(source));
+                }
 
                 global.dispatch_activate();
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());

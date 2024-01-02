@@ -464,6 +464,7 @@ impl DedicatedWorkerGlobalScope {
 
                 {
                     let _ar = AutoWorkerReset::new(&global, worker.clone());
+                    let _ac = enter_realm(&*scope);
                     scope.execute_script(DOMString::from(source));
                 }
 
