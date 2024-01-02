@@ -9,7 +9,6 @@
 
 import os
 import subprocess
-import tempfile
 from typing import Optional, Tuple
 
 import distro
@@ -204,18 +203,6 @@ class Linux(Base):
         if not force and self.is_gstreamer_installed(cross_compilation_target=None):
             return False
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            file_name = os.path.join(temp_dir, GSTREAMER_URL.rsplit('/', maxsplit=1)[-1])
-            util.download_file("Pre-packaged GStreamer binaries", GSTREAMER_URL, file_name)
-
-            print(f"Installing GStreamer packages to {PREPACKAGED_GSTREAMER_ROOT}...")
-            os.makedirs(PREPACKAGED_GSTREAMER_ROOT, exist_ok=True)
-
-            # Extract, but strip one component from the output, because the package includes
-            # a toplevel directory called "./gst/" and we'd like to have the same directory
-            # structure on all platforms.
-            subprocess.check_call(["tar", "xf", file_name, "-C", PREPACKAGED_GSTREAMER_ROOT,
-                                   "--strip-components=2"])
-
-            assert self.is_gstreamer_installed(cross_compilation_target=None)
-            return True
+        raise EnvironmentError(
+            "Bootstrapping GStreamer on Linux is not supported. "
+            + "Please install it using your distribution package manager.")
