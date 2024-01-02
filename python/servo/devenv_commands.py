@@ -307,5 +307,5 @@ class MachCommands(CommandBase):
         res = call(["git", "push", remote, "--force", "HEAD:try"], env=self.build_env())
         # if we got jobs we need to delete last commit
         if jobs:
-            res += call(["git", "reset", "--hard", "HEAD~1"], env=self.build_env())
+            res += call(["git", "reset", "--soft", "HEAD~1"], env=self.build_env())
         return res
