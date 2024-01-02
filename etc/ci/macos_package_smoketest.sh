@@ -24,4 +24,7 @@ grep 'success' /tmp/out
 
 # Clean up.
 popd
-hdiutil detach /Volumes/Servo
+
+hdiutil detach /Volumes/Servo || \
+    echo "WARNING: Could not detach /Volumes/Servo. " \
+         "Please detach with hdiutil manually."
