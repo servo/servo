@@ -1904,9 +1904,9 @@ checksum = "3a471a38ef8ed83cd6e40aa59c1ffe17db6855c18e3604d9c4ed8c08ebc28678"
 
 [[package]]
 name = "futures"
-version = "0.3.28"
+version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23342abe12aba583913b2e62f22225ff9c950774065e4bfb61a19cd9770fec40"
+checksum = "645c6916888f6cb6350d2550b80fb63e734897a8498abe35cfb732b6487804b0"
 dependencies = [
  "futures-channel",
  "futures-core",
@@ -3823,7 +3823,7 @@ dependencies = [
  "devtools_traits",
  "embedder_traits",
  "flate2",
- "futures 0.3.28",
+ "futures 0.3.30",
  "futures-util",
  "generic-array",
  "headers",
