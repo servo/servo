@@ -8,7 +8,7 @@ Boris Zbarsky and Patrick Walton about how style sharing works.
 <a name="selector-impl"></a>
 ## Selector Implementation
 
-In order to be sharable and compatible with [Quantum][quantum] (project that aims 
+In order to be sharable and compatible with `Stylo`(a project that aims 
 to integrate Servo's style system into Gecko), the style must be consistent.
 
 The consistency is implemented in [selectors' SelectorImpl][selector-impl], 
@@ -131,7 +131,6 @@ that you didn't find it here so it can be added :)
 
 [style-doc]: https://doc.servo.org/style/index.html
 [wiki-styling-overview]: https://github.com/servo/servo/wiki/Styling-overview
-[quantum]: https://wiki.mozilla.org/Quantum
 [selector-impl]: https://doc.servo.org/selectors/parser/trait.SelectorImpl.html
 [selector-impl-ext]: https://doc.servo.org/style/selector_parser/trait.SelectorImplExt.html
 [servo-selector-impl]: https://doc.servo.org/style/servo/selector_parser/struct.SelectorImpl.html
