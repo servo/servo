@@ -8,7 +8,7 @@ Boris Zbarsky and Patrick Walton about how style sharing works.
 <a name="selector-impl"></a>
 ## Selector Implementation
 
-In order to be sharable and compatible with `Stylo`(a project that aims 
+In order to be sharable and compatible with Stylo (a project that aims 
 to integrate Servo's style system into Gecko), the style must be consistent.
 
 The consistency is implemented in [selectors' SelectorImpl][selector-impl], 
