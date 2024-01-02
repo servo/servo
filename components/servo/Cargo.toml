@@ -49,7 +49,7 @@ euclid = { workspace = true }
 gfx = { path = "../gfx" }
 gfx_traits = { workspace = true }
 gleam = { workspace = true }
-gstreamer = { version = "0.15", features = ["v1_16"], optional = true }
+gstreamer = { workspace = true, optional = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 layout_thread_2013 = { path = "../layout_thread" }

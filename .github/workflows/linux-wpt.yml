@@ -21,6 +21,7 @@ env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   WPT_COMMAND_LINE_ARG: "${{ inputs.wpt-layout == 'layout-2013' && '--legacy-layout' || '' }}"
+  GST_PLUGIN_FEATURE_RANK: pulsesink:NONE,alsasink:NONE,jacksink:NONE,fakesink:MAX
 
 jobs:
   linux-wpt:
@@ -48,25 +49,14 @@ jobs:
         with:
           name: release-binary
           path: release-binary
-      - name: Cache libffi
-        id: cache
-        uses: actions/cache@v3
-        with:
-          path: ./libffi6_3.2.1-8_amd64.deb
-          key: cache-libffi
-      - name: Download libffi
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          wget http://mirrors.kernel.org/ubuntu/pool/main/libf/libffi/libffi6_3.2.1-8_amd64.deb
       - name: unPackage binary
         run: tar -xzf release-binary/target.tar.gz
-      - name: Prep test environment
+      - name: Bootstrap dependencies
         run: |
           python3 -m pip install --upgrade pip
           sudo apt update
-          sudo apt install -qy --no-install-recommends libgl1 libssl1.1 libdbus-1-3 libxcb-xfixes0-dev libxcb-shape0-dev libunwind8 libgl1-mesa-dri mesa-vulkan-drivers libegl1-mesa
-          sudo apt install ./libffi6_3.2.1-8_amd64.deb
-          python3 ./mach bootstrap-gstreamer
+          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
+          python3 ./mach bootstrap
       - name: Sync from upstream WPT
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |

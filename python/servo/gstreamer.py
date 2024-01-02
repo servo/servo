@@ -22,6 +22,7 @@ GSTREAMER_DYLIBS = [
     "gstfft",
     "gstgl",
     "gstpbutils",
+    "gstplay",
     "gstriff",
     "gstrtp",
     "gstrtsp",
@@ -33,6 +34,7 @@ GSTREAMER_DYLIBS = [
     "gstcodecparsers",
     "gstplayer",
     "gstwebrtc",
+    "gstwebrtcnice",
 ]
 
 
@@ -84,12 +86,9 @@ def windows_dlls():
 
 
 def windows_plugins():
-    # FIXME: We should support newer gstreamer versions here that replace
-    # gstvideoconvert and gstvideoscale with gstvideoconvertscale.
     libs = [
         *GSTREAMER_PLUGINS,
-        "gstvideoconvert",
-        "gstvideoscale",
+        "gstvideoconvertscale",
         "gstwasapi"
     ]
     return [f"{lib}.dll" for lib in libs]

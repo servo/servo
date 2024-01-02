@@ -16,7 +16,7 @@ bench = false
 [dependencies]
 android_injected_glue = "0.2"
 android_logger = "0.10"
-gstreamer = "0.15"
+gstreamer = { workspace = true }
 jni = "0.18.0"
 libc = { workspace = true }
 log = { workspace = true }

@@ -378,9 +378,9 @@ impl From<&RTCDataChannelInit> for DataChannelInit {
 impl From<DataChannelState> for RTCDataChannelState {
     fn from(state: DataChannelState) -> RTCDataChannelState {
         match state {
-            DataChannelState::New |
-            DataChannelState::Connecting |
-            DataChannelState::__Unknown(_) => RTCDataChannelState::Connecting,
+            DataChannelState::Connecting | DataChannelState::__Unknown(_) => {
+                RTCDataChannelState::Connecting
+            },
             DataChannelState::Open => RTCDataChannelState::Open,
             DataChannelState::Closing => RTCDataChannelState::Closing,
             DataChannelState::Closed => RTCDataChannelState::Closed,
