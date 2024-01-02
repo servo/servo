@@ -348,6 +348,9 @@ impl ServiceWorkerGlobalScope {
                     control_receiver,
                     closing,
                 );
+                
+                let scope = global.upcast::<WorkerGlobalScope>();
+                let _ac = enter_realm(&*scope);
 
                 let referrer = referrer_url
                     .map(|url| Referrer::ReferrerUrl(url))
@@ -367,15 +370,13 @@ impl ServiceWorkerGlobalScope {
                     {
                         Err(_) => {
                             println!("error loading script {}", serialized_worker_url);
+                            scope.clear_js_runtime(context_for_interrupt);
                             return;
                         },
                         Ok((metadata, bytes)) => {
                             (metadata.final_url, String::from_utf8(bytes).unwrap())
                         },
                     };
-
-                let scope = global.upcast::<WorkerGlobalScope>();
-                let _ac = enter_realm(&*scope);
 
                 unsafe {
                     // Handle interrupt requests
