@@ -92,6 +92,28 @@ class BuildType:
         raise Exception("BUG: do not compare BuildType with ==")
 
 
+class MediaStack(Enum):
+    """ Media stack """
+    DUMMY = 1
+    GSTREAMER = 2
+
+    def is_dummy(self) -> bool:
+        return self == MediaStack.DUMMY
+
+    def is_gstreamer(self) -> bool:
+        return self == MediaStack.GSTREAMER
+
+    @staticmethod
+    def from_str(s: str):
+        s = s.lower()
+        if s == "gstreamer":
+            return MediaStack.GSTREAMER
+        elif s == "dummy":
+            return MediaStack.DUMMY
+        else:
+            raise RuntimeError(f"Got unknown media stack {s}")
+
+
 @contextlib.contextmanager
 def cd(new_path):
     """Context manager for changing the current working directory"""
@@ -251,6 +273,7 @@ class CommandBase(object):
     def __init__(self, context):
         self.context = context
         self.features = []
+        self.media_stack: Optional[MediaStack] = None
         self.cross_compile_target = None
         self.is_android_build = False
         self.target_path = util.get_target_dir()
@@ -878,20 +901,21 @@ class CommandBase(object):
         """Determine what media stack to use based on the value of the build target
            platform and the value of the '--media-stack' command-line argument.
            The chosen media stack is written into the `features` instance variable."""
-        if not media_stack:
-            if self.config["build"]["media-stack"] != "auto":
-                media_stack = self.config["build"]["media-stack"]
-                assert media_stack
-            elif (
-                not self.cross_compile_target
-                or ("armv7" in self.cross_compile_target and self.is_android_build)
-                or "x86_64" in self.cross_compile_target
-            ):
-                media_stack = "gstreamer"
-            else:
-                media_stack = "dummy"
-        if media_stack != "dummy":
-            self.features += ["media-" + media_stack]
+
+        if media_stack:  # In this case, the media stack is already configured.
+            self.media_stack = MediaStack.from_str(media_stack.lower())
+            return
+
+        if self.config["build"]["media-stack"] != "auto":
+            self.media_stack = MediaStack.from_str(self.config["build"]["media-stack"].lower())
+        elif (
+            not self.cross_compile_target
+            or ("armv7" in self.cross_compile_target and self.is_android_build)
+            or "x86_64" in self.cross_compile_target
+        ):
+            self.media_stack = MediaStack.GSTREAMER
+        else:
+            self.media_stack = MediaStack.DUMMY
 
     def run_cargo_build_like_command(
         self, command: str, cargo_args: List[str],
@@ -934,6 +958,10 @@ class CommandBase(object):
                 features.append("webgl-backtrace")
             if self.config["build"]["dom-backtrace"]:
                 features.append("dom-backtrace")
+
+            if self.media_stack.is_dummy() and "--no-default-features" not in cargo_args:
+                args += ["--no-default-features"]
+
             args += ["--features", " ".join(features)]
 
         if with_debug_assertions or self.config["build"]["debug-assertions"]:

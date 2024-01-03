@@ -28,7 +28,7 @@ cc = "1.0"
 
 [features]
 debugmozjs = ["simpleservo/debugmozjs"]
-default = ["max_log_level", "native-bluetooth", "webdriver"]
+default = ["max_log_level", "native-bluetooth", "webdriver", "media-gstreamer"]
 googlevr = ["simpleservo/googlevr"]
 js_backtrace = ["simpleservo/js_backtrace"]
 max_log_level = ["simpleservo/max_log_level"]
