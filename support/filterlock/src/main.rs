@@ -20,7 +20,7 @@ struct Package {
 }
 
 fn main() {
-    let usage = "Usage: striplock <path/to/Cargo.lock> <package>";
+    let usage = "Usage: filterlock <path/to/Cargo.lock> <package>";
     let path = args_os().nth(1).expect(usage);
     let package = args().nth(2).expect(usage);
 
