@@ -3,10 +3,15 @@
 
 with import <nixpkgs> {};
 let
-    pinnedSha = "6adf48f53d819a7b6e15672817fa1e78e5f4e84f";
     pinnedNixpkgs = import (builtins.fetchTarball {
-        url = "https://github.com/NixOS/nixpkgs/archive/${pinnedSha}.tar.gz";
+      url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
     }) {};
+
+    # Keep this in sync with rust-toolchain.toml!
+    nixpkgs_rust_1_74 = import (builtins.fetchTarball {
+      url = "https://github.com/NixOS/nixpkgs/archive/65f0d241783c94a08e4c9a3870736fc8854dd520.tar.gz";
+    }) {};
+    inherit (nixpkgs_rust_1_74) rustPlatform cargo;
 in
 clangStdenv.mkDerivation rec {
   name = "servo-env";
@@ -33,6 +38,69 @@ clangStdenv.mkDerivation rec {
     # slow as it behaves as if -j1 was passed.
     # See https://github.com/servo/mozjs/issues/375
     pinnedNixpkgs.gnumake
+
+    # crown needs to be in our Cargo workspace so we can test it with `mach test`. This means its
+    # dependency tree is listed in the main Cargo.lock, making it awkward to build with Nix because
+    # all of Servo’s dependencies get pulled into the Nix store too, wasting over 1GB of disk space.
+    # Filtering the lockfile to only the parts needed by crown saves space and builds faster.
+    (let
+      vendorTarball = rustPlatform.fetchCargoTarball {
+        src = ../support/filterlock;
+        hash = "sha256-/kJNDtmv2uI7Qlmpi3DMWSw88rzEJSbroO0/QrgQrSc=";
+      };
+      vendorConfig = builtins.toFile "toml" ''
+        [source.crates-io]
+        replace-with = "vendor"
+        [source.vendor]
+        directory = "vendor"
+      '';
+
+      # Build and run filterlock over the main Cargo.lock.
+      filteredLockFile = (clangStdenv.mkDerivation {
+        name = "lock";
+        buildInputs = [ cargo ];
+        src = ../support/filterlock;
+        buildPhase = ''
+          tar xzf ${vendorTarball}
+          mv cargo-deps-vendor.tar.gz vendor
+          mkdir .cargo
+          cp -- ${vendorConfig} .cargo/config.toml
+          > $out ${cargo}/bin/cargo run --offline -- ${../Cargo.lock} crown
+        '';
+      });
+    in (rustPlatform.buildRustPackage rec {
+      name = "crown";
+      src = ../support/crown;
+      stdenv = nixpkgs_rust_1_74.clangStdenv;
+      buildInputs = [ nixpkgs_rust_1_74.llvmPackages.libllvm ];
+      doCheck = false;
+      cargoLock = {
+        lockFileContents = builtins.readFile filteredLockFile;
+
+        # Needed when filteredLockFile = ../Cargo.lock.
+        # allowBuiltinFetchGit = true;
+      };
+
+      # Copy the filtered lockfile, making it writable by cargo --offline.
+      postPatch = ''
+        install -m 644 ${filteredLockFile} Cargo.lock
+      '';
+
+      # Override the build phase to use --offline instead of --frozen, because the filtered
+      # lockfile has minor formatting changes that make it look “dirty” to Cargo.
+      # TODO maybe this can be avoided by using toml_edit in filterlock?
+      buildPhase = ''
+        RUSTC_BOOTSTRAP=crown ${cargo}/bin/cargo build --release --offline
+      '';
+
+      # Override the install phase, because our build phase is no longer compatible.
+      installPhase = ''
+        mkdir -p $out/bin $out/lib
+        cp target/release/crown $out/bin
+        find target/release -maxdepth 1 -regex '.*\.\(so\.[0-9.]+\|so\|a\|dylib\)' \
+          -exec cp -v {} $out/lib \;
+      '';
+    }))
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
   ]);
