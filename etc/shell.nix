@@ -65,7 +65,7 @@ clangStdenv.mkDerivation rec {
           mv cargo-deps-vendor.tar.gz vendor
           mkdir .cargo
           cp -- ${vendorConfig} .cargo/config.toml
-          > $out ${cargo}/bin/cargo run --offline -- ${../Cargo.lock} crown
+          > $out cargo run --offline -- ${../Cargo.lock} crown
         '';
       });
     in (rustPlatform.buildRustPackage rec {
@@ -90,7 +90,7 @@ clangStdenv.mkDerivation rec {
       # lockfile has minor formatting changes that make it look “dirty” to Cargo.
       # TODO maybe this can be avoided by using toml_edit in filterlock?
       buildPhase = ''
-        RUSTC_BOOTSTRAP=crown ${cargo}/bin/cargo build --release --offline
+        RUSTC_BOOTSTRAP=crown cargo build --release --offline
       '';
 
       # Override the install phase, because our build phase is no longer compatible.
