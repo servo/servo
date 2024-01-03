@@ -831,13 +831,10 @@ impl<'a> WGPU<'a> {
                         gfx_select!(texture => global.texture_drop(texture, true));
                     },
                     WebGPURequest::Exit(sender) => {
-                        if let Err(e) = self.script_sender.send(WebGPUMsg::Exit) {
-                            warn!("Failed to send WebGPUMsg::Exit to script ({})", e);
-                        }
                         if let Err(e) = sender.send(()) {
                             warn!("Failed to send response to WebGPURequest::Exit ({})", e)
                         }
-                        return;
+                        break;
                     },
                     WebGPURequest::FreeCommandBuffer(command_buffer_id) => {
                         self.error_command_encoders
@@ -888,7 +885,7 @@ impl<'a> WGPU<'a> {
                                     e
                                 )
                                 }
-                                return;
+                                break;
                             },
                         };
                         let adapter = WebGPUAdapter(adapter_id);
@@ -943,7 +940,7 @@ impl<'a> WGPU<'a> {
                                     w
                                 )
                                 }
-                                return;
+                                break;
                             },
                         };
                         let device = WebGPUDevice(id);
@@ -1248,6 +1245,9 @@ impl<'a> WGPU<'a> {
                     },
                 }
             }
+        }
+        if let Err(e) = self.script_sender.send(WebGPUMsg::Exit) {
+            warn!("Failed to send WebGPUMsg::Exit to script ({})", e);
         }
     }
 
