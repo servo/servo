@@ -86,18 +86,14 @@ clangStdenv.mkDerivation rec {
         install -m 644 ${filteredLockFile} Cargo.lock
       '';
 
-      # Override the build phase to use --offline instead of --frozen, because the filtered
-      # lockfile has minor formatting changes that make it look “dirty” to Cargo.
+      # Reformat the filtered lockfile, so that cargo --frozen won’t complain
+      # about the lockfile being dirty.
       # TODO maybe this can be avoided by using toml_edit in filterlock?
-      buildPhase = ''
-        RUSTC_BOOTSTRAP=crown cargo build --release --offline
+      preConfigure = ''
+        cargo update --offline
       '';
 
-      # Override the install phase, because our build phase is no longer compatible.
-      installPhase = ''
-        mkdir -p $out/bin
-        cp target/release/crown $out/bin
-      '';
+      RUSTC_BOOTSTRAP = "crown";
     }))
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
