@@ -119,7 +119,8 @@ builtinNames = {
     IDLType.Tags.unrestricted_float: 'f32',
     IDLType.Tags.float: 'Finite<f32>',
     IDLType.Tags.unrestricted_double: 'f64',
-    IDLType.Tags.double: 'Finite<f64>'
+    IDLType.Tags.double: 'Finite<f64>',
+    IDLBuiltinType.Tags.float32array: 'Float32Array'
 }
 
 numericTags = [
@@ -1465,6 +1466,11 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         # Nothing to declare
         return CGGeneric("()")
     if returnType.isPrimitive() and returnType.tag() in builtinNames:
+        result = CGGeneric(builtinNames[returnType.tag()])
+        if returnType.nullable():
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
+    if returnType.isTypedArray() and returnType.tag() in builtinNames and descriptorProvider.interface.identifier.name == 'AudioBuffer':
         result = CGGeneric(builtinNames[returnType.tag()])
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
@@ -6494,6 +6500,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::rust::define_properties',
         'js::rust::get_object_class',
         'js::typedarray',
+        'js::typedarray::Float32Array',
         'crate::dom',
         'crate::dom::bindings',
         'crate::dom::bindings::codegen::InterfaceObjectMap',
