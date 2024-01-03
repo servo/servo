@@ -22,7 +22,7 @@ DEPENDENCIES = {
     "moztools": "4.0",
 }
 
-URL_BASE = "https://gstreamer.freedesktop.org/data/pkg/windows/1.16.0/"
+URL_BASE = "https://github.com/servo/servo-build-deps/releases/download/msvc-deps/"
 GSTREAMER_URL = f"{URL_BASE}/gstreamer-1.0-msvc-x86_64-1.16.0.msi"
 GSTREAMER_DEVEL_URL = f"{URL_BASE}/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi"
 DEPENDENCIES_DIR = os.path.join(util.get_target_dir(), "dependencies")
