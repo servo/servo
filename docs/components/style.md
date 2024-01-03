@@ -124,11 +124,6 @@ Since no other selectors would apply to it, **this is (at least for now) not an
 acceptable type for public pseudo-elements, but should be considered for private
 pseudo-elements**.
 
-#### Not found what you were looking for?
-
-Feel free to ping @SimonSapin, @mbrubeck or @emilio on irc, and please mention
-that you didn't find it here so it can be added :)
-
 [style-doc]: https://doc.servo.org/style/index.html
 [wiki-styling-overview]: https://github.com/servo/servo/wiki/Styling-overview
 [selector-impl]: https://doc.servo.org/selectors/parser/trait.SelectorImpl.html
