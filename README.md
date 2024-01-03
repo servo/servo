@@ -42,8 +42,9 @@ manually, try the [manual build setup][manual-build].
 
  - Download and run [`rustup-init.exe`](https://win.rustup.rs/) then follow the onscreen instructions.
  - Install [chocolatey](https://chocolatey.org/)
+ - Install [Python 3.11](https://apps.microsoft.com/detail/9NRWMJP3717K?hl=en-US&gl=US)
  - Run `mach bootstrap`
-  - *This will install CMake, Git, Ninja, Python and the Visual Studio 2019 Build Tools
+  - *This will install CMake, Git, Ninja, and the Visual Studio 2019 Build Tools
      via choco in an Administrator console. It can take quite a while.*
   - *If you already have Visual Studio 2019 installed, this may not install all necessary components.
      Please follow the Visual Studio 2019 installation instructions in the [manual setup][manual-build].*
