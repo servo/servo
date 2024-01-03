@@ -95,10 +95,8 @@ clangStdenv.mkDerivation rec {
 
       # Override the install phase, because our build phase is no longer compatible.
       installPhase = ''
-        mkdir -p $out/bin $out/lib
+        mkdir -p $out/bin
         cp target/release/crown $out/bin
-        find target/release -maxdepth 1 -regex '.*\.\(so\.[0-9.]+\|so\|a\|dylib\)' \
-          -exec cp -v {} $out/lib \;
       '';
     }))
   ] ++ (lib.optionals stdenv.isDarwin [
