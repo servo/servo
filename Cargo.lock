@@ -1351,6 +1351,7 @@ dependencies = [
 name = "devtools"
 version = "0.0.1"
 dependencies = [
+ "chrono",
  "crossbeam-channel",
  "devtools_traits",
  "embedder_traits",
@@ -1364,7 +1365,6 @@ dependencies = [
  "servo_config",
  "servo_rand",
  "servo_url",
- "time 0.1.45",
  "uuid",
 ]
 

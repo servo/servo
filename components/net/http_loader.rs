@@ -8,7 +8,7 @@ use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_recursion::async_recursion;
 use crossbeam_channel::Sender;
@@ -52,7 +52,6 @@ use net_traits::{
 };
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use time::{self, Tm};
 use tokio::runtime::Runtime;
 use tokio::sync::mpsc::{
     channel, unbounded_channel, Receiver as TokioReceiver, Sender as TokioSender,
@@ -358,7 +357,7 @@ fn prepare_devtools_request(
     headers: HeaderMap,
     body: Option<Vec<u8>>,
     pipeline_id: PipelineId,
-    now: Tm,
+    now: SystemTime,
     connect_time: u64,
     send_time: u64,
     is_xhr: bool,
@@ -370,7 +369,7 @@ fn prepare_devtools_request(
         body: body,
         pipeline_id: pipeline_id,
         startedDateTime: now,
-        timeStamp: now.to_timespec().sec,
+        timeStamp: now.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64,
         connect_time: connect_time,
         send_time: send_time,
         is_xhr: is_xhr,
@@ -675,7 +674,7 @@ async fn obtain_response(
                             headers,
                             Some(devtools_bytes.lock().unwrap().clone()),
                             pipeline_id,
-                            time::now(),
+                            SystemTime::now(),
                             connect_end - connect_start,
                             send_end - send_start,
                             is_xhr,
