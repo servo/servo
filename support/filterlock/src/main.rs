@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Filter the given lockfile to only the given package and its dependencies.
+//!
+//! Usage: `filterlock <path/to/Cargo.lock> <package>`
+//!
+//! This helper is used only by the Nix shell environment (etc/shell.nix).
+
 use std::{fs::File, env::{args_os, args}, io::Read, collections::BTreeSet};
 
 use serde::{Deserialize, Serialize};
