@@ -19,7 +19,7 @@ clangStdenv.mkDerivation rec {
     gst_all_1.gst-plugins-base
     gst_all_1.gst-plugins-bad
 
-    rustup
+    # rustup # TODO NixOS only or set RUSTUP_HOME
     taplo
     llvmPackages.bintools # provides lld
 
