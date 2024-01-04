@@ -17,7 +17,7 @@ clangStdenv.mkDerivation rec {
     gst_all_1.gst-plugins-base
     gst_all_1.gst-plugins-bad
 
-    # rustup # TODO NixOS only or set RUSTUP_HOME
+    rustup
     taplo
     llvmPackages.bintools # provides lld
 
@@ -94,6 +94,11 @@ clangStdenv.mkDerivation rec {
       export NIX_DYNAMIC_LINKER=$(patchelf --print-interpreter /usr/bin/env)
       export NIX_DONT_SET_RPATH=1
       export NIX_LDFLAGS="$@"
+
+      # Don’t pollute ~/.rustup with toolchains installed by nixpkgs rustup, because they
+      # get patched in a way that makes them dependent on the Nix store.
+      repo_root=$(git rev-parse --show-toplevel)
+      export RUSTUP_HOME=$repo_root/.rustup
     fi
   '';
 }
