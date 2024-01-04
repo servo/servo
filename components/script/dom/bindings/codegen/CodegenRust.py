@@ -1460,6 +1460,8 @@ def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
     return "()"
 
 
+TODO_SWITCH_TO_FLOAT_32 = ['DOMMatrixReadOnly', 'XRView', 'XRRigidTransform', 'XRRay', 'GamepadPose']
+
 # Returns a CGThing containing the type of the return value.
 def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType is None or returnType.isUndefined():
@@ -1470,7 +1472,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
-    if returnType.isTypedArray() and returnType.tag() in builtinNames and descriptorProvider.interface.identifier.name == 'AudioBuffer':
+    if returnType.isTypedArray() and returnType.tag() in builtinNames and (not descriptorProvider.interface.identifier.name in TODO_SWITCH_TO_FLOAT_32):
         result = CGGeneric(builtinNames[returnType.tag()])
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
