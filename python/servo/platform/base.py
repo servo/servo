@@ -102,8 +102,8 @@ class Base:
         if not force and shutil.which("taplo") is not None:
             return False
 
-        if subprocess.call(["cargo", "install", "taplo-cli", "--locked"],
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
+        print(" * Installing taplo...")
+        if subprocess.call(["cargo", "install", "taplo-cli", "--locked"]) != 0:
             raise EnvironmentError("Installation of taplo failed.")
 
         return True
@@ -114,8 +114,8 @@ class Base:
         env = dict(os.environ)
         env["CARGO_BUILD_RUSTC"] = "rustc"
 
-        if subprocess.call(["cargo", "install", "--path", "support/crown"],
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env) != 0:
+        print(" * Installing crown (the Servo linter)...")
+        if subprocess.call(["cargo", "install", "--path", "support/crown"], env=env) != 0:
             raise EnvironmentError("Installation of crown failed.")
 
         return True
