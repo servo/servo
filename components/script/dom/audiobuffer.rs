@@ -3,13 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cmp::min;
-use std::ptr::{self, NonNull};
 
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject, JS_GetArrayBufferViewBuffer};
-use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
-use js::typedarray::{CreateWith, Float32Array};
+use js::typedarray::Float32Array;
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 
 use crate::dom::audionode::MAX_CHANNEL_COUNT;

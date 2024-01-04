@@ -4,21 +4,14 @@
 
 use std::ptr;
 
-use js::gc::Traceable;
-use js::jsapi::{Heap, JSObject, JSTracer, JS_GetArrayBufferViewBuffer};
+use js::jsapi::{Heap, JSObject, JS_GetArrayBufferViewBuffer};
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
 
 use crate::script_runtime::JSContext;
 
-unsafe impl Traceable for Float32ArrayOnHeap {
-    #[inline]
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        self.internal.trace(trc);
-    }
-}
-
+#[derive(JSTraceable)]
 pub struct Float32ArrayOnHeap {
     internal: Heap<*mut JSObject>,
 }
