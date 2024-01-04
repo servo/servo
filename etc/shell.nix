@@ -1,18 +1,19 @@
 # This provides a shell with all the necesarry packages required to run mach and build servo
 # NOTE: This does not work offline or for nix-build
 
-with import (builtins.fetchTarball { url = "https://github.com/NixOS/nixpkgs/archive/nixos-23.05.tar.gz"; }) {};
-let
-  oldPkgs = import (builtins.fetchTarball { url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz"; }) {};
-  inputs = [
+with import (builtins.fetchTarball {
+        url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
+    }) {};
+clangStdenv.mkDerivation rec {
+  name = "servo-env";
+
+  buildInputs = [
     # stdenv.cc.cc.lib
 
     # Native dependencies
     fontconfig freetype libunwind
-    glib
     xorg.libxcb
     xorg.libX11
-    zlib
 
     gst_all_1.gstreamer
     gst_all_1.gst-plugins-base
@@ -29,15 +30,10 @@ let
     # functionality in mozjs and causes builds to be extremely
     # slow as it behaves as if -j1 was passed.
     # See https://github.com/servo/mozjs/issues/375
-    oldPkgs.gnumake
+    gnumake
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
   ]);
-in
-clangStdenv.mkDerivation rec {
-  name = "servo-env";
-
-  buildInputs = inputs;
 
   LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
 
@@ -48,17 +44,14 @@ clangStdenv.mkDerivation rec {
   TERMINFO = "${ncurses.out}/share/terminfo";
 
   # Provide libraries that aren’t linked against but somehow required
-  LD_LIBRARY_PATH = lib.makeLibraryPath ([
-    # webrender build.rs
-    stdenv.cc.cc
-
+  LD_LIBRARY_PATH = lib.makeLibraryPath [
     # Fixes missing library errors
     xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon
 
     # [WARN  script::dom::gpu] Could not get GPUAdapter ("NotFound")
     # TLA Err: Error: Couldn't request WebGPU adapter.
     vulkan-loader
-  ]);
+  ];
 
   shellHook = ''
     # Fix invalid option errors during linking

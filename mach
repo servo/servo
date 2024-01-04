@@ -31,7 +31,7 @@ def main(args):
 if __name__ == '__main__':
     sys.dont_write_bytecode = True
 
-    if not 'IN_NIX_SHELL' in os.environ and not 'NIX_BUILD_TOP' in os.environ: # we're on a nixOS system, need to run mach in nix-shell
+    if not 'IN_NIX_SHELL' in os.environ: # we're on a nixOS system, need to run mach in nix-shell
         import subprocess
         from shlex import quote
         mach_dir = os.path.abspath(os.path.dirname(__file__))
