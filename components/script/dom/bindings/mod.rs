@@ -158,6 +158,7 @@ pub mod str;
 pub mod structuredclone;
 pub mod trace;
 pub mod transferable;
+pub mod typedarrays;
 pub mod utils;
 pub mod weakref;
 pub mod xmlname;
