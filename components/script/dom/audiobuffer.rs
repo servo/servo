@@ -261,8 +261,7 @@ impl AudioBufferMethods for AudioBuffer {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-getchanneldata
-    #[allow(unsafe_code)]
-    fn GetChannelData(&self, cx: JSContext, channel: u32) -> Fallible<NonNull<JSObject>> {
+    fn GetChannelData(&self, cx: JSContext, channel: u32) -> Fallible<Float32Array> {
         if channel >= self.number_of_channels {
             return Err(Error::IndexSize);
         }
@@ -270,11 +269,9 @@ impl AudioBufferMethods for AudioBuffer {
         if !self.restore_js_channel_data(cx) {
             return Err(Error::JSFailed);
         }
-        unsafe {
-            Ok(NonNull::new_unchecked(
-                self.js_channels.borrow()[channel as usize].get(),
-            ))
-        }
+
+        Float32Array::from(self.js_channels.borrow()[channel as usize].get())
+            .map_err(|_| Error::JSFailed)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-copyfromchannel
