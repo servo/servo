@@ -1,17 +1,23 @@
 # This provides a shell with all the necesarry packages required to run mach and build servo
 # NOTE: This does not work offline or for nix-build
 
-with import <nixpkgs> {};
+with import <nixpkgs> {
+  overlays = [
+    (import (builtins.fetchTarball {
+      # Bumped the channel in rust-toolchain.toml? Bump this commit too!
+      url = "https://github.com/oxalica/rust-overlay/archive/a0df72e106322b67e9c6e591fe870380bd0da0d5.tar.gz";
+    }))
+  ];
+};
 let
     pinnedNixpkgs = import (builtins.fetchTarball {
       url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
     }) {};
-
-    # Keep this in sync with rust-toolchain.toml!
-    nixpkgs_rust_1_74 = import (builtins.fetchTarball {
-      url = "https://github.com/NixOS/nixpkgs/archive/65f0d241783c94a08e4c9a3870736fc8854dd520.tar.gz";
-    }) {};
-    inherit (nixpkgs_rust_1_74) rustPlatform cargo;
+    rustToolchain = rust-bin.fromRustupToolchainFile ../rust-toolchain.toml;
+    rustPlatform = makeRustPlatform {
+      cargo = rustToolchain;
+      rustc = rustToolchain;
+    };
 in
 clangStdenv.mkDerivation rec {
   name = "servo-env";
@@ -58,7 +64,7 @@ clangStdenv.mkDerivation rec {
       # Build and run filterlock over the main Cargo.lock.
       filteredLockFile = (clangStdenv.mkDerivation {
         name = "lock";
-        buildInputs = [ cargo ];
+        buildInputs = [ rustToolchain ];
         src = ../support/filterlock;
         buildPhase = ''
           tar xzf ${vendorTarball}
@@ -71,8 +77,6 @@ clangStdenv.mkDerivation rec {
     in (rustPlatform.buildRustPackage rec {
       name = "crown";
       src = ../support/crown;
-      stdenv = nixpkgs_rust_1_74.clangStdenv;
-      buildInputs = [ nixpkgs_rust_1_74.llvmPackages.libllvm ];
       doCheck = false;
       cargoLock = {
         lockFileContents = builtins.readFile filteredLockFile;
