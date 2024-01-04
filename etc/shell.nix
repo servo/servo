@@ -1,10 +1,9 @@
 # This provides a shell with all the necesarry packages required to run mach and build servo
 # NOTE: This does not work offline or for nix-build
 
-with import (builtins.fetchTarball {
-        url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
-    }) {};
+with import (builtins.fetchTarball { url = "https://github.com/NixOS/nixpkgs/archive/nixos-23.05.tar.gz"; }) {};
 let
+  oldPkgs = import (builtins.fetchTarball { url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz"; }) {};
   inputs = [
     # stdenv.cc.cc.lib
 
@@ -30,7 +29,7 @@ let
     # functionality in mozjs and causes builds to be extremely
     # slow as it behaves as if -j1 was passed.
     # See https://github.com/servo/mozjs/issues/375
-    gnumake
+    oldPkgs.gnumake
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
   ]);
@@ -49,7 +48,7 @@ clangStdenv.mkDerivation rec {
   TERMINFO = "${ncurses.out}/share/terminfo";
 
   # Provide libraries that aren’t linked against but somehow required
-  LD_LIBRARY_PATH = lib.makeLibraryPath (inputs ++ [
+  LD_LIBRARY_PATH = lib.makeLibraryPath ([
     # webrender build.rs
     stdenv.cc.cc
 
