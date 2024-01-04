@@ -8,8 +8,6 @@ clangStdenv.mkDerivation rec {
   name = "servo-env";
 
   buildInputs = [
-    # stdenv.cc.cc.lib
-
     # Native dependencies
     fontconfig freetype libunwind
     xorg.libxcb
