@@ -81,7 +81,8 @@ clangStdenv.mkDerivation rec {
       cargoLock = {
         lockFileContents = builtins.readFile filteredLockFile;
 
-        # Needed when filteredLockFile = ../Cargo.lock.
+        # Needed when not filtering (filteredLockFile = ../Cargo.lock), else we’ll get errors like
+        # “error: No hash was found while vendoring the git dependency blurmac-0.1.0.”
         # allowBuiltinFetchGit = true;
       };
 
