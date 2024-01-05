@@ -4949,7 +4949,7 @@ dependencies = [
  "image",
  "indexmap 2.1.0",
  "ipc-channel",
- "itertools 0.10.5",
+ "itertools 0.12.0",
  "jstraceable_derive",
  "keyboard-types",
  "lazy_static",
@@ -5441,7 +5441,7 @@ dependencies = [
 name = "servo_config_plugins"
 version = "0.0.1"
 dependencies = [
- "itertools 0.10.5",
+ "itertools 0.12.0",
  "proc-macro2",
  "quote",
  "syn 2.0.46",
