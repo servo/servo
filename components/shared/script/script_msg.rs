@@ -258,7 +258,7 @@ pub enum ScriptMsg {
     MediaSessionEvent(PipelineId, MediaSessionEvent),
     /// Create a WebGPU Adapter instance
     RequestAdapter(
-        IpcSender<WebGPUResponseResult>,
+        IpcSender<Option<WebGPUResponseResult>>,
         wgpu::instance::RequestAdapterOptions,
         SmallVec<[wgpu::id::AdapterId; 4]>,
     ),
