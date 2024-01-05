@@ -372,13 +372,15 @@ def resolve_rpath(lib, rpath_root):
     raise Exception("Unable to satisfy rpath dependency: " + lib)
 
 
-def copy_dependencies(binary_path, lib_path, gst_root):
+def copy_dependencies(binary_path, lib_path, gst_lib_dir):
     relative_path = path.relpath(lib_path, path.dirname(binary_path)) + "/"
 
     # Update binary libraries
     binary_dependencies = set(otool(binary_path))
     change_non_system_libraries_path(binary_dependencies, relative_path, binary_path)
-    binary_dependencies = binary_dependencies.union(macos_plugins())
+
+    plugins = [os.path.join(gst_lib_dir, "gstreamer-1.0", plugin) for plugin in macos_plugins()]
+    binary_dependencies = binary_dependencies.union(plugins)
 
     # Update dependencies libraries
     need_checked = binary_dependencies
@@ -390,7 +392,7 @@ def copy_dependencies(binary_path, lib_path, gst_root):
             # No need to check these for their dylibs
             if is_system_library(f):
                 continue
-            full_path = resolve_rpath(f, gst_root)
+            full_path = resolve_rpath(f, gst_lib_dir)
             need_relinked = set(otool(full_path))
             new_path = path.join(lib_path, path.basename(full_path))
             if not path.exists(new_path):
@@ -427,41 +429,8 @@ def package_gstreamer_dlls(env, servo_exe_dir, target):
         print("Could not find GStreamer installation directory.")
         return False
 
-    # All the shared libraries required for starting up and loading plugins.
-    gst_dlls = [
-        "avcodec-59.dll",
-        "avfilter-8.dll",
-        "avformat-59.dll",
-        "avutil-57.dll",
-        "bz2.dll",
-        "ffi-7.dll",
-        "gio-2.0-0.dll",
-        "glib-2.0-0.dll",
-        "gmodule-2.0-0.dll",
-        "gobject-2.0-0.dll",
-        "graphene-1.0-0.dll",
-        "intl-8.dll",
-        "libcrypto-1_1-x64.dll",
-        "libjpeg-8.dll",
-        "libogg-0.dll",
-        "libpng16-16.dll",
-        "libssl-1_1-x64.dll",
-        "libvorbis-0.dll",
-        "libvorbisenc-2.dll",
-        "libwinpthread-1.dll",
-        "nice-10.dll",
-        "opus-0.dll",
-        "orc-0.4-0.dll",
-        "pcre2-8-0.dll",
-        "swresample-4.dll",
-        "theora-0.dll",
-        "theoradec-1.dll",
-        "theoraenc-1.dll",
-        "z-1.dll",
-    ] + windows_dlls()
-
     missing = []
-    for gst_lib in gst_dlls:
+    for gst_lib in windows_dlls():
         try:
             shutil.copy(path.join(gst_root, "bin", gst_lib), servo_exe_dir)
         except Exception:
