@@ -1,12 +1,11 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ /**
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/ /**
  * Generates the boundary entries for the given number of dimensions
  *
  * @param numDimensions: The number of dimensions to generate for
  * @returns an array of generated coord boundaries
- */ export function generateCoordBoundaries(numDimensions) {
-  const ret = ['in-bounds'];
+ */export function generateCoordBoundaries(numDimensions) {const ret = ['in-bounds'];
 
   if (numDimensions < 1 || numDimensions > 3) {
     throw new Error(`invalid numDimensions: ${numDimensions}`);

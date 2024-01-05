@@ -1,23 +1,22 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Flow control tests for interesting complex cases.
-`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../gpu_test.js';
 
 import { runFlowControlTest } from './harness.js';
 
 export const g = makeTestGroup(GPUTest);
 
-g.test('continue_in_switch_in_for_loop')
-  .desc('Test flow control for a continue statement in a switch, in a for-loop')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f =>
-        `
+g.test('continue_in_switch_in_for_loop').
+desc('Test flow control for a continue statement in a switch, in a for-loop').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) =>
+    `
   ${f.expect_order(0)}
   for (var i = ${f.value(0)}; i < 3; i++) {
     ${f.expect_order(1, 4, 6)}
@@ -39,5 +38,5 @@ g.test('continue_in_switch_in_for_loop')
   }
   ${f.expect_order(9)}
 `
-    );
-  });
+  );
+});

@@ -1,6 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Tests of the behavior of the viewport/scissor/blend/reference states.
 
 TODO:
@@ -13,8 +13,7 @@ TODO:
         - overwriting: [set(1), draw, set(2), draw] (fn should differentiate from [set(1), set(2), draw, draw])
         - overwriting: [set(1), set(2), draw] (fn should differentiate from [set(1), draw] but not [set(2), draw])
         - }
-`;
-import { makeTestGroup } from '../../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
 
 export const g = makeTestGroup(GPUTest);

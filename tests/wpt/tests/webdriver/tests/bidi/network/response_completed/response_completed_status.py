@@ -11,9 +11,11 @@
 
 import pytest
 
-from .. import assert_response_event, HTTP_STATUS_AND_STATUS_TEXT
-
-RESPONSE_COMPLETED_EVENT = "network.responseCompleted"
+from .. import (
+    assert_response_event,
+    HTTP_STATUS_AND_STATUS_TEXT,
+    RESPONSE_COMPLETED_EVENT,
+)
 
 
 @pytest.mark.parametrize(

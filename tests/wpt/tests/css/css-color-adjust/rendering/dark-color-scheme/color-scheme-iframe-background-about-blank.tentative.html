@@ -1,0 +1,13 @@
+<!doctype html>
+<title>CSS Color Adjustment Test: about:blank doesn't cause a white backdrop in dark mode even though technically its color-scheme is mismatched</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9624">
+<link rel="match" href="color-scheme-iframe-background-about-blank-ref.html">
+<style>
+:root { color-scheme: dark }
+</style>
+<p>Should not see a white frame below</p>
+<iframe width="600" height="400"></iframe>
+<script>
+  document.querySelector("iframe").contentWindow.stop();
+</script>

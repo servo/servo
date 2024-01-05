@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml" clip-path="url(#clip1)">
+<g id="testmeta">
+	<title>CSS Masking: Clipped clipPath on root &lt;svg></title>
+	<html:link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#svg-clipping-paths"/>
+	<html:link rel="help" href="http://www.w3.org/TR/css-masking-1/#ClipPathElement"/>
+	<html:link rel="match" href="reference/clip-path-square-002-ref.svg" />
+	<metadata class="flags">svg</metadata>
+	<desc class="assert">A clipPath element can be applied to a root
+	&lt;svg> element. This clipPath element can be clipped itself. You
+	should see a green square.</desc>
+</g>
+<clipPath id="clip2">
+    <rect width="150" height="150"/>
+</clipPath>
+<clipPath id="clip1">
+    <rect x="50" y="50" width="175" height="175"/>
+</clipPath>
+<svg clip-path="url(#clip2)">
+    <rect width="200" height="200" fill="green"/>
+</svg>
+</svg>

@@ -60,6 +60,34 @@ var tests = [
     ]
   },
   {
+    name: "HTTP cache does not reuse a response with an invalid Expires with Last-Modified now",
+    requests: [
+      {
+        response_headers: [
+          ["Expires", "0"],
+          ['Last-Modified', 0]
+        ]
+      },
+      {
+        expected_type: "not_cached"
+      }
+    ]
+  },
+  {
+    name: "HTTP cache does not reuse a response with an invalid Expires with past Last-Modified",
+    requests: [
+      {
+        response_headers: [
+          ["Expires", "0"],
+          ['Last-Modified', -100000]
+        ]
+      },
+      {
+        expected_type: "not_cached"
+      }
+    ]
+  },
+  {
     name: "HTTP cache reuses a response with positive Cache-Control: max-age",
     requests: [
       {

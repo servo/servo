@@ -27,7 +27,7 @@ use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct StyleSheetInDocument {
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -68,7 +68,7 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
 }
 
 // https://w3c.github.io/webcomponents/spec/shadow/#extensions-to-the-documentorshadowroot-mixin
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct DocumentOrShadowRoot {
     window: Dom<Window>,
@@ -199,7 +199,7 @@ impl DocumentOrShadowRoot {
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_stylesheet(
         owner: &Element,
         s: &Arc<Stylesheet>,
@@ -220,7 +220,7 @@ impl DocumentOrShadowRoot {
 
     /// Add a stylesheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn add_stylesheet(
         owner: &Element,
         mut stylesheets: StylesheetSetRef<StyleSheetInDocument>,

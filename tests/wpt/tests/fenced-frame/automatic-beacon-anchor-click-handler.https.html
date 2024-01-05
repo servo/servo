@@ -19,8 +19,9 @@ promise_test(async(t) => {
      origin: get_host_info().HTTPS_REMOTE_ORIGIN});
   const new_url = new URL("resources/dummy.html", location.href);
   const beacon_data = "This is the second test's beacon data!";
+  const beacon_type = "reserved.top_navigation_commit";
 
-  await fencedframe.execute((new_url, beacon_data) => {
+  await fencedframe.execute((new_url, beacon_data, beacon_type) => {
     let a = document.createElement('a');
     a.textContent = "Click me!";
     a.href = new_url;
@@ -36,7 +37,7 @@ promise_test(async(t) => {
     // data makes it to the correct place by the time the navigation commits.
     a.onclick = () => {
       let beacon_event = {
-        eventType: "reserved.top_navigation_commit",
+        eventType: beacon_type,
         eventData: beacon_data,
         destination: ["buyer"],
       }
@@ -44,7 +45,7 @@ promise_test(async(t) => {
     };
     document.body.appendChild(a);
 
-  }, [new_url, beacon_data]);
+  }, [new_url, beacon_data, beacon_type]);
 
   // This will trigger the beacon data storing + navigation.
   await actions.pointerMove(0, 0, {origin: fencedframe.element})
@@ -52,7 +53,8 @@ promise_test(async(t) => {
                .pointerUp()
                .send();
 
-  const beacon_initiator_origin = await nextAutomaticBeacon(beacon_data);
+  const beacon_initiator_origin =
+      await nextAutomaticBeacon(beacon_type, beacon_data);
   assert_equals(beacon_initiator_origin, get_host_info().HTTPS_ORIGIN);
 
   // Leaving this fenced frame around for subsequent tests can lead to

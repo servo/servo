@@ -39,7 +39,7 @@ impl PerformancePaintTiming {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         global: &GlobalScope,
         metric_type: ProgressiveWebMetricType,

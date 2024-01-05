@@ -8,7 +8,14 @@
 
 <script>
 function testNullable(element, jsAttr, contentAttr) {
+    var originalValue = element[jsAttr];
+    assert_false(originalValue === null);
     element[jsAttr] = null;
+    assert_equals(element[jsAttr], null);
+    assert_false(element.hasAttribute(contentAttr));
+    // Setting to undefined results in same state as setting to null.
+    element[jsAttr] = originalValue;
+    element[jsAttr] = undefined;
     assert_equals(element[jsAttr], null);
     assert_false(element.hasAttribute(contentAttr));
 }

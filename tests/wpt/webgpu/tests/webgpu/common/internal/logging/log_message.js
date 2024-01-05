@@ -1,7 +1,9 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { extractImportantStackTrace } from '../stack.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { extractImportantStackTrace } from '../stack.js';
 export class LogMessageWithStack extends Error {
+
+
   stackHiddenMessage = undefined;
 
   constructor(name, ex) {

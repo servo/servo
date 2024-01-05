@@ -20,7 +20,6 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
-    "ahash",
     "bitflags",
     "cfg-if",
     "cookie",
@@ -29,7 +28,8 @@ packages = [
     "nix",
     "num-rational",
     "redox_syscall",
-    "socket2",
+    "syn",
+    "synstructure",
     "time",
     "wasi",
     "wayland-sys",
@@ -55,11 +55,13 @@ packages = [
     "metal",
     "paste",
 
-    # Duplicated by Gecko crates that haven't been updated yet (style, shmem, derive_common, ...).
-    "syn",
-    "synstructure",
+    # Duplicated by indexmap.
+    "hashbrown",
 
-    # style/webxr (0.62) vs. mozjs_sys (0.66)
+    # Duplicated by style, cbindgen, clap.
+    "indexmap",
+
+    # style (0.64) vs. webxr (0.66) vs. mozjs_sys (0.68).
     "bindgen",
 ]
 # Files that are ignored for all tidy and lint checks.
@@ -96,6 +98,8 @@ files = [
 ]
 # Directories that are ignored for the non-WPT tidy check.
 directories = [
+    # Test have expectations in them, causing tidy to fail.
+    "./support/crown/tests",
     # Upstream
     "./support/android/apk",
     "./tests/wpt/harness",
@@ -103,7 +107,7 @@ directories = [
     "./tests/wpt/mozilla/tests/mozilla/referrer-policy",
     "./tests/wpt/mozilla/tests/webgl",
     "./python/tidy/tests",
-    "./python/_virtualenv*",
+    "./python/_v*",
     "./python/mach",
     # Generated and upstream code combined with our own. Could use cleanup
     "./target",

@@ -28,8 +28,8 @@ function delayed_assert_done(t, w, windowProxySelfReference) {
   async_test(t => {
     const otherW = window.open();
     assert_equals(otherW[windowProxySelfReference], otherW, `${windowProxySelfReference} is broken`);
-    otherW.onunload = t.step_func(() => {
-      assert_equals(otherW[windowProxySelfReference], otherW, `${windowProxySelfReference} got cleared after browsing context unload`);
+    otherW.onpagehide = t.step_func(() => {
+      assert_equals(otherW[windowProxySelfReference], otherW, `${windowProxySelfReference} got cleared after browsing context pagehide`);
       t.step_timeout(() => {
         assert_equals(otherW.opener, null); // Ensure browsing context is discarded
         assert_equals(otherW[windowProxySelfReference], otherW, `${windowProxySelfReference} got cleared after browsing context removal`);

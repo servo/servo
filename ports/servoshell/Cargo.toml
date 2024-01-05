@@ -4,7 +4,7 @@ name = "servoshell"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
+edition = "2021"
 build = "build.rs"
 publish = false
 
@@ -14,7 +14,7 @@ path = "main.rs"
 bench = false
 
 [build-dependencies]
-vergen = { version = "8.2.6", features = ["git", "gitcl"] }
+vergen = { version = "8.2.6", features = ["git", "git2"] }
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"

@@ -5,13 +5,13 @@
 #state-and-part::part(inner) {
   opacity: 0;
 }
-#state-and-part::part(inner):--innerFoo {
+#state-and-part::part(inner):state(innerFoo) {
   opacity: 0.5;
 }
-#state-and-part:--outerFoo::part(inner) {
+#state-and-part:state(outerFoo)::part(inner) {
   opacity: 0.25;
 }
-:--\(escaped\ state {}
+:state(--\)escaped\ state) {}
 </style>
 <body>
 <script>
@@ -37,7 +37,7 @@ class ContainerElement extends HTMLElement {
 :host {
   border-style: solid;
 }
-:host(:--dotted) {
+:host(:state(dotted)) {
   border-style: dotted;
 }
 </style>
@@ -54,38 +54,44 @@ class ContainerElement extends HTMLElement {
 customElements.define('container-element', ContainerElement);
 
 test(() => {
-  document.querySelector(':--');
-  document.querySelector(':--16px');
-}, ':--foo parsing passes');
+  document.querySelector(':state(foo)');
+  document.querySelector(':state(--foo)');
+  document.querySelector(':state(--)');
+  document.querySelector(':state(--16px)');
+}, ':state() parsing passes');
 
 test(() => {
   assert_throws_dom('SyntaxError', () => { document.querySelector(':--('); });
+  assert_throws_dom('SyntaxError', () => { document.querySelector(':--()'); });
+  assert_throws_dom('SyntaxError', () => { document.querySelector(':state()'); });
   assert_throws_dom('SyntaxError', () => { document.querySelector(':--)'); });
   assert_throws_dom('SyntaxError', () => { document.querySelector(':--='); });
   assert_throws_dom('SyntaxError', () => { document.querySelector(':--name=value'); });
-}, ':--foo parsing failures');
+  assert_throws_dom('SyntaxError', () => { document.querySelector(':state(--name=value'); });
+  assert_throws_dom('SyntaxError', () => { document.querySelector(':state(--name=value)'); });
+}, ':state() parsing failures');
 
 test(() => {
   assert_equals(document.styleSheets[0].cssRules[1].cssText,
-      '#state-and-part::part(inner):--innerFoo { opacity: 0.5; }');
+      '#state-and-part::part(inner):state(innerFoo) { opacity: 0.5; }');
   assert_equals(document.styleSheets[0].cssRules[3].selectorText,
-      ':--\\(escaped\\ state');
-}, ':--foo serialization');
+      ':state(--\\)escaped\\ state)');
+}, ':state(foo) serialization');
 
 test(() => {
   let element = new TestElement();
   let states = element.i.states;
 
-  assert_false(element.matches(':--foo'));
-  assert_true(element.matches(':not(:--foo)'));
-  states.add('--foo');
-  assert_true(element.matches(':--foo'));
-  assert_true(element.matches(':is(:--foo)'));
+  assert_false(element.matches(':state(foo)'));
+  assert_true(element.matches(':not(:state(foo))'));
+  states.add('foo');
+  assert_true(element.matches(':state(foo)'));
+  assert_true(element.matches(':is(:state(foo))'));
   element.classList.add('c1', 'c2');
-  assert_true(element.matches('.c1:--foo'));
-  assert_true(element.matches(':--foo.c1'));
-  assert_true(element.matches('.c2:--foo.c1'));
-}, ':--foo in simple cases');
+  assert_true(element.matches('.c1:state(foo)'));
+  assert_true(element.matches(':state(foo).c1'));
+  assert_true(element.matches('.c2:state(foo).c1'));
+}, ':state(foo) in simple cases');
 
 test(() => {
   let element = new TestElement();
@@ -94,10 +100,10 @@ test(() => {
   element.focus();
   let states = element.i.states;
 
-  states.add('--foo');
-  assert_true(element.matches(':focus:--foo'));
-  assert_true(element.matches(':--foo:focus'));
-}, ':--foo and other pseudo classes');
+  states.add('foo');
+  assert_true(element.matches(':focus:state(foo)'));
+  assert_true(element.matches(':state(foo):focus'));
+}, ':state(foo) and other pseudo classes');
 
 test(() => {
   let outer = new ContainerElement();
@@ -106,27 +112,27 @@ test(() => {
   let inner = outer.innerElement;
   let innerStates = inner.i.states;
 
-  innerStates.add('--innerFoo');
+  innerStates.add(':state(innerFoo)');
   assert_equals(getComputedStyle(inner).opacity, '0.5',
-      '::part() followed by :--foo');
-  innerStates.delete('--innerFoo');
-  innerStates.add('--innerfoo');
+      '::part() followed by :state(innerFoo)');
+  innerStates.delete('innerFoo');
+  innerStates.add('innerfoo');
   assert_equals(getComputedStyle(inner).opacity, '0',
-      ':--foo matching should be case-sensitive');
-  innerStates.delete('--innerfoo');
+      ':state(foo) matching should be case-sensitive');
+  innerStates.delete('innerfoo');
 
-  outer.i.states.add('--outerFoo');
+  outer.i.states.add('outerFoo');
   assert_equals(getComputedStyle(inner).opacity, '0.25',
-      ':--foo followed by ::part()');
-}, ':--foo and ::part()');
+      ':state(foo) followed by ::part()');
+}, ':state(foo) and ::part()');
 
 test(() => {
   let outer = new ContainerElement();
   document.body.appendChild(outer);
 
   assert_equals(getComputedStyle(outer).borderStyle, 'solid');
-  outer.i.states.add('--dotted');
+  outer.i.states.add('dotted');
   assert_equals(getComputedStyle(outer).borderStyle, 'dotted');
-}, ':--foo and :host()');
+}, ':state(foo) and :host()');
 </script>
 </body>

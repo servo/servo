@@ -73,6 +73,7 @@ dictionary WebTransportCloseInfo {
 dictionary WebTransportSendStreamOptions {
   WebTransportSendGroup? sendGroup = null;
   long long sendOrder = 0;
+  boolean waitUntilAvailable = false;
 };
 
 dictionary WebTransportConnectionStats {

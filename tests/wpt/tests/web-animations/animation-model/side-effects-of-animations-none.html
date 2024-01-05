@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>
+  Animations not in effect nor current shouldn't have side-effects.
+</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#side-effects-section">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="side-effects-of-animations-none-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  .testcase {
+    position: relative;
+    margin: 2px;
+    border: 1px solid black;
+    width: 250px;
+    height: 25px;
+  }
+  .container {
+    background-color: lightgrey;
+    margin: 4px;
+    display: flex;
+    width: 600px;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .label {
+    flex-grow: 1;
+  }
+  .target {
+    width: 100%;
+    height: 100%;
+  }
+  .absolutebox {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .pass {
+    background-color: limegreen;
+  }
+  .fail {
+    background-color: red;
+  }
+</style>
+
+<script>
+const PHASE_BEFORE = 10;
+const PHASE_AFTER = 12;
+
+// Start an animation and put it into a state that's neither current nor in
+// effect.
+function setupAnimation(testcase, phase) {
+  const root = document.querySelector(testcase);
+  const effect_target = root.querySelector('.target');
+  const keyframe = { opacity: 1};
+  const options = { duration: 1000, delay: 1000, endDelay: 1000 };
+
+  const animation = effect_target.animate(
+    [ keyframe, keyframe ], options);
+
+  if (phase == PHASE_BEFORE) {
+    animation.currentTime = 500;
+    animation.playbackRate = -1;
+  } else if (phase == PHASE_AFTER) {
+    animation.currentTime = 2500;
+  } else {
+    throw new Error('Unexpected phase');
+  }
+
+  animation.pause();
+}
+
+onload = requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+</script>
+
+<!-- before phase playing backwards -->
+<div class="container">
+  <div class="label">Before phase</div>
+  <div class="testcase" id="before">
+    <div class="absolutebox pass"></div>
+    <div class="target fail"></div>
+  </div>
+</div>
+<script>
+  setupAnimation('#before', PHASE_BEFORE);
+</script>
+
+<!-- after phase playing forwards-->
+<div class="container">
+  <div class="label">After phase</div>
+  <div class="testcase" id="after">
+    <div class="absolutebox pass"></div>
+    <div class="target fail"></div>
+  </div>
+</div>
+<script>
+  setupAnimation('#after', PHASE_AFTER);
+</script>
+
+</html>

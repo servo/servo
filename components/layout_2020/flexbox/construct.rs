@@ -165,6 +165,7 @@ where
                 } => {
                     let display_inside = match display {
                         DisplayGeneratingBox::OutsideInside { inside, .. } => inside,
+                        DisplayGeneratingBox::LayoutInternal(_) => display.display_inside(),
                     };
                     let box_ = if info.style.get_box().position.is_absolutely_positioned() {
                         // https://drafts.csswg.org/css-flexbox/#abspos-items

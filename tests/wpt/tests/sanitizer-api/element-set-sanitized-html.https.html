@@ -14,15 +14,22 @@
   }
 
   function assert_node_equals(node1, node2) {
-    assert_true(node1 instanceof Node && node1.isEqualNode(node2),
+    assert_equals(node2.innerHTML, node1.innerHTML);
+    assert_true(node1.isEqualNode(node2),
         `Node[${node1.innerHTML}] == Node[${node2.innerHTML}]`);
+    // TODO(https://github.com/WICG/sanitizer-api/issues/202)
+    /*
+    if (node1 instanceof HTMLTemplateElement) {
+      assert_true(node1.content.isEqualNode(node2.content), "<template> content is equal");
+    }
+    */
   }
 
   for (const context of ["script", "iframe", "object", "div"]) {
     const should_fail = context != "div";
     test(t => {
       let elem = document.createElement(context);
-      let probe_fn = _ => elem.setHTML("<div>Hello!</div>", new Sanitizer());
+      let probe_fn = _ => elem.setHTML("<div>Hello!</div>");
       if (should_fail) {
         assert_throws_js(TypeError, probe_fn);
       } else {
@@ -32,11 +39,11 @@
     }, `${context}.setHTML should ${should_fail ? "fail" : "pass"}.`);
   }
 
-  for(const context of ["div", "template", "table"]) {
+  for (const context of ["div", "template", "table"]) {
     const elem1 = document.createElement(context);
     const elem2 = document.createElement(context);
     for (const probe of ["<em>Hello</em>", "<td>data</td>"]) {
-      elem1.setHTML(probe, new Sanitizer());
+      elem1.setHTML(probe, {});
       elem2.innerHTML = probe;
       test(t => {
         assert_node_equals(elem2, elem1);
@@ -47,8 +54,7 @@
   for (const testcase of testcases) {
     const element = document.createElement("template");
     test(t => {
-      let s = new Sanitizer(testcase.config_input);
-      element.setHTML(testcase.value, {sanitizer: s });
+      element.setHTML(testcase.value, {sanitizer: testcase.config_input });
       assert_node_equals(buildNode(element.localName, testcase.result), element);
     }, "Sanitizer: Element.setHTML with config: " + testcase.message);
   }
@@ -56,9 +62,9 @@
   [
     undefined,
     {},
-    { sanitizer: new Sanitizer() },
+    { sanitizer: {} },
     { sanitizer: undefined },
-    { avocado: new Sanitizer() },
+    { avocado: {} },
   ].forEach((options, index) => {
     test(t => {
       const e = document.createElement("div");
@@ -69,9 +75,8 @@
 
   [
     "tomato",
-    { sanitizer: null },
+    { sanitizer: false },
     { sanitizer: "avocado" },
-    { sanitizer: { allowElements: [ "a", "b", "c" ] } },
   ].forEach((options, index) => {
     test(t => {
       assert_throws_js(TypeError, _ => {
@@ -79,33 +84,6 @@
       });
     }, `Sanitizer: Element.setHTML invalid options dictionary #${index}`);
   });
-
-  test(t => {
-    const sanitizer = new Sanitizer({allowElements: ["b"]});
-    const element = document.createElement("div");
-
-    // WebIDL magic: An IDL dictionary is mapped to a JS object. Thus, a plain
-    // Sanitizer instance will be accepted as an options dictionary. However,
-    // it will then try to read the .sanitizer property of the Sanitizer, and
-    // since that doesn't usually exist will treat it as an empty dictionary.
-    //
-    // Ref: https://webidl.spec.whatwg.org/#es-dictionary
-
-    // Sanitizer instance in the dictionary: Config is applied.
-    element.setHTML("<em>celery</em>", {sanitizer: sanitizer});
-    assert_equals(element.innerHTML, "celery");
-
-    // Same Sanitizer instance, passed directly: Is like an empty dictionary
-    // and config is not applied.
-    element.setHTML("<em>celery</em>", sanitizer);
-    assert_equals(element.innerHTML, "<em>celery</em>");
-
-    // Sanitizer-ception: Set the Sanitizer as the .sanitizer property on itself.
-    // Now the config is applied. It's magic. Just not the good kind of magic.
-    sanitizer.sanitizer = sanitizer;
-    element.setHTML("<em>celery</em>", sanitizer);
-    assert_equals(element.innerHTML, "celery");
-  }, "Sanitizer: Element.setHTML with sanitizer instance.");
 </script>
 </body>
 </html>

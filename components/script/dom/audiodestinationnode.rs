@@ -37,7 +37,7 @@ impl AudioDestinationNode {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         global: &GlobalScope,
         context: &BaseAudioContext,

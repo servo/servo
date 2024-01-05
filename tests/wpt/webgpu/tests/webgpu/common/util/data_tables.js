@@ -1,17 +1,17 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/
 
 export function keysOf(obj) {
   return Object.keys(obj);
 }
 
 export function numericKeysOf(obj) {
-  return Object.keys(obj).map(n => Number(n));
+  return Object.keys(obj).map((n) => Number(n));
 }
 
 /**
- * @returns a new Record from @p objects, using the string returned by Object.toString() as the keys
+ * @returns a new Record from `objects`, using the string returned by Object.toString() as the keys
  * and the objects as the values.
  */
 export function objectsToRecord(objects) {
@@ -19,7 +19,7 @@ export function objectsToRecord(objects) {
   return objects.reduce((obj, type) => {
     return {
       ...obj,
-      [type.toString()]: type,
+      [type.toString()]: type
     };
   }, record);
 }
@@ -29,7 +29,17 @@ export function objectsToRecord(objects) {
  *
  * Note: Using `as const` on the arguments to this function is necessary to infer the correct type.
  */
-export function makeTable(members, defaults, table) {
+export function makeTable(
+
+
+
+
+members,
+defaults,
+table)
+
+
+{
   const result = {};
   for (const [k, v] of Object.entries(table)) {
     const item = {};
@@ -85,15 +95,27 @@ export function makeTable(members, defaults, table) {
  * @param defaults the default value by column for any element in a row of the table that is undefined
  * @param table named table rows.
  */
-export function makeTableRenameAndFilter(columnRenames, columnsKept, columns, defaults, table) {
+export function makeTableRenameAndFilter(
+
+
+
+
+
+columnRenames,
+columnsKept,
+columns,
+defaults,
+table)
+
+
+{
   const result = {};
   const keyToIndex = new Map(
-    columnsKept.map(name => {
+    columnsKept.map((name) => {
       const remappedName = columnRenames[name] === undefined ? name : columnRenames[name];
       return [name, columns.indexOf(remappedName)];
     })
   );
-
   for (const [k, v] of Object.entries(table)) {
     const item = {};
     for (const member of columnsKept) {

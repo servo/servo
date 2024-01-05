@@ -1,23 +1,22 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Flow control tests for while-loops.
-`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../gpu_test.js';
 
 import { runFlowControlTest } from './harness.js';
 
 export const g = makeTestGroup(GPUTest);
 
-g.test('while_basic')
-  .desc('Test that flow control executes a while-loop body the correct number of times')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f =>
-        `
+g.test('while_basic').
+desc('Test that flow control executes a while-loop body the correct number of times').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) =>
+    `
   ${f.expect_order(0)}
   var i = ${f.value(0)};
   while (i < ${f.value(5)}) {
@@ -26,17 +25,17 @@ g.test('while_basic')
   }
   ${f.expect_order(6)}
 `
-    );
-  });
+  );
+});
 
-g.test('while_break')
-  .desc('Test that flow control exits a while-loop when reaching a break statement')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f =>
-        `
+g.test('while_break').
+desc('Test that flow control exits a while-loop when reaching a break statement').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) =>
+    `
   ${f.expect_order(0)}
   var i = ${f.value(0)};
   while (i < ${f.value(5)}) {
@@ -50,17 +49,17 @@ g.test('while_break')
   }
   ${f.expect_order(8)}
 `
-    );
-  });
+  );
+});
 
-g.test('while_continue')
-  .desc('Test flow control for a while-loop continue statement')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f =>
-        `
+g.test('while_continue').
+desc('Test flow control for a while-loop continue statement').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) =>
+    `
   ${f.expect_order(0)}
   var i = ${f.value(0)};
   while (i < ${f.value(5)}) {
@@ -75,17 +74,17 @@ g.test('while_continue')
   }
   ${f.expect_order(10)}
 `
-    );
-  });
+  );
+});
 
-g.test('while_nested_break')
-  .desc('Test that flow control exits a nested while-loop when reaching a break statement')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f =>
-        `
+g.test('while_nested_break').
+desc('Test that flow control exits a nested while-loop when reaching a break statement').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) =>
+    `
   ${f.expect_order(0)}
   var i = ${f.value(0)};
   while (i < ${f.value(3)}) {
@@ -106,17 +105,17 @@ g.test('while_nested_break')
   }
   ${f.expect_order(15)}
 `
-    );
-  });
+  );
+});
 
-g.test('while_nested_continue')
-  .desc('Test flow control for a nested while-loop with a continue statement')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f =>
-        `
+g.test('while_nested_continue').
+desc('Test flow control for a nested while-loop with a continue statement').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) =>
+    `
   ${f.expect_order(0)}
   var i = ${f.value(0)};
   while (i < ${f.value(3)}) {
@@ -137,5 +136,5 @@ g.test('while_nested_continue')
   }
   ${f.expect_order(19)}
 `
-    );
-  });
+  );
+});

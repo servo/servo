@@ -42,6 +42,8 @@
     @assert ctx.filter == 'blur(5px)';
     ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 5});
     @assert ctx.filter.toString() == '[object CanvasFilter]';
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: [1, 2]});
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
     ctx.filter = new CanvasFilter([
         {name: 'gaussianBlur', stdDeviation: 5},
         {name: 'gaussianBlur', stdDeviation: 10}
@@ -68,6 +70,8 @@
     @assert ctx.filter == 'blur(5px)';
     ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 5});
     @assert ctx.filter.toString() == '[object CanvasFilter]';
+    ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: [1, 2]});
+    @assert ctx.filter.toString() == '[object CanvasFilter]';
     ctx.filter = new CanvasFilter([
         {name: 'gaussianBlur', stdDeviation: 5},
         {name: 'gaussianBlur', stdDeviation: 10}
@@ -91,7 +95,7 @@
     @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur'});
     @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: undefined});
     @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 'foo'});
-    @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: [1,2]});
+    @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: [1,2,3]});
     @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: NaN});
     @assert throws TypeError ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: {}});
 
@@ -346,6 +350,43 @@
         ctx.fillRect(0, 0, 10, 10);
         _assertPixelApprox(canvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, 2);
     }
+
+- name: 2d.filter.canvasFilterObject.gaussianBlur.tentative
+  desc: Test CanvasFilter() with gaussianBlur.
+  size: [100, 100]
+  code: |
+    ctx.fillStyle = 'teal';
+    ctx.filter = new CanvasFilter({
+        name: 'gaussianBlur',
+        stdDeviation: [{{ blur_x }}, {{blur_y}}],
+    });
+    ctx.fillRect(25, 25, 50, 50);
+  html_reference: |
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="{{ size[0] }}" height="{{ size[1] }}"
+         color-interpolation-filters="sRGB">
+      <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="{{ blur_x }} {{blur_y}}" />
+      </filter>
+      <rect x="25" y="25" width="50" height="50"
+            fill="teal" filter="url(#blur)" />
+    </svg>
+  variants:
+    x-only:
+      blur_x: 4
+      blur_y: 0
+    mostly-x:
+      blur_x: 4
+      blur_y: 1
+    isotropic:
+      blur_x: 4
+      blur_y: 4
+    mostly-y:
+      blur_x: 1
+      blur_y: 4
+    y-only:
+      blur_x: 0
+      blur_y: 4
 
 - name: 2d.filter.canvasFilterObject.dropShadow.tentative
   desc: Test CanvasFilter() dropShadow object.

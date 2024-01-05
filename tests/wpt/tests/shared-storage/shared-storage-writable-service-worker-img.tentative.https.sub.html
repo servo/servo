@@ -1,0 +1,107 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/common/utils.js></script>
+  <script src=/fenced-frame/resources/utils.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script src=/service-workers/service-worker/resources/test-helpers.sub.js></script>
+  <script>
+    const SCOPE = '/shared-storage/resources/'
+          + 'shared-storage-writable-fetch-request-fallback-to-network-iframe.https.html';
+    const SCRIPT = '/shared-storage/resources/'
+      + 'shared-storage-writable-fetch-request-fallback-to-network-worker.js';
+    const SAME_ORIGIN = new URL("", location.href).origin;
+    const CROSS_ORIGIN = 'https://{{domains[www]}}:{{ports[https][0]}}';
+
+    async function loadSharedStorageImageInNewFrame(data) {
+      let {test, key, value, hasSharedStorageWritableAttribute, isSameOrigin}
+        = data;
+
+      const framePromise = new Promise((resolve, reject) => {
+        let frame = document.createElement('iframe');
+        frame.src = SCOPE;
+        frame.onload = function() {
+          resolve(frame);
+        };
+        frame.onerror = function() {
+          reject(new Error('Iframe load failed'));
+        };
+        test.add_cleanup(function() {
+          frame.remove();
+        });
+        document.body.appendChild(frame);
+      });
+      let frame = await framePromise;
+
+      const sameOriginImgSrc = `/shared-storage/resources/` +
+        `shared-storage-writable-pixel.png?key=${key}&value=${value}`;
+      const imgSrc = isSameOrigin ?
+        sameOriginImgSrc :
+        CROSS_ORIGIN + sameOriginImgSrc;
+      return {
+        loadedImage: frame.contentWindow.loadImage(imgSrc,
+          hasSharedStorageWritableAttribute),
+        imageUrl: imgSrc,
+      };
+    }
+
+    promise_test(async t => {
+      await service_worker_unregister(t, SCOPE);
+      let reg = await navigator.serviceWorker.register(SCRIPT,
+                                                       { scope: SCOPE });
+      t.add_cleanup(_ => reg.unregister());
+      let worker = reg.installing;
+      await wait_for_state(t, worker, 'activated');
+      assert_not_equals(worker, null, 'worker is installing');
+
+      let {loadedImage, imageUrl} = await loadSharedStorageImageInNewFrame({
+        test: t,
+        key: 'a', value: 'b',
+        hasSharedStorageWritableAttribute: true,
+        isSameOrigin: true,
+      });
+      checkInterceptedUrls(worker, [
+        {"url": SAME_ORIGIN + SCOPE, "mode": "navigate", "SSWHeader": "null"},
+        {
+          "url": SAME_ORIGIN + "/resources/testharness.js",
+          "mode": "no-cors",
+          "SSWHeader": "null"
+        },
+        {"url": SAME_ORIGIN + imageUrl, "mode": "no-cors", "SSWHeader": "null"},
+      ]);
+      await verifyKeyValueForOrigin('a', 'b', SAME_ORIGIN);
+      await deleteKeyForOrigin('a', SAME_ORIGIN);
+    }, 'test <img sharedstoragewritable src=[url]> via JS from service worker '
+       + 'for same origin img');
+
+    promise_test(async t => {
+      await service_worker_unregister(t, SCOPE);
+      let reg = await navigator.serviceWorker.register(SCRIPT,
+                                                       { scope: SCOPE });
+      t.add_cleanup(_ => reg.unregister());
+      let worker = reg.installing;
+      await wait_for_state(t, worker, 'activated');
+      assert_not_equals(worker, null, 'worker is installing');
+
+      let {loadedImage, imageUrl} = await loadSharedStorageImageInNewFrame({
+        test: t,
+        key: 'c', value: 'd',
+        hasSharedStorageWritableAttribute: true,
+        isSameOrigin: false,
+      });
+      checkInterceptedUrls(worker, [
+        {"url": SAME_ORIGIN + SCOPE, "mode": "navigate", "SSWHeader": "null"},
+        {
+          "url": SAME_ORIGIN + "/resources/testharness.js",
+          "mode": "no-cors",
+          "SSWHeader": "null"
+        },
+        {"url": imageUrl, "mode": "no-cors", "SSWHeader": "null"},
+      ]);
+      await verifyKeyValueForOrigin('c', 'd', CROSS_ORIGIN);
+      await deleteKeyForOrigin('c', CROSS_ORIGIN);
+    }, 'test <img sharedstoragewritable src=[url]> via JS from service worker '
+       + 'for cross origin img');
+  </script>
+</body>

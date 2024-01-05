@@ -50,7 +50,6 @@ promise_test(async function(t) {
     entries,
     0,
     [8, 108, 8, 108, 8, 108, 8, 108, 0, vw, 0, vh, true],
-    "IntersectionObserver notification after first rAF",
   );
   container.style.clipPath = "inset(1000px)";
 
@@ -60,7 +59,6 @@ promise_test(async function(t) {
     entries,
     1,
     [8, 108, 8, 108, 0, 0, 0, 0, 0, vw, 0, vh, false],
-    "IntersectionObserver should send a not-intersecting notification for a target that gets fully clipped by clip-path.",
   );
 
   container.style.clipPath = "";
@@ -71,7 +69,6 @@ promise_test(async function(t) {
     entries,
     2,
     [8, 108, 8, 108, 8, 108, 8, 108, 0, vw, 0, vh, true],
-    "Intersecting notification after removing display:none on target.",
   );
 });
 </script>

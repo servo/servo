@@ -1,23 +1,22 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Flow control tests for loops.
-`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../gpu_test.js';
 
 import { runFlowControlTest } from './harness.js';
 
 export const g = makeTestGroup(GPUTest);
 
-g.test('loop_break')
-  .desc('Test that flow control exits a loop when reaching a break statement')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f =>
-        `
+g.test('loop_break').
+desc('Test that flow control exits a loop when reaching a break statement').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) =>
+    `
   ${f.expect_order(0)}
   var i = ${f.value(0)};
   loop {
@@ -30,17 +29,17 @@ g.test('loop_break')
   }
   ${f.expect_order(8)}
 `
-    );
-  });
+  );
+});
 
-g.test('loop_continue')
-  .desc('Test flow control for a loop continue statement')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f =>
-        `
+g.test('loop_continue').
+desc('Test flow control for a loop continue statement').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) =>
+    `
   ${f.expect_order(0)}
   var i = ${f.value(0)};
   loop {
@@ -58,17 +57,17 @@ g.test('loop_continue')
   }
   ${f.expect_order(10)}
 `
-    );
-  });
+  );
+});
 
-g.test('loop_continuing_basic')
-  .desc('Test basic flow control for a loop continuing block')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f =>
-        `
+g.test('loop_continuing_basic').
+desc('Test basic flow control for a loop continuing block').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) =>
+    `
   ${f.expect_order(0)}
   var i = ${f.value(0)};
   loop {
@@ -82,17 +81,17 @@ g.test('loop_continuing_basic')
   }
   ${f.expect_order(7)}
 `
-    );
-  });
+  );
+});
 
-g.test('nested_loops')
-  .desc('Test flow control for a loop nested in another loop')
-  .params(u => u.combine('preventValueOptimizations', [true, false]))
-  .fn(t => {
-    runFlowControlTest(
-      t,
-      f =>
-        `
+g.test('nested_loops').
+desc('Test flow control for a loop nested in another loop').
+params((u) => u.combine('preventValueOptimizations', [true, false])).
+fn((t) => {
+  runFlowControlTest(
+    t,
+    (f) =>
+    `
   ${f.expect_order(0)}
   var i = ${f.value(0)};
   loop {
@@ -122,5 +121,5 @@ g.test('nested_loops')
   }
   ${f.expect_order(23)}
 `
-    );
-  });
+  );
+});

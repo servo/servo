@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <link rel="author" href="mailto:masonf@chromium.org">
-<link rel=help href="https://open-ui.org/components/popover.research.explainer">
 <link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -46,37 +45,16 @@
   <div id=trigger2 popover class=child><p>Child popover</p></div>
 </div>
 
-<div class="example">
-  <p>anchor attribute relationship</p>
-  <div id=anchor1 popover class=ancestor><p>Ancestor popover</p></div>
-  <div anchor=anchor1 popover class=child><p>Child popover</p></div>
-</div>
-
-<div class="example">
-  <p>indirect anchor attribute relationship</p>
-  <div popover class=ancestor>
-    <p>Ancestor popover</p>
-    <div>
-      <div>
-        <span id=anchor2>Anchor</span>
-      </div>
-    </div>
-  </div>
-  <div anchor=anchor2 popover class=child><p>Child popover</p></div>
-</div>
-
 <!-- Other examples -->
 
-<div popover id=p1 anchor=b1><p>This is popover #1</p>
-  <button id=b2 onclick='p2.showPopover()'>Popover 2</button>
-  <button id=b4 onclick='p4.showPopover()'>Popover 4</button>
-</div>
-<div popover id=p2 anchor=b2><p>This is popover #2</p>
-  <button id=b3 onclick='p3.showPopover()'>Popover 3</button>
-</div>
-<div popover id=p3 anchor=b3><p>This is popover #3</p></div>
-<div popover id=p4 anchor=b4><p>This is popover #4</p></div>
 <button id=b1 onclick='p1.showPopover()'>Popover 1</button>
+<div popover id=p1><p>This is popover #1</p>
+  <button id=b2 onclick='p2.showPopover()'>Popover 2</button>
+  <div popover id=p2><p>This is popover #2</p>
+    <button id=b3 onclick='p3.showPopover()'>Popover 3</button>
+    <div popover id=p3><p>This is popover #3</p></div>
+  </div>
+</div>
 
 <dialog id=d1>This is a dialog<button onclick='this.parentElement.close()'>Close</button></dialog>
 <button id=b5 onclick='d1.showPopover()'>Dialog</button>
@@ -105,7 +83,7 @@
     },descr);
   }
 
-  const popovers = [p1, p2, p3, p4];
+  const popovers = [p1, p2, p3];
 
   function assertState(...states) {
     assert_equals(popovers.length,states.length);
@@ -113,40 +91,21 @@
       assert_equals(popovers[i].matches(':popover-open'),states[i],`Popover #${i+1} incorrect state`);
     }
   }
-  test(function() {
-    assertState(false,false,false,false);
-    p1.showPopover();
-    assertState(true,false,false,false);
-    p2.showPopover();
-    assertState(true,true,false,false);
-    p3.showPopover();
-    assertState(true,true,true,false);
-    // P4 is a sibling of P2, so showing it should
-    // close P2 and P3.
-    p4.showPopover();
-    assertState(true,false,false,true);
-    // P2 should close P4 now.
-    p2.showPopover();
-    assertState(true,true,false,false);
-    // Hiding P1 should hide all.
-    p1.hidePopover();
-    assertState(false,false,false,false);
-  }, "more complex nesting, all using anchor ancestry")
 
   test(function() {
     function openManyPopovers() {
       p1.showPopover();
       p2.showPopover();
       p3.showPopover();
-      assertState(true,true,true,false);
+      assertState(true,true,true);
     }
     openManyPopovers();
     d1.show(); // Dialog.show() should hide all popovers.
-    assertState(false,false,false,false);
+    assertState(false,false,false);
     d1.close();
     openManyPopovers();
     d1.showModal(); // Dialog.showModal() should also hide all popovers.
-    assertState(false,false,false,false);
+    assertState(false,false,false);
     d1.close();
   }, "popovers should be closed by dialogs")
 
@@ -156,7 +115,7 @@
     d1.show();
     assert_true(d1.open);
     p1.showPopover();
-    assertState(true,false,false,false);
+    assertState(true,false,false);
     assert_true(d1.open);
     p1.hidePopover();
     assert_true(d1.open);
@@ -169,5 +128,4 @@
   #p1 { top:350px; }
   #p2 { top:350px; left:200px; }
   #p3 { top:500px; }
-  #p4 { top:500px;left:200px; }
 </style>

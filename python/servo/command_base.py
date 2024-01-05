@@ -36,7 +36,6 @@ from xml.etree.ElementTree import XML
 
 import toml
 
-from mach_bootstrap import _get_exec_path
 from mach.decorators import CommandArgument, CommandArgumentGroup
 from mach.registrar import Registrar
 
@@ -302,7 +301,6 @@ class CommandBase(object):
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
         self.config["build"].setdefault("incremental", None)
-        self.config["build"].setdefault("thinlto", False)
         self.config["build"].setdefault("webgl-backtrace", False)
         self.config["build"].setdefault("dom-backtrace", False)
 
@@ -525,12 +523,6 @@ class CommandBase(object):
         if self.config["build"]["rustflags"]:
             env['RUSTFLAGS'] += " " + self.config["build"]["rustflags"]
 
-        # Turn on rust's version of lld if we are on x86 Linux.
-        # TODO(mrobinson): Gradually turn this on for more platforms, when support stabilizes.
-        # See https://github.com/rust-lang/rust/issues/39915
-        if not self.cross_compile_target and effective_target == "x86_64-unknown-linux-gnu":
-            env['RUSTFLAGS'] += " " + servo.platform.get().linker_flag()
-
         if not (self.config["build"]["ccache"] == ""):
             env['CCACHE'] = self.config["build"]["ccache"]
 
@@ -541,9 +533,6 @@ class CommandBase(object):
             env['RUSTFLAGS'] += " -C target-feature=+neon"
 
         env["CARGO_TARGET_DIR"] = servo.util.get_target_dir()
-
-        if self.config["build"]["thinlto"]:
-            env['RUSTFLAGS'] += " -Z thinlto"
 
         # Work around https://github.com/servo/servo/issues/24446
         # Argument-less str.split normalizes leading, trailing, and double spaces
@@ -628,8 +617,8 @@ class CommandBase(object):
             host_suffix = "x86_64"
         host = os_type + "-" + host_suffix
 
-        host_cc = env.get('HOST_CC') or _get_exec_path(["clang"]) or _get_exec_path(["gcc"])
-        host_cxx = env.get('HOST_CXX') or _get_exec_path(["clang++"]) or _get_exec_path(["g++"])
+        host_cc = env.get('HOST_CC') or shutil.which(["clang"]) or util.whichget_exec_path(["gcc"])
+        host_cxx = env.get('HOST_CXX') or util.whichget_exec_path(["clang++"]) or util.whichget_exec_path(["g++"])
 
         llvm_toolchain = path.join(env['ANDROID_NDK'], "toolchains", "llvm", "prebuilt", host)
         gcc_toolchain = path.join(env['ANDROID_NDK'], "toolchains",

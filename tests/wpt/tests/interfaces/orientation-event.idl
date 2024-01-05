@@ -29,10 +29,6 @@ partial interface Window {
     [SecureContext] attribute EventHandler ondeviceorientationabsolute;
 };
 
-partial interface Window {
-    [SecureContext] attribute EventHandler ondevicemotion;
-};
-
 [Exposed=Window, SecureContext]
 interface DeviceMotionEventAcceleration {
     readonly attribute double? x;
@@ -45,6 +41,10 @@ interface DeviceMotionEventRotationRate {
     readonly attribute double? alpha;
     readonly attribute double? beta;
     readonly attribute double? gamma;
+};
+
+partial interface Window {
+    [SecureContext] attribute EventHandler ondevicemotion;
 };
 
 [Exposed=Window, SecureContext]

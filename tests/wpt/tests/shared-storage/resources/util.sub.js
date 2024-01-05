@@ -69,3 +69,49 @@ function navigateSharedStorageIframe(data) {
   document.body.appendChild(frame);
   return promise;
 }
+
+async function loadNestedSharedStorageFrameInNewFrame(data) {
+  const SCOPE = '/shared-storage/resources/shared-storage-writ';
+  const INTERMEDIATE_FRAME_SUFFIX =
+      'able-fetch-request-fallback-to-network-iframe.https.html'
+  const CROSS_ORIGIN = 'https://{{domains[www]}}:{{ports[https][0]}}';
+
+  let {key, value, hasSharedStorageWritableAttribute, isSameOrigin} = data;
+
+  const windowPromise = new Promise((resolve, reject) => {
+    window.addEventListener('message', async function handler(evt) {
+      if (evt.data.msg && evt.data.msg === 'iframe loaded') {
+        window.removeEventListener('message', handler);
+        resolve();
+      }
+    });
+    window.addEventListener('error', () => {
+      reject(new Error('Navigation error'));
+    });
+  });
+
+  const framePromise = new Promise((resolve, reject) => {
+    let frame = document.createElement('iframe');
+    frame.src = SCOPE + INTERMEDIATE_FRAME_SUFFIX;
+    frame.onload = function() {
+      resolve(frame);
+    };
+    frame.onerror = function() {
+      reject(new Error('Iframe load failed'));
+    };
+    document.body.appendChild(frame);
+  });
+  let frame = await framePromise;
+
+  let rawWriteHeader = `set;key=${key};value=${value}`;
+  let writeHeader = encodeURIComponent(rawWriteHeader);
+  const sameOriginNestedSrc = `/shared-storage/resources/` +
+      `shared-storage-write.py?write=${writeHeader}`;
+  const nestedSrc =
+      isSameOrigin ? sameOriginNestedSrc : CROSS_ORIGIN + sameOriginNestedSrc;
+
+  let nestedFrame = frame.contentWindow.loadFrame(
+      nestedSrc, hasSharedStorageWritableAttribute);
+  await windowPromise;
+  return {frame: frame, nestedFrame: nestedFrame, nestedFrameUrl: nestedSrc};
+}

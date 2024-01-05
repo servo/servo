@@ -500,7 +500,7 @@ mod system_reporter {
     }
 
     #[cfg(not(target_os = "windows"))]
-    use servo_allocator::jemalloc_sys::mallctl;
+    use jemalloc_sys::mallctl;
 
     #[cfg(not(target_os = "windows"))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {

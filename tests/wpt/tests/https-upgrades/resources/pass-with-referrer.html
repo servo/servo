@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <script>
+      window.onload = (event) => {
+          window.opener.postMessage({
+              'pass': true,
+              'referrer': document.referrer},
+            '*');
+      };
+    </script>
+  </body>
+</html>

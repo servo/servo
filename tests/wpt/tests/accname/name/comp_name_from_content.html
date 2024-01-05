@@ -49,6 +49,14 @@
       content: " after "; /* [sic] leading and trailing space */
       content: " after " / " alt-after "; /* Override the previous line for engines that support the Alternative Text syntax. */
     }
+    .fallback-before-mixed::before {
+      content: " before "; /* [sic] leading and trailing space */
+      content: " before " / " start " attr(data-alt-text-before) " end "; /* Override the previous line for engines that support the Alternative Text syntax. */
+    }
+    .fallback-after-mixed::after {
+      content: " after "; /* [sic] leading and trailing space */
+      content: " after " / " start " attr(data-alt-text-after) " end "; /* Override the previous line for engines that support the Alternative Text syntax. */
+    }
     .block > span {
       display: block;
       margin: 0 0.1em;
@@ -127,6 +135,14 @@
 <button data-expectedlabel="alt-before label alt-after" data-testname="button name from fallback content with ::before and ::after" class="ex fallback-before fallback-after">label</button><br>
 <h3 data-expectedlabel="alt-before label alt-after" data-testname="heading name from fallback content with ::before and ::after" class="ex fallback-before fallback-after">label</h3>
 <a href="#" data-expectedlabel="alt-before label alt-after" data-testname="link name from fallback content with ::before and ::after" class="ex fallback-before fallback-after">label</a><br>
+<br>
+
+<h1><a href="https://drafts.csswg.org/css-content/#alt">Mixed Alternative Text (attr() and strings) for  CSS content (previously `alt:`)</a> in pseudo-elements</h1>
+<p>rendered text should be "before label after"</p>
+<p>accessibility label should be "start alt-before end label start alt-after end"</p>
+<button data-alt-text-before="alt-before" data-alt-text-after="alt-after" data-expectedlabel="start alt-before end label start alt-after end" data-testname="button name from fallback content mixing attr() and strings with ::before and ::after" class="ex fallback-before-mixed fallback-after-mixed">label</button><br>
+<h3 data-alt-text-before="alt-before" data-alt-text-after="alt-after" data-expectedlabel="start alt-before end label start alt-after end" data-testname="heading name from fallback content mixing attr() and strings with ::before and ::after" class="ex fallback-before-mixed fallback-after-mixed">label</h3>
+<a href="#" data-alt-text-before="alt-before" data-alt-text-after="alt-after" data-expectedlabel="start alt-before end label start alt-after end" data-testname="link name from fallback content mixing attr() and strings with ::before and ::after" class="ex fallback-before-mixed fallback-after-mixed">label</a><br>
 <br>
 
 <h1>simple w/ for each child</h1>

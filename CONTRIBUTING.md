@@ -27,9 +27,9 @@ on how to start working on Servo.
 
 ## Pull request checklist
 
-- Branch from the master branch and, if needed, rebase to the current master
-  branch before submitting your pull request. If it doesn't merge cleanly with
-  master you may be asked to rebase your changes.
+- Branch from the main branch and, if needed, rebase to the current main branch
+  before submitting your pull request. If it doesn't merge cleanly with main
+  you may be asked to rebase your changes.
 
 - Commits should be as small as possible, while ensuring that each commit is
   correct independently (i.e., each commit should compile and pass tests). 
@@ -74,5 +74,5 @@ Servo contributors frequent the [Servo Zulip chat](https://servo.zulipchat.com/)
 ## Technical Steering Committee
 
 Technical oversight of the Servo Project is provided by the
-[Technical Steering Committee](https://github.com/servo/project/blob/master/governance/tsc/README.md).
+[Technical Steering Committee](https://github.com/servo/project/blob/main/governance/tsc/README.md).
 

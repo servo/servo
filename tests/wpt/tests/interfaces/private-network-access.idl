@@ -3,13 +3,17 @@
 // (https://github.com/w3c/webref)
 // Source: Private Network Access (https://wicg.github.io/private-network-access/)
 
+enum IPAddressSpace { "public", "private", "local" };
+
 dictionary PrivateNetworkAccessPermissionDescriptor
     : PermissionDescriptor {
   DOMString id;
 };
 
 partial dictionary RequestInit {
-  RequestTargetAddressSpace targetAddressSpace;
+  IPAddressSpace targetAddressSpace;
 };
 
-enum RequestTargetAddressSpace { "private", "local" };
+partial interface Request {
+  readonly attribute IPAddressSpace targetAddressSpace;
+};

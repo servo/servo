@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Openee</title>
+<script>
+  if (window.opener) {
+    window.opener.postMessage("success", "*");
+  }
+</script>

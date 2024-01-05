@@ -23,6 +23,14 @@ promise_test(async(t) => {
 
   await fencedframe.execute(
       (new_url, start_beacon_data, commit_beacon_data) => {
+    // This tests that old automatic beacon data is overwritten in subsequent
+    // calls to setReportEventDataForAutomaticBeacons().
+    let start_beacon_event_old = {
+      eventType: "reserved.top_navigation_start",
+      eventData: "this should not be the data",
+      destination: ["buyer"],
+    }
+    window.fence.setReportEventDataForAutomaticBeacons(start_beacon_event_old);
     addEventListener("click", (event) => {
       let start_beacon_event = {
         eventType: "reserved.top_navigation_start",
@@ -45,9 +53,11 @@ promise_test(async(t) => {
                .pointerUp()
                .send();
 
-  const beacon_1_initiator_origin = await nextAutomaticBeacon(start_beacon_data);
+  const beacon_1_initiator_origin = await nextAutomaticBeacon(
+      "reserved.top_navigation_start", start_beacon_data);
   assert_equals(beacon_1_initiator_origin, get_host_info().HTTPS_ORIGIN);
-  const beacon_2_initiator_origin = await nextAutomaticBeacon(commit_beacon_data);
+  const beacon_2_initiator_origin = await nextAutomaticBeacon(
+      "reserved.top_navigation_commit", commit_beacon_data);
   assert_equals(beacon_2_initiator_origin, get_host_info().HTTPS_ORIGIN);
 
   // Leaving this fenced frame around for subsequent tests can lead to

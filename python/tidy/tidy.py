@@ -7,39 +7,34 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import configparser
 import fnmatch
 import glob
+import io
 import itertools
 import json
 import os
 import re
 import subprocess
 import sys
+from typing import List
 
 import colorama
 import toml
+
+import wpt.manifestupdate
 
 from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
 
 TOPDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 WPT_PATH = os.path.join(".", "tests", "wpt")
-SUITES = ["tests", os.path.join("mozilla", "tests")]
-
-
-def wpt_path(*args):
-    return os.path.join(WPT_PATH, *args)
-
-
 CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
-WPT_MANIFEST_PATH = wpt_path("include.ini")
+WPT_CONFIG_INI_PATH = os.path.join(WPT_PATH, "config.ini")
 # regex source https://stackoverflow.com/questions/6883049/
 URL_REGEX = re.compile(br'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 
-# Import wptmanifest only when we do have wpt in tree, i.e. we're not
-# inside a Firefox checkout.
-if os.path.isfile(WPT_MANIFEST_PATH):
-    sys.path.append(wpt_path("tests", "tools", "wptrunner", "wptrunner"))
-    from wptmanifest import parser, node
+sys.path.append(os.path.join(WPT_PATH, "tests"))
+sys.path.append(os.path.join(WPT_PATH, "tests", "tools", "wptrunner"))
 
 # Default configs
 config = {
@@ -188,8 +183,6 @@ def filter_file(file_name):
 def filter_files(start_dir, only_changed_files, progress):
     file_iter = FileList(start_dir, only_changed_files=only_changed_files,
                          exclude_dirs=config["ignore"]["directories"], progress=progress)
-    # always yield Cargo.lock so that the correctness of transitive dependencies is checked
-    yield "./Cargo.lock"
 
     for file_name in iter(file_iter):
         base_name = os.path.basename(file_name)
@@ -333,7 +326,13 @@ def check_flake8(file_name, contents):
         yield line_num, message.strip()
 
 
-def check_lock(file_name, contents):
+def check_cargo_lock_file(filename, print_text=True):
+    if print_text:
+        print(f"\r ➤  Checking cargo lock ({filename})...")
+
+    with open(filename) as cargo_lock_file:
+        content = toml.load(cargo_lock_file)
+
     def find_reverse_dependencies(name, content):
         for package in itertools.chain([content.get("root", {})], content["package"]):
             for dependency in package.get("dependencies", []):
@@ -342,13 +341,8 @@ def check_lock(file_name, contents):
                 if dependency[0] == name:
                     yield package["name"], package["version"], dependency
 
-    if not file_name.endswith(".lock"):
-        return
-
     # Package names to be neglected (as named by cargo)
     exceptions = config["ignore"]["packages"]
-
-    content = toml.loads(contents.decode("utf-8"))
 
     packages_by_name = {}
     for package in content.get("package", []):
@@ -361,7 +355,7 @@ def check_lock(file_name, contents):
 
     for name in exceptions:
         if name not in packages_by_name:
-            yield (1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
+            yield (filename, 1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
 
     for (name, packages) in packages_by_name.items():
         has_duplicates = len(packages) > 1
@@ -385,7 +379,7 @@ def check_lock(file_name, contents):
                 if (not dependency[1] or version in dependency[1]) and \
                    (not dependency[2] or short_source in dependency[2]):
                     message += "\n\t\t" + pname + " " + package_version
-        yield (1, message)
+        yield (filename, 1, message)
 
     # Check to see if we are transitively using any blocked packages
     blocked_packages = config["blocked-packages"]
@@ -403,7 +397,7 @@ def check_lock(file_name, contents):
                 if package_name not in whitelist:
                     fmt = "Package {} {} depends on blocked package {}."
                     message = fmt.format(package_name, package_version, dependency_name)
-                    yield (1, message)
+                    yield (filename, 1, message)
                 else:
                     visited_whitelisted_packages[dependency_name][package_name] = True
 
@@ -413,7 +407,7 @@ def check_lock(file_name, contents):
             if not visited_whitelisted_packages[dependency_name].get(package_name):
                 fmt = "Package {} is not required to be an exception of blocked package {}."
                 message = fmt.format(package_name, dependency_name)
-                yield (1, message)
+                yield (filename, 1, message)
 
 
 def check_toml(file_name, lines):
@@ -476,39 +470,7 @@ def check_shell(file_name, lines):
             if next_idx < len(stripped):
                 next_char = stripped[next_idx]
                 if not (next_char == '{' or next_char == '('):
-                    yield(idx + 1, "variable substitutions should use the full \"${VAR}\" form")
-
-
-def rec_parse(current_path, root_node):
-    dirs = []
-    for item in root_node.children:
-        if isinstance(item, node.DataNode):
-            next_depth = os.path.join(current_path, item.data)
-            dirs.append(next_depth)
-            dirs += rec_parse(next_depth, item)
-    return dirs
-
-
-def check_manifest_dirs(config_file, print_text=True):
-    if not os.path.exists(config_file):
-        yield(config_file, 0, "%s manifest file is required but was not found" % config_file)
-        return
-
-    # Load configs from include.ini
-    with open(config_file, "rb") as content:
-        conf_file = content.read()
-        lines = conf_file.splitlines(True)
-
-    if print_text:
-        print('\rChecking the wpt manifest file...')
-
-    p = parser.parse(lines)
-    paths = rec_parse(wpt_path("tests"), p)
-    for idx, path in enumerate(paths):
-        if '_mozilla' in path or '_webgl' in path or '_webgpu' in path:
-            continue
-        if not os.path.isdir(path):
-            yield(config_file, idx + 1, "Path in manifest was not found: {}".format(path))
+                    yield (idx + 1, "variable substitutions should use the full \"${VAR}\" form")
 
 
 def check_rust(file_name, lines):
@@ -647,14 +609,14 @@ def check_rust(file_name, lines):
                 features = list(map(lambda w: w.strip(), match.group(1).split(',')))
                 sorted_features = sorted(features)
                 if sorted_features != features and check_alphabetical_order:
-                    yield(idx + 1, decl_message.format("feature attribute")
-                          + decl_expected.format(tuple(sorted_features))
-                          + decl_found.format(tuple(features)))
+                    yield (idx + 1, decl_message.format("feature attribute")
+                           + decl_expected.format(tuple(sorted_features))
+                           + decl_found.format(tuple(features)))
 
                 if prev_feature_name > sorted_features[0] and check_alphabetical_order:
-                    yield(idx + 1, decl_message.format("feature attribute")
-                          + decl_expected.format(prev_feature_name + " after " + sorted_features[0])
-                          + decl_found.format(prev_feature_name + " before " + sorted_features[0]))
+                    yield (idx + 1, decl_message.format("feature attribute")
+                           + decl_expected.format(prev_feature_name + " after " + sorted_features[0])
+                           + decl_found.format(prev_feature_name + " before " + sorted_features[0]))
 
                 prev_feature_name = sorted_features[0]
             else:
@@ -678,9 +640,9 @@ def check_rust(file_name, lines):
                 if match == -1 and not line.endswith(";"):
                     yield (idx + 1, "mod declaration spans multiple lines")
                 if prev_mod[indent] and mod < prev_mod[indent] and check_alphabetical_order:
-                    yield(idx + 1, decl_message.format("mod declaration")
-                          + decl_expected.format(prev_mod[indent])
-                          + decl_found.format(mod))
+                    yield (idx + 1, decl_message.format("mod declaration")
+                           + decl_expected.format(prev_mod[indent])
+                           + decl_found.format(mod))
                 prev_mod[indent] = mod
         else:
             # we now erase previous entries
@@ -695,9 +657,9 @@ def check_rust(file_name, lines):
                 # sort, compare and report
                 sorted_derives = sorted(derives)
                 if sorted_derives != derives and check_alphabetical_order:
-                    yield(idx + 1, decl_message.format("derivable traits list")
-                              + decl_expected.format(", ".join(sorted_derives))
-                              + decl_found.format(", ".join(derives)))
+                    yield (idx + 1, decl_message.format("derivable traits list")
+                           + decl_expected.format(", ".join(sorted_derives))
+                           + decl_found.format(", ".join(derives)))
 
 
 # Avoid flagging <Item=Foo> constructs
@@ -778,6 +740,78 @@ def check_json(filename, contents):
         yield (None, e.args[0])
 
 
+def check_that_manifests_exist():
+    # Determine the metadata and test directories from the configuration file.
+    metadata_dirs = []
+    config = configparser.ConfigParser()
+    config.read(WPT_CONFIG_INI_PATH)
+    for key in config:
+        if key.startswith("manifest:"):
+            metadata_dirs.append(os.path.join("./tests/wpt/", config[key]["metadata"]))
+
+    for directory in metadata_dirs:
+        manifest_path = os.path.join(TOPDIR, directory, "MANIFEST.json")
+        if not os.path.isfile(manifest_path):
+            yield (WPT_CONFIG_INI_PATH, "", f"Path in config was not found: {manifest_path}")
+
+
+def check_that_manifests_are_clean():
+    from wptrunner import wptlogging
+    print("\r ➤  Checking WPT manifests for cleanliness...")
+    output_stream = io.StringIO("")
+    logger = wptlogging.setup({}, {"mach": output_stream})
+    if wpt.manifestupdate.update(check_clean=True, logger=logger):
+        for line in output_stream.getvalue().splitlines():
+            if "ERROR" in line:
+                yield (WPT_CONFIG_INI_PATH, 0, line)
+        yield (WPT_CONFIG_INI_PATH, "", "WPT manifest is dirty. Run `./mach update-manifest`.")
+
+
+def lint_wpt_test_files():
+    from tools.lint import lint
+
+    # Override the logging function so that we can collect errors from
+    # the lint script, which doesn't allow configuration of the output.
+    messages: List[str] = []
+    lint.logger.error = lambda message: messages.append(message)
+
+    # We do not lint all WPT-like tests because they do not all currently have
+    # lint.ignore files.
+    LINTED_SUITES = ["tests", os.path.join("mozilla", "tests")]
+
+    for suite in LINTED_SUITES:
+        print(f"\r ➤  Linting WPT suite ({suite})...")
+
+        messages = []  # Clear any old messages.
+
+        suite_directory = os.path.abspath(os.path.join(WPT_PATH, suite))
+        tests_changed = FileList(suite_directory, only_changed_files=True, progress=False)
+        tests_changed = [os.path.relpath(file, suite_directory) for file in tests_changed]
+
+        if lint.lint(suite_directory, tests_changed, output_format="normal"):
+            for message in messages:
+                (filename, message) = message.split(":", maxsplit=1)
+                yield (filename, "", message)
+
+
+def run_wpt_lints(only_changed_files: bool):
+    if not os.path.exists(WPT_CONFIG_INI_PATH):
+        yield (WPT_CONFIG_INI_PATH, 0, f"{WPT_CONFIG_INI_PATH} is required but was not found")
+        return
+
+    if not list(FileList("./tests/wpt", only_changed_files=True, progress=False)):
+        print("\r ➤  Skipping WPT lint checks, because no relevant files changed.")
+        return
+
+    manifests_exist_errors = list(check_that_manifests_exist())
+    if manifests_exist_errors:
+        yield from manifests_exist_errors
+        return
+
+    yield from check_that_manifests_are_clean()
+    yield from lint_wpt_test_files()
+
+
 def check_spec(file_name, lines):
     if SPEC_BASE_PATH not in file_name:
         return
@@ -820,7 +854,7 @@ def check_spec(file_name, lines):
                     break
 
 
-def check_config_file(config_file, print_text=True, no_wpt=False):
+def check_config_file(config_file, print_text=True):
     # Check if config file exists
     if not os.path.exists(config_file):
         print("%s config file is required but was not found" % config_file)
@@ -832,7 +866,7 @@ def check_config_file(config_file, print_text=True, no_wpt=False):
         lines = conf_file.splitlines(True)
 
     if print_text:
-        print('\rChecking the config file...')
+        print(f"\r ➤  Checking config file ({config_file})...")
 
     config_content = toml.loads(conf_file)
     exclude = config_content.get("ignore", {})
@@ -844,11 +878,6 @@ def check_config_file(config_file, print_text=True, no_wpt=False):
 
     # Check for invalid listed ignored files
     invalid_files = [f for f in exclude.get("files", []) if not os.path.exists(f)]
-
-    # Do not check for the existense of ignored files under tests/wpts if --no-wpt is used
-    if no_wpt:
-        wpt_dir = './tests/wpt/'
-        invalid_files = [f for f in invalid_files if not os.path.commonprefix([wpt_dir, f]) == wpt_dir]
 
     current_table = ""
     for idx, line in enumerate(lines):
@@ -925,7 +954,7 @@ def parse_config(config_file):
 
 def check_directory_files(directories, print_text=True):
     if print_text:
-        print('\rChecking directories for correct file extensions...')
+        print("\r ➤  Checking directories for correct file extensions...")
     for directory, file_extensions in directories.items():
         files = sorted(os.listdir(directory))
         for filename in files:
@@ -945,7 +974,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     if not has_element:
         return
     if print_text:
-        print('\rChecking files for tidiness...')
+        print("\r ➤  Checking files for tidiness")
 
     for filename in files_to_check:
         if not os.path.exists(filename):
@@ -987,99 +1016,33 @@ def check_dep_license_errors(filenames, progress=True):
                 yield (filename, 0, "dependency should contain a valid license.")
 
 
-class LintRunner(object):
-    def __init__(self, lint_path=None, only_changed_files=True,
-                 exclude_dirs=[], progress=True, stylo=False, no_wpt=False):
-        self.only_changed_files = only_changed_files
-        self.exclude_dirs = exclude_dirs
-        self.progress = progress
-        self.path = lint_path
-        self.stylo = stylo
-        self.no_wpt = no_wpt
-
-    def check(self, lint_cls):
-        lint = lint_cls(self.path, self.only_changed_files,
-                        self.exclude_dirs, self.progress,
-                        stylo=self.stylo, no_wpt=self.no_wpt)
-        for error in lint.run():
-            if type(error) is not tuple or (type(error) is tuple and len(error) != 3):
-                yield (self.path, 1, "errors should be a tuple of (path, line, reason)")
-                return
-            yield error
-
-    def get_files(self, path, **kwargs):
-        args = ['only_changed_files', 'exclude_dirs', 'progress']
-        kwargs = {k: kwargs.get(k, getattr(self, k)) for k in args}
-        return FileList(path, **kwargs)
-
-    def run(self):
-        yield (self.path, 0, "class 'Lint' should implement 'run' method")
-
-
-def run_lint_scripts(only_changed_files=False, progress=True, stylo=False, no_wpt=False):
-    runner = LintRunner(only_changed_files=only_changed_files, progress=progress, stylo=stylo, no_wpt=no_wpt)
-    for error in runner.check(WPTLint):
-        yield error
-
-
-def scan(only_changed_files=False, progress=True, stylo=False, no_wpt=False):
+def scan(only_changed_files=False, progress=False):
     # check config file for errors
-    config_errors = check_config_file(CONFIG_FILE_PATH, no_wpt=no_wpt)
-    # check ini directories exist
-    if not no_wpt and os.path.isfile(WPT_MANIFEST_PATH):
-        manifest_errors = check_manifest_dirs(WPT_MANIFEST_PATH)
-    else:
-        manifest_errors = ()
+    config_errors = check_config_file(CONFIG_FILE_PATH)
     # check directories contain expected files
     directory_errors = check_directory_files(config['check_ext'])
     # standard checks
-    files_to_check = filter_files('.', only_changed_files and not stylo, progress)
-    checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
+    files_to_check = filter_files('.', only_changed_files, progress)
+    checking_functions = (check_flake8, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_shell,
                                check_rust, check_spec, check_modeline)
+    lock_errors = check_cargo_lock_file(os.path.join(TOPDIR, "Cargo.lock"))
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # check dependecy licenses
     dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
-    # other lint checks
-    lint_errors = run_lint_scripts(only_changed_files, progress, stylo=stylo, no_wpt=no_wpt)
+
+    wpt_errors = run_wpt_lints(only_changed_files)
+
     # chain all the iterators
-    errors = itertools.chain(config_errors, manifest_errors, directory_errors, lint_errors,
-                             file_errors, dep_license_errors)
+    errors = itertools.chain(config_errors, directory_errors, lock_errors, file_errors,
+                             dep_license_errors, wpt_errors)
 
-    error = None
     colorama.init()
+    error = None
     for error in errors:
-        print("\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error))
-
-    print()
-    if error is None:
-        print("\033[92mtidy reported no errors.\033[0m")
+        print("\r  | "
+              + f"{colorama.Fore.BLUE}{error[0]}{colorama.Style.RESET_ALL}:"
+              + f"{colorama.Fore.YELLOW}{error[1]}{colorama.Style.RESET_ALL}: "
+              + f"{colorama.Fore.RED}{error[2]}{colorama.Style.RESET_ALL}")
 
     return int(error is not None)
-
-
-class WPTLint(LintRunner):
-    def _get_wpt_files(self, suite):
-        working_dir = os.path.join(WPT_PATH, suite, '')
-        file_iter = self.get_files(working_dir, exclude_dirs=[])
-        print('\nRunning the WPT lint on %s...' % working_dir)
-        for f in file_iter:
-            if filter_file(f):
-                yield f[len(working_dir):]
-
-    def run(self):
-        if self.stylo or self.no_wpt:
-            return
-
-        wpt_working_dir = os.path.abspath(os.path.join(WPT_PATH, "tests"))
-        for suite in SUITES:
-            files = list(self._get_wpt_files(suite))
-            if not files:
-                continue
-            sys.path.insert(0, wpt_working_dir)
-            from tools.lint import lint
-            file_dir = os.path.abspath(os.path.join(WPT_PATH, suite))
-            returncode = lint.lint(file_dir, files, output_format="json")
-            sys.path.remove(wpt_working_dir)
-            if returncode:
-                yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status %s" % returncode)

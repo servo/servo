@@ -35,13 +35,14 @@ async function runTest(policy_header_in_primary_page,
     win.onload = resolve;
   });
 
-  const unloadPromise = new Promise(resolve => {
-    win.onunload = resolve;
+  // Pagehide can be used to detect the document destruction.
+  const pagehidePromise = new Promise(resolve => {
+    win.onpagehide = resolve;
   });
 
   await win.runTest(fenced_frame_url);
   win.close();
-  await unloadPromise;
+  await pagehidePromise;
 }
 
 promise_test(async t => {

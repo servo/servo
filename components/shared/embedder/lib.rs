@@ -208,6 +208,21 @@ pub enum EmbedderMsg {
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Compositing done, but external code needs to present.
     ReadyToPresent,
+    /// The given event was delivered to a pipeline in the given browser.
+    EventDelivered(CompositorEventVariant),
+}
+
+/// The variant of CompositorEvent that was delivered to a pipeline.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum CompositorEventVariant {
+    ResizeEvent,
+    MouseButtonEvent,
+    MouseMoveEvent,
+    TouchEvent,
+    WheelEvent,
+    KeyboardEvent,
+    CompositionEvent,
+    IMEDismissedEvent,
 }
 
 impl Debug for EmbedderMsg {
@@ -245,6 +260,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
             EmbedderMsg::ReadyToPresent => write!(f, "ReadyToPresent"),
+            EmbedderMsg::EventDelivered(..) => write!(f, "HitTestedEvent"),
         }
     }
 }

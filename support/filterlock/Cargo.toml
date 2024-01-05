@@ -1,0 +1,12 @@
+[workspace]
+
+[package]
+name = "filterlock"
+authors = ["The Servo Project Developers"]
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+
+[dependencies]
+serde = { version = "1.0.194", features = ["derive"] }
+toml = { version = "0.8.8", features = ["preserve_order"] }

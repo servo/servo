@@ -349,6 +349,8 @@ impl ServiceWorkerGlobalScope {
                     closing,
                 );
 
+                let scope = global.upcast::<WorkerGlobalScope>();
+
                 let referrer = referrer_url
                     .map(|url| Referrer::ReferrerUrl(url))
                     .unwrap_or_else(|| global.upcast::<GlobalScope>().get_referrer());
@@ -367,6 +369,7 @@ impl ServiceWorkerGlobalScope {
                     {
                         Err(_) => {
                             println!("error loading script {}", serialized_worker_url);
+                            scope.clear_js_runtime(context_for_interrupt);
                             return;
                         },
                         Ok((metadata, bytes)) => {
@@ -374,15 +377,16 @@ impl ServiceWorkerGlobalScope {
                         },
                     };
 
-                let scope = global.upcast::<WorkerGlobalScope>();
-                let _ac = enter_realm(&*scope);
-
                 unsafe {
                     // Handle interrupt requests
                     JS_AddInterruptCallback(*scope.get_cx(), Some(interrupt_callback));
                 }
 
-                scope.execute_script(DOMString::from(source));
+                {
+                    // TODO: use AutoWorkerReset as in dedicated worker?
+                    let _ac = enter_realm(&*scope);
+                    scope.execute_script(DOMString::from(source));
+                }
 
                 global.dispatch_activate();
                 let reporter_name = format!("service-worker-reporter-{}", random::<u64>());

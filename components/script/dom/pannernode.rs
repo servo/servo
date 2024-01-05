@@ -56,7 +56,7 @@ pub struct PannerNode {
 }
 
 impl PannerNode {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
@@ -181,7 +181,7 @@ impl PannerNode {
         Self::new_with_proto(window, None, context, options)
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,

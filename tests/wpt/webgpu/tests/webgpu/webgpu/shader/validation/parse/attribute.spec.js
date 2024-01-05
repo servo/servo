@@ -1,7 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `Validation tests for attributes`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `Validation tests for attributes`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../common/util/data_tables.js';
 import { ShaderValidationTest } from '../shader_validation_test.js';
 
@@ -13,7 +12,7 @@ const kPossibleValues = {
   override: 'a_override',
   user_func: 'a_func()',
   const_func: 'min(4, 8)',
-  const: 'a_const',
+  const: 'a_const'
 };
 const kAttributeUsage = {
   align: '@align($val)',
@@ -22,7 +21,7 @@ const kAttributeUsage = {
   id: '@id($val)',
   location: '@location($val)',
   size: '@size($val)',
-  workgroup_size: '@workgroup_size($val, $val, $val)',
+  workgroup_size: '@workgroup_size($val, $val, $val)'
 };
 const kAllowedUsages = {
   align: ['val', 'expr', 'const', 'const_func'],
@@ -31,29 +30,29 @@ const kAllowedUsages = {
   id: ['val', 'expr', 'const', 'const_func'],
   location: ['val', 'expr', 'const', 'const_func'],
   size: ['val', 'expr', 'const', 'const_func'],
-  workgroup_size: ['val', 'expr', 'const', 'const_func', 'override'],
+  workgroup_size: ['val', 'expr', 'const', 'const_func', 'override']
 };
 
-g.test('expressions')
-  .desc(`Tests attributes which allow expressions`)
-  .params(u =>
-    u.combine('value', keysOf(kPossibleValues)).combine('attribute', keysOf(kAllowedUsages))
-  )
-  .fn(t => {
-    const attributes = {
-      align: '',
-      binding: '@binding(0) @group(0)',
-      group: '@binding(1) @group(1)',
-      id: '@id(2)',
-      location: '@location(0)',
-      size: '',
-      workgroup_size: '@workgroup_size(1)',
-    };
+g.test('expressions').
+desc(`Tests attributes which allow expressions`).
+params((u) =>
+u.combine('value', keysOf(kPossibleValues)).combine('attribute', keysOf(kAllowedUsages))
+).
+fn((t) => {
+  const attributes = {
+    align: '',
+    binding: '@binding(0) @group(0)',
+    group: '@binding(1) @group(1)',
+    id: '@id(2)',
+    location: '@location(0)',
+    size: '',
+    workgroup_size: '@workgroup_size(1)'
+  };
 
-    const val = kPossibleValues[t.params.value];
-    attributes[t.params.attribute] = kAttributeUsage[t.params.attribute].replace(/(\$val)/g, val);
+  const val = kPossibleValues[t.params.value];
+  attributes[t.params.attribute] = kAttributeUsage[t.params.attribute].replace(/(\$val)/g, val);
 
-    const code = `
+  const code = `
 fn a_func() -> i32 {
     return 4;
 }
@@ -83,6 +82,6 @@ ${attributes.workgroup_size}
 fn compute_main() {}
 `;
 
-    const pass = kAllowedUsages[t.params.attribute].includes(t.params.value);
-    t.expectCompileResult(pass, code);
-  });
+  const pass = kAllowedUsages[t.params.attribute].includes(t.params.value);
+  t.expectCompileResult(pass, code);
+});

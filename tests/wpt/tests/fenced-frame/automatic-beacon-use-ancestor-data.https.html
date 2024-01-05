@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Test ancestor data for automatic beacons</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const actions = new test_driver.Actions();
+  const fencedframe = await attachFencedFrameContext({
+    generator_api: 'fledge',
+    automatic_beacon: true
+  });
+  const new_url = new URL("resources/close.html", location.href);
+  const beacon_data = "this is the beacon data";
+  const beacon_type = "reserved.top_navigation_start";
+
+  await fencedframe.execute(async (new_url, beacon_data, beacon_type) => {
+    let beacon_event = {
+      eventType: beacon_type,
+      eventData: beacon_data,
+      destination: ["buyer"],
+      crossOriginExposed: false,
+    }
+    window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
+
+    // Add a same-origin iframe that will perform the top-level navigation.
+    const iframe = await attachIFrameContext();
+    await iframe.execute(async (new_url) => {
+      // Set beacon data for an unrelated event.
+      let unrelated_event = {
+        eventType: "reserved.top_navigation_commit",
+        eventData: "unrelated data",
+        destination: ["buyer"],
+        crossOriginExposed: false,
+      }
+      window.fence.setReportEventDataForAutomaticBeacons(unrelated_event);
+      addEventListener("click", (event) => {
+        window.open(new_url, "_blank");
+      });
+    }, [new_url]);
+  }, [new_url, beacon_data, beacon_type]);
+
+  await actions.pointerMove(0, 0, {origin: fencedframe.element})
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+  // The document should use the beacon data from its parent, since it doesn't
+  // have any beacon data set for `reserved.top_navigation_start`, even though
+  // it does have beacon data set.
+  const received_beacon_data =
+      await nextAutomaticBeacon(beacon_type, beacon_data);
+}, 'Documents should use ancestor beacon data if not available');
+</script>
+</body>

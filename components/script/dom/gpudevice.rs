@@ -218,7 +218,7 @@ impl GPUDevice {
 
     fn handle_error(&self, scope: ErrorScopeId, error: GPUError) {
         let mut context = self.scope_context.borrow_mut();
-        if let Some(mut err_scope) = context.error_scopes.get_mut(&scope) {
+        if let Some(err_scope) = context.error_scopes.get_mut(&scope) {
             if err_scope.error.is_none() {
                 err_scope.error = Some(error);
             }
@@ -229,7 +229,7 @@ impl GPUDevice {
 
     fn try_remove_scope(&self, scope: ErrorScopeId) {
         let mut context = self.scope_context.borrow_mut();
-        let remove = if let Some(mut err_scope) = context.error_scopes.get_mut(&scope) {
+        let remove = if let Some(err_scope) = context.error_scopes.get_mut(&scope) {
             err_scope.op_count -= 1;
             if let Some(ref promise) = err_scope.promise {
                 if !promise.is_fulfilled() {
@@ -272,7 +272,7 @@ impl GPUDevice {
             .find(|meta| !meta.popped.get())
             .map(|meta| meta.id);
         scope_id.and_then(|s_id| {
-            context.error_scopes.get_mut(&s_id).map(|mut scope| {
+            context.error_scopes.get_mut(&s_id).map(|scope| {
                 scope.op_count += 1;
                 s_id
             })
@@ -1054,10 +1054,12 @@ impl GPUDeviceMethods for GPUDevice {
                     .map(|f| Some(convert_texture_format(*f)))
                     .collect::<Vec<_>>(),
             ),
-            depth_stencil: Some(wgt::RenderBundleDepthStencil {
-                format: convert_texture_format(descriptor.parent.depthStencilFormat.unwrap()),
-                depth_read_only: descriptor.depthReadOnly,
-                stencil_read_only: descriptor.stencilReadOnly,
+            depth_stencil: descriptor.parent.depthStencilFormat.map(|dsf| {
+                wgt::RenderBundleDepthStencil {
+                    format: convert_texture_format(dsf),
+                    depth_read_only: descriptor.depthReadOnly,
+                    stencil_read_only: descriptor.stencilReadOnly,
+                }
             }),
             sample_count: descriptor.parent.sampleCount,
             multiview: None,
@@ -1107,7 +1109,7 @@ impl GPUDeviceMethods for GPUDevice {
                 promise.reject_error(Error::Operation);
                 return promise;
             };
-        let remove = if let Some(mut err_scope) = context.error_scopes.get_mut(&scope_id) {
+        let remove = if let Some(err_scope) = context.error_scopes.get_mut(&scope_id) {
             if let Some(ref e) = err_scope.error {
                 promise.resolve_native(e);
             } else if err_scope.op_count == 0 {

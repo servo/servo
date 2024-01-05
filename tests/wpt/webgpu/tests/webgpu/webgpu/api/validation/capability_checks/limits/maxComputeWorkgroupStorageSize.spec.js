@@ -1,10 +1,13 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { keysOf } from '../../../../../common/util/data_tables.js';
-import { assert } from '../../../../../common/util/util.js';
-import { align, roundDown } from '../../../../util/math.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { keysOf } from '../../../../../common/util/data_tables.js';import { assert } from '../../../../../common/util/util.js';import { align, roundDown } from '../../../../util/math.js';
 
-import { kMaximumLimitBaseParams, makeLimitTestGroup } from './limit_utils.js';
+import {
+
+
+  kMaximumLimitBaseParams,
+  makeLimitTestGroup } from
+'./limit_utils.js';
 
 const limit = 'maxComputeWorkgroupStorageSize';
 export const { g, description } = makeLimitTestGroup(limit);
@@ -24,7 +27,7 @@ const wgslF16Types = {
   'mat4x3<f16>': { alignOf: 8, sizeOf: 32, requireF16: true },
   'mat2x4<f16>': { alignOf: 8, sizeOf: 16, requireF16: true },
   'mat3x4<f16>': { alignOf: 8, sizeOf: 24, requireF16: true },
-  'mat4x4<f16>': { alignOf: 8, sizeOf: 32, requireF16: true },
+  'mat4x4<f16>': { alignOf: 8, sizeOf: 32, requireF16: true }
 };
 
 const wgslBaseTypes = {
@@ -56,7 +59,7 @@ const wgslBaseTypes = {
 
   S1: { alignOf: 16, sizeOf: 48, requireF16: false },
   S2: { alignOf: 4, sizeOf: 16 * 7, requireF16: false },
-  S3: { alignOf: 16, sizeOf: 32, requireF16: false },
+  S3: { alignOf: 16, sizeOf: 32, requireF16: false }
 };
 
 const wgslTypes = { ...wgslF16Types, ...wgslBaseTypes };
@@ -71,8 +74,8 @@ function getModuleForWorkgroupStorageSize(device, wgslType, size) {
   const extra = (size - units * unitSize) / kSmallestWorkgroupVarSize;
 
   const code =
-    (requireF16 ? 'enable f16;\n' : '') +
-    `
+  (requireF16 ? 'enable f16;\n' : '') +
+  `
     struct S1 {
       a: f32,
       b: vec4f,
@@ -95,7 +98,11 @@ function getModuleForWorkgroupStorageSize(device, wgslType, size) {
   return { module: device.createShaderModule({ code }), code };
 }
 
-function getDeviceLimitToRequest(limitValueTest, defaultLimit, maximumLimit) {
+function getDeviceLimitToRequest(
+limitValueTest,
+defaultLimit,
+maximumLimit)
+{
   switch (limitValueTest) {
     case 'atDefault':
       return defaultLimit;
@@ -120,55 +127,56 @@ function getTestValue(testValueName, requestedLimit) {
 }
 
 function getDeviceLimitToRequestAndValueToTest(
-  limitValueTest,
-  testValueName,
-  defaultLimit,
-  maximumLimit
-) {
+limitValueTest,
+testValueName,
+defaultLimit,
+maximumLimit)
+{
   const requestedLimit = getDeviceLimitToRequest(limitValueTest, defaultLimit, maximumLimit);
   const testValue = getTestValue(testValueName, requestedLimit);
   return {
     requestedLimit,
-    testValue,
+    testValue
   };
 }
 
-g.test('createComputePipeline,at_over')
-  .desc(`Test using createComputePipeline(Async) at and over ${limit} limit`)
-  .params(kMaximumLimitBaseParams.combine('async', [false, true]).combine('wgslType', kWGSLTypes))
-  .fn(async t => {
-    const { limitTest, testValueName, async, wgslType } = t.params;
-    const { defaultLimit, adapterLimit: maximumLimit } = t;
+g.test('createComputePipeline,at_over').
+desc(`Test using createComputePipeline(Async) at and over ${limit} limit`).
+params(
+  kMaximumLimitBaseParams.combine('async', [false, true]).combine('wgslType', kWGSLTypes)
+).
+fn(async (t) => {
+  const { limitTest, testValueName, async, wgslType } = t.params;
+  const { defaultLimit, adapterLimit: maximumLimit } = t;
 
-    const hasF16 = t.adapter.features.has('shader-f16');
-    if (!hasF16 && wgslType in wgslF16Types) {
-      return;
-    }
+  const hasF16 = t.adapter.features.has('shader-f16');
+  if (!hasF16 && wgslType in wgslF16Types) {
+    return;
+  }
 
-    const features = hasF16 ? ['shader-f16'] : [];
+  const features = hasF16 ? ['shader-f16'] : [];
 
-    const { requestedLimit, testValue } = getDeviceLimitToRequestAndValueToTest(
-      limitTest,
-      testValueName,
-      defaultLimit,
-      maximumLimit
-    );
+  const { requestedLimit, testValue } = getDeviceLimitToRequestAndValueToTest(
+    limitTest,
+    testValueName,
+    defaultLimit,
+    maximumLimit
+  );
+  await t.testDeviceWithSpecificLimits(
+    requestedLimit,
+    testValue,
+    async ({ device, testValue, actualLimit, shouldError }) => {
+      const { module, code } = getModuleForWorkgroupStorageSize(device, wgslType, testValue);
 
-    await t.testDeviceWithSpecificLimits(
-      requestedLimit,
-      testValue,
-      async ({ device, testValue, actualLimit, shouldError }) => {
-        const { module, code } = getModuleForWorkgroupStorageSize(device, wgslType, testValue);
-
-        await t.testCreatePipeline(
-          'createComputePipeline',
-          async,
-          module,
-          shouldError,
-          `size: ${testValue}, limit: ${actualLimit}\n${code}`
-        );
-      },
-      {},
-      features
-    );
-  });
+      await t.testCreatePipeline(
+        'createComputePipeline',
+        async,
+        module,
+        shouldError,
+        `size: ${testValue}, limit: ${actualLimit}\n${code}`
+      );
+    },
+    {},
+    features
+  );
+});

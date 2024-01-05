@@ -1,10 +1,15 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert, unreachable } from '../../../common/util/util.js';
-import { runRefTest } from './gpu_ref_test.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { assert, unreachable } from '../../../common/util/util.js';import { runRefTest } from './gpu_ref_test.js';
 
-export function run(format, alphaMode, writeCanvasMethod) {
-  runRefTest(t => {
+
+
+export function run(
+format,
+alphaMode,
+writeCanvasMethod)
+{
+  runRefTest((t) => {
     const module = t.device.createShaderModule({
       code: `
 struct VertexOutput {
@@ -46,10 +51,10 @@ return output;
 fn mainFS(@location(0) fragColor: vec4<f32>) -> @location(0) vec4<f32> {
 return fragColor;
 }
-      `,
+      `
     });
 
-    document.querySelectorAll('canvas').forEach(canvas => {
+    document.querySelectorAll('canvas').forEach((canvas) => {
       const ctx = canvas.getContext('webgpu');
       assert(ctx instanceof GPUCanvasContext, 'Failed to get WebGPU context from canvas');
 
@@ -73,12 +78,11 @@ return fragColor;
           usage = GPUTextureUsage.COPY_DST;
           break;
       }
-
       ctx.configure({
         device: t.device,
         format,
         usage,
-        alphaMode,
+        alphaMode
       });
 
       // The blending behavior here is to mimic 2d context blending behavior
@@ -88,34 +92,34 @@ return fragColor;
         color: {
           srcFactor: 'src-alpha',
           dstFactor: 'one-minus-src-alpha',
-          operation: 'add',
+          operation: 'add'
         },
         alpha: {
           srcFactor: 'one',
           dstFactor: 'one-minus-src-alpha',
-          operation: 'add',
-        },
+          operation: 'add'
+        }
       };
 
       const pipeline = t.device.createRenderPipeline({
         layout: 'auto',
         vertex: {
           module,
-          entryPoint: 'mainVS',
+          entryPoint: 'mainVS'
         },
         fragment: {
           module,
           entryPoint: 'mainFS',
           targets: [
-            {
-              format,
-              blend: { premultiplied: kBlendStateSourceOver, opaque: undefined }[alphaMode],
-            },
-          ],
+          {
+            format,
+            blend: { premultiplied: kBlendStateSourceOver, opaque: undefined }[alphaMode]
+          }]
+
         },
         primitive: {
-          topology: 'triangle-list',
-        },
+          topology: 'triangle-list'
+        }
       });
 
       let renderTarget;
@@ -127,20 +131,19 @@ return fragColor;
           renderTarget = t.device.createTexture({
             size: [ctx.canvas.width, ctx.canvas.height],
             format,
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
           });
           break;
       }
-
       const renderPassDescriptor = {
         colorAttachments: [
-          {
-            view: renderTarget.createView(),
-            clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
-            loadOp: 'clear',
-            storeOp: 'store',
-          },
-        ],
+        {
+          view: renderTarget.createView(),
+          clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+
       };
 
       const commandEncoder = t.device.createCommandEncoder();
@@ -158,14 +161,13 @@ return fragColor;
         case 'copy':
           commandEncoder.copyTextureToTexture(
             {
-              texture: renderTarget,
+              texture: renderTarget
             },
             {
-              texture: ctx.getCurrentTexture(),
+              texture: ctx.getCurrentTexture()
             },
             [ctx.canvas.width, ctx.canvas.height]
           );
-
           break;
       }
 

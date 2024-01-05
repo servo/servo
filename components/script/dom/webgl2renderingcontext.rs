@@ -68,7 +68,7 @@ use crate::dom::window::Window;
 use crate::js::conversions::ToJSValConvertible;
 use crate::script_runtime::JSContext;
 
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 struct IndexedBinding {
     buffer: MutNullableDom<WebGLBuffer>,
@@ -179,7 +179,7 @@ impl WebGL2RenderingContext {
         })
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         window: &Window,
         canvas: &HTMLCanvasElement,

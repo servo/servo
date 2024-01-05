@@ -1,15 +1,18 @@
 # META: timeout=long
 
+import asyncio
 import pytest
 
 from .. import (
     assert_before_request_sent_event,
     assert_response_event,
+    PAGE_EMPTY_HTML,
+    PAGE_EMPTY_TEXT,
+    PAGE_OTHER_TEXT,
+    BEFORE_REQUEST_SENT_EVENT,
+    RESPONSE_COMPLETED_EVENT,
+    RESPONSE_STARTED_EVENT,
 )
-
-PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
-PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
-PAGE_OTHER_TEXT = "/webdriver/tests/bidi/network/support/other.txt"
 
 
 @pytest.mark.asyncio
@@ -18,18 +21,18 @@ PAGE_OTHER_TEXT = "/webdriver/tests/bidi/network/support/other.txt"
     "responseStarted",
 ])
 async def test_remove_intercept(
-    bidi_session, wait_for_event, url, setup_network_test, add_intercept, subscribe_events, top_context, wait_for_future_safe, phase
+    bidi_session, wait_for_event, url, setup_network_test, add_intercept, top_context, wait_for_future_safe, phase
 ):
     network_events = await setup_network_test(
         events=[
-            "network.beforeRequestSent",
-            "network.responseStarted",
-            "network.responseCompleted",
+            BEFORE_REQUEST_SENT_EVENT,
+            RESPONSE_STARTED_EVENT,
+            RESPONSE_COMPLETED_EVENT,
         ]
     )
-    before_request_sent_events = network_events["network.beforeRequestSent"]
-    response_started_events = network_events["network.responseStarted"]
-    response_completed_events = network_events["network.responseCompleted"]
+    before_request_sent_events = network_events[BEFORE_REQUEST_SENT_EVENT]
+    response_started_events = network_events[RESPONSE_STARTED_EVENT]
+    response_completed_events = network_events[RESPONSE_COMPLETED_EVENT]
 
     text_url = url(PAGE_EMPTY_TEXT)
     intercept = await add_intercept(
@@ -39,18 +42,14 @@ async def test_remove_intercept(
 
     on_network_event = wait_for_event(f"network.{phase}")
 
-    await subscribe_events(events=["browsingContext.load"], contexts=[top_context["context"]])
-
-    browsing_context_load_events = []
-
-    async def on_browsing_context_load_event(method, data):
-        browsing_context_load_events.append(data)
-
-    remove_listener = bidi_session.add_event_listener("browsingContext.load", on_browsing_context_load_event)
-
-    # Request to top_context should be blocked.
+    # Request to top_context should be blocked and run into a timeout.
     # TODO(https://github.com/w3c/webdriver-bidi/issues/188): Use a timeout argument when available.
-    await bidi_session.browsing_context.navigate(context=top_context["context"], url=text_url, wait="complete")
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(
+            asyncio.shield(bidi_session.browsing_context.navigate(
+                context=top_context["context"], url=text_url, wait="complete")),
+            timeout=2.0,
+        )
 
     await wait_for_future_safe(on_network_event)
 
@@ -77,7 +76,7 @@ async def test_remove_intercept(
     await bidi_session.network.remove_intercept(intercept=intercept)
 
     # The next request should not be blocked
-    on_response_completed = wait_for_event("network.responseCompleted")
+    on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
     await bidi_session.browsing_context.navigate(context=top_context["context"], url=text_url, wait="complete")
     await wait_for_future_safe(on_response_completed)
 
@@ -94,9 +93,6 @@ async def test_remove_intercept(
 
     assert len(response_completed_events) == 1
     assert_response_event(response_completed_events[0], is_blocked=False)
-
-    assert len(browsing_context_load_events) == 0
-    remove_listener()
 
 
 @pytest.mark.asyncio

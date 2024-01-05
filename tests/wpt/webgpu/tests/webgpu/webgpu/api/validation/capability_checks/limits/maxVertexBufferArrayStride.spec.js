@@ -1,7 +1,11 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { roundDown } from '../../../../util/math.js';
-import { kMaximumLimitBaseParams, makeLimitTestGroup } from './limit_utils.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { roundDown } from '../../../../util/math.js';import {
+  kMaximumLimitBaseParams,
+  makeLimitTestGroup } from
+
+
+'./limit_utils.js';
 
 function getPipelineDescriptor(device, testValue) {
   const code = `
@@ -16,24 +20,28 @@ function getPipelineDescriptor(device, testValue) {
       module,
       entryPoint: 'vs',
       buffers: [
+      {
+        arrayStride: testValue,
+        attributes: [
         {
-          arrayStride: testValue,
-          attributes: [
-            {
-              shaderLocation: 0,
-              offset: 0,
-              format: 'float32',
-            },
-          ],
-        },
-      ],
-    },
+          shaderLocation: 0,
+          offset: 0,
+          format: 'float32'
+        }]
+
+      }]
+
+    }
   };
 }
 
 const kMinAttributeStride = 4;
 
-function getDeviceLimitToRequest(limitValueTest, defaultLimit, maximumLimit) {
+function getDeviceLimitToRequest(
+limitValueTest,
+defaultLimit,
+maximumLimit)
+{
   switch (limitValueTest) {
     case 'atDefault':
       return defaultLimit;
@@ -44,7 +52,6 @@ function getDeviceLimitToRequest(limitValueTest, defaultLimit, maximumLimit) {
         defaultLimit,
         roundDown(Math.floor((defaultLimit + maximumLimit) / 2), kMinAttributeStride)
       );
-
     case 'atMaximum':
       return maximumLimit;
     case 'overMaximum':
@@ -62,15 +69,15 @@ function getTestValue(testValueName, requestedLimit) {
 }
 
 function getDeviceLimitToRequestAndValueToTest(
-  limitValueTest,
-  testValueName,
-  defaultLimit,
-  maximumLimit
-) {
+limitValueTest,
+testValueName,
+defaultLimit,
+maximumLimit)
+{
   const requestedLimit = getDeviceLimitToRequest(limitValueTest, defaultLimit, maximumLimit);
   return {
     requestedLimit,
-    testValue: getTestValue(testValueName, requestedLimit),
+    testValue: getTestValue(testValueName, requestedLimit)
   };
 }
 
@@ -81,26 +88,34 @@ of the arrayStride not being a multiple of 4
 const limit = 'maxVertexBufferArrayStride';
 export const { g, description } = makeLimitTestGroup(limit);
 
-g.test('createRenderPipeline,at_over')
-  .desc(`Test using createRenderPipeline(Async) at and over ${limit} limit`)
-  .params(kMaximumLimitBaseParams.combine('async', [false, true]))
-  .fn(async t => {
-    const { limitTest, testValueName, async } = t.params;
-    const { defaultLimit, adapterLimit: maximumLimit } = t;
-    const { requestedLimit, testValue } = getDeviceLimitToRequestAndValueToTest(
-      limitTest,
-      testValueName,
-      defaultLimit,
-      maximumLimit
-    );
+g.test('createRenderPipeline,at_over').
+desc(`Test using createRenderPipeline(Async) at and over ${limit} limit`).
+params(kMaximumLimitBaseParams.combine('async', [false, true])).
+fn(async (t) => {
+  const { limitTest, testValueName, async } = t.params;
+  const { defaultLimit, adapterLimit: maximumLimit } = t;
+  const { requestedLimit, testValue } = getDeviceLimitToRequestAndValueToTest(
+    limitTest,
+    testValueName,
+    defaultLimit,
+    maximumLimit
+  );
 
-    await t.testDeviceWithSpecificLimits(
-      requestedLimit,
-      testValue,
-      async ({ device, testValue, shouldError }) => {
-        const pipelineDescriptor = getPipelineDescriptor(device, testValue);
+  await t.testDeviceWithSpecificLimits(
+    requestedLimit,
+    testValue,
+    async ({ device, testValue, shouldError }) => {
+      const pipelineDescriptor = getPipelineDescriptor(device, testValue);
 
-        await t.testCreateRenderPipeline(pipelineDescriptor, async, shouldError);
-      }
-    );
-  });
+      await t.testCreateRenderPipeline(pipelineDescriptor, async, shouldError);
+    }
+  );
+});
+
+g.test('validate').
+desc(`Test that ${limit} is a multiple of 4 bytes`).
+fn((t) => {
+  const { defaultLimit, adapterLimit } = t;
+  t.expect(defaultLimit % 4 === 0);
+  t.expect(adapterLimit % 4 === 0);
+});

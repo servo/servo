@@ -1,6 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/ /// <reference types="@webgpu/types" />
 
 import { ErrorWithExtra, assert, objectEquals } from './util.js';
 
@@ -13,7 +13,6 @@ function defaultGPUProvider() {
     typeof navigator !== 'undefined' && navigator.gpu !== undefined,
     'No WebGPU implementation found'
   );
-
   return navigator.gpu;
 }
 
@@ -21,6 +20,7 @@ function defaultGPUProvider() {
  * GPUProvider is a function that creates and returns a new GPU instance.
  * May throw an exception if a GPU cannot be created.
  */
+
 
 let gpuProvider = defaultGPUProvider;
 
@@ -63,11 +63,14 @@ export function getGPU(recorder) {
   impl = gpuProvider();
 
   if (defaultRequestAdapterOptions) {
+
     const oldFn = impl.requestAdapter;
-    impl.requestAdapter = function (options) {
+    impl.requestAdapter = function (
+    options)
+    {
       const promise = oldFn.call(this, { ...defaultRequestAdapterOptions, ...options });
       if (recorder) {
-        void promise.then(async adapter => {
+        void promise.then(async (adapter) => {
           if (adapter) {
             const info = await adapter.requestAdapterInfo();
             const infoString = `Adapter: ${info.vendor} / ${info.architecture} / ${info.device}`;

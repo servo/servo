@@ -32,7 +32,7 @@ impl DOMMatrix {
         Self::new_with_proto(global, None, is2D, matrix)
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,

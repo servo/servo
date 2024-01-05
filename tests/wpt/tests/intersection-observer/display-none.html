@@ -41,7 +41,6 @@ promise_test(async function(t) {
     entries,
     0,
     [8, 108, 8, 108, 8, 108, 8, 108, 0, vw, 0, vh, true],
-    "IntersectionObserver notification after first rAF",
   );
   target.style.display = "none";
 
@@ -51,7 +50,6 @@ promise_test(async function(t) {
     entries,
     1,
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, false],
-    "IntersectionObserver should send a not-intersecting notification for a target that gets display:none.",
   );
 
   target.style.display = "";
@@ -62,7 +60,6 @@ promise_test(async function(t) {
     entries,
     2,
     [8, 108, 8, 108, 8, 108, 8, 108, 0, vw, 0, vh, true],
-    "Intersecting notification after removing display:none on target.",
   );
 });
 </script>

@@ -35,4 +35,9 @@ test(function() {
   style.cssText = cssText;
   assert_equals(style.cssText, "all: inherit; direction: inherit; unicode-bidi: inherit;");
 }, "'all' shorthand with all longhands");
+
+test(function() {
+  style.cssText = "--foo: bar; all: initial";
+  assert_true(style.cssText.includes("--foo: bar"), "cssText serialization includes custom property");
+}, "all:initial should not exclude custom from cssText");
 </script>

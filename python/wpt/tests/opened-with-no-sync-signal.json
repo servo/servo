@@ -160,12 +160,12 @@
         "forks": 1731,
         "open_issues": 2073,
         "watchers": 10131,
-        "default_branch": "master"
+        "default_branch": "main"
       }
     },
     "base": {
-      "label": "servo:master",
-      "ref": "master",
+      "label": "servo:main",
+      "ref": "main",
       "sha": "3b7a82b8c743bcbbefb6f25defd4cc132c25c348",
       "user": {
         "login": "servo",
@@ -273,7 +273,7 @@
         "forks": 1731,
         "open_issues": 2073,
         "watchers": 10131,
-        "default_branch": "master"
+        "default_branch": "main"
       }
     },
     "_links": {
@@ -403,7 +403,7 @@
     "forks": 1731,
     "open_issues": 2073,
     "watchers": 10131,
-    "default_branch": "master"
+    "default_branch": "main"
   },
   "organization": {
     "login": "servo",

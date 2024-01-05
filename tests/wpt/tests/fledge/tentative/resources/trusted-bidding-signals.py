@@ -32,6 +32,8 @@ def main(request, response):
         if pair[0] == "interestGroupNames" and interestGroupNames == None:
             interestGroupNames = list(map(unquote_plus, pair[1].split(",")))
             continue
+        if pair[0] == "slotSize" or pair[0] == "allSlotsRequestedSizes":
+            continue
         return fail(response, "Unexpected query parameter: " + param)
 
     # "interestGroupNames" and "hostname" are mandatory.
@@ -102,6 +104,10 @@ def main(request, response):
                 value = request.GET.first(b"hostname", b"not-found").decode("ASCII")
             elif key == "headers":
                 value = headersToAscii(request.headers)
+            elif key == "slotSize":
+                value = request.GET.first(b"slotSize", b"not-found").decode("ASCII")
+            elif key == "allSlotsRequestedSizes":
+                value = request.GET.first(b"allSlotsRequestedSizes", b"not-found").decode("ASCII")
             responseBody["keys"][key] = value
 
     if "data-version" in interestGroupNames:

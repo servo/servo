@@ -1,11 +1,15 @@
 [toolchain]
-channel = "nightly-2023-03-18"
+# Be sure to update etc/shell.nix when bumping this!
+channel = "1.74"
+
 components = [
-    # https://github.com/rust-lang/rust/issues/72594#issuecomment-633779564
+    # For support/crown
     "llvm-tools",
-    # For components/script_plugins, https://github.com/rust-lang/rust/pull/67469
+    # For support/crown
     "rustc-dev",
+    # For docs building
     "rust-docs",
+    # For formatting
     "rustfmt",
 ]
 profile = "minimal"

@@ -19,6 +19,7 @@ import dataclasses
 import json
 import logging
 import re
+import shutil
 import subprocess
 
 from typing import Callable, Optional
@@ -50,8 +51,12 @@ class LocalGitRepo:
         self.path = path
         self.sync = sync
 
+        # We pass env to subprocess, which may clobber PATH, so we need to find
+        # git in advance and run the subprocess by its absolute path.
+        self.git_path = shutil.which("git")
+
     def run_without_encoding(self, *args, env: dict = {}):
-        command_line = ["git"] + list(args)
+        command_line = [self.git_path] + list(args)
         logging.info("  → Execution (cwd='%s'): %s",
                      self.path, " ".join(command_line))
 
@@ -142,9 +147,9 @@ class WPTSync:
     suppress_force_push: bool = False
 
     def __post_init__(self):
-        self.servo = GithubRepository(self, self.servo_repo)
-        self.wpt = GithubRepository(self, self.wpt_repo)
-        self.downstream_wpt = GithubRepository(self, self.downstream_wpt_repo)
+        self.servo = GithubRepository(self, self.servo_repo, "main")
+        self.wpt = GithubRepository(self, self.wpt_repo, "master")
+        self.downstream_wpt = GithubRepository(self, self.downstream_wpt_repo, "master")
         self.local_servo_repo = LocalGitRepo(self.servo_path, self)
         self.local_wpt_repo = LocalGitRepo(self.wpt_path, self)
 

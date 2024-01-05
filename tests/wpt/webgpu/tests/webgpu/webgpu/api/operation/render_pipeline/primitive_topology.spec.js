@@ -1,6 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `Test primitive topology rendering.
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `Test primitive topology rendering.
 
 Draw a primitive using 6 vertices with each topology and check if the pixel is covered.
 
@@ -55,9 +55,9 @@ Test locations are framebuffer coordinates:
     ****** ** ****** **        {v2,v3,v4} and {v3,v4,v5}.       With primitive restart:
    v1       v3        v5                                        Triangle {v2, v3, v4}
                                                                 and {v3, v4, v5}.
-`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUTest, TextureTestMixin } from '../../../gpu_test.js';
+
 
 const kRTSize = 56;
 const kColorFormat = 'rgba8unorm';
@@ -65,6 +65,11 @@ const kValidPixelColor = new Uint8Array([0x00, 0xff, 0x00, 0xff]); // green
 const kInvalidPixelColor = new Uint8Array([0x00, 0x00, 0x00, 0x00]); // black
 
 class Point2D {
+
+
+
+
+
   constructor(x, y) {
     this.x = x;
     this.y = y;
@@ -76,7 +81,7 @@ class Point2D {
     // NDC coordinate space is y-up, so we negate the y mapping.
     // To ensure the resulting vertex in NDC will be placed at the center of the pixel, we
     // must offset by the pixel coordinates or 0.5.
-    return new Point2D((2 * (this.x + 0.5)) / kRTSize - 1, (-2 * (this.y + 0.5)) / kRTSize + 1);
+    return new Point2D(2 * (this.x + 0.5) / kRTSize - 1, -2 * (this.y + 0.5) / kRTSize + 1);
   }
 
   static getMidpoint(a, b) {
@@ -88,13 +93,15 @@ class Point2D {
   }
 }
 
+
+
 const VertexLocations = [
-  new Point2D(8, 24), // v1
-  new Point2D(16, 8), // v2
-  new Point2D(24, 24), // v3
-  new Point2D(32, 8), // v4
-  new Point2D(40, 24), // v5
-  new Point2D(48, 8), // v6
+new Point2D(8, 24), // v1
+new Point2D(16, 8), // v2
+new Point2D(24, 24), // v3
+new Point2D(32, 8), // v4
+new Point2D(40, 24), // v5
+new Point2D(48, 8) // v6
 ];
 
 function getPointTestLocations(expectedColor) {
@@ -109,92 +116,96 @@ function getPointTestLocations(expectedColor) {
 function getLineTestLocations(expectedColor) {
   // Midpoints of 3 line segments
   return [
-    {
-      // Line {v1, v2}
-      coord: Point2D.getMidpoint(VertexLocations[0], VertexLocations[1]),
-      exp: expectedColor,
-    },
-    {
-      // Line {v3, v4}
-      coord: Point2D.getMidpoint(VertexLocations[2], VertexLocations[3]),
-      exp: expectedColor,
-    },
-    {
-      // Line {v5, v6}
-      coord: Point2D.getMidpoint(VertexLocations[4], VertexLocations[5]),
-      exp: expectedColor,
-    },
-  ];
+  {
+    // Line {v1, v2}
+    coord: Point2D.getMidpoint(VertexLocations[0], VertexLocations[1]),
+    exp: expectedColor
+  },
+  {
+    // Line {v3, v4}
+    coord: Point2D.getMidpoint(VertexLocations[2], VertexLocations[3]),
+    exp: expectedColor
+  },
+  {
+    // Line {v5, v6}
+    coord: Point2D.getMidpoint(VertexLocations[4], VertexLocations[5]),
+    exp: expectedColor
+  }];
+
 }
 
 function getPrimitiveRestartLineTestLocations(expectedColor) {
   // Midpoints of 2 line segments
   return [
-    {
-      // Line {v1, v2}
-      coord: Point2D.getMidpoint(VertexLocations[0], VertexLocations[1]),
-      exp: expectedColor,
-    },
-    {
-      // Line {v5, v6}
-      coord: Point2D.getMidpoint(VertexLocations[4], VertexLocations[5]),
-      exp: expectedColor,
-    },
-  ];
+  {
+    // Line {v1, v2}
+    coord: Point2D.getMidpoint(VertexLocations[0], VertexLocations[1]),
+    exp: expectedColor
+  },
+  {
+    // Line {v5, v6}
+    coord: Point2D.getMidpoint(VertexLocations[4], VertexLocations[5]),
+    exp: expectedColor
+  }];
+
 }
 
 function getLineStripTestLocations(expectedColor) {
   // Midpoints of 2 line segments
   return [
-    {
-      // Line {v2, v3}
-      coord: Point2D.getMidpoint(VertexLocations[1], VertexLocations[2]),
-      exp: expectedColor,
-    },
-    {
-      // Line {v4, v5}
-      coord: Point2D.getMidpoint(VertexLocations[3], VertexLocations[4]),
-      exp: expectedColor,
-    },
-  ];
+  {
+    // Line {v2, v3}
+    coord: Point2D.getMidpoint(VertexLocations[1], VertexLocations[2]),
+    exp: expectedColor
+  },
+  {
+    // Line {v4, v5}
+    coord: Point2D.getMidpoint(VertexLocations[3], VertexLocations[4]),
+    exp: expectedColor
+  }];
+
 }
 
 function getTriangleListTestLocations(expectedColor) {
   // Center of two triangles
   return [
-    {
-      // Triangle {v1, v2, v3}
-      coord: Point2D.getCentroid(VertexLocations[0], VertexLocations[1], VertexLocations[2]),
-      exp: expectedColor,
-    },
-    {
-      // Triangle {v4, v5, v6}
-      coord: Point2D.getCentroid(VertexLocations[3], VertexLocations[4], VertexLocations[5]),
-      exp: expectedColor,
-    },
-  ];
+  {
+    // Triangle {v1, v2, v3}
+    coord: Point2D.getCentroid(VertexLocations[0], VertexLocations[1], VertexLocations[2]),
+    exp: expectedColor
+  },
+  {
+    // Triangle {v4, v5, v6}
+    coord: Point2D.getCentroid(VertexLocations[3], VertexLocations[4], VertexLocations[5]),
+    exp: expectedColor
+  }];
+
 }
 
 function getTriangleStripTestLocations(expectedColor) {
   // Center of two triangles
   return [
-    {
-      // Triangle {v2, v3, v4}
-      coord: Point2D.getCentroid(VertexLocations[1], VertexLocations[2], VertexLocations[3]),
-      exp: expectedColor,
-    },
-    {
-      // Triangle {v3, v4, v5}
-      coord: Point2D.getCentroid(VertexLocations[2], VertexLocations[3], VertexLocations[4]),
-      exp: expectedColor,
-    },
-  ];
+  {
+    // Triangle {v2, v3, v4}
+    coord: Point2D.getCentroid(VertexLocations[1], VertexLocations[2], VertexLocations[3]),
+    exp: expectedColor
+  },
+  {
+    // Triangle {v3, v4, v5}
+    coord: Point2D.getCentroid(VertexLocations[2], VertexLocations[3], VertexLocations[4]),
+    exp: expectedColor
+  }];
+
 }
 
 function getDefaultTestLocations({
   topology,
   primitiveRestart = false,
-  invalidateLastInList = false,
+  invalidateLastInList = false
+
+
+
+
 }) {
   function maybeInvalidateLast(locations) {
     if (!invalidateLastInList) return locations;
@@ -203,7 +214,7 @@ function getDefaultTestLocations({
       if (i === locations.length - 1) {
         return {
           coord: tl.coord,
-          exp: kInvalidPixelColor,
+          exp: kInvalidPixelColor
         };
       } else {
         return tl;
@@ -215,49 +226,43 @@ function getDefaultTestLocations({
   switch (topology) {
     case 'point-list':
       testLocations = [
-        ...getPointTestLocations(kValidPixelColor),
-        ...getLineStripTestLocations(kInvalidPixelColor),
-        ...getTriangleListTestLocations(kInvalidPixelColor),
-        ...getTriangleStripTestLocations(kInvalidPixelColor),
-      ];
+      ...getPointTestLocations(kValidPixelColor),
+      ...getLineStripTestLocations(kInvalidPixelColor),
+      ...getTriangleListTestLocations(kInvalidPixelColor),
+      ...getTriangleStripTestLocations(kInvalidPixelColor)];
 
       break;
     case 'line-list':
       testLocations = [
-        ...maybeInvalidateLast(getLineTestLocations(kValidPixelColor)),
-        ...getLineStripTestLocations(kInvalidPixelColor),
-        ...getTriangleListTestLocations(kInvalidPixelColor),
-        ...getTriangleStripTestLocations(kInvalidPixelColor),
-      ];
+      ...maybeInvalidateLast(getLineTestLocations(kValidPixelColor)),
+      ...getLineStripTestLocations(kInvalidPixelColor),
+      ...getTriangleListTestLocations(kInvalidPixelColor),
+      ...getTriangleStripTestLocations(kInvalidPixelColor)];
 
       break;
     case 'line-strip':
       testLocations = [
-        ...(primitiveRestart
-          ? getPrimitiveRestartLineTestLocations(kValidPixelColor)
-          : getLineTestLocations(kValidPixelColor)),
-        ...getLineStripTestLocations(kValidPixelColor),
-        ...getTriangleListTestLocations(kInvalidPixelColor),
-        ...getTriangleStripTestLocations(kInvalidPixelColor),
-      ];
+      ...(primitiveRestart ?
+      getPrimitiveRestartLineTestLocations(kValidPixelColor) :
+      getLineTestLocations(kValidPixelColor)),
+      ...getLineStripTestLocations(kValidPixelColor),
+      ...getTriangleListTestLocations(kInvalidPixelColor),
+      ...getTriangleStripTestLocations(kInvalidPixelColor)];
 
       break;
     case 'triangle-list':
       testLocations = [
-        ...maybeInvalidateLast(getTriangleListTestLocations(kValidPixelColor)),
-        ...getTriangleStripTestLocations(kInvalidPixelColor),
-      ];
+      ...maybeInvalidateLast(getTriangleListTestLocations(kValidPixelColor)),
+      ...getTriangleStripTestLocations(kInvalidPixelColor)];
 
       break;
     case 'triangle-strip':
       testLocations = [
-        ...getTriangleListTestLocations(kValidPixelColor),
-        ...getTriangleStripTestLocations(primitiveRestart ? kInvalidPixelColor : kValidPixelColor),
-      ];
+      ...getTriangleListTestLocations(kValidPixelColor),
+      ...getTriangleStripTestLocations(primitiveRestart ? kInvalidPixelColor : kValidPixelColor)];
 
       break;
   }
-
   return testLocations;
 }
 
@@ -279,7 +284,7 @@ class PrimitiveTopologyTest extends TextureTestMixin(GPUTest) {
     return this.device.createTexture({
       format: kColorFormat,
       size: { width: kRTSize, height: kRTSize, depthOrArrayLayers: 1 },
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
     });
   }
 
@@ -288,7 +293,13 @@ class PrimitiveTopologyTest extends TextureTestMixin(GPUTest) {
     indirect,
     testLocations,
     primitiveRestart = false,
-    drawCount = kDefaultDrawCount,
+    drawCount = kDefaultDrawCount
+
+
+
+
+
+
   }) {
     const colorAttachment = this.makeAttachmentTexture();
 
@@ -296,13 +307,13 @@ class PrimitiveTopologyTest extends TextureTestMixin(GPUTest) {
     const encoder = this.device.createCommandEncoder();
     const renderPass = encoder.beginRenderPass({
       colorAttachments: [
-        {
-          view: colorAttachment.createView(),
-          clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
+      {
+        view: colorAttachment.createView(),
+        clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+        loadOp: 'clear',
+        storeOp: 'store'
+      }]
+
     });
 
     let stripIndexFormat = undefined;
@@ -325,36 +336,36 @@ class PrimitiveTopologyTest extends TextureTestMixin(GPUTest) {
                 @location(0) pos : vec4<f32>
                 ) -> @builtin(position) vec4<f32> {
                 return pos;
-              }`,
+              }`
           }),
           entryPoint: 'main',
           buffers: [
+          {
+            arrayStride: 4 * Float32Array.BYTES_PER_ELEMENT,
+            attributes: [
             {
-              arrayStride: 4 * Float32Array.BYTES_PER_ELEMENT,
-              attributes: [
-                {
-                  format: 'float32x4',
-                  offset: 0,
-                  shaderLocation: 0,
-                },
-              ],
-            },
-          ],
+              format: 'float32x4',
+              offset: 0,
+              shaderLocation: 0
+            }]
+
+          }]
+
         },
         fragment: {
           module: this.device.createShaderModule({
             code: `
               @fragment fn main() -> @location(0) vec4<f32> {
                 return vec4<f32>(0.0, 1.0, 0.0, 1.0);
-              }`,
+              }`
           }),
           entryPoint: 'main',
-          targets: [{ format: kColorFormat }],
+          targets: [{ format: kColorFormat }]
         },
         primitive: {
           topology,
-          stripIndexFormat,
-        },
+          stripIndexFormat
+        }
       })
     );
 
@@ -369,7 +380,6 @@ class PrimitiveTopologyTest extends TextureTestMixin(GPUTest) {
         new Uint32Array([0, 1, 2, -1, 3, 4, 5]),
         GPUBufferUsage.INDEX
       );
-
       renderPass.setIndexBuffer(indexBuffer, 'uint32');
 
       if (indirect) {
@@ -378,7 +388,6 @@ class PrimitiveTopologyTest extends TextureTestMixin(GPUTest) {
             new Uint32Array([drawCount + 1, 1, 0, 0, 0]),
             GPUBufferUsage.INDIRECT
           ),
-
           0
         );
       } else {
@@ -391,7 +400,6 @@ class PrimitiveTopologyTest extends TextureTestMixin(GPUTest) {
             new Uint32Array([drawCount, 1, 0, 0]),
             GPUBufferUsage.INDIRECT
           ),
-
           0
         );
       } else {
@@ -408,11 +416,17 @@ class PrimitiveTopologyTest extends TextureTestMixin(GPUTest) {
 
 export const g = makeTestGroup(PrimitiveTopologyTest);
 
-const topologies = ['point-list', 'line-list', 'line-strip', 'triangle-list', 'triangle-strip'];
+const topologies = [
+'point-list',
+'line-list',
+'line-strip',
+'triangle-list',
+'triangle-strip'];
 
-g.test('basic')
-  .desc(
-    `Compute test locations for valid and invalid pixels for each topology.
+
+g.test('basic').
+desc(
+  `Compute test locations for valid and invalid pixels for each topology.
   If the primitive covers the pixel, the color value will be |kValidPixelColor|.
   Otherwise, a non-covered pixel will be |kInvalidPixelColor|.
 
@@ -421,26 +435,26 @@ g.test('basic')
     - indirect= {true, false}
     - primitiveRestart= { true, false } - always false for non-strip topologies
   `
-  )
-  .params(u =>
-    u //
-      .combine('topology', topologies)
-      .combine('indirect', [false, true])
-      .combine('primitiveRestart', [false, true])
-      .unless(
-        p => p.primitiveRestart && p.topology !== 'line-strip' && p.topology !== 'triangle-strip'
-      )
-  )
-  .fn(t => {
-    t.run({
-      ...t.params,
-      testLocations: getDefaultTestLocations(t.params),
-    });
+).
+params((u) =>
+u //
+.combine('topology', topologies).
+combine('indirect', [false, true]).
+combine('primitiveRestart', [false, true]).
+unless(
+  (p) => p.primitiveRestart && p.topology !== 'line-strip' && p.topology !== 'triangle-strip'
+)
+).
+fn((t) => {
+  t.run({
+    ...t.params,
+    testLocations: getDefaultTestLocations(t.params)
   });
+});
 
-g.test('unaligned_vertex_count')
-  .desc(
-    `Test that drawing with a number of vertices that's not a multiple of the vertices a given primitive list topology is not an error. The last primitive is not drawn.
+g.test('unaligned_vertex_count').
+desc(
+  `Test that drawing with a number of vertices that's not a multiple of the vertices a given primitive list topology is not an error. The last primitive is not drawn.
 
     Params:
     - topology= {line-list, triangle-list}
@@ -448,27 +462,27 @@ g.test('unaligned_vertex_count')
     - drawCount - number of vertices to draw. A value smaller than the test's default of ${kDefaultDrawCount}.
                    One smaller for line-list. One or two smaller for triangle-list.
     `
-  )
-  .params(u =>
-    u //
-      .combine('topology', ['line-list', 'triangle-list'])
-      .combine('indirect', [false, true])
-      .expand('drawCount', function* (p) {
-        switch (p.topology) {
-          case 'line-list':
-            yield kDefaultDrawCount - 1;
-            break;
-          case 'triangle-list':
-            yield kDefaultDrawCount - 1;
-            yield kDefaultDrawCount - 2;
-            break;
-        }
-      })
-  )
-  .fn(t => {
-    const testLocations = getDefaultTestLocations({ ...t.params, invalidateLastInList: true });
-    t.run({
-      ...t.params,
-      testLocations,
-    });
+).
+params((u) =>
+u //
+.combine('topology', ['line-list', 'triangle-list']).
+combine('indirect', [false, true]).
+expand('drawCount', function* (p) {
+  switch (p.topology) {
+    case 'line-list':
+      yield kDefaultDrawCount - 1;
+      break;
+    case 'triangle-list':
+      yield kDefaultDrawCount - 1;
+      yield kDefaultDrawCount - 2;
+      break;
+  }
+})
+).
+fn((t) => {
+  const testLocations = getDefaultTestLocations({ ...t.params, invalidateLastInList: true });
+  t.run({
+    ...t.params,
+    testLocations
   });
+});

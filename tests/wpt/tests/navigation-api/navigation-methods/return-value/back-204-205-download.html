@@ -32,11 +32,9 @@ for (const [description, action] of tests) {
 
     const indexBefore = i.contentWindow.navigation.currentEntry.index;
 
-    // One might be surprised that navigate does not fire. (It does fire for the
-    // corresponding tests of navigation.navigate(), i.e., this is
-    // traversal-specific behavior.) See https://github.com/WICG/navigation-api/issues/207
-    // for some discussion.
-    i.contentWindow.navigation.onnavigate = t.unreached_func("onnavigate should not be called");
+    let onnavigate_called = false;
+    i.contentWindow.navigation.onnavigate = () => onnavigate_called = true;
+    i.contentWindow.onunload = t.unreached_func("onunload should not be called");
     i.contentWindow.navigation.onnavigatesuccess = t.unreached_func("onnavigatesuccess should not be called");
     i.contentWindow.navigation.onnavigateerror = t.unreached_func("onnavigateerror should not be called");
 
@@ -47,6 +45,7 @@ for (const [description, action] of tests) {
     await new Promise(resolve => t.step_timeout(resolve, 50));
     assert_equals(i.contentWindow.navigation.currentEntry.index, indexBefore);
     assert_equals(i.contentWindow.navigation.transition, null);
+    assert_true(onnavigate_called);
   }, `back() promises to ${description} never settle`);
 }
 </script>

@@ -5,6 +5,7 @@
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
+use app_units::Au;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
@@ -51,8 +52,8 @@ pub(crate) struct ReplacedContent {
 ///   to https://drafts.csswg.org/css-images/#intrinsic-dimensions.
 #[derive(Debug, Serialize)]
 pub(crate) struct IntrinsicSizes {
-    pub width: Option<Length>,
-    pub height: Option<Length>,
+    pub width: Option<Au>,
+    pub height: Option<Au>,
     pub ratio: Option<CSSFloat>,
 }
 
@@ -68,8 +69,8 @@ impl IntrinsicSizes {
         };
 
         Self {
-            width: Some(Length::new(width)),
-            height: Some(Length::new(height)),
+            width: Some(Length::new(width).into()),
+            height: Some(Length::new(height).into()),
             ratio,
         }
     }
@@ -211,7 +212,10 @@ impl ReplacedContent {
     }
 
     fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> LogicalVec2<Option<Length>> {
-        let intrinsic_size = PhysicalSize::new(self.intrinsic.width, self.intrinsic.height);
+        let intrinsic_size = PhysicalSize::new(
+            self.intrinsic.width.map(|v| v.into()),
+            self.intrinsic.height.map(|v| v.into()),
+        );
         LogicalVec2::from_physical_size(&intrinsic_size, style.writing_mode)
     }
 
@@ -277,8 +281,8 @@ impl ReplacedContent {
                 })]
             },
             ReplacedContentKind::Canvas(canvas_info) => {
-                if self.intrinsic.width == Some(Length::zero()) ||
-                    self.intrinsic.height == Some(Length::zero())
+                if self.intrinsic.width == Some(Au::zero()) ||
+                    self.intrinsic.height == Some(Au::zero())
                 {
                     return vec![];
                 }

@@ -8,7 +8,9 @@
 // META: variant=?11-15
 // META: variant=?16-20
 // META: variant=?21-25
-// META: variant=?26-last
+// META: variant=?26-30
+// META: variant=?31-35
+// META: variant=?36-last
 
 "use strict;"
 
@@ -76,7 +78,6 @@ const makeTest = ({
       assert_false(dontExpectPromiseError.sawError,
                    "Should not see a promise error");
     }
-
   }, name);
 };
 
@@ -303,4 +304,89 @@ makeTest({
   expect: EXPECT_PROMISE_ERROR,
   expectPromiseError: EXPECT_EXCEPTION(TypeError),
   auctionConfigOverrides: {perBuyerCurrencies: 123}
+});
+
+makeTest({
+  name: 'requestedSize has no width',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {requestedSize: {height: '100'}}
+});
+
+makeTest({
+  name: 'requestedSize has no height',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {requestedSize: {width: '100'}}
+});
+
+makeTest({
+  name: 'requestedSize width not a number',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {requestedSize: {width: '10 0', height: '100'}}
+});
+
+makeTest({
+  name: 'requestedSize height not a number',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {requestedSize: {width: '100', height: '10 0'}}
+});
+
+makeTest({
+  name: 'requestedSize 0',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {requestedSize: {width: '0', height: '100'}}
+});
+
+makeTest({
+  name: 'requestedSize space before units',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {requestedSize: {width: '100 px', height: '100'}}
+});
+
+makeTest({
+  name: 'requestedSize leading 0',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {requestedSize: {width: '0100', height: '100'}}
+});
+
+makeTest({
+  name: 'requestedSize invalid unit type',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {requestedSize: {width: '100furlongs', height: '100'}}
+});
+
+makeTest({
+  name: 'requestedSize hexideximal',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {requestedSize: {width: '0x100', height: '100'}}
+});
+
+makeTest({
+  name: 'Empty allSlotsRequestedSizes',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {allSlotsRequestedSizes: []}
+});
+
+makeTest({
+  name: 'allSlotsRequestedSizes without matching value in requestedSize',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {requestedSize:
+                             {width: '100', height: '100'},
+                           allSlotsRequestedSizes:
+                            [{width: '100', height: '101'}]}
+});
+
+makeTest({
+  name: 'allSlotsRequestedSizes has duplicate values',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {allSlotsRequestedSizes:
+                            [{width: '100', height: '100'},
+                             {width: '100', height: '100'}]}
+});
+
+makeTest({
+  name: 'allSlotsRequestedSizes has invalid value',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {allSlotsRequestedSizes:
+                            [{width: '100', height: '100'},
+                             {width: '200furlongs', height: '200'}]}
 });

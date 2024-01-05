@@ -102,7 +102,6 @@ ${helpers.predefined_type(
     "TextJustify",
     "computed::TextJustify::Auto",
     engines="gecko servo",
-    servo_pref="layout.legacy_layout",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text/#propdef-text-justify",
     servo_restyle_damage="rebuild_and_reflow",
@@ -112,7 +111,7 @@ ${helpers.predefined_type(
     "text-align-last",
     "TextAlignLast",
     "computed::text::TextAlignLast::Auto",
-    engines="gecko",
+    engines="gecko servo",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-text/#propdef-text-align-last",
 )}

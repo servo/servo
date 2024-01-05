@@ -23,7 +23,7 @@ promise_test(() => {
     let transition = document.startViewTransition();
     transition.ready.then(() => {
       let style = getComputedStyle(
-        document.documentElement, ":view-transition");
+        document.documentElement, "::view-transition");
       if (style.backgroundColor == "rgb(255, 0, 0)")
         resolve();
       else

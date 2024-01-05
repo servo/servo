@@ -28,10 +28,6 @@ html::view-transition-new(shared) {
 <div></div>
 
 <script>
-function validate_background(pseudoString) {
-  return window.getComputedStyle(document.documentElement, pseudoString).style.background != 'blue';
-}
-
 promise_test(async t => {
   assert_implements(document.startViewTransition, "Missing document.startViewTransition");
   return new Promise((resolve, reject) => {

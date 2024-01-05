@@ -46,7 +46,7 @@ pub struct AudioContext {
 }
 
 impl AudioContext {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
     fn new_inherited(options: &AudioContextOptions, pipeline_id: PipelineId) -> AudioContext {
         // Steps 1-3.
@@ -78,7 +78,7 @@ impl AudioContext {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new(
         window: &Window,
         proto: Option<HandleObject>,

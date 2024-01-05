@@ -139,7 +139,7 @@ test(t => {
   assert_equals(dc.readyState, 'connecting');
   assert_equals(dc.bufferedAmount, 0);
   assert_equals(dc.bufferedAmountLowThreshold, 0);
-  assert_equals(dc.binaryType, 'blob');
+  assert_equals(dc.binaryType, 'arraybuffer');
 }, 'createDataChannel attribute default values');
 
 test(t => {
@@ -166,7 +166,7 @@ test(t => {
   assert_equals(dc.readyState, 'connecting');
   assert_equals(dc.bufferedAmount, 0);
   assert_equals(dc.bufferedAmountLowThreshold, 0);
-  assert_equals(dc.binaryType, 'blob');
+  assert_equals(dc.binaryType, 'arraybuffer');
 
   const dc2 = pc.createDataChannel('test2', {
     ordered: false,

@@ -24,14 +24,14 @@ pub struct RadioNodeList {
 }
 
 impl RadioNodeList {
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(list_type: NodeListType) -> RadioNodeList {
         RadioNodeList {
             node_list: NodeList::new_inherited(list_type),
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(window: &Window, list_type: NodeListType) -> DomRoot<RadioNodeList> {
         reflect_dom_object(Box::new(RadioNodeList::new_inherited(list_type)), window)
     }

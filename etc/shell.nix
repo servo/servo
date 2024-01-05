@@ -2,8 +2,22 @@
 # NOTE: This does not work offline or for nix-build
 
 with import (builtins.fetchTarball {
-        url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
-    }) {};
+  url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
+}) {
+  overlays = [
+    (import (builtins.fetchTarball {
+      # Bumped the channel in rust-toolchain.toml? Bump this commit too!
+      url = "https://github.com/oxalica/rust-overlay/archive/a0df72e106322b67e9c6e591fe870380bd0da0d5.tar.gz";
+    }))
+  ];
+};
+let
+    rustToolchain = rust-bin.fromRustupToolchainFile ../rust-toolchain.toml;
+    rustPlatform = makeRustPlatform {
+      cargo = rustToolchain;
+      rustc = rustToolchain;
+    };
+in
 clangStdenv.mkDerivation rec {
   name = "servo-env";
 
@@ -29,6 +43,63 @@ clangStdenv.mkDerivation rec {
     # slow as it behaves as if -j1 was passed.
     # See https://github.com/servo/mozjs/issues/375
     gnumake
+
+    # crown needs to be in our Cargo workspace so we can test it with `mach test`. This means its
+    # dependency tree is listed in the main Cargo.lock, making it awkward to build with Nix because
+    # all of Servo’s dependencies get pulled into the Nix store too, wasting over 1GB of disk space.
+    # Filtering the lockfile to only the parts needed by crown saves space and builds faster.
+    (let
+      vendorTarball = rustPlatform.fetchCargoTarball {
+        src = ../support/filterlock;
+        hash = "sha256-/kJNDtmv2uI7Qlmpi3DMWSw88rzEJSbroO0/QrgQrSc=";
+      };
+      vendorConfig = builtins.toFile "toml" ''
+        [source.crates-io]
+        replace-with = "vendor"
+        [source.vendor]
+        directory = "vendor"
+      '';
+
+      # Build and run filterlock over the main Cargo.lock.
+      filteredLockFile = (clangStdenv.mkDerivation {
+        name = "lock";
+        buildInputs = [ rustToolchain ];
+        src = ../support/filterlock;
+        buildPhase = ''
+          tar xzf ${vendorTarball}
+          mv cargo-deps-vendor.tar.gz vendor
+          mkdir .cargo
+          cp -- ${vendorConfig} .cargo/config.toml
+          > $out cargo run --offline -- ${../Cargo.lock} crown
+        '';
+        dontInstall = true;
+      });
+    in (rustPlatform.buildRustPackage rec {
+      name = "crown";
+      src = ../support/crown;
+      doCheck = false;
+      cargoLock = {
+        lockFileContents = builtins.readFile filteredLockFile;
+
+        # Needed when not filtering (filteredLockFile = ../Cargo.lock), else we’ll get errors like
+        # “error: No hash was found while vendoring the git dependency blurmac-0.1.0.”
+        # allowBuiltinFetchGit = true;
+      };
+
+      # Copy the filtered lockfile, making it writable by cargo --offline.
+      postPatch = ''
+        install -m 644 ${filteredLockFile} Cargo.lock
+      '';
+
+      # Reformat the filtered lockfile, so that cargo --frozen won’t complain
+      # about the lockfile being dirty.
+      # TODO maybe this can be avoided by using toml_edit in filterlock?
+      preConfigure = ''
+        cargo update --offline
+      '';
+
+      RUSTC_BOOTSTRAP = "crown";
+    }))
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
   ]);

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1506393">
+<link rel="match" href="float-017-ref.html">
+<p>The numbers from 1 to 10 should be seen below. Each number only once.</p>
+<div style="width:20em; columns:4; gap:0; column-fill:auto; height:100px; line-height:20px; orphans:1; widows:1;">
+  1<br>
+  <div style="float:right; contain:size; width:100%; height:200px;"></div>
+  <div style="display:flow-root; width:100%;">
+    2<br>
+    3<br>
+    <div style="float:right; break-inside:avoid; width:10px; height:200px;"></div>
+    4<br>
+    5<br>
+    6<br>
+    7<br>
+    8<br>
+    9<br>
+    10<br>
+  </div>
+</div>

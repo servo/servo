@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>`link rel=expect` defers frames until href element is parsed</title>
+
+<link rel=expect href="#last" blocking="render">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementById("last")));
+    t.done();
+  });
+}, "blocking defers frames until full parsing");
+</script>
+</head>
+<body>
+  <div id="first"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="second"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="last"></div>
+</body>

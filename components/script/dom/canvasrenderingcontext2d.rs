@@ -175,7 +175,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         self.canvas_state.save()
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
     fn Restore(&self) {
         self.canvas_state.restore()

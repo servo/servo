@@ -55,7 +55,7 @@ impl TestBindingSetlikeMethods for TestBindingSetlike {
 
 // this error is wrong because if we inline Self::Key and Self::Value all errors are gone
 // TODO: FIX THIS
-#[allow(unrooted_must_root)]
+#[allow(crown::unrooted_must_root)]
 impl Setlike for TestBindingSetlike {
     type Key = DOMString;
 

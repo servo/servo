@@ -1548,9 +1548,10 @@ where
 
     fn handle_request_from_script(&mut self, message: (PipelineId, FromScriptMsg)) {
         let (source_pipeline_id, content) = message;
-        debug!(
+        trace!(
             "{}: Message from pipeline: {:?}",
-            source_pipeline_id, content,
+            source_pipeline_id,
+            content,
         );
 
         let source_top_ctx_id = match self
@@ -2042,42 +2043,37 @@ where
             return warn!("Browsing context group not found");
         };
         let webgpu_chan = match browsing_context_group.webgpus.entry(host) {
-            Entry::Vacant(v) => v
-                .insert(
-                    match WebGPU::new(
-                        self.webrender_wgpu.webrender_api.create_sender(),
-                        self.webrender_document,
-                        self.webrender_wgpu.webrender_external_images.clone(),
-                        self.webrender_wgpu.wgpu_image_map.clone(),
-                    ) {
-                        Some(webgpu) => {
-                            let msg = ConstellationControlMsg::SetWebGPUPort(webgpu.1);
-                            if let Err(e) = source_pipeline.event_loop.send(msg) {
-                                warn!(
-                                    "{}: Failed to send SetWebGPUPort to pipeline ({:?})",
-                                    source_pipeline_id, e
-                                );
-                            }
-                            webgpu.0
-                        },
-                        None => {
-                            return warn!("Failed to create new WebGPU thread");
-                        },
-                    },
-                )
-                .clone(),
-            Entry::Occupied(o) => o.get().clone(),
+            Entry::Vacant(v) => WebGPU::new(
+                self.webrender_wgpu.webrender_api.create_sender(),
+                self.webrender_document,
+                self.webrender_wgpu.webrender_external_images.clone(),
+                self.webrender_wgpu.wgpu_image_map.clone(),
+            )
+            .map(|webgpu| {
+                let msg = ConstellationControlMsg::SetWebGPUPort(webgpu.1);
+                if let Err(e) = source_pipeline.event_loop.send(msg) {
+                    warn!(
+                        "{}: Failed to send SetWebGPUPort to pipeline ({:?})",
+                        source_pipeline_id, e
+                    );
+                }
+                v.insert(webgpu.0).clone()
+            }),
+            Entry::Occupied(o) => Some(o.get().clone()),
         };
         match request {
-            FromScriptMsg::RequestAdapter(response_sender, options, ids) => {
-                let adapter_request = WebGPURequest::RequestAdapter {
-                    sender: response_sender,
-                    options,
-                    ids,
-                };
-                if webgpu_chan.0.send((None, adapter_request)).is_err() {
-                    return warn!("Failed to send request adapter message on WebGPU channel");
-                }
+            FromScriptMsg::RequestAdapter(response_sender, options, ids) => match webgpu_chan {
+                None => warn!("Failed to send request adapter message, missing WebGPU channel"),
+                Some(webgpu_chan) => {
+                    let adapter_request = WebGPURequest::RequestAdapter {
+                        sender: response_sender,
+                        options,
+                        ids,
+                    };
+                    if webgpu_chan.0.send((None, adapter_request)).is_err() {
+                        warn!("Failed to send request adapter message on WebGPU channel");
+                    }
+                },
             },
             FromScriptMsg::GetWebGPUChan(response_sender) => {
                 if response_sender.send(webgpu_chan).is_err() {
@@ -2904,15 +2900,23 @@ where
             self.pressed_mouse_buttons = 0;
         }
 
-        let msg = ConstellationControlMsg::SendEvent(destination_pipeline_id, event);
-        let result = match self.pipelines.get(&destination_pipeline_id) {
+        let pipeline = match self.pipelines.get(&destination_pipeline_id) {
             None => {
                 debug!("{}: Got event after closure", destination_pipeline_id);
                 return;
             },
-            Some(pipeline) => pipeline.event_loop.send(msg),
+            Some(pipeline) => pipeline,
         };
-        if let Err(e) = result {
+
+        self.embedder_proxy.send((
+            Some(pipeline.top_level_browsing_context_id),
+            EmbedderMsg::EventDelivered((&event).into()),
+        ));
+
+        if let Err(e) = pipeline.event_loop.send(ConstellationControlMsg::SendEvent(
+            destination_pipeline_id,
+            event,
+        )) {
             self.handle_send_error(destination_pipeline_id, e);
         }
     }

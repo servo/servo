@@ -71,7 +71,7 @@ pub type GlyphId = u32;
 
 // TODO: make this more type-safe.
 
-const FLAG_CHAR_IS_SPACE: u32 = 0x40000000;
+const FLAG_CHAR_IS_WORD_SEPARATOR: u32 = 0x40000000;
 const FLAG_IS_SIMPLE_GLYPH: u32 = 0x80000000;
 
 // glyph advance; in Au's.
@@ -112,15 +112,19 @@ impl GlyphEntry {
         self.value & GLYPH_ID_MASK
     }
 
-    /// True if original char was normal (U+0020) space. Other chars may
-    /// map to space glyph, but this does not account for them.
-    fn char_is_space(&self) -> bool {
-        self.has_flag(FLAG_CHAR_IS_SPACE)
+    /// True if the original character was a word separator. These include spaces
+    /// (U+0020), non-breaking spaces (U+00A0), and a few other characters
+    /// non-exhaustively listed in the specification. Other characters may map to the same
+    /// glyphs, but this function does not take mapping into account.
+    ///
+    /// See https://drafts.csswg.org/css-text/#word-separator.
+    fn char_is_word_separator(&self) -> bool {
+        self.has_flag(FLAG_CHAR_IS_WORD_SEPARATOR)
     }
 
     #[inline(always)]
-    fn set_char_is_space(&mut self) {
-        self.value |= FLAG_CHAR_IS_SPACE;
+    fn set_char_is_word_separator(&mut self) {
+        self.value |= FLAG_CHAR_IS_WORD_SEPARATOR;
     }
 
     fn glyph_count(&self) -> u16 {
@@ -384,13 +388,13 @@ impl<'a> GlyphInfo<'a> {
         }
     }
 
-    pub fn char_is_space(self) -> bool {
+    pub fn char_is_word_separator(self) -> bool {
         let (store, entry_i) = match self {
             GlyphInfo::Simple(store, entry_i) => (store, entry_i),
             GlyphInfo::Detail(store, entry_i, _) => (store, entry_i),
         };
 
-        store.char_is_space(entry_i)
+        store.char_is_word_separator(entry_i)
     }
 }
 
@@ -427,8 +431,10 @@ pub struct GlyphStore {
 
     /// A cache of the advance of the entire glyph store.
     total_advance: Au,
-    /// A cache of the number of spaces in the entire glyph store.
-    total_spaces: i32,
+
+    /// A cache of the number of word separators in the entire glyph store.
+    /// See https://drafts.csswg.org/css-text/#word-separator.
+    total_word_separators: i32,
 
     /// Used to check if fast path should be used in glyph iteration.
     has_detailed_glyphs: bool,
@@ -447,7 +453,7 @@ impl<'a> GlyphStore {
             entry_buffer: vec![GlyphEntry::initial(); length],
             detail_store: DetailedGlyphStore::new(),
             total_advance: Au(0),
-            total_spaces: 0,
+            total_word_separators: 0,
             has_detailed_glyphs: false,
             is_whitespace: is_whitespace,
             is_rtl: is_rtl,
@@ -469,23 +475,28 @@ impl<'a> GlyphStore {
         self.is_whitespace
     }
 
+    #[inline]
+    pub fn total_word_separators(&self) -> i32 {
+        self.total_word_separators
+    }
+
     pub fn finalize_changes(&mut self) {
         self.detail_store.ensure_sorted();
-        self.cache_total_advance_and_spaces()
+        self.cache_total_advance_and_word_seperators()
     }
 
     #[inline(never)]
-    fn cache_total_advance_and_spaces(&mut self) {
+    fn cache_total_advance_and_word_seperators(&mut self) {
         let mut total_advance = Au(0);
-        let mut total_spaces = 0;
+        let mut total_word_separators = 0;
         for glyph in self.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), self.len())) {
             total_advance = total_advance + glyph.advance();
-            if glyph.char_is_space() {
-                total_spaces += 1;
+            if glyph.char_is_word_separator() {
+                total_word_separators += 1;
             }
         }
         self.total_advance = total_advance;
-        self.total_spaces = total_spaces;
+        self.total_word_separators = total_word_separators;
     }
 
     /// Adds a single glyph.
@@ -507,8 +518,20 @@ impl<'a> GlyphStore {
             GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
         };
 
-        if character == ' ' {
-            entry.set_char_is_space()
+        // This list is taken from the non-exhaustive list of word separator characters in
+        // the CSS Text Module Level 3 Spec:
+        // See https://drafts.csswg.org/css-text/#word-separator
+        if matches!(
+            character,
+            ' ' |
+            '\u{00A0}' | // non-breaking space
+            '\u{1361}' | // Ethiopic word space
+            '\u{10100}' | // Aegean word separator
+            '\u{10101}' | // Aegean word separator
+            '\u{1039F}' | // Ugartic word divider
+            '\u{1091F}' // Phoenician word separator
+        ) {
+            entry.set_char_is_word_separator();
         }
 
         self.entry_buffer[i.to_usize()] = entry;
@@ -583,7 +606,7 @@ impl<'a> GlyphStore {
         let mut index = 0;
         let mut current_advance = Au(0);
         for glyph in self.iter_glyphs_for_byte_range(range) {
-            if glyph.char_is_space() {
+            if glyph.char_is_word_separator() {
                 current_advance += glyph.advance() + extra_word_spacing
             } else {
                 current_advance += glyph.advance()
@@ -599,7 +622,7 @@ impl<'a> GlyphStore {
     #[inline]
     pub fn advance_for_byte_range(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
         if range.begin() == ByteIndex(0) && range.end() == self.len() {
-            self.total_advance + extra_word_spacing * self.total_spaces
+            self.total_advance + extra_word_spacing * self.total_word_separators
         } else if !self.has_detailed_glyphs {
             self.advance_for_byte_range_simple_glyphs(range, extra_word_spacing)
         } else {
@@ -615,7 +638,7 @@ impl<'a> GlyphStore {
     ) -> Au {
         self.iter_glyphs_for_byte_range(range)
             .fold(Au(0), |advance, glyph| {
-                if glyph.char_is_space() {
+                if glyph.char_is_word_separator() {
                     advance + glyph.advance() + extra_word_spacing
                 } else {
                     advance + glyph.advance()
@@ -623,15 +646,15 @@ impl<'a> GlyphStore {
             })
     }
 
-    pub fn char_is_space(&self, i: ByteIndex) -> bool {
+    pub fn char_is_word_separator(&self, i: ByteIndex) -> bool {
         assert!(i < self.len());
-        self.entry_buffer[i.to_usize()].char_is_space()
+        self.entry_buffer[i.to_usize()].char_is_word_separator()
     }
 
-    pub fn space_count_in_range(&self, range: &Range<ByteIndex>) -> u32 {
+    pub fn word_separator_count_in_range(&self, range: &Range<ByteIndex>) -> u32 {
         let mut spaces = 0;
         for index in range.each_index() {
-            if self.char_is_space(index) {
+            if self.char_is_word_separator(index) {
                 spaces += 1
             }
         }

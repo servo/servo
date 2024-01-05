@@ -52,7 +52,7 @@ use crate::script_runtime::JSContext;
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum CanvasContext {
     Context2d(Dom<CanvasRenderingContext2D>),
@@ -79,7 +79,7 @@ impl HTMLCanvasElement {
         }
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
@@ -269,11 +269,15 @@ impl HTMLCanvasElement {
             .global()
             .script_to_constellation_chan()
             .send(ScriptMsg::GetWebGPUChan(sender));
-        let window = window_from_node(self);
-        let channel = receiver.recv().expect("Failed to get WebGPU channel");
-        let context = GPUCanvasContext::new(window.upcast::<GlobalScope>(), self, channel);
-        *self.context.borrow_mut() = Some(CanvasContext::WebGPU(Dom::from_ref(&*context)));
-        Some(context)
+        receiver
+            .recv()
+            .expect("Failed to get WebGPU channel")
+            .map(|channel| {
+                let window = window_from_node(self);
+                let context = GPUCanvasContext::new(window.upcast::<GlobalScope>(), self, channel);
+                *self.context.borrow_mut() = Some(CanvasContext::WebGPU(Dom::from_ref(&*context)));
+                context
+            })
     }
 
     /// Gets the base WebGLRenderingContext for WebGL or WebGL 2, if exists.

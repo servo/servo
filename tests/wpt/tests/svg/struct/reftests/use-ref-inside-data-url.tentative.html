@@ -1,0 +1,15 @@
+<!doctype HTML>
+<meta charset="utf-8">
+<title>Testcase for where SVG loaded via data: uses #ref</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseElementHrefAttribute">
+<link rel="match" href="reference/green-100x100.html">
+<body>
+<!-- base64 SVG source:
+<svg xmlns="http://www.w3.org/2000/svg">
+  <rect id="green-rect" width="100" height="100" fill="green"/>
+  <rect width="100" height="100" fill="red"/>
+  <use href="#green-rect"/>
+</svg>
+-->
+<img src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPg0KICA8cmVjdCBpZD0iZ3JlZW4tcmVjdCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9ImdyZWVuIi8+DQogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSJyZWQiLz4NCiAgPHVzZSBocmVmPSIjZ3JlZW4tcmVjdCIvPg0KPC9zdmc+">
+</body>

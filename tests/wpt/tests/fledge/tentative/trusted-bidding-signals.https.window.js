@@ -11,7 +11,12 @@
 // META: variant=?26-30
 // META: variant=?31-35
 // META: variant=?36-40
-// META: variant=?41-last
+// META: variant=?41-45
+// META: variant=?46-50
+// META: variant=?51-55
+// META: variant=?56-60
+// META: variant=?61-65
+// META: variant=?66-last
 
 "use strict";
 
@@ -31,12 +36,18 @@
 // allowing trusted bidding signals keys and URL to be set, in addition to other
 // fields.
 async function runTrustedBiddingSignalsTest(
-    test, generateBidCheck, interestGroupOverrides = {}) {
+    test, generateBidCheck, interestGroupOverrides = {}, auctionConfigOverrides = {}, uuidOverride = null) {
   interestGroupOverrides.biddingLogicURL =
-    createBiddingScriptURL({
+      createBiddingScriptURL({
+          allowComponentAuction: true,
           generateBid: `if (!(${generateBidCheck})) return false;` });
-  await joinGroupAndRunBasicFledgeTestExpectingWinner(
-      test, {interestGroupOverrides: interestGroupOverrides});
+  let testConfig = {
+    interestGroupOverrides: interestGroupOverrides,
+    auctionConfigOverrides: auctionConfigOverrides
+  };
+  if (uuidOverride)
+    testConfig.uuid = uuidOverride;
+  await joinGroupAndRunBasicFledgeTestExpectingWinner(test, testConfig);
 }
 
 // Much like runTrustedBiddingSignalsTest, but runs auctions through reporting
@@ -438,3 +449,339 @@ subsetTest(promise_test, async test => {
       { trustedBiddingSignalsKeys: ['data-version:3', 'replace-body:{"keys":5}'],
         trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL });
 }, 'Trusted bidding signals response with Data-Version and invalid keys entry');
+
+/////////////////////////////////////////////////////////////////////////////
+// trustedBiddingSignalsSlotSizeMode tests
+/////////////////////////////////////////////////////////////////////////////
+
+async function runTrustedBiddingSignalsSlotSizeTest(
+    test,
+    expectedSlotSize,
+    expectedAllSlotsRequestedSizes,
+    trustedBiddingSignalsSlotSizeMode = null,
+    auctionConfigOverrides = {},
+    uuidOverride = null) {
+  await runTrustedBiddingSignalsTest(
+      test,
+      `trustedBiddingSignals["slotSize"] ===
+           ${JSON.stringify(expectedSlotSize)} &&
+       trustedBiddingSignals["allSlotsRequestedSizes"] ===
+           ${JSON.stringify(expectedAllSlotsRequestedSizes)}`,
+      { trustedBiddingSignalsKeys: ['slotSize', 'allSlotsRequestedSizes'],
+        trustedBiddingSignalsSlotSizeMode: trustedBiddingSignalsSlotSizeMode,
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL},
+      auctionConfigOverrides,
+      uuidOverride);
+}
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found');
+}, 'Null trustedBiddingSignalsSlotSizeMode, no sizes in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'not-a-real-mode');
+}, 'Unknown trustedBiddingSignalsSlotSizeMode, no sizes in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'none');
+}, 'none trustedBiddingSignalsSlotSizeMode, no sizes in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'slot-size');
+}, 'slot-size trustedBiddingSignalsSlotSizeMode, no sizes in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'slot-size');
+}, 'all-slots-requested-sizes trustedBiddingSignalsSlotSizeMode, no sizes in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'none',
+      {requestedSize: {width:'10', height:'20'}});
+}, 'none trustedBiddingSignalsSlotSizeMode, requestedSize in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/null,
+      {requestedSize: {width:'10', height:'20'}});
+}, 'Null trustedBiddingSignalsSlotSizeMode, requestedSize in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'not-a-real-mode',
+      {requestedSize: {width:'10', height:'20'}});
+}, 'Unknown trustedBiddingSignalsSlotSizeMode, requestedSize in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'10px,20px',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'slot-size',
+      {requestedSize: {width:'10', height:'20'}});
+}, 'slot-size trustedBiddingSignalsSlotSizeMode, requestedSize in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'all-slots-requested-sizes',
+      {requestedSize: {width:'10', height:'20'}});
+}, 'all-slots-requested-sizes trustedBiddingSignalsSlotSizeMode, requestedSize in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'none',
+      {allSlotsRequestedSizes: [{width:10, height:20}]});
+}, 'none trustedBiddingSignalsSlotSizeMode, allSlotsRequestedSizes in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/null,
+      {allSlotsRequestedSizes: [{width:'10', height:'20'}]});
+}, 'Null trustedBiddingSignalsSlotSizeMode, allSlotsRequestedSizes in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'not-a-real-mode',
+      {allSlotsRequestedSizes: [{width:'10', height:'20'}]});
+}, 'Unknown trustedBiddingSignalsSlotSizeMode, allSlotsRequestedSizes in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'slot-size',
+      {allSlotsRequestedSizes: [{width:'10', height:'20'}]});
+}, 'slot-size trustedBiddingSignalsSlotSizeMode, allSlotsRequestedSizes in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'10px,20px',
+      /*trustedBiddingSignalsSlotSizeMode=*/'all-slots-requested-sizes',
+      {allSlotsRequestedSizes: [{width:'10', height:'20'}]});
+}, 'all-slots-requested-sizes trustedBiddingSignalsSlotSizeMode, allSlotsRequestedSizes in AuctionConfig');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'10px,20px',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'slot-size',
+      {requestedSize: {width:'10px', height:'20px'}});
+}, 'slot-size trustedBiddingSignalsSlotSizeMode, explicit pixel units');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'80sw,12.5sh',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'slot-size',
+      {requestedSize: {width:'80sw', height:'12.50sh'}});
+}, 'slot-size trustedBiddingSignalsSlotSizeMode, screen size units');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'80sh,12.5sw',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'slot-size',
+      {requestedSize: {width:'80sh', height:'12.5sw'}});
+}, 'slot-size trustedBiddingSignalsSlotSizeMode, flipped screen size units');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'10px,25sh',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'slot-size',
+      {requestedSize: {width:'10', height:'25sh'}});
+}, 'slot-size trustedBiddingSignalsSlotSizeMode, mixed pixel and screen width units');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'10px,20px,25sw,20px,22px,80sh',
+      /*trustedBiddingSignalsSlotSizeMode=*/'all-slots-requested-sizes',
+      { allSlotsRequestedSizes: [ {width:'10', height:'20'},
+                                  {width:'25sw', height:'20px'},
+                                  {width:'22', height:'80sh'}]});
+}, 'all-slots-requested-sizes trustedBiddingSignalsSlotSizeMode, multiple unit types');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  let group1ReportURL = createBidderReportURL(uuid, /*id=*/'none')
+  let group2ReportURL = createBidderReportURL(uuid, /*id=*/'slot-size')
+  let group3ReportURL = createBidderReportURL(uuid, /*id=*/'all-slots-requested-sizes')
+
+  // The simplest way to make sure interest groups with different modes all receive
+  // the right sizes is to have interest groups that modify their bids based on ad
+  // size sent to the trusted server.
+  await Promise.all(
+      [ joinInterestGroup(
+          test, uuid,
+          { name: 'group 1',
+            trustedBiddingSignalsKeys: ['slotSize', 'allSlotsRequestedSizes'],
+            trustedBiddingSignalsSlotSizeMode: 'none',
+            trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL,
+            biddingLogicURL: createBiddingScriptURL(
+                { generateBid:
+                    `if (trustedBiddingSignals["slotSize"] !== "not-found" ||
+                         trustedBiddingSignals["allSlotsRequestedSizes"] !== "not-found") {
+                       throw "unexpected trustedBiddingSignals";
+                     }
+                     return {bid: 5, render: interestGroup.ads[0].renderURL};`,
+                  reportWin: `sendReportTo("${group1ReportURL}");`})}),
+        joinInterestGroup(
+          test, uuid,
+          { name: 'group 2',
+            trustedBiddingSignalsKeys: ['slotSize', 'allSlotsRequestedSizes'],
+            trustedBiddingSignalsSlotSizeMode: 'slot-size',
+            trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL,
+            biddingLogicURL: createBiddingScriptURL(
+                { generateBid:
+                    `if (trustedBiddingSignals["slotSize"] === "not-found" ||
+                         trustedBiddingSignals["allSlotsRequestedSizes"] !== "not-found") {
+                       throw "unexpected trustedBiddingSignals";
+                     }
+                     // Group 3 bids using the first digit of the first dimension.
+                     return { bid: trustedBiddingSignals["slotSize"].substr(0, 1),
+                              render: interestGroup.ads[0].renderURL};`,
+                  reportWin: `sendReportTo("${group2ReportURL}");`})}),
+        joinInterestGroup(
+          test, uuid,
+          { name: 'group 3',
+            trustedBiddingSignalsKeys: ['slotSize', 'allSlotsRequestedSizes'],
+            trustedBiddingSignalsSlotSizeMode: 'all-slots-requested-sizes',
+            trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL,
+            biddingLogicURL: createBiddingScriptURL(
+                { generateBid:
+                    `if (trustedBiddingSignals["slotSize"] !== "not-found" ||
+                         trustedBiddingSignals["allSlotsRequestedSizes"] === "not-found") {
+                       throw "unexpected trustedBiddingSignals";
+                     }
+                     // Group 3 bids using the second digit of the first dimension.
+                     return { bid: trustedBiddingSignals["allSlotsRequestedSizes"].substr(1, 1),
+                              render: interestGroup.ads[0].renderURL};`,
+                  reportWin: `sendReportTo("${group3ReportURL}");`})}),
+      ]
+  );
+
+  let auctionConfigOverrides = {
+    // Disable the default seller reporting, for simplicity.
+    decisionLogicURL: createDecisionScriptURL(uuid, { reportResult: '' }),
+    // Default sizes start with a "11", so groups 2 and 3 will start with a bid
+    // of 1 and lose.
+    requestedSize: {width:'11', height:'20'},
+    allSlotsRequestedSizes: [{width:'11', height:'20'}]
+  };
+
+  // Group 1 wins the first auction.
+  await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfigOverrides);
+  await waitForObservedRequests(uuid, [group1ReportURL]);
+
+  // Group2 should bid "6" in the second auction, and win it.
+  auctionConfigOverrides.requestedSize = {width:'61', height:'20'};
+  auctionConfigOverrides.allSlotsRequestedSizes = [{width:'61', height:'20'}];
+  await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfigOverrides);
+  await waitForObservedRequests(uuid, [group1ReportURL, group2ReportURL]);
+
+  // Group3 should bid "7" in the third auction, and win it.
+  auctionConfigOverrides.requestedSize = {width:'67', height:'20'};
+  auctionConfigOverrides.allSlotsRequestedSizes = [{width:'67', height:'20'}];
+  await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfigOverrides);
+  await waitForObservedRequests(uuid, [group1ReportURL, group2ReportURL, group3ReportURL]);
+}, 'Mixed trustedBiddingSignalsSlotSizeModes in a single auction');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  let componentAuctionConfig = {
+    seller: window.location.origin,
+    decisionLogicURL: createDecisionScriptURL(uuid),
+    interestGroupBuyers: [window.location.origin],
+    requestedSize: {width:'10', height:'20'}
+  };
+
+  let auctionConfigOverrides = {
+    interestGroupBuyers: [],
+    componentAuctions: [componentAuctionConfig],
+    requestedSize: {width:'22', height:'33'}
+  }
+
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      // Dimensions from the component auction should be used.
+      /*expectedSlotSize=*/'10px,20px',
+      /*expectedAllSlotsRequestedSizes=*/'not-found',
+      /*trustedBiddingSignalsSlotSizeMode=*/'slot-size',
+      auctionConfigOverrides,
+      uuid);
+}, 'slot-size trustedBiddingSignalsSlotSizeMode in a component auction');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  let componentAuctionConfig = {
+    seller: window.location.origin,
+    decisionLogicURL: createDecisionScriptURL(uuid),
+    interestGroupBuyers: [window.location.origin],
+    allSlotsRequestedSizes: [{width:'11', height:'22'}, {width:'12', height:'23'}]
+  };
+
+  let auctionConfigOverrides = {
+    interestGroupBuyers: [],
+    componentAuctions: [componentAuctionConfig],
+    allSlotsRequestedSizes: [{width:'10', height:'20'}]
+  }
+
+  await runTrustedBiddingSignalsSlotSizeTest(
+      test,
+      // Dimensions from the component auction should be used.
+      /*expectedSlotSize=*/'not-found',
+      /*expectedAllSlotsRequestedSizes=*/'11px,22px,12px,23px',
+      /*trustedBiddingSignalsSlotSizeMode=*/'all-slots-requested-sizes',
+      auctionConfigOverrides,
+      uuid);
+}, 'all-slots-requested-sizes trustedBiddingSignalsSlotSizeMode in a component auction');

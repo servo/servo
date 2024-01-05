@@ -1,23 +1,27 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { Float16Array } from '../../external/petamoriken/float16/float16.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { reinterpretU64AsF64, reinterpretF64AsU64,
+  reinterpretU32AsF32,
+  reinterpretU16AsF16 } from
+'./reinterpret.js';
+
 export const kBit = {
   // Limits of int32
   i32: {
     positive: {
       min: 0x0000_0000, // 0
-      max: 0x7fff_ffff, // 2147483647
+      max: 0x7fff_ffff // 2147483647
     },
     negative: {
       min: 0x8000_0000, // -2147483648
-      max: 0x0000_0000, // 0
-    },
+      max: 0x0000_0000 // 0
+    }
   },
 
   // Limits of uint32
   u32: {
     min: 0x0000_0000,
-    max: 0xffff_ffff,
+    max: 0xffff_ffff
   },
 
   // Limits of f64
@@ -30,7 +34,7 @@ export const kBit = {
       zero: BigInt(0x0000_0000_0000_0000n),
       subnormal: {
         min: BigInt(0x0000_0000_0000_0001n),
-        max: BigInt(0x000f_ffff_ffff_ffffn),
+        max: BigInt(0x000f_ffff_ffff_ffffn)
       },
       infinity: BigInt(0x7ff0_0000_0000_0000n),
       nearest_max: BigInt(0x7fef_ffff_ffff_fffen),
@@ -41,9 +45,9 @@ export const kBit = {
         half: BigInt(0x3ff9_21fb_5444_2d18n),
         third: BigInt(0x3ff0_c152_382d_7365n),
         quarter: BigInt(0x3fe9_21fb_5444_2d18n),
-        sixth: BigInt(0x3fe0_c152_382d_7365n),
+        sixth: BigInt(0x3fe0_c152_382d_7365n)
       },
-      e: BigInt(0x4005_bf0a_8b14_5769n),
+      e: BigInt(0x4005_bf0a_8b14_5769n)
     },
     negative: {
       max: BigInt(0x8010_0000_0000_0000n),
@@ -51,7 +55,7 @@ export const kBit = {
       zero: BigInt(0x8000_0000_0000_0000n),
       subnormal: {
         max: BigInt(0x8000_0000_0000_0001n),
-        min: BigInt(0x800f_ffff_ffff_ffffn),
+        min: BigInt(0x800f_ffff_ffff_ffffn)
       },
       infinity: BigInt(0xfff0_0000_0000_0000n),
       nearest_min: BigInt(0xffef_ffff_ffff_fffen),
@@ -62,10 +66,10 @@ export const kBit = {
         half: BigInt(0xbff9_21fb_5444_2d18n),
         third: BigInt(0xbff0_c152_382d_7365n),
         quarter: BigInt(0xbfe9_21fb_5444_2d18n),
-        sixth: BigInt(0xbfe0_c152_382d_7365n),
-      },
+        sixth: BigInt(0xbfe0_c152_382d_7365n)
+      }
     },
-    max_ulp: BigInt(0x7ca0_0000_0000_0000n),
+    max_ulp: BigInt(0x7ca0_0000_0000_0000n)
   },
 
   // Limits of f32
@@ -76,7 +80,7 @@ export const kBit = {
       zero: 0x0000_0000,
       subnormal: {
         min: 0x0000_0001,
-        max: 0x007f_ffff,
+        max: 0x007f_ffff
       },
       infinity: 0x7f80_0000,
       nearest_max: 0x7f7f_fffe,
@@ -87,9 +91,9 @@ export const kBit = {
         half: 0x3fc9_0fdb,
         third: 0x3f86_0a92,
         quarter: 0x3f49_0fdb,
-        sixth: 0x3f06_0a92,
+        sixth: 0x3f06_0a92
       },
-      e: 0x402d_f854,
+      e: 0x402d_f854
     },
     negative: {
       max: 0x8080_0000,
@@ -97,7 +101,7 @@ export const kBit = {
       zero: 0x8000_0000,
       subnormal: {
         max: 0x8000_0001,
-        min: 0x807f_ffff,
+        min: 0x807f_ffff
       },
       infinity: 0xff80_0000,
       nearest_min: 0xff7f_fffe,
@@ -108,10 +112,10 @@ export const kBit = {
         half: 0xbfc9_0fdb,
         third: 0xbf86_0a92,
         quarter: 0xbf49_0fdb,
-        sixth: 0xbf06_0a92,
-      },
+        sixth: 0xbf06_0a92
+      }
     },
-    max_ulp: 0x7380_0000,
+    max_ulp: 0x7380_0000
   },
 
   // Limits of f16
@@ -122,7 +126,7 @@ export const kBit = {
       zero: 0x0000,
       subnormal: {
         min: 0x0001,
-        max: 0x03ff,
+        max: 0x03ff
       },
       infinity: 0x7c00,
       nearest_max: 0x7bfe,
@@ -133,9 +137,9 @@ export const kBit = {
         half: 0x3e48,
         third: 0x3c30,
         quarter: 0x3a48,
-        sixth: 0x3830,
+        sixth: 0x3830
       },
-      e: 0x416f,
+      e: 0x416f
     },
     negative: {
       max: 0x8400,
@@ -143,7 +147,7 @@ export const kBit = {
       zero: 0x8000,
       subnormal: {
         max: 0x8001,
-        min: 0x83ff,
+        min: 0x83ff
       },
       infinity: 0xfc00,
       nearest_min: 0xfbfe,
@@ -154,10 +158,10 @@ export const kBit = {
         half: 0xbe48,
         third: 0xbc30,
         quarter: 0xba48,
-        sixth: 0xb830,
-      },
+        sixth: 0xb830
+      }
     },
-    max_ulp: 0x5000,
+    max_ulp: 0x5000
   },
 
   // Uint32 representation of power(2, n) n = {0, ..., 31}
@@ -195,7 +199,7 @@ export const kBit = {
     to28: 0x1000_0000,
     to29: 0x2000_0000,
     to30: 0x4000_0000,
-    to31: 0x8000_0000,
+    to31: 0x8000_0000
   },
 
   // Int32 representation of  of -1 * power(2, n) n = {0, ..., 31}
@@ -233,70 +237,27 @@ export const kBit = {
     to28: 0xf000_0000,
     to29: 0xe000_0000,
     to30: 0xc000_0000,
-    to31: 0x8000_0000,
-  },
+    to31: 0x8000_0000
+  }
 };
-
-/**
- * @returns a 64-bit float value via interpreting the input as the bit
- * representation as a 64-bit integer
- *
- * Using a locally defined function here to avoid compile time dependency
- * issues.
- */
-function reinterpretU64AsF64(input) {
-  return new Float64Array(new BigUint64Array([input]).buffer)[0];
-}
-
-/**
- * @returns the 64-bit integer bit representation of 64-bit float value
- *
- * Using a locally defined function here to avoid compile time dependency
- * issues.
- */
-function reinterpretF64AsU64(input) {
-  return new BigUint64Array(new Float64Array([input]).buffer)[0];
-}
-
-/**
- * @returns a 32-bit float value via interpreting the input as the bit
- * representation as a 32-bit integer
- *
- * Using a locally defined function here to avoid compile time dependency
- * issues.
- */
-function reinterpretU32AsF32(input) {
-  return new Float32Array(new Uint32Array([input]).buffer)[0];
-}
-
-/**
- * @returns a 16-bit float value via interpreting the input as the bit
- * representation as a 64-bit integer
- *
- * Using a locally defined function here to avoid compile time dependency
- * issues.
- */
-function reinterpretU16AsF16(input) {
-  return new Float16Array(new Uint16Array([input]).buffer)[0];
-}
 
 export const kValue = {
   // Limits of i32
   i32: {
     positive: {
       min: 0,
-      max: 2147483647,
+      max: 2147483647
     },
     negative: {
       min: -2147483648,
-      max: 0,
-    },
+      max: 0
+    }
   },
 
   // Limits of u32
   u32: {
     min: 0,
-    max: 4294967295,
+    max: 4294967295
   },
 
   // Limits of f64
@@ -307,7 +268,7 @@ export const kValue = {
       zero: reinterpretU64AsF64(kBit.f64.positive.zero),
       subnormal: {
         min: reinterpretU64AsF64(kBit.f64.positive.subnormal.min),
-        max: reinterpretU64AsF64(kBit.f64.positive.subnormal.max),
+        max: reinterpretU64AsF64(kBit.f64.positive.subnormal.max)
       },
       infinity: reinterpretU64AsF64(kBit.f64.positive.infinity),
       nearest_max: reinterpretU64AsF64(kBit.f64.positive.nearest_max),
@@ -318,9 +279,9 @@ export const kValue = {
         half: reinterpretU64AsF64(kBit.f64.positive.pi.half),
         third: reinterpretU64AsF64(kBit.f64.positive.pi.third),
         quarter: reinterpretU64AsF64(kBit.f64.positive.pi.quarter),
-        sixth: reinterpretU64AsF64(kBit.f64.positive.pi.sixth),
+        sixth: reinterpretU64AsF64(kBit.f64.positive.pi.sixth)
       },
-      e: reinterpretU64AsF64(kBit.f64.positive.e),
+      e: reinterpretU64AsF64(kBit.f64.positive.e)
     },
     negative: {
       max: reinterpretU64AsF64(kBit.f64.negative.max),
@@ -328,7 +289,7 @@ export const kValue = {
       zero: reinterpretU64AsF64(kBit.f64.negative.zero),
       subnormal: {
         max: reinterpretU64AsF64(kBit.f64.negative.subnormal.max),
-        min: reinterpretU64AsF64(kBit.f64.negative.subnormal.min),
+        min: reinterpretU64AsF64(kBit.f64.negative.subnormal.min)
       },
       infinity: reinterpretU64AsF64(kBit.f64.negative.infinity),
       nearest_min: reinterpretU64AsF64(kBit.f64.negative.nearest_min),
@@ -339,10 +300,10 @@ export const kValue = {
         half: reinterpretU64AsF64(kBit.f64.negative.pi.half),
         third: reinterpretU64AsF64(kBit.f64.negative.pi.third),
         quarter: reinterpretU64AsF64(kBit.f64.negative.pi.quarter),
-        sixth: reinterpretU64AsF64(kBit.f64.negative.pi.sixth),
-      },
+        sixth: reinterpretU64AsF64(kBit.f64.negative.pi.sixth)
+      }
     },
-    max_ulp: reinterpretU64AsF64(kBit.f64.max_ulp),
+    max_ulp: reinterpretU64AsF64(kBit.f64.max_ulp)
   },
 
   // Limits of f32
@@ -353,7 +314,7 @@ export const kValue = {
       zero: reinterpretU32AsF32(kBit.f32.positive.zero),
       subnormal: {
         min: reinterpretU32AsF32(kBit.f32.positive.subnormal.min),
-        max: reinterpretU32AsF32(kBit.f32.positive.subnormal.max),
+        max: reinterpretU32AsF32(kBit.f32.positive.subnormal.max)
       },
       infinity: reinterpretU32AsF32(kBit.f32.positive.infinity),
 
@@ -365,20 +326,20 @@ export const kValue = {
         half: reinterpretU32AsF32(kBit.f32.positive.pi.half),
         third: reinterpretU32AsF32(kBit.f32.positive.pi.third),
         quarter: reinterpretU32AsF32(kBit.f32.positive.pi.quarter),
-        sixth: reinterpretU32AsF32(kBit.f32.positive.pi.sixth),
+        sixth: reinterpretU32AsF32(kBit.f32.positive.pi.sixth)
       },
       e: reinterpretU32AsF32(kBit.f32.positive.e),
       // The positive pipeline-overridable constant with the smallest magnitude
       // which when cast to f32 will produce infinity. This comes from WGSL
       // conversion rules and the rounding rules of WebIDL.
       first_non_castable_pipeline_override:
-        reinterpretU32AsF32(kBit.f32.positive.max) / 2 + 2 ** 127,
+      reinterpretU32AsF32(kBit.f32.positive.max) / 2 + 2 ** 127,
       // The positive pipeline-overridable constant with the largest magnitude
       // which when cast to f32 will not produce infinity. This comes from WGSL
       // conversion rules and the rounding rules of WebIDL
       last_castable_pipeline_override: reinterpretU64AsF64(
         reinterpretF64AsU64(reinterpretU32AsF32(kBit.f32.positive.max) / 2 + 2 ** 127) - BigInt(1)
-      ),
+      )
     },
     negative: {
       max: reinterpretU32AsF32(kBit.f32.negative.max),
@@ -386,7 +347,7 @@ export const kValue = {
       zero: reinterpretU32AsF32(kBit.f32.negative.zero),
       subnormal: {
         max: reinterpretU32AsF32(kBit.f32.negative.subnormal.max),
-        min: reinterpretU32AsF32(kBit.f32.negative.subnormal.min),
+        min: reinterpretU32AsF32(kBit.f32.negative.subnormal.min)
       },
       infinity: reinterpretU32AsF32(kBit.f32.negative.infinity),
       nearest_min: reinterpretU32AsF32(kBit.f32.negative.nearest_min),
@@ -397,43 +358,42 @@ export const kValue = {
         half: reinterpretU32AsF32(kBit.f32.negative.pi.half),
         third: reinterpretU32AsF32(kBit.f32.negative.pi.third),
         quarter: reinterpretU32AsF32(kBit.f32.negative.pi.quarter),
-        sixth: reinterpretU32AsF32(kBit.f32.negative.pi.sixth),
+        sixth: reinterpretU32AsF32(kBit.f32.negative.pi.sixth)
       },
       // The negative pipeline-overridable constant with the smallest magnitude
       // which when cast to f32 will produce infinity. This comes from WGSL
       // conversion rules and the rounding rules of WebIDL.
       first_non_castable_pipeline_override: -(
-        reinterpretU32AsF32(kBit.f32.positive.max) / 2 +
-        2 ** 127
-      ),
+      reinterpretU32AsF32(kBit.f32.positive.max) / 2 +
+      2 ** 127),
 
       // The negative pipeline-overridable constant with the largest magnitude
       // which when cast to f32 will not produce infinity. This comes from WGSL
       // conversion rules and the rounding rules of WebIDL.
       last_castable_pipeline_override: -reinterpretU64AsF64(
         reinterpretF64AsU64(reinterpretU32AsF32(kBit.f32.positive.max) / 2 + 2 ** 127) - BigInt(1)
-      ),
+      )
     },
     max_ulp: reinterpretU32AsF32(kBit.f32.max_ulp),
-    emax: 127,
+    emax: 127
   },
 
   // Limits of i16
   i16: {
     positive: {
       min: 0,
-      max: 32767,
+      max: 32767
     },
     negative: {
       min: -32768,
-      max: 0,
-    },
+      max: 0
+    }
   },
 
   // Limits of u16
   u16: {
     min: 0,
-    max: 65535,
+    max: 65535
   },
 
   // Limits of f16
@@ -444,7 +404,7 @@ export const kValue = {
       zero: reinterpretU16AsF16(kBit.f16.positive.zero),
       subnormal: {
         min: reinterpretU16AsF16(kBit.f16.positive.subnormal.min),
-        max: reinterpretU16AsF16(kBit.f16.positive.subnormal.max),
+        max: reinterpretU16AsF16(kBit.f16.positive.subnormal.max)
       },
       infinity: reinterpretU16AsF16(kBit.f16.positive.infinity),
       nearest_max: reinterpretU16AsF16(kBit.f16.positive.nearest_max),
@@ -455,20 +415,20 @@ export const kValue = {
         half: reinterpretU16AsF16(kBit.f16.positive.pi.half),
         third: reinterpretU16AsF16(kBit.f16.positive.pi.third),
         quarter: reinterpretU16AsF16(kBit.f16.positive.pi.quarter),
-        sixth: reinterpretU16AsF16(kBit.f16.positive.pi.sixth),
+        sixth: reinterpretU16AsF16(kBit.f16.positive.pi.sixth)
       },
       e: reinterpretU16AsF16(kBit.f16.positive.e),
       // The positive pipeline-overridable constant with the smallest magnitude
       // which when cast to f16 will produce infinity. This comes from WGSL
       // conversion rules and the rounding rules of WebIDL.
       first_non_castable_pipeline_override:
-        reinterpretU16AsF16(kBit.f16.positive.max) / 2 + 2 ** 15,
+      reinterpretU16AsF16(kBit.f16.positive.max) / 2 + 2 ** 15,
       // The positive pipeline-overridable constant with the largest magnitude
       // which when cast to f16 will not produce infinity. This comes from WGSL
       // conversion rules and the rounding rules of WebIDL
       last_castable_pipeline_override: reinterpretU64AsF64(
         reinterpretF64AsU64(reinterpretU16AsF16(kBit.f16.positive.max) / 2 + 2 ** 15) - BigInt(1)
-      ),
+      )
     },
     negative: {
       max: reinterpretU16AsF16(kBit.f16.negative.max),
@@ -476,7 +436,7 @@ export const kValue = {
       zero: reinterpretU16AsF16(kBit.f16.negative.zero),
       subnormal: {
         max: reinterpretU16AsF16(kBit.f16.negative.subnormal.max),
-        min: reinterpretU16AsF16(kBit.f16.negative.subnormal.min),
+        min: reinterpretU16AsF16(kBit.f16.negative.subnormal.min)
       },
       infinity: reinterpretU16AsF16(kBit.f16.negative.infinity),
       nearest_min: reinterpretU16AsF16(kBit.f16.negative.nearest_min),
@@ -487,42 +447,41 @@ export const kValue = {
         half: reinterpretU16AsF16(kBit.f16.negative.pi.half),
         third: reinterpretU16AsF16(kBit.f16.negative.pi.third),
         quarter: reinterpretU16AsF16(kBit.f16.negative.pi.quarter),
-        sixth: reinterpretU16AsF16(kBit.f16.negative.pi.sixth),
+        sixth: reinterpretU16AsF16(kBit.f16.negative.pi.sixth)
       },
       // The negative pipeline-overridable constant with the smallest magnitude
       // which when cast to f16 will produce infinity. This comes from WGSL
       // conversion rules and the rounding rules of WebIDL.
       first_non_castable_pipeline_override: -(
-        reinterpretU16AsF16(kBit.f16.positive.max) / 2 +
-        2 ** 15
-      ),
+      reinterpretU16AsF16(kBit.f16.positive.max) / 2 +
+      2 ** 15),
 
       // The negative pipeline-overridable constant with the largest magnitude
       // which when cast to f16 will not produce infinity. This comes from WGSL
       // conversion rules and the rounding rules of WebIDL.
       last_castable_pipeline_override: -reinterpretU64AsF64(
         reinterpretF64AsU64(reinterpretU16AsF16(kBit.f16.positive.max) / 2 + 2 ** 15) - BigInt(1)
-      ),
+      )
     },
     max_ulp: reinterpretU16AsF16(kBit.f16.max_ulp),
-    emax: 15,
+    emax: 15
   },
 
   // Limits of i8
   i8: {
     positive: {
       min: 0,
-      max: 127,
+      max: 127
     },
     negative: {
       min: -128,
-      max: 0,
-    },
+      max: 0
+    }
   },
 
   // Limits of u8
   u8: {
     min: 0,
-    max: 255,
-  },
+    max: 255
+  }
 };

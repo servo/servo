@@ -25,6 +25,8 @@ t.step(function() {
   _assert(ctx.filter == 'blur(5px)', "ctx.filter == 'blur(5px)'");
   ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 5});
   _assert(ctx.filter.toString() == '[object CanvasFilter]', "ctx.filter.toString() == '[object CanvasFilter]'");
+  ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: [1, 2]});
+  _assert(ctx.filter.toString() == '[object CanvasFilter]', "ctx.filter.toString() == '[object CanvasFilter]'");
   ctx.filter = new CanvasFilter([
       {name: 'gaussianBlur', stdDeviation: 5},
       {name: 'gaussianBlur', stdDeviation: 10}

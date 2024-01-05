@@ -10,7 +10,8 @@ publish = false
 path = "lib.rs"
 
 [target.'cfg(not(windows))'.dependencies]
-jemalloc-sys = { version = "0.3.2" }
+jemallocator = { workspace = true }
+jemalloc-sys = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { workspace = true, features = ["heapapi"] }

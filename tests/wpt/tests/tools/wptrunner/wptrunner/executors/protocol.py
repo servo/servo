@@ -371,6 +371,11 @@ class WindowProtocolPart(ProtocolPart):
         pass
 
     @abstractmethod
+    def get_rect(self):
+        """Gets the current window rect."""
+        pass
+
+    @abstractmethod
     def minimize(self):
         """Minimizes the window and returns the previous rect."""
         pass
@@ -616,6 +621,18 @@ class SPCTransactionsProtocolPart(ProtocolPart):
         :param str mode: The automation mode to set"""
         pass
 
+class RPHRegistrationsProtocolPart(ProtocolPart):
+    """Protocol part for Custom Handlers registrations"""
+    __metaclass__ = ABCMeta
+
+    name = "rph_registrations"
+
+    @abstractmethod
+    def set_rph_registration_mode(self, mode):
+        """Set the RPH registration automation mode
+
+        :param str mode: The automation mode to set"""
+        pass
 
 class FedCMProtocolPart(ProtocolPart):
     """Protocol part for Federated Credential Management"""
@@ -629,8 +646,10 @@ class FedCMProtocolPart(ProtocolPart):
         pass
 
     @abstractmethod
-    def confirm_idp_login(self):
-        """Confirm IDP login"""
+    def click_fedcm_dialog_button(self, dialog_button):
+        """Click a button on the FedCM dialog
+
+        :param str dialog_button: The dialog button to click"""
         pass
 
     @abstractmethod

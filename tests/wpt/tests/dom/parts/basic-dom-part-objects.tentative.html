@@ -175,7 +175,7 @@ function addCleanup(t, part) {
     assertEqualParts(clonedChildNodePartRoot.getParts(),childExpectations,0,'clone of childNodePart should match');
   }, `Cloning (${description})`);
 
-  ['Element','Text','Comment','CDATASection','ProcessingInstruction'].forEach(nodeType => {
+  ['Element','Text','Comment'].forEach(nodeType => {
     test((t) => {
       const root = doc.getPartRoot();
       assert_equals(root.getParts().length,0);
@@ -184,20 +184,26 @@ function addCleanup(t, part) {
         case 'Element' : node = document.createElement('div'); break;
         case 'Text' : node = document.createTextNode('hello'); break;
         case 'Comment': node = document.createComment('comment'); break;
-        case 'CDATASection':
-          const tempdoc = (new DOMParser()).parseFromString("<xml></xml>", "application/xml");
-          node = tempdoc.createCDATASection("CDATA");
-          break;
-        case 'ProcessingInstruction': node = document.createProcessingInstruction('target','data'); break;
       }
       t.add_cleanup(() => node.remove());
       doc.firstElementChild.append(node);
+      // NodePart
       const nodePart = addCleanup(t,new NodePart(root,node,{metadata:['foobar']}));
       assert_true(!!nodePart);
       const clone = root.clone();
       assert_equals(clone.getParts().length,1);
       assertEqualParts(clone.getParts(),[{type:'NodePart',metadata:['foobar']}],0,'getParts');
       assert_true(clone.getParts()[0].node instanceof window[nodeType]);
+
+      // ChildNodePart
+      const node2 = node.cloneNode(false);
+      node.parentElement.appendChild(node2);
+      const childNodePart = addCleanup(t,new ChildNodePart(root,node,node2,{metadata:['baz']}));
+      assert_true(!!childNodePart);
+      const clone2 = root.clone();
+      assert_equals(clone2.getParts().length,2);
+      assertEqualParts(clone2.getParts(),[{type:'NodePart',metadata:['foobar']},{type:'ChildNodePart',metadata:['baz']}],0,'getParts2');
+      assert_true(clone2.getParts()[1].previousSibling instanceof window[nodeType]);
     }, `Cloning ${nodeType} (${description})`);
   });
 
@@ -268,18 +274,15 @@ function addCleanup(t, part) {
 
   test((t) => {
     const root = doc.getPartRoot();
-    // Make sure no crashes occur for invalid parts.
+    // Make sure no crashes occur for parts with mismatched endpoint nodes.
     const cornerCasePartsInvalid = [
       addCleanup(t,new ChildNodePart(root,target, target.children[2],{metadata: ['different parents']})),
       addCleanup(t,new ChildNodePart(root,target.children[0], target,{metadata: ['different parents']})),
-      addCleanup(t,new ChildNodePart(root,target, doc,{metadata: ['different parents']})),
+      addCleanup(t,new ChildNodePart(root,target.children[2], target.children[0],{metadata: ['reversed endpoints']})),
     ];
     const cornerCasePartsValid = [];
-    const maybeValid = addCleanup(t,new ChildNodePart(root,directChildren[0], directChildren[1],{metadata: ['direct parent of the root container']}));
-    if (directChildren[0] === directChildren[1]) {
-      cornerCasePartsInvalid.push(maybeValid);
-    } else {
-      cornerCasePartsValid.push(maybeValid);
+    if (directChildren[0] !== directChildren[1]) {
+      cornerCasePartsValid.push(addCleanup(t,new ChildNodePart(root,directChildren[0], directChildren[1],{metadata: ['direct parent of the root container']})));
     }
     assert_array_equals(root.getParts(),cornerCasePartsValid);
     assert_equals(root.clone().getParts().length,cornerCasePartsValid.length);

@@ -1,7 +1,7 @@
 import pytest
 
 from webdriver.bidi.modules.script import ContextTarget, ScriptEvaluateResultException
-from .. import assert_handle
+from ... import assert_handle
 
 
 @pytest.mark.asyncio

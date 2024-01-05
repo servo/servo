@@ -7,6 +7,10 @@ on:
         required: false
         default: "release"
         type: string
+      wpt-tests-to-run:
+        default: ""
+        required: false
+        type: string
       wpt-layout:
         required: false
         type: string
@@ -28,6 +32,10 @@ on:
         default: "release"
         type: choice
         options: ["release", "debug", "production"]
+      wpt-tests-to-run:
+        default: ""
+        required: false
+        type: string
       wpt-layout:
         required: false
         type: choice
@@ -40,14 +48,11 @@ on:
         required: false
         default: false
         type: boolean
-  push:
-    branches: ["try-mac", "try-wpt-mac", "try-wpt-mac-2020"]
 
 env:
   RUST_BACKTRACE: 1
   SHELL: /bin/bash
   SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
   CCACHE: "sccache"
   CARGO_INCREMENTAL: 0
 
@@ -83,7 +88,7 @@ jobs:
           locked: true
       - name: Bootstrap
         run: |
-          python3 -m pip install --upgrade pip virtualenv
+          python3 -m pip install --upgrade pip
           python3 ./mach bootstrap
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})
@@ -98,7 +103,7 @@ jobs:
       - name: Script tests
         run: ./mach test-scripts
       - name: Unit tests
-        if: ${{ inputs.unit-tests || github.ref_name == 'try-mac' }}
+        if: ${{ inputs.unit-tests }}
         uses: nick-fields/retry@v2
         with:
           timeout_minutes: 20 # https://github.com/servo/servo/issues/30275
@@ -106,7 +111,7 @@ jobs:
           command: python3 ./mach test-unit --${{ inputs.profile }}
       - name: Build mach package
         run: python3 ./mach package --${{ inputs.profile }}
-      - name: Run smoketest for mach package
+      - name: Run DMG smoketest
         uses: nick-fields/retry@v2
         with: # See https://github.com/servo/servo/issues/30757
           timeout_minutes: 5
@@ -136,7 +141,7 @@ jobs:
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
       - name: Build package for target
-        run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servo target/${{ inputs.profile }}/*.dylib target/${{ inputs.profile }}/lib/*.dylib resources
+        run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servo target/${{ inputs.profile }}/lib/*.dylib resources
       - name: Upload package for target
         uses: actions/upload-artifact@v3
         with:
@@ -144,23 +149,25 @@ jobs:
           path: target.tar.gz
 
   wpt-2020:
-    if: ${{ github.ref_name == 'try-wpt-mac-2020' || inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
+    if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
     name: Mac WPT Tests 2020
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
       profile: ${{ inputs.profile }}
-      layout: "layout-2020"
+      wpt-layout: "layout-2020"
+      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
     secrets: inherit
 
   wpt-2013:
-    if: ${{ github.ref_name == 'try-wpt-mac' || inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
+    if: ${{ inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
     name: Mac WPT Tests 2013
     needs: ["build"]
     uses: ./.github/workflows/mac-wpt.yml
     with:
       profile: ${{ inputs.profile }}
-      layout: "layout-2013"
+      wpt-layout: "layout-2013"
+      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
     secrets: inherit
 
   result:

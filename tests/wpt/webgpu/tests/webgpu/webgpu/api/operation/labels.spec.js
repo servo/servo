@@ -1,14 +1,14 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Tests for object labels.
-`;
-import { makeTestGroup } from '../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { keysOf } from '../../../common/util/data_tables.js';
 import { getGPU } from '../../../common/util/navigator_gpu.js';
 import { GPUTest } from '../../gpu_test.js';
 
 export const g = makeTestGroup(GPUTest);
+
 
 const kTestFunctions = {
   createBuffer: (t, label) => {
@@ -34,7 +34,7 @@ const kTestFunctions = {
       label,
       size: [1, 1, 1],
       format: 'rgba8unorm',
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
     t.expect(texture.label === label);
     texture.destroy();
@@ -69,7 +69,7 @@ const kTestFunctions = {
         @vertex fn vs() -> @builtin(position) vec4f {
          return vec4f(0, 0, 0, 1);
         }
-      `,
+      `
     });
     t.expect(shaderModule.label === label);
   },
@@ -78,15 +78,15 @@ const kTestFunctions = {
     const module = t.device.createShaderModule({
       code: `
         @compute @workgroup_size(1u) fn foo() {}
-      `,
+      `
     });
     const computePipeline = t.device.createComputePipeline({
       label,
       layout: 'auto',
       compute: {
         module,
-        entryPoint: 'foo',
-      },
+        entryPoint: 'foo'
+      }
     });
     t.expect(computePipeline.label === label);
   },
@@ -97,15 +97,15 @@ const kTestFunctions = {
         @vertex fn foo() -> @builtin(position) vec4f {
          return vec4f(0, 0, 0, 1);
         }
-      `,
+      `
     });
     const renderPipeline = t.device.createRenderPipeline({
       label,
       layout: 'auto',
       vertex: {
         module,
-        entryPoint: 'foo',
-      },
+        entryPoint: 'foo'
+      }
     });
     t.expect(renderPipeline.label === label);
   },
@@ -114,15 +114,15 @@ const kTestFunctions = {
     const module = t.device.createShaderModule({
       code: `
         @compute @workgroup_size(1u) fn foo() {}
-      `,
+      `
     });
     const computePipeline = await t.device.createComputePipelineAsync({
       label,
       layout: 'auto',
       compute: {
         module,
-        entryPoint: 'foo',
-      },
+        entryPoint: 'foo'
+      }
     });
     t.expect(computePipeline.label === label);
   },
@@ -134,15 +134,15 @@ const kTestFunctions = {
         @vertex fn foo() -> @builtin(position) vec4f {
          return vec4f(0, 0, 0, 1);
         }
-      `,
+      `
     });
     const renderPipeline = await t.device.createRenderPipelineAsync({
       label,
       layout: 'auto',
       vertex: {
         module,
-        entryPoint: 'foo',
-      },
+        entryPoint: 'foo'
+      }
     });
     t.expect(renderPipeline.label === label);
   },
@@ -155,7 +155,7 @@ const kTestFunctions = {
   createRenderBundleEncoder: (t, label) => {
     const encoder = t.device.createRenderBundleEncoder({
       label,
-      colorFormats: ['rgba8unorm'],
+      colorFormats: ['rgba8unorm']
     });
     t.expect(encoder.label === label);
   },
@@ -164,7 +164,7 @@ const kTestFunctions = {
     const querySet = t.device.createQuerySet({
       label,
       type: 'occlusion',
-      count: 1,
+      count: 1
     });
     t.expect(querySet.label === label);
     querySet.destroy();
@@ -176,14 +176,14 @@ const kTestFunctions = {
       label,
       size: [1, 1, 1],
       format: 'rgba8unorm',
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
     const label2 = `${label}-2`;
     const encoder = t.device.createCommandEncoder();
     encoder.label = label2;
     const renderPass = encoder.beginRenderPass({
       label,
-      colorAttachments: [{ view: texture.createView(), loadOp: 'clear', storeOp: 'store' }],
+      colorAttachments: [{ view: texture.createView(), loadOp: 'clear', storeOp: 'store' }]
     });
     t.expect(renderPass.label === label);
     renderPass.end();
@@ -217,64 +217,64 @@ const kTestFunctions = {
     const texture = t.device.createTexture({
       size: [1, 1, 1],
       format: 'rgba8unorm',
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
     const view = texture.createView({ label });
     t.expect(view.label === label);
     texture.destroy();
     t.expect(view.label === label);
-  },
+  }
 };
 
-g.test('object_has_descriptor_label')
-  .desc(
-    `
+g.test('object_has_descriptor_label').
+desc(
+  `
   For every create function, the descriptor.label is carried over to the object.label.
 
   TODO: test importExternalTexture
   TODO: make a best effort and generating an error that is likely to use label. There's nothing to check for
         but it may surface bugs related to unusual labels.
     `
-  )
-  .params(u =>
-    u
-      .combine('name', keysOf(kTestFunctions))
-      .beginSubcases()
-      .combine('label', ['label', '\0', 'null\0in\0label', '🌞👆'])
-  )
-  .fn(async t => {
-    const { name, label } = t.params;
-    const result = kTestFunctions[name](t, label);
-    if (result instanceof Promise) {
-      await result;
-    }
-  });
+).
+params((u) =>
+u.
+combine('name', keysOf(kTestFunctions)).
+beginSubcases().
+combine('label', ['label', '\0', 'null\0in\0label', '🌞👆'])
+).
+fn(async (t) => {
+  const { name, label } = t.params;
+  const result = kTestFunctions[name](t, label);
+  if (result instanceof Promise) {
+    await result;
+  }
+});
 
-g.test('wrappers_do_not_share_labels')
-  .desc('test that different wrapper objects for the same GPU object do not share labels')
-  .fn(t => {
-    const module = t.device.createShaderModule({
-      code: `
+g.test('wrappers_do_not_share_labels').
+desc('test that different wrapper objects for the same GPU object do not share labels').
+fn((t) => {
+  const module = t.device.createShaderModule({
+    code: `
         @group(0) @binding(0) var<uniform> pos: vec4f;
         @vertex fn main() -> @builtin(position) vec4f {
           return pos;
         }
-      `,
-    });
-    const pipeline = t.device.createRenderPipeline({
-      layout: 'auto',
-      vertex: {
-        module,
-        entryPoint: 'main',
-      },
-    });
-    const layout1 = pipeline.getBindGroupLayout(0);
-    const layout2 = pipeline.getBindGroupLayout(0);
-    t.expect(layout1 !== layout2);
-
-    layout1.label = 'foo';
-    layout2.label = 'bar';
-
-    t.expect(layout1.label === 'foo');
-    t.expect(layout2.label === 'bar');
+      `
   });
+  const pipeline = t.device.createRenderPipeline({
+    layout: 'auto',
+    vertex: {
+      module,
+      entryPoint: 'main'
+    }
+  });
+  const layout1 = pipeline.getBindGroupLayout(0);
+  const layout2 = pipeline.getBindGroupLayout(0);
+  t.expect(layout1 !== layout2);
+
+  layout1.label = 'foo';
+  layout2.label = 'bar';
+
+  t.expect(layout1.label === 'foo');
+  t.expect(layout2.label === 'bar');
+});

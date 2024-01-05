@@ -1,62 +1,67 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert, memcpy } from '../../common/util/util.js';
-import { GPUTest, TextureTestMixin } from '../gpu_test.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { assert, memcpy } from '../../common/util/util.js';import { GPUTest, TextureTestMixin } from '../gpu_test.js';
 import { reifyExtent3D, reifyOrigin3D } from '../util/unions.js';
 
 import { makeInPlaceColorConversion } from './color_space_conversion.js';
 import { TexelView } from './texture/texel_view.js';
 
+
 /**
  * Predefined copy sub rect meta infos.
  */
 export const kCopySubrectInfo = [
-  {
-    srcOrigin: { x: 2, y: 2 },
-    dstOrigin: { x: 0, y: 0, z: 0 },
-    srcSize: { width: 16, height: 16 },
-    dstSize: { width: 4, height: 4 },
-    copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 },
-  },
-  {
-    srcOrigin: { x: 10, y: 2 },
-    dstOrigin: { x: 0, y: 0, z: 0 },
-    srcSize: { width: 16, height: 16 },
-    dstSize: { width: 4, height: 4 },
-    copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 },
-  },
-  {
-    srcOrigin: { x: 2, y: 10 },
-    dstOrigin: { x: 0, y: 0, z: 0 },
-    srcSize: { width: 16, height: 16 },
-    dstSize: { width: 4, height: 4 },
-    copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 },
-  },
-  {
-    srcOrigin: { x: 10, y: 10 },
-    dstOrigin: { x: 0, y: 0, z: 0 },
-    srcSize: { width: 16, height: 16 },
-    dstSize: { width: 4, height: 4 },
-    copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 },
-  },
-  {
-    srcOrigin: { x: 2, y: 2 },
-    dstOrigin: { x: 2, y: 2, z: 0 },
-    srcSize: { width: 16, height: 16 },
-    dstSize: { width: 16, height: 16 },
-    copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 },
-  },
-  {
-    srcOrigin: { x: 10, y: 2 },
-    dstOrigin: { x: 2, y: 2, z: 0 },
-    srcSize: { width: 16, height: 16 },
-    dstSize: { width: 16, height: 16 },
-    copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 },
-  },
-];
+{
+  srcOrigin: { x: 2, y: 2 },
+  dstOrigin: { x: 0, y: 0, z: 0 },
+  srcSize: { width: 16, height: 16 },
+  dstSize: { width: 4, height: 4 },
+  copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 }
+},
+{
+  srcOrigin: { x: 10, y: 2 },
+  dstOrigin: { x: 0, y: 0, z: 0 },
+  srcSize: { width: 16, height: 16 },
+  dstSize: { width: 4, height: 4 },
+  copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 }
+},
+{
+  srcOrigin: { x: 2, y: 10 },
+  dstOrigin: { x: 0, y: 0, z: 0 },
+  srcSize: { width: 16, height: 16 },
+  dstSize: { width: 4, height: 4 },
+  copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 }
+},
+{
+  srcOrigin: { x: 10, y: 10 },
+  dstOrigin: { x: 0, y: 0, z: 0 },
+  srcSize: { width: 16, height: 16 },
+  dstSize: { width: 4, height: 4 },
+  copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 }
+},
+{
+  srcOrigin: { x: 2, y: 2 },
+  dstOrigin: { x: 2, y: 2, z: 0 },
+  srcSize: { width: 16, height: 16 },
+  dstSize: { width: 16, height: 16 },
+  copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 }
+},
+{
+  srcOrigin: { x: 10, y: 2 },
+  dstOrigin: { x: 2, y: 2, z: 0 },
+  srcSize: { width: 16, height: 16 },
+  dstSize: { width: 16, height: 16 },
+  copyExtent: { width: 4, height: 4, depthOrArrayLayers: 1 }
+}];
+
 
 export class CopyToTextureUtils extends TextureTestMixin(GPUTest) {
-  doFlipY(sourcePixels, width, height, bytesPerPixel) {
+  doFlipY(
+  sourcePixels,
+  width,
+  height,
+  bytesPerPixel)
+  {
     const dstPixels = new Uint8ClampedArray(width * height * bytesPerPixel);
     for (let i = 0; i < height; ++i) {
       for (let j = 0; j < width; ++j) {
@@ -86,7 +91,23 @@ export class CopyToTextureUtils extends TextureTestMixin(GPUTest) {
     format,
     flipSrcBeforeCopy,
     srcDoFlipYDuringCopy,
-    conversion,
+    conversion
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   }) {
     const applyConversion = makeInPlaceColorConversion(conversion);
 
@@ -98,23 +119,22 @@ export class CopyToTextureUtils extends TextureTestMixin(GPUTest) {
 
     assert(
       reifyDstOrigin.x + reifySubRectSize.width <= reifyDstSize.width &&
-        reifyDstOrigin.y + reifySubRectSize.height <= reifyDstSize.height,
+      reifyDstOrigin.y + reifySubRectSize.height <= reifyDstSize.height,
       'subrect is out of bounds'
     );
 
     const divide = 255.0;
     return TexelView.fromTexelsAsColors(
       format,
-      coords => {
+      (coords) => {
         assert(
           coords.x >= reifyDstOrigin.x &&
-            coords.y >= reifyDstOrigin.y &&
-            coords.x < reifyDstOrigin.x + reifySubRectSize.width &&
-            coords.y < reifyDstOrigin.y + reifySubRectSize.height &&
-            coords.z === 0,
+          coords.y >= reifyDstOrigin.y &&
+          coords.x < reifyDstOrigin.x + reifySubRectSize.width &&
+          coords.y < reifyDstOrigin.y + reifySubRectSize.height &&
+          coords.z === 0,
           'out of bounds'
         );
-
         // Map dst coords to get candidate src pixel position in y.
         let yInSubRect = coords.y - reifyDstOrigin.y;
 
@@ -133,13 +153,13 @@ export class CopyToTextureUtils extends TextureTestMixin(GPUTest) {
         if (flipSrcBeforeCopy) src_y = reifySrcSize.height - src_y - 1;
 
         const pixelPos =
-          src_y * reifySrcSize.width + (coords.x - reifyDstOrigin.x) + reifySrcOrigin.x;
+        src_y * reifySrcSize.width + (coords.x - reifyDstOrigin.x) + reifySrcOrigin.x;
 
         const rgba = {
           R: srcPixels[pixelPos * 4] / divide,
           G: srcPixels[pixelPos * 4 + 1] / divide,
           B: srcPixels[pixelPos * 4 + 2] / divide,
-          A: srcPixels[pixelPos * 4 + 3] / divide,
+          A: srcPixels[pixelPos * 4 + 3] / divide
         };
         applyConversion(rgba);
         return rgba;
@@ -149,12 +169,12 @@ export class CopyToTextureUtils extends TextureTestMixin(GPUTest) {
   }
 
   doTestAndCheckResult(
-    imageCopyExternalImage,
-    dstTextureCopyView,
-    expTexelView,
-    copySize,
-    texelCompareOptions
-  ) {
+  imageCopyExternalImage,
+  dstTextureCopyView,
+  expTexelView,
+  copySize,
+  texelCompareOptions)
+  {
     this.device.queue.copyExternalImageToTexture(
       imageCopyExternalImage,
       dstTextureCopyView,
@@ -167,7 +187,6 @@ export class CopyToTextureUtils extends TextureTestMixin(GPUTest) {
       copySize,
       texelCompareOptions
     );
-
     this.trackForCleanup(dstTextureCopyView.texture);
   }
 }

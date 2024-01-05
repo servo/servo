@@ -92,7 +92,7 @@ impl FormDataMethods for FormData {
             .push((NoTrace(LocalName::from(name.0)), datum));
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-append
     fn Append_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
         let datum = FormDatum {
@@ -173,7 +173,7 @@ impl FormDataMethods for FormData {
         ));
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-set
     fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
         let mut data = self.data.borrow_mut();

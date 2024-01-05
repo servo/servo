@@ -1,6 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 'workgroupBarrier' affects memory and atomic operations in the workgroup address space.
 
 All synchronization functions execute a control barrier with Acquire/Release memory ordering.
@@ -13,27 +13,26 @@ functions use the Workgroup memory scope. All synchronization functions have a W
 execution scope.
 
 All synchronization functions must only be used in the compute shader stage.
-`;
-import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
 
 export const g = makeTestGroup(GPUTest);
 
-g.test('stage')
-  .specURL('https://www.w3.org/TR/WGSL/#sync-builtin-functions')
-  .desc(
-    `
+g.test('stage').
+specURL('https://www.w3.org/TR/WGSL/#sync-builtin-functions').
+desc(
+  `
 All synchronization functions must only be used in the compute shader stage.
 `
-  )
-  .params(u => u.combine('stage', ['vertex', 'fragment', 'compute']))
-  .unimplemented();
+).
+params((u) => u.combine('stage', ['vertex', 'fragment', 'compute'])).
+unimplemented();
 
-g.test('barrier')
-  .specURL('https://www.w3.org/TR/WGSL/#sync-builtin-functions')
-  .desc(
-    `
+g.test('barrier').
+specURL('https://www.w3.org/TR/WGSL/#sync-builtin-functions').
+desc(
+  `
 fn workgroupBarrier()
 `
-  )
-  .unimplemented();
+).
+unimplemented();

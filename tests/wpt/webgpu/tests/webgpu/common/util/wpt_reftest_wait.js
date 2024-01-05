@@ -1,6 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { timeout } from './timeout.js'; // Copied from https://github.com/web-platform-tests/wpt/blob/master/common/reftest-wait.js
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { timeout } from './timeout.js'; // Copied from https://github.com/web-platform-tests/wpt/blob/master/common/reftest-wait.js
 
 /**
  * Remove the `reftest-wait` class on the document element.

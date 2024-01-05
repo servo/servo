@@ -469,13 +469,6 @@ TRAILING WHITESPACE: css/css-fonts/support/fonts/gsubtest-lookup3.ufo/features.f
 
 SET TIMEOUT: css/compositing/mix-blend-mode/mix-blend-mode-parent-with-3D-transform-and-transition.html
 SET TIMEOUT: css/compositing/mix-blend-mode/mix-blend-mode-sibling-with-3D-transform-and-transition.html
-SET TIMEOUT: css/css-backgrounds/color-mix-currentcolor-background-repaint-parent.html
-SET TIMEOUT: css/css-backgrounds/color-mix-currentcolor-background-repaint.html
-SET TIMEOUT: css/css-backgrounds/color-mix-currentcolor-border-repaint-parent.html
-SET TIMEOUT: css/css-backgrounds/color-mix-currentcolor-border-repaint.html
-SET TIMEOUT: css/css-backgrounds/color-mix-currentcolor-outline-repaint-parent.html
-SET TIMEOUT: css/css-backgrounds/color-mix-currentcolor-outline-repaint.html
-SET TIMEOUT: css/css-backgrounds/currentcolor-border-repaint-parent.html
 SET TIMEOUT: css/css-transitions/events-007.html
 SET TIMEOUT: css/css-transitions/support/generalParallelTest.js
 SET TIMEOUT: css/css-transitions/support/runParallelAsyncHarness.js

@@ -116,6 +116,15 @@ class SetWindowRectAction:
         rect = payload["rect"]
         self.protocol.window.set_rect(rect)
 
+class GetWindowRectAction:
+    name = "get_window_rect"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        return self.protocol.window.get_rect()
 
 class ActionSequenceAction:
     name = "action_sequence"
@@ -277,6 +286,18 @@ class SetSPCTransactionModeAction:
         self.logger.debug("Setting SPC transaction mode to %s" % mode)
         return self.protocol.spc_transactions.set_spc_transaction_mode(mode)
 
+class SetRPHRegistrationModeAction:
+    name = "set_rph_registration_mode"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        mode = payload["mode"]
+        self.logger.debug("Setting RPH registration mode to %s" % mode)
+        return self.protocol.rph_registrations.set_rph_registration_mode(mode)
+
 class CancelFedCMDialogAction:
     name = "cancel_fedcm_dialog"
 
@@ -288,16 +309,17 @@ class CancelFedCMDialogAction:
         self.logger.debug("Canceling FedCM dialog")
         return self.protocol.fedcm.cancel_fedcm_dialog()
 
-class ConfirmIDPLoginAction:
-    name = "confirm_idp_login"
+class ClickFedCMDialogButtonAction:
+    name = "click_fedcm_dialog_button"
 
     def __init__(self, logger, protocol):
         self.logger = logger
         self.protocol = protocol
 
     def __call__(self, payload):
-        self.logger.debug("Confirming IDP login")
-        return self.protocol.fedcm.confirm_idp_login()
+        dialog_button = payload["dialog_button"]
+        self.logger.debug(f"Clicking FedCM dialog button: {dialog_button}")
+        return self.protocol.fedcm.click_fedcm_dialog_button()
 
 class SelectFedCMAccountAction:
     name = "select_fedcm_account"
@@ -431,6 +453,7 @@ actions = [ClickAction,
            SendKeysAction,
            MinimizeWindowAction,
            SetWindowRectAction,
+           GetWindowRectAction,
            ActionSequenceAction,
            GenerateTestReportAction,
            SetPermissionAction,
@@ -442,8 +465,9 @@ actions = [ClickAction,
            RemoveAllCredentialsAction,
            SetUserVerifiedAction,
            SetSPCTransactionModeAction,
+           SetRPHRegistrationModeAction,
            CancelFedCMDialogAction,
-           ConfirmIDPLoginAction,
+           ClickFedCMDialogButtonAction,
            SelectFedCMAccountAction,
            GetFedCMAccountListAction,
            GetFedCMDialogTitleAction,

@@ -502,3 +502,117 @@ subsetTest(promise_test, async test => {
   }).catch((e) => {});
   assert_true(dfss);
 }, 'Test directFromSellerSignals feature detection.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await fetchDirectFromSellerSignals({ 'Buyer-Origin': window.location.origin });
+  await fetchDirectFromSellerSignals(
+      { 'Buyer-Origin': window.location.origin, 'Alternative-Response': 'Overwrite adSlot/1'});
+  await runReportTest(
+      test, uuid,
+      directFromSellerSignalsValidatorCode(
+          uuid, 'altSellerSignals/1',
+          /*expectedAuctionSignals=*/null, /*expectedPerBuyerSignals=*/null),
+      // expectedReportUrls
+      [createSellerReportURL(uuid), createBidderReportURL(uuid)],
+      // renderURLOverride
+      null,
+      // auctionConfigOverrides
+      { directFromSellerSignalsHeaderAdSlot: 'adSlot/1' }
+  );
+}, 'Test directFromSellerSignals with 2 responses -- the later overwrites the former.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await fetchDirectFromSellerSignals({ 'Buyer-Origin': window.location.origin });
+  await fetchDirectFromSellerSignals(
+      { 'Buyer-Origin': window.location.origin, 'Alternative-Response': 'Overwrite adSlot/1'});
+  await fetchDirectFromSellerSignals(
+      { 'Buyer-Origin': window.location.origin, 'Alternative-Response': 'Overwrite adSlot/1 v2'});
+  await runReportTest(
+      test, uuid,
+      directFromSellerSignalsValidatorCode(
+          uuid, 'altV2SellerSignals/1',
+          /*expectedAuctionSignals=*/null, /*expectedPerBuyerSignals=*/null),
+      // expectedReportUrls
+      [createSellerReportURL(uuid), createBidderReportURL(uuid)],
+      // renderURLOverride
+      null,
+      // auctionConfigOverrides
+      { directFromSellerSignalsHeaderAdSlot: 'adSlot/1' }
+  );
+}, 'Test directFromSellerSignals with 3 responses -- the last response overwrites the former responses.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await fetchDirectFromSellerSignals({ 'Buyer-Origin': window.location.origin });
+  await fetchDirectFromSellerSignals(
+      { 'Buyer-Origin': window.location.origin, 'Alternative-Response': 'Overwrite adSlot/1'});
+  await runReportTest(
+      test, uuid,
+      directFromSellerSignalsValidatorCode(
+          uuid, /*expectedSellerSignals=*/null,
+          'auctionSignals/2', /*expectedPerBuyerSignals=*/null),
+      // expectedReportUrls
+      [createSellerReportURL(uuid), createBidderReportURL(uuid)],
+      // renderURLOverride
+      null,
+      // auctionConfigOverrides
+      { directFromSellerSignalsHeaderAdSlot: 'adSlot/2' }
+  );
+}, 'Test directFromSellerSignals with 2 responses -- old non-overwritten ad slot remains.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await fetchDirectFromSellerSignals(
+      { 'Buyer-Origin': window.location.origin, 'Alternative-Response': 'Duplicate adSlot/1'});
+  await runReportTest(
+      test, uuid,
+      directFromSellerSignalsValidatorCode(
+          uuid, 'firstSellerSignals/1',
+          /*expectedAuctionSignals=*/null, /*expectedPerBuyerSignals=*/null),
+      // expectedReportUrls
+      [createSellerReportURL(uuid), createBidderReportURL(uuid)],
+      // renderURLOverride
+      null,
+      // auctionConfigOverrides
+      { directFromSellerSignalsHeaderAdSlot: 'adSlot/1' }
+  );
+}, 'Test invalid directFromSellerSignals with duplicate adSlot in response -- the second is ignored.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await fetchDirectFromSellerSignals(
+      { 'Buyer-Origin': window.location.origin, 'Alternative-Response': 'Duplicate adSlot/1'});
+  await runReportTest(
+      test, uuid,
+      directFromSellerSignalsValidatorCode(
+          uuid, 'nonDupSellerSignals/2',
+          /*expectedAuctionSignals=*/null, /*expectedPerBuyerSignals=*/null),
+      // expectedReportUrls
+      [createSellerReportURL(uuid), createBidderReportURL(uuid)],
+      // renderURLOverride
+      null,
+      // auctionConfigOverrides
+      { directFromSellerSignalsHeaderAdSlot: 'adSlot/2' }
+  );
+}, 'Test invalid directFromSellerSignals with duplicate adSlot in response, selecting a non duplicated adSlot.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await fetchDirectFromSellerSignals(
+      { 'Buyer-Origin': window.location.origin,
+        'Alternative-Response': 'Two keys with same values'});
+  await runReportTest(
+      test, uuid,
+      directFromSellerSignalsValidatorCode(
+          uuid, 'sameSellerSignals',
+          'sameAuctionSignals', 'samePerBuyerSignals'),
+      // expectedReportUrls
+      [createSellerReportURL(uuid), createBidderReportURL(uuid)],
+      // renderURLOverride
+      null,
+      // auctionConfigOverrides
+      { directFromSellerSignalsHeaderAdSlot: 'adSlot/1' }
+  );
+}, 'Test invalid directFromSellerSignals with duplicate values in response.');

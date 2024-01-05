@@ -4,7 +4,7 @@ import webdriver.bidi.error as error
 
 from webdriver.bidi.modules.script import ContextTarget
 
-from .. import assert_handle
+from ... import assert_handle
 
 pytestmark = pytest.mark.asyncio
 

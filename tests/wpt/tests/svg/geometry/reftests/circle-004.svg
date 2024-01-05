@@ -3,7 +3,8 @@
   xmlns:html="http://www.w3.org/1999/xhtml">
   <title>Circle coordinates and radius specified using calc</title>
   <html:link rel="help" href="https://svgwg.org/svg2-draft/geometry.html"/>
-  <html:link rel="match"  href="circle-ref.svg" />
+  <html:link rel="match" href="circle-ref.svg" />
+  <html:meta name="fuzzy" content="maxDifference=0-35; totalPixels=0-434" />
   <style>
     circle {
       fill: blue;

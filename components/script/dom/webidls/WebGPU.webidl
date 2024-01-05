@@ -487,7 +487,7 @@ dictionary GPUPipelineLayoutDescriptor : GPUObjectDescriptorBase {
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUShaderModule {
     [Throws]
-    Promise<GPUCompilationInfo> compilationInfo();
+    Promise<GPUCompilationInfo> getCompilationInfo();
 };
 GPUShaderModule includes GPUObjectBase;
 
@@ -1101,8 +1101,9 @@ interface GPUOutOfMemoryError {
 typedef (GPUOutOfMemoryError or GPUValidationError) GPUError;
 
 enum GPUErrorFilter {
+    "validation",
     "out-of-memory",
-    "validation"
+    "internal",
 };
 
 partial interface GPUDevice {

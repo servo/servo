@@ -1,14 +1,13 @@
 import json
 
+import asyncio
 import pytest
 import pytest_asyncio
 
 from webdriver.bidi.error import NoSuchInterceptException
 from webdriver.bidi.modules.script import ContextTarget
 
-RESPONSE_COMPLETED_EVENT = "network.responseCompleted"
-
-PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
+from . import PAGE_EMPTY_HTML, PAGE_EMPTY_TEXT, RESPONSE_COMPLETED_EVENT
 
 
 @pytest_asyncio.fixture
@@ -34,7 +33,7 @@ async def add_intercept(bidi_session):
     for intercept in intercepts:
         try:
             await bidi_session.network.remove_intercept(intercept=intercept)
-        except (NoSuchInterceptException):
+        except NoSuchInterceptException:
             # Ignore exceptions in case a specific intercept was already removed
             # during the test.
             pass
@@ -45,7 +44,10 @@ def fetch(bidi_session, top_context, configuration):
     """Perform a fetch from the page of the provided context, default to the
     top context.
     """
-    async def fetch(url, method="GET", headers=None, context=top_context, timeout_in_seconds=3):
+
+    async def fetch(
+        url, method="GET", headers=None, context=top_context, timeout_in_seconds=3
+    ):
         method_arg = f"method: '{method}',"
 
         headers_arg = ""
@@ -77,7 +79,12 @@ def fetch(bidi_session, top_context, configuration):
 
 @pytest_asyncio.fixture
 async def setup_network_test(
-    bidi_session, subscribe_events, wait_for_event, wait_for_future_safe, top_context, url
+    bidi_session,
+    subscribe_events,
+    wait_for_event,
+    wait_for_future_safe,
+    top_context,
+    url,
 ):
     """Navigate the current top level context to the provided url and subscribe
     to network.beforeRequestSent.
@@ -126,3 +133,50 @@ async def setup_network_test(
     # cleanup
     for remove_listener in listeners:
         remove_listener()
+
+
+@pytest_asyncio.fixture
+async def setup_blocked_request(
+    setup_network_test, url, add_intercept, fetch, wait_for_event
+):
+    """Creates an intercept for the provided phase, sends a fetch request that
+    should be blocked by this intercept and resolves when the corresponding
+    event is received.
+
+    For the "authRequired" phase, the request will be sent to the authentication
+    http handler. The optional arguments username, password and realm can be used
+    to configure the handler.
+
+    Returns the `request` id of the intercepted request.
+    """
+
+    async def setup_blocked_request(
+        phase, username="user", password="password", realm="test"
+    ):
+        await setup_network_test(events=[f"network.{phase}"])
+
+        if phase == "authRequired":
+            blocked_url = url(
+                "/webdriver/tests/support/http_handlers/authentication.py?"
+                f"username={username}&password={password}&realm={realm}"
+            )
+        else:
+            blocked_url = url(PAGE_EMPTY_TEXT)
+
+        await add_intercept(
+            phases=[phase],
+            url_patterns=[
+                {
+                    "type": "string",
+                    "pattern": blocked_url,
+                }
+            ],
+        )
+
+        asyncio.ensure_future(fetch(blocked_url))
+        event = await wait_for_event(f"network.{phase}")
+        request = event["request"]["request"]
+
+        return request
+
+    return setup_blocked_request

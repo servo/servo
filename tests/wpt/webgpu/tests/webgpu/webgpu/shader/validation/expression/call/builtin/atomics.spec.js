@@ -1,9 +1,8 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Validation tests for atomic builtins.
-`;
-import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf } from '../../../../../../common/util/data_tables.js';
 import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
@@ -20,52 +19,52 @@ const kAtomicOps = {
   load: { src: 'atomicLoad(&a)' },
   store: { src: 'atomicStore(&a,1)' },
   exchange: { src: 'atomicExchange(&a,1)' },
-  compareexchangeweak: { src: 'atomicCompareExchangeWeak(&a,1,1)' },
+  compareexchangeweak: { src: 'atomicCompareExchangeWeak(&a,1,1)' }
 };
 
-g.test('stage')
-  .specURL('https://www.w3.org/TR/WGSL/#atomic-rmw')
-  .desc(
-    `
+g.test('stage').
+specURL('https://www.w3.org/TR/WGSL/#atomic-rmw').
+desc(
+  `
 Atomic built-in functions must not be used in a vertex shader stage.
 `
-  )
-  .params(u =>
-    u
-      .combine('stage', ['fragment', 'vertex', 'compute']) //
-      .combine('atomicOp', keysOf(kAtomicOps))
-  )
-  .fn(t => {
-    const atomicOp = kAtomicOps[t.params.atomicOp].src;
-    let code = `
+).
+params((u) =>
+u.
+combine('stage', ['fragment', 'vertex', 'compute']) //
+.combine('atomicOp', keysOf(kAtomicOps))
+).
+fn((t) => {
+  const atomicOp = kAtomicOps[t.params.atomicOp].src;
+  let code = `
 @group(0) @binding(0) var<storage, read_write> a: atomic<i32>;
 `;
 
-    switch (t.params.stage) {
-      case 'compute':
-        code += `
+  switch (t.params.stage) {
+    case 'compute':
+      code += `
 @compute @workgroup_size(1,1,1) fn main() {
   ${atomicOp};
 }`;
-        break;
+      break;
 
-      case 'fragment':
-        code += `
+    case 'fragment':
+      code += `
 @fragment fn main() -> @location(0) vec4<f32> {
   ${atomicOp};
   return vec4<f32>();
 }`;
-        break;
+      break;
 
-      case 'vertex':
-        code += `
+    case 'vertex':
+      code += `
 @vertex fn vmain() -> @builtin(position) vec4<f32> {
   ${atomicOp};
   return vec4<f32>();
 }`;
-        break;
-    }
+      break;
+  }
 
-    const pass = t.params.stage !== 'vertex';
-    t.expectCompileResult(pass, code);
-  });
+  const pass = t.params.stage !== 'vertex';
+  t.expectCompileResult(pass, code);
+});

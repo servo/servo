@@ -1,7 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { runRefTest } from './gpu_ref_test.js';
-runRefTest(t => {
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { runRefTest } from './gpu_ref_test.js';runRefTest((t) => {
   const device = t.device;
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
@@ -28,20 +27,20 @@ runRefTest(t => {
         let check = (iPos.x + iPos.y) & 1;
         return mix(black, white, f32(check));
       }
-    `,
+    `
   });
 
   const pipeline = device.createRenderPipeline({
     layout: 'auto',
     vertex: {
       module,
-      entryPoint: 'vs',
+      entryPoint: 'vs'
     },
     fragment: {
       module,
       entryPoint: 'fs',
-      targets: [{ format: presentationFormat }],
-    },
+      targets: [{ format: presentationFormat }]
+    }
   });
 
   function draw(selector, alphaMode) {
@@ -50,19 +49,19 @@ runRefTest(t => {
     context.configure({
       device,
       format: presentationFormat,
-      alphaMode,
+      alphaMode
     });
 
     const encoder = device.createCommandEncoder();
     const pass = encoder.beginRenderPass({
       colorAttachments: [
-        {
-          view: context.getCurrentTexture().createView(),
-          clearValue: [0.0, 0.0, 0.0, 0.0],
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
+      {
+        view: context.getCurrentTexture().createView(),
+        clearValue: [0.0, 0.0, 0.0, 0.0],
+        loadOp: 'clear',
+        storeOp: 'store'
+      }]
+
     });
     pass.setPipeline(pipeline);
     pass.draw(3);

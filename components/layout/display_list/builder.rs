@@ -3036,7 +3036,7 @@ fn convert_text_run_to_glyphs(
 
     for slice in text_run.natural_word_slices_in_visual_order(&range) {
         for glyph in slice.glyphs.iter_glyphs_for_byte_range(&slice.range) {
-            let glyph_advance = if glyph.char_is_space() {
+            let glyph_advance = if glyph.char_is_word_separator() {
                 glyph.advance() + text_run.extra_word_spacing
             } else {
                 glyph.advance()

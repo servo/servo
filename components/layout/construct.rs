@@ -2379,14 +2379,14 @@ impl Legalizer {
             FlowClass::TableRow => self.push_new_anonymous_flow::<E, _>(
                 context,
                 parent,
-                &[PseudoElement::ServoLegacyAnonymousTableCell],
+                &[PseudoElement::ServoAnonymousTableCell],
                 SpecificFragmentInfo::TableCell,
                 TableCellFlow::from_fragment,
             ),
             FlowClass::Table | FlowClass::TableRowGroup => self.push_new_anonymous_flow::<E, _>(
                 context,
                 parent,
-                &[PseudoElement::ServoLegacyAnonymousTableRow],
+                &[PseudoElement::ServoAnonymousTableRow],
                 SpecificFragmentInfo::TableRow,
                 TableRowFlow::from_fragment,
             ),

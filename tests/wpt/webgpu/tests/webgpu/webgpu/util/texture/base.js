@@ -1,14 +1,18 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert, unreachable } from '../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../format_info.js';
-import { align } from '../../util/math.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { assert, unreachable } from '../../../common/util/util.js';import { kTextureFormatInfo } from '../../format_info.js';import { align } from '../../util/math.js';
 import { reifyExtent3D } from '../../util/unions.js';
 
 /**
  * Compute the maximum mip level count allowed for a given texture size and texture dimension.
  */
-export function maxMipLevelCount({ size, dimension = '2d' }) {
+export function maxMipLevelCount({
+  size,
+  dimension = '2d'
+
+
+
+}) {
   const sizeDict = reifyExtent3D(size);
 
   let maxMippedDimension = 0;
@@ -31,56 +35,57 @@ export function maxMipLevelCount({ size, dimension = '2d' }) {
  * Compute the "physical size" of a mip level: the size of the level, rounded up to a
  * multiple of the texel block size.
  */
-export function physicalMipSize(baseSize, format, dimension, level) {
+export function physicalMipSize(
+baseSize,
+format,
+dimension,
+level)
+{
   switch (dimension) {
     case '1d':
       assert(level === 0, '1d textures cannot be mipmapped');
       assert(baseSize.height === 1 && baseSize.depthOrArrayLayers === 1, '1d texture not Wx1x1');
       return { width: baseSize.width, height: 1, depthOrArrayLayers: 1 };
 
-    case '2d': {
-      assert(
-        Math.max(baseSize.width, baseSize.height) >> level > 0,
-        () => `level (${level}) too large for base size (${baseSize.width}x${baseSize.height})`
-      );
+    case '2d':{
+        assert(
+          Math.max(baseSize.width, baseSize.height) >> level > 0,
+          () => `level (${level}) too large for base size (${baseSize.width}x${baseSize.height})`
+        );
 
-      const virtualWidthAtLevel = Math.max(baseSize.width >> level, 1);
-      const virtualHeightAtLevel = Math.max(baseSize.height >> level, 1);
-      const physicalWidthAtLevel = align(
-        virtualWidthAtLevel,
-        kTextureFormatInfo[format].blockWidth
-      );
+        const virtualWidthAtLevel = Math.max(baseSize.width >> level, 1);
+        const virtualHeightAtLevel = Math.max(baseSize.height >> level, 1);
+        const physicalWidthAtLevel = align(
+          virtualWidthAtLevel,
+          kTextureFormatInfo[format].blockWidth
+        );
+        const physicalHeightAtLevel = align(
+          virtualHeightAtLevel,
+          kTextureFormatInfo[format].blockHeight
+        );
+        return {
+          width: physicalWidthAtLevel,
+          height: physicalHeightAtLevel,
+          depthOrArrayLayers: baseSize.depthOrArrayLayers
+        };
+      }
 
-      const physicalHeightAtLevel = align(
-        virtualHeightAtLevel,
-        kTextureFormatInfo[format].blockHeight
-      );
-
-      return {
-        width: physicalWidthAtLevel,
-        height: physicalHeightAtLevel,
-        depthOrArrayLayers: baseSize.depthOrArrayLayers,
-      };
-    }
-
-    case '3d': {
-      assert(
-        Math.max(baseSize.width, baseSize.height, baseSize.depthOrArrayLayers) >> level > 0,
-        () =>
+    case '3d':{
+        assert(
+          Math.max(baseSize.width, baseSize.height, baseSize.depthOrArrayLayers) >> level > 0,
+          () =>
           `level (${level}) too large for base size (${baseSize.width}x${baseSize.height}x${baseSize.depthOrArrayLayers})`
-      );
-
-      assert(
-        kTextureFormatInfo[format].blockWidth === 1 && kTextureFormatInfo[format].blockHeight === 1,
-        'not implemented for 3d block formats'
-      );
-
-      return {
-        width: Math.max(baseSize.width >> level, 1),
-        height: Math.max(baseSize.height >> level, 1),
-        depthOrArrayLayers: Math.max(baseSize.depthOrArrayLayers >> level, 1),
-      };
-    }
+        );
+        assert(
+          kTextureFormatInfo[format].blockWidth === 1 && kTextureFormatInfo[format].blockHeight === 1,
+          'not implemented for 3d block formats'
+        );
+        return {
+          width: Math.max(baseSize.width >> level, 1),
+          height: Math.max(baseSize.height >> level, 1),
+          depthOrArrayLayers: Math.max(baseSize.depthOrArrayLayers >> level, 1)
+        };
+      }
   }
 }
 
@@ -88,7 +93,10 @@ export function physicalMipSize(baseSize, format, dimension, level) {
  * Compute the "physical size" of a mip level: the size of the level, rounded up to a
  * multiple of the texel block size.
  */
-export function physicalMipSizeFromTexture(texture, mipLevel) {
+export function physicalMipSizeFromTexture(
+texture,
+mipLevel)
+{
   const size = physicalMipSize(texture, texture.format, texture.dimension, mipLevel);
   return [size.width, size.height, size.depthOrArrayLayers];
 }
@@ -98,8 +106,12 @@ export function physicalMipSizeFromTexture(texture, mipLevel) {
  *
  * MAINTENANCE_TODO: Change input/output to Required<GPUExtent3DDict> for consistency.
  */
-export function virtualMipSize(dimension, size, mipLevel) {
-  const shiftMinOne = n => Math.max(1, n >> mipLevel);
+export function virtualMipSize(
+dimension,
+size,
+mipLevel)
+{
+  const shiftMinOne = (n) => Math.max(1, n >> mipLevel);
   switch (dimension) {
     case '1d':
       assert(size[2] === 1);
@@ -145,15 +157,23 @@ export function viewDimensionsForTextureDimension(textureDimension) {
   }
 }
 
-/** Returns the default view dimension for a given texture descriptor. */
-export function defaultViewDimensionsForTexture(textureDescriptor) {
-  switch (textureDescriptor.dimension) {
+/** Returns the effective view dimension for a given texture dimension and depthOrArrayLayers */
+export function effectiveViewDimensionForDimension(
+viewDimension,
+dimension,
+depthOrArrayLayers)
+{
+  if (viewDimension) {
+    return viewDimension;
+  }
+
+  switch (dimension || '2d') {
     case '1d':
       return '1d';
-    case '2d': {
-      const sizeDict = reifyExtent3D(textureDescriptor.size);
-      return sizeDict.depthOrArrayLayers > 1 ? '2d-array' : '2d';
-    }
+    case '2d':
+    case undefined:
+      return depthOrArrayLayers > 1 ? '2d-array' : '2d';
+      break;
     case '3d':
       return '3d';
     default:
@@ -161,16 +181,43 @@ export function defaultViewDimensionsForTexture(textureDescriptor) {
   }
 }
 
+/** Returns the effective view dimension for a given texture */
+export function effectiveViewDimensionForTexture(
+texture,
+viewDimension)
+{
+  return effectiveViewDimensionForDimension(
+    viewDimension,
+    texture.dimension,
+    texture.depthOrArrayLayers
+  );
+}
+
+/** Returns the default view dimension for a given texture descriptor. */
+export function defaultViewDimensionsForTexture(textureDescriptor) {
+  const sizeDict = reifyExtent3D(textureDescriptor.size);
+  return effectiveViewDimensionForDimension(
+    undefined,
+    textureDescriptor.dimension,
+    sizeDict.depthOrArrayLayers
+  );
+}
+
 /** Reifies the optional fields of `GPUTextureDescriptor`.
  * MAINTENANCE_TODO: viewFormats should not be omitted here, but it seems likely that the
  * @webgpu/types definition will have to change before we can include it again.
  */
-export function reifyTextureDescriptor(desc) {
+export function reifyTextureDescriptor(
+desc)
+{
   return { dimension: '2d', mipLevelCount: 1, sampleCount: 1, ...desc };
 }
 
 /** Reifies the optional fields of `GPUTextureViewDescriptor` (given a `GPUTextureDescriptor`). */
-export function reifyTextureViewDescriptor(textureDescriptor, view) {
+export function reifyTextureViewDescriptor(
+textureDescriptor,
+view)
+{
   const texture = reifyTextureDescriptor(textureDescriptor);
 
   // IDL defaulting
@@ -203,7 +250,7 @@ export function reifyTextureViewDescriptor(textureDescriptor, view) {
     baseMipLevel,
     mipLevelCount,
     baseArrayLayer,
-    arrayLayerCount,
+    arrayLayerCount
   };
 }
 
@@ -212,7 +259,10 @@ export function reifyTextureViewDescriptor(textureDescriptor, view) {
  * @param subrectOrigin - Subrect origin
  * @param subrectSize - Subrect size
  */
-export function* fullSubrectCoordinates(subrectOrigin, subrectSize) {
+export function* fullSubrectCoordinates(
+subrectOrigin,
+subrectSize)
+{
   for (let z = subrectOrigin.z; z < subrectOrigin.z + subrectSize.depthOrArrayLayers; ++z) {
     for (let y = subrectOrigin.y; y < subrectOrigin.y + subrectSize.height; ++y) {
       for (let x = subrectOrigin.x; x < subrectOrigin.x + subrectSize.width; ++x) {

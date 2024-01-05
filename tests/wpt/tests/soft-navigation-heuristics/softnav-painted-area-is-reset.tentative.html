@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Soft Navigation Painted Area Should Be Reset With A New Soft Navigation.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="resources/soft-navigation-helper.js"></script>
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+</head>
+
+<body>
+  <p id="initial_paint">
+    This is to make the initial painted area large so that the threshold for
+    soft navigations is large.
+  </p>
+  <a id=link1>Click</a>
+  <a id=link2>Click</a>
+  <script>
+    const link1 = document.getElementById("link1");
+    const link2 = document.getElementById("link2");
+
+    const waitForElementTimingWithId = (id) =>
+      new Promise(resolve => {
+        (new PerformanceObserver(list => {
+          if (list.getEntries().find(e => e.id.includes(id))) resolve();
+        })).observe({ type: 'element' });
+      });
+
+
+    const waitForLcpWithId = async (id, includeSoftNavLcp) => {
+      let options = {
+        type: 'largest-contentful-paint', buffered: true,
+      }
+      if (includeSoftNavLcp)
+        options.includeSoftNavigationObservations = true;
+
+      await new Promise(resolve => {
+        (new PerformanceObserver(list => {
+          if (list.getEntries().find(e => e.id.includes(id))) resolve();
+        })).observe(options);
+      });
+    }
+
+    const addTextWithStateChange = (id, size, text) => {
+      history.pushState({}, '', `foobar_${id}.html`);
+
+      const p = document.createElement("p");
+      const textNode = document.createTextNode(text);
+      p.appendChild(textNode);
+      p.setAttribute("elementtiming", 'element_timing');
+      p.id = id;
+      p.style = `font-size: ${size}em`;
+      document.body.appendChild(p);
+    }
+
+    const SoftNavPromise = () => {
+      return new Promise(resolve => {
+        new PerformanceObserver(list => {
+          resolve(list.getEntries());
+        }
+        ).observe({ type: 'soft-navigation' });
+      })
+    }
+
+    promise_test(async t => {
+      // Wait for page load.
+      await waitForLcpWithId('initial_paint', false);
+
+      link1.addEventListener('click', () => {
+        addTextWithStateChange('above_threshold', 4,
+          'THIS IS A LARGE TEXT SO THAT THE SOFT NAV PAINTED AREA IS ABOVE THRESHOLD.');
+      })
+
+      soft_nav_promise = SoftNavPromise();
+
+      waitForElementTimingPromise = waitForElementTimingWithId('above_threshold');
+
+      interact(link1);
+
+      await waitForElementTimingPromise;
+
+      await waitForLcpWithId('above_threshold', true);
+
+      let soft_nav_entries = await soft_nav_promise;
+
+      assert_equals(soft_nav_entries.length, 1, '1 soft nav entry should be emitted. ');
+
+      assert_true(soft_nav_entries[0].name.includes('above_threshold'),
+        'The soft nav entry name should include above_threshold.');
+
+      // Add a text that has a painted area under the threshold so that no soft
+      // navigaiton is emitted.
+      link2.addEventListener('click', () => {
+        addTextWithStateChange('under_threshold', 0.1, 'm');
+      })
+
+      waitForElementTimingPromise = waitForElementTimingWithId('under_threshold');
+
+      interact(link2);
+
+      await waitForElementTimingPromise;
+
+      soft_nav_entries = await new Promise((resolve) => {
+        (new PerformanceObserver((list) =>
+          resolve(list.getEntries()))).observe({
+            type: 'soft-navigation',
+            buffered: true
+          });
+        t.step_timeout(resolve, 1000);
+      });
+
+      assert_equals(soft_nav_entries.length, 1, 'No new soft navigation should emitted')
+      assert_true(soft_nav_entries[0].name.includes('above_threshold'),
+        'The soft nav entry should be the one previously seen.');
+
+
+    }, 'soft nav paitned area should be reset so that under threshold\
+      soft nav painted area would not trigger a soft navigation.')
+  </script>
+</body>

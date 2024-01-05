@@ -1,29 +1,45 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { SkipTestCase, UnexpectedPassError } from '../../framework/fixture.js';
-import { globalTestConfig } from '../../framework/test_config.js';
-import { now, assert } from '../../util/util.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { SkipTestCase, UnexpectedPassError } from '../../framework/fixture.js';import { globalTestConfig } from '../../framework/test_config.js';import { now, assert } from '../../util/util.js';
 
-import { LogMessageWithStack } from './log_message.js';
-var LogSeverity;
-(function (LogSeverity) {
-  LogSeverity[(LogSeverity['Pass'] = 0)] = 'Pass';
-  LogSeverity[(LogSeverity['Skip'] = 1)] = 'Skip';
-  LogSeverity[(LogSeverity['Warn'] = 2)] = 'Warn';
-  LogSeverity[(LogSeverity['ExpectFailed'] = 3)] = 'ExpectFailed';
-  LogSeverity[(LogSeverity['ValidationFailed'] = 4)] = 'ValidationFailed';
-  LogSeverity[(LogSeverity['ThrewException'] = 5)] = 'ThrewException';
-})(LogSeverity || (LogSeverity = {}));
+import { LogMessageWithStack } from './log_message.js';var
+
+
+LogSeverity = /*#__PURE__*/function (LogSeverity) {LogSeverity[LogSeverity["NotRun"] = 0] = "NotRun";LogSeverity[LogSeverity["Skip"] = 1] = "Skip";LogSeverity[LogSeverity["Pass"] = 2] = "Pass";LogSeverity[LogSeverity["Warn"] = 3] = "Warn";LogSeverity[LogSeverity["ExpectFailed"] = 4] = "ExpectFailed";LogSeverity[LogSeverity["ValidationFailed"] = 5] = "ValidationFailed";LogSeverity[LogSeverity["ThrewException"] = 6] = "ThrewException";return LogSeverity;}(LogSeverity || {});
+
+
+
+
+
+
+
+
 
 const kMaxLogStacks = 2;
 const kMinSeverityForStack = LogSeverity.Warn;
 
+function logSeverityToString(status) {
+  switch (status) {
+    case LogSeverity.NotRun:
+      return 'notrun';
+    case LogSeverity.Pass:
+      return 'pass';
+    case LogSeverity.Skip:
+      return 'skip';
+    case LogSeverity.Warn:
+      return 'warn';
+    default:
+      return 'fail'; // Everything else is an error
+  }
+}
+
 /** Holds onto a LiveTestCaseResult owned by the Logger, and writes the results into it. */
 export class TestCaseRecorder {
+
   nonskippedSubcaseCount = 0;
   inSubCase = false;
-  subCaseStatus = LogSeverity.Pass;
-  finalCaseStatus = LogSeverity.Pass;
+  subCaseStatus = LogSeverity.NotRun;
+  finalCaseStatus = LogSeverity.NotRun;
   hideStacksBelowSeverity = kMinSeverityForStack;
   startTime = -1;
   logs = [];
@@ -56,20 +72,13 @@ export class TestCaseRecorder {
     }
 
     // Convert numeric enum back to string (but expose 'exception' as 'fail')
-    this.result.status =
-      this.finalCaseStatus === LogSeverity.Pass
-        ? 'pass'
-        : this.finalCaseStatus === LogSeverity.Skip
-        ? 'skip'
-        : this.finalCaseStatus === LogSeverity.Warn
-        ? 'warn'
-        : 'fail'; // Everything else is an error
+    this.result.status = logSeverityToString(this.finalCaseStatus);
 
     this.result.logs = this.logs;
   }
 
   beginSubCase() {
-    this.subCaseStatus = LogSeverity.Pass;
+    this.subCaseStatus = LogSeverity.NotRun;
     this.inSubCase = true;
   }
 
@@ -87,9 +96,7 @@ export class TestCaseRecorder {
       }
     } finally {
       this.inSubCase = false;
-      if (this.subCaseStatus > this.finalCaseStatus) {
-        this.finalCaseStatus = this.subCaseStatus;
-      }
+      this.finalCaseStatus = Math.max(this.finalCaseStatus, this.subCaseStatus);
     }
   }
 
@@ -103,7 +110,8 @@ export class TestCaseRecorder {
   }
 
   info(ex) {
-    this.logImpl(LogSeverity.Pass, 'INFO', ex);
+    // We need this to use the lowest LogSeverity so it doesn't override the current severity for this test case.
+    this.logImpl(LogSeverity.NotRun, 'INFO', ex);
   }
 
   skipped(ex) {
@@ -122,6 +130,14 @@ export class TestCaseRecorder {
     this.logImpl(LogSeverity.ValidationFailed, 'VALIDATION FAILED', ex);
   }
 
+  passed() {
+    if (this.inSubCase) {
+      this.subCaseStatus = Math.max(this.subCaseStatus, LogSeverity.Pass);
+    } else {
+      this.finalCaseStatus = Math.max(this.finalCaseStatus, LogSeverity.Pass);
+    }
+  }
+
   threw(ex) {
     if (ex instanceof SkipTestCase) {
       this.skipped(ex);
@@ -137,9 +153,9 @@ export class TestCaseRecorder {
 
     // Final case status should be the "worst" of all log entries.
     if (this.inSubCase) {
-      if (level > this.subCaseStatus) this.subCaseStatus = level;
+      this.subCaseStatus = Math.max(this.subCaseStatus, level);
     } else {
-      if (level > this.finalCaseStatus) this.finalCaseStatus = level;
+      this.finalCaseStatus = Math.max(this.finalCaseStatus, level);
     }
 
     // setFirstLineOnly for all logs except `kMaxLogStacks` stacks at the highest severity

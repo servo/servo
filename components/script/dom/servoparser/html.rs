@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(unrooted_must_root)]
+#![allow(crown::unrooted_must_root)]
 
 use std::io;
 
@@ -31,7 +31,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::servoparser::{ParsingAlgorithm, Sink};
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 pub struct Tokenizer {
     #[ignore_malloc_size_of = "Defined in html5ever"]
     inner: HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>>,
@@ -109,7 +109,7 @@ unsafe impl CustomTraceable for HtmlTokenizer<TreeBuilder<Dom<Node>, Sink>> {
 
         impl HtmlTracer for Tracer {
             type Handle = Dom<Node>;
-            #[allow(unrooted_must_root)]
+            #[allow(crown::unrooted_must_root)]
             fn trace_handle(&self, node: &Dom<Node>) {
                 unsafe {
                     node.trace(self.0);

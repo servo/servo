@@ -1,6 +1,9 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert } from '../../../../../../../common/util/util.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { assert } from
+
+'../../../../../../../common/util/util.js';
+
 
 // Use these in combination.
 export const workgroupSizes = [1, 2, 32, 64];
@@ -11,15 +14,15 @@ export const onlyWorkgroupSizes = [1, 2, 4, 8, 16, 32, 64, 128, 256];
 
 export const kMapId = {
   passthrough: {
-    f: (id, max) => id,
-    wgsl: (max, scalarType = 'u32') =>
-      `fn map_id(id: ${scalarType}) -> ${scalarType} { return id; }`,
+    f: (id, _max) => id,
+    wgsl: (_max, scalarType = 'u32') =>
+    `fn map_id(id: ${scalarType}) -> ${scalarType} { return id; }`
   },
   remap: {
-    f: (id, max) => (((id >>> 0) * 14957) ^ (((id >>> 0) * 26561) >> 2)) % max,
+    f: (id, max) => ((id >>> 0) * 14957 ^ (id >>> 0) * 26561 >> 2) % max,
     wgsl: (max, scalarType = 'u32') =>
-      `fn map_id(id: ${scalarType}) -> ${scalarType} { return ((id * 14957) ^ ((id * 26561) >> 2)) % ${max}; }`,
-  },
+    `fn map_id(id: ${scalarType}) -> ${scalarType} { return ((id * 14957) ^ ((id * 26561) >> 2)) % ${max}; }`
+  }
 };
 
 export function typedArrayCtor(scalarType) {
@@ -44,7 +47,16 @@ export function runStorageVariableTest({
   // and `output` is a storage array of atomics.
   op,
   expected, // Expected values array to compare against output buffer
-  extra, // Optional extra WGSL source
+  extra // Optional extra WGSL source
+
+
+
+
+
+
+
+
+
 }) {
   assert(expected.length === bufferNumElements, "'expected' buffer size is incorrect");
 
@@ -69,14 +81,14 @@ export function runStorageVariableTest({
     layout: 'auto',
     compute: {
       module: t.device.createShaderModule({ code: wgsl }),
-      entryPoint: 'main',
-    },
+      entryPoint: 'main'
+    }
   });
 
   const outputBuffer = t.device.createBuffer({
     size: bufferNumElements * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-    mappedAtCreation: true,
+    mappedAtCreation: true
   });
   // Fill with initial value
   t.trackForCleanup(outputBuffer);
@@ -86,7 +98,7 @@ export function runStorageVariableTest({
 
   const bindGroup = t.device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: { buffer: outputBuffer } }],
+    entries: [{ binding: 0, resource: { buffer: outputBuffer } }]
   });
 
   // Run the shader.
@@ -113,7 +125,16 @@ export function runWorkgroupVariableTest({
   // dispatch 1 to second workgroupSize elements, etc.).
   op,
   expected, // Expected values array to compare against output buffer
-  extra, // Optional extra WGSL source
+  extra // Optional extra WGSL source
+
+
+
+
+
+
+
+
+
 }) {
   assert(expected.length === wgNumElements * dispatchSize, "'expected' buffer size is incorrect");
 
@@ -160,18 +181,18 @@ export function runWorkgroupVariableTest({
     layout: 'auto',
     compute: {
       module: t.device.createShaderModule({ code: wgsl }),
-      entryPoint: 'main',
-    },
+      entryPoint: 'main'
+    }
   });
 
   const outputBuffer = t.device.createBuffer({
     size: wgNumElements * dispatchSize * arrayType.BYTES_PER_ELEMENT,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
 
   const bindGroup = t.device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: { buffer: outputBuffer } }],
+    entries: [{ binding: 0, resource: { buffer: outputBuffer } }]
   });
 
   // Run the shader.

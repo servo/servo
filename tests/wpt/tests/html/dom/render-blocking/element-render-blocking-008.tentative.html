@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>Media attribute changes in the head to apply</title>
+
+<link id=link rel=expect href="#last" blocking="render" media="(max-width: 10px)">
+<script>
+link.media = "(min-width: 10px)";
+
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementById("last")));
+    t.done();
+  });
+}, "changing media to matching causes link to have an effect");
+</script>
+</head>
+<body>
+  <div id="first"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="second"></div>
+  <script>
+    jankMany(100, 10);
+  </script>
+  <div id="last"></div>
+</body>

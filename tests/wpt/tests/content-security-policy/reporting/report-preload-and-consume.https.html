@@ -20,7 +20,7 @@
             const failures = reports.filter(
               r => r['csp-report']['blocked-uri'].endsWith('fail.png'));
             return failures.length === 2;
-        }, "Should receive 2 CSP reports.", 5000, 500);
+        }, "Should receive 2 CSP reports.", 10000, 500);
     }, "Reporting endpoints received credentials.");
   </script>
 </body>

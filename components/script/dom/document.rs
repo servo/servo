@@ -224,7 +224,7 @@ pub enum IsHTMLDocument {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 enum FocusTransaction {
     /// No focus operation is in effect.
     NotInTransaction,
@@ -823,12 +823,12 @@ impl Document {
         self.quirks_mode.get()
     }
 
-    pub fn set_quirks_mode(&self, mode: QuirksMode) {
-        self.quirks_mode.set(mode);
+    pub fn set_quirks_mode(&self, new_mode: QuirksMode) {
+        let old_mode = self.quirks_mode.replace(new_mode);
 
-        if mode == QuirksMode::Quirks {
+        if old_mode != new_mode {
             match self.window.layout_chan() {
-                Some(chan) => chan.send(Msg::SetQuirksMode(mode)).unwrap(),
+                Some(chan) => chan.send(Msg::SetQuirksMode(new_mode)).unwrap(),
                 None => warn!("Layout channel unavailable"),
             }
         }
@@ -2878,7 +2878,7 @@ impl Document {
             .or_insert_with(|| Dom::from_ref(context));
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn flush_dirty_webgpu_canvases(&self) {
         self.dirty_webgpu_contexts
             .borrow_mut()
@@ -3817,7 +3817,7 @@ impl Document {
 
     /// Add a stylesheet owned by `owner` to the list of document sheets, in the
     /// correct tree position.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn add_stylesheet(&self, owner: &Element, sheet: Arc<Stylesheet>) {
         let stylesheets = &mut *self.stylesheets.borrow_mut();
         let insertion_point = stylesheets
@@ -3850,7 +3850,7 @@ impl Document {
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
-    #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
+    #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
         match self.window.layout_chan() {
             Some(chan) => chan.send(Msg::RemoveStylesheet(s.clone())).unwrap(),
@@ -3876,7 +3876,7 @@ impl Document {
         })
     }
 
-    #[allow(unrooted_must_root)]
+    #[allow(crown::unrooted_must_root)]
     pub fn drain_pending_restyles(&self) -> Vec<(TrustedNodeAddress, PendingRestyle)> {
         self.pending_restyles
             .borrow_mut()
@@ -5358,7 +5358,7 @@ impl AnimationFrameCallback {
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 struct PendingInOrderScriptVec {
     scripts: DomRefCell<VecDeque<PendingScript>>,
 }
@@ -5396,7 +5396,7 @@ impl PendingInOrderScriptVec {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
+#[crown::unrooted_must_root_lint::must_root]
 struct PendingScript {
     element: Dom<HTMLScriptElement>,
     // TODO(sagudev): could this be all no_trace?

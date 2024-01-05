@@ -1,41 +1,39 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { assert, range } from '../../../../../common/util/util.js';
-import { kMaximumLimitBaseParams, makeLimitTestGroup } from './limit_utils.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { range } from '../../../../../common/util/util.js';import { kMaximumLimitBaseParams, makeLimitTestGroup } from './limit_utils.js';
 
 function getTypeForNumComponents(numComponents) {
   return numComponents > 1 ? `vec${numComponents}f` : 'f32';
 }
 
 function getPipelineDescriptor(
-  device,
-  testValue,
-  pointList,
-  frontFacing,
-  sampleIndex,
-  sampleMaskIn,
-  sampleMaskOut
-) {
+device,
+testValue,
+pointList,
+frontFacing,
+sampleIndex,
+sampleMaskIn,
+sampleMaskOut)
+{
   const maxVertexShaderOutputComponents = testValue - (pointList ? 1 : 0);
   const maxFragmentShaderInputComponents =
-    testValue - (frontFacing ? 1 : 0) - (sampleIndex ? 1 : 0) - (sampleMaskIn ? 1 : 0);
+  testValue - (frontFacing ? 1 : 0) - (sampleIndex ? 1 : 0) - (sampleMaskIn ? 1 : 0);
 
   const maxInterStageVariables = device.limits.maxInterStageShaderVariables;
   const numComponents = Math.min(maxVertexShaderOutputComponents, maxFragmentShaderInputComponents);
-  assert(Math.ceil(numComponents / 4) <= maxInterStageVariables);
 
   const num4ComponentVaryings = Math.floor(numComponents / 4);
   const lastVaryingNumComponents = numComponents % 4;
 
   const varyings = `
-      ${range(num4ComponentVaryings, i => `@location(${i}) v4_${i}: vec4f,`).join('\n')}
+      ${range(num4ComponentVaryings, (i) => `@location(${i}) v4_${i}: vec4f,`).join('\n')}
       ${
-        lastVaryingNumComponents > 0
-          ? `@location(${num4ComponentVaryings}) vx: ${getTypeForNumComponents(
-              lastVaryingNumComponents
-            )},`
-          : ``
-      }
+  lastVaryingNumComponents > 0 ?
+  `@location(${num4ComponentVaryings}) vx: ${getTypeForNumComponents(
+    lastVaryingNumComponents
+  )},` :
+  ``
+  }
   `;
 
   const code = `
@@ -43,7 +41,7 @@ function getPipelineDescriptor(
     // maxInterStageShaderComponents     : ${device.limits.maxInterStageShaderComponents}
     // num components in vertex shader   : ${numComponents}${pointList ? ' + point-list' : ''}
     // num components in fragment shader : ${numComponents}${frontFacing ? ' + front-facing' : ''}${
-    sampleIndex ? ' + sample_index' : ''
+  sampleIndex ? ' + sample_index' : ''
   }${sampleMaskIn ? ' + sample_mask' : ''}
     // maxVertexShaderOutputComponents   : ${maxVertexShaderOutputComponents}
     // maxFragmentShaderInputComponents  : ${maxFragmentShaderInputComponents}
@@ -79,21 +77,21 @@ function getPipelineDescriptor(
   const pipelineDescriptor = {
     layout: 'auto',
     primitive: {
-      topology: pointList ? 'point-list' : 'triangle-list',
+      topology: pointList ? 'point-list' : 'triangle-list'
     },
     vertex: {
       module,
-      entryPoint: 'vs',
+      entryPoint: 'vs'
     },
     fragment: {
       module,
       entryPoint: 'fs',
       targets: [
-        {
-          format: 'rgba8unorm',
-        },
-      ],
-    },
+      {
+        format: 'rgba8unorm'
+      }]
+
+    }
   };
   return { pipelineDescriptor, code };
 }
@@ -101,48 +99,53 @@ function getPipelineDescriptor(
 const limit = 'maxInterStageShaderComponents';
 export const { g, description } = makeLimitTestGroup(limit);
 
-g.test('createRenderPipeline,at_over')
-  .desc(`Test using at and over ${limit} limit in createRenderPipeline(Async)`)
-  .params(
-    kMaximumLimitBaseParams
-      .combine('async', [false, true])
-      .combine('pointList', [false, true])
-      .combine('frontFacing', [false, true])
-      .combine('sampleIndex', [false, true])
-      .combine('sampleMaskIn', [false, true])
-      .combine('sampleMaskOut', [false, true])
-  )
-  .beforeAllSubcases(t => {
-    if (t.isCompatibility && (t.params.sampleMaskIn || t.params.sampleMaskOut)) {
-      t.skip('sample_mask not supported in compatibility mode');
-    }
-  })
-  .fn(async t => {
-    const {
-      limitTest,
-      testValueName,
-      async,
-      pointList,
-      frontFacing,
-      sampleIndex,
-      sampleMaskIn,
-      sampleMaskOut,
-    } = t.params;
-    await t.testDeviceWithRequestedMaximumLimits(
-      limitTest,
-      testValueName,
-      async ({ device, testValue, shouldError }) => {
-        const { pipelineDescriptor, code } = getPipelineDescriptor(
-          device,
-          testValue,
-          pointList,
-          frontFacing,
-          sampleIndex,
-          sampleMaskIn,
-          sampleMaskOut
-        );
+g.test('createRenderPipeline,at_over').
+desc(`Test using at and over ${limit} limit in createRenderPipeline(Async)`).
+params(
+  kMaximumLimitBaseParams.
+  combine('async', [false, true]).
+  combine('pointList', [false, true]).
+  combine('frontFacing', [false, true]).
+  combine('sampleIndex', [false, true]).
+  combine('sampleMaskIn', [false, true]).
+  combine('sampleMaskOut', [false, true])
+).
+beforeAllSubcases((t) => {
+  if (t.isCompatibility && (t.params.sampleMaskIn || t.params.sampleMaskOut)) {
+    t.skip('sample_mask not supported in compatibility mode');
+  }
+}).
+fn(async (t) => {
+  const {
+    limitTest,
+    testValueName,
+    async,
+    pointList,
+    frontFacing,
+    sampleIndex,
+    sampleMaskIn,
+    sampleMaskOut
+  } = t.params;
+  // Request the largest value of maxInterStageShaderVariables to allow the test using as many
+  // inter-stage shader components as possible without being limited by
+  // maxInterStageShaderVariables.
+  const extraLimits = { maxInterStageShaderVariables: 'adapterLimit' };
+  await t.testDeviceWithRequestedMaximumLimits(
+    limitTest,
+    testValueName,
+    async ({ device, testValue, shouldError }) => {
+      const { pipelineDescriptor, code } = getPipelineDescriptor(
+        device,
+        testValue,
+        pointList,
+        frontFacing,
+        sampleIndex,
+        sampleMaskIn,
+        sampleMaskOut
+      );
 
-        await t.testCreateRenderPipeline(pipelineDescriptor, async, shouldError, code);
-      }
-    );
-  });
+      await t.testCreateRenderPipeline(pipelineDescriptor, async, shouldError, code);
+    },
+    extraLimits
+  );
+});

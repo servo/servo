@@ -12,6 +12,7 @@
 #![deny(unsafe_code)]
 
 use std::net::TcpStream;
+use std::time::{Duration, SystemTime};
 
 use bitflags::bitflags;
 use http::{HeaderMap, Method};
@@ -20,7 +21,6 @@ use malloc_size_of_derive::MallocSizeOf;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
-use time::{self, Duration, Tm};
 use uuid::Uuid;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
@@ -306,7 +306,7 @@ pub struct HttpRequest {
     pub headers: HeaderMap,
     pub body: Option<Vec<u8>>,
     pub pipeline_id: PipelineId,
-    pub startedDateTime: Tm,
+    pub startedDateTime: SystemTime,
     pub timeStamp: i64,
     pub connect_time: u64,
     pub send_time: u64,
@@ -364,7 +364,7 @@ impl PreciseTime {
     }
 
     pub fn to(&self, later: PreciseTime) -> Duration {
-        Duration::nanoseconds((later.0 - self.0) as i64)
+        Duration::from_nanos(later.0 - self.0)
     }
 }
 

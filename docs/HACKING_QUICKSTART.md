@@ -140,7 +140,7 @@ Both folder are git repositories.
 
 To make it so that servo uses `~/my-projects/mozjs/`, first ascertain which version of the crate Servo is using and whether it is a git dependency or one from crates.io.  
 
-Both information can be found using, in this example, `/mach cargo pkgid mozjs_sys`(`mozjs_sys` is the actual crate name, which doesn't necessarily match the repo folder name).
+Both information can be found using, in this example, `./mach cargo pkgid mozjs_sys`(`mozjs_sys` is the actual crate name, which doesn't necessarily match the repo folder name).
 
 If the output is in the format `https://github.com/servo/mozjs#mozjs_sys:0.0.0`, you are dealing with a git dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` file and add at the bottom:
 
@@ -174,6 +174,8 @@ about build scripts like
   "Could not run \`PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=\\"1\\" PKG_CONFIG_ALLOW_SYSTEM_LIBS=\\"1\\"
   \\"pkg-config\\" \\"--libs\\" \\"--cflags\\" \\"fontconfig\\"\`
 
+* (if you are on NixOS) [ERROR rust_analyzer::main_loop] FetchWorkspaceError: rust-analyzer failed to load workspace: Failed to load the project at /path/to/servo/Cargo.toml: Failed to read Cargo metadata from Cargo.toml file /path/to/servo/Cargo.toml, Some(Version { major: 1, minor: 74, patch: 1 }): Failed to run `cd "/path/to/servo" && "cargo" "metadata" "--format-version" "1" "--manifest-path" "/path/to/servo/Cargo.toml" "--filter-platform" "x86_64-unknown-linux-gnu"`: `cargo metadata` exited with an error: error: could not execute process `crown -vV` (never executed)
+
 This is because the rustflags (flags passed to the rust compiler) that standard `cargo` provides are
 different to what `./mach` uses, and so every time Servo is built using `cargo` it will undo all the
 work done by `./mach` (and vice versa).
@@ -203,8 +205,18 @@ the amount of disc space used).
 }
 ```
 
-If you are on NixOS, these settings should be enough to not need to run `code .` from within a
-`nix-shell etc/shell.nix`, but it wouldn’t hurt to try that if you still have problems.
+If you are on NixOS, you should also set CARGO_BUILD_RUSTC in `.vscode/settings.json` as follows,
+where `/nix/store/.../crown` is the output of `nix-shell etc/shell.nix --run 'command -v crown'`.
+These settings should be enough to not need to run `code .` from within a `nix-shell etc/shell.nix`,
+but it wouldn’t hurt to try that if you still have problems.
+
+```
+{
+    "rust-analyzer.server.extraEnv": {
+        "CARGO_BUILD_RUSTC": "/nix/store/.../crown",
+    },
+}
+```
 
 When enabling rust-analyzer’s proc macro support, you may start to see errors like
 
@@ -357,7 +369,7 @@ In some cases, extensive tests for the feature you're working on already exist u
 
 - Make a release build
 - run `./mach test-wpt --release --log-raw=/path/to/some/logfile`
-- run [`update-wpt` on it](https://github.com/servo/servo/blob/master/tests/wpt/README.md#updating-test-expectations)
+- run [`update-wpt` on it](https://github.com/servo/servo/blob/main/tests/wpt/README.md#updating-test-expectations)
 
 This may create a new commit with changes to expectation ini files. If there are lots of changes,
 it's likely that your feature had tests in wpt already.

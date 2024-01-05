@@ -35,6 +35,10 @@ class InvalidArgumentException(BidiException):
     error_code = "invalid argument"
 
 
+class InvalidSelectorException(BidiException):
+    error_code = "invalid selector"
+
+
 class InvalidSessionIDError(BidiException):
     error_code = "invalid session id"
 

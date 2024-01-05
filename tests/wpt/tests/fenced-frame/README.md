@@ -112,6 +112,22 @@ Some tips to keep in mind while writing tests using remote execution:
     ```
     attachIFrameContext({origin:get_host_info().HTTPS_REMOTE_ORIGIN})
     ```
+  * Number of ad components to create the frame with. Note that this only works
+    with `generator_api: 'fledge'`. Protected Audience supports up to 20 ad
+    components per auction.
+    ```
+    attachFencedFrameContext({num_components: 1});
+    attachIFrameContext({num_components: 20});
+    ```
+    After creating the frame with ad components, the ad component frame won't
+    be created until you explicitly call a special creator from within the
+    frame.
+    ```
+    attachComponentFencedFrameContext(0, {html: "<b>Hello, world!</b>"});
+    attachComponentIFrameContext(19);
+    ```
+    This takes in an index, and, optionally, the `html` and `attributes` fields
+    as described above.
 * There is also a helper `attachIFrameContext()`, which does the same thing
   but for iframes instead of fencedframes.
 * There is also a helper `replaceFrameContext(frame, {options})` which will

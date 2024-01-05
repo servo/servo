@@ -1,6 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `
 Tests for readback from WebGPU Canvas.
 
 This includes testing that colorSpace makes it through from the WebGPU canvas
@@ -13,17 +13,21 @@ canvas and also drawn into another 2D canvas of a different color space (B).
 The contents of A and B should match.
 
 TODO: implement all canvas types, see TODO on kCanvasTypes.
-`;
-import { makeTestGroup } from '../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert, raceWithRejectOnTimeout, unreachable } from '../../../common/util/util.js';
 import {
   kCanvasAlphaModes,
   kCanvasColorSpaces,
-  kCanvasTextureFormats,
-} from '../../capability_info.js';
+  kCanvasTextureFormats } from
+'../../capability_info.js';
 import { GPUTest } from '../../gpu_test.js';
 import { checkElementsEqual } from '../../util/check_contents.js';
-import { kAllCanvasTypes, createCanvas, createOnscreenCanvas } from '../../util/create_elements.js';
+import {
+  kAllCanvasTypes,
+
+  createCanvas,
+  createOnscreenCanvas } from
+'../../util/create_elements.js';
 
 export const g = makeTestGroup(GPUTest);
 
@@ -41,46 +45,29 @@ const kPixelValueFloat = 0x66 / 0xff; // 0.4
 // red: bottom-left;
 // yellow: bottom-right;
 const expect = {
-  opaque: new Uint8ClampedArray([
-    0,
-    0,
-    kPixelValue,
-    0xff, // blue
-    0,
-    kPixelValue,
-    0,
-    0xff, // green
-    kPixelValue,
-    0,
-    0,
-    0xff, // red
-    kPixelValue,
-    kPixelValue,
-    0,
-    0xff, // yellow
+
+  'opaque': new Uint8ClampedArray([
+  0x00, 0x00, kPixelValue, 0xff, // blue
+  0x00, kPixelValue, 0x00, 0xff, // green
+  kPixelValue, 0x00, 0x00, 0xff, // red
+  kPixelValue, kPixelValue, 0x00, 0xff // yellow
   ]),
 
-  premultiplied: new Uint8ClampedArray([
-    0,
-    0,
-    0xff,
-    kPixelValue, // blue
-    0,
-    0xff,
-    0,
-    kPixelValue, // green
-    0xff,
-    0,
-    0,
-    kPixelValue, // red
-    0xff,
-    0xff,
-    0,
-    kPixelValue, // yellow
-  ]),
+  'premultiplied': new Uint8ClampedArray([
+  0x00, 0x00, 0xff, kPixelValue, // blue
+  0x00, 0xff, 0x00, kPixelValue, // green
+  0xff, 0x00, 0x00, kPixelValue, // red
+  0xff, 0xff, 0x00, kPixelValue // yellow
+  ])
 };
 
-function initWebGPUCanvasContent(t, format, alphaMode, colorSpace, canvasType) {
+function initWebGPUCanvasContent(
+t,
+format,
+alphaMode,
+colorSpace,
+canvasType)
+{
   const canvas = createCanvas(t, canvasType, 2, 2);
   const ctx = canvas.getContext('webgpu');
   assert(ctx instanceof GPUCanvasContext, 'Failed to get WebGPU context from canvas');
@@ -90,14 +77,14 @@ function initWebGPUCanvasContent(t, format, alphaMode, colorSpace, canvasType) {
     format,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST,
     alphaMode,
-    colorSpace,
+    colorSpace
   });
 
   const canvasTexture = ctx.getCurrentTexture();
   const tempTexture = t.device.createTexture({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format,
-    usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+    usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
   });
   const tempTextureView = tempTexture.createView();
   const encoder = t.device.createCommandEncoder();
@@ -105,8 +92,8 @@ function initWebGPUCanvasContent(t, format, alphaMode, colorSpace, canvasType) {
   const clearOnePixel = (origin, color) => {
     const pass = encoder.beginRenderPass({
       colorAttachments: [
-        { view: tempTextureView, clearValue: color, loadOp: 'clear', storeOp: 'store' },
-      ],
+      { view: tempTextureView, clearValue: color, loadOp: 'clear', storeOp: 'store' }]
+
     });
     pass.end();
     encoder.copyTextureToTexture(
@@ -127,7 +114,11 @@ function initWebGPUCanvasContent(t, format, alphaMode, colorSpace, canvasType) {
   return canvas;
 }
 
-function drawImageSourceIntoCanvas(t, image, colorSpace) {
+function drawImageSourceIntoCanvas(
+t,
+image,
+colorSpace)
+{
   const canvas = createOnscreenCanvas(t, 2, 2);
   const ctx = canvas.getContext('2d', { colorSpace });
   assert(ctx !== null);
@@ -135,12 +126,22 @@ function drawImageSourceIntoCanvas(t, image, colorSpace) {
   return ctx;
 }
 
-function checkImageResultWithSameColorSpaceCanvas(t, image, sourceColorSpace, expect) {
+function checkImageResultWithSameColorSpaceCanvas(
+t,
+image,
+sourceColorSpace,
+expect)
+{
   const ctx = drawImageSourceIntoCanvas(t, image, sourceColorSpace);
   readPixelsFrom2DCanvasAndCompare(t, ctx, expect);
 }
 
-function checkImageResultWithDifferentColorSpaceCanvas(t, image, sourceColorSpace, sourceData) {
+function checkImageResultWithDifferentColorSpaceCanvas(
+t,
+image,
+sourceColorSpace,
+sourceData)
+{
   const destinationColorSpace = sourceColorSpace === 'srgb' ? 'display-p3' : 'srgb';
 
   // draw the WebGPU derived data into a canvas
@@ -164,20 +165,29 @@ function checkImageResultWithDifferentColorSpaceCanvas(t, image, sourceColorSpac
   readPixelsFrom2DCanvasAndCompare(t, fromWebGPUCtx, expect);
 }
 
-function checkImageResult(t, image, sourceColorSpace, expect) {
+function checkImageResult(
+t,
+image,
+sourceColorSpace,
+expect)
+{
   checkImageResultWithSameColorSpaceCanvas(t, image, sourceColorSpace, expect);
   checkImageResultWithDifferentColorSpaceCanvas(t, image, sourceColorSpace, expect);
 }
 
-function readPixelsFrom2DCanvasAndCompare(t, ctx, expect) {
+function readPixelsFrom2DCanvasAndCompare(
+t,
+ctx,
+expect)
+{
   const actual = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height).data;
 
   t.expectOK(checkElementsEqual(actual, expect));
 }
 
-g.test('onscreenCanvas,snapshot')
-  .desc(
-    `
+g.test('onscreenCanvas,snapshot').
+desc(
+  `
     Ensure snapshot of canvas with WebGPU context is correct with
     - various WebGPU canvas texture formats
     - WebGPU canvas alpha mode = {"opaque", "premultiplied"}
@@ -187,26 +197,26 @@ g.test('onscreenCanvas,snapshot')
     TODO: Snapshot canvas to jpeg, webp and other mime type and
           different quality. Maybe we should test them in reftest.
     `
-  )
-  .params(u =>
-    u //
-      .combine('format', kCanvasTextureFormats)
-      .combine('alphaMode', kCanvasAlphaModes)
-      .combine('colorSpace', kCanvasColorSpaces)
-      .combine('snapshotType', ['toDataURL', 'toBlob', 'imageBitmap'])
-  )
-  .fn(async t => {
-    const canvas = initWebGPUCanvasContent(
-      t,
-      t.params.format,
-      t.params.alphaMode,
-      t.params.colorSpace,
-      'onscreen'
-    );
+).
+params((u) =>
+u //
+.combine('format', kCanvasTextureFormats).
+combine('alphaMode', kCanvasAlphaModes).
+combine('colorSpace', kCanvasColorSpaces).
+combine('snapshotType', ['toDataURL', 'toBlob', 'imageBitmap'])
+).
+fn(async (t) => {
+  const canvas = initWebGPUCanvasContent(
+    t,
+    t.params.format,
+    t.params.alphaMode,
+    t.params.colorSpace,
+    'onscreen'
+  );
 
-    let snapshot;
-    switch (t.params.snapshotType) {
-      case 'toDataURL': {
+  let snapshot;
+  switch (t.params.snapshotType) {
+    case 'toDataURL':{
         const url = canvas.toDataURL();
         const img = new Image(canvas.width, canvas.height);
         img.src = url;
@@ -214,9 +224,9 @@ g.test('onscreenCanvas,snapshot')
         snapshot = img;
         break;
       }
-      case 'toBlob': {
-        const blobFromCanvas = new Promise(resolve => {
-          canvas.toBlob(blob => resolve(blob));
+    case 'toBlob':{
+        const blobFromCanvas = new Promise((resolve) => {
+          canvas.toBlob((blob) => resolve(blob));
         });
         const blob = await blobFromCanvas;
         const url = URL.createObjectURL(blob);
@@ -226,20 +236,20 @@ g.test('onscreenCanvas,snapshot')
         snapshot = img;
         break;
       }
-      case 'imageBitmap': {
+    case 'imageBitmap':{
         snapshot = await createImageBitmap(canvas);
         break;
       }
-      default:
-        unreachable();
-    }
+    default:
+      unreachable();
+  }
 
-    checkImageResult(t, snapshot, t.params.colorSpace, expect[t.params.alphaMode]);
-  });
+  checkImageResult(t, snapshot, t.params.colorSpace, expect[t.params.alphaMode]);
+});
 
-g.test('offscreenCanvas,snapshot')
-  .desc(
-    `
+g.test('offscreenCanvas,snapshot').
+desc(
+  `
     Ensure snapshot of offscreenCanvas with WebGPU context is correct with
     - various WebGPU canvas texture formats
     - WebGPU canvas alpha mode = {"opaque", "premultiplied"}
@@ -249,27 +259,27 @@ g.test('offscreenCanvas,snapshot')
     TODO: Snapshot offscreenCanvas to jpeg, webp and other mime type and
           different quality. Maybe we should test them in reftest.
     `
-  )
-  .params(u =>
-    u //
-      .combine('format', kCanvasTextureFormats)
-      .combine('alphaMode', kCanvasAlphaModes)
-      .combine('colorSpace', kCanvasColorSpaces)
-      .combine('snapshotType', ['convertToBlob', 'transferToImageBitmap', 'imageBitmap'])
-  )
-  .fn(async t => {
-    const offscreenCanvas = initWebGPUCanvasContent(
-      t,
-      t.params.format,
-      t.params.alphaMode,
-      t.params.colorSpace,
-      'offscreen'
-    );
+).
+params((u) =>
+u //
+.combine('format', kCanvasTextureFormats).
+combine('alphaMode', kCanvasAlphaModes).
+combine('colorSpace', kCanvasColorSpaces).
+combine('snapshotType', ['convertToBlob', 'transferToImageBitmap', 'imageBitmap'])
+).
+fn(async (t) => {
+  const offscreenCanvas = initWebGPUCanvasContent(
+    t,
+    t.params.format,
+    t.params.alphaMode,
+    t.params.colorSpace,
+    'offscreen'
+  );
 
-    let snapshot;
-    switch (t.params.snapshotType) {
-      case 'convertToBlob': {
-        if (typeof offscreenCanvas.convertToBlob === undefined) {
+  let snapshot;
+  switch (t.params.snapshotType) {
+    case 'convertToBlob':{
+        if (typeof offscreenCanvas.convertToBlob === 'undefined') {
           t.skip("Browser doesn't support OffscreenCanvas.convertToBlob");
           return;
         }
@@ -281,59 +291,59 @@ g.test('offscreenCanvas,snapshot')
         snapshot = img;
         break;
       }
-      case 'transferToImageBitmap': {
-        if (typeof offscreenCanvas.transferToImageBitmap === undefined) {
+    case 'transferToImageBitmap':{
+        if (typeof offscreenCanvas.transferToImageBitmap === 'undefined') {
           t.skip("Browser doesn't support OffscreenCanvas.transferToImageBitmap");
           return;
         }
         snapshot = offscreenCanvas.transferToImageBitmap();
         break;
       }
-      case 'imageBitmap': {
+    case 'imageBitmap':{
         snapshot = await createImageBitmap(offscreenCanvas);
         break;
       }
-      default:
-        unreachable();
-    }
+    default:
+      unreachable();
+  }
 
-    checkImageResult(t, snapshot, t.params.colorSpace, expect[t.params.alphaMode]);
-  });
+  checkImageResult(t, snapshot, t.params.colorSpace, expect[t.params.alphaMode]);
+});
 
-g.test('onscreenCanvas,uploadToWebGL')
-  .desc(
-    `
+g.test('onscreenCanvas,uploadToWebGL').
+desc(
+  `
     Ensure upload WebGPU context canvas to webgl texture is correct with
     - various WebGPU canvas texture formats
     - WebGPU canvas alpha mode = {"opaque", "premultiplied"}
     - upload methods = {texImage2D, texSubImage2D}
     `
-  )
-  .params(u =>
-    u //
-      .combine('format', kCanvasTextureFormats)
-      .combine('alphaMode', kCanvasAlphaModes)
-      .combine('webgl', ['webgl', 'webgl2'])
-      .combine('upload', ['texImage2D', 'texSubImage2D'])
-  )
-  .fn(t => {
-    const { format, webgl, upload } = t.params;
-    const canvas = initWebGPUCanvasContent(t, format, t.params.alphaMode, 'srgb', 'onscreen');
+).
+params((u) =>
+u //
+.combine('format', kCanvasTextureFormats).
+combine('alphaMode', kCanvasAlphaModes).
+combine('webgl', ['webgl', 'webgl2']).
+combine('upload', ['texImage2D', 'texSubImage2D'])
+).
+fn((t) => {
+  const { format, webgl, upload } = t.params;
+  const canvas = initWebGPUCanvasContent(t, format, t.params.alphaMode, 'srgb', 'onscreen');
 
-    const expectCanvas = createOnscreenCanvas(t, canvas.width, canvas.height);
-    const gl = expectCanvas.getContext(webgl);
-    if (gl === null) {
-      return;
-    }
+  const expectCanvas = createOnscreenCanvas(t, canvas.width, canvas.height);
+  const gl = expectCanvas.getContext(webgl);
+  if (gl === null) {
+    return;
+  }
 
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    switch (upload) {
-      case 'texImage2D': {
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  switch (upload) {
+    case 'texImage2D':{
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
         break;
       }
-      case 'texSubImage2D': {
+    case 'texSubImage2D':{
         gl.texImage2D(
           gl.TEXTURE_2D,
           0,
@@ -345,29 +355,28 @@ g.test('onscreenCanvas,uploadToWebGL')
           gl.UNSIGNED_BYTE,
           null
         );
-
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
         break;
       }
-      default:
-        unreachable();
-    }
+    default:
+      unreachable();
+  }
 
-    const fb = gl.createFramebuffer();
+  const fb = gl.createFramebuffer();
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
 
-    const pixels = new Uint8Array(canvas.width * canvas.height * 4);
-    gl.readPixels(0, 0, 2, 2, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-    const actual = new Uint8ClampedArray(pixels);
+  const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+  gl.readPixels(0, 0, 2, 2, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  const actual = new Uint8ClampedArray(pixels);
 
-    t.expectOK(checkElementsEqual(actual, expect[t.params.alphaMode]));
-  });
+  t.expectOK(checkElementsEqual(actual, expect[t.params.alphaMode]));
+});
 
-g.test('drawTo2DCanvas')
-  .desc(
-    `
+g.test('drawTo2DCanvas').
+desc(
+  `
     Ensure draw WebGPU context canvas to 2d context canvas/offscreenCanvas is correct with
     - various WebGPU canvas texture formats
     - WebGPU canvas alpha mode = {"opaque", "premultiplied"}
@@ -375,98 +384,98 @@ g.test('drawTo2DCanvas')
     - WebGPU canvas type = {"onscreen", "offscreen"}
     - 2d canvas type = {"onscreen", "offscreen"}
     `
-  )
-  .params(u =>
-    u //
-      .combine('format', kCanvasTextureFormats)
-      .combine('alphaMode', kCanvasAlphaModes)
-      .combine('colorSpace', kCanvasColorSpaces)
-      .combine('webgpuCanvasType', kAllCanvasTypes)
-      .combine('canvas2DType', kAllCanvasTypes)
-  )
-  .fn(t => {
-    const { format, webgpuCanvasType, alphaMode, colorSpace, canvas2DType } = t.params;
+).
+params((u) =>
+u //
+.combine('format', kCanvasTextureFormats).
+combine('alphaMode', kCanvasAlphaModes).
+combine('colorSpace', kCanvasColorSpaces).
+combine('webgpuCanvasType', kAllCanvasTypes).
+combine('canvas2DType', kAllCanvasTypes)
+).
+fn((t) => {
+  const { format, webgpuCanvasType, alphaMode, colorSpace, canvas2DType } = t.params;
 
-    const canvas = initWebGPUCanvasContent(t, format, alphaMode, colorSpace, webgpuCanvasType);
+  const canvas = initWebGPUCanvasContent(t, format, alphaMode, colorSpace, webgpuCanvasType);
 
-    const expectCanvas = createCanvas(t, canvas2DType, canvas.width, canvas.height);
-    const ctx = expectCanvas.getContext('2d');
-    if (ctx === null) {
-      t.skip(canvas2DType + ' canvas cannot get 2d context');
-      return;
-    }
+  const expectCanvas = createCanvas(t, canvas2DType, canvas.width, canvas.height);
+  const ctx = expectCanvas.getContext('2d');
+  if (ctx === null) {
+    t.skip(canvas2DType + ' canvas cannot get 2d context');
+    return;
+  }
 
-    ctx.drawImage(canvas, 0, 0);
-    readPixelsFrom2DCanvasAndCompare(t, ctx, expect[t.params.alphaMode]);
+  ctx.drawImage(canvas, 0, 0);
+  readPixelsFrom2DCanvasAndCompare(t, ctx, expect[t.params.alphaMode]);
+});
+
+g.test('transferToImageBitmap_unconfigured_nonzero_size').
+desc(
+  `Regression test for a crash when calling transferImageBitmap on an unconfigured. Case where the canvas is not empty`
+).
+fn((t) => {
+  const canvas = createCanvas(t, 'offscreen', 2, 3);
+  canvas.getContext('webgpu');
+
+  // Transferring gives an ImageBitmap of the correct size filled with transparent black.
+  const ib = canvas.transferToImageBitmap();
+  t.expect(ib.width === canvas.width);
+  t.expect(ib.height === canvas.height);
+
+  const readbackCanvas = document.createElement('canvas');
+  readbackCanvas.width = canvas.width;
+  readbackCanvas.height = canvas.height;
+  const readbackContext = readbackCanvas.getContext('2d', {
+    alpha: true
   });
+  if (readbackContext === null) {
+    t.skip('Cannot get a 2D canvas context');
+    return;
+  }
 
-g.test('transferToImageBitmap_unconfigured_nonzero_size')
-  .desc(
-    `Regression test for a crash when calling transferImageBitmap on an unconfigured. Case where the canvas is not empty`
-  )
-  .fn(t => {
-    const canvas = createCanvas(t, 'offscreen', 2, 3);
-    canvas.getContext('webgpu');
+  // Since there isn't a configuration we expect the ImageBitmap to have the default alphaMode of "opaque".
+  const expected = new Uint8ClampedArray(canvas.width * canvas.height * 4);
+  for (let i = 0; i < expected.byteLength; i += 4) {
+    expected[i + 0] = 0;
+    expected[i + 1] = 0;
+    expected[i + 2] = 0;
+    expected[i + 3] = 255;
+  }
 
-    // Transferring gives an ImageBitmap of the correct size filled with transparent black.
-    const ib = canvas.transferToImageBitmap();
-    t.expect(ib.width === canvas.width);
-    t.expect(ib.height === canvas.height);
+  readbackContext.drawImage(ib, 0, 0);
+  readPixelsFrom2DCanvasAndCompare(t, readbackContext, expected);
+});
 
-    const readbackCanvas = document.createElement('canvas');
-    readbackCanvas.width = canvas.width;
-    readbackCanvas.height = canvas.height;
-    const readbackContext = readbackCanvas.getContext('2d', {
-      alpha: true,
-    });
-    if (readbackContext === null) {
-      t.skip('Cannot get a 2D canvas context');
-      return;
-    }
-
-    // Since there isn't a configuration we expect the ImageBitmap to have the default alphaMode of "opaque".
-    const expected = new Uint8ClampedArray(canvas.width * canvas.height * 4);
-    for (let i = 0; i < expected.byteLength; i += 4) {
-      expected[i + 0] = 0;
-      expected[i + 1] = 0;
-      expected[i + 2] = 0;
-      expected[i + 3] = 255;
-    }
-
-    readbackContext.drawImage(ib, 0, 0);
-    readPixelsFrom2DCanvasAndCompare(t, readbackContext, expected);
-  });
-
-g.test('transferToImageBitmap_zero_size')
-  .desc(
-    `Regression test for a crash when calling transferImageBitmap on an unconfigured. Case where the canvas is empty.
+g.test('transferToImageBitmap_zero_size').
+desc(
+  `Regression test for a crash when calling transferImageBitmap on an unconfigured. Case where the canvas is empty.
 
     TODO: Spec and expect a particular Exception type here.`
-  )
-  .params(u => u.combine('configure', [true, false]))
-  .fn(t => {
-    const { configure } = t.params;
-    const canvas = createCanvas(t, 'offscreen', 0, 1);
-    const ctx = canvas.getContext('webgpu');
+).
+params((u) => u.combine('configure', [true, false])).
+fn((t) => {
+  const { configure } = t.params;
+  const canvas = createCanvas(t, 'offscreen', 0, 1);
+  const ctx = canvas.getContext('webgpu');
 
-    if (configure) {
-      t.expectValidationError(() => ctx.configure({ device: t.device, format: 'bgra8unorm' }));
-    }
+  if (configure) {
+    t.expectValidationError(() => ctx.configure({ device: t.device, format: 'bgra8unorm' }));
+  }
 
-    // Transferring would give an empty ImageBitmap which is not possible, so an Exception is thrown.
-    t.shouldThrow(true, () => {
-      canvas.transferToImageBitmap();
-    });
+  // Transferring would give an empty ImageBitmap which is not possible, so an Exception is thrown.
+  t.shouldThrow(true, () => {
+    canvas.transferToImageBitmap();
   });
+});
 
-g.test('transferToImageBitmap_huge_size')
-  .desc(`Regression test for a crash when calling transferImageBitmap on a HUGE canvas.`)
-  .fn(t => {
-    const canvas = createCanvas(t, 'offscreen', 1000000, 1000000);
-    canvas.getContext('webgpu');
+g.test('transferToImageBitmap_huge_size').
+desc(`Regression test for a crash when calling transferImageBitmap on a HUGE canvas.`).
+fn((t) => {
+  const canvas = createCanvas(t, 'offscreen', 1000000, 1000000);
+  canvas.getContext('webgpu');
 
-    // Transferring to such a HUGE image bitmap would not be possible, so an Exception is thrown.
-    t.shouldThrow(true, () => {
-      canvas.transferToImageBitmap();
-    });
+  // Transferring to such a HUGE image bitmap would not be possible, so an Exception is thrown.
+  t.shouldThrow(true, () => {
+    canvas.transferToImageBitmap();
   });
+});

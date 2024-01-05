@@ -1,17 +1,17 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ export const description = `Tests for the atomicity of atomic read-modify-write instructions.`;
-import { makeTestGroup } from '../../../../common/framework/test_group.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/export const description = `Tests for the atomicity of atomic read-modify-write instructions.`;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../gpu_test.js';
 
 import {
+
   MemoryModelTester,
   buildTestShader,
   TestType,
   buildResultShader,
   ResultType,
-  MemoryType,
-} from './memory_model_setup.js';
+  MemoryType } from
+'./memory_model_setup.js';
 
 export const g = makeTestGroup(GPUTest);
 
@@ -38,7 +38,7 @@ const memoryModelTestParams = {
   permuteSecond: 419,
   memStride: 4,
   aliasedMemory: false,
-  numBehaviors: 4,
+  numBehaviors: 4
 };
 
 const storageMemoryTestCode = `
@@ -65,39 +65,38 @@ const resultCode = `
   }
 `;
 
-g.test('atomicity')
-  .desc(
-    `Checks whether a store on one thread can interrupt an atomic RMW on a second thread. If the read returned by
+g.test('atomicity').
+desc(
+  `Checks whether a store on one thread can interrupt an atomic RMW on a second thread. If the read returned by
     the RMW instruction is the initial value of memory (0), but the final value in memory is 1, then the atomic write
     in the second thread occurred in between the read and the write of the RMW.
     `
-  )
-  .paramsSimple([
-    {
-      memType: MemoryType.AtomicStorageClass,
-      testType: TestType.InterWorkgroup,
-      _testCode: storageMemoryTestCode,
-    },
-    {
-      memType: MemoryType.AtomicStorageClass,
-      testType: TestType.IntraWorkgroup,
-      _testCode: storageMemoryTestCode,
-    },
-    {
-      memType: MemoryType.AtomicWorkgroupClass,
-      testType: TestType.IntraWorkgroup,
-      _testCode: workgroupMemoryTestCode,
-    },
-  ])
-  .fn(async t => {
-    const testShader = buildTestShader(t.params._testCode, t.params.memType, t.params.testType);
-    const resultShader = buildResultShader(resultCode, t.params.testType, ResultType.FourBehavior);
-    const memModelTester = new MemoryModelTester(
-      t,
-      memoryModelTestParams,
-      testShader,
-      resultShader
-    );
-
-    await memModelTester.run(10, 3);
-  });
+).
+paramsSimple([
+{
+  memType: MemoryType.AtomicStorageClass,
+  testType: TestType.InterWorkgroup,
+  _testCode: storageMemoryTestCode
+},
+{
+  memType: MemoryType.AtomicStorageClass,
+  testType: TestType.IntraWorkgroup,
+  _testCode: storageMemoryTestCode
+},
+{
+  memType: MemoryType.AtomicWorkgroupClass,
+  testType: TestType.IntraWorkgroup,
+  _testCode: workgroupMemoryTestCode
+}]
+).
+fn(async (t) => {
+  const testShader = buildTestShader(t.params._testCode, t.params.memType, t.params.testType);
+  const resultShader = buildResultShader(resultCode, t.params.testType, ResultType.FourBehavior);
+  const memModelTester = new MemoryModelTester(
+    t,
+    memoryModelTestParams,
+    testShader,
+    resultShader
+  );
+  await memModelTester.run(10, 3);
+});

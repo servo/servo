@@ -6,7 +6,6 @@ from webdriver.bidi.modules.browsing_context import (
     ElementOptions,
     FormatOptions,
 )
-from webdriver.bidi.modules.script import ContextTarget
 
 pytestmark = pytest.mark.asyncio
 
@@ -125,6 +124,14 @@ async def test_params_clip_box_dimensions_invalid_value(bidi_session, top_contex
         await bidi_session.browsing_context.capture_screenshot(
             context=top_context["context"],
             clip=BoxOptions(x=0, y=0, width=0, height=0),
+        )
+
+
+@pytest.mark.parametrize("value", [False, 42, [], {}])
+async def test_params_origin_invalid_type(bidi_session, top_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"], origin=value
         )
 
 

@@ -32,6 +32,7 @@ from .protocol import (BaseProtocolPart,
                        WindowProtocolPart,
                        DebugProtocolPart,
                        SPCTransactionsProtocolPart,
+                       RPHRegistrationsProtocolPart,
                        FedCMProtocolPart,
                        VirtualSensorProtocolPart,
                        merge_dicts)
@@ -256,6 +257,9 @@ class WebDriverWindowProtocolPart(WindowProtocolPart):
         self.logger.info("Restoring")
         self.webdriver.window.rect = rect
 
+    def get_rect(self):
+        self.logger.info("Getting rect")
+        return self.webdriver.window.rect
 
 class WebDriverSendKeysProtocolPart(SendKeysProtocolPart):
     def setup(self):
@@ -363,6 +367,13 @@ class WebDriverSPCTransactionsProtocolPart(SPCTransactionsProtocolPart):
         body = {"mode": mode}
         return self.webdriver.send_session_command("POST", "secure-payment-confirmation/set-mode", body)
 
+class WebDriverRPHRegistrationsProtocolPart(RPHRegistrationsProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def set_rph_registration_mode(self, mode):
+        body = {"mode": mode}
+        return self.webdriver.send_session_command("POST", "custom-handlers/set-mode", body)
 
 class WebDriverFedCMProtocolPart(FedCMProtocolPart):
     def setup(self):
@@ -370,6 +381,10 @@ class WebDriverFedCMProtocolPart(FedCMProtocolPart):
 
     def cancel_fedcm_dialog(self):
         return self.webdriver.send_session_command("POST", "fedcm/canceldialog")
+
+    def click_fedcm_dialog_button(self, dialog_button):
+        body = {"dialogButton": dialog_button}
+        return self.webdriver.send_session_command("POST", "fedcm/clickdialogbutton", body)
 
     def select_fedcm_account(self, account_index):
         body = {"accountIndex": account_index}
@@ -432,6 +447,7 @@ class WebDriverProtocol(Protocol):
                   WebDriverSetPermissionProtocolPart,
                   WebDriverVirtualAuthenticatorProtocolPart,
                   WebDriverSPCTransactionsProtocolPart,
+                  WebDriverRPHRegistrationsProtocolPart,
                   WebDriverFedCMProtocolPart,
                   WebDriverDebugProtocolPart,
                   WebDriverVirtualSensorPart]

@@ -6,7 +6,7 @@ function assert_closed_opener(w, closed, opener) {
 async_test(t => {
   const openee = window.open();
   assert_closed_opener(openee, false, self);
-  openee.onunload = t.step_func(() => {
+  openee.onpagehide = t.step_func(() => {
     assert_closed_opener(openee, true, self);
     t.step_timeout(() => {
       assert_closed_opener(openee, true, null);
@@ -25,7 +25,7 @@ async_test(t => {
   const openee2 = window.open("", "greatname");
   assert_not_equals(openee, openee2);
   assert_closed_opener(openee, true, self); // Ensure second window.open() call was synchronous
-  openee2.onunload = t.step_func(() => {
+  openee2.onpagehide = t.step_func(() => {
     assert_closed_opener(openee2, true, self);
     t.step_timeout(() => {
       assert_closed_opener(openee, true, null);

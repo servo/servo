@@ -1,8 +1,7 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import createPatternDataURL from './create-pattern-data-url.js';
-import { runRefTest } from './gpu_ref_test.js';
-runRefTest(async t => {
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import createPatternDataURL from './create-pattern-data-url.js';import { runRefTest } from './gpu_ref_test.js';
+runRefTest(async (t) => {
   const { patternSize, imageData: patternImageData } = createPatternDataURL();
 
   document.querySelector('#dpr').textContent = `dpr: ${devicePixelRatio}`;
@@ -33,26 +32,26 @@ runRefTest(async t => {
         let uPos = vec2u(Pos.xy) % patternSize;
         return textureLoad(pattern, uPos, 0);
       }
-    `,
+    `
   });
 
   const pipeline = device.createRenderPipeline({
     layout: 'auto',
     vertex: {
       module,
-      entryPoint: 'vs',
+      entryPoint: 'vs'
     },
     fragment: {
       module,
       entryPoint: 'fs',
-      targets: [{ format: presentationFormat }],
-    },
+      targets: [{ format: presentationFormat }]
+    }
   });
 
   const tex = device.createTexture({
     size: [patternSize, patternSize, 1],
     format: 'rgba8unorm',
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
   });
   device.queue.writeTexture(
     { texture: tex },
@@ -63,10 +62,14 @@ runRefTest(async t => {
 
   const bindGroup = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: tex.createView() }],
+    entries: [{ binding: 0, resource: tex.createView() }]
   });
 
-  function setCanvasPattern(canvas, devicePixelWidth, devicePixelHeight) {
+  function setCanvasPattern(
+  canvas,
+  devicePixelWidth,
+  devicePixelHeight)
+  {
     canvas.width = devicePixelWidth;
     canvas.height = devicePixelHeight;
 
@@ -74,19 +77,19 @@ runRefTest(async t => {
     context.configure({
       device,
       format: presentationFormat,
-      alphaMode: 'premultiplied',
+      alphaMode: 'premultiplied'
     });
 
     const encoder = device.createCommandEncoder();
     const pass = encoder.beginRenderPass({
       colorAttachments: [
-        {
-          view: context.getCurrentTexture().createView(),
-          clearValue: [0.0, 0.0, 0.0, 0.0],
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
+      {
+        view: context.getCurrentTexture().createView(),
+        clearValue: [0.0, 0.0, 0.0, 0.0],
+        loadOp: 'clear',
+        storeOp: 'store'
+      }]
+
     });
     pass.setPipeline(pipeline);
     pass.setBindGroup(0, bindGroup);
@@ -122,7 +125,7 @@ runRefTest(async t => {
   const outerElem = document.querySelector('.outer');
 
   let resolve;
-  const promise = new Promise(_resolve => (resolve = _resolve));
+  const promise = new Promise((_resolve) => resolve = _resolve);
 
   function setPatternsUsingSizeInfo(entries) {
     for (const entry of entries) {

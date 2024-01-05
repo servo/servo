@@ -36,6 +36,7 @@ cfg_if::cfg_if! {
         mod egui_glue;
         mod embedder;
         mod events_loop;
+        mod geometry;
         mod headed_window;
         mod headless_window;
         mod keyutils;

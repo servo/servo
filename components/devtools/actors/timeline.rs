@@ -106,10 +106,7 @@ pub struct HighResolutionStamp(f64);
 
 impl HighResolutionStamp {
     pub fn new(start_stamp: PreciseTime, time: PreciseTime) -> HighResolutionStamp {
-        let duration = start_stamp
-            .to(time)
-            .num_microseconds()
-            .expect("Too big duration in microseconds");
+        let duration = start_stamp.to(time).as_micros();
         HighResolutionStamp(duration as f64 / 1000 as f64)
     }
 

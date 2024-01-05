@@ -1,8 +1,6 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { keysOf } from '../../../common/util/data_tables.js';
-import { ErrorWithExtra } from '../../../common/util/util.js';
-import { GPUTest } from '../../gpu_test.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { keysOf } from '../../../common/util/data_tables.js';import { ErrorWithExtra } from '../../../common/util/util.js';import { GPUTest } from '../../gpu_test.js';
 
 /**
  * Base fixture for WGSL shader validation tests.
@@ -32,12 +30,12 @@ export class ShaderValidationTest extends GPUTest {
       const compilationInfo = await shaderModule.getCompilationInfo();
 
       // MAINTENANCE_TODO: Pretty-print error messages with source context.
-      const messagesLog = compilationInfo.messages
-        .map(m => `${m.lineNum}:${m.linePos}: ${m.type}: ${m.message}`)
-        .join('\n');
+      const messagesLog = compilationInfo.messages.
+      map((m) => `${m.lineNum}:${m.linePos}: ${m.type}: ${m.message}`).
+      join('\n');
       error.extra.compilationInfo = compilationInfo;
 
-      if (compilationInfo.messages.some(m => m.type === 'error')) {
+      if (compilationInfo.messages.some((m) => m.type === 'error')) {
         if (expectedResult) {
           error.message = `Unexpected compilationInfo 'error' message.\n` + messagesLog;
           this.rec.validationFailed(error);
@@ -81,12 +79,12 @@ export class ShaderValidationTest extends GPUTest {
       const compilationInfo = await shaderModule.getCompilationInfo();
 
       // MAINTENANCE_TODO: Pretty-print error messages with source context.
-      const messagesLog = compilationInfo.messages
-        .map(m => `${m.lineNum}:${m.linePos}: ${m.type}: ${m.message}`)
-        .join('\n');
+      const messagesLog = compilationInfo.messages.
+      map((m) => `${m.lineNum}:${m.linePos}: ${m.type}: ${m.message}`).
+      join('\n');
       error.extra.compilationInfo = compilationInfo;
 
-      if (compilationInfo.messages.some(m => m.type === 'warning')) {
+      if (compilationInfo.messages.some((m) => m.type === 'warning')) {
         if (expectWarning) {
           error.message = `No 'warning' message as expected.\n` + messagesLog;
           this.rec.debug(error);
@@ -109,19 +107,28 @@ export class ShaderValidationTest extends GPUTest {
   /**
    * Add a test expectation for whether a createComputePipeline call succeeds or not.
    */
-  expectPipelineResult(args) {
+  expectPipelineResult(args)
+
+
+
+
+
+
+
+
+  {
     const phonies = [];
 
     if (args.constants !== undefined) {
-      phonies.push(...keysOf(args.constants).map(c => `_ = ${c};`));
+      phonies.push(...keysOf(args.constants).map((c) => `_ = ${c};`));
     }
     if (args.reference !== undefined) {
-      phonies.push(...args.reference.map(c => `_ = ${c};`));
+      phonies.push(...args.reference.map((c) => `_ = ${c};`));
     }
 
     const code =
-      args.code +
-      `
+    args.code +
+    `
 @compute @workgroup_size(1)
 fn main() {
   ${phonies.join('\n')}
@@ -141,7 +148,7 @@ fn main() {
       () => {
         this.device.createComputePipeline({
           layout: 'auto',
-          compute: { module: shaderModule, entryPoint: 'main', constants: args.constants },
+          compute: { module: shaderModule, entryPoint: 'main', constants: args.constants }
         });
       },
       !args.expectedResult
@@ -157,7 +164,7 @@ fn main() {
    * ```
    */
   wrapInEntryPoint(code, enabledExtensions = []) {
-    const enableDirectives = enabledExtensions.map(x => `enable ${x};`).join('\n      ');
+    const enableDirectives = enabledExtensions.map((x) => `enable ${x};`).join('\n      ');
 
     return `
       ${enableDirectives}

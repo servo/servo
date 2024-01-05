@@ -29,6 +29,9 @@ class PrerenderChannel extends EventTarget {
       while (this.#active) {
         // Add the "keepalive" option to avoid fetch() results in unhandled
         // rejection with fetch abortion due to window.close().
+        // TODO(crbug.com/1356128): After this migration, "keepalive" will not
+        // be able to extend the lifetime of a Document, such that it cannot be
+        // used here to guarantee the promise resolution.
         const messages = await (await fetch(this.#url, {keepalive: true})).json();
         for (const {data, id} of messages) {
           if (!this.#ids.has(id))

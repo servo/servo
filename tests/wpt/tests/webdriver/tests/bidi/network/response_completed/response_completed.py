@@ -5,15 +5,16 @@ import pytest
 
 from tests.support.sync import AsyncPoll
 
-from .. import assert_response_event, HTTP_STATUS_AND_STATUS_TEXT
-
-PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
-PAGE_EMPTY_IMAGE = "/webdriver/tests/bidi/network/support/empty.png"
-PAGE_EMPTY_SCRIPT = "/webdriver/tests/bidi/network/support/empty.js"
-PAGE_EMPTY_SVG = "/webdriver/tests/bidi/network/support/empty.svg"
-PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
-
-RESPONSE_COMPLETED_EVENT = "network.responseCompleted"
+from .. import (
+    assert_response_event,
+    HTTP_STATUS_AND_STATUS_TEXT,
+    PAGE_EMPTY_HTML,
+    PAGE_EMPTY_IMAGE,
+    PAGE_EMPTY_SCRIPT,
+    PAGE_EMPTY_SVG,
+    PAGE_EMPTY_TEXT,
+    RESPONSE_COMPLETED_EVENT,
+)
 
 
 @pytest.mark.asyncio
@@ -85,6 +86,39 @@ async def test_subscribe_status(bidi_session, subscribe_events, top_context, wai
     assert len(events) == 2
 
     remove_listener()
+
+
+@pytest.mark.asyncio
+async def test_iframe_load(
+    bidi_session,
+    top_context,
+    setup_network_test,
+    test_page,
+    test_page_same_origin_frame,
+):
+    network_events = await setup_network_test(events=[RESPONSE_COMPLETED_EVENT])
+    events = network_events[RESPONSE_COMPLETED_EVENT]
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=test_page_same_origin_frame,
+        wait="complete",
+    )
+
+    contexts = await bidi_session.browsing_context.get_tree(root=top_context["context"])
+    frame_context = contexts[0]["children"][0]
+
+    assert len(events) == 2
+    assert_response_event(
+        events[0],
+        expected_request={"url": test_page_same_origin_frame},
+        context=top_context["context"],
+    )
+    assert_response_event(
+        events[1],
+        expected_request={"url": test_page},
+        context=frame_context["context"],
+    )
 
 
 @pytest.mark.asyncio

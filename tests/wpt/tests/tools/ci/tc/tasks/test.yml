@@ -4,7 +4,7 @@ components:
     workerType: ci
     schedulerId: taskcluster-github
     deadline: "24 hours"
-    image: webplatformtests/wpt:0.55
+    image: webplatformtests/wpt:0.56
     maxRunTime: 7200
     artifacts:
       public/results:
@@ -113,7 +113,7 @@ components:
     scopes:
       - "docker-worker:capability:privileged"
     chunks-override:
-      testharness: 20
+      testharness: 24
 
   tox-python3_7:
     env:

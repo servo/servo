@@ -1,7 +1,7 @@
 /**
- * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { optionEnabled } from '../../runtime/helper/options.js';
-import { assert, unreachable } from '../../util/util.js';
+* AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
+**/import { optionEnabled } from '../../runtime/helper/options.js';import { assert, unreachable } from '../../util/util.js';
+
 
 import { compareQueries, Ordering } from './compare.js';
 import { encodeURIComponentSelectively } from './encode_selectively.js';
@@ -15,6 +15,24 @@ import { stringifyPublicParams } from './stringify_params.js';
  * TestQuery types are immutable.
  */
 
+
+
+
+
+
+/**
+ * - 1 = MultiFile.
+ * - 2 = MultiTest.
+ * - 3 = MultiCase.
+ * - 4 = SingleCase.
+ */
+
+
+
+
+
+
+
 /**
  * A multi-file test query, like `s:*` or `s:a,b,*`.
  *
@@ -23,6 +41,8 @@ import { stringifyPublicParams } from './stringify_params.js';
 export class TestQueryMultiFile {
   level = 1;
   isMultiFile = true;
+
+
 
   constructor(suite, file) {
     this.suite = suite;
@@ -52,6 +72,7 @@ export class TestQueryMultiTest extends TestQueryMultiFile {
   isMultiFile = false;
   isMultiTest = true;
 
+
   constructor(suite, file, test) {
     super(suite, file);
     assert(file.length > 0, 'multi-test (or finer) query must have file-path');
@@ -64,10 +85,10 @@ export class TestQueryMultiTest extends TestQueryMultiFile {
 
   toStringHelper() {
     return [
-      this.suite,
-      this.filePathParts.join(kPathSeparator),
-      [...this.testPathParts, kWildcard].join(kPathSeparator),
-    ];
+    this.suite,
+    this.filePathParts.join(kPathSeparator),
+    [...this.testPathParts, kWildcard].join(kPathSeparator)];
+
   }
 }
 
@@ -82,6 +103,7 @@ export class TestQueryMultiCase extends TestQueryMultiTest {
   isMultiTest = false;
   isMultiCase = true;
 
+
   constructor(suite, file, test, params) {
     super(suite, file, test);
     assert(test.length > 0, 'multi-case (or finer) query must have test-path');
@@ -94,11 +116,11 @@ export class TestQueryMultiCase extends TestQueryMultiTest {
 
   toStringHelper() {
     return [
-      this.suite,
-      this.filePathParts.join(kPathSeparator),
-      this.testPathParts.join(kPathSeparator),
-      stringifyPublicParams(this.params, true),
-    ];
+    this.suite,
+    this.filePathParts.join(kPathSeparator),
+    this.testPathParts.join(kPathSeparator),
+    stringifyPublicParams(this.params, true)];
+
   }
 }
 
@@ -117,11 +139,11 @@ export class TestQuerySingleCase extends TestQueryMultiCase {
 
   toStringHelper() {
     return [
-      this.suite,
-      this.filePathParts.join(kPathSeparator),
-      this.testPathParts.join(kPathSeparator),
-      stringifyPublicParams(this.params),
-    ];
+    this.suite,
+    this.filePathParts.join(kPathSeparator),
+    this.testPathParts.join(kPathSeparator),
+    stringifyPublicParams(this.params)];
+
   }
 }
 
@@ -138,11 +160,15 @@ export class TestQuerySingleCase extends TestQueryMultiCase {
  * `suite:test_path:test_name:foo=1;bar=2;*`.
  */
 export function parseExpectationsForTestQuery(
-  rawExpectations,
+rawExpectations,
 
-  query,
-  wptURL
-) {
+
+
+
+
+query,
+wptURL)
+{
   if (!Array.isArray(rawExpectations)) {
     unreachable('Expectations should be an array');
   }
@@ -181,14 +207,14 @@ Expectation should be of the form path/to/cts.https.html?worker=0&q=suite:test_p
     // Strip params from multicase expectations so that an expectation of foo=2;*
     // is stored if the test query is bar=3;*
     const queryForFilter =
-      expectationQuery instanceof TestQueryMultiCase
-        ? new TestQueryMultiCase(
-            expectationQuery.suite,
-            expectationQuery.filePathParts,
-            expectationQuery.testPathParts,
-            {}
-          )
-        : expectationQuery;
+    expectationQuery instanceof TestQueryMultiCase ?
+    new TestQueryMultiCase(
+      expectationQuery.suite,
+      expectationQuery.filePathParts,
+      expectationQuery.testPathParts,
+      {}
+    ) :
+    expectationQuery;
 
     if (compareQueries(query, queryForFilter) === Ordering.Unordered) {
       continue;
@@ -205,7 +231,7 @@ Expectation should be of the form path/to/cts.https.html?worker=0&q=suite:test_p
 
     expectations.push({
       query: expectationQuery,
-      expectation: entry.expectation,
+      expectation: entry.expectation
     });
   }
   return expectations;
@@ -227,7 +253,6 @@ export function relativeQueryString(parent, child) {
       childString.startsWith(parentString.substring(0, parentString.length - 2)),
       'impossible?: childString does not start with parentString[:-2]'
     );
-
     return childString.substring(parentString.length - 2);
   } else {
     unreachable(
