@@ -142,6 +142,7 @@ debug-assertions = false
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
+mozangle = { git = "https://github.com/atbrakhi/mozangle.git", branch = "shared_object" }
 
 # This is required because we want all dependencies that use WebRender to
 # use our vendored version.
