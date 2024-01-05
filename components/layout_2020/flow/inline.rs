@@ -122,7 +122,7 @@ struct LineUnderConstruction {
     inline_position: Length,
 
     /// The maximum block size of all boxes that ended and are in progress in this line.
-    /// This uses [`MaxBlockSize`] instead of a simple value, because the final block size
+    /// This uses [`LineBlockSizes`] instead of a simple value, because the final block size
     /// depends on vertical alignment.
     max_block_size: LineBlockSizes,
 
@@ -193,9 +193,21 @@ impl LineUnderConstruction {
     }
 }
 
+/// A block size relative to a line's final baseline. This is to track the size
+/// contribution of a particular element of a line above and below the baseline.
+/// These sizes can be combined with other baseline relative sizes before the
+/// final baseline position is known. The values here are relative to the
+/// overall line's baseline and *not* the nested baseline of an inline box.
 #[derive(Clone, Debug)]
 struct BaselineRelativeSize {
+    /// The ascent above the baseline, where a positive value means a larger
+    /// ascent. Thus, the top of this size contribution is `baseline_offset -
+    /// ascent`.
     ascent: Au,
+
+    /// The descent below the baseline, where a positive value means a larger
+    /// descent. Thus, the bottom of this size contribution is `baseline_offset +
+    /// descent`.
     descent: Au,
 }
 
@@ -214,7 +226,20 @@ impl BaselineRelativeSize {
         }
     }
 
-    fn adjust_for_baseline_offset(&mut self, baseline_offset: Au) {
+    /// Given an offset from the line's root baseline, adjust this [`BaselineRelativeSize`]
+    /// by that offset. This is used to adjust a [`BaselineRelativeSize`] for different kinds
+    /// of baseline-relative `vertical-align`. This will "move" measured size of a particular
+    /// inline box's block size. For example, in the following HTML:
+    ///
+    /// ```html
+    ///     <div>
+    ///         <span style="vertical-align: 5px">child content</span>
+    ///     </div>
+    /// ````
+    ///
+    /// If this [`BaselineRelativeSize`] is for the `<span>` then the adjustment
+    /// passed here would be equivalent to -5px.
+    fn adjust_for_nested_baseline_offset(&mut self, baseline_offset: Au) {
         self.ascent -= baseline_offset;
         self.descent += baseline_offset;
     }
@@ -269,9 +294,9 @@ impl LineBlockSizes {
     fn adjust_for_baseline_offset(&mut self, baseline_offset: Au) {
         self.baseline_relative_size_for_line_height
             .as_mut()
-            .map(|size| size.adjust_for_baseline_offset(baseline_offset));
+            .map(|size| size.adjust_for_nested_baseline_offset(baseline_offset));
         self.size_for_baseline_positioning
-            .adjust_for_baseline_offset(baseline_offset);
+            .adjust_for_nested_baseline_offset(baseline_offset);
     }
 
     /// From https://drafts.csswg.org/css2/visudet.html#line-height:
@@ -303,7 +328,7 @@ struct UnbreakableSegmentUnderConstruction {
     /// The size of this unbreakable segment in both dimension.
     inline_size: Length,
 
-    /// The maximum block size that this segment has. This uses [`MaxBlockSize`] instead of a
+    /// The maximum block size that this segment has. This uses [`LineBlockSizes`] instead of a
     /// simple value, because the final block size depends on vertical alignment.
     max_block_size: LineBlockSizes,
 
@@ -459,22 +484,21 @@ struct InlineContainerState {
     text_decoration_line: TextDecorationLine,
 
     /// The block size contribution of this container's default font ie the size of the
-    /// "strut." Whether this is integrated into the nested_block_size_contribution
+    /// "strut." Whether this is integrated into the [`Self::nested_strut_block_sizes`]
     /// depends on the line-height quirk described in
     /// https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk.
     strut_block_sizes: LineBlockSizes,
 
-    /// The block size of this inline container maxed with the block sizes of all inline
-    /// container ancestors. This isn't the block size of this container, but if this
-    /// container adds content to a line, this is the block size necessary for that new
-    /// content.
-    nested_block_sizes: LineBlockSizes,
+    /// The strut block size of this inline container maxed with the strut block
+    /// sizes of all inline container ancestors. In quirks mode, this will be
+    /// zero, until we know that an element has inline content.
+    nested_strut_block_sizes: LineBlockSizes,
 
     /// The baseline offset of this container from the baseline of the line. The is the
     /// cumulative offset of this container and all of its parents. In contrast to the
     /// `vertical-align` property a positive value indicates an offset "below" the
     /// baseline while a negative value indicates one "above" it (when the block direction
-    /// is horizontal).
+    /// is vertical).
     baseline_offset: Au,
 
     /// The font metrics of the non-fallback font for this container.
@@ -597,7 +621,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
     fn current_line_max_block_size_including_nested_containers(&self) -> LineBlockSizes {
         self.current_inline_container_state()
-            .nested_block_sizes
+            .nested_strut_block_sizes
             .max(&self.current_line.max_block_size)
     }
 
@@ -648,7 +672,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         self.push_line_item_to_unbreakable_segment(LineItem::EndInlineBox);
         self.current_line_segment
             .max_block_size
-            .max_assign(&inline_box_state.base.nested_block_sizes);
+            .max_assign(&inline_box_state.base.nested_strut_block_sizes);
 
         // If the inline box that we just finished had any content at all, we want to propagate
         // the `white-space` property of its parent to future inline children. This is because
@@ -732,8 +756,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
         let mut state = LineItemLayoutState {
             inline_position: inline_start_position,
-            inline_start_of_parent: Length::zero(),
-            block_offset_of_parent: Length::zero(),
+            parent_offset: LogicalVec2::zero(),
             baseline_offset,
             ifc_containing_block: self.containing_block,
             positioning_context: &mut self.positioning_context,
@@ -1095,7 +1118,6 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // We need to ensure that the appropriate space for a linebox is created even if there
         // was no other content on this line. We mark the line as having content (needing a
         // advance) and having at least the height associated with this nesting of inline boxes.
-        //self.current_line.has_content = true;
         self.current_line
             .max_block_size
             .max_assign(&self.current_line_max_block_size_including_nested_containers());
@@ -1192,7 +1214,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // This may or may not include the size of the strut depending on the quirks mode setting.
         let container_max_block_size = &self
             .current_inline_container_state()
-            .nested_block_sizes
+            .nested_strut_block_sizes
             .clone();
         self.current_line_segment
             .max_block_size
@@ -1654,7 +1676,7 @@ impl InlineContainerState {
         }
 
         let mut nested_block_sizes = parent_container
-            .map(|container| container.nested_block_sizes.clone())
+            .map(|container| container.nested_strut_block_sizes.clone())
             .unwrap_or_else(LineBlockSizes::zero);
         if create_strut {
             nested_block_sizes.max_assign(&strut_block_sizes);
@@ -1664,7 +1686,7 @@ impl InlineContainerState {
             style,
             has_content: false,
             text_decoration_line,
-            nested_block_sizes,
+            nested_strut_block_sizes: nested_block_sizes,
             strut_block_sizes,
             baseline_offset,
             font_metrics,
@@ -1849,7 +1871,7 @@ impl IndependentFormattingContext {
         let mut child_positioning_context = None;
 
         // We need to know the inline size of the atomic before deciding whether to do the line break.
-        let (fragment, baseline_offset) = match self {
+        let fragment = match self {
             IndependentFormattingContext::Replaced(replaced) => {
                 let size = replaced.contents.used_size_as_if_inline_element(
                     ifc.containing_block,
@@ -1865,20 +1887,17 @@ impl IndependentFormattingContext {
                     size,
                 };
 
-                (
-                    BoxFragment::new(
-                        replaced.base_fragment_info,
-                        replaced.style.clone(),
-                        fragments,
-                        content_rect,
-                        pbm.padding,
-                        pbm.border,
-                        margin,
-                        None, /* clearance */
-                        None, /* last_inflow_baseline_offset */
-                        CollapsedBlockMargins::zero(),
-                    ),
-                    None,
+                BoxFragment::new(
+                    replaced.base_fragment_info,
+                    replaced.style.clone(),
+                    fragments,
+                    content_rect,
+                    pbm.padding,
+                    pbm.border,
+                    margin,
+                    None, /* clearance */
+                    None, /* last_inflow_baseline_offset */
+                    CollapsedBlockMargins::zero(),
                 )
             },
             IndependentFormattingContext::NonReplaced(non_replaced) => {
@@ -1949,30 +1968,17 @@ impl IndependentFormattingContext {
                     },
                 };
 
-                // From https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align:
-                // > The baseline of an inline-block is the baseline of its last line box
-                // > in the normal flow, unless it has either no in-flow line boxes or if
-                // > its overflow property has a computed value other than visible, in which
-                // > case the baseline is the bottom margin edge.
-                let mut baseline = independent_layout.last_inflow_baseline_offset;
-                if non_replaced.style.establishes_scroll_container() {
-                    baseline.take();
-                }
-
-                (
-                    BoxFragment::new(
-                        non_replaced.base_fragment_info,
-                        non_replaced.style.clone(),
-                        independent_layout.fragments,
-                        content_rect,
-                        pbm.padding,
-                        pbm.border,
-                        margin,
-                        None,
-                        independent_layout.last_inflow_baseline_offset,
-                        CollapsedBlockMargins::zero(),
-                    ),
-                    baseline,
+                BoxFragment::new(
+                    non_replaced.base_fragment_info,
+                    non_replaced.style.clone(),
+                    independent_layout.fragments,
+                    content_rect,
+                    pbm.padding,
+                    pbm.border,
+                    margin,
+                    None,
+                    independent_layout.last_inflow_baseline_offset,
+                    CollapsedBlockMargins::zero(),
                 )
             },
         };
@@ -1986,8 +1992,9 @@ impl IndependentFormattingContext {
         }
 
         let size = &pbm_sums.sum() + &fragment.content_rect.size;
-        let baseline_offset = baseline_offset
-            .map(|baseline_offset| baseline_offset + pbm_sums.block_start)
+        let baseline_offset = fragment
+            .last_baseline_offset
+            .map(|baseline_offset| pbm_sums.block_start + baseline_offset)
             .unwrap_or(size.block);
         let baseline_offset = Au::from_f32_px(baseline_offset.px());
 
@@ -2291,13 +2298,8 @@ struct LineMetrics {
 struct LineItemLayoutState<'a> {
     inline_position: Length,
 
-    /// The inline start position of the parent (the inline box that established this state)
-    /// relative to the edge of the containing block of this [`InlineFormattingContext`].
-    inline_start_of_parent: Length,
-
-    /// The block start position of the parent (the inline box that established this state)
-    /// relative to the block start of the line.
-    block_offset_of_parent: Length,
+    /// The offset of the parent, relative to the start position of the line.
+    parent_offset: LogicalVec2<Length>,
 
     /// The block offset of the parent's baseline relative to the block start of the line. This
     /// is often the same as [`Self::block_offset_of_parent`], but can be different for the root
@@ -2531,22 +2533,19 @@ impl TextRunLineItem {
                 state.justification_adjustment * number_of_justification_opportunities as f32;
         }
 
-        // The block start is often Length::zero(), but for children of the inline
-        // formatting context root or for fallback fonts that use baseline relatve
-        // alignment, it might be different.
-        let baseline_relative =
-            is_baseline_relative(effective_vertical_for_inline_container(&self.parent_style));
-        let block_offset = if baseline_relative {
-            state.baseline_offset - self.font_metrics.ascent.into() - state.block_offset_of_parent
-        } else {
-            Length::zero()
-        };
+        // The block start of the TextRun is often zero (meaning it has the same font metrics as the
+        // inline box's strut), but for children of the inline formatting context root or for
+        // fallback fonts that use baseline relatve alignment, it might be different.
+        let mut start_corner = &LogicalVec2 {
+            inline: state.inline_position,
+            block: state.baseline_offset - self.font_metrics.ascent.into(),
+        } - &state.parent_offset;
+        if !is_baseline_relative(effective_vertical_for_inline_container(&self.parent_style)) {
+            start_corner.block = Length::zero();
+        }
 
         let rect = LogicalRect {
-            start_corner: LogicalVec2 {
-                block: block_offset,
-                inline: state.inline_position - state.inline_start_of_parent,
-            },
+            start_corner,
             size: LogicalVec2 {
                 block: self.font_metrics.line_gap.into(),
                 inline: inline_advance,
@@ -2617,7 +2616,8 @@ impl InlineBoxLineItem {
         let pbm_sums = &(&padding + &border) + &margin;
         state.inline_position += pbm_sums.inline_start;
 
-        let (block_start_offset, baseline_offset) = self.calculate_block_offsets(state);
+        let space_above_baseline = self.calculate_space_above_baseline();
+        let block_start_offset = self.calculate_block_start(state, space_above_baseline);
 
         let mut positioning_context = PositioningContext::new_for_style(&style);
         let nested_positioning_context = match positioning_context.as_mut() {
@@ -2628,13 +2628,15 @@ impl InlineBoxLineItem {
 
         let mut nested_state = LineItemLayoutState {
             inline_position: state.inline_position,
-            inline_start_of_parent: state.inline_position,
-            block_offset_of_parent: block_start_offset,
+            parent_offset: LogicalVec2 {
+                inline: state.inline_position,
+                block: block_start_offset,
+            },
             ifc_containing_block: state.ifc_containing_block,
             positioning_context: nested_positioning_context,
             justification_adjustment: state.justification_adjustment,
             line_metrics: state.line_metrics,
-            baseline_offset,
+            baseline_offset: block_start_offset + space_above_baseline,
         };
 
         let mut saw_end = false;
@@ -2675,11 +2677,7 @@ impl InlineBoxLineItem {
         };
 
         // Make `content_rect` relative to the parent Fragment.
-        content_rect.start_corner = &content_rect.start_corner -
-            &LogicalVec2 {
-                inline: state.inline_start_of_parent,
-                block: state.block_offset_of_parent,
-            };
+        content_rect.start_corner = &content_rect.start_corner - &state.parent_offset;
 
         // Relative adjustment should not affect the rest of line layout, so we can
         // do it right before creating the Fragment.
@@ -2725,43 +2723,46 @@ impl InlineBoxLineItem {
         Some(fragment)
     }
 
-    /// Given the state for a line item layout, our font metrics, and our relative
-    /// baseline offset, find the block start position and the baseline block start
-    /// position.  Our text may spill out of this, for instance if a child box has a
-    /// larger font size. This is the block start of any background and border we'd like
-    /// to draw for this box though.
-    fn calculate_block_offsets(&self, state: &LineItemLayoutState) -> (Length, Length) {
-        let vertical_align = effective_vertical_for_inline_container(&self.style);
+    /// Given our font metrics, calculate the space above the baseline we need for our content.
+    /// Note that this space does not include space for any content in child inline boxes, as
+    /// they are not included in our content rect.
+    fn calculate_space_above_baseline(&self) -> Length {
         let (ascent, descent, line_gap) = (
             self.font_metrics.ascent,
             self.font_metrics.descent,
             self.font_metrics.line_gap,
         );
         let leading = line_gap - (ascent + descent);
-        let space_above_baseline = (leading.scale_by(0.5) + ascent).into();
+        (leading.scale_by(0.5) + ascent).into()
+    }
+
+    /// Given the state for a line item layout and the space above the baseline for this inline
+    /// box, find the block start position relative to the line block start position.
+    fn calculate_block_start(
+        &self,
+        state: &LineItemLayoutState,
+        space_above_baseline: Length,
+    ) -> Length {
+        let vertical_align = effective_vertical_for_inline_container(&self.style);
+        let line_gap = self.font_metrics.line_gap;
 
         // The baseline offset that we have in `Self::baseline_offset` is relative to the line
         // baseline, so we need to make it relative to the line block start.
-        let block_start_position = match vertical_align {
+        match vertical_align {
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => {
                 let line_height = line_height(&self.style, &self.font_metrics);
                 (line_height - line_gap.into()).scale_by(0.5)
             },
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
                 let line_height = line_height(&self.style, &self.font_metrics);
-                let offset = (line_height - line_gap.into()).scale_by(0.5);
-                state.line_metrics.block_size - line_height + offset
+                let half_leading = (line_height - line_gap.into()).scale_by(0.5);
+                state.line_metrics.block_size - line_height + half_leading
             },
             _ => {
                 state.line_metrics.baseline_block_offset + Length::from(self.baseline_offset) -
                     space_above_baseline
             },
-        };
-
-        (
-            block_start_position,
-            block_start_position + space_above_baseline,
-        )
+        }
     }
 }
 
@@ -2781,17 +2782,16 @@ struct AtomicLineItem {
 
 impl AtomicLineItem {
     fn layout(mut self, state: &mut LineItemLayoutState) -> BoxFragment {
-        // The initial `start_corner` of the Fragment is the PaddingBorderMargin sum
-        // start offset, which is the sum of the start component of the padding,
-        // border, and margin. Offset that value by the inline start position of the
-        // line layout.
-        self.fragment.content_rect.start_corner.inline +=
-            state.inline_position - state.inline_start_of_parent;
-
-        // We need to adjust the `start_corner` of the Fragment to account for `vertical-align`.
-        let block_start_offset = self.block_start_offset(&state.line_metrics);
+        // The initial `start_corner` of the Fragment is only the PaddingBorderMargin sum start
+        // offset, which is the sum of the start component of the padding, border, and margin.
+        // This needs to be added to the calculated block and inline positions.
+        self.fragment.content_rect.start_corner.inline += state.inline_position;
         self.fragment.content_rect.start_corner.block +=
-            block_start_offset - state.block_offset_of_parent;
+            self.calculate_block_start(&state.line_metrics);
+
+        // Make the final result relative to the parent box.
+        self.fragment.content_rect.start_corner =
+            &self.fragment.content_rect.start_corner - &state.parent_offset;
 
         if self.fragment.style.clone_position().is_relative() {
             self.fragment.content_rect.start_corner +=
@@ -2811,9 +2811,9 @@ impl AtomicLineItem {
         self.fragment
     }
 
-    /// Given the metrics for a line, our vertical alignment, and our block size, find a
-    /// block start position relative to the top of the line.
-    fn block_start_offset(&self, line_metrics: &LineMetrics) -> Length {
+    /// Given the metrics for a line, our vertical alignment, and our block size, find a block start
+    /// position relative to the top of the line.
+    fn calculate_block_start(&self, line_metrics: &LineMetrics) -> Length {
         match self.fragment.style.clone_vertical_align() {
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => Length::zero(),
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
@@ -2843,12 +2843,12 @@ impl AbsolutelyPositionedLineItem {
                 LogicalVec2 {
                     inline: match outside {
                         DisplayOutside::Inline => {
-                            state.inline_position - state.inline_start_of_parent
+                            state.inline_position - state.parent_offset.inline
                         },
                         DisplayOutside::Block => Length::zero(),
                     },
                     // The blocks start position of the absolute should be at the top of the line.
-                    block: -state.block_offset_of_parent,
+                    block: -state.parent_offset.block,
                 }
             },
             Display::GeneratingBox(DisplayGeneratingBox::LayoutInternal(_)) => {
@@ -2890,8 +2890,8 @@ impl FloatLineItem {
         // formatting context, so that they are parented properly for StackingContext
         // properties such as opacity & filters.
         let distance_from_parent_to_ifc = LogicalVec2 {
-            inline: state.inline_start_of_parent,
-            block: state.line_metrics.block_offset + state.block_offset_of_parent,
+            inline: state.parent_offset.inline,
+            block: state.line_metrics.block_offset + state.parent_offset.block,
         };
         self.fragment.content_rect.start_corner =
             &self.fragment.content_rect.start_corner - &distance_from_parent_to_ifc;
