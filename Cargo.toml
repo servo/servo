@@ -40,6 +40,14 @@ fxhash = "0.2"
 getopts = "0.2.11"
 gfx_traits = { path = "components/shared/gfx" }
 gleam = "0.15"
+glib = "0.18"
+gstreamer = { version = "0.21", features = ["v1_18"] }
+gstreamer-base = "0.21"
+gstreamer-gl = "0.21"
+gstreamer-gl-sys = { version = "0.21" }
+gstreamer-gl-wayland = { version = "0.21" }
+gstreamer-sys = "0.21"
+gstreamer-video = "0.21"
 headers = "0.3"
 html5ever = "0.26"
 http = "0.2"

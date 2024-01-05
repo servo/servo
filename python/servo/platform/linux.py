@@ -9,7 +9,6 @@
 
 import os
 import subprocess
-import tempfile
 from typing import Optional, Tuple
 
 import distro
@@ -28,8 +27,16 @@ from .base import Base
 APT_PKGS = [
     'build-essential', 'ccache', 'clang', 'cmake', 'curl', 'g++', 'git',
     'gperf', 'libdbus-1-dev', 'libfreetype6-dev', 'libgl1-mesa-dri',
-    'libgles2-mesa-dev', 'libglib2.0-dev', 'libgstreamer-plugins-bad1.0-dev',
-    'libgstreamer-plugins-base1.0-dev', 'libgstreamer1.0-dev',
+    'libgles2-mesa-dev', 'libglib2.0-dev',
+    'libgstreamer-plugins-base1.0-dev',
+    'gstreamer1.0-plugins-good', 'libgstreamer-plugins-good1.0-dev',
+    'gstreamer1.0-plugins-bad', 'libgstreamer-plugins-bad1.0-dev',
+    'gstreamer1.0-plugins-ugly',
+    "gstreamer1.0-plugins-base", 'libgstreamer-plugins-base1.0-dev',
+    'gstreamer1.0-libav',
+    'libgstrtspserver-1.0-dev',
+    'gstreamer1.0-tools',
+    'libges-1.0-dev',
     'libharfbuzz-dev', 'liblzma-dev', 'libunwind-dev', 'libunwind-dev',
     'libvulkan1', 'libx11-dev', 'libxcb-render0-dev', 'libxcb-shape0-dev',
     'libxcb-xfixes0-dev', 'libxmu-dev', 'libxmu6', 'libegl1-mesa-dev',
@@ -156,7 +163,7 @@ class Linux(Base):
         if self.distro in ['Ubuntu', 'Debian GNU/Linux', 'Raspbian GNU/Linux']:
             command = ['apt-get', 'install']
             pkgs = APT_PKGS
-            if subprocess.call(['dpkg', '-s'] + pkgs,
+            if subprocess.call(['dpkg', '-s'] + pkgs, shell=True,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
                 install = True
         elif self.distro in ['CentOS', 'CentOS Linux', 'Fedora', 'Fedora Linux']:
@@ -204,18 +211,6 @@ class Linux(Base):
         if not force and self.is_gstreamer_installed(cross_compilation_target=None):
             return False
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            file_name = os.path.join(temp_dir, GSTREAMER_URL.rsplit('/', maxsplit=1)[-1])
-            util.download_file("Pre-packaged GStreamer binaries", GSTREAMER_URL, file_name)
-
-            print(f"Installing GStreamer packages to {PREPACKAGED_GSTREAMER_ROOT}...")
-            os.makedirs(PREPACKAGED_GSTREAMER_ROOT, exist_ok=True)
-
-            # Extract, but strip one component from the output, because the package includes
-            # a toplevel directory called "./gst/" and we'd like to have the same directory
-            # structure on all platforms.
-            subprocess.check_call(["tar", "xf", file_name, "-C", PREPACKAGED_GSTREAMER_ROOT,
-                                   "--strip-components=2"])
-
-            assert self.is_gstreamer_installed(cross_compilation_target=None)
-            return True
+        raise EnvironmentError(
+            "Bootstrapping GStreamer on Linux is not supported. "
+            + "Please install it using your distribution package manager.")

@@ -56,7 +56,7 @@ class Base:
         # the cross-compilation case, we might be picking it up from another directory.
         if check_installation and not self.is_gstreamer_installed(cross_compilation_target):
             raise FileNotFoundError(
-                "GStreamer libraries not found (>= version 1.16)."
+                "GStreamer libraries not found (>= version 1.18)."
                 "Please see installation instructions in README.md"
             )
 
@@ -83,7 +83,7 @@ class Base:
             env, cross_compilation_target, check_installation=False)
         return (
             subprocess.call(
-                ["pkg-config", "--atleast-version=1.16", "gstreamer-1.0"],
+                ["pkg-config", "--atleast-version=1.18", "gstreamer-1.0"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 env=env,

@@ -23,8 +23,8 @@ DEPENDENCIES = {
 }
 
 URL_BASE = "https://github.com/servo/servo-build-deps/releases/download/msvc-deps/"
-GSTREAMER_URL = f"{URL_BASE}/gstreamer-1.0-msvc-x86_64-1.16.0.msi"
-GSTREAMER_DEVEL_URL = f"{URL_BASE}/gstreamer-1.0-devel-msvc-x86_64-1.16.0.msi"
+GSTREAMER_URL = f"{URL_BASE}/gstreamer-1.0-msvc-x86_64-1.22.8.msi"
+GSTREAMER_DEVEL_URL = f"{URL_BASE}/gstreamer-1.0-devel-msvc-x86_64-1.22.8.msi"
 DEPENDENCIES_DIR = os.path.join(util.get_target_dir(), "dependencies")
 
 
@@ -118,19 +118,19 @@ class Windows(Base):
 
         # The bootstraped version of GStreamer always takes precedance of the installed vesion.
         prepackaged_root = os.path.join(
-            DEPENDENCIES_DIR, "gstreamer", "1.0", gst_arch_name
+            DEPENDENCIES_DIR, "gstreamer", "1.0", f"msvc_{gst_arch_name}"
         )
         if os.path.exists(os.path.join(prepackaged_root, "bin", "ffi-7.dll")):
             return prepackaged_root
 
         # The installed version of GStreamer often sets an environment variable pointing to
         # the install location.
-        root_from_env = os.environ.get(f"GSTREAMER_1_0_ROOT_{gst_arch_name}")
+        root_from_env = os.environ.get(f"GSTREAMER_1_0_ROOT_MSVC_{gst_arch_name}")
         if root_from_env and os.path.exists(os.path.join(root_from_env, "bin", "ffi-7.dll")):
             return root_from_env
 
         # If all else fails, look for an installation in the default install directory.
-        default_root = os.path.join("C:\\gstreamer\\1.0", gst_arch_name)
+        default_root = os.path.join("C:\\gstreamer\\1.0", f"msvc_{gst_arch_name}")
         if os.path.exists(os.path.join(default_root, "bin", "ffi-7.dll")):
             return default_root
 
