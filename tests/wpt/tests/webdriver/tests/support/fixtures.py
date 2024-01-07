@@ -174,8 +174,12 @@ async def session(capabilities, configuration):
 
     # Enforce a fixed default window size and position
     if _current_session.capabilities.get("setWindowRect"):
-        _current_session.window.size = defaults.WINDOW_SIZE
-        _current_session.window.position = defaults.WINDOW_POSITION
+        # Only resize and reposition if needed to workaround a bug for Chrome:
+        # https://bugs.chromium.org/p/chromedriver/issues/detail?id=4642#c4
+        if _current_session.window.size != defaults.WINDOW_SIZE:
+            _current_session.window.size = defaults.WINDOW_SIZE
+        if _current_session.window.position != defaults.WINDOW_POSITION:
+            _current_session.window.position = defaults.WINDOW_POSITION
 
     # Set default timeouts
     multiplier = configuration["timeout_multiplier"]
@@ -222,8 +226,12 @@ async def bidi_session(capabilities, configuration):
 
     # Enforce a fixed default window size and position
     if _current_session.capabilities.get("setWindowRect"):
-        _current_session.window.size = defaults.WINDOW_SIZE
-        _current_session.window.position = defaults.WINDOW_POSITION
+        # Only resize and reposition if needed to workaround a bug for Chrome:
+        # https://bugs.chromium.org/p/chromedriver/issues/detail?id=4642#c4
+        if _current_session.window.size != defaults.WINDOW_SIZE:
+            _current_session.window.size = defaults.WINDOW_SIZE
+        if _current_session.window.position != defaults.WINDOW_POSITION:
+            _current_session.window.position = defaults.WINDOW_POSITION
 
     yield _current_session.bidi_session
 

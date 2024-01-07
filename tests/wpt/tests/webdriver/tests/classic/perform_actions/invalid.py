@@ -1,5 +1,3 @@
-# META: timeout=long
-
 import pytest
 
 from webdriver.error import InvalidArgumentException
