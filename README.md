@@ -32,7 +32,7 @@ manually, try the [manual build setup][manual-build].
 
 - Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 - Install Python
-    - **Debian-like:** Run `sudo apt install python3-pip`
+    - **Debian-like:** Run `sudo apt install python3-pip python3-venv`
     - **Fedora:** Run `sudo dnf install python3 python3-pip python3-devel`
     - **Arch:** Run `sudo pacman -S --needed python python-pip`
     - **Gentoo:** Run `sudo emerge dev-python/pip`
