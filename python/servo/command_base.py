@@ -250,6 +250,7 @@ class CommandBase(object):
 
     def __init__(self, context):
         self.context = context
+        self.enable_media = False
         self.features = []
         self.cross_compile_target = None
         self.is_android_build = False
@@ -493,13 +494,13 @@ class CommandBase(object):
             'vcdir': vcinstalldir,
         }
 
-    def build_env(self, is_build=False):
+    def build_env(self):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
 
-        servo.platform.get().set_gstreamer_environment_variables_if_necessary(
-            env, cross_compilation_target=self.cross_compile_target,
-            check_installation=is_build)
+        if self.enable_media and not self.is_android_build:
+            servo.platform.get().set_gstreamer_environment_variables_if_necessary(
+                env, cross_compilation_target=self.cross_compile_target)
 
         effective_target = self.cross_compile_target or servo.platform.host_triple()
         if "msvc" in effective_target:
@@ -806,7 +807,7 @@ class CommandBase(object):
                 if build_configuration:
                     self.configure_cross_compilation(kwargs['target'], kwargs['android'], kwargs['win_arm64'])
                     self.features = kwargs.get("features", None) or []
-                    self.configure_media_stack(kwargs['media_stack'])
+                    self.enable_media = self.is_media_enabled(kwargs['media_stack'])
 
                 return original_function(self, *args, **kwargs)
 
@@ -874,10 +875,10 @@ class CommandBase(object):
         if self.cross_compile_target:
             print(f"Targeting '{self.cross_compile_target}' for cross-compilation")
 
-    def configure_media_stack(self, media_stack: Optional[str]):
-        """Determine what media stack to use based on the value of the build target
+    def is_media_enabled(self, media_stack: Optional[str]):
+        """Determine whether media is enabled based on the value of the build target
            platform and the value of the '--media-stack' command-line argument.
-           The chosen media stack is written into the `features` instance variable."""
+           Returns true if media is enabled."""
         if not media_stack:
             if self.config["build"]["media-stack"] != "auto":
                 media_stack = self.config["build"]["media-stack"]
@@ -890,8 +891,16 @@ class CommandBase(object):
                 media_stack = "gstreamer"
             else:
                 media_stack = "dummy"
-        if media_stack != "dummy":
-            self.features += ["media-" + media_stack]
+
+        # This is a workaround for Ubuntu 20.04, which doesn't support a new enough GStreamer.
+        # Once we drop support for this platform (it's currently needed for wpt.fyi runners),
+        # we can remove this workaround and officially only support Ubuntu 22.04 and up.
+        platform = servo.platform.get()
+        if not self.cross_compile_target and platform.is_linux and \
+                not platform.is_gstreamer_installed(self.cross_compile_target):
+            return False
+
+        return media_stack != "dummy"
 
     def run_cargo_build_like_command(
         self, command: str, cargo_args: List[str],
@@ -902,6 +911,17 @@ class CommandBase(object):
         **_kwargs
     ):
         env = env or self.build_env()
+
+        # Android GStreamer integration is handled elsewhere.
+        # NB: On non-Linux platforms we cannot check whether GStreamer is installed until
+        # environment variables are set via `self.build_env()`.
+        platform = servo.platform.get()
+        if self.enable_media and not self.is_android_build and \
+                not platform.is_gstreamer_installed(self.cross_compile_target):
+            raise FileNotFoundError(
+                "GStreamer libraries not found (>= version 1.18)."
+                "Please see installation instructions in README.md"
+            )
 
         args = []
         if "--manifest-path" not in cargo_args:
@@ -922,6 +942,8 @@ class CommandBase(object):
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
             features = list(self.features)
+            if self.enable_media:
+                features.append("media-gstreamer")
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
 

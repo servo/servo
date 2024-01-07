@@ -12,7 +12,6 @@ import subprocess
 from typing import Optional, Tuple
 
 import distro
-from .. import util
 from .base import Base
 
 # Please keep these in sync with the packages on the wiki, using the instructions below
@@ -75,8 +74,6 @@ XBPS_PKGS = ['libtool', 'gcc', 'libXi-devel', 'freetype-devel',
 
 GSTREAMER_URL = \
     "https://github.com/servo/servo-build-deps/releases/download/linux/gstreamer-1.16-x86_64-linux-gnu.20190515.tar.gz"
-PREPACKAGED_GSTREAMER_ROOT = \
-    os.path.join(util.get_target_dir(), "dependencies", "gstreamer")
 
 
 class Linux(Base):
@@ -154,7 +151,6 @@ class Linux(Base):
                                       f"{self.distro}, please file a bug")
 
         installed_something = self.install_non_gstreamer_dependencies(force)
-        installed_something |= self._platform_bootstrap_gstreamer(force)
         return installed_something
 
     def install_non_gstreamer_dependencies(self, force: bool) -> bool:
@@ -199,18 +195,9 @@ class Linux(Base):
         return True
 
     def gstreamer_root(self, cross_compilation_target: Optional[str]) -> Optional[str]:
-        if cross_compilation_target:
-            return None
-        if os.path.exists(PREPACKAGED_GSTREAMER_ROOT):
-            return PREPACKAGED_GSTREAMER_ROOT
-        # GStreamer might be installed system-wide, but we do not return a root in this
-        # case because we don't have to update environment variables.
         return None
 
-    def _platform_bootstrap_gstreamer(self, force: bool) -> bool:
-        if not force and self.is_gstreamer_installed(cross_compilation_target=None):
-            return False
-
+    def _platform_bootstrap_gstreamer(self, _force: bool) -> bool:
         raise EnvironmentError(
             "Bootstrapping GStreamer on Linux is not supported. "
             + "Please install it using your distribution package manager.")

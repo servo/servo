@@ -266,7 +266,7 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        env = self.build_env(is_build=True)
+        env = self.build_env()
         returncode = self.run_cargo_build_like_command("doc", params, env=env, **kwargs)
         if returncode:
             return returncode

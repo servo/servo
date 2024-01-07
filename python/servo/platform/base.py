@@ -26,11 +26,6 @@ class Base:
     def set_gstreamer_environment_variables_if_necessary(
         self, env: Dict[str, str], cross_compilation_target: Optional[str], check_installation=True
     ):
-        # Environment variables are not needed when cross-compiling on any platform other
-        # than Windows. GStreamer for Android is handled elsewhere.
-        if cross_compilation_target and (not self.is_windows or "android" in cross_compilation_target):
-            return
-
         # We may not need to update environment variables if GStreamer is installed
         # for the system on Linux.
         gstreamer_root = self.gstreamer_root(cross_compilation_target)
@@ -51,14 +46,6 @@ class Base:
                 f"gst-plugin-scanner{self.executable_suffix()}",
             )
             env["GST_PLUGIN_SYSTEM_PATH"] = os.path.join(gstreamer_root, "lib", "gstreamer-1.0")
-
-        # If we are not cross-compiling GStreamer must be installed for the system. In
-        # the cross-compilation case, we might be picking it up from another directory.
-        if check_installation and not self.is_gstreamer_installed(cross_compilation_target):
-            raise FileNotFoundError(
-                "GStreamer libraries not found (>= version 1.18)."
-                "Please see installation instructions in README.md"
-            )
 
     def gstreamer_root(self, _cross_compilation_target: Optional[str]) -> Optional[str]:
         raise NotImplementedError("Do not know how to get GStreamer path for platform.")

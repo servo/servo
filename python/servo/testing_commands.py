@@ -258,9 +258,7 @@ class MachCommands(CommandBase):
         if nocapture:
             args += ["--", "--nocapture"]
 
-        # We are setting is_build here to true, because running `cargo test` can trigger builds.
-        env = self.build_env(is_build=True)
-
+        env = self.build_env()
         return self.run_cargo_build_like_command(
             "bench" if bench else "test",
             args,
