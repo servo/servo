@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import hashlib
 import os
 import platform
 import site
@@ -108,6 +109,42 @@ def _process_exec(args):
         sys.exit(1)
 
 
+def install_virtual_env_requirements(project_path: str, python: str, virtualenv_path: str):
+    requirements_paths = [
+        os.path.join(project_path, "python", "requirements.txt"),
+        os.path.join(project_path, WPT_TOOLS_PATH, "requirements_tests.txt",),
+        os.path.join(project_path, WPT_RUNNER_PATH, "requirements.txt",),
+    ]
+
+    requirements_hasher = hashlib.sha256()
+    for path in requirements_paths:
+        with open(path, 'rb') as file:
+            requirements_hasher.update(file.read())
+
+    try:
+        marker_path = os.path.join(virtualenv_path, "requirements.sha256")
+        with open(marker_path, 'r') as marker_file:
+            marker_hash = marker_file.read()
+    except FileNotFoundError:
+        marker_hash = None
+
+    requirements_hash = requirements_hasher.hexdigest()
+
+    if marker_hash != requirements_hash:
+        print(" * Upgrading pip...")
+        _process_exec([python, "-m", "pip", "install", "--upgrade", "pip"])
+
+        print(" * Installing Python requirements...")
+        _process_exec([python, "-m", "pip", "install", "-I",
+                       "-r", requirements_paths[0],
+                       "-r", requirements_paths[1],
+                       "-r", requirements_paths[2]])
+        with open(marker_path, "w") as marker_file:
+            marker_file.write(requirements_hash)
+    else:
+        print(" * Python requirements up to date.")
+
+
 def _activate_virtualenv(topdir):
     virtualenv_path = os.path.join(topdir, "python", "_venv%d.%d" % (sys.version_info[0], sys.version_info[1]))
     python = sys.executable
@@ -134,33 +171,7 @@ def _activate_virtualenv(topdir):
         # Otherwise pip may still try to write to the wrong site-packages directory.
         python = os.path.join(venv_script_path, "python")
 
-    # TODO: Right now, we iteratively install all the requirements by invoking
-    # `pip install` each time. If it were the case that there were conflicting
-    # requirements, we wouldn't know about them. Once
-    # https://github.com/pypa/pip/issues/988 is addressed, then we can just
-    # chain each of the requirements files into the same `pip install` call
-    # and it will check for conflicts.
-    requirements_paths = [
-        os.path.join("python", "requirements.txt"),
-        os.path.join(WPT_TOOLS_PATH, "requirements_tests.txt",),
-        os.path.join(WPT_RUNNER_PATH, "requirements.txt",),
-    ]
-
-    for req_rel_path in requirements_paths:
-        req_path = os.path.join(topdir, req_rel_path)
-        marker_file = req_rel_path.replace(os.path.sep, '-')
-        marker_path = os.path.join(virtualenv_path, marker_file)
-
-        try:
-            if os.path.getmtime(req_path) + 10 < os.path.getmtime(marker_path):
-                continue
-        except OSError:
-            pass
-
-        print(f" * Installing Python requirements from {req_path}...")
-        _process_exec([python, "-m", "pip", "install", "-I", "-r", req_path])
-
-        open(marker_path, 'w').close()
+    install_virtual_env_requirements(topdir, python, virtualenv_path)
 
 
 def _ensure_case_insensitive_if_windows():
