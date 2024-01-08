@@ -36,6 +36,7 @@ use crate::ContainingBlock;
 mod construct;
 pub mod float;
 pub mod inline;
+mod line;
 mod root;
 
 pub(crate) use construct::BlockContainerBuilder;
