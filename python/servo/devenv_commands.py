@@ -277,35 +277,30 @@ class MachCommands(CommandBase):
              description='Runs try jobs by force pushing to try branch',
              category='devenv')
     @CommandArgument(
-        'jobs', default=None, nargs='...',
-        help="Job(s) tuples")
-    def try_jobs(self, jobs):
+        '--remote', '-r', default="origin",
+        help='git remote to use for try pushes')
+    @CommandArgument(
+        'try_string', default=None, nargs='...',
+        help="Try string")
+    def try_jobs(self, remote="origin", try_string=None):
         # if jobs is empty we just push last commit to try and it will do full run
-        if jobs:
-            jobs = " ".join(jobs)
+        if try_string:
+            try_string = " ".join(try_string)
             sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "etc"))
             from try_parser import Config
             conf = Config()
-            conf.parse(jobs)
-            res = call(["git", "commit", "--allow-empty", "-m", f"{jobs}\n\n{conf.toJSON()}"], env=self.build_env())
+            conf.parse(try_string)
+            res = call(["git", "commit", "--allow-empty", "-m", f"{try_string}\n\n{conf.toJSON()}"],
+                       env=self.build_env())
             if res != 0:
                 return res
-        remote = "origin"
-        if "servo/servo" in subprocess.check_output(["git", "config", "--get", "remote.origin.url"]).decode():
-            # if we have servo/servo for origin check try remote
-            try:
-                if "servo/servo" in subprocess.check_output(["git", "config", "--get", "remote.try.url"]).decode():
-                    # User has servo/servo for try remote
-                    print("You should not use servo/servo for try remote!")
-                    return -1
-                else:
-                    remote = "try"
-            except subprocess.CalledProcessError:
-                print("It looks like you are patching in upstream servo.")
-                print("Set try remote to your personal fork with `git remote add try https://github.com/user/servo`")
-                return -1
+
+        if "servo/servo" in subprocess.check_output(["git", "config", "--get", f"remote.{remote}.url"]).decode():
+            print("WARNING: You are triggering try build in upstream repo!")
+
         res = call(["git", "push", remote, "--force", "HEAD:try"], env=self.build_env())
-        # if we got jobs we need to delete last commit
-        if jobs:
+
+        if try_string:
+            # we need to delete last commit
             res += call(["git", "reset", "--soft", "HEAD~1"], env=self.build_env())
         return res
