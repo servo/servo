@@ -32,6 +32,7 @@ test_computed_value("clip-path", "xywh(0px 1% 2px 0.5em round 0)", "inset(1% cal
 test_computed_value("clip-path", "xywh(0px 1% 2px 3% round 0 1px)", "inset(1% calc(100% - 2px) 96% 0px round 0px 1px)");
 test_computed_value("clip-path", "xywh(0px 1% 2px 3% round 0px 1px 2em)", "inset(1% calc(100% - 2px) 96% 0px round 0px 1px 80px)");
 test_computed_value("clip-path", "xywh(0px 1% 2px 3% round 0px 1px 2% 3px)", "inset(1% calc(100% - 2px) 96% 0px round 0px 1px 2% 3px)");
+test_computed_value("clip-path", "xywh(calc(0px) calc(1px + 1%) calc(2px + 2%) calc(3px + 3%))", "inset(calc(1% + 1px) calc(98% - 2px) calc(96% - 4px) 0px)");
 // Given "rect(t r b l)", the equivalent function is
 // "inset(t calc(100% - r) calc(100% - b) l)".
 test_computed_value("clip-path", "rect(auto auto auto auto)", "inset(0%)");
@@ -40,6 +41,7 @@ test_computed_value("clip-path", "rect(0px 1% auto 0.5em round 0)", "inset(0px 9
 test_computed_value("clip-path", "rect(0px 1% auto 3% round 0 1px)", "inset(0px 99% 0% 3% round 0px 1px)");
 test_computed_value("clip-path", "rect(0px 1% auto 3% round 0px 1px 2em)", "inset(0px 99% 0% 3% round 0px 1px 80px)");
 test_computed_value("clip-path", "rect(0px 1% auto 3% round 0px 1px 2% 3px)", "inset(0px 99% 0% 3% round 0px 1px 2% 3px)");
+test_computed_value("clip-path", "rect(calc(0px) calc(1px + 1%) calc(2px + 2%) calc(3px + 3%))", "inset(0px calc(99% - 1px) calc(98% - 2px) calc(3% + 3px))");
 </script>
 </body>
 </html>

@@ -47,6 +47,23 @@ test(() => {
 }, "Test a non-conflicting animation name.");
 
 test(() => {
+  testAnimation("ease", "none");
+  testAnimation("ease-in", "none");
+  testAnimation("ease-in-out", "none");
+  testAnimation("ease-out", "none");
+  testAnimation("linear", "none");
+  testAnimation("step-end", "none");
+  testAnimation("step-start", "none");
+  testAnimation("ease ease", "ease");
+  testAnimation("ease linear", "linear");
+}, "Test an animation name that is the same as a possible animation timing-function.");
+
+test(() => {
+  testAnimation("infinite", "none");
+  testAnimation("infinite infinite", "infinite");
+}, "Test an animation name that is the same as a possible animation iteration-count.");
+
+test(() => {
   testAnimation("none", "none");
   testAnimation("forwards", "none");
   testAnimation("none forwards", "forwards");

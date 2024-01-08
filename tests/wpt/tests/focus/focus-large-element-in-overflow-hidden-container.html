@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#dom-focus">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1858984">
+<link rel="match" href="focus-large-element-in-overflow-hidden-container-ref.html">
+<style>
+#overflowHiddenContainer
+{
+  margin: 4px;
+  height: 12px;
+  border: 1px solid black;
+  overflow: hidden;
+  line-height: 25px;
+}
+
+#container
+{
+  position:       relative;
+  display:        inline-block;
+  width:          30px;
+  height:         10px;
+  vertical-align: text-top;
+}
+
+#visibleTarget
+{
+  position: absolute;
+  left:     0;
+  top:      0;
+  right:    0;
+  bottom:   0;
+  height:   15px;
+}
+
+#error
+{
+  position:         absolute;
+  left:             0;
+  bottom:           0;
+  background-color: red;
+  height:           5px;
+  width:            5px;
+}
+</style>
+</head>
+<body>
+  <div id="overflowHiddenContainer">
+    <label id="container">
+      <div tabindex=0 id="visibleTarget">
+        <div id="error"></div>
+      </div>
+    </label>
+  </div>
+</body>
+<script>
+  visibleTarget.focus();
+</script>
+</html>

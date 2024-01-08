@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Filter Effects Test: feImage referencing an data URL</title>
+    <link rel="help" href="http://www.w3.org/TR/filter-effects-1/#feImageElement">
+    <link rel="match" href="reference/svg-feimage-ref.html">
+    <meta name="flags" content="svg">
+    <meta name="assert" content="The feImage primitve applied to the red rect should reference and display the black rect. - The rect is black to avoid color interpolation issues.">
+    <style type="text/css">
+    svg {
+        width: 500px;
+        height: 500px;
+    }
+    </style>
+</head>
+<body>
+    <p>The test passes if you see a black square and no red.</p>
+    <svg>
+        <defs>
+          <filter id="filter" x="0" y="0" width="1" height="1">
+            <feImage xlink:href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><rect id='blackRect' width='300' height='300' fill='black'/></svg>#blackRect" preserveAspectRatio="none"/>
+          </filter>
+        </defs>
+        <rect x="1" y="1" width="298" height="298" fill="red"/>
+        <rect width="300" height="300" fill="red" filter="url(#filter)"/>
+    </svg>
+</body>
+</html>

@@ -57,7 +57,10 @@ def cleanup_session(session):
         or fullscreened state.
         """
         if session.capabilities.get("setWindowRect"):
-            session.window.size = defaults.WINDOW_SIZE
+            # Only resize if needed to workaround a bug for Chrome:
+            # https://bugs.chromium.org/p/chromedriver/issues/detail?id=4642#c4
+            if session.window.size != defaults.WINDOW_SIZE:
+                session.window.size = defaults.WINDOW_SIZE
 
     @ignore_exceptions
     def _restore_windows(session):

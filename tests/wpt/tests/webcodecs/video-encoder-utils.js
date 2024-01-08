@@ -53,7 +53,7 @@ function validateBlackDots(frame, count) {
   const width = frame.displayWidth;
   const height = frame.displayHeight;
   let cnv = new OffscreenCanvas(width, height);
-  var ctx = cnv.getContext('2d');
+  var ctx = cnv.getContext('2d', {willReadFrequently: true});
   ctx.drawImage(frame, 0, 0);
   const dot_size = 20;
   const step = dot_size * 2;

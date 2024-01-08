@@ -763,8 +763,9 @@ class CallbackHandler:
                     # AttributeError got an obj property in Python 3.10, for older versions we
                     # fall back to looking at the error message.
                     if ((hasattr(e, "obj") and getattr(e, "obj") == self.protocol) or
-                        "'{self.protocol.__class__.__name__}' has no attribute" in str(e)):
+                        f"'{self.protocol.__class__.__name__}' object has no attribute" in str(e)):
                         raise NotImplementedError from e
+                    raise
         except self.unimplemented_exc:
             self.logger.warning("Action %s not implemented" % action)
             self._send_message(cmd_id, "complete", "error", f"Action {action} not implemented")

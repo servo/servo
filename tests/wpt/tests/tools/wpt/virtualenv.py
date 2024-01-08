@@ -46,7 +46,7 @@ class Virtualenv:
 
     def create(self):
         if os.path.exists(self.path):
-            shutil.rmtree(self.path)
+            shutil.rmtree(self.path, ignore_errors=True)
             self._working_set = None
         call(*self.virtualenv, self.path)
 
