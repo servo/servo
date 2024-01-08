@@ -763,7 +763,7 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
 
 fn glyphs(
     glyph_runs: &[Arc<GlyphStore>],
-    mut origin: PhysicalPoint<Length>,
+    mut baseline_origin: PhysicalPoint<Length>,
     justification_adjustment: Length,
 ) -> Vec<wr::GlyphInstance> {
     use gfx_traits::ByteIndex;
@@ -775,8 +775,8 @@ fn glyphs(
             if !run.is_whitespace() {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let point = units::LayoutPoint::new(
-                    origin.x.px() + glyph_offset.x.to_f32_px(),
-                    origin.y.px() + glyph_offset.y.to_f32_px(),
+                    baseline_origin.x.px() + glyph_offset.x.to_f32_px(),
+                    baseline_origin.y.px() + glyph_offset.y.to_f32_px(),
                 );
                 let glyph = wr::GlyphInstance {
                     index: glyph.id(),
@@ -786,9 +786,9 @@ fn glyphs(
             }
 
             if glyph.char_is_word_separator() {
-                origin.x += justification_adjustment;
+                baseline_origin.x += justification_adjustment;
             }
-            origin.x += Length::from(glyph.advance());
+            baseline_origin.x += Length::from(glyph.advance());
         }
     }
     glyphs

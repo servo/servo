@@ -411,6 +411,7 @@ impl FlexContainer {
         IndependentLayout {
             fragments,
             content_block_size,
+            last_inflow_baseline_offset: None,
         }
     }
 }
@@ -855,7 +856,9 @@ impl FlexLine<'_> {
                         logical_slides(flex_context, item.padding),
                         logical_slides(flex_context, item.border),
                         margin,
-                        None,
+                        None, /* clearance */
+                        // TODO: We should likely propagate baselines from `display: flex`.
+                        None, /* last_inflow_baseline_offset */
                         collapsed_margin,
                     ),
                     item_result.positioning_context,
@@ -1098,6 +1101,7 @@ impl<'a> FlexItem<'a> {
                         let IndependentLayout {
                             fragments,
                             content_block_size,
+                            ..
                         } = non_replaced.layout(
                             flex_context.layout_context,
                             &mut positioning_context,

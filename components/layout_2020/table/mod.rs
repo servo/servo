@@ -40,6 +40,7 @@ impl Table {
         IndependentLayout {
             fragments: Vec::new(),
             content_block_size: Length::new(0.),
+            last_inflow_baseline_offset: None,
         }
     }
 }

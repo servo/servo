@@ -195,6 +195,10 @@ struct FlowLayout {
     pub fragments: Vec<Fragment>,
     pub content_block_size: Length,
     pub collapsible_margins_in_children: CollapsedBlockMargins,
+    /// The offset of the last inflow baseline in this layout in the content area, if
+    /// there was one. This is used to propagate inflow baselines to the ancestors
+    /// of `display: inline-block` elements.
+    pub last_inflow_baseline_offset: Option<Length>,
 }
 
 #[derive(Clone, Copy)]
@@ -238,6 +242,7 @@ impl BlockFormattingContext {
             content_block_size: flow_layout.content_block_size +
                 flow_layout.collapsible_margins_in_children.end.solve() +
                 clearance.unwrap_or_else(Length::zero),
+            last_inflow_baseline_offset: flow_layout.last_inflow_baseline_offset,
         }
     }
 }
@@ -454,7 +459,7 @@ fn layout_block_level_children_in_parallel(
     let fragments = layout_results
         .into_iter()
         .map(|(mut fragment, mut child_positioning_context)| {
-            placement_state.place_fragment(&mut fragment, None);
+            placement_state.place_fragment_and_update_baseline(&mut fragment, None);
             child_positioning_context.adjust_static_position_of_hoisted_fragments(
                 &fragment,
                 PositioningContextLength::zero(),
@@ -464,11 +469,13 @@ fn layout_block_level_children_in_parallel(
         })
         .collect();
 
-    let (content_block_size, collapsible_margins_in_children) = placement_state.finish();
+    let (content_block_size, collapsible_margins_in_children, baseline_offset) =
+        placement_state.finish();
     FlowLayout {
         fragments,
         content_block_size,
         collapsible_margins_in_children,
+        last_inflow_baseline_offset: baseline_offset,
     }
 }
 
@@ -499,7 +506,8 @@ fn layout_block_level_children_sequentially(
                 )),
             );
 
-            placement_state.place_fragment(&mut fragment, Some(sequential_layout_state));
+            placement_state
+                .place_fragment_and_update_baseline(&mut fragment, Some(sequential_layout_state));
             positioning_context.adjust_static_position_of_hoisted_fragments(
                 &fragment,
                 positioning_context_length_before_layout,
@@ -509,11 +517,13 @@ fn layout_block_level_children_sequentially(
         })
         .collect();
 
-    let (content_block_size, collapsible_margins_in_children) = placement_state.finish();
+    let (content_block_size, collapsible_margins_in_children, baseline_offset) =
+        placement_state.finish();
     FlowLayout {
         fragments,
         content_block_size,
         collapsible_margins_in_children,
+        last_inflow_baseline_offset: baseline_offset,
     }
 }
 
@@ -800,6 +810,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         pbm.border,
         margin,
         clearance,
+        flow_layout.last_inflow_baseline_offset,
         block_margins_collapsed_with_children,
     )
 }
@@ -870,6 +881,7 @@ impl NonReplacedFormattingContext {
             pbm.border,
             margin,
             None, /* clearance */
+            layout.last_inflow_baseline_offset,
             block_margins_collapsed_with_children,
         )
     }
@@ -1079,6 +1091,7 @@ impl NonReplacedFormattingContext {
             pbm.border,
             margin,
             clearance,
+            layout.last_inflow_baseline_offset,
             block_margins_collapsed_with_children,
         )
     }
@@ -1175,6 +1188,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         pbm.border,
         margin,
         clearance,
+        None, /* last_inflow_base_offset */
         block_margins_collapsed_with_children,
     )
 }
@@ -1351,6 +1365,7 @@ struct PlacementState {
     start_margin: CollapsedMargin,
     current_margin: CollapsedMargin,
     current_block_direction_position: Length,
+    last_inflow_baseline_offset: Option<Length>,
 }
 
 impl PlacementState {
@@ -1364,6 +1379,25 @@ impl PlacementState {
             start_margin: CollapsedMargin::zero(),
             current_margin: CollapsedMargin::zero(),
             current_block_direction_position: Length::zero(),
+            last_inflow_baseline_offset: None,
+        }
+    }
+
+    fn place_fragment_and_update_baseline(
+        &mut self,
+        fragment: &mut Fragment,
+        sequential_layout_state: Option<&mut SequentialLayoutState>,
+    ) {
+        self.place_fragment(fragment, sequential_layout_state);
+
+        match fragment {
+            Fragment::Box(box_fragment) => {
+                if let Some(baseline) = box_fragment.last_baseline_offset {
+                    self.last_inflow_baseline_offset =
+                        Some(baseline + box_fragment.content_rect.start_corner.block);
+                }
+            },
+            _ => {},
         }
     }
 
@@ -1453,7 +1487,7 @@ impl PlacementState {
         }
     }
 
-    fn finish(mut self) -> (Length, CollapsedBlockMargins) {
+    fn finish(mut self) -> (Length, CollapsedBlockMargins, Option<Length>) {
         if !self.last_in_flow_margin_collapses_with_parent_end_margin {
             self.current_block_direction_position += self.current_margin.solve();
             self.current_margin = CollapsedMargin::zero();
@@ -1465,6 +1499,7 @@ impl PlacementState {
                 start: self.start_margin,
                 end: self.current_margin,
             },
+            self.last_inflow_baseline_offset,
         )
     }
 }

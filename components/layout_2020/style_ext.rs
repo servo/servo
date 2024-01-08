@@ -15,7 +15,7 @@ use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{Length, LengthPercentage, NonNegativeLengthPercentage, Size};
 use style::values::generics::box_::Perspective;
 use style::values::generics::length::MaxSize;
-use style::values::specified::box_ as stylo;
+use style::values::specified::{box_ as stylo, Overflow};
 use style::Zero;
 use webrender_api as wr;
 
@@ -163,6 +163,7 @@ pub(crate) trait ComputedValuesExt {
     fn effective_z_index(&self) -> i32;
     fn establishes_block_formatting_context(&self) -> bool;
     fn establishes_stacking_context(&self) -> bool;
+    fn establishes_scroll_container(&self) -> bool;
     fn establishes_containing_block_for_absolute_descendants(&self) -> bool;
     fn establishes_containing_block_for_all_descendants(&self) -> bool;
     fn background_is_transparent(&self) -> bool;
@@ -429,6 +430,12 @@ impl ComputedValuesExt for ComputedValues {
 
         // TODO: We need to handle CSS Contain here.
         false
+    }
+
+    /// Whether or not the `overflow` value of this style establishes a scroll container.
+    fn establishes_scroll_container(&self) -> bool {
+        self.get_box().overflow_x != Overflow::Visible ||
+            self.get_box().overflow_y != Overflow::Visible
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
