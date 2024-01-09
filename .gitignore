@@ -1,6 +1,7 @@
 /.servo
 /.cargo/*
 !/.cargo/config.*
+/.rustup
 /.servobuild
 /.wpt
 /.vs
