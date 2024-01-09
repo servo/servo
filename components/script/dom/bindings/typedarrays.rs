@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![allow(unsafe_code)]
+
 use std::ptr;
 
 use js::jsapi::{Heap, JSObject, JS_GetArrayBufferViewBuffer};
@@ -17,7 +19,6 @@ pub struct Float32ArrayOnHeap {
 }
 
 impl Float32ArrayOnHeap {
-    #[allow(unsafe_code)]
     pub fn set_data(&self, cx: JSContext, data: &[f32]) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
 
@@ -32,7 +33,6 @@ impl Float32ArrayOnHeap {
         Ok(())
     }
 
-    #[allow(unsafe_code)]
     pub fn acquire_data(&self, cx: JSContext) -> Result<Vec<f32>, ()> {
         typedarray!(in(*cx) let array: Float32Array = self.internal.get());
         let data = if let Ok(array) = array {
@@ -53,7 +53,6 @@ impl Float32ArrayOnHeap {
         data
     }
 
-    #[allow(unsafe_code)]
     pub fn copy_data_to(
         &self,
         cx: JSContext,
@@ -74,7 +73,6 @@ impl Float32ArrayOnHeap {
         Ok(())
     }
 
-    #[allow(unsafe_code)]
     pub fn copy_data_from(
         &self,
         cx: JSContext,
