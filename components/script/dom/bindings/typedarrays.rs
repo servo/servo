@@ -14,11 +14,11 @@ use js::typedarray::{CreateWith, Float32Array};
 use crate::script_runtime::JSContext;
 
 #[derive(Default, JSTraceable)]
-pub struct Float32ArrayOnHeap {
+pub struct HeapFloat32Array {
     internal: Heap<*mut JSObject>,
 }
 
-impl Float32ArrayOnHeap {
+impl HeapFloat32Array {
     pub fn set_data(&self, cx: JSContext, data: &[f32]) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
 
