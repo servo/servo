@@ -34,6 +34,7 @@ impl HeapFloat32Array {
     }
 
     pub fn acquire_data(&self, cx: JSContext) -> Result<Vec<f32>, ()> {
+        assert!(self.is_initialized());
         typedarray!(in(*cx) let array: Float32Array = self.internal.get());
         let data = if let Ok(array) = array {
             let data = array.to_vec();
