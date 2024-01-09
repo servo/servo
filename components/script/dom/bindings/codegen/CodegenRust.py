@@ -1462,21 +1462,21 @@ def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
 
 TODO_SWITCH_TO_FLOAT_32 = ['DOMMatrixReadOnly', 'XRView', 'XRRigidTransform', 'XRRay', 'GamepadPose']
 
+def builtin_return_type(returnType):
+    result = CGGeneric(builtinNames[returnType.tag()])
+    if returnType.nullable():
+        result = CGWrapper(result, pre="Option<", post=">")
+    return result
+
 # Returns a CGThing containing the type of the return value.
 def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType is None or returnType.isUndefined():
         # Nothing to declare
         return CGGeneric("()")
     if returnType.isPrimitive() and returnType.tag() in builtinNames:
-        result = CGGeneric(builtinNames[returnType.tag()])
-        if returnType.nullable():
-            result = CGWrapper(result, pre="Option<", post=">")
-        return result
+        return builtin_return_type(returnType)
     if returnType.isTypedArray() and returnType.tag() in builtinNames and (not descriptorProvider.interface.identifier.name in TODO_SWITCH_TO_FLOAT_32):
-        result = CGGeneric(builtinNames[returnType.tag()])
-        if returnType.nullable():
-            result = CGWrapper(result, pre="Option<", post=">")
-        return result
+        return builtin_return_type(returnType)
     if returnType.isDOMString():
         result = CGGeneric("DOMString")
         if returnType.nullable():
