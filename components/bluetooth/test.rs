@@ -8,12 +8,12 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::string::String;
 
-use device::bluetooth::{
+use uuid::Uuid;
+
+use crate::bluetooth::{
     BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic, BluetoothGATTDescriptor,
     BluetoothGATTService,
 };
-use uuid::Uuid;
-
 use crate::BluetoothManager;
 
 thread_local!(pub static CACHED_IDS: RefCell<HashSet<Uuid>> = RefCell::new(HashSet::new()));
@@ -152,7 +152,7 @@ fn create_device(
     name: String,
     address: String,
 ) -> Result<BluetoothDevice, Box<dyn Error>> {
-    let device = BluetoothDevice::create_mock_device(adapter.clone(), generate_id().to_string())?;
+    let device = adapter.create_mock_device(generate_id().to_string())?;
     device.set_name(Some(name))?;
     device.set_address(address)?;
     device.set_connectable(true)?;
