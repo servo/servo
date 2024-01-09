@@ -66,7 +66,7 @@ impl HeapFloat32Array {
         let Ok(array) = array else { return Err(()) };
         unsafe {
             let slice = (*array).as_slice();
-            dest.clone_from_slice(&slice[start..end]);
+            dest.copy_from_slice(&slice[start..end]);
         }
         Ok(())
     }
