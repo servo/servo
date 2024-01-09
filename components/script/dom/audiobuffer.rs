@@ -153,7 +153,7 @@ impl AudioBuffer {
     fn restore_js_channel_data(&self, cx: JSContext) -> bool {
         let _ac = enter_realm(&*self);
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
-            if channel.is_set() {
+            if channel.is_initialized() {
                 // Already have data in JS array.
                 continue;
             }
@@ -184,7 +184,7 @@ impl AudioBuffer {
         let cx = GlobalScope::get_cx();
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             // Step 1.
-            if !channel.is_set() {
+            if !channel.is_initialized() {
                 return None;
             }
 
@@ -266,7 +266,7 @@ impl AudioBufferMethods for AudioBuffer {
 
         // We either copy form js_channels or shared_channels.
         let js_channel = &self.js_channels.borrow()[channel_number];
-        if js_channel.is_set() {
+        if js_channel.is_initialized() {
             if js_channel
                 .copy_data_to(cx, &mut dest, offset, offset + bytes_to_copy)
                 .is_err()
@@ -307,7 +307,7 @@ impl AudioBufferMethods for AudioBuffer {
         }
 
         let js_channel = &self.js_channels.borrow()[channel_number as usize];
-        if !js_channel.is_set() {
+        if !js_channel.is_initialized() {
             // The array buffer was detached.
             return Err(Error::IndexSize);
         }

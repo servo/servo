@@ -60,7 +60,7 @@ impl HeapFloat32Array {
         start: usize,
         end: usize,
     ) -> Result<(), ()> {
-        assert!(self.is_set());
+        assert!(self.is_initialized());
         typedarray!(in(*cx) let array: Float32Array = self.internal.get());
         if array.is_err() {
             return Err(());
@@ -80,7 +80,7 @@ impl HeapFloat32Array {
         start: usize,
         end: usize,
     ) -> Result<(), ()> {
-        assert!(self.is_set());
+        assert!(self.is_initialized());
         typedarray!(in(*cx) let mut array: Float32Array = self.internal.get());
         if array.is_err() {
             return Err(());
@@ -94,7 +94,7 @@ impl HeapFloat32Array {
         Ok(())
     }
 
-    pub fn is_set(&self) -> bool {
+    pub fn is_initialized(&self) -> bool {
         !self.internal.get().is_null()
     }
 
