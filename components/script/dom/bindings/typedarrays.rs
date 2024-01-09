@@ -63,10 +63,7 @@ impl HeapFloat32Array {
     ) -> Result<(), ()> {
         assert!(self.is_initialized());
         typedarray!(in(*cx) let array: Float32Array = self.internal.get());
-        if array.is_err() {
-            return Err(());
-        }
-        let array = array.unwrap();
+        let Ok(array) = array else { return Err(()) };
         unsafe {
             let slice = (*array).as_slice();
             dest.clone_from_slice(&slice[start..end]);
@@ -83,10 +80,7 @@ impl HeapFloat32Array {
     ) -> Result<(), ()> {
         assert!(self.is_initialized());
         typedarray!(in(*cx) let mut array: Float32Array = self.internal.get());
-        if array.is_err() {
-            return Err(());
-        }
-        let mut array = array.unwrap();
+        let Ok(mut array) = array else { return Err(()) };
         unsafe {
             let slice = (*array).as_mut_slice();
             let (_, dest) = slice.split_at_mut(start);
