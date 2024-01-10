@@ -17,9 +17,6 @@ let
       cargo = rustToolchain;
       rustc = rustToolchain;
     };
-    pkgs_clang_11 = import (builtins.fetchTarball {
-      url = "https://github.com/NixOS/nixpkgs/archive/70bdadeb94ffc8806c0570eb5c2695ad29f0e421.tar.gz";
-    }) {};
     pkgs_gnumake_4_3 = import (builtins.fetchTarball {
       url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
     }) {};
@@ -35,7 +32,7 @@ let
       allowedRequisites =
         lib.mapNullable (rs: rs ++ [ bintools ]) (stdenv.allowedRequisites or null);
     };
-    stdenv = mkStdenvWithLibc pkgs_clang_11.clangStdenv glibc;
+    stdenv = mkStdenvWithLibc llvmPackages_11.stdenv glibc;
 in
 stdenv.mkDerivation rec {
   name = "servo-env";
@@ -124,7 +121,7 @@ stdenv.mkDerivation rec {
     darwin.apple_sdk.frameworks.AppKit
   ]);
 
-  LIBCLANG_PATH = pkgs_clang_11.llvmPackages.clang-unwrapped.lib + "/lib/";
+  LIBCLANG_PATH = llvmPackages_11.clang-unwrapped.lib + "/lib/";
 
   # Allow cargo to download crates
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
