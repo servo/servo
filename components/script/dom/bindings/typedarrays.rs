@@ -58,15 +58,15 @@ impl HeapFloat32Array {
         &self,
         cx: JSContext,
         dest: &mut [f32],
-        start: usize,
-        end: usize,
+        source_start: usize,
+        length: usize,
     ) -> Result<(), ()> {
         assert!(self.is_initialized());
         typedarray!(in(*cx) let array: Float32Array = self.internal.get());
         let Ok(array) = array else { return Err(()) };
         unsafe {
             let slice = (*array).as_slice();
-            dest.copy_from_slice(&slice[start..end]);
+            dest.copy_from_slice(&slice[source_start..length]);
         }
         Ok(())
     }
@@ -75,16 +75,16 @@ impl HeapFloat32Array {
         &self,
         cx: JSContext,
         source: CustomAutoRooterGuard<Float32Array>,
-        start: usize,
-        end: usize,
+        dest_start: usize,
+        length: usize,
     ) -> Result<(), ()> {
         assert!(self.is_initialized());
         typedarray!(in(*cx) let mut array: Float32Array = self.internal.get());
         let Ok(mut array) = array else { return Err(()) };
         unsafe {
             let slice = (*array).as_mut_slice();
-            let (_, dest) = slice.split_at_mut(start);
-            dest[0..end].copy_from_slice(&source.as_slice()[0..end])
+            let (_, dest) = slice.split_at_mut(dest_start);
+            dest[0..length].copy_from_slice(&source.as_slice()[0..length])
         }
         Ok(())
     }
