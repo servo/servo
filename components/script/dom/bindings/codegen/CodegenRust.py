@@ -120,7 +120,7 @@ builtinNames = {
     IDLType.Tags.float: 'Finite<f32>',
     IDLType.Tags.unrestricted_double: 'f64',
     IDLType.Tags.double: 'Finite<f64>',
-    IDLBuiltinType.Tags.float32array: 'Float32Array'
+    IDLType.Tags.float32array: 'Float32Array'
 }
 
 numericTags = [
