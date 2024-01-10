@@ -35,8 +35,7 @@ from servo.command_base import (
     is_macosx,
     is_windows,
 )
-from servo.build_commands import copy_dependencies
-from servo.gstreamer import macos_gst_root
+from servo.build_commands import copy_gstreamer_dylibs
 from servo.util import delete, get_target_dir
 
 # Note: mako cannot be imported at the top level because it breaks mach bootstrap
@@ -207,9 +206,7 @@ class PackageCommands(CommandBase):
             change_prefs(dir_to_resources, "macosx")
 
             print("Finding dylibs and relinking")
-            dmg_binary = path.join(content_dir, "servo")
-            dir_to_gst_lib = path.join(macos_gst_root(), 'lib', '')
-            copy_dependencies(dmg_binary, lib_dir, dir_to_gst_lib)
+            copy_gstreamer_dylibs(path.join(content_dir, "servo"))
 
             print("Adding version to Credits.rtf")
             version_command = [binary_path, '--version']

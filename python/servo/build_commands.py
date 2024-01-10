@@ -18,7 +18,7 @@ import sys
 import urllib
 
 from time import time
-from typing import Dict
+from typing import Dict, Set
 import zipfile
 
 import notifypy
@@ -79,41 +79,15 @@ class MachCommands(CommandBase):
 
         build_start = time()
 
-        host = servo.platform.host_triple()
-        if 'windows' in host:
-            vs_dirs = self.vs_dirs()
-
-        target_triple = self.cross_compile_target or servo.platform.host_triple()
-        if host != target_triple and 'windows' in target_triple:
+        host_triple = servo.platform.host_triple()
+        target_triple = self.cross_compile_target or host_triple
+        if host_triple != target_triple and 'windows' in target_triple:
             if os.environ.get('VisualStudioVersion') or os.environ.get('VCINSTALLDIR'):
                 print("Can't cross-compile for Windows inside of a Visual Studio shell.\n"
                       "Please run `python mach build [arguments]` to bypass automatic "
                       "Visual Studio shell, and make sure the VisualStudioVersion and "
                       "VCINSTALLDIR environment variables are not set.")
                 sys.exit(1)
-            vcinstalldir = vs_dirs['vcdir']
-            if not os.path.exists(vcinstalldir):
-                print("Can't find Visual C++ %s installation at %s." % (vs_dirs['vs_version'], vcinstalldir))
-                sys.exit(1)
-
-            env['PKG_CONFIG_ALLOW_CROSS'] = "1"
-
-        if 'windows' in host:
-            process = subprocess.Popen('("%s" %s > nul) && "python" -c "import os; print(repr(os.environ))"' %
-                                       (os.path.join(vs_dirs['vcdir'], "Auxiliary", "Build", "vcvarsall.bat"), "x64"),
-                                       stdout=subprocess.PIPE, shell=True)
-            stdout, stderr = process.communicate()
-            exitcode = process.wait()
-            encoding = locale.getpreferredencoding()  # See https://stackoverflow.com/a/9228117
-            if exitcode == 0:
-                decoded = stdout.decode(encoding)
-                if decoded.startswith("environ("):
-                    decoded = decoded.strip()[8:-1]
-                os.environ.update(eval(decoded))
-            else:
-                print("Failed to run vcvarsall. stderr:")
-                print(stderr.decode(encoding))
-                exit(1)
 
         # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
         opts = ["--timings"] + opts
@@ -131,6 +105,7 @@ class MachCommands(CommandBase):
 
         # Do some additional things if the build succeeded
         if status == 0:
+            self.run_post_build_tasks(build_type)
             if self.is_android_build and not no_package:
                 flavor = None
                 if "googlevr" in self.features:
@@ -142,72 +117,7 @@ class MachCommands(CommandBase):
                 if rv:
                     return rv
 
-            if sys.platform == "win32":
-                servo_exe_dir = os.path.dirname(
-                    self.get_binary_path(build_type, target=self.cross_compile_target, simpleservo=libsimpleservo)
-                )
-                assert os.path.exists(servo_exe_dir)
-
-                build_path = path.join(servo_exe_dir, "build")
-                assert os.path.exists(build_path)
-
-                # on msvc, we need to copy in some DLLs in to the servo.exe dir and the directory for unit tests.
-                def package_generated_shared_libraries(libs, build_path, servo_exe_dir):
-                    for root, dirs, files in os.walk(build_path):
-                        remaining_libs = list(libs)
-                        for lib in libs:
-                            if lib in files:
-                                shutil.copy(path.join(root, lib), servo_exe_dir)
-                                remaining_libs.remove(lib)
-                                continue
-                        libs = remaining_libs
-                        if not libs:
-                            return True
-                    for lib in libs:
-                        print("WARNING: could not find " + lib)
-
-                print("Packaging EGL DLLs")
-                egl_libs = ["libEGL.dll", "libGLESv2.dll"]
-                if not package_generated_shared_libraries(egl_libs, build_path, servo_exe_dir):
-                    status = 1
-
-                # copy needed gstreamer DLLs in to servo.exe dir
-                if self.enable_media:
-                    print("Packaging gstreamer DLLs")
-                    if not package_gstreamer_dlls(env, servo_exe_dir, target_triple):
-                        status = 1
-
-                # UWP app packaging already bundles all required DLLs for us.
-                print("Packaging MSVC DLLs")
-                if not package_msvc_dlls(servo_exe_dir, target_triple, vs_dirs['vcdir'], vs_dirs['vs_version']):
-                    status = 1
-
-            elif sys.platform == "darwin":
-                servo_path = self.get_binary_path(
-                    build_type, target=self.cross_compile_target, simpleservo=libsimpleservo)
-                servo_bin_dir = os.path.dirname(servo_path)
-                assert os.path.exists(servo_bin_dir)
-
-                if self.enable_media:
-                    print("Packaging gstreamer dylibs")
-                    if not package_gstreamer_dylibs(self.cross_compile_target, servo_path):
-                        return 1
-
-                # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
-                # like Instruments.app.
-                try:
-                    import Cocoa
-                    icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
-                    icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
-                    if icon is not None:
-                        Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
-                                                                                     servo_path,
-                                                                                     0)
-                except ImportError:
-                    pass
-
         # Generate Desktop Notification if elapsed-time > some threshold value
-
         elapsed = time() - build_start
         elapsed_delta = datetime.timedelta(seconds=int(elapsed))
         build_message = f"{'Succeeded' if status == 0 else 'Failed'} in {elapsed_delta}"
@@ -324,106 +234,167 @@ class MachCommands(CommandBase):
             notification.icon = path.join(self.get_top_dir(), "resources", "servo_64.png")
             notification.send(block=False)
 
+    @Command('run-post-build-tasks', description='Run only the post-build tasks', category='build')
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
+    def run_post_build_tasks_cmd(self, build_type: BuildType, *_args, **_kwargs):
+        return self.run_post_build_tasks(build_type)
 
-def otool(s):
-    o = subprocess.Popen(['/usr/bin/otool', '-L', s], stdout=subprocess.PIPE)
-    for line in map(lambda s: s.decode('ascii'), o.stdout):
-        if line[0] == '\t':
-            yield line.split(' ', 1)[0][1:]
+    def run_post_build_tasks(self, build_type: BuildType) -> int:
+        # Post build steps are handled elsewhere for the Android build.
+        if self.is_android_build:
+            return 0
+
+        platform = servo.platform.get()
+        target_triple = self.cross_compile_target or servo.platform.host_triple()
+
+        binary_path = self.get_binary_path(build_type, target=self.cross_compile_target)
+        binary_dir = os.path.dirname(binary_path)
+        assert(os.path.exists(binary_dir))
+
+        status = 0
+        if platform.is_windows:
+            build_path = path.join(binary_dir, "build")
+            assert os.path.exists(build_path)
+
+            vs_dirs = self.vs_dirs()
+            process = subprocess.Popen('("%s" %s > nul) && "python" -c "import os; print(repr(os.environ))"' %
+                                       (os.path.join(vs_dirs['vcdir'], "Auxiliary", "Build", "vcvarsall.bat"), "x64"),
+                                       stdout=subprocess.PIPE, shell=True)
+            stdout, stderr = process.communicate()
+            exitcode = process.wait()
+            encoding = locale.getpreferredencoding()  # See https://stackoverflow.com/a/9228117
+            if exitcode == 0:
+                decoded = stdout.decode(encoding)
+                if decoded.startswith("environ("):
+                    decoded = decoded.strip()[8:-1]
+                os.environ.update(eval(decoded))
+            else:
+                print("Failed to run vcvarsall. stderr:")
+                print(stderr.decode(encoding))
+                exit(1)
+
+            # on msvc, we need to copy in some DLLs in to the servo.exe dir and the directory for unit tests.
+            def package_generated_shared_libraries(libs, build_path, servo_exe_dir):
+                for root, dirs, files in os.walk(build_path):
+                    remaining_libs = list(libs)
+                    for lib in libs:
+                        if lib in files:
+                            shutil.copy(path.join(root, lib), servo_exe_dir)
+                            remaining_libs.remove(lib)
+                            continue
+                    libs = remaining_libs
+                    if not libs:
+                        return True
+                for lib in libs:
+                    print("WARNING: could not find " + lib)
+
+            print("Packaging EGL DLLs")
+            egl_libs = ["libEGL.dll", "libGLESv2.dll"]
+            status = 0
+            if not package_generated_shared_libraries(egl_libs, build_path, binary_dir):
+                status = 1
+
+            # Copy GStreamer DLLs into the binary target directory.
+            if self.enable_media:
+                print("Packaging gstreamer DLLs")
+                if not package_gstreamer_dlls(binary_dir, target_triple):
+                    status = 1
+
+            print("Packaging MSVC DLLs")
+            vs_dirs = self.vs_dirs()
+            if not package_msvc_dlls(binary_dir, target_triple, vs_dirs['vcdir'], vs_dirs['vs_version']):
+                status = 1
+
+        elif platform.is_macos:
+            if self.enable_media:
+                if not copy_gstreamer_dylibs(binary_path, self.cross_compile_target):
+                    return 1
+
+            # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
+            # like Instruments.app.
+            try:
+                import Cocoa
+                icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
+                icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
+                if icon is not None:
+                    Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon, binary_path, 0)
+            except ImportError:
+                pass
+
+        return status
 
 
-def install_name_tool(binary, *args):
-    try:
-        subprocess.check_call(['install_name_tool', *args, binary])
-    except subprocess.CalledProcessError as e:
-        print("install_name_tool exited with return value %d" % e.returncode)
-
-
-def change_link_name(binary, old, new):
-    install_name_tool(binary, '-change', old, f"@executable_path/{new}")
-
-
-def is_system_library(lib):
-    return lib.startswith("/System/Library") or lib.startswith("/usr/lib")
-
-
-def is_relocatable_library(lib):
-    return lib.startswith("@rpath/")
-
-
-def change_non_system_libraries_path(libraries, relative_path, binary):
-    for lib in libraries:
-        if is_system_library(lib) or is_relocatable_library(lib):
+def otool(binary_path: str, rpath_root: str) -> Set[str]:
+    results: Set[str] = set()
+    lines = subprocess.check_output(['/usr/bin/otool', '-L', binary_path]).decode("utf8").splitlines()
+    for line in lines:
+        if line[0] != '\t':
             continue
-        new_path = path.join(relative_path, path.basename(lib))
-        change_link_name(binary, lib, new_path)
+        results.add(resolve_rpath(line.split(' ', 1)[0][1:], rpath_root))
+    return results
 
 
 def resolve_rpath(lib, rpath_root):
-    if not is_relocatable_library(lib):
+    if not lib.startswith("@rpath/"):
         return lib
 
     rpaths = ['', '../', 'gstreamer-1.0/']
     for rpath in rpaths:
-        full_path = rpath_root + lib.replace('@rpath/', rpath)
+        full_path = path.join(rpath_root, lib.replace('@rpath/', rpath))
         if path.exists(full_path):
             return path.normpath(full_path)
 
     raise Exception("Unable to satisfy rpath dependency: " + lib)
 
 
-def copy_dependencies(binary_path, lib_path, gst_lib_dir):
-    relative_path = path.relpath(lib_path, path.dirname(binary_path)) + "/"
-
-    # Update binary libraries
-    binary_dependencies = set(otool(binary_path))
-    change_non_system_libraries_path(binary_dependencies, relative_path, binary_path)
-
-    plugins = [os.path.join(gst_lib_dir, "gstreamer-1.0", plugin) for plugin in macos_plugins()]
-    binary_dependencies = binary_dependencies.union(plugins)
-
-    # Update dependencies libraries
-    need_checked = binary_dependencies
-    checked = set()
-    while need_checked:
-        checking = set(need_checked)
-        need_checked = set()
-        for f in checking:
-            # No need to check these for their dylibs
-            if is_system_library(f):
-                continue
-            full_path = resolve_rpath(f, gst_lib_dir)
-            need_relinked = set(otool(full_path))
-            new_path = path.join(lib_path, path.basename(full_path))
-            if not path.exists(new_path):
-                shutil.copyfile(full_path, new_path)
-            change_non_system_libraries_path(need_relinked, relative_path, new_path)
-            need_checked.update(need_relinked)
-        checked.update(checking)
-        need_checked.difference_update(checked)
-
-
-def package_gstreamer_dylibs(cross_compilation_target, servo_bin):
+def copy_gstreamer_dylibs(servo_binary: str, cross_compilation_target=None):
+    # The GStreamer root is None if we are cross-compiling.
     gst_root = servo.platform.get().gstreamer_root(cross_compilation_target)
-
-    # This might be None if we are cross-compiling.
     if not gst_root:
         return True
 
-    lib_dir = path.join(path.dirname(servo_bin), "lib")
-    if os.path.exists(lib_dir):
-        shutil.rmtree(lib_dir)
-    os.mkdir(lib_dir)
+    # Start from a clean slate.
+    lib_dest_dir = path.join(path.dirname(servo_binary), "lib")
+    if os.path.exists(lib_dest_dir):
+        print(f" * Removing {lib_dest_dir}")
+        shutil.rmtree(lib_dest_dir)
+    os.mkdir(lib_dest_dir)
+
+    # Copy all binary dependencies based on the binary and the plugins we load dynamically.
+    print(f" * Copying GStreamer dylibs to {lib_dest_dir}...")
+    gst_root_libs = path.join(gst_root, 'lib')
+    plugins = [os.path.join(gst_root_libs, "gstreamer-1.0", plugin) for plugin in macos_plugins()]
+    binary_dependencies = otool(servo_binary, gst_root_libs).union(plugins)
+
+    # This is to avoid processing the same dependencies over and over again.
+    count = 0
+    already_processed: set[str] = set()
     try:
-        copy_dependencies(servo_bin, lib_dir, path.join(gst_root, 'lib', ''))
+        while binary_dependencies:
+            installed_path = binary_dependencies.pop()
+            already_processed.add(installed_path)
+
+            # Don't copy system libraries.
+            if installed_path.startswith("/System/Library") or installed_path.startswith("/usr/lib"):
+                continue
+
+            dest_path = path.join(lib_dest_dir, path.basename(installed_path))
+            shutil.copyfile(installed_path, dest_path)
+            count += 1
+
+            new_dependencies = otool(installed_path, gst_root_libs) - already_processed
+            binary_dependencies.update(new_dependencies)
+
     except Exception as e:
-        print("ERROR: could not package required dylibs")
+        print("ERROR: could not copy required dylibs")
         print(e)
         return False
+
+    print(f" * Copied {count} dylibs.")
     return True
 
 
-def package_gstreamer_dlls(env, servo_exe_dir, target):
+def package_gstreamer_dlls(servo_exe_dir, target):
     gst_root = servo.platform.get().gstreamer_root(cross_compilation_target=target)
     if not gst_root:
         print("Could not find GStreamer installation directory.")

@@ -41,6 +41,9 @@ class Windows(Base):
     def executable_suffix(self):
         return ".exe"
 
+    def shared_library_name(self, name: str) -> str:
+        return f"{name}.dll"
+
     def library_path_variable_name(self):
         return "LIB"
 

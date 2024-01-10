@@ -332,28 +332,31 @@ class CommandBase(object):
         apk_name = "servoapp.apk"
         return path.join(base_path, build_type.directory_name(), apk_name)
 
-    def get_binary_path(self, build_type: BuildType, target=None, android=False, simpleservo=False):
+    def get_binary_path(self, build_type: BuildType, target=None, android=None):
+        if not android:
+            android = self.is_android_build
+
         base_path = util.get_target_dir()
-        if android:
+        if self.is_android_build:
             base_path = path.join(base_path, "android", self.config["android"]["target"])
-            simpleservo = True
         elif target:
             base_path = path.join(base_path, target)
 
-        binary_name = f"servo{servo.platform.get().executable_suffix()}"
-        if simpleservo:
-            if sys.platform == "win32":
-                binary_name = "simpleservo.dll"
-            elif sys.platform == "darwin":
-                binary_name = "libsimpleservo.dylib"
-            else:
-                binary_name = "libsimpleservo.so"
+        platform = servo.platform.get()
+        minibrowser_path = path.join(base_path, build_type.directory_name(),
+                                     f"servo{platform.executable_suffix()}")
+        simpleservo_path = path.join(base_path, build_type.directory_name(),
+                                     platform.shared_library_name("simpleservo"))
 
-        binary_path = path.join(base_path, build_type.directory_name(), binary_name)
-
-        if not path.exists(binary_path):
+        simpleservo_mtime = path.getmtime(simpleservo_path) if path.exists(simpleservo_path) else None
+        minibrowser_mtime = path.getmtime(minibrowser_path) if path.exists(minibrowser_path) else None
+        if not simpleservo_mtime and not minibrowser_mtime:
             raise BuildNotFound('No Servo binary found. Perhaps you forgot to run `./mach build`?')
-        return binary_path
+        if not minibrowser_mtime:
+            return simpleservo_path
+        if not simpleservo_mtime:
+            return minibrowser_path
+        return simpleservo_path if simpleservo_mtime > minibrowser_mtime else minibrowser_mtime
 
     def detach_volume(self, mounted_volume):
         print("Detaching volume {}".format(mounted_volume))
@@ -487,6 +490,11 @@ class CommandBase(object):
             (vsinstalldir, vs_version, msbuild_version) = find_highest_msvc_version()
         msbuildinstalldir = os.path.join(vsinstalldir, "MSBuild", msbuild_version, "Bin")
         vcinstalldir = os.environ.get("VCINSTALLDIR", "") or os.path.join(vsinstalldir, "VC")
+
+        if not os.path.exists(vcinstalldir):
+            print(f"Can't find Visual C++ {vs_version} installation at {vcinstalldir}.")
+            sys.exit(1)
+
         return {
             'msbuild': msbuildinstalldir,
             'vsdir': vsinstalldir,

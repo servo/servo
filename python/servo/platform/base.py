@@ -56,6 +56,9 @@ class Base:
     def executable_suffix(self) -> str:
         return ""
 
+    def shared_library_name(self, name: str) -> str:
+        raise NotImplementedError("Platform does not have shared object suffix implementation.")
+
     def _platform_bootstrap(self, _force: bool) -> bool:
         raise NotImplementedError("Bootstrap installation detection not yet available.")
 

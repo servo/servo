@@ -10,8 +10,8 @@
 import json
 import os
 import os.path as path
+import shutil
 import subprocess
-from shutil import copytree, rmtree, copy2
 from typing import List
 
 import mozdebug
@@ -261,10 +261,10 @@ class PostBuildCommands(CommandBase):
                     destination = path.join(docs, name)
                     if path.isdir(full_name):
                         if path.exists(destination):
-                            rmtree(destination)
-                        copytree(full_name, destination)
+                            shutil.rmtree(destination)
+                        shutil.copytree(full_name, destination)
                     else:
-                        copy2(full_name, destination)
+                        shutil.copy2(full_name, destination)
 
         env = self.build_env()
         returncode = self.run_cargo_build_like_command("doc", params, env=env, **kwargs)
@@ -273,4 +273,4 @@ class PostBuildCommands(CommandBase):
 
         static = path.join(self.context.topdir, "etc", "doc.servo.org")
         for name in os.listdir(static):
-            copy2(path.join(static, name), path.join(docs, name))
+            shutil.copy2(path.join(static, name), path.join(docs, name))

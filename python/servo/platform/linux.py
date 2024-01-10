@@ -85,6 +85,9 @@ class Linux(Base):
     def library_path_variable_name(self):
         return "LD_LIBRARY_PATH"
 
+    def shared_library_name(self, name: str):
+        return f"lib{name}.so"
+
     @staticmethod
     def get_distro_and_version() -> Tuple[str, str]:
         distrib = distro.name()
