@@ -32,7 +32,11 @@ let
       allowedRequisites =
         lib.mapNullable (rs: rs ++ [ bintools ]) (stdenv.allowedRequisites or null);
     };
-    stdenv = mkStdenvWithLibc llvmPackages_11.stdenv glibc;
+
+    # We need clangStdenv with:
+    # - clang < 16 (#30587)
+    # - glibc 2.38 (#31054)
+    stdenv = mkStdenvWithLibc llvmPackages_15.stdenv glibc;
 in
 stdenv.mkDerivation rec {
   name = "servo-env";
@@ -121,7 +125,7 @@ stdenv.mkDerivation rec {
     darwin.apple_sdk.frameworks.AppKit
   ]);
 
-  LIBCLANG_PATH = llvmPackages_11.clang-unwrapped.lib + "/lib/";
+  LIBCLANG_PATH = llvmPackages_15.clang-unwrapped.lib + "/lib/";
 
   # Allow cargo to download crates
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
