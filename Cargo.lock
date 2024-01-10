@@ -3660,7 +3660,6 @@ dependencies = [
  "script_traits",
  "servo_config",
  "servo_url",
- "time 0.1.45",
 ]
 
 [[package]]
@@ -3944,7 +3943,6 @@ dependencies = [
  "servo_arc",
  "servo_rand",
  "servo_url",
- "time 0.1.45",
  "url",
  "uuid",
  "webrender_api",

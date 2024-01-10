@@ -5,6 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
@@ -15,7 +16,6 @@ use profile_traits::time::{send_profile_data, ProfilerCategory, ProfilerChan, Ti
 use script_traits::{ConstellationControlMsg, LayoutMsg, ProgressiveWebMetricType};
 use servo_config::opts;
 use servo_url::ServoUrl;
-use time::precise_time_ns;
 
 pub trait ProfilerMetadataFactory {
     fn new_metadata(&self) -> Option<TimerMetadata>;
@@ -32,8 +32,8 @@ pub trait ProgressiveWebMetric {
 /// TODO make this configurable
 /// maximum task time is 50ms (in ns)
 pub const MAX_TASK_NS: u64 = 50000000;
-/// 10 second window (in ns)
-const INTERACTIVE_WINDOW_SECONDS_IN_NS: u64 = 10000000000;
+/// 10 second window
+const INTERACTIVE_WINDOW_SECONDS: Duration = Duration::from_secs(10);
 
 pub trait ToMs<T> {
     fn to_ms(&self) -> T;
@@ -63,7 +63,10 @@ fn set_metric<U: ProgressiveWebMetric>(
     };
     let now = match metric_time {
         Some(time) => time,
-        None => precise_time_ns(),
+        None => SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64,
     };
     let time = now - navigation_start;
     attr.set(Some(time));
@@ -113,13 +116,13 @@ pub struct InteractiveMetrics {
 
 #[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub struct InteractiveWindow {
-    start: u64,
+    start: SystemTime,
 }
 
 impl InteractiveWindow {
     pub fn new() -> InteractiveWindow {
         InteractiveWindow {
-            start: precise_time_ns(),
+            start: SystemTime::now(),
         }
     }
 
@@ -128,16 +131,22 @@ impl InteractiveWindow {
     //   restart: there was a task > 50ms
     //   not all documents are interactive
     pub fn start_window(&mut self) {
-        self.start = precise_time_ns();
+        self.start = SystemTime::now();
     }
 
     /// check if 10s has elapsed since start
     pub fn needs_check(&self) -> bool {
-        precise_time_ns() - self.start >= INTERACTIVE_WINDOW_SECONDS_IN_NS
+        SystemTime::now()
+            .duration_since(self.start)
+            .unwrap_or_default() >=
+            INTERACTIVE_WINDOW_SECONDS
     }
 
     pub fn get_start(&self) -> u64 {
         self.start
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64
     }
 }
 
@@ -161,7 +170,12 @@ impl InteractiveMetrics {
 
     pub fn set_dom_content_loaded(&self) {
         if self.dom_content_loaded.get().is_none() {
-            self.dom_content_loaded.set(Some(precise_time_ns()));
+            self.dom_content_loaded.set(Some(
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_nanos() as u64,
+            ));
         }
     }
 

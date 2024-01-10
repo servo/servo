@@ -4,6 +4,8 @@
 
 #![deny(unsafe_code)]
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use cookie::Cookie;
 use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use http::{Error as HttpError, HeaderMap, StatusCode};
@@ -18,11 +20,11 @@ use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
+use num_traits::Zero;
 use rustls::Certificate;
 use serde::{Deserialize, Serialize};
 use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use time::precise_time_ns;
 use webrender_api::{ImageData, ImageDescriptor, ImageKey};
 
 use crate::filemanager_thread::FileManagerThreadMsg;
@@ -594,15 +596,19 @@ impl ResourceFetchTiming {
         if !self.timing_check_passed && !should_attribute_always_be_updated {
             return;
         }
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
         match attribute {
-            ResourceAttribute::DomainLookupStart => self.domain_lookup_start = precise_time_ns(),
+            ResourceAttribute::DomainLookupStart => self.domain_lookup_start = now,
             ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
-            ResourceAttribute::RequestStart => self.request_start = precise_time_ns(),
-            ResourceAttribute::ResponseStart => self.response_start = precise_time_ns(),
+            ResourceAttribute::RequestStart => self.request_start = now,
+            ResourceAttribute::ResponseStart => self.response_start = now,
             ResourceAttribute::RedirectStart(val) => match val {
                 RedirectStartValue::Zero => self.redirect_start = 0,
                 RedirectStartValue::FetchStart => {
-                    if self.redirect_start == 0 {
+                    if self.redirect_start.is_zero() {
                         self.redirect_start = self.fetch_start
                     }
                 },
@@ -611,16 +617,14 @@ impl ResourceFetchTiming {
                 RedirectEndValue::Zero => self.redirect_end = 0,
                 RedirectEndValue::ResponseEnd => self.redirect_end = self.response_end,
             },
-            ResourceAttribute::FetchStart => self.fetch_start = precise_time_ns(),
+            ResourceAttribute::FetchStart => self.fetch_start = now,
             ResourceAttribute::ConnectStart(val) => self.connect_start = val,
             ResourceAttribute::ConnectEnd(val) => self.connect_end = val,
-            ResourceAttribute::SecureConnectionStart => {
-                self.secure_connection_start = precise_time_ns()
-            },
-            ResourceAttribute::ResponseEnd => self.response_end = precise_time_ns(),
+            ResourceAttribute::SecureConnectionStart => self.secure_connection_start = now,
+            ResourceAttribute::ResponseEnd => self.response_end = now,
             ResourceAttribute::StartTime(val) => match val {
                 ResourceTimeValue::RedirectStart
-                    if self.redirect_start == 0 || !self.timing_check_passed => {},
+                    if self.redirect_start.is_zero() || !self.timing_check_passed => {},
                 _ => self.start_time = self.get_time_value(val),
             },
         }
@@ -629,7 +633,10 @@ impl ResourceFetchTiming {
     fn get_time_value(&self, time: ResourceTimeValue) -> u64 {
         match time {
             ResourceTimeValue::Zero => 0,
-            ResourceTimeValue::Now => precise_time_ns(),
+            ResourceTimeValue::Now => SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos() as u64,
             ResourceTimeValue::FetchStart => self.fetch_start,
             ResourceTimeValue::RedirectStart => self.redirect_start,
         }

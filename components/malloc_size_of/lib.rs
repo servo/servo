@@ -892,6 +892,10 @@ impl MallocSizeOf for xml5ever::QualName {
 malloc_size_of_is_0!(time::Duration);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(time::Tm);
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(std::time::Duration);
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(std::time::SystemTime);
 
 #[cfg(feature = "servo")]
 impl<T> MallocSizeOf for hyper_serde::Serde<T>
