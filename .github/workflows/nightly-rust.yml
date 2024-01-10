@@ -2,7 +2,7 @@ name: Test with nightly rustc
 
 on:
   schedule:
-    # Run at 5:30 am, daily.
+    # Run at 5:15 am, daily.
     - cron: '15 5 * * *'
   workflow_dispatch:
 
