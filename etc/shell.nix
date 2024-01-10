@@ -2,7 +2,7 @@
 # NOTE: This does not work offline or for nix-build
 
 with import (builtins.fetchTarball {
-  url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
+  url = "https://github.com/NixOS/nixpkgs/archive/70bdadeb94ffc8806c0570eb5c2695ad29f0e421.tar.gz";
 }) {
   overlays = [
     (import (builtins.fetchTarball {
@@ -17,6 +17,9 @@ let
       cargo = rustToolchain;
       rustc = rustToolchain;
     };
+    pkgs_gnumake_4_3 = import (builtins.fetchTarball {
+      url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
+    }) {};
 in
 clangStdenv.mkDerivation rec {
   name = "servo-env";
@@ -38,11 +41,12 @@ clangStdenv.mkDerivation rec {
     # Build utilities
     cmake dbus gcc git pkg-config which llvm perl yasm m4
     (python3.withPackages (ps: with ps; [virtualenv pip dbus]))
+
     # This pins gnumake to 4.3 since 4.4 breaks jobserver
     # functionality in mozjs and causes builds to be extremely
     # slow as it behaves as if -j1 was passed.
     # See https://github.com/servo/mozjs/issues/375
-    gnumake
+    pkgs_gnumake_4_3.gnumake
 
     # crown needs to be in our Cargo workspace so we can test it with `mach test`. This means its
     # dependency tree is listed in the main Cargo.lock, making it awkward to build with Nix because
