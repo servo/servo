@@ -2,7 +2,7 @@
 # NOTE: This does not work offline or for nix-build
 
 with import (builtins.fetchTarball {
-  url = "https://github.com/NixOS/nixpkgs/archive/46ae0210ce163b3cba6c7da08840c1d63de9c701.tar.gz";
+  url = "https://github.com/NixOS/nixpkgs/archive/70bdadeb94ffc8806c0570eb5c2695ad29f0e421.tar.gz";
 }) {
   overlays = [
     (import (builtins.fetchTarball {
@@ -17,9 +17,6 @@ let
       cargo = rustToolchain;
       rustc = rustToolchain;
     };
-    pkgs_clangStdenv = import (builtins.fetchTarball {
-      url = "https://github.com/NixOS/nixpkgs/archive/70bdadeb94ffc8806c0570eb5c2695ad29f0e421.tar.gz";
-    }) {};
     pkgs_gnumake_4_3 = import (builtins.fetchTarball {
       url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
     }) {};
@@ -111,7 +108,7 @@ clangStdenv.mkDerivation rec {
     darwin.apple_sdk.frameworks.AppKit
   ]);
 
-  LIBCLANG_PATH = pkgs_clangStdenv.llvmPackages.clang-unwrapped.lib + "/lib/";
+  LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
 
   # Allow cargo to download crates
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
