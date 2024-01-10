@@ -1460,7 +1460,7 @@ def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
     return "()"
 
 
-TODO_SWITCH_TO_FLOAT_32 = ['DOMMatrixReadOnly', 'XRView', 'XRRigidTransform', 'XRRay', 'GamepadPose']
+TODO_SWITCH_TO_FLOAT_32 = ['XRView', 'XRRigidTransform', 'XRRay', 'GamepadPose']
 
 def builtin_return_type(returnType):
     result = CGGeneric(builtinNames[returnType.tag()])

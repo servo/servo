@@ -8,10 +8,23 @@ use std::ptr;
 
 use js::jsapi::{Heap, JSObject, JS_GetArrayBufferViewBuffer};
 use js::rust::wrappers::DetachArrayBuffer;
-use js::rust::CustomAutoRooterGuard;
+use js::rust::{CustomAutoRooterGuard, MutableHandleObject};
 use js::typedarray::{CreateWith, Float32Array};
 
 use crate::script_runtime::JSContext;
+
+pub fn create_float32_array(
+    cx: JSContext,
+    data: &[f32],
+    dest: MutableHandleObject,
+) -> Result<Float32Array, ()> {
+    let res = unsafe { Float32Array::create(*cx, CreateWith::Slice(data), dest) };
+    if res.is_err() {
+        Err(())
+    } else {
+        Float32Array::from(dest.get())
+    }
+}
 
 #[derive(Default, JSTraceable)]
 pub struct HeapFloat32Array {
@@ -21,14 +34,7 @@ pub struct HeapFloat32Array {
 impl HeapFloat32Array {
     pub fn set_data(&self, cx: JSContext, data: &[f32]) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-
-        let res =
-            unsafe { Float32Array::create(*cx, CreateWith::Slice(&data), array.handle_mut()) };
-
-        if res.is_err() {
-            return Err(());
-        }
-
+        let _ = create_float32_array(cx, data, array.handle_mut())?;
         self.internal.set(*array);
         Ok(())
     }
