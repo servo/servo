@@ -21,22 +21,11 @@ let
       url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
     }) {};
 
-    mkStdenvWithLibc = stdenv: libc: let
-      bintools = stdenv.cc.bintools.override {
-        inherit libc;
-      };
-    in stdenv.override {
-      cc = stdenv.cc.override {
-        inherit libc bintools;
-      };
-      allowedRequisites =
-        lib.mapNullable (rs: rs ++ [ bintools ]) (stdenv.allowedRequisites or null);
-    };
-
     # We need clangStdenv with:
     # - clang < 16 (#30587)
     # - glibc 2.38 (#31054)
-    stdenv = mkStdenvWithLibc llvmPackages_15.stdenv glibc;
+    llvmPackages = llvmPackages_15;
+    stdenv = llvmPackages.stdenv;
 in
 stdenv.mkDerivation rec {
   name = "servo-env";
@@ -125,7 +114,7 @@ stdenv.mkDerivation rec {
     darwin.apple_sdk.frameworks.AppKit
   ]);
 
-  LIBCLANG_PATH = llvmPackages_15.clang-unwrapped.lib + "/lib/";
+  LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
 
   # Allow cargo to download crates
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
