@@ -12,9 +12,9 @@ mod tables {
         table.slots.iter().map(|row| row.len()).collect()
     }
 
-    fn slot_is_cell_with_id(slot: &TableSlot, id: u8) -> bool {
+    fn slot_is_cell_with_id(slot: &TableSlot, id: usize) -> bool {
         match slot {
-            TableSlot::Cell(TableSlotCell { id: cell_id, .. }) if id == *cell_id => true,
+            TableSlot::Cell(cell) if cell.node_id() == id => true,
             _ => false,
         }
     }
@@ -41,14 +41,14 @@ mod tables {
 
     #[test]
     fn test_empty_table() {
-        let table_builder = TableBuilder::default();
+        let table_builder = TableBuilder::new_for_tests();
         let table = table_builder.finish();
         assert!(table.slots.is_empty())
     }
 
     #[test]
     fn test_simple_table() {
-        let mut table_builder = TableBuilder::default();
+        let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
         table_builder.add_cell(TableSlotCell::mock_for_testing(1, 1, 1));
@@ -71,7 +71,7 @@ mod tables {
 
     #[test]
     fn test_simple_rowspan() {
-        let mut table_builder = TableBuilder::default();
+        let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
         table_builder.add_cell(TableSlotCell::mock_for_testing(1, 1, 1));
@@ -100,7 +100,7 @@ mod tables {
 
     #[test]
     fn test_simple_colspan() {
-        let mut table_builder = TableBuilder::default();
+        let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
         table_builder.add_cell(TableSlotCell::mock_for_testing(1, 3, 1));
@@ -162,7 +162,7 @@ mod tables {
 
     #[test]
     fn test_simple_table_model_error() {
-        let mut table_builder = TableBuilder::default();
+        let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
         table_builder.add_cell(TableSlotCell::mock_for_testing(1, 1, 1));
@@ -194,7 +194,7 @@ mod tables {
 
     #[test]
     fn test_simple_rowspan_0() {
-        let mut table_builder = TableBuilder::default();
+        let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
         table_builder.add_cell(TableSlotCell::mock_for_testing(1, 1, 1));
@@ -232,7 +232,7 @@ mod tables {
 
     #[test]
     fn test_incoming_rowspans() {
-        let mut table_builder = TableBuilder::default();
+        let mut table_builder = TableBuilder::new_for_tests();
 
         table_builder.start_row();
         table_builder.add_cell(TableSlotCell::mock_for_testing(1, 1, 1));

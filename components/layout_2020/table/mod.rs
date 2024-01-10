@@ -2,46 +2,80 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Table layout.
-//! See https://html.spec.whatwg.org/multipage/table-processing-model.
+//! HTML Tables (╯°□°)╯︵ ┻━┻.
+//!
+//! See <https://html.spec.whatwg.org/multipage/table-processing-model> and
+//! <https://drafts.csswg.org/css-tables>.  This is heavily based on the latter specification, but
+//! note that it is still an Editor's Draft, so there is no guarantee that what is implemented here
+//! matches other browsers or the current specification.
 
 mod construct;
+mod layout;
 
-use app_units::Au;
 pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
-use euclid::num::Zero;
-use euclid::{Point2D, UnknownUnit, Vector2D};
+use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
 use serde::Serialize;
+use servo_arc::Arc;
+use style::properties::ComputedValues;
+use style_traits::dom::OpaqueNode;
 
 use super::flow::BlockFormattingContext;
-use crate::context::LayoutContext;
 use crate::flow::BlockContainer;
-use crate::formatting_contexts::IndependentLayout;
-use crate::positioned::PositioningContext;
-use crate::sizing::ContentSizes;
-use crate::ContainingBlock;
+use crate::fragment_tree::BaseFragmentInfo;
 
-#[derive(Debug, Default, Serialize)]
+pub type TableSize = Size2D<usize, UnknownUnit>;
+
+#[derive(Debug, Serialize)]
 pub struct Table {
+    /// The style of this table.
+    #[serde(skip_serializing)]
+    style: Arc<ComputedValues>,
+
+    /// The content of the slots of this table.
     pub slots: Vec<Vec<TableSlot>>,
+
+    /// The size of this table.
+    pub size: TableSize,
 }
 
 impl Table {
-    pub(crate) fn inline_content_sizes(&self) -> ContentSizes {
-        ContentSizes::zero()
+    pub(crate) fn new(style: Arc<ComputedValues>) -> Self {
+        Self {
+            style,
+            slots: Vec::new(),
+            size: TableSize::zero(),
+        }
     }
 
-    pub(crate) fn layout(
+    /// Convenience method for get() that returns a SlotAndLocation
+    fn get_slot<'a>(&'a self, coords: TableSlotCoordinates) -> Option<&'a TableSlot> {
+        self.slots.get(coords.y)?.get(coords.x)
+    }
+
+    fn resolve_first_cell_coords(
         &self,
-        _layout_context: &LayoutContext,
-        _positioning_context: &mut PositioningContext,
-        _containing_block: &ContainingBlock,
-    ) -> IndependentLayout {
-        IndependentLayout {
-            fragments: Vec::new(),
-            content_block_size: Au::zero(),
-            last_inflow_baseline_offset: None,
+        coords: TableSlotCoordinates,
+    ) -> Option<TableSlotCoordinates> {
+        match self.get_slot(coords) {
+            Some(&TableSlot::Cell(_)) => Some(coords),
+            Some(&TableSlot::Spanned(ref offsets)) => Some(coords - offsets[0]),
+            _ => return None,
+        }
+    }
+
+    fn resolve_first_cell(&self, coords: TableSlotCoordinates) -> Option<&TableSlotCell> {
+        let resolved_coords = match self.resolve_first_cell_coords(coords) {
+            Some(coords) => coords,
+            None => return None,
+        };
+
+        let slot = self.get_slot(resolved_coords);
+        match slot {
+            Some(&TableSlot::Cell(ref cell)) => Some(cell),
+            _ => unreachable!(
+                "Spanned slot should not point to an empty cell or another spanned slot."
+            ),
         }
     }
 }
@@ -61,12 +95,16 @@ pub struct TableSlotCell {
     /// the remaining rows in the row group.
     rowspan: usize,
 
-    // An id used for testing purposes.
-    pub id: u8,
+    /// The style of this table cell.
+    #[serde(skip_serializing)]
+    style: Arc<ComputedValues>,
+
+    /// The [`BaseFragmentInfo`] of this cell.
+    base_fragment_info: BaseFragmentInfo,
 }
 
 impl TableSlotCell {
-    pub fn mock_for_testing(id: u8, colspan: usize, rowspan: usize) -> Self {
+    pub fn mock_for_testing(id: usize, colspan: usize, rowspan: usize) -> Self {
         Self {
             contents: BlockFormattingContext {
                 contents: BlockContainer::BlockLevelBoxes(Vec::new()),
@@ -74,8 +112,14 @@ impl TableSlotCell {
             },
             colspan,
             rowspan,
-            id,
+            style: ComputedValues::initial_values().to_arc(),
+            base_fragment_info: BaseFragmentInfo::new_for_node(OpaqueNode(id)),
         }
+    }
+
+    /// Get the node id of this cell's [`BaseFragmentInfo`]. This is used for unit tests.
+    pub fn node_id(&self) -> usize {
+        self.base_fragment_info.tag.node.0
     }
 }
 

@@ -100,7 +100,7 @@
   "layout.columns.enabled": false,
   "layout.flexbox.enabled": false,
   "layout.legacy_layout": false,
-  "layout.tables.enabled": false,
+  "layout.tables.enabled": true,
   "layout.threads": 3,
   "layout.writing-mode.enabled": false,
   "media.glvideo.enabled": false,
