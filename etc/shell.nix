@@ -2,7 +2,7 @@
 # NOTE: This does not work offline or for nix-build
 
 with import (builtins.fetchTarball {
-  url = "https://github.com/NixOS/nixpkgs/archive/70bdadeb94ffc8806c0570eb5c2695ad29f0e421.tar.gz";
+  url = "https://github.com/NixOS/nixpkgs/archive/46ae0210ce163b3cba6c7da08840c1d63de9c701.tar.gz";
 }) {
   overlays = [
     (import (builtins.fetchTarball {
@@ -20,8 +20,15 @@ let
     pkgs_gnumake_4_3 = import (builtins.fetchTarball {
       url = "https://github.com/NixOS/nixpkgs/archive/6adf48f53d819a7b6e15672817fa1e78e5f4e84f.tar.gz";
     }) {};
+
+    # We need clangStdenv with:
+    # - clang < 16 (#30587)
+    # - clang < 15 (#31059)
+    # - glibc 2.38 (#31054)
+    llvmPackages = llvmPackages_14;
+    stdenv = llvmPackages.stdenv;
 in
-clangStdenv.mkDerivation rec {
+stdenv.mkDerivation rec {
   name = "servo-env";
 
   buildInputs = [
