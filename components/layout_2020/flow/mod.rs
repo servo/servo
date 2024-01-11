@@ -695,8 +695,10 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
             // NB: This will be a no-op if we're collapsing margins with our children since that
             // can only happen if we have no block-start padding and border.
             sequential_layout_state.advance_block_position(
-                (pbm.padding.block_start + pbm.border.block_start +
-                    clearance.unwrap_or_else(Au::zero).into()).into(),
+                (pbm.padding.block_start +
+                    pbm.border.block_start +
+                    clearance.unwrap_or_else(Au::zero).into())
+                .into(),
             );
 
             // We are about to lay out children. Update the offset between the block formatting
