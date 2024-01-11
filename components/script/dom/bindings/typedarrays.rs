@@ -28,7 +28,7 @@ pub fn create_float32_array(
 
 #[derive(Default, JSTraceable)]
 pub struct HeapFloat32Array {
-    internal: Heap<*mut JSObject>,
+    internal: Box<Heap<*mut JSObject>>,
 }
 
 impl HeapFloat32Array {
