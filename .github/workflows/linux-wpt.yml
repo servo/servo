@@ -51,6 +51,10 @@ jobs:
           path: release-binary
       - name: unPackage binary
         run: tar -xzf release-binary/target.tar.gz
+      # These dependencies are necessary to get dummy audio output on the
+      # GitHub Actions runner.
+      - name: Install audio dependencies
+        run: sudo apt-get install pulseaudio jackd2 alsa-utils dbus-x11
       - name: Bootstrap dependencies
         run: |
           python3 -m pip install --upgrade pip
