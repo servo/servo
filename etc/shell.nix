@@ -23,8 +23,9 @@ let
 
     # We need clangStdenv with:
     # - clang < 16 (#30587)
+    # - clang < 15 (#31059)
     # - glibc 2.38 (#31054)
-    llvmPackages = llvmPackages_15;
+    llvmPackages = llvmPackages_14;
     stdenv = llvmPackages.stdenv;
 in
 stdenv.mkDerivation rec {
