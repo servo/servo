@@ -17,7 +17,7 @@ arrayvec = "0.7"
 async-tungstenite = { version = "0.23", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.13"
 backtrace = "0.3"
-base64 = "0.21.6"
+base64 = "0.21.7"
 bitflags = "2.4"
 bluetooth_traits = { path = "components/shared/bluetooth" }
 byteorder = "1.5"
