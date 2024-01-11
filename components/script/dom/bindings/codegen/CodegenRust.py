@@ -119,7 +119,8 @@ builtinNames = {
     IDLType.Tags.unrestricted_float: 'f32',
     IDLType.Tags.float: 'Finite<f32>',
     IDLType.Tags.unrestricted_double: 'f64',
-    IDLType.Tags.double: 'Finite<f64>'
+    IDLType.Tags.double: 'Finite<f64>',
+    IDLType.Tags.float32array: 'Float32Array'
 }
 
 numericTags = [
@@ -1459,16 +1460,26 @@ def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
     return "()"
 
 
+def todo_switch_float_32(des):
+    return des.interface.identifier.name in ['XRView', 'XRRigidTransform', 'XRRay', 'GamepadPose']
+
+
+def builtin_return_type(returnType):
+    result = CGGeneric(builtinNames[returnType.tag()])
+    if returnType.nullable():
+        result = CGWrapper(result, pre="Option<", post=">")
+    return result
+
+
 # Returns a CGThing containing the type of the return value.
 def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType is None or returnType.isUndefined():
         # Nothing to declare
         return CGGeneric("()")
     if returnType.isPrimitive() and returnType.tag() in builtinNames:
-        result = CGGeneric(builtinNames[returnType.tag()])
-        if returnType.nullable():
-            result = CGWrapper(result, pre="Option<", post=">")
-        return result
+        return builtin_return_type(returnType)
+    if returnType.isTypedArray() and returnType.tag() in builtinNames and not todo_switch_float_32(descriptorProvider):
+        return builtin_return_type(returnType)
     if returnType.isDOMString():
         result = CGGeneric("DOMString")
         if returnType.nullable():
@@ -6494,6 +6505,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::rust::define_properties',
         'js::rust::get_object_class',
         'js::typedarray',
+        'js::typedarray::Float32Array',
         'crate::dom',
         'crate::dom::bindings',
         'crate::dom::bindings::codegen::InterfaceObjectMap',
