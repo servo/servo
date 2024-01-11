@@ -113,7 +113,7 @@ impl PerformanceResourceTiming {
                 DOMString::from(url.into_string()),
                 DOMString::from("resource"),
                 resource_timing.start_time as f64,
-                (resource_timing.response_end - resource_timing.start_time) as f64,
+                resource_timing.response_end as f64 - resource_timing.start_time as f64,
             ),
             initiator_type: initiator_type,
             next_hop: next_hop,
