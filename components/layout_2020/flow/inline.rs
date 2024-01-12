@@ -1974,7 +1974,9 @@ impl IndependentFormattingContext {
                     pbm.border,
                     margin,
                     None,
-                    independent_layout.last_inflow_baseline_offset.map(|t| t.into()),
+                    independent_layout
+                        .last_inflow_baseline_offset
+                        .map(|t| t.into()),
                     CollapsedBlockMargins::zero(),
                 )
             },

@@ -243,7 +243,8 @@ impl BlockFormattingContext {
             fragments: flow_layout.fragments,
             content_block_size: (flow_layout.content_block_size +
                 flow_layout.collapsible_margins_in_children.end.solve() +
-                clearance.unwrap_or_else(Length::zero)).into(),
+                clearance.unwrap_or_else(Length::zero))
+            .into(),
             last_inflow_baseline_offset: flow_layout.last_inflow_baseline_offset.map(|t| t.into()),
         }
     }
@@ -860,8 +861,9 @@ impl NonReplacedFormattingContext {
             clamp_au(
                 layout.content_block_size.into(),
                 min_box_size.block.into(),
-                max_box_size.block.map(|t| t.into())
-            ).into()
+                max_box_size.block.map(|t| t.into()),
+            )
+            .into()
         });
 
         let content_rect = LogicalRect {
@@ -943,15 +945,15 @@ impl NonReplacedFormattingContext {
                 },
             );
 
-
             content_size = LogicalVec2 {
                 inline: inline_size,
                 block: block_size.auto_is(|| {
                     clamp_au(
                         layout.content_block_size.into(),
                         min_box_size.block.into(),
-                        max_box_size.block.map(|t| t.into())
-                    ).into()
+                        max_box_size.block.map(|t| t.into()),
+                    )
+                    .into()
                 }),
             };
 
@@ -1015,8 +1017,9 @@ impl NonReplacedFormattingContext {
                         clamp_au(
                             layout.content_block_size.into(),
                             min_box_size.block.into(),
-                            max_box_size.block.map(|t| t.into())
-                        ).into()
+                            max_box_size.block.map(|t| t.into()),
+                        )
+                        .into()
                     }),
                 };
 
