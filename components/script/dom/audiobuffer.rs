@@ -262,7 +262,7 @@ impl AudioBufferMethods for AudioBuffer {
         let cx = GlobalScope::get_cx();
         let channel_number = channel_number as usize;
         let offset = start_in_channel as usize;
-        let mut dest = Vec::with_capacity(destination.len());
+        let mut dest = vec![0.0_f32; bytes_to_copy];
 
         // We either copy form js_channels or shared_channels.
         let js_channel = &self.js_channels.borrow()[channel_number];
