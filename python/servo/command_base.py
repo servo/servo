@@ -527,12 +527,6 @@ class CommandBase(object):
         if not (self.config["build"]["ccache"] == ""):
             env['CCACHE'] = self.config["build"]["ccache"]
 
-        # Ensure Rust uses hard floats and SIMD on ARM devices
-        if self.cross_compile_target and (
-            self.cross_compile_target.startswith('arm')
-                or self.cross_compile_target.startswith('aarch64')):
-            env['RUSTFLAGS'] += " -C target-feature=+neon"
-
         env["CARGO_TARGET_DIR"] = servo.util.get_target_dir()
 
         # Work around https://github.com/servo/servo/issues/24446
