@@ -563,7 +563,8 @@ impl HoistedAbsolutelyPositionedBox {
                             cbis - anchor - pbm.padding_border_sums.inline - margin_sum;
                         non_replaced
                             .inline_content_sizes(layout_context)
-                            .shrink_to_fit(available_size)
+                            .shrink_to_fit(available_size.into())
+                            .into()
                     });
 
                     // If the tentative used inline size is greater than ‘max-inline-size’,

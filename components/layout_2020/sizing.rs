@@ -4,6 +4,7 @@
 
 //! <https://drafts.csswg.org/css-sizing/>
 
+use app_units::Au;
 use serde::Serialize;
 use style::logical_geometry::WritingMode;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
@@ -11,24 +12,24 @@ use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::Zero;
 
-use crate::style_ext::ComputedValuesExt;
+use crate::style_ext::{Clamp, ComputedValuesExt};
 
 #[derive(Clone, Debug, Serialize)]
 pub(crate) struct ContentSizes {
-    pub min_content: Length,
-    pub max_content: Length,
+    pub min_content: Au,
+    pub max_content: Au,
 }
 
 /// <https://drafts.csswg.org/css-sizing/#intrinsic-sizes>
 impl ContentSizes {
     pub fn zero() -> Self {
         Self {
-            min_content: Length::zero(),
-            max_content: Length::zero(),
+            min_content: Au::zero(),
+            max_content: Au::zero(),
         }
     }
 
-    pub fn map(&self, f: impl Fn(Length) -> Length) -> Self {
+    pub fn map(&self, f: impl Fn(Au) -> Au) -> Self {
         Self {
             min_content: f(self.min_content),
             max_content: f(self.max_content),
@@ -52,7 +53,7 @@ impl ContentSizes {
 
 impl ContentSizes {
     /// <https://drafts.csswg.org/css2/visudet.html#shrink-to-fit-float>
-    pub fn shrink_to_fit(&self, available_size: Length) -> Length {
+    pub fn shrink_to_fit(&self, available_size: Au) -> Au {
         available_size.max(self.min_content).min(self.max_content)
     }
 }
@@ -100,28 +101,32 @@ pub(crate) fn outer_inline(
         .inline
         // Percentages for 'max-width' are treated as 'none'
         .and_then(|lp| lp.to_length());
-    let clamp = |l: Length| l.clamp_between_extremums(min_inline_size, max_inline_size);
+    let clamp = |l: Au| {
+        l.clamp_between_extremums(min_inline_size.into(), max_inline_size.map(|t| t.into()))
+    };
 
     let border_box_sizes = match inline_size {
         Some(non_auto) => {
-            let clamped = clamp(non_auto);
+            let clamped = clamp(non_auto.into());
             let border_box_size = match box_sizing {
-                BoxSizing::ContentBox => clamped + pb_lengths,
+                BoxSizing::ContentBox => clamped + pb_lengths.into(),
                 BoxSizing::BorderBox => clamped,
             };
             ContentSizes {
-                min_content: border_box_size,
-                max_content: border_box_size,
+                min_content: border_box_size.into(),
+                max_content: border_box_size.into(),
             }
         },
         None => get_content_size().map(|content_box_size| {
             match box_sizing {
                 // Clamp to 'min-width' and 'max-width', which are sizing the…
-                BoxSizing::ContentBox => clamp(content_box_size) + pb_lengths,
-                BoxSizing::BorderBox => clamp(content_box_size + pb_lengths),
+                BoxSizing::ContentBox => {
+                    (clamp(content_box_size.into()) + pb_lengths.into()).into()
+                },
+                BoxSizing::BorderBox => clamp((content_box_size + pb_lengths.into()).into()).into(),
             }
         }),
     };
 
-    border_box_sizes.map(|s| s + m_lengths)
+    border_box_sizes.map(|s| s + m_lengths.into())
 }

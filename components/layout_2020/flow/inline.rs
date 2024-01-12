@@ -1828,7 +1828,8 @@ impl IndependentFormattingContext {
                     let available_size = ifc.containing_block.inline_size - pbm_sums.inline_sum();
                     non_replaced
                         .inline_content_sizes(layout_context)
-                        .shrink_to_fit(available_size)
+                        .shrink_to_fit(available_size.into())
+                        .into()
                 });
 
                 // https://drafts.csswg.org/css2/visudet.html#min-max-widths
@@ -2327,8 +2328,8 @@ impl<'a> ContentSizesComputation<'a> {
 
                     if !run.glyph_store.is_whitespace() {
                         self.had_non_whitespace_content_yet = true;
-                        self.current_line.min_content += advance;
-                        self.current_line.max_content += self.pending_whitespace + advance;
+                        self.current_line.min_content += advance.into();
+                        self.current_line.max_content += (self.pending_whitespace + advance).into();
                         self.pending_whitespace = Length::zero();
                     } else {
                         // If this run is a forced line break, we *must* break the line
@@ -2358,7 +2359,7 @@ impl<'a> ContentSizesComputation<'a> {
                     self.containing_block_writing_mode,
                 );
 
-                self.current_line.min_content += self.pending_whitespace + outer.min_content;
+                self.current_line.min_content += (self.pending_whitespace + outer.min_content.into()).into();
                 self.current_line.max_content += outer.max_content;
                 self.pending_whitespace = Length::zero();
                 self.had_non_whitespace_content_yet = true;
@@ -2371,23 +2372,23 @@ impl<'a> ContentSizesComputation<'a> {
     }
 
     fn add_length(&mut self, l: Length) {
-        self.current_line.min_content += l;
-        self.current_line.max_content += l;
+        self.current_line.min_content += l.into();
+        self.current_line.max_content += l.into();
     }
 
     fn line_break_opportunity(&mut self) {
-        self.paragraph
-            .min_content
-            .max_assign(self.current_line.min_content);
-        self.current_line.min_content = Length::zero();
+        self.paragraph.min_content = std::cmp::max(
+            self.paragraph.min_content,
+            self.current_line.min_content,
+        );
     }
 
     fn forced_line_break(&mut self) {
         self.line_break_opportunity();
-        self.paragraph
-            .max_content
-            .max_assign(self.current_line.max_content);
-        self.current_line.max_content = Length::zero();
+        self.paragraph.max_content = std::cmp::max(
+            self.paragraph.max_content,
+            self.current_line.max_content,
+        );
     }
 
     /// Compute the [`ContentSizes`] of the given [`InlineFormattingContext`].
