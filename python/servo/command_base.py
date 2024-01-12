@@ -15,7 +15,6 @@ from typing import Dict, List, Optional
 import functools
 import gzip
 import itertools
-import json
 import locale
 import os
 import platform
@@ -476,23 +475,6 @@ class CommandBase(object):
 
     def msvc_package_dir(self, package):
         return servo.platform.windows.get_dependency_dir(package)
-
-    def vs_dirs(self):
-        assert 'windows' in servo.platform.host_triple()
-        vsinstalldir = os.environ.get('VSINSTALLDIR')
-        vs_version = os.environ.get('VisualStudioVersion')
-        if vsinstalldir and vs_version:
-            msbuild_version = get_msbuild_version(vs_version)
-        else:
-            (vsinstalldir, vs_version, msbuild_version) = find_highest_msvc_version()
-        msbuildinstalldir = os.path.join(vsinstalldir, "MSBuild", msbuild_version, "Bin")
-        vcinstalldir = os.environ.get("VCINSTALLDIR", "") or os.path.join(vsinstalldir, "VC")
-        return {
-            'msbuild': msbuildinstalldir,
-            'vsdir': vsinstalldir,
-            'vs_version': vs_version,
-            'vcdir': vcinstalldir,
-        }
 
     def build_env(self):
         """Return an extended environment dictionary."""
@@ -1072,57 +1054,3 @@ class CommandBase(object):
                     sys.exit(error)
             else:
                 print("Clobber not needed.")
-
-
-def find_highest_msvc_version_ext():
-    def vswhere(args):
-        program_files = (os.environ.get('PROGRAMFILES(X86)')
-                         or os.environ.get('PROGRAMFILES'))
-        if not program_files:
-            return []
-        vswhere = os.path.join(program_files, 'Microsoft Visual Studio',
-                               'Installer', 'vswhere.exe')
-        if not os.path.exists(vswhere):
-            return []
-        return json.loads(check_output([vswhere, '-format', 'json'] + args).decode(errors='ignore'))
-
-    for install in vswhere(['-products', '*', '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
-                            '-requires', 'Microsoft.VisualStudio.Component.Windows10SDK']):
-        version = install['installationVersion'].split('.')[0] + '.0'
-        yield (install['installationPath'], version, "Current" if version == '16.0' else version)
-
-
-def find_highest_msvc_version():
-    editions = ["Enterprise", "Professional", "Community", "BuildTools"]
-    prog_files = os.environ.get("ProgramFiles(x86)")
-    base_vs_path = os.path.join(prog_files, "Microsoft Visual Studio")
-
-    vs_versions = ["2019", "2017"]
-    versions = {
-        ("2019", "vs"): "16.0",
-        ("2017", "vs"): "15.0",
-    }
-
-    for version in vs_versions:
-        for edition in editions:
-            vs_version = versions[version, "vs"]
-            msbuild_version = get_msbuild_version(vs_version)
-
-            vsinstalldir = os.path.join(base_vs_path, version, edition)
-            if os.path.exists(vsinstalldir):
-                return (vsinstalldir, vs_version, msbuild_version)
-
-    versions = sorted(find_highest_msvc_version_ext(), key=lambda tup: float(tup[1]))
-    if not versions:
-        print(f"Can't find MSBuild.exe installation under {base_vs_path}. "
-              "Please set the VSINSTALLDIR and VisualStudioVersion environment variables")
-        sys.exit(1)
-    return versions[0]
-
-
-def get_msbuild_version(vs_version):
-    if vs_version in ("15.0", "14.0"):
-        msbuild_version = vs_version
-    else:
-        msbuild_version = "Current"
-    return msbuild_version
