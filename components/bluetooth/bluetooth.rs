@@ -6,25 +6,25 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 
-#[cfg(all(target_os = "android", feature = "bluetooth"))]
+#[cfg(all(target_os = "android", feature = "native-bluetooth"))]
 use blurdroid::bluetooth_device::Device as BluetoothDeviceAndroid;
-#[cfg(all(target_os = "android", feature = "bluetooth"))]
+#[cfg(all(target_os = "android", feature = "native-bluetooth"))]
 use blurdroid::bluetooth_discovery_session::DiscoverySession as BluetoothDiscoverySessionAndroid;
-#[cfg(all(target_os = "android", feature = "bluetooth"))]
+#[cfg(all(target_os = "android", feature = "native-bluetooth"))]
 use blurdroid::bluetooth_gatt_characteristic::Characteristic as BluetoothGATTCharacteristicAndroid;
-#[cfg(all(target_os = "android", feature = "bluetooth"))]
+#[cfg(all(target_os = "android", feature = "native-bluetooth"))]
 use blurdroid::bluetooth_gatt_descriptor::Descriptor as BluetoothGATTDescriptorAndroid;
-#[cfg(all(target_os = "android", feature = "bluetooth"))]
+#[cfg(all(target_os = "android", feature = "native-bluetooth"))]
 use blurdroid::bluetooth_gatt_service::Service as BluetoothGATTServiceAndroid;
-#[cfg(all(target_os = "macos", feature = "bluetooth"))]
+#[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
 use blurmac::BluetoothDevice as BluetoothDeviceMac;
-#[cfg(all(target_os = "macos", feature = "bluetooth"))]
+#[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
 use blurmac::BluetoothDiscoverySession as BluetoothDiscoverySessionMac;
-#[cfg(all(target_os = "macos", feature = "bluetooth"))]
+#[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
 use blurmac::BluetoothGATTCharacteristic as BluetoothGATTCharacteristicMac;
-#[cfg(all(target_os = "macos", feature = "bluetooth"))]
+#[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
 use blurmac::BluetoothGATTDescriptor as BluetoothGATTDescriptorMac;
-#[cfg(all(target_os = "macos", feature = "bluetooth"))]
+#[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
 use blurmac::BluetoothGATTService as BluetoothGATTServiceMac;
 #[cfg(feature = "bluetooth-test")]
 use blurmock::fake_characteristic::FakeBluetoothGATTCharacteristic;
@@ -36,46 +36,46 @@ use blurmock::fake_device::FakeBluetoothDevice;
 use blurmock::fake_discovery_session::FakeBluetoothDiscoverySession;
 #[cfg(feature = "bluetooth-test")]
 use blurmock::fake_service::FakeBluetoothGATTService;
-#[cfg(all(target_os = "linux", feature = "bluetooth"))]
+#[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
 use blurz::bluetooth_device::BluetoothDevice as BluetoothDeviceBluez;
-#[cfg(all(target_os = "linux", feature = "bluetooth"))]
+#[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
 use blurz::bluetooth_discovery_session::BluetoothDiscoverySession as BluetoothDiscoverySessionBluez;
-#[cfg(all(target_os = "linux", feature = "bluetooth"))]
+#[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
 use blurz::bluetooth_gatt_characteristic::BluetoothGATTCharacteristic as BluetoothGATTCharacteristicBluez;
-#[cfg(all(target_os = "linux", feature = "bluetooth"))]
+#[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
 use blurz::bluetooth_gatt_descriptor::BluetoothGATTDescriptor as BluetoothGATTDescriptorBluez;
-#[cfg(all(target_os = "linux", feature = "bluetooth"))]
+#[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
 use blurz::bluetooth_gatt_service::BluetoothGATTService as BluetoothGATTServiceBluez;
 
 pub use super::adapter::BluetoothAdapter;
 #[cfg(not(any(
-    all(target_os = "linux", feature = "bluetooth"),
-    all(target_os = "android", feature = "bluetooth"),
-    all(target_os = "macos", feature = "bluetooth")
+    all(target_os = "linux", feature = "native-bluetooth"),
+    all(target_os = "android", feature = "native-bluetooth"),
+    all(target_os = "macos", feature = "native-bluetooth")
 )))]
 use super::empty::BluetoothDevice as BluetoothDeviceEmpty;
 #[cfg(not(any(
-    all(target_os = "linux", feature = "bluetooth"),
-    all(target_os = "android", feature = "bluetooth"),
-    all(target_os = "macos", feature = "bluetooth")
+    all(target_os = "linux", feature = "native-bluetooth"),
+    all(target_os = "android", feature = "native-bluetooth"),
+    all(target_os = "macos", feature = "native-bluetooth")
 )))]
 use super::empty::BluetoothDiscoverySession as BluetoothDiscoverySessionEmpty;
 #[cfg(not(any(
-    all(target_os = "linux", feature = "bluetooth"),
-    all(target_os = "android", feature = "bluetooth"),
-    all(target_os = "macos", feature = "bluetooth")
+    all(target_os = "linux", feature = "native-bluetooth"),
+    all(target_os = "android", feature = "native-bluetooth"),
+    all(target_os = "macos", feature = "native-bluetooth")
 )))]
 use super::empty::BluetoothGATTCharacteristic as BluetoothGATTCharacteristicEmpty;
 #[cfg(not(any(
-    all(target_os = "linux", feature = "bluetooth"),
-    all(target_os = "android", feature = "bluetooth"),
-    all(target_os = "macos", feature = "bluetooth")
+    all(target_os = "linux", feature = "native-bluetooth"),
+    all(target_os = "android", feature = "native-bluetooth"),
+    all(target_os = "macos", feature = "native-bluetooth")
 )))]
 use super::empty::BluetoothGATTDescriptor as BluetoothGATTDescriptorEmpty;
 #[cfg(not(any(
-    all(target_os = "linux", feature = "bluetooth"),
-    all(target_os = "android", feature = "bluetooth"),
-    all(target_os = "macos", feature = "bluetooth")
+    all(target_os = "linux", feature = "native-bluetooth"),
+    all(target_os = "android", feature = "native-bluetooth"),
+    all(target_os = "macos", feature = "native-bluetooth")
 )))]
 use super::empty::BluetoothGATTService as BluetoothGATTServiceEmpty;
 use super::macros::get_inner_and_call;
@@ -88,16 +88,16 @@ const NOT_SUPPORTED_ON_MOCK_ERROR: &'static str =
 
 #[derive(Debug)]
 pub enum BluetoothDiscoverySession {
-    #[cfg(all(target_os = "linux", feature = "bluetooth"))]
+    #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
     Bluez(Arc<BluetoothDiscoverySessionBluez>),
-    #[cfg(all(target_os = "android", feature = "bluetooth"))]
+    #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
     Android(Arc<BluetoothDiscoverySessionAndroid>),
-    #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+    #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
     Mac(Arc<BluetoothDiscoverySessionMac>),
     #[cfg(not(any(
-        all(target_os = "linux", feature = "bluetooth"),
-        all(target_os = "android", feature = "bluetooth"),
-        all(target_os = "macos", feature = "bluetooth")
+        all(target_os = "linux", feature = "native-bluetooth"),
+        all(target_os = "android", feature = "native-bluetooth"),
+        all(target_os = "macos", feature = "native-bluetooth")
     )))]
     Empty(Arc<BluetoothDiscoverySessionEmpty>),
     #[cfg(feature = "bluetooth-test")]
@@ -106,16 +106,16 @@ pub enum BluetoothDiscoverySession {
 
 #[derive(Clone, Debug)]
 pub enum BluetoothDevice {
-    #[cfg(all(target_os = "linux", feature = "bluetooth"))]
+    #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
     Bluez(Arc<BluetoothDeviceBluez>),
-    #[cfg(all(target_os = "android", feature = "bluetooth"))]
+    #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
     Android(Arc<BluetoothDeviceAndroid>),
-    #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+    #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
     Mac(Arc<BluetoothDeviceMac>),
     #[cfg(not(any(
-        all(target_os = "linux", feature = "bluetooth"),
-        all(target_os = "android", feature = "bluetooth"),
-        all(target_os = "macos", feature = "bluetooth")
+        all(target_os = "linux", feature = "native-bluetooth"),
+        all(target_os = "android", feature = "native-bluetooth"),
+        all(target_os = "macos", feature = "native-bluetooth")
     )))]
     Empty(Arc<BluetoothDeviceEmpty>),
     #[cfg(feature = "bluetooth-test")]
@@ -124,16 +124,16 @@ pub enum BluetoothDevice {
 
 #[derive(Clone, Debug)]
 pub enum BluetoothGATTService {
-    #[cfg(all(target_os = "linux", feature = "bluetooth"))]
+    #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
     Bluez(Arc<BluetoothGATTServiceBluez>),
-    #[cfg(all(target_os = "android", feature = "bluetooth"))]
+    #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
     Android(Arc<BluetoothGATTServiceAndroid>),
-    #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+    #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
     Mac(Arc<BluetoothGATTServiceMac>),
     #[cfg(not(any(
-        all(target_os = "linux", feature = "bluetooth"),
-        all(target_os = "android", feature = "bluetooth"),
-        all(target_os = "macos", feature = "bluetooth")
+        all(target_os = "linux", feature = "native-bluetooth"),
+        all(target_os = "android", feature = "native-bluetooth"),
+        all(target_os = "macos", feature = "native-bluetooth")
     )))]
     Empty(Arc<BluetoothGATTServiceEmpty>),
     #[cfg(feature = "bluetooth-test")]
@@ -142,16 +142,16 @@ pub enum BluetoothGATTService {
 
 #[derive(Clone, Debug)]
 pub enum BluetoothGATTCharacteristic {
-    #[cfg(all(target_os = "linux", feature = "bluetooth"))]
+    #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
     Bluez(Arc<BluetoothGATTCharacteristicBluez>),
-    #[cfg(all(target_os = "android", feature = "bluetooth"))]
+    #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
     Android(Arc<BluetoothGATTCharacteristicAndroid>),
-    #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+    #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
     Mac(Arc<BluetoothGATTCharacteristicMac>),
     #[cfg(not(any(
-        all(target_os = "linux", feature = "bluetooth"),
-        all(target_os = "android", feature = "bluetooth"),
-        all(target_os = "macos", feature = "bluetooth")
+        all(target_os = "linux", feature = "native-bluetooth"),
+        all(target_os = "android", feature = "native-bluetooth"),
+        all(target_os = "macos", feature = "native-bluetooth")
     )))]
     Empty(Arc<BluetoothGATTCharacteristicEmpty>),
     #[cfg(feature = "bluetooth-test")]
@@ -160,16 +160,16 @@ pub enum BluetoothGATTCharacteristic {
 
 #[derive(Clone, Debug)]
 pub enum BluetoothGATTDescriptor {
-    #[cfg(all(target_os = "linux", feature = "bluetooth"))]
+    #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
     Bluez(Arc<BluetoothGATTDescriptorBluez>),
-    #[cfg(all(target_os = "android", feature = "bluetooth"))]
+    #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
     Android(Arc<BluetoothGATTDescriptorAndroid>),
-    #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+    #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
     Mac(Arc<BluetoothGATTDescriptorMac>),
     #[cfg(not(any(
-        all(target_os = "linux", feature = "bluetooth"),
-        all(target_os = "android", feature = "bluetooth"),
-        all(target_os = "macos", feature = "bluetooth")
+        all(target_os = "linux", feature = "native-bluetooth"),
+        all(target_os = "android", feature = "native-bluetooth"),
+        all(target_os = "macos", feature = "native-bluetooth")
     )))]
     Empty(Arc<BluetoothGATTDescriptorEmpty>),
     #[cfg(feature = "bluetooth-test")]
@@ -425,22 +425,22 @@ impl BluetoothDevice {
 impl BluetoothGATTService {
     fn create_service(device: BluetoothDevice, service: String) -> BluetoothGATTService {
         match device {
-            #[cfg(all(target_os = "linux", feature = "bluetooth"))]
+            #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
             BluetoothDevice::Bluez(_bluez_device) => {
                 BluetoothGATTService::Bluez(Arc::new(BluetoothGATTServiceBluez::new(service)))
             },
-            #[cfg(all(target_os = "android", feature = "bluetooth"))]
+            #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
             BluetoothDevice::Android(android_device) => BluetoothGATTService::Android(Arc::new(
                 BluetoothGATTServiceAndroid::new(android_device, service),
             )),
-            #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+            #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
             BluetoothDevice::Mac(mac_device) => BluetoothGATTService::Mac(Arc::new(
                 BluetoothGATTServiceMac::new(mac_device, service),
             )),
             #[cfg(not(any(
-                all(target_os = "linux", feature = "bluetooth"),
-                all(target_os = "android", feature = "bluetooth"),
-                all(target_os = "macos", feature = "bluetooth")
+                all(target_os = "linux", feature = "native-bluetooth"),
+                all(target_os = "android", feature = "native-bluetooth"),
+                all(target_os = "macos", feature = "native-bluetooth")
             )))]
             BluetoothDevice::Empty(_device) => {
                 BluetoothGATTService::Empty(Arc::new(BluetoothGATTServiceEmpty::new(service)))
@@ -528,24 +528,24 @@ impl BluetoothGATTCharacteristic {
         characteristic: String,
     ) -> BluetoothGATTCharacteristic {
         match service {
-            #[cfg(all(target_os = "linux", feature = "bluetooth"))]
+            #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
             BluetoothGATTService::Bluez(_bluez_service) => BluetoothGATTCharacteristic::Bluez(
                 Arc::new(BluetoothGATTCharacteristicBluez::new(characteristic)),
             ),
-            #[cfg(all(target_os = "android", feature = "bluetooth"))]
+            #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
             BluetoothGATTService::Android(android_service) => {
                 BluetoothGATTCharacteristic::Android(Arc::new(
                     BluetoothGATTCharacteristicAndroid::new(android_service, characteristic),
                 ))
             },
-            #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+            #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
             BluetoothGATTService::Mac(mac_service) => BluetoothGATTCharacteristic::Mac(Arc::new(
                 BluetoothGATTCharacteristicMac::new(mac_service, characteristic),
             )),
             #[cfg(not(any(
-                all(target_os = "linux", feature = "bluetooth"),
-                all(target_os = "android", feature = "bluetooth"),
-                all(target_os = "macos", feature = "bluetooth")
+                all(target_os = "linux", feature = "native-bluetooth"),
+                all(target_os = "android", feature = "native-bluetooth"),
+                all(target_os = "macos", feature = "native-bluetooth")
             )))]
             BluetoothGATTService::Empty(_service) => BluetoothGATTCharacteristic::Empty(Arc::new(
                 BluetoothGATTCharacteristicEmpty::new(characteristic),
@@ -654,27 +654,27 @@ impl BluetoothGATTDescriptor {
         descriptor: String,
     ) -> BluetoothGATTDescriptor {
         match characteristic {
-            #[cfg(all(target_os = "linux", feature = "bluetooth"))]
+            #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
             BluetoothGATTCharacteristic::Bluez(_bluez_characteristic) => {
                 BluetoothGATTDescriptor::Bluez(Arc::new(BluetoothGATTDescriptorBluez::new(
                     descriptor,
                 )))
             },
-            #[cfg(all(target_os = "android", feature = "bluetooth"))]
+            #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
             BluetoothGATTCharacteristic::Android(android_characteristic) => {
                 BluetoothGATTDescriptor::Android(Arc::new(BluetoothGATTDescriptorAndroid::new(
                     android_characteristic,
                     descriptor,
                 )))
             },
-            #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+            #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
             BluetoothGATTCharacteristic::Mac(_mac_characteristic) => {
                 BluetoothGATTDescriptor::Mac(Arc::new(BluetoothGATTDescriptorMac::new(descriptor)))
             },
             #[cfg(not(any(
-                all(target_os = "linux", feature = "bluetooth"),
-                all(target_os = "android", feature = "bluetooth"),
-                all(target_os = "macos", feature = "bluetooth")
+                all(target_os = "linux", feature = "native-bluetooth"),
+                all(target_os = "android", feature = "native-bluetooth"),
+                all(target_os = "macos", feature = "native-bluetooth")
             )))]
             BluetoothGATTCharacteristic::Empty(_characteristic) => BluetoothGATTDescriptor::Empty(
                 Arc::new(BluetoothGATTDescriptorEmpty::new(descriptor)),

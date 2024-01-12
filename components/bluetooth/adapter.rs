@@ -5,17 +5,17 @@
 use std::error::Error;
 use std::sync::Arc;
 
-#[cfg(all(target_os = "android", feature = "bluetooth"))]
+#[cfg(all(target_os = "android", feature = "native-bluetooth"))]
 use blurdroid::bluetooth_adapter::Adapter as BluetoothAdapterAndroid;
-#[cfg(all(target_os = "android", feature = "bluetooth"))]
+#[cfg(all(target_os = "android", feature = "native-bluetooth"))]
 use blurdroid::bluetooth_device::Device as BluetoothDeviceAndroid;
-#[cfg(all(target_os = "android", feature = "bluetooth"))]
+#[cfg(all(target_os = "android", feature = "native-bluetooth"))]
 use blurdroid::bluetooth_discovery_session::DiscoverySession as BluetoothDiscoverySessionAndroid;
-#[cfg(all(target_os = "macos", feature = "bluetooth"))]
+#[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
 use blurmac::BluetoothAdapter as BluetoothAdapterMac;
-#[cfg(all(target_os = "macos", feature = "bluetooth"))]
+#[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
 use blurmac::BluetoothDevice as BluetoothDeviceMac;
-#[cfg(all(target_os = "macos", feature = "bluetooth"))]
+#[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
 use blurmac::BluetoothDiscoverySession as BluetoothDiscoverySessionMac;
 #[cfg(feature = "bluetooth-test")]
 use blurmock::fake_adapter::FakeBluetoothAdapter;
@@ -23,30 +23,30 @@ use blurmock::fake_adapter::FakeBluetoothAdapter;
 use blurmock::fake_device::FakeBluetoothDevice;
 #[cfg(feature = "bluetooth-test")]
 use blurmock::fake_discovery_session::FakeBluetoothDiscoverySession;
-#[cfg(all(target_os = "linux", feature = "bluetooth"))]
+#[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
 use blurz::bluetooth_adapter::BluetoothAdapter as BluetoothAdapterBluez;
-#[cfg(all(target_os = "linux", feature = "bluetooth"))]
+#[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
 use blurz::bluetooth_device::BluetoothDevice as BluetoothDeviceBluez;
-#[cfg(all(target_os = "linux", feature = "bluetooth"))]
+#[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
 use blurz::bluetooth_discovery_session::BluetoothDiscoverySession as BluetoothDiscoverySessionBluez;
 
 use super::bluetooth::{BluetoothDevice, BluetoothDiscoverySession};
 #[cfg(not(any(
-    all(target_os = "linux", feature = "bluetooth"),
-    all(target_os = "android", feature = "bluetooth"),
-    all(target_os = "macos", feature = "bluetooth")
+    all(target_os = "linux", feature = "native-bluetooth"),
+    all(target_os = "android", feature = "native-bluetooth"),
+    all(target_os = "macos", feature = "native-bluetooth")
 )))]
 use super::empty::BluetoothDevice as BluetoothDeviceEmpty;
 #[cfg(not(any(
-    all(target_os = "linux", feature = "bluetooth"),
-    all(target_os = "android", feature = "bluetooth"),
-    all(target_os = "macos", feature = "bluetooth")
+    all(target_os = "linux", feature = "native-bluetooth"),
+    all(target_os = "android", feature = "native-bluetooth"),
+    all(target_os = "macos", feature = "native-bluetooth")
 )))]
 use super::empty::BluetoothDiscoverySession as BluetoothDiscoverySessionEmpty;
 #[cfg(not(any(
-    all(target_os = "linux", feature = "bluetooth"),
-    all(target_os = "android", feature = "bluetooth"),
-    all(target_os = "macos", feature = "bluetooth")
+    all(target_os = "linux", feature = "native-bluetooth"),
+    all(target_os = "android", feature = "native-bluetooth"),
+    all(target_os = "macos", feature = "native-bluetooth")
 )))]
 use super::empty::EmptyAdapter as BluetoothAdapterEmpty;
 use super::macros::get_inner_and_call;
@@ -55,16 +55,16 @@ use super::macros::get_inner_and_call_test_func;
 
 #[derive(Clone, Debug)]
 pub enum BluetoothAdapter {
-    #[cfg(all(target_os = "linux", feature = "bluetooth"))]
+    #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
     Bluez(Arc<BluetoothAdapterBluez>),
-    #[cfg(all(target_os = "android", feature = "bluetooth"))]
+    #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
     Android(Arc<BluetoothAdapterAndroid>),
-    #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+    #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
     Mac(Arc<BluetoothAdapterMac>),
     #[cfg(not(any(
-        all(target_os = "linux", feature = "bluetooth"),
-        all(target_os = "android", feature = "bluetooth"),
-        all(target_os = "macos", feature = "bluetooth")
+        all(target_os = "linux", feature = "native-bluetooth"),
+        all(target_os = "android", feature = "native-bluetooth"),
+        all(target_os = "macos", feature = "native-bluetooth")
     )))]
     Empty(Arc<BluetoothAdapterEmpty>),
     #[cfg(feature = "bluetooth-test")]
@@ -72,28 +72,28 @@ pub enum BluetoothAdapter {
 }
 
 impl BluetoothAdapter {
-    #[cfg(all(target_os = "linux", feature = "bluetooth"))]
+    #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
     pub fn new() -> Result<BluetoothAdapter, Box<dyn Error>> {
         let bluez_adapter = BluetoothAdapterBluez::init()?;
         Ok(Self::Bluez(Arc::new(bluez_adapter)))
     }
 
-    #[cfg(all(target_os = "android", feature = "bluetooth"))]
+    #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
     pub fn new() -> Result<BluetoothAdapter, Box<dyn Error>> {
         let blurdroid_adapter = BluetoothAdapterAndroid::get_adapter()?;
         Ok(Self::Android(Arc::new(blurdroid_adapter)))
     }
 
-    #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+    #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
     pub fn new() -> Result<BluetoothAdapter, Box<dyn Error>> {
         let mac_adapter = BluetoothAdapterMac::init()?;
         Ok(Self::Mac(Arc::new(mac_adapter)))
     }
 
     #[cfg(not(any(
-        all(target_os = "linux", feature = "bluetooth"),
-        all(target_os = "android", feature = "bluetooth"),
-        all(target_os = "macos", feature = "bluetooth")
+        all(target_os = "linux", feature = "native-bluetooth"),
+        all(target_os = "android", feature = "native-bluetooth"),
+        all(target_os = "macos", feature = "native-bluetooth")
     )))]
     pub fn new() -> Result<BluetoothAdapter, Box<dyn Error>> {
         let adapter = BluetoothAdapterEmpty::init()?;
@@ -111,20 +111,15 @@ impl BluetoothAdapter {
 
     pub fn get_devices(&self) -> Result<Vec<BluetoothDevice>, Box<dyn Error>> {
         match self {
-            #[cfg(all(target_os = "linux", feature = "bluetooth"))]
+            #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
             BluetoothAdapter::Bluez(inner) => {
                 let device_list = inner.get_device_list()?;
                 Ok(device_list
                     .into_iter()
-                    .map(|device| {
-                        BluetoothDevice::Bluez(BluetoothDeviceBluez::new_empty(
-                            self.0.clone(),
-                            device,
-                        ))
-                    })
+                    .map(|device| BluetoothDevice::Bluez(BluetoothDeviceBluez::new(device).into()))
                     .collect())
             },
-            #[cfg(all(target_os = "android", feature = "bluetooth"))]
+            #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
             BluetoothAdapter::Android(inner) => {
                 let device_list = inner.get_device_list()?;
                 Ok(device_list
@@ -137,7 +132,7 @@ impl BluetoothAdapter {
                     })
                     .collect())
             },
-            #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+            #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
             BluetoothAdapter::Mac(inner) => {
                 let device_list = inner.get_device_list()?;
                 Ok(device_list
@@ -151,9 +146,9 @@ impl BluetoothAdapter {
                     .collect())
             },
             #[cfg(not(any(
-                all(target_os = "linux", feature = "bluetooth"),
-                all(target_os = "android", feature = "bluetooth"),
-                all(target_os = "macos", feature = "bluetooth")
+                all(target_os = "linux", feature = "native-bluetooth"),
+                all(target_os = "android", feature = "native-bluetooth"),
+                all(target_os = "macos", feature = "native-bluetooth")
             )))]
             BluetoothAdapter::Empty(inner) => {
                 let device_list = inner.get_device_list()?;
@@ -201,24 +196,22 @@ impl BluetoothAdapter {
 
     pub fn create_discovery_session(&self) -> Result<BluetoothDiscoverySession, Box<dyn Error>> {
         let discovery_session = match self {
-            #[cfg(all(target_os = "linux", feature = "bluetooth"))]
-            BluetoothAdapter::Bluez(inner) => {
-                BluetoothDiscoverySession::Bluez(Arc::new(
-                    BluetoothDiscoverySessionBluez::create_session(inner.get_id())?,
-                ));
-            },
-            #[cfg(all(target_os = "android", feature = "bluetooth"))]
+            #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
+            BluetoothAdapter::Bluez(inner) => BluetoothDiscoverySession::Bluez(Arc::new(
+                BluetoothDiscoverySessionBluez::create_session(inner.get_id())?,
+            )),
+            #[cfg(all(target_os = "android", feature = "native-bluetooth"))]
             BluetoothAdapter::Android(inner) => BluetoothDiscoverySession::Android(Arc::new(
                 BluetoothDiscoverySessionAndroid::create_session(inner.clone())?,
             )),
-            #[cfg(all(target_os = "macos", feature = "bluetooth"))]
+            #[cfg(all(target_os = "macos", feature = "native-bluetooth"))]
             BluetoothAdapter::Mac(_) => {
                 BluetoothDiscoverySession::Mac(Arc::new(BluetoothDiscoverySessionMac {}))
             },
             #[cfg(not(any(
-                all(target_os = "linux", feature = "bluetooth"),
-                all(target_os = "android", feature = "bluetooth"),
-                all(target_os = "macos", feature = "bluetooth")
+                all(target_os = "linux", feature = "native-bluetooth"),
+                all(target_os = "android", feature = "native-bluetooth"),
+                all(target_os = "macos", feature = "native-bluetooth")
             )))]
             BluetoothAdapter::Empty(_) => {
                 BluetoothDiscoverySession::Empty(Arc::new(BluetoothDiscoverySessionEmpty {}))
