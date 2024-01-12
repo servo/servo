@@ -7,11 +7,11 @@
 
 mod construct;
 
+use app_units::Au;
 pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, UnknownUnit, Vector2D};
 use serde::Serialize;
-use style::values::computed::Length;
 
 use super::flow::BlockFormattingContext;
 use crate::context::LayoutContext;
@@ -39,7 +39,7 @@ impl Table {
     ) -> IndependentLayout {
         IndependentLayout {
             fragments: Vec::new(),
-            content_block_size: Length::new(0.),
+            content_block_size: Au(0),
             last_inflow_baseline_offset: None,
         }
     }
