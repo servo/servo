@@ -93,7 +93,9 @@ impl XRViewMethods for XRView {
             let cx = GlobalScope::get_cx();
             // row_major since euclid uses row vectors
             let proj = self.view.projection.to_array();
-            let _ = self.proj.set_data(cx, &proj);
+            if self.proj.set_data(cx, &proj).is_err() {
+                    // error handling
+             }
         }
 
         match self.proj.get_internal() {
