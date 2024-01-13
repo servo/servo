@@ -133,11 +133,14 @@ impl<'a> PlacementAmongFloats<'a> {
 
     /// The height of the bands under consideration.
     fn current_bands_height(&self) -> Au {
-        if let Some(top) = self.top_of_bands() {
-            self.next_band.top - top
+        if self.next_band.top == MAX_AU {
+            // Treat MAX_AU as infinity.
+            MAX_AU
         } else {
-            assert!(self.next_band.top == MAX_AU);
-            self.next_band.top
+            let top = self
+                .top_of_bands()
+                .expect("Should have bands before reaching the end");
+            self.next_band.top - top
         }
     }
 
@@ -191,15 +194,14 @@ impl<'a> PlacementAmongFloats<'a> {
         if available_inline_size < self.object_size.inline {
             return None;
         }
-        let top = self.top_of_bands().unwrap();
         Some(LogicalRect {
             start_corner: LogicalVec2 {
                 inline: inline_start,
-                block: top,
+                block: self.top_of_bands().unwrap(),
             },
             size: LogicalVec2 {
                 inline: available_inline_size,
-                block: self.next_band.top - top,
+                block: self.current_bands_height(),
             },
         })
     }
