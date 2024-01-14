@@ -103,11 +103,15 @@ impl<'a> PlacementAmongFloats<'a> {
         object_size: LogicalVec2<Au>,
         pbm: &PaddingBorderMargin,
     ) -> Self {
-        assert!(ceiling != MAX_AU);
-        let mut current_band = float_context.bands.find(ceiling).unwrap();
-        current_band.top = ceiling;
-        let current_bands = VecDeque::from([current_band]);
-        let next_band = float_context.bands.find_next(ceiling).unwrap();
+        let mut ceiling_band = float_context.bands.find(ceiling).unwrap();
+        let (current_bands, next_band) = if ceiling == MAX_AU {
+            (VecDeque::new(), ceiling_band)
+        } else {
+            ceiling_band.top = ceiling;
+            let current_bands = VecDeque::from([ceiling_band]);
+            let next_band = float_context.bands.find_next(ceiling).unwrap();
+            (current_bands, next_band)
+        };
         let min_inline_start = float_context.containing_block_info.inline_start +
             pbm.margin.inline_start.auto_is(Length::zero).into();
         let max_inline_end = (float_context.containing_block_info.inline_end -
