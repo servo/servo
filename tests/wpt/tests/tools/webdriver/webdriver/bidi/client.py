@@ -96,6 +96,7 @@ class BidiSession:
         self.network = modules.Network(self)
         self.script = modules.Script(self)
         self.session = modules.Session(self)
+        self.storage = modules.Storage(self)
 
     @property
     def event_loop(self):

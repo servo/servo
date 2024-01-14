@@ -135,6 +135,12 @@
 
   promise_test(async t => {
     const settings = await createTrackAndGetSettings(t, "audio");
+    assert_equals(typeof(settings.voiceIsolation), "boolean",
+                  "voiceIsolation should exist and it should be a boolean.");
+  }, 'voiceIsolation is reported by getSettings() for getUserMedia() audio tracks');
+
+  promise_test(async t => {
+    const settings = await createTrackAndGetSettings(t, "audio");
     assert_equals(typeof(settings.latency), "number",
                   "latency should exist and it should be a number.");
     assert_greater_than_equal(settings.latency,0);

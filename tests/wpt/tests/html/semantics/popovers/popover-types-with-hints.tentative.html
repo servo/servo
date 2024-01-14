@@ -5,6 +5,22 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
+<script>
+  function getPopovers() {
+    return Array.from(document.currentScript.parentElement.querySelectorAll('[popover]'));
+  }
+  function assertState(expectedState,description) {
+    description = description || 'Error';
+    const popovers = getPopovers();
+    const n = popovers.length;
+    assert_equals(expectedState.length,n,'Invalid expected state length');
+    for(let i=0;i<n;++i) {
+      const html = '<' + popovers[i].outerHTML.split('<')[1] + '</div>';
+      assert_equals(popovers[i].matches(':popover-open'),expectedState[i],`${description}, index ${i} (${html})`);
+    }
+  }
+</script>
+
 <div>
   <div popover>Popover</div>
   <div popover=hint>Hint</div>
@@ -12,55 +28,49 @@
   <div popover=manual>Async</div>
   <script>
   {
-    const auto = document.currentScript.parentElement.querySelector('[popover=""]');
-    const hint = document.currentScript.parentElement.querySelector('[popover=hint]');
-    const manual = document.currentScript.parentElement.querySelectorAll('[popover=manual]')[0];
-    const manual2 = document.currentScript.parentElement.querySelectorAll('[popover=manual]')[1];
-    function assert_state_1(autoOpen,hintOpen,manualOpen,manual2Open) {
-      assert_equals(auto.matches(':popover-open'),autoOpen,'auto open state is incorrect');
-      assert_equals(hint.matches(':popover-open'),hintOpen,'hint open state is incorrect');
-      assert_equals(manual.matches(':popover-open'),manualOpen,'manual open state is incorrect');
-      assert_equals(manual2.matches(':popover-open'),manual2Open,'manual2 open state is incorrect');
-    }
+    const auto = getPopovers()[0];
+    const hint = getPopovers()[1];
+    const manual = getPopovers()[2];
+    const manual2 = getPopovers()[3];
     test(() => {
-      assert_state_1(false,false,false,false);
+      assertState([false,false,false,false]);
       auto.showPopover();
-      assert_state_1(true,false,false,false);
+      assertState([true,false,false,false]);
       hint.showPopover();
-      assert_state_1(true,true,false,false);
+      assertState([true,true,false,false]);
       manual.showPopover();
-      assert_state_1(true,true,true,false);
+      assertState([true,true,true,false]);
       manual2.showPopover();
-      assert_state_1(true,true,true,true);
+      assertState([true,true,true,true]);
       hint.hidePopover();
-      assert_state_1(true,false,true,true);
+      assertState([true,false,true,true]);
       auto.hidePopover();
-      assert_state_1(false,false,true,true);
+      assertState([false,false,true,true]);
       auto.showPopover();
       hint.showPopover();
-      assert_state_1(true,true,true,true);
-      auto.hidePopover(); // Non-nested tooltips can stay open when unrelated popovers are hidden.
-      assert_state_1(false,true,true,true);
+      assertState([true,true,true,true]);
+      auto.hidePopover();
+      assertState([false,false,true,true]);
       hint.hidePopover();
       manual.hidePopover();
-      assert_state_1(false,false,false,true);
+      assertState([false,false,false,true]);
       manual2.hidePopover();
-      assert_state_1(false,false,false,false);
+      assertState([false,false,false,false]);
     },'manuals do not close popovers');
 
     test(() => {
-      assert_state_1(false,false,false,false);
+      assertState([false,false,false,false]);
       hint.showPopover();
       manual.showPopover();
       manual2.showPopover();
-      assert_state_1(false,true,true,true);
+      assertState([false,true,true,true]);
       auto.showPopover();
-      assert_state_1(true,false,true,true);
+      assertState([true,false,true,true]);
       auto.hidePopover();
-      assert_state_1(false,false,true,true);
+      assertState([false,false,true,true]);
       manual.hidePopover();
       manual2.hidePopover();
-      assert_state_1(false,false,false,false);
+      assertState([false,false,false,false]);
     },'autos close hints but not manuals');
   }
   </script>
@@ -76,26 +86,20 @@
   <div popover=hint anchor=anchorid>Hint anchored to popover</div>
   <script>
   {
-    const popover1 = document.currentScript.parentElement.querySelectorAll('[popover=""]')[0];
-    const popover2 = document.currentScript.parentElement.querySelectorAll('[popover=""]')[1];
-    const popover3 = document.currentScript.parentElement.querySelectorAll('[popover=""]')[2];
-    const hint = document.currentScript.parentElement.querySelector('[popover=hint]');
-    function assert_state_2(popover1Open,popover2Open,popover3Open,hintOpen) {
-      assert_equals(popover1.matches(':popover-open'),popover1Open,'popover1 open state is incorrect');
-      assert_equals(popover2.matches(':popover-open'),popover2Open,'popover2 open state is incorrect');
-      assert_equals(popover3.matches(':popover-open'),popover3Open,'popover3 open state is incorrect');
-      assert_equals(hint.matches(':popover-open'),hintOpen,'hint open state is incorrect');
-    }
+    const popover1 = getPopovers()[0];
+    const popover2 = getPopovers()[1];
+    const popover3 = getPopovers()[2];
+    const hint = getPopovers()[3];
     test(() => {
-      assert_state_2(false,false,false,false);
+      assertState([false,false,false,false]);
       popover1.showPopover();
       popover2.showPopover();
       popover3.showPopover();
-      assert_state_2(true,true,true,false);
+      assertState([true,true,true,false]);
       hint.showPopover(); // Because hint is nested in popover2, popover3 should be hidden
-      assert_state_2(true,true,false,true);
+      assertState([true,true,false,true]);
       popover1.hidePopover(); // Should close the hint, which is anchored to popover2
-      assert_state_2(false,false,false,false);
+      assertState([false,false,false,false]);
     },'hint is not closed by pre-existing auto');
   }
   </script>
@@ -107,16 +111,15 @@
   </div>
   <script>
   test(() => {
-    const hint1 = document.currentScript.parentElement.querySelectorAll('[popover=hint]')[0];
-    const hint2 = document.currentScript.parentElement.querySelectorAll('[popover=hint]')[1];
+    const hint1 = getPopovers()[0];
+    const hint2 = getPopovers()[1];
     hint1.showPopover();
-    assert_true(hint1.matches(':popover-open'));
-    assert_false(hint2.matches(':popover-open'));
+    assertState([true,false]);
     hint2.showPopover();
-    assert_false(hint1.matches(':popover-open'));
-    assert_true(hint2.matches(':popover-open'));
-    hint2.hidePopover();
-  },'If a popover=hint is shown, it should hide any other open popover=hint popovers, including ancestral popovers. (You can\'t nest popover=hint)');
+    assertState([true,true]);
+    hint1.hidePopover();
+    assertState([false,false]);
+  },'You can nest hint popovers');
   </script>
 </div>
 
@@ -126,15 +129,14 @@
   </div>
   <script>
   test(() => {
-    const hint = document.currentScript.parentElement.querySelector('[popover=hint]');
-    const auto = document.currentScript.parentElement.querySelector('[popover=""]');
+    const hint = getPopovers()[0];
+    const auto = getPopovers()[1];
     hint.showPopover();
-    assert_true(hint.matches(':popover-open'));
-    assert_false(auto.matches(':popover-open'));
+    assertState([true,false]);
     auto.showPopover();
-    assert_false(hint.matches(':popover-open'));
-    assert_true(auto.matches(':popover-open'));
+    assertState([false,true]);
     auto.hidePopover();
+    assertState([false,false]);
   },'If a popover=auto is shown, it should hide any open popover=hint, including if the popover=hint is an ancestral popover of the popover=auto. (You can\'t nest a popover=auto inside a popover=hint)');
   </script>
 </div>
@@ -146,20 +148,16 @@
   </div>
   <script>
   test(() => {
-    const auto = document.currentScript.parentElement.querySelectorAll('[popover=""]')[0];
-    const auto2 = document.currentScript.parentElement.querySelectorAll('[popover=""]')[1];
-    const hint = document.currentScript.parentElement.querySelector('[popover=hint]');
+    const auto = getPopovers()[0];
+    const auto2 = getPopovers()[1];
+    const hint = getPopovers()[2];
     auto.showPopover();
     auto2.showPopover();
-    assert_true(auto.matches(':popover-open'));
-    assert_true(auto2.matches(':popover-open'));
+    assertState([true,true,false]);
     hint.showPopover(); // This should hide auto2, since it is nested in auto1.
-    assert_true(auto.matches(':popover-open'));
-    assert_false(auto2.matches(':popover-open'));
-    assert_true(hint.matches(':popover-open'));
+    assertState([true,false,true]);
     auto.hidePopover(); // Should hide both auto and hint.
-    assert_false(auto.matches(':popover-open'));
-    assert_false(hint.matches(':popover-open'));
+    assertState([false,false,false]);
   },'If you: a) show a popover=auto (call it D), then b) show a descendent popover=hint of D (call it T), then c) hide D, then T should be hidden. (A popover=hint can be nested inside a popover=auto)');
   </script>
 </div>
@@ -169,16 +167,13 @@
   <div popover=hint>Non-Nested hint</div>
   <script>
   test(() => {
-    const auto = document.currentScript.parentElement.querySelector('[popover=""]');
-    const hint = document.currentScript.parentElement.querySelector('[popover=hint]');
+    const auto = getPopovers()[0]
+    const hint = getPopovers()[1];
     auto.showPopover();
     hint.showPopover();
-    assert_true(auto.matches(':popover-open'));
-    assert_true(hint.matches(':popover-open'));
+    assertState([true,true]);
     auto.hidePopover();
-    assert_false(auto.matches(':popover-open'));
-    assert_true(hint.matches(':popover-open'));
-    hint.hidePopover();
-  },'If you: a) show a popover=auto (call it D), then b) show a non-descendent popover=hint of D (call it T), then c) hide D, then T should be left showing. (Non-nested popover=hint can stay open when unrelated popover=autos are hidden)');
+    assertState([false,false]);
+  },'If you: a) show a popover=auto (call it D), then b) show a non-descendent popover=hint of D (call it T), then c) hide D, then T should be hidden. (Non-nested popover=hint gets hidden when unrelated popover=autos are hidden)');
   </script>
 </div>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>Test permission policies with no permissions specified</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/default-enabled-features-helper.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+      origin: get_host_info().ORIGIN});
+
+  await fencedframe.execute(async () => {
+    assert_true(
+        document.featurePolicy.allowsFeature('shared-storage'),
+        "Shared storage should be allowed in the fenced frame.");
+    assert_true(
+        document.featurePolicy.allowsFeature('private-aggregation'),
+        "Private aggregation should be allowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('attribution-reporting'),
+        "Attribution reporting should be disallowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('sync-xhr'),
+        "USB access should be disallowed in the fenced frame.");
+  }, []);
+}, 'Fenced frames should inherit features from parent if nothing specified.');
+
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+      origin: get_host_info().REMOTE_ORIGIN,
+      attributes: [["allow",
+          "shared-storage *; attribution-reporting *; " +
+          "private-aggregation 'none'"]]});
+
+  await fencedframe.execute(async () => {
+    assert_true(
+        document.featurePolicy.allowsFeature('shared-storage'),
+        "Shared storage should be allowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('private-aggregation'),
+        "Private aggregation should be disallowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('attribution-reporting'),
+        "Attribution reporting should be disallowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('sync-xhr'),
+        "USB access should be disallowed in the fenced frame.");
+  }, []);
+}, 'Fenced frames default feature policies should inherit when using `allow` ' +
+   'but should be able to further restrict the policies.');
+
+</script>
+</body>
+</html>

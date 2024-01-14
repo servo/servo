@@ -434,7 +434,7 @@ class TestRunnerManager(threading.Thread):
                     f"and {len(skipped_tests) - 1} others"
                 )
                 for test in skipped_tests[1:]:
-                    self.logger.debug(f"Test left in the queue: {test[0].id!r}")
+                    self.logger.debug(f"Test left in the queue: {test.id!r}")
 
             force_stop = (not isinstance(self.state, RunnerManagerState.stop) or
                           self.state.force_stop)

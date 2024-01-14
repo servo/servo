@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.designMode = "on";
+  window.find("AA");
+  document.addEventListener(
+    "selectionchange",
+    onSelectionChangeOrDOMNodeInserted,
+    {once: true}
+  );
+  document.querySelector("output").addEventListener(
+    "DOMNodeInserted",
+    onSelectionChangeOrDOMNodeInserted
+  );
+  document.execCommand("forwarddelete");
+});
+
+function onSelectionChangeOrDOMNodeInserted() {
+  document.execCommand("delete");
+  document.querySelector("output").value = "";
+}
+</script>
+</head>
+<body>
+<output>
+<ruby></ruby>
+<div>
+AAA
+</div></output></body>
+</html>

@@ -24,7 +24,7 @@ function ridToMid(description, rids) {
 
   // Skip mid extension; we are replacing it with the rid extmap
   rtpParameters.headerExtensions = rtpParameters.headerExtensions.filter(
-    ext => ext.uri != 'urn:ietf:params:rtp-hdrext:sdes:mid'
+    ext => ext.uri !== 'urn:ietf:params:rtp-hdrext:sdes:mid'
   );
 
   for (const ext of rtpParameters.headerExtensions) {
@@ -45,7 +45,8 @@ function ridToMid(description, rids) {
   let sdp = SDPUtils.writeSessionBoilerplate() +
     SDPUtils.writeDtlsParameters(dtls, setupValue) +
     SDPUtils.writeIceParameters(ice) +
-    'a=group:BUNDLE ' + rids.join(' ') + '\r\n';
+    'a=group:BUNDLE ' + rids.join(' ') + '\r\n' +
+    'a=msid-semantic: WMS *\r\n';
   const baseRtpDescription = SDPUtils.writeRtpDescription(mline.kind, rtpParameters);
   for (const rid of rids) {
     sdp += baseRtpDescription +
@@ -107,7 +108,8 @@ function midToRid(description, localDescription, rids) {
   let sdp = SDPUtils.writeSessionBoilerplate() +
     SDPUtils.writeDtlsParameters(dtls, setupValue) +
     SDPUtils.writeIceParameters(ice) +
-    'a=group:BUNDLE ' + localMid + '\r\n';
+    'a=group:BUNDLE ' + localMid + '\r\n' +
+    'a=msid-semantic: WMS *\r\n';
   sdp += SDPUtils.writeRtpDescription(mline.kind, rtpParameters);
   // Although we are converting mids to rids, we still need a mid.
   // The first one will be consistent with trickle ICE candidates.

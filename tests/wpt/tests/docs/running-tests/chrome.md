@@ -27,6 +27,9 @@ If you want to enable a specific [runtime enabled feature][1], use
 ./wpt run --binary-arg=--enable-blink-features=AsyncClipboard chrome clipboard-apis/
 ```
 
+To use a custom chromedriver build, build the `chromedriver` target in your chromium checkout,
+and then pass `--webdriver-binary /path/to/non-default/chromedriver` to `wpt run`.
+
 [A detailed explanation is available](chrome-chromium-installation-detection.html)
 for more information on how wpt detects and installs the components for Chrome and Chromium.
 

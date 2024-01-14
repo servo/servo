@@ -19,7 +19,7 @@ promise_test(async t => {
     sync_xhr.open("GET", `/xhr/resources/delay.py?ms=${pause_duration}`, /*async=*/false);
     sync_xhr.send();
   }, 0), script => (
-        script.name === "TimerHandler:setTimeout" &&
+        script.invoker === "TimerHandler:setTimeout" &&
         script.duration >= very_long_frame_duration), t);
   assert_true("pauseDuration" in script);
   assert_greater_than(script.pauseDuration, pause_duration);

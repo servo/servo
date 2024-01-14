@@ -16,6 +16,11 @@
   // In https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate,
   // `sourceDocument` (instead of `navigable`'s active document) should be
   // used as the referring document for prefetch.
+  //
+  // Nonetheless, a prefetch in a top-level window is not suitable to use in an iframe.
+  // In particular, browsers partition storage and cache by top-level site.
+  // If a browser does start allowing these in narrower cases where the partition
+  // would nonetheless be the same, this test might need tweaking.
   promise_test(async t => {
     const win = await spawnWindow(t, { protocol: 'https' });
 
@@ -46,6 +51,6 @@
         nextUrl.toString(),
         "expected navigation to reach destination URL");
 
-    assert_prefetched(await win.getRequestHeaders());
+    assert_not_prefetched(await win.getRequestHeaders());
   }, `location.href across iframe`);
 </script>

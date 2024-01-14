@@ -8,6 +8,20 @@ class AuthCredentials(Dict[str, Any]):
         dict.__init__(self, type="password", username=username, password=password)
 
 
+class NetworkBase64Value(Dict[str, Any]):
+    def __init__(self, value: str):
+        dict.__init__(self, type="base64", value=value)
+
+
+class NetworkStringValue(Dict[str, Any]):
+    def __init__(self, value: str):
+        dict.__init__(self, type="string", value=value)
+
+
+NetworkBytesValue = Union[NetworkStringValue, NetworkBase64Value]
+
+
+
 class URLPatternPattern(Dict[str, Any]):
     def __init__(
         self,

@@ -20,7 +20,7 @@ promise_test(async t => {
     t.add_cleanup(() => script_element.remove());
     document.body.appendChild(script_element);
   }, script =>
-    script.name === new URL("resources/loaf-after-callback.js", location.href).href,
+    script.invoker === new URL("resources/loaf-after-callback.js", location.href).href,
     t);
   assert_greater_than_equal(script.duration, very_long_frame_duration);
 }, "a callback inside a script block should not mask LoAFs that come afterwards")
@@ -33,7 +33,7 @@ promise_test(async t => {
     t.add_cleanup(() => script_element.remove());
     document.body.appendChild(script_element);
   }, script =>
-    script.name === new URL("resources/loaf-in-microtask-after-callback.js", location.href).href,
+    script.invoker === new URL("resources/loaf-in-microtask-after-callback.js", location.href).href,
     t);
   assert_greater_than_equal(script.duration, very_long_frame_duration);
 }, "a callback inside a script block should not mask LoAFs in a microtask")

@@ -5,12 +5,24 @@
 
 [Exposed=Window]
 interface PerformanceLongTaskTiming : PerformanceEntry {
+    /* Overloading PerformanceEntry */
+    readonly attribute DOMHighResTimeStamp startTime;
+    readonly attribute DOMHighResTimeStamp duration;
+    readonly attribute DOMString name;
+    readonly attribute DOMString entryType;
+
     readonly attribute FrozenArray<TaskAttributionTiming> attribution;
     [Default] object toJSON();
 };
 
 [Exposed=Window]
 interface TaskAttributionTiming : PerformanceEntry {
+    /* Overloading PerformanceEntry */
+    readonly attribute DOMHighResTimeStamp startTime;
+    readonly attribute DOMHighResTimeStamp duration;
+    readonly attribute DOMString name;
+    readonly attribute DOMString entryType;
+
     readonly attribute DOMString containerType;
     readonly attribute DOMString containerSrc;
     readonly attribute DOMString containerId;
@@ -20,9 +32,39 @@ interface TaskAttributionTiming : PerformanceEntry {
 
 [Exposed=Window]
 interface PerformanceLongAnimationFrameTiming : PerformanceEntry {
+    /* Overloading PerformanceEntry */
+    readonly attribute DOMHighResTimeStamp startTime;
+    readonly attribute DOMHighResTimeStamp duration;
+    readonly attribute DOMString name;
+    readonly attribute DOMString entryType;
+
     readonly attribute DOMHighResTimeStamp renderStart;
     readonly attribute DOMHighResTimeStamp styleAndLayoutStart;
     readonly attribute DOMHighResTimeStamp blockingDuration;
+    readonly attribute DOMHighResTimeStamp firstUIEventTimestamp;
+    [SameObject] readonly attribute FrozenArray<PerformanceScriptTiming> scripts;
+    [Default] object toJSON();
+};
 
+enum ScriptTimingType {
+    "classic-script",
+    "module-script",
+    "event-listener",
+    "user-callback",
+    "resolve-promise",
+    "reject-promise"
+};
+
+[Exposed=Window]
+interface PerformanceScriptTiming : PerformanceEntry {
+    /* Overloading PerformanceEntry */
+    readonly attribute DOMHighResTimeStamp startTime;
+    readonly attribute DOMHighResTimeStamp duration;
+    readonly attribute DOMString name;
+    readonly attribute DOMString entryType;
+
+    readonly attribute ScriptTimingType type;
+    readonly attribute DOMHighResTimeStamp executionStart;
+    readonly attribute DOMString sourceLocation;
     [Default] object toJSON();
 };

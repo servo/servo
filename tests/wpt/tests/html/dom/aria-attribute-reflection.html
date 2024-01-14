@@ -462,4 +462,26 @@ test(function(t) {
     testNullable(element, "ariaValueText", "aria-valuetext");
 }, "aria-valuetext attribute reflects.");
 </script>
+
+<div id="braillelabel" aria-braillelabel="x"></div>
+<script>
+test(function(t) {
+    var element = document.getElementById("braillelabel");
+    assert_equals(element.ariaBrailleLabel, "x");
+    element.ariaBrailleLabel = "y";
+    assert_equals(element.getAttribute("aria-braillelabel"), "y");
+    testNullable(element, "ariaBrailleLabel", "aria-braillelabel");
+}, "aria-braillelabel attribute reflects.");
+</script>
+
+<div id="brailleroledescription" aria-brailleroledescription="x"></div>
+<script>
+test(function(t) {
+    var element = document.getElementById("brailleroledescription");
+    assert_equals(element.ariaBrailleRoleDescription, "x");
+    element.ariaBrailleRoleDescription = "y";
+    assert_equals(element.getAttribute("aria-brailleroledescription"), "y");
+    testNullable(element, "ariaBrailleRoleDescription", "aria-brailleroledescription");
+}, "aria-brailleroledescription attribute reflects.");
+</script>
 </html>

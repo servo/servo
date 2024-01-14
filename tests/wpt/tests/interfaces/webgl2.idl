@@ -42,7 +42,6 @@ interface mixin WebGL2RenderingContextBase
   const GLenum STENCIL                                       = 0x1802;
   const GLenum RED                                           = 0x1903;
   const GLenum RGB8                                          = 0x8051;
-  const GLenum RGBA8                                         = 0x8058;
   const GLenum RGB10_A2                                      = 0x8059;
   const GLenum TEXTURE_BINDING_3D                            = 0x806A;
   const GLenum UNPACK_SKIP_IMAGES                            = 0x806D;

@@ -40,15 +40,11 @@ promise_test(async t => {
     const start = performance.now();
     const width = destVideo.videoWidth;
     const height = destVideo.videoHeight;
-    const resizeEvent = new Promise(r => destVideo.onresize = r);
     while (destVideo.videoWidth == width && destVideo.videoHeight == height) {
       if (performance.now() - start > 5000) {
         throw new Error("Timeout waiting for video size change");
       }
-      await Promise.race([
-        resizeEvent,
-        new Promise(r => t.step_timeout(r, 50)),
-      ]);
+      await new Promise(r => t.step_timeout(r, 50));
     }
   };
 

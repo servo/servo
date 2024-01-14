@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Actions in popup</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+  promise_test((t) => new Promise((resolve, reject) => {
+    addEventListener("message", (msg) => {
+      if (msg.data === "PASS") {
+        resolve();
+      } else if (msg.data === "FAIL") {
+        reject("actions failed");
+      }
+    });
+    addEventListener("click", (event) => {
+      reject("Test window received click meant for the popup");
+    });
+
+    let popup = window.open("support/actions.html?popup", "_blank");
+    t.add_cleanup(() => popup.close());
+  }), "Actions go to the popup and not the test window");
+</script>

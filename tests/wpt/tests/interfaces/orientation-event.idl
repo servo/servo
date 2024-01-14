@@ -15,7 +15,7 @@ interface DeviceOrientationEvent : Event {
     readonly attribute double? gamma;
     readonly attribute boolean absolute;
 
-    static Promise<PermissionState> requestPermission();
+    static Promise<PermissionState> requestPermission(optional boolean absolute = false);
 };
 
 dictionary DeviceOrientationEventInit : EventInit {

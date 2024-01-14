@@ -80,3 +80,36 @@ test(() => {
   assert_false(e1.matches(":dir(ltr)"), "parent is RTL after changing text in child");
   assert_false(e2.matches(":dir(ltr)"), "child is RTL after changing text in child");
 }, "text changes apply to dir=auto on further ancestor after removing dir=auto from closer ancestor");
+
+for (const bdi_test of [
+  { markup: "<bdi dir=ltr>A</bdi>", expected: "ltr", desc: "dir=ltr with LTR contents" },
+  { markup: "<bdi dir=ltr>\u05d0</bdi>", expected: "ltr", desc: "dir=ltr with RTL contents" },
+  { markup: "<bdi dir=ltr></bdi>", expected: "ltr", desc: "dir=ltr empty" },
+  { markup: "<bdi dir=rtl>A</bdi>", expected: "rtl", desc: "dir=rtl with LTR contents" },
+  { markup: "<bdi dir=rtl>\u05d0</bdi>", expected: "rtl", desc: "dir=rtl with RTL contents" },
+  { markup: "<bdi dir=rtl></bdi>", expected: "rtl", desc: "dir=rtl empty" },
+  { markup: "<bdi dir=auto>A</bdi>", expected: "ltr", desc: "dir=auto with LTR contents" },
+  { markup: "<bdi dir=auto>\u05d0</bdi>", expected: "rtl", desc: "dir=auto with RTL contents" },
+  { markup: "<bdi dir=auto></bdi>", expected: "parent", desc: "dir=auto empty" },
+  { markup: "<bdi>A</bdi>", expected: "ltr", desc: "no dir attribute with LTR contents" },
+  { markup: "<bdi>\u05d0</bdi>", expected: "rtl", desc: "no dir attribute with RTL contents" },
+  { markup: "<bdi></bdi>", expected: "parent", desc: "no dir attribute empty" },
+]) {
+  for (const parent_dir of [ "ltr", "rtl" ]) {
+    test(() => {
+      const parent_element = document.createElement("div");
+      parent_element.dir = parent_dir;
+      document.body.appendChild(parent_element);
+      parent_element.innerHTML = bdi_test.markup;
+      const bdi_element = parent_element.querySelector("bdi");
+      let expected = bdi_test.expected;
+      if (expected == "parent") {
+        expected = parent_dir;
+      }
+      const not_expected = (expected == "ltr") ? "rtl" : "ltr";
+      assert_true(bdi_element.matches(`:dir(${expected})`));
+      assert_false(bdi_element.matches(`:dir(${not_expected})`));
+      parent_element.remove();
+    }, `directionality of bdi elements: ${bdi_test.desc} in ${parent_dir} parent`);
+  }
+}
