@@ -4,7 +4,6 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
-use app_units::Au;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::Serialize;
 use servo_arc::Arc;
@@ -31,7 +30,7 @@ use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
-use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
+use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
 
 mod construct;
@@ -858,12 +857,13 @@ impl NonReplacedFormattingContext {
         );
 
         let block_size = containing_block_for_children.block_size.auto_is(|| {
-            clamp_au(
-                layout.content_block_size.into(),
-                min_box_size.block.into(),
-                max_box_size.block.map(|t| t.into()),
-            )
-            .into()
+            layout
+                .content_block_size
+                .clamp_between_extremums(
+                    min_box_size.block.into(),
+                    max_box_size.block.map(|t| t.into()),
+                )
+                .into()
         });
 
         let content_rect = LogicalRect {
@@ -948,12 +948,13 @@ impl NonReplacedFormattingContext {
             content_size = LogicalVec2 {
                 inline: inline_size,
                 block: block_size.auto_is(|| {
-                    clamp_au(
-                        layout.content_block_size.into(),
-                        min_box_size.block.into(),
-                        max_box_size.block.map(|t| t.into()),
-                    )
-                    .into()
+                    layout
+                        .content_block_size
+                        .clamp_between_extremums(
+                            min_box_size.block.into(),
+                            max_box_size.block.map(|t| t.into()),
+                        )
+                        .into()
                 }),
             };
 
@@ -1014,12 +1015,13 @@ impl NonReplacedFormattingContext {
                 content_size = LogicalVec2 {
                     inline: proposed_inline_size,
                     block: block_size.auto_is(|| {
-                        clamp_au(
-                            layout.content_block_size.into(),
-                            min_box_size.block.into(),
-                            max_box_size.block.map(|t| t.into()),
-                        )
-                        .into()
+                        layout
+                            .content_block_size
+                            .clamp_between_extremums(
+                                min_box_size.block.into(),
+                                max_box_size.block.map(|t| t.into()),
+                            )
+                            .into()
                     }),
                 };
 
@@ -1513,12 +1515,5 @@ impl PlacementState {
             },
             self.last_inflow_baseline_offset,
         )
-    }
-}
-
-fn clamp_au(value: Au, min: Au, max: Option<Au>) -> Au {
-    match max {
-        Some(max_value) => value.min(max_value).max(min),
-        None => value.max(min),
     }
 }

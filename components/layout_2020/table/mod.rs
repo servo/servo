@@ -10,6 +10,7 @@ mod construct;
 use app_units::Au;
 pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
+use euclid::num::Zero;
 use euclid::{Point2D, UnknownUnit, Vector2D};
 use serde::Serialize;
 
@@ -39,7 +40,7 @@ impl Table {
     ) -> IndependentLayout {
         IndependentLayout {
             fragments: Vec::new(),
-            content_block_size: Au(0),
+            content_block_size: Au::zero(),
             last_inflow_baseline_offset: None,
         }
     }
