@@ -9,6 +9,8 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
 
 <body>
 <script>
@@ -18,38 +20,22 @@ promise_test(async(t) => {
     generator_api: 'fledge',
     automatic_beacon: true,
   });
-  const new_url = new URL("resources/close.html", location.href);
-  const beacon_type = "reserved.top_navigation_start";
+  const beacon_event = {
+    eventType: "reserved.top_navigation_start",
+    eventData: "this is the beacon data",
+    destination: ["buyer"],
+    crossOriginExposed: false,
+  }
 
-  await fencedframe.execute(async (new_url, beacon_type) => {
-    let beacon_event = {
-      eventType: beacon_type,
-      eventData: "this is the beacon data",
-      destination: ["buyer"],
-      crossOriginExposed: false,
-    }
-    window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
-
-    // Add a cross-origin iframe that will perform the top-level navigation.
-    const iframe = await attachIFrameContext({
-      origin: get_host_info().HTTPS_REMOTE_ORIGIN,
-      headers: [["Allow-Fenced-Frame-Automatic-Beacons", "true"]],
-    });
-    await iframe.execute(async (new_url) => {
-      addEventListener("click", (event) => {
-        window.open(new_url);
-      });
-    }, [new_url]);
-  }, [new_url, beacon_type]);
+  await setupAutomaticBeacon(fencedframe, [beacon_event],
+      "resources/close.html", NavigationTrigger.CrossOriginClick);
 
   await actions.pointerMove(0, 0, {origin: fencedframe.element})
       .pointerDown()
       .pointerUp()
       .send();
 
-  const expected_beacon_data = "<No data>";
-  const received_beacon_data = await nextAutomaticBeacon(
-          "reserved.top_navigation_start", expected_beacon_data);
+  await verifyBeaconData(beacon_event.eventType, "<No data>");
 }, 'Automatic beacon in a cross-origin subframe should send without data ' +
    'when crossOrigin=false.');
 </script>

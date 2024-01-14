@@ -93,13 +93,13 @@ async function prepare_exec_popup(t, origin) {
   t.add_cleanup(() => popup.close());
   return [new RemoteContext(uuid), popup];
 }
-function test_loaf_script(cb, name, type, label) {
+function test_loaf_script(cb, invoker, invokerType, label) {
   promise_test(async t => {
     let [entry, script] = [];
     [entry, script] = await expect_long_frame_with_script(cb,
       script => (
-        script.type === type &&
-        script.name.startsWith(name) &&
+        script.invokerType === invokerType &&
+        script.invoker.startsWith(invoker) &&
         script.duration >= very_long_frame_duration), t);
 
     assert_true(!!entry, "Entry detected");
@@ -110,22 +110,22 @@ function test_loaf_script(cb, name, type, label) {
     assert_equals(script.window, window);
     assert_equals(script.forcedStyleAndLayoutDuration, 0);
     assert_equals(script.windowAttribution, "self");
-}, `LoAF script: ${name} ${type},${label ? ` ${label}` : ''}`);
+}, `LoAF script: ${invoker} ${invokerType},${label ? ` ${label}` : ''}`);
 
 }
 
-function test_self_user_callback(cb, name, label) {
-    test_loaf_script(cb, name, "user-callback", label);
+function test_self_user_callback(cb, invoker, label) {
+    test_loaf_script(cb, invoker, "user-callback", label);
 }
 
-function test_self_event_listener(cb, name) {
-  test_loaf_script(cb, name, "event-listener");
+function test_self_event_listener(cb, invoker) {
+  test_loaf_script(cb, invoker, "event-listener");
 }
 
-function test_promise_script(cb, resolve_or_reject, name, label) {
-  test_loaf_script(cb, name, `${resolve_or_reject}-promise`, label);
+function test_promise_script(cb, resolve_or_reject, invoker, label) {
+  test_loaf_script(cb, invoker, `${resolve_or_reject}-promise`, label);
 }
 
-function test_self_script_block(cb, name, type) {
-  test_loaf_script(cb, name, type);
+function test_self_script_block(cb, invoker, type) {
+  test_loaf_script(cb, invoker, type);
 }

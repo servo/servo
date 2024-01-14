@@ -18,12 +18,24 @@
         if (!!handle.sessionStorage.getItem("test")) {
           message = "Cross-site first-party Session Storage should be empty";
         }
+        handle.sessionStorage.setItem("test2", id);
+        if (window.sessionStorage.getItem("test2") == id) {
+          message = "Handle bound partitioned instead of unpartitioned Session Storage";
+        }
+        handle.sessionStorage.clear();
+        window.sessionStorage.clear();
         break;
       }
       case "localStorage": {
         if (!!handle.localStorage.getItem("test")) {
           message = "Cross-site first-party Local Storage should be empty";
         }
+        handle.localStorage.setItem("test2", id);
+        if (window.localStorage.getItem("test2") == id) {
+          message = "Handle bound partitioned instead of unpartitioned Local Storage";
+        }
+        handle.localStorage.clear();
+        window.localStorage.clear();
         break;
       }
       case "indexedDB": {

@@ -1,1 +1,1 @@
-Permissions-Policy: attribution-reporting=(self), shared-storage=(self)
+Permissions-Policy: attribution-reporting=(self), private-aggregation=(self), shared-storage=(self)

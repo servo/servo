@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+promise_test(async t => {
+  const rcHelper = new RemoteContextHelper();
+  const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
+  const outerPrerenderedRC = await addPrerenderRC(referrerRC);
+
+  // Double-check we're set up correctly.
+  assert_equals(await outerPrerenderedRC.executeScript(() => document.prerendering), true);
+
+  const innerPrerenderRC = await addPrerenderRC(outerPrerenderedRC);
+
+  // Do not `await`. Since (per spec) prerendering is not allowed inside
+  // a prerender, there is not actually a real `RemoteContextHelper`
+  // representing the inner prerender at this time, since there is no
+  // prerender running. Instead, the `RemoteContextHelper` it is waiting
+  // for something to appear at its URL, which will happen later. At
+  // that time, the script will run. But `await`ing the script now would
+  // just block, since it will not run until that later point.
+  const scriptResultInInner = innerPrerenderRC.executeScript(() => document.prerendering);
+
+  // When the outer prerender is activated, inside the `prerenderingchange`
+  // event, attempt to activate the inner prerender. In reality, this will just
+  // perform a normal navigation to `innerPrerenderRC.url`.
+  await outerPrerenderedRC.executeScript(innerPrerenderRCURL => {
+    document.addEventListener("prerenderingchange", () => {
+      // executeScriptToNavigate is normally an implementation detail of the
+      // RemoteContextHelper framework, used by, e.g., `rch.navigateTo()`.
+      // However, because we're setting up an event listener to navigate later,
+      // we can't call `rch.navigateTo()`, and so need to call it directly.
+      executeScriptToNavigate(innerPrerenderRCURL => {
+        location.href = innerPrerenderRCURL;
+      }, [innerPrerenderRCURL]);
+    });
+  }, [innerPrerenderRC.url]);
+
+  // Now that everything is set up, activate the outer prerender.
+  await activatePrerenderRC(referrerRC, outerPrerenderedRC);
+
+  // Testing that this is false means two things:
+  // - The inner prerender attempt did not happen; we did a normal navigation
+  //   instead.
+  // - Nothing crashed or got confused.
+  assert_equals(await scriptResultInInner, false);
+}, "Prerendering inside a prerender doesn't work, and navigating inside prerenderingchange is fine");
+</script>

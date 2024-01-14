@@ -97,6 +97,9 @@ function authenticatorResponseToJson(response) {
       (isAttestation ?
            [
              'clientDataJSON', 'attestationObject',
+             {name: 'getAuthenticatorData', target: 'authenticatorData'},
+             {name: 'getPublicKey', target: 'publicKey'},
+             {name: 'getPublicKeyAlgorithm', target: 'publicKeyAlgorithm'},
              {name: 'getTransports', target: 'transports'}
            ] :
            ['clientDataJSON', 'authenticatorData', 'signature', 'userHandle']);

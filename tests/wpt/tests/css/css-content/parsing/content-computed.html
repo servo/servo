@@ -10,7 +10,11 @@
 <script src="/css/support/computed-testcommon.js"></script>
 </head>
 <body>
-<div id="target"></div>
+<!-- Note: we have to make this element 'display:none' so that it doesn't
+     trigger actual image loads from remote web servers when we set its
+     'content' property to e.g. https://www.example.com/picture.svg via the
+     scripted tests below. -->
+<div id="target" style="display:none"></div>
 <script>
 function test_computed_value_combinations(property, specified, computed) {
     test_computed_value(property, specified, computed);

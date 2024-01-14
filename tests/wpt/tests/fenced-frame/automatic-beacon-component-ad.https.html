@@ -8,6 +8,8 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
 
 <body>
 <script>
@@ -21,16 +23,14 @@ promise_test(async(t) => {
     headers: [["Allow-Fenced-Frame-Automatic-Beacons", "true"]]
   });
   const new_url = new URL("resources/close.html", location.href);
-  const beacon_type = "reserved.top_navigation_start";
-  const beacon_data = "this is the beacon data";
+  const beacon_event = {
+    eventType: "reserved.top_navigation_start",
+    eventData: "this is the beacon data",
+    destination: ["buyer"],
+    crossOriginExposed: true,
+  }
 
-  await fencedframe.execute(async (new_url, beacon_type, beacon_data) => {
-    let beacon_event = {
-      eventType: beacon_type,
-      eventData: "this is the beacon data",
-      destination: ["buyer"],
-      crossOriginExposed: true,
-    }
+  await fencedframe.execute(async (new_url, beacon_event) => {
     window.fence.setReportEventDataForAutomaticBeacons(beacon_event);
 
     // Add an ad component that will perform the top-level navigation.
@@ -41,7 +41,7 @@ promise_test(async(t) => {
         window.open(new_url);
       });
     }, [new_url]);
-  }, [new_url, beacon_type]);
+  }, [new_url, beacon_event]);
 
   await actions.pointerMove(0, 0, {origin: fencedframe.element})
       .pointerDown()
@@ -49,9 +49,7 @@ promise_test(async(t) => {
       .send();
 
   // The component frame should not use the data set in its parent.
-  const expected_beacon_data = "<No data>";
-  const received_beacon_data = await nextAutomaticBeacon(
-          beacon_type, expected_beacon_data);
+  await verifyBeaconData(beacon_event.eventType, "<No data>");
 }, 'Automatic beacon in an ad component should send without data with a ' +
    'header opt-in.');
 </script>

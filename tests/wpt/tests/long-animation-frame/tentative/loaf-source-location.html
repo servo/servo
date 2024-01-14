@@ -18,7 +18,7 @@ promise_test(async t => {
     requestAnimationFrame(function non_bound_function() {
       busy_wait();
     });
-  }, script => script.name === "FrameRequestCallback", t);
+  }, script => script.invoker === "FrameRequestCallback", t);
   assert_true(script.sourceLocation?.startsWith("non_bound_function"));
   assert_regexp_match(script.sourceLocation, source_location_regex);
 }, "Source location should be extracted from non-bound functions");
@@ -29,7 +29,7 @@ promise_test(async t => {
     requestAnimationFrame((function my_bound_function() {
       busy_wait();
     }).bind(object));
-  }, script => script.name === "FrameRequestCallback", t);
+  }, script => script.invoker === "FrameRequestCallback", t);
   assert_true(script.sourceLocation?.startsWith("my_bound_function"));
   assert_regexp_match(script.sourceLocation, source_location_regex);
 }, "Source location should be extracted from bound functions");
@@ -39,7 +39,7 @@ promise_test(async t => {
     t.step_timeout(function my_timeout() {
       busy_wait();
     });
-  }, script => script.name === "TimerHandler:setTimeout" && script.sourceLocation, t );
+  }, script => script.invoker === "TimerHandler:setTimeout" && script.sourceLocation, t );
   assert_true(script.sourceLocation.includes("testharness.js"));
   assert_regexp_match(script.sourceLocation, source_location_regex);
 }, "Source location should be extracted for setTimeout");
@@ -50,7 +50,7 @@ promise_test(async t => {
     const scriptElement = document.createElement("script");
     scriptElement.src = scriptLocation;
     document.body.appendChild(scriptElement);
-  }, script => script.name === "Window.fetch.then", t);
+  }, script => script.invoker === "Window.fetch.then", t);
   assert_true(script.sourceLocation?.includes("promise-generates-loaf.js"));
 }, "Source location should be extracted for promises");
 

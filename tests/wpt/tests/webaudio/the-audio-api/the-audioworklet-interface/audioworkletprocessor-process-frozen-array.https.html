@@ -43,7 +43,10 @@
           if (actual.done)
             task.done();
         };
-        sourceNode.connect(workletNode);
+        // To have valid ArrayBuffers for both input and output, we need
+        // both connections.
+        // See: https://github.com/WebAudio/web-audio-api/issues/2566
+        sourceNode.connect(workletNode).connect(context.destination);
         sourceNode.start();
       });
 

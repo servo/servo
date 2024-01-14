@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Test window.fence.disableUntrustedNetwork availability.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext();
+  await fencedframe.execute(async () => {
+    const cross_origin_fenced_frame = await attachFencedFrameContext({
+        origin: get_host_info().HTTPS_REMOTE_ORIGIN});
+    await cross_origin_fenced_frame.execute(async () => {
+      const promise = window.fence.disableUntrustedNetwork();
+      assert_true(typeof promise.then != 'undefined');
+      await promise;
+    });
+
+    const same_origin_iframe = await attachIFrameContext();
+    await same_origin_iframe.execute(async () => {
+      const promise = window.fence.disableUntrustedNetwork();
+      assert_true(typeof promise.then != 'undefined');
+      await promise;
+    });
+
+    const cross_origin_iframe = await attachIFrameContext({
+        origin: get_host_info().HTTPS_REMOTE_ORIGIN});
+    await cross_origin_iframe.execute(async () => {
+      try {
+        const promise = window.fence.disableUntrustedNetwork();
+        await promise;
+        assert_unreached(
+          'disableUntrustedNetwork should fail when not same-origin to the '
+          + 'mapped url.');
+      } catch (e) {
+        assert_equals(e.name, 'TypeError');
+      }
+    });
+
+    const promise = window.fence.disableUntrustedNetwork();
+    assert_true(typeof promise.then != 'undefined');
+    await promise;
+  });
+}, 'window.fence.disableUntrustedNetwork availability');
+</script>
+</body>

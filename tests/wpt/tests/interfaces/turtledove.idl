@@ -69,6 +69,7 @@ dictionary AuctionAdConfig {
   USVString trustedScoringSignalsURL;
   sequence<USVString> interestGroupBuyers;
   Promise<any> auctionSignals;
+  record<DOMString, DOMString> requestedSize;
   Promise<any> sellerSignals;
   Promise<DOMString> directFromSellerSignalsHeaderAdSlot;
   unsigned long long sellerTimeout;
@@ -148,6 +149,10 @@ partial interface Navigator {
 
 partial dictionary RequestInit {
   boolean adAuctionHeaders;
+};
+
+partial interface HTMLIFrameElement {
+  [CEReactions] attribute boolean adAuctionHeaders;
 };
 
 dictionary PreviousWin {

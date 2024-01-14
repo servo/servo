@@ -171,10 +171,6 @@ dictionary RTCAudioSourceStats : RTCMediaSourceStats {
               double              totalSamplesDuration;
               double              echoReturnLoss;
               double              echoReturnLossEnhancement;
-              double              droppedSamplesDuration;
-              unsigned long       droppedSamplesEvents;
-              double              totalCaptureDelay;
-              unsigned long long  totalSamplesCaptured;
 };
 
 dictionary RTCVideoSourceStats : RTCMediaSourceStats {

@@ -48,6 +48,27 @@ promise_test(async(t) => {
 }, 'A fenced frame that navigates itself to a cross origin page that allows feature policies ' +
     'can still access the feature policies');
 
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+        origin: get_host_info().REMOTE_ORIGIN});
+
+  await fencedframe.execute(async () => {
+    assert_true(
+        document.featurePolicy.allowsFeature('shared-storage'),
+        "Shared storage should be allowed in the fenced frame.");
+    assert_true(
+        document.featurePolicy.allowsFeature('private-aggregation'),
+        "Private aggregation should be allowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('attribution-reporting'),
+        "Attribution reporting should be disallowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('sync-xhr'),
+        "USB access should be disallowed in the fenced frame.");
+  }, []);
+}, 'Cross-origin fenced frames default feature policies follow inheritance' +
+   ' rules.');
+
 </script>
 </body>
 </html>

@@ -96,6 +96,7 @@ class Script(BidiModule):
         self,
         function_declaration: str,
         arguments: Optional[List[Mapping[str, Any]]] = None,
+        contexts: Optional[List[str]] = None,
         sandbox: Optional[str] = None
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {
@@ -104,6 +105,8 @@ class Script(BidiModule):
 
         if arguments is not None:
             params["arguments"] = arguments
+        if contexts is not None:
+            params["contexts"] = contexts
         if sandbox is not None:
             params["sandbox"] = sandbox
 

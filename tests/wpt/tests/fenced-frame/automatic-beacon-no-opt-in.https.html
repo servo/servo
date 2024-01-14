@@ -8,6 +8,8 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
 
 <body>
 <script>
@@ -38,11 +40,8 @@ promise_test(async (t) => {
     .pointerDown()
     .pointerUp()
     .send();
-  const timeout = new Promise(resolve => t.step_timeout(resolve, 1000));
-  const result = await Promise.race(
-      [nextAutomaticBeacon("reserved.top_navigation_start", "<No data>"),
-       timeout]);
-  assert_true(typeof result === "undefined");
+  await verifyBeaconData("reserved.top_navigation_start", "<No data>", false,
+      t);
 }, "Automatic beacons will not send if the document does not opt in.");
 
 </script>

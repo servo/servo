@@ -32,7 +32,7 @@ dictionary AuthenticatorAttestationResponseJSON {
     required Base64URLString authenticatorData;
     required sequence<DOMString> transports;
     // The publicKey field will be missing if pubKeyCredParams was used to
-    // negotiate a public-key algorithm that the user agent doesn’t
+    // negotiate a public-key algorithm that the user agent doesn't
     // understand. (See section “Easily accessing credential data” for a
     // list of which algorithms user agents must support.) If using such an
     // algorithm then the public key must be parsed directly from

@@ -172,6 +172,34 @@ def assert_before_request_sent_event(
     )
 
 
+def assert_fetch_error_event(
+    event,
+    context=None,
+    errorText=None,
+    intercepts=None,
+    is_blocked=None,
+    navigation=None,
+    redirect_count=None,
+    expected_request=None,
+):
+    # Assert errorText
+    assert isinstance(event["errorText"], str)
+
+    if errorText is not None:
+        assert event["errorText"] == errorText
+
+    # Assert base parameters
+    assert_base_parameters(
+        event,
+        context=context,
+        intercepts=intercepts,
+        is_blocked=is_blocked,
+        navigation=navigation,
+        redirect_count=redirect_count,
+        expected_request=expected_request,
+    )
+
+
 def assert_response_data(response_data, expected_response):
     recursive_compare(
         {
@@ -281,6 +309,7 @@ PAGE_EMPTY_IMAGE = "/webdriver/tests/bidi/network/support/empty.png"
 PAGE_EMPTY_SCRIPT = "/webdriver/tests/bidi/network/support/empty.js"
 PAGE_EMPTY_SVG = "/webdriver/tests/bidi/network/support/empty.svg"
 PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
+PAGE_INVALID_URL = "https://not_a_valid_url/"
 PAGE_OTHER_TEXT = "/webdriver/tests/bidi/network/support/other.txt"
 PAGE_REDIRECT_HTTP_EQUIV = (
     "/webdriver/tests/bidi/network/support/redirect_http_equiv.html"
@@ -289,5 +318,6 @@ PAGE_REDIRECTED_HTML = "/webdriver/tests/bidi/network/support/redirected.html"
 
 AUTH_REQUIRED_EVENT = "network.authRequired"
 BEFORE_REQUEST_SENT_EVENT = "network.beforeRequestSent"
+FETCH_ERROR_EVENT = "network.fetchError"
 RESPONSE_COMPLETED_EVENT = "network.responseCompleted"
 RESPONSE_STARTED_EVENT = "network.responseStarted"

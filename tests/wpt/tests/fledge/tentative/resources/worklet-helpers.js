@@ -13,7 +13,7 @@ function deepEquals(a, b) {
   let aKeys = Object.keys(a);
   if (aKeys.length != Object.keys(b).length)
     return false;
-  for (key in aKeys) {
+  for (let key of aKeys) {
     if (a.hasOwnProperty(key) != b.hasOwnProperty(key) ||
         !deepEquals(a[key], b[key])) {
       return false;

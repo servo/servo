@@ -22,6 +22,8 @@ interface URLPattern {
   readonly attribute USVString pathname;
   readonly attribute USVString search;
   readonly attribute USVString hash;
+
+  readonly attribute boolean hasRegExpGroups;
 };
 
 dictionary URLPatternInit {
@@ -57,3 +59,5 @@ dictionary URLPatternComponentResult {
   USVString input;
   record<USVString, (USVString or undefined)> groups;
 };
+
+typedef (USVString or URLPatternInit or URLPattern) URLPatternCompatible;

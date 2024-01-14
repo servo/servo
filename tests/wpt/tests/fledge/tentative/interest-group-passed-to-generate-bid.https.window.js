@@ -6,7 +6,10 @@
 // META: variant=?1-5
 // META: variant=?6-10
 // META: variant=?11-15
-// META: variant=?16-last
+// META: variant=?16-20
+// META: variant=?21-25
+// META: variant=?26-30
+// META: variant=?31-last
 
 "use strict;"
 
@@ -19,12 +22,13 @@ const makeTest = ({
   name,
   // InterestGroup field name.
   fieldName,
-  // InterestGroup field value, both expected in worklets and acution in the
-  // auction. If undefined, value will not be set in interestGroup, and will
-  // be expected to also not be set in the interestGroup passed to generateBid().
+  // InterestGroup field value, both expected in worklets and the value used
+  // when joining the interest group. If undefined, value will not be set in
+  // interestGroup, and will be expected to also not be set in the
+  // interestGroup passed to generateBid().
   fieldValue,
   // Additional values to use in the InterestGroup passed to joinInterestGroup().
-  // If it contains a value for the key specified in `fieldName`, that takes
+  // If it contains a value for the key specified in `fieldName`, takes
   // precedent over `fieldValue`.
   interestGroupOverrides = {}
 }) => {
@@ -83,6 +87,118 @@ makeTest({
 });
 
 makeTest({
+  name: 'InterestGroup.name.',
+  fieldName: 'name',
+  fieldValue: 'Jim'
+});
+
+makeTest({
+  name: 'InterestGroup.name with unicode characters.',
+  fieldName: 'name',
+  fieldValue: '\u2665'
+});
+
+makeTest({
+  name: 'InterestGroup.lifetimeMs should not be passed in.',
+  fieldName: 'lifetimeMs',
+  fieldValue: undefined,
+  interestGroupOverrides: { lifetimeMs: "120000" }
+});
+
+makeTest({
+  name: 'InterestGroup.priority should not be passed in, since it can be changed by auctions.',
+  fieldName: 'priority',
+  fieldValue: undefined,
+  interestGroupOverrides: { priority: 500 }
+});
+
+makeTest({
+  name: 'InterestGroup.priorityVector undefined.',
+  fieldName: 'priorityVector',
+  fieldValue: undefined
+});
+
+makeTest({
+  name: 'InterestGroup.priorityVector empty.',
+  fieldName: 'priorityVector',
+  fieldValue: {}
+});
+
+makeTest({
+  name: 'InterestGroup.priorityVector.',
+  fieldName: 'priorityVector',
+  fieldValue: { 'a': -1, 'b': 2 }
+});
+
+makeTest({
+  name: 'InterestGroup.prioritySignalsOverrides should not be passed in, since it can be changed by auctions.',
+  fieldName: 'prioritySignalsOverrides',
+  fieldValue: undefined,
+  interestGroupOverrides: { prioritySignalsOverrides: { 'a': 1, 'b': 2 } }
+});
+
+// TODO(mmenke): These next 4 violate spec. Fix the code, and update the tests.
+makeTest({
+  name: 'InterestGroup.enableBiddingSignalsPrioritization not set.',
+  fieldName: 'enableBiddingSignalsPrioritization',
+  fieldValue: false,
+  interestGroupOverrides: { enableBiddingSignalsPrioritization: undefined }
+});
+
+makeTest({
+  name: 'InterestGroup.enableBiddingSignalsPrioritization unrecognized.',
+  fieldName: 'enableBiddingSignalsPrioritization',
+  // Non-empty strings are treated as true by Javascript. This test is serves
+  // to make sure that the 'foo' isn't preserved.
+  fieldValue: true,
+  interestGroupOverrides: { enableBiddingSignalsPrioritization: 'foo' }
+});
+
+makeTest({
+  name: 'InterestGroup.enableBiddingSignalsPrioritization false.',
+  fieldName: 'enableBiddingSignalsPrioritization',
+  fieldValue: false
+});
+
+makeTest({
+  name: 'InterestGroup.enableBiddingSignalsPrioritization true.',
+  fieldName: 'enableBiddingSignalsPrioritization',
+  fieldValue: true
+});
+
+makeTest({
+  name: 'InterestGroup.executionMode not present.',
+  fieldName: 'executionMode',
+  fieldValue: 'compatibility',
+  interestGroupOverrides: { executionMode: undefined }
+});
+
+makeTest({
+  name: 'InterestGroup.executionMode compatibility.',
+  fieldName: 'executionMode',
+  fieldValue: 'compatibility'
+});
+
+makeTest({
+  name: 'InterestGroup.executionMode frozen-context.',
+  fieldName: 'executionMode',
+  fieldValue: 'frozen-context'
+});
+
+makeTest({
+  name: 'InterestGroup.executionMode group-by-origin.',
+  fieldName: 'executionMode',
+  fieldValue: 'group-by-origin'
+});
+
+makeTest({
+  name: 'InterestGroup.executionMode has non-standard string.',
+  fieldName: 'executionMode',
+  fieldValue: 'compatibility',
+  interestGroupOverrides: { executionMode: 'foo' }
+});
+
+makeTest({
   name: 'InterestGroup.trustedBiddingSignalsURL not set.',
   fieldName: 'trustedBiddingSignalsURL',
   fieldValue: undefined
@@ -110,18 +226,6 @@ makeTest({
   name: 'InterestGroup.trustedBiddingSignalsKeys not set.',
   fieldName: 'trustedBiddingSignalsKeys',
   fieldValue: undefined
-});
-
-makeTest({
-  name: 'InterestGroup.name.',
-  fieldName: 'name',
-  fieldValue: 'Jim'
-});
-
-makeTest({
-  name: 'InterestGroup.name with unicode characters.',
-  fieldName: 'name',
-  fieldValue: '\u2665'
 });
 
 makeTest({
@@ -167,6 +271,30 @@ makeTest({
   fieldName: 'trustedBiddingSignalsSlotSizeMode',
   fieldValue: 'none',
   interestGroupOverrides: { trustedBiddingSignalsSlotSizeMode: 'unrecognized value' }
+});
+
+makeTest({
+  name: 'InterestGroup.userBiddingSignals not set.',
+  fieldName: 'userBiddingSignals',
+  fieldValue: undefined
+});
+
+makeTest({
+  name: 'InterestGroup.userBiddingSignals is integer.',
+  fieldName: 'userBiddingSignals',
+  fieldValue: 15
+});
+
+makeTest({
+  name: 'InterestGroup.userBiddingSignals is array.',
+  fieldName: 'userBiddingSignals',
+  fieldValue: [1, {a: 'b'}, 'c']
+});
+
+makeTest({
+  name: 'InterestGroup.userBiddingSignals is object.',
+  fieldName: 'userBiddingSignals',
+  fieldValue: {a:1, b:32.5, c:['d', 'e']}
 });
 
 makeTest({

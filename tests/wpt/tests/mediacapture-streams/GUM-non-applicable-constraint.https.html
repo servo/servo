@@ -37,6 +37,7 @@ let audio_only_valid_constraints = {
   echoCancellation: {ideal: true},
   autoGainControl: {ideal: true},
   noiseSuppression: {ideal: true},
+  voiceIsolation: {ideal: true},
   latency: {min: 0},
   channelCount: {min: 0}
 }
@@ -48,6 +49,7 @@ let audio_only_invalid_constraints = {
   echoCancellation: {exact: true},
   autoGainControl: {exact: true},
   noiseSuppression: {exact: true},
+  voiceIsolation: {exact: true},
   latency: {max: 0},
   channelCount: {max: 0}
 }

@@ -6,3 +6,4 @@ from .input import Input
 from .network import Network
 from .script import Script
 from .session import Session
+from .storage import Storage

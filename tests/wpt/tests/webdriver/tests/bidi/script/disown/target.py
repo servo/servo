@@ -93,3 +93,44 @@ async def test_sandbox(bidi_session, top_context, call_function):
 
     with pytest.raises(error.NoSuchHandleException):
         await call_function("arg => arg.a", [remote_value], sandbox="basic_sandbox")
+
+
+async def test_context_and_realm(bidi_session, top_context, new_tab, call_function):
+    # Create a remote value outside of any sandbox.
+    result_in_default_realm = await bidi_session.script.evaluate(
+        raw_result=True,
+        expression="({a:'without sandbox'})",
+        await_promise=False,
+        result_ownership="root",
+        target=ContextTarget(new_tab["context"]),
+    )
+    remote_value = result_in_default_realm["result"]
+
+    # Create a remote value from a sandbox.
+    result_in_sandbox = await bidi_session.script.evaluate(
+        raw_result=True,
+        expression="({a:'with sandbox'})",
+        await_promise=False,
+        result_ownership="root",
+        target=ContextTarget(top_context["context"], "basic_sandbox"),
+    )
+    sandbox_value = result_in_sandbox["result"]
+
+    # Make sure that realm argument is ignored and the value is disowned
+    # in the default realm of another context.
+    await bidi_session.script.disown(
+        handles=[remote_value["handle"]],
+        target={
+            "context": new_tab["context"],
+            "realm": result_in_default_realm["realm"]
+        }
+    )
+
+    with pytest.raises(error.NoSuchHandleException):
+        await call_function("arg => arg.a", [remote_value], None, new_tab["context"])
+
+    # Check that the sandbox remote value is still working.
+    result = await call_function(
+        "arg => arg.a", [sandbox_value], sandbox="basic_sandbox"
+    )
+    assert result == {"type": "string", "value": "with sandbox"}
