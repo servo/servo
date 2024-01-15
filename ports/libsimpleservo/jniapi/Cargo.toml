@@ -20,14 +20,21 @@ jni = "0.18.0"
 libc = { workspace = true }
 log = { workspace = true }
 serde_json = { workspace = true }
-simpleservo = { path = "../api" }
+
+# TODO: enable native-bluetooth feature for android
+# and remove explicit feature list here
+[dependencies.simpleservo]
+path = "../api"
+default-features = false
+features = ["max_log_level", "webdriver"]
 
 [build-dependencies]
 cc = "1.0"
 
 [features]
 debugmozjs = ["simpleservo/debugmozjs"]
-default = ["max_log_level", "webdriver", "native-bluetooth"]
+# TODO: enable native-bluetooth feature for android
+default = ["max_log_level", "webdriver"]
 googlevr = ["simpleservo/googlevr"]
 js_backtrace = ["simpleservo/js_backtrace"]
 max_log_level = ["simpleservo/max_log_level"]
