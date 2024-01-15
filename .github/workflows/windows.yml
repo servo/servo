@@ -71,10 +71,6 @@ jobs:
           choco install wixtoolset
           echo "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Bootstrap
-        env:
-          # We need to override the rustc set in cargo/config.toml, because at
-          # this point crown is not installed yet.
-          RUSTC: "rustc"
         run: |
           python -m pip install --upgrade pip
           python mach fetch
