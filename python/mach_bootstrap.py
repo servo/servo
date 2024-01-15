@@ -209,10 +209,10 @@ def bootstrap(topdir):
         print('Current path:', topdir)
         sys.exit(1)
 
-    # Ensure we are running Python 3.5+. We put this check here so we generate a
+    # Ensure we are running Python 3.10+. We put this check here so we generate a
     # user-friendly error message rather than a cryptic stack trace on module import.
-    if sys.version_info < (3, 5):
-        print('Python3 (>=3.5) is required to run mach.')
+    if sys.version_info < (3, 10):
+        print('Python3 (>=3.10) is required to run mach.')
         print('You are running Python', platform.python_version())
         sys.exit(1)
 
