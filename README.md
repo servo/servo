@@ -127,13 +127,13 @@ sdkmanager:
 For building:
 
 ``` sh
-sdkmanager install platform-tools platforms;android-33
+sdkmanager install platform-tools platforms;android-30
 ```
 
-To run in emulator, also install related components via:
+To run in emulator, also install the related components:
 
 ``` sh
-sdkmanager install emulator system-images;android-33;google_apis;x86
+sdkmanager install emulator system-images;android-30;google_apis;x86
 ```
 
 Build commands:
