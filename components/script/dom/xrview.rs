@@ -95,11 +95,11 @@ impl XRViewMethods for XRView {
             let proj = self.view.projection.to_array();
             self.proj
                 .set_data(cx, &proj)
-                .expect("failed to set projection matrix")
+                .expect("Failed to set projection matrix.")
         }
         self.proj
             .get_internal()
-            .expect("failed to get projection matrix")
+            .expect("Failed to get projection matrix.")
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrview-transform
