@@ -1461,7 +1461,7 @@ def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
 
 
 def todo_switch_float_32(des):
-    return des.interface.identifier.name in ['XRRigidTransform', 'XRRay', 'GamepadPose']
+    return des.interface.identifier.name in ['XRRay', 'GamepadPose']
 
 
 def builtin_return_type(returnType):
