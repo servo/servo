@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use servo_config::pref;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
@@ -624,5 +625,18 @@ fn size_to_length(size: &Size) -> LengthPercentageOrAuto {
     match size {
         Size::LengthPercentage(length) => LengthPercentageOrAuto::LengthPercentage(&length.0),
         Size::Auto => LengthPercentageOrAuto::Auto,
+    }
+}
+
+pub(crate) trait Clamp: Sized {
+    fn clamp_between_extremums(self, min: Self, max: Option<Self>) -> Self;
+}
+
+impl Clamp for Au {
+    fn clamp_between_extremums(self, min: Self, max: Option<Self>) -> Self {
+        match max {
+            Some(max_value) => self.min(max_value).max(min),
+            None => self.max(min),
+        }
     }
 }

@@ -622,7 +622,8 @@ impl HoistedAbsolutelyPositionedBox {
                             &mut positioning_context,
                             &containing_block_for_children,
                         );
-                        let block_size = size.auto_is(|| independent_layout.content_block_size);
+                        let block_size =
+                            size.auto_is(|| independent_layout.content_block_size.into());
                         Result {
                             content_size: LogicalVec2 {
                                 inline: inline_size,

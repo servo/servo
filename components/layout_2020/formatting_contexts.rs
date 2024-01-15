@@ -4,11 +4,11 @@
 
 use std::convert::TryInto;
 
+use app_units::Au;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
 
 use crate::context::LayoutContext;
@@ -63,12 +63,12 @@ pub(crate) struct IndependentLayout {
     pub fragments: Vec<Fragment>,
 
     /// https://drafts.csswg.org/css2/visudet.html#root-height
-    pub content_block_size: Length,
+    pub content_block_size: Au,
 
     /// The offset of the last inflow baseline of this layout in the content area, if
     /// there was one. This is used to propagate baselines to the ancestors of `display:
     /// inline-block`.
-    pub last_inflow_baseline_offset: Option<Length>,
+    pub last_inflow_baseline_offset: Option<Au>,
 }
 
 impl IndependentFormattingContext {
