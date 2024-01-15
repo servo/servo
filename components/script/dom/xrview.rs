@@ -93,15 +93,13 @@ impl XRViewMethods for XRView {
             let cx = GlobalScope::get_cx();
             // row_major since euclid uses row vectors
             let proj = self.view.projection.to_array();
-            if self.proj.set_data(cx, &proj).is_err() {
-                    // error handling
-             }
+            self.proj
+                .set_data(cx, &proj)
+                .expect("failed to set projection matrix")
         }
-
-        match self.proj.get_internal() {
-            Ok(array) => array,
-            Err(_) => unreachable!(),
-        }
+        self.proj
+            .get_internal()
+            .expect("failed to get projection matrix")
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrview-transform
