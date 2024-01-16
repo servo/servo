@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::ops::Bound;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use headers::{
     CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
@@ -30,7 +30,6 @@ use net_traits::{FetchMetadata, Metadata, ResourceFetchTiming};
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
-use time::{Duration, Timespec, Tm};
 use tokio::sync::mpsc::{unbounded_channel as unbounded, UnboundedSender as TokioSender};
 
 use crate::fetch::methods::{Data, DoneChannel};
@@ -75,7 +74,7 @@ struct MeasurableCachedResource {
     raw_status: Option<(u16, Vec<u8>)>,
     url_list: Vec<ServoUrl>,
     expires: Duration,
-    last_validated: Tm,
+    last_validated: SystemTime,
 }
 
 impl MallocSizeOf for CachedResource {
@@ -181,11 +180,11 @@ fn calculate_response_age(response: &Response) -> Duration {
     if let Some(secs) = response.headers.get(header::AGE) {
         if let Ok(seconds_string) = secs.to_str() {
             if let Ok(secs) = seconds_string.parse::<i64>() {
-                return Duration::seconds(secs);
+                return Duration::from_secs(secs as u64);
             }
         }
     }
-    Duration::seconds(0i64)
+    Duration::ZERO
 }
 
 /// Determine the expiry date from relevant headers,
@@ -196,14 +195,10 @@ fn get_response_expiry(response: &Response) -> Duration {
     if let Some(directives) = response.headers.typed_get::<CacheControl>() {
         if directives.no_cache() {
             // Requires validation on first use.
-            return Duration::seconds(0i64);
+            return Duration::ZERO;
         } else {
-            if let Some(secs) = directives.max_age().or(directives.s_max_age()) {
-                let max_age = Duration::from_std(secs).unwrap();
-                if max_age < age {
-                    return Duration::seconds(0i64);
-                }
-                return max_age - age;
+            if let Some(max_age) = directives.max_age().or(directives.s_max_age()) {
+                return max_age.checked_sub(age).unwrap_or(Duration::ZERO);
             }
         }
     }
@@ -211,18 +206,15 @@ fn get_response_expiry(response: &Response) -> Duration {
         Some(t) => {
             // store the period of time from now until expiry
             let t: SystemTime = t.into();
-            let t = t.duration_since(SystemTime::UNIX_EPOCH).unwrap();
-            let desired = Timespec::new(t.as_secs() as i64, 0);
-            let current = time::now().to_timespec();
+            let desired = t.duration_since(UNIX_EPOCH).unwrap_or_default();
+            let current = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default();
 
-            if desired > current {
-                return desired - current;
-            } else {
-                return Duration::seconds(0i64);
-            }
+            return desired.checked_sub(current).unwrap_or(Duration::ZERO);
         },
         // Malformed Expires header, shouldn't be used to construct a valid response.
-        None if response.headers.contains_key(header::EXPIRES) => return Duration::seconds(0i64),
+        None if response.headers.contains_key(header::EXPIRES) => return Duration::ZERO,
         _ => {},
     }
     // Calculating Heuristic Freshness
@@ -231,19 +223,18 @@ fn get_response_expiry(response: &Response) -> Duration {
         // <https://tools.ietf.org/html/rfc7234#section-5.5.4>
         // Since presently we do not generate a Warning header field with a 113 warn-code,
         // 24 hours minus response age is the max for heuristic calculation.
-        let max_heuristic = Duration::hours(24) - age;
+        let max_heuristic = Duration::from_secs(24 * 3600) - age;
         let heuristic_freshness = if let Some(last_modified) =
             // If the response has a Last-Modified header field,
             // caches are encouraged to use a heuristic expiration value
             // that is no more than some fraction of the interval since that time.
             response.headers.typed_get::<LastModified>()
         {
-            let current = time::now().to_timespec();
+            let current = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default();
             let last_modified: SystemTime = last_modified.into();
-            let last_modified = last_modified
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap();
-            let last_modified = Timespec::new(last_modified.as_secs() as i64, 0);
+            let last_modified = last_modified.duration_since(UNIX_EPOCH).unwrap();
             // A typical setting of this fraction might be 10%.
             let raw_heuristic_calc = (current - last_modified) / 10;
             let result = if raw_heuristic_calc < max_heuristic {
@@ -268,7 +259,7 @@ fn get_response_expiry(response: &Response) -> Duration {
         }
     }
     // Requires validation upon first use as default.
-    Duration::seconds(0i64)
+    Duration::ZERO
 }
 
 /// Request Cache-Control Directives
@@ -280,24 +271,19 @@ fn get_expiry_adjustment_from_request_headers(request: &Request, expires: Durati
     };
 
     if let Some(max_age) = directive.max_stale() {
-        return expires + Duration::from_std(max_age).unwrap();
+        return expires + max_age;
     }
     if let Some(max_age) = directive.max_age() {
-        let max_age = Duration::from_std(max_age).unwrap();
         if expires > max_age {
-            return Duration::min_value();
+            return Duration::ZERO;
         }
         return expires - max_age;
     }
     if let Some(min_fresh) = directive.min_fresh() {
-        let min_fresh = Duration::from_std(min_fresh).unwrap();
-        if expires < min_fresh {
-            return Duration::min_value();
-        }
-        return expires - min_fresh;
+        return expires.checked_sub(min_fresh).unwrap_or(Duration::ZERO);
     }
     if directive.no_cache() || directive.no_store() {
-        return Duration::min_value();
+        return Duration::ZERO;
     }
 
     expires
@@ -341,8 +327,15 @@ fn create_cached_response(
     response.aborted = cached_resource.aborted.clone();
     let expires = cached_resource.data.expires;
     let adjusted_expires = get_expiry_adjustment_from_request_headers(request, expires);
-    let now = Duration::seconds(time::now().to_timespec().sec);
-    let last_validated = Duration::seconds(cached_resource.data.last_validated.to_timespec().sec);
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
+    let last_validated = cached_resource
+        .data
+        .last_validated
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
+
     let time_since_validated = now - last_validated;
     // TODO: take must-revalidate into account <https://tools.ietf.org/html/rfc7234#section-5.2.2.1>
     // TODO: if this cache is to be considered shared, take proxy-revalidate into account
@@ -813,7 +806,7 @@ impl HttpCache {
         let entry_key = CacheKey::from_servo_url(url);
         if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
             for cached_resource in cached_resources.iter_mut() {
-                cached_resource.data.expires = Duration::seconds(0i64);
+                cached_resource.data.expires = Duration::ZERO;
             }
         }
     }
@@ -897,7 +890,7 @@ impl HttpCache {
                 raw_status: response.raw_status.clone(),
                 url_list: response.url_list.clone(),
                 expires: expiry,
-                last_validated: time::now(),
+                last_validated: SystemTime::now(),
             }),
         };
         let entry = self.entries.entry(entry_key).or_insert_with(|| vec![]);

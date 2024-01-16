@@ -8,13 +8,13 @@
 use std::cmp::Ordering;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::time::SystemTime;
 
 use log::{debug, info};
 use net_traits::pub_domains::reg_suffix;
 use net_traits::CookieSource;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
-use time::{self, Tm};
 
 use crate::cookie::Cookie;
 
@@ -139,8 +139,8 @@ impl CookieStorage {
         let b_path_len = b.cookie.path().as_ref().map_or(0, |p| p.len());
         match a_path_len.cmp(&b_path_len) {
             Ordering::Equal => {
-                let a_creation_time = a.creation_time.to_timespec();
-                let b_creation_time = b.creation_time.to_timespec();
+                let a_creation_time = a.creation_time;
+                let b_creation_time = b.creation_time;
                 a_creation_time.cmp(&b_creation_time)
             },
             // Ensure that longer paths are sorted earlier than shorter paths
@@ -229,14 +229,14 @@ fn reg_host<'a>(url: &'a str) -> String {
 
 fn is_cookie_expired(cookie: &Cookie) -> bool {
     match cookie.expiry_time {
-        Some(ref t) => t.to_timespec() <= time::get_time(),
+        Some(ref t) => t.0 <= SystemTime::now(),
         None => false,
     }
 }
 
 fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> bool {
     // Remove non-secure cookie with oldest access time
-    let oldest_accessed: Option<(usize, Tm)> = get_oldest_accessed(false, cookies);
+    let oldest_accessed = get_oldest_accessed(false, cookies);
 
     if let Some((index, _)) = oldest_accessed {
         cookies.remove(index);
@@ -245,7 +245,7 @@ fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> bool {
         if !is_secure_cookie {
             return false;
         }
-        let oldest_accessed: Option<(usize, Tm)> = get_oldest_accessed(true, cookies);
+        let oldest_accessed: Option<(usize, SystemTime)> = get_oldest_accessed(true, cookies);
         if let Some((index, _)) = oldest_accessed {
             cookies.remove(index);
         }
@@ -253,8 +253,11 @@ fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> bool {
     return true;
 }
 
-fn get_oldest_accessed(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> Option<(usize, Tm)> {
-    let mut oldest_accessed: Option<(usize, Tm)> = None;
+fn get_oldest_accessed(
+    is_secure_cookie: bool,
+    cookies: &mut Vec<Cookie>,
+) -> Option<(usize, SystemTime)> {
+    let mut oldest_accessed: Option<(usize, SystemTime)> = None;
     for (i, c) in cookies.iter().enumerate() {
         if (c.cookie.secure().unwrap_or(false) == is_secure_cookie) &&
             oldest_accessed
