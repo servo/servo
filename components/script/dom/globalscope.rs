@@ -11,9 +11,9 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
+use std::time::Instant;
 use std::{mem, ptr};
 
-use chrono::Utc;
 use content_security_policy::CspList;
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
@@ -204,7 +204,7 @@ pub struct GlobalScope {
     devtools_wants_updates: Cell<bool>,
 
     /// Timers (milliseconds) used by the Console API.
-    console_timers: DomRefCell<HashMap<DOMString, u64>>,
+    console_timers: DomRefCell<HashMap<DOMString, Instant>>,
 
     /// module map is used when importing JavaScript modules
     /// https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map
@@ -2262,7 +2262,7 @@ impl GlobalScope {
         }
         match timers.entry(label) {
             Entry::Vacant(entry) => {
-                entry.insert(Utc::now().timestamp_millis() as u64);
+                entry.insert(Instant::now());
                 Ok(())
             },
             Entry::Occupied(_) => Err(()),
@@ -2274,7 +2274,7 @@ impl GlobalScope {
             .borrow_mut()
             .remove(label)
             .ok_or(())
-            .map(|start| Utc::now().timestamp_millis() as u64 - start)
+            .map(|start| (Instant::now() - start).as_millis() as u64)
     }
 
     /// Get an `&IpcSender<ScriptToDevtoolsControlMsg>` to send messages

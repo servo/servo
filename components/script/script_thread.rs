@@ -27,12 +27,12 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{ptr, thread};
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Local};
 use crossbeam_channel::{select, unbounded, Receiver, Sender};
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
@@ -92,6 +92,7 @@ use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
+use time::precise_time_ns;
 use url::Position;
 use webgpu::identity::WebGPUMsg;
 use webrender_api::units::LayoutPixel;
@@ -241,12 +242,15 @@ impl InProgressLoad {
         layout_is_busy: Arc<AtomicBool>,
         inherited_secure_context: Option<bool>,
     ) -> InProgressLoad {
-        let current_time = Utc::now();
-        let navigation_start = current_time.timestamp_millis() as u64;
-        let navigation_start_precise =
-            current_time.timestamp_nanos_opt().unwrap_or_default() as u64;
+        let duration = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default();
+        let navigation_start = duration.as_millis();
+        let navigation_start_precise = precise_time_ns();
         layout_chan
-            .send(message::Msg::SetNavigationStart(navigation_start_precise))
+            .send(message::Msg::SetNavigationStart(
+                navigation_start_precise as u64,
+            ))
             .unwrap();
         InProgressLoad {
             pipeline_id: id,
@@ -260,7 +264,7 @@ impl InProgressLoad {
             is_visible: true,
             url: url,
             origin: origin,
-            navigation_start: navigation_start,
+            navigation_start: navigation_start as u64,
             navigation_start_precise: navigation_start_precise,
             canceller: Default::default(),
             layout_is_busy: layout_is_busy,

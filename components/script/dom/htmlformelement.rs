@@ -22,7 +22,7 @@ use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use style_traits::dom::ElementState;
 
-use super::bindings::trace::HashMapTracedValues;
+use super::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::body::Extractable;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
@@ -94,7 +94,7 @@ pub struct HTMLFormElement {
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
     controls: DomRefCell<Vec<Dom<Element>>>,
-    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, Instant)>>,
+    past_names_map: DomRefCell<HashMapTracedValues<Atom, (Dom<Element>, NoTrace<Instant>)>>,
     firing_submission_events: Cell<bool>,
     rel_list: MutNullableDom<DOMTokenList>,
 }
@@ -442,7 +442,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             name,
             (
                 Dom::from_ref(&*element_node.downcast::<Element>().unwrap()),
-                Instant::now(),
+                NoTrace(Instant::now()),
             ),
         );
 
@@ -556,7 +556,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             let entry = SourcedName {
                 name: key.clone(),
                 element: DomRoot::from_ref(&*val.0),
-                source: SourcedNameSource::Past(Instant::now().duration_since(val.1)),
+                source: SourcedNameSource::Past(Instant::now().duration_since(val.1 .0)),
             };
             sourced_names_vec.push(entry);
         }

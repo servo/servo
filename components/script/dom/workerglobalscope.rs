@@ -7,7 +7,6 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use chrono::Utc;
 use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
@@ -23,6 +22,7 @@ use net_traits::IpcSend;
 use parking_lot::Mutex;
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
+use time::precise_time_ns;
 use uuid::Uuid;
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
@@ -168,7 +168,7 @@ impl WorkerGlobalScope {
             navigator: Default::default(),
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver,
-            navigation_start_precise: Utc::now().timestamp_nanos_opt().unwrap_or_default() as u64,
+            navigation_start_precise: precise_time_ns(),
             performance: Default::default(),
         }
     }
