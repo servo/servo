@@ -268,6 +268,9 @@ mod gen {
                         allowed_in_nonsecure_contexts: bool,
                     }
                 },
+                resize_observer: {
+                    enabled: bool,
+                },
                 script: {
                     asynch: bool,
                 },

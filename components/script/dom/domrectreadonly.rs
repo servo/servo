@@ -33,7 +33,7 @@ impl DOMRectReadOnly {
         }
     }
 
-    fn new(
+    pub fn new(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         x: f64,

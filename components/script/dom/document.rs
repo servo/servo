@@ -26,7 +26,7 @@ use euclid::default::{Point2D, Rect, Size2D};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::rust::HandleObject;
+use js::rust::{HandleObject, HandleValue};
 use keyboard_types::{Code, Key, KeyState};
 use lazy_static::lazy_static;
 use metrics::{
@@ -93,7 +93,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{NodeOrString, StringOrElementCreationOptions};
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -155,6 +155,7 @@ use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
+use crate::dom::resizeobserver::{ResizeObservationDepth, ResizeObserver};
 use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
@@ -456,6 +457,15 @@ pub struct Document {
     #[no_trace]
     #[ignore_malloc_size_of = "AnimationTickType contains data from an outside crate"]
     pending_animation_ticks: DomRefCell<AnimationTickType>,
+    /// <https://drafts.csswg.org/resize-observer/#dom-document-resizeobservers-slot>
+    ///
+    /// Note: we are storing, but never removing, resize observers.
+    /// The lifetime of resize observers is specified at
+    /// <https://drafts.csswg.org/resize-observer/#lifetime>.
+    /// But implementing it comes with known problems:
+    /// - <https://bugzilla.mozilla.org/show_bug.cgi?id=1596992>
+    /// - <https://github.com/w3c/csswg-drafts/issues/4518>
+    resize_observers: DomRefCell<Vec<Dom<ResizeObserver>>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2920,6 +2930,63 @@ impl Document {
     pub fn name_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
         self.name_map.borrow()
     }
+
+    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
+    pub(crate) fn add_resize_observer(&self, resize_observer: &ResizeObserver) {
+        self.resize_observers
+            .borrow_mut()
+            .push(Dom::from_ref(resize_observer));
+    }
+
+    /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
+    /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
+    pub(crate) fn gather_active_resize_observations_at_depth(
+        &self,
+        depth: &ResizeObservationDepth,
+    ) -> bool {
+        let mut has_active_resize_observations = false;
+        for observer in self.resize_observers.borrow_mut().iter_mut() {
+            observer.gather_active_resize_observations_at_depth(
+                depth,
+                &mut has_active_resize_observations,
+            );
+        }
+        has_active_resize_observations
+    }
+
+    /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
+    pub(crate) fn broadcast_active_resize_observations(&self) -> ResizeObservationDepth {
+        let mut shallowest = ResizeObservationDepth::max();
+        // Breaking potential re-borrow cycle on `resize_observers`:
+        // broadcasting resize observations calls into a JS callback,
+        // which can add new observers.
+        for observer in self
+            .resize_observers
+            .borrow()
+            .iter()
+            .map(|obs| DomRoot::from_ref(&**obs))
+        {
+            observer.broadcast_active_resize_observations(&mut shallowest);
+        }
+        shallowest
+    }
+
+    /// <https://drafts.csswg.org/resize-observer/#has-skipped-observations-h>
+    pub(crate) fn has_skipped_resize_observations(&self) -> bool {
+        self.resize_observers
+            .borrow()
+            .iter()
+            .any(|observer| observer.has_skipped_resize_observations())
+    }
+
+    /// <https://drafts.csswg.org/resize-observer/#deliver-resize-loop-error-notification>
+    pub(crate) fn deliver_resize_loop_error_notification(&self) {
+        let global_scope = self.window.upcast::<GlobalScope>();
+        let mut error_info: ErrorInfo = Default::default();
+        error_info.message =
+            "ResizeObserver loop completed with undelivered notifications.".to_string();
+        global_scope.report_an_error(error_info, HandleValue::null());
+    }
 }
 
 fn is_character_value_key(key: &Key) -> bool {
@@ -3222,6 +3289,7 @@ impl Document {
             pending_animation_ticks: Default::default(),
             pending_compositor_events: Default::default(),
             mouse_move_event_index: Default::default(),
+            resize_observers: Default::default(),
         }
     }
 
