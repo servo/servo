@@ -126,21 +126,6 @@ impl IndependentFormattingContext {
         }
     }
 
-    pub fn construct_for_text_runs<'dom>(
-        node_and_style_info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
-        runs: impl Iterator<Item = crate::flow::inline::TextRun>,
-        propagated_text_decoration_line: TextDecorationLine,
-    ) -> Self {
-        let bfc =
-            BlockFormattingContext::construct_for_text_runs(runs, propagated_text_decoration_line);
-        Self::NonReplaced(NonReplacedFormattingContext {
-            base_fragment_info: node_and_style_info.into(),
-            style: Arc::clone(&node_and_style_info.style),
-            content_sizes: None,
-            contents: NonReplacedFormattingContextContents::Flow(bfc),
-        })
-    }
-
     pub fn style(&self) -> &Arc<ComputedValues> {
         match self {
             Self::NonReplaced(inner) => &inner.style,

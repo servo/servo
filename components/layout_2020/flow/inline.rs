@@ -8,7 +8,6 @@ use std::mem;
 use app_units::Au;
 use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
-use gfx::text::text_run::GlyphRun;
 use log::warn;
 use serde::Serialize;
 use servo_arc::Arc;
@@ -23,13 +22,13 @@ use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::values::specified::{TextAlignLast, TextJustify};
 use style::Zero;
 use webrender_api::FontInstanceKey;
-use xi_unicode::{linebreak_property, LineBreakLeafIter};
 
 use super::float::PlacementAmongFloats;
 use super::line::{
     layout_line_items, AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem,
     InlineBoxLineItem, LineItem, LineItemLayoutState, LineMetrics, TextRunLineItem,
 };
+use super::text_run::TextRun;
 use super::CollapsibleWithParentStartMargin;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -45,12 +44,6 @@ use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
-
-// These constants are the xi-unicode line breaking classes that are defined in
-// `table.rs`. Unfortunately, they are only identified by number.
-const XI_LINE_BREAKING_CLASS_GL: u8 = 12;
-const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
-const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 40;
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -91,16 +84,6 @@ pub(crate) struct InlineBox {
     pub is_first_fragment: bool,
     pub is_last_fragment: bool,
     pub children: Vec<ArcRefCell<InlineLevelBox>>,
-}
-
-/// <https://www.w3.org/TR/css-display-3/#css-text-run>
-#[derive(Debug, Serialize)]
-pub(crate) struct TextRun {
-    pub base_fragment_info: BaseFragmentInfo,
-    #[serde(skip_serializing)]
-    pub parent_style: Arc<ComputedValues>,
-    pub text: String,
-    pub has_uncollapsible_content: bool,
 }
 
 /// Information about the current line under construction for a particular
@@ -517,7 +500,7 @@ struct InlineBoxContainerState {
     is_last_fragment: bool,
 }
 
-struct InlineFormattingContextState<'a, 'b> {
+pub(super) struct InlineFormattingContextState<'a, 'b> {
     positioning_context: &'a mut PositioningContext,
     containing_block: &'b ContainingBlock<'b>,
     sequential_layout_state: Option<&'a mut SequentialLayoutState>,
@@ -550,9 +533,6 @@ struct InlineFormattingContextState<'a, 'b> {
     /// Information about the unbreakable line segment currently being laid out into [`LineItem`]s.
     current_line_segment: UnbreakableSegmentUnderConstruction,
 
-    /// The line breaking state for this inline formatting context.
-    linebreaker: Option<LineBreakLeafIter>,
-
     /// After a forced line break (for instance from a `<br>` element) we wait to actually
     /// break the line until seeing more content. This allows ongoing inline boxes to finish,
     /// since in the case where they have no more content they should not be on the next
@@ -576,13 +556,13 @@ struct InlineFormattingContextState<'a, 'b> {
     /// Whether or not a soft wrap opportunity is queued. Soft wrap opportunities are
     /// queued after replaced content and they are processed when the next text content
     /// is encountered.
-    have_deferred_soft_wrap_opportunity: bool,
+    pub have_deferred_soft_wrap_opportunity: bool,
 
     /// Whether or not a soft wrap opportunity should be prevented before the next atomic
     /// element encountered in the inline formatting context. See
     /// `char_prevents_soft_wrap_opportunity_when_before_or_after_atomic` for more
     /// details.
-    prevent_soft_wrap_opportunity_before_next_atomic: bool,
+    pub prevent_soft_wrap_opportunity_before_next_atomic: bool,
 
     /// Whether or not this InlineFormattingContext has processed any in flow content at all.
     had_inflow_content: bool,
@@ -1100,7 +1080,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         inline_would_overflow
     }
 
-    fn defer_forced_line_break(&mut self) {
+    pub(super) fn defer_forced_line_break(&mut self) {
         // If this hard line break happens in the middle of an unbreakable segment, there are two
         // scenarios:
         //    1. The current portion of the unbreakable segment fits on the current line in which
@@ -1124,7 +1104,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         self.had_inflow_content = true;
     }
 
-    fn possibly_flush_deferred_forced_line_break(&mut self) {
+    pub(super) fn possibly_flush_deferred_forced_line_break(&mut self) {
         if !self.linebreak_before_new_content {
             return;
         }
@@ -1139,7 +1119,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             .push_line_item(line_item, self.inline_box_state_stack.len());
     }
 
-    fn push_glyph_store_to_unbreakable_segment(
+    pub(super) fn push_glyph_store_to_unbreakable_segment(
         &mut self,
         glyph_store: std::sync::Arc<GlyphStore>,
         base_fragment_info: BaseFragmentInfo,
@@ -1242,7 +1222,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     /// Process a soft wrap opportunity. This will either commit the current unbreakble
     /// segment to the current line, if it fits within the containing block and float
     /// placement boundaries, or do a line break and then commit the segment.
-    fn process_soft_wrap_opportunity(&mut self) {
+    pub(super) fn process_soft_wrap_opportunity(&mut self) {
         if self.current_line_segment.line_items.is_empty() {
             return;
         }
@@ -1466,7 +1446,6 @@ impl InlineFormattingContext {
                 self.text_decoration_line,
                 inline_container_needs_strut(style, layout_context, None),
             ),
-            linebreaker: None,
             inline_box_state_stack: Vec::new(),
             current_line_segment: UnbreakableSegmentUnderConstruction::new(),
             linebreak_before_new_content: false,
@@ -1494,9 +1473,7 @@ impl InlineFormattingContext {
                     InlineLevelBox::InlineBox(ref inline_box) => {
                         ifc.start_inline_box(inline_box);
                     },
-                    InlineLevelBox::TextRun(ref run) => {
-                        run.layout_into_line_items(layout_context, &mut ifc)
-                    },
+                    InlineLevelBox::TextRun(ref run) => run.layout_into_line_items(&mut ifc),
                     InlineLevelBox::Atomic(ref mut atomic_formatting_context) => {
                         atomic_formatting_context.layout_into_line_items(layout_context, &mut ifc);
                     },
@@ -1554,6 +1531,18 @@ impl InlineFormattingContext {
         }
 
         inline_level_boxes_are_empty(&self.inline_level_boxes)
+    }
+
+    /// Break and shape text of this InlineFormattingContext's TextRun's, which requires doing
+    /// all font matching and FontMetrics collection.
+    pub(crate) fn break_and_shape_text(&mut self, layout_context: &LayoutContext) {
+        let mut linebreaker = None;
+        self.foreach(|iter_item| match iter_item {
+            InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(ref mut text_run)) => {
+                text_run.break_and_shape(layout_context, &mut linebreaker);
+            },
+            _ => {},
+        });
     }
 }
 
@@ -1958,170 +1947,6 @@ impl IndependentFormattingContext {
     }
 }
 
-struct BreakAndShapeResult {
-    font_metrics: FontMetrics,
-    font_key: FontInstanceKey,
-    runs: Vec<GlyphRun>,
-    break_at_start: bool,
-}
-
-impl TextRun {
-    fn break_and_shape(
-        &self,
-        layout_context: &LayoutContext,
-        linebreaker: &mut Option<LineBreakLeafIter>,
-    ) -> Result<BreakAndShapeResult, &'static str> {
-        use gfx::font::ShapingFlags;
-        use style::computed_values::text_rendering::T as TextRendering;
-        use style::computed_values::word_break::T as WordBreak;
-
-        let font_style = self.parent_style.clone_font();
-        let inherited_text_style = self.parent_style.get_inherited_text();
-        let letter_spacing = if inherited_text_style.letter_spacing.0.px() != 0. {
-            Some(app_units::Au::from(inherited_text_style.letter_spacing.0))
-        } else {
-            None
-        };
-
-        let mut flags = ShapingFlags::empty();
-        if letter_spacing.is_some() {
-            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
-        }
-        if inherited_text_style.text_rendering == TextRendering::Optimizespeed {
-            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
-            flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
-        }
-        if inherited_text_style.word_break == WordBreak::KeepAll {
-            flags.insert(ShapingFlags::KEEP_ALL_FLAG);
-        }
-
-        crate::context::with_thread_local_font_context(layout_context, |font_context| {
-            let font_group = font_context.font_group(font_style);
-            let font = match font_group.borrow_mut().first(font_context) {
-                Some(font) => font,
-                None => return Err("Could not find find for TextRun."),
-            };
-            let mut font = font.borrow_mut();
-
-            let word_spacing = &inherited_text_style.word_spacing;
-            let word_spacing = word_spacing
-                .to_length()
-                .map(|l| l.into())
-                .unwrap_or_else(|| {
-                    let space_width = font
-                        .glyph_index(' ')
-                        .map(|glyph_id| font.glyph_h_advance(glyph_id))
-                        .unwrap_or(gfx::font::LAST_RESORT_GLYPH_ADVANCE);
-                    word_spacing.to_used_value(Au::from_f64_px(space_width))
-                });
-
-            let shaping_options = gfx::font::ShapingOptions {
-                letter_spacing,
-                word_spacing,
-                script: unicode_script::Script::Common,
-                flags,
-            };
-
-            let (runs, break_at_start) = gfx::text::text_run::TextRun::break_and_shape(
-                &mut font,
-                &self.text,
-                &shaping_options,
-                linebreaker,
-            );
-
-            Ok(BreakAndShapeResult {
-                font_metrics: font.metrics.clone(),
-                font_key: font.font_key,
-                runs,
-                break_at_start,
-            })
-        })
-    }
-
-    fn glyph_run_is_whitespace_ending_with_preserved_newline(&self, run: &GlyphRun) -> bool {
-        if !run.glyph_store.is_whitespace() {
-            return false;
-        }
-        if !self
-            .parent_style
-            .get_inherited_text()
-            .white_space
-            .preserve_newlines()
-        {
-            return false;
-        }
-
-        let last_byte = self.text.as_bytes().get(run.range.end().to_usize() - 1);
-        last_byte == Some(&b'\n')
-    }
-
-    fn layout_into_line_items(
-        &self,
-        layout_context: &LayoutContext,
-        ifc: &mut InlineFormattingContextState,
-    ) {
-        let result = self.break_and_shape(layout_context, &mut ifc.linebreaker);
-        let BreakAndShapeResult {
-            font_metrics,
-            font_key,
-            runs,
-            break_at_start,
-        } = match result {
-            Ok(result) => result,
-            Err(string) => {
-                warn!("Could not render TextRun: {string}");
-                return;
-            },
-        };
-
-        // We either have a soft wrap opportunity if specified by the breaker or if we are
-        // following replaced content.
-        let have_deferred_soft_wrap_opportunity =
-            mem::replace(&mut ifc.have_deferred_soft_wrap_opportunity, false);
-        let mut break_at_start = break_at_start || have_deferred_soft_wrap_opportunity;
-
-        if have_deferred_soft_wrap_opportunity {
-            if let Some(first_character) = self.text.chars().nth(0) {
-                break_at_start = break_at_start &&
-                    !char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(
-                        first_character,
-                    )
-            }
-        }
-
-        if let Some(last_character) = self.text.chars().last() {
-            ifc.prevent_soft_wrap_opportunity_before_next_atomic =
-                char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(last_character);
-        }
-
-        for (run_index, run) in runs.into_iter().enumerate() {
-            ifc.possibly_flush_deferred_forced_line_break();
-
-            // If this whitespace forces a line break, queue up a hard line break the next time we
-            // see any content. We don't line break immediately, because we'd like to finish processing
-            // any ongoing inline boxes before ending the line.
-            if self.glyph_run_is_whitespace_ending_with_preserved_newline(&run) {
-                ifc.defer_forced_line_break();
-                continue;
-            }
-
-            // Break before each unbrekable run in this TextRun, except the first unless the
-            // linebreaker was set to break before the first run.
-            if run_index != 0 || break_at_start {
-                ifc.process_soft_wrap_opportunity();
-            }
-
-            ifc.push_glyph_store_to_unbreakable_segment(
-                run.glyph_store,
-                self.base_fragment_info,
-                &self.parent_style,
-                &font_metrics,
-                font_key,
-            );
-        }
-    }
-}
-
 impl FloatBox {
     fn layout_into_line_items(
         &mut self,
@@ -2175,26 +2000,6 @@ fn font_metrics_from_style(layout_context: &LayoutContext, style: &ComputedValue
         let font = font.borrow();
         font.metrics.clone()
     })
-}
-
-/// comes before or after an atomic inline element.
-///
-/// From <https://www.w3.org/TR/css-text-3/#line-break-details>:
-///
-/// > For Web-compatibility there is a soft wrap opportunity before and after each
-/// > replaced element or other atomic inline, even when adjacent to a character that
-/// > would normally suppress them, including U+00A0 NO-BREAK SPACE. However, with
-/// > the exception of U+00A0 NO-BREAK SPACE, there must be no soft wrap opportunity
-/// > between atomic inlines and adjacent characters belonging to the Unicode GL, WJ,
-/// > or ZWJ line breaking classes.
-fn char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character: char) -> bool {
-    if character == '\u{00A0}' {
-        return false;
-    }
-    let class = linebreak_property(character);
-    class == XI_LINE_BREAKING_CLASS_GL ||
-        class == XI_LINE_BREAKING_CLASS_WJ ||
-        class == XI_LINE_BREAKING_CLASS_ZWJ
 }
 
 fn is_baseline_relative(vertical_align: GenericVerticalAlign<LengthPercentage>) -> bool {
@@ -2259,8 +2064,6 @@ struct ContentSizesComputation<'a> {
     pending_whitespace: Length,
     /// Whether or not this IFC has seen any non-whitespace content.
     had_non_whitespace_content_yet: bool,
-    /// The global linebreaking state.
-    linebreaker: Option<LineBreakLeafIter>,
     /// Stack of ending padding, margin, and border to add to the length
     /// when an inline box finishes.
     ending_inline_pbm_stack: Vec<Length>,
@@ -2305,20 +2108,15 @@ impl<'a> ContentSizesComputation<'a> {
                 self.add_length(length);
             },
             InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(text_run)) => {
-                let result = text_run.break_and_shape(self.layout_context, &mut self.linebreaker);
-                let BreakAndShapeResult {
-                    runs,
-                    break_at_start,
-                    ..
-                } = match result {
-                    Ok(result) => result,
-                    Err(_) => return,
+                let result = match text_run.shaped_text {
+                    Some(ref result) => result,
+                    None => return,
                 };
 
-                if break_at_start {
+                if result.break_at_start {
                     self.line_break_opportunity()
                 }
-                for run in runs.iter() {
+                for run in result.runs.iter() {
                     let advance = Length::from(run.glyph_store.total_advance());
 
                     if !run.glyph_store.is_whitespace() {
@@ -2398,7 +2196,6 @@ impl<'a> ContentSizesComputation<'a> {
             current_line: ContentSizes::zero(),
             pending_whitespace: Length::zero(),
             had_non_whitespace_content_yet: false,
-            linebreaker: None,
             ending_inline_pbm_stack: Vec::new(),
         }
         .traverse(inline_formatting_context)

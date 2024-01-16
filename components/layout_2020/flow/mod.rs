@@ -39,6 +39,7 @@ pub mod float;
 pub mod inline;
 mod line;
 mod root;
+pub mod text_run;
 
 pub(crate) use construct::BlockContainerBuilder;
 pub use root::{BoxTree, CanvasBackground};
