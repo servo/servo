@@ -3,8 +3,8 @@
 
 blessings == 1.7
 distro == 1.4
-mozinfo == 1.2.1
-mozlog == 7.1.0
+mozinfo == 1.2.3
+mozlog == 8.0.0
 setuptools == 68.2.2; python_version >= "3.8"
 setuptools == 65.5.1; python_version < "3.8"
 toml == 0.9.2
@@ -27,7 +27,7 @@ pyOpenSSL == 23.0.0
 PyGithub == 1.58.1
 
 # For Python3 compatibility
-six == 1.15
+six == 1.16
 
 # For sending build notifications.
 notify-py == 0.3.42

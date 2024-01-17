@@ -22,6 +22,7 @@ manually, try the [manual build setup][manual-build].
 
 ### macOS
 
+- Ensure that the version showed by `python --version` is >= 3.10:
 - Install [Xcode](https://developer.apple.com/xcode/)
 - Install [Homebrew](https://brew.sh/)
 - Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
@@ -31,7 +32,7 @@ manually, try the [manual build setup][manual-build].
 ### Linux
 
 - Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-- Install Python
+- Install Python (version >= 3.10):
     - **Debian-like:** Run `sudo apt install python3-pip python3-venv`
     - **Fedora:** Run `sudo dnf install python3 python3-pip python3-devel`
     - **Arch:** Run `sudo pacman -S --needed python python-pip`

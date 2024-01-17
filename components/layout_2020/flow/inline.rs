@@ -1949,7 +1949,7 @@ impl IndependentFormattingContext {
                 // https://drafts.csswg.org/css2/visudet.html#block-root-margin
                 let tentative_block_size = box_size
                     .block
-                    .auto_is(|| independent_layout.content_block_size);
+                    .auto_is(|| independent_layout.content_block_size.into());
 
                 // https://drafts.csswg.org/css2/visudet.html#min-max-heights
                 // In this case “applying the rules above again” with a non-auto block-size
@@ -1974,7 +1974,9 @@ impl IndependentFormattingContext {
                     pbm.border,
                     margin,
                     None,
-                    independent_layout.last_inflow_baseline_offset,
+                    independent_layout
+                        .last_inflow_baseline_offset
+                        .map(|t| t.into()),
                     CollapsedBlockMargins::zero(),
                 )
             },

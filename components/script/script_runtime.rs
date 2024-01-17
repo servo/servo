@@ -15,7 +15,7 @@ use std::ops::Deref;
 use std::os::raw::c_void;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::{fmt, os, ptr, thread};
 
 use js::glue::{
@@ -50,7 +50,6 @@ use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::path;
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
-use time::{now, Tm};
 
 use crate::body::BodyMixin;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
@@ -750,8 +749,8 @@ pub fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report> {
     reports
 }
 
-thread_local!(static GC_CYCLE_START: Cell<Option<Tm>> = Cell::new(None));
-thread_local!(static GC_SLICE_START: Cell<Option<Tm>> = Cell::new(None));
+thread_local!(static GC_CYCLE_START: Cell<Option<Instant>> = Cell::new(None));
+thread_local!(static GC_SLICE_START: Cell<Option<Instant>> = Cell::new(None));
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn gc_slice_callback(
@@ -761,22 +760,22 @@ unsafe extern "C" fn gc_slice_callback(
 ) {
     match progress {
         GCProgress::GC_CYCLE_BEGIN => GC_CYCLE_START.with(|start| {
-            start.set(Some(now()));
+            start.set(Some(Instant::now()));
             println!("GC cycle began");
         }),
         GCProgress::GC_SLICE_BEGIN => GC_SLICE_START.with(|start| {
-            start.set(Some(now()));
+            start.set(Some(Instant::now()));
             println!("GC slice began");
         }),
         GCProgress::GC_SLICE_END => GC_SLICE_START.with(|start| {
-            let dur = now() - start.get().unwrap();
+            let duration = start.get().unwrap().elapsed();
             start.set(None);
-            println!("GC slice ended: duration={}", dur);
+            println!("GC slice ended: duration={:?}", duration);
         }),
         GCProgress::GC_CYCLE_END => GC_CYCLE_START.with(|start| {
-            let dur = now() - start.get().unwrap();
+            let duration = start.get().unwrap().elapsed();
             start.set(None);
-            println!("GC cycle ended: duration={}", dur);
+            println!("GC cycle ended: duration={:?}", duration);
         }),
     };
     if !desc.is_null() {

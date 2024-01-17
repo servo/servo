@@ -30,7 +30,7 @@ use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
-use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
+use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
 
 mod construct;
@@ -240,10 +240,11 @@ impl BlockFormattingContext {
 
         IndependentLayout {
             fragments: flow_layout.fragments,
-            content_block_size: flow_layout.content_block_size +
+            content_block_size: (flow_layout.content_block_size +
                 flow_layout.collapsible_margins_in_children.end.solve() +
-                clearance.unwrap_or_else(Length::zero),
-            last_inflow_baseline_offset: flow_layout.last_inflow_baseline_offset,
+                clearance.unwrap_or_else(Length::zero))
+            .into(),
+            last_inflow_baseline_offset: flow_layout.last_inflow_baseline_offset.map(|t| t.into()),
         }
     }
 }
@@ -858,7 +859,11 @@ impl NonReplacedFormattingContext {
         let block_size = containing_block_for_children.block_size.auto_is(|| {
             layout
                 .content_block_size
-                .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                .clamp_between_extremums(
+                    min_box_size.block.into(),
+                    max_box_size.block.map(|t| t.into()),
+                )
+                .into()
         });
 
         let content_rect = LogicalRect {
@@ -882,7 +887,7 @@ impl NonReplacedFormattingContext {
             pbm.border,
             margin,
             None, /* clearance */
-            layout.last_inflow_baseline_offset,
+            layout.last_inflow_baseline_offset.map(|t| t.into()),
             block_margins_collapsed_with_children,
         )
     }
@@ -939,12 +944,17 @@ impl NonReplacedFormattingContext {
                     style: &self.style,
                 },
             );
+
             content_size = LogicalVec2 {
                 inline: inline_size,
                 block: block_size.auto_is(|| {
                     layout
                         .content_block_size
-                        .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                        .clamp_between_extremums(
+                            min_box_size.block.into(),
+                            max_box_size.block.map(|t| t.into()),
+                        )
+                        .into()
                 }),
             };
 
@@ -1002,13 +1012,16 @@ impl NonReplacedFormattingContext {
                         style: &self.style,
                     },
                 );
-
                 content_size = LogicalVec2 {
                     inline: proposed_inline_size,
                     block: block_size.auto_is(|| {
                         layout
                             .content_block_size
-                            .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                            .clamp_between_extremums(
+                                min_box_size.block.into(),
+                                max_box_size.block.map(|t| t.into()),
+                            )
+                            .into()
                     }),
                 };
 
@@ -1092,7 +1105,7 @@ impl NonReplacedFormattingContext {
             pbm.border,
             margin,
             clearance,
-            layout.last_inflow_baseline_offset,
+            layout.last_inflow_baseline_offset.map(|t| t.into()),
             block_margins_collapsed_with_children,
         )
     }

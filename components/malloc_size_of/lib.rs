@@ -896,6 +896,8 @@ malloc_size_of_is_0!(time::Tm);
 malloc_size_of_is_0!(std::time::Duration);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(std::time::SystemTime);
+#[cfg(feature = "servo")]
+malloc_size_of_is_0!(std::time::Instant);
 
 #[cfg(feature = "servo")]
 impl<T> MallocSizeOf for hyper_serde::Serde<T>

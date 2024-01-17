@@ -410,7 +410,7 @@ impl FlexContainer {
 
         IndependentLayout {
             fragments,
-            content_block_size,
+            content_block_size: content_block_size.into(),
             last_inflow_baseline_offset: None,
         }
     }
@@ -1111,7 +1111,7 @@ impl<'a> FlexItem<'a> {
                         let hypothetical_cross_size = self
                             .content_box_size
                             .cross
-                            .auto_is(|| content_block_size)
+                            .auto_is(|| content_block_size.into())
                             .clamp_between_extremums(
                                 self.content_min_size.cross,
                                 self.content_max_size.cross,

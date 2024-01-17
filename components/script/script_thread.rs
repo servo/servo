@@ -27,11 +27,12 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{ptr, thread};
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use chrono::{DateTime, Local};
 use crossbeam_channel::{select, unbounded, Receiver, Sender};
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
@@ -91,7 +92,7 @@ use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
-use time::{at_utc, get_time, precise_time_ns, Timespec};
+use time::precise_time_ns;
 use url::Position;
 use webgpu::identity::WebGPUMsg;
 use webrender_api::units::LayoutPixel;
@@ -214,9 +215,9 @@ struct InProgressLoad {
     /// The origin for the document
     #[no_trace]
     origin: MutableOrigin,
-    /// Timestamp reporting the time when the browser started this load.
+    /// Timestamp reporting the time in milliseconds when the browser started this load.
     navigation_start: u64,
-    /// High res timestamp reporting the time when the browser started this load.
+    /// High res timestamp reporting the time in nanoseconds when the browser started this load.
     navigation_start_precise: u64,
     /// For cancelling the fetch
     canceller: FetchCanceller,
@@ -241,10 +242,15 @@ impl InProgressLoad {
         layout_is_busy: Arc<AtomicBool>,
         inherited_secure_context: Option<bool>,
     ) -> InProgressLoad {
-        let current_time = get_time();
+        let duration = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default();
+        let navigation_start = duration.as_millis();
         let navigation_start_precise = precise_time_ns();
         layout_chan
-            .send(message::Msg::SetNavigationStart(navigation_start_precise))
+            .send(message::Msg::SetNavigationStart(
+                navigation_start_precise as u64,
+            ))
             .unwrap();
         InProgressLoad {
             pipeline_id: id,
@@ -258,7 +264,7 @@ impl InProgressLoad {
             is_visible: true,
             url: url,
             origin: origin,
-            navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
+            navigation_start: navigation_start as u64,
             navigation_start_precise: navigation_start_precise,
             canceller: Default::default(),
             layout_is_busy: layout_is_busy,
@@ -1864,7 +1870,7 @@ impl ScriptThread {
         F: FnOnce() -> R,
     {
         self.notify_activity_to_hang_monitor(&category);
-        let start = precise_time_ns();
+        let start = Instant::now();
         let value = if self.profile_script_events {
             let profiler_cat = match category {
                 ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
@@ -1911,15 +1917,15 @@ impl ScriptThread {
         } else {
             f()
         };
-        let end = precise_time_ns();
+        let task_duration = start.elapsed();
         for (doc_id, doc) in self.documents.borrow().iter() {
             if let Some(pipeline_id) = pipeline_id {
-                if pipeline_id == doc_id && end - start > MAX_TASK_NS {
+                if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS.into() {
                     if self.print_pwm {
                         println!(
                             "Task took longer than max allowed ({:?}) {:?}",
                             category,
-                            end - start
+                            task_duration.as_nanos()
                         );
                     }
                     doc.start_tti();
@@ -3351,9 +3357,11 @@ impl ScriptThread {
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
-            headers
-                .typed_get::<LastModified>()
-                .map(|tm| dom_last_modified(&tm.into()))
+            headers.typed_get::<LastModified>().map(|tm| {
+                let tm: SystemTime = tm.into();
+                let local_time: DateTime<Local> = tm.into();
+                local_time.format("%m/%d/%Y %H:%M:%S").to_string()
+            })
         });
 
         let loader = DocumentLoader::new_with_threads(
@@ -4056,14 +4064,4 @@ impl Drop for ScriptThread {
             root.set(None);
         });
     }
-}
-
-fn dom_last_modified(tm: &SystemTime) -> String {
-    let tm = tm.duration_since(SystemTime::UNIX_EPOCH).unwrap();
-    let tm = Timespec::new(tm.as_secs() as i64, 0);
-    let tm = at_utc(tm);
-    tm.to_local()
-        .strftime("%m/%d/%Y %H:%M:%S")
-        .unwrap()
-        .to_string()
 }

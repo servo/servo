@@ -498,9 +498,13 @@ class CommandBase(object):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
 
+        # If we are installing on MacOS and Windows, we need to make sure that GStreamer's
+        # `pkg-config` is on the path and takes precedence over other `pkg-config`s.
         if self.enable_media and not self.is_android_build:
-            servo.platform.get().set_gstreamer_environment_variables_if_necessary(
-                env, cross_compilation_target=self.cross_compile_target)
+            platform = servo.platform.get()
+            gstreamer_root = platform.gstreamer_root(cross_compilation_target=self.cross_compile_target)
+            if gstreamer_root:
+                util.prepend_paths_to_env(env, "PATH", os.path.join(gstreamer_root, "bin"))
 
         effective_target = self.cross_compile_target or servo.platform.host_triple()
         if "msvc" in effective_target:

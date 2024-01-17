@@ -2,19 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
-
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Rotation3D, Vector3D};
-use js::jsapi::{Heap, JSObject};
 use js::rust::HandleObject;
+use js::typedarray::Float32Array;
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTransformMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::utils::create_typed_array;
+use crate::dom::bindings::typedarrays::HeapFloat32Array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -31,7 +29,7 @@ pub struct XRRigidTransform {
     transform: ApiRigidTransform,
     inverse: MutNullableDom<XRRigidTransform>,
     #[ignore_malloc_size_of = "defined in mozjs"]
-    matrix: Heap<*mut JSObject>,
+    matrix: HeapFloat32Array,
 }
 
 impl XRRigidTransform {
@@ -42,7 +40,7 @@ impl XRRigidTransform {
             orientation: MutNullableDom::default(),
             transform,
             inverse: MutNullableDom::default(),
-            matrix: Heap::default(),
+            matrix: HeapFloat32Array::default(),
         }
     }
 
@@ -134,15 +132,16 @@ impl XRRigidTransformMethods for XRRigidTransform {
         })
     }
     // https://immersive-web.github.io/webxr/#dom-xrrigidtransform-matrix
-    fn Matrix(&self, _cx: JSContext) -> NonNull<JSObject> {
-        if self.matrix.get().is_null() {
-            let cx = GlobalScope::get_cx();
-            // According to the spec all matrices are column-major,
-            // however euclid uses row vectors so we use .to_array()
-            let arr = self.transform.to_transform().to_array();
-            create_typed_array(cx, &arr, &self.matrix);
+    fn Matrix(&self, _cx: JSContext) -> Float32Array {
+        if !self.matrix.is_initialized() {
+            self.matrix
+                .set_data(_cx, &self.transform.to_transform().to_array())
+                .expect("Failed to set on data on transform's internal matrix.")
         }
-        NonNull::new(self.matrix.get()).unwrap()
+
+        self.matrix
+            .get_internal()
+            .expect("Failed to get transform's internal matrix.")
     }
 }
 

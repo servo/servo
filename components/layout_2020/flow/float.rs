@@ -930,7 +930,7 @@ impl FloatBox {
                             inline: inline_size,
                             block: box_size
                                 .block
-                                .auto_is(|| independent_layout.content_block_size),
+                                .auto_is(|| independent_layout.content_block_size.into()),
                         };
                         children = independent_layout.fragments;
                     },

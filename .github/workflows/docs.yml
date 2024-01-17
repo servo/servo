@@ -10,7 +10,7 @@ jobs:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Upload docs to GitHub Pages
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -20,6 +20,8 @@ jobs:
           python3 -m pip install --upgrade pip
           sudo apt update
           python3 ./mach bootstrap
+      - name: Set LIBCLANG_PATH # This is needed for bindgen in mozangle.
+        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Compile docs
         run: python3 ./mach doc
         env:
