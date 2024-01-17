@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
-
 use dom_struct::dom_struct;
 use euclid::{Angle, RigidTransform3D, Rotation3D, Vector3D};
-use js::jsapi::{Heap, JSObject};
 use js::rust::HandleObject;
+use js::typedarray::Float32Array;
 use webxr_api::{ApiSpace, Ray};
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
@@ -15,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::XRRayBinding::{XRRayDirectionInit, 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::utils::create_typed_array;
+use crate::dom::bindings::typedarrays::HeapFloat32Array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -29,7 +27,7 @@ pub struct XRRay {
     #[no_trace]
     ray: Ray<ApiSpace>,
     #[ignore_malloc_size_of = "defined in mozjs"]
-    matrix: Heap<*mut JSObject>,
+    matrix: HeapFloat32Array,
 }
 
 impl XRRay {
@@ -37,7 +35,7 @@ impl XRRay {
         XRRay {
             reflector_: Reflector::new(),
             ray,
-            matrix: Heap::default(),
+            matrix: HeapFloat32Array::default(),
         }
     }
 
@@ -133,18 +131,16 @@ impl XRRayMethods for XRRay {
     }
 
     /// https://immersive-web.github.io/hit-test/#dom-xrray-matrix
-    fn Matrix(&self, _cx: JSContext) -> NonNull<JSObject> {
+    fn Matrix(&self, _cx: JSContext) -> Float32Array {
         // https://immersive-web.github.io/hit-test/#xrray-obtain-the-matrix
-        // Step 1
-        if self.matrix.get().is_null() {
-            let cx = GlobalScope::get_cx();
-            // Step 2
+        if !self.matrix.is_initialized() {
+            // Step 1
             let z = Vector3D::new(0., 0., -1.);
-            // Step 3
+            // Step 2
             let axis = z.cross(self.ray.direction);
-            // Step 4
+            // Step 3
             let cos_angle = z.dot(self.ray.direction);
-            // Step 5
+            // Step 4
             let rotation = if cos_angle > -1. && cos_angle < 1. {
                 Rotation3D::around_axis(axis, Angle::radians(cos_angle.acos()))
             } else if cos_angle == -1. {
@@ -153,16 +149,21 @@ impl XRRayMethods for XRRay {
             } else {
                 Rotation3D::identity()
             };
-            // Step 6
+            // Step 5
             let translation = self.ray.origin;
-            // Step 7
+            // Step 6
             // According to the spec all matrices are column-major,
             // however euclid uses row vectors so we use .to_array()
             let arr = RigidTransform3D::new(rotation, translation)
                 .to_transform()
                 .to_array();
-            create_typed_array(cx, &arr, &self.matrix);
+            self.matrix
+                .set_data(_cx, &arr)
+                .expect("Failed to set matrix data on XRRAy.")
         }
-        NonNull::new(self.matrix.get()).unwrap()
+
+        self.matrix
+            .get_internal()
+            .expect("Failed to get matrix from XRRay.")
     }
 }
