@@ -552,11 +552,6 @@ class CommandBase(object):
             env["ANDROID_SDK_ROOT"] = self.config["android"]["sdk"]
         if self.config["android"]["ndk"]:
             env["ANDROID_NDK_ROOT"] = self.config["android"]["ndk"]
-        if self.config["android"]["toolchain"]:
-            env["ANDROID_TOOLCHAIN"] = self.config["android"]["toolchain"]
-        if self.config["android"]["platform"]:
-            env["ANDROID_PLATFORM"] = self.config["android"]["platform"]
-
 
         toolchains = path.join(self.context.topdir, "android-toolchains")
         for kind in ["sdk", "ndk"]:
