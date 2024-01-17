@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import dataclasses
 import json
 import os
 import subprocess
@@ -16,7 +17,16 @@ from typing import List
 import servo.platform
 
 
+@dataclasses.dataclass(kw_only=True)
+class VisualStudioInstallation:
+    version_number: str
+    installation_path: str
+    vc_install_path: str
+
+
 def find_highest_msvc_version_ext():
+    """Try to find the MSVC installation with the `vswhere.exe` tool. The results
+    are sorted with newer versions first."""
     def vswhere(args):
         program_files = (os.environ.get('PROGRAMFILES(X86)')
                          or os.environ.get('PROGRAMFILES'))
@@ -36,55 +46,53 @@ def find_highest_msvc_version_ext():
 
 
 def find_highest_msvc_version():
-    editions = ["Enterprise", "Professional", "Community", "BuildTools"]
     prog_files = os.environ.get("ProgramFiles(x86)")
-    base_vs_path = os.path.join(prog_files, "Microsoft Visual Studio")
 
     # TODO(mrobinson): Add support for Visual Studio 2022.
-    vs_versions = ["2019"]
-    versions = {
-        ("2019", "vs"): "16.0",
+    vs_versions = {
+        "2019": "16.0",
     }
 
-    for version in vs_versions:
-        for edition in editions:
-            vs_version = versions[version, "vs"]
-            vsinstalldir = os.path.join(base_vs_path, version, edition)
+    for (version, version_number) in vs_versions.items():
+        for edition in ["Enterprise", "Professional", "Community", "BuildTools"]:
+            vsinstalldir = os.path.join(prog_files, "Microsoft Visual Studio", version, edition)
             if os.path.exists(vsinstalldir):
-                return (vsinstalldir, vs_version)
+                return (vsinstalldir, version_number)
 
     versions = sorted(find_highest_msvc_version_ext(), key=lambda tup: float(tup[1]))
     if not versions:
-        print(f"Can't find MSBuild.exe installation under {base_vs_path}. "
+        print("Can't find a Visual Studio installation. "
               "Please set the VSINSTALLDIR and VisualStudioVersion environment variables")
         sys.exit(1)
     return versions[0]
 
 
-def find_msvc():
-    assert 'windows' in servo.platform.host_triple()
+def find_msvc() -> VisualStudioInstallation:
     vsinstalldir = os.environ.get('VSINSTALLDIR')
-    vs_version = os.environ.get('VisualStudioVersion')
-    if not vsinstalldir or not vs_version:
-        (vsinstalldir, vs_version) = find_highest_msvc_version()
+    version_number = os.environ.get('VisualStudioVersion')
+    if not vsinstalldir or not version_number:
+        (vsinstalldir, version_number) = find_highest_msvc_version()
 
-    msbuildinstalldir = os.path.join(vsinstalldir, "MSBuild", "Current", "Bin")
-    vcinstalldir = os.environ.get("VCINSTALLDIR", os.path.join(vsinstalldir, "VC"))
-    return {
-        'msbuild': msbuildinstalldir,
-        'vsdir': vsinstalldir,
-        'vs_version': vs_version,
-        'vcdir': vcinstalldir,
-    }
+    vc_install_path = os.environ.get("VCINSTALLDIR", os.path.join(vsinstalldir, "VC"))
+    if not os.path.exists(vc_install_path):
+        print(f"Can't find Visual C++ {version_number} installation at {vc_install_path}")
+        sys.exit(1)
+
+    return VisualStudioInstallation(
+        version_number=version_number,
+        installation_path=vsinstalldir,
+        vc_install_path=vc_install_path,
+    )
 
 
 def find_windows_sdk_installation_path(vs_platform: str) -> str:
+    """Try to find the Windows SDK installation path using the Windows registry.
+    Raises an Exception if the path cannot be found in the registry."""
+
     # This module must be imported here, because other platforms also
     # load this file and the module is platform-specific.
     import winreg
 
-    """Try to find the Windows SDK installation path using the Windows registry.
-    Raises and Exception if the path cannot be found in the registry."""
     # This is based on the advice from
     # https://stackoverflow.com/questions/35119223/how-to-programmatically-detect-and-locate-the-windows-10-sdk
     key_path = r'SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\v10.0'
@@ -97,12 +105,9 @@ def find_windows_sdk_installation_path(vs_platform: str) -> str:
 
 
 def find_msvc_redist_dirs(target: str) -> List[str]:
-    vs_dirs = find_msvc()
-    vc_dir = vs_dirs['vcdir']
-    if not os.path.exists(vs_dirs['vcdir']):
-        print(f"Can't find Visual C++ {vs_dirs['vs_version']} installation at {vs_dirs['vcdir']}")
-        sys.exit(1)
+    assert 'windows' in servo.platform.host_triple()
 
+    installation = find_msvc()
     msvc_redist_dir = None
     vs_platforms = {
         "x86_64": "x64",
@@ -112,7 +117,7 @@ def find_msvc_redist_dirs(target: str) -> List[str]:
     target_arch = target.split('-')[0]
     vs_platform = vs_platforms[target_arch]
 
-    redist_dir = os.path.join(vc_dir, "Redist", "MSVC")
+    redist_dir = os.path.join(installation.vc_install_path, "Redist", "MSVC")
     if not os.path.isdir(redist_dir):
         raise Exception(f"Couldn't locate MSVC redistributable directory {redist_dir}")
 

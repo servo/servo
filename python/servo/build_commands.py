@@ -119,7 +119,8 @@ class MachCommands(CommandBase):
                     return rv
 
             if sys.platform == "win32":
-                copy_windows_dlls_to_build_directory(built_binary, target_triple)
+                if not copy_windows_dlls_to_build_directory(built_binary, target_triple):
+                    status = 1
 
             elif sys.platform == "darwin":
                 servo_path = self.get_binary_path(
@@ -362,7 +363,7 @@ def package_gstreamer_dylibs(cross_compilation_target, servo_bin):
     return True
 
 
-def copy_windows_dlls_to_build_directory(servo_binary: str, target_triple: str):
+def copy_windows_dlls_to_build_directory(servo_binary: str, target_triple: str) -> bool:
     servo_exe_dir = os.path.dirname(servo_binary)
     assert os.path.exists(servo_exe_dir)
 
@@ -389,6 +390,8 @@ def copy_windows_dlls_to_build_directory(servo_binary: str, target_triple: str):
     print(" • Copying MSVC DLLs to binary directory...")
     if not package_msvc_dlls(servo_exe_dir, target_triple):
         return False
+
+    return True
 
 
 def package_gstreamer_dlls(servo_exe_dir: str, target: str):
