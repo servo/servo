@@ -128,7 +128,7 @@ public class ServoView extends SurfaceView
 
 
     private void startLooping() {
-      //In case we were already drawing.
+      // In case we were already drawing.
       Choreographer.getInstance().removeFrameCallback(this);
 
       Choreographer.getInstance().postFrameCallback(this);

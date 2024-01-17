@@ -109,26 +109,25 @@ android {
     }
 
     // Call our custom NDK Build task using flavor parameters.
-    // This step is needed because the Android Gradle Plugin system
+    // This step is needed because the Android Gradle Plugin system's
     // integration with native C/C++ shared objects (based on the
     // `android.externalNativeBuild` dsl object) assumes that we
-    // actually execute compiler commands to produce the shared
-    // objects. We already have a libsimpleservo.so produce by rustc.
-    // We could simply copy the .so to the sourceSet.jniLibs folder
-    // to make AGP bundle it in the APK, but this doesn't copy the STL
+    // actually execute compiler commands to produced the shared
+    // objects. We already have the libsimpleservo.so produced by rustc.
+    // We could simply copy the .so to the `sourceSet.jniLibs` folder
+    // to make AGP bundle it with the APK, but this doesn't copy the STL
     // (libc++_shared.so) as well. So we use ndk-build as a glorified
     // `cp` command to copy the libsimpleservo.so from target/<arch>
     // to target/android and crucially also include libc++_shared.so
     // as well.
     //
-    // FIXME(mukilan): According to the AGP docs, we should
-    // not be relying on task names used by the plugin system
-    // to 'hook' into the build process, but instead we should
-    // use the `androidComponents.beforeVariants` and similar
-    // officially supported extension points.
+    // FIXME(mukilan): According to the AGP docs, we should not be
+    // relying on task names used by the plugin system to hook into
+    // the build process, but instead we should use officially supported
+    // extension points such as `androidComponents.beforeVariants`
     tasks.all {
         compileTask ->
-            // match task `mergeBasicArmv7DebugJniLibFolders`
+            // This matches the task `mergeBasicArmv7DebugJniLibFolders`.
             Pattern pattern = Pattern.compile(/^merge[A-Z][\w\d]+([A-Z][\w\d]+)(Debug|Release)JniLibFolders/)
             Matcher matcher = pattern.matcher(compileTask.name)
             if (!matcher.find()) {
@@ -143,7 +142,6 @@ android {
                     'APP_BUILD_SCRIPT=../jni/Android.mk',
                     'NDK_APPLICATION_MK=../jni/Application.mk',
                     'NDK_LIBS_OUT=' + getJniLibsPath(debug, arch),
-                    //'NDK_OUT=' + getJniLibsPath(debug, arch),
                     'NDK_DEBUG=' + (debug ? '1' : '0'),
                     'APP_ABI=' + getNDKAbi(arch),
                     'NDK_LOG=1',

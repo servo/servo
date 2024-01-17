@@ -600,8 +600,8 @@ class CommandBase(object):
             host_suffix = "x86_64"
         host = os_type + "-" + host_suffix
 
-        host_cc = env.get('HOST_CC') or shutil.which("clang") or shutil.which(["gcc"])
-        host_cxx = env.get('HOST_CXX') or shutil.which("clang++") or shutil.which("g++")
+        host_cc = env.get('HOST_CC') or shutil.which("clang")
+        host_cxx = env.get('HOST_CXX') or shutil.which("clang++")
 
         llvm_toolchain = path.join(env['ANDROID_NDK_ROOT'], "toolchains", "llvm", "prebuilt", host)
         env['PATH'] = (path.join(llvm_toolchain, "bin") + ':' + env['PATH'])
@@ -639,12 +639,12 @@ class CommandBase(object):
         env['CFLAGS'] = "--target=" + android_toolchain_name
         env['CXXFLAGS'] = "--target=" + android_toolchain_name
 
-        # needed by mozjs
+        # These two variables are needed for the mozjs compilation.
         env['ANDROID_API_LEVEL'] = android_api
         env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
 
-        # The two vars set below are passed by our custom
-        # support/android/toolchain.cmake to the NDK's cmake toolchain file
+        # The two variables set below are passed by our custom
+        # support/android/toolchain.cmake to the NDK's Cmake toolchain file
         env["ANDROID_ABI"] = android_lib
         env["ANDROID_PLATFORM"] = android_platform
         env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(
@@ -899,9 +899,6 @@ class CommandBase(object):
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
         return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
-
-    def android_support_dir(self):
-        return
 
     def android_adb_path(self, env):
         if "ANDROID_SDK_ROOT" in env:
