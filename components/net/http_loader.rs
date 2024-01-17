@@ -122,7 +122,10 @@ impl HttpState {
 }
 
 fn precise_time_ms() -> u64 {
-    time::precise_time_ns() / (1000 * 1000)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 // Step 3 of https://fetch.spec.whatwg.org/#concept-fetch.
@@ -2108,7 +2111,6 @@ async fn cors_preflight_fetch(
             .typed_get::<AccessControlMaxAge>()
             .map(|acma| acma.into())
             .unwrap_or(Duration::from_secs(5));
-        let max_age = max_age.as_secs() as u32;
         // Substep 10
         // TODO: Need to define what an imposed limit on max-age is
 

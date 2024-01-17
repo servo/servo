@@ -15,7 +15,6 @@ use http::StatusCode;
 use hyper::{Method, Uri};
 use hyper_serde::{De, Ser};
 use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
-use time::Duration;
 
 #[test]
 fn test_content_type() {
@@ -32,7 +31,7 @@ fn test_cookie() {
     // string with a bunch of indices in it which apparently is different from the exact same
     // cookie but parsed as a bunch of strings.
     let cookie: Cookie = Cookie::build("Hello", "World!")
-        .max_age(Duration::seconds(42))
+        .max_age(time::Duration::seconds(42))
         .domain("servo.org")
         .path("/")
         .secure(true)
@@ -112,14 +111,18 @@ fn test_raw_status() {
 }
 
 #[test]
-fn test_tm() {
-    use time::strptime;
+fn test_system_time_serialization() {
+    use std::time::SystemTime;
 
-    let time = strptime("2017-02-22T12:03:31Z", "%Y-%m-%dT%H:%M:%SZ").unwrap();
-    let tokens = &[Token::Str("2017-02-22T12:03:31Z")];
+    use chrono::{NaiveDateTime, TimeZone, Utc};
 
-    assert_ser_tokens(&Ser::new(&time), tokens);
+    let time = SystemTime::from(Utc.from_utc_datetime(
+        &NaiveDateTime::parse_from_str("2023-01-15T12:53:31Z", "%Y-%m-%dT%H:%M:%SZ").unwrap(),
+    ));
+    let tokens = &[Token::Str("2023-01-15T12:53:31Z")];
+
     assert_de_tokens(&De::new(time), tokens);
+    assert_ser_tokens(&Ser::new(&time), tokens);
 }
 
 #[test]
