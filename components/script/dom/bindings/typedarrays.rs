@@ -102,4 +102,13 @@ impl HeapFloat32Array {
     pub fn get_internal(&self) -> Result<Float32Array, ()> {
         Float32Array::from(self.internal.get())
     }
+
+    pub fn internal_to_option(&self) -> Option<Float32Array> {
+        if self.is_initialized() {
+            Some(self.get_internal().expect("Failed to get internal."))
+        } else {
+            warn!("Internal not initialized.");
+            None
+        }
+    }
 }
