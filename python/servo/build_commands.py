@@ -123,9 +123,6 @@ class MachCommands(CommandBase):
             for key in env:
                 print((key, env[key]))
 
-        # FIXME: disabled until GStreamer support is enabled
-        # self.download_and_build_android_dependencies_if_needed(env)
-
         status = self.run_cargo_build_like_command(
             "build", opts, env=env, verbose=verbose,
             libsimpleservo=libsimpleservo, **kwargs

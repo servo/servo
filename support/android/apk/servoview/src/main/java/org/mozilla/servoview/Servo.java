@@ -41,13 +41,6 @@ public class Servo {
         mRunCallback.inGLThread(() -> {
             mJNI.init(activity, options, mServoCallbacks, surface);
         });
-
-        try {
-          // FIXME: GStreamer support
-          // GStreamer.init((Context) activity);
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
     }
 
     public void resetGfxCallbacks(GfxCallbacks gfxcb) {

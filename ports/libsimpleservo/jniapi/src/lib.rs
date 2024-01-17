@@ -9,8 +9,6 @@ use std::sync::Arc;
 use std::thread;
 
 use android_logger::{self, FilterBuilder, Config};
-// FIXME: GStreamer support
-// use gstreamer::debug_set_threshold_from_string;
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
@@ -105,11 +103,6 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
                 filter_builder.filter_module(module, log::LevelFilter::Debug);
             }
         }
-
-        // FIXME: GStreamer support
-        // if let Some(gst_debug_str) = gst_debug_str {
-        //   debug_set_threshold_from_string(&gst_debug_str, true);
-        // }
 
         android_logger::init_once(
             Config::default()
