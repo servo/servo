@@ -2,11 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr;
-
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
-use js::typedarray::{CreateWith, Float32Array};
+use js::typedarray::Float32Array;
 
 use super::bindings::typedarrays::HeapFloat32Array;
 use crate::dom::bindings::codegen::Bindings::GamepadPoseBinding::GamepadPoseMethods;
@@ -30,33 +27,6 @@ pub struct GamepadPose {
     linear_acc: HeapFloat32Array,
     #[ignore_malloc_size_of = "mozjs"]
     angular_acc: HeapFloat32Array,
-}
-
-// TODO: support gamepad discovery
-#[allow(dead_code)]
-#[allow(unsafe_code)]
-fn update_or_create_typed_array(cx: JSContext, src: Option<&[f32]>, dst: &Heap<*mut JSObject>) {
-    match src {
-        Some(data) => {
-            if dst.get().is_null() {
-                rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-                let _ = unsafe {
-                    Float32Array::create(*cx, CreateWith::Slice(data), array.handle_mut())
-                };
-                (*dst).set(array.get());
-            } else {
-                typedarray!(in(*cx) let array: Float32Array = dst.get());
-                if let Ok(mut array) = array {
-                    unsafe { array.update(data) };
-                }
-            }
-        },
-        None => {
-            if !dst.get().is_null() {
-                dst.set(ptr::null_mut());
-            }
-        },
-    }
 }
 
 // TODO: support gamepad discovery
