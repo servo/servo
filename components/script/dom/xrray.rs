@@ -159,11 +159,11 @@ impl XRRayMethods for XRRay {
                 .to_array();
             self.matrix
                 .set_data(_cx, &arr)
-                .expect("Failed to set on data on the xrray's matrix.")
+                .expect("Failed to set matrix data on XRRAy.")
         }
 
         self.matrix
             .get_internal()
-            .expect("Failed to get the xrray's matrix.")
+            .expect("Failed to get matrix from XRRay.")
     }
 }
