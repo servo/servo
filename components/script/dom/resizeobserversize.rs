@@ -3,10 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use crate::dom::bindings::reflector::Reflector;
 
+use crate::dom::bindings::codegen::Bindings::ResizeObserverSizeBinding::ResizeObserverSizeMethods;
+use crate::dom::bindings::reflector::Reflector;
 
 #[dom_struct]
 pub struct ResizeObserverSize {
     reflector_: Reflector,
+}
+
+impl ResizeObserverSizeMethods for ResizeObserverSize {
+    fn InlineSize(&self) -> f64 {
+        unimplemented!()
+    }
+    fn BlockSize(&self) -> f64 {
+        unimplemented!()
+    }
 }
