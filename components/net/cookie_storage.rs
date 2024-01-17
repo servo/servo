@@ -8,7 +8,7 @@
 use std::cmp::Ordering;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use log::{debug, info};
 use net_traits::pub_domains::reg_suffix;
@@ -139,8 +139,17 @@ impl CookieStorage {
         let b_path_len = b.cookie.path().as_ref().map_or(0, |p| p.len());
         match a_path_len.cmp(&b_path_len) {
             Ordering::Equal => {
-                let a_creation_time = a.creation_time;
-                let b_creation_time = b.creation_time;
+                let a_creation_time = a
+                    .creation_time
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_nanos();
+                let b_creation_time = b
+                    .creation_time
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_nanos();
+
                 a_creation_time.cmp(&b_creation_time)
             },
             // Ensure that longer paths are sorted earlier than shorter paths
