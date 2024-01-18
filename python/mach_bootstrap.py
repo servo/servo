@@ -141,8 +141,6 @@ def install_virtual_env_requirements(project_path: str, python: str, virtualenv_
                        "-r", requirements_paths[2]])
         with open(marker_path, "w") as marker_file:
             marker_file.write(requirements_hash)
-    else:
-        print(" * Python requirements up to date.")
 
 
 def _activate_virtualenv(topdir):
