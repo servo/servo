@@ -1510,7 +1510,7 @@ dependencies = [
  "bytemuck",
  "egui",
  "egui-winit",
- "glow",
+ "glow 0.12.3",
  "log",
  "memoffset",
  "wasm-bindgen",
@@ -2197,6 +2197,18 @@ name = "glow"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca0fe580e4b60a8ab24a868bc08e2f03cbcb20d3d676601fa909386713333728"
+dependencies = [
+ "js-sys",
+ "slotmap",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "glow"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd348e04c43b32574f2de31c8bb397d96c9fcfa1371bd4ca6d8bdc464ab121b1"
 dependencies = [
  "js-sys",
  "slotmap",
@@ -5486,7 +5498,7 @@ dependencies = [
  "euclid",
  "getopts",
  "gleam",
- "glow",
+ "glow 0.13.1",
  "image",
  "keyboard-types",
  "lazy_static",
