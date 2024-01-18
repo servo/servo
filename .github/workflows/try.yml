@@ -79,9 +79,9 @@ jobs:
                 if (tryString.includes("wpt")) {
                   addPlatformToConfiguration("linux", configuration);
                   if (tryString.includes("2020")) {
-                    configuration.wpt_layout = combineWPTLayoutOptions(configuration.layout, "2020");
+                    configuration.wpt_layout = combineWPTLayoutOptions(configuration.wpt_layout, "2020");
                   } else {
-                    configuration.wpt_layout = combineWPTLayoutOptions(configuration.layout, "2013");
+                    configuration.wpt_layout = combineWPTLayoutOptions(configuration.wpt_layout, "2013");
                   }
                 }
             }
@@ -150,7 +150,7 @@ jobs:
             const formattedURL = "[#" + context.runId + "](" + url + ")";
             let platformsString = configuration.platforms.toString();
             makeComment("🔨 Triggering try run (" + formattedURL + ") with platforms=" +
-                        platformsString + " and layout=" + configuration.layout);
+                        platformsString + " and layout=" + configuration.wpt_layout);
             return configuration;
 
   run-try:
