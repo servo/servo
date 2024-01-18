@@ -157,6 +157,7 @@ use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
+use crate::dom::resizeobserver::ResizeObserver;
 use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
@@ -435,6 +436,8 @@ pub struct Document {
     animations: DomRefCell<Animations>,
     /// The nearest inclusive ancestors to all the nodes that require a restyle.
     dirty_root: MutNullableDom<Element>,
+    /// https://drafts.csswg.org/resize-observer/#dom-document-resizeobservers-slot
+    resize_observers: DomRefCell<Vec<Dom<ResizeObserver>>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2893,6 +2896,12 @@ impl Document {
     pub fn name_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
         self.name_map.borrow()
     }
+
+    pub fn add_resize_observer(&self, resize_observer: &ResizeObserver) {
+        self.resize_observers
+            .borrow_mut()
+            .push(Dom::from_ref(resize_observer));
+    }
 }
 
 fn is_character_value_key(key: &Key) -> bool {
@@ -3196,6 +3205,7 @@ impl Document {
             },
             animations: DomRefCell::new(Animations::new()),
             dirty_root: Default::default(),
+            resize_observers: Default::default(),
         }
     }
 
