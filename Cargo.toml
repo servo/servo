@@ -105,7 +105,7 @@ time = "0.1.41"
 tokio = "1"
 tokio-rustls = "0.24"
 tungstenite = "0.20"
-unicode-bidi = "0.3.14"
+unicode-bidi = "0.3.15"
 unicode-script = "0.5"
 url = "2.5"
 uuid = { version = "1.6.1", features = ["v4"] }
