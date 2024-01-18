@@ -16,7 +16,6 @@ doctest = false
 test = false
 
 [dependencies]
-chrono = "0.4"
 cookie = { workspace = true }
 headers = { workspace = true }
 http = { workspace = true }
@@ -24,7 +23,7 @@ hyper = { workspace = true }
 mime = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
+time = { workspace = true }
 
 [dev-dependencies]
 serde_test = "1.0"
-time = { workspace = true }

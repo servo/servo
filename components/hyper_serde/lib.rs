@@ -20,7 +20,7 @@
 //! * `hyper::Method`
 //! * `hyper::Uri`
 //! * `mime::Mime`
-//! * `std::time::SystemTime`
+//! * `time::Tm`
 //!
 //! # How do I use a data type with a `HeaderMap` member with Serde?
 //!
@@ -66,10 +66,8 @@
 
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
-use std::time::SystemTime;
 use std::{cmp, fmt, str};
 
-use chrono::{DateTime, SecondsFormat, Utc};
 use cookie::Cookie;
 use headers::ContentType;
 use http::HeaderMap;
@@ -80,6 +78,7 @@ use serde::de::{self, Error, MapAccess, SeqAccess, Visitor};
 use serde::ser::{SerializeMap, SerializeSeq};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_bytes::{ByteBuf, Bytes};
+use time::{strptime, Tm};
 
 /// Deserialises a `T` value with a given deserializer.
 ///
@@ -605,15 +604,15 @@ impl<'de> Visitor<'de> for StatusVisitor {
     }
 }
 
-impl<'de> Deserialize<'de> for De<SystemTime> {
+impl<'de> Deserialize<'de> for De<Tm> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct SystemTimeVisitor;
+        struct TmVisitor;
 
-        impl<'de> Visitor<'de> for SystemTimeVisitor {
-            type Value = De<SystemTime>;
+        impl<'de> Visitor<'de> for TmVisitor {
+            type Value = De<Tm>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 write!(formatter, "a date and time according to RFC 3339")
@@ -623,23 +622,22 @@ impl<'de> Deserialize<'de> for De<SystemTime> {
             where
                 E: de::Error,
             {
-                DateTime::parse_from_rfc3339(v)
-                    .map(|t| De::new(SystemTime::from(t)))
+                strptime(v, "%Y-%m-%dT%H:%M:%SZ")
+                    .map(De::new)
                     .map_err(|e| E::custom(e.to_string()))
             }
         }
 
-        deserializer.deserialize_string(SystemTimeVisitor)
+        deserializer.deserialize_string(TmVisitor)
     }
 }
 
-impl<'a> Serialize for Ser<'a, SystemTime> {
+impl<'a> Serialize for Ser<'a, Tm> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let date_time: DateTime<Utc> = self.v.clone().into();
-        serializer.serialize_str(&date_time.to_rfc3339_opts(SecondsFormat::Secs, true))
+        serializer.serialize_str(&self.v.rfc3339().to_string())
     }
 }
 
