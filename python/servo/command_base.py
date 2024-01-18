@@ -777,7 +777,8 @@ class CommandBase(object):
                     # If `build_type` already exists in kwargs we are doing a recursive dispatch.
                     if 'build_type' not in kwargs:
                         kwargs['build_type'] = self.configure_build_type(
-                            kwargs['release'], kwargs['dev'], kwargs['prod'], kwargs['profile'],
+                            kwargs.get('release', False), kwargs.get('dev', True),
+                            kwargs.get('prod', False), kwargs.get('profile'),
                         )
                     kwargs.pop('release', None)
                     kwargs.pop('dev', None)
@@ -785,9 +786,11 @@ class CommandBase(object):
                     kwargs.pop('profile', None)
 
                 if build_configuration:
-                    self.configure_cross_compilation(kwargs['target'], kwargs['android'], kwargs['win_arm64'])
+                    self.configure_cross_compilation(
+                        kwargs.get('target'), kwargs.get('android'), kwargs.get('win_arm64'),
+                    )
                     self.features = kwargs.get("features", None) or []
-                    self.enable_media = self.is_media_enabled(kwargs['media_stack'])
+                    self.enable_media = self.is_media_enabled(kwargs.get('media_stack'))
 
                 return original_function(self, *args, **kwargs)
 
