@@ -9,13 +9,14 @@ use js::rust::HandleObject;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ResizeObserverBinding::{
-    ResizeObserverCallback, ResizeObserverMethods, ResizeObserverOptions,
+    ResizeObserverCallback, ResizeObserverMethods, ResizeObserverOptions, ResizeObserverBoxOptions,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
 use crate::dom::window::Window;
+use crate::dom::resizeobserversize::ResizeObserverSize;
 
 /// https://drafts.csswg.org/resize-observer/#resize-observer-slots
 #[dom_struct]
@@ -81,4 +82,10 @@ impl ResizeObserverMethods for ResizeObserver {
 #[dom_struct]
 struct ResizeObservation {
     reflector_: Reflector,
+    /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-target
+    target: Dom<Element>,
+    /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-observedbox
+    observed_box: ResizeObserverBoxOptions,
+    /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-lastreportedsizes
+    last_reported_sizes: Vec<ResizeObserverSize>,
 }
