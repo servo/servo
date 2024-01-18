@@ -433,6 +433,15 @@ impl EventMethods for Event {
         self.current_target.get()
     }
 
+    // https://dom.spec.whatwg.org/#dom-event-composedpath
+    fn ComposedPath(&self) -> Vec<DomRoot<EventTarget>> {
+        if let Some(target) = self.target.get() {
+            self.construct_event_path(&target)
+        } else {
+            vec![]
+        }
+    }
+
     // https://dom.spec.whatwg.org/#dom-event-defaultprevented
     fn DefaultPrevented(&self) -> bool {
         self.canceled.get() == EventDefault::Prevented
