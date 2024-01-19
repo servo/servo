@@ -9,7 +9,7 @@ build = "build.rs"
 edition = "2018"
 
 [features]
-default = ["freetype-lib", "no_static_freetype"]
+default = ["freetype-lib"]
 freetype-lib = ["freetype/freetype-sys"]
 profiler = ["tracy-rs/enable_profiler"]
 capture = ["api/serialize", "ron", "serde", "smallvec/serde", "etagere/serialization"]
