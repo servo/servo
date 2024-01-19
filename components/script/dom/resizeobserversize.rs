@@ -10,13 +10,15 @@ use crate::dom::bindings::reflector::Reflector;
 #[dom_struct]
 pub struct ResizeObserverSize {
     reflector_: Reflector,
+    inline_size: f64,
+    block_size: f64,
 }
 
 impl ResizeObserverSizeMethods for ResizeObserverSize {
     fn InlineSize(&self) -> f64 {
-        unimplemented!()
+        self.inline_size
     }
     fn BlockSize(&self) -> f64 {
-        unimplemented!()
+        self.block_size
     }
 }
