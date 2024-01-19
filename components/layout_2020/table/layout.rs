@@ -95,7 +95,7 @@ impl<'a> TableLayout<'a> {
 
         // https://drafts.csswg.org/css-tables/#used-min-width-of-table
         // > The used min-width of a table is the greater of the resolved min-width, CAPMIN, and GRIDMIN.
-        let used_min_width_of_table = grid_min_inline_size.max(min_content_sizes.inline);
+        let used_min_width_of_table = grid_min_inline_size.max(min_content_sizes.inline.into());
 
         // https://drafts.csswg.org/css-tables/#used-width-of-table
         // > The used width of a table depends on the columns and captions widths as follows:
@@ -105,10 +105,10 @@ impl<'a> TableLayout<'a> {
         // > * If the table-root has 'width: auto', the used width is the greater of min(GRIDMAX,
         // >   the table’s containing block width), the used min-width of the table.
         let used_width_of_table = match content_box_size.inline {
-            LengthPercentage(length_percentage) => length_percentage.max(used_min_width_of_table),
+            LengthPercentage(length_percentage) => length_percentage.max(used_min_width_of_table.into()),
             Auto => grid_max_inline_size
-                .min(containing_block.inline_size)
-                .max(used_min_width_of_table),
+                .min(containing_block.inline_size.into())
+                .max(used_min_width_of_table).into(),
         };
 
         self.assignable_width = used_width_of_table.into();
@@ -186,7 +186,7 @@ impl<'a> TableLayout<'a> {
             ) = match inline_size {
                 LengthPercentage(length_percentage) if length_percentage.has_percentage() => {
                     let percent_guess = min_content_width
-                        .max(length_percentage.resolve(self.assignable_width.into()));
+                        .max(length_percentage.resolve(self.assignable_width.into()).into());
                     (percent_guess, percent_guess, percent_guess)
                 },
                 LengthPercentage(_) => (min_content_width, max_content_width, max_content_width),
@@ -450,7 +450,7 @@ impl Table {
         };
 
         let sizes = cell.inline_content_sizes(layout_context, writing_mode);
-        sizes.map(|size| size / cell.colspan as f32)
+        sizes.map(|size| Au::from_f32_px(Au::to_f32_px(size) / cell.colspan as f32))
     }
 
     pub(crate) fn compute_inline_content_sizes(
@@ -520,8 +520,8 @@ impl TableSlotCell {
             .contents
             .contents
             .inline_content_sizes(layout_context, writing_mode);
-        sizes.min_content += border_padding_sum;
-        sizes.max_content += border_padding_sum;
+        sizes.min_content += border_padding_sum.into();
+        sizes.max_content += border_padding_sum.into();
         sizes
     }
 
