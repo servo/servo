@@ -21,6 +21,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// https://drafts.csswg.org/resize-observer/#resize-observer-slots
+/// See `ObservationState` below for active and skipped observation targets.
 #[dom_struct]
 pub struct ResizeObserver {
     reflector_: Reflector,
@@ -29,10 +30,6 @@ pub struct ResizeObserver {
     callback: Rc<ResizeObserverCallback>,
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observationtargets-slot
     observation_targets: DomRefCell<Vec<ResizeObservation>>,
-    /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-activetargets-slot
-    active_targets: DomRefCell<Vec<ResizeObservation>>,
-    /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-skippedtargets-slot
-    skipped_targets: DomRefCell<Vec<ResizeObservation>>,
 }
 
 impl ResizeObserver {
@@ -41,8 +38,6 @@ impl ResizeObserver {
             reflector_: Reflector::new(),
             callback,
             observation_targets: Default::default(),
-            active_targets: Default::default(),
-            skipped_targets: Default::default(),
         }
     }
 
@@ -66,6 +61,27 @@ impl ResizeObserver {
         let document = window.Document();
         document.add_resize_observer(&rooted_observer);
         rooted_observer
+    }
+    
+    /// https://drafts.csswg.org/resize-observer/#gather-active-observations-h
+    pub fn gather_active_resize_observations_at_depth(&self, depth: u32) {
+        // Step 2.2
+        for observation in self.observation_targets.borrow_mut().iter_mut() {
+            if observation.is_active() {
+                // TODO https://drafts.csswg.org/resize-observer/#calculate-depth-for-node
+                let target_depth = 0;
+                if target_depth > depth {
+                    observation.state = ObservationState::Active;
+                } else {
+                    observation.state = ObservationState::Skipped;
+                }
+            }
+        }
+    }
+    
+    /// https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations
+    pub fn broadcast_active_resize_observations(&self, shallowest_target_depth: u32) -> u32 {
+        shallowest_target_depth
     }
 }
 
@@ -101,8 +117,18 @@ impl ResizeObserverMethods for ResizeObserver {
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-disconnect
     fn Disconnect(&self) {
         self.observation_targets.borrow_mut().clear();
-        self.active_targets.borrow_mut().clear();
     }
+}
+
+/// State machine equivalent of active and skipped observations.
+#[derive(Default, JSTraceable, MallocSizeOf)]
+enum ObservationState {
+    #[default]
+    Start, 
+    /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-activetargets-slot
+    Active,
+    /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-skippedtargets-slot
+    Skipped
 }
 
 /// https://drafts.csswg.org/resize-observer/#resizeobservation
@@ -114,6 +140,8 @@ struct ResizeObservation {
     observed_box: ResizeObserverBoxOptions,
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-lastreportedsizes
     last_reported_sizes: Vec<DomRoot<ResizeObserverSize>>,
+    /// State machine mimicking the "active" and "skipped" targets slots of the observer.
+    state: ObservationState,
 }
 
 impl ResizeObservation {
@@ -123,6 +151,13 @@ impl ResizeObservation {
             target: DomRoot::from_ref(target),
             observed_box,
             last_reported_sizes: Default::default(),
+            state: Default::default(),
         }
+    }
+    
+    /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-isactive
+    pub fn is_active(&self) -> bool {
+        // TODO: https://drafts.csswg.org/resize-observer/#calculate-box-size
+        true
     }
 }

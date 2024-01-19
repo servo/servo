@@ -1697,30 +1697,40 @@ impl ScriptThread {
         // TODO(gw): In the future we could probably batch other types of reflows
         // into this loop too, but for now it's only images.
         debug!("Issuing batched reflows.");
-        for (_, document) in self.documents.borrow().iter() {
-            // Step 13
-            if !document.is_fully_active() {
-                continue;
-            }
-            let window = document.window();
+        let mut depth = 0;
+        loop {
+            for (_, document) in self.documents.borrow().iter() {
+                // Step 13
+                if !document.is_fully_active() {
+                    continue;
+                }
+                let window = document.window();
 
-            let _realm = enter_realm(&*document);
+                let _realm = enter_realm(&*document);
 
-            window
-                .upcast::<GlobalScope>()
-                .perform_a_dom_garbage_collection_checkpoint();
+                window
+                    .upcast::<GlobalScope>()
+                    .perform_a_dom_garbage_collection_checkpoint();
 
-            let pending_reflows = window.get_pending_reflow_count();
-            if pending_reflows > 0 {
-                window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow);
-            } else {
-                // Reflow currently happens when explicitly invoked by code that
-                // knows the document could have been modified. This should really
-                // be driven by the compositor on an as-needed basis instead, to
-                // minimize unnecessary work.
-                window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
-            }
+                let pending_reflows = window.get_pending_reflow_count();
+                if pending_reflows > 0 {
+                    window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow);
+                } else {
+                    // Reflow currently happens when explicitly invoked by code that
+                    // knows the document could have been modified. This should really
+                    // be driven by the compositor on an as-needed basis instead, to
+                    // minimize unnecessary work.
+                    window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
+                }
+                
+                // Step 15: run the resize observation steps. 
+                document.gather_active_resize_observations_at_depth(depth);
+                if !document.has_active_resize_observations() {
+                    break;
+                }
+            } 
         }
+        
 
         true
     }

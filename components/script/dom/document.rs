@@ -2906,6 +2906,27 @@ impl Document {
             .borrow_mut()
             .push(Dom::from_ref(resize_observer));
     }
+    
+    /// https://drafts.csswg.org/resize-observer/#gather-active-observations-h
+    pub fn gather_active_resize_observations_at_depth(&self, depth: u32) {
+        for observer in self.resize_observers.borrow_mut().iter_mut() {
+            observer.gather_active_resize_observations_at_depth(depth);
+        }
+    }
+    
+    /// https://drafts.csswg.org/resize-observer-1/#has-active-observations-h
+    pub fn has_active_resize_observations(&self) -> bool {
+        false
+    }
+    
+    /// https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations
+    pub fn broadcast_active_resize_observations(&self) -> u32 {
+        let mut shallowest_target_depth = 0;
+        for observer in self.resize_observers.borrow_mut().iter_mut() {
+            shallowest_target_depth = observer.broadcast_active_resize_observations(shallowest_target_depth);
+        }
+        shallowest_target_depth
+    }
 }
 
 fn is_character_value_key(key: &Key) -> bool {
