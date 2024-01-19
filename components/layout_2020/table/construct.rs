@@ -679,7 +679,7 @@ where
                             )
                         },
                         Err(_replaced) => {
-                            panic!("We don't handle this yet.");
+                            unreachable!("Replaced should not have a LayoutInternal display type.");
                         },
                     };
 

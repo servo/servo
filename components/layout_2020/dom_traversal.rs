@@ -172,6 +172,7 @@ fn traverse_element<'dom, Node>(
         },
         Display::GeneratingBox(display) => {
             let contents = replaced.map_or(Contents::OfElement, Contents::Replaced);
+            let display = display.used_value_for_contents(&contents);
             let box_slot = element.element_box_slot();
             let info = NodeAndStyleInfo::new(element, style);
             handler.handle_element(&info, display, contents, box_slot);
