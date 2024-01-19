@@ -62,7 +62,7 @@ impl ResizeObserver {
         document.add_resize_observer(&rooted_observer);
         rooted_observer
     }
-    
+
     /// https://drafts.csswg.org/resize-observer/#gather-active-observations-h
     pub fn gather_active_resize_observations_at_depth(&self, depth: u32) {
         // Step 2.2
@@ -78,7 +78,7 @@ impl ResizeObserver {
             }
         }
     }
-    
+
     /// https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations
     pub fn broadcast_active_resize_observations(&self, shallowest_target_depth: u32) -> u32 {
         shallowest_target_depth
@@ -124,11 +124,11 @@ impl ResizeObserverMethods for ResizeObserver {
 #[derive(Default, JSTraceable, MallocSizeOf)]
 enum ObservationState {
     #[default]
-    Start, 
+    Start,
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-activetargets-slot
     Active,
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-skippedtargets-slot
-    Skipped
+    Skipped,
 }
 
 /// https://drafts.csswg.org/resize-observer/#resizeobservation
@@ -154,7 +154,7 @@ impl ResizeObservation {
             state: Default::default(),
         }
     }
-    
+
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-isactive
     pub fn is_active(&self) -> bool {
         // TODO: https://drafts.csswg.org/resize-observer/#calculate-box-size

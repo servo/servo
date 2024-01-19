@@ -1722,15 +1722,15 @@ impl ScriptThread {
                     // minimize unnecessary work.
                     window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
                 }
-                
-                // Step 15: run the resize observation steps. 
+
+                // Step 15: run the resize observation steps.
                 document.gather_active_resize_observations_at_depth(depth);
                 if !document.has_active_resize_observations() {
                     break;
                 }
-            } 
+                depth = document.broadcast_active_resize_observations();
+            }
         }
-        
 
         true
     }
