@@ -1691,14 +1691,35 @@ impl ScriptThread {
             docs.clear();
         }
 
-        // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7.12
+        // Step 15: run the resize observation steps.
+        let mut reflowed = false;
+        for (_, document) in self.documents.borrow().iter() {
+            // Step 13
+            if !document.is_fully_active() {
+                continue;
+            }
+            let mut depth = 0;
+            loop {
+                document.gather_active_resize_observations_at_depth(depth);
+                if !document.has_active_resize_observations() {
+                    break;
+                } else {
+                    // ReflowReason:LayoutQuery will have happened
+                    // due to https://drafts.csswg.org/resize-observer/#calculate-box-size-h
+                    reflowed = true;
+                }
+                depth = document.broadcast_active_resize_observations();
+            }
+        }
 
-        // Issue batched reflows on any pages that require it (e.g. if images loaded)
-        // TODO(gw): In the future we could probably batch other types of reflows
-        // into this loop too, but for now it's only images.
-        debug!("Issuing batched reflows.");
-        let mut depth = 0;
-        loop {
+        // Only run the batched reflow if we didn't broadcast any resize observations.
+        if !reflowed {
+            // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7.12
+
+            // Issue batched reflows on any pages that require it (e.g. if images loaded)
+            // TODO(gw): In the future we could probably batch other types of reflows
+            // into this loop too, but for now it's only images.
+            debug!("Issuing batched reflows.");
             for (_, document) in self.documents.borrow().iter() {
                 // Step 13
                 if !document.is_fully_active() {
@@ -1722,13 +1743,6 @@ impl ScriptThread {
                     // minimize unnecessary work.
                     window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
                 }
-
-                // Step 15: run the resize observation steps.
-                document.gather_active_resize_observations_at_depth(depth);
-                if !document.has_active_resize_observations() {
-                    break;
-                }
-                depth = document.broadcast_active_resize_observations();
             }
         }
 
