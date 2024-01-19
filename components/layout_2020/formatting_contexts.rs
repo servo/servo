@@ -206,13 +206,7 @@ impl NonReplacedFormattingContext {
                 fc.layout(layout_context, positioning_context, containing_block)
             },
             NonReplacedFormattingContextContents::Table(table) => {
-                let inline_content_sizes = self.content_sizes.as_ref().cloned();
-                table.layout(
-                    layout_context,
-                    positioning_context,
-                    containing_block,
-                    inline_content_sizes,
-                )
+                table.layout(layout_context, positioning_context, containing_block)
             },
         }
     }

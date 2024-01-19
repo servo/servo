@@ -119,7 +119,9 @@ impl Table {
     fn push_new_slot_to_last_row(&mut self, slot: TableSlot) {
         let last_row = match self.slots.last_mut() {
             Some(row) => row,
-            None => unreachable!("Should have some rows before calling `push_new_slot_to_last_row"),
+            None => {
+                unreachable!("Should have some rows before calling `push_new_slot_to_last_row`")
+            },
         };
 
         self.size.width = self.size.width.max(last_row.len() + 1);

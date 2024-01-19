@@ -478,7 +478,6 @@ impl Table {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
-        _inline_content_sizes: Option<ContentSizes>,
     ) -> IndependentLayout {
         let mut table_layout = TableLayout::new(&self);
         table_layout.compute_measures(layout_context, positioning_context, containing_block);
@@ -487,7 +486,7 @@ impl Table {
         IndependentLayout {
             fragments,
             content_block_size,
-            last_inflow_baseline_offset: None, // LOL
+            last_inflow_baseline_offset: None,
         }
     }
 }

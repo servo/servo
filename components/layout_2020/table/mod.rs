@@ -48,7 +48,8 @@ impl Table {
         }
     }
 
-    /// Convenience method for get() that returns a SlotAndLocation
+    /// Return the slot at the given coordinates, if it exists in the table, otherwise
+    /// return None.
     fn get_slot<'a>(&'a self, coords: TableSlotCoordinates) -> Option<&'a TableSlot> {
         self.slots.get(coords.y)?.get(coords.x)
     }
