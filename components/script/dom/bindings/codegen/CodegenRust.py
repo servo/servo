@@ -1460,10 +1460,6 @@ def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
     return "()"
 
 
-def todo_switch_float_32(des):
-    return des.interface.identifier.name in ['GamepadPose']
-
-
 def builtin_return_type(returnType):
     result = CGGeneric(builtinNames[returnType.tag()])
     if returnType.nullable():
@@ -1478,7 +1474,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         return CGGeneric("()")
     if returnType.isPrimitive() and returnType.tag() in builtinNames:
         return builtin_return_type(returnType)
-    if returnType.isTypedArray() and returnType.tag() in builtinNames and not todo_switch_float_32(descriptorProvider):
+    if returnType.isTypedArray() and returnType.tag() in builtinNames:
         return builtin_return_type(returnType)
     if returnType.isDOMString():
         result = CGGeneric("DOMString")
