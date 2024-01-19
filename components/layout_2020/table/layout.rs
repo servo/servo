@@ -360,12 +360,20 @@ impl<'a> TableLayout<'a> {
                 let coords = TableSlotCoordinates::new(column_index, row_index);
                 self.table
                     .resolve_first_cell_coords(coords)
-                    .map(|coords| self.cells_laid_out[coords.y][coords.x].as_ref().unwrap())
-                    .map(|cell| {
+                    .map(|resolved_coords| {
+                        let cell = self.cells_laid_out[resolved_coords.y][resolved_coords.x]
+                            .as_ref()
+                            .unwrap();
                         let total_height = cell.layout.content_block_size +
                             cell.border.block_sum().into() +
                             cell.padding.block_sum().into();
-                        max_row_height = (total_height / cell.rowspan as i32).max(max_row_height)
+                        // TODO: We are accounting for rowspan=0 here, but perhaps this should be
+                        // translated into a real rowspan during table box tree construction.
+                        let effective_rowspan = match cell.rowspan {
+                            0 => (self.table.size.height - resolved_coords.y) as i32,
+                            rowspan => rowspan as i32,
+                        };
+                        max_row_height = (total_height / effective_rowspan).max(max_row_height)
                     });
             }
             self.row_sizes.push(max_row_height);
