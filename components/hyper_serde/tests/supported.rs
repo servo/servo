@@ -8,6 +8,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use chrono::{DateTime, Utc};
 use cookie::Cookie;
 use headers::ContentType;
 use http::header::HeaderMap;
@@ -15,7 +16,6 @@ use hyper::{Method, StatusCode, Uri};
 use hyper_serde::{De, Ser, Serde};
 use mime::Mime;
 use serde::{Deserialize, Serialize};
-use time::Tm;
 
 fn is_supported<T>()
 where
@@ -33,6 +33,6 @@ fn supported() {
     is_supported::<Method>();
     is_supported::<Mime>();
     is_supported::<StatusCode>();
-    is_supported::<Tm>();
+    is_supported::<DateTime<Utc>>();
     is_supported::<Uri>();
 }

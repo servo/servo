@@ -8,7 +8,7 @@
 use std::net::TcpStream;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use chrono::{Local, LocalResult, TimeZone};
+use chrono::{DateTime, Local};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{ContentType, Cookie, HeaderMapExt};
 use http::{header, HeaderMap, Method, StatusCode};
@@ -370,23 +370,13 @@ impl NetworkEventActor {
     pub fn event_actor(&self) -> EventActor {
         // TODO: Send the correct values for startedDateTime, isXHR, private
 
-        let started_datetime_rfc3339 = match Local.timestamp_millis_opt(
-            self.request
-                .startedDateTime
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as i64,
-        ) {
-            LocalResult::None => "".to_owned(),
-            LocalResult::Single(dateTime) => format!("{}", dateTime.to_rfc3339()),
-            LocalResult::Ambiguous(dateTime, _) => format!("{}", dateTime.to_rfc3339()),
-        };
+        let date_time: DateTime<Local> = self.request.startedDateTime.clone().into();
 
         EventActor {
             actor: self.name(),
             url: self.request.url.clone(),
             method: format!("{}", self.request.method),
-            startedDateTime: started_datetime_rfc3339,
+            startedDateTime: date_time.to_rfc3339(),
             timeStamp: self.request.timeStamp,
             isXHR: self.is_xhr,
             private: false,

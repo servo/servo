@@ -22,6 +22,7 @@ bytes = "1"
 content-security-policy = { workspace = true }
 cookie_rs = { package = "cookie", version = "0.12" }
 crossbeam-channel = { workspace = true }
+chrono = "0.4"
 data-url = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }

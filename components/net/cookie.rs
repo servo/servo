@@ -8,12 +8,13 @@
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
+use chrono::{DateTime, Duration, LocalResult, TimeZone, Utc};
 use hyper_serde::Serde;
+use log::warn;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::CookieSource;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
-use time::{at, now, Duration, Tm};
 
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
@@ -31,13 +32,13 @@ pub struct Cookie {
         deserialize_with = "hyper_serde::deserialize",
         serialize_with = "hyper_serde::serialize"
     )]
-    pub creation_time: Tm,
+    pub creation_time: DateTime<Utc>,
     #[serde(
         deserialize_with = "hyper_serde::deserialize",
         serialize_with = "hyper_serde::serialize"
     )]
-    pub last_access: Tm,
-    pub expiry_time: Option<Serde<Tm>>,
+    pub last_access: DateTime<Utc>,
+    pub expiry_time: Option<Serde<DateTime<Utc>>>,
 }
 
 impl Cookie {
@@ -62,11 +63,23 @@ impl Cookie {
         let (persistent, expiry_time) = match (cookie.max_age(), cookie.expires()) {
             (Some(max_age), _) => (
                 true,
-                Some(at(
-                    now().to_timespec() + Duration::seconds(max_age.num_seconds())
-                )),
+                Some(Utc::now() + Duration::seconds(max_age.num_seconds())),
             ),
-            (_, Some(expires)) => (true, Some(expires)),
+            (_, Some(expires)) => (
+                true,
+                Some(
+                    match Utc
+                        .timestamp_opt(expires.to_timespec().sec, expires.to_timespec().nsec as u32)
+                    {
+                        LocalResult::Single(date_time) => date_time,
+                        LocalResult::Ambiguous(date_time, _) => date_time,
+                        LocalResult::None => {
+                            warn!("Out-of-range number of seconds and/or invalid nanosecond.");
+                            Utc::now()
+                        },
+                    },
+                ),
+            ),
             _ => (false, None),
         };
 
@@ -135,18 +148,18 @@ impl Cookie {
             cookie,
             host_only,
             persistent,
-            creation_time: now(),
-            last_access: now(),
+            creation_time: Utc::now(),
+            last_access: Utc::now(),
             expiry_time: expiry_time.map(Serde),
         })
     }
 
     pub fn touch(&mut self) {
-        self.last_access = now();
+        self.last_access = Utc::now();
     }
 
     pub fn set_expiry_time_negative(&mut self) {
-        self.expiry_time = Some(Serde(now() - Duration::seconds(1)));
+        self.expiry_time = Some(Serde(Utc::now() - Duration::seconds(1)));
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.4
