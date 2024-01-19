@@ -2900,7 +2900,8 @@ impl Document {
     pub fn name_map(&self) -> Ref<HashMapTracedValues<Atom, Vec<Dom<Element>>>> {
         self.name_map.borrow()
     }
-
+    
+    /// Step 4 of https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver
     pub fn add_resize_observer(&self, resize_observer: &ResizeObserver) {
         self.resize_observers
             .borrow_mut()
