@@ -72,7 +72,8 @@ jobs:
           ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: |
           python3 ./mach build --android --target ${{ matrix.arch }} --${{ inputs.profile }}
-      # TODO: This is disabled since APK crashes upon loading.
+      # TODO: This is disabled since APK crashes during startup.
+      # See https://github.com/servo/servo/issues/31134
       # - name: Script tests
       #   run: ./mach test-android-startup
       - name: Rename build timing
