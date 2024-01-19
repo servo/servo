@@ -2359,7 +2359,8 @@ impl<'a> ContentSizesComputation<'a> {
                     self.containing_block_writing_mode,
                 );
 
-                self.current_line.min_content += (self.pending_whitespace + outer.min_content.into()).into();
+                self.current_line.min_content +=
+                    (self.pending_whitespace + outer.min_content.into()).into();
                 self.current_line.max_content += outer.max_content;
                 self.pending_whitespace = Length::zero();
                 self.had_non_whitespace_content_yet = true;
@@ -2377,18 +2378,14 @@ impl<'a> ContentSizesComputation<'a> {
     }
 
     fn line_break_opportunity(&mut self) {
-        self.paragraph.min_content = std::cmp::max(
-            self.paragraph.min_content,
-            self.current_line.min_content,
-        );
+        self.paragraph.min_content =
+            std::cmp::max(self.paragraph.min_content, self.current_line.min_content);
     }
 
     fn forced_line_break(&mut self) {
         self.line_break_opportunity();
-        self.paragraph.max_content = std::cmp::max(
-            self.paragraph.max_content,
-            self.current_line.max_content,
-        );
+        self.paragraph.max_content =
+            std::cmp::max(self.paragraph.max_content, self.current_line.max_content);
     }
 
     /// Compute the [`ContentSizes`] of the given [`InlineFormattingContext`].

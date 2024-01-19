@@ -120,10 +120,8 @@ pub(crate) fn outer_inline(
         None => get_content_size().map(|content_box_size| {
             match box_sizing {
                 // Clamp to 'min-width' and 'max-width', which are sizing the…
-                BoxSizing::ContentBox => {
-                    (clamp(content_box_size.into()) + pb_lengths.into()).into()
-                },
-                BoxSizing::BorderBox => clamp((content_box_size + pb_lengths.into()).into()).into(),
+                BoxSizing::ContentBox => clamp(content_box_size.into()) + pb_lengths.into(),
+                BoxSizing::BorderBox => clamp(content_box_size + pb_lengths.into()),
             }
         }),
     };

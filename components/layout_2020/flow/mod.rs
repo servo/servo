@@ -962,6 +962,7 @@ impl NonReplacedFormattingContext {
                         .into()
                 }),
             };
+
             (clearance, (margin_inline_start, margin_inline_end)) =
                 solve_clearance_and_inline_margins_avoiding_floats(
                     &sequential_layout_state,

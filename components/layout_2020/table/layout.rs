@@ -105,10 +105,13 @@ impl<'a> TableLayout<'a> {
         // > * If the table-root has 'width: auto', the used width is the greater of min(GRIDMAX,
         // >   the table’s containing block width), the used min-width of the table.
         let used_width_of_table = match content_box_size.inline {
-            LengthPercentage(length_percentage) => length_percentage.max(used_min_width_of_table.into()),
+            LengthPercentage(length_percentage) => {
+                length_percentage.max(used_min_width_of_table.into())
+            },
             Auto => grid_max_inline_size
                 .min(containing_block.inline_size.into())
-                .max(used_min_width_of_table).into(),
+                .max(used_min_width_of_table)
+                .into(),
         };
 
         self.assignable_width = used_width_of_table.into();
@@ -185,8 +188,11 @@ impl<'a> TableLayout<'a> {
                 max_content_sizing_guess,
             ) = match inline_size {
                 LengthPercentage(length_percentage) if length_percentage.has_percentage() => {
-                    let percent_guess = min_content_width
-                        .max(length_percentage.resolve(self.assignable_width.into()).into());
+                    let percent_guess = min_content_width.max(
+                        length_percentage
+                            .resolve(self.assignable_width.into())
+                            .into(),
+                    );
                     (percent_guess, percent_guess, percent_guess)
                 },
                 LengthPercentage(_) => (min_content_width, max_content_width, max_content_width),
