@@ -503,11 +503,11 @@ where
             EmbedderEvent::Resize => {
                 return self.compositor.on_resize_window_event();
             },
-            EmbedderEvent::PauseCompositor => {
-                self.compositor.pause();
+            EmbedderEvent::InvalidateNativeSurface => {
+                self.compositor.invalidate_native_surface();
             },
-            EmbedderEvent::ResumeCompositor(native_widget, coords) => {
-                self.compositor.resume(native_widget, coords);
+            EmbedderEvent::ReplaceNativeSurface(native_widget, coords) => {
+                self.compositor.replace_native_surface(native_widget, coords);
                 self.compositor.composite();
             },
             EmbedderEvent::AllowNavigationResponse(pipeline_id, allowed) => {

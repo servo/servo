@@ -106,10 +106,14 @@ pub enum EmbedderEvent {
     ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
-    /// Pause the compositor when underlying native surface is lost
-    PauseCompositor,
-    /// Resume the compositor when underlying native surface is regained
-    ResumeCompositor(*mut c_void, DeviceIntSize)
+    /// Sent on platforms like android where the native widget surface can be
+    /// automatically destroyed by the system, for example when the app
+    /// is sent to background.
+    InvalidateNativeSurface,
+    /// Sent on platforms like android where system recreates a new surface for
+    /// the native widget when it is brough back to foreground. This event
+    /// carries the pointer to the native widget and its new size.
+    ReplaceNativeSurface(*mut c_void, DeviceIntSize)
 }
 
 impl Debug for EmbedderEvent {
@@ -144,8 +148,8 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::ChangeBrowserVisibility(..) => write!(f, "ChangeBrowserVisibility"),
             EmbedderEvent::IMEDismissed => write!(f, "IMEDismissed"),
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
-            EmbedderEvent::PauseCompositor => write!(f, "PauseCompositor"),
-            EmbedderEvent::ResumeCompositor(..) => write!(f, "ResumeCompositor"),
+            EmbedderEvent::InvalidateNativeSurface => write!(f, "InvalidateNativeSurface"),
+            EmbedderEvent::ReplaceNativeSurface(..) => write!(f, "ReplaceNativeSurface"),
         }
     }
 }
