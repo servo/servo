@@ -160,10 +160,10 @@ impl LineUnderConstruction {
         }
     }
 
-    fn line_block_start_considering_placement_among_floats(&self) -> Length {
+    fn line_block_start_considering_placement_among_floats(&self) -> Au {
         match self.placement_among_floats.get() {
-            Some(placement_among_floats) => placement_among_floats.start_corner.block,
-            None => self.start_position.block,
+            Some(placement_among_floats) => placement_among_floats.start_corner.block.into(),
+            None => self.start_position.block.into(),
         }
     }
 
@@ -730,12 +730,12 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             LineBlockSizes::zero()
         };
 
-        let block_end_position = block_start_position + effective_block_advance.resolve();
+        let block_end_position = block_start_position + effective_block_advance.resolve().into();
         if let Some(sequential_layout_state) = self.sequential_layout_state.as_mut() {
             // This amount includes both the block size of the line and any extra space
             // added to move the line down in order to avoid overlapping floats.
-            let increment = block_end_position - self.current_line.start_position.block;
-            sequential_layout_state.advance_block_position(increment);
+            let increment = block_end_position - self.current_line.start_position.block.into();
+            sequential_layout_state.advance_block_position(increment.into());
         }
 
         let mut line_items = std::mem::take(&mut self.current_line.line_items);
@@ -746,7 +746,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // Set up the new line now that we no longer need the old one.
         self.current_line = LineUnderConstruction::new(LogicalVec2 {
             inline: Length::zero(),
-            block: block_end_position,
+            block: block_end_position.into(),
         });
 
         let baseline_offset = effective_block_advance.find_baseline_offset();
@@ -759,7 +759,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             positioning_context: &mut self.positioning_context,
             justification_adjustment,
             line_metrics: &LineMetrics {
-                block_offset: block_start_position,
+                block_offset: block_start_position.into(),
                 block_size: effective_block_advance.resolve(),
                 baseline_block_offset: baseline_offset,
             },
@@ -782,14 +782,14 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             return;
         }
 
-        self.last_baseline_offset = Some(baseline_offset + block_start_position);
+        self.last_baseline_offset = Some(baseline_offset + block_start_position.into());
         let line_rect = LogicalRect {
             // The inline part of this start offset was taken into account when determining
             // the inline start of the line in `calculate_inline_start_for_current_line` so
             // we do not need to include it in the `start_corner` of the line's main Fragment.
             start_corner: LogicalVec2 {
                 inline: Length::zero(),
-                block: block_start_position,
+                block: block_start_position.into(),
             },
             size: LogicalVec2 {
                 inline: self.containing_block.inline_size,
@@ -1000,7 +1000,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .floats
                 .containing_block_info
                 .inline_start,
-            block: sequential_layout_state.current_containing_block_offset(),
+            block: sequential_layout_state
+                .current_containing_block_offset()
+                .into(),
         };
 
         let ceiling = self
@@ -1008,14 +1010,17 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             .line_block_start_considering_placement_among_floats();
         let mut placement = PlacementAmongFloats::new(
             &sequential_layout_state.floats,
-            ceiling + ifc_offset_in_float_container.block,
-            potential_line_size.clone(),
+            ceiling + ifc_offset_in_float_container.block.into(),
+            LogicalVec2 {
+                inline: potential_line_size.inline.into(),
+                block: potential_line_size.block.into(),
+            },
             &PaddingBorderMargin::zero(),
         );
 
         let mut placement_rect = placement.place();
         placement_rect.start_corner = &placement_rect.start_corner - &ifc_offset_in_float_container;
-        placement_rect
+        placement_rect.into()
     }
 
     /// Returns true if a new potential line size for the current line would require a line
@@ -1083,6 +1088,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             if new_placement.start_corner.block !=
                 self.current_line
                     .line_block_start_considering_placement_among_floats()
+                    .into()
             {
                 return true;
             } else {
