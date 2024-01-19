@@ -12,7 +12,6 @@ import glob
 import json
 import os
 import os.path as path
-import platform
 import re
 import subprocess
 import sys
@@ -30,7 +29,7 @@ from mach.decorators import (
 import servo.platform
 
 from servo.command_base import CommandBase, cd, check_call
-from servo.util import delete, download_bytes, download_file, extract, check_hash
+from servo.util import delete, download_bytes
 
 
 @CommandProvider

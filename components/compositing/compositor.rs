@@ -518,10 +518,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     pub fn replace_native_surface(&mut self, native_widget: *mut c_void, coords: DeviceIntSize) {
         debug!("Replacing native surface in compositor: {native_widget:?}");
         let connection = self.webrender_surfman.connection();
-        let native_widget = unsafe {
-            connection.create_native_widget_from_ptr(native_widget, coords.to_untyped())
-        };
-        if let Err(e) = self.webrender_surfman.bind_native_surface_to_context(native_widget) {
+        let native_widget =
+            unsafe { connection.create_native_widget_from_ptr(native_widget, coords.to_untyped()) };
+        if let Err(e) = self
+            .webrender_surfman
+            .bind_native_surface_to_context(native_widget)
+        {
             warn!("Binding native surface to context failed ({:?})", e);
         }
     }

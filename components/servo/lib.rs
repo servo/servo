@@ -507,7 +507,8 @@ where
                 self.compositor.invalidate_native_surface();
             },
             EmbedderEvent::ReplaceNativeSurface(native_widget, coords) => {
-                self.compositor.replace_native_surface(native_widget, coords);
+                self.compositor
+                    .replace_native_surface(native_widget, coords);
                 self.compositor.composite();
             },
             EmbedderEvent::AllowNavigationResponse(pipeline_id, allowed) => {

@@ -113,7 +113,7 @@ pub enum EmbedderEvent {
     /// Sent on platforms like android where system recreates a new surface for
     /// the native widget when it is brough back to foreground. This event
     /// carries the pointer to the native widget and its new size.
-    ReplaceNativeSurface(*mut c_void, DeviceIntSize)
+    ReplaceNativeSurface(*mut c_void, DeviceIntSize),
 }
 
 impl Debug for EmbedderEvent {

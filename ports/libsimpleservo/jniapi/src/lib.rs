@@ -8,16 +8,15 @@ use std::os::raw::{c_char, c_int, c_void};
 use std::sync::Arc;
 use std::thread;
 
-use android_logger::{self, FilterBuilder, Config};
+use android_logger::{self, Config, FilterBuilder};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::{debug, error, info, warn};
 use simpleservo::{
-    self, gl_glue, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait,
-    InitOptions, InputMethodType, MediaSessionPlaybackState, PromptResult,
-    ServoGlue, SERVO
+    self, gl_glue, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait, InitOptions,
+    InputMethodType, MediaSessionPlaybackState, PromptResult, ServoGlue, SERVO,
 };
 
 struct HostCallbacks {
@@ -26,10 +25,7 @@ struct HostCallbacks {
 }
 
 extern "C" {
-    fn ANativeWindow_fromSurface(
-        env: *mut jni::sys::JNIEnv,
-        surface: JObject
-    ) -> *mut c_void;
+    fn ANativeWindow_fromSurface(env: *mut jni::sys::JNIEnv, surface: JObject) -> *mut c_void;
 }
 
 #[no_mangle]
@@ -68,7 +64,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     _activity: JObject,
     opts: JObject,
     callbacks_obj: JObject,
-    surface: JObject
+    surface: JObject,
 ) {
     let (mut opts, log, log_str, _gst_debug_str) = match get_options(&env, opts, surface) {
         Ok((opts, log, log_str, gst_debug_str)) => (opts, log, log_str, gst_debug_str),
@@ -106,9 +102,9 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
 
         android_logger::init_once(
             Config::default()
-            .with_max_level(log::LevelFilter::Debug)
-            .with_filter(filter_builder.build())
-            .with_tag("simpleservo")
+                .with_max_level(log::LevelFilter::Debug)
+                .with_filter(filter_builder.build())
+                .with_tag("simpleservo"),
         )
     }
 
@@ -350,12 +346,9 @@ pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jflo
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_pauseCompositor(
-    env: JNIEnv,
-    _: JClass
-) {
+pub fn Java_org_mozilla_servoview_JNIServo_pauseCompositor(env: JNIEnv, _: JClass) {
     debug!("pauseCompositor");
-    call(&env, |s| { s.pause_compositor() });
+    call(&env, |s| s.pause_compositor());
 }
 
 #[no_mangle]
@@ -363,17 +356,13 @@ pub fn Java_org_mozilla_servoview_JNIServo_resumeCompositor(
     env: JNIEnv,
     _: JClass,
     surface: JObject,
-    coordinates: JObject
+    coordinates: JObject,
 ) {
     debug!("resumeCompositor");
-    let widget = unsafe {
-        ANativeWindow_fromSurface(env.get_native_interface(), surface)
-    };
+    let widget = unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface) };
     let coords = jni_coords_to_rust_coords(&env, coordinates);
     match coords {
-        Ok(coords) => call(
-            &env, |s| { s.resume_compositor(widget, coords.clone()) }
-        ),
+        Ok(coords) => call(&env, |s| s.resume_compositor(widget, coords.clone())),
         Err(error) => throw(&env, &error),
     }
 }
@@ -648,11 +637,9 @@ impl HostTrait for HostCallbacks {
         }
     }
 
-    fn show_context_menu(&self, _title: Option<String>, _items: Vec<String>) {
-    }
+    fn show_context_menu(&self, _title: Option<String>, _items: Vec<String>) {}
 
-    fn on_panic(&self, _reason: String, _backtrace: Option<String>) {
-    }
+    fn on_panic(&self, _reason: String, _backtrace: Option<String>) {}
 }
 
 extern "C" {
@@ -828,7 +815,7 @@ fn get_string(env: &JNIEnv, obj: JObject, field: &str) -> Result<Option<String>,
 fn get_options(
     env: &JNIEnv,
     opts: JObject,
-    surface: JObject
+    surface: JObject,
 ) -> Result<(InitOptions, bool, Option<String>, Option<String>), String> {
     let args = get_string(env, opts, "args")?;
     let url = get_string(env, opts, "url")?;
@@ -856,9 +843,7 @@ fn get_options(
         None => None,
     };
 
-    let native_window = unsafe {
-        ANativeWindow_fromSurface(env.get_native_interface(), surface)
-    };
+    let native_window = unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface) };
     let opts = InitOptions {
         args: args.unwrap_or(vec![]),
         coordinates,

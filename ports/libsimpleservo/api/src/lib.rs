@@ -14,11 +14,11 @@ use std::rc::Rc;
 use getopts::Options;
 use ipc_channel::ipc::IpcSender;
 use log::{debug, info, warn};
-use servo::compositing::CompositeTarget;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, MouseWindowEvent,
     WindowMethods,
 };
+use servo::compositing::CompositeTarget;
 use servo::config::prefs::pref_map;
 pub use servo::config::prefs::{add_user_prefs, PrefValue};
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
@@ -299,7 +299,12 @@ pub fn init(
         gl: gl.clone(),
     });
 
-    let servo = Servo::new(embedder_callbacks, window_callbacks.clone(), None, CompositeTarget::Window);
+    let servo = Servo::new(
+        embedder_callbacks,
+        window_callbacks.clone(),
+        None,
+        CompositeTarget::Window,
+    );
 
     SERVO.with(|s| {
         let mut servo_glue = ServoGlue {
@@ -574,11 +579,18 @@ impl ServoGlue {
         self.process_event(EmbedderEvent::InvalidateNativeSurface)
     }
 
-    pub fn resume_compositor(&mut self, native_surface: *mut c_void, coords: Coordinates) -> Result<(), &'static str> {
+    pub fn resume_compositor(
+        &mut self,
+        native_surface: *mut c_void,
+        coords: Coordinates,
+    ) -> Result<(), &'static str> {
         if native_surface.is_null() {
             panic!("null passed for native_surface");
         }
-        self.process_event(EmbedderEvent::ReplaceNativeSurface(native_surface, coords.framebuffer))
+        self.process_event(EmbedderEvent::ReplaceNativeSurface(
+            native_surface,
+            coords.framebuffer,
+        ))
     }
 
     pub fn media_session_action(

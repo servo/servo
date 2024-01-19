@@ -568,9 +568,7 @@ class CommandBase(object):
 
         android_platform = self.config["android"]["platform"]
         android_toolchain_name = self.config["android"]["toolchain_name"]
-        android_toolchain_prefix = self.config["android"]["toolchain_prefix"]
         android_lib = self.config["android"]["lib"]
-        android_arch = self.config["android"]["arch"]
 
         android_api = android_platform.replace('android-', '')
 
@@ -606,7 +604,9 @@ class CommandBase(object):
         llvm_toolchain = path.join(env['ANDROID_NDK_ROOT'], "toolchains", "llvm", "prebuilt", host)
         env['PATH'] = (path.join(llvm_toolchain, "bin") + ':' + env['PATH'])
 
-        to_ndk_bin = lambda prog: path.join(llvm_toolchain, "bin", prog)
+        def to_ndk_bin(prog):
+            return path.join(llvm_toolchain, "bin", prog)
+
         env["RUST_TARGET"] = self.cross_compile_target
         env['HOST_CC'] = host_cc
         env['HOST_CXX'] = host_cxx
