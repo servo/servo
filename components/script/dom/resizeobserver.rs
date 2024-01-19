@@ -71,37 +71,56 @@ impl ResizeObserver {
 
 impl ResizeObserverMethods for ResizeObserver {
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observe
-    fn Observe(&self, target: &Element, options: &ResizeObserverOptions) {}
+    fn Observe(&self, target: &Element, options: &ResizeObserverOptions) {
+        // Step 1.
+        let is_present = self
+            .observation_targets
+            .borrow()
+            .iter()
+            .any(|obs| &*obs.target == target);
+        if is_present {
+            return self.Unobserve(target);
+        }
+
+        // Step 2 and 3.
+        let resize_observation = ResizeObservation::new(target, options.box_);
+
+        // Step 4.
+        self.observation_targets
+            .borrow_mut()
+            .push(resize_observation);
+    }
 
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-unobserve
-    fn Unobserve(&self, target: &Element) {}
+    fn Unobserve(&self, target: &Element) {
+        self.observation_targets
+            .borrow_mut()
+            .retain_mut(|obs| !(&*obs.target == target));
+    }
 
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-disconnect
-    fn Disconnect(&self) {}
+    fn Disconnect(&self) {
+        self.observation_targets.borrow_mut().clear();
+        self.active_targets.borrow_mut().clear();
+    }
 }
 
 /// https://drafts.csswg.org/resize-observer/#resizeobservation
-/// Note: internal only and not available to script.
-#[dom_struct]
+#[derive(JSTraceable, MallocSizeOf)]
 struct ResizeObservation {
-    reflector_: Reflector,
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-target
-    target: Dom<Element>,
+    target: DomRoot<Element>,
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-observedbox
     observed_box: ResizeObserverBoxOptions,
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-lastreportedsizes
-    last_reported_sizes: Vec<ResizeObserverSize>,
+    last_reported_sizes: Vec<DomRoot<ResizeObserverSize>>,
 }
 
 impl ResizeObservation {
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-resizeobservation
-    pub fn new_inherited(
-        target: &Element,
-        observed_box: ResizeObserverBoxOptions,
-    ) -> ResizeObservation {
+    pub fn new(target: &Element, observed_box: ResizeObserverBoxOptions) -> ResizeObservation {
         ResizeObservation {
-            reflector_: Reflector::new(),
-            target: Dom::from_ref(target),
+            target: DomRoot::from_ref(target),
             observed_box,
             last_reported_sizes: Default::default(),
         }
