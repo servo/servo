@@ -53,11 +53,26 @@ jobs:
         run: python3 -m pip install --upgrade pip virtualenv
       - name: Bootstrap dependencies
         run: sudo apt update && python3 ./mach bootstrap
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'tools platform-tools platforms;android-33'
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r25c
       - name: Build (arch ${{ matrix.arch }} profile ${{ inputs.profile }})
+        env:
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: |
-          export JAVA_HOME="${JAVA_HOME_17_X64}"
           python3 ./mach build --android --target ${{ matrix.arch }} --${{ inputs.profile }}
-      # TODO: fix test-android-startup
+      # TODO: This is disabled since APK crashes upon loading.
       # - name: Script tests
       #   run: ./mach test-android-startup
       - name: Rename build timing
