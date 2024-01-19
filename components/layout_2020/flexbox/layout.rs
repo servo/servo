@@ -419,29 +419,29 @@ impl FlexContainer {
 impl<'a> FlexItem<'a> {
     fn new(flex_context: &FlexContext, box_: &'a mut IndependentFormattingContext) -> Self {
         let containing_block = flex_context.containing_block;
-        let box_style = box_.style();
 
         // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
         assert_eq!(
-            containing_block.style.writing_mode, box_style.writing_mode,
+            containing_block.style.writing_mode,
+            box_.style().writing_mode,
             "Mixed writing modes are not supported yet"
         );
 
         let container_is_horizontal = containing_block.style.writing_mode.is_horizontal();
-        let item_is_horizontal = box_style.writing_mode.is_horizontal();
+        let item_is_horizontal = box_.style().writing_mode.is_horizontal();
         let item_is_orthogonal = item_is_horizontal != container_is_horizontal;
         let container_is_row = flex_context.flex_axis == FlexAxis::Row;
         let cross_axis_is_item_block_axis = container_is_row ^ item_is_orthogonal;
 
-        let pbm = box_style.padding_border_margin(containing_block);
-        let content_box_size = box_style.content_box_size(containing_block, &pbm);
-        let max_size = box_style.content_max_box_size(containing_block, &pbm);
-        let min_size = box_style.content_min_box_size(containing_block, &pbm);
+        let pbm = box_.style().padding_border_margin(containing_block);
+        let content_box_size = box_.style().content_box_size(containing_block, &pbm);
+        let max_size = box_.style().content_max_box_size(containing_block, &pbm);
+        let min_size = box_.style().content_min_box_size(containing_block, &pbm);
 
         // https://drafts.csswg.org/css-flexbox/#min-size-auto
         let automatic_min_size = || {
             // FIXME(stshine): Consider more situations when auto min size is not needed.
-            if box_style.get_box().overflow_x.is_scrollable() {
+            if box_.style().get_box().overflow_x.is_scrollable() {
                 return Length::zero();
             }
 
@@ -453,7 +453,7 @@ impl<'a> FlexItem<'a> {
                     IndependentFormattingContext::Replaced(ref bfc) => {
                         match (
                             bfc.contents
-                                .inline_size_over_block_size_intrinsic_ratio(box_style),
+                                .inline_size_over_block_size_intrinsic_ratio(box_.style()),
                             content_box_size.block,
                         ) {
                             (Some(ratio), LengthOrAuto::LengthPercentage(block_size)) => {
@@ -476,7 +476,7 @@ impl<'a> FlexItem<'a> {
                     IndependentFormattingContext::Replaced(ref replaced) => {
                         if let Some(ratio) = replaced
                             .contents
-                            .inline_size_over_block_size_intrinsic_ratio(box_style)
+                            .inline_size_over_block_size_intrinsic_ratio(box_.style())
                         {
                             inline_content_size.clamp_between_extremums(
                                 min_size.block.auto_is(|| Length::zero()) * ratio,
@@ -520,7 +520,7 @@ impl<'a> FlexItem<'a> {
         let padding_border = padding.sum_by_axis() + border.sum_by_axis();
         let pbm_auto_is_zero = padding_border + margin_auto_is_zero.sum_by_axis();
 
-        let align_self = flex_context.align_for(&box_style.clone_align_self());
+        let align_self = flex_context.align_for(&box_.style().clone_align_self());
 
         let flex_base_size = flex_base_size(
             flex_context,

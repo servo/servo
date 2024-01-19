@@ -394,6 +394,23 @@ impl<T> LogicalRect<T> {
         }
     }
 
+    pub fn deflate(&self, sides: &LogicalSides<T>) -> Self
+    where
+        T: Add<Output = T> + Copy,
+        T: Sub<Output = T> + Copy,
+    {
+        LogicalRect {
+            start_corner: LogicalVec2 {
+                inline: self.start_corner.inline + sides.inline_start,
+                block: self.start_corner.block + sides.block_start,
+            },
+            size: LogicalVec2 {
+                inline: self.size.inline - sides.inline_sum(),
+                block: self.size.block - sides.block_sum(),
+            },
+        }
+    }
+
     pub fn to_physical(
         &self,
         mode: WritingMode,

@@ -155,7 +155,7 @@ impl IndependentFormattingContext {
         }
     }
 
-    pub fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
+    pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
         match self {
             Self::NonReplaced(inner) => inner
                 .contents
@@ -173,7 +173,7 @@ impl IndependentFormattingContext {
             Self::NonReplaced(non_replaced) => {
                 let style = &non_replaced.style;
                 let content_sizes = &mut non_replaced.content_sizes;
-                let contents = &non_replaced.contents;
+                let contents = &mut non_replaced.contents;
                 sizing::outer_inline(&style, containing_block_writing_mode, || {
                     content_sizes
                         .get_or_insert_with(|| {
@@ -213,7 +213,7 @@ impl NonReplacedFormattingContext {
 
     pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
         let writing_mode = self.style.writing_mode;
-        let contents = &self.contents;
+        let contents = &mut self.contents;
         self.content_sizes
             .get_or_insert_with(|| contents.inline_content_sizes(layout_context, writing_mode))
             .clone()
@@ -222,7 +222,7 @@ impl NonReplacedFormattingContext {
 
 impl NonReplacedFormattingContextContents {
     pub fn inline_content_sizes(
-        &self,
+        &mut self,
         layout_context: &LayoutContext,
         writing_mode: WritingMode,
     ) -> ContentSizes {
@@ -231,7 +231,7 @@ impl NonReplacedFormattingContextContents {
                 .contents
                 .inline_content_sizes(layout_context, writing_mode),
             Self::Flex(inner) => inner.inline_content_sizes(),
-            Self::Table(table) => table.inline_content_sizes(),
+            Self::Table(table) => table.inline_content_sizes(layout_context, writing_mode),
         }
     }
 }
