@@ -7,6 +7,7 @@ idl_test(
   ['dom', 'html'],
   idl_array => {
     idl_array.add_objects({
+      MediaStreamTrackProcessor: ['new MediaStreamTrackProcessor({ track: new VideoTrackGenerator() })'],
       VideoTrackGenerator: ['new VideoTrackGenerator()'],
     });
   }

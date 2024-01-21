@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebAuthn test subframe</title>
+<script src=../helpers.js></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    "use strict";
+
+    function reportResult(outcome, errorObj) {
+        window.top.postMessage({"type": "result", "result": outcome, "error": errorObj}, "*");
+    }
+
+    async function createCredentialAndReportResult(addUserActivation) {
+        if (addUserActivation) {
+            await test_driver.bless("create credential");
+        }
+
+        try {
+            await createCredential();
+            reportResult("success");
+        } catch (e) {
+            reportResult("failure", e);
+        }
+    }
+
+    window.addEventListener("message", e => {
+        if (e.data.type == "create-credential") {
+            createCredentialAndReportResult(e.data.addUserActivation);
+            return;
+        }
+        throw new Error(`Unrecognized message, e.data.type: ${e.data.type}`);
+    });
+
+    test_driver.set_test_context(window.top);
+    window.top.postMessage({"type": "subframe-loaded"}, "*");
+</script>

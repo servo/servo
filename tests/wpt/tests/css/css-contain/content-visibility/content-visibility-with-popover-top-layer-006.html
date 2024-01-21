@@ -7,6 +7,7 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
 
 <style>
 #inner {
@@ -23,8 +24,10 @@
 </div>
 
 <script>
-test(() => {
+promise_test(async () => {
     popover.showPopover();
+    // It takes at least one frame to determine the proximity to the viewport.
+    await waitForAtLeastOneFrame();
 
     // Even though the element with `content-visibility: auto` has an ancestor
     // in the top layer, this element is not in the top layer list (although

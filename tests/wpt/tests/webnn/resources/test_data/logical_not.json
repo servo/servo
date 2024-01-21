@@ -21,6 +21,73 @@
       }
     },
     {
+      "name": "logicalNot uint8 1D constant tensor",
+      "inputs": {
+        "x": {
+          "shape": [24],
+          "data": [
+            204,
+            130,
+            90,
+            0,
+            147,
+            42,
+            10,
+            18,
+            13,
+            235,
+            0,
+            233,
+            53,
+            83,
+            9,
+            254,
+            69,
+            56,
+            219,
+            109,
+            171,
+            0,
+            228,
+            135
+          ],
+          "type": "uint8",
+          "constant": true
+        }
+      },
+      "expected": {
+        "name": "output",
+        "shape": [24],
+        "data": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "type": "uint8"
+      }
+    },
+    {
       "name": "logicalNot uint8 1D tensor",
       "inputs": {
         "x": {

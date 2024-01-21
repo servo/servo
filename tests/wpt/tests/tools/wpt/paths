@@ -5,3 +5,4 @@ tools/lint/
 tools/manifest/
 tools/serve/
 tools/wpt/
+tools/web_features/

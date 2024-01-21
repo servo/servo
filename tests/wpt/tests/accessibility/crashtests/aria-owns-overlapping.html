@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!-- Test that multiple overlapping aria-owns relation do not crash -->
+
+<html class="test-wait">
+<main id='great-grandparent'>
+  <fieldset id="grandparent">
+    <p id='parent'>
+      <i id='child'></i>
+    </p>
+  </fieldset>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById('child').setAttribute('aria-owns','grandparent');
+  document.getElementById('great-grandparent').setAttribute('aria-owns','parent');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.style.display="none";
+      document.documentElement.className = '';
+    });
+  });
+});
+</script>
+</html>

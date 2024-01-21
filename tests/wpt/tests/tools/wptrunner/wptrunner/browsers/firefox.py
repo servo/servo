@@ -726,6 +726,9 @@ class ProfileCreator:
         if self.test_type == "print-reftest":
             profile.set_preferences({"print.always_print_silent": True})
 
+        if self.test_type == "wdspec":
+            profile.set_preferences({"remote.prefs.recommended": True})
+
         # Bug 1262954: winxp + e10s, disable hwaccel
         if (self.e10s and platform.system() in ("Windows", "Microsoft") and
             "5.1" in platform.version()):

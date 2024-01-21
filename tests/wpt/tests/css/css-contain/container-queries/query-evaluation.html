@@ -72,10 +72,10 @@
   test_query('((height) or (width) or (width))', true);
   test_query('((width) or (height) or (width))', true);
   test_query('((width) or (width) or (height))', true);
-  test_query('((unknown) or (width) or (width))', true);
-  test_query('((width) or (unknown) or (width))', true);
-  test_query('((width) or (width) or (unknown))', true);
-  test_query('((unknown) or (height) or (width))', true);
+  test_query('((unknown) or (width) or (width))', false);
+  test_query('((width) or (unknown) or (width))', false);
+  test_query('((width) or (width) or (unknown))', false);
+  test_query('((unknown) or (height) or (width))', false);
 
   // Combinations, <container-query>:
   test_query('(not ((width) and (width)))', false);

@@ -288,8 +288,8 @@ def install(logger, dest=None, reinstall=False, prompt=True):
 
         if new_install:
             packages = ["platform-tools",
-                        "build-tools;33.0.1",
-                        "platforms;android-33",
+                        "build-tools;34.0.0",
+                        "platforms;android-34",
                         "emulator"]
 
             install_android_packages(logger, paths, packages, prompt=prompt)

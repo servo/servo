@@ -52,7 +52,11 @@ dictionary FenceEvent {
   DOMString eventType;
   DOMString eventData;
   sequence<FenceReportingDestination> destination;
+
+  // When setting event data to be used later in an automatic beacon, the
+  // following properties are used:
   boolean once = false;
+  boolean crossOriginExposed = false;
 
   // When reporting to a custom destination URL (with substitution of macros defined by
   // the Protected Audience buyer), the following property is used:

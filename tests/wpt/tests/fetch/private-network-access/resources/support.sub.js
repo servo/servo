@@ -663,51 +663,6 @@ const iframeGrandparentTest = ({
   assert_equals(result, expected);
 }, name);
 
-async function locationTest(t, { source, target, expected }) {
-  const targetUuid = token();
-  const targetUrl = preflightUrl(target);
-  targetUrl.searchParams.set("file", "executor.html");
-  targetUrl.searchParams.set("executor-uuid", targetUuid);
-
-  const sourceUrl = resolveUrl(
-      'resources/update-location.html', sourceResolveOptions(source));
-  sourceUrl.searchParams.set("url", targetUrl.href);
-  window.open(sourceUrl);
-
-  const targetContext = new RemoteContext(targetUuid);
-  const result = await Promise.race([
-    targetContext.execute_script(() => 'success', []),
-    new Promise((resolve) => {
-      t.step_timeout(() => resolve('timeout'), 10000 /* ms */);
-    }),
-  ]);
-  assert_equals(result, expected);
-}
-
-async function topLocationTest(t, { source, target, expected }) {
-  const targetUuid = token();
-  const targetUrl = preflightUrl(target);
-  targetUrl.searchParams.set("file", "executor.html");
-  targetUrl.searchParams.set("executor-uuid", targetUuid);
-
-  const sourceUrl = resolveUrl(
-      'resources/update-location.html', sourceResolveOptions(source));
-  sourceUrl.searchParams.set("url", targetUrl.href);
-
-  const topUrl = resolveUrl('resources/iframer.html');
-  topUrl.searchParams.set("url", sourceUrl);
-  window.open(topUrl);
-
-  const targetContext = new RemoteContext(targetUuid);
-  const result = await Promise.race([
-    targetContext.execute_script(() => 'success', []),
-    new Promise((resolve) => {
-      t.step_timeout(() => resolve('timeout'), 10000 /* ms */);
-    }),
-  ]);
-  assert_equals(result, expected);
-}
-
 const WebsocketTestResult = {
   SUCCESS: "open",
 

@@ -10,7 +10,9 @@
 // META: variant=?21-25
 // META: variant=?26-30
 // META: variant=?31-35
-// META: variant=?36-last
+// META: variant=?36-40
+// META: variant=?41-45
+// META: variant=?46-last
 
 "use strict;"
 
@@ -18,10 +20,10 @@
 // origin, one frame) which have no winning bid, either due to errors or due to
 // there being no bids, except where tests fit better with another set of tests.
 
-// Errors common to bidding and decision logic scripts. These atrings will be
-// appended to script URLs to make the python scripts that generate bidding
-// logic and decision logic scripts with errors.
-const COMMON_SCRIPT_ERRORS = [
+// Errors common to Protected Audiences network requests. These strings will be
+// appended to URLs to make the Python scripts that generate responses respond
+// with errors.
+const COMMON_NETWORK_ERRORS = [
   'error=close-connection',
   'error=http-error',
   'error=no-content-type',
@@ -33,7 +35,7 @@ const COMMON_SCRIPT_ERRORS = [
 ];
 
 const BIDDING_LOGIC_SCRIPT_ERRORS = [
-  ...COMMON_SCRIPT_ERRORS,
+  ...COMMON_NETWORK_ERRORS,
   'error=no-generateBid',
   'generateBid=throw 1;',
   'generateBid=This does not compile',
@@ -48,11 +50,11 @@ const BIDDING_LOGIC_SCRIPT_ERRORS = [
   'generateBid=return {render: interestGroup.ads[0].renderURL};',
   // These are not bidding rather than errors.
   'generateBid=return {bid:0, render: interestGroup.ads[0].renderURL};',
-  'generateBid=return {bid:-1, render: interestGroup.ads[0].renderURL};',
+  'generateBid=return {bid:-1, render: interestGroup.ads[0].renderURL};'
 ];
 
 const DECISION_LOGIC_SCRIPT_ERRORS = [
-  ...COMMON_SCRIPT_ERRORS,
+  ...COMMON_NETWORK_ERRORS,
   'error=no-scoreAd',
   'scoreAd=throw 1;',
   'scoreAd=This does not compile',
@@ -65,7 +67,12 @@ const DECISION_LOGIC_SCRIPT_ERRORS = [
   'scoreAd=return 0;',
   'scoreAd=return -1;',
   'scoreAd=return {desirability: 0};',
-  'scoreAd=return {desirability: -1};',
+  'scoreAd=return {desirability: -1};'
+];
+
+const BIDDING_WASM_HELPER_ERRORS = [
+  ...COMMON_NETWORK_ERRORS,
+  'error=not-wasm'
 ];
 
 for (error of BIDDING_LOGIC_SCRIPT_ERRORS) {
@@ -86,4 +93,14 @@ for (error of DECISION_LOGIC_SCRIPT_ERRORS) {
       test, { auctionConfigOverrides: { decisionLogicURL: decisionLogicURL } }
     );
   }).bind(undefined, error), `Decision logic script: ${error}`);
+}
+
+for (error of BIDDING_WASM_HELPER_ERRORS) {
+  subsetTest(promise_test, (async (error, test) => {
+    let biddingWasmHelperURL =
+        `${BASE_URL}resources/wasm-helper.py?${error}`;
+    await joinGroupAndRunBasicFledgeTestExpectingNoWinner(
+      test, { interestGroupOverrides: { biddingWasmHelperURL: biddingWasmHelperURL } }
+    );
+  }).bind(undefined, error), `Bidding WASM helper: ${error}`);
 }

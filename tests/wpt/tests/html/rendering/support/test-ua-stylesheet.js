@@ -26,6 +26,10 @@ function runUAStyleTests(props) {
       ) {
       continue;
      }
+     if (prop === 'overflow' && testEl.localName === 'select') {
+      // TODO: https://github.com/whatwg/html/issues/10031
+      continue;
+     }
      test(() => {
        assert_equals(testStyle.getPropertyValue(prop), refStyle.getPropertyValue(prop));
      }, `${testNameContext(testEl)} - ${prop}`);

@@ -7,6 +7,7 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
 
 <style>
 #inner {
@@ -23,9 +24,10 @@
 </dialog>
 
 <script>
-test(() => {
+promise_test(async () => {
     dialog.show();
-
+    // It takes at least one frame to determine the proximity to the viewport.
+    await waitForAtLeastOneFrame();
     assert_equals(inner.getBoundingClientRect().height, 100);
 
     dialog.close();
@@ -35,6 +37,9 @@ test(() => {
     // in the top layer, this element is not in the top layer list (although
     // it's in the top layer stacking context). This means it should not be
     // relevant to the user, because it is nevertheless not onscreen.
+    // It takes at least one frame to determine the proximity to the viewport.
+    await waitForAtLeastOneFrame();
     assert_equals(inner.getBoundingClientRect().height, 100);
+    dialog.close();
 });
 </script>

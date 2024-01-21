@@ -1,6 +1,47 @@
 {
   "tests": [
     {
+      "name": "reduceLogSumExp float32 1D constant tensor all positive default options", // default options: {axes: null, keepDimensions: false}
+      "inputs": {
+        "input": {
+          "shape": [24],
+          "data": [
+            0.7974132976078829,
+            5.046889970229296,
+            8.520371090961714,
+            1.4063042363728728,
+            0.11882661415275164,
+            0.285854490277071,
+            1.9325640291685864,
+            3.7939957856803797,
+            2.6040233063490925,
+            4.937509735746763,
+            4.571482286709769,
+            0.7865120436262685,
+            0.21018670996660216,
+            9.063042370844672,
+            4.099809553408898,
+            4.596248815627706,
+            0.2549232349678032,
+            1.1594801326588255,
+            6.802876838759606,
+            5.23432518570901,
+            8.914905562420849,
+            9.166799240859705,
+            5.71750713886038,
+            0.3255050658627967
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "expected": {
+        "name": "output",
+        "data": 10.39477825164795,
+        "type": "float32"
+      }
+    },
+    {
       "name": "reduceLogSumExp float32 1D tensor all positive default options", // default options: {axes: null, keepDimensions: false}
       "inputs": {
         "input": {

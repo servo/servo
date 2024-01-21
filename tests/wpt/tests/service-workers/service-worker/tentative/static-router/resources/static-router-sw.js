@@ -5,6 +5,9 @@ import {routerRules} from './router-rules.js';
 var requests = [];
 
 self.addEventListener('install', async e => {
+  e.waitUntil(caches.open('v1').then(
+      cache => {cache.put('cache.txt', new Response('From cache'))}));
+
   const params = new URLSearchParams(location.search);
   const key = params.get('key');
   await e.addRoutes(routerRules[key]);

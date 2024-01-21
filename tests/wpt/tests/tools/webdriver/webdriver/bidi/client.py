@@ -94,6 +94,7 @@ class BidiSession:
         self.browsing_context = modules.BrowsingContext(self)
         self.input = modules.Input(self)
         self.network = modules.Network(self)
+        self.permissions = modules.Permissions(self)
         self.script = modules.Script(self)
         self.session = modules.Session(self)
         self.storage = modules.Storage(self)

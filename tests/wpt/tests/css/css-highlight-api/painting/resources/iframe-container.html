@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<style>
+  ::highlight(highlight1) {
+    text-underline-offset: 1cqw;
+    text-decoration-line: underline;
+    text-decoration-color: green;
+    text-decoration-thickness: 2cqh;
+  }
+</style>
+<div id="h1">With container size</div>
+<script>
+  let r1 = new Range();
+  r1.setStart(h1, 0);
+  r1.setEnd(h1, 1);
+  CSS.highlights.set("highlight1", new Highlight(r1));
+</script>

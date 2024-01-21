@@ -71,7 +71,7 @@ function testPreservesPitch(preservesPitch, playbackRate, expectedPitch, descrip
         // Wait until we have played some audio. Otherwise, the detector
         // might return a pitch of 0Hz.
         audio.play();
-        await waitUntil(0.25);
+        await waitUntil(0.5);
 
         var pitch = detector.detect();
 
@@ -82,7 +82,10 @@ function testPreservesPitch(preservesPitch, playbackRate, expectedPitch, descrip
         assert_less_than(pitch.margin, 25,
             "Test error: the margin should be reasonably small.")
 
-        assert_approx_equals(pitch.value, expectedPitch, pitch.margin,
+        // Allow for a 15% margin of error in the pitch detector, to reduce test
+        // flakiness. Since our tests speed up and slow down by a factor of 2,
+        // this should be plenty of leeway, without causing false negatives.
+        assert_approx_equals(pitch.value, expectedPitch, expectedPitch*0.15,
             "The actual pitch should be close to the expected pitch.");
 
     }, description);

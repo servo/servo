@@ -156,8 +156,10 @@ class MultipleTestharness(Rule):
     name = "MULTIPLE-TESTHARNESS"
     description = "More than one `<script src='/resources/testharness.js'>`"
     to_fix = """
-        ensure each test has only one `<script
-        src='/resources/testharnessreport.js'>` instance
+        Ensure each test has only one `<script
+        src='/resources/testharness.js'>` instance.
+        For `.js` tests, remove `// META: script=/resources/testharness.js`,
+        which wptserve already adds to the boilerplate markup.
     """
 
 
@@ -181,6 +183,12 @@ class MissingTestharnessReport(Rule):
 class MultipleTestharnessReport(Rule):
     name = "MULTIPLE-TESTHARNESSREPORT"
     description = "More than one `<script src='/resources/testharnessreport.js'>`"
+    to_fix = """
+        Ensure each test has only one `<script
+        src='/resources/testharnessreport.js'>` instance.
+        For `.js` tests, remove `// META: script=/resources/testharnessreport.js`,
+        which wptserve already adds to the boilerplate markup.
+    """
 
 
 class VariantMissing(Rule):

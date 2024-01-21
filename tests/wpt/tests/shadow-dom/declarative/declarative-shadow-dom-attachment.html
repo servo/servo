@@ -42,9 +42,13 @@ function testElementType(allowed, nochildren, elementType, mode, delegatesFocus)
         originalShadowRoot = element.shadowRoot;
       }
 
-      // Now, call attachShadow() and make sure we get back the same (original) shadowRoot, but empty.
       const oppositeMode = (mode === 'open') ? 'closed' : 'open';
-      const newShadow = element.attachShadow({mode: oppositeMode}); // Should be no exception here
+      assert_throws_dom('NotSupportedError', () => {
+        element.attachShadow({mode: oppositeMode});
+      }, 'Calling attachShadow with a declarative shadow fails if the mode doesn\'t match');
+
+      // Now, call attachShadow() and make sure we get back the same (original) shadowRoot, but empty.
+      const newShadow = element.attachShadow({mode: mode, delegatesFocus: delegatesFocus});
       if (mode === 'open') {
         assert_equals(element.shadowRoot, originalShadowRoot, 'The same shadow root should be returned');
         assert_equals(element.shadowRoot.innerHTML, '', 'Empty shadow content');
@@ -60,7 +64,7 @@ function testElementType(allowed, nochildren, elementType, mode, delegatesFocus)
       }, 'Calling attachShadow a second time on an element with a declarative shadow fails (opposite mode)');
     } else {
       if (!nochildren) {
-        // Invalid elements should retain a <template> element child with a shadowroot attribute.
+        // Invalid elements should retain a <template> element child with a shadowrootmode attribute.
         const template = nodes.wrapper.querySelector('template[shadowrootmode]');
         assert_true(!!template);
         assert_equals(template.getAttribute('shadowrootmode'), mode, `Template with shadowrootmode=${mode} should be left over`);

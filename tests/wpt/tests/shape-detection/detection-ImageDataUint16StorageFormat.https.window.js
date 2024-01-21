@@ -1,5 +1,3 @@
-// META: script=/resources/testharness.js
-// META: script=/resources/testharnessreport.js
 // META: script=/shape-detection/resources/shapedetection-helpers.js
 
 const imgUint16 = new ImageData(1024, 1024, {storageFormat: 'uint16'});

@@ -1,6 +1,38 @@
 {
   "tests": [
     {
+      "name": "matmul float32 constant 1D and 1D tensors all positive produces a scalar",
+      "inputs": {
+        "a": {
+          "shape": [4],
+          "data": [
+            50.10142534731317,
+            22.2193058046253,
+            34.65448469299386,
+            36.35148095671881
+          ],
+          "type": "float32",
+          "constant": true
+        },
+        "b": {
+          "shape": [4],
+          "data": [
+            27.829805134194842,
+            83.14548502311283,
+            34.4128942110155,
+            83.20379675185079
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "expected": {
+        "name": "output",
+        "data": 7458.89013671875,
+        "type": "float32"
+      }
+    },
+    {
       "name": "matmul float32 1D and 1D tensors all positive produces a scalar",
       "inputs": {
         "a": {

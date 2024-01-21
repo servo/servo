@@ -58,7 +58,6 @@ dictionary AuthenticatorAssertionResponseJSON {
     required Base64URLString authenticatorData;
     required Base64URLString signature;
     Base64URLString userHandle;
-    Base64URLString attestationObject;
 };
 
 dictionary AuthenticationExtensionsClientOutputsJSON {
@@ -77,8 +76,10 @@ partial interface PublicKeyCredential {
 };
 
 partial interface PublicKeyCredential {
-    static Promise<boolean> isPasskeyPlatformAuthenticatorAvailable();
+    static Promise<PublicKeyCredentialClientCapabilities> getClientCapabilities();
 };
+
+typedef record<DOMString, boolean> PublicKeyCredentialClientCapabilities;
 
 partial interface PublicKeyCredential {
     static PublicKeyCredentialCreationOptions parseCreationOptionsFromJSON(PublicKeyCredentialCreationOptionsJSON options);
@@ -124,8 +125,6 @@ dictionary PublicKeyCredentialRequestOptionsJSON {
     sequence<PublicKeyCredentialDescriptorJSON>             allowCredentials = [];
     DOMString                                               userVerification = "preferred";
     sequence<DOMString>                                     hints = [];
-    DOMString                                               attestation = "none";
-    sequence<DOMString>                                     attestationFormats = [];
     AuthenticationExtensionsClientInputsJSON                extensions;
 };
 
@@ -148,7 +147,6 @@ interface AuthenticatorAssertionResponse : AuthenticatorResponse {
     [SameObject] readonly attribute ArrayBuffer      authenticatorData;
     [SameObject] readonly attribute ArrayBuffer      signature;
     [SameObject] readonly attribute ArrayBuffer?     userHandle;
-    [SameObject] readonly attribute ArrayBuffer?     attestationObject;
 };
 
 dictionary PublicKeyCredentialParameters {
@@ -217,8 +215,6 @@ dictionary PublicKeyCredentialRequestOptions {
     sequence<PublicKeyCredentialDescriptor> allowCredentials = [];
     DOMString                            userVerification = "preferred";
     sequence<DOMString>                  hints = [];
-    DOMString                            attestation = "none";
-    sequence<DOMString>                  attestationFormats = [];
     AuthenticationExtensionsClientInputs extensions;
 };
 
@@ -268,6 +264,14 @@ enum UserVerificationRequirement {
     "required",
     "preferred",
     "discouraged"
+};
+
+enum ClientCapability {
+    "conditionalCreate",
+    "conditionalMediation",
+    "hybridTransport",
+    "passkeyPlatformAuthenticator",
+    "userVerifyingPlatformAuthenticator",
 };
 
 enum PublicKeyCredentialHints {
@@ -375,7 +379,7 @@ partial dictionary AuthenticationExtensionsClientInputs {
 };
 
 dictionary AuthenticationExtensionsSupplementalPubKeysOutputs {
-    sequence<ArrayBuffer> signatures;
+    required sequence<ArrayBuffer> signatures;
 };
 
 partial dictionary AuthenticationExtensionsClientOutputs {

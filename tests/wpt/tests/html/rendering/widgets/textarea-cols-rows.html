@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/C/#the-textarea-element-2">
+<title>Test `cols` `rows` attributes behaivor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<textarea id="missing"></textarea>
+<textarea id="invalid" cols="-1" rows="-1"></textarea>
+<textarea id="computed" style="border:none; padding:0;" cols="19" rows="5"></textarea>
+
+<textarea id="cols0" cols="0"></textarea>
+<textarea id="cols1" cols="1"></textarea>
+<textarea id="cols10" cols="10"></textarea>
+<textarea id="cols20" cols="20"></textarea>
+<textarea id="cols21" cols="21"></textarea>
+
+<textarea id="rows0" rows="0"></textarea>
+<textarea id="rows1" rows="1"></textarea>
+<textarea id="rows2" rows="2"></textarea>
+<textarea id="rows3" rows="3"></textarea>
+
+<script>
+test(() => {
+  assert_equals(missing.offsetWidth, cols20.offsetWidth);
+  assert_equals(missing.offsetHeight, rows2.offsetHeight);
+}, 'A misssing attribute is equivalent to cols=20 rows=2');
+
+test(() => {
+  assert_equals(invalid.offsetWidth, cols20.offsetWidth);
+  assert_equals(invalid.offsetHeight, rows2.offsetHeight);
+  assert_equals(cols0.offsetWidth, cols20.offsetWidth);
+  assert_equals(rows0.offsetHeight, rows2.offsetHeight);
+}, 'An invalid attribute value is equivalent to cols=20 rows=2');
+
+test(() => {
+  assert_less_than(cols1.offsetWidth, cols10.offsetWidth, '1 < 10');
+  assert_less_than(cols10.offsetWidth, cols20.offsetWidth, '10 < 20');
+  assert_less_than(cols20.offsetWidth, cols21.offsetWidth, '20 < 21');
+}, 'The width depends on a cols attribute');
+
+test(() => {
+  assert_less_than(rows1.offsetHeight, rows2.offsetHeight, '1 < 2');
+  assert_less_than(rows2.offsetHeight, rows3.offsetHeight, '2 < 3');
+}, 'The height depends on a rows attribute');
+
+test(() => {
+  const computedWidth = getComputedStyle(computed).width;
+  assert_equals(computed.offsetWidth,
+      parseInt(computedWidth.substring(0, computedWidth.length - 2)));
+
+  const computedHeight = getComputedStyle(computed).height;
+  assert_equals(computed.offsetHeight,
+      parseInt(computedHeight.substring(0, computedHeight.length - 2)));
+}, 'Cols/rows attribute values affect computed style');
+</script>
+
