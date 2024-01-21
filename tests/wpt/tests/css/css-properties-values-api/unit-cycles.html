@@ -4,13 +4,21 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-    function register_length(name, inherits=false) {
+    function register_property(name, syntax, inherits) {
         CSS.registerProperty({
             name: name,
-            syntax: '<length>',
+            syntax: syntax,
             initialValue: '0px',
             inherits: inherits
         });
+    }
+
+    function register_length(name, inherits=false) {
+        register_property(name, '<length>', inherits);
+    }
+
+    function register_universal(name) {
+        register_property(name, '*', false);
     }
 
     register_length('--font-size-em');
@@ -29,6 +37,12 @@
     register_length('--line-height-lh');
     register_length('--line-height-lh-via-var');
     register_length('--line-height-lh-inherited', true);
+    register_universal('--font-size-em-universal');
+    register_universal('--font-size-rem-universal');
+    register_universal('--font-size-ex-universal');
+    register_universal('--font-size-ch-universal');
+    register_universal('--font-size-px-universal');
+    register_universal('--font-size-lh-universal');
 </script>
 <style>
     :root {
@@ -52,6 +66,12 @@
         --font-size-ex-via-var: var(--unregistered-ex);
         --font-size-ch-via-var: var(--unregistered-ch);
         --line-height-lh-via-var: var(--unregistered-lh);
+        --font-size-em-universal: 2em;
+        --font-size-rem-universal: 2rem;
+        --font-size-ex-universal: 2ex;
+        --font-size-ch-universal: 2ch;
+        --font-size-px-universal: 42px;
+        --font-size-lh-universal: 2lh;
     }
 
     #parent {
@@ -74,14 +94,27 @@
 
 <script>
 
+    function unset_dimension(element = ref) {
+        element.style.fontSize = '';
+        element.style.marginBottom = '';
+    }
+
+    function compute_margin_bottom(dimension, element) {
+        try {
+            element.style.marginBottom = dimension;
+            return getComputedStyle(element).marginBottom;
+        } finally {
+            element.style.marginBottom = '';
+        }
+    }
+
     // Compute a dimension (e.g. 1em) given a certain fontSize.
     function compute_dimension(dimension, fontSize, element = ref) {
         try {
-            element.attributeStyleMap.set('font-size', fontSize);
-            element.attributeStyleMap.set('margin-bottom', dimension);
-            return getComputedStyle(element).marginBottom;
+            element.style.fontSize = fontSize;
+            return compute_margin_bottom(dimension, element);
         } finally {
-            element.attributeStyleMap.clear();
+            element.style.fontSize = '';
         }
     }
 
@@ -94,9 +127,44 @@
     const unsetLineHeight = "normal";
 
     add_result_callback(function(){
-        target.attributeStyleMap.clear();
-        document.documentElement.attributeStyleMap.clear();
+        unset_dimension(target);
+        unset_dimension(document.documentElement);
     });
+
+    test(function() {
+        // Unregistered variables behave as if they're copy & paste, so
+        // follow the regular font-relative size resolution.
+        const unregistered_variables = {
+            'unregistered-em': target.parentElement,
+            'unregistered-ex': target.parentElement,
+            'unregistered-ch': target.parentElement,
+            'unregistered-lh': target.parentElement,
+            'unregistered-rem': document.documentElement,
+        };
+
+        for (let variable in unregistered_variables) {
+            const e = unregistered_variables[variable];
+            const v = `var(--${variable})`;
+            target.style = `font-size: ${v};`;
+            assert_property_equals('font-size', compute_margin_bottom(v, e));
+        }
+    }, 'Font-dependent unregistered variables can be used in font-size');
+
+    test(function() {
+        const universal_variables = {
+            'font-size-em-universal': (v) => compute_dimension(v, 'unset', target),
+            'font-size-ex-universal': (v) => compute_dimension(v, 'unset', target),
+            'font-size-ch-universal': (v) => compute_dimension(v, 'unset', target),
+            'font-size-lh-universal': (v) => compute_margin_bottom('2lh', target.parentElement),
+            'font-size-rem-universal': (v) => compute_dimension(v, 'unset', target),
+        };
+        for (let variable in universal_variables) {
+            const v = `var(--${variable})`;
+            const expected = universal_variables[variable](v);
+            target.style = `font-size: ${v};`;
+            assert_property_equals('font-size', expected);
+        }
+    }, 'Registered universal variables referencing font-dependent units can be used in font-size');
 
     test(function() {
         target.style = 'font-size: var(--font-size-px);';

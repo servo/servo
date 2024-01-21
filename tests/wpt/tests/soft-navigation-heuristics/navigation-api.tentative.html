@@ -16,10 +16,10 @@
   <script>
     const link = document.getElementById("link");
     testNavigationApi("Test soft navigation with the Navigation API", e => {
-        timestamps[counter]["eventStart"] = performance.now();
         e.intercept({handler: async () => {
           await addImageToMain();
         }});
+        timestamps[counter]["eventEnd"] = performance.now();
       }, link);
   </script>
 </body>

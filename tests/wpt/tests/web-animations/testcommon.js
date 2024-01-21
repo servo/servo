@@ -329,9 +329,14 @@ function assert_phase(animation, phase) {
 // Use with reftest-wait to wait until compositor commits are no longer deferred
 // before taking the screenshot.
 // crbug.com/1378671
-async function waitForCompositorReady(target) {
+async function waitForCompositorReady() {
   const animation =
       document.body.animate({ opacity: [ 1, 1 ] }, {duration: 1 });
   return animation.finished;
+}
+
+async function takeScreenshotOnAnimationsReady() {
+  await Promise.all(document.getAnimations().map(a => a.ready));
+  requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
 }
 

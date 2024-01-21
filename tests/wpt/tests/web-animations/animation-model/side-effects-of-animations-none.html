@@ -7,6 +7,8 @@
 <link rel="author" href="mailto:bokan@chromium.org">
 <link rel="match" href="side-effects-of-animations-none-ref.html">
 <script src="/common/reftest-wait.js"></script>
+<script src="../testcommon.js"></script>
+<script src="resources/side-effects-common.js"></script>
 <style>
   .testcase {
     position: relative;
@@ -47,33 +49,7 @@
 </style>
 
 <script>
-const PHASE_BEFORE = 10;
-const PHASE_AFTER = 12;
-
-// Start an animation and put it into a state that's neither current nor in
-// effect.
-function setupAnimation(testcase, phase) {
-  const root = document.querySelector(testcase);
-  const effect_target = root.querySelector('.target');
-  const keyframe = { opacity: 1};
-  const options = { duration: 1000, delay: 1000, endDelay: 1000 };
-
-  const animation = effect_target.animate(
-    [ keyframe, keyframe ], options);
-
-  if (phase == PHASE_BEFORE) {
-    animation.currentTime = 500;
-    animation.playbackRate = -1;
-  } else if (phase == PHASE_AFTER) {
-    animation.currentTime = 2500;
-  } else {
-    throw new Error('Unexpected phase');
-  }
-
-  animation.pause();
-}
-
-onload = requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+onload = takeScreenshotOnAnimationsReady;
 </script>
 
 <!-- before phase playing backwards -->
@@ -85,7 +61,7 @@ onload = requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
   </div>
 </div>
 <script>
-  setupAnimation('#before', PHASE_BEFORE);
+  setupAnimation('#before', STATE_NONE, PROPERTY_OPACITY, PHASE_BEFORE);
 </script>
 
 <!-- after phase playing forwards-->
@@ -97,7 +73,7 @@ onload = requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
   </div>
 </div>
 <script>
-  setupAnimation('#after', PHASE_AFTER);
+  setupAnimation('#after', STATE_NONE, PROPERTY_OPACITY, PHASE_AFTER);
 </script>
 
 </html>

@@ -12,47 +12,35 @@
 <script>
 setup(() => assertSpeculationRulesIsSupported());
 
+// We attempted to write this test using `RemoteContextHelper`. See
+// https://github.com/web-platform-tests/wpt/blob/23ed0c7015082f21dd29dd09a545e2979dc3e08c/speculation-rules/prerender/prerender-while-prerender.html.
+//
+// However, that ended up being flaky in Chromium. See
+// https://bugs.chromium.org/p/chromium/issues/detail?id=1517319.
+//
+// We're unsure yet if that flakiness was due to a test bug or an implementation
+// bug. In case it is due to a test bug, we are currently trying the following
+// uglier `PrerenderChannel` version. If it is still flaky, then probably it is
+// an implementation bug, and we can revert to the prettier
+// `RemoteContextHelper` version.
+
 promise_test(async t => {
-  const rcHelper = new RemoteContextHelper();
-  const referrerRC = await rcHelper.addWindow(undefined, { features: 'noopener' });
-  const outerPrerenderedRC = await addPrerenderRC(referrerRC);
+  const uid = token();
+  const channel = new PrerenderChannel("result", uid);
+  const result = new Promise(r => channel.addEventListener("message", e => r(e.data)));
 
-  // Double-check we're set up correctly.
-  assert_equals(await outerPrerenderedRC.executeScript(() => document.prerendering), true);
+  window.open(
+    `resources/prerender-while-prerender-initiator.html?uid=${uid}`,
+    "_blank",
+    "noopener"
+  );
 
-  const innerPrerenderRC = await addPrerenderRC(outerPrerenderedRC);
+  assert_equals(
+    await result,
+    false,
+    "document.prerendering in the inner page must be false"
+  );
 
-  // Do not `await`. Since (per spec) prerendering is not allowed inside
-  // a prerender, there is not actually a real `RemoteContextHelper`
-  // representing the inner prerender at this time, since there is no
-  // prerender running. Instead, the `RemoteContextHelper` it is waiting
-  // for something to appear at its URL, which will happen later. At
-  // that time, the script will run. But `await`ing the script now would
-  // just block, since it will not run until that later point.
-  const scriptResultInInner = innerPrerenderRC.executeScript(() => document.prerendering);
-
-  // When the outer prerender is activated, inside the `prerenderingchange`
-  // event, attempt to activate the inner prerender. In reality, this will just
-  // perform a normal navigation to `innerPrerenderRC.url`.
-  await outerPrerenderedRC.executeScript(innerPrerenderRCURL => {
-    document.addEventListener("prerenderingchange", () => {
-      // executeScriptToNavigate is normally an implementation detail of the
-      // RemoteContextHelper framework, used by, e.g., `rch.navigateTo()`.
-      // However, because we're setting up an event listener to navigate later,
-      // we can't call `rch.navigateTo()`, and so need to call it directly.
-      executeScriptToNavigate(innerPrerenderRCURL => {
-        location.href = innerPrerenderRCURL;
-      }, [innerPrerenderRCURL]);
-    });
-  }, [innerPrerenderRC.url]);
-
-  // Now that everything is set up, activate the outer prerender.
-  await activatePrerenderRC(referrerRC, outerPrerenderedRC);
-
-  // Testing that this is false means two things:
-  // - The inner prerender attempt did not happen; we did a normal navigation
-  //   instead.
-  // - Nothing crashed or got confused.
-  assert_equals(await scriptResultInInner, false);
+  channel.close();
 }, "Prerendering inside a prerender doesn't work, and navigating inside prerenderingchange is fine");
 </script>

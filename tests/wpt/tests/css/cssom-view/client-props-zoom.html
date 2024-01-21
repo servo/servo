@@ -2,23 +2,21 @@
 <title>Client properties for elements with css zoom</title>
 <link rel="author" title="Yotam Hacohen" href="mailto:yotha@chromium.org">
 <link rel="author" title="Google" href="http://www.google.com/">
-<link rel="help" href="https://drafts.csswg.org/css-viewport/">"
+<link rel="help" href="https://drafts.csswg.org/css-viewport/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-  <head>
-    <style>
-      div {
+<style>
+      .test_content div {
         width: 64px;
         height: 64px;
-        background-color: blue
+        background-color: cyan;
       }
-      div.x4_zoom {
+      .test_content div.x4_zoom {
         zoom: 4.0;
       }
-    </style>
-  </head>
-  <body>
-
+</style>
+<body>
+  <div class="test_content">
     <div id="no_zoom"></div>
     <div class="x4_zoom" id="element_with_zoom"></div>
 
@@ -27,11 +25,11 @@
       <div>
         <div id="indirect_child_of_element_with_zoom"></div>
       </div>
-      <div class="x4_zoom", id="both_child_and_parent_has_zoom"></div>
+      <div class="x4_zoom" id="both_child_and_parent_has_zoom"></div>
     </div>
+  </div>
 
-
-    <script>
+  <script>
       setup(() => {
         window.noZoom = document.getElementById("no_zoom");
       });
@@ -50,5 +48,5 @@
         compareObjectToDivWithNoZoom(document.getElementById("indirect_child_of_element_with_zoom"));
         compareObjectToDivWithNoZoom(document.getElementById("both_child_and_parent_has_zoom"));
       });
-    </script>
-  </body>
+  </script>
+</body>

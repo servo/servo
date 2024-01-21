@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<select id=s1>
+  <div>div 1</div>
+  <button>button</button>
+  <div>div 2</div>
+  <datalist>
+    <option>option</option>
+  </datalist>
+  <div>div 3</div>
+</select>
+
+<select id=s2>
+  <div>div 1</div>
+  <button>
+    <span>level 1</span>
+    <button>
+      <span>level 2</span>
+    </button>
+  </button>
+  <div>div 2</div>
+</select>
+
+<select id=s3>
+  <button>button
+</select>
+
+<select id=s4>
+  <datalist>datalist
+</select>
+
+<select id=s5>
+  <button>
+    <select></select>
+  </button>
+</select>
+
+<select id=s6>
+  <button>
+    <div>
+      <select>
+</select>
+
+<div id=afterlast>
+  keep this div after the last test case
+</div>
+
+<script>
+test(() => {
+  // The document.body check here and in the other tests is to make sure that a
+  // previous test case didn't leave the HTML parser open on another element.
+  assert_equals(document.getElementById('s1').parentNode, document.body);
+  assert_equals(document.getElementById('s1').innerHTML, `
+  div 1
+  <button>button</button>
+  div 2
+  <datalist>
+    <option>option</option>
+  </datalist>
+  div 3
+`);
+}, '<button>s and <datalist>s should be allowed in <select>.');
+
+test(() => {
+  assert_equals(document.getElementById('s2').parentNode, document.body);
+  assert_equals(document.getElementById('s2').innerHTML, `
+  div 1
+  <button>
+    <span>level 1</span>
+    </button><button>
+      <span>level 2</span>
+    </button>
+  \n  div 2
+`);
+}, 'Nested <button>s in <select> should be flattened out.');
+
+test(() => {
+  assert_equals(document.getElementById('s3').parentNode, document.body);
+  assert_equals(document.getElementById('s3').innerHTML, `
+  <button>button
+</button>`);
+}, '</select> should close <button>.');
+
+test(() => {
+  assert_equals(document.getElementById('s4').parentNode, document.body);
+  assert_equals(document.getElementById('s4').innerHTML, `
+  <datalist>datalist
+</datalist>`);
+}, '</select> should close <datalist>.');
+
+test(() => {
+  assert_equals(document.getElementById('s5').parentNode, document.body);
+  assert_equals(document.getElementById('s5').innerHTML, `
+  <button>
+    </button>`);
+}, '<select> in <button> in <select> should remove inner <select>.');
+
+test(() => {
+  assert_equals(document.getElementById('s6').parentNode, document.body);
+  assert_equals(document.getElementById('s6').innerHTML, `
+  <button>
+    <div>
+      </div></button>`);
+}, '<select> in <select><button><div> should remove inner <select>.');
+
+test(() => {
+  assert_equals(document.getElementById('afterlast').parentNode, document.body);
+}, 'The last test should not leave any tags open after parsing.');
+</script>

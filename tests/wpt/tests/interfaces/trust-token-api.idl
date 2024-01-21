@@ -29,6 +29,6 @@ partial interface XMLHttpRequest {
 };
 
 partial interface Document {
-  Promise<boolean> hasPrivateTokens(USVString issuer);
+  Promise<boolean> hasPrivateToken(USVString issuer);
   Promise<boolean> hasRedemptionRecord(USVString issuer);
 };

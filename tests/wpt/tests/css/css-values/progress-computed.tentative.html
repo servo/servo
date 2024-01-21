@@ -17,9 +17,9 @@ test_math_used('progress(sign(-10px) * 10px from (10px - 10px) to 10px * progres
 // General calculations
 test_math_used('calc(progress(100px from 0px to 50px) * 10px + 100px)', '120px');
 test_math_used('calc(progress(100 from 0 to sign(50px)))', '100', {type:'number'});
-test_math_used('calc(progress(abs(5%) from hypot(3%, 4%) to 10%))', '1', {type:'number', approx:0.001});
-test_math_used('progress(1000em from 10em to 110em)', '10', {type:'number'});
-test_math_used('scale(progress(1000em from 10rem to 110em))', 'scale(10)', {prop:'transform', type:'number'});
+test_math_used('calc(progress(abs(5%) from hypot(3%, 4%) to 10%))', '0', {type:'number', approx:0.001});
+test_math_used('progress(1000em from 10em to 110em)', '9.9', {type:'number', approx:0.1});
+test_math_used('scale(progress(1000em from 10rem to 110em))', 'scale(9.9)', {prop:'transform', type:'number', approx:0.1});
 test_math_used('scale(progress(0em from 0rem to 0em))', 'scale(0)', {prop:'transform', type:'number'});
 test_math_used('scale(progress(sign(1em - 1rem) * 1ex from 0rem to 0em))', 'scale(0)', {prop:'transform', type:'number'});
 

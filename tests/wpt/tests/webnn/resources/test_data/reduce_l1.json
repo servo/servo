@@ -1,6 +1,47 @@
 {
   "tests": [
     {
+      "name": "reduceL1 float32 1D constant tensor all positive default options", // default options: {axes: null, keepDimensions: false}
+      "inputs": {
+        "input": {
+          "shape": [24],
+          "data": [
+            5.508826448139126,
+            50.61575563515446,
+            1.6773050539454992,
+            84.21352292914005,
+            15.664374631289203,
+            52.89714899357876,
+            9.12515782683123,
+            28.93762412170997,
+            12.567061064158146,
+            11.399989904078245,
+            86.91246376729916,
+            64.51329469980782,
+            71.28342153263038,
+            76.34410635436484,
+            41.53409150301335,
+            97.56533284219819,
+            31.803831597266385,
+            6.0897547388209405,
+            61.70843555684953,
+            69.76119433406723,
+            38.91940474525253,
+            52.28833355637117,
+            22.31783714884341,
+            99.0719229634137
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "expected": {
+        "name": "output",
+        "data": 1092.72021484375,
+        "type": "float32"
+      }
+    },
+    {
       "name": "reduceL1 float32 1D tensor all positive default options", // default options: {axes: null, keepDimensions: false}
       "inputs": {
         "input": {

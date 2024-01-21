@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Prerender while prerendering test: referrer page, opened in a window</title>
+<script src="utils.js"></script>
+
+<script type="module">
+const params = new URLSearchParams(location.search);
+const uid = params.get("uid");
+const outerURL = `prerender-while-prerender-outer.html?uid=${uid}`;
+
+startPrerendering(outerURL);
+
+const channel = new PrerenderChannel("start-test", uid);
+await new Promise(r => channel.addEventListener("message", r));
+channel.close();
+
+location.href = outerURL;
+</script>

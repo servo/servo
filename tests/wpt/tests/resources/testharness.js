@@ -1201,6 +1201,23 @@
         object.addEventListener(event, callback, false);
     }
 
+    // Internal helper function to provide timeout-like functionality in
+    // environments where there is no setTimeout(). (No timeout ID or
+    // clearTimeout().)
+    function fake_set_timeout(callback, delay) {
+        var p = Promise.resolve();
+        var start = Date.now();
+        var end = start + delay;
+        function check() {
+            if ((end - Date.now()) > 0) {
+                p.then(check);
+            } else {
+                callback();
+            }
+        }
+        p.then(check);
+    }
+
     /**
      * Global version of :js:func:`Test.step_timeout` for use in single page tests.
      *
@@ -1212,7 +1229,8 @@
     function step_timeout(func, timeout) {
         var outer_this = this;
         var args = Array.prototype.slice.call(arguments, 2);
-        return setTimeout(function() {
+        var local_set_timeout = typeof global_scope.setTimeout === "undefined" ? fake_set_timeout : setTimeout;
+        return local_set_timeout(function() {
             func.apply(outer_this, args);
         }, timeout * tests.timeout_multiplier);
     }
@@ -2720,7 +2738,8 @@
     Test.prototype.step_timeout = function(func, timeout) {
         var test_this = this;
         var args = Array.prototype.slice.call(arguments, 2);
-        return setTimeout(this.step_func(function() {
+        var local_set_timeout = typeof global_scope.setTimeout === "undefined" ? fake_set_timeout : setTimeout;
+        return local_set_timeout(this.step_func(function() {
             return func.apply(test_this, args);
         }), timeout * tests.timeout_multiplier);
     };
@@ -2751,6 +2770,7 @@
         var timeout_full = timeout * tests.timeout_multiplier;
         var remaining = Math.ceil(timeout_full / interval);
         var test_this = this;
+        var local_set_timeout = typeof global_scope.setTimeout === 'undefined' ? fake_set_timeout : setTimeout;
 
         const step = test_this.step_func((result) => {
             if (result) {
@@ -2761,7 +2781,7 @@
                            "Timed out waiting on condition");
                 }
                 remaining--;
-                setTimeout(wait_for_inner, interval);
+                local_set_timeout(wait_for_inner, interval);
             }
         });
 
@@ -4775,6 +4795,15 @@
             return location.pathname.substring(location.pathname.lastIndexOf('/') + 1, location.pathname.indexOf('.'));
         }
         return "Untitled";
+    }
+
+    /** Fetches a JSON resource and parses it */
+    async function fetch_json(resource) {
+        const response = await fetch(resource);
+        return await response.json();
+    }
+    if (!global_scope.GLOBAL || !global_scope.GLOBAL.isShadowRealm()) {
+        expose(fetch_json, 'fetch_json');
     }
 
     /**

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: text-transform uppercase German sharp S and selection</title>
+<link rel="author" title="Frédéric Wang" href="mailto:fwang@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text/#propdef-text-transform">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="assert" content="text-transform: uppercase will uppercase the German sharp S as SS, the whole 2 characters is selectable and should be returned when retriving the selected string.">
+<style>
+  #target {
+    text-transform: uppercase;
+  }
+</style>
+
+<span id="target" lang="de">&#x00DF;</span>
+
+<script>
+  test(() => {
+    window.getSelection().setBaseAndExtent(target, 0, target, 1);
+    assert_equals(window.getSelection().toString(), "SS");
+  }, "Selection.toString() for 'ß' with text-transform: uppercase");
+</script>

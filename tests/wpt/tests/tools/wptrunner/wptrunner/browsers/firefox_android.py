@@ -176,6 +176,9 @@ class ProfileCreator(FirefoxProfileCreator):
                 "layout.testing.overlay-scrollbars.always-visible": True,
             })
 
+        if self.test_type == "wdspec":
+            profile.set_preferences({"remote.prefs.recommended": True})
+
         profile.set_preferences({"fission.autostart": True})
         if self.disable_fission:
             profile.set_preferences({"fission.autostart": False})

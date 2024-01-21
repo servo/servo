@@ -1,7 +1,5 @@
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Union
-
 from ._module import BidiModule, command
-
 from webdriver.bidi.modules.network import NetworkBytesValue
 
 
@@ -11,7 +9,8 @@ class BrowsingContextPartitionDescriptor(Dict[str, Any]):
 
 
 class StorageKeyPartitionDescriptor(Dict[str, Any]):
-    def __init__(self, user_context: Optional[str] = None, source_origin: Optional[str] = None):
+    def __init__(self, user_context: Optional[str] = None,
+                 source_origin: Optional[str] = None):
         dict.__init__(self, type="storageKey")
         if user_context is not None:
             self["userContext"] = user_context
@@ -52,16 +51,19 @@ class Storage(BidiModule):
     # TODO: extend with `filter`.
     @command
     def get_cookies(self, partition: Optional[PartitionDescriptor] = None) -> Mapping[str, Any]:
-        params = {}
+        params: MutableMapping[str, Any] = {}
         if partition is not None:
             params["partition"] = partition
         return params
 
     @command
-    def set_cookie(self, cookie: PartialCookie, partition: Optional[PartitionDescriptor] = None) -> \
-            Mapping[str, Any]:
+    def set_cookie(
+            self,
+            cookie: PartialCookie,
+            partition: Optional[PartitionDescriptor] = None
+    ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {
-            'cookie': cookie,
+            "cookie": cookie
         }
         if partition is not None:
             params["partition"] = partition

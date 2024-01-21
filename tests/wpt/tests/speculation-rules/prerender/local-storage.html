@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <title>Same-origin prerendering can access localStorage</title>
+<meta name="variant" content="?target_hint=_self">
+<meta name="variant" content="?target_hint=_blank">
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -28,8 +30,12 @@ promise_test(async t => {
     }, { once: true });
   });
 
+  const opt = {};
+  const init_opt = {};
+  const rule_extras = {'target_hint': getTargetHint()};
+
   window.localStorage.setItem('initial', uid1);
-  const {exec} = await create_prerendered_page(t);
+  const {exec} = await create_prerendered_page(t, opt, init_opt, rule_extras);
   const result = await exec(uid2 => {
     window.localStorage.setItem('prerender', uid2);
     return window.localStorage.getItem('initial');

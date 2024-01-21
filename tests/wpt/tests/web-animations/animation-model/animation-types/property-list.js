@@ -1286,7 +1286,7 @@ const gCSSProperties2 = {
     ]
   },
   'text-autospace': {
-    // https://drafts.csswg.org/css-text-4/#text-spacing-property
+    // https://drafts.csswg.org/css-text-4/#text-autospace-property
     types: [
       { type: 'discrete', options: [ [ 'normal', 'no-autospace' ] ] }
     ]
@@ -1356,9 +1356,9 @@ const gCSSProperties2 = {
     }
   },
   'text-spacing-trim': {
-    // https://svgwg.org/svg2-draft/painting.html#TextRenderingProperty
+    // https://drafts.csswg.org/css-text-4/#text-spacing-trim-property
     types: [
-      { type: 'discrete', options: [ [ 'auto', 'space-all' ] ] }
+      { type: 'discrete', options: [ [ 'normal', 'space-all' ] ] }
     ]
   },
   'text-transform': {

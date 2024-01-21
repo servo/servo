@@ -1,6 +1,3 @@
-// META: script=/resources/testharness.js
-// META: script=/resources/testharnessreport.js
-
 'use strict';
 
 promise_test(async t => {

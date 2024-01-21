@@ -5,31 +5,30 @@
 <link rel="help" href="https://drafts.csswg.org/css-viewport/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-  <head>
-    <style>
-      div {
+<style>
+      .test_content div {
         width: 64px;
         height: 64px;
         background-color: blue
       }
-      div.x4_zoom {
+      .test_content div.x4_zoom {
         zoom: 4.0;
         background-color: blueviolet;
       }
-      div.x2_zoom {
+      .test_content div.x2_zoom {
         background-color: chartreuse;
         zoom: 2.0;
       }
 
-      div.transform {
+      .test_content div.transform {
         transform: scale(2);
         transform-origin: top left;
       }
 
 
-    </style>
-  </head>
-  <body>
+</style>
+<body>
+  <div class="test_content">
     <div id="no_zoom"></div>
     <div class="x4_zoom" id="with_zoom">
     </div>
@@ -37,7 +36,8 @@
       <div class="x4_zoom" id="nested_zoom"></div>
     </div>
     <div id="transform_and_zoom" class="x4_zoom transform"></div>
-    <script>
+  </div>
+  <script>
       setup(() => {
         window.noZoom = document.getElementById("no_zoom");
         window.withZoom = document.getElementById("with_zoom");
@@ -76,6 +76,5 @@
         assert_equals(transformAndZoomRect.width, 512, 'transform and zoom width');
         assert_equals(transformAndZoomRect.height, 512, 'transform and zoom height');
       });
-    </script>
-  </body>
-`
+  </script>
+</body>
