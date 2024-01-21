@@ -2402,6 +2402,7 @@ class IDLType(IDLObject):
         # Funny stuff
         "interface",
         "float32array",
+        "uint8array",
         "dictionary",
         "enum",
         "callback",
@@ -3635,7 +3636,7 @@ class IDLBuiltinType(IDLType):
         Types.ArrayBuffer: IDLType.Tags.interface,
         Types.ArrayBufferView: IDLType.Tags.interface,
         Types.Int8Array: IDLType.Tags.interface,
-        Types.Uint8Array: IDLType.Tags.interface,
+        Types.Uint8Array: IDLType.Tags.uint8array,
         Types.Uint8ClampedArray: IDLType.Tags.interface,
         Types.Int16Array: IDLType.Tags.interface,
         Types.Uint16Array: IDLType.Tags.interface,
