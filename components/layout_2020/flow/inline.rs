@@ -2380,12 +2380,14 @@ impl<'a> ContentSizesComputation<'a> {
     fn line_break_opportunity(&mut self) {
         self.paragraph.min_content =
             std::cmp::max(self.paragraph.min_content, self.current_line.min_content);
+        self.current_line.min_content = Au::zero();
     }
 
     fn forced_line_break(&mut self) {
         self.line_break_opportunity();
         self.paragraph.max_content =
             std::cmp::max(self.paragraph.max_content, self.current_line.max_content);
+        self.current_line.max_content = Au::zero();
     }
 
     /// Compute the [`ContentSizes`] of the given [`InlineFormattingContext`].
