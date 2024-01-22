@@ -1698,7 +1698,7 @@ impl ScriptThread {
             if !document.is_fully_active() {
                 continue;
             }
-            let mut depth = 0;
+            let mut depth = Default::default();
             loop {
                 document.gather_active_resize_observations_at_depth(depth);
                 if !document.has_active_resize_observations() {

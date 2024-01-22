@@ -157,7 +157,7 @@ use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
-use crate::dom::resizeobserver::ResizeObserver;
+use crate::dom::resizeobserver::{ResizeObserver, ResizeObservationDepth};
 use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
@@ -2909,9 +2909,9 @@ impl Document {
     }
 
     /// https://drafts.csswg.org/resize-observer/#gather-active-observations-h
-    pub fn gather_active_resize_observations_at_depth(&self, depth: u32) {
+    pub fn gather_active_resize_observations_at_depth(&self, depth: ResizeObservationDepth) {
         for observer in self.resize_observers.borrow_mut().iter_mut() {
-            observer.gather_active_resize_observations_at_depth(depth);
+            observer.gather_active_resize_observations_at_depth(&depth);
         }
     }
 
@@ -2921,11 +2921,10 @@ impl Document {
     }
 
     /// https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations
-    pub fn broadcast_active_resize_observations(&self) -> u32 {
-        let mut shallowest_target_depth = 0;
+    pub fn broadcast_active_resize_observations(&self) -> ResizeObservationDepth {
+        let mut shallowest_target_depth = Default::default();
         for observer in self.resize_observers.borrow_mut().iter_mut() {
-            shallowest_target_depth =
-                observer.broadcast_active_resize_observations(shallowest_target_depth);
+            observer.broadcast_active_resize_observations(&mut shallowest_target_depth);
         }
         shallowest_target_depth
     }
