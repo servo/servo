@@ -65,6 +65,10 @@ packages = [
 
     # style (0.64) vs. webxr (0.66) vs. mozjs_sys (0.68).
     "bindgen",
+
+    # quickcheck (required by layout_2020 for tests) is
+    # stuck on 0.8.4 with no new releases.
+    "env_logger",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

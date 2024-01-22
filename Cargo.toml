@@ -33,7 +33,7 @@ data-url = "0.1.0"
 devtools_traits = { path = "components/shared/devtools" }
 embedder_traits = { path = "components/shared/embedder" }
 encoding_rs = "0.8"
-env_logger = "0.8"
+env_logger = "0.10"
 euclid = "0.22"
 fnv = "1.0"
 fxhash = "0.2"
