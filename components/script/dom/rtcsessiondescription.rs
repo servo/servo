@@ -60,12 +60,12 @@ impl RTCSessionDescription {
 }
 
 impl RTCSessionDescriptionMethods for RTCSessionDescription {
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-type
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-type>
     fn Type(&self) -> RTCSdpType {
         self.ty
     }
 
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-sdp
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-sdp>
     fn Sdp(&self) -> DOMString {
         self.sdp.clone()
     }

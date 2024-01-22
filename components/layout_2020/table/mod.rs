@@ -139,7 +139,7 @@ pub enum TableSlot {
     ///
     /// If there is more than one cell that spans a slot, this is a table model error, but
     /// we still keep track of it. See
-    /// https://html.spec.whatwg.org/multipage/#table-model-error
+    /// <https://html.spec.whatwg.org/multipage/#table-model-error>
     Spanned(Vec<TableSlotOffset>),
 
     /// An empty spot in the table. This can happen when there is a gap in columns between

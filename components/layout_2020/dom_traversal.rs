@@ -327,7 +327,7 @@ where
     })
 }
 
-/// https://www.w3.org/TR/CSS2/generate.html#propdef-content
+/// <https://www.w3.org/TR/CSS2/generate.html#propdef-content>
 fn generate_pseudo_element_content<'dom, Node>(
     pseudo_element_style: &ComputedValues,
     element: Node,

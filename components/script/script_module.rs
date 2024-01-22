@@ -414,7 +414,7 @@ pub enum ModuleStatus {
 
 impl ModuleTree {
     #[allow(unsafe_code)]
-    /// https://html.spec.whatwg.org/multipage/#creating-a-module-script
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-module-script>
     /// Step 7-11.
     fn compile_module_script(
         &self,
@@ -467,7 +467,7 @@ impl ModuleTree {
     }
 
     #[allow(unsafe_code)]
-    /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
+    /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
     /// Step 5-2.
     pub fn instantiate_module_tree(
         &self,
@@ -600,7 +600,7 @@ impl ModuleTree {
     ///
     /// Bareword module specifiers are currently disallowed as these may be given
     /// special meanings in the future.
-    /// https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier
+    /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
     #[allow(unsafe_code)]
     fn resolve_module_specifier(
         cx: *mut JSContext,
@@ -626,7 +626,7 @@ impl ModuleTree {
         return ServoUrl::parse_with_base(Some(url), &specifier_str.clone());
     }
 
-    /// https://html.spec.whatwg.org/multipage/#finding-the-first-parse-error
+    /// <https://html.spec.whatwg.org/multipage/#finding-the-first-parse-error>
     fn find_first_parse_error(
         &self,
         global: &GlobalScope,
@@ -684,7 +684,7 @@ impl ModuleTree {
     }
 
     #[allow(unsafe_code)]
-    /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-a-module-script
+    /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-a-module-script>
     fn fetch_module_descendants(
         &self,
         owner: &ModuleOwner,
@@ -784,7 +784,7 @@ impl ModuleTree {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
+    /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
     /// step 4-7.
     fn advance_finished_and_link(&self, global: &GlobalScope) {
         {
@@ -1388,8 +1388,8 @@ fn fetch_an_import_module_script_graph(
 }
 
 #[allow(unsafe_code, non_snake_case)]
-/// https://tc39.github.io/ecma262/#sec-hostresolveimportedmodule
-/// https://html.spec.whatwg.org/multipage/#hostresolveimportedmodule(referencingscriptormodule%2C-specifier)
+/// <https://tc39.github.io/ecma262/#sec-hostresolveimportedmodule>
+/// <https://html.spec.whatwg.org/multipage/#hostresolveimportedmodule(referencingscriptormodule%2C-specifier)>
 unsafe extern "C" fn HostResolveImportedModule(
     cx: *mut JSContext,
     reference_private: RawHandleValue,
@@ -1442,8 +1442,8 @@ unsafe extern "C" fn HostResolveImportedModule(
 }
 
 #[allow(unsafe_code, non_snake_case)]
-/// https://tc39.es/ecma262/#sec-hostgetimportmetaproperties
-/// https://html.spec.whatwg.org/multipage/#hostgetimportmetaproperties
+/// <https://tc39.es/ecma262/#sec-hostgetimportmetaproperties>
+/// <https://html.spec.whatwg.org/multipage/#hostgetimportmetaproperties>
 unsafe extern "C" fn HostPopulateImportMeta(
     cx: *mut JSContext,
     reference_private: RawHandleValue,
@@ -1474,7 +1474,7 @@ unsafe extern "C" fn HostPopulateImportMeta(
     )
 }
 
-/// https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree>
 pub(crate) fn fetch_external_module_script(
     owner: ModuleOwner,
     url: ServoUrl,
@@ -1545,7 +1545,7 @@ struct DynamicModule {
     id: DynamicModuleId,
 }
 
-/// https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
 fn fetch_single_module_script(
     owner: ModuleOwner,
     url: ServoUrl,
@@ -1698,7 +1698,7 @@ fn fetch_single_module_script(
 }
 
 #[allow(unsafe_code)]
-/// https://html.spec.whatwg.org/multipage/#fetch-an-inline-module-script-graph
+/// <https://html.spec.whatwg.org/multipage/#fetch-an-inline-module-script-graph>
 pub(crate) fn fetch_inline_module_script(
     owner: ModuleOwner,
     module_script_text: Rc<DOMString>,

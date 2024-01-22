@@ -32,13 +32,13 @@ use crate::realms::{enter_realm, InRealm};
 #[dom_struct]
 pub struct MediaSession {
     reflector_: Reflector,
-    /// https://w3c.github.io/mediasession/#dom-mediasession-metadata
+    /// <https://w3c.github.io/mediasession/#dom-mediasession-metadata>
     #[ignore_malloc_size_of = "defined in embedder_traits"]
     #[no_trace]
     metadata: DomRefCell<Option<EmbedderMediaMetadata>>,
-    /// https://w3c.github.io/mediasession/#dom-mediasession-playbackstate
+    /// <https://w3c.github.io/mediasession/#dom-mediasession-playbackstate>
     playback_state: DomRefCell<MediaSessionPlaybackState>,
-    /// https://w3c.github.io/mediasession/#supported-media-session-actions
+    /// <https://w3c.github.io/mediasession/#supported-media-session-actions>
     #[ignore_malloc_size_of = "Rc"]
     action_handlers:
         DomRefCell<HashMapTracedValues<MediaSessionActionType, Rc<MediaSessionActionHandler>>>,
@@ -125,7 +125,7 @@ impl MediaSession {
 }
 
 impl MediaSessionMethods for MediaSession {
-    /// https://w3c.github.io/mediasession/#dom-mediasession-metadata
+    /// <https://w3c.github.io/mediasession/#dom-mediasession-metadata>
     fn GetMetadata(&self) -> Option<DomRoot<MediaMetadata>> {
         if let Some(ref metadata) = *self.metadata.borrow() {
             let mut init = MediaMetadataInit::empty();
@@ -139,7 +139,7 @@ impl MediaSessionMethods for MediaSession {
         }
     }
 
-    /// https://w3c.github.io/mediasession/#dom-mediasession-metadata
+    /// <https://w3c.github.io/mediasession/#dom-mediasession-metadata>
     fn SetMetadata(&self, metadata: Option<&MediaMetadata>) {
         if let Some(ref metadata) = metadata {
             metadata.set_session(self);
@@ -168,17 +168,17 @@ impl MediaSessionMethods for MediaSession {
         self.send_event(MediaSessionEvent::SetMetadata(_metadata));
     }
 
-    /// https://w3c.github.io/mediasession/#dom-mediasession-playbackstate
+    /// <https://w3c.github.io/mediasession/#dom-mediasession-playbackstate>
     fn PlaybackState(&self) -> MediaSessionPlaybackState {
         *self.playback_state.borrow()
     }
 
-    /// https://w3c.github.io/mediasession/#dom-mediasession-playbackstate
+    /// <https://w3c.github.io/mediasession/#dom-mediasession-playbackstate>
     fn SetPlaybackState(&self, state: MediaSessionPlaybackState) {
         *self.playback_state.borrow_mut() = state;
     }
 
-    /// https://w3c.github.io/mediasession/#update-action-handler-algorithm
+    /// <https://w3c.github.io/mediasession/#update-action-handler-algorithm>
     fn SetActionHandler(
         &self,
         action: MediaSessionAction,
@@ -193,7 +193,7 @@ impl MediaSessionMethods for MediaSession {
         };
     }
 
-    /// https://w3c.github.io/mediasession/#dom-mediasession-setpositionstate
+    /// <https://w3c.github.io/mediasession/#dom-mediasession-setpositionstate>
     fn SetPositionState(&self, state: &MediaPositionState) -> Fallible<()> {
         // If the state is an empty dictionary then clear the position state.
         if state.duration.is_none() && state.position.is_none() && state.playbackRate.is_none() {

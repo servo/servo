@@ -59,7 +59,7 @@ impl FontTableMethods for FontTable {
 }
 
 /// Data from the OS/2 table of an OpenType font.
-/// See https://www.microsoft.com/typography/otspec/os2.htm
+/// See <https://www.microsoft.com/typography/otspec/os2.htm>
 #[derive(Debug)]
 struct OS2Table {
     us_weight_class: u16,

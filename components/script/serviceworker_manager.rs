@@ -118,15 +118,15 @@ impl Drop for ServiceWorkerRegistration {
     }
 }
 
-/// https://w3c.github.io/ServiceWorker/#service-worker-registration-concept
+/// <https://w3c.github.io/ServiceWorker/#service-worker-registration-concept>
 struct ServiceWorkerRegistration {
     /// A unique identifer.
     id: ServiceWorkerRegistrationId,
-    /// https://w3c.github.io/ServiceWorker/#dfn-active-worker
+    /// <https://w3c.github.io/ServiceWorker/#dfn-active-worker>
     active_worker: Option<ServiceWorker>,
-    /// https://w3c.github.io/ServiceWorker/#dfn-waiting-worker
+    /// <https://w3c.github.io/ServiceWorker/#dfn-waiting-worker>
     waiting_worker: Option<ServiceWorker>,
-    /// https://w3c.github.io/ServiceWorker/#dfn-installing-worker
+    /// <https://w3c.github.io/ServiceWorker/#dfn-installing-worker>
     installing_worker: Option<ServiceWorker>,
     /// A channel to send control message to the worker,
     /// currently only used to signal shutdown.
@@ -209,7 +209,7 @@ impl ServiceWorkerRegistration {
 
 /// A structure managing all registrations and workers for a given origin.
 pub struct ServiceWorkerManager {
-    /// https://w3c.github.io/ServiceWorker/#dfn-scope-to-registration-map
+    /// <https://w3c.github.io/ServiceWorker/#dfn-scope-to-registration-map>
     registrations: HashMap<ServoUrl, ServiceWorkerRegistration>,
     // Will be useful to implement posting a message to a client.
     // See https://github.com/servo/servo/issues/24660

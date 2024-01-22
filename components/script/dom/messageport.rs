@@ -199,7 +199,7 @@ impl Transferable for MessagePort {
         Ok(u64::from_ne_bytes(big))
     }
 
-    /// https://html.spec.whatwg.org/multipage/#message-ports:transfer-receiving-steps
+    /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-receiving-steps>
     fn transfer_receive(
         owner: &GlobalScope,
         sc_holder: &mut StructuredDataHolder,

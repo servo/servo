@@ -59,34 +59,34 @@ impl FakeXRInputController {
 }
 
 impl FakeXRInputControllerMethods for FakeXRInputController {
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-setpointerorigin
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-setpointerorigin>
     fn SetPointerOrigin(&self, origin: &FakeXRRigidTransformInit, _emulated: bool) -> Fallible<()> {
         self.send_message(MockInputMsg::SetPointerOrigin(Some(get_origin(origin)?)));
         Ok(())
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-setgriporigin
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-setgriporigin>
     fn SetGripOrigin(&self, origin: &FakeXRRigidTransformInit, _emulated: bool) -> Fallible<()> {
         self.send_message(MockInputMsg::SetGripOrigin(Some(get_origin(origin)?)));
         Ok(())
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-cleargriporigin
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-cleargriporigin>
     fn ClearGripOrigin(&self) {
         self.send_message(MockInputMsg::SetGripOrigin(None))
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-disconnect
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-disconnect>
     fn Disconnect(&self) {
         self.send_message(MockInputMsg::Disconnect)
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-reconnect
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-reconnect>
     fn Reconnect(&self) {
         self.send_message(MockInputMsg::Reconnect)
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-startselection
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-startselection>
     fn StartSelection(&self) {
         self.send_message(MockInputMsg::TriggerSelect(
             SelectKind::Select,
@@ -94,7 +94,7 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
         ))
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-endselection
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-endselection>
     fn EndSelection(&self) {
         self.send_message(MockInputMsg::TriggerSelect(
             SelectKind::Select,
@@ -102,7 +102,7 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
         ))
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-simulateselect
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-simulateselect>
     fn SimulateSelect(&self) {
         self.send_message(MockInputMsg::TriggerSelect(
             SelectKind::Select,
@@ -110,7 +110,7 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
         ))
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-sethandedness
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-sethandedness>
     fn SetHandedness(&self, handedness: XRHandedness) {
         let h = match handedness {
             XRHandedness::None => Handedness::None,
@@ -120,7 +120,7 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
         let _ = self.send_message(MockInputMsg::SetHandedness(h));
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-settargetraymode
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-settargetraymode>
     fn SetTargetRayMode(&self, target_ray_mode: XRTargetRayMode) {
         let t = match target_ray_mode {
             XRTargetRayMode::Gaze => TargetRayMode::Gaze,
@@ -130,7 +130,7 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
         let _ = self.send_message(MockInputMsg::SetTargetRayMode(t));
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-setprofiles
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-setprofiles>
     fn SetProfiles(&self, profiles: Vec<DOMString>) {
         let t = profiles.into_iter().map(String::from).collect();
         let _ = self.send_message(MockInputMsg::SetProfiles(t));

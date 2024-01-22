@@ -34,7 +34,7 @@ pub const MAX_SAMPLE_RATE: f32 = 192000.;
 ///
 /// js_channels buffers are (re)attached right before calling GetChannelData
 /// and remain attached until its contents are needed by some other API
-/// implementation. Follow https://webaudio.github.io/web-audio-api/#acquire-the-content
+/// implementation. Follow <https://webaudio.github.io/web-audio-api/#acquire-the-content>
 /// to know in which situations js_channels buffers must be detached.
 ///
 #[dom_struct]
@@ -48,13 +48,13 @@ pub struct AudioBuffer {
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     shared_channels: DomRefCell<Option<ServoMediaAudioBuffer>>,
-    /// https://webaudio.github.io/web-audio-api/#dom-audiobuffer-samplerate
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-samplerate>
     sample_rate: f32,
-    /// https://webaudio.github.io/web-audio-api/#dom-audiobuffer-length
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-length>
     length: u32,
-    /// https://webaudio.github.io/web-audio-api/#dom-audiobuffer-duration
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-duration>
     duration: f64,
-    /// https://webaudio.github.io/web-audio-api/#dom-audiobuffer-numberofchannels
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiobuffer-numberofchannels>
     number_of_channels: u32,
 }
 

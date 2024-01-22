@@ -9,7 +9,7 @@ use html5ever::{namespace_url, ns, LocalName, Namespace, Prefix};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::str::DOMString;
 
-/// Validate a qualified name. See https://dom.spec.whatwg.org/#validate for details.
+/// Validate a qualified name. See <https://dom.spec.whatwg.org/#validate> for details.
 pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
     // Step 2.
     match xml_name_type(qualified_name) {
@@ -20,7 +20,7 @@ pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
 }
 
 /// Validate a namespace and qualified name and extract their parts.
-/// See https://dom.spec.whatwg.org/#validate-and-extract for details.
+/// See <https://dom.spec.whatwg.org/#validate-and-extract> for details.
 pub fn validate_and_extract(
     namespace: Option<DOMString>,
     qualified_name: &str,
@@ -86,7 +86,7 @@ pub enum XMLName {
     InvalidXMLName,
 }
 
-/// Check if an element name is valid. See http://www.w3.org/TR/xml/#NT-Name
+/// Check if an element name is valid. See <http://www.w3.org/TR/xml/#NT-Name>
 /// for details.
 pub fn xml_name_type(name: &str) -> XMLName {
     fn is_valid_start(c: char) -> bool {

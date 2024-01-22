@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Implementation of cookie storage as specified in
-//! http://tools.ietf.org/html/rfc6265
+//! <http://tools.ietf.org/html/rfc6265>
 
 use std::cmp::Ordering;
 use std::collections::hash_map::Entry;

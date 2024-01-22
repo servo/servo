@@ -4656,13 +4656,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetAttachedShaders(&self, program: &WebGLProgram) -> Option<Vec<DomRoot<WebGLShader>>> {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         handle_potential_webgl_error!(self, program.attached_shaders().map(Some), None)
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-webglrenderingcontextbase-makexrcompatible
+    /// <https://immersive-web.github.io/webxr/#dom-webglrenderingcontextbase-makexrcompatible>
     fn MakeXRCompatible(&self) -> Rc<Promise> {
         // XXXManishearth Fill in with compatibility checks when rust-webxr supports this
         let p = Promise::new(&self.global());

@@ -120,7 +120,7 @@ pub struct Opts {
 
     /// Whether or not to completely ignore SSL certificate validation errors.
     /// TODO: We should see if we can eliminate the need for this by fixing
-    /// https://github.com/servo/servo/issues/30080.
+    /// <https://github.com/servo/servo/issues/30080>.
     pub ignore_certificate_errors: bool,
 
     /// Unminify Javascript.

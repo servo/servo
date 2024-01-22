@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Trait representing the concept of [serializable objects]
-//! (https://html.spec.whatwg.org/multipage/#serializable-objects).
+//! (<https://html.spec.whatwg.org/multipage/#serializable-objects>).
 
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::structuredclone::StructuredDataHolder;

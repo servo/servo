@@ -82,7 +82,7 @@ pub struct XRSession {
     // Any promises from calling end()
     #[ignore_malloc_size_of = "promises are hard"]
     end_promises: DomRefCell<Vec<Rc<Promise>>>,
-    /// https://immersive-web.github.io/webxr/#ended
+    /// <https://immersive-web.github.io/webxr/#ended>
     ended: Cell<bool>,
     #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
@@ -90,7 +90,7 @@ pub struct XRSession {
     #[ignore_malloc_size_of = "defined in webxr"]
     pending_hit_test_promises: DomRefCell<HashMapTracedValues<HitTestId, Rc<Promise>>>,
     /// Opaque framebuffers need to know the session is "outside of a requestAnimationFrame"
-    /// https://immersive-web.github.io/webxr/#opaque-framebuffer
+    /// <https://immersive-web.github.io/webxr/#opaque-framebuffer>
     outside_raf: Cell<bool>,
 }
 
@@ -362,7 +362,7 @@ impl XRSession {
         }
     }
 
-    /// https://immersive-web.github.io/webxr/#xr-animation-frame
+    /// <https://immersive-web.github.io/webxr/#xr-animation-frame>
     fn raf_callback(&self, mut frame: Frame) {
         debug!("WebXR RAF callback {:?}", frame);
         #[cfg(feature = "xr-profile")]
@@ -533,7 +533,7 @@ impl XRSession {
         });
     }
 
-    /// https://immersive-web.github.io/webxr/#xrframe-apply-frame-updates
+    /// <https://immersive-web.github.io/webxr/#xrframe-apply-frame-updates>
     fn apply_frame_updates(&self, _frame: &XRFrame) {
         // TODO: add a comment about why this is empty right now!
     }
@@ -596,7 +596,7 @@ impl XRSessionMethods for XRSession {
         self.active_render_state.get()
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-updaterenderstate
+    /// <https://immersive-web.github.io/webxr/#dom-xrsession-updaterenderstate>
     fn UpdateRenderState(&self, init: &XRRenderStateInit, _: InRealm) -> ErrorResult {
         // Step 2
         if self.ended.get() {
@@ -725,7 +725,7 @@ impl XRSessionMethods for XRSession {
         Ok(())
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe
+    /// <https://immersive-web.github.io/webxr/#dom-xrsession-requestanimationframe>
     fn RequestAnimationFrame(&self, callback: Rc<XRFrameRequestCallback>) -> i32 {
         // queue up RAF callback, obtain ID
         let raf_id = self.next_raf_id.get();
@@ -737,7 +737,7 @@ impl XRSessionMethods for XRSession {
         raf_id
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-cancelanimationframe
+    /// <https://immersive-web.github.io/webxr/#dom-xrsession-cancelanimationframe>
     fn CancelAnimationFrame(&self, frame: i32) {
         let mut list = self.raf_callback_list.borrow_mut();
         if let Some(pair) = list.iter_mut().find(|pair| pair.0 == frame) {
@@ -750,17 +750,17 @@ impl XRSessionMethods for XRSession {
         }
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-environmentblendmode
+    /// <https://immersive-web.github.io/webxr/#dom-xrsession-environmentblendmode>
     fn EnvironmentBlendMode(&self) -> XREnvironmentBlendMode {
         self.blend_mode
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-visibilitystate
+    /// <https://immersive-web.github.io/webxr/#dom-xrsession-visibilitystate>
     fn VisibilityState(&self) -> XRVisibilityState {
         self.visibility_state.get()
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-requestreferencespace
+    /// <https://immersive-web.github.io/webxr/#dom-xrsession-requestreferencespace>
     fn RequestReferenceSpace(&self, ty: XRReferenceSpaceType, comp: InRealm) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp);
 
@@ -797,12 +797,12 @@ impl XRSessionMethods for XRSession {
         p
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-inputsources
+    /// <https://immersive-web.github.io/webxr/#dom-xrsession-inputsources>
     fn InputSources(&self) -> DomRoot<XRInputSourceArray> {
         DomRoot::from_ref(&*self.input_sources)
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrsession-end
+    /// <https://immersive-web.github.io/webxr/#dom-xrsession-end>
     fn End(&self) -> Rc<Promise> {
         let global = self.global();
         let p = Promise::new(&global);

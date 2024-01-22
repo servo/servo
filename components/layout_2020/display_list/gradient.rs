@@ -55,7 +55,7 @@ pub(super) fn build(
     }
 }
 
-/// https://drafts.csswg.org/css-images-3/#linear-gradients
+/// <https://drafts.csswg.org/css-images-3/#linear-gradients>
 pub(super) fn build_linear(
     style: &ComputedValues,
     items: &[GradientItem<Color, LengthPercentage>],
@@ -155,7 +155,7 @@ pub(super) fn build_linear(
     )
 }
 
-/// https://drafts.csswg.org/css-images-3/#radial-gradients
+/// <https://drafts.csswg.org/css-images-3/#radial-gradients>
 pub(super) fn build_radial(
     style: &ComputedValues,
     items: &[GradientItem<Color, LengthPercentage>],
@@ -255,7 +255,7 @@ pub(super) fn build_radial(
     )
 }
 
-/// https://drafts.csswg.org/css-images-4/#color-stop-fixup
+/// <https://drafts.csswg.org/css-images-4/#color-stop-fixup>
 fn fixup_stops(
     style: &ComputedValues,
     items: &[GradientItem<Color, LengthPercentage>],

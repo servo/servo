@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Trait representing the concept of [transferable objects]
-//! (https://html.spec.whatwg.org/multipage/#transferable-objects).
+//! (<https://html.spec.whatwg.org/multipage/#transferable-objects>).
 
 use js::jsapi::MutableHandleObject;
 

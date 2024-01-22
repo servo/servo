@@ -135,7 +135,7 @@ impl Drop for GPUBuffer {
 
 impl GPUBufferMethods for GPUBuffer {
     #[allow(unsafe_code)]
-    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self) -> Fallible<()> {
         let cx = GlobalScope::get_cx();
         // Step 1
@@ -181,7 +181,7 @@ impl GPUBufferMethods for GPUBuffer {
         Ok(())
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy>
     fn Destroy(&self) -> Fallible<()> {
         let state = self.state.get();
         match state {
@@ -206,7 +206,7 @@ impl GPUBufferMethods for GPUBuffer {
     }
 
     #[allow(unsafe_code)]
-    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync-offset-size
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync-offset-size>
     fn MapAsync(
         &self,
         mode: u32,
@@ -278,7 +278,7 @@ impl GPUBufferMethods for GPUBuffer {
         promise
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange>
     #[allow(unsafe_code)]
     fn GetMappedRange(
         &self,
@@ -333,12 +333,12 @@ impl GPUBufferMethods for GPUBuffer {
         Ok(NonNull::new(array_buffer).unwrap())
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }

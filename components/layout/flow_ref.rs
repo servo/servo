@@ -5,8 +5,8 @@
 //! Reference-counted pointers to flows.
 //!
 //! Eventually, with dynamically sized types in Rust, much of this code will
-//! be superfluous. This design is largely duplicating logic of Arc<T> and
-//! Weak<T>; please see comments there for details.
+//! be superfluous. This design is largely duplicating logic of `Arc<T>` and
+//! `Weak<T>`; please see comments there for details.
 
 use std::ops::Deref;
 use std::sync::{Arc, Weak};
@@ -25,7 +25,7 @@ impl Deref for FlowRef {
 
 impl FlowRef {
     /// `FlowRef`s can only be made available to the traversal code.
-    /// See https://github.com/servo/servo/issues/14014 for more details.
+    /// See <https://github.com/servo/servo/issues/14014> for more details.
     pub fn new(mut r: Arc<dyn Flow>) -> Self {
         // This assertion checks that this `FlowRef` does not alias normal `Arc`s.
         // If that happens, we're in trouble.
@@ -46,7 +46,7 @@ impl FlowRef {
     }
     /// WARNING: This should only be used when there is no aliasing:
     /// when the traversal ensures that no other threads accesses the same flow at the same time.
-    /// See https://github.com/servo/servo/issues/6503
+    /// See <https://github.com/servo/servo/issues/6503>.
     /// Use Arc::get_mut instead when possible (e.g. on an Arc that was just created).
     #[allow(unsafe_code)]
     pub fn deref_mut(this: &mut FlowRef) -> &mut dyn Flow {

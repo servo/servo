@@ -47,7 +47,7 @@ pub struct Response {
     url: DomRefCell<Option<ServoUrl>>,
     #[no_trace]
     url_list: DomRefCell<Vec<ServoUrl>>,
-    /// The stream of https://fetch.spec.whatwg.org/#body.
+    /// The stream of <https://fetch.spec.whatwg.org/#body>.
     body_stream: MutNullableDom<ReadableStream>,
     #[ignore_malloc_size_of = "StreamConsumer"]
     stream_consumer: DomRefCell<Option<StreamConsumer>>,

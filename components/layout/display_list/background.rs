@@ -40,7 +40,7 @@ pub struct BackgroundPlacement {
 /// Obviously it does not work with empty arrays.
 ///
 /// This is used for multiple layered background images.
-/// See: https://drafts.csswg.org/css-backgrounds-3/#layering
+/// See: <https://drafts.csswg.org/css-backgrounds-3/#layering>
 pub fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
     &arr[index % arr.len()]
 }

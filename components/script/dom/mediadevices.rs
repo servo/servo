@@ -44,7 +44,7 @@ impl MediaDevices {
 }
 
 impl MediaDevicesMethods for MediaDevices {
-    /// https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia>
     #[allow(unsafe_code)]
     fn GetUserMedia(&self, constraints: &MediaStreamConstraints, comp: InRealm) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp);
@@ -67,7 +67,7 @@ impl MediaDevicesMethods for MediaDevices {
         p
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices>
     fn EnumerateDevices(&self) -> Rc<Promise> {
         // Step 1.
         let in_realm_proof = AlreadyInRealm::assert();

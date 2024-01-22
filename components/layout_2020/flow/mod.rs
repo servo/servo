@@ -622,8 +622,8 @@ impl BlockLevelBox {
 /// Lay out a normal flow non-replaced block that does not establish a new formatting
 /// context.
 ///
-/// - https://drafts.csswg.org/css2/visudet.html#blockwidth
-/// - https://drafts.csswg.org/css2/visudet.html#normal-block
+/// - <https://drafts.csswg.org/css2/visudet.html#blockwidth>
+/// - <https://drafts.csswg.org/css2/visudet.html#normal-block>
 fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
@@ -826,8 +826,8 @@ impl NonReplacedFormattingContext {
     /// Lay out a normal in flow non-replaced block that establishes an independent
     /// formatting context in its containing formatting context.
     ///
-    /// - https://drafts.csswg.org/css2/visudet.html#blockwidth
-    /// - https://drafts.csswg.org/css2/visudet.html#normal-block
+    /// - <https://drafts.csswg.org/css2/visudet.html#blockwidth>
+    /// - <https://drafts.csswg.org/css2/visudet.html#normal-block>
     fn layout_in_flow_block_level(
         &self,
         layout_context: &LayoutContext,
@@ -1119,9 +1119,9 @@ impl NonReplacedFormattingContext {
     }
 }
 
-/// https://drafts.csswg.org/css2/visudet.html#block-replaced-width
-/// https://drafts.csswg.org/css2/visudet.html#inline-replaced-width
-/// https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
+/// <https://drafts.csswg.org/css2/visudet.html#block-replaced-width>
+/// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
+/// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-height>
 fn layout_in_flow_replaced_block_level<'a>(
     containing_block: &ContainingBlock,
     base_fragment_info: BaseFragmentInfo,

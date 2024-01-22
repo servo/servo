@@ -35,22 +35,22 @@ impl GPUAdapterInfo {
 
 // TODO: wgpu does not expose right fields right now
 impl GPUAdapterInfoMethods for GPUAdapterInfo {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-vendor
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-vendor>
     fn Vendor(&self) -> DOMString {
         DOMString::new()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-architecture
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-architecture>
     fn Architecture(&self) -> DOMString {
         DOMString::new()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-device
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-device>
     fn Device(&self) -> DOMString {
         DOMString::new()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-description
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-description>
     fn Description(&self) -> DOMString {
         DOMString::from_string(self.info.driver_info.clone())
     }

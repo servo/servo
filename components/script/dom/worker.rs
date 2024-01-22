@@ -204,7 +204,7 @@ impl Worker {
         worker.upcast().fire_event(atom!("error"));
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
+    /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
     fn post_message_impl(
         &self,
         cx: JSContext,
@@ -228,7 +228,7 @@ impl Worker {
 }
 
 impl WorkerMethods for Worker {
-    /// https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
+    /// <https://html.spec.whatwg.org/multipage/#dom-worker-postmessage>
     fn PostMessage(
         &self,
         cx: JSContext,
@@ -238,7 +238,7 @@ impl WorkerMethods for Worker {
         self.post_message_impl(cx, message, transfer)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
+    /// <https://html.spec.whatwg.org/multipage/#dom-worker-postmessage>
     fn PostMessage_(
         &self,
         cx: JSContext,

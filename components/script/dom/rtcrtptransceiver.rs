@@ -40,17 +40,17 @@ impl RTCRtpTransceiver {
 }
 
 impl RTCRtpTransceiverMethods for RTCRtpTransceiver {
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-direction
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-direction>
     fn Direction(&self) -> RTCRtpTransceiverDirection {
         self.direction.get()
     }
 
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-direction
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-direction>
     fn SetDirection(&self, direction: RTCRtpTransceiverDirection) {
         self.direction.set(direction);
     }
 
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-sender
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-sender>
     fn Sender(&self) -> DomRoot<RTCRtpSender> {
         DomRoot::from_ref(&*self.sender)
     }

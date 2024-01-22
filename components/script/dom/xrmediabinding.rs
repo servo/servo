@@ -65,7 +65,7 @@ impl XRMediaBinding {
 }
 
 impl XRMediaBindingMethods for XRMediaBinding {
-    /// https://immersive-web.github.io/layers/#dom-xrmediabinding-createquadlayer
+    /// <https://immersive-web.github.io/layers/#dom-xrmediabinding-createquadlayer>
     fn CreateQuadLayer(
         &self,
         _: &HTMLVideoElement,
@@ -75,7 +75,7 @@ impl XRMediaBindingMethods for XRMediaBinding {
         Err(Error::NotSupported)
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrmediabinding-createcylinderlayer
+    /// <https://immersive-web.github.io/layers/#dom-xrmediabinding-createcylinderlayer>
     fn CreateCylinderLayer(
         &self,
         _: &HTMLVideoElement,
@@ -85,7 +85,7 @@ impl XRMediaBindingMethods for XRMediaBinding {
         Err(Error::NotSupported)
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrmediabinding-createequirectlayer
+    /// <https://immersive-web.github.io/layers/#dom-xrmediabinding-createequirectlayer>
     fn CreateEquirectLayer(
         &self,
         _: &HTMLVideoElement,

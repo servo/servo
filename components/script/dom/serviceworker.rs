@@ -89,7 +89,7 @@ impl ServiceWorker {
         ServoUrl::parse(&self.script_url.borrow().clone()).unwrap()
     }
 
-    /// https://w3c.github.io/ServiceWorker/#service-worker-postmessage
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-postmessage>
     fn post_message_impl(
         &self,
         cx: JSContext,
@@ -129,7 +129,7 @@ impl ServiceWorkerMethods for ServiceWorker {
         USVString(self.script_url.borrow().clone())
     }
 
-    /// https://w3c.github.io/ServiceWorker/#service-worker-postmessage
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-postmessage>
     fn PostMessage(
         &self,
         cx: JSContext,
@@ -139,7 +139,7 @@ impl ServiceWorkerMethods for ServiceWorker {
         self.post_message_impl(cx, message, transfer)
     }
 
-    /// https://w3c.github.io/ServiceWorker/#service-worker-postmessage
+    /// <https://w3c.github.io/ServiceWorker/#service-worker-postmessage>
     fn PostMessage_(
         &self,
         cx: JSContext,

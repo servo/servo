@@ -38,7 +38,7 @@ impl FlexContainer {
     }
 }
 
-/// https://drafts.csswg.org/css-flexbox/#flex-items
+/// <https://drafts.csswg.org/css-flexbox/#flex-items>
 struct FlexContainerBuilder<'a, 'dom, Node> {
     context: &'a LayoutContext<'a>,
     info: &'a NodeAndStyleInfo<Node>,
@@ -98,7 +98,7 @@ where
     }
 }
 
-/// https://drafts.csswg.org/css-text/#white-space
+/// <https://drafts.csswg.org/css-text/#white-space>
 fn is_only_document_white_space<Node>(run: &TextRun<'_, Node>) -> bool {
     // FIXME: is this the right definition? See
     // https://github.com/w3c/csswg-drafts/issues/5146

@@ -42,7 +42,7 @@ impl GPUValidationError {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuvalidationerror-gpuvalidationerror
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuvalidationerror-gpuvalidationerror>
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
@@ -54,7 +54,7 @@ impl GPUValidationError {
 }
 
 impl GPUValidationErrorMethods for GPUValidationError {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuvalidationerror-message
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuvalidationerror-message>
     fn Message(&self) -> DOMString {
         self.message.clone()
     }

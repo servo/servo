@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! https://drafts.csswg.org/css-sizing/
+//! <https://drafts.csswg.org/css-sizing/>
 
 use serde::Serialize;
 use style::logical_geometry::WritingMode;
@@ -19,7 +19,7 @@ pub(crate) struct ContentSizes {
     pub max_content: Length,
 }
 
-/// https://drafts.csswg.org/css-sizing/#intrinsic-sizes
+/// <https://drafts.csswg.org/css-sizing/#intrinsic-sizes>
 impl ContentSizes {
     pub fn zero() -> Self {
         Self {
@@ -51,7 +51,7 @@ impl ContentSizes {
 }
 
 impl ContentSizes {
-    /// https://drafts.csswg.org/css2/visudet.html#shrink-to-fit-float
+    /// <https://drafts.csswg.org/css2/visudet.html#shrink-to-fit-float>
     pub fn shrink_to_fit(&self, available_size: Length) -> Length {
         available_size.max(self.min_content).min(self.max_content)
     }

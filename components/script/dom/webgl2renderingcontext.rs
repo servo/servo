@@ -899,32 +899,32 @@ impl WebGL2RenderingContext {
 }
 
 impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1>
     fn Canvas(&self) -> DomRoot<HTMLCanvasElement> {
         self.base.Canvas()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn Flush(&self) {
         self.base.Flush()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn Finish(&self) {
         self.base.Finish()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1>
     fn DrawingBufferWidth(&self) -> i32 {
         self.base.DrawingBufferWidth()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1>
     fn DrawingBufferHeight(&self) -> i32 {
         self.base.DrawingBufferHeight()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn GetBufferParameter(&self, _cx: JSContext, target: u32, parameter: u32) -> JSVal {
         let buffer =
             handle_potential_webgl_error!(self.base, self.bound_buffer(target), return NullValue());
@@ -932,7 +932,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     #[allow(unsafe_code)]
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn GetParameter(&self, cx: JSContext, parameter: u32) -> JSVal {
         match parameter {
             constants::VERSION => unsafe {
@@ -1109,17 +1109,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetParameter(cx, parameter)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn GetTexParameter(&self, cx: JSContext, target: u32, pname: u32) -> JSVal {
         self.base.GetTexParameter(cx, target, pname)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn GetError(&self) -> u32 {
         self.base.GetError()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.2
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.2>
     fn GetContextAttributes(&self) -> Option<WebGLContextAttributes> {
         self.base.GetContextAttributes()
     }
@@ -1129,17 +1129,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.IsContextLost()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14>
     fn GetSupportedExtensions(&self) -> Option<Vec<DOMString>> {
         self.base.GetSupportedExtensions()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14>
     fn GetExtension(&self, cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
         self.base.GetExtension(cx, name)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4>
     fn GetFramebufferAttachmentParameter(
         &self,
         cx: JSContext,
@@ -1176,58 +1176,58 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn GetRenderbufferParameter(&self, cx: JSContext, target: u32, pname: u32) -> JSVal {
         self.base.GetRenderbufferParameter(cx, target, pname)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn ActiveTexture(&self, texture: u32) {
         self.base.ActiveTexture(texture)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendColor(&self, r: f32, g: f32, b: f32, a: f32) {
         self.base.BlendColor(r, g, b, a)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendEquation(&self, mode: u32) {
         self.base.BlendEquation(mode)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendEquationSeparate(&self, mode_rgb: u32, mode_alpha: u32) {
         self.base.BlendEquationSeparate(mode_rgb, mode_alpha)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendFunc(&self, src_factor: u32, dest_factor: u32) {
         self.base.BlendFunc(src_factor, dest_factor)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendFuncSeparate(&self, src_rgb: u32, dest_rgb: u32, src_alpha: u32, dest_alpha: u32) {
         self.base
             .BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn AttachShader(&self, program: &WebGLProgram, shader: &WebGLShader) {
         self.base.AttachShader(program, shader)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn DetachShader(&self, program: &WebGLProgram, shader: &WebGLShader) {
         self.base.DetachShader(program, shader)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn BindAttribLocation(&self, program: &WebGLProgram, index: u32, name: DOMString) {
         self.base.BindAttribLocation(program, index, name)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2>
     fn BindBuffer(&self, target: u32, buffer: Option<&WebGLBuffer>) {
         let current_vao;
         let slot = match target {
@@ -1246,7 +1246,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.bind_buffer_maybe(&slot, target, buffer);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn BindFramebuffer(&self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
         handle_potential_webgl_error!(
             self.base,
@@ -1276,22 +1276,22 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn BindRenderbuffer(&self, target: u32, renderbuffer: Option<&WebGLRenderbuffer>) {
         self.base.BindRenderbuffer(target, renderbuffer)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn BindTexture(&self, target: u32, texture: Option<&WebGLTexture>) {
         self.base.BindTexture(target, texture)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn GenerateMipmap(&self, target: u32) {
         self.base.GenerateMipmap(target)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn BufferData_(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
         let usage = handle_potential_webgl_error!(self.base, self.buffer_usage(usage), return);
         let bound_buffer =
@@ -1299,7 +1299,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.buffer_data(target, data, usage, bound_buffer)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn BufferData(&self, target: u32, size: i64, usage: u32) {
         let usage = handle_potential_webgl_error!(self.base, self.buffer_usage(usage), return);
         let bound_buffer =
@@ -1307,7 +1307,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.buffer_data_(target, size, usage, bound_buffer)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3>
     #[allow(unsafe_code)]
     fn BufferData__(
         &self,
@@ -1351,7 +1351,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         handle_potential_webgl_error!(self.base, bound_buffer.buffer_data(target, &data, usage));
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
         let bound_buffer =
             handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
@@ -1359,7 +1359,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .buffer_sub_data(target, offset, data, bound_buffer)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3>
     #[allow(unsafe_code)]
     fn BufferSubData_(
         &self,
@@ -1411,7 +1411,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         sender.send(data).unwrap();
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3>
     fn CopyBufferSubData(
         &self,
         read_target: u32,
@@ -1467,7 +1467,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         ));
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3>
     #[allow(unsafe_code)]
     fn GetBufferSubData(
         &self,
@@ -1524,7 +1524,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6>
     #[allow(unsafe_code)]
     fn CompressedTexImage2D(
         &self,
@@ -1559,7 +1559,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     #[allow(unsafe_code)]
     fn CompressedTexSubImage2D(
         &self,
@@ -1589,7 +1589,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn CopyTexImage2D(
         &self,
         target: u32,
@@ -1605,7 +1605,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .CopyTexImage2D(target, level, internal_format, x, y, width, height, border)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn CopyTexSubImage2D(
         &self,
         target: u32,
@@ -1621,56 +1621,56 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .CopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn Clear(&self, mask: u32) {
         self.base.Clear(mask)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn ClearColor(&self, red: f32, green: f32, blue: f32, alpha: f32) {
         self.base.ClearColor(red, green, blue, alpha)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn ClearDepth(&self, depth: f32) {
         self.base.ClearDepth(depth)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn ClearStencil(&self, stencil: i32) {
         self.base.ClearStencil(stencil)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn ColorMask(&self, r: bool, g: bool, b: bool, a: bool) {
         self.base.ColorMask(r, g, b, a)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn CullFace(&self, mode: u32) {
         self.base.CullFace(mode)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn FrontFace(&self, mode: u32) {
         self.base.FrontFace(mode)
     }
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn DepthFunc(&self, func: u32) {
         self.base.DepthFunc(func)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn DepthMask(&self, flag: bool) {
         self.base.DepthMask(flag)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn DepthRange(&self, near: f32, far: f32) {
         self.base.DepthRange(near, far)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn Enable(&self, cap: u32) {
         match cap {
             constants::RASTERIZER_DISCARD => {
@@ -1681,7 +1681,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn Disable(&self, cap: u32) {
         match cap {
             constants::RASTERIZER_DISCARD => {
@@ -1692,47 +1692,47 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn CompileShader(&self, shader: &WebGLShader) {
         self.base.CompileShader(shader)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn CreateBuffer(&self) -> Option<DomRoot<WebGLBuffer>> {
         self.base.CreateBuffer()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn CreateFramebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
         self.base.CreateFramebuffer()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn CreateRenderbuffer(&self) -> Option<DomRoot<WebGLRenderbuffer>> {
         self.base.CreateRenderbuffer()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn CreateTexture(&self) -> Option<DomRoot<WebGLTexture>> {
         self.base.CreateTexture()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn CreateProgram(&self) -> Option<DomRoot<WebGLProgram>> {
         self.base.CreateProgram()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn CreateShader(&self, shader_type: u32) -> Option<DomRoot<WebGLShader>> {
         self.base.CreateShader(shader_type)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17>
     fn CreateVertexArray(&self) -> Option<DomRoot<WebGLVertexArrayObject>> {
         self.base.create_vertex_array_webgl2()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
         let buffer = match buffer {
             Some(buffer) => buffer,
@@ -1761,61 +1761,61 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         buffer.mark_for_deletion(Operation::Infallible);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn DeleteFramebuffer(&self, framebuffer: Option<&WebGLFramebuffer>) {
         self.base.DeleteFramebuffer(framebuffer)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         self.base.DeleteRenderbuffer(renderbuffer)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn DeleteTexture(&self, texture: Option<&WebGLTexture>) {
         self.base.DeleteTexture(texture)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn DeleteProgram(&self, program: Option<&WebGLProgram>) {
         self.base.DeleteProgram(program)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn DeleteShader(&self, shader: Option<&WebGLShader>) {
         self.base.DeleteShader(shader)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17>
     fn DeleteVertexArray(&self, vertex_array: Option<&WebGLVertexArrayObject>) {
         self.base.delete_vertex_array_webgl2(vertex_array);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn DrawArrays(&self, mode: u32, first: i32, count: i32) {
         self.validate_uniform_block_for_draw();
         self.validate_vertex_attribs_for_draw();
         self.base.DrawArrays(mode, first, count)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11>
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
         self.validate_uniform_block_for_draw();
         self.validate_vertex_attribs_for_draw();
         self.base.DrawElements(mode, count, type_, offset)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn EnableVertexAttribArray(&self, attrib_id: u32) {
         self.base.EnableVertexAttribArray(attrib_id)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn DisableVertexAttribArray(&self, attrib_id: u32) {
         self.base.DisableVertexAttribArray(attrib_id)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetActiveUniform(
         &self,
         program: &WebGLProgram,
@@ -1824,7 +1824,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetActiveUniform(program, index)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetActiveAttrib(
         &self,
         program: &WebGLProgram,
@@ -1833,23 +1833,23 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetActiveAttrib(program, index)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetAttribLocation(&self, program: &WebGLProgram, name: DOMString) -> i32 {
         self.base.GetAttribLocation(program, name)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.7>
     fn GetFragDataLocation(&self, program: &WebGLProgram, name: DOMString) -> i32 {
         handle_potential_webgl_error!(self.base, self.base.validate_ownership(program), return -1);
         handle_potential_webgl_error!(self.base, program.get_frag_data_location(name), -1)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetProgramInfoLog(&self, program: &WebGLProgram) -> Option<DOMString> {
         self.base.GetProgramInfoLog(program)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetProgramParameter(&self, cx: JSContext, program: &WebGLProgram, param_id: u32) -> JSVal {
         handle_potential_webgl_error!(
             self.base,
@@ -1871,17 +1871,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetShaderInfoLog(&self, shader: &WebGLShader) -> Option<DOMString> {
         self.base.GetShaderInfoLog(shader)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetShaderParameter(&self, cx: JSContext, shader: &WebGLShader, param_id: u32) -> JSVal {
         self.base.GetShaderParameter(cx, shader, param_id)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetShaderPrecisionFormat(
         &self,
         shader_type: u32,
@@ -1891,7 +1891,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .GetShaderPrecisionFormat(shader_type, precision_type)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2>
     #[allow(unsafe_code)]
     fn GetIndexedParameter(&self, cx: JSContext, target: u32, index: u32) -> JSVal {
         let bindings = match target {
@@ -1931,7 +1931,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetUniformLocation(
         &self,
         program: &WebGLProgram,
@@ -1940,28 +1940,28 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetUniformLocation(program, name)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetVertexAttrib(&self, cx: JSContext, index: u32, pname: u32) -> JSVal {
         self.base.GetVertexAttrib(cx, index, pname)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn GetVertexAttribOffset(&self, index: u32, pname: u32) -> i64 {
         self.base.GetVertexAttribOffset(index, pname)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn Hint(&self, target: u32, mode: u32) {
         self.base.Hint(target, mode)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn IsBuffer(&self, buffer: Option<&WebGLBuffer>) -> bool {
         self.base.IsBuffer(buffer)
     }
 
     // TODO: We could write this without IPC, recording the calls to `enable` and `disable`.
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2>
     fn IsEnabled(&self, cap: u32) -> bool {
         match cap {
             constants::RASTERIZER_DISCARD => self.enable_rasterizer_discard.get(),
@@ -1969,42 +1969,42 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn IsFramebuffer(&self, frame_buffer: Option<&WebGLFramebuffer>) -> bool {
         self.base.IsFramebuffer(frame_buffer)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn IsProgram(&self, program: Option<&WebGLProgram>) -> bool {
         self.base.IsProgram(program)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn IsRenderbuffer(&self, render_buffer: Option<&WebGLRenderbuffer>) -> bool {
         self.base.IsRenderbuffer(render_buffer)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn IsShader(&self, shader: Option<&WebGLShader>) -> bool {
         self.base.IsShader(shader)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn IsTexture(&self, texture: Option<&WebGLTexture>) -> bool {
         self.base.IsTexture(texture)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17>
     fn IsVertexArray(&self, vertex_array: Option<&WebGLVertexArrayObject>) -> bool {
         self.base.is_vertex_array_webgl2(vertex_array)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn LineWidth(&self, width: f32) {
         self.base.LineWidth(width)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.2>
     fn PixelStorei(&self, param_name: u32, param_value: i32) {
         if param_value < 0 {
             return self.base.webgl_error(InvalidValue);
@@ -2018,12 +2018,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn PolygonOffset(&self, factor: f32, units: f32) {
         self.base.PolygonOffset(factor, units)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12>
     fn ReadPixels(
         &self,
         x: i32,
@@ -2040,7 +2040,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.read_pixels_into(x, y, width, height, format, pixel_type, pixels, 0)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.10>
     fn ReadPixels_(
         &self,
         x: i32,
@@ -2131,7 +2131,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         ));
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.10>
     #[allow(unsafe_code)]
     fn ReadPixels__(
         &self,
@@ -2156,72 +2156,72 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn SampleCoverage(&self, value: f32, invert: bool) {
         self.base.SampleCoverage(value, invert)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4>
     fn Scissor(&self, x: i32, y: i32, width: i32, height: i32) {
         self.base.Scissor(x, y, width, height)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilFunc(&self, func: u32, ref_: i32, mask: u32) {
         self.base.StencilFunc(func, ref_, mask)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilFuncSeparate(&self, face: u32, func: u32, ref_: i32, mask: u32) {
         self.base.StencilFuncSeparate(face, func, ref_, mask)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilMask(&self, mask: u32) {
         self.base.StencilMask(mask)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilMaskSeparate(&self, face: u32, mask: u32) {
         self.base.StencilMaskSeparate(face, mask)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilOp(&self, fail: u32, zfail: u32, zpass: u32) {
         self.base.StencilOp(fail, zfail, zpass)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn StencilOpSeparate(&self, face: u32, fail: u32, zfail: u32, zpass: u32) {
         self.base.StencilOpSeparate(face, fail, zfail, zpass)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn LinkProgram(&self, program: &WebGLProgram) {
         self.base.LinkProgram(program)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn ShaderSource(&self, shader: &WebGLShader, source: DOMString) {
         self.base.ShaderSource(shader, source)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetShaderSource(&self, shader: &WebGLShader) -> Option<DOMString> {
         self.base.GetShaderSource(shader)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform1f(&self, location: Option<&WebGLUniformLocation>, val: f32) {
         self.base.Uniform1f(location, val)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform1i(&self, location: Option<&WebGLUniformLocation>, val: i32) {
         self.base.Uniform1i(location, val)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform1iv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2283,7 +2283,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         });
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform1fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2294,12 +2294,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.uniform1fv(location, v, src_offset, src_length);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform2f(&self, location: Option<&WebGLUniformLocation>, x: f32, y: f32) {
         self.base.Uniform2f(location, x, y)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform2fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2310,12 +2310,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.uniform2fv(location, v, src_offset, src_length);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform2i(&self, location: Option<&WebGLUniformLocation>, x: i32, y: i32) {
         self.base.Uniform2i(location, x, y)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform2iv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2359,12 +2359,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         });
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform3f(&self, location: Option<&WebGLUniformLocation>, x: f32, y: f32, z: f32) {
         self.base.Uniform3f(location, x, y, z)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform3fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2375,12 +2375,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.uniform3fv(location, v, src_offset, src_length);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform3i(&self, location: Option<&WebGLUniformLocation>, x: i32, y: i32, z: i32) {
         self.base.Uniform3i(location, x, y, z)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform3iv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2424,12 +2424,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         });
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform4i(&self, location: Option<&WebGLUniformLocation>, x: i32, y: i32, z: i32, w: i32) {
         self.base.Uniform4i(location, x, y, z, w)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform4iv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2473,12 +2473,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         });
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform4f(&self, location: Option<&WebGLUniformLocation>, x: f32, y: f32, z: f32, w: f32) {
         self.base.Uniform4f(location, x, y, z, w)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform4fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2489,7 +2489,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.uniform4fv(location, v, src_offset, src_length);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn UniformMatrix2fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2502,7 +2502,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .uniform_matrix_2fv(location, transpose, v, src_offset, src_length)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn UniformMatrix3fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2515,7 +2515,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .uniform_matrix_3fv(location, transpose, v, src_offset, src_length)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn UniformMatrix4fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2528,7 +2528,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .uniform_matrix_4fv(location, transpose, v, src_offset, src_length)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn UniformMatrix3x2fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2556,7 +2556,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         });
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn UniformMatrix4x2fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2584,7 +2584,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         });
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn UniformMatrix2x3fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2612,7 +2612,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         });
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn UniformMatrix4x3fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2640,7 +2640,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         });
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn UniformMatrix2x4fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2668,7 +2668,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         });
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn UniformMatrix3x4fv(
         &self,
         location: Option<&WebGLUniformLocation>,
@@ -2696,7 +2696,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         });
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     #[allow(unsafe_code)]
     fn GetUniform(
         &self,
@@ -2768,62 +2768,62 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         self.base.UseProgram(program)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn ValidateProgram(&self, program: &WebGLProgram) {
         self.base.ValidateProgram(program)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib1f(&self, indx: u32, x: f32) {
         self.base.VertexAttrib1f(indx, x)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib1fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
         self.base.VertexAttrib1fv(indx, v)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib2f(&self, indx: u32, x: f32, y: f32) {
         self.base.VertexAttrib2f(indx, x, y)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib2fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
         self.base.VertexAttrib2fv(indx, v)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib3f(&self, indx: u32, x: f32, y: f32, z: f32) {
         self.base.VertexAttrib3f(indx, x, y, z)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib3fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
         self.base.VertexAttrib3fv(indx, v)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib4f(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
         self.base.VertexAttrib4f(indx, x, y, z, w)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib4fv(&self, indx: u32, v: Float32ArrayOrUnrestrictedFloatSequence) {
         self.base.VertexAttrib4fv(indx, v)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn VertexAttribI4i(&self, index: u32, x: i32, y: i32, z: i32, w: i32) {
         self.vertex_attrib_i(index, x, y, z, w)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn VertexAttribI4iv(&self, index: u32, v: Int32ArrayOrLongSequence) {
         let values = match v {
             Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
@@ -2835,12 +2835,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.vertex_attrib_i(index, values[0], values[1], values[2], values[3]);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn VertexAttribI4ui(&self, index: u32, x: u32, y: u32, z: u32, w: u32) {
         self.vertex_attrib_u(index, x, y, z, w)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn VertexAttribI4uiv(&self, index: u32, v: Uint32ArrayOrUnsignedLongSequence) {
         let values = match v {
             Uint32ArrayOrUnsignedLongSequence::Uint32Array(v) => v.to_vec(),
@@ -2852,7 +2852,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.vertex_attrib_u(index, values[0], values[1], values[2], values[3]);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttribPointer(
         &self,
         attrib_id: u32,
@@ -2866,7 +2866,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8>
     fn VertexAttribIPointer(&self, index: u32, size: i32, type_: u32, stride: i32, offset: i64) {
         match type_ {
             constants::BYTE |
@@ -2881,12 +2881,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .VertexAttribPointer(index, size, type_, false, stride, offset)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4>
     fn Viewport(&self, x: i32, y: i32, width: i32, height: i32) {
         self.base.Viewport(x, y, width, height)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexImage2D(
         &self,
         target: u32,
@@ -2912,7 +2912,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexImage2D_(
         &self,
         target: u32,
@@ -2926,7 +2926,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .TexImage2D_(target, level, internal_format, format, data_type, source)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6>
     fn TexImage2D__(
         &self,
         target: u32,
@@ -2999,7 +2999,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         Ok(())
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6>
     fn TexImage2D___(
         &self,
         target: u32,
@@ -3066,7 +3066,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         Ok(())
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6>
     #[allow(unsafe_code)]
     fn TexImage2D____(
         &self,
@@ -3163,7 +3163,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         Ok(())
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexSubImage2D(
         &self,
         target: u32,
@@ -3181,7 +3181,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexSubImage2D_(
         &self,
         target: u32,
@@ -3196,17 +3196,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .TexSubImage2D_(target, level, xoffset, yoffset, format, data_type, source)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexParameterf(&self, target: u32, name: u32, value: f32) {
         self.base.TexParameterf(target, name, value)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexParameteri(&self, target: u32, name: u32, value: i32) {
         self.base.TexParameteri(target, name, value)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn CheckFramebufferStatus(&self, target: u32) -> u32 {
         let fb_slot = match target {
             constants::FRAMEBUFFER | constants::DRAW_FRAMEBUFFER => {
@@ -3224,13 +3224,13 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn RenderbufferStorage(&self, target: u32, internal_format: u32, width: i32, height: i32) {
         self.base
             .RenderbufferStorage(target, internal_format, width, height)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn FramebufferRenderbuffer(
         &self,
         target: u32,
@@ -3272,7 +3272,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         };
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn FramebufferTexture2D(
         &self,
         target: u32,
@@ -3301,12 +3301,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn GetAttachedShaders(&self, program: &WebGLProgram) -> Option<Vec<DomRoot<WebGLShader>>> {
         self.base.GetAttachedShaders(program)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9>
     fn DrawArraysInstanced(&self, mode: u32, first: i32, count: i32, primcount: i32) {
         self.validate_uniform_block_for_draw();
         self.validate_vertex_attribs_for_draw();
@@ -3317,7 +3317,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9>
     fn DrawElementsInstanced(
         &self,
         mode: u32,
@@ -3335,7 +3335,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9>
     fn DrawRangeElements(
         &self,
         mode: u32,
@@ -3358,17 +3358,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9>
     fn VertexAttribDivisor(&self, index: u32, divisor: u32) {
         self.base.vertex_attrib_divisor(index, divisor);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
     fn CreateQuery(&self) -> Option<DomRoot<WebGLQuery>> {
         Some(WebGLQuery::new(&self.base))
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn DeleteQuery(&self, query: Option<&WebGLQuery>) {
         if let Some(query) = query {
@@ -3396,7 +3396,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
     fn IsQuery(&self, query: Option<&WebGLQuery>) -> bool {
         match query {
             Some(query) => self.base.validate_ownership(query).is_ok() && query.is_valid(),
@@ -3404,12 +3404,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
     fn CreateSampler(&self) -> Option<DomRoot<WebGLSampler>> {
         Some(WebGLSampler::new(&self.base))
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
     fn DeleteSampler(&self, sampler: Option<&WebGLSampler>) {
         if let Some(sampler) = sampler {
             handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
@@ -3422,7 +3422,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
     fn IsSampler(&self, sampler: Option<&WebGLSampler>) -> bool {
         match sampler {
             Some(sampler) => self.base.validate_ownership(sampler).is_ok() && sampler.is_valid(),
@@ -3430,7 +3430,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn BeginQuery(&self, target: u32, query: &WebGLQuery) {
         handle_potential_webgl_error!(self.base, self.base.validate_ownership(query), return);
@@ -3459,7 +3459,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn EndQuery(&self, target: u32) {
         let active_query = match target {
@@ -3486,7 +3486,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn GetQuery(&self, target: u32, pname: u32) -> Option<DomRoot<WebGLQuery>> {
         if pname != constants::CURRENT_QUERY {
@@ -3514,7 +3514,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         active_query
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
     #[cfg_attr(rustfmt, rustfmt_skip)]
     fn GetQueryParameter(&self, _cx: JSContext, query: &WebGLQuery, pname: u32) -> JSVal {
         handle_potential_webgl_error!(
@@ -3535,7 +3535,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14>
     fn FenceSync(&self, condition: u32, flags: u32) -> Option<DomRoot<WebGLSync>> {
         if flags != 0 {
             self.base.webgl_error(InvalidValue);
@@ -3549,7 +3549,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         Some(WebGLSync::new(&self.base))
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14>
     fn IsSync(&self, sync: Option<&WebGLSync>) -> bool {
         match sync {
             Some(sync) => {
@@ -3570,7 +3570,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14>
     fn ClientWaitSync(&self, sync: &WebGLSync, flags: u32, timeout: u64) -> u32 {
         if !sync.is_valid() {
             self.base.webgl_error(InvalidOperation);
@@ -3596,7 +3596,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14>
     fn WaitSync(&self, sync: &WebGLSync, flags: u32, timeout: i64) {
         if !sync.is_valid() {
             self.base.webgl_error(InvalidOperation);
@@ -3616,7 +3616,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .send_command(WebGLCommand::WaitSync(sync.id(), flags, timeout));
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14>
     fn GetSyncParameter(&self, _cx: JSContext, sync: &WebGLSync, pname: u32) -> JSVal {
         if !sync.is_valid() {
             self.base.webgl_error(InvalidOperation);
@@ -3645,7 +3645,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.14>
     fn DeleteSync(&self, sync: Option<&WebGLSync>) {
         if let Some(sync) = sync {
             handle_potential_webgl_error!(self.base, self.base.validate_ownership(sync), return);
@@ -3653,7 +3653,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
     fn BindSampler(&self, unit: u32, sampler: Option<&WebGLSampler>) {
         if let Some(sampler) = sampler {
             handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
@@ -3671,12 +3671,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.17>
     fn BindVertexArray(&self, array: Option<&WebGLVertexArrayObject>) {
         self.base.bind_vertex_array_webgl2(array);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
     fn SamplerParameteri(&self, sampler: &WebGLSampler, pname: u32, param: i32) {
         handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
         let param = WebGLSamplerValue::GLenum(param as u32);
@@ -3686,7 +3686,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
     fn SamplerParameterf(&self, sampler: &WebGLSampler, pname: u32, param: f32) {
         handle_potential_webgl_error!(self.base, self.base.validate_ownership(sampler), return);
         let param = WebGLSamplerValue::Float(param);
@@ -3696,7 +3696,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.13>
     fn GetSamplerParameter(&self, _cx: JSContext, sampler: &WebGLSampler, pname: u32) -> JSVal {
         handle_potential_webgl_error!(
             self.base,
@@ -3715,12 +3715,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     fn CreateTransformFeedback(&self) -> Option<DomRoot<WebGLTransformFeedback>> {
         Some(WebGLTransformFeedback::new(&self.base))
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     fn DeleteTransformFeedback(&self, tf: Option<&WebGLTransformFeedback>) {
         if let Some(tf) = tf {
             handle_potential_webgl_error!(self.base, self.base.validate_ownership(tf), return);
@@ -3733,7 +3733,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     fn IsTransformFeedback(&self, tf: Option<&WebGLTransformFeedback>) -> bool {
         match tf {
             Some(tf) => {
@@ -3754,7 +3754,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     fn BindTransformFeedback(&self, target: u32, tf: Option<&WebGLTransformFeedback>) {
         if target != constants::TRANSFORM_FEEDBACK {
             self.base.webgl_error(InvalidEnum);
@@ -3787,7 +3787,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     #[allow(non_snake_case)]
     fn BeginTransformFeedback(&self, primitiveMode: u32) {
         match primitiveMode {
@@ -3822,7 +3822,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         current_tf.begin(&self.base, primitiveMode);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     fn EndTransformFeedback(&self) {
         if let Some(current_tf) = self.current_transform_feedback.get() {
             if !current_tf.is_active() {
@@ -3833,7 +3833,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     fn ResumeTransformFeedback(&self) {
         if let Some(current_tf) = self.current_transform_feedback.get() {
             if !current_tf.is_active() || !current_tf.is_paused() {
@@ -3844,7 +3844,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     fn PauseTransformFeedback(&self) {
         if let Some(current_tf) = self.current_transform_feedback.get() {
             if !current_tf.is_active() || current_tf.is_paused() {
@@ -3855,7 +3855,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     #[allow(non_snake_case)]
     fn TransformFeedbackVaryings(
         &self,
@@ -3895,7 +3895,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.15>
     fn GetTransformFeedbackVarying(
         &self,
         program: &WebGLProgram,
@@ -3923,7 +3923,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         ))
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
     fn BindBufferBase(&self, target: u32, index: u32, buffer: Option<&WebGLBuffer>) {
         let (generic_slot, indexed_bindings) = match target {
             constants::TRANSFORM_FEEDBACK_BUFFER => (
@@ -3970,7 +3970,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         indexed_binding.size.set(0);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
     fn BindBufferRange(
         &self,
         target: u32,
@@ -4048,7 +4048,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         indexed_binding.size.set(size);
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
     fn GetUniformIndices(&self, program: &WebGLProgram, names: Vec<DOMString>) -> Option<Vec<u32>> {
         handle_potential_webgl_error!(
             self.base,
@@ -4063,7 +4063,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         Some(indices)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
     #[allow(unsafe_code)]
     fn GetActiveUniforms(
         &self,
@@ -4102,7 +4102,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         rval.get()
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
     fn GetUniformBlockIndex(&self, program: &WebGLProgram, block_name: DOMString) -> u32 {
         handle_potential_webgl_error!(
             self.base,
@@ -4117,7 +4117,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         index
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
     #[allow(unsafe_code)]
     fn GetActiveUniformBlockParameter(
         &self,
@@ -4159,7 +4159,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
     fn GetActiveUniformBlockName(
         &self,
         program: &WebGLProgram,
@@ -4178,7 +4178,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         Some(DOMString::from(name))
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
     fn UniformBlockBinding(&self, program: &WebGLProgram, block_index: u32, block_binding: u32) {
         handle_potential_webgl_error!(self.base, self.base.validate_ownership(program), return);
 
@@ -4193,7 +4193,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11>
     fn ClearBufferfv(
         &self,
         buffer: u32,
@@ -4215,7 +4215,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11>
     fn ClearBufferiv(
         &self,
         buffer: u32,
@@ -4237,7 +4237,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11>
     fn ClearBufferuiv(
         &self,
         buffer: u32,
@@ -4259,7 +4259,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         )
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11>
     fn ClearBufferfi(&self, buffer: u32, draw_buffer: i32, depth: f32, stencil: i32) {
         if buffer != constants::DEPTH_STENCIL {
             return self.base.webgl_error(InvalidEnum);
@@ -4279,7 +4279,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         ));
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4>
     fn InvalidateFramebuffer(&self, target: u32, attachments: Vec<u32>) {
         if !self.valid_fb_attachment_values(target, &attachments) {
             return;
@@ -4289,7 +4289,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .send_command(WebGLCommand::InvalidateFramebuffer(target, attachments))
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4>
     fn InvalidateSubFramebuffer(
         &self,
         target: u32,
@@ -4318,7 +4318,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             ))
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4>
     fn FramebufferTextureLayer(
         &self,
         target: u32,
@@ -4348,7 +4348,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.5>
     #[allow(unsafe_code)]
     fn GetInternalformatParameter(
         &self,
@@ -4389,7 +4389,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.5
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.5>
     fn RenderbufferStorageMultisample(
         &self,
         target: u32,
@@ -4402,7 +4402,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .renderbuffer_storage(target, samples, internal_format, width, height)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4>
     fn ReadBuffer(&self, src: u32) {
         match src {
             constants::BACK | constants::NONE => {},
@@ -4423,7 +4423,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.11>
     fn DrawBuffers(&self, buffers: Vec<u32>) {
         if let Some(fb) = self.base.get_draw_framebuffer_slot().get() {
             handle_potential_webgl_error!(self.base, fb.set_draw_buffers(buffers), return)
@@ -4442,7 +4442,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6>
     fn TexStorage2D(
         &self,
         target: u32,
@@ -4454,7 +4454,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.tex_storage(2, target, levels, internal_format, width, height, 1)
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6>
     fn TexStorage3D(
         &self,
         target: u32,

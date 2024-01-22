@@ -116,7 +116,7 @@ pub struct Response {
     pub internal_response: Option<Box<Response>>,
     /// whether or not to try to return the internal_response when asked for actual_response
     pub return_internal: bool,
-    /// https://fetch.spec.whatwg.org/#concept-response-aborted
+    /// <https://fetch.spec.whatwg.org/#concept-response-aborted>
     #[ignore_malloc_size_of = "AtomicBool heap size undefined"]
     pub aborted: Arc<AtomicBool>,
     /// track network metrics

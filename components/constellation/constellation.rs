@@ -87,7 +87,7 @@
 //!
 //! * Anything (other than a routing thread) can block on a routing thread
 //!
-//! See https://github.com/servo/servo/issues/14704
+//! See <https://github.com/servo/servo/issues/14704>
 
 use std::borrow::{Cow, ToOwned};
 use std::collections::hash_map::Entry;
@@ -237,7 +237,7 @@ struct Browser {
 
 /// A browsing context group.
 ///
-/// https://html.spec.whatwg.org/multipage/#browsing-context-group
+/// <https://html.spec.whatwg.org/multipage/#browsing-context-group>
 #[derive(Clone, Default)]
 struct BrowsingContextGroup {
     /// A browsing context group holds a set of top-level browsing contexts.
@@ -421,7 +421,7 @@ pub struct Constellation<Message, LTF, STF, SWF> {
 
     /// A user agent holds a a set of browsing context groups.
     ///
-    /// https://html.spec.whatwg.org/multipage/#browsing-context-group-set
+    /// <https://html.spec.whatwg.org/multipage/#browsing-context-group-set>
     browsing_context_group_set: HashMap<BrowsingContextGroupId, BrowsingContextGroup>,
 
     /// The Id counter for BrowsingContextGroup.
@@ -1854,7 +1854,7 @@ where
 
     /// Check the origin of a message against that of the pipeline it came from.
     /// Note: this is still limited as a security check,
-    /// see https://github.com/servo/servo/issues/11722
+    /// see <https://github.com/servo/servo/issues/11722>
     fn check_origin_against_pipeline(
         &self,
         pipeline_id: &PipelineId,

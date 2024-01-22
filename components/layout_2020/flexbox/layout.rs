@@ -69,10 +69,10 @@ struct FlexItem<'a> {
     /// This is the difference between an outer and inner size.
     pbm_auto_is_zero: FlexRelativeVec2<Length>,
 
-    /// https://drafts.csswg.org/css-flexbox/#algo-main-item
+    /// <https://drafts.csswg.org/css-flexbox/#algo-main-item>
     flex_base_size: Length,
 
-    /// https://drafts.csswg.org/css-flexbox/#algo-main-item
+    /// <https://drafts.csswg.org/css-flexbox/#algo-main-item>
     hypothetical_main_size: Length,
     /// This is `align-self`, defaulting to `align-items` if `auto`
     align_self: AlignItems,
@@ -153,7 +153,7 @@ impl FlexContainer {
         ContentSizes::zero() // Return an incorrect result rather than panic
     }
 
-    /// https://drafts.csswg.org/css-flexbox/#layout-algorithm
+    /// <https://drafts.csswg.org/css-flexbox/#layout-algorithm>
     pub(crate) fn layout(
         &self,
         layout_context: &LayoutContext,
@@ -552,7 +552,7 @@ impl<'a> FlexItem<'a> {
     }
 }
 
-/// https://drafts.csswg.org/css-flexbox/#algo-main-item
+/// <https://drafts.csswg.org/css-flexbox/#algo-main-item>
 fn flex_base_size(
     flex_context: &FlexContext,
     flex_item: &mut IndependentFormattingContext,
@@ -872,7 +872,7 @@ impl FlexLine<'_> {
     }
 
     /// Return the *main size* of each item, and the line’s remainaing free space
-    /// https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths
+    /// <https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths>
     fn resolve_flexible_lengths(&self, container_main_size: Length) -> (Vec<Length>, Length) {
         let mut frozen = vec![false; self.items.len()];
         let mut target_main_sizes_vec = self
@@ -1135,7 +1135,7 @@ impl<'a> FlexItem<'a> {
 }
 
 impl<'items> FlexLine<'items> {
-    /// https://drafts.csswg.org/css-flexbox/#algo-cross-line
+    /// <https://drafts.csswg.org/css-flexbox/#algo-cross-line>
     fn cross_size(
         &self,
         item_layout_results: &[FlexItemLayoutResult],
@@ -1238,7 +1238,7 @@ impl<'items> FlexLine<'items> {
 
 impl FlexItem<'_> {
     /// Return the cross-start and cross-end margin, with `auto` values resolved.
-    /// https://drafts.csswg.org/css-flexbox/#algo-cross-margins
+    /// <https://drafts.csswg.org/css-flexbox/#algo-cross-margins>
     fn resolve_auto_cross_margins(
         &self,
         flex_context: &FlexContext,

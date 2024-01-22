@@ -11,7 +11,7 @@ use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
 
 #[derive(JSTraceable)]
-/// https://html.spec.whatwg.org/multipage/#timer-task-source
+/// <https://html.spec.whatwg.org/multipage/#timer-task-source>
 pub struct TimerTaskSource(
     pub Box<dyn ScriptChan + Send + 'static>,
     #[no_trace] pub PipelineId,

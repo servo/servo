@@ -100,7 +100,7 @@ pub struct WindowProxy {
     /// Has the browsing context been disowned?
     disowned: Cell<bool>,
 
-    /// https://html.spec.whatwg.org/multipage/#is-closing
+    /// <https://html.spec.whatwg.org/multipage/#is-closing>
     is_closing: Cell<bool>,
 
     /// The containing iframe element, if this is a same-origin iframe
@@ -109,7 +109,7 @@ pub struct WindowProxy {
     /// The parent browsing context's window proxy, if this is a nested browsing context
     parent: Option<Dom<WindowProxy>>,
 
-    /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+    /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     delaying_load_events_mode: Cell<bool>,
 
     /// The creator browsing context's base url.
@@ -356,17 +356,17 @@ impl WindowProxy {
         None
     }
 
-    /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+    /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     pub fn is_delaying_load_events_mode(&self) -> bool {
         self.delaying_load_events_mode.get()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+    /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     pub fn start_delaying_load_events_mode(&self) {
         self.delaying_load_events_mode.set(true);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+    /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     pub fn stop_delaying_load_events_mode(&self) {
         self.delaying_load_events_mode.set(false);
         if let Some(document) = self.document() {
@@ -381,18 +381,18 @@ impl WindowProxy {
         self.disowned.set(true);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-window-close
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-close>
     /// Step 3.1, set BCs `is_closing` to true.
     pub fn close(&self) {
         self.is_closing.set(true);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#is-closing
+    /// <https://html.spec.whatwg.org/multipage/#is-closing>
     pub fn is_closing(&self) -> bool {
         self.is_closing.get()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#creator-base-url
+    /// <https://html.spec.whatwg.org/multipage/#creator-base-url>
     pub fn creator_base_url(&self) -> Option<ServoUrl> {
         self.creator_base_url.clone()
     }
@@ -401,7 +401,7 @@ impl WindowProxy {
         self.creator_base_url.is_some()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#creator-url
+    /// <https://html.spec.whatwg.org/multipage/#creator-url>
     pub fn creator_url(&self) -> Option<ServoUrl> {
         self.creator_url.clone()
     }
@@ -410,7 +410,7 @@ impl WindowProxy {
         self.creator_base_url.is_some()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#creator-origin
+    /// <https://html.spec.whatwg.org/multipage/#creator-origin>
     pub fn creator_origin(&self) -> Option<ImmutableOrigin> {
         self.creator_origin.clone()
     }
@@ -720,7 +720,7 @@ impl WindowProxy {
 /// active document of that creator browsing context at the time A was created is the creator
 /// Document.
 ///
-/// See: https://html.spec.whatwg.org/multipage/#creating-browsing-contexts
+/// See: <https://html.spec.whatwg.org/multipage/#creating-browsing-contexts>
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CreatorBrowsingContextInfo {
     /// Creator document URL.

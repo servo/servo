@@ -425,7 +425,7 @@ impl HTMLImageElement {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
-    /// Step 24 of https://html.spec.whatwg.org/multipage/#update-the-image-data
+    /// Step 24 of <https://html.spec.whatwg.org/multipage/#update-the-image-data>
     fn process_image_response(&self, image: ImageResponse) {
         // TODO: Handle multipart/x-mixed-replace
         let (trigger_image_load, trigger_image_error) = match (image, self.image_request.get()) {
@@ -674,7 +674,7 @@ impl HTMLImageElement {
         source_size_list.evaluate(&device, quirks_mode)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#matches-the-environment
+    /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
     fn matches_environment(&self, media_query: String) -> bool {
         let document = document_from_node(self);
         let quirks_mode = document.quirks_mode();
@@ -1019,7 +1019,7 @@ impl HTMLImageElement {
         ScriptThread::await_stable_state(Microtask::ImageElement(task));
     }
 
-    /// Step 2-12 of https://html.spec.whatwg.org/multipage/#img-environment-changes
+    /// Step 2-12 of <https://html.spec.whatwg.org/multipage/#img-environment-changes>
     fn react_to_environment_changes_sync_steps(&self, generation: u32) {
         // TODO reduce duplicacy of this code
 
@@ -1814,7 +1814,8 @@ where
     return (s, "");
 }
 
-/// Parse an `srcset` attribute - https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute.
+/// Parse an `srcset` attribute:
+/// <https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute>.
 pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
     let mut url_len = 0;
     let mut candidates: Vec<ImageSource> = vec![];

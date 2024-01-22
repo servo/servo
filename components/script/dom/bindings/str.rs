@@ -316,12 +316,12 @@ impl DOMString {
 
     /// A valid date string should be "YYYY-MM-DD"
     /// YYYY must be four or more digits, MM and DD both must be two digits
-    /// https://html.spec.whatwg.org/multipage/#valid-date-string
+    /// <https://html.spec.whatwg.org/multipage/#valid-date-string>
     pub fn is_valid_date_string(&self) -> bool {
         self.parse_date_string().is_ok()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#parse-a-date-string
+    /// <https://html.spec.whatwg.org/multipage/#parse-a-date-string>
     pub fn parse_date_string(&self) -> Result<(i32, u32, u32), ()> {
         let value = &self.0;
         // Step 1, 2, 3
@@ -336,7 +336,7 @@ impl DOMString {
         Ok((year_int, month_int, day_int))
     }
 
-    /// https://html.spec.whatwg.org/multipage/#parse-a-time-string
+    /// <https://html.spec.whatwg.org/multipage/#parse-a-time-string>
     pub fn parse_time_string(&self) -> Result<(u32, u32, f64), ()> {
         let value = &self.0;
         // Step 1, 2, 3
@@ -353,12 +353,12 @@ impl DOMString {
 
     /// A valid month string should be "YYYY-MM"
     /// YYYY must be four or more digits, MM both must be two digits
-    /// https://html.spec.whatwg.org/multipage/#valid-month-string
+    /// <https://html.spec.whatwg.org/multipage/#valid-month-string>
     pub fn is_valid_month_string(&self) -> bool {
         self.parse_month_string().is_ok()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#parse-a-month-string
+    /// <https://html.spec.whatwg.org/multipage/#parse-a-month-string>
     pub fn parse_month_string(&self) -> Result<(i32, u32), ()> {
         let value = &self;
         // Step 1, 2, 3
@@ -374,12 +374,12 @@ impl DOMString {
 
     /// A valid week string should be like {YYYY}-W{WW}, such as "2017-W52"
     /// YYYY must be four or more digits, WW both must be two digits
-    /// https://html.spec.whatwg.org/multipage/#valid-week-string
+    /// <https://html.spec.whatwg.org/multipage/#valid-week-string>
     pub fn is_valid_week_string(&self) -> bool {
         self.parse_week_string().is_ok()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#parse-a-week-string
+    /// <https://html.spec.whatwg.org/multipage/#parse-a-week-string>
     pub fn parse_week_string(&self) -> Result<(i32, u32), ()> {
         let value = &self.0;
         // Step 1, 2, 3
@@ -422,7 +422,7 @@ impl DOMString {
         Ok((year_int, week_int))
     }
 
-    /// https://html.spec.whatwg.org/multipage/#valid-floating-point-number
+    /// <https://html.spec.whatwg.org/multipage/#valid-floating-point-number>
     pub fn is_valid_floating_point_number_string(&self) -> bool {
         lazy_static! {
             static ref RE: Regex =
@@ -431,7 +431,7 @@ impl DOMString {
         RE.is_match(&self.0) && self.parse_floating_point_number().is_ok()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values
+    /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values>
     pub fn parse_floating_point_number(&self) -> Result<f64, ()> {
         // Steps 15-16 are telling us things about IEEE rounding modes
         // for floating-point significands; this code assumes the Rust
@@ -456,7 +456,7 @@ impl DOMString {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number
+    /// <https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number>
     pub fn set_best_representation_of_the_floating_point_number(&mut self) {
         if let Ok(val) = self.parse_floating_point_number() {
             self.0 = val.to_string();
@@ -465,7 +465,7 @@ impl DOMString {
 
     /// A valid normalized local date and time string should be "{date}T{time}"
     /// where date and time are both valid, and the time string must be as short as possible
-    /// https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string
+    /// <https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string>
     pub fn convert_valid_normalized_local_date_and_time_string(&mut self) -> Result<(), ()> {
         let ((year, month, day), (hour, minute, second)) =
             self.parse_local_date_and_time_string()?;
@@ -491,7 +491,7 @@ impl DOMString {
         Ok(())
     }
 
-    /// https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string
+    /// <https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string>
     pub fn parse_local_date_and_time_string(
         &self,
     ) -> Result<((i32, u32, u32), (u32, u32, f64)), ()> {
@@ -520,7 +520,7 @@ impl DOMString {
         Ok((date_tuple, time_tuple))
     }
 
-    /// https://html.spec.whatwg.org/multipage/#valid-e-mail-address
+    /// <https://html.spec.whatwg.org/multipage/#valid-e-mail-address>
     pub fn is_valid_email_address_string(&self) -> bool {
         lazy_static! {
             static ref RE: Regex = Regex::new(concat!(
@@ -532,7 +532,7 @@ impl DOMString {
         RE.is_match(&self.0)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#valid-simple-colour
+    /// <https://html.spec.whatwg.org/multipage/#valid-simple-colour>
     pub fn is_valid_simple_color_string(&self) -> bool {
         let mut chars = self.0.chars();
         if self.0.len() == 7 && chars.next() == Some('#') {
@@ -669,7 +669,7 @@ impl Extend<char> for DOMString {
     }
 }
 
-/// https://html.spec.whatwg.org/multipage/#parse-a-month-component
+/// <https://html.spec.whatwg.org/multipage/#parse-a-month-component>
 fn parse_month_component(value: &str) -> Result<(i32, u32), ()> {
     // Step 3
     let mut iterator = value.split('-');
@@ -692,7 +692,7 @@ fn parse_month_component(value: &str) -> Result<(i32, u32), ()> {
     Ok((year_int, month_int))
 }
 
-/// https://html.spec.whatwg.org/multipage/#parse-a-date-component
+/// <https://html.spec.whatwg.org/multipage/#parse-a-date-component>
 fn parse_date_component(value: &str) -> Result<(i32, u32, u32), ()> {
     // Step 1
     let (year_int, month_int) = parse_month_component(value)?;
@@ -714,7 +714,7 @@ fn parse_date_component(value: &str) -> Result<(i32, u32, u32), ()> {
     Ok((year_int, month_int, day_int))
 }
 
-/// https://html.spec.whatwg.org/multipage/#parse-a-time-component
+/// <https://html.spec.whatwg.org/multipage/#parse-a-time-component>
 fn parse_time_component(value: &str) -> Result<(u32, u32, f64), ()> {
     // Step 1
     let mut iterator = value.split(':');
@@ -781,7 +781,7 @@ fn max_day_in_month(year_num: i32, month_num: u32) -> Result<u32, ()> {
     }
 }
 
-/// https://html.spec.whatwg.org/multipage/#week-number-of-the-last-day
+/// <https://html.spec.whatwg.org/multipage/#week-number-of-the-last-day>
 fn max_week_in_year(year: i32) -> u32 {
     Utc.with_ymd_and_hms(year as i32, 1, 1, 0, 0, 0)
         .earliest()

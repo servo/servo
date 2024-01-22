@@ -146,7 +146,7 @@ impl XRRigidTransformMethods for XRRigidTransform {
 }
 
 impl XRRigidTransform {
-    /// https://immersive-web.github.io/webxr/#dom-xrpose-transform
+    /// <https://immersive-web.github.io/webxr/#dom-xrpose-transform>
     pub fn transform(&self) -> ApiRigidTransform {
         self.transform
     }

@@ -87,7 +87,7 @@ impl SubmitEventMethods for SubmitEvent {
         self.event.IsTrusted()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-submitevent-submitter
+    /// <https://html.spec.whatwg.org/multipage/#dom-submitevent-submitter>
     fn GetSubmitter(&self) -> Option<DomRoot<HTMLElement>> {
         self.submitter.as_ref().map(|s| DomRoot::from_ref(&**s))
     }

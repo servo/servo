@@ -94,7 +94,7 @@ fn set_webrender_image_key(webrender_api: &WebrenderIpcSender, image: &mut Image
 // Aux structs and enums.
 // ======================================================================
 
-/// https://html.spec.whatwg.org/multipage/#list-of-available-images
+/// <https://html.spec.whatwg.org/multipage/#list-of-available-images>
 type ImageKey = (ServoUrl, ImmutableOrigin, Option<CorsSettings>);
 
 // Represents all the currently pending loads/decodings. For

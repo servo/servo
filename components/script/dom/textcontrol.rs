@@ -5,7 +5,7 @@
 //! This is an abstraction used by `HTMLInputElement` and `HTMLTextAreaElement` to implement the
 //! text control selection DOM API.
 //!
-//! https://html.spec.whatwg.org/multipage/#textFieldSelection
+//! <https://html.spec.whatwg.org/multipage/#textFieldSelection>
 
 use script_traits::ScriptToConstellationChan;
 

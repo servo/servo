@@ -31,13 +31,13 @@ pub struct FragmentTree {
     pub(crate) root_fragments: Vec<ArcRefCell<Fragment>>,
 
     /// The scrollable overflow rectangle for the entire tree
-    /// https://drafts.csswg.org/css-overflow/#scrollable
+    /// <https://drafts.csswg.org/css-overflow/#scrollable>
     pub(crate) scrollable_overflow: PhysicalRect<Length>,
 
     /// The containing block used in the layout of this fragment tree.
     pub(crate) initial_containing_block: PhysicalRect<Length>,
 
-    /// https://drafts.csswg.org/css-backgrounds/#special-backgrounds
+    /// <https://drafts.csswg.org/css-backgrounds/#special-backgrounds>
     #[serde(skip)]
     pub(crate) canvas_background: CanvasBackground,
 }

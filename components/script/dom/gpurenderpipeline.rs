@@ -70,17 +70,17 @@ impl GPURenderPipeline {
 }
 
 impl GPURenderPipelineMethods for GPURenderPipeline {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout>
     fn GetBindGroupLayout(&self, index: u32) -> Fallible<DomRoot<GPUBindGroupLayout>> {
         if index > self.bind_group_layouts.len() as u32 {
             return Err(Error::Range(String::from("Index out of bounds")));

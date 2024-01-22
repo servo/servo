@@ -223,7 +223,7 @@ fn strict_origin_when_cross_origin(
     strip_url_for_use_as_referrer(referrer_url, true)
 }
 
-/// https://html.spec.whatwg.org/multipage/#schemelessly-same-site
+/// <https://html.spec.whatwg.org/multipage/#schemelessly-same-site>
 fn is_schemelessy_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) -> bool {
     // Step 1
     if !site_a.is_tuple() && !site_b.is_tuple() && site_a == site_b {
