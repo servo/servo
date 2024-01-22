@@ -117,7 +117,7 @@ impl GlyphEntry {
     /// non-exhaustively listed in the specification. Other characters may map to the same
     /// glyphs, but this function does not take mapping into account.
     ///
-    /// See https://drafts.csswg.org/css-text/#word-separator.
+    /// See <https://drafts.csswg.org/css-text/#word-separator>.
     fn char_is_word_separator(&self) -> bool {
         self.has_flag(FLAG_CHAR_IS_WORD_SEPARATOR)
     }
@@ -433,7 +433,7 @@ pub struct GlyphStore {
     total_advance: Au,
 
     /// A cache of the number of word separators in the entire glyph store.
-    /// See https://drafts.csswg.org/css-text/#word-separator.
+    /// See <https://drafts.csswg.org/css-text/#word-separator>.
     total_word_separators: i32,
 
     /// Used to check if fast path should be used in glyph iteration.

@@ -86,7 +86,7 @@ impl GPUAdapter {
 }
 
 impl GPUAdapterMethods for GPUAdapter {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
     fn RequestDevice(&self, descriptor: &GPUDeviceDescriptor, comp: InRealm) -> Rc<Promise> {
         // Step 2
         let promise = Promise::new_in_current_realm(comp);
@@ -205,13 +205,13 @@ impl GPUAdapterMethods for GPUAdapter {
         promise
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-isfallbackadapter
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-isfallbackadapter>
     fn IsFallbackAdapter(&self) -> bool {
         //TODO
         false
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestadapterinfo
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestadapterinfo>
     fn RequestAdapterInfo(&self, unmask_hints: Vec<DOMString>, comp: InRealm) -> Rc<Promise> {
         // XXX: Adapter info should be generated here ...
         // Step 1
@@ -225,12 +225,12 @@ impl GPUAdapterMethods for GPUAdapter {
         promise
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-features
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-features>
     fn Features(&self) -> DomRoot<GPUSupportedFeatures> {
         DomRoot::from_ref(&self.features)
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuadapter-limits
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-limits>
     fn Limits(&self) -> DomRoot<GPUSupportedLimits> {
         DomRoot::from_ref(&self.limits)
     }

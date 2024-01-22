@@ -65,7 +65,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     }
 
     /// Release previously held-back tasks for documents that are now fully-active.
-    /// https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active
+    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active>
     fn release_tasks_for_fully_active_documents(
         &self,
         fully_active: &HashSet<PipelineId>,
@@ -83,7 +83,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     }
 
     /// Hold back tasks for currently not fully-active documents.
-    /// https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active
+    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active>
     fn store_task_for_inactive_pipeline(&self, msg: T, pipeline_id: &PipelineId) {
         let mut inactive = self.inactive.borrow_mut();
         let inactive_queue = inactive.entry(pipeline_id.clone()).or_default();

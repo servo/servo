@@ -65,32 +65,32 @@ impl GPUCompilationMessage {
 }
 
 impl GPUCompilationMessageMethods for GPUCompilationMessage {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-message
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-message>
     fn Message(&self) -> DOMString {
         self.message.to_owned()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-type
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-type>
     fn Type(&self) -> GPUCompilationMessageType {
         self.mtype
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-linenum
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-linenum>
     fn LineNum(&self) -> u64 {
         self.line_num
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-linepos
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-linepos>
     fn LinePos(&self) -> u64 {
         self.line_pos
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-offset
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-offset>
     fn Offset(&self) -> u64 {
         self.offset
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-length
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-length>
     fn Length(&self) -> u64 {
         self.length
     }

@@ -351,14 +351,14 @@ impl MutationObserverMethods for MutationObserver {
         Ok(())
     }
 
-    /// https://dom.spec.whatwg.org/#dom-mutationobserver-takerecords
+    /// <https://dom.spec.whatwg.org/#dom-mutationobserver-takerecords>
     fn TakeRecords(&self) -> Vec<DomRoot<MutationRecord>> {
         let records: Vec<DomRoot<MutationRecord>> = self.record_queue.borrow().clone();
         self.record_queue.borrow_mut().clear();
         records
     }
 
-    /// https://dom.spec.whatwg.org/#dom-mutationobserver-disconnect
+    /// <https://dom.spec.whatwg.org/#dom-mutationobserver-disconnect>
     fn Disconnect(&self) {
         // Step 1
         let mut nodes = self.node_list.borrow_mut();

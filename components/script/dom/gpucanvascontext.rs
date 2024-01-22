@@ -100,14 +100,14 @@ pub struct GPUCanvasContext {
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
     canvas: HTMLCanvasElementOrOffscreenCanvas,
     // TODO: can we have wgpu surface that is hw accelerated inside wr ...
     #[ignore_malloc_size_of = "Defined in webrender"]
     #[no_trace]
     webrender_image: Cell<Option<webrender_api::ImageKey>>,
     context_id: WebGPUContextId,
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-currenttexture-slot>
     texture: MutNullableDom<GPUTexture>,
 }
 
@@ -206,12 +206,12 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
 }
 
 impl GPUCanvasContextMethods for GPUCanvasContext {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
     fn Canvas(&self) -> HTMLCanvasElementOrOffscreenCanvas {
         self.canvas.clone()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure>
     fn Configure(&self, descriptor: &GPUCanvasConfiguration) {
         // Step 1 is let
         // Step 2
@@ -293,7 +293,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         self.webrender_image.set(Some(receiver.recv().unwrap()));
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure>
     fn Unconfigure(&self) {
         if let Some(image_key) = self.webrender_image.take() {
             if let Err(e) = self.channel.0.send((
@@ -312,7 +312,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         self.texture.take();
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture>
     fn GetCurrentTexture(&self) -> Fallible<DomRoot<GPUTexture>> {
         // Step 5.
         self.mark_as_dirty();

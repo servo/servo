@@ -11,7 +11,7 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{NodeAndStyleInfo, PseudoElementContentItem};
 use crate::replaced::ReplacedContent;
 
-/// https://drafts.csswg.org/css-lists/#content-property
+/// <https://drafts.csswg.org/css-lists/#content-property>
 pub(crate) fn make_marker<'dom, Node>(
     context: &LayoutContext,
     info: &NodeAndStyleInfo<Node>,
@@ -44,7 +44,7 @@ where
     })
 }
 
-/// https://drafts.csswg.org/css-lists/#marker-string
+/// <https://drafts.csswg.org/css-lists/#marker-string>
 fn marker_string(style: &style_structs::List) -> Option<&'static str> {
     match style.list_style_type {
         ListStyleType::None => None,

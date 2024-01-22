@@ -339,7 +339,7 @@ impl ServoParser {
         self.script_created_parser || self.script_nesting_level.get() > 0
     }
 
-    /// Steps 6-8 of https://html.spec.whatwg.org/multipage/#document.write()
+    /// Steps 6-8 of <https://html.spec.whatwg.org/multipage/#document.write()>
     pub fn write(&self, text: Vec<DOMString>) {
         assert!(self.can_write());
 
@@ -1301,7 +1301,7 @@ impl TreeSink for Sink {
     }
 }
 
-/// https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
+/// <https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token>
 fn create_element_for_token(
     name: QualName,
     attrs: Vec<ElementAttribute>,

@@ -48,7 +48,7 @@ impl MediaMetadata {
         reflect_dom_object_with_proto(Box::new(MediaMetadata::new_inherited(init)), global, proto)
     }
 
-    /// https://w3c.github.io/mediasession/#dom-mediametadata-mediametadata
+    /// <https://w3c.github.io/mediasession/#dom-mediametadata-mediametadata>
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
@@ -70,34 +70,34 @@ impl MediaMetadata {
 }
 
 impl MediaMetadataMethods for MediaMetadata {
-    /// https://w3c.github.io/mediasession/#dom-mediametadata-title
+    /// <https://w3c.github.io/mediasession/#dom-mediametadata-title>
     fn Title(&self) -> DOMString {
         self.title.borrow().clone()
     }
 
-    /// https://w3c.github.io/mediasession/#dom-mediametadata-title
+    /// <https://w3c.github.io/mediasession/#dom-mediametadata-title>
     fn SetTitle(&self, value: DOMString) {
         *self.title.borrow_mut() = value;
         self.queue_update_metadata_algorithm();
     }
 
-    /// https://w3c.github.io/mediasession/#dom-mediametadata-artist
+    /// <https://w3c.github.io/mediasession/#dom-mediametadata-artist>
     fn Artist(&self) -> DOMString {
         self.artist.borrow().clone()
     }
 
-    /// https://w3c.github.io/mediasession/#dom-mediametadata-artist
+    /// <https://w3c.github.io/mediasession/#dom-mediametadata-artist>
     fn SetArtist(&self, value: DOMString) {
         *self.artist.borrow_mut() = value;
         self.queue_update_metadata_algorithm();
     }
 
-    /// https://w3c.github.io/mediasession/#dom-mediametadata-album
+    /// <https://w3c.github.io/mediasession/#dom-mediametadata-album>
     fn Album(&self) -> DOMString {
         self.album.borrow().clone()
     }
 
-    /// https://w3c.github.io/mediasession/#dom-mediametadata-album
+    /// <https://w3c.github.io/mediasession/#dom-mediametadata-album>
     fn SetAlbum(&self, value: DOMString) {
         *self.album.borrow_mut() = value;
         self.queue_update_metadata_algorithm();

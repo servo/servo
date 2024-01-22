@@ -86,20 +86,20 @@ pub struct BaseAudioContext {
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     audio_context_impl: Arc<Mutex<AudioContext>>,
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination>
     destination: MutNullableDom<AudioDestinationNode>,
     listener: MutNullableDom<AudioListener>,
     /// Resume promises which are soon to be fulfilled by a queued task.
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_resume_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
-    /// https://webaudio.github.io/web-audio-api/#pendingresumepromises
+    /// <https://webaudio.github.io/web-audio-api/#pendingresumepromises>
     #[ignore_malloc_size_of = "promises are hard"]
     pending_resume_promises: DomRefCell<Vec<Rc<Promise>>>,
     #[ignore_malloc_size_of = "promises are hard"]
     decode_resolvers: DomRefCell<HashMap<String, DecodeResolver>>,
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate>
     sample_rate: f32,
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state>
     /// Although servo-media already keeps track of the control thread state,
     /// we keep a state flag here as well. This is so that we can synchronously
     /// throw when trying to do things on the context when the context has just
@@ -268,23 +268,23 @@ impl BaseAudioContext {
 }
 
 impl BaseAudioContextMethods for BaseAudioContext {
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate>
     fn SampleRate(&self) -> Finite<f32> {
         Finite::wrap(self.sample_rate)
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-currenttime
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-currenttime>
     fn CurrentTime(&self) -> Finite<f64> {
         let current_time = self.audio_context_impl.lock().unwrap().current_time();
         Finite::wrap(current_time)
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state>
     fn State(&self) -> AudioContextState {
         self.state.get()
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume>
     fn Resume(&self, comp: InRealm) -> Rc<Promise> {
         // Step 1.
         let promise = Promise::new_in_current_realm(comp);
@@ -315,7 +315,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         promise
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination>
     fn Destination(&self) -> DomRoot<AudioDestinationNode> {
         let global = self.global();
         self.destination.or_init(|| {
@@ -327,7 +327,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         })
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-listener
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-listener>
     fn Listener(&self) -> DomRoot<AudioListener> {
         let global = self.global();
         let window = global.as_window();
@@ -337,7 +337,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator>
     fn CreateOscillator(&self) -> Fallible<DomRoot<OscillatorNode>> {
         OscillatorNode::new(
             &self.global().as_window(),
@@ -346,22 +346,22 @@ impl BaseAudioContextMethods for BaseAudioContext {
         )
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain>
     fn CreateGain(&self) -> Fallible<DomRoot<GainNode>> {
         GainNode::new(&self.global().as_window(), &self, &GainOptions::empty())
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner>
     fn CreatePanner(&self) -> Fallible<DomRoot<PannerNode>> {
         PannerNode::new(&self.global().as_window(), &self, &PannerOptions::empty())
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createanalyser
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createanalyser>
     fn CreateAnalyser(&self) -> Fallible<DomRoot<AnalyserNode>> {
         AnalyserNode::new(&self.global().as_window(), &self, &AnalyserOptions::empty())
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbiquadfilter
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbiquadfilter>
     fn CreateBiquadFilter(&self) -> Fallible<DomRoot<BiquadFilterNode>> {
         BiquadFilterNode::new(
             &self.global().as_window(),
@@ -370,7 +370,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         )
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createstereopanner
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createstereopanner>
     fn CreateStereoPanner(&self) -> Fallible<DomRoot<StereoPannerNode>> {
         StereoPannerNode::new(
             &self.global().as_window(),
@@ -379,7 +379,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         )
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createconstantsource
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createconstantsource>
     fn CreateConstantSource(&self) -> Fallible<DomRoot<ConstantSourceNode>> {
         ConstantSourceNode::new(
             &self.global().as_window(),
@@ -388,21 +388,21 @@ impl BaseAudioContextMethods for BaseAudioContext {
         )
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger>
     fn CreateChannelMerger(&self, count: u32) -> Fallible<DomRoot<ChannelMergerNode>> {
         let mut opts = ChannelMergerOptions::empty();
         opts.numberOfInputs = count;
         ChannelMergerNode::new(&self.global().as_window(), &self, &opts)
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelsplitter
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelsplitter>
     fn CreateChannelSplitter(&self, count: u32) -> Fallible<DomRoot<ChannelSplitterNode>> {
         let mut opts = ChannelSplitterOptions::empty();
         opts.numberOfOutputs = count;
         ChannelSplitterNode::new(&self.global().as_window(), &self, &opts)
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer>
     fn CreateBuffer(
         &self,
         number_of_channels: u32,

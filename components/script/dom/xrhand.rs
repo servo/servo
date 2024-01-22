@@ -41,12 +41,12 @@ impl XRHand {
 }
 
 impl XRHandMethods for XRHand {
-    /// https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md
+    /// <https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md>
     fn Length(&self) -> i32 {
         XRHandConstants::LITTLE_PHALANX_TIP as i32 + 1
     }
 
-    /// https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md
+    /// <https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md>
     fn IndexedGetter(&self, joint_index: u32) -> Option<DomRoot<XRJointSpace>> {
         let joint = match joint_index {
             XRHandConstants::WRIST => Joint::Wrist,

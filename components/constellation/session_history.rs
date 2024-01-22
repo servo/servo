@@ -17,7 +17,7 @@ use style_traits::CSSPixel;
 use crate::browsingcontext::NewBrowsingContextInfo;
 
 /// Represents the joint session history
-/// https://html.spec.whatwg.org/multipage/#joint-session-history
+/// <https://html.spec.whatwg.org/multipage/#joint-session-history>
 #[derive(Debug)]
 pub struct JointSessionHistory {
     /// Diffs used to traverse to past entries. Oldest entries are at the back,

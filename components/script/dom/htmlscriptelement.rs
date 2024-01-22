@@ -1073,7 +1073,7 @@ impl HTMLScriptElement {
     }
 
     #[allow(unsafe_code)]
-    /// https://html.spec.whatwg.org/multipage/#run-a-module-script
+    /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
     pub fn run_a_module_script(&self, script: &ScriptOrigin, _rethrow_errors: bool) {
         // TODO use a settings object rather than this element's document/window
         // Step 2

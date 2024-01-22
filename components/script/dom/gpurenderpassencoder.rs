@@ -72,17 +72,17 @@ impl GPURenderPassEncoder {
 }
 
 impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
     #[allow(unsafe_code)]
     fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, dynamic_offsets: Vec<u32>) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
@@ -98,7 +98,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setviewport
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setviewport>
     fn SetViewport(
         &self,
         x: Finite<f32>,
@@ -121,14 +121,14 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setscissorrect
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setscissorrect>
     fn SetScissorRect(&self, x: u32, y: u32, width: u32, height: u32) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             wgpu_render::wgpu_render_pass_set_scissor_rect(render_pass, x, y, width, height);
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setblendcolor
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setblendcolor>
     fn SetBlendConstant(&self, color: GPUColor) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             let colors = match color {
@@ -155,14 +155,14 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setstencilreference
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setstencilreference>
     fn SetStencilReference(&self, reference: u32) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             wgpu_render::wgpu_render_pass_set_stencil_reference(render_pass, reference);
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end>
     fn End(&self) -> Fallible<()> {
         let render_pass = self.render_pass.borrow_mut().take();
         self.channel
@@ -183,14 +183,14 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         Ok(())
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline>
     fn SetPipeline(&self, pipeline: &GPURenderPipeline) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             wgpu_render::wgpu_render_pass_set_pipeline(render_pass, pipeline.id().0);
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurendercommandsmixin-setindexbuffer
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurendercommandsmixin-setindexbuffer>
     fn SetIndexBuffer(
         &self,
         buffer: &GPUBuffer,
@@ -212,7 +212,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
     fn SetVertexBuffer(&self, slot: u32, buffer: &GPUBuffer, offset: u64, size: u64) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             wgpu_render::wgpu_render_pass_set_vertex_buffer(
@@ -225,7 +225,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-draw
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-draw>
     fn Draw(&self, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             wgpu_render::wgpu_render_pass_draw(
@@ -238,7 +238,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexed
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexed>
     fn DrawIndexed(
         &self,
         index_count: u32,
@@ -259,7 +259,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindirect
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindirect>
     fn DrawIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             wgpu_render::wgpu_render_pass_draw_indirect(
@@ -270,7 +270,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect>
     fn DrawIndexedIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
             wgpu_render::wgpu_render_pass_draw_indexed_indirect(
@@ -281,7 +281,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-executebundles
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-executebundles>
     #[allow(unsafe_code)]
     fn ExecuteBundles(&self, bundles: Vec<DomRoot<GPURenderBundle>>) {
         let bundle_ids = bundles.iter().map(|b| b.id().0).collect::<Vec<_>>();

@@ -130,12 +130,12 @@ impl XRInputSourceArray {
 }
 
 impl XRInputSourceArrayMethods for XRInputSourceArray {
-    /// https://immersive-web.github.io/webxr/#dom-xrinputsourcearray-length
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsourcearray-length>
     fn Length(&self) -> u32 {
         self.input_sources.borrow().len() as u32
     }
 
-    /// https://immersive-web.github.io/webxr/#xrinputsourcearray
+    /// <https://immersive-web.github.io/webxr/#xrinputsourcearray>
     fn IndexedGetter(&self, n: u32) -> Option<DomRoot<XRInputSource>> {
         self.input_sources
             .borrow()

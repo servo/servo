@@ -55,22 +55,22 @@ impl MediaDeviceInfo {
 }
 
 impl MediaDeviceInfoMethods for MediaDeviceInfo {
-    /// https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-deviceid
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-deviceid>
     fn DeviceId(&self) -> DOMString {
         self.device_id.clone()
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-kind
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-kind>
     fn Kind(&self) -> MediaDeviceKind {
         self.kind
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-label
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-label>
     fn Label(&self) -> DOMString {
         self.label.clone()
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-groupid
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-groupid>
     fn GroupId(&self) -> DOMString {
         self.group_id.clone()
     }

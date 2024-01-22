@@ -356,7 +356,7 @@ pub fn load_whole_resource(
     }
 }
 
-/// https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+/// <https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request>
 pub(crate) fn create_a_potential_cors_request(
     url: ServoUrl,
     destination: Destination,

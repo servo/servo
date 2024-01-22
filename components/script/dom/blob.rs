@@ -307,7 +307,7 @@ impl BlobMethods for Blob {
 /// <https://w3c.github.io/FileAPI/#dfn-type>
 /// XXX: We will relax the restriction here,
 /// since the spec has some problem over this part.
-/// see https://github.com/w3c/FileAPI/issues/43
+/// see <https://github.com/w3c/FileAPI/issues/43>
 pub fn normalize_type_string(s: &str) -> String {
     if is_ascii_printable(s) {
         let s_lower = s.to_ascii_lowercase();
@@ -322,6 +322,6 @@ pub fn normalize_type_string(s: &str) -> String {
 
 fn is_ascii_printable(string: &str) -> bool {
     // Step 5.1 in Sec 5.1 of File API spec
-    // https://w3c.github.io/FileAPI/#constructorBlob
+    // <https://w3c.github.io/FileAPI/#constructorBlob>
     string.chars().all(|c| c >= '\x20' && c <= '\x7E')
 }

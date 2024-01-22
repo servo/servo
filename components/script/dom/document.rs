@@ -289,7 +289,7 @@ pub struct Document {
     pending_parsing_blocking_script: DomRefCell<Option<PendingScript>>,
     /// Number of stylesheets that block executing the next parser-inserted script
     script_blocking_stylesheets_count: Cell<u32>,
-    /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
+    /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing>
     deferred_scripts: PendingInOrderScriptVec,
     /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible>
     asap_in_order_scripts_list: PendingInOrderScriptVec,
@@ -346,7 +346,7 @@ pub struct Document {
     /// The document's origin.
     #[no_trace]
     origin: MutableOrigin,
-    ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
+    ///  <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states>
     #[no_trace]
     referrer_policy: Cell<Option<ReferrerPolicy>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-document-referrer>
@@ -370,7 +370,7 @@ pub struct Document {
     /// This is sent to the layout thread every time a reflow is done;
     /// layout uses this to determine if the gains from parallel layout will be worth the overhead.
     ///
-    /// See also: https://github.com/servo/servo/issues/10110
+    /// See also: <https://github.com/servo/servo/issues/10110>
     dom_count: Cell<u32>,
     /// Entry node for fullscreen.
     fullscreen_element: MutNullableDom<Element>,
@@ -378,7 +378,7 @@ pub struct Document {
     /// their 'form' content attribute. Used to reset form controls
     /// whenever any element with the same ID as the form attribute
     /// is inserted or removed from the document.
-    /// See https://html.spec.whatwg.org/multipage/#form-owner
+    /// See <https://html.spec.whatwg.org/multipage/#form-owner>
     form_id_listener_map: DomRefCell<HashMapTracedValues<Atom, HashSet<Dom<Element>>>>,
     #[no_trace]
     interactive_time: DomRefCell<InteractiveMetrics>,
@@ -386,9 +386,9 @@ pub struct Document {
     tti_window: DomRefCell<InteractiveWindow>,
     /// RAII canceller for Fetch
     canceller: FetchCanceller,
-    /// https://html.spec.whatwg.org/multipage/#throw-on-dynamic-markup-insertion-counter
+    /// <https://html.spec.whatwg.org/multipage/#throw-on-dynamic-markup-insertion-counter>
     throw_on_dynamic_markup_insertion_counter: Cell<u64>,
-    /// https://html.spec.whatwg.org/multipage/#page-showing
+    /// <https://html.spec.whatwg.org/multipage/#page-showing>
     page_showing: Cell<bool>,
     /// Whether the document is salvageable.
     salvageable: Cell<bool>,
@@ -405,7 +405,7 @@ pub struct Document {
     /// List of tasks to execute as soon as last script/layout blocker is removed.
     #[ignore_malloc_size_of = "Measuring trait objects is hard"]
     delayed_tasks: DomRefCell<Vec<Box<dyn TaskBox>>>,
-    /// https://html.spec.whatwg.org/multipage/#completely-loaded
+    /// <https://html.spec.whatwg.org/multipage/#completely-loaded>
     completely_loaded: Cell<bool>,
     /// Set of shadow roots connected to the document tree.
     shadow_roots: DomRefCell<HashSet<Dom<ShadowRoot>>>,
@@ -422,14 +422,14 @@ pub struct Document {
         DomRefCell<HashMapTracedValues<WebGLContextId, Dom<WebGLRenderingContext>>>,
     /// List of all WebGPU context IDs that need flushing.
     dirty_webgpu_contexts: DomRefCell<HashMap<WebGPUContextId, Dom<GPUCanvasContext>>>,
-    /// https://html.spec.whatwg.org/multipage/#concept-document-csp-list
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-csp-list>
     #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
     #[no_trace]
     csp_list: DomRefCell<Option<CspList>>,
-    /// https://w3c.github.io/slection-api/#dfn-selection
+    /// <https://w3c.github.io/slection-api/#dfn-selection>
     selection: MutNullableDom<Selection>,
     /// A timeline for animations which is used for synchronizing animations.
-    /// https://drafts.csswg.org/web-animations/#timeline
+    /// <https://drafts.csswg.org/web-animations/#timeline>
     animation_timeline: DomRefCell<AnimationTimeline>,
     /// Animations for this Document
     animations: DomRefCell<Animations>,
@@ -2426,7 +2426,7 @@ impl Document {
         self.pending_parsing_blocking_script.borrow().is_some()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
+    /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step 22.d.
     pub fn pending_parsing_blocking_script_loaded(
         &self,
         element: &HTMLScriptElement,
@@ -2465,8 +2465,8 @@ impl Document {
             .push(Dom::from_ref(script));
     }
 
-    /// https://html.spec.whatwg.org/multipage/#the-end step 5.
-    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
+    /// <https://html.spec.whatwg.org/multipage/#the-end> step 5.
+    /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step 22.d.
     pub fn asap_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
         {
             let mut scripts = self.asap_scripts_set.borrow_mut();
@@ -2484,8 +2484,8 @@ impl Document {
         self.asap_in_order_scripts_list.push(script);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#the-end step 5.
-    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.c.
+    /// <https://html.spec.whatwg.org/multipage/#the-end> step 5.
+    /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step> 22.c.
     pub fn asap_in_order_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
         self.asap_in_order_scripts_list.loaded(element, result);
         while let Some((element, result)) = self
@@ -2501,14 +2501,14 @@ impl Document {
         self.deferred_scripts.push(script);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
-    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
+    /// <https://html.spec.whatwg.org/multipage/#the-end> step 3.
+    /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step 22.d.
     pub fn deferred_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
         self.deferred_scripts.loaded(element, result);
         self.process_deferred_scripts();
     }
 
-    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
+    /// <https://html.spec.whatwg.org/multipage/#the-end> step 3.
     fn process_deferred_scripts(&self) {
         if self.ready_state.get() != DocumentReadyState::Interactive {
             return;
@@ -3207,7 +3207,7 @@ impl Document {
         ref_filter_map(self.csp_list.borrow(), Option::as_ref)
     }
 
-    /// https://www.w3.org/TR/CSP/#should-block-inline
+    /// <https://www.w3.org/TR/CSP/#should-block-inline>
     pub fn should_elements_inline_type_behavior_be_blocked(
         &self,
         el: &Element,

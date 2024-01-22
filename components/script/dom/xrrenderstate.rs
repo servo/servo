@@ -133,27 +133,27 @@ impl XRRenderState {
 }
 
 impl XRRenderStateMethods for XRRenderState {
-    /// https://immersive-web.github.io/webxr/#dom-xrrenderstate-depthnear
+    /// <https://immersive-web.github.io/webxr/#dom-xrrenderstate-depthnear>
     fn DepthNear(&self) -> Finite<f64> {
         Finite::wrap(self.depth_near.get())
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrrenderstate-depthfar
+    /// <https://immersive-web.github.io/webxr/#dom-xrrenderstate-depthfar>
     fn DepthFar(&self) -> Finite<f64> {
         Finite::wrap(self.depth_far.get())
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrrenderstate-inlineverticalfieldofview
+    /// <https://immersive-web.github.io/webxr/#dom-xrrenderstate-inlineverticalfieldofview>
     fn GetInlineVerticalFieldOfView(&self) -> Option<Finite<f64>> {
         self.inline_vertical_fov.get().map(Finite::wrap)
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrrenderstate-baselayer
+    /// <https://immersive-web.github.io/webxr/#dom-xrrenderstate-baselayer>
     fn GetBaseLayer(&self) -> Option<DomRoot<XRWebGLLayer>> {
         self.base_layer.get()
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrrenderstate-layers
+    /// <https://immersive-web.github.io/layers/#dom-xrrenderstate-layers>
     fn Layers(&self, cx: JSContext) -> JSVal {
         // TODO: cache this array?
         let layers = self.layers.borrow();

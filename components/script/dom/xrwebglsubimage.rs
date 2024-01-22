@@ -22,27 +22,27 @@ pub struct XRWebGLSubImage {
 }
 
 impl XRWebGLSubImageMethods for XRWebGLSubImage {
-    /// https://immersive-web.github.io/layers/#dom-xrwebglsubimage-colortexture
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglsubimage-colortexture>
     fn ColorTexture(&self) -> DomRoot<WebGLTexture> {
         DomRoot::from_ref(&self.color_texture)
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrwebglsubimage-depthstenciltexture
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglsubimage-depthstenciltexture>
     fn GetDepthStencilTexture(&self) -> Option<DomRoot<WebGLTexture>> {
         self.depth_stencil_texture.as_deref().map(DomRoot::from_ref)
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrwebglsubimage-imageindex
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglsubimage-imageindex>
     fn GetImageIndex(&self) -> Option<u32> {
         self.image_index
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrwebglsubimage-texturewidth
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglsubimage-texturewidth>
     fn TextureWidth(&self) -> u32 {
         self.size.width
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrwebglsubimage-textureheight
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglsubimage-textureheight>
     fn TextureHeight(&self) -> u32 {
         self.size.height
     }

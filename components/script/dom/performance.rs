@@ -57,7 +57,7 @@ const INVALID_ENTRY_NAMES: &'static [&'static str] = &[
 /// Performance and PerformanceObserverEntryList interfaces implementations.
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct PerformanceEntryList {
-    /// https://w3c.github.io/performance-timeline/#dfn-performance-entry-buffer
+    /// <https://w3c.github.io/performance-timeline/#dfn-performance-entry-buffer>
     entries: DOMPerformanceEntryList,
 }
 
@@ -142,7 +142,7 @@ pub struct Performance {
     observers: DomRefCell<Vec<PerformanceObserver>>,
     pending_notification_observers_task: Cell<bool>,
     navigation_start_precise: u64,
-    /// https://w3c.github.io/performance-timeline/#dfn-maxbuffersize
+    /// <https://w3c.github.io/performance-timeline/#dfn-maxbuffersize>
     /// The max-size of the buffer, set to 0 once the pipeline exits.
     /// TODO: have one max-size per entry type.
     resource_timing_buffer_size_limit: Cell<usize>,
@@ -372,7 +372,7 @@ impl Performance {
         self.resource_timing_buffer_pending_full_event.set(false);
     }
     /// `add a PerformanceResourceTiming entry` paragraph of
-    /// https://w3c.github.io/resource-timing/#sec-extensions-performance-interface
+    /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
     fn should_queue_resource_entry(&self, entry: &PerformanceEntry) -> bool {
         // Step 1 is done in the args list.
         if !self.resource_timing_buffer_pending_full_event.get() {

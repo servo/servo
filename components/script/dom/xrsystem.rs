@@ -82,7 +82,7 @@ impl XRSystem {
         self.active_immersive_session.set(Some(session))
     }
 
-    /// https://immersive-web.github.io/webxr/#ref-for-eventdef-xrsession-end
+    /// <https://immersive-web.github.io/webxr/#ref-for-eventdef-xrsession-end>
     pub fn end_session(&self, session: &XRSession) {
         // Step 3
         if let Some(active) = self.active_immersive_session.get() {
@@ -110,7 +110,7 @@ impl Into<SessionMode> for XRSessionMode {
 }
 
 impl XRSystemMethods for XRSystem {
-    /// https://immersive-web.github.io/webxr/#dom-xr-issessionsupported
+    /// <https://immersive-web.github.io/webxr/#dom-xr-issessionsupported>
     fn IsSessionSupported(&self, mode: XRSessionMode) -> Rc<Promise> {
         // XXXManishearth this should select an XR device first
         let promise = Promise::new(&self.global());
@@ -153,7 +153,7 @@ impl XRSystemMethods for XRSystem {
         promise
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xr-requestsession
+    /// <https://immersive-web.github.io/webxr/#dom-xr-requestsession>
     #[allow(unsafe_code)]
     fn RequestSession(
         &self,

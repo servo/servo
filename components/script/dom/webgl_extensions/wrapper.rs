@@ -37,7 +37,7 @@ pub struct TypedWebGLExtensionWrapper<T: WebGLExtension> {
 }
 
 /// Typed WebGL Extension implementation.
-/// Exposes the exact MutNullableDom<DOMObject> type defined by the extension.
+/// Exposes the exact `MutNullableDom<DOMObject>` type defined by the extension.
 impl<T: WebGLExtension> TypedWebGLExtensionWrapper<T> {
     pub fn new() -> TypedWebGLExtensionWrapper<T> {
         TypedWebGLExtensionWrapper {

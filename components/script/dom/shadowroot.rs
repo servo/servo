@@ -217,12 +217,12 @@ impl ShadowRootMethods for ShadowRoot {
         elements
     }
 
-    /// https://dom.spec.whatwg.org/#dom-shadowroot-mode
+    /// <https://dom.spec.whatwg.org/#dom-shadowroot-mode>
     fn Mode(&self) -> ShadowRootMode {
         ShadowRootMode::Closed
     }
 
-    /// https://dom.spec.whatwg.org/#dom-shadowroot-host
+    /// <https://dom.spec.whatwg.org/#dom-shadowroot-host>
     fn Host(&self) -> DomRoot<Element> {
         let host = self.host.get();
         host.expect("Trying to get host from a detached shadow root")

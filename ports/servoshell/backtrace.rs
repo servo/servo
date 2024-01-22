@@ -4,10 +4,10 @@
 
 //! Similar to `println!("{:?}", Backtrace::new())`, but doesn’t allocate.
 //!
-//! Seems to fix some deadlocks: https://github.com/servo/servo/issues/24881
+//! Seems to fix some deadlocks: <https://github.com/servo/servo/issues/24881>
 //!
 //! FIXME: if/when a future version of the `backtrace` crate has
-//! https://github.com/rust-lang/backtrace-rs/pull/265, use that instead.
+//! <https://github.com/rust-lang/backtrace-rs/pull/265>, use that instead.
 
 use std::fmt::{self, Write};
 

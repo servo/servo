@@ -87,7 +87,7 @@ pub enum LogEntry {
     Warn(String),
 }
 
-/// https://html.spec.whatwg.org/multipage/#replacement-enabled
+/// <https://html.spec.whatwg.org/multipage/#replacement-enabled>
 #[derive(Debug, Deserialize, Serialize)]
 pub enum HistoryEntryReplacement {
     /// Traverse the history with replacement enabled.
@@ -197,7 +197,7 @@ pub enum ScriptMsg {
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
         /// The source origin of the message.
-        /// https://html.spec.whatwg.org/multipage/#dom-messageevent-origin
+        /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-origin>
         source_origin: ImmutableOrigin,
         /// The data to be posted.
         data: StructuredSerializedData,
@@ -245,7 +245,7 @@ pub enum ScriptMsg {
     /// Send messages from postMessage calls from serviceworker
     /// to constellation for storing in service worker manager
     ForwardDOMMessage(DOMMessage, ServoUrl),
-    /// https://w3c.github.io/ServiceWorker/#schedule-job-algorithm.
+    /// <https://w3c.github.io/ServiceWorker/#schedule-job-algorithm>
     ScheduleJob(Job),
     /// Get Window Informations size and position
     GetClientWindow(IpcSender<(DeviceIntSize, DeviceIntPoint)>),
@@ -375,29 +375,29 @@ pub enum ServiceWorkerMsg {
     Timeout(ServoUrl),
     /// Message sent by constellation to forward to a running service worker
     ForwardDOMMessage(DOMMessage, ServoUrl),
-    /// https://w3c.github.io/ServiceWorker/#schedule-job-algorithm
+    /// <https://w3c.github.io/ServiceWorker/#schedule-job-algorithm>
     ScheduleJob(Job),
     /// Exit the service worker manager
     Exit,
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
-/// https://w3c.github.io/ServiceWorker/#dfn-job-type
+/// <https://w3c.github.io/ServiceWorker/#dfn-job-type>
 pub enum JobType {
     /// <https://w3c.github.io/ServiceWorker/#register>
     Register,
     /// <https://w3c.github.io/ServiceWorker/#unregister-algorithm>
     Unregister,
-    /// <https://w3c.github.io/ServiceWorker/#update-algorithm
+    /// <https://w3c.github.io/ServiceWorker/#update-algorithm>
     Update,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 /// The kind of error the job promise should be rejected with.
 pub enum JobError {
-    /// https://w3c.github.io/ServiceWorker/#reject-job-promise
+    /// <https://w3c.github.io/ServiceWorker/#reject-job-promise>
     TypeError,
-    /// https://w3c.github.io/ServiceWorker/#reject-job-promise
+    /// <https://w3c.github.io/ServiceWorker/#reject-job-promise>
     SecurityError,
 }
 
@@ -405,9 +405,9 @@ pub enum JobError {
 /// Messages sent from Job algorithms steps running in the SW manager,
 /// in order to resolve or reject the job promise.
 pub enum JobResult {
-    /// https://w3c.github.io/ServiceWorker/#reject-job-promise
+    /// <https://w3c.github.io/ServiceWorker/#reject-job-promise>
     RejectPromise(JobError),
-    /// https://w3c.github.io/ServiceWorker/#resolve-job-promise
+    /// <https://w3c.github.io/ServiceWorker/#resolve-job-promise>
     ResolvePromise(Job, JobResultValue),
 }
 
@@ -428,7 +428,7 @@ pub enum JobResultValue {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-/// https://w3c.github.io/ServiceWorker/#dfn-job
+/// <https://w3c.github.io/ServiceWorker/#dfn-job>
 pub struct Job {
     /// <https://w3c.github.io/ServiceWorker/#dfn-job-type>
     pub job_type: JobType,
@@ -445,7 +445,7 @@ pub struct Job {
 }
 
 impl Job {
-    /// https://w3c.github.io/ServiceWorker/#create-job-algorithm
+    /// <https://w3c.github.io/ServiceWorker/#create-job-algorithm>
     pub fn create_job(
         job_type: JobType,
         scope_url: ServoUrl,
@@ -466,7 +466,7 @@ impl Job {
 }
 
 impl PartialEq for Job {
-    /// Equality criteria as described in https://w3c.github.io/ServiceWorker/#dfn-job-equivalent
+    /// Equality criteria as described in <https://w3c.github.io/ServiceWorker/#dfn-job-equivalent>
     fn eq(&self, other: &Self) -> bool {
         // TODO: match on job type, take worker type and `update_via_cache_mode` into account.
         let same_job = self.job_type == other.job_type;
@@ -488,6 +488,6 @@ impl PartialEq for Job {
 pub enum SWManagerMsg {
     /// Placeholder to keep the enum,
     /// as it will be needed when implementing
-    /// https://github.com/servo/servo/issues/24660
+    /// <https://github.com/servo/servo/issues/24660>
     PostMessageToClient,
 }

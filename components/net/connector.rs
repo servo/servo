@@ -137,7 +137,7 @@ pub enum CACertificates {
 ///
 /// FIXME: The `ignore_certificate_errors` argument ignores all certificate errors. This
 /// is used when running the WPT tests, because rustls currently rejects the WPT certificiate.
-/// See https://github.com/servo/servo/issues/30080
+/// See <https://github.com/servo/servo/issues/30080>
 pub fn create_tls_config(
     ca_certificates: CACertificates,
     ignore_certificate_errors: bool,

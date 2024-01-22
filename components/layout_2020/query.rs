@@ -199,7 +199,7 @@ pub fn process_node_scroll_id_request<'dom>(
     layout_node.generate_scroll_id(id)
 }
 
-/// https://drafts.csswg.org/cssom-view/#scrolling-area
+/// <https://drafts.csswg.org/cssom-view/#scrolling-area>
 pub fn process_node_scroll_area_request(
     requested_node: Option<OpaqueNode>,
     fragment_tree: Option<Arc<FragmentTree>>,

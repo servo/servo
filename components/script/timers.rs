@@ -361,7 +361,7 @@ pub struct JsTimerHandle(i32);
 #[derive(DenyPublicFields, JSTraceable, MallocSizeOf)]
 pub struct JsTimers {
     next_timer_handle: Cell<JsTimerHandle>,
-    /// https://html.spec.whatwg.org/multipage/#list-of-active-timers
+    /// <https://html.spec.whatwg.org/multipage/#list-of-active-timers>
     active_timers: DomRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
     /// The nesting level of the currently executing timer task or 0.
     nesting_level: Cell<u32>,

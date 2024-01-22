@@ -32,7 +32,7 @@ pub struct WebGLBuffer {
     capacity: Cell<usize>,
     marked_for_deletion: Cell<bool>,
     attached_counter: Cell<u32>,
-    /// https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glGetBufferParameteriv.xml
+    /// <https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glGetBufferParameteriv.xml>
     usage: Cell<u32>,
 }
 

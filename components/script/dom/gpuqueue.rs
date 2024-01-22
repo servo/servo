@@ -58,17 +58,17 @@ impl GPUQueue {
 }
 
 impl GPUQueueMethods for GPUQueue {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuqueue-submit
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-submit>
     fn Submit(&self, command_buffers: Vec<DomRoot<GPUCommandBuffer>>) {
         let valid = command_buffers.iter().all(|cb| {
             cb.buffers().iter().all(|b| match b.state() {
@@ -99,7 +99,7 @@ impl GPUQueueMethods for GPUQueue {
             .unwrap();
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writebuffer
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writebuffer>
     #[allow(unsafe_code)]
     fn WriteBuffer(
         &self,
@@ -146,7 +146,7 @@ impl GPUQueueMethods for GPUQueue {
         Ok(())
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writetexture
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writetexture>
     fn WriteTexture(
         &self,
         destination: &GPUImageCopyTexture,

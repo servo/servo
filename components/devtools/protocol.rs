@@ -3,8 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Low-level wire protocol implementation. Currently only supports
-//! [JSON packets]
-//! (https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport#JSON_Packets).
+//! [JSON packets](https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport#JSON_Packets).
 
 use std::error::Error;
 use std::io::{Read, Write};

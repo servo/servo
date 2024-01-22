@@ -184,7 +184,7 @@ impl From<FakeXRRegionType> for EntityType {
 }
 
 impl FakeXRDeviceMethods for FakeXRDevice {
-    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn SetViews(&self, views: Vec<FakeXRViewInit>) -> Fallible<()> {
         let _ = self
             .sender
@@ -192,7 +192,7 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         Ok(())
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-setviewerorigin
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-setviewerorigin>
     fn SetViewerOrigin(
         &self,
         origin: &FakeXRRigidTransformInit,
@@ -204,17 +204,17 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         Ok(())
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-clearviewerorigin
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-clearviewerorigin>
     fn ClearViewerOrigin(&self) {
         let _ = self.sender.send(MockDeviceMsg::SetViewerOrigin(None));
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-clearfloororigin
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-clearfloororigin>
     fn ClearFloorOrigin(&self) {
         let _ = self.sender.send(MockDeviceMsg::SetFloorOrigin(None));
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-setfloororigin
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-setfloororigin>
     fn SetFloorOrigin(&self, origin: &FakeXRRigidTransformInit) -> Fallible<()> {
         let _ = self
             .sender
@@ -222,18 +222,18 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         Ok(())
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-clearworld
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-clearworld>
     fn ClearWorld(&self) {
         let _ = self.sender.send(MockDeviceMsg::ClearWorld);
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-setworld
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-setworld>
     fn SetWorld(&self, world: &FakeXRWorldInit) -> Fallible<()> {
         let _ = self.sender.send(MockDeviceMsg::SetWorld(get_world(world)?));
         Ok(())
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-simulatevisibilitychange
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-simulatevisibilitychange>
     fn SimulateVisibilityChange(&self, v: XRVisibilityState) {
         let v = match v {
             XRVisibilityState::Visible => Visibility::Visible,
@@ -243,7 +243,7 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         let _ = self.sender.send(MockDeviceMsg::VisibilityChange(v));
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-simulateinputsourceconnection
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-simulateinputsourceconnection>
     fn SimulateInputSourceConnection(
         &self,
         init: &FakeXRInputSourceInit,
@@ -289,7 +289,7 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         Ok(controller)
     }
 
-    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-disconnect
+    /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-disconnect>
     fn Disconnect(&self) -> Rc<Promise> {
         let global = self.global();
         let p = Promise::new(&global);

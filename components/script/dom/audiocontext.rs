@@ -39,9 +39,9 @@ use crate::task_source::TaskSource;
 pub struct AudioContext {
     context: BaseAudioContext,
     latency_hint: AudioContextLatencyCategory,
-    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-baselatency
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-baselatency>
     base_latency: f64,
-    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-outputlatency
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-outputlatency>
     output_latency: f64,
 }
 
@@ -256,7 +256,7 @@ impl AudioContextMethods for AudioContext {
         promise
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediaelementsource
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediaelementsource>
     fn CreateMediaElementSource(
         &self,
         media_element: &HTMLMediaElement,
@@ -266,7 +266,7 @@ impl AudioContextMethods for AudioContext {
         MediaElementAudioSourceNode::new(window, self, media_element)
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamsource
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamsource>
     fn CreateMediaStreamSource(
         &self,
         stream: &MediaStream,
@@ -276,7 +276,7 @@ impl AudioContextMethods for AudioContext {
         MediaStreamAudioSourceNode::new(window, self, stream)
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamtracksource
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamtracksource>
     fn CreateMediaStreamTrackSource(
         &self,
         track: &MediaStreamTrack,
@@ -286,7 +286,7 @@ impl AudioContextMethods for AudioContext {
         MediaStreamTrackAudioSourceNode::new(window, self, track)
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamdestination
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamdestination>
     fn CreateMediaStreamDestination(&self) -> Fallible<DomRoot<MediaStreamAudioDestinationNode>> {
         let global = self.global();
         let window = global.as_window();

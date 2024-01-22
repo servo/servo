@@ -118,7 +118,7 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Contentful paint i.e. whether the display list contains items of type
     /// text, image, non-white canvas or SVG). Used by metrics.
-    /// See https://w3c.github.io/paint-timing/#first-contentful-paint.
+    /// See <https://w3c.github.io/paint-timing/#first-contentful-paint>.
     is_contentful: bool,
 }
 

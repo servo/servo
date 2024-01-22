@@ -89,7 +89,7 @@ pub struct GenerationId(u32);
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
     marked_for_reset: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/#constructing-entry-list
+    /// <https://html.spec.whatwg.org/multipage/#constructing-entry-list>
     constructing_entry_list: Cell<bool>,
     elements: DomOnceCell<HTMLFormControlsCollection>,
     generation_id: Cell<GenerationId>,
@@ -615,12 +615,12 @@ impl HTMLFormElementMethods for HTMLFormElement {
         return names_vec;
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-form-checkvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-form-checkvalidity>
     fn CheckValidity(&self) -> bool {
         self.static_validation().is_ok()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-form-reportvalidity
+    /// <https://html.spec.whatwg.org/multipage/#dom-form-reportvalidity>
     fn ReportValidity(&self) -> bool {
         self.interactive_validation().is_ok()
     }

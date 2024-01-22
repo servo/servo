@@ -135,7 +135,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         false
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-window-postmessage
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-postmessage>
     fn PostMessage(
         &self,
         cx: JSContext,
@@ -146,7 +146,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
         self.post_message_impl(&target_origin, cx, message, transfer)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-window-postmessage-options
+    /// <https://html.spec.whatwg.org/multipage/#dom-window-postmessage-options>
     fn PostMessage_(
         &self,
         cx: JSContext,
@@ -195,7 +195,7 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 }
 
 impl DissimilarOriginWindow {
-    /// https://html.spec.whatwg.org/multipage/#window-post-message-steps
+    /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
     fn post_message_impl(
         &self,
         target_origin: &USVString,
@@ -209,7 +209,7 @@ impl DissimilarOriginWindow {
         self.post_message(target_origin, data)
     }
 
-    /// https://html.spec.whatwg.org/multipage/#window-post-message-steps
+    /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
     pub fn post_message(
         &self,
         target_origin: &USVString,

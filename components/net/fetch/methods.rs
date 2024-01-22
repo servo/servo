@@ -164,7 +164,7 @@ pub async fn fetch_with_cors_cache(
     main_fetch(request, cache, false, false, target, &mut None, &context).await;
 }
 
-/// https://www.w3.org/TR/CSP/#should-block-request
+/// <https://www.w3.org/TR/CSP/#should-block-request>
 pub fn should_request_be_blocked_by_csp(request: &Request) -> csp::CheckResult {
     let origin = match &request.origin {
         Origin::Client => return csp::CheckResult::Allowed,

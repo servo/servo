@@ -49,12 +49,12 @@ impl XRFrame {
         reflect_dom_object(Box::new(XRFrame::new_inherited(session, data)), global)
     }
 
-    /// https://immersive-web.github.io/webxr/#xrframe-active
+    /// <https://immersive-web.github.io/webxr/#xrframe-active>
     pub fn set_active(&self, active: bool) {
         self.active.set(active);
     }
 
-    /// https://immersive-web.github.io/webxr/#xrframe-animationframe
+    /// <https://immersive-web.github.io/webxr/#xrframe-animationframe>
     pub fn set_animation_frame(&self, animation_frame: bool) {
         self.animation_frame.set(animation_frame);
     }
@@ -73,12 +73,12 @@ impl XRFrame {
 }
 
 impl XRFrameMethods for XRFrame {
-    /// https://immersive-web.github.io/webxr/#dom-xrframe-session
+    /// <https://immersive-web.github.io/webxr/#dom-xrframe-session>
     fn Session(&self) -> DomRoot<XRSession> {
         DomRoot::from_ref(&self.session)
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrframe-getviewerpose
+    /// <https://immersive-web.github.io/webxr/#dom-xrframe-getviewerpose>
     fn GetViewerPose(
         &self,
         reference: &XRReferenceSpace,
@@ -109,7 +109,7 @@ impl XRFrameMethods for XRFrame {
         )))
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrframe-getpose
+    /// <https://immersive-web.github.io/webxr/#dom-xrframe-getpose>
     fn GetPose(
         &self,
         space: &XRSpace,
@@ -135,7 +135,7 @@ impl XRFrameMethods for XRFrame {
         Ok(Some(XRPose::new(&self.global(), pose)))
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrframe-getpose
+    /// <https://immersive-web.github.io/webxr/#dom-xrframe-getpose>
     fn GetJointPose(
         &self,
         space: &XRJointSpace,
@@ -167,7 +167,7 @@ impl XRFrameMethods for XRFrame {
         )))
     }
 
-    /// https://immersive-web.github.io/hit-test/#dom-xrframe-gethittestresults
+    /// <https://immersive-web.github.io/hit-test/#dom-xrframe-gethittestresults>
     fn GetHitTestResults(&self, source: &XRHitTestSource) -> Vec<DomRoot<XRHitTestResult>> {
         self.data
             .hit_test_results

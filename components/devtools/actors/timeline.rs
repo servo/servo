@@ -101,7 +101,7 @@ struct FramerateEmitterReply {
 /// HighResolutionStamp is struct that contains duration in milliseconds
 /// with accuracy to microsecond that shows how much time has passed since
 /// actor registry inited
-/// analog https://w3c.github.io/hr-time/#sec-DOMHighResTimeStamp
+/// analog <https://w3c.github.io/hr-time/#sec-DOMHighResTimeStamp>
 pub struct HighResolutionStamp(f64);
 
 impl HighResolutionStamp {
