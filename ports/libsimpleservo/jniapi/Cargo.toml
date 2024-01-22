@@ -1,7 +1,6 @@
 [package]
 name = "simpleservo_jniapi"
 version = "0.0.1"
-build = "build.rs"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 edition = "2018"
