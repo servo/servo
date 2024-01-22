@@ -1544,15 +1544,8 @@ where
             FromCompositorMsg::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
             },
-            FromCompositorMsg::WindowVisibility(visible) => {
-                self.browsers.set_native_window_visibility(visible);
-                let browsers = self.browsers.iter().map(|(&id, _)| id).collect::<Vec<_>>();
-                for top_level_browsing_context_id in browsers {
-                    let visible = self
-                        .browsers
-                        .is_effectively_visible(top_level_browsing_context_id);
-                    self.notify_browser_visibility(top_level_browsing_context_id, visible);
-                }
+            FromCompositorMsg::WebviewVisibilityChanged(webview_id, visible) => {
+                self.notify_webview_visibility(webview_id, visible);
             },
             FromCompositorMsg::ReadyToPresent(top_level_browsing_context_id) => {
                 self.embedder_proxy.send((
@@ -4475,7 +4468,7 @@ where
         }
     }
 
-    fn notify_browser_visibility(
+    fn notify_webview_visibility(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         visible: bool,

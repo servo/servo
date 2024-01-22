@@ -676,11 +676,11 @@ where
                 }
             },
 
-            EmbedderEvent::WindowVisibility(visible) => {
-                let msg = ConstellationMsg::WindowVisibility(visible);
+            EmbedderEvent::WebviewVisibilityChanged(webview_id, visible) => {
+                let msg = ConstellationMsg::WebviewVisibilityChanged(webview_id, visible);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
-                        "Sending WindowVisibility to constellation failed ({:?}).",
+                        "Sending WebviewVisibilityChanged to constellation failed ({:?}).",
                         e
                     );
                 }

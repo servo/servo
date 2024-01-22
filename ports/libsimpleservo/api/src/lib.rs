@@ -580,7 +580,7 @@ impl ServoGlue {
     pub fn change_visibility(&mut self, visible: bool) -> Result<(), &'static str> {
         info!("change_visibility");
         if let Ok(id) = self.get_browser_id() {
-            let event = EmbedderEvent::WindowVisibility(id, visible);
+            let event = EmbedderEvent::WebviewVisibilityChanged(id, visible);
             self.process_event(event)
         } else {
             // Ignore visibility change if no browser has been created yet.

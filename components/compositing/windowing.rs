@@ -101,8 +101,8 @@ pub enum EmbedderEvent {
     /// Sent when the user triggers a media action through the UA exposed media UI
     /// (play, pause, seek, etc.).
     MediaSessionAction(MediaSessionActionType),
-    /// The visibility of the native window has changed.
-    WindowVisibility(bool),
+    /// The visibility of the webview has changed.
+    WebviewVisibilityChanged(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
 }
@@ -136,7 +136,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
             EmbedderEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
             EmbedderEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
-            EmbedderEvent::WindowVisibility(..) => write!(f, "WindowVisibility"),
+            EmbedderEvent::WebviewVisibilityChanged(..) => write!(f, "WebviewVisibilityChanged"),
             EmbedderEvent::IMEDismissed => write!(f, "IMEDismissed"),
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
         }

@@ -76,8 +76,8 @@ pub enum ConstellationMsg {
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
-    /// The visibility of the native window has changed.
-    WindowVisibility(bool),
+    /// The visibility of the webview has changed.
+    WebviewVisibilityChanged(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Compositing done, but external code needs to present.
@@ -113,7 +113,7 @@ impl fmt::Debug for ConstellationMsg {
             DisableProfiler => "DisableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
-            WindowVisibility(..) => "WindowVisibility",
+            WebviewVisibilityChanged(..) => "WebviewVisibilityChanged",
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",
