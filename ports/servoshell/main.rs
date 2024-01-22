@@ -31,7 +31,6 @@ cfg_if::cfg_if! {
 
         mod app;
         mod backtrace;
-        mod browser;
         mod crash_handler;
         mod egui_glue;
         mod embedder;
@@ -45,6 +44,7 @@ cfg_if::cfg_if! {
         mod parser;
         mod prefs;
         mod resources;
+        mod webview;
         mod window_trait;
 
         pub mod platform {

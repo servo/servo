@@ -626,8 +626,8 @@ where
                 self.compositor.capture_webrender();
             },
 
-            EmbedderEvent::NewBrowser(url, top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::NewBrowser(url, top_level_browsing_context_id);
+            EmbedderEvent::NewWebview(url, top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::NewWebview(url, top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending NewBrowser message to constellation failed ({:?}).",
@@ -636,8 +636,8 @@ where
                 }
             },
 
-            EmbedderEvent::FocusBrowser(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::FocusBrowser(top_level_browsing_context_id);
+            EmbedderEvent::FocusWebview(top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::FocusWebview(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending FocusBrowser message to constellation failed ({:?}).",
@@ -646,8 +646,8 @@ where
                 }
             },
 
-            EmbedderEvent::CloseBrowser(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::CloseBrowser(top_level_browsing_context_id);
+            EmbedderEvent::CloseWebview(top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::CloseWebview(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending CloseBrowser message to constellation failed ({:?}).",

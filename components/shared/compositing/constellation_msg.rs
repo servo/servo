@@ -55,15 +55,15 @@ pub enum ConstellationMsg {
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
-    NewBrowser(ServoUrl, TopLevelBrowsingContextId),
+    NewWebview(ServoUrl, TopLevelBrowsingContextId),
     /// Close a top level browsing context.
-    CloseBrowser(TopLevelBrowsingContextId),
+    CloseWebview(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
     /// Make a top-level browsing context focused.
-    FocusBrowser(TopLevelBrowsingContextId),
+    FocusWebview(TopLevelBrowsingContextId),
     /// Make none of the top-level browsing contexts focused.
-    UnfocusBrowser,
+    BlurWebview,
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
@@ -102,10 +102,10 @@ impl fmt::Debug for ConstellationMsg {
             WebDriverCommand(..) => "WebDriverCommand",
             Reload(..) => "Reload",
             LogEntry(..) => "LogEntry",
-            NewBrowser(..) => "NewBrowser",
-            CloseBrowser(..) => "CloseBrowser",
-            FocusBrowser(..) => "FocusBrowser",
-            UnfocusBrowser => "UnfocusBrowser",
+            NewWebview(..) => "NewWebview",
+            CloseWebview(..) => "CloseWebview",
+            FocusWebview(..) => "FocusWebview",
+            BlurWebview => "BlurWebview",
             SendError(..) => "SendError",
             ForwardEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",

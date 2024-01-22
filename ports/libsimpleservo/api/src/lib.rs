@@ -311,7 +311,7 @@ pub fn init(
             events: vec![],
             context_menu_sender: None,
         };
-        let _ = servo_glue.process_event(EmbedderEvent::NewBrowser(url, servo.browser_id));
+        let _ = servo_glue.process_event(EmbedderEvent::NewWebview(url, servo.browser_id));
         *s.borrow_mut() = Some(servo_glue);
     });
 
@@ -690,7 +690,7 @@ impl ServoGlue {
                             .push(EmbedderEvent::SendError(browser_id, reason));
                     }
                 },
-                EmbedderMsg::AllowOpeningBrowser(response_chan) => {
+                EmbedderMsg::AllowOpeningWebview(response_chan) => {
                     // Note: would be a place to handle pop-ups config.
                     // see Step 7 of #the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
                     if let Err(e) = response_chan.send(true) {
@@ -704,7 +704,7 @@ impl ServoGlue {
                         self.browser_id = Some(new_browser_id);
                     }
                     self.events
-                        .push(EmbedderEvent::FocusBrowser(new_browser_id));
+                        .push(EmbedderEvent::FocusWebview(new_browser_id));
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
                     let contents = self.callbacks.host_callbacks.get_clipboard_contents();
@@ -719,7 +719,7 @@ impl ServoGlue {
                     if let Some(prev_browser_id) = self.browsers.last() {
                         self.browser_id = Some(*prev_browser_id);
                         self.events
-                            .push(EmbedderEvent::FocusBrowser(*prev_browser_id));
+                            .push(EmbedderEvent::FocusWebview(*prev_browser_id));
                     } else {
                         self.events.push(EmbedderEvent::Quit);
                     }

@@ -160,7 +160,6 @@ use webrender::{RenderApi, RenderApiSender};
 use webrender_api::DocumentId;
 use webrender_traits::WebrenderExternalImageRegistry;
 
-use crate::browser::BrowserManager;
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
     NewBrowsingContextInfo,
@@ -173,6 +172,7 @@ use crate::session_history::{
     JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
 };
 use crate::timer_scheduler::TimerScheduler;
+use crate::webview::WebviewManager;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
 
@@ -327,7 +327,7 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     compositor_proxy: CompositorProxy,
 
     /// Bookkeeping data for all browsers in the constellation.
-    browsers: BrowserManager<Browser>,
+    browsers: WebviewManager<Browser>,
 
     /// Channels for the constellation to send messages to the public
     /// resource-related threads. There are two groups of resource threads: one
@@ -754,7 +754,7 @@ where
                     network_listener_receiver: network_listener_receiver,
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy,
-                    browsers: BrowserManager::default(),
+                    browsers: WebviewManager::default(),
                     devtools_sender: state.devtools_sender,
                     bluetooth_ipc_sender: state.bluetooth_thread,
                     public_resource_threads: state.public_resource_threads,
@@ -1347,7 +1347,7 @@ where
                 self.handle_get_pipeline(browsing_context_id, response_sender);
             },
             FromCompositorMsg::GetFocusTopLevelBrowsingContext(resp_chan) => {
-                let _ = resp_chan.send(self.browsers.focused_browser().map(|(id, _)| id));
+                let _ = resp_chan.send(self.browsers.focused_webview().map(|(id, _)| id));
             },
             FromCompositorMsg::Keyboard(key_event) => {
                 self.handle_key_msg(key_event);
@@ -1461,11 +1461,11 @@ where
             },
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
-            FromCompositorMsg::NewBrowser(url, top_level_browsing_context_id) => {
+            FromCompositorMsg::NewWebview(url, top_level_browsing_context_id) => {
                 self.handle_new_top_level_browsing_context(url, top_level_browsing_context_id);
             },
             // Close a top level browsing context.
-            FromCompositorMsg::CloseBrowser(top_level_browsing_context_id) => {
+            FromCompositorMsg::CloseWebview(top_level_browsing_context_id) => {
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
             },
             // Panic a top level browsing context.
@@ -1476,7 +1476,7 @@ where
                 }
                 self.handle_panic(top_level_browsing_context_id, error, None);
             },
-            FromCompositorMsg::FocusBrowser(top_level_browsing_context_id) => {
+            FromCompositorMsg::FocusWebview(top_level_browsing_context_id) => {
                 if self.browsers.get(top_level_browsing_context_id).is_none() {
                     return warn!(
                         "{}: FocusBrowser on unknown top-level browsing context",
@@ -1486,16 +1486,16 @@ where
                 self.browsers.focus(top_level_browsing_context_id);
                 self.embedder_proxy.send((
                     Some(top_level_browsing_context_id),
-                    EmbedderMsg::BrowserFocused(top_level_browsing_context_id),
+                    EmbedderMsg::WebviewFocused(top_level_browsing_context_id),
                 ));
                 if !cfg!(feature = "multiview") {
                     self.update_frame_tree_if_focused(top_level_browsing_context_id);
                 }
             },
-            FromCompositorMsg::UnfocusBrowser => {
+            FromCompositorMsg::BlurWebview => {
                 self.browsers.unfocus();
                 self.embedder_proxy
-                    .send((None, EmbedderMsg::BrowserUnfocused));
+                    .send((None, EmbedderMsg::WebviewBlurred));
             },
             // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(top_level_browsing_context_id, direction) => {
@@ -2951,7 +2951,7 @@ where
         let pipeline_id = PipelineId::new();
         let msg = (
             Some(top_level_browsing_context_id),
-            EmbedderMsg::BrowserOpened(top_level_browsing_context_id),
+            EmbedderMsg::WebviewOpened(top_level_browsing_context_id),
         );
         self.embedder_proxy.send(msg);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
@@ -3021,16 +3021,16 @@ where
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let browsing_context =
             self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
-        if self.browsers.focused_browser().map(|(id, _)| id) == Some(top_level_browsing_context_id)
+        if self.browsers.focused_webview().map(|(id, _)| id) == Some(top_level_browsing_context_id)
         {
             self.embedder_proxy
-                .send((None, EmbedderMsg::BrowserUnfocused));
+                .send((None, EmbedderMsg::WebviewBlurred));
         }
         self.browsers.remove(top_level_browsing_context_id);
-        // TODO Send the compositor a RemoveBrowser event.
+        // TODO Send the compositor a RemoveWebview event.
         self.embedder_proxy.send((
             Some(top_level_browsing_context_id),
-            EmbedderMsg::BrowserClosed(top_level_browsing_context_id),
+            EmbedderMsg::WebviewClosed(top_level_browsing_context_id),
         ));
 
         if let Some(browsing_context) = browsing_context {
@@ -4057,7 +4057,7 @@ where
         // Send to the focused browsing contexts' current pipeline.
         let focused_browsing_context_id = self
             .browsers
-            .focused_browser()
+            .focused_webview()
             .map(|(_, browser)| browser.focused_browsing_context_id);
         if let Some(browsing_context_id) = focused_browsing_context_id {
             let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
@@ -4088,7 +4088,7 @@ where
         // doesn't exist, fall back to sending to the compositor.
         let focused_browsing_context_id = self
             .browsers
-            .focused_browser()
+            .focused_webview()
             .map(|(_, browser)| browser.focused_browsing_context_id);
         match focused_browsing_context_id {
             Some(browsing_context_id) => {
@@ -4226,7 +4226,7 @@ where
         self.browsers.focus(top_level_browsing_context_id);
         self.embedder_proxy.send((
             Some(top_level_browsing_context_id),
-            EmbedderMsg::BrowserFocused(top_level_browsing_context_id),
+            EmbedderMsg::WebviewFocused(top_level_browsing_context_id),
         ));
 
         // Update the browser’s focused browsing context.
@@ -4799,7 +4799,7 @@ where
     ) -> bool {
         let focused_browsing_context_id = self
             .browsers
-            .focused_browser()
+            .focused_webview()
             .map(|(_, browser)| browser.focused_browsing_context_id);
         focused_browsing_context_id.map_or(false, |focus_ctx_id| {
             focus_ctx_id == browsing_context_id ||
@@ -4957,7 +4957,7 @@ where
         //
         // If there is no focus browsing context yet, the initial page has
         // not loaded, so there is nothing to save yet.
-        let Some(top_level_browsing_context_id) = self.browsers.focused_browser().map(|(id, _)| id)
+        let Some(top_level_browsing_context_id) = self.browsers.focused_webview().map(|(id, _)| id)
             else { return ReadyToSave::NoTopLevelBrowsingContext };
 
         // If there are pending loads, wait for those to complete.
@@ -5439,7 +5439,7 @@ where
     ) {
         // Only send the frame tree if the given browser is focused, or if no
         // browser is currently focused, make it focused.
-        if let Some(focused_browser_id) = self.browsers.focused_browser().map(|(id, _)| id) {
+        if let Some(focused_browser_id) = self.browsers.focused_webview().map(|(id, _)| id) {
             if top_level_browsing_context_id != focused_browser_id {
                 return;
             }

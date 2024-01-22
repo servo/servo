@@ -82,14 +82,14 @@ pub enum EmbedderEvent {
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload(TopLevelBrowsingContextId),
     /// Create a new top level browsing context
-    NewBrowser(ServoUrl, TopLevelBrowsingContextId),
+    NewWebview(ServoUrl, TopLevelBrowsingContextId),
     /// Close a top level browsing context
-    CloseBrowser(TopLevelBrowsingContextId),
+    CloseWebview(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
     /// Make a top level browsing context visible, hiding the previous
     /// visible one.
-    FocusBrowser(TopLevelBrowsingContextId),
+    FocusWebview(TopLevelBrowsingContextId),
     /// Toggles a debug flag in WebRender
     ToggleWebRenderDebug(WebRenderDebugOption),
     /// Capture current WebRender
@@ -127,10 +127,10 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::Navigation(..) => write!(f, "Navigation"),
             EmbedderEvent::Quit => write!(f, "Quit"),
             EmbedderEvent::Reload(..) => write!(f, "Reload"),
-            EmbedderEvent::NewBrowser(..) => write!(f, "NewBrowser"),
+            EmbedderEvent::NewWebview(..) => write!(f, "NewWebview"),
             EmbedderEvent::SendError(..) => write!(f, "SendError"),
-            EmbedderEvent::CloseBrowser(..) => write!(f, "CloseBrowser"),
-            EmbedderEvent::FocusBrowser(..) => write!(f, "FocusBrowser"),
+            EmbedderEvent::CloseWebview(..) => write!(f, "CloseWebview"),
+            EmbedderEvent::FocusWebview(..) => write!(f, "FocusWebview"),
             EmbedderEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
             EmbedderEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
             EmbedderEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
