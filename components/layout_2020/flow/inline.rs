@@ -2405,6 +2405,7 @@ impl<'a> ContentSizesComputation<'a> {
             had_non_whitespace_content_yet: false,
             linebreaker: None,
             ending_inline_pbm_stack: Vec::new(),
-        }.traverse(inline_formatting_context)
+        }
+        .traverse(inline_formatting_context)
     }
 }

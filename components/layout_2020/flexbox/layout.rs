@@ -515,8 +515,8 @@ impl<'a> FlexItem<'a> {
         let content_max_size = flex_context.vec2_to_flex_relative(max_size);
         let content_min_size = flex_context.vec2_to_flex_relative(min_size);
         let margin_auto_is_zero = flex_context.sides_to_flex_relative(margin_auto_is_zero);
-        let padding = flex_context.sides_to_flex_relative(pbm.padding.clone());
-        let border = flex_context.sides_to_flex_relative(pbm.border.clone());
+        let padding = flex_context.sides_to_flex_relative(pbm.padding);
+        let border = flex_context.sides_to_flex_relative(pbm.border);
         let padding_border = padding.sum_by_axis() + border.sum_by_axis();
         let pbm_auto_is_zero = padding_border + margin_auto_is_zero.sum_by_axis();
 
@@ -541,8 +541,8 @@ impl<'a> FlexItem<'a> {
             content_box_size,
             content_min_size,
             content_max_size,
-            padding: flex_relative_slides(flex_context.sides_to_flex_relative(pbm.padding)),
-            border: flex_relative_slides(flex_context.sides_to_flex_relative(pbm.border)),
+            padding: padding.map(|t| (*t).into()),
+            border: border.map(|t| (*t).into()),
             margin,
             pbm_auto_is_zero,
             flex_base_size,
@@ -853,8 +853,8 @@ impl FlexLine<'_> {
                         item.box_.style().clone(),
                         item_result.fragments,
                         content_rect,
-                        logical_slides(flex_context, item.padding),
-                        logical_slides(flex_context, item.border),
+                        flex_context.sides_to_flow_relative(item.padding.map(|t| (*t).into())),
+                        flex_context.sides_to_flow_relative(item.border.map(|t| (*t).into())),
                         margin,
                         None, /* clearance */
                         // TODO: We should likely propagate baselines from `display: flex`.
@@ -1321,30 +1321,5 @@ impl FlexItem<'_> {
             margin.cross_start +
             self.border.cross_start.into() +
             self.padding.cross_start.into()
-    }
-}
-
-// TODO(#29819): Check if this function can be removed after we convert everything to Au.
-fn logical_slides(
-    flex_context: &mut FlexContext<'_>,
-    item: FlexRelativeSides<Au>,
-) -> LogicalSides<Length> {
-    let value = flex_context.sides_to_flow_relative(item);
-
-    LogicalSides::<Length> {
-        inline_start: value.inline_start.into(),
-        inline_end: value.inline_end.into(),
-        block_start: value.block_start.into(),
-        block_end: value.block_end.into(),
-    }
-}
-
-// TODO(#29819): Check if this function can be removed after we convert everything to Au.
-fn flex_relative_slides(value: FlexRelativeSides<Length>) -> FlexRelativeSides<Au> {
-    FlexRelativeSides::<Au> {
-        cross_start: value.cross_start.into(),
-        cross_end: value.cross_end.into(),
-        main_start: value.main_start.into(),
-        main_end: value.main_end.into(),
     }
 }
