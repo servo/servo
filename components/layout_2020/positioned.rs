@@ -622,7 +622,8 @@ impl HoistedAbsolutelyPositionedBox {
                             &mut positioning_context,
                             &containing_block_for_children,
                         );
-                        let block_size = size.auto_is(|| independent_layout.content_block_size);
+                        let block_size =
+                            size.auto_is(|| independent_layout.content_block_size.into());
                         Result {
                             content_size: LogicalVec2 {
                                 inline: inline_size,
@@ -703,7 +704,10 @@ impl HoistedAbsolutelyPositionedBox {
                 pbm.padding,
                 pbm.border,
                 margin,
-                None,
+                None, /* clearance */
+                // We do not set the baseline offset, because absolutely positioned
+                // elements are not inflow.
+                None, /* last_inflow_baseline_offset */
                 CollapsedBlockMargins::zero(),
                 physical_overconstrained,
             )

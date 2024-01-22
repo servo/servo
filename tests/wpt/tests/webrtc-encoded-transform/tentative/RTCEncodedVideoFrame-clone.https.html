@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>RTCEncodedVideoFrame can be cloned and distributed</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='../../mediacapture-streams/permission-helper.js'></script>
+<script src="../../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="../../service-workers/service-worker/resources/test-helpers.sub.js"></script>
+
+<script>
+"use strict";
+promise_test(async t => {
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => callee.close());
+
+  await setMediaPermission("granted", ["camera"]);
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const videoTrack = stream.getVideoTracks()[0];
+  t.add_cleanup(() => videoTrack.stop());
+
+  const videoSender = caller.addTrack(videoTrack)
+  const senderStreams = videoSender.createEncodedStreams();
+  const senderReader = senderStreams.readable.getReader();
+  const senderWriter = senderStreams.writable.getWriter();
+
+  exchangeIceCandidates(caller, callee);
+
+  // Send 10 frames and stop
+  const numFramesToSend = 10;
+
+  const framesReceivedCorrectly = new Promise((resolve, reject) => {
+    callee.ontrack = async e => {
+      const receiverStreams = e.receiver.createEncodedStreams();
+      const receiverReader = receiverStreams.readable.getReader();
+      const receiverWriter = receiverStreams.writable.getWriter();
+
+      // This should all be able to happen in 5 seconds.
+      // For fast failures, uncomment this line.
+      // t.step_timeout(reject, 5000);
+      for (let i = 0; i < numFramesToSend; i++) {
+        const result = await receiverReader.read();
+        // Write upstream, purely to avoid "no frame received" error messages
+        receiverWriter.write(result.value);
+      }
+      resolve();
+    }
+  });
+
+  await exchangeOfferAnswer(caller, callee);
+
+  for (let i = 0; i < numFramesToSend; i++) {
+    const result = await senderReader.read();
+    senderWriter.write(structuredClone(result.value));
+  }
+  return framesReceivedCorrectly;
+}, "Cloning before sending works");
+</script>

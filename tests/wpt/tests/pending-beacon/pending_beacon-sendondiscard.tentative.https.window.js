@@ -1,5 +1,3 @@
-// META: script=/resources/testharness.js
-// META: script=/resources/testharnessreport.js
 // META: script=/common/utils.js
 // META: script=./resources/pending_beacon-helper.js
 

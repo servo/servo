@@ -23,43 +23,6 @@ class Base:
         self.is_linux = False
         self.is_macos = False
 
-    def set_gstreamer_environment_variables_if_necessary(
-        self, env: Dict[str, str], cross_compilation_target: Optional[str], check_installation=True
-    ):
-        # Environment variables are not needed when cross-compiling on any platform other
-        # than Windows. GStreamer for Android is handled elsewhere.
-        if cross_compilation_target and (not self.is_windows or "android" in cross_compilation_target):
-            return
-
-        # We may not need to update environment variables if GStreamer is installed
-        # for the system on Linux.
-        gstreamer_root = self.gstreamer_root(cross_compilation_target)
-        if gstreamer_root:
-            util.prepend_paths_to_env(env, "PATH", os.path.join(gstreamer_root, "bin"))
-            util.prepend_paths_to_env(
-                env, "PKG_CONFIG_PATH", os.path.join(gstreamer_root, "lib", "pkgconfig")
-            )
-            util.prepend_paths_to_env(
-                env,
-                self.library_path_variable_name(),
-                os.path.join(gstreamer_root, "lib"),
-            )
-            env["GST_PLUGIN_SCANNER"] = os.path.join(
-                gstreamer_root,
-                "libexec",
-                "gstreamer-1.0",
-                f"gst-plugin-scanner{self.executable_suffix()}",
-            )
-            env["GST_PLUGIN_SYSTEM_PATH"] = os.path.join(gstreamer_root, "lib", "gstreamer-1.0")
-
-        # If we are not cross-compiling GStreamer must be installed for the system. In
-        # the cross-compilation case, we might be picking it up from another directory.
-        if check_installation and not self.is_gstreamer_installed(cross_compilation_target):
-            raise FileNotFoundError(
-                "GStreamer libraries not found (>= version 1.16)."
-                "Please see installation instructions in README.md"
-            )
-
     def gstreamer_root(self, _cross_compilation_target: Optional[str]) -> Optional[str]:
         raise NotImplementedError("Do not know how to get GStreamer path for platform.")
 
@@ -78,18 +41,23 @@ class Base:
         )
 
     def is_gstreamer_installed(self, cross_compilation_target: Optional[str]) -> bool:
-        env = os.environ.copy()
-        self.set_gstreamer_environment_variables_if_necessary(
-            env, cross_compilation_target, check_installation=False)
-        return (
-            subprocess.call(
-                ["pkg-config", "--atleast-version=1.16", "gstreamer-1.0"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                env=env,
+        gstreamer_root = self.gstreamer_root(cross_compilation_target)
+        if gstreamer_root:
+            pkg_config = os.path.join(gstreamer_root, "bin", "pkg-config")
+        else:
+            pkg_config = "pkg-config"
+
+        try:
+            return (
+                subprocess.call(
+                    [pkg_config, "--atleast-version=1.18", "gstreamer-1.0"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                == 0
             )
-            == 0
-        )
+        except FileNotFoundError:
+            return False
 
     def bootstrap(self, force: bool):
         installed_something = self._platform_bootstrap(force)
@@ -102,20 +70,15 @@ class Base:
         if not force and shutil.which("taplo") is not None:
             return False
 
-        if subprocess.call(["cargo", "install", "taplo-cli", "--locked"],
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
+        print(" * Installing taplo...")
+        if subprocess.call(["cargo", "install", "taplo-cli", "--locked"]) != 0:
             raise EnvironmentError("Installation of taplo failed.")
 
         return True
 
     def install_crown(self, force: bool) -> bool:
-        # We need to override the rustc set in cargo/config.toml because crown
-        # may not be installed yet.
-        env = dict(os.environ)
-        env["CARGO_BUILD_RUSTC"] = "rustc"
-
-        if subprocess.call(["cargo", "install", "--path", "support/crown"],
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env) != 0:
+        print(" * Installing crown (the Servo linter)...")
+        if subprocess.call(["cargo", "install", "--path", "support/crown"]) != 0:
             raise EnvironmentError("Installation of crown failed.")
 
         return True

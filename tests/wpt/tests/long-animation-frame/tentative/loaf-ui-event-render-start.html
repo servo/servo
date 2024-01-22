@@ -29,7 +29,7 @@ promise_test(async t => {
     .pointerUp()
     .send();
 
-  const scriptPredicate = s => s.name === "BODY.onpointermove";
+  const scriptPredicate = s => s.invoker === "BODY.onpointermove";
 
   const loaf = await new Promise(resolve =>
     new PerformanceObserver(entries => {

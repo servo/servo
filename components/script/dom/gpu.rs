@@ -45,7 +45,7 @@ impl GPU {
 }
 
 pub trait AsyncWGPUListener {
-    fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>);
+    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>);
 }
 
 struct WGPUResponse<T: AsyncWGPUListener + DomObject> {
@@ -55,7 +55,7 @@ struct WGPUResponse<T: AsyncWGPUListener + DomObject> {
 
 impl<T: AsyncWGPUListener + DomObject> WGPUResponse<T> {
     #[allow(crown::unrooted_must_root)]
-    fn response(self, response: WebGPUResponseResult) {
+    fn response(self, response: Option<WebGPUResponseResult>) {
         let promise = self.trusted.root();
         self.receiver.root().handle_response(response, &promise);
     }
@@ -64,13 +64,13 @@ impl<T: AsyncWGPUListener + DomObject> WGPUResponse<T> {
 pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
     promise: &Rc<Promise>,
     receiver: &T,
-) -> IpcSender<WebGPUResponseResult> {
+) -> IpcSender<Option<WebGPUResponseResult>> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let task_source = receiver.global().dom_manipulation_task_source();
     let canceller = receiver
         .global()
         .task_canceller(TaskSourceName::DOMManipulation);
-    let mut trusted = Some(TrustedPromise::new(promise.clone()));
+    let mut trusted: Option<TrustedPromise> = Some(TrustedPromise::new(promise.clone()));
     let trusted_receiver = Trusted::new(receiver);
     ROUTER.add_route(
         action_receiver.to_opaque(),
@@ -139,38 +139,41 @@ impl GPUMethods for GPU {
 }
 
 impl AsyncWGPUListener for GPU {
-    fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
         match response {
-            Ok(WebGPUResponse::RequestAdapter {
-                adapter_info,
-                adapter_id,
-                features,
-                limits,
-                channel,
-            }) => {
-                let adapter = GPUAdapter::new(
-                    &self.global(),
-                    channel,
-                    DOMString::from(format!(
-                        "{} ({:?})",
-                        adapter_info.name,
-                        adapter_id.0.backend()
-                    )),
-                    Heap::default(),
-                    features,
-                    limits,
+            Some(response) => match response {
+                Ok(WebGPUResponse::RequestAdapter {
                     adapter_info,
                     adapter_id,
-                );
-                promise.resolve_native(&adapter);
+                    features,
+                    limits,
+                    channel,
+                }) => {
+                    let adapter = GPUAdapter::new(
+                        &self.global(),
+                        channel,
+                        DOMString::from(format!(
+                            "{} ({:?})",
+                            adapter_info.name,
+                            adapter_id.0.backend()
+                        )),
+                        Heap::default(),
+                        features,
+                        limits,
+                        adapter_info,
+                        adapter_id,
+                    );
+                    promise.resolve_native(&adapter);
+                },
+                Err(e) => {
+                    warn!("Could not get GPUAdapter ({:?})", e);
+                    promise.resolve_native(&None::<GPUAdapter>);
+                },
+                Ok(_) => unreachable!("GPU received wrong WebGPUResponse"),
             },
-            Err(e) => {
-                warn!("Could not get GPUAdapter ({:?})", e);
+            None => {
+                warn!("Couldn't get a response, because WebGPU is disabled");
                 promise.resolve_native(&None::<GPUAdapter>);
-            },
-            _ => {
-                warn!("GPU received wrong WebGPUResponse");
-                promise.reject_error(Error::Operation);
             },
         }
     }

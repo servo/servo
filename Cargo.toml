@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
     "ports/servoshell",
-    "ports/gstplugin",
     "ports/libsimpleservo/capi/",
     "ports/libsimpleservo/jniapi/",
     "tests/unit/*",
@@ -18,7 +17,7 @@ arrayvec = "0.7"
 async-tungstenite = { version = "0.23", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.13"
 backtrace = "0.3"
-base64 = "0.21.5"
+base64 = "0.21.7"
 bitflags = "2.4"
 bluetooth_traits = { path = "components/shared/bluetooth" }
 byteorder = "1.5"
@@ -41,6 +40,14 @@ fxhash = "0.2"
 getopts = "0.2.11"
 gfx_traits = { path = "components/shared/gfx" }
 gleam = "0.15"
+glib = "0.18"
+gstreamer = { version = "0.21", features = ["v1_18"] }
+gstreamer-base = "0.21"
+gstreamer-gl = "0.21"
+gstreamer-gl-sys = { version = "0.21" }
+gstreamer-gl-wayland = { version = "0.21" }
+gstreamer-sys = "0.21"
+gstreamer-video = "0.21"
 headers = "0.3"
 html5ever = "0.26"
 http = "0.2"
@@ -51,7 +58,7 @@ image = "0.24"
 imsz = "0.2"
 indexmap = { version = "2.1.0", features = ["std"] }
 ipc-channel = "0.18"
-itertools = "0.10"
+itertools = "0.12"
 jemallocator = "0.5.4"
 jemalloc-sys = "0.5.4"
 keyboard-types = "0.6"
@@ -80,11 +87,11 @@ rustls = { version = "0.21.10", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
-serde = "1.0.193"
+serde = "1.0.195"
 serde_bytes = "0.11"
 serde_json = "1.0"
 smallbitvec = "2.3.0"
-smallvec = "1.11"
+smallvec = "1.13"
 sparkle = "0.1.26"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
@@ -98,10 +105,10 @@ time = "0.1.41"
 tokio = "1"
 tokio-rustls = "0.24"
 tungstenite = "0.20"
-unicode-bidi = "0.3.14"
+unicode-bidi = "0.3.15"
 unicode-script = "0.5"
 url = "2.5"
-uuid = { version = "1.6.1", features = ["v4"] }
+uuid = { version = "1.7.0", features = ["v4"] }
 webdriver = "0.49.0"
 webpki = "0.22"
 webpki-roots = "0.25"

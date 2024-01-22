@@ -18,9 +18,18 @@ partial interface Navigator {
   [SecureContext] readonly attribute NavigatorLogin login;
 };
 
+dictionary IdentityCredentialDisconnectOptions : IdentityProviderConfig {
+  required USVString accountHint;
+};
+
 [Exposed=Window, SecureContext]
 interface IdentityCredential : Credential {
+  static Promise<undefined> disconnect(optional IdentityCredentialDisconnectOptions options = {});
   readonly attribute USVString? token;
+};
+
+dictionary DisconnectedAccount {
+  required USVString account_id;
 };
 
 partial dictionary CredentialRequestOptions {
@@ -35,15 +44,19 @@ enum IdentityCredentialRequestOptionsContext {
 };
 
 dictionary IdentityCredentialRequestOptions {
-  required sequence<IdentityProviderConfig> providers;
+  required sequence<IdentityProviderRequestOptions> providers;
   IdentityCredentialRequestOptionsContext context = "signin";
 };
 
 dictionary IdentityProviderConfig {
   required USVString configURL;
   required USVString clientId;
+};
+
+dictionary IdentityProviderRequestOptions : IdentityProviderConfig {
   USVString nonce;
   DOMString loginHint;
+  DOMString domainHint;
 };
 
 dictionary IdentityProviderWellKnown {
@@ -67,6 +80,7 @@ dictionary IdentityProviderAPIConfig {
   required USVString client_metadata_endpoint;
   required USVString id_assertion_endpoint;
   required USVString login_url;
+  USVString disconnect_endpoint;
   IdentityProviderBranding branding;
 };
 
@@ -78,6 +92,7 @@ dictionary IdentityProviderAccount {
   USVString picture;
   sequence<USVString> approved_clients;
   sequence<DOMString> login_hints;
+  sequence<DOMString> domain_hints;
 };
 dictionary IdentityProviderAccountList {
   sequence<IdentityProviderAccount> accounts;

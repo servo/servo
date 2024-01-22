@@ -15,7 +15,6 @@ from typing import Dict, List, Optional
 import functools
 import gzip
 import itertools
-import json
 import locale
 import os
 import platform
@@ -250,6 +249,7 @@ class CommandBase(object):
 
     def __init__(self, context):
         self.context = context
+        self.enable_media = False
         self.features = []
         self.cross_compile_target = None
         self.is_android_build = False
@@ -476,30 +476,17 @@ class CommandBase(object):
     def msvc_package_dir(self, package):
         return servo.platform.windows.get_dependency_dir(package)
 
-    def vs_dirs(self):
-        assert 'windows' in servo.platform.host_triple()
-        vsinstalldir = os.environ.get('VSINSTALLDIR')
-        vs_version = os.environ.get('VisualStudioVersion')
-        if vsinstalldir and vs_version:
-            msbuild_version = get_msbuild_version(vs_version)
-        else:
-            (vsinstalldir, vs_version, msbuild_version) = find_highest_msvc_version()
-        msbuildinstalldir = os.path.join(vsinstalldir, "MSBuild", msbuild_version, "Bin")
-        vcinstalldir = os.environ.get("VCINSTALLDIR", "") or os.path.join(vsinstalldir, "VC")
-        return {
-            'msbuild': msbuildinstalldir,
-            'vsdir': vsinstalldir,
-            'vs_version': vs_version,
-            'vcdir': vcinstalldir,
-        }
-
-    def build_env(self, is_build=False):
+    def build_env(self):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
 
-        servo.platform.get().set_gstreamer_environment_variables_if_necessary(
-            env, cross_compilation_target=self.cross_compile_target,
-            check_installation=is_build)
+        # If we are installing on MacOS and Windows, we need to make sure that GStreamer's
+        # `pkg-config` is on the path and takes precedence over other `pkg-config`s.
+        if self.enable_media and not self.is_android_build:
+            platform = servo.platform.get()
+            gstreamer_root = platform.gstreamer_root(cross_compilation_target=self.cross_compile_target)
+            if gstreamer_root:
+                util.prepend_paths_to_env(env, "PATH", os.path.join(gstreamer_root, "bin"))
 
         effective_target = self.cross_compile_target or servo.platform.host_triple()
         if "msvc" in effective_target:
@@ -525,12 +512,6 @@ class CommandBase(object):
 
         if not (self.config["build"]["ccache"] == ""):
             env['CCACHE'] = self.config["build"]["ccache"]
-
-        # Ensure Rust uses hard floats and SIMD on ARM devices
-        if self.cross_compile_target and (
-            self.cross_compile_target.startswith('arm')
-                or self.cross_compile_target.startswith('aarch64')):
-            env['RUSTFLAGS'] += " -C target-feature=+neon"
 
         env["CARGO_TARGET_DIR"] = servo.util.get_target_dir()
 
@@ -806,7 +787,7 @@ class CommandBase(object):
                 if build_configuration:
                     self.configure_cross_compilation(kwargs['target'], kwargs['android'], kwargs['win_arm64'])
                     self.features = kwargs.get("features", None) or []
-                    self.configure_media_stack(kwargs['media_stack'])
+                    self.enable_media = self.is_media_enabled(kwargs['media_stack'])
 
                 return original_function(self, *args, **kwargs)
 
@@ -874,10 +855,10 @@ class CommandBase(object):
         if self.cross_compile_target:
             print(f"Targeting '{self.cross_compile_target}' for cross-compilation")
 
-    def configure_media_stack(self, media_stack: Optional[str]):
-        """Determine what media stack to use based on the value of the build target
+    def is_media_enabled(self, media_stack: Optional[str]):
+        """Determine whether media is enabled based on the value of the build target
            platform and the value of the '--media-stack' command-line argument.
-           The chosen media stack is written into the `features` instance variable."""
+           Returns true if media is enabled."""
         if not media_stack:
             if self.config["build"]["media-stack"] != "auto":
                 media_stack = self.config["build"]["media-stack"]
@@ -890,8 +871,16 @@ class CommandBase(object):
                 media_stack = "gstreamer"
             else:
                 media_stack = "dummy"
-        if media_stack != "dummy":
-            self.features += ["media-" + media_stack]
+
+        # This is a workaround for Ubuntu 20.04, which doesn't support a new enough GStreamer.
+        # Once we drop support for this platform (it's currently needed for wpt.fyi runners),
+        # we can remove this workaround and officially only support Ubuntu 22.04 and up.
+        platform = servo.platform.get()
+        if not self.cross_compile_target and platform.is_linux and \
+                not platform.is_gstreamer_installed(self.cross_compile_target):
+            return False
+
+        return media_stack != "dummy"
 
     def run_cargo_build_like_command(
         self, command: str, cargo_args: List[str],
@@ -902,6 +891,17 @@ class CommandBase(object):
         **_kwargs
     ):
         env = env or self.build_env()
+
+        # Android GStreamer integration is handled elsewhere.
+        # NB: On non-Linux platforms we cannot check whether GStreamer is installed until
+        # environment variables are set via `self.build_env()`.
+        platform = servo.platform.get()
+        if self.enable_media and not self.is_android_build and \
+                not platform.is_gstreamer_installed(self.cross_compile_target):
+            raise FileNotFoundError(
+                "GStreamer libraries not found (>= version 1.18)."
+                "Please see installation instructions in README.md"
+            )
 
         args = []
         if "--manifest-path" not in cargo_args:
@@ -922,6 +922,8 @@ class CommandBase(object):
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
             features = list(self.features)
+            if self.enable_media:
+                features.append("media-gstreamer")
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
 
@@ -1056,57 +1058,3 @@ class CommandBase(object):
                     sys.exit(error)
             else:
                 print("Clobber not needed.")
-
-
-def find_highest_msvc_version_ext():
-    def vswhere(args):
-        program_files = (os.environ.get('PROGRAMFILES(X86)')
-                         or os.environ.get('PROGRAMFILES'))
-        if not program_files:
-            return []
-        vswhere = os.path.join(program_files, 'Microsoft Visual Studio',
-                               'Installer', 'vswhere.exe')
-        if not os.path.exists(vswhere):
-            return []
-        return json.loads(check_output([vswhere, '-format', 'json'] + args).decode(errors='ignore'))
-
-    for install in vswhere(['-products', '*', '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
-                            '-requires', 'Microsoft.VisualStudio.Component.Windows10SDK']):
-        version = install['installationVersion'].split('.')[0] + '.0'
-        yield (install['installationPath'], version, "Current" if version == '16.0' else version)
-
-
-def find_highest_msvc_version():
-    editions = ["Enterprise", "Professional", "Community", "BuildTools"]
-    prog_files = os.environ.get("ProgramFiles(x86)")
-    base_vs_path = os.path.join(prog_files, "Microsoft Visual Studio")
-
-    vs_versions = ["2019", "2017"]
-    versions = {
-        ("2019", "vs"): "16.0",
-        ("2017", "vs"): "15.0",
-    }
-
-    for version in vs_versions:
-        for edition in editions:
-            vs_version = versions[version, "vs"]
-            msbuild_version = get_msbuild_version(vs_version)
-
-            vsinstalldir = os.path.join(base_vs_path, version, edition)
-            if os.path.exists(vsinstalldir):
-                return (vsinstalldir, vs_version, msbuild_version)
-
-    versions = sorted(find_highest_msvc_version_ext(), key=lambda tup: float(tup[1]))
-    if not versions:
-        print(f"Can't find MSBuild.exe installation under {base_vs_path}. "
-              "Please set the VSINSTALLDIR and VisualStudioVersion environment variables")
-        sys.exit(1)
-    return versions[0]
-
-
-def get_msbuild_version(vs_version):
-    if vs_version in ("15.0", "14.0"):
-        msbuild_version = vs_version
-    else:
-        msbuild_version = "Current"
-    return msbuild_version

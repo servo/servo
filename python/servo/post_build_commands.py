@@ -266,7 +266,12 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        env = self.build_env(is_build=True)
+        # Documentation build errors shouldn't cause the entire build to fail. This
+        # prevents issues with dependencies from breaking our documentation build,
+        # with the downside that it hides documentation issues.
+        params.insert(0, "--keep-going")
+
+        env = self.build_env()
         returncode = self.run_cargo_build_like_command("doc", params, env=env, **kwargs)
         if returncode:
             return returncode

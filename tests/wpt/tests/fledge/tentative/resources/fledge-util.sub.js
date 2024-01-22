@@ -157,17 +157,19 @@ async function waitForObservedRequests(uuid, expectedRequests) {
 function createBiddingScriptURL(params = {}) {
   let origin = params.origin ? params.origin : new URL(BASE_URL).origin;
   let url = new URL(`${origin}${RESOURCE_PATH}bidding-logic.sub.py`);
-  if (params.generateBid)
+  // These checks use "==" to ignore null and not provided arguments, while
+  // treating '' as a valid argument.
+  if (params.generateBid != null)
     url.searchParams.append('generateBid', params.generateBid);
-  if (params.reportWin)
+  if (params.reportWin != null)
     url.searchParams.append('reportWin', params.reportWin);
-  if (params.error)
+  if (params.error != null)
     url.searchParams.append('error', params.error);
-  if (params.bid)
+  if (params.bid != null)
     url.searchParams.append('bid', params.bid);
-  if (params.bidCurrency)
+  if (params.bidCurrency != null)
     url.searchParams.append('bidCurrency', params.bidCurrency);
-  if (params.allowComponentAuction !== undefined)
+  if (params.allowComponentAuction != null)
     url.searchParams.append('allowComponentAuction', JSON.stringify(params.allowComponentAuction))
   return url.toString();
 }
@@ -189,11 +191,13 @@ function createDecisionScriptURL(uuid, params = {}) {
   let origin = params.origin ? params.origin : new URL(BASE_URL).origin;
   let url = new URL(`${origin}${RESOURCE_PATH}decision-logic.sub.py`);
   url.searchParams.append('uuid', uuid);
-  if (params.scoreAd)
+  // These checks use "==" to ignore null and not provided arguments, while
+  // treating '' as a valid argument.
+  if (params.scoreAd != null)
     url.searchParams.append('scoreAd', params.scoreAd);
-  if (params.reportResult)
+  if (params.reportResult != null)
     url.searchParams.append('reportResult', params.reportResult);
-  if (params.error)
+  if (params.error != null)
     url.searchParams.append('error', params.error);
   return url.toString();
 }
@@ -204,12 +208,14 @@ function createDecisionScriptURL(uuid, params = {}) {
 // be last.  "signalsParams" also has no effect, but is used by
 // trusted-scoring-signals.py to affect the response.
 function createRenderURL(uuid, script, signalsParams, origin) {
+  // These checks use "==" to ignore null and not provided arguments, while
+  // treating '' as a valid argument.
   if (origin == null)
     origin = new URL(BASE_URL).origin;
   let url = new URL(`${origin}${RESOURCE_PATH}fenced-frame.sub.py`);
-  if (script)
+  if (script != null)
     url.searchParams.append('script', script);
-  if (signalsParams)
+  if (signalsParams != null)
     url.searchParams.append('signalsParams', signalsParams);
   url.searchParams.append('uuid', uuid);
   return url.toString();

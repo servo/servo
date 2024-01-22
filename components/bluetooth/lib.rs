@@ -2,6 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+pub mod adapter;
+pub mod bluetooth;
+#[cfg(not(any(
+    all(target_os = "linux", feature = "native-bluetooth"),
+    all(target_os = "android", feature = "native-bluetooth"),
+    all(target_os = "macos", feature = "native-bluetooth")
+)))]
+mod empty;
+mod macros;
 pub mod test;
 
 use std::borrow::ToOwned;
@@ -20,15 +29,16 @@ use bluetooth_traits::{
     BluetoothRequest, BluetoothResponse, BluetoothResponseResult, BluetoothResult,
     BluetoothServiceMsg, GATTType,
 };
-use device::bluetooth::{
-    BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic, BluetoothGATTDescriptor,
-    BluetoothGATTService,
-};
 use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::warn;
 use servo_config::pref;
 use servo_rand::{self, Rng};
+
+use crate::bluetooth::{
+    BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic, BluetoothGATTDescriptor,
+    BluetoothGATTService,
+};
 
 // A transaction not completed within 30 seconds shall time out. Such a transaction shall be considered to have failed.
 // https://www.bluetooth.org/DocMan/handlers/DownloadDoc.ashx?doc_id=286439 (Vol. 3, page 480)
@@ -67,9 +77,9 @@ impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
     fn new(embedder_proxy: EmbedderProxy) -> IpcSender<BluetoothRequest> {
         let (sender, receiver) = ipc::channel().unwrap();
         let adapter = if pref!(dom.bluetooth.enabled) {
-            BluetoothAdapter::init()
+            BluetoothAdapter::new()
         } else {
-            BluetoothAdapter::init_mock()
+            BluetoothAdapter::new_mock()
         }
         .ok();
         thread::Builder::new()
@@ -287,7 +297,7 @@ impl BluetoothManager {
         self.cached_characteristics.clear();
         self.cached_descriptors.clear();
         self.allowed_services.clear();
-        self.adapter = BluetoothAdapter::init_mock().ok();
+        self.adapter = BluetoothAdapter::new_mock().ok();
         match test::test(self, data_set_name) {
             Ok(_) => return Ok(()),
             Err(error) => Err(BluetoothError::Type(error.to_string())),
@@ -324,7 +334,7 @@ impl BluetoothManager {
             .as_ref()
             .map_or(false, |a| a.get_address().is_ok());
         if !adapter_valid {
-            self.adapter = BluetoothAdapter::init().ok();
+            self.adapter = BluetoothAdapter::new().ok();
         }
 
         let adapter = self.adapter.as_ref()?;

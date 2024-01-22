@@ -25,7 +25,7 @@ promise_test(async t => {
   }));
   const entryPromise = expect_long_frame_with_script(() => {
     test_driver.click(button);
-  }, s => s.name === "BUTTON.onclick", t);
+  }, s => s.invoker === "BUTTON.onclick", t);
   await new Promise(resolve => t.step_timeout(resolve, 0));
   const event = await eventPromise;
   const [entry] = await entryPromise;
@@ -52,7 +52,7 @@ promise_test(async t => {
     await actions.send();
     await eventPromise;
   }, (script, entry) =>
-      script.name === "BUTTON.onpointermove" &&
+      script.invoker === "BUTTON.onpointermove" &&
       entry.firstUIEventTimestamp === expectedTimestamp, t);
 }, "LoAF should expose firstUIEventTimestamp for pointermove events");
 
@@ -73,7 +73,7 @@ promise_test(async t => {
   const entryPromise = expect_long_frame_with_script(() => {
     test_driver.click(button);
     test_driver.click(button);
-  }, s => s.name === "BUTTON.onclick", t);
+  }, s => s.invoker === "BUTTON.onclick", t);
   const [event, [entry]] = await Promise.all([eventPromise, entryPromise]);
   assert_equals(entry.firstUIEventTimestamp, firstUIEventTimestamp);
 }, "firstUIEventTimestamp doesn't have to come from a long script");

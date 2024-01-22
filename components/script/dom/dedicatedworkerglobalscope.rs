@@ -443,6 +443,7 @@ impl DedicatedWorkerGlobalScope {
                                 TaskSourceName::DOMManipulation,
                             ))
                             .unwrap();
+                        scope.clear_js_runtime(context_for_interrupt);
                         return;
                     },
                     Ok((metadata, bytes)) => (metadata, bytes),
@@ -457,11 +458,13 @@ impl DedicatedWorkerGlobalScope {
                 }
 
                 if scope.is_closing() {
+                    scope.clear_js_runtime(context_for_interrupt);
                     return;
                 }
 
                 {
                     let _ar = AutoWorkerReset::new(&global, worker.clone());
+                    let _ac = enter_realm(&*scope);
                     scope.execute_script(DOMString::from(source));
                 }
 

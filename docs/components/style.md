@@ -8,7 +8,7 @@ Boris Zbarsky and Patrick Walton about how style sharing works.
 <a name="selector-impl"></a>
 ## Selector Implementation
 
-In order to be sharable and compatible with [Stylo][stylo](a project that aims 
+In order to be sharable and compatible with Stylo (a project that aims 
 to integrate Servo's style system into Gecko), the style must be consistent.
 
 The consistency is implemented in [selectors' SelectorImpl][selector-impl], 
@@ -124,14 +124,8 @@ Since no other selectors would apply to it, **this is (at least for now) not an
 acceptable type for public pseudo-elements, but should be considered for private
 pseudo-elements**.
 
-#### Not found what you were looking for?
-
-Feel free to ping @SimonSapin, @mbrubeck or @emilio on irc, and please mention
-that you didn't find it here so it can be added :)
-
 [style-doc]: https://doc.servo.org/style/index.html
 [wiki-styling-overview]: https://github.com/servo/servo/wiki/Styling-overview
-[stylo]: https://public.etherpad-mozilla.org/p/stylo
 [selector-impl]: https://doc.servo.org/selectors/parser/trait.SelectorImpl.html
 [selector-impl-ext]: https://doc.servo.org/style/selector_parser/trait.SelectorImplExt.html
 [servo-selector-impl]: https://doc.servo.org/style/servo/selector_parser/struct.SelectorImpl.html

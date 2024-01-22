@@ -97,6 +97,9 @@ function authenticatorResponseToJson(response) {
       (isAttestation ?
            [
              'clientDataJSON', 'attestationObject',
+             {name: 'getAuthenticatorData', target: 'authenticatorData'},
+             {name: 'getPublicKey', target: 'publicKey'},
+             {name: 'getPublicKeyAlgorithm', target: 'publicKeyAlgorithm'},
              {name: 'getTransports', target: 'transports'}
            ] :
            ['clientDataJSON', 'authenticatorData', 'signature', 'userHandle']);
@@ -113,29 +116,6 @@ function publicKeyCredentialToJson(cred) {
     'type'
   ];
   return convertObject(cred, keys);
-}
-
-// Returns a copy of `jsonObj`, which must be a JSON type, with object keys
-// recursively sorted in lexicographic order; or simply `jsonObj` if it is not
-// an instance of Object.
-function deepSortKeys(jsonObj) {
-  if (typeof jsonObj !== 'object' || jsonObj === null ||
-      jsonObj.__proto__.constructor !== Object ||
-      Object.keys(jsonObj).length === 0) {
-    return jsonObj;
-  }
-  return Object.keys(jsonObj).sort().reduce((acc, key) => {
-    acc[key] = deepSortKeys(jsonObj[key]);
-    return acc;
-  }, {});
-}
-
-// Asserts that `actual` and `expected`, which are both JSON types, are equal.
-// The object key order is ignored for comparison.
-function assertJsonEquals(actual, expected, optMsg) {
-  assert_equals(
-      JSON.stringify(deepSortKeys(actual)),
-      JSON.stringify(deepSortKeys(expected)), optMsg);
 }
 
 virtualAuthenticatorPromiseTest(

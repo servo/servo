@@ -1,5 +1,11 @@
 Need tests for (likely not a complete list):
 
+* Test how InterestGroup values affected by k-anon checks are passed to generateBid.
+  * adSizes, sizeGroups, ads, and adComponents all need such tests.
+  * adSizes and sizeGroups currently have no tests, since they are incorectly
+      currently not passed to generateBid at all.
+* Test empty ads array:
+   Maybe simplest to test its numBids is empty?  Hard to test a script isn't run.
 * directFromSellerSignals.
     * The expected order when both responses use the same ad slot is currently
         undefined. However, we are in the process of resolving this matter by

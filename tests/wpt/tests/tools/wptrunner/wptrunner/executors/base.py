@@ -89,8 +89,7 @@ class TestharnessResultConverter:
     def __call__(self, test, result, extra=None):
         """Convert a JSON result into a (TestResult, [SubtestResult]) tuple"""
         result_url, status, message, stack, subtest_results = result
-        assert result_url == test.url, ("Got results from %s, expected %s" %
-                                        (result_url, test.url))
+        assert result_url == test.url, (f"Got results from {result_url}, expected {test.url}")
         harness_result = test.result_cls(self.harness_codes[status], message, extra=extra, stack=stack)
         return (harness_result,
                 [test.subtest_result_cls(st_name, self.test_codes[st_status], st_message, st_stack)
@@ -763,8 +762,9 @@ class CallbackHandler:
                     # AttributeError got an obj property in Python 3.10, for older versions we
                     # fall back to looking at the error message.
                     if ((hasattr(e, "obj") and getattr(e, "obj") == self.protocol) or
-                        "'{self.protocol.__class__.__name__}' has no attribute" in str(e)):
+                        f"'{self.protocol.__class__.__name__}' object has no attribute" in str(e)):
                         raise NotImplementedError from e
+                    raise
         except self.unimplemented_exc:
             self.logger.warning("Action %s not implemented" % action)
             self._send_message(cmd_id, "complete", "error", f"Action {action} not implemented")

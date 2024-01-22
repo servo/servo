@@ -111,7 +111,7 @@ async function writeValueToServer(key, value) {
 function loadInitiatorPage(rule_extras = {}) {
   // Used to communicate with the prerendering page.
   const prerenderChannel = new PrerenderChannel('prerender-channel');
-  window.addEventListener('unload', () => {
+  window.addEventListener('pagehide', () => {
     prerenderChannel.close();
   });
 

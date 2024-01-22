@@ -10,7 +10,7 @@
 import os
 import sys
 
-GSTREAMER_DYLIBS = [
+GSTREAMER_BASE_LIBS = [
     # gstreamer
     "gstbase",
     "gstcontroller",
@@ -22,6 +22,7 @@ GSTREAMER_DYLIBS = [
     "gstfft",
     "gstgl",
     "gstpbutils",
+    "gstplay",
     "gstriff",
     "gstrtp",
     "gstrtsp",
@@ -33,10 +34,15 @@ GSTREAMER_DYLIBS = [
     "gstcodecparsers",
     "gstplayer",
     "gstwebrtc",
+    "gstwebrtcnice",
 ]
+"""
+These are the GStreamer base libraries used by both MacOS and Windows
+platforms. These are distinct from GStreamer plugins, but GStreamer plugins
+may have shared object dependencies on them.
+"""
 
-
-GSTREAMER_PLUGINS = [
+GSTREAMER_PLUGIN_LIBS = [
     # gstreamer
     "gstcoreelements",
     "gstnice",
@@ -51,6 +57,7 @@ GSTREAMER_PLUGINS = [
     "gstplayback",
     "gsttheora",
     "gsttypefindfunctions",
+    "gstvideoconvertscale",
     "gstvolume",
     "gstvorbis",
     # gst-plugins-good
@@ -76,21 +83,75 @@ GSTREAMER_PLUGINS = [
     # gst-libav
     "gstlibav",
 ]
+"""
+The list of plugin libraries themselves, used for both MacOS and Windows.
+"""
+
+GSTREAMER_MAC_PLUGIN_LIBS = [
+    # gst-plugins-good
+    "gstosxaudio",
+    "gstosxvideo",
+    # gst-plugins-bad
+    "gstapplemedia",
+]
+"""
+Plugins that are only used for MacOS.
+"""
+
+GSTREAMER_WIN_PLUGIN_LIBS = [
+    # gst-plugins-bad
+    "gstwasapi"
+]
+"""
+Plugins that are only used for Windows.
+"""
+
+GSTREAMER_WIN_DEPENDENCY_LIBS = [
+    "avcodec-59.dll",
+    "avfilter-8.dll",
+    "avformat-59.dll",
+    "avutil-57.dll",
+    "bz2.dll",
+    "ffi-7.dll",
+    "gio-2.0-0.dll",
+    "glib-2.0-0.dll",
+    "gmodule-2.0-0.dll",
+    "gobject-2.0-0.dll",
+    "graphene-1.0-0.dll",
+    "intl-8.dll",
+    "libcrypto-1_1-x64.dll",
+    "libjpeg-8.dll",
+    "libogg-0.dll",
+    "libpng16-16.dll",
+    "libssl-1_1-x64.dll",
+    "libvorbis-0.dll",
+    "libvorbisenc-2.dll",
+    "libwinpthread-1.dll",
+    "nice-10.dll",
+    "opus-0.dll",
+    "orc-0.4-0.dll",
+    "pcre2-8-0.dll",
+    "swresample-4.dll",
+    "theora-0.dll",
+    "theoradec-1.dll",
+    "theoraenc-1.dll",
+    "z-1.dll",
+]
+"""
+DLLs that GStreamer ships in the Windows distribution that are necessary for
+using the plugin selection that we have. This list is curated by a combination
+of using `dumpbin` and the errors that appear when starting Servo.
+"""
 
 
 def windows_dlls():
-    libs = list(GSTREAMER_DYLIBS)
-    return [f"{lib}-1.0-0.dll" for lib in libs]
+    return GSTREAMER_WIN_DEPENDENCY_LIBS + [f"{lib}-1.0-0.dll" for lib in GSTREAMER_BASE_LIBS]
 
 
 def windows_plugins():
-    # FIXME: We should support newer gstreamer versions here that replace
-    # gstvideoconvert and gstvideoscale with gstvideoconvertscale.
     libs = [
-        *GSTREAMER_PLUGINS,
-        "gstvideoconvert",
-        "gstvideoscale",
-        "gstwasapi"
+        *GSTREAMER_PLUGIN_LIBS,
+        *GSTREAMER_WIN_PLUGIN_LIBS
     ]
     return [f"{lib}.dll" for lib in libs]
 
@@ -102,34 +163,17 @@ def macos_gst_root():
 
 def macos_plugins():
     plugins = [
-        *GSTREAMER_PLUGINS,
-        # gst-plugins-good
-        "gstosxaudio",
-        "gstosxvideo",
-        # gst-plugins-bad
-        "gstapplemedia",
+        *GSTREAMER_PLUGIN_LIBS,
+        *GSTREAMER_MAC_PLUGIN_LIBS
     ]
 
-    def plugin_path(plugin):
-        return os.path.join(macos_gst_root(), 'lib', 'gstreamer-1.0', f"lib{plugin}.dylib")
-
-    # These plugins depend on the particular version of GStreamer that is installed
-    # on the system that is building servo.
-    conditional_plugins = [
-        # gst-plugins-base
-        plugin_path("gstvideoconvert"),
-        plugin_path("gstvideoscale"),
-        plugin_path("gstvideoconvertscale")
-    ]
-    conditional_plugins = list(filter(lambda path: os.path.exists(path),
-                                      conditional_plugins))
-    return [plugin_path(plugin) for plugin in plugins] + conditional_plugins
+    return [f"lib{plugin}.dylib" for plugin in plugins]
 
 
 def write_plugin_list(target):
     plugins = []
     if "apple-" in target:
-        plugins = [os.path.basename(x) for x in macos_plugins()]
+        plugins = macos_plugins()
     elif '-windows-' in target:
         plugins = windows_plugins()
     print('''/* This is a generated file. Do not modify. */

@@ -3,11 +3,6 @@
 // (https://github.com/w3c/webref)
 // Source: CSS View Transitions Module Level 2 (https://drafts.csswg.org/css-view-transitions-2/)
 
-[Exposed=Window]
-interface PageRevealEvent : Event {
-  readonly attribute ViewTransition? viewTransition;
-};
-
 dictionary StartViewTransitionOptions {
   UpdateCallback? update = null;
   sequence<DOMString>? type = null;

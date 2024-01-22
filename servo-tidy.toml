@@ -21,18 +21,21 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
     "bitflags",
-    "cfg-if",
     "cookie",
     "futures",
     "libloading",
     "nix",
-    "num-rational",
     "redox_syscall",
     "syn",
     "synstructure",
     "time",
     "wasi",
     "wayland-sys",
+
+    # New versions of these dependencies is pulled in by GStreamer / GLib.
+    "itertools",
+    "proc-macro-crate",
+    "toml",
 
     # This dependency is for "hermit os" which Servo doesn't support.
     # Theoretically, it's never fetched.
@@ -53,12 +56,11 @@ packages = [
     "foreign-types",
     "foreign-types-shared",
     "metal",
-    "paste",
 
     # Duplicated by indexmap.
     "hashbrown",
 
-    # Duplicated by style, cbindgen, clap.
+    # Duplicated by style, cbindgen, clap, and GStreamer.
     "indexmap",
 
     # style (0.64) vs. webxr (0.66) vs. mozjs_sys (0.68).

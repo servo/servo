@@ -1,4 +1,3 @@
-# META: timeout=long
 import pytest
 
 from tests.classic.release_actions.support.refine import get_events, get_keys

@@ -30,13 +30,13 @@
         &#x202D; - The LRO (left-to-right override) formatting character.
         &#x202C; - The PDF (pop directional formatting) formatting character; closes LRO.
       In each DIV of the test:
-        - the first BDI, having no characters with strong direction, should be LTR by default;
+        - the first BDI, having no characters with strong direction, should inherit the parent direction;
         - the second BDI, having an LTR character first, should be LTR by default;
         - the third BDI, having an RTL character first, should be RTL by default.
     </div>
     <div class="test">
       <div dir="ltr"><bdi>[:)]</bdi>, <bdi>[+- a &#x05D1;]</bdi>, <bdi>[1 &#x05D2; d]</bdi>...</div>
-      <div dir="rtl"><bdi>[:)]</bdi>, <bdi>[+- a &#x05D1;]</bdi>, <bdi>[1 &#x05D2; d]</bdi>...</div>
+      <div dir="rtl"><bdi>[(:]</bdi>, <bdi>[+- a &#x05D1;]</bdi>, <bdi>[1 &#x05D2; d]</bdi>...</div>
     </div>
     <div class="ref">
       <div dir="ltr">&#x202D;[:)], [+- a &#x05D1;], [d &#x05D2; 1]...&#x202C;</div>

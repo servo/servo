@@ -77,13 +77,13 @@
 
   // Testing permutation.
   fuzzy_test_computed_color(`rgb(from rebeccapurple g b r)`, `color(srgb 0.2 0.6 0.4)`);
-  fuzzy_test_computed_color(`rgb(from rebeccapurple b alpha r / g)`, `color(srgb 0.6 1 0.4 / 0.2)`);
-  fuzzy_test_computed_color(`rgb(from rebeccapurple r r r / r)`, `color(srgb 0.4 0.4 0.4 / 0.4)`);
-  fuzzy_test_computed_color(`rgb(from rebeccapurple alpha alpha alpha / alpha)`, `color(srgb 1 1 1)`);
+  fuzzy_test_computed_color(`rgb(from rebeccapurple b alpha r / g)`, `color(srgb 0.6 ${1/255} 0.4)`);
+  fuzzy_test_computed_color(`rgb(from rebeccapurple r r r / r)`, `color(srgb 0.4 0.4 0.4)`);
+  fuzzy_test_computed_color(`rgb(from rebeccapurple alpha alpha alpha / alpha)`, `color(srgb ${1/255} ${1/255} ${1/255})`);
   fuzzy_test_computed_color(`rgb(from rgb(20%, 40%, 60%, 80%) g b r)`, `color(srgb 0.4 0.6 0.2 / 0.8)`);
-  fuzzy_test_computed_color(`rgb(from rgb(20%, 40%, 60%, 80%) b alpha r / g)`, `color(srgb 0.6 0.8 0.2 / 0.4)`);
-  fuzzy_test_computed_color(`rgb(from rgb(20%, 40%, 60%, 80%) r r r / r)`, `color(srgb 0.2 0.2 0.2 / 0.2)`);
-  fuzzy_test_computed_color(`rgb(from rgb(20%, 40%, 60%, 80%) alpha alpha alpha / alpha)`, `color(srgb 0.8 0.8 0.8 / 0.8)`);
+  fuzzy_test_computed_color(`rgb(from rgb(20%, 40%, 60%, 80%) b alpha r / g)`, `color(srgb 0.6 ${0.8/255} 0.2)`);
+  fuzzy_test_computed_color(`rgb(from rgb(20%, 40%, 60%, 80%) r r r / r)`, `color(srgb 0.2 0.2 0.2)`);
+  fuzzy_test_computed_color(`rgb(from rgb(20%, 40%, 60%, 80%) alpha alpha alpha / alpha)`, `color(srgb ${0.8/255} ${0.8/255} ${0.8/255} / 0.8)`);
 
   // Testing mixes of number and percentage. (These would not be allowed in the non-relative syntax).
   fuzzy_test_computed_color(`rgb(from rebeccapurple r 20% 10)`, `color(srgb 0.4 0.2 0.0392)`);
@@ -103,6 +103,7 @@
   fuzzy_test_computed_color(`rgb(from rebeccapurple r calc(g * .5 + g * .5) 10)`, `color(srgb 0.4 0.2 0.0392)`);
   fuzzy_test_computed_color(`rgb(from rebeccapurple r calc(b * .5 - g * .5) 10)`, `color(srgb 0.4 0.2 0.0392)`);
   fuzzy_test_computed_color(`rgb(from rgb(20%, 40%, 60%, 80%) calc(r) calc(g) calc(b) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
+  fuzzy_test_computed_color(`rgb(from rgb(100 110 120 / 0.8) calc(r + 1) calc(g + 1) calc(b + 1) / calc(alpha + 0.01))`, `color(srgb 0.396 0.435 0.474 / 0.81)`); // rgb(101 111 121)
 
   // Testing with 'none'. Missing components are resolved to zero during color space conversion.
   // https://drafts.csswg.org/css-color-4/#missing
@@ -172,6 +173,7 @@
   // Testing with calc().
   fuzzy_test_computed_color(`hsl(from rebeccapurple calc(h) calc(s) calc(l))`, `color(srgb 0.4 0.2 0.6)`);
   fuzzy_test_computed_color(`hsl(from rgb(20%, 40%, 60%, 80%) calc(h) calc(s) calc(l) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
+  fuzzy_test_computed_color(`hsl(from hsl(20 30 40 / 0.8) calc(h + 1) calc(s + 1) calc(l + 1) / calc(alpha + 0.01))`, `color(srgb 0.54 0.37 0.28 / 0.81)`); // hsl(21 31 41)
 
   // Testing with 'none'. Missing components are resolved to zero during color space conversion.
   // https://drafts.csswg.org/css-color-4/#missing
@@ -242,6 +244,7 @@
   // Testing with calc().
   fuzzy_test_computed_color(`hwb(from rebeccapurple calc(h) calc(w) calc(b))`, `color(srgb 0.4 0.2 0.6)`);
   fuzzy_test_computed_color(`hwb(from rgb(20%, 40%, 60%, 80%) calc(h) calc(w) calc(b) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
+  fuzzy_test_computed_color(`hwb(from hwb(20 30 40 / 0.8) calc(h + 1) calc(w + 1) calc(b + 1) / calc(alpha + 0.01))`, `color(srgb 0.59 0.41 0.31 / 0.81)`); // hwb(21 31 41)
 
   // Testing with 'none'. Missing components are resolved to zero during color space conversion.
   // https://drafts.csswg.org/css-color-4/#missing
@@ -308,6 +311,7 @@
   // Testing with calc().
   fuzzy_test_computed_color(`lab(from lab(25 20 50) calc(l) calc(a) calc(b))`, `lab(25 20 50)`);
   fuzzy_test_computed_color(`lab(from lab(25 20 50 / 40%) calc(l) calc(a) calc(b) / calc(alpha))`, `lab(25 20 50 / 0.4)`);
+  fuzzy_test_computed_color(`lab(from lab(50 5 10 / 0.8) calc(l + 1) calc(a + 1) calc(b + 1) / calc(alpha + 0.01))`, `lab(51 6 11 / 0.81)`);
 
   // Testing with 'none'.
   fuzzy_test_computed_color(`lab(from lab(25 20 50) none none none)`, `lab(none none none)`);
@@ -371,6 +375,7 @@
   // Testing with calc().
   fuzzy_test_computed_color(`oklab(from oklab(0.25 0.2 0.5) calc(l) calc(a) calc(b))`, `oklab(0.25 0.2 0.5)`);
   fuzzy_test_computed_color(`oklab(from oklab(0.25 0.2 0.5 / 40%) calc(l) calc(a) calc(b) / calc(alpha))`, `oklab(0.25 0.2 0.5 / 0.4)`);
+  fuzzy_test_computed_color(`oklab(from oklab(0.5 .05 0.1 / 0.8) calc(l + 0.01) calc(a + 0.01) calc(b + 0.01) / calc(alpha + 0.01))`, `oklab(0.51 .06 0.11 / 0.81)`);
 
   // Testing with 'none'.
   fuzzy_test_computed_color(`oklab(from oklab(0.25 0.2 0.5) none none none)`, `oklab(none none none)`);
@@ -442,6 +447,7 @@
   // Testing with calc().
   fuzzy_test_computed_color(`lch(from lch(0.7 45 30) calc(l) calc(c) calc(h))`, `lch(0.7 45 30)`);
   fuzzy_test_computed_color(`lch(from lch(0.7 45 30 / 40%) calc(l) calc(c) calc(h) / calc(alpha))`, `lch(0.7 45 30 / 0.4)`);
+  fuzzy_test_computed_color(`lch(from lch(50 5 10 / 0.8) calc(l + 1) calc(c + 1) calc(h + 1) / calc(alpha + 0.01))`, `lch(51 6 11 / 0.81)`);
 
   // Testing with 'none'.
   fuzzy_test_computed_color(`lch(from lch(0.7 45 30) none none none)`,                                   `lch(none none none)`);
@@ -514,6 +520,7 @@
   // Testing with calc().
   fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30) calc(l) calc(c) calc(h))`, `oklch(0.7 0.45 30)`);
   fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30 / 40%) calc(l) calc(c) calc(h) / calc(alpha))`, `oklch(0.7 0.45 30 / 0.4)`);
+  fuzzy_test_computed_color(`oklch(from oklch(0.5 .05 0.1 / 0.8) calc(l + 0.01) calc(c + 0.01) calc(h + 0.01) / calc(alpha + 0.01))`, `oklch(0.51 .06 0.11 / 0.81)`);
 
   // Testing with 'none'.
   fuzzy_test_computed_color(`oklch(from oklch(0.7 0.45 30) none none none)`,                                   `oklch(none none none)`);
@@ -598,8 +605,9 @@
       fuzzy_test_computed_color(`color(from color(${colorSpace} -0.7 -0.5 -0.3 / -40%) ${colorSpace} r g b / alpha)`,            `color(${colorSpace} -0.7 -0.5 -0.3 / 0)`);
 
       // Testing with calc().
-      fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} calc(r) calc(g) calc(b))`,                        `color(${colorSpace} 0.7 0.5 0.3)`);
-      fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} calc(r) calc(g) calc(b) / calc(alpha))`,    `color(${colorSpace} 0.7 0.5 0.3 / 0.4)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} calc(r) calc(g) calc(b))`,                                                  `color(${colorSpace} 0.7 0.5 0.3)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3 / 40%) ${colorSpace} calc(r) calc(g) calc(b) / calc(alpha))`,                              `color(${colorSpace} 0.7 0.5 0.3 / 0.4)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3 / 0.8) ${colorSpace} calc(r + 0.01) calc(g + 0.01) calc(b + 0.01) / calc(alpha + 0.01))`,  `color(${colorSpace} 0.71 0.51 0.31 / 0.81)`);
 
       // Testing with 'none'.
       fuzzy_test_computed_color(`color(from color(${colorSpace} 0.7 0.5 0.3) ${colorSpace} none none none)`,                     `color(${colorSpace} none none none)`);
@@ -658,8 +666,9 @@
       fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} x x x / x)`,                    `color(${resultColorSpace} 7 7 7)`);
 
       // Testing with calc().
-      fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} calc(x) calc(y) calc(z))`,                        `color(${resultColorSpace} 7 -20.5 100)`);
-      fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} calc(x) calc(y) calc(z) / calc(alpha))`,    `color(${resultColorSpace} 7 -20.5 100 / 0.4)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} calc(x) calc(y) calc(z))`,                                        `color(${resultColorSpace} 7 -20.5 100)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100 / 40%) ${colorSpace} calc(x) calc(y) calc(z) / calc(alpha))`,                    `color(${resultColorSpace} 7 -20.5 100 / 0.4)`);
+      fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100 / 0.8) ${colorSpace} calc(x + 1) calc(y + 1) calc(z + 1) / calc(alpha + 0.01))`, `color(${resultColorSpace} 8 -19.5 101 / 0.81)`);
 
       // Testing with 'none'.
       fuzzy_test_computed_color(`color(from color(${colorSpace} 7 -20.5 100) ${colorSpace} none none none)`,                     `color(${resultColorSpace} none none none)`);
@@ -688,9 +697,9 @@
   fuzzy_test_computed_color(`color(from color(rec2020 0.25 0.5 0.75) srgb r g b)`, `color(srgb -0.280102 0.565536 0.79958)`, 0.001);
   fuzzy_test_computed_color(`color(from color(srgb 0.25 0.5 0.75) rec2020 r g b)`, `color(rec2020 0.331976 0.440887 0.696358)`, 0.001);
   fuzzy_test_computed_color(`color(from color(xyz-d50 0.25 0.5 0.75) srgb r g b)`, `color(srgb -0.660065 0.874863 0.981117)`, 0.001);
-  fuzzy_test_computed_color(`color(from color(srgb 0.25 0.5 0.75) xyz-d50 r g b)`, `color(xyz-d50 0.179349 0.196389 0.394585)`, 0.001);
+  fuzzy_test_computed_color(`color(from color(srgb 0.25 0.5 0.75) xyz-d50 x y z)`, `color(xyz-d50 0.179349 0.196389 0.394585)`, 0.001);
   fuzzy_test_computed_color(`color(from color(xyz-d65 0.25 0.5 0.75) srgb r g b)`, `color(srgb -0.611881 0.868732 0.856899)`, 0.001);
-  fuzzy_test_computed_color(`color(from color(srgb 0.25 0.5 0.75) xyz-d65 r g b)`, `color(xyz-d65 0.191791 0.201562 0.523057)`, 0.001);
+  fuzzy_test_computed_color(`color(from color(srgb 0.25 0.5 0.75) xyz-d65 x y z)`, `color(xyz-d65 0.191791 0.201562 0.523057)`, 0.001);
   fuzzy_test_computed_color(`lab(from color(srgb 0.25 0.5 0.75) l a b)`, `lab(51.4265 -5.21401 -40.1491)`, 0.02); // Larger values means larger epsilon.
   fuzzy_test_computed_color(`color(from lab(67.5345 -8.6911 -41.6019) srgb r g b)`, `color(srgb 0.382744 0.672806 0.938545)`, 0.001);
   fuzzy_test_computed_color(`oklab(from color(srgb 0.25 0.5 0.75) l a b)`, `oklab(0.585502 -0.0393846 -0.111503)`, 0.001);

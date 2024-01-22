@@ -1,5 +1,3 @@
-// META: script=/resources/testharness.js
-// META: script=/resources/testharnessreport.js
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=/common/get-host-info.sub.js
 // META: script=/common/utils.js

@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Resized Image Is Not Reconsidered as LCP.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <img src='/images/lcp-256x256.png' id='image_id' height="100" width="50" />
+  <script>
+    let image_id = 'image_id';
+
+    // Create a promise that resolves when an LCP is observed.
+    const lcp_observation_promise = image_src => {
+      return new Promise(resolve => {
+        new PerformanceObserver((entryList) => {
+          let lcpEntries = entryList.getEntries().filter(e => e.id == image_id);
+
+          if (lcpEntries) {
+            resolve(lcpEntries);
+          }
+        }).observe({ type: 'largest-contentful-paint', buffered: true });
+      });
+    }
+
+    promise_test(async t => {
+      const lcpEntriesInitial = await lcp_observation_promise();
+      assert_equals(lcpEntriesInitial.length, 1);
+
+      // Resize image.
+      document.getElementById('image_id').height = 150;
+
+      // Wait for a repaint.
+      const lcpEntriesAfterImageResizing =
+        await new Promise(resolve => {
+          t.step_timeout(window.requestAnimationFrame(async () => {
+            resolve(await lcp_observation_promise());
+          }), 100);
+        });
+
+      // No additional LCP entry is emitted after the image is resized to be larger.
+      assert_equals(lcpEntriesAfterImageResizing.length, 1);
+      assert_true(lcpEntriesInitial[0] === lcpEntriesAfterImageResizing[0]);
+    }, "Resized image should not be reconsidered as LCP");
+  </script>
+</body>

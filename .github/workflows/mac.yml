@@ -111,7 +111,7 @@ jobs:
           command: python3 ./mach test-unit --${{ inputs.profile }}
       - name: Build mach package
         run: python3 ./mach package --${{ inputs.profile }}
-      - name: Run smoketest for mach package
+      - name: Run DMG smoketest
         uses: nick-fields/retry@v2
         with: # See https://github.com/servo/servo/issues/30757
           timeout_minutes: 5

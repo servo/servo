@@ -8,9 +8,9 @@
 # except according to those terms.
 
 import datetime
-import locale
 import os
 import os.path as path
+import pathlib
 import shutil
 import stat
 import subprocess
@@ -35,6 +35,7 @@ import servo.util
 
 from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.gstreamer import windows_dlls, windows_plugins, macos_plugins
+from python.servo.visual_studio import find_msvc_redist_dirs
 
 
 @CommandProvider
@@ -58,7 +59,6 @@ class MachCommands(CommandBase):
     def build(self, build_type: BuildType, jobs=None, params=None, no_package=False,
               verbose=False, very_verbose=False, libsimpleservo=False, **kwargs):
         opts = params or []
-        has_media_stack = "media-gstreamer" in self.features
 
         if build_type.is_release():
             opts += ["--release"]
@@ -74,16 +74,13 @@ class MachCommands(CommandBase):
         if very_verbose:
             opts += ["-vv"]
 
-        env = self.build_env(is_build=True)
+        env = self.build_env()
         self.ensure_bootstrapped()
         self.ensure_clobbered()
 
         build_start = time()
 
         host = servo.platform.host_triple()
-        if 'windows' in host:
-            vs_dirs = self.vs_dirs()
-
         target_triple = self.cross_compile_target or servo.platform.host_triple()
         if host != target_triple and 'windows' in target_triple:
             if os.environ.get('VisualStudioVersion') or os.environ.get('VCINSTALLDIR'):
@@ -92,29 +89,6 @@ class MachCommands(CommandBase):
                       "Visual Studio shell, and make sure the VisualStudioVersion and "
                       "VCINSTALLDIR environment variables are not set.")
                 sys.exit(1)
-            vcinstalldir = vs_dirs['vcdir']
-            if not os.path.exists(vcinstalldir):
-                print("Can't find Visual C++ %s installation at %s." % (vs_dirs['vs_version'], vcinstalldir))
-                sys.exit(1)
-
-            env['PKG_CONFIG_ALLOW_CROSS'] = "1"
-
-        if 'windows' in host:
-            process = subprocess.Popen('("%s" %s > nul) && "python" -c "import os; print(repr(os.environ))"' %
-                                       (os.path.join(vs_dirs['vcdir'], "Auxiliary", "Build", "vcvarsall.bat"), "x64"),
-                                       stdout=subprocess.PIPE, shell=True)
-            stdout, stderr = process.communicate()
-            exitcode = process.wait()
-            encoding = locale.getpreferredencoding()  # See https://stackoverflow.com/a/9228117
-            if exitcode == 0:
-                decoded = stdout.decode(encoding)
-                if decoded.startswith("environ("):
-                    decoded = decoded.strip()[8:-1]
-                os.environ.update(eval(decoded))
-            else:
-                print("Failed to run vcvarsall. stderr:")
-                print(stderr.decode(encoding))
-                exit(1)
 
         # Gather Cargo build timings (https://doc.rust-lang.org/cargo/reference/timings.html).
         opts = ["--timings"] + opts
@@ -131,6 +105,7 @@ class MachCommands(CommandBase):
         )
 
         # Do some additional things if the build succeeded
+        built_binary = self.get_binary_path(build_type, target=self.cross_compile_target, simpleservo=libsimpleservo)
         if status == 0:
             if self.is_android_build and not no_package:
                 flavor = None
@@ -144,43 +119,7 @@ class MachCommands(CommandBase):
                     return rv
 
             if sys.platform == "win32":
-                servo_exe_dir = os.path.dirname(
-                    self.get_binary_path(build_type, target=self.cross_compile_target, simpleservo=libsimpleservo)
-                )
-                assert os.path.exists(servo_exe_dir)
-
-                build_path = path.join(servo_exe_dir, "build")
-                assert os.path.exists(build_path)
-
-                # on msvc, we need to copy in some DLLs in to the servo.exe dir and the directory for unit tests.
-                def package_generated_shared_libraries(libs, build_path, servo_exe_dir):
-                    for root, dirs, files in os.walk(build_path):
-                        remaining_libs = list(libs)
-                        for lib in libs:
-                            if lib in files:
-                                shutil.copy(path.join(root, lib), servo_exe_dir)
-                                remaining_libs.remove(lib)
-                                continue
-                        libs = remaining_libs
-                        if not libs:
-                            return True
-                    for lib in libs:
-                        print("WARNING: could not find " + lib)
-
-                print("Packaging EGL DLLs")
-                egl_libs = ["libEGL.dll", "libGLESv2.dll"]
-                if not package_generated_shared_libraries(egl_libs, build_path, servo_exe_dir):
-                    status = 1
-
-                # copy needed gstreamer DLLs in to servo.exe dir
-                if has_media_stack:
-                    print("Packaging gstreamer DLLs")
-                    if not package_gstreamer_dlls(env, servo_exe_dir, target_triple):
-                        status = 1
-
-                # UWP app packaging already bundles all required DLLs for us.
-                print("Packaging MSVC DLLs")
-                if not package_msvc_dlls(servo_exe_dir, target_triple, vs_dirs['vcdir'], vs_dirs['vs_version']):
+                if not copy_windows_dlls_to_build_directory(built_binary, target_triple):
                     status = 1
 
             elif sys.platform == "darwin":
@@ -189,7 +128,7 @@ class MachCommands(CommandBase):
                 servo_bin_dir = os.path.dirname(servo_path)
                 assert os.path.exists(servo_bin_dir)
 
-                if has_media_stack:
+                if self.enable_media:
                     print("Packaging gstreamer dylibs")
                     if not package_gstreamer_dylibs(self.cross_compile_target, servo_path):
                         return 1
@@ -373,13 +312,15 @@ def resolve_rpath(lib, rpath_root):
     raise Exception("Unable to satisfy rpath dependency: " + lib)
 
 
-def copy_dependencies(binary_path, lib_path, gst_root):
+def copy_dependencies(binary_path, lib_path, gst_lib_dir):
     relative_path = path.relpath(lib_path, path.dirname(binary_path)) + "/"
 
     # Update binary libraries
     binary_dependencies = set(otool(binary_path))
     change_non_system_libraries_path(binary_dependencies, relative_path, binary_path)
-    binary_dependencies = binary_dependencies.union(macos_plugins())
+
+    plugins = [os.path.join(gst_lib_dir, "gstreamer-1.0", plugin) for plugin in macos_plugins()]
+    binary_dependencies = binary_dependencies.union(plugins)
 
     # Update dependencies libraries
     need_checked = binary_dependencies
@@ -391,7 +332,7 @@ def copy_dependencies(binary_path, lib_path, gst_root):
             # No need to check these for their dylibs
             if is_system_library(f):
                 continue
-            full_path = resolve_rpath(f, gst_root)
+            full_path = resolve_rpath(f, gst_lib_dir)
             need_relinked = set(otool(full_path))
             new_path = path.join(lib_path, path.basename(full_path))
             if not path.exists(new_path):
@@ -422,52 +363,45 @@ def package_gstreamer_dylibs(cross_compilation_target, servo_bin):
     return True
 
 
-def package_gstreamer_dlls(env, servo_exe_dir, target):
+def copy_windows_dlls_to_build_directory(servo_binary: str, target_triple: str) -> bool:
+    servo_exe_dir = os.path.dirname(servo_binary)
+    assert os.path.exists(servo_exe_dir)
+
+    build_path = path.join(servo_exe_dir, "build")
+    assert os.path.exists(build_path)
+
+    # Copy in the built EGL and GLES libraries from where they were built to
+    # the final build dirctory
+    def find_and_copy_built_dll(dll_name):
+        try:
+            file_to_copy = next(pathlib.Path(build_path).rglob(dll_name))
+            shutil.copy(file_to_copy, servo_exe_dir)
+        except StopIteration:
+            print(f"WARNING: could not find {dll_name}")
+
+    print(" • Copying ANGLE DLLs to binary directory...")
+    find_and_copy_built_dll("libEGL.dll")
+    find_and_copy_built_dll("libGLESv2.dll")
+
+    print(" • Copying GStreamer DLLs to binary directory...")
+    if not package_gstreamer_dlls(servo_exe_dir, target_triple):
+        return False
+
+    print(" • Copying MSVC DLLs to binary directory...")
+    if not package_msvc_dlls(servo_exe_dir, target_triple):
+        return False
+
+    return True
+
+
+def package_gstreamer_dlls(servo_exe_dir: str, target: str):
     gst_root = servo.platform.get().gstreamer_root(cross_compilation_target=target)
     if not gst_root:
         print("Could not find GStreamer installation directory.")
         return False
 
-    # All the shared libraries required for starting up and loading plugins.
-    gst_dlls = [
-        "avcodec-58.dll",
-        "avfilter-7.dll",
-        "avformat-58.dll",
-        "avutil-56.dll",
-        "bz2.dll",
-        "ffi-7.dll",
-        "gio-2.0-0.dll",
-        "glib-2.0-0.dll",
-        "gmodule-2.0-0.dll",
-        "gobject-2.0-0.dll",
-        "graphene-1.0-0.dll",
-        "intl-8.dll",
-        "libcrypto-1_1-x64.dll",
-        "libgmp-10.dll",
-        "libgnutls-30.dll",
-        "libhogweed-4.dll",
-        "libjpeg-8.dll",
-        "libnettle-6.dll.",
-        "libogg-0.dll",
-        "libopus-0.dll",
-        "libpng16-16.dll",
-        "libssl-1_1-x64.dll",
-        "libtasn1-6.dll",
-        "libtheora-0.dll",
-        "libtheoradec-1.dll",
-        "libtheoraenc-1.dll",
-        "libusrsctp-1.dll",
-        "libvorbis-0.dll",
-        "libvorbisenc-2.dll",
-        "libwinpthread-1.dll",
-        "nice-10.dll",
-        "orc-0.4-0.dll",
-        "swresample-3.dll",
-        "z-1.dll",
-    ] + windows_dlls()
-
     missing = []
-    for gst_lib in gst_dlls:
+    for gst_lib in windows_dlls():
         try:
             shutil.copy(path.join(gst_root, "bin", gst_lib), servo_exe_dir)
         except Exception:
@@ -499,58 +433,16 @@ def package_gstreamer_dlls(env, servo_exe_dir, target):
     return not missing
 
 
-def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
-    # copy some MSVC DLLs to servo.exe dir
-    msvc_redist_dir = None
-    vs_platforms = {
-        "x86_64": "x64",
-        "i686": "x86",
-        "aarch64": "arm64",
-    }
-    target_arch = target.split('-')[0]
-    vs_platform = vs_platforms[target_arch]
-    vc_dir = vcinstalldir or os.environ.get("VCINSTALLDIR", "")
-    if not vs_version:
-        vs_version = os.environ.get("VisualStudioVersion", "")
+def package_msvc_dlls(servo_exe_dir, target):
     msvc_deps = [
         "msvcp140.dll",
         "vcruntime140.dll",
     ]
-    if target_arch != "aarch64" and vs_version in ("14.0", "15.0", "16.0"):
+    if "aarch64" not in target != "aarch64":
         msvc_deps += ["api-ms-win-crt-runtime-l1-1-0.dll"]
 
-    # Check if it's Visual C++ Build Tools or Visual Studio 2015
-    vs14_vcvars = path.join(vc_dir, "vcvarsall.bat")
-    is_vs14 = True if os.path.isfile(vs14_vcvars) or vs_version == "14.0" else False
-    if is_vs14:
-        msvc_redist_dir = path.join(vc_dir, "redist", vs_platform, "Microsoft.VC140.CRT")
-    elif vs_version in ("15.0", "16.0"):
-        redist_dir = path.join(vc_dir, "Redist", "MSVC")
-        if os.path.isdir(redist_dir):
-            for p in os.listdir(redist_dir)[::-1]:
-                redist_path = path.join(redist_dir, p)
-                for v in ["VC141", "VC142", "VC150", "VC160"]:
-                    # there are two possible paths
-                    # `x64\Microsoft.VC*.CRT` or `onecore\x64\Microsoft.VC*.CRT`
-                    redist1 = path.join(redist_path, vs_platform, "Microsoft.{}.CRT".format(v))
-                    redist2 = path.join(redist_path, "onecore", vs_platform, "Microsoft.{}.CRT".format(v))
-                    if os.path.isdir(redist1):
-                        msvc_redist_dir = redist1
-                        break
-                    elif os.path.isdir(redist2):
-                        msvc_redist_dir = redist2
-                        break
-                if msvc_redist_dir:
-                    break
-    if not msvc_redist_dir:
-        print("Couldn't locate MSVC redistributable directory")
-        return False
-    redist_dirs = [
-        msvc_redist_dir,
-    ]
-    if "WindowsSdkDir" in os.environ:
-        redist_dirs += [path.join(os.environ["WindowsSdkDir"], "Redist", "ucrt", "DLLs", vs_platform)]
     missing = []
+    redist_dirs = find_msvc_redist_dirs(target)
     for msvc_dll in msvc_deps:
         for dll_dir in redist_dirs:
             dll = path.join(dll_dir, msvc_dll)
@@ -565,5 +457,5 @@ def package_msvc_dlls(servo_exe_dir, target, vcinstalldir, vs_version):
             missing += [msvc_dll]
 
     for msvc_dll in missing:
-        print("DLL file `{}` not found!".format(msvc_dll))
+        print(f"Could not find DLL dependency: {msvc_dll}")
     return not missing

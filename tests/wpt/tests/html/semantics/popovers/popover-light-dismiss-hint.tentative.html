@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Popover light dismiss behavior for hints</title>
+<meta name="timeout" content="long">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel=help href="https://open-ui.org/components/popover-hint.research.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<div id=outside></div>
+<div popover id=auto1>auto 1
+  <div popover id=auto2>auto 2
+    <div popover=hint id=innerhint1>inner hint 1
+      <div popover=hint id=innerhint2>inner hint 2
+        <div popover id=invalidauto1>Improperly nested auto 1</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div popover=hint id=hint1>hint 1
+  <div popover=hint id=hint2>hint 2
+    <div popover id=invalidauto2>Improperly nested auto 2</div>
+  </div>
+</div>
+<div popover=manual id=manual1>Manual</div>
+
+<style>
+  [popover] {right:auto;bottom:auto;}
+  #auto1        {left:100px; top:100px;}
+  #auto2        {left:100px; top:200px;}
+  #innerhint1   {left:100px; top:300px;}
+  #innerhint2   {left:100px; top:400px;}
+  #invalidauto1 {left:100px; top:500px;}
+  #hint1        {left:200px; top:100px;}
+  #hint2        {left:200px; top:200px;}
+  #invalidauto1 {left:200px; top:400px;}
+  #manual1      {left:300px; top:100px;}
+  #outside {width:25px;height:25px}
+</style>
+
+<script>
+  const popovers = [
+    document.querySelector('#auto1'),
+    document.querySelector('#auto2'),
+    document.querySelector('#innerhint1'),
+    document.querySelector('#innerhint2'),
+    document.querySelector('#hint1'),
+    document.querySelector('#hint2'),
+    document.querySelector('#manual1'),
+  ];
+  function assertState(expectedState,description) {
+    description = description || 'Error';
+    const n = popovers.length;
+    assert_equals(expectedState.length,n,'Invalid');
+    for(let i=0;i<n;++i) {
+      assert_equals(popovers[i].matches(':popover-open'),expectedState[i],`${description}, index ${i} (${popovers[i].id})`);
+    }
+  }
+  function openall(t) {
+    // All popovers can be open at once, if shown in order:
+    popovers.forEach((p) => p.hidePopover());
+    popovers.forEach((p) => p.showPopover());
+    assertState(Array(popovers.length).fill(true),'All popovers should be able to be open at once');
+    t.add_cleanup(() => popovers.forEach((p) => p.hidePopover()));
+  }
+  function nvals(n,val) {
+    return new Array(n).fill(val);
+  }
+  for(let i=0;i<(popovers.length-1);++i) {
+    promise_test(async (t) => {
+      openall(t);
+      await clickOn(popovers[i]);
+      let expectedState = [...nvals(i+1,true),...nvals(popovers.length-i-2,false),true];
+      assertState(expectedState);
+    },`Mixed auto/hint light dismiss behavior, click on ${popovers[i].id}`);
+  }
+
+  promise_test(async (t) => {
+    openall(t);
+    await clickOn(outside);
+    assertState([false,false,false,false,false,false,true]);
+  },'Clicking outside closes all');
+
+  promise_test(async (t) => {
+    openall(t);
+    invalidauto1.showPopover();
+    assertState([true,true,false,false,false,false,true],'auto inside hint ignores the hints and gets nested within auto2');
+    assert_true(invalidauto1.matches(':popover-open'),'the inner nested auto should be open');
+    invalidauto1.hidePopover();
+    assertState([true,true,false,false,false,false,true]);
+    assert_false(invalidauto1.matches(':popover-open'));
+  },'Auto cannot be nested inside hint (invalidauto1)');
+
+  promise_test(async (t) => {
+    openall(t);
+    invalidauto2.showPopover();
+    assertState([false,false,false,false,false,false,true],'auto inside hint works as an independent (non-nested) auto');
+    assert_true(invalidauto2.matches(':popover-open'),'the inner nested auto should be open');
+    invalidauto2.hidePopover();
+    assertState([false,false,false,false,false,false,true]);
+    assert_false(invalidauto2.matches(':popover-open'));
+  },'Auto cannot be nested inside hint (invalidauto2)');
+</script>

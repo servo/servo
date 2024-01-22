@@ -51,7 +51,7 @@ promise_test(async t => {
   const [entry, script] = await expect_long_frame_with_script(
     () => requestAnimationFrame(busy_wait), () => true, t);
   const in_iframe = iframe.contentWindow.performance.getEntriesByType("long-animation-frame").some(
-    e => e.scripts.some(script_in_iframe => script_in_iframe.name === script.name)
+    e => e.scripts.some(script_in_iframe => script_in_iframe.invoker === script.invoker)
   );
 
   assert_false(in_iframe, "IFrame should not receive the LoAF entry");

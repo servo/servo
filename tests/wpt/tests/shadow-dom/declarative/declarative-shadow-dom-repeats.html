@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>Declarative Shadow DOM Element Attachment</title>
+<link rel='author' href='mailto:masonf@chromium.org'>
+<link rel='help' href='https://github.com/whatwg/dom/issues/1235'>
+<link rel='help' href='https://github.com/whatwg/html/pull/10069'>
+<link rel='help' href='https://github.com/whatwg/dom/pull/1246'>
+
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='../../html/resources/common.js'></script>
+<script src="support/helpers.js"></script>
+
+<div id=multiple1>
+  <template shadowrootmode=open>Open</template>
+  <template shadowrootmode=closed>Closed</template>
+</div>
+
+<div id=multiple2>
+  <template shadowrootmode=closed>Closed</template>
+  <template shadowrootmode=open>Open</template>
+</div>
+
+<script>
+test((t) => {
+  let shadow = multiple1.shadowRoot;
+  assert_true(!!shadow,'Remaining shadow root should be open');
+  assert_equals(shadow.textContent,"Open");
+  shadow = multiple2.shadowRoot;
+  assert_false(!!shadow,'Remaining shadow root should be closed');
+  multiple1.remove(); // Cleanup
+  multiple2.remove();
+},'Repeated declarative shadow roots keep only the first');
+</script>
+
+<div id=open1>
+  <template shadowrootmode=open>Open</template>
+</div>
+
+<script>
+test((t) => {
+  assert_throws_dom("NotSupportedError",() => {
+    open1.attachShadow({mode: "closed"});
+  },'Mismatched shadow root type should throw');
+  const initialShadow = open1.shadowRoot;
+  const shadow = open1.attachShadow({mode: "open"}); // Shouldn't throw
+  assert_equals(shadow,initialShadow,'Same shadow should be returned');
+  assert_equals(shadow.textContent,'','Shadow should be empty');
+},'Calling attachShadow() on declarative shadow root must match type');
+</script>
+
+<div id=open2>
+  <template shadowrootmode=open shadowrootdelegatesfocus>
+    Open, delegates focus (not the default), named slot assignment (the default)
+  </template>
+</div>
+
+<script>
+test((t) => {
+  assert_throws_dom("NotSupportedError",() => {
+    open2.attachShadow({mode: "closed", delegatesFocus: true, slotAssignment: "named"});
+  },'Mismatched shadow root type should throw');
+  assert_throws_dom("NotSupportedError",() => {
+    open2.attachShadow({mode: "open", delegatesFocus: false, slotAssignment: "named"});
+  },'Mismatched shadow root delegatesFocus should throw');
+  assert_throws_dom("NotSupportedError",() => {
+    open2.attachShadow({mode: "open", delegatesFocus: true, slotAssignment: "manual"});
+  },'Mismatched shadow root slotAssignment should throw');
+  const initialShadow = open2.shadowRoot;
+  const shadow = open2.attachShadow({mode: "open", delegatesFocus: true, slotAssignment: "named"}); // Shouldn't throw
+  assert_equals(shadow,initialShadow,'Same shadow should be returned');
+  assert_equals(shadow.textContent,'','Shadow should be empty');
+},'Calling attachShadow() on declarative shadow root must match all parameters');
+</script>

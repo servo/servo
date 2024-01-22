@@ -11,6 +11,7 @@ name = "devtools"
 path = "lib.rs"
 
 [dependencies]
+chrono = "0.4"
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
@@ -24,5 +25,4 @@ serde_json = { workspace = true }
 servo_config = { path = "../config" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
-time = { workspace = true }
 uuid = { workspace = true }

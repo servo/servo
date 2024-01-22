@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use servo_config::pref;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
@@ -13,9 +14,10 @@ use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
 use style::properties::ComputedValues;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{Length, LengthPercentage, NonNegativeLengthPercentage, Size};
-use style::values::generics::box_::Perspective;
+use style::values::generics::box_::{GenericVerticalAlign, Perspective, VerticalAlignKeyword};
 use style::values::generics::length::MaxSize;
-use style::values::specified::box_ as stylo;
+use style::values::specified::box_::DisplayOutside as StyloDisplayOutside;
+use style::values::specified::{box_ as stylo, Overflow};
 use style::Zero;
 use webrender_api as wr;
 
@@ -163,10 +165,12 @@ pub(crate) trait ComputedValuesExt {
     fn effective_z_index(&self) -> i32;
     fn establishes_block_formatting_context(&self) -> bool;
     fn establishes_stacking_context(&self) -> bool;
+    fn establishes_scroll_container(&self) -> bool;
     fn establishes_containing_block_for_absolute_descendants(&self) -> bool;
     fn establishes_containing_block_for_all_descendants(&self) -> bool;
     fn background_is_transparent(&self) -> bool;
     fn get_webrender_primitive_flags(&self) -> wr::PrimitiveFlags;
+    fn effective_vertical_align_for_inline_layout(&self) -> GenericVerticalAlign<LengthPercentage>;
 }
 
 impl ComputedValuesExt for ComputedValues {
@@ -431,6 +435,12 @@ impl ComputedValuesExt for ComputedValues {
         false
     }
 
+    /// Whether or not the `overflow` value of this style establishes a scroll container.
+    fn establishes_scroll_container(&self) -> bool {
+        self.get_box().overflow_x != Overflow::Visible ||
+            self.get_box().overflow_y != Overflow::Visible
+    }
+
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     fn establishes_stacking_context(&self) -> bool {
         let effects = self.get_effects();
@@ -526,6 +536,18 @@ impl ComputedValuesExt for ComputedValues {
             BackfaceVisiblity::Hidden => wr::PrimitiveFlags::empty(),
         }
     }
+
+    /// Get the effective `vertical-align` property for inline layout. Essentially, if this style
+    /// has outside block display, this is the inline formatting context root and `vertical-align`
+    /// doesn't come into play for inline layout.
+    fn effective_vertical_align_for_inline_layout(&self) -> GenericVerticalAlign<LengthPercentage> {
+        match self.clone_display().outside() {
+            StyloDisplayOutside::Block => {
+                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Baseline)
+            },
+            _ => self.clone_vertical_align(),
+        }
+    }
 }
 
 impl From<stylo::Display> for Display {
@@ -603,5 +625,18 @@ fn size_to_length(size: &Size) -> LengthPercentageOrAuto {
     match size {
         Size::LengthPercentage(length) => LengthPercentageOrAuto::LengthPercentage(&length.0),
         Size::Auto => LengthPercentageOrAuto::Auto,
+    }
+}
+
+pub(crate) trait Clamp: Sized {
+    fn clamp_between_extremums(self, min: Self, max: Option<Self>) -> Self;
+}
+
+impl Clamp for Au {
+    fn clamp_between_extremums(self, min: Self, max: Option<Self>) -> Self {
+        match max {
+            Some(max_value) => self.min(max_value).max(min),
+            None => self.max(min),
+        }
     }
 }

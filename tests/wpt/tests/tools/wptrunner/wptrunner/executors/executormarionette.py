@@ -88,9 +88,10 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
     def setup(self):
         self.marionette = self.parent.marionette
 
-    def execute_script(self, script, asynchronous=False):
+    def execute_script(self, script, asynchronous=False, args=None):
         method = self.marionette.execute_async_script if asynchronous else self.marionette.execute_script
-        return method(script, new_sandbox=False, sandbox=None)
+        script_args = args if args is not None else []
+        return method(script, script_args=script_args, new_sandbox=False, sandbox=None)
 
     def set_timeout(self, timeout):
         """Set the Marionette script timeout.
@@ -986,8 +987,6 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
         if self.protocol.coverage.is_enabled:
             self.protocol.coverage.reset()
 
-        format_map = {"url": strip_server(url)}
-
         protocol.base.execute_script("window.open('about:blank', '%s', 'noopener')" % self.window_id)
         test_window = protocol.testharness.get_test_window(self.window_id, parent_window,
                                                            timeout=10 * self.timeout_multiplier)
@@ -1001,7 +1000,7 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
         protocol.marionette.navigate(url)
         while True:
             result = protocol.base.execute_script(
-                self.script_resume % format_map, asynchronous=True)
+                self.script_resume, args=[strip_server(url)], asynchronous=True)
             if result is None:
                 # This can happen if we get an content process crash
                 return None

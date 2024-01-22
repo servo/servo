@@ -12,6 +12,10 @@
   #target::marker { font-size: 10cqw; }
   #target::first-line { font-size: 10cqw; }
   #target::first-letter { font-size: 10cqw; }
+  #target::highlight(foo) {
+    text-decoration-line: underline;
+    text-decoration-thickness: 10cqw;
+  }
   #outer::first-line { font-size: 10cqw; }
   #outer::first-letter { font-size: 10cqw; }
   dialog::backdrop { font-size: 10cqw; }
@@ -44,6 +48,9 @@
   test(() => {
     assert_equals(getComputedStyle(target, "::first-letter").fontSize, "20px");
   }, "Originating element container for ::first-letter");
+  test(() => {
+    assert_equals(getComputedStyle(target, "::highlight(foo)").textDecorationThickness, "20px");
+  }, `Originating element container  for ::highlight`);
   test(() => {
     assert_equals(getComputedStyle(outer, "::first-line").fontSize, "30px");
   }, "Originating element container for outer ::first-line");

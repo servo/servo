@@ -26,8 +26,13 @@
     <div id="target"></div>
 </div>
 
+<script src="/web-animations/testcommon.js"></script>
 <script>
-  addEventListener("load", () => {
+  addEventListener("load", async () => {
+    // crbug.com/1378671: Screenshot can be taken while compositor commits are
+    // still being deferred for first contentful paint (FCP). Wait for FCP
+    // before starting the test.
+    await waitForCompositorReady();
     requestAnimationFrame(() => {
       container.classList.add("green");
       requestAnimationFrame(() => {

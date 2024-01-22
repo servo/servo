@@ -791,6 +791,22 @@
     }, "Caching invariant different elements.");
   </script>
 
+  <div id="badInputValues"></div>
+  <div id="badInputValues2"></div>
+
+  <script>
+    test(function(t) {
+      assert_throws_js(TypeError, () => { badInputValues.ariaActiveDescendantElement = "a string"; });
+      assert_throws_js(TypeError, () => { badInputValues.ariaActiveDescendantElement = 1; });
+      assert_throws_js(TypeError, () => { badInputValues.ariaActiveDescendantElement = [ badInputValues2 ]; });
+
+      assert_throws_js(TypeError, () => { badInputValues.ariaControlsElements = "a string" });
+      assert_throws_js(TypeError, () => { badInputValues.ariaControlsElements = 1 });
+      assert_throws_js(TypeError, () => { badInputValues.ariaControlsElements = [1, 2, 3] });
+      assert_throws_js(TypeError, () => { badInputValues.ariaControlsElements = badInputValues2 });
+    }, "Passing values of the wrong type should throw a TypeError");
+  </script>
+
   <!-- TODO(chrishall): add additional GC test covering:
        if an element is in an invalid scope but attached to the document, it's
        not GC'd;

@@ -458,8 +458,11 @@ impl RTCPeerConnection {
             .task_manager()
             .networking_task_source_with_canceller();
         let this = Trusted::new(self);
-        self.controller.borrow_mut().as_ref().unwrap().create_offer(
-            (move |desc: SessionDescription| {
+        self.controller
+            .borrow_mut()
+            .as_ref()
+            .unwrap()
+            .create_offer(Box::new(move |desc: SessionDescription| {
                 let _ = task_source.queue_with_canceller(
                     task!(offer_created: move || {
                         let this = this.root();
@@ -476,9 +479,7 @@ impl RTCPeerConnection {
                     }),
                     &canceller,
                 );
-            })
-            .into(),
-        );
+            }));
     }
 
     fn create_answer(&self) {
@@ -493,27 +494,24 @@ impl RTCPeerConnection {
             .borrow_mut()
             .as_ref()
             .unwrap()
-            .create_answer(
-                (move |desc: SessionDescription| {
-                    let _ = task_source.queue_with_canceller(
-                        task!(answer_created: move || {
-                            let this = this.root();
-                            if this.offer_answer_generation.get() != generation {
-                                // the state has changed since we last created the offer,
-                                // create a fresh one
-                                this.create_answer();
-                            } else {
-                                let init: RTCSessionDescriptionInit = desc.into();
-                                for promise in this.answer_promises.borrow_mut().drain(..) {
-                                    promise.resolve_native(&init);
-                                }
+            .create_answer(Box::new(move |desc: SessionDescription| {
+                let _ = task_source.queue_with_canceller(
+                    task!(answer_created: move || {
+                        let this = this.root();
+                        if this.offer_answer_generation.get() != generation {
+                            // the state has changed since we last created the offer,
+                            // create a fresh one
+                            this.create_answer();
+                        } else {
+                            let init: RTCSessionDescriptionInit = desc.into();
+                            for promise in this.answer_promises.borrow_mut().drain(..) {
+                                promise.resolve_native(&init);
                             }
-                        }),
-                        &canceller,
-                    );
-                })
-                .into(),
-            );
+                        }
+                    }),
+                    &canceller,
+                );
+            }));
     }
 }
 
@@ -642,7 +640,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
             .unwrap()
             .set_local_description(
                 desc.clone(),
-                (move || {
+                Box::new(move || {
                     let _ = task_source.queue_with_canceller(
                         task!(local_description_set: move || {
                             // XXXManishearth spec actually asks for an intricate
@@ -659,8 +657,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
                         }),
                         &canceller,
                     );
-                })
-                .into(),
+                }),
             );
         p
     }
@@ -683,7 +680,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
             .unwrap()
             .set_remote_description(
                 desc.clone(),
-                (move || {
+                Box::new(move || {
                     let _ = task_source.queue_with_canceller(
                         task!(remote_description_set: move || {
                             // XXXManishearth spec actually asks for an intricate
@@ -700,8 +697,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
                         }),
                         &canceller,
                     );
-                })
-                .into(),
+                }),
             );
         p
     }

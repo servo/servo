@@ -1,5 +1,6 @@
 export const manifest_origin = "https://{{host}}:{{ports[https][0]}}";
 export const alt_manifest_origin = 'https://{{hosts[alt][]}}:{{ports[https][0]}}';
+export const same_site_manifest_origin = 'https://{{hosts[][www1]}}:{{ports[https][0]}}';
 
 export function open_and_wait_for_popup(origin, path) {
   return new Promise(resolve => {
@@ -43,11 +44,11 @@ export function mark_signed_out(origin = manifest_origin) {
 
 // Returns FedCM CredentialRequestOptions for which navigator.credentials.get()
 // succeeds.
-export function request_options_with_mediation_required(manifest_filename) {
+export function request_options_with_mediation_required(manifest_filename, origin = manifest_origin) {
   if (manifest_filename === undefined) {
     manifest_filename = "manifest.py";
   }
-  const manifest_path = `${manifest_origin}/\
+  const manifest_path = `${origin}/\
 credential-management/support/fedcm/${manifest_filename}`;
   return {
     identity: {
@@ -64,21 +65,7 @@ credential-management/support/fedcm/${manifest_filename}`;
 // Returns alternate FedCM CredentialRequestOptions for which navigator.credentials.get()
 // succeeds.
 export function alt_request_options_with_mediation_required(manifest_filename) {
-  if (manifest_filename === undefined) {
-    manifest_filename = "manifest.py";
-  }
-  const manifest_path = `${alt_manifest_origin}/\
-credential-management/support/fedcm/${manifest_filename}`;
-  return {
-    identity: {
-      providers: [{
-        configURL: manifest_path,
-        clientId: '1',
-        nonce: '2'
-      }]
-    },
-    mediation: 'required'
-  };
+  return request_options_with_mediation_required(manifest_filename, alt_manifest_origin);
 }
 
 // Returns FedCM CredentialRequestOptions with auto re-authentication.

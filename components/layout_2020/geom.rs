@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::convert::From;
 use std::fmt;
 use std::ops::{Add, AddAssign, Sub};
 
@@ -10,7 +11,7 @@ use serde::Serialize;
 use style::logical_geometry::{
     BlockFlowDirection, InlineBaseDirection, PhysicalCorner, WritingMode,
 };
-use style::values::computed::{Length, LengthPercentage};
+use style::values::computed::{CSSPixelLength, Length, LengthPercentage};
 use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
 use style::Zero;
 use style_traits::CSSPixel;
@@ -393,6 +394,23 @@ impl<T> LogicalRect<T> {
         }
     }
 
+    pub fn deflate(&self, sides: &LogicalSides<T>) -> Self
+    where
+        T: Add<Output = T> + Copy,
+        T: Sub<Output = T> + Copy,
+    {
+        LogicalRect {
+            start_corner: LogicalVec2 {
+                inline: self.start_corner.inline + sides.inline_start,
+                block: self.start_corner.block + sides.block_start,
+            },
+            size: LogicalVec2 {
+                inline: self.size.inline - sides.inline_sum(),
+                block: self.size.block - sides.block_sum(),
+            },
+        }
+    }
+
     pub fn to_physical(
         &self,
         mode: WritingMode,
@@ -413,5 +431,53 @@ impl<T> LogicalRect<T> {
             PhysicalPoint::new(tl_x.clone(), tl_y.clone()),
             self.size.to_physical(mode),
         )
+    }
+}
+
+impl From<LogicalVec2<CSSPixelLength>> for LogicalVec2<Au> {
+    fn from(value: LogicalVec2<CSSPixelLength>) -> Self {
+        LogicalVec2 {
+            inline: value.inline.into(),
+            block: value.block.into(),
+        }
+    }
+}
+
+impl From<LogicalVec2<Au>> for LogicalVec2<CSSPixelLength> {
+    fn from(value: LogicalVec2<Au>) -> Self {
+        LogicalVec2 {
+            inline: value.inline.into(),
+            block: value.block.into(),
+        }
+    }
+}
+
+impl From<LogicalRect<Au>> for LogicalRect<CSSPixelLength> {
+    fn from(value: LogicalRect<Au>) -> Self {
+        LogicalRect {
+            start_corner: LogicalVec2 {
+                inline: value.start_corner.inline.into(),
+                block: value.start_corner.block.into(),
+            },
+            size: LogicalVec2 {
+                inline: value.size.inline.into(),
+                block: value.size.block.into(),
+            },
+        }
+    }
+}
+
+impl From<LogicalRect<CSSPixelLength>> for LogicalRect<Au> {
+    fn from(value: LogicalRect<CSSPixelLength>) -> Self {
+        LogicalRect {
+            start_corner: LogicalVec2 {
+                inline: value.start_corner.inline.into(),
+                block: value.start_corner.block.into(),
+            },
+            size: LogicalVec2 {
+                inline: value.size.inline.into(),
+                block: value.size.block.into(),
+            },
+        }
     }
 }

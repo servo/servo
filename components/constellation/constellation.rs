@@ -2080,7 +2080,11 @@ where
         };
         match request {
             FromScriptMsg::RequestAdapter(response_sender, options, ids) => match webgpu_chan {
-                None => warn!("Failed to send request adapter message, missing WebGPU channel"),
+                None => {
+                    if let Err(e) = response_sender.send(None) {
+                        return warn!("Failed to send request adapter message: {}", e);
+                    }
+                },
                 Some(webgpu_chan) => {
                     let adapter_request = WebGPURequest::RequestAdapter {
                         sender: response_sender,

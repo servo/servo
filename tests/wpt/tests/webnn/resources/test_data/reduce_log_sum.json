@@ -1,6 +1,47 @@
 {
   "tests": [
     {
+      "name": "reduceLogSum float32 1D constant tensor all non-negative default options", // default options: {axes: null, keepDimensions: false}
+      "inputs": {
+        "input": {
+          "shape": [24],
+          "data": [
+            64.54826901463852,
+            97.87423374006126,
+            26.529027351852186,
+            79.79046651888517,
+            50.394988743199434,
+            14.578406888832252,
+            20.86681803845336,
+            32.43873432263156,
+            64.91234005889837,
+            71.54029915166349,
+            11.13706890220647,
+            55.07930697185586,
+            43.791352286892106,
+            13.831947671728972,
+            97.39019470916091,
+            35.50775651228035,
+            52.275862097336166,
+            82.838655037009,
+            8.568099335705881,
+            0.8337112078307563,
+            69.23145833259072,
+            3.8541642374881446,
+            70.55673656397397,
+            71.99264788951747
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "expected": {
+        "name": "output",
+        "data": 7.039101600646973,
+        "type": "float32"
+      }
+    },
+    {
       "name": "reduceLogSum float32 1D tensor all non-negative default options", // default options: {axes: null, keepDimensions: false}
       "inputs": {
         "input": {

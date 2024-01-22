@@ -20,8 +20,8 @@ interface StorageBucketManager {
 
 dictionary StorageBucketOptions {
   boolean persisted = false;
-  unsigned long long? quota;
-  DOMHighResTimeStamp? expires;
+  unsigned long long quota;
+  DOMHighResTimeStamp expires;
 };
 
 [Exposed=(Window,Worker),

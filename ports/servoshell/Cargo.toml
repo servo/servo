@@ -14,7 +14,7 @@ path = "main.rs"
 bench = false
 
 [build-dependencies]
-vergen = { version = "8.2.6", features = ["git", "git2"] }
+vergen = { version = "8.3.1", features = ["git", "git2"] }
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"

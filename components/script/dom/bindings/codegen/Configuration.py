@@ -51,9 +51,9 @@ class Configuration:
         # Mark the descriptors for which only a single nativeType implements
         # an interface.
         for descriptor in self.descriptors:
-            intefaceName = descriptor.interface.identifier.name
+            interfaceName = descriptor.interface.identifier.name
             otherDescriptors = [d for d in self.descriptors
-                                if d.interface.identifier.name == intefaceName]
+                                if d.interface.identifier.name == interfaceName]
             descriptor.uniqueImplementation = len(otherDescriptors) == 1
 
         self.enums = [e for e in parseData if e.isEnum()]

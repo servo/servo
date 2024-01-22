@@ -15,11 +15,15 @@
     "/cookies/resources/set-cookie.py?name=cspViolationReportCookie2&path=" + encodeURIComponent("/"),
     {mode: 'no-cors', credentials: 'include'})
   .then(() => {
-    test.add_cleanup(() => {
-      document.cookie = "cspViolationReportCookie2=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
-    });
-
-    // This image will generate a CSP violation report.
+    // Loading `img` will generate a CSP violation report.
+    // As this test is for covering the behavior of the deprecated "report-uri" directive [1], the
+    // underlying report is backed by a browser-initiated fetch "keepalive" request [2]. Per
+    // keepalive spec [3], such request may outlive this entire document itself. Hence, the cookie
+    // this test wants to test, i.e. "cspViolationReportCookie2", must NOT be cleared before the
+    // browser entirely sending out the report request.
+    // [1]: https://www.w3.org/TR/CSP3/#report-uri
+    // [2]: https://www.w3.org/TR/CSP3/#report-violation
+    // [3]: https://fetch.spec.whatwg.org/#request-keepalive-flag
     const img = new Image();
     img.onerror = test.step_func_done();
     img.onload = test.unreached_func("Should not have loaded the image");

@@ -5,7 +5,8 @@
 // META: timeout=long
 // META: variant=?1-5
 // META: variant=?6-10
-// META: variant=?11-last
+// META: variant=?11-15
+// META: variant=?16-last
 
 "use strict";
 
@@ -139,8 +140,8 @@ subsetTest(promise_test, async test => {
   let topLevelSeller = OTHER_ORIGIN3;
 
   let bidderReportURL = createBidderReportURL(uuid);
-  let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/1);
-  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/2);
+  let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/"component");
+  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/"top");
 
   // Note that generateBid() and reportWin() receive slightly different
   // "browserSignals" fields - only reportWin() gets "interestGroupOwner", so
@@ -233,8 +234,8 @@ subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
 
   let bidderReportURL = createBidderReportURL(uuid);
-  let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/1);
-  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/2);
+  let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/"component");
+  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/"top");
 
   await joinInterestGroup(
       test, uuid,
@@ -284,8 +285,8 @@ subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
 
   let bidderReportURL = createBidderReportURL(uuid);
-  let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/1);
-  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/2);
+  let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/"component");
+  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/"top");
 
   await joinInterestGroup(
       test, uuid,
@@ -336,8 +337,8 @@ subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
 
   let bidderReportURL = createBidderReportURL(uuid);
-  let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/1);
-  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/2);
+  let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/"component");
+  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/"top");
 
   await joinInterestGroup(
       test, uuid,
@@ -388,8 +389,8 @@ subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
 
   let bidderReportURL = createBidderReportURL(uuid);
-  let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/1);
-  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/2);
+  let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/"component");
+  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/"top");
 
   await joinInterestGroup(
       test, uuid,
@@ -435,3 +436,284 @@ subsetTest(promise_test, async test => {
       uuid,
       [bidderReportURL, componentSellerReportURL, topLevelSellerReportURL]);
 }, 'Top-level auction cannot modify bid.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  let bidderReportURL = createBidderReportURL(uuid);
+  let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/"component");
+  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/"top");
+
+  await joinInterestGroup(
+      test, uuid,
+      { biddingLogicURL: createBiddingScriptURL(
+        { allowComponentAuction: true,
+          reportWin:
+            `if (browserSignals.desirability !== undefined)
+               throw "Unexpected desirability: " + browserSignals.desirability;
+             sendReportTo("${bidderReportURL}");`})});
+
+  let auctionConfig = createComponentAuctionConfig(uuid);
+
+  auctionConfig.componentAuctions[0].decisionLogicURL =
+      createDecisionScriptURL(
+          uuid,
+          { scoreAd:
+                `return {desirability: 3, allowComponentAuction: true};`,
+            reportResult:
+                `if (browserSignals.desirability !== 3)
+                  throw "Unexpected component desirability: " + browserSignals.desirability;
+                 sendReportTo("${componentSellerReportURL}");` });
+
+  auctionConfig.decisionLogicURL =
+      createDecisionScriptURL(
+          uuid,
+          { scoreAd:
+                `return {desirability: 4, allowComponentAuction: true};`,
+            reportResult:
+                `if (browserSignals.desirability !== 4)
+                  throw "Unexpected component desirability: " + browserSignals.desirability;
+                 sendReportTo("${topLevelSellerReportURL}");` });
+
+  await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfig);
+  await waitForObservedRequests(
+      uuid,
+      [bidderReportURL, componentSellerReportURL, topLevelSellerReportURL]);
+}, 'Component auction desirability.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  // An auction with two components, each of which has a distinct bidder origin,
+  // so the bidder in the second component is OTHER_ORIGIN1). The bidder in the
+  // first component auction bids more and is given the highest of all
+  // desirability scores in the auction by its component seller, but the
+  // top-level seller prefers bidder 2.
+  let bidder1ReportURL = createBidderReportURL(uuid, /*id=*/1);
+  let bidder2ReportURL = createBidderReportURL(uuid, /*id=*/2);
+  let componentSeller1ReportURL = createSellerReportURL(uuid, /*id=*/"component1");
+  let componentSeller2ReportURL = createSellerReportURL(uuid, /*id=*/"component2");
+  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/"top");
+
+  await Promise.all([
+      joinInterestGroup(
+          test, uuid,
+          { biddingLogicURL: createBiddingScriptURL(
+            { bid: 10,
+              allowComponentAuction: true,
+              reportWin:
+                `sendReportTo("${bidder1ReportURL}");`})}),
+      joinCrossOriginInterestGroup(test, uuid, OTHER_ORIGIN1,
+        { biddingLogicURL: createBiddingScriptURL(
+          { origin: OTHER_ORIGIN1,
+            bid: 2,
+            allowComponentAuction: true,
+            reportWin:
+              `if (browserSignals.bid !== 2)
+                 throw "Unexpected bid: " + browserSignals.bid;
+               sendReportTo("${bidder2ReportURL}");`})})
+  ]);
+
+  let auctionConfig = createComponentAuctionConfig(uuid);
+
+  auctionConfig.componentAuctions[0].decisionLogicURL =
+      createDecisionScriptURL(
+          uuid,
+          { scoreAd:
+                `return {desirability: 10, allowComponentAuction: true};`,
+            reportResult:
+                `sendReportTo("${componentSeller1ReportURL}");` });
+
+  auctionConfig.componentAuctions[1] = {
+    ...auctionConfig.componentAuctions[0],
+    interestGroupBuyers: [OTHER_ORIGIN1],
+    decisionLogicURL: createDecisionScriptURL(
+        uuid,
+        { scoreAd:
+              `return {desirability: 1, allowComponentAuction: true};`,
+          reportResult:
+              `if (browserSignals.desirability !== 1)
+                 throw "Unexpected component desirability: " + browserSignals.desirability;
+               sendReportTo("${componentSeller2ReportURL}");` })
+  }
+
+  auctionConfig.decisionLogicURL =
+      createDecisionScriptURL(
+          uuid,
+          { scoreAd:
+                `return {desirability: 11 - bid, allowComponentAuction: true};`,
+            reportResult:
+                `if (browserSignals.desirability !== 9)
+                   throw "Unexpected component desirability: " + browserSignals.desirability;
+                 sendReportTo("${topLevelSellerReportURL}");` });
+
+  await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfig);
+  await waitForObservedRequests(
+      uuid,
+      [bidder2ReportURL, componentSeller2ReportURL, topLevelSellerReportURL]);
+}, 'Component auction desirability two sellers, two bidders.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  let renderURL1 = createRenderURL(uuid);
+  let renderURL2 = createRenderURL(uuid, /*script=*/';');
+
+  // The same bidder uses different ads, bids, and reporting URLs for different
+  // component sellers.
+  let bidderReportURL1 = createBidderReportURL(uuid, /*id=*/1);
+  let bidderReportURL2 = createBidderReportURL(uuid, /*id=*/2);
+  let componentSeller1ReportURL = createSellerReportURL(uuid, /*id=*/"component1");
+  let componentSeller2ReportURL = createSellerReportURL(uuid, /*id=*/"component2");
+  let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/"top");
+
+  await joinInterestGroup(
+        test, uuid,
+        { ads: [{ renderURL: renderURL1 }, { renderURL: renderURL2 }],
+          biddingLogicURL: createBiddingScriptURL(
+          { allowComponentAuction: true,
+            generateBid:
+              // "auctionSignals" contains the bid and the report URL, to
+              // make the same bidder behave differently in the two
+              // auctions.
+              'return auctionSignals;',
+            reportWin:
+              `if (browserSignals.renderURL !== "${renderURL2}")
+                 throw "Wrong winner: " + browserSignals.renderURL;
+               sendReportTo(auctionSignals.reportURL);`})});
+
+  let auctionConfig = createComponentAuctionConfig(uuid);
+
+  auctionConfig.componentAuctions[0].decisionLogicURL =
+      createDecisionScriptURL(
+          uuid,
+          { scoreAd:
+                `return {desirability: 10, allowComponentAuction: true};`,
+            reportResult:
+                `sendReportTo("${componentSeller1ReportURL}");` });
+  // "auctionSignals" contains the bid and the report URL, to
+  // make the same bidder behave differently in the two
+  // auctions.
+  auctionConfig.componentAuctions[0].auctionSignals = {
+    bid: 10,
+    allowComponentAuction: true,
+    render: renderURL1,
+    reportURL: bidderReportURL1
+  };
+
+  auctionConfig.componentAuctions[1] = {
+    ...auctionConfig.componentAuctions[0],
+    auctionSignals: {
+      bid: 2,
+      allowComponentAuction: true,
+      render: renderURL2,
+      reportURL: bidderReportURL2
+    },
+    decisionLogicURL: createDecisionScriptURL(
+        uuid,
+        { scoreAd:
+              `return {desirability: 1, allowComponentAuction: true};`,
+          reportResult:
+              `if (browserSignals.desirability !== 1)
+                 throw "Unexpected component desirability: " + browserSignals.desirability;
+               if (browserSignals.renderURL !== "${renderURL2}")
+                 throw "Wrong winner: " + browserSignals.renderURL;
+               sendReportTo("${componentSeller2ReportURL}");` })
+  }
+
+  auctionConfig.decisionLogicURL =
+      createDecisionScriptURL(
+          uuid,
+          { scoreAd:
+                `return {desirability: 11 - bid, allowComponentAuction: true};`,
+            reportResult:
+                `if (browserSignals.desirability !== 9)
+                   throw "Unexpected component desirability: " + browserSignals.desirability;
+                 if (browserSignals.renderURL !== "${renderURL2}")
+                   throw "Wrong winner: " + browserSignals.renderURL;
+                 sendReportTo("${topLevelSellerReportURL}");` });
+
+  await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfig);
+  await waitForObservedRequests(
+      uuid,
+      [bidderReportURL2, componentSeller2ReportURL, topLevelSellerReportURL]);
+}, 'Component auction desirability and renderURL two sellers, one bidder.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  // The renderURLs / report URLs for the first/second iterations of the auction.
+  let renderURL1 = createRenderURL(uuid);
+  let renderURL2 = createRenderURL(uuid, /*script=*/';');
+  let bidderReportURL1 = createBidderReportURL(uuid, /*id=*/1);
+  let bidderReportURL2 = createBidderReportURL(uuid, /*id=*/2);
+  let seller1ReportURL = createSellerReportURL(uuid, /*id=*/1);
+  let seller2ReportURL = createSellerReportURL(uuid, /*id=*/2);
+
+  await joinInterestGroup(
+        test, uuid,
+        { ads: [{ renderURL: renderURL1 }, { renderURL: renderURL2 }],
+          biddingLogicURL: createBiddingScriptURL(
+          { allowComponentAuction: true,
+            generateBid:
+              `// If this is the first recorded win, use "renderURL1"
+               if (browserSignals.bidCount === 0 &&
+                   browserSignals.prevWinsMs.length === 0) {
+                 return {bid: 2, allowComponentAuction: true, render: "${renderURL1}"};
+               }
+
+               // Otherwise, check that a single bid and win were reported, despite the
+               // bidder bidding twice in the first auction, once for each component
+               // auction.
+               if (browserSignals.bidCount === 1 &&
+                   browserSignals.prevWinsMs.length === 1 &&
+                   typeof browserSignals.prevWinsMs[0][0] === "number" &&
+                   browserSignals.prevWinsMs[0][1].renderURL === "${renderURL1}") {
+                 return {bid: 1, allowComponentAuction: true, render: "${renderURL2}"};
+               }
+               throw "Unexpected biddingSignals: " + JSON.stringify(browserSignals);`,
+            reportWin:
+              `if (browserSignals.renderURL === "${renderURL1}")
+                 sendReportTo("${bidderReportURL1}");
+               if (browserSignals.renderURL === "${renderURL2}")
+                 sendReportTo("${bidderReportURL2}");`})});
+
+  // Auction has two component auctions with different sellers but the same
+  // single bidder. The first component auction only accepts bids with
+  // "renderURL1", the second only accepts bids with "renderURL2".
+  let auctionConfig = createComponentAuctionConfig(uuid);
+  auctionConfig.componentAuctions[0].decisionLogicURL =
+      createDecisionScriptURL(
+          uuid,
+          { scoreAd: `if (browserSignals.renderURL != '${renderURL1}')
+                        throw 'Wrong ad';`,
+            reportResult: `sendReportTo('${seller1ReportURL}');`}
+      );
+
+  auctionConfig.componentAuctions[1] = {
+      seller: OTHER_ORIGIN1,
+      interestGroupBuyers: [window.location.origin],
+      decisionLogicURL: createDecisionScriptURL(
+          uuid,
+          { origin: OTHER_ORIGIN1,
+            scoreAd: `if (browserSignals.renderURL != '${renderURL2}')
+                        throw 'Wrong ad';`,
+            reportResult: `sendReportTo('${seller2ReportURL}');`}
+      )
+  };
+
+  // In the first auction, the bidder should use "renderURL1", which the first
+  // component auction allows. `prevWinsMs` and `numBids` should be updated.
+  await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfig);
+  await waitForObservedRequests(
+      uuid,
+      [bidderReportURL1, seller1ReportURL]);
+
+  // In the second auction, the bidder should use "renderURL2", which the second
+  // component auction allows. `prevWinsMs` and `numBids` should reflect the updated
+  // value.
+  await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfig);
+  await waitForObservedRequests(
+      uuid,
+      [bidderReportURL1, seller1ReportURL, bidderReportURL2, seller2ReportURL]);
+}, `Component auction prevWinsMs and numBids updating in one component seller's auction, read in another's.`);

@@ -2,17 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
-
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
-use js::jsapi::{Heap, JSObject};
+use js::typedarray::Float32Array;
 use webxr_api::{ApiSpace, View};
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::utils::create_typed_array;
+use crate::dom::bindings::typedarrays::HeapFloat32Array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
@@ -25,7 +23,7 @@ pub struct XRView {
     eye: XREye,
     viewport_index: usize,
     #[ignore_malloc_size_of = "mozjs"]
-    proj: Heap<*mut JSObject>,
+    proj: HeapFloat32Array,
     #[ignore_malloc_size_of = "defined in rust-webxr"]
     #[no_trace]
     view: View<ApiSpace>,
@@ -45,7 +43,7 @@ impl XRView {
             session: Dom::from_ref(session),
             eye,
             viewport_index,
-            proj: Heap::default(),
+            proj: HeapFloat32Array::default(),
             view,
             transform: Dom::from_ref(transform),
         }
@@ -90,14 +88,18 @@ impl XRViewMethods for XRView {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix
-    fn ProjectionMatrix(&self, _cx: JSContext) -> NonNull<JSObject> {
-        if self.proj.get().is_null() {
+    fn ProjectionMatrix(&self, _cx: JSContext) -> Float32Array {
+        if !self.proj.is_initialized() {
             let cx = GlobalScope::get_cx();
             // row_major since euclid uses row vectors
             let proj = self.view.projection.to_array();
-            create_typed_array(cx, &proj, &self.proj);
+            self.proj
+                .set_data(cx, &proj)
+                .expect("Failed to set projection matrix.")
         }
-        NonNull::new(self.proj.get()).unwrap()
+        self.proj
+            .get_internal()
+            .expect("Failed to get projection matrix.")
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrview-transform

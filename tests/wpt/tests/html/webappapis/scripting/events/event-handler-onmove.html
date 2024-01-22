@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Window Object 'onmove'</title>
+<link rel="author" title="Sonja Laurila" href="mailto:laurila@google.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#handler-window-onmove">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+promise_test(async t => {
+  var onMoveCalled = false;
+  window.onmove = (event) => { onMoveCalled = true; }
+  window.dispatchEvent(new Event('move'));
+  assert_true(onMoveCalled, "The onMove handler has been executed.");
+}, "Window move event");
+</script>

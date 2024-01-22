@@ -36,7 +36,6 @@ serde = { workspace = true }
 servo_arc = { path = "../../servo_arc" }
 servo_rand = { path = "../../rand" }
 servo_url = { path = "../../url" }
-time = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
 webrender_api = { git = "https://github.com/servo/webrender" }

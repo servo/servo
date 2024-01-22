@@ -4,6 +4,7 @@
 
 //! Flow layout, also known as block-and-inline layout.
 
+use app_units::Au;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::Serialize;
 use servo_arc::Arc;
@@ -30,12 +31,13 @@ use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
-use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
+use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
 
 mod construct;
 pub mod float;
 pub mod inline;
+mod line;
 mod root;
 
 pub(crate) use construct::BlockContainerBuilder;
@@ -195,6 +197,10 @@ struct FlowLayout {
     pub fragments: Vec<Fragment>,
     pub content_block_size: Length,
     pub collapsible_margins_in_children: CollapsedBlockMargins,
+    /// The offset of the last inflow baseline in this layout in the content area, if
+    /// there was one. This is used to propagate inflow baselines to the ancestors
+    /// of `display: inline-block` elements.
+    pub last_inflow_baseline_offset: Option<Length>,
 }
 
 #[derive(Clone, Copy)]
@@ -208,7 +214,9 @@ impl BlockFormattingContext {
         containing_block: &ContainingBlock,
     ) -> IndependentLayout {
         let mut sequential_layout_state = if self.contains_floats || !layout_context.use_rayon {
-            Some(SequentialLayoutState::new(containing_block.inline_size))
+            Some(SequentialLayoutState::new(
+                containing_block.inline_size.into(),
+            ))
         } else {
             None
         };
@@ -235,9 +243,11 @@ impl BlockFormattingContext {
 
         IndependentLayout {
             fragments: flow_layout.fragments,
-            content_block_size: flow_layout.content_block_size +
+            content_block_size: (flow_layout.content_block_size +
                 flow_layout.collapsible_margins_in_children.end.solve() +
-                clearance.unwrap_or_else(Length::zero),
+                clearance.unwrap_or_else(Au::zero).into())
+            .into(),
+            last_inflow_baseline_offset: flow_layout.last_inflow_baseline_offset.map(|t| t.into()),
         }
     }
 }
@@ -454,7 +464,7 @@ fn layout_block_level_children_in_parallel(
     let fragments = layout_results
         .into_iter()
         .map(|(mut fragment, mut child_positioning_context)| {
-            placement_state.place_fragment(&mut fragment, None);
+            placement_state.place_fragment_and_update_baseline(&mut fragment, None);
             child_positioning_context.adjust_static_position_of_hoisted_fragments(
                 &fragment,
                 PositioningContextLength::zero(),
@@ -464,11 +474,13 @@ fn layout_block_level_children_in_parallel(
         })
         .collect();
 
-    let (content_block_size, collapsible_margins_in_children) = placement_state.finish();
+    let (content_block_size, collapsible_margins_in_children, baseline_offset) =
+        placement_state.finish();
     FlowLayout {
         fragments,
         content_block_size,
         collapsible_margins_in_children,
+        last_inflow_baseline_offset: baseline_offset,
     }
 }
 
@@ -499,7 +511,8 @@ fn layout_block_level_children_sequentially(
                 )),
             );
 
-            placement_state.place_fragment(&mut fragment, Some(sequential_layout_state));
+            placement_state
+                .place_fragment_and_update_baseline(&mut fragment, Some(sequential_layout_state));
             positioning_context.adjust_static_position_of_hoisted_fragments(
                 &fragment,
                 positioning_context_length_before_layout,
@@ -509,11 +522,13 @@ fn layout_block_level_children_sequentially(
         })
         .collect();
 
-    let (content_block_size, collapsible_margins_in_children) = placement_state.finish();
+    let (content_block_size, collapsible_margins_in_children, baseline_offset) =
+        placement_state.finish();
     FlowLayout {
         fragments,
         content_block_size,
         collapsible_margins_in_children,
+        last_inflow_baseline_offset: baseline_offset,
     }
 }
 
@@ -680,9 +695,10 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
             // NB: This will be a no-op if we're collapsing margins with our children since that
             // can only happen if we have no block-start padding and border.
             sequential_layout_state.advance_block_position(
-                pbm.padding.block_start +
+                (pbm.padding.block_start +
                     pbm.border.block_start +
-                    clearance.unwrap_or_else(Length::zero),
+                    clearance.unwrap_or_else(Au::zero).into())
+                .into(),
             );
 
             // We are about to lay out children. Update the offset between the block formatting
@@ -694,14 +710,14 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
                 .floats
                 .containing_block_info
                 .inline_start +
-                pbm.padding.inline_start +
-                pbm.border.inline_start +
-                margin.inline_start;
+                pbm.padding.inline_start.into() +
+                pbm.border.inline_start.into() +
+                margin.inline_start.into();
             let new_cb_offsets = ContainingBlockPositionInfo {
                 block_start: sequential_layout_state.bfc_relative_block_position,
                 block_start_margins_not_collapsed: sequential_layout_state.current_margin,
                 inline_start,
-                inline_end: inline_start + containing_block_for_children.inline_size,
+                inline_end: inline_start + containing_block_for_children.inline_size.into(),
             };
             parent_containing_block_position_info = Some(
                 sequential_layout_state.replace_containing_block_position_info(new_cb_offsets),
@@ -769,7 +785,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         // the block direction. In that case, the ceiling for floats is effectively raised
         // as long as no floats in the overflowing content lowered it.
         sequential_layout_state.advance_block_position(
-            (block_size - content_block_size) + pbm.padding.block_end + pbm.border.block_end,
+            (block_size - content_block_size + pbm.padding.block_end + pbm.border.block_end).into(),
         );
 
         if !end_margin_can_collapse_with_children {
@@ -780,9 +796,10 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
 
     let content_rect = LogicalRect {
         start_corner: LogicalVec2 {
-            block: pbm.padding.block_start +
+            block: (pbm.padding.block_start +
                 pbm.border.block_start +
-                clearance.unwrap_or_else(Length::zero),
+                clearance.unwrap_or_else(Au::zero).into())
+            .into(),
             inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
         },
         size: LogicalVec2 {
@@ -799,7 +816,8 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         pbm.padding,
         pbm.border,
         margin,
-        clearance,
+        clearance.map(|t| t.into()),
+        flow_layout.last_inflow_baseline_offset,
         block_margins_collapsed_with_children,
     )
 }
@@ -846,7 +864,11 @@ impl NonReplacedFormattingContext {
         let block_size = containing_block_for_children.block_size.auto_is(|| {
             layout
                 .content_block_size
-                .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                .clamp_between_extremums(
+                    min_box_size.block.into(),
+                    max_box_size.block.map(|t| t.into()),
+                )
+                .into()
         });
 
         let content_rect = LogicalRect {
@@ -870,6 +892,7 @@ impl NonReplacedFormattingContext {
             pbm.border,
             margin,
             None, /* clearance */
+            layout.last_inflow_baseline_offset.map(|t| t.into()),
             block_margins_collapsed_with_children,
         )
     }
@@ -926,12 +949,17 @@ impl NonReplacedFormattingContext {
                     style: &self.style,
                 },
             );
+
             content_size = LogicalVec2 {
                 inline: inline_size,
                 block: block_size.auto_is(|| {
                     layout
                         .content_block_size
-                        .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                        .clamp_between_extremums(
+                            min_box_size.block.into(),
+                            max_box_size.block.map(|t| t.into()),
+                        )
+                        .into()
                 }),
             };
 
@@ -964,7 +992,7 @@ impl NonReplacedFormattingContext {
             let mut placement = PlacementAmongFloats::new(
                 &sequential_layout_state.floats,
                 ceiling,
-                minimum_size_of_block,
+                minimum_size_of_block.into(),
                 &pbm,
             );
             let mut placement_rect;
@@ -972,9 +1000,10 @@ impl NonReplacedFormattingContext {
             loop {
                 // First try to place the block using the minimum size as the object size.
                 placement_rect = placement.place();
-                let proposed_inline_size = (placement_rect.size.inline -
-                    pbm.padding_border_sums.inline)
-                    .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+                let proposed_inline_size = Length::from(
+                    placement_rect.size.inline - pbm.padding_border_sums.inline.into(),
+                )
+                .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
 
                 // Now lay out the block using the inline size we calculated from the placement.
                 // Later we'll check to see if the resulting block size is compatible with the
@@ -989,13 +1018,16 @@ impl NonReplacedFormattingContext {
                         style: &self.style,
                     },
                 );
-
                 content_size = LogicalVec2 {
                     inline: proposed_inline_size,
                     block: block_size.auto_is(|| {
                         layout
                             .content_block_size
-                            .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                            .clamp_between_extremums(
+                                min_box_size.block.into(),
+                                max_box_size.block.map(|t| t.into()),
+                            )
+                            .into()
                     }),
                 };
 
@@ -1003,7 +1035,7 @@ impl NonReplacedFormattingContext {
                 // size of auto. Try to fit it into our precalculated placement among the
                 // floats. If it fits, then we can stop trying layout candidates.
                 if placement.try_to_expand_for_auto_block_size(
-                    content_size.block + pbm.padding_border_sums.block,
+                    (content_size.block + pbm.padding_border_sums.block).into(),
                     &placement_rect.size,
                 ) {
                     break;
@@ -1020,9 +1052,10 @@ impl NonReplacedFormattingContext {
             // prevent margin collapse.
             clearance = if clear_position.is_some() || placement_rect.start_corner.block > ceiling {
                 Some(
-                    placement_rect.start_corner.block -
+                    (placement_rect.start_corner.block -
                         sequential_layout_state
-                            .position_with_zero_clearance(&collapsed_margin_block_start),
+                            .position_with_zero_clearance(&collapsed_margin_block_start))
+                    .into(),
                 )
             } else {
                 None
@@ -1033,7 +1066,7 @@ impl NonReplacedFormattingContext {
                 &containing_block,
                 &pbm,
                 content_size.inline + pbm.padding_border_sums.inline,
-                placement_rect,
+                placement_rect.into(),
             );
         }
 
@@ -1054,9 +1087,10 @@ impl NonReplacedFormattingContext {
         // Margins can never collapse into independent formatting contexts.
         sequential_layout_state.collapse_margins();
         sequential_layout_state.advance_block_position(
-            pbm.padding_border_sums.block +
+            (pbm.padding_border_sums.block +
                 content_size.block +
-                clearance.unwrap_or_else(Length::zero),
+                clearance.unwrap_or_else(Length::zero))
+            .into(),
         );
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
 
@@ -1079,6 +1113,7 @@ impl NonReplacedFormattingContext {
             pbm.border,
             margin,
             clearance,
+            layout.last_inflow_baseline_offset.map(|t| t.into()),
             block_margins_collapsed_with_children,
         )
     }
@@ -1136,7 +1171,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         // Margins can never collapse into replaced elements.
         sequential_layout_state.collapse_margins();
         sequential_layout_state
-            .advance_block_position(size.block + clearance.unwrap_or_else(Length::zero));
+            .advance_block_position((size.block + clearance.unwrap_or_else(Length::zero)).into());
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin_block_end));
     } else {
         clearance = None;
@@ -1175,6 +1210,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         pbm.border,
         margin,
         clearance,
+        None, /* last_inflow_base_offset */
         block_margins_collapsed_with_children,
     )
 }
@@ -1271,16 +1307,16 @@ fn solve_clearance_and_inline_margins_avoiding_floats(
             style.get_box().clear,
             &block_start_margin,
             &pbm,
-            size.clone(),
+            size.clone().into(),
         );
     let inline_margins = solve_inline_margins_avoiding_floats(
         &sequential_layout_state,
         &containing_block,
         &pbm,
         size.inline,
-        placement_rect,
+        placement_rect.into(),
     );
-    (clearance, inline_margins)
+    (clearance.map(|t| t.into()), inline_margins)
 }
 
 /// Resolves the margins of an in-flow block-level box in the inline axis
@@ -1297,7 +1333,8 @@ fn solve_inline_margins_avoiding_floats(
         sequential_layout_state
             .floats
             .containing_block_info
-            .inline_start;
+            .inline_start
+            .into();
     assert!(placement_rect.size.inline >= inline_size);
     let free_space = placement_rect.size.inline - inline_size;
     let margin_inline_start = match (pbm.margin.inline_start, pbm.margin.inline_end) {
@@ -1351,6 +1388,7 @@ struct PlacementState {
     start_margin: CollapsedMargin,
     current_margin: CollapsedMargin,
     current_block_direction_position: Length,
+    last_inflow_baseline_offset: Option<Length>,
 }
 
 impl PlacementState {
@@ -1364,6 +1402,25 @@ impl PlacementState {
             start_margin: CollapsedMargin::zero(),
             current_margin: CollapsedMargin::zero(),
             current_block_direction_position: Length::zero(),
+            last_inflow_baseline_offset: None,
+        }
+    }
+
+    fn place_fragment_and_update_baseline(
+        &mut self,
+        fragment: &mut Fragment,
+        sequential_layout_state: Option<&mut SequentialLayoutState>,
+    ) {
+        self.place_fragment(fragment, sequential_layout_state);
+
+        match fragment {
+            Fragment::Box(box_fragment) => {
+                if let Some(baseline) = box_fragment.last_baseline_offset {
+                    self.last_inflow_baseline_offset =
+                        Some(baseline + box_fragment.content_rect.start_corner.block);
+                }
+            },
+            _ => {},
         }
     }
 
@@ -1445,7 +1502,7 @@ impl PlacementState {
                 sequential_layout_state.place_float_fragment(
                     box_fragment,
                     self.start_margin,
-                    block_offset_from_containing_block_top,
+                    block_offset_from_containing_block_top.into(),
                 );
             },
             Fragment::Anonymous(_) => {},
@@ -1453,7 +1510,7 @@ impl PlacementState {
         }
     }
 
-    fn finish(mut self) -> (Length, CollapsedBlockMargins) {
+    fn finish(mut self) -> (Length, CollapsedBlockMargins, Option<Length>) {
         if !self.last_in_flow_margin_collapses_with_parent_end_margin {
             self.current_block_direction_position += self.current_margin.solve();
             self.current_margin = CollapsedMargin::zero();
@@ -1465,6 +1522,7 @@ impl PlacementState {
                 start: self.start_margin,
                 end: self.current_margin,
             },
+            self.last_inflow_baseline_offset,
         )
     }
 }

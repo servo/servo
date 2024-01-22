@@ -2879,6 +2879,157 @@
     @assert pixel 50,25 == 0,255,0,255;
   expected: green
 
+- name: 2d.path.stroke.prune.closePath.line
+  desc: Test if zero-lengthed closePath before and after line are ignored corrected.
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(50, 25);
+    ctx.lineTo(50, 25);
+    ctx.closePath();
+
+    ctx.moveTo(10, 10);
+    ctx.lineTo(40, 40);
+    ctx.closePath();
+
+    ctx.moveTo(45, 45);
+    ctx.lineTo(45, 45);
+    ctx.closePath();
+    ctx.stroke();
+  reference: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.moveTo(10, 10);
+    ctx.lineTo(40, 40);
+    ctx.closePath();
+    ctx.stroke();
+
+- name: 2d.path.stroke.prune.closePath.bezierCurve
+  desc: Test if zero-lengthed closePath before and after bezier curve are ignored corrected.
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(5, 5);
+    ctx.lineTo(5, 5);
+    ctx.closePath();
+
+    ctx.moveTo(10, 10);
+    ctx.bezierCurveTo(10, 30, 40, 50, 100, 50);
+    ctx.closePath();
+
+    ctx.moveTo(20, 40);
+    ctx.lineTo(20, 40);
+    ctx.closePath();
+    ctx.stroke();
+  reference: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.moveTo(10, 10);
+    ctx.bezierCurveTo(10, 30, 40, 50, 100, 50);
+    ctx.closePath();
+    ctx.stroke();
+
+- name: 2d.path.stroke.prune.closePath.quadraticCurve
+  desc: Test if zero-lengthed closePath before and after quadratic curve are ignored corrected.
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(5, 5);
+    ctx.lineTo(5, 5);
+    ctx.closePath();
+
+    ctx.moveTo(10, 10);
+    ctx.quadraticCurveTo(80, 10, 100, 50);
+    ctx.closePath();
+
+    ctx.moveTo(40, 40);
+    ctx.lineTo(40, 40);
+    ctx.closePath();
+    ctx.stroke();
+  reference: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.moveTo(10, 10);
+    ctx.quadraticCurveTo(80, 10, 100, 50);
+    ctx.closePath();
+    ctx.stroke();
+
+- name: 2d.path.stroke.prune.closePath.arc
+  desc: Test if zero-lengthed closePath before and after arc are ignored corrected.
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(50, 25);
+    ctx.lineTo(50, 25);
+    ctx.closePath();
+
+    ctx.moveTo(10, 10);
+    ctx.arc(20, 20, 15, 0, Math.PI);
+    ctx.closePath();
+
+    ctx.moveTo(40, 40);
+    ctx.lineTo(40, 40);
+    ctx.closePath();
+    ctx.stroke();
+  reference: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.strokeStyle = '#f00';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.moveTo(10, 10);
+    ctx.arc(20, 20, 15, 0, Math.PI);
+    ctx.closePath();
+    ctx.stroke();
 
 - name: 2d.path.transformation.basic
   code: |

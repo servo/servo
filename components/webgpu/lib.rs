@@ -75,7 +75,7 @@ pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPURequest {
     BufferMapAsync {
-        sender: IpcSender<WebGPUResponseResult>,
+        sender: IpcSender<Option<WebGPUResponseResult>>,
         buffer_id: id::BufferId,
         device_id: id::DeviceId,
         host_map: HostMap,
@@ -202,12 +202,12 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
     },
     RequestAdapter {
-        sender: IpcSender<WebGPUResponseResult>,
+        sender: IpcSender<Option<WebGPUResponseResult>>,
         options: RequestAdapterOptions,
         ids: SmallVec<[id::AdapterId; 4]>,
     },
     RequestDevice {
-        sender: IpcSender<WebGPUResponseResult>,
+        sender: IpcSender<Option<WebGPUResponseResult>>,
         adapter_id: WebGPUAdapter,
         descriptor: wgt::DeviceDescriptor<Option<String>>,
         device_id: id::DeviceId,
@@ -340,7 +340,7 @@ struct WGPU<'a> {
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
     // Buffers with pending mapping
-    buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, WebGPUResponseResult>>>,
+    buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, Option<WebGPUResponseResult>>>>,
     // Presentation Buffers with pending mapping
     present_buffer_maps:
         HashMap<id::BufferId, Rc<BufferMapInfo<'a, (Option<ErrorScopeId>, WebGPURequest)>>>,
@@ -423,7 +423,7 @@ impl<'a> WGPU<'a> {
                             userdata: *mut u8,
                         ) {
                             let info = Rc::from_raw(
-                                userdata as *const BufferMapInfo<WebGPUResponseResult>,
+                                userdata as *const BufferMapInfo<Option<WebGPUResponseResult>>,
                             );
                             let msg = match status {
                                 BufferMapAsyncStatus::Success => {
@@ -442,7 +442,7 @@ impl<'a> WGPU<'a> {
                                     Err(String::from("Failed to map Buffer"))
                                 },
                             };
-                            if let Err(e) = info.sender.send(msg) {
+                            if let Err(e) = info.sender.send(Some(msg)) {
                                 warn!("Could not send BufferMapAsync Response ({})", e);
                             }
                         }
@@ -461,7 +461,7 @@ impl<'a> WGPU<'a> {
                         let global = &self.global;
                         let result = gfx_select!(buffer_id => global.buffer_map_async(buffer_id, map_range, operation));
                         if let Err(ref e) = result {
-                            if let Err(w) = sender.send(Err(format!("{:?}", e))) {
+                            if let Err(w) = sender.send(Some(Err(format!("{:?}", e)))) {
                                 warn!("Failed to send BufferMapAsync Response ({:?})", w);
                             }
                         }
@@ -831,13 +831,10 @@ impl<'a> WGPU<'a> {
                         gfx_select!(texture => global.texture_drop(texture, true));
                     },
                     WebGPURequest::Exit(sender) => {
-                        if let Err(e) = self.script_sender.send(WebGPUMsg::Exit) {
-                            warn!("Failed to send WebGPUMsg::Exit to script ({})", e);
-                        }
                         if let Err(e) = sender.send(()) {
                             warn!("Failed to send response to WebGPURequest::Exit ({})", e)
                         }
-                        return;
+                        break;
                     },
                     WebGPURequest::FreeCommandBuffer(command_buffer_id) => {
                         self.error_command_encoders
@@ -882,13 +879,13 @@ impl<'a> WGPU<'a> {
                         ) {
                             Ok(id) => id,
                             Err(w) => {
-                                if let Err(e) = sender.send(Err(format!("{:?}", w))) {
+                                if let Err(e) = sender.send(Some(Err(format!("{:?}", w)))) {
                                     warn!(
                                     "Failed to send response to WebGPURequest::RequestAdapter ({})",
                                     e
                                 )
                                 }
-                                return;
+                                break;
                             },
                         };
                         let adapter = WebGPUAdapter(adapter_id);
@@ -901,13 +898,13 @@ impl<'a> WGPU<'a> {
                             gfx_select!(adapter_id => global.adapter_limits(adapter_id)).unwrap();
                         let features =
                             gfx_select!(adapter_id => global.adapter_features(adapter_id)).unwrap();
-                        if let Err(e) = sender.send(Ok(WebGPUResponse::RequestAdapter {
+                        if let Err(e) = sender.send(Some(Ok(WebGPUResponse::RequestAdapter {
                             adapter_info: info,
                             adapter_id: adapter,
                             features,
                             limits,
                             channel: WebGPU(self.sender.clone()),
-                        })) {
+                        }))) {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestAdapter ({})",
                                 e
@@ -937,13 +934,13 @@ impl<'a> WGPU<'a> {
                         ) {
                             Ok(id) => id,
                             Err(e) => {
-                                if let Err(w) = sender.send(Err(format!("{:?}", e))) {
+                                if let Err(w) = sender.send(Some(Err(format!("{:?}", e)))) {
                                     warn!(
                                     "Failed to send response to WebGPURequest::RequestDevice ({})",
                                     w
                                 )
                                 }
-                                return;
+                                break;
                             },
                         };
                         let device = WebGPUDevice(id);
@@ -951,11 +948,11 @@ impl<'a> WGPU<'a> {
                         // since wgpu-core uses the same id for the device and the queue
                         let queue = WebGPUQueue(id);
                         self.devices.insert(device, pipeline_id);
-                        if let Err(e) = sender.send(Ok(WebGPUResponse::RequestDevice {
+                        if let Err(e) = sender.send(Some(Ok(WebGPUResponse::RequestDevice {
                             device_id: device,
                             queue_id: queue,
                             descriptor,
-                        })) {
+                        }))) {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestDevice ({})",
                                 e
@@ -1248,6 +1245,9 @@ impl<'a> WGPU<'a> {
                     },
                 }
             }
+        }
+        if let Err(e) = self.script_sender.send(WebGPUMsg::Exit) {
+            warn!("Failed to send WebGPUMsg::Exit to script ({})", e);
         }
     }
 

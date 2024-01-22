@@ -71,7 +71,8 @@ async def test_params_arguments_channel_ownership_invalid_value(bidi_session):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.add_preload_script(
             function_declaration="() => {}",
-            arguments=[{"type": "channel", "value": {"ownership": "_UNKNOWN_"}}],
+            arguments=[{"type": "channel", "value": {
+                "ownership": "_UNKNOWN_"}}],
         )
 
 
@@ -184,6 +185,61 @@ async def test_params_arguments_channel_include_shadow_tree_invalid_value(bidi_s
                 }
             ],
         )
+
+
+@pytest.mark.parametrize("contexts", [False, 42, '_UNKNOWN_', {}])
+async def test_params_contexts_invalid_type(bidi_session, contexts):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.add_preload_script(
+            function_declaration="() => {}",
+            contexts=contexts
+        ),
+
+
+async def test_params_contexts_empty_list(bidi_session):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.add_preload_script(
+            function_declaration="() => {}",
+            contexts=[]
+        ),
+
+
+@pytest.mark.parametrize("value", [None, False, 42, {}, []])
+async def test_params_contexts_context_invalid_type(bidi_session, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.add_preload_script(
+            function_declaration="() => {}",
+            contexts=[value]
+        ),
+
+
+@pytest.mark.parametrize("value", ["", "somestring"])
+async def test_params_contexts_context_invalid_value(bidi_session, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.add_preload_script(
+            function_declaration="() => {}",
+            contexts=[value]
+        ),
+
+
+async def test_params_contexts_context_non_top_level(bidi_session, new_tab, test_page_same_origin_frame):
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=test_page_same_origin_frame,
+        wait="complete",
+    )
+
+    contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
+
+    assert len(contexts) == 1
+    assert len(contexts[0]["children"]) == 1
+    child_info = contexts[0]["children"][0]
+
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.script.add_preload_script(
+            function_declaration="() => {}",
+            contexts=[child_info['context']]
+        ),
 
 
 @pytest.mark.parametrize("sandbox", [False, 42, {}, []])

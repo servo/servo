@@ -20,6 +20,27 @@ promise_test(async(t) => {
   await runDefaultEnabledFeaturesTest(t, false, get_host_info().REMOTE_ORIGIN);
 }, 'Cross-origin fenced frame does not load when feature policies are none');
 
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({
+        origin: get_host_info().REMOTE_ORIGIN});
+
+  await fencedframe.execute(async () => {
+    assert_false(
+        document.featurePolicy.allowsFeature('shared-storage'),
+        "Shared storage should be disallowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('private-aggregation'),
+        "Private aggregation should be disallowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('attribution-reporting'),
+        "Attribution reporting should be disallowed in the fenced frame.");
+    assert_false(
+        document.featurePolicy.allowsFeature('sync-xhr'),
+        "USB access should be disallowed in the fenced frame.");
+  }, []);
+}, 'Flexible permissions fenced frames can have permissions restricted from ' +
+   'parent.');
+
 </script>
 </body>
 </html>

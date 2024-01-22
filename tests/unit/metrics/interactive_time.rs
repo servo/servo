@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use ipc_channel::ipc;
 use metrics::{InteractiveFlag, InteractiveMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use profile_traits::time::{ProfilerChan, TimerMetadata};
@@ -108,7 +110,10 @@ fn test_set_tti_mta() {
     let dcl = interactive.get_dom_content_loaded();
     assert!(dcl.is_some());
 
-    let t = time::precise_time_ns();
+    let t = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos() as u64;
     interactive.maybe_set_tti(
         &profiler_metadata_factory,
         InteractiveFlag::TimeToInteractive(t),

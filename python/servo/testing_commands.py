@@ -13,9 +13,6 @@ import re
 import sys
 import os
 import os.path as path
-import copy
-from collections import OrderedDict
-import time
 import shutil
 import subprocess
 
@@ -24,7 +21,6 @@ import wpt.manifestupdate
 import wpt.run
 import wpt.update
 
-from mach.registrar import Registrar
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
@@ -40,18 +36,6 @@ SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
-
-TEST_SUITES = OrderedDict([
-    ("wpt", {"kwargs": {"release": False},
-             "paths": [path.abspath(WEB_PLATFORM_TESTS_PATH),
-                       path.abspath(SERVO_TESTS_PATH)],
-             "include_arg": "include"}),
-    ("unit", {"kwargs": {},
-              "paths": [path.abspath(path.join("tests", "unit"))],
-              "include_arg": "test_name"}),
-])
-
-TEST_SUITES_BY_PREFIX = {path: k for k, v in TEST_SUITES.items() if "paths" in v for path in v["paths"]}
 
 
 def format_toml_files_with_taplo(check_only: bool = True) -> int:
@@ -75,72 +59,6 @@ class MachCommands(CommandBase):
         CommandBase.__init__(self, context)
         if not hasattr(self.context, "built_tests"):
             self.context.built_tests = False
-
-    @Command('test',
-             description='Run specified Servo tests',
-             category='testing')
-    @CommandArgument('params', default=None, nargs="...",
-                     help="Optionally select test based on "
-                          "test file directory")
-    @CommandArgument('--release', default=False, action="store_true",
-                     help="Run with a release build of servo")
-    @CommandArgument('--all', default=False, action="store_true", dest="all_suites",
-                     help="Run all test suites")
-    def test(self, params, release=False, all_suites=False):
-        suites = copy.deepcopy(TEST_SUITES)
-        suites["wpt"]["kwargs"] = {"release": release}
-        suites["unit"]["kwargs"] = {}
-
-        selected_suites = OrderedDict()
-
-        if params is None:
-            if all_suites:
-                params = suites.keys()
-            else:
-                print("Specify a test path or suite name, or pass --all to run all test suites.\n\nAvailable suites:")
-                for s in suites:
-                    print("    %s" % s)
-                return 1
-
-        for arg in params:
-            found = False
-            if arg in suites and arg not in selected_suites:
-                selected_suites[arg] = []
-                found = True
-            else:
-                suite = self.suite_for_path(arg)
-                if suite is not None:
-                    if suite not in selected_suites:
-                        selected_suites[suite] = []
-                    selected_suites[suite].append(arg)
-                    found = True
-                    break
-
-            if not found:
-                print("%s is not a valid test path or suite name" % arg)
-                return 1
-
-        test_start = time.time()
-        for suite, tests in selected_suites.items():
-            props = suites[suite]
-            kwargs = props.get("kwargs", {})
-            if tests:
-                kwargs[props["include_arg"]] = tests
-
-            Registrar.dispatch("test-%s" % suite, context=self.context, **kwargs)
-
-        elapsed = time.time() - test_start
-
-        print("Tests completed in %0.2fs" % elapsed)
-
-    # Helper to determine which test suite owns the path
-    def suite_for_path(self, path_arg):
-        if os.path.exists(path.abspath(path_arg)):
-            abs_path = path.abspath(path_arg)
-            for prefix, suite in TEST_SUITES_BY_PREFIX.items():
-                if abs_path.startswith(prefix):
-                    return suite
-        return None
 
     @Command('test-perf',
              description='Run the page load performance test',
@@ -259,9 +177,7 @@ class MachCommands(CommandBase):
         if nocapture:
             args += ["--", "--nocapture"]
 
-        # We are setting is_build here to true, because running `cargo test` can trigger builds.
-        env = self.build_env(is_build=True)
-
+        env = self.build_env()
         return self.run_cargo_build_like_command(
             "bench" if bench else "test",
             args,
@@ -282,29 +198,27 @@ class MachCommands(CommandBase):
     @CommandArgument('--all', default=False, action="store_true", dest="all_files",
                      help="Check all files, and run the WPT lint in tidy, "
                           "even if unchanged")
-    @CommandArgument('--no-wpt', default=False, action="store_true", dest="no_wpt",
-                     help="Skip checking that web-platform-tests manifests are up to date")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
-    @CommandArgument('--stylo', default=False, action="store_true",
-                     help="Only handle files in the stylo tree")
-    def test_tidy(self, all_files, no_progress, stylo, no_wpt=False):
-        if no_wpt:
-            manifest_dirty = False
-        else:
-            manifest_dirty = wpt.manifestupdate.update(check_clean=True)
-        tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo, no_wpt=no_wpt)
+    def test_tidy(self, all_files, no_progress):
+        tidy_failed = tidy.scan(not all_files, not no_progress)
 
         call(["rustup", "install", "nightly-2023-03-18"])
         call(["rustup", "component", "add", "rustfmt", "--toolchain", "nightly-2023-03-18"])
         rustfmt_failed = call(["cargo", "+nightly-2023-03-18", "fmt", "--", "--check"])
-
         if rustfmt_failed:
             print("Run `./mach fmt` to fix the formatting")
 
         taplo_failed = format_toml_files_with_taplo()
 
-        return tidy_failed or manifest_dirty or rustfmt_failed or taplo_failed
+        tidy_failed = tidy_failed or rustfmt_failed or taplo_failed
+        print()
+        if tidy_failed:
+            print("\r ❌ test-tidy reported errors.")
+        else:
+            print("\r ✅ test-tidy reported no errors.")
+
+        tidy_failed
 
     @Command('test-scripts',
              description='Run tests for all build and support scripts.',

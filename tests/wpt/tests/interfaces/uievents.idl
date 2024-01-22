@@ -101,7 +101,7 @@ dictionary WheelEventInit : MouseEventInit {
 [Exposed=Window]
 interface InputEvent : UIEvent {
   constructor(DOMString type, optional InputEventInit eventInitDict = {});
-  readonly attribute DOMString? data;
+  readonly attribute USVString? data;
   readonly attribute boolean isComposing;
   readonly attribute DOMString inputType;
 };
@@ -147,7 +147,7 @@ dictionary KeyboardEventInit : EventModifierInit {
 [Exposed=Window]
 interface CompositionEvent : UIEvent {
   constructor(DOMString type, optional CompositionEventInit eventInitDict = {});
-  readonly attribute DOMString data;
+  readonly attribute USVString data;
 };
 
 dictionary CompositionEventInit : UIEventInit {

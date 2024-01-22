@@ -7,13 +7,14 @@
 //! Handles interaction with the remote web console on network events (HTTP requests, responses) in Servo.
 
 use std::net::TcpStream;
+use std::time::{SystemTime, UNIX_EPOCH};
 
+use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{ContentType, Cookie, HeaderMapExt};
 use http::{header, HeaderMap, Method, StatusCode};
 use serde::Serialize;
 use serde_json::{Map, Value};
-use time::Tm;
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
@@ -24,7 +25,7 @@ struct HttpRequest {
     method: Method,
     headers: HeaderMap,
     body: Option<Vec<u8>>,
-    startedDateTime: Tm,
+    startedDateTime: SystemTime,
     timeStamp: i64,
     connect_time: u64,
     send_time: u64,
@@ -328,8 +329,11 @@ impl NetworkEventActor {
                 method: Method::GET,
                 headers: HeaderMap::new(),
                 body: None,
-                startedDateTime: time::now(),
-                timeStamp: time::get_time().sec,
+                startedDateTime: SystemTime::now(),
+                timeStamp: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs() as i64,
                 send_time: 0,
                 connect_time: 0,
             },
@@ -366,11 +370,24 @@ impl NetworkEventActor {
 
     pub fn event_actor(&self) -> EventActor {
         // TODO: Send the correct values for startedDateTime, isXHR, private
+
+        let started_datetime_rfc3339 = match Local.timestamp_millis_opt(
+            self.request
+                .startedDateTime
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as i64,
+        ) {
+            LocalResult::None => "".to_owned(),
+            LocalResult::Single(dateTime) => format!("{}", dateTime.to_rfc3339()),
+            LocalResult::Ambiguous(dateTime, _) => format!("{}", dateTime.to_rfc3339()),
+        };
+
         EventActor {
             actor: self.name(),
             url: self.request.url.clone(),
             method: format!("{}", self.request.method),
-            startedDateTime: format!("{}", self.request.startedDateTime.rfc3339()),
+            startedDateTime: started_datetime_rfc3339,
             timeStamp: self.request.timeStamp,
             isXHR: self.is_xhr,
             private: false,

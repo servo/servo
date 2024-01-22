@@ -5,17 +5,20 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/css-animations/support/testcommon.js"></script>
 
-<div id=target>hello</div>
+<div class=testcase id=discrete>Allow discrete</div>
+<div class=testcase id=normal>No discrete</div>
 
 <style>
-#target {
+.testcase {
   float: left;
   width: 100px;
   height: 100px;
   transition: all 1s;
+}
+#discrete {
   transition-behavior: allow-discrete;
 }
-#target.animated {
+.animated {
   float: right;
 }
 </style>
@@ -23,8 +26,14 @@
 <script>
 promise_test(async () => {
   await waitForAnimationFrames(2);
-  target.classList.add('animated');
-  const anims = document.getAnimations();
+  // Regression test for https://crbug.com/1518561
+  normal.classList.add('animated');
+  const normalAnims = normal.getAnimations();
+  assert_equals(normalAnims.length, 0,
+                "Started a discrete property transition on a normal element");
+
+  discrete.classList.add('animated');
+  const anims = discrete.getAnimations();
   assert_equals(anims.length, 1,
                 "Did not start a discrete-property transition");
   assert_equals(anims[0].transitionProperty, 'float');

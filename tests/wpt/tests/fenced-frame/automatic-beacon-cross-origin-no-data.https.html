@@ -8,6 +8,8 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
 
 <body>
 <script>
@@ -38,13 +40,8 @@ promise_test(async(t) => {
       .pointerUp()
       .send();
 
-  const expected_beacon_data = "<No data>";
-  const received_beacon_data =
-      await nextAutomaticBeacon(
-          "reserved.top_navigation_start", expected_beacon_data);
-  const received_beacon_data_commit =
-      await nextAutomaticBeacon(
-          "reserved.top_navigation_commit", expected_beacon_data);
+  await verifyBeaconData("reserved.top_navigation_start", "<No data>");
+  await verifyBeaconData("reserved.top_navigation_commit", "<No data>");
 }, 'Automatic beacon in a cross-origin subframe with no beacon data set');
 </script>
 </body>

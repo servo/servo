@@ -626,3 +626,52 @@ function virtualAuthenticatorPromiseTest(
     return testCb(t);
   }, name);
 }
+
+function bytesEqual(a, b) {
+  if (a instanceof ArrayBuffer) {
+    a = new Uint8Array(a);
+  }
+  if (b instanceof ArrayBuffer) {
+    b = new Uint8Array(b);
+  }
+  if (a.byteLength != b.byteLength) {
+    return false;
+  }
+  for (let i = 0; i < a.byteLength; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Compares two PublicKeyCredentialUserEntity objects.
+function userEntityEquals(a, b) {
+  return bytesEqual(a.id, b.id) && a.name == b.name && a.displayName == b.displayName;
+}
+
+// Asserts that `actual` and `expected`, which are both JSON types, are equal.
+// The object key order is ignored for comparison.
+function assertJsonEquals(actual, expected, optMsg) {
+  // Returns a copy of `jsonObj`, which must be a JSON type, with object keys
+  // recursively sorted in lexicographic order; or simply `jsonObj` if it is not
+  // an instance of Object.
+  function deepSortKeys(jsonObj) {
+    if (jsonObj instanceof Array) {
+      return Array.from(jsonObj, (x) => { return deepSortKeys(x); })
+    }
+    if (typeof jsonObj !== 'object' || jsonObj === null ||
+      jsonObj.__proto__.constructor !== Object ||
+      Object.keys(jsonObj).length === 0) {
+      return jsonObj;
+    }
+    return Object.keys(jsonObj).sort().reduce((acc, key) => {
+      acc[key] = deepSortKeys(jsonObj[key]);
+      return acc;
+    }, {});
+  }
+
+  assert_equals(
+    JSON.stringify(deepSortKeys(actual)),
+    JSON.stringify(deepSortKeys(expected)), optMsg);
+}

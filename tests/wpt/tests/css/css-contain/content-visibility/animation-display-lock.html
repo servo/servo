@@ -175,7 +175,7 @@ promise_test(async t => {
 
   animation.currentTime = 1999;
   await animation.ready;
-  await waitForEvent(animation, 'finish');
+  await waitForAnimationFrames(2);
 
   assert_true(animationFinishEvent,
               'Animation event not blocked on display locked subtree if ' +

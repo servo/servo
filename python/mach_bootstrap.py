@@ -2,20 +2,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import hashlib
 import os
 import platform
 import site
-import shutil
+import subprocess
 import sys
-
-from subprocess import Popen
-from tempfile import TemporaryFile
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 TOP_DIR = os.path.abspath(os.path.join(SCRIPT_PATH, ".."))
 WPT_PATH = os.path.join(TOP_DIR, "tests", "wpt")
-WPT_RUNNER_PATH = os.path.join(WPT_PATH, "tests", "tools", "wptrunner")
-WPT_SERVE_PATH = os.path.join(WPT_PATH, "tests", "tools", "wptserve")
+WPT_TOOLS_PATH = os.path.join(WPT_PATH, "tests", "tools")
+WPT_RUNNER_PATH = os.path.join(WPT_TOOLS_PATH, "wptrunner")
+WPT_SERVE_PATH = os.path.join(WPT_TOOLS_PATH, "wptserve")
 
 SEARCH_PATHS = [
     os.path.join("python", "mach"),
@@ -102,31 +101,46 @@ def _get_virtualenv_lib_dir():
 
 
 def _process_exec(args):
-    with TemporaryFile() as out:
-        with TemporaryFile() as err:
-            process = Popen(args, stdout=out, stderr=err)
-            process.wait()
-            if process.returncode:
-                print('"%s" failed with error code %d:' % ('" "'.join(args), process.returncode))
+    try:
+        subprocess.check_output(args, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as exception:
+        print(exception.output.decode(sys.stdout.encoding))
+        print(f"Process failed with return code: {exception.returncode}")
+        sys.exit(1)
 
-                if sys.version_info >= (3, 0):
-                    stdout = sys.stdout.buffer
-                else:
-                    stdout = sys.stdout
 
-                print('Output:')
-                out.seek(0)
-                stdout.flush()
-                shutil.copyfileobj(out, stdout)
-                stdout.flush()
+def install_virtual_env_requirements(project_path: str, python: str, virtualenv_path: str):
+    requirements_paths = [
+        os.path.join(project_path, "python", "requirements.txt"),
+        os.path.join(project_path, WPT_TOOLS_PATH, "requirements_tests.txt",),
+        os.path.join(project_path, WPT_RUNNER_PATH, "requirements.txt",),
+    ]
 
-                print('Error:')
-                err.seek(0)
-                stdout.flush()
-                shutil.copyfileobj(err, stdout)
-                stdout.flush()
+    requirements_hasher = hashlib.sha256()
+    for path in requirements_paths:
+        with open(path, 'rb') as file:
+            requirements_hasher.update(file.read())
 
-                sys.exit(1)
+    try:
+        marker_path = os.path.join(virtualenv_path, "requirements.sha256")
+        with open(marker_path, 'r') as marker_file:
+            marker_hash = marker_file.read()
+    except FileNotFoundError:
+        marker_hash = None
+
+    requirements_hash = requirements_hasher.hexdigest()
+
+    if marker_hash != requirements_hash:
+        print(" * Upgrading pip...")
+        _process_exec([python, "-m", "pip", "install", "--upgrade", "pip"])
+
+        print(" * Installing Python requirements...")
+        _process_exec([python, "-m", "pip", "install", "-I",
+                       "-r", requirements_paths[0],
+                       "-r", requirements_paths[1],
+                       "-r", requirements_paths[2]])
+        with open(marker_path, "w") as marker_file:
+            marker_file.write(requirements_hash)
 
 
 def _activate_virtualenv(topdir):
@@ -136,6 +150,7 @@ def _activate_virtualenv(topdir):
     if os.environ.get("VIRTUAL_ENV") != virtualenv_path:
         venv_script_path = os.path.join(virtualenv_path, _get_virtualenv_script_dir())
         if not os.path.exists(virtualenv_path):
+            print(" * Setting up virtual environment...")
             _process_exec([python, "-m", "venv", "--system-site-packages", virtualenv_path])
 
         # This general approach is taken from virtualenv's `activate_this.py`.
@@ -154,31 +169,7 @@ def _activate_virtualenv(topdir):
         # Otherwise pip may still try to write to the wrong site-packages directory.
         python = os.path.join(venv_script_path, "python")
 
-    # TODO: Right now, we iteratively install all the requirements by invoking
-    # `pip install` each time. If it were the case that there were conflicting
-    # requirements, we wouldn't know about them. Once
-    # https://github.com/pypa/pip/issues/988 is addressed, then we can just
-    # chain each of the requirements files into the same `pip install` call
-    # and it will check for conflicts.
-    requirements_paths = [
-        os.path.join("python", "requirements.txt"),
-        os.path.join(WPT_RUNNER_PATH, "requirements.txt",),
-    ]
-
-    for req_rel_path in requirements_paths:
-        req_path = os.path.join(topdir, req_rel_path)
-        marker_file = req_rel_path.replace(os.path.sep, '-')
-        marker_path = os.path.join(virtualenv_path, marker_file)
-
-        try:
-            if os.path.getmtime(req_path) + 10 < os.path.getmtime(marker_path):
-                continue
-        except OSError:
-            pass
-
-        _process_exec([python, "-m", "pip", "install", "-I", "-r", req_path])
-
-        open(marker_path, 'w').close()
+    install_virtual_env_requirements(topdir, python, virtualenv_path)
 
 
 def _ensure_case_insensitive_if_windows():
@@ -227,10 +218,10 @@ def bootstrap(topdir):
         print('Current path:', topdir)
         sys.exit(1)
 
-    # Ensure we are running Python 3.5+. We put this check here so we generate a
+    # Ensure we are running Python 3.10+. We put this check here so we generate a
     # user-friendly error message rather than a cryptic stack trace on module import.
-    if sys.version_info < (3, 5):
-        print('Python3 (>=3.5) is required to run mach.')
+    if sys.version_info < (3, 10):
+        print('Python3 (>=3.10) is required to run mach.')
         print('You are running Python', platform.python_version())
         sys.exit(1)
 

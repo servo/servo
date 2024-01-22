@@ -10,6 +10,7 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="resources/automatic-beacon-helper.js"></script>
 
 <body>
 <script>
@@ -18,40 +19,26 @@ promise_test(async(t) => {
   const fencedframe = await attachFencedFrameContext(
       {generator_api: 'sharedstorage',
        origin: get_host_info().HTTPS_REMOTE_ORIGIN});
-  const new_url = new URL("resources/dummy.html", location.href);
-  const start_beacon_data = "This is the start beacon data!";
-  const commit_beacon_data = "This is the commit beacon data!";
 
-  await fencedframe.execute((new_url, start_beacon_data,
-      commit_beacon_data) => {
-    addEventListener("click", (event) => {
-      let start_beacon_event = {
-        eventType: "reserved.top_navigation_start",
-        eventData: start_beacon_data,
-        destination: ["shared-storage-select-url"],
-      }
-      window.fence.setReportEventDataForAutomaticBeacons(start_beacon_event);
-      let commit_beacon_event = {
-        eventType: "reserved.top_navigation_commit",
-        eventData: commit_beacon_data,
-        destination: ["shared-storage-select-url"],
-      }
-      window.fence.setReportEventDataForAutomaticBeacons(commit_beacon_event);
-      window.open(new_url, "_blank");
-    });
-  }, [new_url, start_beacon_data, commit_beacon_data]);
+  let start_event = {
+    eventType: "reserved.top_navigation_start",
+    eventData: "This is the start beacon data!",
+    destination: ["shared-storage-select-url"],
+  }
+  let commit_event = {
+    eventType: "reserved.top_navigation_commit",
+    eventData: "This is the commit beacon data!",
+    destination: ["shared-storage-select-url"],
+  }
+  await setupAutomaticBeacon(fencedframe, [start_event, commit_event]);
 
   await actions.pointerMove(0, 0, {origin: fencedframe.element})
                .pointerDown()
                .pointerUp()
                .send();
 
-  const beacon_1_initiator_origin = await nextAutomaticBeacon(
-      "reserved.top_navigation_start", start_beacon_data);
-  assert_equals(beacon_1_initiator_origin, get_host_info().HTTPS_ORIGIN);
-  const beacon_2_initiator_origin = await nextAutomaticBeacon(
-      "reserved.top_navigation_commit", commit_beacon_data);
-  assert_equals(beacon_2_initiator_origin, get_host_info().HTTPS_ORIGIN);
+  await verifyBeaconData(start_event.eventType, start_event.eventData);
+  await verifyBeaconData(commit_event.eventType, commit_event.eventData);
 }, 'Set and trigger an automatic beacon in a click handler for SharedStorage');
 
 </script>

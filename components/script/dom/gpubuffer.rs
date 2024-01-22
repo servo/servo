@@ -346,27 +346,27 @@ impl GPUBufferMethods for GPUBuffer {
 
 impl AsyncWGPUListener for GPUBuffer {
     #[allow(unsafe_code)]
-    fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
         match response {
-            Ok(WebGPUResponse::BufferMapAsync(bytes)) => {
-                *self
-                    .map_info
-                    .borrow_mut()
-                    .as_mut()
-                    .unwrap()
-                    .mapping
-                    .borrow_mut() = bytes.to_vec();
-                promise.resolve_native(&());
-                self.state.set(GPUBufferState::Mapped);
+            Some(response) => match response {
+                Ok(WebGPUResponse::BufferMapAsync(bytes)) => {
+                    *self
+                        .map_info
+                        .borrow_mut()
+                        .as_mut()
+                        .unwrap()
+                        .mapping
+                        .borrow_mut() = bytes.to_vec();
+                    promise.resolve_native(&());
+                    self.state.set(GPUBufferState::Mapped);
+                },
+                Err(e) => {
+                    warn!("Could not map buffer({:?})", e);
+                    promise.reject_error(Error::Abort);
+                },
+                Ok(_) => unreachable!("GPUBuffer received wrong WebGPUResponse"),
             },
-            Err(e) => {
-                warn!("Could not map buffer({:?})", e);
-                promise.reject_error(Error::Abort);
-            },
-            _ => {
-                warn!("GPUBuffer received wrong WebGPUResponse");
-                promise.reject_error(Error::Operation);
-            },
+            None => unreachable!("Failed to get a response for BufferMapAsync"),
         }
         *self.map_promise.borrow_mut() = None;
         if let Err(e) = self

@@ -171,11 +171,12 @@ are:
   [ShadowRealm](https://github.com/tc39/proposal-shadowrealm) context hosted in
   an ordinary Window context; to be run at <code><var>x</var>.any.shadowrealm.html</code>
 
-To check if your test is run from a window or worker you can use the following two methods that will
+To check what scope your test is run from, you can use the following methods that will
 be made available by the framework:
 
     self.GLOBAL.isWindow()
     self.GLOBAL.isWorker()
+    self.GLOBAL.isShadowRealm()
 
 Although [the global `done()` function must be explicitly invoked for most
 dedicated worker tests and shared worker
@@ -202,6 +203,9 @@ can be used to include both the global and a local `utils.js` in a test.
 In window environments, the script will be included using a classic `<script>` tag. In classic
 worker environments, the script will be imported using `importScripts()`. In module worker
 environments, the script will be imported using a static `import`.
+
+wptserve generates markup with `/resources/testharness.js` and `/resources/testharnessreport.js`
+included automatically, so there's no need to include those scripts from the `.js` test file.
 
 ### Specifying a timeout of long
 

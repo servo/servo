@@ -65,10 +65,10 @@
   test_query('style((--baz: qux) or (--foo: bar) or (--foo: bar))', true);
   test_query('style((--foo: bar) or (--baz: qux) or (--foo: bar))', true);
   test_query('style((--foo: bar) or (--foo: bar) or (--baz: qux))', true);
-  test_query('style((unknown) or (--foo: bar) or (--foo: bar))', true);
-  test_query('style((--foo: bar) or (unknown) or (--foo: bar))', true);
-  test_query('style((--foo: bar) or (--foo: bar) or (unknown))', true);
-  test_query('style((unknown) or (--baz: qux) or (--foo: bar))', true);
+  test_query('style((unknown) or (--foo: bar) or (--foo: bar))', false);
+  test_query('style((--foo: bar) or (unknown) or (--foo: bar))', false);
+  test_query('style((--foo: bar) or (--foo: bar) or (unknown))', false);
+  test_query('style((unknown) or (--baz: qux) or (--foo: bar))', false);
 
   // Combinations, <style-query>:
   test_query('style(not ((--foo: bar) and (--foo: bar)))', false);

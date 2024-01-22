@@ -1,0 +1,23 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("DOMContentLoaded", () => {
+  let i = 5;
+  document.addEventListener("selectstart", () => {
+    window.find("AAA");
+    document.querySelector("li").before(document.querySelector("text"));
+    if (!(--i)) {
+      document.documentElement.removeAttribute("class");
+    }
+  });
+  document.execCommand("selectAll");
+}, {once: true});
+</script>
+<body>
+<svg>
+<text>AAA</text>
+<li>
+</li></svg></body>
+</html>

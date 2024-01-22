@@ -87,6 +87,10 @@ class UnableToCaptureScreenException(BidiException):
     error_code = "unable to capture screen"
 
 
+class UnableToSetCookieException(BidiException):
+    error_code = "unable to set cookie"
+
+
 class UnknownCommandException(BidiException):
     error_code = "unknown command"
 

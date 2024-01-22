@@ -112,17 +112,27 @@ partial interface DedicatedWorkerGlobalScope {
 };
 
 [Exposed=DedicatedWorker]
-interface RTCRtpScriptTransformer {
+interface RTCRtpScriptTransformer : EventTarget {
+    // Attributes and methods related to the transformer source
     readonly attribute ReadableStream readable;
-    readonly attribute WritableStream writable;
-    readonly attribute any options;
     Promise<unsigned long long> generateKeyFrame(optional DOMString rid);
     Promise<undefined> sendKeyFrameRequest();
+    // Attributes and methods related to the transformer sink
+    readonly attribute WritableStream writable;
+    attribute EventHandler onkeyframerequest;
+    // Attributes for configuring the Javascript code
+    readonly attribute any options;
 };
 
 [Exposed=Window]
 interface RTCRtpScriptTransform {
     constructor(Worker worker, optional any options, optional sequence<object> transfer);
+};
+
+[Exposed=DedicatedWorker]
+interface KeyFrameRequestEvent : Event {
+  constructor(DOMString type, optional DOMString rid);
+  readonly attribute DOMString? rid;
 };
 
 partial interface RTCRtpSender {

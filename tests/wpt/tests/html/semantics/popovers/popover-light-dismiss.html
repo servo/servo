@@ -449,52 +449,6 @@ promise_test(async () => {
 },'Ensure circular/convoluted ancestral relationships are functional, with a direct showPopover()');
 </script>
 
-<div popover id=p10>Popover</div>
-<div popover=hint id=p11>Hint</div>
-<div popover=manual id=p12>Manual</div>
-<style>
-  #p10 {top:100px;}
-  #p11 {top:200px;}
-  #p12 {top:300px;}
-</style>
-<script>
-if (popoverHintSupported()) {
-  promise_test(async () => {
-    const auto = document.querySelector('#p10');
-    const hint = document.querySelector('#p11');
-    const manual = document.querySelector('#p12');
-    // All three can be open at once, if shown in this order:
-    auto.showPopover();
-    hint.showPopover();
-    manual.showPopover();
-    assert_true(auto.matches(':popover-open'));
-    assert_true(hint.matches(':popover-open'));
-    assert_true(manual.matches(':popover-open'));
-    // Clicking the hint will close the auto, but not the manual.
-    await clickOn(hint);
-    assert_false(auto.matches(':popover-open'),'auto should be hidden');
-    assert_true(hint.matches(':popover-open'),'hint should stay open');
-    assert_true(manual.matches(':popover-open'),'manual does not light dismiss');
-    // Clicking outside should close the hint, but not the manual:
-    await clickOn(outside);
-    assert_false(auto.matches(':popover-open'));
-    assert_false(hint.matches(':popover-open'),'hint should close');
-    assert_true(manual.matches(':popover-open'),'manual does not light dismiss');
-    manual.hidePopover();
-    assert_false(manual.matches(':popover-open'));
-    auto.showPopover();
-    hint.showPopover();
-    assert_true(auto.matches(':popover-open'));
-    assert_true(hint.matches(':popover-open'));
-    // Clicking on the auto should close the hint:
-    await clickOn(auto);
-    assert_true(auto.matches(':popover-open'),'auto should stay open');
-    assert_false(hint.matches(':popover-open'),'hint should light dismiss');
-    auto.hidePopover();
-    assert_false(auto.matches(':popover-open'));
-  },'Light dismiss of mixed popover types including hints');
-}
-</script>
 <div popover id=p13>Popover 1
   <div popover id=p14>Popover 2
     <div popover id=p15>Popover 3</div>

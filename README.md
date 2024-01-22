@@ -22,6 +22,7 @@ manually, try the [manual build setup][manual-build].
 
 ### macOS
 
+- Ensure that the version showed by `python --version` is >= 3.10:
 - Install [Xcode](https://developer.apple.com/xcode/)
 - Install [Homebrew](https://brew.sh/)
 - Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
@@ -31,8 +32,8 @@ manually, try the [manual build setup][manual-build].
 ### Linux
 
 - Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-- Install Python
-    - **Debian-like:** Run `sudo apt install python3-pip`
+- Install Python (version >= 3.10):
+    - **Debian-like:** Run `sudo apt install python3-pip python3-venv`
     - **Fedora:** Run `sudo dnf install python3 python3-pip python3-devel`
     - **Arch:** Run `sudo pacman -S --needed python python-pip`
     - **Gentoo:** Run `sudo emerge dev-python/pip`
@@ -42,8 +43,9 @@ manually, try the [manual build setup][manual-build].
 
  - Download and run [`rustup-init.exe`](https://win.rustup.rs/) then follow the onscreen instructions.
  - Install [chocolatey](https://chocolatey.org/)
+ - Install [Python 3.11](https://apps.microsoft.com/detail/9NRWMJP3717K?hl=en-US&gl=US)
  - Run `mach bootstrap`
-  - *This will install CMake, Git, Ninja, Python and the Visual Studio 2019 Build Tools
+  - *This will install CMake, Git, Ninja, and the Visual Studio 2019 Build Tools
      via choco in an Administrator console. It can take quite a while.*
   - *If you already have Visual Studio 2019 installed, this may not install all necessary components.
      Please follow the Visual Studio 2019 installation instructions in the [manual setup][manual-build].*

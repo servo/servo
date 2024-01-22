@@ -15,7 +15,7 @@ promise_test(async t => {
   await new Promise(resolve => {
     new PerformanceObserver((list, observer) => {
       if (list.getEntries().find(loaf => loaf.scripts.some(script =>
-        script.name === new URL("resources/busy.js?from-parser", location.href).href))) {
+        script.invoker === new URL("resources/busy.js?from-parser", location.href).href))) {
         observer.disconnect();
         resolve();
       }

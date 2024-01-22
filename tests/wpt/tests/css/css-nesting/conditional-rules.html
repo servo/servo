@@ -42,7 +42,7 @@
   }
 
   .test-12 {
-    @scope (.test-12) {
+    @scope (&) {
       :scope {
         background-color: green;
       }
@@ -70,6 +70,6 @@
   <div class="test test-6"></div>
   <div class="test test-10"></div>
   <div class="test test-11"></div>
-  <div class="test test-12"></div>
+  <div class="test test-12"><div class="test-12"></div></div>
   <div class="test"><div class="test-13"></div></div>
 </body>

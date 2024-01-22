@@ -975,6 +975,8 @@ def test_css_missing_file_tentative():
     (b"""// META: foobar\n""", (1, "BROKEN-METADATA")),
     (b"""// META: foo=bar\n""", (1, "UNKNOWN-METADATA")),
     (b"""// META: timeout=bar\n""", (1, "UNKNOWN-TIMEOUT-METADATA")),
+    (b"""// META: script=/resources/testharness.js""", (1, "MULTIPLE-TESTHARNESS")),
+    (b"""// META: script=/resources/testharnessreport.js""", (1, "MULTIPLE-TESTHARNESSREPORT")),
 ])
 def test_script_metadata(filename, input, error):
     errors = check_file_contents("", filename, io.BytesIO(input))
@@ -991,6 +993,10 @@ def test_script_metadata(filename, input, error):
             "MALFORMED-VARIANT": (
                 f"{filename} `META: variant=...` value must be a non empty "
                 "string and start with '?' or '#'"),
+            "MULTIPLE-TESTHARNESS": (
+                "More than one `<script src='/resources/testharness.js'>`"),
+            "MULTIPLE-TESTHARNESSREPORT": (
+                "More than one `<script src='/resources/testharnessreport.js'>`"),
         }
         assert errors == [
             (kind,
