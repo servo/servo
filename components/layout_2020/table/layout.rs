@@ -456,7 +456,7 @@ impl Table {
         };
 
         let sizes = cell.inline_content_sizes(layout_context, writing_mode);
-        sizes.map(|size| Au::from_f32_px(Au::to_f32_px(size) / cell.colspan as f32))
+        sizes.map(|size| size.scale_by(1.0 / cell.colspan as f32))
     }
 
     pub(crate) fn compute_inline_content_sizes(
