@@ -644,7 +644,7 @@ class CommandBase(object):
         env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
 
         # The two variables set below are passed by our custom
-        # support/android/toolchain.cmake to the NDK's Cmake toolchain file
+        # support/android/toolchain.cmake to the NDK's CMake toolchain file
         env["ANDROID_ABI"] = android_lib
         env["ANDROID_PLATFORM"] = android_platform
         env["NDK_CMAKE_TOOLCHAIN_FILE"] = path.join(

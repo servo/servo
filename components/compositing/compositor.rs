@@ -502,7 +502,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     /// The underlying native surface can be lost during servo's lifetime.
-    /// On android, for example, this happens when the app is sent to background.
+    /// On Android, for example, this happens when the app is sent to background.
     /// We need to unbind the surface so that we don't try to use it again.
     pub fn invalidate_native_surface(&mut self) {
         debug!("Invalidating native surface in compositor");
@@ -511,7 +511,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    /// On android, this function will be called when the app moves to foreground
+    /// On Android, this function will be called when the app moves to foreground
     /// and the system creates a new native surface that needs to bound to the current
     /// context.
     #[allow(unsafe_code)]

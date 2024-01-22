@@ -94,7 +94,7 @@ jobs:
     name: Result
     runs-on: ubuntu-latest
     if: always()
-    # needs all build to detect cancellation
+    # `needs: 'build'` is necessary to detect cancellation
     needs:
       - "build"
     steps:

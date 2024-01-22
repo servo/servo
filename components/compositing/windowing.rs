@@ -106,11 +106,11 @@ pub enum EmbedderEvent {
     ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
-    /// Sent on platforms like android where the native widget surface can be
+    /// Sent on platforms like Android where the native widget surface can be
     /// automatically destroyed by the system, for example when the app
     /// is sent to background.
     InvalidateNativeSurface,
-    /// Sent on platforms like android where system recreates a new surface for
+    /// Sent on platforms like Android where system recreates a new surface for
     /// the native widget when it is brough back to foreground. This event
     /// carries the pointer to the native widget and its new size.
     ReplaceNativeSurface(*mut c_void, DeviceIntSize),
