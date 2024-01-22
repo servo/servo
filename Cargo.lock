@@ -139,7 +139,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c494134f746c14dc653a35a4ea5aca24ac368529da5370ecf41fe0341c35772f"
 dependencies = [
  "android_log-sys",
- "env_logger 0.10.1",
+ "env_logger 0.10.2",
  "log",
  "once_cell",
 ]
@@ -1610,9 +1610,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95b3f3e67048839cb0d0781f445682a35113da7121f7c949db0e2be96a4fbece"
+checksum = "4cd405aab171cb85d6735e5c8d9db038c17d3ca007a4d2c25f337935c3d90580"
 dependencies = [
  "humantime",
  "is-terminal",
@@ -3400,7 +3400,7 @@ dependencies = [
  "devtools",
  "devtools_traits",
  "embedder_traits",
- "env_logger 0.10.1",
+ "env_logger 0.10.2",
  "euclid",
  "gaol",
  "gfx",
@@ -5614,7 +5614,7 @@ version = "0.0.1"
 dependencies = [
  "backtrace",
  "cbindgen",
- "env_logger 0.10.1",
+ "env_logger 0.10.2",
  "keyboard-types",
  "lazy_static",
  "libc",
