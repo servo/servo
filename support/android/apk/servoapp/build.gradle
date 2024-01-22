@@ -1,18 +1,22 @@
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+}
 
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 android {
-    compileSdkVersion 27
-    buildToolsVersion '27.0.3'
+    compileSdk 33
+    buildToolsVersion "33.0.2"
+
+    namespace 'org.mozilla.servo'
 
     buildDir = rootDir.absolutePath + "/../../../target/android/gradle/servoapp"
 
     defaultConfig {
         applicationId "org.mozilla.servo"
-        minSdkVersion 21
-        targetSdkVersion 27
+        minSdk 30
+        targetSdk 30
         versionCode 1
         versionName "1.0.0"
     }
@@ -26,11 +30,7 @@ android {
     flavorDimensions "default"
 
     productFlavors {
-        main {
-        }
-        googlevr {
-        }
-        oculusvr {
+        basic {
         }
     }
 
@@ -61,19 +61,6 @@ android {
         }
 
         // Custom build types
-        armDebug {
-            initWith(debug)
-            ndk {
-                abiFilters getNDKAbi('arm')
-            }
-        }
-
-        armRelease {
-            initWith(release)
-            ndk {
-                abiFilters getNDKAbi('arm')
-            }
-        }
         armv7Debug {
             initWith(debug)
             ndk {
@@ -144,7 +131,6 @@ android {
 }
 
 dependencies {
-    implementation 'com.android.support.constraint:constraint-layout:1.1.2'
     if (findProject(':servoview-local')) {
       implementation project(':servoview-local')
     } else {

@@ -1,18 +1,23 @@
-apply plugin: 'com.android.library'
+plugins {
+    id 'com.android.library'
+}
 
 import groovy.io.FileType
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 android {
-    compileSdkVersion 27
-    buildToolsVersion '27.0.3'
+    compileSdk 33
+    buildToolsVersion "33.0.2"
+
+    namespace 'org.mozilla.servoview'
 
     buildDir = rootDir.absolutePath + "/../../../target/android/gradle/servoview"
 
+    ndkPath = getNdkDir()
     defaultConfig {
-        minSdkVersion 18
-        targetSdkVersion 27
+        minSdk 30
+        targetSdk 30
         versionCode 1
         versionName "1.0"
     }
@@ -26,24 +31,18 @@ android {
     flavorDimensions "default"
 
     productFlavors {
-        main {
-        }
-        googlevr {
-            minSdkVersion 21
-        }
-        oculusvr {
-            minSdkVersion 21
+        basic {
         }
     }
 
-   splits {
-       density {
-           enable false
-       }
-       abi {
-           enable false
-       }
-   }
+    splits {
+        density {
+            enable false
+        }
+        abi {
+            enable false
+        }
+    }
 
 
     buildTypes {
@@ -59,64 +58,28 @@ android {
         }
 
         // Custom build types
-        armDebug {
-            initWith(debug)
-            ndk {
-                abiFilters getNDKAbi('arm')
-            }
-        }
-        armRelease {
-            initWith(release)
-            ndk {
-                abiFilters getNDKAbi('arm')
-            }
-        }
         armv7Debug {
             initWith(debug)
-            ndk {
-                abiFilters getNDKAbi('armv7')
-            }
         }
         armv7Release {
             initWith(release)
-            ndk {
-                abiFilters getNDKAbi('armv7')
-            }
         }
         arm64Debug {
             initWith(debug)
-            ndk {
-                abiFilters getNDKAbi('arm64')
-            }
         }
         arm64Release {
             initWith(release)
-            ndk {
-                abiFilters getNDKAbi('arm64')
-            }
         }
         x86Debug {
             initWith(debug)
-            ndk {
-                abiFilters getNDKAbi('x86')
-            }
         }
         x86Release {
             initWith(release)
-            ndk {
-                abiFilters getNDKAbi('x86')
-            }
         }
     }
 
     sourceSets {
         main {
-        }
-        armDebug {
-            jniLibs.srcDirs = [getJniLibsPath(true, 'arm')]
-        }
-        armRelease {
-            jniLibs.srcDirs = [getJniLibsPath(false, 'arm')]
         }
         armv7Debug {
             jniLibs.srcDirs = [getJniLibsPath(true, 'armv7')]
@@ -145,33 +108,48 @@ android {
         }
     }
 
-
-    // Call our custom NDK Build task using flavor parameters
+    // Call our custom NDK Build task using flavor parameters.
+    // This step is needed because the Android Gradle Plugin system's
+    // integration with native C/C++ shared objects (based on the
+    // `android.externalNativeBuild` dsl object) assumes that we
+    // actually execute compiler commands to produced the shared
+    // objects. We already have the libsimpleservo.so produced by rustc.
+    // We could simply copy the .so to the `sourceSet.jniLibs` folder
+    // to make AGP bundle it with the APK, but this doesn't copy the STL
+    // (libc++_shared.so) as well. So we use ndk-build as a glorified
+    // `cp` command to copy the libsimpleservo.so from target/<arch>
+    // to target/android and crucially also include libc++_shared.so
+    // as well.
+    //
+    // FIXME(mukilan): According to the AGP docs, we should not be
+    // relying on task names used by the plugin system to hook into
+    // the build process, but instead we should use officially supported
+    // extension points such as `androidComponents.beforeVariants`
     tasks.all {
         compileTask ->
-            Pattern pattern = Pattern.compile(/^compile[A-Z][\w\d]+([A-Z][\w\d]+)(Debug|Release)Ndk/)
+            // This matches the task `mergeBasicArmv7DebugJniLibFolders`.
+            Pattern pattern = Pattern.compile(/^merge[A-Z][\w\d]+([A-Z][\w\d]+)(Debug|Release)JniLibFolders/)
             Matcher matcher = pattern.matcher(compileTask.name)
             if (!matcher.find()) {
-                return
+               return
             }
 
             def taskName = "ndkbuild" + compileTask.name
             tasks.create(name: taskName, type: Exec) {
                 def debug = compileTask.name.contains("Debug")
                 def arch = matcher.group(1)
-                commandLine getNdkDir(),
-                        'APP_BUILD_SCRIPT=../jni/Android.mk',
-                        'NDK_APPLICATION_MK=../jni/Application.mk',
-                        'NDK_LIBS_OUT=' + getJniLibsPath(debug, arch),
-                        'NDK_OUT=' + getTargetDir(debug, arch) + '/apk/obj',
-                        'NDK_DEBUG=' + (debug ? '1' : '0'),
-                        'APP_ABI=' + getNDKAbi(arch),
-                        'SERVO_TARGET_DIR=' + getTargetDir(debug, arch)
+                commandLine getNdkDir() + "/ndk-build",
+                    'APP_BUILD_SCRIPT=../jni/Android.mk',
+                    'NDK_APPLICATION_MK=../jni/Application.mk',
+                    'NDK_LIBS_OUT=' + getJniLibsPath(debug, arch),
+                    'NDK_DEBUG=' + (debug ? '1' : '0'),
+                    'APP_ABI=' + getNDKAbi(arch),
+                    'NDK_LOG=1',
+                    'SERVO_TARGET_DIR=' + getNativeTargetDir(debug, arch)
             }
 
             compileTask.dependsOn taskName
     }
-
 
     project.afterEvaluate {
         android.libraryVariants.all { variant ->
@@ -205,7 +183,7 @@ dependencies {
     ]
     // Iterate all build types and dependencies
     // For each dependency call the proper implementation command and set the correct dependency path
-    def list = ['arm', 'armv7', 'arm64', 'x86']
+    def list = ['armv7', 'arm64', 'x86']
     for (arch in list) {
         for (debug in [true, false]) {
             String basePath = getTargetDir(debug, arch) + "/build"
@@ -220,10 +198,9 @@ dependencies {
         }
     }
 
-    googlevrImplementation 'com.google.vr:sdk-base:1.140.0'
-    googlevrImplementation(name: 'GVRService', ext: 'aar')
-    oculusvrImplementation(name: 'OVRService', ext: 'aar')
-    implementation 'com.android.support.constraint:constraint-layout:1.1.2'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
 }
 
 // folderFilter can be used to improve search performance
@@ -257,43 +234,4 @@ class ServoDependency {
     }
     public String fileName;
     public String folderFilter;
-}
-
-apply plugin: 'maven'
-import org.gradle.api.internal.artifacts.publish.DefaultPublishArtifact
-
-uploadArchives {
-  doFirst {
-      for ( arch in ["arm", "armv7", "arm64", "x86"] ) {
-        def target = getTargetDir(false, arch)
-        def aar = new File(target, "servoview.aar")
-        if (aar.exists()) {
-          def art = new DefaultPublishArtifact("servoview-" + arch, "aar", "aar", null, new Date(), aar);
-          project.artifacts.add('archives', art)
-        }
-      }
-    }
-    repositories.mavenDeployer {
-        repository(url: "file://localhost/${buildDir}/maven")
-        def cmd = "git rev-parse --short HEAD"
-        def proc = cmd.execute()
-        def commit = proc.text.trim()
-        def version = "0.0.1." + new Date().format('yyyyMMdd') + "." + commit
-        for ( arch_ in ["arm", "armv7", "arm64", "x86"] ) {
-          def arch = arch_
-          addFilter(arch) {artifact, file -> artifact.name == "servoview-" + arch}
-          pom(arch).artifactId = "servoview-" + arch
-          pom(arch).groupId = 'org.mozilla.servoview'
-          pom(arch).version = version
-          pom(arch).project {
-              licenses {
-                  license {
-                      name 'The Mozilla Public License, v. 2.0'
-                      url 'https://mozilla.org/MPL/2.0/'
-                      distribution 'repo'
-                  }
-              }
-          }
-        }
-    }
 }

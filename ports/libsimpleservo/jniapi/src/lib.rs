@@ -5,26 +5,36 @@
 #![allow(non_snake_case)]
 
 use std::os::raw::{c_char, c_int, c_void};
-use std::ptr::{null, null_mut};
 use std::sync::Arc;
 use std::thread;
 
-use android_logger::{self, Filter};
-use gstreamer::debug_set_threshold_from_string;
+use android_logger::{self, Config, FilterBuilder};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
-use jni::{errors, JNIEnv, JavaVM};
+use jni::{JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
-use log::Level;
+use log::{debug, error, info, warn};
 use simpleservo::{
-    self, self, deinit, gl_glue, gl_glue, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait,
-    InitOptions, InputMethodType, MediaSessionPlaybackState, MouseButton, PromptResult, ServoGlue,
-    ServoGlue, VRInitOptions, SERVO, SERVO,
+    self, gl_glue, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait, InitOptions,
+    InputMethodType, MediaSessionPlaybackState, PromptResult, ServoGlue, SERVO,
 };
 
 struct HostCallbacks {
     callbacks: GlobalRef,
     jvm: JavaVM,
+}
+
+extern "C" {
+    fn ANativeWindow_fromSurface(env: *mut jni::sys::JNIEnv, surface: JObject) -> *mut c_void;
+}
+
+#[no_mangle]
+pub fn android_main() {
+    // FIXME(mukilan): this android_main is only present to stop
+    // the java side 'System.loadLibrary('simpleservo') call from
+    // failing due to undefined reference to android_main introduced
+    // by winit's android-activity crate. There is no way to disable
+    // this currently.
 }
 
 fn call<F>(env: &JNIEnv, f: F)
@@ -51,11 +61,12 @@ pub fn Java_org_mozilla_servoview_JNIServo_version(env: JNIEnv, _class: JClass) 
 pub fn Java_org_mozilla_servoview_JNIServo_init(
     env: JNIEnv,
     _: JClass,
-    activity: JObject,
+    _activity: JObject,
     opts: JObject,
     callbacks_obj: JObject,
+    surface: JObject,
 ) {
-    let (mut opts, log, log_str, gst_debug_str) = match get_options(&env, opts) {
+    let (mut opts, log, log_str, _gst_debug_str) = match get_options(&env, opts, surface) {
         Ok((opts, log, log_str, gst_debug_str)) => (opts, log, log_str, gst_debug_str),
         Err(err) => {
             throw(&env, &err);
@@ -79,26 +90,26 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
             "compositing::compositor",
             "constellation::constellation",
         ];
-        let mut filter = Filter::default().with_min_level(Level::Debug);
+        let mut filter_builder = FilterBuilder::new();
         for &module in &filters {
-            filter = filter.with_allowed_module_path(module);
+            filter_builder.filter_module(module, log::LevelFilter::Debug);
         }
         if let Some(log_str) = log_str {
             for module in log_str.split(',') {
-                filter = filter.with_allowed_module_path(module);
+                filter_builder.filter_module(module, log::LevelFilter::Debug);
             }
         }
 
-        if let Some(gst_debug_str) = gst_debug_str {
-            debug_set_threshold_from_string(&gst_debug_str, true);
-        }
-
-        android_logger::init_once(filter, Some("simpleservo"));
+        android_logger::init_once(
+            Config::default()
+                .with_max_level(log::LevelFilter::Debug)
+                .with_filter(filter_builder.build())
+                .with_tag("simpleservo"),
+        )
     }
 
     info!("init");
 
-    initialize_android_glue(&env, activity);
     redirect_stdout_to_logcat();
 
     let callbacks_ref = match env.new_global_ref(callbacks_obj) {
@@ -329,9 +340,31 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
+pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jfloat, y: jfloat) {
     debug!("click");
     call(&env, |s| s.click(x as f32, y as f32));
+}
+
+#[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_pauseCompositor(env: JNIEnv, _: JClass) {
+    debug!("pauseCompositor");
+    call(&env, |s| s.pause_compositor());
+}
+
+#[no_mangle]
+pub fn Java_org_mozilla_servoview_JNIServo_resumeCompositor(
+    env: JNIEnv,
+    _: JClass,
+    surface: JObject,
+    coordinates: JObject,
+) {
+    debug!("resumeCompositor");
+    let widget = unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface) };
+    let coords = jni_coords_to_rust_coords(&env, coordinates);
+    match coords {
+        Ok(coords) => call(&env, |s| s.resume_compositor(widget, coords.clone())),
+        Err(error) => throw(&env, &error),
+    }
 }
 
 #[no_mangle]
@@ -379,20 +412,6 @@ impl HostCallbacks {
 }
 
 impl HostTrait for HostCallbacks {
-    fn flush(&self) {
-        debug!("flush");
-        let env = self.jvm.get_env().unwrap();
-        env.call_method(self.callbacks.as_obj(), "flush", "()V", &[])
-            .unwrap();
-    }
-
-    fn make_current(&self) {
-        debug!("make_current");
-        let env = self.jvm.get_env().unwrap();
-        env.call_method(self.callbacks.as_obj(), "makeCurrent", "()V", &[])
-            .unwrap();
-    }
-
     fn prompt_alert(&self, message: String, _trusted: bool) {
         debug!("prompt_alert");
         let env = self.jvm.get_env().unwrap();
@@ -446,9 +465,10 @@ impl HostTrait for HostCallbacks {
             .unwrap();
     }
 
-    fn on_title_changed(&self, title: String) {
+    fn on_title_changed(&self, title: Option<String>) {
         debug!("on_title_changed");
         let env = self.jvm.get_env().unwrap();
+        let title = title.unwrap_or_else(String::new);
         let s = match new_string(&env, &title) {
             Ok(s) => s,
             Err(_) => return,
@@ -529,7 +549,7 @@ impl HostTrait for HostCallbacks {
 
     fn on_ime_show(
         &self,
-        _type: InputEncoding,
+        _input_type: InputMethodType,
         _text: Option<(String, i32)>,
         _multiline: bool,
         _rect: DeviceIntRect,
@@ -610,65 +630,16 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
-    fn on_devtools_started(&self, port: Result<u16, ()>) {
+    fn on_devtools_started(&self, port: Result<u16, ()>, _token: String) {
         match port {
             Ok(p) => info!("Devtools Server running on port {}", p),
             Err(()) => error!("Error running devtools server"),
         }
     }
-}
 
-fn initialize_android_glue(env: &JNIEnv, activity: JObject) {
-    use android_injected_glue::{ffi, ANDROID_APP};
+    fn show_context_menu(&self, _title: Option<String>, _items: Vec<String>) {}
 
-    // From jni-rs to android_injected_glue
-
-    let clazz = Box::leak(Box::new(env.new_global_ref(activity).unwrap()));
-
-    let activity = Box::into_raw(Box::new(ffi::ANativeActivity {
-        clazz: clazz.as_obj().into_inner() as *mut c_void,
-        vm: env.get_java_vm().unwrap().get_java_vm_pointer() as *mut ffi::_JavaVM,
-
-        callbacks: null_mut(),
-        env: null_mut(),
-        internalDataPath: null(),
-        externalDataPath: null(),
-        sdkVersion: 0,
-        instance: null_mut(),
-        assetManager: null_mut(),
-        obbPath: null(),
-    }));
-
-    extern "C" fn on_app_cmd(_: *mut ffi::android_app, _: i32) {}
-    extern "C" fn on_input_event(_: *mut ffi::android_app, _: *const c_void) -> i32 {
-        0
-    }
-
-    let app = Box::into_raw(Box::new(ffi::android_app {
-        activity,
-        onAppCmd: on_app_cmd,
-        onInputEvent: on_input_event,
-
-        userData: null_mut(),
-        config: null(),
-        savedState: null_mut(),
-        savedStateSize: 0,
-        looper: null_mut(),
-        inputQueue: null(),
-        window: null_mut(),
-        contentRect: ffi::ARect {
-            left: 0,
-            top: 0,
-            right: 0,
-            bottom: 0,
-        },
-        activityState: 0,
-        destroyRequested: 0,
-    }));
-
-    unsafe {
-        ANDROID_APP = app;
-    }
+    fn on_panic(&self, _reason: String, _backtrace: Option<String>) {}
 }
 
 extern "C" {
@@ -803,28 +774,21 @@ fn jni_coords_to_rust_coords(env: &JNIEnv, obj: JObject) -> Result<Coordinates, 
 
 fn get_field<'a>(
     env: &'a JNIEnv,
-    obj: JObject,
+    obj: JObject<'a>,
     field: &str,
     type_: &str,
 ) -> Result<Option<JValue<'a>>, String> {
     if env.get_field_id(obj, field, type_).is_err() {
-        return Err(format!("Can't find `{}` field", &field));
+        return Err(format!("Can't find `{}` field", field));
     }
     env.get_field(obj, field, type_)
         .map(|value| Some(value))
-        .or_else(|e| match *e.kind() {
-            errors::ErrorKind::NullPtr(_) => Ok(None),
-            _ => Err(format!(
-                "Can't find `{}` field: {}",
-                &field,
-                e.description()
-            )),
-        })
+        .or_else(|_| Err(format!("Can't find `{}` field", field)))
 }
 
 fn get_non_null_field<'a>(
     env: &'a JNIEnv,
-    obj: JObject,
+    obj: JObject<'a>,
     field: &str,
     type_: &str,
 ) -> Result<JValue<'a>, String> {
@@ -851,6 +815,7 @@ fn get_string(env: &JNIEnv, obj: JObject, field: &str) -> Result<Option<String>,
 fn get_options(
     env: &JNIEnv,
     opts: JObject,
+    surface: JObject,
 ) -> Result<(InitOptions, bool, Option<String>, Option<String>), String> {
     let args = get_string(env, opts, "args")?;
     let url = get_string(env, opts, "url")?;
@@ -862,13 +827,6 @@ fn get_options(
     let log = get_non_null_field(env, opts, "enableLogs", "Z")?
         .z()
         .map_err(|_| "enableLogs not a boolean")?;
-    let enable_subpixel_text_antialiasing =
-        get_non_null_field(env, opts, "enableSubpixelTextAntialiasing", "Z")?
-            .z()
-            .map_err(|_| "enableSubpixelTextAntialiasing not a boolean")?;
-    let vr_pointer = get_non_null_field(env, opts, "VRExternalContext", "J")?
-        .j()
-        .map_err(|_| "VRExternalContext is not a long")? as *mut c_void;
     let coordinates = get_non_null_field(
         env,
         opts,
@@ -885,20 +843,16 @@ fn get_options(
         None => None,
     };
 
+    let native_window = unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface) };
     let opts = InitOptions {
         args: args.unwrap_or(vec![]),
-        url,
         coordinates,
         density,
-        enable_subpixel_text_antialiasing,
-        vr_init: if vr_pointer.is_null() {
-            VRInitOptions::None
-        } else {
-            VRInitOptions::VRExternal(vr_pointer)
-        },
         xr_discovery: None,
         gl_context_pointer: None,
         native_display_pointer: None,
+        surfman_integration: simpleservo::SurfmanIntegration::Widget(native_window),
+        prefs: None,
     };
     Ok((opts, log, log_str, gst_debug_str))
 }

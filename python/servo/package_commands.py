@@ -160,7 +160,7 @@ class PackageCommands(CommandBase):
             else:
                 raise Exception("TODO what should this be?")
 
-            flavor_name = "Main"
+            flavor_name = "Basic"
             if flavor is not None:
                 flavor_name = flavor.title()
 
@@ -176,10 +176,7 @@ class PackageCommands(CommandBase):
             variant = ":assemble" + flavor_name + arch_string + build_type_string
             apk_task_name = ":servoapp" + variant
             aar_task_name = ":servoview" + variant
-            maven_task_name = ":servoview:uploadArchive"
             argv = ["./gradlew", "--no-daemon", apk_task_name, aar_task_name]
-            if maven:
-                argv.append(maven_task_name)
             try:
                 with cd(path.join("support", "android", "apk")):
                     subprocess.check_call(argv, env=env)

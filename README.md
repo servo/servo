@@ -117,6 +117,27 @@ though of course it doesn’t produce a binary you can run.
 
 ### Building for Android target
 
+Prerequisites:
+Servo's build system assumes that both the Android SDK & NDK are
+already installed and expects the paths to be specified via the
+environment variables `ANDROID_SDK_ROOT` and `ANDROID_NDK_ROOT`.
+
+Servo also expects the following components are installed via
+sdkmanager:
+
+For building:
+
+``` sh
+sdkmanager install platform-tools platforms;android-33
+```
+
+To run in emulator, also install the related components:
+
+``` sh
+sdkmanager install emulator system-images;android-33;google_apis;x86
+```
+
+Build commands:
 For ARM (`armv7-linux-androideabi`, most phones):
 
 ``` sh
@@ -129,6 +150,12 @@ For x86 (typically for the emulator):
 ```sh
 ./mach build --release --target i686-linux-android
 ./mach package --release --target i686-linux-android
+```
+
+Install the APK to the device or emulator:
+
+``` sh
+./mach install --release --android
 ```
 
 ## Running

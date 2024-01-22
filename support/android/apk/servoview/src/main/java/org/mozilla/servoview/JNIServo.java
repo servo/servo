@@ -6,7 +6,7 @@
 package org.mozilla.servoview;
 
 import android.app.Activity;
-
+import android.view.Surface;
 /**
  * Maps /ports/libsimpleservo API
  */
@@ -14,13 +14,12 @@ import android.app.Activity;
 public class JNIServo {
     JNIServo() {
         System.loadLibrary("c++_shared");
-        System.loadLibrary("gstreamer_android");
         System.loadLibrary("simpleservo");
     }
 
     public native String version();
 
-    public native void init(Activity activity, ServoOptions options, Callbacks callbacks);
+    public native void init(Activity activity, ServoOptions options, Callbacks callbacks, Surface surface);
 
     public native void deinit();
 
@@ -65,6 +64,9 @@ public class JNIServo {
     public native void pinchZoomEnd(float factor, int x, int y);
 
     public native void click(float x, float y);
+
+    public native void pauseCompositor();
+    public native void resumeCompositor(Surface surface, ServoCoordinates coords);
 
     public native void mediaSessionAction(int action);
 

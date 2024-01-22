@@ -56,8 +56,6 @@ media-stack = "auto"
 
 # Android information
 [android]
-# Defaults to the value of $ANDROID_SDK, $ANDROID_NDK, $ANDROID_TOOLCHAIN, $ANDROID_PLATFORM respectively
+# Defaults to the value of $ANDROID_SDK_ROOT, $ANDROID_NDK_ROOT respectively
 #sdk = "/opt/android-sdk"
 #ndk = "/opt/android-ndk"
-#toolchain = "/opt/android-toolchain"
-#platform = "android-18"

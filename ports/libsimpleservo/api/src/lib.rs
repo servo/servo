@@ -18,6 +18,7 @@ use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, MouseWindowEvent,
     WindowMethods,
 };
+use servo::compositing::CompositeTarget;
 use servo::config::prefs::pref_map;
 pub use servo::config::prefs::{add_user_prefs, PrefValue};
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
@@ -298,7 +299,12 @@ pub fn init(
         gl: gl.clone(),
     });
 
-    let servo = Servo::new(embedder_callbacks, window_callbacks.clone(), None);
+    let servo = Servo::new(
+        embedder_callbacks,
+        window_callbacks.clone(),
+        None,
+        CompositeTarget::Window,
+    );
 
     SERVO.with(|s| {
         let mut servo_glue = ServoGlue {
@@ -569,6 +575,24 @@ impl ServoGlue {
         self.process_event(EmbedderEvent::Keyboard(key_event))
     }
 
+    pub fn pause_compositor(&mut self) -> Result<(), &'static str> {
+        self.process_event(EmbedderEvent::InvalidateNativeSurface)
+    }
+
+    pub fn resume_compositor(
+        &mut self,
+        native_surface: *mut c_void,
+        coords: Coordinates,
+    ) -> Result<(), &'static str> {
+        if native_surface.is_null() {
+            panic!("null passed for native_surface");
+        }
+        self.process_event(EmbedderEvent::ReplaceNativeSurface(
+            native_surface,
+            coords.framebuffer,
+        ))
+    }
+
     pub fn media_session_action(
         &mut self,
         action: MediaSessionActionType,
@@ -789,6 +813,9 @@ impl ServoGlue {
                 EmbedderMsg::Panic(reason, backtrace) => {
                     self.callbacks.host_callbacks.on_panic(reason, backtrace);
                 },
+                EmbedderMsg::ReadyToPresent => {
+                    self.servo.present();
+                },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |
@@ -798,7 +825,6 @@ impl ServoGlue {
                 EmbedderMsg::NewFavicon(..) |
                 EmbedderMsg::HeadParsed |
                 EmbedderMsg::SetFullscreenState(..) |
-                EmbedderMsg::ReadyToPresent |
                 EmbedderMsg::ReportProfile(..) |
                 EmbedderMsg::EventDelivered(..) => {},
             }

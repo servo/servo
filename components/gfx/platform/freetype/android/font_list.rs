@@ -4,12 +4,13 @@
 
 use std::path::Path;
 
+use log::warn;
 use ucd::{Codepoint, UnicodeBlock};
 
 use super::xml::{Attribute, Node};
 use crate::text::util::is_cjk;
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref FONT_LIST: FontList = FontList::new();
 }
 

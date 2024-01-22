@@ -16,13 +16,7 @@
 MY_LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
-LOCAL_PATH:= $(SERVO_TARGET_DIR)
+LOCAL_PATH := $(SERVO_TARGET_DIR)
 LOCAL_MODULE := servojni
 LOCAL_SRC_FILES := libsimpleservo.so
-include $(PREBUILT_SHARED_LIBRARY)
-
-include $(CLEAR_VARS)
-LOCAL_PATH:= $(SERVO_TARGET_DIR)/../../gstreamer/gst-build-$(APP_ABI)
-LOCAL_MODULE := gstreamer
-LOCAL_SRC_FILES := libgstreamer_android.so
 include $(PREBUILT_SHARED_LIBRARY)

@@ -12,7 +12,6 @@ import glob
 import json
 import os
 import os.path as path
-import platform
 import re
 import subprocess
 import sys
@@ -30,7 +29,7 @@ from mach.decorators import (
 import servo.platform
 
 from servo.command_base import CommandBase, cd, check_call
-from servo.util import delete, download_bytes, download_file, extract, check_hash
+from servo.util import delete, download_bytes
 
 
 @CommandProvider
@@ -65,150 +64,6 @@ class MachCommands(CommandBase):
             print(exception)
             return 1
         return 0
-
-    @Command('bootstrap-android',
-             description='Install the Android SDK and NDK.',
-             category='bootstrap')
-    @CommandArgument('--build',
-                     action='store_true',
-                     help='Install Android-specific dependencies for building')
-    @CommandArgument('--emulator-x86',
-                     action='store_true',
-                     help='Install Android x86 emulator and system image')
-    @CommandArgument('--accept-all-licences',
-                     action='store_true',
-                     help='For non-interactive use')
-    def bootstrap_android(self, build=False, emulator_x86=False, accept_all_licences=False):
-        if not (build or emulator_x86):
-            print("Must specify `--build` or `--emulator-x86` or both.")
-
-        ndk = "android-ndk-r15c-{system}-{arch}"
-        tools = "sdk-tools-{system}-4333796"
-
-        emulator_platform = "android-28"
-        emulator_image = "system-images;%s;google_apis;x86" % emulator_platform
-
-        known_sha1 = {
-            # https://dl.google.com/android/repository/repository2-1.xml
-            "sdk-tools-darwin-4333796.zip": "ed85ea7b59bc3483ce0af4c198523ba044e083ad",
-            "sdk-tools-linux-4333796.zip": "8c7c28554a32318461802c1291d76fccfafde054",
-            "sdk-tools-windows-4333796.zip": "aa298b5346ee0d63940d13609fe6bec621384510",
-
-            # https://developer.android.com/ndk/downloads/older_releases
-            "android-ndk-r15c-windows-x86.zip": "f2e47121feb73ec34ced5e947cbf1adc6b56246e",
-            "android-ndk-r15c-windows-x86_64.zip": "970bb2496de0eada74674bb1b06d79165f725696",
-            "android-ndk-r15c-darwin-x86_64.zip": "ea4b5d76475db84745aa8828000d009625fc1f98",
-            "android-ndk-r15c-linux-x86_64.zip": "0bf02d4e8b85fd770fd7b9b2cdec57f9441f27a2",
-        }
-
-        toolchains = path.join(self.context.topdir, "android-toolchains")
-        if not path.isdir(toolchains):
-            os.makedirs(toolchains)
-
-        def download(target_dir, name, flatten=False):
-            final = path.join(toolchains, target_dir)
-            if path.isdir(final):
-                return
-
-            base_url = "https://dl.google.com/android/repository/"
-            filename = name + ".zip"
-            url = base_url + filename
-            archive = path.join(toolchains, filename)
-
-            if not path.isfile(archive):
-                download_file(filename, url, archive)
-            check_hash(archive, known_sha1[filename], "sha1")
-            print("Extracting " + filename)
-            remove = True  # Set to False to avoid repeated downloads while debugging this script
-            if flatten:
-                extracted = final + "_"
-                extract(archive, extracted, remove=remove)
-                contents = os.listdir(extracted)
-                assert len(contents) == 1
-                os.rename(path.join(extracted, contents[0]), final)
-                os.rmdir(extracted)
-            else:
-                extract(archive, final, remove=remove)
-
-        system = platform.system().lower()
-        machine = platform.machine().lower()
-        arch = {"i386": "x86"}.get(machine, machine)
-        if build:
-            download("ndk", ndk.format(system=system, arch=arch), flatten=True)
-        download("sdk", tools.format(system=system))
-
-        components = []
-        if emulator_x86:
-            components += [
-                "platform-tools",
-                "emulator",
-                "platforms;" + emulator_platform,
-                emulator_image,
-            ]
-        if build:
-            components += [
-                "platform-tools",
-                "platforms;android-18",
-            ]
-
-        sdkmanager = [path.join(toolchains, "sdk", "tools", "bin", "sdkmanager")] + components
-        if accept_all_licences:
-            yes = subprocess.Popen(["yes"], stdout=subprocess.PIPE)
-            process = subprocess.Popen(
-                sdkmanager, stdin=yes.stdout, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            )
-            # Reduce progress bar spam by removing duplicate lines.
-            # Printing the same line again with \r is a no-op in a real terminal,
-            # but each line is shown individually in Taskcluster's log viewer.
-            previous_line = None
-            line = b""
-            while 1:
-                # Read one byte at a time because in Python:
-                # * readline() blocks until "\n", which doesn't come before the prompt
-                # * read() blocks until EOF, which doesn't come before the prompt
-                # * read(n) keeps reading until it gets n bytes or EOF,
-                #   but we don't know reliably how many bytes to read until the prompt
-                byte = process.stdout.read(1)
-                if len(byte) == 0:
-                    print(line)
-                    break
-                line += byte
-                if byte == b'\n' or byte == b'\r':
-                    if line != previous_line:
-                        print(line.decode("utf-8", "replace"), end="")
-                        sys.stdout.flush()
-                    previous_line = line
-                    line = b""
-            exit_code = process.wait()
-            yes.terminate()
-            if exit_code:
-                return exit_code
-        else:
-            subprocess.check_call(sdkmanager)
-
-        if emulator_x86:
-            avd_path = path.join(toolchains, "avd", "servo-x86")
-            process = subprocess.Popen(stdin=subprocess.PIPE, stdout=subprocess.PIPE, args=[
-                path.join(toolchains, "sdk", "tools", "bin", "avdmanager"),
-                "create", "avd",
-                "--path", avd_path,
-                "--name", "servo-x86",
-                "--package", emulator_image,
-                "--force",
-            ])
-            output = b""
-            while 1:
-                # Read one byte at a time, see comment above.
-                byte = process.stdout.read(1)
-                if len(byte) == 0:
-                    break
-                output += byte
-                # There seems to be no way to disable this prompt:
-                if output.endswith(b"Do you wish to create a custom hardware profile? [no]"):
-                    process.stdin.write("no\n")
-            assert process.wait() == 0
-            with open(path.join(avd_path, "config.ini"), "a") as f:
-                f.write("disk.dataPartition.size=2G\n")
 
     @Command('update-hsts-preload',
              description='Download the HSTS preload list',
