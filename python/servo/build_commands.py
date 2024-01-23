@@ -32,10 +32,10 @@ from mach.registrar import Registrar
 
 import servo.platform
 import servo.util
+import servo.visual_studio
 
 from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.gstreamer import windows_dlls, windows_plugins, macos_plugins
-from servo.visual_studio import find_msvc_redist_dirs
 
 
 @CommandProvider
@@ -452,18 +452,17 @@ def package_msvc_dlls(servo_exe_dir: str, target: str):
         "aarch64": "arm64",
     }[target.split('-')[0]]
 
-    for msvc_redist_dir in find_msvc_redist_dirs(vs_platform):
+    for msvc_redist_dir in servo.visual_studio.find_msvc_redist_dirs(vs_platform):
         if copy_file(os.path.join(msvc_redist_dir, "msvcp140.dll")) and \
            copy_file(os.path.join(msvc_redist_dir, "vcruntime140.dll")):
             break
 
-    if "aarch64" not in target != "aarch64":
-        # Different SDKs install the file into different directory structures within the
-        # Windows SDK installation directory, so use a glob to search for a path like
-        # "**\x64\api-ms-win-crt-runtime-l1-1-0.dll".
-        windows_sdk_dir = servo.visual_studio.find_windows_sdk_installation_path()
-        dll_name = "api-ms-win-crt-runtime-l1-1-0.dll"
-        file_to_copy = next(pathlib.Path(windows_sdk_dir).rglob(os.path.join("**", vs_platform, dll_name)))
-        copy_file(file_to_copy)
+    # Different SDKs install the file into different directory structures within the
+    # Windows SDK installation directory, so use a glob to search for a path like
+    # "**\x64\api-ms-win-crt-runtime-l1-1-0.dll".
+    windows_sdk_dir = servo.visual_studio.find_windows_sdk_installation_path()
+    dll_name = "api-ms-win-crt-runtime-l1-1-0.dll"
+    file_to_copy = next(pathlib.Path(windows_sdk_dir).rglob(os.path.join("**", vs_platform, dll_name)))
+    copy_file(file_to_copy)
 
     return True

@@ -53,6 +53,7 @@ manually, try the [manual build setup][manual-build].
  - Install [Python 3.11](https://www.python.org/downloads/windows/)
  - Run `mach bootstrap`
     - *This will install CMake, Git, Ninja, via choco in an
+    + *This will install CMake, Git, and Ninja via choco in an
        Administrator console. Allow the scripts to run and once
        the operation finishes, close the new console.*
 - Run `refreshenv`

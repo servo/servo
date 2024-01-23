@@ -12,7 +12,7 @@ import json
 import os
 import subprocess
 import sys
-from typing import Generator, Optional
+from typing import Generator, List, Optional
 
 COMPATIBLE_MSVC_VERSIONS = {
     "2019": "16.0",
@@ -102,22 +102,25 @@ def find_compatible_msvc_with_environment_variables() -> Optional[VisualStudioIn
     )
 
 
-def find_msvc_installations() -> VisualStudioInstallation:
-    for installation in find_compatible_msvc_with_vswhere():
-        yield installation
-    for installation in find_compatible_msvc_with_path():
-        yield installation
+def find_msvc_installations() -> List[VisualStudioInstallation]:
+    # First try to find Visual Studio via `vswhere.exe` and in well-known paths.
+    installations = list(find_compatible_msvc_with_vswhere())
+    installations.extend(find_compatible_msvc_with_path())
+    if installations:
+        return sorted(set(installations), reverse=True)
+
+    # Fall back to using the environment variables, which could theoretically
+    # point to a version of Visual Studio that is unsupported.
     installation = find_compatible_msvc_with_environment_variables()
     if installation:
-        yield installation
+        return [installation]
+
+    raise Exception("Can't find a Visual Studio installation. "
+                    "Please set the VSINSTALLDIR and VisualStudioVersion environment variables")
 
 
 def find_msvc_redist_dirs(vs_platform: str) -> Generator[str, None, None]:
     installations = sorted(set(list(find_msvc_installations())), reverse=True)
-    if not installations:
-        print("Can't find a Visual Studio installation. "
-              "Please set the VSINSTALLDIR and VisualStudioVersion environment variables")
-        sys.exit(1)
 
     tried = []
     for installation in installations:
@@ -142,8 +145,8 @@ def find_msvc_redist_dirs(vs_platform: str) -> Generator[str, None, None]:
 
     print("Couldn't locate MSVC redistributable directory. Tried:", file=sys.stderr)
     for path in tried:
-        print(f"  * {path}")
-    sys.exit(1)
+        print(f"  * {path}", file=sys.stderr)
+    raise Exception("Can't find a MSVC redistributatable directory.")
 
 
 def find_windows_sdk_installation_path() -> str:
