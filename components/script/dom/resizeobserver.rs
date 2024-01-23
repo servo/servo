@@ -174,3 +174,8 @@ fn calculate_depth_for_node(target: &Element) -> ResizeObservationDepth {
     let depth = node.ancestors().count();
     ResizeObservationDepth(depth)
 }
+
+/// https://drafts.csswg.org/resize-observer/#calculate-box-size
+fn calculate_box_size(target: &Element, observed_box: ResizeObserverBoxOptions) -> ResizeObserverSizeImpl {
+    ResizeObserverSizeImpl::new(0.0, 0.0)
+}

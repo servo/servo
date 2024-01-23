@@ -1692,57 +1692,53 @@ impl ScriptThread {
         }
 
         // Step 15: run the resize observation steps.
-        let mut reflowed = false;
         for (_, document) in self.documents.borrow().iter() {
             // Step 13
             if !document.is_fully_active() {
                 continue;
             }
+            
+            let _realm = enter_realm(&*document);
+            
             let mut depth = Default::default();
             loop {
                 document.gather_active_resize_observations_at_depth(depth);
                 if !document.has_active_resize_observations() {
                     break;
-                } else {
-                    // ReflowReason:LayoutQuery will have happened
-                    // due to https://drafts.csswg.org/resize-observer/#calculate-box-size-h
-                    reflowed = true;
                 }
+                // Note: this will reflow the doc.
                 depth = document.broadcast_active_resize_observations();
             }
         }
 
-        // Only run the batched reflow if we didn't broadcast any resize observations.
-        if !reflowed {
-            // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7.12
+        // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7.12
 
-            // Issue batched reflows on any pages that require it (e.g. if images loaded)
-            // TODO(gw): In the future we could probably batch other types of reflows
-            // into this loop too, but for now it's only images.
-            debug!("Issuing batched reflows.");
-            for (_, document) in self.documents.borrow().iter() {
-                // Step 13
-                if !document.is_fully_active() {
-                    continue;
-                }
-                let window = document.window();
+        // Issue batched reflows on any pages that require it (e.g. if images loaded)
+        // TODO(gw): In the future we could probably batch other types of reflows
+        // into this loop too, but for now it's only images.
+        debug!("Issuing batched reflows.");
+        for (_, document) in self.documents.borrow().iter() {
+            // Step 13
+            if !document.is_fully_active() {
+                continue;
+            }
+            let window = document.window();
 
-                let _realm = enter_realm(&*document);
+            let _realm = enter_realm(&*document);
 
-                window
-                    .upcast::<GlobalScope>()
-                    .perform_a_dom_garbage_collection_checkpoint();
+            window
+                .upcast::<GlobalScope>()
+                .perform_a_dom_garbage_collection_checkpoint();
 
-                let pending_reflows = window.get_pending_reflow_count();
-                if pending_reflows > 0 {
-                    window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow);
-                } else {
-                    // Reflow currently happens when explicitly invoked by code that
-                    // knows the document could have been modified. This should really
-                    // be driven by the compositor on an as-needed basis instead, to
-                    // minimize unnecessary work.
-                    window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
-                }
+            let pending_reflows = window.get_pending_reflow_count();
+            if pending_reflows > 0 {
+                window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow);
+            } else {
+                // Reflow currently happens when explicitly invoked by code that
+                // knows the document could have been modified. This should really
+                // be driven by the compositor on an as-needed basis instead, to
+                // minimize unnecessary work.
+                window.reflow(ReflowGoal::Full, ReflowReason::MissingExplicitReflow);
             }
         }
 

@@ -15,9 +15,18 @@ pub struct ResizeObserverSizeImpl {
 }
 
 impl ResizeObserverSizeImpl {
+    pub fn new(inline_size: f64,
+    block_size: f64) -> ResizeObserverSizeImpl {
+        ResizeObserverSizeImpl {
+            inline_size,
+            block_size,
+        }
+    }
+    
     fn inline_size(&self) -> f64 {
         self.inline_size
     }
+    
     fn block_size(&self) -> f64 {
         self.block_size
     }
