@@ -32,6 +32,13 @@ pub struct Cookie {
         deserialize_with = "hyper_serde::deserialize",
         serialize_with = "hyper_serde::serialize"
     )]
+    /// The `creation_time` cannot use `SystemTime::now()` because `SystemTime`
+    /// is not monotonic. This means that saving a file to the file system, and then
+    /// saving another file, may result in the second file having a `SystemTime`
+    /// measurement earlier than the first. In other words, an operation that occurs
+    /// after another operation in real time may have an earlier `SystemTime`!
+    /// Therefore, comparing two `creation_time` instances using `a_creation_time.cmp(&b_creation_time)`
+    /// may sometimes fail.
     pub creation_time: DateTime<Utc>,
     #[serde(
         deserialize_with = "hyper_serde::deserialize",
