@@ -76,9 +76,7 @@ impl ResizeObserver {
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
             if observation.is_active(target) {
                 let target_depth = calculate_depth_for_node(target);
-                if target_depth > *depth {
-                    observation.state = ObservationState::Active;
-                } else {
+                if target_depth <= *depth {
                     observation.state = ObservationState::Skipped;
                 }
             }
@@ -129,9 +127,8 @@ impl ResizeObserverMethods for ResizeObserver {
 /// State machine equivalent of active and skipped observations.
 #[derive(Default, JSTraceable, MallocSizeOf)]
 enum ObservationState {
-    #[default]
-    Start,
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-activetargets-slot
+    #[default]
     Active,
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserver-skippedtargets-slot
     Skipped,
