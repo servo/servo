@@ -17,6 +17,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObjectWr
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
 use crate::dom::node::{window_from_node, Node};
+use crate::dom::resizeobserverentry::ResizeObserverEntry;
 use crate::dom::resizeobserversize::{ResizeObserverSize, ResizeObserverSizeImpl};
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
@@ -93,6 +94,12 @@ impl ResizeObserver {
         &self,
         shallowest_target_depth: &mut ResizeObservationDepth,
     ) {
+        for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
+            if matches!(observation.state, ObservationState::Skipped) {
+                continue;
+            }
+            let mut entries: Vec<DomRoot<ResizeObserverEntry>> = Default::default();
+        }
     }
 }
 
