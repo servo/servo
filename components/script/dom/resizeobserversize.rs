@@ -7,26 +7,25 @@ use dom_struct::dom_struct;
 use crate::dom::bindings::codegen::Bindings::ResizeObserverSizeBinding::ResizeObserverSizeMethods;
 use crate::dom::bindings::reflector::Reflector;
 
-/// Non-DOM implementation backing `ResizeObserverSize`. 
-#[derive(JSTraceable, MallocSizeOf)]
+/// Non-DOM implementation backing `ResizeObserverSize`.
+#[derive(JSTraceable, MallocSizeOf, PartialEq)]
 pub struct ResizeObserverSizeImpl {
     inline_size: f64,
     block_size: f64,
 }
 
 impl ResizeObserverSizeImpl {
-    pub fn new(inline_size: f64,
-    block_size: f64) -> ResizeObserverSizeImpl {
+    pub fn new(inline_size: f64, block_size: f64) -> ResizeObserverSizeImpl {
         ResizeObserverSizeImpl {
             inline_size,
             block_size,
         }
     }
-    
+
     fn inline_size(&self) -> f64 {
         self.inline_size
     }
-    
+
     fn block_size(&self) -> f64 {
         self.block_size
     }
@@ -36,7 +35,7 @@ impl ResizeObserverSizeImpl {
 #[dom_struct]
 pub struct ResizeObserverSize {
     reflector_: Reflector,
-    size_impl: ResizeObserverSizeImpl
+    size_impl: ResizeObserverSizeImpl,
 }
 
 impl ResizeObserverSizeMethods for ResizeObserverSize {

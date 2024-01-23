@@ -157,7 +157,7 @@ use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
-use crate::dom::resizeobserver::{ResizeObserver, ResizeObservationDepth};
+use crate::dom::resizeobserver::{ResizeObservationDepth, ResizeObserver};
 use crate::dom::selection::Selection;
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
@@ -2909,15 +2909,19 @@ impl Document {
     }
 
     /// https://drafts.csswg.org/resize-observer/#gather-active-observations-h
-    pub fn gather_active_resize_observations_at_depth(&self, depth: ResizeObservationDepth) {
+    /// Returns a boolean representing #has-active-observations-h
+    pub fn gather_active_resize_observations_at_depth(
+        &self,
+        depth: ResizeObservationDepth,
+    ) -> bool {
+        let mut has_active_resize_observations = false;
         for observer in self.resize_observers.borrow_mut().iter_mut() {
-            observer.gather_active_resize_observations_at_depth(&depth);
+            observer.gather_active_resize_observations_at_depth(
+                &depth,
+                &mut has_active_resize_observations,
+            );
         }
-    }
-
-    /// https://drafts.csswg.org/resize-observer-1/#has-active-observations-h
-    pub fn has_active_resize_observations(&self) -> bool {
-        false
+        has_active_resize_observations
     }
 
     /// https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations

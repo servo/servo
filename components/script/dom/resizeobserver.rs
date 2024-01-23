@@ -12,15 +12,14 @@ use crate::dom::bindings::codegen::Bindings::ResizeObserverBinding::{
     ResizeObserverBoxOptions, ResizeObserverCallback, ResizeObserverMethods, ResizeObserverOptions,
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObjectWrap, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::element::Element;
-use crate::dom::node::window_from_node;
+use crate::dom::node::{window_from_node, Node};
 use crate::dom::resizeobserversize::{ResizeObserverSize, ResizeObserverSizeImpl};
 use crate::dom::window::Window;
-use crate::dom::node::Node;
 use crate::script_runtime::JSContext as SafeJSContext;
-use crate::dom::bindings::inheritance::Castable;
 
 /// https://drafts.csswg.org/resize-observer/#calculate-depth-for-node
 #[derive(Default, PartialOrd, PartialEq)]
@@ -68,24 +67,32 @@ impl ResizeObserver {
         document.add_resize_observer(&rooted_observer);
         rooted_observer
     }
-    
 
     /// https://drafts.csswg.org/resize-observer/#gather-active-observations-h
-    pub fn gather_active_resize_observations_at_depth(&self, depth: &ResizeObservationDepth) {
+    /// Sets a boolean representing #has-active-observations-h
+    pub fn gather_active_resize_observations_at_depth(
+        &self,
+        depth: &ResizeObservationDepth,
+        has_active: &mut bool,
+    ) {
         // Step 2.2
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
             if observation.is_active(target) {
                 let target_depth = calculate_depth_for_node(target);
                 if target_depth <= *depth {
                     observation.state = ObservationState::Skipped;
+                } else {
+                    *has_active = true;
                 }
             }
         }
     }
 
     /// https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations
-    pub fn broadcast_active_resize_observations(&self, shallowest_target_depth: &mut ResizeObservationDepth) {
-        
+    pub fn broadcast_active_resize_observations(
+        &self,
+        shallowest_target_depth: &mut ResizeObservationDepth,
+    ) {
     }
 }
 
@@ -139,11 +146,11 @@ enum ObservationState {
 struct ResizeObservation {
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-target
     /// Note: `target` is kept out of here, to avoid having to root the `ResizeObservation`.
-    
+
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-observedbox
     observed_box: ResizeObserverBoxOptions,
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-lastreportedsizes
-    last_reported_sizes: Vec<ResizeObserverSizeImpl>,
+    last_reported_sizes: DomRefCell<Vec<ResizeObserverSizeImpl>>,
     /// State machine mimicking the "active" and "skipped" targets slots of the observer.
     state: ObservationState,
 }
@@ -160,8 +167,10 @@ impl ResizeObservation {
 
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobservation-isactive
     pub fn is_active(&self, target: &Element) -> bool {
-        // TODO: https://drafts.csswg.org/resize-observer/#calculate-box-size
-        true
+        let box_size_result = calculate_box_size(target, &self.observed_box);
+        let reported_sizes = self.last_reported_sizes.borrow();
+        let Some(size) = reported_sizes.get(0) else {return false};
+        !(*size == box_size_result)
     }
 }
 
@@ -173,6 +182,9 @@ fn calculate_depth_for_node(target: &Element) -> ResizeObservationDepth {
 }
 
 /// https://drafts.csswg.org/resize-observer/#calculate-box-size
-fn calculate_box_size(target: &Element, observed_box: ResizeObserverBoxOptions) -> ResizeObserverSizeImpl {
+fn calculate_box_size(
+    target: &Element,
+    observed_box: &ResizeObserverBoxOptions,
+) -> ResizeObserverSizeImpl {
     ResizeObserverSizeImpl::new(0.0, 0.0)
 }

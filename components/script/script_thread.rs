@@ -1697,13 +1697,12 @@ impl ScriptThread {
             if !document.is_fully_active() {
                 continue;
             }
-            
+
             let _realm = enter_realm(&*document);
-            
+
             let mut depth = Default::default();
             loop {
-                document.gather_active_resize_observations_at_depth(depth);
-                if !document.has_active_resize_observations() {
+                if !document.gather_active_resize_observations_at_depth(depth) {
                     break;
                 }
                 // Note: this will reflow the doc.
