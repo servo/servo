@@ -189,9 +189,19 @@ fn calculate_depth_for_node(target: &Element) -> ResizeObservationDepth {
 }
 
 /// https://drafts.csswg.org/resize-observer/#calculate-box-size
+/// TODO: batch into one layout query for list of elems?
 fn calculate_box_size(
     target: &Element,
     observed_box: &ResizeObserverBoxOptions,
 ) -> ResizeObserverSizeImpl {
-    ResizeObserverSizeImpl::new(0.0, 0.0)
+    match observed_box {
+        ResizeObserverBoxOptions::Border_box |
+        ResizeObserverBoxOptions::Device_pixel_content_box => {
+            let result = target.upcast::<Node>().bounding_content_box_or_zero();
+            // TODO: writing-mode aware.
+            ResizeObserverSizeImpl::new(result.width().to_f64_px(), result.height().to_f64_px())
+        },
+        // TODO: others.
+        _ => ResizeObserverSizeImpl::new(0.0, 0.0),
+    }
 }

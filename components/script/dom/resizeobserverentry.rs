@@ -80,12 +80,12 @@ impl ResizeObserverEntryMethods for ResizeObserverEntry {
     fn Target(&self) -> DomRoot<Element> {
         DomRoot::from_ref(&*self.target)
     }
-    
+
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-contentrect
     fn ContentRect(&self) -> DomRoot<DOMRectReadOnly> {
         DomRoot::from_ref(&*self.content_rect)
     }
-    
+
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-borderboxsize
     fn BorderBoxSize(&self, cx: SafeJSContext) -> JSVal {
         let sizes: Vec<DomRoot<ResizeObserverSize>> = self
@@ -95,7 +95,7 @@ impl ResizeObserverEntryMethods for ResizeObserverEntry {
             .collect();
         to_frozen_array(sizes.as_slice(), cx)
     }
-    
+
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-contentboxsize
     fn ContentBoxSize(&self, cx: SafeJSContext) -> JSVal {
         let sizes: Vec<DomRoot<ResizeObserverSize>> = self
@@ -105,7 +105,7 @@ impl ResizeObserverEntryMethods for ResizeObserverEntry {
             .collect();
         to_frozen_array(sizes.as_slice(), cx)
     }
-    
+
     /// https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-devicepixelcontentboxsize
     fn DevicePixelContentBoxSize(&self, cx: SafeJSContext) -> JSVal {
         let sizes: Vec<DomRoot<ResizeObserverSize>> = self
