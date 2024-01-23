@@ -104,7 +104,13 @@ class MachCommands(CommandBase):
         )
 
         # Do some additional things if the build succeeded
-        built_binary = self.get_binary_path(build_type, target=self.cross_compile_target, simpleservo=libsimpleservo)
+        built_binary = self.get_binary_path(
+            build_type,
+            target=self.cross_compile_target,
+            android=self.is_android_build,
+            simpleservo=libsimpleservo
+        )
+
         if status == 0:
             if self.is_android_build and not no_package:
                 flavor = None
