@@ -179,13 +179,14 @@ impl LineUnderConstruction {
         // >    as well as any trailing U+1680   OGHAM SPACE MARK whose white-space
         // >    property is normal, nowrap, or pre-line.
         let mut whitespace_trimmed = Length::zero();
-        let mut spaces_trimmed = 0;
+        let mut word_seperators_trimmed = 0;
         for item in self.line_items.iter_mut().rev() {
-            if !item.trim_whitespace_at_end(&mut whitespace_trimmed, &mut spaces_trimmed) {
+            if !item.trim_whitespace_at_end(&mut whitespace_trimmed, &mut word_seperators_trimmed) {
                 break;
             }
         }
-        self.justification_opportunities -= spaces_trimmed;
+
+        self.justification_opportunities -= word_seperators_trimmed;
         whitespace_trimmed
     }
 }
@@ -399,14 +400,15 @@ impl UnbreakableSegmentUnderConstruction {
     /// This prevents whitespace from being added to the beginning of a line.
     fn trim_leading_whitespace(&mut self) {
         let mut whitespace_trimmed = Length::zero();
-        let mut spaces_trimmed = 0;
+        let mut word_seperators_trimmed = 0;
         for item in self.line_items.iter_mut() {
-            if !item.trim_whitespace_at_start(&mut whitespace_trimmed, &mut spaces_trimmed) {
+            if !item.trim_whitespace_at_start(&mut whitespace_trimmed, &mut word_seperators_trimmed)
+            {
                 break;
             }
         }
         self.inline_size -= whitespace_trimmed;
-        self.justification_opportunities -= spaces_trimmed;
+        self.justification_opportunities -= word_seperators_trimmed;
     }
 
     /// Prepare this segment for placement on a new and empty line. This happens when the
