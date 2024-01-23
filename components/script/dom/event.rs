@@ -141,7 +141,7 @@ impl Event {
         self.cancelable.set(cancelable);
     }
 
-    // https://dom.spec.whatwg.org/#event-path
+    /// <https://dom.spec.whatwg.org/#event-path>
     // TODO: shadow roots put special flags in the path,
     // and it will stop just being a list of bare EventTargets
     fn construct_event_path(&self, target: &EventTarget) -> Vec<DomRoot<EventTarget>> {
@@ -178,7 +178,7 @@ impl Event {
         event_path
     }
 
-    // https://dom.spec.whatwg.org/#concept-event-dispatch
+    /// <https://dom.spec.whatwg.org/#concept-event-dispatch>
     pub fn dispatch(
         &self,
         target: &EventTarget,
@@ -400,7 +400,7 @@ impl Event {
         self.trusted.set(trusted);
     }
 
-    // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
+    /// <https://html.spec.whatwg.org/multipage/#fire-a-simple-event>
     pub fn fire(&self, target: &EventTarget) -> EventStatus {
         self.set_trusted(true);
         target.dispatch_event(self)
@@ -408,89 +408,98 @@ impl Event {
 }
 
 impl EventMethods for Event {
-    // https://dom.spec.whatwg.org/#dom-event-eventphase
+    /// <https://dom.spec.whatwg.org/#dom-event-eventphase>
     fn EventPhase(&self) -> u16 {
         self.phase.get() as u16
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-type
+    /// <https://dom.spec.whatwg.org/#dom-event-type>
     fn Type(&self) -> DOMString {
         DOMString::from(&*self.type_()) // FIXME(ajeffrey): Directly convert from Atom to DOMString
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-target
+    /// <https://dom.spec.whatwg.org/#dom-event-target>
     fn GetTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.target.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-srcelement
+    /// <https://dom.spec.whatwg.org/#dom-event-srcelement>
     fn GetSrcElement(&self) -> Option<DomRoot<EventTarget>> {
         self.target.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-currenttarget
+    /// <https://dom.spec.whatwg.org/#dom-event-currenttarget>
     fn GetCurrentTarget(&self) -> Option<DomRoot<EventTarget>> {
         self.current_target.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-defaultprevented
+    /// <https://dom.spec.whatwg.org/#dom-event-composedpath>
+    fn ComposedPath(&self) -> Vec<DomRoot<EventTarget>> {
+        if let Some(target) = self.target.get() {
+            self.construct_event_path(&target)
+        } else {
+            vec![]
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-event-defaultprevented>
     fn DefaultPrevented(&self) -> bool {
         self.canceled.get() == EventDefault::Prevented
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-preventdefault
+    /// <https://dom.spec.whatwg.org/#dom-event-preventdefault>
     fn PreventDefault(&self) {
         if self.cancelable.get() {
             self.canceled.set(EventDefault::Prevented)
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-stoppropagation
+    /// <https://dom.spec.whatwg.org/#dom-event-stoppropagation>
     fn StopPropagation(&self) {
         self.stop_propagation.set(true);
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-stopimmediatepropagation
+    /// <https://dom.spec.whatwg.org/#dom-event-stopimmediatepropagation>
     fn StopImmediatePropagation(&self) {
         self.stop_immediate.set(true);
         self.stop_propagation.set(true);
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-bubbles
+    /// <https://dom.spec.whatwg.org/#dom-event-bubbles>
     fn Bubbles(&self) -> bool {
         self.bubbles.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-cancelable
+    /// <https://dom.spec.whatwg.org/#dom-event-cancelable>
     fn Cancelable(&self) -> bool {
         self.cancelable.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-returnvalue
+    /// <https://dom.spec.whatwg.org/#dom-event-returnvalue>
     fn ReturnValue(&self) -> bool {
         self.canceled.get() == EventDefault::Allowed
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-returnvalue
+    /// <https://dom.spec.whatwg.org/#dom-event-returnvalue>
     fn SetReturnValue(&self, val: bool) {
         if !val {
             self.PreventDefault();
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-cancelbubble
+    /// <https://dom.spec.whatwg.org/#dom-event-cancelbubble>
     fn CancelBubble(&self) -> bool {
         self.stop_propagation.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-cancelbubble
+    /// <https://dom.spec.whatwg.org/#dom-event-cancelbubble>
     fn SetCancelBubble(&self, value: bool) {
         if value {
             self.stop_propagation.set(true)
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-timestamp
+    /// <https://dom.spec.whatwg.org/#dom-event-timestamp>
     fn TimeStamp(&self) -> DOMHighResTimeStamp {
         reduce_timing_resolution(
             (self.precise_time_ns - (*self.global().performance().TimeOrigin()).round() as u64)
@@ -498,12 +507,12 @@ impl EventMethods for Event {
         )
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-initevent
+    /// <https://dom.spec.whatwg.org/#dom-event-initevent>
     fn InitEvent(&self, type_: DOMString, bubbles: bool, cancelable: bool) {
         self.init_event(Atom::from(type_), bubbles, cancelable)
     }
 
-    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.trusted.get()
     }
@@ -597,7 +606,7 @@ pub enum EventStatus {
     NotCanceled,
 }
 
-// https://dom.spec.whatwg.org/#concept-event-fire
+/// <https://dom.spec.whatwg.org/#concept-event-fire>
 pub struct EventTask {
     pub target: Trusted<EventTarget>,
     pub name: Atom,
@@ -614,7 +623,7 @@ impl TaskOnce for EventTask {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#fire-a-simple-event
+/// <https://html.spec.whatwg.org/multipage/#fire-a-simple-event>
 pub struct SimpleEventTask {
     pub target: Trusted<EventTarget>,
     pub name: Atom,
@@ -627,7 +636,7 @@ impl TaskOnce for SimpleEventTask {
     }
 }
 
-// https://dom.spec.whatwg.org/#concept-event-listener-invoke
+/// <https://dom.spec.whatwg.org/#concept-event-listener-invoke>
 fn invoke(
     timeline_window: Option<&Window>,
     object: &EventTarget,
@@ -674,7 +683,7 @@ fn invoke(
     }
 }
 
-// https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke
+/// <https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke>
 fn inner_invoke(
     timeline_window: Option<&Window>,
     object: &EventTarget,

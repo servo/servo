@@ -14,6 +14,7 @@ interface Event {
   readonly attribute EventTarget? target;
   readonly attribute EventTarget? srcElement;
   readonly attribute EventTarget? currentTarget;
+  sequence<EventTarget> composedPath();
 
   const unsigned short NONE = 0;
   const unsigned short CAPTURING_PHASE = 1;
