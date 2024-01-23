@@ -21,6 +21,7 @@ use style::values::specified::{box_ as stylo, Overflow};
 use style::Zero;
 use webrender_api as wr;
 
+use crate::dom_traversal::Contents;
 use crate::geom::{
     LengthOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
 };
@@ -50,6 +51,23 @@ impl DisplayGeneratingBox {
             DisplayGeneratingBox::LayoutInternal(layout_internal) => {
                 layout_internal.display_inside()
             },
+        }
+    }
+
+    pub(crate) fn used_value_for_contents(&self, contents: &Contents) -> Self {
+        // From <https://www.w3.org/TR/css-display-3/#layout-specific-display>:
+        // > When the display property of a replaced element computes to one of
+        // > the layout-internal values, it is handled as having a used value of
+        // > inline.
+        if matches!(self, Self::LayoutInternal(_)) && contents.is_replaced() {
+            Self::OutsideInside {
+                outside: DisplayOutside::Inline,
+                inside: DisplayInside::Flow {
+                    is_list_item: false,
+                },
+            }
+        } else {
+            *self
         }
     }
 }
