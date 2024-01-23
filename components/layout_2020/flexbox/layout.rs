@@ -30,7 +30,7 @@ use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{AuOrAuto, LengthOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
-use crate::style_ext::ComputedValuesExt;
+use crate::style_ext::{Clamp, ComputedValuesExt};
 use crate::ContainingBlock;
 
 // FIMXE: “Flex items […] `z-index` values other than `auto` create a stacking context
@@ -479,8 +479,8 @@ impl<'a> FlexItem<'a> {
                             .inline_size_over_block_size_intrinsic_ratio(box_.style())
                         {
                             inline_content_size.clamp_between_extremums(
-                                min_size.block.auto_is(|| Length::zero()) * ratio,
-                                max_size.block.map(|l| l * ratio),
+                                (min_size.block.auto_is(|| Length::zero()) * ratio).into(),
+                                max_size.block.map(|l| (l * ratio).into()),
                             )
                         } else {
                             inline_content_size
@@ -489,12 +489,12 @@ impl<'a> FlexItem<'a> {
                 };
 
                 let result = match specified_size_suggestion {
-                    LengthOrAuto::LengthPercentage(l) => l.min(content_size_suggestion),
+                    LengthOrAuto::LengthPercentage(l) => l.min(content_size_suggestion.into()),
                     LengthOrAuto::Auto => {
                         if let Some(l) = transferred_size_suggestion {
-                            l.min(content_size_suggestion)
+                            l.min(content_size_suggestion.into())
                         } else {
-                            content_size_suggestion
+                            content_size_suggestion.into()
                         }
                     },
                 };
@@ -625,6 +625,7 @@ fn flex_base_size(
                 flex_item
                     .inline_content_sizes(flex_context.layout_context)
                     .max_content
+                    .into()
             } else {
                 // FIXME: block-axis content sizing requires another pass
                 // of "full" layout

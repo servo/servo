@@ -915,7 +915,8 @@ impl FloatBox {
                                 containing_block.inline_size - pbm_sums.inline_sum();
                             non_replaced
                                 .inline_content_sizes(layout_context)
-                                .shrink_to_fit(available_size)
+                                .shrink_to_fit(available_size.into())
+                                .into()
                         });
                         let inline_size = tentative_inline_size
                             .clamp_between_extremums(min_box_size.inline, max_box_size.inline);

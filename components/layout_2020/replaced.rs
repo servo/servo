@@ -241,8 +241,8 @@ impl ReplacedContent {
             .inline
             .unwrap_or(Length::zero());
         ContentSizes {
-            min_content: inline,
-            max_content: inline,
+            min_content: inline.into(),
+            max_content: inline.into(),
         }
     }
 
