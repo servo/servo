@@ -18,7 +18,7 @@ import sys
 import urllib
 
 from time import time
-from typing import Dict
+from typing import Dict, Optional
 import zipfile
 
 import notifypy
@@ -32,10 +32,10 @@ from mach.registrar import Registrar
 
 import servo.platform
 import servo.util
+import servo.visual_studio
 
 from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.gstreamer import windows_dlls, windows_plugins, macos_plugins
-from python.servo.visual_studio import find_msvc_redist_dirs
 
 
 @CommandProvider
@@ -438,29 +438,36 @@ def package_gstreamer_dlls(servo_exe_dir: str, target: str):
     return not missing
 
 
-def package_msvc_dlls(servo_exe_dir, target):
-    msvc_deps = [
-        "msvcp140.dll",
-        "vcruntime140.dll",
-    ]
-    if "aarch64" not in target != "aarch64":
-        msvc_deps += ["api-ms-win-crt-runtime-l1-1-0.dll"]
+def package_msvc_dlls(servo_exe_dir: str, target: str):
+    def copy_file(dll_path: Optional[str]) -> bool:
+        if not dll_path or not os.path.exists(dll_path):
+            print(f"WARNING: Could not find DLL at {dll_path}", file=sys.stderr)
+            return False
+        servo_dir_dll = path.join(servo_exe_dir, os.path.basename(dll_path))
+        # Avoid permission denied error when overwriting DLLs.
+        if os.path.isfile(servo_dir_dll):
+            os.chmod(servo_dir_dll, stat.S_IWUSR)
+        print(f"    • Copying {dll_path}")
+        shutil.copy(dll_path, servo_exe_dir)
+        return True
 
-    missing = []
-    redist_dirs = find_msvc_redist_dirs(target)
-    for msvc_dll in msvc_deps:
-        for dll_dir in redist_dirs:
-            dll = path.join(dll_dir, msvc_dll)
-            servo_dir_dll = path.join(servo_exe_dir, msvc_dll)
-            if os.path.isfile(dll):
-                if os.path.isfile(servo_dir_dll):
-                    # avoid permission denied error when overwrite dll in servo build directory
-                    os.chmod(servo_dir_dll, stat.S_IWUSR)
-                shutil.copy(dll, servo_exe_dir)
-                break
-        else:
-            missing += [msvc_dll]
+    vs_platform = {
+        "x86_64": "x64",
+        "i686": "x86",
+        "aarch64": "arm64",
+    }[target.split('-')[0]]
 
-    for msvc_dll in missing:
-        print(f"Could not find DLL dependency: {msvc_dll}")
-    return not missing
+    for msvc_redist_dir in servo.visual_studio.find_msvc_redist_dirs(vs_platform):
+        if copy_file(os.path.join(msvc_redist_dir, "msvcp140.dll")) and \
+           copy_file(os.path.join(msvc_redist_dir, "vcruntime140.dll")):
+            break
+
+    # Different SDKs install the file into different directory structures within the
+    # Windows SDK installation directory, so use a glob to search for a path like
+    # "**\x64\api-ms-win-crt-runtime-l1-1-0.dll".
+    windows_sdk_dir = servo.visual_studio.find_windows_sdk_installation_path()
+    dll_name = "api-ms-win-crt-runtime-l1-1-0.dll"
+    file_to_copy = next(pathlib.Path(windows_sdk_dir).rglob(os.path.join("**", vs_platform, dll_name)))
+    copy_file(file_to_copy)
+
+    return True
