@@ -25,7 +25,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::typedarrays::create_float32_array;
+use crate::dom::bindings::typedarrays::create_typed_array;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
@@ -686,7 +686,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
             .map(|&x| x as f32)
             .collect();
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_float32_array(cx, &vec, array.handle_mut())
+        create_typed_array(cx, &vec, array.handle_mut())
             .expect("Converting matrix to float32 array should never fail")
     }
 
