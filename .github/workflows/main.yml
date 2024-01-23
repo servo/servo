@@ -129,7 +129,7 @@ jobs:
     name: Android
     needs: ["decision"]
     if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'android') }}
-    uses: ./.github/workflows/linux.yml
+    uses: ./.github/workflows/android.yml
     with:
       profile: "release"
     secrets: inherit
