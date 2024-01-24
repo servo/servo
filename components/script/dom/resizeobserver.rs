@@ -195,13 +195,13 @@ fn calculate_box_size(
 ) -> ResizeObserverSizeImpl {
     // TODO: batch into one layout query for list of elems?
     match observed_box {
-        ResizeObserverBoxOptions::Border_box |
+        ResizeObserverBoxOptions::Content_box |
         ResizeObserverBoxOptions::Device_pixel_content_box => {
             let result = target.upcast::<Node>().bounding_content_box_or_zero();
             // TODO: writing-mode aware.
             ResizeObserverSizeImpl::new(result.width().to_f64_px(), result.height().to_f64_px())
         },
-        // TODO: others.
+        // TODO: border box.
         _ => ResizeObserverSizeImpl::new(0.0, 0.0),
     }
 }
