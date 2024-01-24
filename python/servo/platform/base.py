@@ -26,9 +26,6 @@ class Base:
     def gstreamer_root(self, _cross_compilation_target: Optional[str]) -> Optional[str]:
         raise NotImplementedError("Do not know how to get GStreamer path for platform.")
 
-    def library_path_variable_name(self):
-        raise NotImplementedError("Do not know how to set library path for platform.")
-
     def executable_suffix(self) -> str:
         return ""
 

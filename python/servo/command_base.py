@@ -488,6 +488,12 @@ class CommandBase(object):
             if gstreamer_root:
                 util.prepend_paths_to_env(env, "PATH", os.path.join(gstreamer_root, "bin"))
 
+                # FIXME: This is necessary to run unit tests, because they depend on dylibs from the
+                # GStreamer distribution (such as harfbuzz), but we only modify the rpath of the
+                # target binary (servoshell / libsimpleservo).
+                if platform.is_macos:
+                    util.prepend_paths_to_env(env, "DYLD_LIBRARY_PATH", os.path.join(gstreamer_root, "lib"))
+
         effective_target = self.cross_compile_target or servo.platform.host_triple()
         if "msvc" in effective_target:
             # Always build harfbuzz from source

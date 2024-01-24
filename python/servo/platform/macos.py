@@ -26,9 +26,6 @@ class MacOS(Base):
         super().__init__(*args, **kwargs)
         self.is_macos = True
 
-    def library_path_variable_name(self):
-        return "DYLD_LIBRARY_PATH"
-
     def gstreamer_root(self, cross_compilation_target: Optional[str]) -> Optional[str]:
         # We do not support building with gstreamer while cross-compiling on MacOS.
         if cross_compilation_target or not os.path.exists(GSTREAMER_ROOT):
