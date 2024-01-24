@@ -41,9 +41,6 @@ class Windows(Base):
     def executable_suffix(self):
         return ".exe"
 
-    def library_path_variable_name(self):
-        return "LIB"
-
     @classmethod
     def download_and_extract_dependency(cls, zip_path: str, full_spec: str):
         if not os.path.isfile(zip_path):

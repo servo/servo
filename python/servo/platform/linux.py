@@ -82,9 +82,6 @@ class Linux(Base):
         self.is_linux = True
         (self.distro, self.version) = Linux.get_distro_and_version()
 
-    def library_path_variable_name(self):
-        return "LD_LIBRARY_PATH"
-
     @staticmethod
     def get_distro_and_version() -> Tuple[str, str]:
         distrib = distro.name()
