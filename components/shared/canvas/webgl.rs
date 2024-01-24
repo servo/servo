@@ -111,10 +111,10 @@ pub struct WebGLCreateContextResult {
 /// Defines the WebGL version
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, PartialOrd, Serialize)]
 pub enum WebGLVersion {
-    /// https://www.khronos.org/registry/webgl/specs/1.0.2/
+    /// <https://www.khronos.org/registry/webgl/specs/1.0.2/>
     /// Conforms closely to the OpenGL ES 2.0 API
     WebGL1,
-    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/>
     /// Conforms closely to the OpenGL ES 3.0 API
     WebGL2,
 }

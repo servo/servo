@@ -579,7 +579,7 @@ impl<'a, T: 'static + JSTraceable> RootedVec<'a, T> {
 }
 
 impl<'a, T: 'static + JSTraceable + DomObject> RootedVec<'a, Dom<T>> {
-    /// Create a vector of items of type Dom<T> that is rooted for
+    /// Create a vector of items of type `Dom<T>` that is rooted for
     /// the lifetime of this struct
     pub fn from_iter<I>(root: &'a mut RootableVec<Dom<T>>, iter: I) -> Self
     where

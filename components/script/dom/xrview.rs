@@ -82,12 +82,12 @@ impl XRView {
 }
 
 impl XRViewMethods for XRView {
-    /// https://immersive-web.github.io/webxr/#dom-xrview-eye
+    /// <https://immersive-web.github.io/webxr/#dom-xrview-eye>
     fn Eye(&self) -> XREye {
         self.eye
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix
+    /// <https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix>
     fn ProjectionMatrix(&self, _cx: JSContext) -> Float32Array {
         if !self.proj.is_initialized() {
             let cx = GlobalScope::get_cx();
@@ -102,7 +102,7 @@ impl XRViewMethods for XRView {
             .expect("Failed to get projection matrix.")
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrview-transform
+    /// <https://immersive-web.github.io/webxr/#dom-xrview-transform>
     fn Transform(&self) -> DomRoot<XRRigidTransform> {
         DomRoot::from_ref(&self.transform)
     }

@@ -342,7 +342,7 @@ impl Callback for TransmitBodyPromiseRejectionHandler {
     }
 }
 
-/// The result of https://fetch.spec.whatwg.org/#concept-bodyinit-extract
+/// The result of <https://fetch.spec.whatwg.org/#concept-bodyinit-extract>
 pub struct ExtractedBody {
     pub stream: DomRoot<ReadableStream>,
     pub source: BodySource,
@@ -353,12 +353,12 @@ pub struct ExtractedBody {
 impl ExtractedBody {
     /// Build a request body from the extracted body,
     /// to be sent over IPC to net to use with `concept-request-transmit-body`,
-    /// see https://fetch.spec.whatwg.org/#concept-request-transmit-body.
+    /// see <https://fetch.spec.whatwg.org/#concept-request-transmit-body>.
     ///
     /// Also returning the corresponding readable stream,
     /// to be stored on the request in script,
     /// and potentially used as part of `consume_body`,
-    /// see https://fetch.spec.whatwg.org/#concept-body-consume-body
+    /// see <https://fetch.spec.whatwg.org/#concept-body-consume-body>
     ///
     /// Transmitting a body over fetch, and consuming it in script,
     /// are mutually exclusive operations, since each will lock the stream to a reader.

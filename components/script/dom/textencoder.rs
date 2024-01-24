@@ -3,18 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ptr;
-use std::ptr::NonNull;
 
 use dom_struct::dom_struct;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
-use js::typedarray::{CreateWith, Uint8Array};
+use js::typedarray::Uint8Array;
 
 use crate::dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::typedarrays::create_typed_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
@@ -50,19 +50,12 @@ impl TextEncoderMethods for TextEncoder {
         DOMString::from("utf-8")
     }
 
-    #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textencoder-encode
-    fn Encode(&self, cx: JSContext, input: USVString) -> NonNull<JSObject> {
+    fn Encode(&self, cx: JSContext, input: USVString) -> Uint8Array {
         let encoded = input.0.as_bytes();
 
-        unsafe {
-            rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-            assert!(
-                Uint8Array::create(*cx, CreateWith::Slice(&encoded), js_object.handle_mut())
-                    .is_ok()
-            );
-
-            NonNull::new_unchecked(js_object.get())
-        }
+        rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
+        create_typed_array(cx, &encoded, js_object.handle_mut())
+            .expect("Converting input to uint8 array should never fail")
     }
 }

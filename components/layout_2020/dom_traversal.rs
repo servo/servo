@@ -172,6 +172,7 @@ fn traverse_element<'dom, Node>(
         },
         Display::GeneratingBox(display) => {
             let contents = replaced.map_or(Contents::OfElement, Contents::Replaced);
+            let display = display.used_value_for_contents(&contents);
             let box_slot = element.element_box_slot();
             let info = NodeAndStyleInfo::new(element, style);
             handler.handle_element(&info, display, contents, box_slot);
@@ -327,7 +328,7 @@ where
     })
 }
 
-/// https://www.w3.org/TR/CSS2/generate.html#propdef-content
+/// <https://www.w3.org/TR/CSS2/generate.html#propdef-content>
 fn generate_pseudo_element_content<'dom, Node>(
     pseudo_element_style: &ComputedValues,
     element: Node,

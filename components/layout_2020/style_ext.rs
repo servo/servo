@@ -21,6 +21,7 @@ use style::values::specified::{box_ as stylo, Overflow};
 use style::Zero;
 use webrender_api as wr;
 
+use crate::dom_traversal::Contents;
 use crate::geom::{
     LengthOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
 };
@@ -39,7 +40,7 @@ pub(crate) enum DisplayGeneratingBox {
         outside: DisplayOutside,
         inside: DisplayInside,
     },
-    // https://drafts.csswg.org/css-display-3/#layout-specific-display
+    /// <https://drafts.csswg.org/css-display-3/#layout-specific-display>
     LayoutInternal(DisplayLayoutInternal),
 }
 
@@ -50,6 +51,23 @@ impl DisplayGeneratingBox {
             DisplayGeneratingBox::LayoutInternal(layout_internal) => {
                 layout_internal.display_inside()
             },
+        }
+    }
+
+    pub(crate) fn used_value_for_contents(&self, contents: &Contents) -> Self {
+        // From <https://www.w3.org/TR/css-display-3/#layout-specific-display>:
+        // > When the display property of a replaced element computes to one of
+        // > the layout-internal values, it is handled as having a used value of
+        // > inline.
+        if matches!(self, Self::LayoutInternal(_)) && contents.is_replaced() {
+            Self::OutsideInside {
+                outside: DisplayOutside::Inline,
+                inside: DisplayInside::Flow {
+                    is_list_item: false,
+                },
+            }
+        } else {
+            *self
         }
     }
 }
@@ -63,7 +81,7 @@ pub(crate) enum DisplayOutside {
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum DisplayInside {
     // “list-items are limited to the Flow Layout display types”
-    // https://drafts.csswg.org/css-display/#list-items
+    // <https://drafts.csswg.org/css-display/#list-items>
     Flow { is_list_item: bool },
     FlowRoot { is_list_item: bool },
     Flex,
@@ -71,7 +89,7 @@ pub(crate) enum DisplayInside {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-/// https://drafts.csswg.org/css-display-3/#layout-specific-display
+/// <https://drafts.csswg.org/css-display-3/#layout-specific-display>
 pub(crate) enum DisplayLayoutInternal {
     TableCaption,
     TableCell,
@@ -84,7 +102,7 @@ pub(crate) enum DisplayLayoutInternal {
 }
 
 impl DisplayLayoutInternal {
-    /// https://drafts.csswg.org/css-display-3/#layout-specific-displa
+    /// <https://drafts.csswg.org/css-display-3/#layout-specific-displa>
     pub(crate) fn display_inside(&self) -> DisplayInside {
         // When we add ruby, the display_inside of ruby must be Flow.
         // TODO: this should be unreachable for everything but
@@ -407,7 +425,7 @@ impl ComputedValuesExt for ComputedValues {
     }
 
     /// Get the effective z-index of this fragment. Z-indices only apply to positioned elements
-    /// per CSS 2 9.9.1 (http://www.w3.org/TR/CSS2/visuren.html#z-index), so this value may differ
+    /// per CSS 2 9.9.1 (<http://www.w3.org/TR/CSS2/visuren.html#z-index>), so this value may differ
     /// from the value specified in the style.
     fn effective_z_index(&self) -> i32 {
         match self.get_box().position {

@@ -42,12 +42,12 @@ impl GPUDeviceLostInfo {
 }
 
 impl GPUDeviceLostInfoMethods for GPUDeviceLostInfo {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevicelostinfo-message
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevicelostinfo-message>
     fn Message(&self) -> DOMString {
         self.message.clone()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevicelostinfo-reason
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevicelostinfo-reason>
     fn Reason(&self) -> GPUDeviceLostReason {
         self.reason
     }

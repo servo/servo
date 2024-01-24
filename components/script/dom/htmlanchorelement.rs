@@ -610,7 +610,7 @@ pub fn get_element_target(subject: &Element) -> Option<DOMString> {
     };
 }
 
-///  < https://html.spec.whatwg.org/multipage/#get-an-element's-noopener>
+/// <https://html.spec.whatwg.org/multipage/#get-an-element's-noopener>
 pub fn get_element_noopener(subject: &Element, target_attribute_value: Option<DOMString>) -> bool {
     if !(subject.is::<HTMLAreaElement>() ||
         subject.is::<HTMLAnchorElement>() ||

@@ -19,7 +19,7 @@ pub struct GPUCompilationInfo {
 
 // TODO: wgpu does not expose right fields right now
 impl GPUCompilationInfoMethods for GPUCompilationInfo {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpucompilationinfo-messages
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationinfo-messages>
     fn Messages(&self, _cx: JSContext) -> JSVal {
         todo!()
     }

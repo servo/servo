@@ -224,8 +224,9 @@ where
 /// A rooting mechanism for reflectors on the stack.
 /// LIFO is not required.
 ///
-/// See also [*Exact Stack Rooting - Storing a GCPointer on the CStack*]
-/// (https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Internals/GC/Exact_Stack_Rooting).
+/// See also [*Exact Stack Rooting - Storing a GCPointer on the CStack*][cstack].
+///
+/// [cstack]: https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Internals/GC/Exact_Stack_Rooting
 pub struct RootCollection {
     roots: UnsafeCell<Vec<*const dyn JSTraceable>>,
 }
@@ -340,7 +341,7 @@ impl<T> Dom<T> {
 }
 
 impl<T: DomObject> Dom<T> {
-    /// Create a Dom<T> from a &T
+    /// Create a `Dom<T>` from a `&T`
     #[allow(crown::unrooted_must_root)]
     pub fn from_ref(obj: &T) -> Dom<T> {
         assert_in_script();
@@ -758,7 +759,7 @@ where
         self.value
     }
 
-    /// Transforms a slice of Dom<T> into a slice of LayoutDom<T>.
+    /// Transforms a slice of `Dom<T>` into a slice of `LayoutDom<T>`.
     // FIXME(nox): This should probably be done through a ToLayout trait.
     pub unsafe fn to_layout_slice(slice: &'dom [Dom<T>]) -> &'dom [LayoutDom<'dom, T>] {
         // This doesn't compile if Dom and LayoutDom don't have the same

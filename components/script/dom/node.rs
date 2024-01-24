@@ -1017,7 +1017,7 @@ impl Node {
         }
     }
 
-    /// https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor
+    /// <https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor>
     pub fn inclusive_ancestors(
         &self,
         shadow_including: ShadowIncluding,
@@ -1231,7 +1231,7 @@ impl Node {
         }
     }
 
-    /// https://dom.spec.whatwg.org/#retarget
+    /// <https://dom.spec.whatwg.org/#retarget>
     pub fn retarget(&self, b: &Node) -> DomRoot<Node> {
         let mut a = DomRoot::from_ref(&*self);
         loop {

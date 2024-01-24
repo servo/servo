@@ -464,7 +464,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Step 6
         promise
     }
-    /// https://html.spec.whatwg.org/multipage/#dom-customelementregistry-upgrade
+    /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-upgrade>
     fn Upgrade(&self, node: &Node) {
         // Spec says to make a list first and then iterate the list, but
         // try-to-upgrade only queues upgrade reactions and doesn't itself
@@ -540,7 +540,7 @@ impl CustomElementDefinition {
         self.name == self.local_name
     }
 
-    /// https://dom.spec.whatwg.org/#concept-create-element Step 6.1
+    /// <https://dom.spec.whatwg.org/#concept-create-element> Step 6.1
     #[allow(unsafe_code)]
     pub fn create_element(
         &self,

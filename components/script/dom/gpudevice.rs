@@ -311,7 +311,7 @@ impl GPUDevice {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#lose-the-device
+    /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
     pub fn lose(&self, reason: GPUDeviceLostReason) {
         if let Some(ref lost_promise) = *self.lost_promise.borrow() {
             let global = &self.global();
@@ -328,39 +328,39 @@ impl GPUDevice {
 }
 
 impl GPUDeviceMethods for GPUDevice {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-features
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-features>
     fn Features(&self) -> DomRoot<GPUSupportedFeatures> {
         DomRoot::from_ref(&self.features)
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-limits
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-limits>
     fn Limits(&self) -> DomRoot<GPUSupportedLimits> {
         DomRoot::from_ref(&self.limits)
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-queue
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-queue>
     fn GetQueue(&self) -> DomRoot<GPUQueue> {
         DomRoot::from_ref(&self.default_queue)
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
     fn GetLost(&self, comp: InRealm) -> Fallible<Rc<Promise>> {
         let promise = Promise::new_in_current_realm(comp);
         *self.lost_promise.borrow_mut() = Some(promise.clone());
         Ok(promise)
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> Fallible<DomRoot<GPUBuffer>> {
         let desc =
             wgt::BufferUsages::from_bits(descriptor.usage).map(|usg| wgpu_res::BufferDescriptor {
@@ -425,7 +425,7 @@ impl GPUDeviceMethods for GPUDevice {
         ))
     }
 
-    /// https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout
+    /// <https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout>
     #[allow(non_snake_case)]
     fn CreateBindGroupLayout(
         &self,
@@ -546,7 +546,7 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout>
     fn CreatePipelineLayout(
         &self,
         descriptor: &GPUPipelineLayoutDescriptor,
@@ -596,7 +596,7 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup>
     fn CreateBindGroup(&self, descriptor: &GPUBindGroupDescriptor) -> DomRoot<GPUBindGroup> {
         let entries = descriptor
             .entries
@@ -657,7 +657,7 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule>
     fn CreateShaderModule(
         &self,
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
@@ -690,7 +690,7 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline>
     fn CreateComputePipeline(
         &self,
         descriptor: &GPUComputePipelineDescriptor,
@@ -736,7 +736,7 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder>
     fn CreateCommandEncoder(
         &self,
         descriptor: &GPUCommandEncoderDescriptor,
@@ -770,7 +770,7 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
     fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> DomRoot<GPUTexture> {
         let size = convert_texture_size_to_dict(&descriptor.size);
         let desc = wgt::TextureUsages::from_bits(descriptor.usage).map(|usg| {
@@ -836,7 +836,7 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler>
     fn CreateSampler(&self, descriptor: &GPUSamplerDescriptor) -> DomRoot<GPUSampler> {
         let sampler_id = self
             .global()
@@ -885,7 +885,7 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
     fn CreateRenderPipeline(
         &self,
         descriptor: &GPURenderPipelineDescriptor,
@@ -1039,7 +1039,7 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder>
     fn CreateRenderBundleEncoder(
         &self,
         descriptor: &GPURenderBundleEncoderDescriptor,
@@ -1078,7 +1078,7 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope>
     fn PushErrorScope(&self, filter: GPUErrorFilter) {
         let mut context = self.scope_context.borrow_mut();
         let scope_id = context.next_scope_id;
@@ -1097,7 +1097,7 @@ impl GPUDeviceMethods for GPUDevice {
         assert!(res.is_none());
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope>
     fn PopErrorScope(&self, comp: InRealm) -> Rc<Promise> {
         let mut context = self.scope_context.borrow_mut();
         let promise = Promise::new_in_current_realm(comp);
@@ -1131,7 +1131,7 @@ impl GPUDeviceMethods for GPUDevice {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-onuncapturederror
     event_handler!(uncapturederror, GetOnuncapturederror, SetOnuncapturederror);
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-destroy
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-destroy>
     fn Destroy(&self) {
         if self.valid.get() {
             self.valid.set(false);
@@ -1148,7 +1148,7 @@ impl GPUDeviceMethods for GPUDevice {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipelineasync
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipelineasync>
     fn CreateComputePipelineAsync(
         &self,
         _descriptor: &GPUComputePipelineDescriptor,
@@ -1156,7 +1156,7 @@ impl GPUDeviceMethods for GPUDevice {
         todo!()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipelineasync
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipelineasync>
     fn CreateRenderPipelineAsync(&self, _descriptor: &GPURenderPipelineDescriptor) -> Rc<Promise> {
         todo!()
     }

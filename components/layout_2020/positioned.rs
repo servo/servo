@@ -563,7 +563,8 @@ impl HoistedAbsolutelyPositionedBox {
                             cbis - anchor - pbm.padding_border_sums.inline - margin_sum;
                         non_replaced
                             .inline_content_sizes(layout_context)
-                            .shrink_to_fit(available_size)
+                            .shrink_to_fit(available_size.into())
+                            .into()
                     });
 
                     // If the tentative used inline size is greater than ‘max-inline-size’,
@@ -755,13 +756,13 @@ struct AbsoluteAxisSolver<'a> {
 impl<'a> AbsoluteAxisSolver<'a> {
     /// This unifies some of the parts in common in:
     ///
-    /// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
-    /// * https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
+    /// * <https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width>
+    /// * <https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height>
     ///
     /// … and:
     ///
-    /// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
-    /// * https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+    /// * <https://drafts.csswg.org/css2/visudet.html#abs-replaced-width>
+    /// * <https://drafts.csswg.org/css2/visudet.html#abs-replaced-height>
     ///
     /// In the replaced case, `size` is never `Auto`.
     fn solve_for_size(&self, computed_size: LengthOrAuto) -> AxisResult {
@@ -859,7 +860,7 @@ fn vec_append_owned<T>(a: &mut Vec<T>, mut b: Vec<T>) {
     }
 }
 
-/// https://drafts.csswg.org/css2/visuren.html#relative-positioning
+/// <https://drafts.csswg.org/css2/visuren.html#relative-positioning>
 pub(crate) fn relative_adjustement(
     style: &ComputedValues,
     containing_block: &ContainingBlock,

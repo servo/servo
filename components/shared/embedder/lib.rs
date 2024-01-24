@@ -276,7 +276,7 @@ impl Debug for EmbedderMsg {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FilterPattern(pub String);
 
-/// https://w3c.github.io/mediasession/#mediametadata
+/// <https://w3c.github.io/mediasession/#mediametadata>
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MediaMetadata {
     /// Title
@@ -297,7 +297,7 @@ impl MediaMetadata {
     }
 }
 
-/// https://w3c.github.io/mediasession/#enumdef-mediasessionplaybackstate
+/// <https://w3c.github.io/mediasession/#enumdef-mediasessionplaybackstate>
 #[repr(i32)]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum MediaSessionPlaybackState {
@@ -309,7 +309,7 @@ pub enum MediaSessionPlaybackState {
     Paused,
 }
 
-/// https://w3c.github.io/mediasession/#dictdef-mediapositionstate
+/// <https://w3c.github.io/mediasession/#dictdef-mediapositionstate>
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct MediaPositionState {
     pub duration: f64,

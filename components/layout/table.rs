@@ -1167,7 +1167,7 @@ impl<'a> Iterator for TableRowIterator<'a> {
 /// for each cell
 ///
 /// Used for correctly handling table layers from
-/// https://drafts.csswg.org/css2/tables.html#table-layers
+/// <https://drafts.csswg.org/css2/tables.html#table-layers>
 struct TableCellStyleIterator<'table> {
     column_styles: Vec<ColumnStyle<'table>>,
     row_iterator: TableRowAndGroupIterator<'table>,

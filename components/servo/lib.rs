@@ -503,7 +503,14 @@ where
             EmbedderEvent::Resize => {
                 return self.compositor.on_resize_window_event();
             },
-
+            EmbedderEvent::InvalidateNativeSurface => {
+                self.compositor.invalidate_native_surface();
+            },
+            EmbedderEvent::ReplaceNativeSurface(native_widget, coords) => {
+                self.compositor
+                    .replace_native_surface(native_widget, coords);
+                self.compositor.composite();
+            },
             EmbedderEvent::AllowNavigationResponse(pipeline_id, allowed) => {
                 let msg = ConstellationMsg::AllowNavigationResponse(pipeline_id, allowed);
                 if let Err(e) = self.constellation_chan.send(msg) {
@@ -1087,6 +1094,9 @@ fn default_user_agent_string_for(agent: UserAgent) -> &'static str {
     #[cfg(target_os = "macos")]
     const DESKTOP_UA_STRING: &'static str =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Servo/1.0 Firefox/111.0";
+
+    #[cfg(target_os = "android")]
+    const DESKTOP_UA_STRING: &'static str = "";
 
     match agent {
         UserAgent::Desktop => DESKTOP_UA_STRING,

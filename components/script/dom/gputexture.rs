@@ -117,17 +117,17 @@ impl GPUTexture {
 }
 
 impl GPUTextureMethods for GPUTexture {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gputexture-createview
+    /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-createview>
     fn CreateView(&self, descriptor: &GPUTextureViewDescriptor) -> DomRoot<GPUTextureView> {
         let scope_id = self.device.use_current_scope();
 
@@ -189,7 +189,7 @@ impl GPUTextureMethods for GPUTexture {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy
+    /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy>
     fn Destroy(&self) {
         if self.destroyed.get() {
             return;

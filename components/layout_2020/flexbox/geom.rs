@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! https://drafts.csswg.org/css-flexbox/#box-model
+//! <https://drafts.csswg.org/css-flexbox/#box-model>
 
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 
@@ -87,7 +87,7 @@ pub(super) enum FlexAxis {
 }
 
 /// Which flow-relative sides map to the main-start and cross-start sides, respectively.
-/// See https://drafts.csswg.org/css-flexbox/#box-model
+/// See <https://drafts.csswg.org/css-flexbox/#box-model>
 #[derive(Clone, Copy)]
 pub(super) enum MainStartCrossStart {
     InlineStartBlockStart,

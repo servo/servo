@@ -288,7 +288,7 @@ pub enum UpdatePipelineIdReason {
 pub enum ConstellationControlMsg {
     /// Takes the associated window proxy out of "delaying-load-events-mode",
     /// used if a scheduled navigated was refused by the embedder.
-    /// https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
+    /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     StopDelayingLoadEventsMode(PipelineId),
     /// Sends the final response to script thread for fetching after all redirections
     /// have been resolved
@@ -344,7 +344,7 @@ pub enum ConstellationControlMsg {
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
         /// The source origin of the message.
-        /// https://html.spec.whatwg.org/multipage/#dom-messageevent-origin
+        /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-origin>
         source_origin: ImmutableOrigin,
         /// The data to be posted.
         data: StructuredSerializedData,
@@ -1016,7 +1016,7 @@ impl StructuredSerializedData {
     }
 }
 
-/// A task on the https://html.spec.whatwg.org/multipage/#port-message-queue
+/// A task on the <https://html.spec.whatwg.org/multipage/#port-message-queue>
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct PortMessageTask {
     /// The origin of this task.
@@ -1062,7 +1062,7 @@ impl Clone for BroadcastMsg {
 }
 
 /// The type of MediaSession action.
-/// https://w3c.github.io/mediasession/#enumdef-mediasessionaction
+/// <https://w3c.github.io/mediasession/#enumdef-mediasessionaction>
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum MediaSessionActionType {
     /// The action intent is to resume playback.

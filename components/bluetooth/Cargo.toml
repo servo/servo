@@ -22,6 +22,7 @@ servo_rand = { path = "../rand" }
 uuid = { workspace = true }
 
 [features]
+default = ["bluetooth-test"]
 native-bluetooth = ["blurz", "blurdroid", "blurmac", "bluetooth-test"]
 bluetooth-test = ["blurmock"]
 

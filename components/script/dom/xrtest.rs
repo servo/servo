@@ -65,7 +65,7 @@ impl XRTest {
 }
 
 impl XRTestMethods for XRTest {
-    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     #[allow(unsafe_code)]
     fn SimulateDeviceConnection(&self, init: &FakeXRDeviceInit) -> Rc<Promise> {
         let global = self.global();
@@ -180,14 +180,14 @@ impl XRTestMethods for XRTest {
         p
     }
 
-    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn SimulateUserActivation(&self, f: Rc<Function>) {
         ScriptThread::set_user_interacting(true);
         let _ = f.Call__(vec![], ExceptionHandling::Rethrow);
         ScriptThread::set_user_interacting(false);
     }
 
-    /// https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md
+    /// <https://github.com/immersive-web/webxr-test-api/blob/master/explainer.md>
     fn DisconnectAllDevices(&self) -> Rc<Promise> {
         // XXXManishearth implement device disconnection and session ending
         let global = self.global();

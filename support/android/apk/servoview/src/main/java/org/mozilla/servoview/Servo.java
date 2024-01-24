@@ -8,6 +8,7 @@ package org.mozilla.servoview;
 import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
+import android.view.Surface;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
@@ -30,21 +31,16 @@ public class Servo {
             RunCallback runCallback,
             GfxCallbacks gfxcb,
             Client client,
-            Activity activity) {
+            Activity activity,
+            Surface surface) {
 
         mRunCallback = runCallback;
 
         mServoCallbacks = new Callbacks(client, gfxcb);
 
         mRunCallback.inGLThread(() -> {
-            mJNI.init(activity, options, mServoCallbacks);
+            mJNI.init(activity, options, mServoCallbacks, surface);
         });
-
-        try {
-          GStreamer.init((Context) activity);
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
     }
 
     public void resetGfxCallbacks(GfxCallbacks gfxcb) {
@@ -162,6 +158,13 @@ public class Servo {
 
     public void click(float x, float y) {
         mRunCallback.inGLThread(() -> mJNI.click(x, y));
+    }
+
+    public void pauseCompositor() {
+        mRunCallback.inGLThread(() -> mJNI.pauseCompositor());
+    }
+    public void resumeCompositor(Surface surface, ServoCoordinates coords) {
+        mRunCallback.inGLThread(() -> mJNI.resumeCompositor(surface, coords));
     }
 
     public void suspend(boolean suspended) {

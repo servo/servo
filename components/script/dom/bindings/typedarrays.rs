@@ -9,22 +9,12 @@ use std::ptr;
 use js::jsapi::{Heap, JSObject, JS_GetArrayBufferViewBuffer};
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, MutableHandleObject};
-use js::typedarray::{CreateWith, Float32Array};
+use js::typedarray::{
+    CreateWith, Float32Array, JSObjectStorage, TypedArray, TypedArrayElement,
+    TypedArrayElementCreator,
+};
 
 use crate::script_runtime::JSContext;
-
-pub fn create_float32_array(
-    cx: JSContext,
-    data: &[f32],
-    dest: MutableHandleObject,
-) -> Result<Float32Array, ()> {
-    let res = unsafe { Float32Array::create(*cx, CreateWith::Slice(data), dest) };
-    if res.is_err() {
-        Err(())
-    } else {
-        Float32Array::from(dest.get())
-    }
-}
 
 #[derive(Default, JSTraceable)]
 pub struct HeapFloat32Array {
@@ -34,7 +24,7 @@ pub struct HeapFloat32Array {
 impl HeapFloat32Array {
     pub fn set_data(&self, cx: JSContext, data: &[f32]) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        let _ = create_float32_array(cx, data, array.handle_mut())?;
+        let _: Float32Array = create_typed_array(cx, data, array.handle_mut())?;
         self.internal.set(*array);
         Ok(())
     }
@@ -110,5 +100,23 @@ impl HeapFloat32Array {
             warn!("Internal not initialized.");
             None
         }
+    }
+}
+
+pub fn create_typed_array<T, S>(
+    cx: JSContext,
+    data: &[T::Element],
+    dest: MutableHandleObject,
+) -> Result<TypedArray<T, S>, ()>
+where
+    T: TypedArrayElementCreator + TypedArrayElement,
+    S: JSObjectStorage,
+{
+    let res = unsafe { TypedArray::<T, S>::create(*cx, CreateWith::Slice(data), dest) };
+
+    if res.is_err() {
+        Err(())
+    } else {
+        TypedArray::from(dest.get())
     }
 }

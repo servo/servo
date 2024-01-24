@@ -97,7 +97,7 @@ impl XRWebGLLayer {
         )
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-xrwebgllayer
+    /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-xrwebgllayer>
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &Window,
@@ -282,32 +282,32 @@ impl XRWebGLLayer {
 }
 
 impl XRWebGLLayerMethods for XRWebGLLayer {
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-antialias
+    /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-antialias>
     fn Antialias(&self) -> bool {
         self.antialias
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-ignoredepthvalues
+    /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-ignoredepthvalues>
     fn IgnoreDepthValues(&self) -> bool {
         self.ignore_depth_values
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebuffer
+    /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebuffer>
     fn GetFramebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
         self.framebuffer.as_ref().map(|x| DomRoot::from_ref(&**x))
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebufferwidth
+    /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebufferwidth>
     fn FramebufferWidth(&self) -> u32 {
         self.size().width
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebufferheight
+    /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebufferheight>
     fn FramebufferHeight(&self) -> u32 {
         self.size().height
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport
+    /// <https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport>
     fn GetViewport(&self, view: &XRView) -> Option<DomRoot<XRViewport>> {
         if self.session() != view.session() {
             return None;

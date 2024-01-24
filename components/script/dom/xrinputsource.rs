@@ -78,7 +78,7 @@ impl XRInputSource {
 }
 
 impl XRInputSourceMethods for XRInputSource {
-    /// https://immersive-web.github.io/webxr/#dom-xrinputsource-handedness
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-handedness>
     fn Handedness(&self) -> XRHandedness {
         match self.info.handedness {
             Handedness::None => XRHandedness::None,
@@ -87,7 +87,7 @@ impl XRInputSourceMethods for XRInputSource {
         }
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrinputsource-targetraymode
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-targetraymode>
     fn TargetRayMode(&self) -> XRTargetRayMode {
         match self.info.target_ray_mode {
             TargetRayMode::Gaze => XRTargetRayMode::Gaze,
@@ -96,7 +96,7 @@ impl XRInputSourceMethods for XRInputSource {
         }
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrinputsource-targetrayspace
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-targetrayspace>
     fn TargetRaySpace(&self) -> DomRoot<XRSpace> {
         self.target_ray_space.or_init(|| {
             let global = self.global();
@@ -104,7 +104,7 @@ impl XRInputSourceMethods for XRInputSource {
         })
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrinputsource-gripspace
+    /// <https://immersive-web.github.io/webxr/#dom-xrinputsource-gripspace>
     fn GetGripSpace(&self) -> Option<DomRoot<XRSpace>> {
         if self.info.supports_grip {
             Some(self.grip_space.or_init(|| {

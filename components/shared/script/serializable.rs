@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! This module contains implementations in script that are serializable,
-//! as per https://html.spec.whatwg.org/multipage/#serializable-objects.
+//! as per <https://html.spec.whatwg.org/multipage/#serializable-objects>.
 //! The implementations are here instead of in script
 //! so that the other modules involved in the serialization don't have
 //! to depend on script.

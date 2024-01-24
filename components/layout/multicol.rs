@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! CSS Multi-column layout http://dev.w3.org/csswg/css-multicol/
+//! CSS Multi-column layout <http://dev.w3.org/csswg/css-multicol/>
 
 use std::cmp::{max, min};
 use std::fmt;

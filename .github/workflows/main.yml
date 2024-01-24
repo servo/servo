@@ -76,7 +76,7 @@ jobs:
 
             let platforms = [];
             if (platform == "all") {
-              platforms = [ "linux", "windows", "macos" ];
+              platforms = [ "linux", "windows", "macos", "android" ];
             } else {
               platforms = [ platform ];
             }
@@ -125,6 +125,15 @@ jobs:
       unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
     secrets: inherit
 
+  build-android:
+    name: Android
+    needs: ["decision"]
+    if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'android') }}
+    uses: ./.github/workflows/android.yml
+    with:
+      profile: "release"
+    secrets: inherit
+
   build-result:
     name: Result
     runs-on: ubuntu-latest
@@ -135,7 +144,7 @@ jobs:
       - "build-win"
       - "build-mac"
       - "build-linux"
-
+      - "build-android"
     steps:
       - name: Mark skipped jobs as successful
         if: ${{ fromJson(needs.decision.outputs.configuration).platforms[0] != null }}

@@ -83,7 +83,7 @@ impl MediaElementAudioSourceNode {
 }
 
 impl MediaElementAudioSourceNodeMethods for MediaElementAudioSourceNode {
-    /// https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelement
+    /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelement>
     fn MediaElement(&self) -> DomRoot<HTMLMediaElement> {
         DomRoot::from_ref(&*self.media_element)
     }

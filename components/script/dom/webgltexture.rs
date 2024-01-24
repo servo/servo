@@ -280,8 +280,7 @@ impl WebGLTexture {
     }
 
     /// We have to follow the conversion rules for GLES 2.0. See:
-    ///   https://www.khronos.org/webgl/public-mailing-list/archives/1008/msg00014.html
-    ///
+    /// <https://www.khronos.org/webgl/public-mailing-list/archives/1008/msg00014.html>
     pub fn tex_parameter(&self, param: u32, value: TexParameterValue) -> WebGLResult<()> {
         let target = self.target().unwrap();
 

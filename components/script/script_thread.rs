@@ -975,7 +975,7 @@ impl ScriptThread {
     /// Check that two origins are "similar enough",
     /// for now only used to prevent cross-origin JS url evaluation.
     ///
-    /// https://github.com/whatwg/html/issues/2591
+    /// <https://github.com/whatwg/html/issues/2591>
     pub fn check_load_origin(source: &LoadOrigin, target: &ImmutableOrigin) -> bool {
         match (source, target) {
             (LoadOrigin::Constellation, _) | (LoadOrigin::WebDriver, _) => {
@@ -992,7 +992,7 @@ impl ScriptThread {
         }
     }
 
-    /// Step 13 of https://html.spec.whatwg.org/multipage/#navigate
+    /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
     pub fn navigate(
         browsing_context: BrowsingContextId,
         pipeline_id: PipelineId,
@@ -3750,7 +3750,7 @@ impl ScriptThread {
     }
 
     /// Turn javascript: URL into JS code to eval, according to the steps in
-    /// https://html.spec.whatwg.org/multipage/#javascript-protocol
+    /// <https://html.spec.whatwg.org/multipage/#javascript-protocol>
     pub fn eval_js_url(global_scope: &GlobalScope, load_data: &mut LoadData) {
         // This slice of the URL’s serialization is equivalent to (5.) to (7.):
         // Start with the scheme data of the parsed URL;

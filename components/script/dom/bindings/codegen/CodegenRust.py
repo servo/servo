@@ -120,7 +120,8 @@ builtinNames = {
     IDLType.Tags.float: 'Finite<f32>',
     IDLType.Tags.unrestricted_double: 'f64',
     IDLType.Tags.double: 'Finite<f64>',
-    IDLType.Tags.float32array: 'Float32Array'
+    IDLType.Tags.float32array: 'Float32Array',
+    IDLType.Tags.uint8array: 'Uint8Array'
 }
 
 numericTags = [
@@ -6502,6 +6503,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::rust::get_object_class',
         'js::typedarray',
         'js::typedarray::Float32Array',
+        'js::typedarray::Uint8Array',
         'crate::dom',
         'crate::dom::bindings',
         'crate::dom::bindings::codegen::InterfaceObjectMap',

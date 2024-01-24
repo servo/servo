@@ -18,17 +18,17 @@ pub struct GPUQuerySet {
 
 // TODO: wgpu does not expose right fields right now
 impl GPUQuerySetMethods for GPUQuerySet {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-destroy
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-destroy>
     fn Destroy(&self) {
         todo!()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         todo!()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, _value: USVString) {
         todo!()
     }

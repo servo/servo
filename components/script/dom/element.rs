@@ -491,7 +491,7 @@ impl Element {
         self.shadow_root().is_some()
     }
 
-    /// https://dom.spec.whatwg.org/#dom-element-attachshadow
+    /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
     /// XXX This is not exposed to web content yet. It is meant to be used
     ///     for UA widgets only.
     pub fn attach_shadow(&self, is_ua_widget: IsUserAgentWidget) -> Fallible<DomRoot<ShadowRoot>> {

@@ -129,7 +129,7 @@ impl AnalyserNode {
         Ok(object)
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-analysernode
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-analysernode>
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
@@ -147,7 +147,7 @@ impl AnalyserNode {
 
 impl AnalyserNodeMethods for AnalyserNode {
     #[allow(unsafe_code)]
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloatfrequencydata
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloatfrequencydata>
     fn GetFloatFrequencyData(&self, mut array: CustomAutoRooterGuard<Float32Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
@@ -156,7 +156,7 @@ impl AnalyserNodeMethods for AnalyserNode {
     }
 
     #[allow(unsafe_code)]
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-getbytefrequencydata
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getbytefrequencydata>
     fn GetByteFrequencyData(&self, mut array: CustomAutoRooterGuard<Uint8Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
@@ -165,7 +165,7 @@ impl AnalyserNodeMethods for AnalyserNode {
     }
 
     #[allow(unsafe_code)]
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloattimedomaindata
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloattimedomaindata>
     fn GetFloatTimeDomainData(&self, mut array: CustomAutoRooterGuard<Float32Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
@@ -174,7 +174,7 @@ impl AnalyserNodeMethods for AnalyserNode {
     }
 
     #[allow(unsafe_code)]
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-getbytetimedomaindata
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getbytetimedomaindata>
     fn GetByteTimeDomainData(&self, mut array: CustomAutoRooterGuard<Uint8Array>) {
         // Invariant to maintain: No JS code that may touch the array should
         // run whilst we're writing to it
@@ -182,7 +182,7 @@ impl AnalyserNodeMethods for AnalyserNode {
         self.engine.borrow().fill_byte_time_domain_data(dest);
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-fftsize
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-fftsize>
     fn SetFftSize(&self, value: u32) -> Fallible<()> {
         if value > 32768 || value < 32 || (value & (value - 1) != 0) {
             return Err(Error::IndexSize);
@@ -191,22 +191,22 @@ impl AnalyserNodeMethods for AnalyserNode {
         Ok(())
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-fftsize
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-fftsize>
     fn FftSize(&self) -> u32 {
         self.engine.borrow().get_fft_size() as u32
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-frequencybincount
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-frequencybincount>
     fn FrequencyBinCount(&self) -> u32 {
         self.FftSize() / 2
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-mindecibels
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-mindecibels>
     fn MinDecibels(&self) -> Finite<f64> {
         Finite::wrap(self.engine.borrow().get_min_decibels())
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-mindecibels
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-mindecibels>
     fn SetMinDecibels(&self, value: Finite<f64>) -> Fallible<()> {
         if *value >= self.engine.borrow().get_max_decibels() {
             return Err(Error::IndexSize);
@@ -215,12 +215,12 @@ impl AnalyserNodeMethods for AnalyserNode {
         Ok(())
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-maxdecibels
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-maxdecibels>
     fn MaxDecibels(&self) -> Finite<f64> {
         Finite::wrap(self.engine.borrow().get_max_decibels())
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-maxdecibels
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-maxdecibels>
     fn SetMaxDecibels(&self, value: Finite<f64>) -> Fallible<()> {
         if *value <= self.engine.borrow().get_min_decibels() {
             return Err(Error::IndexSize);
@@ -229,12 +229,12 @@ impl AnalyserNodeMethods for AnalyserNode {
         Ok(())
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-smoothingtimeconstant
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-smoothingtimeconstant>
     fn SmoothingTimeConstant(&self) -> Finite<f64> {
         Finite::wrap(self.engine.borrow().get_smoothing_constant())
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-analysernode-smoothingtimeconstant
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-smoothingtimeconstant>
     fn SetSmoothingTimeConstant(&self, value: Finite<f64>) -> Fallible<()> {
         if *value < 0. || *value > 1. {
             return Err(Error::IndexSize);

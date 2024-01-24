@@ -501,6 +501,33 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.shutdown_state = ShutdownState::FinishedShuttingDown;
     }
 
+    /// The underlying native surface can be lost during servo's lifetime.
+    /// On Android, for example, this happens when the app is sent to background.
+    /// We need to unbind the surface so that we don't try to use it again.
+    pub fn invalidate_native_surface(&mut self) {
+        debug!("Invalidating native surface in compositor");
+        if let Err(e) = self.webrender_surfman.unbind_native_surface_from_context() {
+            warn!("Unbinding native surface from context failed ({:?})", e);
+        }
+    }
+
+    /// On Android, this function will be called when the app moves to foreground
+    /// and the system creates a new native surface that needs to bound to the current
+    /// context.
+    #[allow(unsafe_code)]
+    pub fn replace_native_surface(&mut self, native_widget: *mut c_void, coords: DeviceIntSize) {
+        debug!("Replacing native surface in compositor: {native_widget:?}");
+        let connection = self.webrender_surfman.connection();
+        let native_widget =
+            unsafe { connection.create_native_widget_from_ptr(native_widget, coords.to_untyped()) };
+        if let Err(e) = self
+            .webrender_surfman
+            .bind_native_surface_to_context(native_widget)
+        {
+            warn!("Binding native surface to context failed ({:?})", e);
+        }
+    }
+
     fn handle_browser_message(&mut self, msg: CompositorMsg) -> bool {
         match (msg, self.shutdown_state) {
             (_, ShutdownState::FinishedShuttingDown) => {

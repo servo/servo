@@ -24,7 +24,7 @@ use crate::style_ext::DisplayInside;
 use crate::table::Table;
 use crate::ContainingBlock;
 
-/// https://drafts.csswg.org/css-display/#independent-formatting-context
+/// <https://drafts.csswg.org/css-display/#independent-formatting-context>
 #[derive(Debug, Serialize)]
 pub(crate) enum IndependentFormattingContext {
     NonReplaced(NonReplacedFormattingContext),
@@ -62,7 +62,7 @@ pub(crate) enum NonReplacedFormattingContextContents {
 pub(crate) struct IndependentLayout {
     pub fragments: Vec<Fragment>,
 
-    /// https://drafts.csswg.org/css2/visudet.html#root-height
+    /// <https://drafts.csswg.org/css2/visudet.html#root-height>
     pub content_block_size: Au,
 
     /// The offset of the last inflow baseline of this layout in the content area, if

@@ -167,7 +167,7 @@ impl XRViewerPose {
 }
 
 impl XRViewerPoseMethods for XRViewerPose {
-    /// https://immersive-web.github.io/webxr/#dom-xrviewerpose-views
+    /// <https://immersive-web.github.io/webxr/#dom-xrviewerpose-views>
     fn Views(&self, _cx: JSContext) -> JSVal {
         self.views.get()
     }

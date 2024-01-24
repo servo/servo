@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Implementation of cookie creation and matching as specified by
-//! http://tools.ietf.org/html/rfc6265
+//! <http://tools.ietf.org/html/rfc6265>
 
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};

@@ -511,7 +511,7 @@ impl StackingContext {
         true
     }
 
-    /// https://drafts.csswg.org/css-backgrounds/#special-backgrounds
+    /// <https://drafts.csswg.org/css-backgrounds/#special-backgrounds>
     ///
     /// This is only called for the root `StackingContext`
     pub(crate) fn build_canvas_background_display_list(

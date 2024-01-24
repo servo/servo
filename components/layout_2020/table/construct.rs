@@ -303,7 +303,7 @@ impl TableBuilder {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#algorithm-for-processing-rows
+    /// <https://html.spec.whatwg.org/multipage/#algorithm-for-processing-rows>
     /// Push a single cell onto the slot map, handling any colspans it may have, and
     /// setting up the outgoing rowspans.
     pub fn add_cell(&mut self, cell: TableSlotCell) {
@@ -468,7 +468,7 @@ where
             .push(AnonymousTableContent::Text(info.clone(), text));
     }
 
-    /// https://html.spec.whatwg.org/multipage/#forming-a-table
+    /// <https://html.spec.whatwg.org/multipage/#forming-a-table>
     fn handle_element(
         &mut self,
         info: &NodeAndStyleInfo<Node>,
@@ -646,7 +646,7 @@ where
             .push(AnonymousTableContent::Text(info.clone(), text));
     }
 
-    /// https://html.spec.whatwg.org/multipage/#algorithm-for-processing-rows
+    /// <https://html.spec.whatwg.org/multipage/#algorithm-for-processing-rows>
     fn handle_element(
         &mut self,
         info: &NodeAndStyleInfo<Node>,
@@ -679,7 +679,7 @@ where
                             )
                         },
                         Err(_replaced) => {
-                            panic!("We don't handle this yet.");
+                            unreachable!("Replaced should not have a LayoutInternal display type.");
                         },
                     };
 

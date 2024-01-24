@@ -346,19 +346,19 @@ pub struct HTMLMediaElement {
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
     audio_renderer: DomRefCell<Option<Arc<Mutex<dyn AudioRenderer>>>>,
-    /// https://html.spec.whatwg.org/multipage/#show-poster-flag
+    /// <https://html.spec.whatwg.org/multipage/#show-poster-flag>
     show_poster: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-duration
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-duration>
     duration: Cell<f64>,
-    /// https://html.spec.whatwg.org/multipage/#official-playback-position
+    /// <https://html.spec.whatwg.org/multipage/#official-playback-position>
     playback_position: Cell<f64>,
-    /// https://html.spec.whatwg.org/multipage/#default-playback-start-position
+    /// <https://html.spec.whatwg.org/multipage/#default-playback-start-position>
     default_playback_start_position: Cell<f64>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-volume
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-volume>
     volume: Cell<f64>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-seeking
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-seeking>
     seeking: Cell<bool>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-muted
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-muted>
     muted: Cell<bool>,
     /// URL of the media resource, if any.
     #[no_trace]
@@ -367,14 +367,14 @@ pub struct HTMLMediaElement {
     /// is a blob.
     #[no_trace]
     blob_url: DomRefCell<Option<ServoUrl>>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-played
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-played>
     #[ignore_malloc_size_of = "Rc"]
     played: DomRefCell<TimeRangesContainer>,
     // https://html.spec.whatwg.org/multipage/#dom-media-audiotracks
     audio_tracks_list: MutNullableDom<AudioTrackList>,
     // https://html.spec.whatwg.org/multipage/#dom-media-videotracks
     video_tracks_list: MutNullableDom<VideoTrackList>,
-    /// https://html.spec.whatwg.org/multipage/#dom-media-texttracks
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-texttracks>
     text_tracks_list: MutNullableDom<TextTrackList>,
     /// Time of last timeupdate notification.
     #[ignore_malloc_size_of = "Defined in std::time"]
@@ -498,7 +498,7 @@ impl HTMLMediaElement {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#time-marches-on
+    /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
     fn time_marches_on(&self) {
         // Step 6.
         if Instant::now() > self.next_timeupdate_event.get() {
@@ -1316,7 +1316,7 @@ impl HTMLMediaElement {
         task_source.queue_simple_event(self.upcast(), atom!("seeked"), &window);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#poster-frame
+    /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     pub fn process_poster_image_loaded(&self, image: Arc<Image>) {
         if !self.show_poster.get() {
             return;
@@ -2230,12 +2230,12 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         self.paused.get()
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate>
     fn GetDefaultPlaybackRate(&self) -> Fallible<Finite<f64>> {
         Ok(Finite::wrap(self.defaultPlaybackRate.get()))
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-defaultplaybackrate>
     fn SetDefaultPlaybackRate(&self, value: Finite<f64>) -> ErrorResult {
         let min_allowed = -64.0;
         let max_allowed = 64.0;
@@ -2251,12 +2251,12 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         Ok(())
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-media-playbackrate
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-playbackrate>
     fn GetPlaybackRate(&self) -> Fallible<Finite<f64>> {
         Ok(Finite::wrap(self.playbackRate.get()))
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-media-playbackrate
+    /// <https://html.spec.whatwg.org/multipage/#dom-media-playbackrate>
     fn SetPlaybackRate(&self, value: Finite<f64>) -> ErrorResult {
         let min_allowed = -64.0;
         let max_allowed = 64.0;

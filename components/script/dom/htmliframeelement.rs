@@ -483,7 +483,7 @@ impl HTMLIFrameElement {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4
+    /// <https://html.spec.whatwg.org/multipage/#iframe-load-event-steps> steps 1-4
     pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().

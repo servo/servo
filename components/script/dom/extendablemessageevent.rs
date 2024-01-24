@@ -29,16 +29,16 @@ use crate::script_runtime::JSContext;
 #[dom_struct]
 #[allow(non_snake_case)]
 pub struct ExtendableMessageEvent {
-    /// https://w3c.github.io/ServiceWorker/#extendableevent
+    /// <https://w3c.github.io/ServiceWorker/#extendableevent>
     event: ExtendableEvent,
-    /// https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-data
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-data>
     #[ignore_malloc_size_of = "mozjs"]
     data: Heap<JSVal>,
     /// <https://w3c.github.io/ServiceWorker/#extendablemessage-event-origin>
     origin: DOMString,
-    /// https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-lasteventid
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-lasteventid>
     lastEventId: DOMString,
-    /// https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-ports
+    /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-ports>
     ports: Vec<Dom<MessagePort>>,
     #[ignore_malloc_size_of = "mozjs"]
     frozen_ports: DomRefCell<Option<Heap<JSVal>>>,
@@ -193,7 +193,7 @@ impl ExtendableMessageEventMethods for ExtendableMessageEvent {
         self.event.IsTrusted()
     }
 
-    /// https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports
+    /// <https://w3c.github.io/ServiceWorker/#extendablemessage-event-ports>
     fn Ports(&self, cx: JSContext) -> JSVal {
         if let Some(ports) = &*self.frozen_ports.borrow() {
             return ports.get();

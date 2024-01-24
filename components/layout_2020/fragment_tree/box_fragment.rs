@@ -29,7 +29,7 @@ pub(crate) struct BoxFragment {
 
     /// From the containing block’s start corner…?
     /// This might be broken when the containing block is in a different writing mode:
-    /// https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+    /// <https://drafts.csswg.org/css-writing-modes/#orthogonal-flows>
     pub content_rect: LogicalRect<Length>,
 
     pub padding: LogicalSides<Length>,
@@ -41,7 +41,7 @@ pub(crate) struct BoxFragment {
     /// so that the element doesn't overlap earlier floats in the same BFC.
     /// The presence of clearance prevents the top margin from collapsing with
     /// earlier margins or with the bottom margin of the parent block.
-    /// https://drafts.csswg.org/css2/#clearance
+    /// <https://drafts.csswg.org/css2/#clearance>
     pub clearance: Option<Length>,
 
     /// When this box contains an inline formatting context, this tracks the baseline

@@ -9,7 +9,7 @@ static ALLOC: Allocator = Allocator;
 
 pub use crate::platform::*;
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "android")))]
 mod platform {
     use std::os::raw::c_void;
 
@@ -25,6 +25,21 @@ mod platform {
     /// Memory allocation APIs compatible with libc
     pub mod libc_compat {
         pub use jemalloc_sys::{free, malloc, realloc};
+    }
+}
+
+#[cfg(target_os = "android")]
+mod platform {
+    pub use std::alloc::System as Allocator;
+    use std::os::raw::c_void;
+
+    /// Get the size of a heap block.
+    pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
+        libc::malloc_usable_size(ptr)
+    }
+
+    pub mod libc_compat {
+        pub use libc::{free, malloc, realloc};
     }
 }
 

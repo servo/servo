@@ -46,7 +46,7 @@ env:
 jobs:
   build:
     name: Windows Build
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v3
         if: github.event_name != 'pull_request_target'

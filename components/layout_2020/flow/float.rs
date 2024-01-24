@@ -4,7 +4,7 @@
 
 //! Float layout.
 //!
-//! See CSS 2.1 § 9.5.1: https://www.w3.org/TR/CSS2/visuren.html#float-position
+//! See CSS 2.1 § 9.5.1: <https://www.w3.org/TR/CSS2/visuren.html#float-position>
 
 use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter, Result as FmtResult};
@@ -506,7 +506,7 @@ pub struct PlacementInfo {
 
 /// Whether the float is left or right.
 ///
-/// See CSS 2.1 § 9.5.1: https://www.w3.org/TR/CSS2/visuren.html#float-position
+/// See CSS 2.1 § 9.5.1: <https://www.w3.org/TR/CSS2/visuren.html#float-position>
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FloatSide {
     Left,
@@ -600,8 +600,8 @@ impl FloatBand {
 ///
 /// AA trees were chosen for simplicity.
 ///
-/// See: https://en.wikipedia.org/wiki/AA_tree
-///      https://arxiv.org/pdf/1412.4882.pdf
+/// See: <https://en.wikipedia.org/wiki/AA_tree>
+///      <https://arxiv.org/pdf/1412.4882.pdf>
 #[derive(Clone, Debug)]
 pub struct FloatBandTree {
     pub root: FloatBandLink,
@@ -787,12 +787,13 @@ impl FloatBandLink {
     }
 
     /// Corrects tree balance:
-    ///
+    ///```text
     ///         T          L
     ///        / \        / \
     ///       L   R  →   A   T      if level(T) = level(L)
     ///      / \            / \
     ///     A   B          B   R
+    /// ```
     fn skew(&self) -> FloatBandLink {
         if let Some(ref this) = self.0 {
             if let Some(ref left) = this.left.0 {
@@ -816,12 +817,13 @@ impl FloatBandLink {
     }
 
     /// Corrects tree balance:
-    ///
+    ///```text
     ///         T            R
     ///        / \          / \
     ///       A   R   →    T   X    if level(T) = level(X)
     ///          / \      / \
     ///         B   X    A   B
+    /// ```
     fn split(&self) -> FloatBandLink {
         if let Some(ref this) = self.0 {
             if let Some(ref right) = this.right.0 {
@@ -913,7 +915,8 @@ impl FloatBox {
                                 containing_block.inline_size - pbm_sums.inline_sum();
                             non_replaced
                                 .inline_content_sizes(layout_context)
-                                .shrink_to_fit(available_size)
+                                .shrink_to_fit(available_size.into())
+                                .into()
                         });
                         let inline_size = tentative_inline_size
                             .clamp_between_extremums(min_box_size.inline, max_box_size.inline);

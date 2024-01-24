@@ -35,7 +35,7 @@ pub struct NodeRareData {
 #[derive(Default, JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
 pub struct ElementRareData {
-    /// https://dom.spec.whatwg.org/#dom-element-shadowroot
+    /// <https://dom.spec.whatwg.org/#dom-element-shadowroot>
     /// The ShadowRoot this element is host of.
     /// XXX This is currently not exposed to web content. Only for
     ///     internal use.

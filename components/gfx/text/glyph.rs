@@ -117,7 +117,7 @@ impl GlyphEntry {
     /// non-exhaustively listed in the specification. Other characters may map to the same
     /// glyphs, but this function does not take mapping into account.
     ///
-    /// See https://drafts.csswg.org/css-text/#word-separator.
+    /// See <https://drafts.csswg.org/css-text/#word-separator>.
     fn char_is_word_separator(&self) -> bool {
         self.has_flag(FLAG_CHAR_IS_WORD_SEPARATOR)
     }
@@ -433,8 +433,8 @@ pub struct GlyphStore {
     total_advance: Au,
 
     /// A cache of the number of word separators in the entire glyph store.
-    /// See https://drafts.csswg.org/css-text/#word-separator.
-    total_word_separators: i32,
+    /// See <https://drafts.csswg.org/css-text/#word-separator>.
+    total_word_separators: usize,
 
     /// Used to check if fast path should be used in glyph iteration.
     has_detailed_glyphs: bool,
@@ -476,7 +476,7 @@ impl<'a> GlyphStore {
     }
 
     #[inline]
-    pub fn total_word_separators(&self) -> i32 {
+    pub fn total_word_separators(&self) -> usize {
         self.total_word_separators
     }
 
@@ -622,7 +622,7 @@ impl<'a> GlyphStore {
     #[inline]
     pub fn advance_for_byte_range(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
         if range.begin() == ByteIndex(0) && range.end() == self.len() {
-            self.total_advance + extra_word_spacing * self.total_word_separators
+            self.total_advance + extra_word_spacing * (self.total_word_separators as i32)
         } else if !self.has_detailed_glyphs {
             self.advance_for_byte_range_simple_glyphs(range, extra_word_spacing)
         } else {

@@ -58,7 +58,7 @@ impl GPUUncapturedErrorEvent {
         ev
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-gpuuncapturederrorevent
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-gpuuncapturederrorevent>
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
@@ -77,12 +77,12 @@ impl GPUUncapturedErrorEvent {
 }
 
 impl GPUUncapturedErrorEventMethods for GPUUncapturedErrorEvent {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-error
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-error>
     fn Error(&self) -> GPUError {
         clone_gpu_error(&self.gpu_error)
     }
 
-    /// https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

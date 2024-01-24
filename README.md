@@ -41,14 +41,21 @@ manually, try the [manual build setup][manual-build].
 
 ### Windows
 
- - Download and run [`rustup-init.exe`](https://win.rustup.rs/) then follow the onscreen instructions.
+ - Download and run [`rustup-init.exe`](https://win.rustup.rs/)
+  - Make sure to select *Quick install via the Visual Studio Community
+    installer* or otherwise install Visual Studio 2022.
+ - In the *Visual Studio Installer* ensure the following components are installed for Visual Studio 2022:
+    - **Windows 10 SDK (10.0.19041.0)** (`Microsoft.VisualStudio.Component.Windows10SDK.19041`)
+    - **MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)** (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64`)
+    - **C++ ATL for latest v143 build tools (x86 & x64)** (`Microsoft.VisualStudio.Component.VC.ATL`)
+    - **C++ MFC for latest v143 build tools (x86 & x64)** (`Microsoft.VisualStudio.Component.VC.ATLMFC`)
  - Install [chocolatey](https://chocolatey.org/)
- - Install [Python 3.11](https://apps.microsoft.com/detail/9NRWMJP3717K?hl=en-US&gl=US)
+ - Install [Python 3.11](https://www.python.org/downloads/windows/)
  - Run `mach bootstrap`
-  - *This will install CMake, Git, Ninja, and the Visual Studio 2019 Build Tools
-     via choco in an Administrator console. It can take quite a while.*
-  - *If you already have Visual Studio 2019 installed, this may not install all necessary components.
-     Please follow the Visual Studio 2019 installation instructions in the [manual setup][manual-build].*
+    - *This will install CMake, Git, Ninja, via choco in an
+    + *This will install CMake, Git, and Ninja via choco in an
+       Administrator console. Allow the scripts to run and once
+       the operation finishes, close the new console.*
 - Run `refreshenv`
 
 See also [Windows Troubleshooting Tips][windows-tips].
@@ -117,6 +124,27 @@ though of course it doesn’t produce a binary you can run.
 
 ### Building for Android target
 
+Prerequisites:
+Servo's build system assumes that both the Android SDK & NDK are
+already installed and expects the paths to be specified via the
+environment variables `ANDROID_SDK_ROOT` and `ANDROID_NDK_ROOT`.
+
+Servo also expects the following components are installed via
+sdkmanager:
+
+For building:
+
+``` sh
+sdkmanager install platform-tools platforms;android-33
+```
+
+To run in emulator, also install the related components:
+
+``` sh
+sdkmanager install emulator system-images;android-33;google_apis;x86
+```
+
+Build commands:
 For ARM (`armv7-linux-androideabi`, most phones):
 
 ``` sh
@@ -129,6 +157,12 @@ For x86 (typically for the emulator):
 ```sh
 ./mach build --release --target i686-linux-android
 ./mach package --release --target i686-linux-android
+```
+
+Install the APK to the device or emulator:
+
+``` sh
+./mach install --release --android
 ```
 
 ## Running

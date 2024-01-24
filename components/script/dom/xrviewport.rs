@@ -32,22 +32,22 @@ impl XRViewport {
 }
 
 impl XRViewportMethods for XRViewport {
-    /// https://immersive-web.github.io/webxr/#dom-xrviewport-x
+    /// <https://immersive-web.github.io/webxr/#dom-xrviewport-x>
     fn X(&self) -> i32 {
         self.viewport.origin.x
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrviewport-y
+    /// <https://immersive-web.github.io/webxr/#dom-xrviewport-y>
     fn Y(&self) -> i32 {
         self.viewport.origin.y
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrviewport-width
+    /// <https://immersive-web.github.io/webxr/#dom-xrviewport-width>
     fn Width(&self) -> i32 {
         self.viewport.size.width
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-xrviewport-height
+    /// <https://immersive-web.github.io/webxr/#dom-xrviewport-height>
     fn Height(&self) -> i32 {
         self.viewport.size.height
     }

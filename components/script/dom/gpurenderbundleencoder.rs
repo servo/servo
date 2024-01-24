@@ -70,17 +70,17 @@ impl GPURenderBundleEncoder {
 }
 
 impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
     #[allow(unsafe_code)]
     fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, dynamic_offsets: Vec<u32>) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
@@ -96,14 +96,14 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline>
     fn SetPipeline(&self, pipeline: &GPURenderPipeline) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_set_pipeline(encoder, pipeline.id().0);
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setindexbuffer
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setindexbuffer>
     fn SetIndexBuffer(
         &self,
         buffer: &GPUBuffer,
@@ -125,7 +125,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
     fn SetVertexBuffer(&self, slot: u32, buffer: &GPUBuffer, offset: u64, size: u64) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_set_vertex_buffer(
@@ -138,7 +138,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-draw
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-draw>
     fn Draw(&self, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_draw(
@@ -151,7 +151,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexed
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexed>
     fn DrawIndexed(
         &self,
         index_count: u32,
@@ -172,7 +172,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindirect
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindirect>
     fn DrawIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_draw_indirect(
@@ -183,7 +183,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect>
     fn DrawIndexedIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
         if let Some(encoder) = self.render_bundle_encoder.borrow_mut().as_mut() {
             wgpu_bundle::wgpu_render_bundle_draw_indexed_indirect(
@@ -194,7 +194,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         }
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish>
     fn Finish(&self, descriptor: &GPURenderBundleDescriptor) -> DomRoot<GPURenderBundle> {
         let desc = wgt::RenderBundleDescriptor {
             label: convert_label(&descriptor.parent),

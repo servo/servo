@@ -51,7 +51,7 @@ impl MediaStreamTrack {
 }
 
 impl MediaStreamTrackMethods for MediaStreamTrack {
-    /// https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-kind
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-kind>
     fn Kind(&self) -> DOMString {
         match self.ty {
             MediaStreamType::Video => "video".into(),
@@ -59,12 +59,12 @@ impl MediaStreamTrackMethods for MediaStreamTrack {
         }
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-id
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-id>
     fn Id(&self) -> DOMString {
         self.id.id().to_string().into()
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-clone
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastreamtrack-clone>
     fn Clone(&self) -> DomRoot<MediaStreamTrack> {
         MediaStreamTrack::new(&self.global(), self.id, self.ty)
     }

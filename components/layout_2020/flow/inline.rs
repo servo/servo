@@ -93,7 +93,7 @@ pub(crate) struct InlineBox {
     pub children: Vec<ArcRefCell<InlineLevelBox>>,
 }
 
-/// https://www.w3.org/TR/css-display-3/#css-text-run
+/// <https://www.w3.org/TR/css-display-3/#css-text-run>
 #[derive(Debug, Serialize)]
 pub(crate) struct TextRun {
     pub base_fragment_info: BaseFragmentInfo,
@@ -179,13 +179,14 @@ impl LineUnderConstruction {
         // >    as well as any trailing U+1680   OGHAM SPACE MARK whose white-space
         // >    property is normal, nowrap, or pre-line.
         let mut whitespace_trimmed = Length::zero();
-        let mut spaces_trimmed = 0;
+        let mut word_seperators_trimmed = 0;
         for item in self.line_items.iter_mut().rev() {
-            if !item.trim_whitespace_at_end(&mut whitespace_trimmed, &mut spaces_trimmed) {
+            if !item.trim_whitespace_at_end(&mut whitespace_trimmed, &mut word_seperators_trimmed) {
                 break;
             }
         }
-        self.justification_opportunities -= spaces_trimmed;
+
+        self.justification_opportunities -= word_seperators_trimmed;
         whitespace_trimmed
     }
 }
@@ -296,7 +297,7 @@ impl LineBlockSizes {
             .adjust_for_nested_baseline_offset(baseline_offset);
     }
 
-    /// From https://drafts.csswg.org/css2/visudet.html#line-height:
+    /// From <https://drafts.csswg.org/css2/visudet.html#line-height>:
     ///  > The inline-level boxes are aligned vertically according to their 'vertical-align'
     ///  > property. In case they are aligned 'top' or 'bottom', they must be aligned so as
     ///  > to minimize the line box height. If such boxes are tall enough, there are multiple
@@ -399,14 +400,15 @@ impl UnbreakableSegmentUnderConstruction {
     /// This prevents whitespace from being added to the beginning of a line.
     fn trim_leading_whitespace(&mut self) {
         let mut whitespace_trimmed = Length::zero();
-        let mut spaces_trimmed = 0;
+        let mut word_seperators_trimmed = 0;
         for item in self.line_items.iter_mut() {
-            if !item.trim_whitespace_at_start(&mut whitespace_trimmed, &mut spaces_trimmed) {
+            if !item.trim_whitespace_at_start(&mut whitespace_trimmed, &mut word_seperators_trimmed)
+            {
                 break;
             }
         }
         self.inline_size -= whitespace_trimmed;
-        self.justification_opportunities -= spaces_trimmed;
+        self.justification_opportunities -= word_seperators_trimmed;
     }
 
     /// Prepare this segment for placement on a new and empty line. This happens when the
@@ -475,7 +477,7 @@ struct InlineContainerState {
     has_content: bool,
 
     /// Indicates whether this nesting level have text decorations in effect.
-    /// From https://drafts.csswg.org/css-text-decor/#line-decoration
+    /// From <https://drafts.csswg.org/css-text-decor/#line-decoration>
     // "When specified on or propagated to a block container that establishes
     //  an IFC..."
     text_decoration_line: TextDecorationLine,
@@ -483,7 +485,7 @@ struct InlineContainerState {
     /// The block size contribution of this container's default font ie the size of the
     /// "strut." Whether this is integrated into the [`Self::nested_strut_block_sizes`]
     /// depends on the line-height quirk described in
-    /// https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk.
+    /// <https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk>.
     strut_block_sizes: LineBlockSizes,
 
     /// The strut block size of this inline container maxed with the strut block
@@ -527,7 +529,7 @@ struct InlineFormattingContextState<'a, 'b> {
 
     /// The [`InlineContainerState`] for the container formed by the root of the
     /// [`InlineFormattingContext`]. This is effectively the "root inline box" described
-    /// by https://drafts.csswg.org/css-inline/#model:
+    /// by <https://drafts.csswg.org/css-inline/#model>:
     ///
     /// > The block container also generates a root inline box, which is an anonymous
     /// > inline box that holds all of its inline-level contents. (Thus, all text in an
@@ -546,10 +548,10 @@ struct InlineFormattingContextState<'a, 'b> {
     /// are currently laid out at the top-level of each [`InlineFormattingContext`].
     fragments: Vec<Fragment>,
 
-    /// Information about the line currently being laid out into [`LineItems`]s.
+    /// Information about the line currently being laid out into [`LineItem`]s.
     current_line: LineUnderConstruction,
 
-    /// Information about the unbreakable line segment currently being laid out into [`LineItems`]s.
+    /// Information about the unbreakable line segment currently being laid out into [`LineItem`]s.
     current_line_segment: UnbreakableSegmentUnderConstruction,
 
     /// The line breaking state for this inline formatting context.
@@ -1828,7 +1830,8 @@ impl IndependentFormattingContext {
                     let available_size = ifc.containing_block.inline_size - pbm_sums.inline_sum();
                     non_replaced
                         .inline_content_sizes(layout_context)
-                        .shrink_to_fit(available_size)
+                        .shrink_to_fit(available_size.into())
+                        .into()
                 });
 
                 // https://drafts.csswg.org/css2/visudet.html#min-max-widths
@@ -2183,7 +2186,7 @@ fn font_metrics_from_style(layout_context: &LayoutContext, style: &ComputedValue
 
 /// comes before or after an atomic inline element.
 ///
-/// From https://www.w3.org/TR/css-text-3/#line-break-details:
+/// From <https://www.w3.org/TR/css-text-3/#line-break-details>:
 ///
 /// > For Web-compatibility there is a soft wrap opportunity before and after each
 /// > replaced element or other atomic inline, even when adjacent to a character that
@@ -2213,7 +2216,7 @@ fn is_baseline_relative(vertical_align: GenericVerticalAlign<LengthPercentage>) 
 /// all inline containers get struts. In quirks mode this isn't always the case
 /// though.
 ///
-/// From https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk
+/// From <https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk>
 ///
 /// > ### § 3.3. The line height calculation quirk
 /// > In quirks mode and limited-quirks mode, an inline box that matches the following
@@ -2327,8 +2330,8 @@ impl<'a> ContentSizesComputation<'a> {
 
                     if !run.glyph_store.is_whitespace() {
                         self.had_non_whitespace_content_yet = true;
-                        self.current_line.min_content += advance;
-                        self.current_line.max_content += self.pending_whitespace + advance;
+                        self.current_line.min_content += advance.into();
+                        self.current_line.max_content += (self.pending_whitespace + advance).into();
                         self.pending_whitespace = Length::zero();
                     } else {
                         // If this run is a forced line break, we *must* break the line
@@ -2358,7 +2361,8 @@ impl<'a> ContentSizesComputation<'a> {
                     self.containing_block_writing_mode,
                 );
 
-                self.current_line.min_content += self.pending_whitespace + outer.min_content;
+                self.current_line.min_content +=
+                    (self.pending_whitespace + outer.min_content.into()).into();
                 self.current_line.max_content += outer.max_content;
                 self.pending_whitespace = Length::zero();
                 self.had_non_whitespace_content_yet = true;
@@ -2371,23 +2375,21 @@ impl<'a> ContentSizesComputation<'a> {
     }
 
     fn add_length(&mut self, l: Length) {
-        self.current_line.min_content += l;
-        self.current_line.max_content += l;
+        self.current_line.min_content += l.into();
+        self.current_line.max_content += l.into();
     }
 
     fn line_break_opportunity(&mut self) {
-        self.paragraph
-            .min_content
-            .max_assign(self.current_line.min_content);
-        self.current_line.min_content = Length::zero();
+        self.paragraph.min_content =
+            std::cmp::max(self.paragraph.min_content, self.current_line.min_content);
+        self.current_line.min_content = Au::zero();
     }
 
     fn forced_line_break(&mut self) {
         self.line_break_opportunity();
-        self.paragraph
-            .max_content
-            .max_assign(self.current_line.max_content);
-        self.current_line.max_content = Length::zero();
+        self.paragraph.max_content =
+            std::cmp::max(self.paragraph.max_content, self.current_line.max_content);
+        self.current_line.max_content = Au::zero();
     }
 
     /// Compute the [`ContentSizes`] of the given [`InlineFormattingContext`].
@@ -2405,6 +2407,7 @@ impl<'a> ContentSizesComputation<'a> {
             had_non_whitespace_content_yet: false,
             linebreaker: None,
             ending_inline_pbm_stack: Vec::new(),
-        }.traverse(inline_formatting_context)
+        }
+        .traverse(inline_formatting_context)
     }
 }

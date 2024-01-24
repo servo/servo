@@ -75,7 +75,7 @@ impl XRWebGLBinding {
 }
 
 impl XRWebGLBindingMethods for XRWebGLBinding {
-    /// https://immersive-web.github.io/layers/#dom-xrwebglbinding-createprojectionlayer
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createprojectionlayer>
     fn CreateProjectionLayer(
         &self,
         _: XRTextureType,
@@ -85,7 +85,7 @@ impl XRWebGLBindingMethods for XRWebGLBinding {
         Err(Error::NotSupported)
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrwebglbinding-createquadlayer
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createquadlayer>
     fn CreateQuadLayer(
         &self,
         _: XRTextureType,
@@ -95,7 +95,7 @@ impl XRWebGLBindingMethods for XRWebGLBinding {
         Err(Error::NotSupported)
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrwebglbinding-createcylinderlayer
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createcylinderlayer>
     fn CreateCylinderLayer(
         &self,
         _: XRTextureType,
@@ -105,7 +105,7 @@ impl XRWebGLBindingMethods for XRWebGLBinding {
         Err(Error::NotSupported)
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrwebglbinding-createequirectlayer
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createequirectlayer>
     fn CreateEquirectLayer(
         &self,
         _: XRTextureType,
@@ -115,13 +115,13 @@ impl XRWebGLBindingMethods for XRWebGLBinding {
         Err(Error::NotSupported)
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrwebglbinding-createcubelayer
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-createcubelayer>
     fn CreateCubeLayer(&self, _: &Option<XRCubeLayerInit>) -> Fallible<DomRoot<XRCubeLayer>> {
         // https://github.com/servo/servo/issues/27493
         Err(Error::NotSupported)
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrwebglbinding-getsubimage
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-getsubimage>
     fn GetSubImage(
         &self,
         _: &XRCompositionLayer,
@@ -132,7 +132,7 @@ impl XRWebGLBindingMethods for XRWebGLBinding {
         Err(Error::NotSupported)
     }
 
-    /// https://immersive-web.github.io/layers/#dom-xrwebglbinding-getviewsubimage
+    /// <https://immersive-web.github.io/layers/#dom-xrwebglbinding-getviewsubimage>
     fn GetViewSubImage(
         &self,
         _: &XRProjectionLayer,

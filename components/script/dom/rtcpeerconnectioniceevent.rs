@@ -90,17 +90,17 @@ impl RTCPeerConnectionIceEvent {
 }
 
 impl RTCPeerConnectionIceEventMethods for RTCPeerConnectionIceEvent {
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-candidate
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-candidate>
     fn GetCandidate(&self) -> Option<DomRoot<RTCIceCandidate>> {
         self.candidate.as_ref().map(|x| DomRoot::from_ref(&**x))
     }
 
-    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-url
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-url>
     fn GetUrl(&self) -> Option<DOMString> {
         self.url.clone()
     }
 
-    /// https://dom.spec.whatwg.org/#dom-event-istrusted
+    /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

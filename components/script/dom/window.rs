@@ -374,7 +374,7 @@ pub struct Window {
     #[ignore_malloc_size_of = "Rc is hard"]
     layout_marker: DomRefCell<Rc<Cell<bool>>>,
 
-    /// https://dom.spec.whatwg.org/#window-current-event
+    /// <https://dom.spec.whatwg.org/#window-current-event>
     current_event: DomRefCell<Option<Dom<Event>>>,
 }
 
@@ -404,7 +404,7 @@ impl Window {
     }
 
     /// A convenience method for
-    /// https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
+    /// <https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded>
     pub fn discard_browsing_context(&self) {
         let proxy = match self.window_proxy.get() {
             Some(proxy) => proxy,
@@ -1594,7 +1594,7 @@ impl Window {
         current
     }
 
-    /// https://html.spec.whatwg.org/multipage/#window-post-message-steps
+    /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
     fn post_message_impl(
         &self,
         target_origin: &USVString,
@@ -2213,7 +2213,7 @@ impl Window {
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
     ///
-    /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
+    /// <https://html.spec.whatwg.org/multipage/#navigating-across-documents>
     pub fn load_url(
         &self,
         replace: HistoryEntryReplacement,

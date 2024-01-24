@@ -10,6 +10,7 @@ use std::time::Duration;
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use euclid::Scale;
 use keyboard_types::KeyboardEvent;
+use libc::c_void;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, TraversalDirection};
 use script_traits::{MediaSessionActionType, MouseButton, TouchEventType, TouchId, WheelDelta};
 use servo_geometry::DeviceIndependentPixel;
@@ -105,6 +106,14 @@ pub enum EmbedderEvent {
     WebViewVisibilityChanged(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
+    /// Sent on platforms like Android where the native widget surface can be
+    /// automatically destroyed by the system, for example when the app
+    /// is sent to background.
+    InvalidateNativeSurface,
+    /// Sent on platforms like Android where system recreates a new surface for
+    /// the native widget when it is brough back to foreground. This event
+    /// carries the pointer to the native widget and its new size.
+    ReplaceNativeSurface(*mut c_void, DeviceIntSize),
 }
 
 impl Debug for EmbedderEvent {
@@ -139,6 +148,8 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::WebViewVisibilityChanged(..) => write!(f, "WebViewVisibilityChanged"),
             EmbedderEvent::IMEDismissed => write!(f, "IMEDismissed"),
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
+            EmbedderEvent::InvalidateNativeSurface => write!(f, "InvalidateNativeSurface"),
+            EmbedderEvent::ReplaceNativeSurface(..) => write!(f, "ReplaceNativeSurface"),
         }
     }
 }

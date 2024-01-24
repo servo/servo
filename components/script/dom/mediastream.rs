@@ -91,7 +91,7 @@ impl MediaStream {
 }
 
 impl MediaStreamMethods for MediaStream {
-    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-gettracks
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-gettracks>
     fn GetTracks(&self) -> Vec<DomRoot<MediaStreamTrack>> {
         self.tracks
             .borrow()
@@ -100,7 +100,7 @@ impl MediaStreamMethods for MediaStream {
             .collect()
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-getaudiotracks
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-getaudiotracks>
     fn GetAudioTracks(&self) -> Vec<DomRoot<MediaStreamTrack>> {
         self.tracks
             .borrow()
@@ -110,7 +110,7 @@ impl MediaStreamMethods for MediaStream {
             .collect()
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-getvideotracks
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-getvideotracks>
     fn GetVideoTracks(&self) -> Vec<DomRoot<MediaStreamTrack>> {
         self.tracks
             .borrow()
@@ -120,7 +120,7 @@ impl MediaStreamMethods for MediaStream {
             .collect()
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-gettrackbyid
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-gettrackbyid>
     fn GetTrackById(&self, id: DOMString) -> Option<DomRoot<MediaStreamTrack>> {
         self.tracks
             .borrow()
@@ -129,7 +129,7 @@ impl MediaStreamMethods for MediaStream {
             .map(|x| DomRoot::from_ref(&**x))
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-addtrack
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-addtrack>
     fn AddTrack(&self, track: &MediaStreamTrack) {
         let existing = self.tracks.borrow().iter().find(|x| *x == &track).is_some();
 
@@ -139,12 +139,12 @@ impl MediaStreamMethods for MediaStream {
         self.add_track(track)
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-removetrack
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-removetrack>
     fn RemoveTrack(&self, track: &MediaStreamTrack) {
         self.tracks.borrow_mut().retain(|x| *x != track);
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-mediastream-clone
+    /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-clone>
     fn Clone(&self) -> DomRoot<MediaStream> {
         self.clone_with_proto(None)
     }

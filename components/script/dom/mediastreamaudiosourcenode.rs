@@ -81,7 +81,7 @@ impl MediaStreamAudioSourceNode {
 }
 
 impl MediaStreamAudioSourceNodeMethods for MediaStreamAudioSourceNode {
-    /// https://webaudio.github.io/web-audio-api/#dom-MediaStreamAudioSourceNode-stream
+    /// <https://webaudio.github.io/web-audio-api/#dom-MediaStreamAudioSourceNode-stream>
     fn MediaStream(&self) -> DomRoot<MediaStream> {
         DomRoot::from_ref(&self.stream)
     }

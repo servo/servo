@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! This module implements structured cloning, as defined by [HTML]
-//! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
+//! This module implements structured cloning, as defined by [HTML](https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
 use std::collections::HashMap;
 use std::os::raw;
@@ -253,7 +252,7 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
 };
 
 /// A data holder for results from, and inputs to, structured-data read/write operations.
-/// https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data
+/// <https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data>
 pub enum StructuredDataHolder {
     Read {
         /// A map of deserialized blobs, stored temporarily here to keep them rooted.

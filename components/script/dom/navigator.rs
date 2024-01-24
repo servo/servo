@@ -174,19 +174,19 @@ impl NavigatorMethods for Navigator {
             .or_init(|| Permissions::new(&self.global()))
     }
 
-    /// https://immersive-web.github.io/webxr/#dom-navigator-xr
+    /// <https://immersive-web.github.io/webxr/#dom-navigator-xr>
     fn Xr(&self) -> DomRoot<XRSystem> {
         self.xr
             .or_init(|| XRSystem::new(&self.global().as_window()))
     }
 
-    /// https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices
+    /// <https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices>
     fn MediaDevices(&self) -> DomRoot<MediaDevices> {
         self.mediadevices
             .or_init(|| MediaDevices::new(&self.global()))
     }
 
-    /// https://w3c.github.io/mediasession/#dom-navigator-mediasession
+    /// <https://w3c.github.io/mediasession/#dom-navigator-mediasession>
     fn MediaSession(&self) -> DomRoot<MediaSession> {
         self.mediasession.or_init(|| {
             // There is a single MediaSession instance per Pipeline

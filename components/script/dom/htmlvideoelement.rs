@@ -49,9 +49,9 @@ const DEFAULT_HEIGHT: u32 = 150;
 #[dom_struct]
 pub struct HTMLVideoElement {
     htmlmediaelement: HTMLMediaElement,
-    /// https://html.spec.whatwg.org/multipage/#dom-video-videowidth
+    /// <https://html.spec.whatwg.org/multipage/#dom-video-videowidth>
     video_width: Cell<u32>,
-    /// https://html.spec.whatwg.org/multipage/#dom-video-videoheight
+    /// <https://html.spec.whatwg.org/multipage/#dom-video-videoheight>
     video_height: Cell<u32>,
     /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
@@ -136,7 +136,7 @@ impl HTMLVideoElement {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#poster-frame
+    /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     fn fetch_poster_frame(&self, poster_url: &str) {
         // Step 1.
         let cancel_receiver = self.poster_frame_canceller.borrow_mut().initialize();
@@ -182,7 +182,7 @@ impl HTMLVideoElement {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#poster-frame
+    /// <https://html.spec.whatwg.org/multipage/#poster-frame>
     fn do_fetch_poster_frame(
         &self,
         poster_url: ServoUrl,

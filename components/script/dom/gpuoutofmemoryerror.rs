@@ -33,7 +33,7 @@ impl GPUOutOfMemoryError {
         )
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuoutofmemoryerror-gpuoutofmemoryerror
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuoutofmemoryerror-gpuoutofmemoryerror>
     #[allow(non_snake_case)]
     pub fn Constructor(global: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<Self> {
         GPUOutOfMemoryError::new_with_proto(global, proto)

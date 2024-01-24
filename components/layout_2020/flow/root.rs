@@ -34,7 +34,7 @@ pub struct BoxTree {
     /// There may be zero if that element has `display: none`.
     root: BlockFormattingContext,
 
-    /// https://drafts.csswg.org/css-backgrounds/#special-backgrounds
+    /// <https://drafts.csswg.org/css-backgrounds/#special-backgrounds>
     canvas_background: CanvasBackground,
 }
 
@@ -338,7 +338,7 @@ impl BoxTree {
     }
 }
 
-/// https://drafts.csswg.org/css-backgrounds/#root-background
+/// <https://drafts.csswg.org/css-backgrounds/#root-background>
 #[derive(Clone, Serialize)]
 pub struct CanvasBackground {
     /// DOM node for the root element
@@ -346,7 +346,7 @@ pub struct CanvasBackground {
 
     /// The element whose style the canvas takes background properties from (see next field).
     /// This can be the root element (same as the previous field), or the HTML `<body>` element.
-    /// See https://drafts.csswg.org/css-backgrounds/#body-background
+    /// See <https://drafts.csswg.org/css-backgrounds/#body-background>
     pub from_element: OpaqueNode,
 
     /// The computed styles to take background properties from.

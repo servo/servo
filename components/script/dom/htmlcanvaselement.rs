@@ -442,7 +442,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         Ok(USVString(url))
     }
 
-    /// https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream
+    /// <https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream>
     fn CaptureStream(&self, _frame_request_rate: Option<Finite<f64>>) -> DomRoot<MediaStream> {
         let global = self.global();
         let stream = MediaStream::new(&*global);

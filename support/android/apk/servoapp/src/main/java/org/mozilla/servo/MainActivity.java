@@ -78,8 +78,7 @@ public class MainActivity extends Activity implements Servo.Client {
         Intent intent = getIntent();
         String args = intent.getStringExtra("servoargs");
         String log = intent.getStringExtra("servolog");
-        String gstdebug = intent.getStringExtra("gstdebug");
-        mServoView.setServoArgs(args, log, gstdebug);
+        mServoView.setServoArgs(args, log);
 
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
           mServoView.loadUri(intent.getData());
@@ -89,8 +88,10 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     protected void onDestroy() {
-      super.onDestroy();
-      mMediaSession.hideMediaSessionControls();
+        super.onDestroy();
+        if (mMediaSession != null) {
+            mMediaSession.hideMediaSessionControls();
+        }
     }
 
     private void setupUrlField() {
@@ -229,31 +230,31 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     public void onMediaSessionMetadata(String title, String artist, String album) {
-      if (mMediaSession == null) {
-        mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
-      }
-      Log.d("onMediaSessionMetadata", title + " " + artist + " " + album);
-      mMediaSession.updateMetadata(title, artist, album);
+        if (mMediaSession == null) {
+            mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+        }
+        Log.d("onMediaSessionMetadata", title + " " + artist + " " + album);
+        mMediaSession.updateMetadata(title, artist, album);
     }
 
     @Override
     public void onMediaSessionPlaybackStateChange(int state) {
-      Log.d("onMediaSessionPlaybackStateChange", String.valueOf(state));
-      if (mMediaSession == null) {
-        mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
-      }
+        Log.d("onMediaSessionPlaybackStateChange", String.valueOf(state));
+        if (mMediaSession == null) {
+            mMediaSession = new MediaSession(mServoView, this, getApplicationContext());
+        }
 
-      mMediaSession.setPlaybackState(state);
+        mMediaSession.setPlaybackState(state);
 
-      if (state == MediaSession.PLAYBACK_STATE_NONE) {
-          mMediaSession.hideMediaSessionControls();
-          return;
-      }
-      if (state == MediaSession.PLAYBACK_STATE_PLAYING ||
-          state == MediaSession.PLAYBACK_STATE_PAUSED) {
-          mMediaSession.showMediaSessionControls();
-          return;
-      }
+        if (state == MediaSession.PLAYBACK_STATE_NONE) {
+            mMediaSession.hideMediaSessionControls();
+            return;
+        }
+        if (state == MediaSession.PLAYBACK_STATE_PLAYING ||
+                state == MediaSession.PLAYBACK_STATE_PAUSED) {
+            mMediaSession.showMediaSessionControls();
+            return;
+        }
     }
 
     @Override

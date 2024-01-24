@@ -59,8 +59,8 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         self.client.get_controller()
     }
 
-    /// https://w3c.github.io/ServiceWorker/#dom-serviceworkercontainer-register - A
-    /// and https://w3c.github.io/ServiceWorker/#start-register - B
+    /// <https://w3c.github.io/ServiceWorker/#dom-serviceworkercontainer-register> - A
+    /// and <https://w3c.github.io/ServiceWorker/#start-register> - B
     fn Register(
         &self,
         script_url: USVString,

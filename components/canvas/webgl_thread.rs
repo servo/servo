@@ -2499,7 +2499,7 @@ impl WebGLImpl {
 
 /// ANGLE adds a `_u` prefix to variable names:
 ///
-/// https://chromium.googlesource.com/angle/angle/+/855d964bd0d05f6b2cb303f625506cf53d37e94f
+/// <https://chromium.googlesource.com/angle/angle/+/855d964bd0d05f6b2cb303f625506cf53d37e94f>
 ///
 /// To avoid hard-coding this we would need to use the `sh::GetAttributes` and `sh::GetUniforms`
 /// API to look up the `x.name` and `x.mappedName` members.

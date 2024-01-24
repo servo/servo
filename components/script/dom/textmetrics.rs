@@ -97,62 +97,62 @@ impl TextMetrics {
 }
 
 impl TextMetricsMethods for TextMetrics {
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-width
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-width>
     fn Width(&self) -> Finite<f64> {
         self.width
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-actualboundingboxleft
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-actualboundingboxleft>
     fn ActualBoundingBoxLeft(&self) -> Finite<f64> {
         self.actualBoundingBoxLeft
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-actualboundingboxright
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-actualboundingboxright>
     fn ActualBoundingBoxRight(&self) -> Finite<f64> {
         self.actualBoundingBoxRight
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-fontboundingboxascent
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-fontboundingboxascent>
     fn FontBoundingBoxAscent(&self) -> Finite<f64> {
         self.fontBoundingBoxAscent
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-fontboundingboxascent
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-fontboundingboxascent>
     fn FontBoundingBoxDescent(&self) -> Finite<f64> {
         self.fontBoundingBoxDescent
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-actualboundingboxascent
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-actualboundingboxascent>
     fn ActualBoundingBoxAscent(&self) -> Finite<f64> {
         self.actualBoundingBoxAscent
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-actualboundingboxdescent
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-actualboundingboxdescent>
     fn ActualBoundingBoxDescent(&self) -> Finite<f64> {
         self.actualBoundingBoxDescent
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-emheightascent
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-emheightascent>
     fn EmHeightAscent(&self) -> Finite<f64> {
         self.emHeightAscent
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-emheightdescent
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-emheightdescent>
     fn EmHeightDescent(&self) -> Finite<f64> {
         self.emHeightDescent
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-hangingbaseline
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-hangingbaseline>
     fn HangingBaseline(&self) -> Finite<f64> {
         self.hangingBaseline
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-alphabeticbaseline
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-alphabeticbaseline>
     fn AlphabeticBaseline(&self) -> Finite<f64> {
         self.alphabeticBaseline
     }
 
-    /// https://html.spec.whatwg.org/multipage/#dom-textmetrics-ideographicbaseline
+    /// <https://html.spec.whatwg.org/multipage/#dom-textmetrics-ideographicbaseline>
     fn IdeographicBaseline(&self) -> Finite<f64> {
         self.ideographicBaseline
     }

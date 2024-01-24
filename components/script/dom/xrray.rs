@@ -48,7 +48,7 @@ impl XRRay {
     }
 
     #[allow(non_snake_case)]
-    /// https://immersive-web.github.io/hit-test/#dom-xrray-xrray
+    /// <https://immersive-web.github.io/hit-test/#dom-xrray-xrray>
     pub fn Constructor(
         window: &Window,
         proto: Option<HandleObject>,
@@ -83,7 +83,7 @@ impl XRRay {
     }
 
     #[allow(non_snake_case)]
-    /// https://immersive-web.github.io/hit-test/#dom-xrray-xrray-transform
+    /// <https://immersive-web.github.io/hit-test/#dom-xrray-xrray-transform>
     pub fn Constructor_(
         window: &Window,
         proto: Option<HandleObject>,
@@ -108,7 +108,7 @@ impl XRRay {
 }
 
 impl XRRayMethods for XRRay {
-    /// https://immersive-web.github.io/hit-test/#dom-xrray-origin
+    /// <https://immersive-web.github.io/hit-test/#dom-xrray-origin>
     fn Origin(&self) -> DomRoot<DOMPointReadOnly> {
         DOMPointReadOnly::new(
             &self.global(),
@@ -119,7 +119,7 @@ impl XRRayMethods for XRRay {
         )
     }
 
-    /// https://immersive-web.github.io/hit-test/#dom-xrray-direction
+    /// <https://immersive-web.github.io/hit-test/#dom-xrray-direction>
     fn Direction(&self) -> DomRoot<DOMPointReadOnly> {
         DOMPointReadOnly::new(
             &self.global(),
@@ -130,7 +130,7 @@ impl XRRayMethods for XRRay {
         )
     }
 
-    /// https://immersive-web.github.io/hit-test/#dom-xrray-matrix
+    /// <https://immersive-web.github.io/hit-test/#dom-xrray-matrix>
     fn Matrix(&self, _cx: JSContext) -> Float32Array {
         // https://immersive-web.github.io/hit-test/#xrray-obtain-the-matrix
         if !self.matrix.is_initialized() {

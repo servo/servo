@@ -38,18 +38,18 @@ pub(crate) struct ReplacedContent {
 
 /// * Raster images always have an intrinsic width and height, with 1 image pixel = 1px.
 ///   The intrinsic ratio should be based on dividing those.
-///   See https://github.com/w3c/csswg-drafts/issues/4572 for the case where either is zero.
+///   See <https://github.com/w3c/csswg-drafts/issues/4572> for the case where either is zero.
 ///   PNG specifically disallows this but I (SimonSapin) am not sure about other formats.
 ///
 /// * Form controls have both intrinsic width and height **but no intrinsic ratio**.
-///   See https://github.com/w3c/csswg-drafts/issues/1044 and
-///   https://drafts.csswg.org/css-images/#intrinsic-dimensions “In general, […]”
+///   See <https://github.com/w3c/csswg-drafts/issues/1044> and
+///   <https://drafts.csswg.org/css-images/#intrinsic-dimensions> “In general, […]”
 ///
-/// * For SVG, see https://svgwg.org/svg2-draft/coords.html#SizingSVGInCSS
-///   and again https://github.com/w3c/csswg-drafts/issues/4572.
+/// * For SVG, see <https://svgwg.org/svg2-draft/coords.html#SizingSVGInCSS>
+///   and again <https://github.com/w3c/csswg-drafts/issues/4572>.
 ///
 /// * IFrames do not have intrinsic width and height or intrinsic ratio according
-///   to https://drafts.csswg.org/css-images/#intrinsic-dimensions.
+///   to <https://drafts.csswg.org/css-images/#intrinsic-dimensions>.
 #[derive(Debug, Serialize)]
 pub(crate) struct IntrinsicSizes {
     pub width: Option<Au>,
@@ -241,8 +241,8 @@ impl ReplacedContent {
             .inline
             .unwrap_or(Length::zero());
         ContentSizes {
-            min_content: inline,
-            max_content: inline,
+            min_content: inline.into(),
+            max_content: inline.into(),
         }
     }
 
@@ -318,11 +318,11 @@ impl ReplacedContent {
         }
     }
 
-    /// https://drafts.csswg.org/css2/visudet.html#inline-replaced-width
-    /// https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
+    /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
+    /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-height>
     ///
     /// Also used in other cases, for example
-    /// https://drafts.csswg.org/css2/visudet.html#block-replaced-width
+    /// <https://drafts.csswg.org/css2/visudet.html#block-replaced-width>
     pub fn used_size_as_if_inline_element(
         &self,
         containing_block: &ContainingBlock,
