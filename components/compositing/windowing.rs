@@ -82,14 +82,14 @@ pub enum EmbedderEvent {
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload(TopLevelBrowsingContextId),
     /// Create a new top level browsing context
-    NewWebview(ServoUrl, TopLevelBrowsingContextId),
+    NewWebView(ServoUrl, TopLevelBrowsingContextId),
     /// Close a top level browsing context
-    CloseWebview(TopLevelBrowsingContextId),
+    CloseWebView(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
     /// Make a top level browsing context visible, hiding the previous
     /// visible one.
-    FocusWebview(TopLevelBrowsingContextId),
+    FocusWebView(TopLevelBrowsingContextId),
     /// Toggles a debug flag in WebRender
     ToggleWebRenderDebug(WebRenderDebugOption),
     /// Capture current WebRender
@@ -102,7 +102,7 @@ pub enum EmbedderEvent {
     /// (play, pause, seek, etc.).
     MediaSessionAction(MediaSessionActionType),
     /// The visibility of the webview has changed.
-    WebviewVisibilityChanged(TopLevelBrowsingContextId, bool),
+    WebViewVisibilityChanged(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
 }
@@ -127,16 +127,16 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::Navigation(..) => write!(f, "Navigation"),
             EmbedderEvent::Quit => write!(f, "Quit"),
             EmbedderEvent::Reload(..) => write!(f, "Reload"),
-            EmbedderEvent::NewWebview(..) => write!(f, "NewWebview"),
+            EmbedderEvent::NewWebView(..) => write!(f, "NewWebView"),
             EmbedderEvent::SendError(..) => write!(f, "SendError"),
-            EmbedderEvent::CloseWebview(..) => write!(f, "CloseWebview"),
-            EmbedderEvent::FocusWebview(..) => write!(f, "FocusWebview"),
+            EmbedderEvent::CloseWebView(..) => write!(f, "CloseWebView"),
+            EmbedderEvent::FocusWebView(..) => write!(f, "FocusWebView"),
             EmbedderEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
             EmbedderEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
             EmbedderEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
             EmbedderEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
             EmbedderEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
-            EmbedderEvent::WebviewVisibilityChanged(..) => write!(f, "WebviewVisibilityChanged"),
+            EmbedderEvent::WebViewVisibilityChanged(..) => write!(f, "WebViewVisibilityChanged"),
             EmbedderEvent::IMEDismissed => write!(f, "IMEDismissed"),
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
         }

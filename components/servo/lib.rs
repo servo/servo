@@ -626,8 +626,8 @@ where
                 self.compositor.capture_webrender();
             },
 
-            EmbedderEvent::NewWebview(url, top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::NewWebview(url, top_level_browsing_context_id);
+            EmbedderEvent::NewWebView(url, top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::NewWebView(url, top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending NewBrowser message to constellation failed ({:?}).",
@@ -636,8 +636,8 @@ where
                 }
             },
 
-            EmbedderEvent::FocusWebview(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::FocusWebview(top_level_browsing_context_id);
+            EmbedderEvent::FocusWebView(top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::FocusWebView(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending FocusBrowser message to constellation failed ({:?}).",
@@ -646,8 +646,8 @@ where
                 }
             },
 
-            EmbedderEvent::CloseWebview(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::CloseWebview(top_level_browsing_context_id);
+            EmbedderEvent::CloseWebView(top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::CloseWebView(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending CloseBrowser message to constellation failed ({:?}).",
@@ -676,11 +676,11 @@ where
                 }
             },
 
-            EmbedderEvent::WebviewVisibilityChanged(webview_id, visible) => {
-                let msg = ConstellationMsg::WebviewVisibilityChanged(webview_id, visible);
+            EmbedderEvent::WebViewVisibilityChanged(webview_id, visible) => {
+                let msg = ConstellationMsg::WebViewVisibilityChanged(webview_id, visible);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
-                        "Sending WebviewVisibilityChanged to constellation failed ({:?}).",
+                        "Sending WebViewVisibilityChanged to constellation failed ({:?}).",
                         e
                     );
                 }

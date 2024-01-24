@@ -27,13 +27,13 @@ use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::minibrowser::Minibrowser;
 use crate::parser::get_default_url;
-use crate::webview::WebviewManager;
+use crate::webview::WebViewManager;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
 
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
-    webviews: RefCell<WebviewManager<dyn WindowPortsMethods>>,
+    webviews: RefCell<WebViewManager<dyn WindowPortsMethods>>,
     event_queue: RefCell<Vec<EmbedderEvent>>,
     suspended: Cell<bool>,
     windows: HashMap<WindowId, Rc<dyn WindowPortsMethods>>,
@@ -81,7 +81,7 @@ impl App {
         };
 
         // Handle browser state.
-        let webviews = WebviewManager::new(window.clone());
+        let webviews = WebViewManager::new(window.clone());
         let initial_url = get_default_url(
             url.as_ref().map(String::as_str),
             env::current_dir().unwrap(),
@@ -200,7 +200,7 @@ impl App {
                     );
                     let mut servo = servo_data.servo;
 
-                    servo.handle_events(vec![EmbedderEvent::NewWebview(
+                    servo.handle_events(vec![EmbedderEvent::NewWebView(
                         initial_url.to_owned(),
                         servo_data.browser_id,
                     )]);
@@ -422,9 +422,9 @@ impl App {
     /// towards Servo and embedder messages flow away from Servo, and also runs the compositor.
     ///
     /// As the embedder, we push embedder events through our event queues, from the App queue and
-    /// Window queues to the WebviewManager queue, and from the WebviewManager queue to Servo. We
+    /// Window queues to the WebViewManager queue, and from the WebViewManager queue to Servo. We
     /// receive and collect embedder messages from the various Servo components, then take them out
-    /// of the Servo interface so that the WebviewManager can handle them.
+    /// of the Servo interface so that the WebViewManager can handle them.
     fn handle_events(&mut self) -> PumpResult {
         let mut webviews = self.webviews.borrow_mut();
 
@@ -434,7 +434,7 @@ impl App {
             embedder_events.extend(window.get_events());
         }
 
-        // Catch some keyboard events, and push the rest onto the WebviewManager event queue.
+        // Catch some keyboard events, and push the rest onto the WebViewManager event queue.
         webviews.handle_window_events(embedder_events);
 
         // Take any new embedder messages from Servo itself.
@@ -448,7 +448,7 @@ impl App {
             need_present |= servo_event_response.need_present;
             history_changed |= servo_event_response.history_changed;
 
-            // Route embedder events from the WebviewManager to the relevant Servo components,
+            // Route embedder events from the WebViewManager to the relevant Servo components,
             // receives and collects embedder messages from various Servo components,
             // and runs the compositor.
             need_resize |= self

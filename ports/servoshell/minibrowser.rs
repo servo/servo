@@ -24,7 +24,7 @@ use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
 use crate::geometry::winit_position_to_euclid_point;
 use crate::parser::location_bar_input_to_url;
-use crate::webview::WebviewManager;
+use crate::webview::WebViewManager;
 use crate::window_trait::WindowPortsMethods;
 
 pub struct Minibrowser {
@@ -260,7 +260,7 @@ impl Minibrowser {
     /// routing those to the App event queue.
     pub fn queue_embedder_events_for_minibrowser_events(
         &self,
-        browser: &WebviewManager<dyn WindowPortsMethods>,
+        browser: &WebViewManager<dyn WindowPortsMethods>,
         app_event_queue: &mut Vec<EmbedderEvent>,
     ) {
         for event in self.event_queue.borrow_mut().drain(..) {
@@ -297,7 +297,7 @@ impl Minibrowser {
     /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
     pub fn update_location_in_toolbar(
         &mut self,
-        browser: &mut WebviewManager<dyn WindowPortsMethods>,
+        browser: &mut WebViewManager<dyn WindowPortsMethods>,
     ) -> bool {
         // User edited without clicking Go?
         if self.location_dirty.get() {

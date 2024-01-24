@@ -18,7 +18,7 @@ use servo::embedder_traits::{
     CompositorEventVariant, ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt,
     PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
 };
-use servo::msg::constellation_msg::{TopLevelBrowsingContextId as WebviewId, TraversalDirection};
+use servo::msg::constellation_msg::{TopLevelBrowsingContextId as WebViewId, TraversalDirection};
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
@@ -29,21 +29,21 @@ use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use crate::parser::location_bar_input_to_url;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
-pub struct WebviewManager<Window: WindowPortsMethods + ?Sized> {
+pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
     current_url_string: Option<String>,
 
     /// List of top-level browsing contexts.
-    /// Modified by EmbedderMsg::WebviewOpened and EmbedderMsg::WebviewClosed,
+    /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
     /// and we exit if it ever becomes empty.
-    webviews: HashMap<WebviewId, Webview>,
+    webviews: HashMap<WebViewId, WebView>,
 
     /// The order in which the webviews were created.
-    creation_order: Vec<WebviewId>,
+    creation_order: Vec<WebViewId>,
 
     /// The webview that is currently focused.
-    /// Modified by EmbedderMsg::WebviewFocused and EmbedderMsg::WebviewBlurred.
-    focused_webview_id: Option<WebviewId>,
+    /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
+    focused_webview_id: Option<WebViewId>,
 
     title: Option<String>,
 
@@ -54,19 +54,19 @@ pub struct WebviewManager<Window: WindowPortsMethods + ?Sized> {
 }
 
 #[derive(Debug)]
-pub struct Webview {}
+pub struct WebView {}
 
 pub struct ServoEventResponse {
     pub need_present: bool,
     pub history_changed: bool,
 }
 
-impl<Window> WebviewManager<Window>
+impl<Window> WebViewManager<Window>
 where
     Window: WindowPortsMethods + ?Sized,
 {
-    pub fn new(window: Rc<Window>) -> WebviewManager<Window> {
-        WebviewManager {
+    pub fn new(window: Rc<Window>) -> WebViewManager<Window> {
+        WebViewManager {
             title: None,
             current_url: None,
             current_url_string: None,
@@ -86,7 +86,7 @@ where
         }
     }
 
-    pub fn webview_id(&self) -> Option<WebviewId> {
+    pub fn webview_id(&self) -> Option<WebViewId> {
         self.focused_webview_id
     }
 
@@ -224,7 +224,7 @@ where
     fn platform_handle_key(&mut self, _key_event: KeyboardEvent) {}
 
     /// Handle key events after they have been handled by Servo.
-    fn handle_key_from_servo(&mut self, _: Option<WebviewId>, event: KeyboardEvent) {
+    fn handle_key_from_servo(&mut self, _: Option<WebViewId>, event: KeyboardEvent) {
         ShortcutMatcher::from_event(event)
             .shortcut(CMD_OR_CONTROL, '=', || {
                 self.event_queue.push(EmbedderEvent::Zoom(1.1))
@@ -292,7 +292,7 @@ where
     /// Returns true if the caller needs to manually present a new frame.
     pub fn handle_servo_events(
         &mut self,
-        events: Vec<(Option<WebviewId>, EmbedderMsg)>,
+        events: Vec<(Option<WebViewId>, EmbedderMsg)>,
     ) -> ServoEventResponse {
         let mut need_present = false;
         let mut history_changed = false;
@@ -419,20 +419,20 @@ where
                             .push(EmbedderEvent::AllowNavigationResponse(pipeline_id, true));
                     }
                 },
-                EmbedderMsg::AllowOpeningWebview(response_chan) => {
+                EmbedderMsg::AllowOpeningWebView(response_chan) => {
                     // Note: would be a place to handle pop-ups config.
                     // see Step 7 of #the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
                     if let Err(e) = response_chan.send(true) {
-                        warn!("Failed to send AllowOpeningWebview response: {}", e);
+                        warn!("Failed to send AllowOpeningWebView response: {}", e);
                     };
                 },
-                EmbedderMsg::WebviewOpened(new_webview_id) => {
-                    self.webviews.insert(new_webview_id, Webview {});
+                EmbedderMsg::WebViewOpened(new_webview_id) => {
+                    self.webviews.insert(new_webview_id, WebView {});
                     self.creation_order.push(new_webview_id);
                     self.event_queue
-                        .push(EmbedderEvent::FocusWebview(new_webview_id));
+                        .push(EmbedderEvent::FocusWebView(new_webview_id));
                 },
-                EmbedderMsg::WebviewClosed(top_level_browsing_context_id) => {
+                EmbedderMsg::WebViewClosed(top_level_browsing_context_id) => {
                     self.webviews
                         .retain(|&id, _| id != top_level_browsing_context_id);
                     self.creation_order
@@ -440,15 +440,15 @@ where
                     self.focused_webview_id = None;
                     if let Some(&newest_webview_id) = self.creation_order.last() {
                         self.event_queue
-                            .push(EmbedderEvent::FocusWebview(newest_webview_id));
+                            .push(EmbedderEvent::FocusWebView(newest_webview_id));
                     } else {
                         self.event_queue.push(EmbedderEvent::Quit);
                     }
                 },
-                EmbedderMsg::WebviewFocused(top_level_browsing_context_id) => {
+                EmbedderMsg::WebViewFocused(top_level_browsing_context_id) => {
                     self.focused_webview_id = Some(top_level_browsing_context_id);
                 },
-                EmbedderMsg::WebviewBlurred => {
+                EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;
                 },
                 EmbedderMsg::Keyboard(key_event) => {

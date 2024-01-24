@@ -172,7 +172,7 @@ use crate::session_history::{
     JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
 };
 use crate::timer_scheduler::TimerScheduler;
-use crate::webview::WebviewManager;
+use crate::webview::WebViewManager;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
 
@@ -226,7 +226,7 @@ struct WebrenderWGPU {
 
 /// Servo supports multiple top-level browsing contexts or “webviews”, so `Constellation` needs to
 /// store webview-specific data for bookkeeping.
-struct Webview {
+struct WebView {
     /// The currently focused browsing context in this webview for key events.
     /// The focused pipeline is the current entry of the focused browsing
     /// context.
@@ -327,7 +327,7 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     compositor_proxy: CompositorProxy,
 
     /// Bookkeeping data for all webviews in the constellation.
-    webviews: WebviewManager<Webview>,
+    webviews: WebViewManager<WebView>,
 
     /// Channels for the constellation to send messages to the public
     /// resource-related threads. There are two groups of resource threads: one
@@ -754,7 +754,7 @@ where
                     network_listener_receiver: network_listener_receiver,
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy,
-                    webviews: WebviewManager::default(),
+                    webviews: WebViewManager::default(),
                     devtools_sender: state.devtools_sender,
                     bluetooth_ipc_sender: state.bluetooth_thread,
                     public_resource_threads: state.public_resource_threads,
@@ -1461,11 +1461,11 @@ where
             },
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
-            FromCompositorMsg::NewWebview(url, top_level_browsing_context_id) => {
+            FromCompositorMsg::NewWebView(url, top_level_browsing_context_id) => {
                 self.handle_new_top_level_browsing_context(url, top_level_browsing_context_id);
             },
             // Close a top level browsing context.
-            FromCompositorMsg::CloseWebview(top_level_browsing_context_id) => {
+            FromCompositorMsg::CloseWebView(top_level_browsing_context_id) => {
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
             },
             // Panic a top level browsing context.
@@ -1476,23 +1476,23 @@ where
                 }
                 self.handle_panic(top_level_browsing_context_id, error, None);
             },
-            FromCompositorMsg::FocusWebview(top_level_browsing_context_id) => {
+            FromCompositorMsg::FocusWebView(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {
-                    return warn!("{top_level_browsing_context_id}: FocusWebview on unknown top-level browsing context");
+                    return warn!("{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context");
                 }
                 self.webviews.focus(top_level_browsing_context_id);
                 self.embedder_proxy.send((
                     Some(top_level_browsing_context_id),
-                    EmbedderMsg::WebviewFocused(top_level_browsing_context_id),
+                    EmbedderMsg::WebViewFocused(top_level_browsing_context_id),
                 ));
                 if !cfg!(feature = "multiview") {
                     self.update_frame_tree_if_focused(top_level_browsing_context_id);
                 }
             },
-            FromCompositorMsg::BlurWebview => {
+            FromCompositorMsg::BlurWebView => {
                 self.webviews.unfocus();
                 self.embedder_proxy
-                    .send((None, EmbedderMsg::WebviewBlurred));
+                    .send((None, EmbedderMsg::WebViewBlurred));
             },
             // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(top_level_browsing_context_id, direction) => {
@@ -1541,7 +1541,7 @@ where
             FromCompositorMsg::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
             },
-            FromCompositorMsg::WebviewVisibilityChanged(webview_id, visible) => {
+            FromCompositorMsg::WebViewVisibilityChanged(webview_id, visible) => {
                 self.notify_webview_visibility(webview_id, visible);
             },
             FromCompositorMsg::ReadyToPresent(top_level_browsing_context_id) => {
@@ -2941,7 +2941,7 @@ where
         let pipeline_id = PipelineId::new();
         let msg = (
             Some(top_level_browsing_context_id),
-            EmbedderMsg::WebviewOpened(top_level_browsing_context_id),
+            EmbedderMsg::WebViewOpened(top_level_browsing_context_id),
         );
         self.embedder_proxy.send(msg);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
@@ -2961,7 +2961,7 @@ where
         // its focused browsing context to be itself.
         self.webviews.add(
             top_level_browsing_context_id,
-            Webview {
+            WebView {
                 focused_browsing_context_id: browsing_context_id,
                 session_history: JointSessionHistory::new(),
             },
@@ -3014,13 +3014,13 @@ where
         if self.webviews.focused_webview().map(|(id, _)| id) == Some(top_level_browsing_context_id)
         {
             self.embedder_proxy
-                .send((None, EmbedderMsg::WebviewBlurred));
+                .send((None, EmbedderMsg::WebViewBlurred));
         }
         self.webviews.remove(top_level_browsing_context_id);
-        // TODO Send the compositor a RemoveWebview event.
+        // TODO Send the compositor a RemoveWebView event.
         self.embedder_proxy.send((
             Some(top_level_browsing_context_id),
-            EmbedderMsg::WebviewClosed(top_level_browsing_context_id),
+            EmbedderMsg::WebViewClosed(top_level_browsing_context_id),
         ));
 
         let Some(browsing_context) = browsing_context else {
@@ -3344,7 +3344,7 @@ where
         self.pipelines.insert(new_pipeline_id, pipeline);
         self.webviews.add(
             new_top_level_browsing_context_id,
-            Webview {
+            WebView {
                 focused_browsing_context_id: new_browsing_context_id,
                 session_history: JointSessionHistory::new(),
             },
@@ -4217,7 +4217,7 @@ where
         self.webviews.focus(top_level_browsing_context_id);
         self.embedder_proxy.send((
             Some(top_level_browsing_context_id),
-            EmbedderMsg::WebviewFocused(top_level_browsing_context_id),
+            EmbedderMsg::WebViewFocused(top_level_browsing_context_id),
         ));
 
         // Update the webview’s focused browsing context.

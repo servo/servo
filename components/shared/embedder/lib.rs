@@ -155,15 +155,15 @@ pub enum EmbedderMsg {
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningWebview(IpcSender<bool>),
+    AllowOpeningWebView(IpcSender<bool>),
     /// A browser was created
-    WebviewOpened(TopLevelBrowsingContextId),
+    WebViewOpened(TopLevelBrowsingContextId),
     /// A browser was destroyed
-    WebviewClosed(TopLevelBrowsingContextId),
+    WebViewClosed(TopLevelBrowsingContextId),
     /// A browser gained focus for keyboard events
-    WebviewFocused(TopLevelBrowsingContextId),
+    WebViewFocused(TopLevelBrowsingContextId),
     /// All browsers lost focus for keyboard events
-    WebviewBlurred,
+    WebViewBlurred,
     /// Wether or not to unload a document
     AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
@@ -256,11 +256,11 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
             EmbedderMsg::HideIME => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
-            EmbedderMsg::AllowOpeningWebview(..) => write!(f, "AllowOpeningWebview"),
-            EmbedderMsg::WebviewOpened(..) => write!(f, "WebviewOpened"),
-            EmbedderMsg::WebviewClosed(..) => write!(f, "WebviewClosed"),
-            EmbedderMsg::WebviewFocused(..) => write!(f, "WebviewFocused"),
-            EmbedderMsg::WebviewBlurred => write!(f, "WebviewUnfocused"),
+            EmbedderMsg::AllowOpeningWebView(..) => write!(f, "AllowOpeningWebView"),
+            EmbedderMsg::WebViewOpened(..) => write!(f, "WebViewOpened"),
+            EmbedderMsg::WebViewClosed(..) => write!(f, "WebViewClosed"),
+            EmbedderMsg::WebViewFocused(..) => write!(f, "WebViewFocused"),
+            EmbedderMsg::WebViewBlurred => write!(f, "WebViewUnfocused"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),

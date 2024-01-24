@@ -55,15 +55,15 @@ pub enum ConstellationMsg {
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
-    NewWebview(ServoUrl, TopLevelBrowsingContextId),
+    NewWebView(ServoUrl, TopLevelBrowsingContextId),
     /// Close a top level browsing context.
-    CloseWebview(TopLevelBrowsingContextId),
+    CloseWebView(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
     /// Make a top-level browsing context focused.
-    FocusWebview(TopLevelBrowsingContextId),
+    FocusWebView(TopLevelBrowsingContextId),
     /// Make none of the top-level browsing contexts focused.
-    BlurWebview,
+    BlurWebView,
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
@@ -77,7 +77,7 @@ pub enum ConstellationMsg {
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
     /// The visibility of the webview has changed.
-    WebviewVisibilityChanged(TopLevelBrowsingContextId, bool),
+    WebViewVisibilityChanged(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Compositing done, but external code needs to present.
@@ -102,10 +102,10 @@ impl fmt::Debug for ConstellationMsg {
             WebDriverCommand(..) => "WebDriverCommand",
             Reload(..) => "Reload",
             LogEntry(..) => "LogEntry",
-            NewWebview(..) => "NewWebview",
-            CloseWebview(..) => "CloseWebview",
-            FocusWebview(..) => "FocusWebview",
-            BlurWebview => "BlurWebview",
+            NewWebView(..) => "NewWebView",
+            CloseWebView(..) => "CloseWebView",
+            FocusWebView(..) => "FocusWebView",
+            BlurWebView => "BlurWebView",
             SendError(..) => "SendError",
             ForwardEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",
@@ -113,7 +113,7 @@ impl fmt::Debug for ConstellationMsg {
             DisableProfiler => "DisableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
-            WebviewVisibilityChanged(..) => "WebviewVisibilityChanged",
+            WebViewVisibilityChanged(..) => "WebViewVisibilityChanged",
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",

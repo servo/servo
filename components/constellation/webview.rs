@@ -7,10 +7,10 @@ use std::collections::HashMap;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 
 #[derive(Debug)]
-pub struct WebviewManager<Webview> {
+pub struct WebViewManager<WebView> {
     /// Our top-level browsing contexts. In the WebRender scene, their pipelines are the children of
     /// a single root pipeline that also applies any pinch zoom transformation.
-    webviews: HashMap<TopLevelBrowsingContextId, Webview>,
+    webviews: HashMap<TopLevelBrowsingContextId, WebView>,
 
     /// The order in which they were focused, latest last.
     focus_order: Vec<TopLevelBrowsingContextId>,
@@ -19,7 +19,7 @@ pub struct WebviewManager<Webview> {
     is_focused: bool,
 }
 
-impl<Webview> Default for WebviewManager<Webview> {
+impl<WebView> Default for WebViewManager<WebView> {
     fn default() -> Self {
         Self {
             webviews: HashMap::default(),
@@ -29,11 +29,11 @@ impl<Webview> Default for WebviewManager<Webview> {
     }
 }
 
-impl<Webview> WebviewManager<Webview> {
+impl<WebView> WebViewManager<WebView> {
     pub fn add(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        webview: Webview,
+        webview: WebView,
     ) {
         self.webviews.insert(top_level_browsing_context_id, webview);
     }
@@ -41,7 +41,7 @@ impl<Webview> WebviewManager<Webview> {
     pub fn remove(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) -> Option<Webview> {
+    ) -> Option<WebView> {
         if self.focus_order.last() == Some(&top_level_browsing_context_id) {
             self.is_focused = false;
         }
@@ -53,18 +53,18 @@ impl<Webview> WebviewManager<Webview> {
     pub fn get(
         &self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) -> Option<&Webview> {
+    ) -> Option<&WebView> {
         self.webviews.get(&top_level_browsing_context_id)
     }
 
     pub fn get_mut(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) -> Option<&mut Webview> {
+    ) -> Option<&mut WebView> {
         self.webviews.get_mut(&top_level_browsing_context_id)
     }
 
-    pub fn focused_webview(&self) -> Option<(TopLevelBrowsingContextId, &Webview)> {
+    pub fn focused_webview(&self) -> Option<(TopLevelBrowsingContextId, &WebView)> {
         if !self.is_focused {
             return None;
         }
@@ -94,7 +94,7 @@ impl<Webview> WebviewManager<Webview> {
         self.is_focused = false;
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&TopLevelBrowsingContextId, &Webview)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&TopLevelBrowsingContextId, &WebView)> {
         self.webviews.iter()
     }
 }
@@ -108,7 +108,7 @@ mod test {
         TopLevelBrowsingContextId,
     };
 
-    use crate::webview::WebviewManager;
+    use crate::webview::WebViewManager;
 
     fn top_level_id(namespace_id: u32, index: u32) -> TopLevelBrowsingContextId {
         TopLevelBrowsingContextId(BrowsingContextId {
@@ -117,9 +117,9 @@ mod test {
         })
     }
 
-    fn webviews_sorted<Webview: Clone>(
-        webviews: &WebviewManager<Webview>,
-    ) -> Vec<(TopLevelBrowsingContextId, Webview)> {
+    fn webviews_sorted<WebView: Clone>(
+        webviews: &WebViewManager<WebView>,
+    ) -> Vec<(TopLevelBrowsingContextId, WebView)> {
         let mut keys = webviews.webviews.keys().collect::<Vec<_>>();
         keys.sort();
         keys.iter()
@@ -139,7 +139,7 @@ mod test {
     #[test]
     fn test() {
         PipelineNamespace::install(PipelineNamespaceId(0));
-        let mut webviews = WebviewManager::default();
+        let mut webviews = WebViewManager::default();
 
         // add() adds the webview to the map, but does not focus it.
         webviews.add(TopLevelBrowsingContextId::new(), 'a');
