@@ -93,10 +93,6 @@ impl<WebView> WebViewManager<WebView> {
     pub fn unfocus(&mut self) {
         self.is_focused = false;
     }
-
-    pub fn iter(&self) -> impl Iterator<Item = (&TopLevelBrowsingContextId, &WebView)> {
-        self.webviews.iter()
-    }
 }
 
 #[cfg(test)]
