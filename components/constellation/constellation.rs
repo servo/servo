@@ -3010,7 +3010,7 @@ where
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
-        debug!("{}: Closing", top_level_browsing_context_id);
+        debug!("{top_level_browsing_context_id}: Closing");
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let browsing_context =
             self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
@@ -3040,8 +3040,7 @@ where
             .remove(&top_level_browsing_context_id)
         {
             warn!(
-                "{}: Top-level browsing context not found in {}",
-                top_level_browsing_context_id, bc_group_id
+                "{top_level_browsing_context_id}: Top-level browsing context not found in {bc_group_id}",
             );
         }
         if bc_group.top_level_browsing_context_set.is_empty() {
@@ -3049,7 +3048,7 @@ where
                 .remove(&browsing_context.bc_group_id);
         }
 
-        debug!("{}: Closed", top_level_browsing_context_id);
+        debug!("{top_level_browsing_context_id}: Closed");
     }
 
     fn handle_iframe_size_msg(&mut self, iframe_sizes: Vec<IFrameSizeMsg>) {
@@ -4480,13 +4479,12 @@ where
             Some(browsing_context) => browsing_context.pipeline_id,
             None => {
                 return warn!(
-                    "{}: Tried to notify visibility after closure",
-                    browsing_context_id
+                    "{browsing_context_id}: Tried to notify visibility after closure",
                 );
             },
         };
         match self.pipelines.get(&pipeline_id) {
-            None => return warn!("{}: Tried to notify visibility after closure", pipeline_id),
+            None => return warn!("{pipeline_id}: Tried to notify visibility after closure"),
             Some(pipeline) => pipeline.notify_visibility(visible),
         };
     }
@@ -5196,7 +5194,7 @@ where
         let browsing_context = match self.browsing_contexts.remove(&browsing_context_id) {
             Some(ctx) => ctx,
             None => {
-                warn!("{}: Closing twice", browsing_context_id);
+                warn!("{browsing_context_id}: Closing twice");
                 return None;
             },
         };
@@ -5209,7 +5207,7 @@ where
         if let Some(parent_pipeline_id) = browsing_context.parent_pipeline_id {
             match self.pipelines.get_mut(&parent_pipeline_id) {
                 None => {
-                    warn!("{}: Child closed after parent", parent_pipeline_id);
+                    warn!("{parent_pipeline_id}: Child closed after parent");
                 },
                 Some(parent_pipeline) => parent_pipeline.remove_child(browsing_context_id),
             };
