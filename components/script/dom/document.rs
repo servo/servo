@@ -2927,7 +2927,15 @@ impl Document {
     /// https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations
     pub fn broadcast_active_resize_observations(&self) -> ResizeObservationDepth {
         let mut shallowest_target_depth = Default::default();
-        for observer in self.resize_observers.borrow_mut().iter_mut() {
+
+        // Breaking potential re-borrow cycle.
+        let observations: Vec<DomRoot<ResizeObserver>> = self
+            .resize_observers
+            .borrow()
+            .iter()
+            .map(|obs| DomRoot::from_ref(&**obs))
+            .collect();
+        for observer in observations {
             observer.broadcast_active_resize_observations(&mut shallowest_target_depth);
         }
         shallowest_target_depth
