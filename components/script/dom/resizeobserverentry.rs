@@ -22,10 +22,15 @@ use crate::script_runtime::JSContext as SafeJSContext;
 #[dom_struct]
 pub struct ResizeObserverEntry {
     reflector_: Reflector,
+    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-target>
     target: Dom<Element>,
+    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-contentrect>
     content_rect: Dom<DOMRectReadOnly>,
+    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-borderboxsize>
     border_box_size: Vec<Dom<ResizeObserverSize>>,
+    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-contentboxsize>
     content_box_size: Vec<Dom<ResizeObserverSize>>,
+    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserverentry-devicepixelcontentboxsize>
     device_pixel_content_box_size: Vec<Dom<ResizeObserverSize>>,
 }
 

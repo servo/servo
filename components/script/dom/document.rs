@@ -2901,14 +2901,14 @@ impl Document {
         self.name_map.borrow()
     }
 
-    /// Step 4 of https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver
+    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
     pub fn add_resize_observer(&self, resize_observer: &ResizeObserver) {
         self.resize_observers
             .borrow_mut()
             .push(Dom::from_ref(resize_observer));
     }
 
-    /// https://drafts.csswg.org/resize-observer/#gather-active-observations-h
+    /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
     /// Returns a boolean representing #has-active-observations-h
     pub fn gather_active_resize_observations_at_depth(
         &self,
@@ -2924,7 +2924,7 @@ impl Document {
         has_active_resize_observations
     }
 
-    /// https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations
+    /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
     pub fn broadcast_active_resize_observations(&self) -> ResizeObservationDepth {
         let mut shallowest_target_depth = Default::default();
 
