@@ -10,9 +10,10 @@
 # except according to those terms.
 
 import json
-from enum import Enum, Flag, auto
 import sys
+
 from dataclasses import dataclass
+from enum import Enum, Flag, auto
 
 
 class Layout(Flag):
@@ -124,13 +125,13 @@ class Config(object):
             else:
                 self.matrix.append(preset)
 
-    def toJSON(self) -> str:
+    def to_json(self) -> str:
         return json.dumps(self, cls=Encoder)
 
 
 def main():
     conf = Config(" ".join(sys.argv[1:]))
-    print(conf.toJSON())
+    print(conf.to_json())
 
 
 if __name__ == "__main__":
@@ -143,13 +144,13 @@ import logging # noqa
 
 class TestParser(unittest.TestCase):
     def test_string(self):
-        self.assertEqual(Config("linux fail-fast").toJSON(),
+        self.assertEqual(Config("linux fail-fast").to_json(),
                          '{"fail_fast": true, "matrix": [\
 {"name": "Linux", "workflow": "linux", "wpt_layout": "none", "profile": "release", \
 "unit_tests": true, "wpt_tests_to_run": ""}]}')
 
     def test_empty(self):
-        self.assertEqual(Config("").toJSON(),
+        self.assertEqual(Config("").to_json(),
                          '{"fail_fast": false, "matrix": [\
 {"name": "Linux", "workflow": "linux", "wpt_layout": "none", "profile": "release", \
 "unit_tests": true, "wpt_tests_to_run": ""}, \
@@ -161,7 +162,7 @@ class TestParser(unittest.TestCase):
 "unit_tests": true, "wpt_tests_to_run": ""}]}')
 
     def test_full(self):
-        self.assertEqual(Config("linux macos windows android").toJSON(), Config("").toJSON())
+        self.assertEqual(Config("linux macos windows android").to_json(), Config("").to_json())
 
 
 def run_tests():
