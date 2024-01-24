@@ -17,7 +17,7 @@ use crate::dom::resizeobserversize::ResizeObserverSize;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
 
-/// https://drafts.csswg.org/resize-observer/#resize-observer-entry-interface
+/// <https://drafts.csswg.org/resize-observer/#resize-observer-entry-interface>
 #[dom_struct]
 pub struct ResizeObserverEntry {
     reflector_: Reflector,

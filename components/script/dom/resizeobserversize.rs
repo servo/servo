@@ -31,7 +31,7 @@ impl ResizeObserverSizeImpl {
     }
 }
 
-/// https://drafts.csswg.org/resize-observer/#resizeobserversize
+/// <https://drafts.csswg.org/resize-observer/#resizeobserversize>
 #[dom_struct]
 pub struct ResizeObserverSize {
     reflector_: Reflector,
