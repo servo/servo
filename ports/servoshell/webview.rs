@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::rc::Rc;
@@ -17,7 +18,7 @@ use servo::embedder_traits::{
     CompositorEventVariant, ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt,
     PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
 };
-use servo::msg::constellation_msg::{TopLevelBrowsingContextId as BrowserId, TraversalDirection};
+use servo::msg::constellation_msg::{TopLevelBrowsingContextId as WebViewId, TraversalDirection};
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
@@ -28,19 +29,21 @@ use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use crate::parser::location_bar_input_to_url;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
-pub struct Browser<Window: WindowPortsMethods + ?Sized> {
+pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
     current_url_string: Option<String>,
 
-    /// id of the top level browsing context. It is unique as tabs
-    /// are not supported yet. None until created.
-    browser_id: Option<BrowserId>,
+    /// List of top-level browsing contexts.
+    /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
+    /// and we exit if it ever becomes empty.
+    webviews: HashMap<WebViewId, WebView>,
 
-    // A rudimentary stack of "tabs".
-    // EmbedderMsg::BrowserCreated will push onto it.
-    // EmbedderMsg::CloseBrowser will pop from it,
-    // and exit if it is empty afterwards.
-    browsers: Vec<BrowserId>,
+    /// The order in which the webviews were created.
+    creation_order: Vec<WebViewId>,
+
+    /// The webview that is currently focused.
+    /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
+    focused_webview_id: Option<WebViewId>,
 
     title: Option<String>,
 
@@ -50,22 +53,26 @@ pub struct Browser<Window: WindowPortsMethods + ?Sized> {
     shutdown_requested: bool,
 }
 
+#[derive(Debug)]
+pub struct WebView {}
+
 pub struct ServoEventResponse {
     pub need_present: bool,
     pub history_changed: bool,
 }
 
-impl<Window> Browser<Window>
+impl<Window> WebViewManager<Window>
 where
     Window: WindowPortsMethods + ?Sized,
 {
-    pub fn new(window: Rc<Window>) -> Browser<Window> {
-        Browser {
+    pub fn new(window: Rc<Window>) -> WebViewManager<Window> {
+        WebViewManager {
             title: None,
             current_url: None,
             current_url_string: None,
-            browser_id: None,
-            browsers: Vec::new(),
+            webviews: HashMap::default(),
+            creation_order: vec![],
+            focused_webview_id: None,
             window,
             clipboard: match Clipboard::new() {
                 Ok(c) => Some(c),
@@ -79,8 +86,8 @@ where
         }
     }
 
-    pub fn browser_id(&self) -> Option<BrowserId> {
-        self.browser_id
+    pub fn webview_id(&self) -> Option<WebViewId> {
+        self.focused_webview_id
     }
 
     pub fn current_url_string(&self) -> Option<&str> {
@@ -113,7 +120,7 @@ where
     fn handle_key_from_window(&mut self, key_event: KeyboardEvent) {
         ShortcutMatcher::from_event(key_event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || {
-                if let Some(id) = self.browser_id {
+                if let Some(id) = self.focused_webview_id {
                     self.event_queue.push(EmbedderEvent::Reload(id));
                 }
             })
@@ -128,7 +135,7 @@ where
                     let input = tinyfiledialogs::input_box(title, title, &tiny_dialog_escape(&url));
                     if let Some(input) = input {
                         if let Some(url) = location_bar_input_to_url(&input) {
-                            if let Some(id) = self.browser_id {
+                            if let Some(id) = self.focused_webview_id {
                                 self.event_queue.push(EmbedderEvent::LoadUrl(id, url));
                             }
                         }
@@ -171,13 +178,13 @@ where
                 ));
             })
             .shortcut(CMD_OR_ALT, Key::ArrowRight, || {
-                if let Some(id) = self.browser_id {
+                if let Some(id) = self.focused_webview_id {
                     let event = EmbedderEvent::Navigation(id, TraversalDirection::Forward(1));
                     self.event_queue.push(event);
                 }
             })
             .shortcut(CMD_OR_ALT, Key::ArrowLeft, || {
-                if let Some(id) = self.browser_id {
+                if let Some(id) = self.focused_webview_id {
                     let event = EmbedderEvent::Navigation(id, TraversalDirection::Back(1));
                     self.event_queue.push(event);
                 }
@@ -185,7 +192,7 @@ where
             .shortcut(Modifiers::empty(), Key::Escape, || {
                 let state = self.window.get_fullscreen();
                 if state {
-                    if let Some(id) = self.browser_id {
+                    if let Some(id) = self.focused_webview_id {
                         let event = EmbedderEvent::ExitFullScreen(id);
                         self.event_queue.push(event);
                     }
@@ -198,7 +205,7 @@ where
 
     #[cfg(not(target_os = "win"))]
     fn platform_handle_key(&mut self, key_event: KeyboardEvent) {
-        if let Some(id) = self.browser_id {
+        if let Some(id) = self.focused_webview_id {
             if let Some(event) = ShortcutMatcher::from_event(key_event.clone())
                 .shortcut(CMD_OR_CONTROL, '[', || {
                     EmbedderEvent::Navigation(id, TraversalDirection::Back(1))
@@ -217,7 +224,7 @@ where
     fn platform_handle_key(&mut self, _key_event: KeyboardEvent) {}
 
     /// Handle key events after they have been handled by Servo.
-    fn handle_key_from_servo(&mut self, _: Option<BrowserId>, event: KeyboardEvent) {
+    fn handle_key_from_servo(&mut self, _: Option<WebViewId>, event: KeyboardEvent) {
         ShortcutMatcher::from_event(event)
             .shortcut(CMD_OR_CONTROL, '=', || {
                 self.event_queue.push(EmbedderEvent::Zoom(1.1))
@@ -285,14 +292,14 @@ where
     /// Returns true if the caller needs to manually present a new frame.
     pub fn handle_servo_events(
         &mut self,
-        events: Vec<(Option<BrowserId>, EmbedderMsg)>,
+        events: Vec<(Option<WebViewId>, EmbedderMsg)>,
     ) -> ServoEventResponse {
         let mut need_present = false;
         let mut history_changed = false;
-        for (browser_id, msg) in events {
+        for (webview_id, msg) in events {
             trace!(
                 "embedder <- servo EmbedderMsg ({:?}, {:?})",
-                browser_id.map(|x| format!("{}", x)),
+                webview_id.map(|x| format!("{}", x)),
                 msg
             );
             match msg {
@@ -395,7 +402,7 @@ where
                     if let Err(e) = res {
                         let reason = format!("Failed to send Prompt response: {}", e);
                         self.event_queue
-                            .push(EmbedderEvent::SendError(browser_id, reason));
+                            .push(EmbedderEvent::SendError(webview_id, reason));
                     }
                 },
                 EmbedderMsg::AllowUnload(sender) => {
@@ -403,35 +410,47 @@ where
                     if let Err(e) = sender.send(true) {
                         let reason = format!("Failed to send AllowUnload response: {}", e);
                         self.event_queue
-                            .push(EmbedderEvent::SendError(browser_id, reason));
+                            .push(EmbedderEvent::SendError(webview_id, reason));
                     }
                 },
                 EmbedderMsg::AllowNavigationRequest(pipeline_id, _url) => {
-                    if let Some(_browser_id) = browser_id {
+                    if let Some(_webview_id) = webview_id {
                         self.event_queue
                             .push(EmbedderEvent::AllowNavigationResponse(pipeline_id, true));
                     }
                 },
-                EmbedderMsg::AllowOpeningBrowser(response_chan) => {
+                EmbedderMsg::AllowOpeningWebView(response_chan) => {
                     // Note: would be a place to handle pop-ups config.
                     // see Step 7 of #the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
                     if let Err(e) = response_chan.send(true) {
-                        warn!("Failed to send AllowOpeningBrowser response: {}", e);
+                        warn!("Failed to send AllowOpeningWebView response: {}", e);
                     };
                 },
-                EmbedderMsg::BrowserCreated(new_browser_id) => {
-                    // TODO: properly handle a new "tab"
-                    self.browsers.push(new_browser_id);
-                    if self.browser_id.is_none() {
-                        self.browser_id = Some(new_browser_id);
-                    } else {
-                        error!("Multiple top level browsing contexts not supported yet.");
-                    }
+                EmbedderMsg::WebViewOpened(new_webview_id) => {
+                    self.webviews.insert(new_webview_id, WebView {});
+                    self.creation_order.push(new_webview_id);
                     self.event_queue
-                        .push(EmbedderEvent::SelectBrowser(new_browser_id));
+                        .push(EmbedderEvent::FocusWebView(new_webview_id));
+                },
+                EmbedderMsg::WebViewClosed(webview_id) => {
+                    self.webviews.retain(|&id, _| id != webview_id);
+                    self.creation_order.retain(|&id| id != webview_id);
+                    self.focused_webview_id = None;
+                    if let Some(&newest_webview_id) = self.creation_order.last() {
+                        self.event_queue
+                            .push(EmbedderEvent::FocusWebView(newest_webview_id));
+                    } else {
+                        self.event_queue.push(EmbedderEvent::Quit);
+                    }
+                },
+                EmbedderMsg::WebViewFocused(webview_id) => {
+                    self.focused_webview_id = Some(webview_id);
+                },
+                EmbedderMsg::WebViewBlurred => {
+                    self.focused_webview_id = None;
                 },
                 EmbedderMsg::Keyboard(key_event) => {
-                    self.handle_key_from_servo(browser_id, key_event);
+                    self.handle_key_from_servo(webview_id, key_event);
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
                     let contents = self
@@ -475,17 +494,6 @@ where
                 },
                 EmbedderMsg::LoadComplete => {
                     // FIXME: surface the loading state in the UI somehow
-                },
-                EmbedderMsg::CloseBrowser => {
-                    // TODO: close the appropriate "tab".
-                    let _ = self.browsers.pop();
-                    if let Some(prev_browser_id) = self.browsers.last() {
-                        self.browser_id = Some(*prev_browser_id);
-                        self.event_queue
-                            .push(EmbedderEvent::SelectBrowser(*prev_browser_id));
-                    } else {
-                        self.event_queue.push(EmbedderEvent::Quit);
-                    }
                 },
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;
@@ -545,10 +553,10 @@ where
                 EmbedderMsg::ReadyToPresent => {
                     need_present = true;
                 },
-                EmbedderMsg::EventDelivered(event) => match (browser_id, event) {
-                    (Some(browser_id), CompositorEventVariant::MouseButtonEvent) => {
-                        // TODO Focus browser and/or raise to top if needed.
-                        trace!("{}: Got a mouse button event", browser_id);
+                EmbedderMsg::EventDelivered(event) => match (webview_id, event) {
+                    (Some(webview_id), CompositorEventVariant::MouseButtonEvent) => {
+                        // TODO Focus webview and/or raise to top if needed.
+                        trace!("{}: Got a mouse button event", webview_id);
                     },
                     (_, _) => {},
                 },

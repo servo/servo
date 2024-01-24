@@ -83,14 +83,14 @@ pub enum EmbedderEvent {
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload(TopLevelBrowsingContextId),
     /// Create a new top level browsing context
-    NewBrowser(ServoUrl, TopLevelBrowsingContextId),
+    NewWebView(ServoUrl, TopLevelBrowsingContextId),
     /// Close a top level browsing context
-    CloseBrowser(TopLevelBrowsingContextId),
+    CloseWebView(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
     /// Make a top level browsing context visible, hiding the previous
     /// visible one.
-    SelectBrowser(TopLevelBrowsingContextId),
+    FocusWebView(TopLevelBrowsingContextId),
     /// Toggles a debug flag in WebRender
     ToggleWebRenderDebug(WebRenderDebugOption),
     /// Capture current WebRender
@@ -102,8 +102,8 @@ pub enum EmbedderEvent {
     /// Sent when the user triggers a media action through the UA exposed media UI
     /// (play, pause, seek, etc.).
     MediaSessionAction(MediaSessionActionType),
-    /// Set browser visibility. A hidden browser will not tick the animations.
-    ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
+    /// The visibility of the webview has changed.
+    WebViewVisibilityChanged(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Sent on platforms like Android where the native widget surface can be
@@ -136,16 +136,16 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::Navigation(..) => write!(f, "Navigation"),
             EmbedderEvent::Quit => write!(f, "Quit"),
             EmbedderEvent::Reload(..) => write!(f, "Reload"),
-            EmbedderEvent::NewBrowser(..) => write!(f, "NewBrowser"),
+            EmbedderEvent::NewWebView(..) => write!(f, "NewWebView"),
             EmbedderEvent::SendError(..) => write!(f, "SendError"),
-            EmbedderEvent::CloseBrowser(..) => write!(f, "CloseBrowser"),
-            EmbedderEvent::SelectBrowser(..) => write!(f, "SelectBrowser"),
+            EmbedderEvent::CloseWebView(..) => write!(f, "CloseWebView"),
+            EmbedderEvent::FocusWebView(..) => write!(f, "FocusWebView"),
             EmbedderEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
             EmbedderEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
             EmbedderEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
             EmbedderEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
             EmbedderEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
-            EmbedderEvent::ChangeBrowserVisibility(..) => write!(f, "ChangeBrowserVisibility"),
+            EmbedderEvent::WebViewVisibilityChanged(..) => write!(f, "WebViewVisibilityChanged"),
             EmbedderEvent::IMEDismissed => write!(f, "IMEDismissed"),
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
             EmbedderEvent::InvalidateNativeSurface => write!(f, "InvalidateNativeSurface"),

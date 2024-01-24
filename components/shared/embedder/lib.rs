@@ -155,9 +155,15 @@ pub enum EmbedderMsg {
     /// Whether or not to allow a pipeline to load a url.
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
-    AllowOpeningBrowser(IpcSender<bool>),
-    /// A new browser was created by script
-    BrowserCreated(TopLevelBrowsingContextId),
+    AllowOpeningWebView(IpcSender<bool>),
+    /// A browser was created
+    WebViewOpened(TopLevelBrowsingContextId),
+    /// A browser was destroyed
+    WebViewClosed(TopLevelBrowsingContextId),
+    /// A browser gained focus for keyboard events
+    WebViewFocused(TopLevelBrowsingContextId),
+    /// All browsers lost focus for keyboard events
+    WebViewBlurred,
     /// Wether or not to unload a document
     AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
@@ -180,8 +186,6 @@ pub enum EmbedderMsg {
     LoadStart,
     /// The load of a page has completed
     LoadComplete,
-    /// A browser is to be closed
-    CloseBrowser,
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(String, Option<String>),
     /// Open dialog to select bluetooth device.
@@ -241,7 +245,6 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
             EmbedderMsg::HeadParsed => write!(f, "HeadParsed"),
-            EmbedderMsg::CloseBrowser => write!(f, "CloseBrowser"),
             EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
             EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
             EmbedderMsg::LoadStart => write!(f, "LoadStart"),
@@ -253,8 +256,11 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
             EmbedderMsg::HideIME => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
-            EmbedderMsg::AllowOpeningBrowser(..) => write!(f, "AllowOpeningBrowser"),
-            EmbedderMsg::BrowserCreated(..) => write!(f, "BrowserCreated"),
+            EmbedderMsg::AllowOpeningWebView(..) => write!(f, "AllowOpeningWebView"),
+            EmbedderMsg::WebViewOpened(..) => write!(f, "WebViewOpened"),
+            EmbedderMsg::WebViewClosed(..) => write!(f, "WebViewClosed"),
+            EmbedderMsg::WebViewFocused(..) => write!(f, "WebViewFocused"),
+            EmbedderMsg::WebViewBlurred => write!(f, "WebViewUnfocused"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),

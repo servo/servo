@@ -55,13 +55,15 @@ pub enum ConstellationMsg {
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
-    NewBrowser(ServoUrl, TopLevelBrowsingContextId),
+    NewWebView(ServoUrl, TopLevelBrowsingContextId),
     /// Close a top level browsing context.
-    CloseBrowser(TopLevelBrowsingContextId),
+    CloseWebView(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
-    /// Make browser visible.
-    SelectBrowser(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context focused.
+    FocusWebView(TopLevelBrowsingContextId),
+    /// Make none of the top-level browsing contexts focused.
+    BlurWebView,
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
@@ -74,8 +76,8 @@ pub enum ConstellationMsg {
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
-    /// Toggle browser visibility.
-    ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
+    /// The visibility of the webview has changed.
+    WebViewVisibilityChanged(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Compositing done, but external code needs to present.
@@ -100,17 +102,18 @@ impl fmt::Debug for ConstellationMsg {
             WebDriverCommand(..) => "WebDriverCommand",
             Reload(..) => "Reload",
             LogEntry(..) => "LogEntry",
-            NewBrowser(..) => "NewBrowser",
-            CloseBrowser(..) => "CloseBrowser",
+            NewWebView(..) => "NewWebView",
+            CloseWebView(..) => "CloseWebView",
+            FocusWebView(..) => "FocusWebView",
+            BlurWebView => "BlurWebView",
             SendError(..) => "SendError",
-            SelectBrowser(..) => "SelectBrowser",
             ForwardEvent(..) => "ForwardEvent",
             SetCursor(..) => "SetCursor",
             EnableProfiler(..) => "EnableProfiler",
             DisableProfiler => "DisableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
-            ChangeBrowserVisibility(..) => "ChangeBrowserVisibility",
+            WebViewVisibilityChanged(..) => "WebViewVisibilityChanged",
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",

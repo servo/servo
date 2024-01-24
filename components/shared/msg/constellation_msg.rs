@@ -257,8 +257,13 @@ impl BrowsingContextId {
     }
 }
 
-#[derive(Clone, Default, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct BrowsingContextGroupId(pub u32);
+impl fmt::Display for BrowsingContextGroupId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "BrowsingContextGroup{:?}", self)
+    }
+}
 
 thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrowsingContextId>> = Cell::new(None));
 
@@ -266,6 +271,7 @@ thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrow
     Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
 pub struct TopLevelBrowsingContextId(pub BrowsingContextId);
+pub type WebViewId = TopLevelBrowsingContextId;
 
 size_of_test!(TopLevelBrowsingContextId, 8);
 size_of_test!(Option<TopLevelBrowsingContextId>, 8);

@@ -633,8 +633,8 @@ where
                 self.compositor.capture_webrender();
             },
 
-            EmbedderEvent::NewBrowser(url, top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::NewBrowser(url, top_level_browsing_context_id);
+            EmbedderEvent::NewWebView(url, top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::NewWebView(url, top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending NewBrowser message to constellation failed ({:?}).",
@@ -643,18 +643,18 @@ where
                 }
             },
 
-            EmbedderEvent::SelectBrowser(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::SelectBrowser(top_level_browsing_context_id);
+            EmbedderEvent::FocusWebView(top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::FocusWebView(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
-                        "Sending SelectBrowser message to constellation failed ({:?}).",
+                        "Sending FocusBrowser message to constellation failed ({:?}).",
                         e
                     );
                 }
             },
 
-            EmbedderEvent::CloseBrowser(top_level_browsing_context_id) => {
-                let msg = ConstellationMsg::CloseBrowser(top_level_browsing_context_id);
+            EmbedderEvent::CloseWebView(top_level_browsing_context_id) => {
+                let msg = ConstellationMsg::CloseWebView(top_level_browsing_context_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending CloseBrowser message to constellation failed ({:?}).",
@@ -683,14 +683,11 @@ where
                 }
             },
 
-            EmbedderEvent::ChangeBrowserVisibility(top_level_browsing_context_id, visible) => {
-                let msg = ConstellationMsg::ChangeBrowserVisibility(
-                    top_level_browsing_context_id,
-                    visible,
-                );
+            EmbedderEvent::WebViewVisibilityChanged(webview_id, visible) => {
+                let msg = ConstellationMsg::WebViewVisibilityChanged(webview_id, visible);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
-                        "Sending ChangeBrowserVisibility to constellation failed ({:?}).",
+                        "Sending WebViewVisibilityChanged to constellation failed ({:?}).",
                         e
                     );
                 }

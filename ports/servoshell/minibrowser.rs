@@ -20,11 +20,11 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::webrender_surfman::WebrenderSurfman;
 
-use crate::browser::Browser;
 use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
 use crate::geometry::winit_position_to_euclid_point;
 use crate::parser::location_bar_input_to_url;
+use crate::webview::WebViewManager;
 use crate::window_trait::WindowPortsMethods;
 
 pub struct Minibrowser {
@@ -260,13 +260,13 @@ impl Minibrowser {
     /// routing those to the App event queue.
     pub fn queue_embedder_events_for_minibrowser_events(
         &self,
-        browser: &Browser<dyn WindowPortsMethods>,
+        browser: &WebViewManager<dyn WindowPortsMethods>,
         app_event_queue: &mut Vec<EmbedderEvent>,
     ) {
         for event in self.event_queue.borrow_mut().drain(..) {
             match event {
                 MinibrowserEvent::Go => {
-                    let browser_id = browser.browser_id().unwrap();
+                    let browser_id = browser.webview_id().unwrap();
                     let location = self.location.borrow();
                     if let Some(url) = location_bar_input_to_url(&location.clone()) {
                         app_event_queue.push(EmbedderEvent::LoadUrl(browser_id, url));
@@ -276,14 +276,14 @@ impl Minibrowser {
                     }
                 },
                 MinibrowserEvent::Back => {
-                    let browser_id = browser.browser_id().unwrap();
+                    let browser_id = browser.webview_id().unwrap();
                     app_event_queue.push(EmbedderEvent::Navigation(
                         browser_id,
                         TraversalDirection::Back(1),
                     ));
                 },
                 MinibrowserEvent::Forward => {
-                    let browser_id = browser.browser_id().unwrap();
+                    let browser_id = browser.webview_id().unwrap();
                     app_event_queue.push(EmbedderEvent::Navigation(
                         browser_id,
                         TraversalDirection::Forward(1),
@@ -293,11 +293,11 @@ impl Minibrowser {
         }
     }
 
-    /// Updates the location field from the given [Browser], unless the user has started editing it
-    /// without clicking Go, returning true iff the location has changed (needing an egui update).
+    /// Updates the location field from the given [BrowserManager], unless the user has started
+    /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
     pub fn update_location_in_toolbar(
         &mut self,
-        browser: &mut Browser<dyn WindowPortsMethods>,
+        browser: &mut WebViewManager<dyn WindowPortsMethods>,
     ) -> bool {
         // User edited without clicking Go?
         if self.location_dirty.get() {
