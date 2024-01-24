@@ -5432,14 +5432,11 @@ where
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
-        // Only send the frame tree if the given webview is focused, or if no
-        // webview is currently focused, make it focused.
+        // Only send the frame tree if the given webview is focused.
         if let Some(focused_webview_id) = self.webviews.focused_webview().map(|(id, _)| id) {
             if top_level_browsing_context_id != focused_webview_id {
                 return;
             }
-        } else {
-            self.webviews.focus(top_level_browsing_context_id);
         }
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
