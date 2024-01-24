@@ -50,7 +50,7 @@ impl Table {
 
     /// Return the slot at the given coordinates, if it exists in the table, otherwise
     /// return None.
-    fn get_slot<'a>(&'a self, coords: TableSlotCoordinates) -> Option<&'a TableSlot> {
+    fn get_slot(&self, coords: TableSlotCoordinates) -> Option<&TableSlot> {
         self.slots.get(coords.y)?.get(coords.x)
     }
 
@@ -60,8 +60,8 @@ impl Table {
     ) -> Option<TableSlotCoordinates> {
         match self.get_slot(coords) {
             Some(&TableSlot::Cell(_)) => Some(coords),
-            Some(&TableSlot::Spanned(ref offsets)) => Some(coords - offsets[0]),
-            _ => return None,
+            Some(TableSlot::Spanned(offsets)) => Some(coords - offsets[0]),
+            _ => None,
         }
     }
 
@@ -73,7 +73,7 @@ impl Table {
 
         let slot = self.get_slot(resolved_coords);
         match slot {
-            Some(&TableSlot::Cell(ref cell)) => Some(cell),
+            Some(TableSlot::Cell(cell)) => Some(cell),
             _ => unreachable!(
                 "Spanned slot should not point to an empty cell or another spanned slot."
             ),

@@ -114,6 +114,6 @@ impl Tag {
             Some(PseudoElement::After) => FragmentType::AfterPseudoContent,
             _ => FragmentType::FragmentBody,
         };
-        combine_id_with_fragment_type(self.node.id() as usize, fragment_type) as u64
+        combine_id_with_fragment_type(self.node.id(), fragment_type) as u64
     }
 }

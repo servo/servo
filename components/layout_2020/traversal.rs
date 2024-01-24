@@ -17,7 +17,7 @@ pub struct RecalcStyle<'a> {
 
 impl<'a> RecalcStyle<'a> {
     pub fn new(context: LayoutContext<'a>) -> Self {
-        RecalcStyle { context: context }
+        RecalcStyle { context }
     }
 
     pub fn context(&self) -> &LayoutContext<'a> {

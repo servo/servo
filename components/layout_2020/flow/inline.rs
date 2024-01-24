@@ -149,8 +149,8 @@ struct LineUnderConstruction {
 impl LineUnderConstruction {
     fn new(start_position: LogicalVec2<Length>) -> Self {
         Self {
-            inline_position: start_position.inline.clone(),
-            start_position: start_position,
+            inline_position: start_position.inline,
+            start_position,
             max_block_size: LineBlockSizes::zero(),
             has_content: false,
             has_floats_waiting_to_be_placed: false,
@@ -273,7 +273,7 @@ impl LineBlockSizes {
             self.baseline_relative_size_for_line_height.as_ref(),
             other.baseline_relative_size_for_line_height.as_ref(),
         ) {
-            (Some(our_size), Some(other_size)) => Some(our_size.max(&other_size)),
+            (Some(our_size), Some(other_size)) => Some(our_size.max(other_size)),
             (our_size, other_size) => our_size.or(other_size).cloned(),
         };
         Self {
@@ -290,9 +290,9 @@ impl LineBlockSizes {
     }
 
     fn adjust_for_baseline_offset(&mut self, baseline_offset: Au) {
-        self.baseline_relative_size_for_line_height
-            .as_mut()
-            .map(|size| size.adjust_for_nested_baseline_offset(baseline_offset));
+        if let Some(size) = self.baseline_relative_size_for_line_height.as_mut() {
+            size.adjust_for_nested_baseline_offset(baseline_offset)
+        }
         self.size_for_baseline_positioning
             .adjust_for_nested_baseline_offset(baseline_offset);
     }
@@ -460,11 +460,7 @@ impl UnbreakableSegmentUnderConstruction {
         }
 
         let segment_items = mem::take(&mut self.line_items);
-        self.line_items = hierarchy
-            .into_iter()
-            .rev()
-            .chain(segment_items.into_iter())
-            .collect();
+        self.line_items = hierarchy.into_iter().rev().chain(segment_items).collect();
     }
 }
 
@@ -637,7 +633,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     fn start_inline_box(&mut self, inline_box: &InlineBox) {
         let mut inline_box_state = InlineBoxContainerState::new(
             inline_box,
-            &self.containing_block,
+            self.containing_block,
             self.layout_context,
             self.current_inline_container_state(),
             inline_box.is_last_fragment,
@@ -737,7 +733,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             // This amount includes both the block size of the line and any extra space
             // added to move the line down in order to avoid overlapping floats.
             let increment = block_end_position - self.current_line.start_position.block.into();
-            sequential_layout_state.advance_block_position(increment.into());
+            sequential_layout_state.advance_block_position(increment);
         }
 
         let mut line_items = std::mem::take(&mut self.current_line.line_items);
@@ -758,7 +754,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             parent_offset: LogicalVec2::zero(),
             baseline_offset,
             ifc_containing_block: self.containing_block,
-            positioning_context: &mut self.positioning_context,
+            positioning_context: self.positioning_context,
             justification_adjustment,
             line_metrics: &LineMetrics {
                 block_offset: block_start_position.into(),
@@ -1002,9 +998,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .floats
                 .containing_block_info
                 .inline_start,
-            block: sequential_layout_state
-                .current_containing_block_offset()
-                .into(),
+            block: sequential_layout_state.current_containing_block_offset(),
         };
 
         let ceiling = self
@@ -1012,7 +1006,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             .line_block_start_considering_placement_among_floats();
         let mut placement = PlacementAmongFloats::new(
             &sequential_layout_state.floats,
-            ceiling + ifc_offset_in_float_container.block.into(),
+            ceiling + ifc_offset_in_float_container.block,
             LogicalVec2 {
                 inline: potential_line_size.inline.into(),
                 block: potential_line_size.block.into(),
@@ -1154,7 +1148,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         font_key: FontInstanceKey,
     ) {
         self.current_line_segment.justification_opportunities +=
-            glyph_store.total_word_separators() as usize;
+            glyph_store.total_word_separators();
 
         let inline_advance = Length::from(glyph_store.total_advance());
         let preserve_spaces = parent_style
@@ -1194,7 +1188,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
         self.push_line_item_to_unbreakable_segment(LineItem::TextRun(TextRunLineItem {
             text: vec![glyph_store],
-            base_fragment_info: base_fragment_info.into(),
+            base_fragment_info,
             parent_style: parent_style.clone(),
             font_metrics: font_metrics.clone(),
             font_key,
@@ -1531,12 +1525,12 @@ impl InlineFormattingContext {
             content_block_size == Length::zero() &&
             collapsible_with_parent_start_margin.0;
 
-        return FlowLayout {
+        FlowLayout {
             fragments: ifc.fragments,
             content_block_size,
             collapsible_margins_in_children,
             last_inflow_baseline_offset: ifc.last_baseline_offset,
-        };
+        }
     }
 
     /// Return true if this [InlineFormattingContext] is empty for the purposes of ignoring
@@ -1546,7 +1540,7 @@ impl InlineFormattingContext {
         fn inline_level_boxes_are_empty(boxes: &[ArcRefCell<InlineLevelBox>]) -> bool {
             boxes
                 .iter()
-                .all(|inline_level_box| inline_level_box_is_empty(&*inline_level_box.borrow()))
+                .all(|inline_level_box| inline_level_box_is_empty(&inline_level_box.borrow()))
         }
 
         fn inline_level_box_is_empty(inline_level_box: &InlineLevelBox) -> bool {
@@ -1660,8 +1654,8 @@ impl InlineContainerState {
         if style.get_inherited_text().line_height != LineHeight::Normal {
             let half_leading =
                 (Au::from_f32_px(line_height.px()) - (ascent + descent)).scale_by(0.5);
-            ascent = ascent + half_leading;
-            descent = descent + half_leading;
+            ascent += half_leading;
+            descent += half_leading;
         }
 
         LineBlockSizes {
@@ -1675,7 +1669,7 @@ impl InlineContainerState {
         Self::get_block_sizes_with_style(
             &self.style,
             font_metrics,
-            line_height(&self.style, &font_metrics),
+            line_height(&self.style, font_metrics),
         )
     }
 
@@ -1718,9 +1712,8 @@ impl InlineContainerState {
                         .scale_by(0.5)
                 },
                 GenericVerticalAlign::Keyword(VerticalAlignKeyword::TextBottom) => {
-                    (self.font_metrics.descent -
-                        child_block_size.size_for_baseline_positioning.descent)
-                        .into()
+                    self.font_metrics.descent -
+                        child_block_size.size_for_baseline_positioning.descent
                 },
                 GenericVerticalAlign::Length(length_percentage) => {
                     Au::from_f32_px(-length_percentage.resolve(child_block_size.line_height).px())
@@ -1778,7 +1771,7 @@ impl IndependentFormattingContext {
         ifc: &mut InlineFormattingContextState,
     ) {
         let style = self.style();
-        let pbm = style.padding_border_margin(&ifc.containing_block);
+        let pbm = style.padding_border_margin(ifc.containing_block);
         let margin = pbm.margin.auto_is(Length::zero);
         let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
         let mut child_positioning_context = None;
@@ -1816,13 +1809,13 @@ impl IndependentFormattingContext {
             IndependentFormattingContext::NonReplaced(non_replaced) => {
                 let box_size = non_replaced
                     .style
-                    .content_box_size(&ifc.containing_block, &pbm);
+                    .content_box_size(ifc.containing_block, &pbm);
                 let max_box_size = non_replaced
                     .style
-                    .content_max_box_size(&ifc.containing_block, &pbm);
+                    .content_max_box_size(ifc.containing_block, &pbm);
                 let min_box_size = non_replaced
                     .style
-                    .content_min_box_size(&ifc.containing_block, &pbm)
+                    .content_min_box_size(ifc.containing_block, &pbm)
                     .auto_is(Length::zero);
 
                 // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
@@ -2148,7 +2141,7 @@ impl FloatBox {
 }
 
 fn place_pending_floats(ifc: &mut InlineFormattingContextState, line_items: &mut Vec<LineItem>) {
-    for item in line_items.into_iter() {
+    for item in line_items.iter_mut() {
         match item {
             LineItem::Float(float_line_item) => {
                 if float_line_item.needs_placement {

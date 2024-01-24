@@ -174,7 +174,7 @@ impl IndependentFormattingContext {
                 let style = &non_replaced.style;
                 let content_sizes = &mut non_replaced.content_sizes;
                 let contents = &mut non_replaced.contents;
-                sizing::outer_inline(&style, containing_block_writing_mode, || {
+                sizing::outer_inline(style, containing_block_writing_mode, || {
                     content_sizes
                         .get_or_insert_with(|| {
                             contents.inline_content_sizes(layout_context, style.writing_mode)

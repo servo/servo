@@ -97,7 +97,7 @@ impl BlockLevelBox {
         containing_block: &ContainingBlock,
     ) -> bool {
         let style = match self {
-            BlockLevelBox::SameFormattingContextBlock { ref style, .. } => &style,
+            BlockLevelBox::SameFormattingContextBlock { ref style, .. } => style,
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
             BlockLevelBox::OutOfFlowFloatBox(_) => return true,
             BlockLevelBox::Independent(ref context) => {
@@ -156,7 +156,7 @@ impl BlockLevelBox {
         };
 
         if !Self::find_block_margin_collapsing_with_parent_from_slice(
-            &child_boxes,
+            child_boxes,
             collected_margin,
             &containing_block_for_children,
         ) {
@@ -276,7 +276,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
             BlockLevelBox::SameFormattingContextBlock {
                 style, contents, ..
             } => {
-                let size = sizing::outer_inline(&style, writing_mode, || {
+                let size = sizing::outer_inline(style, writing_mode, || {
                     contents.inline_content_sizes(layout_context, style.writing_mode)
                 })
                 .max(ContentSizes::zero());
@@ -674,7 +674,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
             if !collapsible_with_parent_start_margin && start_margin_can_collapse_with_children {
                 if let BlockContainer::BlockLevelBoxes(child_boxes) = contents {
                     BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
-                        &child_boxes,
+                        child_boxes,
                         &mut block_start_margin,
                         containing_block,
                     );
@@ -729,7 +729,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         layout_context,
         positioning_context,
         &containing_block_for_children,
-        sequential_layout_state.as_mut().map(|x| &mut **x),
+        sequential_layout_state.as_deref_mut(),
         CollapsibleWithParentStartMargin(start_margin_can_collapse_with_children),
     );
     let mut content_block_size = flow_layout.content_block_size;
@@ -798,8 +798,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         start_corner: LogicalVec2 {
             block: (pbm.padding.block_start +
                 pbm.border.block_start +
-                clearance.unwrap_or_else(Au::zero).into())
-            .into(),
+                clearance.unwrap_or_else(Au::zero).into()),
             inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start,
         },
         size: LogicalVec2 {
@@ -965,8 +964,8 @@ impl NonReplacedFormattingContext {
 
             (clearance, (margin_inline_start, margin_inline_end)) =
                 solve_clearance_and_inline_margins_avoiding_floats(
-                    &sequential_layout_state,
-                    &containing_block,
+                    sequential_layout_state,
+                    containing_block,
                     &collapsed_margin_block_start,
                     &pbm,
                     &content_size + &pbm.padding_border_sums,
@@ -1062,8 +1061,8 @@ impl NonReplacedFormattingContext {
             };
 
             (margin_inline_start, margin_inline_end) = solve_inline_margins_avoiding_floats(
-                &sequential_layout_state,
-                &containing_block,
+                sequential_layout_state,
+                containing_block,
                 &pbm,
                 content_size.inline + pbm.padding_border_sums.inline,
                 placement_rect.into(),
@@ -1153,12 +1152,12 @@ fn layout_in_flow_replaced_block_level<'a>(
         let size = &content_size + &pbm.padding_border_sums;
         (clearance, (margin_inline_start, margin_inline_end)) =
             solve_clearance_and_inline_margins_avoiding_floats(
-                &sequential_layout_state,
-                &containing_block,
+                sequential_layout_state,
+                containing_block,
                 &collapsed_margin_block_start,
                 &pbm,
                 size.clone(),
-                &style,
+                style,
             );
 
         // Clearance prevents margin collapse between this block and previous ones,
@@ -1305,14 +1304,14 @@ fn solve_clearance_and_inline_margins_avoiding_floats(
     let (clearance, placement_rect) = sequential_layout_state
         .calculate_clearance_and_inline_adjustment(
             style.get_box().clear,
-            &block_start_margin,
-            &pbm,
+            block_start_margin,
+            pbm,
             size.clone().into(),
         );
     let inline_margins = solve_inline_margins_avoiding_floats(
-        &sequential_layout_state,
-        &containing_block,
-        &pbm,
+        sequential_layout_state,
+        containing_block,
+        pbm,
         size.inline,
         placement_rect.into(),
     );

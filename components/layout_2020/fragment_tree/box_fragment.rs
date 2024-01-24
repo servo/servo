@@ -135,10 +135,7 @@ impl BoxFragment {
         BoxFragment {
             base: base_fragment_info.into(),
             style,
-            children: children
-                .into_iter()
-                .map(|fragment| ArcRefCell::new(fragment))
-                .collect(),
+            children: children.into_iter().map(ArcRefCell::new).collect(),
             content_rect,
             padding,
             border,
@@ -221,7 +218,7 @@ impl BoxFragment {
 
         // https://www.w3.org/TR/css-overflow-3/#scrollable
         // Only include the scrollable overflow of a child box if it has overflow: visible.
-        let scrollable_overflow = self.scrollable_overflow(&containing_block);
+        let scrollable_overflow = self.scrollable_overflow(containing_block);
         let bottom_right = PhysicalPoint::new(
             overflow.max_x().max(scrollable_overflow.max_x()),
             overflow.max_y().max(scrollable_overflow.max_y()),
@@ -254,7 +251,7 @@ impl BoxFragment {
         let (cb_width, cb_height) = (containing_block.width(), containing_block.height());
         let content_rect = self
             .content_rect
-            .to_physical(self.style.writing_mode, &containing_block);
+            .to_physical(self.style.writing_mode, containing_block);
 
         if let Some(resolved_sticky_insets) = self.resolved_sticky_insets {
             return resolved_sticky_insets;

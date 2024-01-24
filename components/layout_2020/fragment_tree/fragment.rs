@@ -134,7 +134,7 @@ impl Fragment {
         match self {
             Fragment::Box(fragment) => fragment.print(tree),
             Fragment::Float(fragment) => {
-                tree.new_level(format!("Float"));
+                tree.new_level("Float".to_string());
                 fragment.print(tree);
                 tree.end_level();
             },
@@ -163,19 +163,19 @@ impl Fragment {
     ) -> PhysicalRect<Length> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                fragment.scrollable_overflow_for_parent(&containing_block)
+                fragment.scrollable_overflow_for_parent(containing_block)
             },
             Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
-            Fragment::Anonymous(fragment) => fragment.scrollable_overflow.clone(),
+            Fragment::Anonymous(fragment) => fragment.scrollable_overflow,
             Fragment::Text(fragment) => fragment
                 .rect
-                .to_physical(fragment.parent_style.writing_mode, &containing_block),
+                .to_physical(fragment.parent_style.writing_mode, containing_block),
             Fragment::Image(fragment) => fragment
                 .rect
-                .to_physical(fragment.style.writing_mode, &containing_block),
+                .to_physical(fragment.style.writing_mode, containing_block),
             Fragment::IFrame(fragment) => fragment
                 .rect
-                .to_physical(fragment.style.writing_mode, &containing_block),
+                .to_physical(fragment.style.writing_mode, containing_block),
         }
     }
 
@@ -251,10 +251,7 @@ impl AnonymousFragment {
         AnonymousFragment {
             base: BaseFragment::anonymous(),
             rect,
-            children: children
-                .into_iter()
-                .map(|fragment| ArcRefCell::new(fragment))
-                .collect(),
+            children: children.into_iter().map(ArcRefCell::new).collect(),
             mode,
             scrollable_overflow,
         }

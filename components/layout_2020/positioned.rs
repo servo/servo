@@ -195,14 +195,12 @@ impl PositioningContext {
             }
         };
 
-        self.for_nearest_positioned_ancestor
-            .as_mut()
-            .map(|hoisted_boxes| {
-                hoisted_boxes
-                    .iter_mut()
-                    .skip(index.for_nearest_positioned_ancestor)
-                    .for_each(update_fragment_if_needed);
-            });
+        if let Some(hoisted_boxes) = self.for_nearest_positioned_ancestor.as_mut() {
+            hoisted_boxes
+                .iter_mut()
+                .skip(index.for_nearest_positioned_ancestor)
+                .for_each(update_fragment_if_needed);
+        }
         self.for_nearest_containing_block_for_all_descendants
             .iter_mut()
             .skip(index.for_nearest_containing_block_for_all_descendants)
@@ -367,9 +365,9 @@ impl PositioningContext {
     pub(crate) fn clear(&mut self) {
         self.for_nearest_containing_block_for_all_descendants
             .clear();
-        self.for_nearest_positioned_ancestor
-            .as_mut()
-            .map(|v| v.clear());
+        if let Some(v) = self.for_nearest_positioned_ancestor.as_mut() {
+            v.clear()
+        }
     }
 
     /// Get the length of this [PositioningContext].
@@ -546,7 +544,7 @@ impl HoistedAbsolutelyPositionedBox {
                     let min_size = non_replaced
                         .style
                         .content_min_box_size(&containing_block.into(), &pbm)
-                        .auto_is(|| Length::zero());
+                        .auto_is(Length::zero);
                     let max_size = non_replaced
                         .style
                         .content_max_box_size(&containing_block.into(), &pbm);

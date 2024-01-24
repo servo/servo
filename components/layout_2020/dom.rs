@@ -119,8 +119,8 @@ where
             .unwrap_or((0, 0));
         let (mut width, mut height) = (width as f64, height as f64);
         if let Some(density) = node.image_density().filter(|density| *density != 1.) {
-            width = width / density;
-            height = height / density;
+            width /= density;
+            height /= density;
         }
         Some((resource, PhysicalSize::new(width, height)))
     }

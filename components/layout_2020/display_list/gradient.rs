@@ -29,7 +29,7 @@ pub(super) fn build(
             } else {
                 wr::ExtendMode::Clamp
             },
-            &layer,
+            layer,
             builder,
         ),
         Gradient::Radial {
@@ -48,7 +48,7 @@ pub(super) fn build(
             } else {
                 wr::ExtendMode::Clamp
             },
-            &layer,
+            layer,
             builder,
         ),
         Gradient::Conic { .. } => unimplemented!(),

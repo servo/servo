@@ -199,10 +199,10 @@ impl<'a> TableLayout<'a> {
                 Auto => (min_content_width, min_content_width, max_content_width),
             };
 
-            min_content_sizing_guesses.push(min_content_width.into());
-            min_content_percentage_sizing_guesses.push(min_content_percentage_sizing_guess.into());
-            min_content_specified_sizing_guesses.push(min_content_specified_sizing_guess.into());
-            max_content_sizing_guesses.push(max_content_sizing_guess.into());
+            min_content_sizing_guesses.push(min_content_width);
+            min_content_percentage_sizing_guesses.push(min_content_percentage_sizing_guess);
+            min_content_specified_sizing_guesses.push(min_content_specified_sizing_guess);
+            max_content_sizing_guesses.push(max_content_sizing_guess);
         }
 
         // > If the assignable table width is less than or equal to the max-content sizing-guess, the
@@ -493,7 +493,7 @@ impl Table {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
     ) -> IndependentLayout {
-        let mut table_layout = TableLayout::new(&self);
+        let mut table_layout = TableLayout::new(self);
         table_layout.compute_measures(layout_context, positioning_context, containing_block);
         let (fragments, content_block_size) =
             table_layout.layout_into_box_fragments(positioning_context);

@@ -507,7 +507,7 @@ impl AtomicLineItem {
         // This needs to be added to the calculated block and inline positions.
         self.fragment.content_rect.start_corner.inline += state.inline_position;
         self.fragment.content_rect.start_corner.block +=
-            self.calculate_block_start(&state.line_metrics);
+            self.calculate_block_start(state.line_metrics);
 
         // Make the final result relative to the parent box.
         self.fragment.content_rect.start_corner =

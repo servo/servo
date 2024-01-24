@@ -373,8 +373,7 @@ impl FlexContainer {
                     fragment.content_rect.start_corner += &flow_relative_line_position
                 }
                 line.item_fragments
-            })
-            .into_iter();
+            });
 
         let fragments = absolutely_positioned_items_with_original_order
             .into_iter()
@@ -458,7 +457,7 @@ impl<'a> FlexItem<'a> {
                         ) {
                             (Some(ratio), LengthOrAuto::LengthPercentage(block_size)) => {
                                 let block_size = block_size.clamp_between_extremums(
-                                    min_size.block.auto_is(|| Length::zero()),
+                                    min_size.block.auto_is(Length::zero),
                                     max_size.block,
                                 );
                                 Some(block_size * ratio)
@@ -469,7 +468,7 @@ impl<'a> FlexItem<'a> {
                 };
 
                 let inline_content_size = box_
-                    .inline_content_sizes(&flex_context.layout_context)
+                    .inline_content_sizes(flex_context.layout_context)
                     .min_content;
                 let content_size_suggestion = match box_ {
                     IndependentFormattingContext::NonReplaced(_) => inline_content_size,
@@ -479,7 +478,7 @@ impl<'a> FlexItem<'a> {
                             .inline_size_over_block_size_intrinsic_ratio(box_.style())
                         {
                             inline_content_size.clamp_between_extremums(
-                                (min_size.block.auto_is(|| Length::zero()) * ratio).into(),
+                                (min_size.block.auto_is(Length::zero) * ratio).into(),
                                 max_size.block.map(|l| (l * ratio).into()),
                             )
                         } else {
@@ -507,7 +506,7 @@ impl<'a> FlexItem<'a> {
 
         let min_size = LogicalVec2 {
             inline: min_size.inline.auto_is(automatic_min_size),
-            block: min_size.block.auto_is(|| Length::zero()),
+            block: min_size.block.auto_is(Length::zero),
         };
         let margin_auto_is_zero = pbm.margin.auto_is(Length::zero);
 
@@ -653,7 +652,7 @@ fn collect_flex_lines<'items, LineResult>(
                 .sum(),
             items,
         };
-        return vec![each(flex_context, line)];
+        vec![each(flex_context, line)]
     } else {
         let mut lines = Vec::new();
         let mut line_size_so_far = Length::zero();
@@ -709,7 +708,7 @@ impl FlexLine<'_> {
             .collect::<Vec<_>>();
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-line
-        let line_cross_size = self.cross_size(&item_layout_results, &flex_context);
+        let line_cross_size = self.cross_size(&item_layout_results, flex_context);
         let line_size = FlexRelativeVec2 {
             main: container_main_size,
             cross: line_cross_size,
@@ -791,7 +790,7 @@ impl FlexLine<'_> {
         let item_cross_margins = self.items.iter().zip(&item_used_cross_sizes).map(
             |(item, &item_cross_content_size)| {
                 item.resolve_auto_cross_margins(
-                    &flex_context,
+                    flex_context,
                     line_cross_size,
                     item_cross_content_size,
                 )
