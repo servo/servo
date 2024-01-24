@@ -30,7 +30,7 @@ use servo::embedder_traits::{
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 pub use servo::msg::constellation_msg::InputMethodType;
-use servo::msg::constellation_msg::TraversalDirection;
+use servo::msg::constellation_msg::{TraversalDirection, WebViewId};
 pub use servo::script_traits::{MediaSessionActionType, MouseButton};
 use servo::script_traits::{TouchEventType, TouchId};
 use servo::servo_config::{opts, pref};
@@ -167,18 +167,24 @@ pub struct ServoGlue {
     servo: Servo<ServoWindowCallbacks>,
     batch_mode: bool,
     callbacks: Rc<ServoWindowCallbacks>,
-    /// id of the top level browsing context. It is unique as tabs
-    /// are not supported yet. None until created.
-    browser_id: Option<BrowserId>,
-    // A rudimentary stack of "tabs".
-    // EmbedderMsg::BrowserCreated will push onto it.
-    // EmbedderMsg::CloseBrowser will pop from it,
-    // and exit if it is empty afterwards.
-    browsers: Vec<BrowserId>,
     events: Vec<EmbedderEvent>,
-
     context_menu_sender: Option<IpcSender<ContextMenuResult>>,
+
+    /// List of top-level browsing contexts.
+    /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
+    /// and we exit if it ever becomes empty.
+    webviews: HashMap<WebViewId, WebView>,
+
+    /// The order in which the webviews were created.
+    creation_order: Vec<WebViewId>,
+
+    /// The webview that is currently focused.
+    /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
+    focused_webview_id: Option<WebViewId>,
 }
+
+#[derive(Debug)]
+pub struct WebView {}
 
 pub fn servo_version() -> String {
     format!(
@@ -306,10 +312,11 @@ pub fn init(
             servo: servo.servo,
             batch_mode: false,
             callbacks: window_callbacks,
-            browser_id: None,
-            browsers: vec![],
             events: vec![],
             context_menu_sender: None,
+            webviews: HashMap::default(),
+            creation_order: vec![],
+            focused_webview_id: None,
         };
         let _ = servo_glue.process_event(EmbedderEvent::NewWebView(url, servo.browser_id));
         *s.borrow_mut() = Some(servo_glue);
@@ -324,11 +331,11 @@ pub fn deinit() {
 
 impl ServoGlue {
     fn get_browser_id(&self) -> Result<BrowserId, &'static str> {
-        let browser_id = match self.browser_id {
+        let webview_id = match self.focused_webview_id {
             Some(id) => id,
-            None => return Err("No BrowserId set yet."),
+            None => return Err("No focused WebViewId yet."),
         };
-        Ok(browser_id)
+        Ok(webview_id)
     }
 
     /// Request shutdown. Will call on_shutdown_complete.
@@ -697,14 +704,28 @@ impl ServoGlue {
                         warn!("Failed to send AllowOpeningBrowser response: {}", e);
                     };
                 },
-                EmbedderMsg::BrowserCreated(new_browser_id) => {
-                    // TODO: properly handle a new "tab"
-                    self.browsers.push(new_browser_id);
-                    if self.browser_id.is_none() {
-                        self.browser_id = Some(new_browser_id);
-                    }
+                EmbedderMsg::WebViewOpened(new_webview_id) => {
+                    self.webviews.insert(new_webview_id, WebView {});
+                    self.creation_order.push(new_webview_id);
                     self.events
-                        .push(EmbedderEvent::FocusWebView(new_browser_id));
+                        .push(EmbedderEvent::FocusWebView(new_webview_id));
+                },
+                EmbedderMsg::WebViewClosed(webview_id) => {
+                    self.webviews.retain(|&id, _| id != webview_id);
+                    self.creation_order.retain(|&id| id != webview_id);
+                    self.focused_webview_id = None;
+                    if let Some(&newest_webview_id) = self.creation_order.last() {
+                        self.events
+                            .push(EmbedderEvent::FocusWebView(newest_webview_id));
+                    } else {
+                        self.events.push(EmbedderEvent::Quit);
+                    }
+                },
+                EmbedderMsg::WebViewFocused(webview_id) => {
+                    self.focused_webview_id = Some(webview_id);
+                },
+                EmbedderMsg::WebViewBlurred => {
+                    self.focused_webview_id = None;
                 },
                 EmbedderMsg::GetClipboardContents(sender) => {
                     let contents = self.callbacks.host_callbacks.get_clipboard_contents();
@@ -712,17 +733,6 @@ impl ServoGlue {
                 },
                 EmbedderMsg::SetClipboardContents(text) => {
                     self.callbacks.host_callbacks.set_clipboard_contents(text);
-                },
-                EmbedderMsg::CloseBrowser => {
-                    // TODO: close the appropriate "tab".
-                    let _ = self.browsers.pop();
-                    if let Some(prev_browser_id) = self.browsers.last() {
-                        self.browser_id = Some(*prev_browser_id);
-                        self.events
-                            .push(EmbedderEvent::FocusWebView(*prev_browser_id));
-                    } else {
-                        self.events.push(EmbedderEvent::Quit);
-                    }
                 },
                 EmbedderMsg::Shutdown => {
                     self.callbacks.host_callbacks.on_shutdown_complete();

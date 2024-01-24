@@ -432,11 +432,9 @@ where
                     self.event_queue
                         .push(EmbedderEvent::FocusWebView(new_webview_id));
                 },
-                EmbedderMsg::WebViewClosed(top_level_browsing_context_id) => {
-                    self.webviews
-                        .retain(|&id, _| id != top_level_browsing_context_id);
-                    self.creation_order
-                        .retain(|&id| id != top_level_browsing_context_id);
+                EmbedderMsg::WebViewClosed(webview_id) => {
+                    self.webviews.retain(|&id, _| id != webview_id);
+                    self.creation_order.retain(|&id| id != webview_id);
                     self.focused_webview_id = None;
                     if let Some(&newest_webview_id) = self.creation_order.last() {
                         self.event_queue
@@ -445,8 +443,8 @@ where
                         self.event_queue.push(EmbedderEvent::Quit);
                     }
                 },
-                EmbedderMsg::WebViewFocused(top_level_browsing_context_id) => {
-                    self.focused_webview_id = Some(top_level_browsing_context_id);
+                EmbedderMsg::WebViewFocused(webview_id) => {
+                    self.focused_webview_id = Some(webview_id);
                 },
                 EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;

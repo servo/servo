@@ -271,6 +271,7 @@ thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrow
     Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
 pub struct TopLevelBrowsingContextId(pub BrowsingContextId);
+pub type WebViewId = TopLevelBrowsingContextId;
 
 size_of_test!(TopLevelBrowsingContextId, 8);
 size_of_test!(Option<TopLevelBrowsingContextId>, 8);
