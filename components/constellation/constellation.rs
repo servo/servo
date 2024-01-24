@@ -1478,10 +1478,7 @@ where
             },
             FromCompositorMsg::FocusWebview(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {
-                    return warn!(
-                        "{}: FocusWebview on unknown top-level browsing context",
-                        top_level_browsing_context_id
-                    );
+                    return warn!("{top_level_browsing_context_id}: FocusWebview on unknown top-level browsing context");
                 }
                 self.webviews.focus(top_level_browsing_context_id);
                 self.embedder_proxy.send((
@@ -4478,9 +4475,7 @@ where
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(browsing_context) => browsing_context.pipeline_id,
             None => {
-                return warn!(
-                    "{browsing_context_id}: Tried to notify visibility after closure",
-                );
+                return warn!("{browsing_context_id}: Tried to notify visibility after closure");
             },
         };
         match self.pipelines.get(&pipeline_id) {
