@@ -13,6 +13,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
+use crate::dom::node::window_from_node;
 use crate::dom::resizeobserversize::ResizeObserverSize;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
@@ -29,7 +30,7 @@ pub struct ResizeObserverEntry {
 }
 
 impl ResizeObserverEntry {
-    pub fn new_inherited(
+    fn new_inherited(
         target: &Element,
         content_rect: &DOMRectReadOnly,
         border_box_size: &[&ResizeObserverSize],
@@ -55,9 +56,8 @@ impl ResizeObserverEntry {
         }
     }
 
-    fn new(
+    pub fn new(
         window: &Window,
-        proto: Option<HandleObject>,
         target: &Element,
         content_rect: &DOMRectReadOnly,
         border_box_size: &[&ResizeObserverSize],
@@ -71,7 +71,7 @@ impl ResizeObserverEntry {
             content_box_size,
             device_pixel_content_box_size,
         ));
-        reflect_dom_object_with_proto(entry, window, proto)
+        reflect_dom_object_with_proto(entry, window, None)
     }
 }
 

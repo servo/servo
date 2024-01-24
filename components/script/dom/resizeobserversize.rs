@@ -5,10 +5,12 @@
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::ResizeObserverSizeBinding::ResizeObserverSizeMethods;
-use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::window::Window;
 
 /// Non-DOM implementation backing `ResizeObserverSize`.
-#[derive(JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub struct ResizeObserverSizeImpl {
     inline_size: f64,
     block_size: f64,
@@ -22,11 +24,11 @@ impl ResizeObserverSizeImpl {
         }
     }
 
-    fn inline_size(&self) -> f64 {
+    pub fn inline_size(&self) -> f64 {
         self.inline_size
     }
 
-    fn block_size(&self) -> f64 {
+    pub fn block_size(&self) -> f64 {
         self.block_size
     }
 }
@@ -36,6 +38,20 @@ impl ResizeObserverSizeImpl {
 pub struct ResizeObserverSize {
     reflector_: Reflector,
     size_impl: ResizeObserverSizeImpl,
+}
+
+impl ResizeObserverSize {
+    fn new_inherited(size_impl: ResizeObserverSizeImpl) -> ResizeObserverSize {
+        ResizeObserverSize {
+            reflector_: Reflector::new(),
+            size_impl,
+        }
+    }
+
+    pub fn new(window: &Window, size_impl: ResizeObserverSizeImpl) -> DomRoot<ResizeObserverSize> {
+        let observer_size = Box::new(ResizeObserverSize::new_inherited(size_impl));
+        reflect_dom_object_with_proto(observer_size, window, None)
+    }
 }
 
 impl ResizeObserverSizeMethods for ResizeObserverSize {
