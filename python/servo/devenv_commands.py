@@ -22,17 +22,7 @@ from mach.decorators import (
 )
 
 from servo.command_base import CommandBase, cd, call
-
-VALID_TRY_BRACHES = [
-    "try",
-    "try-linux",
-    "try-mac",
-    "try-windows",
-    "try-wpt",
-    "try-wpt-2020",
-    "try-wpt-mac",
-    "try-wpt-mac-2020"
-]
+from servo.try_parser import Config
 
 
 @CommandProvider
@@ -284,38 +274,35 @@ class MachCommands(CommandBase):
         return p.wait()
 
     @Command('try',
-             description='Runs try jobs by force pushing to personal fork try branches',
+             description='Runs try jobs by force pushing to try branch',
              category='devenv')
     @CommandArgument(
-        'jobs', default=["try"], nargs='...',
-        help="Name(s) of job(s) (ex: try, linux, mac, windows, wpt)")
-    def try_jobs(self, jobs):
-        branches = []
-        # we validate branches because force pushing is destructive
-        for job in jobs:
-            # branches must start with try-
-            if "try" not in job:
-                job = "try-" + job
-            if job not in VALID_TRY_BRACHES:
-                print(job + " job doesn't exist")
-                return -1
-            branches.append(job)
-        remote = "origin"
-        if "servo/servo" in subprocess.check_output(["git", "config", "--get", "remote.origin.url"]).decode():
-            # if we have servo/servo for origin check try remote
-            try:
-                if "servo/servo" in subprocess.check_output(["git", "config", "--get", "remote.try.url"]).decode():
-                    # User has servo/servo for try remote
-                    print("You should not use servo/servo for try remote!")
-                    return -1
-                else:
-                    remote = "try"
-            except subprocess.CalledProcessError:
-                print("It looks like you are patching in upstream servo.")
-                print("Set try remote to your personal fork with `git remote add try https://github.com/user/servo`")
-                return -1
-        for b in branches:
-            res = call(["git", "push", remote, "--force", f"HEAD:{b}"], env=self.build_env())
-            if res != 0:
-                return res
-        return 0
+        '--remote', '-r', default="origin",
+        help='git remote to use for try pushes')
+    @CommandArgument(
+        'try_string', default=None, nargs='...',
+        help="Try string")
+    def try_jobs(self, remote="origin", try_string=None):
+        if not try_string:
+            try_string = "full"
+        else:
+            try_string = " ".join(try_string)
+        conf = Config(try_string)
+        result = call(["git", "commit", "--allow-empty", "-m", f"{try_string}\n\n{conf.toJSON()}"])
+        if result != 0:
+            return result
+
+        git_remote = subprocess.check_output(["git", "config", "--get", f"remote.{remote}.url"]).decode()
+        if "servo/servo" in git_remote:
+            print("WARNING: You are triggering try build in upstream repo!")
+
+        result = call(["git", "push", remote, "--force", "HEAD:try"])
+        if result != 0:
+            return result
+
+        git_remote = git_remote.replace(".git", "/actions")
+        print(f"You can find triggered workflow here: {git_remote}")
+
+        # we need to delete last commit
+        result += call(["git", "reset", "--soft", "HEAD~1"])
+        return result

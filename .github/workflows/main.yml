@@ -11,124 +11,36 @@ on:
     branches: ["**"]
   merge_group:
     types: [checks_requested]
-  workflow_call:
-    inputs:
-      configuration:
-        required: true
-        type: string
   workflow_dispatch:
-    inputs:
-      profile:
-        required: false
-        default: "release"
-        type: choice
-        options: ["release", "debug", "production"]
-      wpt-tests-to-run:
-        default: ""
-        required: false
-        type: string
-      platform:
-        required: false
-        type: choice
-        options: ["linux", "windows", "macos", "all"]
-      wpt-layout:
-        required: false
-        type: choice
-        options: ["none", "2013", "2020", "all"]
-      unit-tests:
-        required: false
-        type: boolean
 
 jobs:
-  decision:
-    name: Decision
-    runs-on: ubuntu-20.04
-    outputs:
-      configuration: ${{ steps.configuration.outputs.result }}
-    steps:
-      - name: Configuration
-        id: configuration
-        uses: actions/github-script@v6
-        with:
-          script: |
-            // If this is a workflow call with a configuration object,
-            // then just return it immediately.
-            let configuration = ${{ inputs.configuration || '""' }};
-            if (configuration != "") {
-              console.log("Using configuration: " + JSON.stringify(configuration));
-              return configuration;
-            }
-
-            // We need to pick defaults if the inputs are not provided. Unprovided inputs
-            // are empty strings in this template.
-            let platform = "${{ inputs.platform }}" || "linux";
-            let profile = "${{ inputs.profile }}" || "release";
-            let wpt_layout = "${{ inputs.wpt-layout }}" || "none";
-            let wpt_tests_to_run = "${{ inputs.wpt-tests-to-run }}" || "";
-            let unit_tests = Boolean(${{ inputs.unit-tests }})
-
-            // Merge queue runs and pushes to `main` should always trigger a full build and test.
-            if (["push", "merge_group"].includes(context.eventName)) {
-              platform = "all";
-              wpt_layout = "all";
-              unit_tests = true;
-            }
-
-            let platforms = [];
-            if (platform == "all") {
-              platforms = [ "linux", "windows", "macos", "android" ];
-            } else {
-              platforms = [ platform ];
-            }
-
-            let returnValue = {
-              platforms,
-              wpt_layout,
-              unit_tests,
-              profile,
-              wpt_tests_to_run,
-            };
-
-            console.log("Using configuration: " + JSON.stringify(returnValue));
-            return returnValue;
-
   build-win:
     name: Windows
-    needs: ["decision"]
-    if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'windows') }}
+    if: ${{ github.event_name != 'pull_request' }}
     uses: ./.github/workflows/windows.yml
     with:
-      profile: ${{ fromJson(needs.decision.outputs.configuration).profile }}
-      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+      unit-tests: true
     secrets: inherit
 
   build-mac:
     name: Mac
-    needs: ["decision"]
-    if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'macos') }}
+    if: ${{ github.event_name != 'pull_request' }}
     uses: ./.github/workflows/mac.yml
     with:
-      wpt-tests-to-run: ${{ fromJson(needs.decision.outputs.configuration).wpt_tests_to_run }}
-      profile: ${{ fromJson(needs.decision.outputs.configuration).profile }}
-      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+      unit-tests: true
     secrets: inherit
 
   build-linux:
     name: Linux
-    needs: ["decision"]
-    if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'linux') }}
     uses: ./.github/workflows/linux.yml
     with:
-      wpt-tests-to-run: ${{ fromJson(needs.decision.outputs.configuration).wpt_tests_to_run }}
-      profile: ${{ fromJson(needs.decision.outputs.configuration).profile }}
-      wpt-layout: ${{ fromJson(needs.decision.outputs.configuration).wpt_layout }}
-      unit-tests: ${{ fromJson(needs.decision.outputs.configuration).unit_tests }}
+      unit-tests: true
+      wpt-layout: ${{ github.event_name == 'pull_request' && 'none' || 'all' }}
     secrets: inherit
 
   build-android:
     name: Android
-    needs: ["decision"]
-    if: ${{ contains(fromJson(needs.decision.outputs.configuration).platforms, 'android') }}
+    if: ${{ github.event_name != 'pull_request' }}
     uses: ./.github/workflows/android.yml
     with:
       profile: "release"
@@ -140,15 +52,11 @@ jobs:
     if: always()
     # needs all build to detect cancellation
     needs:
-      - "decision"
       - "build-win"
       - "build-mac"
       - "build-linux"
       - "build-android"
     steps:
-      - name: Mark skipped jobs as successful
-        if: ${{ fromJson(needs.decision.outputs.configuration).platforms[0] != null }}
-        run: exit 0
       - name: Mark the job as successful
         if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         run: exit 0

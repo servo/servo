@@ -4,7 +4,8 @@ on:
   workflow_call:
     inputs:
       profile:
-        required: true
+        required: false
+        default: "release"
         type: string
       unit-tests:
         required: false
