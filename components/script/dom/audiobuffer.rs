@@ -18,7 +18,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::typedarrays::HeapFloat32Array;
+use crate::dom::bindings::typedarrays::{HeapFloat32Array, HeapTypedArray};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::enter_realm;

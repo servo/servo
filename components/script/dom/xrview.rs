@@ -10,7 +10,7 @@ use webxr_api::{ApiSpace, View};
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::typedarrays::HeapFloat32Array;
+use crate::dom::bindings::typedarrays::{HeapFloat32Array, HeapTypedArray};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::typedarray::Float32Array;
 
-use super::bindings::typedarrays::HeapFloat32Array;
+use super::bindings::typedarrays::{HeapFloat32Array, HeapTypedArray};
 use crate::dom::bindings::codegen::Bindings::GamepadPoseBinding::GamepadPoseMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
