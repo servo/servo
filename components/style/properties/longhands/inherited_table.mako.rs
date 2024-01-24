@@ -44,7 +44,6 @@ ${helpers.predefined_type(
     "BorderSpacing",
     "computed::BorderSpacing::zero()",
     engines="gecko servo",
-    servo_pref="layout.legacy_layout",
     animation_value_type="BorderSpacing",
     boxed=True,
     spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing",
