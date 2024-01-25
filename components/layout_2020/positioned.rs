@@ -488,8 +488,8 @@ impl HoistedAbsolutelyPositionedBox {
                     &pbm,
                 );
                 LogicalVec2 {
-                    inline: LengthOrAuto::LengthPercentage(used_size.inline),
-                    block: LengthOrAuto::LengthPercentage(used_size.block),
+                    inline: LengthOrAuto::LengthPercentage(used_size.inline.into()),
+                    block: LengthOrAuto::LengthPercentage(used_size.block.into()),
                 }
             },
             IndependentFormattingContext::NonReplaced(non_replaced) => non_replaced

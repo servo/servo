@@ -1135,7 +1135,7 @@ fn layout_in_flow_replaced_block_level<'a>(
     let margin_inline_start;
     let margin_inline_end;
     let (margin_block_start, margin_block_end) = solve_block_margins_for_in_flow_block_level(&pbm);
-    let fragments = replaced.make_fragments(style, content_size.clone());
+    let fragments = replaced.make_fragments(style, content_size.clone().into());
 
     let clearance;
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
@@ -1150,14 +1150,14 @@ fn layout_in_flow_replaced_block_level<'a>(
         //  than defined by section 10.3.3. CSS 2 does not define when a UA may put said
         //  element next to the float or by how much said element may become narrower."
         let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start);
-        let size = &content_size + &pbm.padding_border_sums;
+        let size = &content_size + &pbm.padding_border_sums.clone().into();
         (clearance, (margin_inline_start, margin_inline_end)) =
             solve_clearance_and_inline_margins_avoiding_floats(
                 sequential_layout_state,
                 containing_block,
                 &collapsed_margin_block_start,
                 &pbm,
-                size.clone(),
+                size.clone().into(),
                 style,
             );
 
@@ -1171,14 +1171,14 @@ fn layout_in_flow_replaced_block_level<'a>(
         // Margins can never collapse into replaced elements.
         sequential_layout_state.collapse_margins();
         sequential_layout_state
-            .advance_block_position((size.block + clearance.unwrap_or_else(Length::zero)).into());
+            .advance_block_position(size.block + clearance.unwrap_or_else(Length::zero).into());
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin_block_end));
     } else {
         clearance = None;
         (margin_inline_start, margin_inline_end) = solve_inline_margins_for_in_flow_block_level(
             containing_block,
             &pbm,
-            content_size.inline,
+            content_size.inline.into(),
         );
     };
 
@@ -1198,7 +1198,7 @@ fn layout_in_flow_replaced_block_level<'a>(
 
     let content_rect = LogicalRect {
         start_corner,
-        size: content_size,
+        size: content_size.into(),
     };
     let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
     BoxFragment::new(

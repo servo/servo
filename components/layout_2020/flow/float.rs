@@ -956,7 +956,7 @@ impl FloatBox {
                             &replaced.style,
                             None,
                             &pbm,
-                        );
+                        ).into();
                         children = replaced
                             .contents
                             .make_fragments(&replaced.style, content_size.clone());
