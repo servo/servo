@@ -87,7 +87,7 @@ jobs:
         with:
           fetch-depth: 1
           sparse-checkout: |
-            python/try_parser.py
+            python/servo/try_parser.py
           sparse-checkout-cone-mode: false
       # This is necessary to checkout the pull request if this run was triggered
       # via an `issue_comment` action on a pull request.
@@ -97,13 +97,13 @@ jobs:
           ref: refs/pull/${{ github.event.number }}/head
           fetch-depth: 1
           sparse-checkout: |
-            python/try_parser.py
+            python/servo/try_parser.py
           sparse-checkout-cone-mode: false
       - name: Parse Try string
         if: ${{ steps.try_string.outputs.result }}
         id: configuration
         run: |
-          out=$(python ./python/try_parser.py ${{ steps.try_string.outputs.result }})
+          out=$(python ./python/servo/try_parser.py ${{ steps.try_string.outputs.result }})
           echo "config<<EOF"$'\n'"$out"$'\n'EOF >> $GITHUB_OUTPUT
       - name: Collect Labels
         if: ${{ steps.try_string.outputs.result }}
