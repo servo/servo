@@ -57,7 +57,7 @@ class MachCommands(CommandBase):
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
     def build(self, build_type: BuildType, jobs=None, params=None, no_package=False,
-              verbose=False, very_verbose=False, libsimpleservo=False, **kwargs):
+              verbose=False, very_verbose=False, **kwargs):
         opts = params or []
 
         if build_type.is_release():
@@ -99,19 +99,15 @@ class MachCommands(CommandBase):
                 print((key, env[key]))
 
         status = self.run_cargo_build_like_command(
-            "build", opts, env=env, verbose=verbose,
-            libsimpleservo=libsimpleservo, **kwargs
-        )
-
-        # Do some additional things if the build succeeded
-        built_binary = self.get_binary_path(
-            build_type,
-            target=self.cross_compile_target,
-            android=self.is_android_build,
-            simpleservo=libsimpleservo
-        )
+            "build", opts, env=env, verbose=verbose, **kwargs)
 
         if status == 0:
+            built_binary = self.get_binary_path(
+                build_type,
+                target=self.cross_compile_target,
+                android=self.is_android_build,
+            )
+
             if self.is_android_build and not no_package:
                 flavor = None
                 if "googlevr" in self.features:
@@ -128,14 +124,12 @@ class MachCommands(CommandBase):
                     status = 1
 
             elif sys.platform == "darwin":
-                servo_path = self.get_binary_path(
-                    build_type, target=self.cross_compile_target, simpleservo=libsimpleservo)
-                servo_bin_dir = os.path.dirname(servo_path)
+                servo_bin_dir = os.path.dirname(built_binary)
                 assert os.path.exists(servo_bin_dir)
 
                 if self.enable_media:
                     print("Packaging gstreamer dylibs")
-                    if not package_gstreamer_dylibs(self.cross_compile_target, servo_path):
+                    if not package_gstreamer_dylibs(self.cross_compile_target, built_binary):
                         return 1
 
                 # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
@@ -146,7 +140,7 @@ class MachCommands(CommandBase):
                     icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
                     if icon is not None:
                         Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
-                                                                                     servo_path,
+                                                                                     built_binary,
                                                                                      0)
                 except ImportError:
                     pass

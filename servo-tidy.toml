@@ -37,10 +37,6 @@ packages = [
     "proc-macro-crate",
     "toml",
 
-    # This dependency is for "hermit os" which Servo doesn't support.
-    # Theoretically, it's never fetched.
-    "hermit-abi",
-
     # Duplicated by winit.
     "windows-sys",
     "windows-targets",
