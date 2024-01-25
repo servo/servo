@@ -34,7 +34,6 @@ servo_atoms = { path = "../atoms" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
 style = { path = "../style", features = ["servo"] }
-time = { workspace = true }
 ucd = "0.1.1"
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-script = { workspace = true }
