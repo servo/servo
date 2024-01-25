@@ -288,7 +288,7 @@ class MachCommands(CommandBase):
         else:
             try_string = " ".join(try_string)
         conf = Config(try_string)
-        result = call(["git", "commit", "--allow-empty", "-m", f"{try_string}\n\n{conf.to_json()}"])
+        result = call(["git", "commit", "--allow-empty", "-m", try_string, "-m", f"{conf.to_json()}"])
         if result != 0:
             return result
 
