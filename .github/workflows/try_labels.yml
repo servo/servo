@@ -105,7 +105,7 @@ jobs:
         run: |
           out=$(python ./python/servo/try_parser.py ${{ steps.try_string.outputs.result }})
           echo "config<<EOF"$'\n'"$out"$'\n'EOF >> $GITHUB_OUTPUT
-      - name: Collect Labels
+      - name: Report triggered run
         if: ${{ steps.try_string.outputs.result }}
         uses: actions/github-script@v6
         with:
