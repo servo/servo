@@ -24,7 +24,7 @@ on:
 
 jobs:
   decision:
-    name: Decision
+    name: Generate matrix
     runs-on: ubuntu-20.04
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
@@ -78,7 +78,7 @@ jobs:
               let profile = '${{ inputs.profile }}';
               for (const platform of configuration.matrix) {
                 platform.profile = profile;
-                platfrom.unit_tests = unit_tests;
+                platform.unit_tests = unit_tests;
               }
             }
 
