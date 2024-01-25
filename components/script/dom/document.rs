@@ -2921,7 +2921,6 @@ impl Document {
                 &mut has_active_resize_observations,
             );
         }
-        println!("has_active_resize_observations: {:?}", has_active_resize_observations);
         has_active_resize_observations
     }
 
@@ -2929,9 +2928,9 @@ impl Document {
     /// <https://drafts.csswg.org/resize-observer/#has-skipped-observations-h>
     pub fn broadcast_active_resize_observations(
         &self,
-        shallowest_target_depth: &mut ResizeObservationDepth,
         has_skipped: &mut bool,
-    ) {
+    ) -> ResizeObservationDepth {
+        let mut shallowest = ResizeObservationDepth::max();
         // Breaking potential re-borrow cycle.
         let observations: Vec<DomRoot<ResizeObserver>> = self
             .resize_observers
@@ -2940,8 +2939,9 @@ impl Document {
             .map(|obs| DomRoot::from_ref(&**obs))
             .collect();
         for observer in observations {
-            observer.broadcast_active_resize_observations(shallowest_target_depth, has_skipped);
+            observer.broadcast_active_resize_observations(&mut shallowest, has_skipped);
         }
+        shallowest
     }
 
     /// <https://drafts.csswg.org/resize-observer/#deliver-resize-loop-error-notification>

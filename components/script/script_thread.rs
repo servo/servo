@@ -1703,12 +1703,11 @@ impl ScriptThread {
             let mut depth = Default::default();
             let mut has_skipped = false;
             loop {
-                println!("Depth: {:?}", depth);
                 if !document.gather_active_resize_observations_at_depth(&depth) {
                     break;
                 }
                 // Note: this will reflow the doc.
-                document.broadcast_active_resize_observations(&mut depth, &mut has_skipped);
+                depth = document.broadcast_active_resize_observations(&mut has_skipped);
             }
 
             if has_skipped {

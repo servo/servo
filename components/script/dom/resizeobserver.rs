@@ -30,6 +30,12 @@ use crate::script_runtime::JSContext as SafeJSContext;
 #[derive(Debug, Default, PartialOrd, PartialEq)]
 pub struct ResizeObservationDepth(usize);
 
+impl ResizeObservationDepth {
+    pub fn max() -> ResizeObservationDepth {
+        ResizeObservationDepth(usize::MAX)
+    }
+}
+
 /// <https://drafts.csswg.org/resize-observer/#resize-observer-slots>
 /// See `ObservationState` for active and skipped observation targets.
 #[dom_struct]
@@ -80,7 +86,6 @@ impl ResizeObserver {
         depth: &ResizeObservationDepth,
         has_active: &mut bool,
     ) {
-        println!("Gathering at depth: {:?}", depth);
         // Step 2.2
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
             if observation.is_active(target) {
@@ -159,8 +164,9 @@ impl ResizeObserverMethods for ResizeObserver {
             .observation_targets
             .borrow()
             .iter()
-            .any(|(obs, target)| &*target == target);
+            .any(|(_obs, other)| &**other == target);
         if is_present {
+            println!("Already present");
             return self.Unobserve(target);
         }
 
@@ -171,13 +177,15 @@ impl ResizeObserverMethods for ResizeObserver {
         self.observation_targets
             .borrow_mut()
             .push((resize_observation, Dom::from_ref(target)));
+        println!("targets: {:?}", self.observation_targets
+            .borrow_mut().len());
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-unobserve>
     fn Unobserve(&self, target: &Element) {
         self.observation_targets
             .borrow_mut()
-            .retain_mut(|(obs, target)| !(&*target == target));
+            .retain_mut(|(_obs, other)| !(&**other == target));
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-disconnect>
