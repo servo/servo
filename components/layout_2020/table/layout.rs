@@ -326,7 +326,7 @@ impl<'a> TableLayout<'a> {
                 .0
                 .min(100. - total_intrinsic_percentage_width);
             total_intrinsic_percentage_width += final_intrinsic_percentage_width;
-            column_measure.percentage_width = Percentage(total_intrinsic_percentage_width);
+            column_measure.percentage_width = Percentage(final_intrinsic_percentage_width);
         }
 
         self.column_measures = column_measures;
