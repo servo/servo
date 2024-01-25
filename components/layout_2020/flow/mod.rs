@@ -308,7 +308,8 @@ fn calculate_inline_content_size_for_block_level_boxes(
 
     impl AccumulatedData {
         fn max_size_including_uncleared_floats(&self) -> ContentSizes {
-            self.max_size.max(self.left_floats.add(&self.right_floats))
+            self.max_size
+                .max(self.left_floats.union(&self.right_floats))
         }
         fn clear_floats(&mut self, clear: Clear) {
             match clear {
@@ -333,12 +334,12 @@ fn calculate_inline_content_size_for_block_level_boxes(
     let accumulate = |mut data: AccumulatedData, (size, float, clear)| {
         data.clear_floats(clear);
         match float {
-            Float::Left => data.left_floats = data.left_floats.add(&size),
-            Float::Right => data.right_floats = data.right_floats.add(&size),
+            Float::Left => data.left_floats = data.left_floats.union(&size),
+            Float::Right => data.right_floats = data.right_floats.union(&size),
             Float::None => {
                 data.max_size = data
                     .max_size
-                    .max(data.left_floats.add(&data.right_floats).add(&size));
+                    .max(data.left_floats.union(&data.right_floats).union(&size));
                 data.left_floats = ContentSizes::zero();
                 data.right_floats = ContentSizes::zero();
             },

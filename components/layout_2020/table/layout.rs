@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
+use app_units::{Au, MAX_AU};
 use euclid::num::Zero;
 use log::warn;
 use style::logical_geometry::WritingMode;
-use style::values::computed::{CSSPixelLength, Length, LengthOrAuto};
+use style::values::computed::{CSSPixelLength, Length, LengthOrAuto, Percentage};
 use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
 
 use super::{Table, TableSlot, TableSlotCell};
@@ -16,7 +16,7 @@ use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
-use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
+use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::table::TableSlotCoordinates;
 use crate::ContainingBlock;
 
@@ -37,10 +37,29 @@ struct CellLayout {
 struct TableLayout<'a> {
     table: &'a Table,
     pbm: PaddingBorderMargin,
+    column_constrainedness: Vec<bool>,
+    column_has_originating_cell: Vec<bool>,
+    cell_measures: Vec<Vec<CellOrColumnMeasure>>,
     assignable_width: Au,
-    column_sizes: Vec<Au>,
+    column_measures: Vec<CellOrColumnMeasure>,
+    distributed_column_widths: Vec<Au>,
     row_sizes: Vec<Au>,
     cells_laid_out: Vec<Vec<Option<CellLayout>>>,
+}
+
+#[derive(Clone, Debug)]
+struct CellOrColumnMeasure {
+    content_sizes: ContentSizes,
+    percentage_width: Percentage,
+}
+
+impl CellOrColumnMeasure {
+    fn zero() -> Self {
+        Self {
+            content_sizes: ContentSizes::zero(),
+            percentage_width: Percentage(0.),
+        }
+    }
 }
 
 impl<'a> TableLayout<'a> {
@@ -48,8 +67,12 @@ impl<'a> TableLayout<'a> {
         Self {
             table,
             pbm: PaddingBorderMargin::zero(),
+            column_constrainedness: Vec::new(),
+            column_has_originating_cell: Vec::new(),
+            cell_measures: Vec::new(),
             assignable_width: Au::zero(),
-            column_sizes: Vec::new(),
+            column_measures: Vec::new(),
+            distributed_column_widths: Vec::new(),
             row_sizes: Vec::new(),
             cells_laid_out: Vec::new(),
         }
@@ -63,24 +86,468 @@ impl<'a> TableLayout<'a> {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
     ) {
-        let (inline_content_sizes, column_content_sizes) = self
-            .table
-            .compute_inline_content_sizes(layout_context, containing_block.style.writing_mode);
-
-        self.calculate_assignable_table_width(containing_block, inline_content_sizes);
-        self.column_sizes =
-            self.distribute_width_to_columns(column_content_sizes, containing_block);
+        let writing_mode = containing_block.style.writing_mode;
+        self.compute_column_constrainedness_and_has_originating_cells(writing_mode);
+        self.compute_cell_measures(layout_context, containing_block);
+        self.compute_column_measures();
+        self.compute_table_width(containing_block);
+        self.distributed_column_widths = self.distribute_width_to_columns();
         self.do_row_layout_first_pass(layout_context, containing_block, positioning_context);
         self.distribute_height_to_rows();
     }
 
-    fn calculate_assignable_table_width(
+    /// This is an implementation of *Computing Cell Measures* from
+    /// <https://drafts.csswg.org/css-tables/#computing-cell-measures>.
+    pub(crate) fn compute_cell_measures(
         &mut self,
+        layout_context: &LayoutContext,
         containing_block: &ContainingBlock,
-        inline_content_sizes: ContentSizes,
     ) {
-        let grid_min_inline_size = inline_content_sizes.min_content;
-        let grid_max_inline_size = inline_content_sizes.max_content;
+        let writing_mode = containing_block.style.writing_mode;
+        for row_index in 0..self.table.size.height {
+            let mut row_measures = vec![CellOrColumnMeasure::zero(); self.table.size.width];
+
+            for column_index in 0..self.table.size.width {
+                let cell = match self.table.slots[row_index][column_index] {
+                    TableSlot::Cell(ref cell) => cell,
+                    _ => continue,
+                };
+
+                // TODO: Should `box_size` percentages be treated as zero here or resolved against
+                // the containing block?
+                let pbm = cell.style.padding_border_margin(containing_block);
+                let min_inline_size: Au = cell
+                    .style
+                    .min_box_size(writing_mode)
+                    .inline
+                    .percentage_relative_to(Length::zero())
+                    .map(|value| value.into())
+                    .auto_is(Au::zero);
+                let max_inline_size: Au = cell.style.max_box_size(writing_mode).inline.map_or_else(
+                    || MAX_AU,
+                    |length_percentage| length_percentage.resolve(Length::zero()).into(),
+                );
+                let inline_size: Au = cell
+                    .style
+                    .box_size(writing_mode)
+                    .inline
+                    .percentage_relative_to(Length::zero())
+                    .map(|value| value.into())
+                    .auto_is(Au::zero);
+
+                let content_sizes = cell
+                    .contents
+                    .contents
+                    .inline_content_sizes(layout_context, writing_mode);
+
+                // > The outer min-content width of a table-cell is max(min-width, min-content width)
+                // > adjusted by the cell intrinsic offsets.
+                let mut outer_min_content_width = content_sizes.min_content.max(min_inline_size);
+                let mut outer_max_content_width = if !self.column_constrainedness[column_index] {
+                    // > The outer max-content width of a table-cell in a non-constrained column is
+                    // > max(min-width, width, min-content width, min(max-width, max-content width))
+                    // > adjusted by the cell intrinsic offsets.
+                    min_inline_size
+                        .max(inline_size)
+                        .max(content_sizes.min_content)
+                        .max(max_inline_size.min(content_sizes.max_content))
+                } else {
+                    // > The outer max-content width of a table-cell in a constrained column is
+                    // > max(min-width, width, min-content width, min(max-width, width)) adjusted by the
+                    // > cell intrinsic offsets.
+                    min_inline_size
+                        .max(inline_size)
+                        .max(content_sizes.min_content)
+                        .max(max_inline_size.min(inline_size))
+                };
+
+                // > The percentage contribution of a table cell, column, or column group is defined
+                // > in terms of the computed values of width and max-width that have computed values
+                // > that are percentages:
+                // >    min(percentage width, percentage max-width).
+                // > If the computed values are not percentages, then 0% is used for width, and an
+                // > infinite percentage is used for max-width.
+                let inline_size_percent = cell
+                    .style
+                    .box_size(writing_mode)
+                    .inline
+                    .non_auto()
+                    .and_then(|length_percentage| length_percentage.to_percentage())
+                    .unwrap_or_else(|| Percentage(0.));
+                let max_inline_size_percent = cell
+                    .style
+                    .max_box_size(writing_mode)
+                    .inline
+                    .and_then(|length_percentage| length_percentage.to_percentage())
+                    .unwrap_or_else(|| Percentage(f32::INFINITY));
+                let percentage_contribution =
+                    Percentage(inline_size_percent.0.min(max_inline_size_percent.0));
+
+                outer_min_content_width += pbm.padding_border_sums.inline.into();
+                outer_max_content_width += pbm.padding_border_sums.inline.into();
+                row_measures[column_index] = CellOrColumnMeasure {
+                    content_sizes: ContentSizes {
+                        min_content: outer_min_content_width,
+                        max_content: outer_max_content_width,
+                    },
+                    percentage_width: percentage_contribution,
+                };
+            }
+
+            self.cell_measures.push(row_measures);
+        }
+    }
+
+    /// Compute the constrainedness of every column in the table.
+    ///
+    /// > A column is constrained if its corresponding table-column-group (if any), its
+    /// > corresponding table-column (if any), or any of the cells spanning only that
+    /// > column has a computed width that is not "auto", and is not a percentage.
+    fn compute_column_constrainedness_and_has_originating_cells(
+        &mut self,
+        writing_mode: WritingMode,
+    ) {
+        for column_index in 0..self.table.size.width {
+            let mut column_constrained = false;
+            let mut column_has_originating_cell = false;
+
+            for row_index in 0..self.table.size.height {
+                let coords = TableSlotCoordinates::new(column_index, row_index);
+                let cell_constrained = match self.table.resolve_first_cell(coords) {
+                    Some(cell) if cell.colspan == 1 => cell
+                        .style
+                        .box_size(writing_mode)
+                        .inline
+                        .non_auto()
+                        .map(|length_percentage| length_percentage.to_length().is_some())
+                        .unwrap_or(false),
+                    _ => false,
+                };
+                column_has_originating_cell = column_has_originating_cell ||
+                    matches!(self.table.get_slot(coords), Some(TableSlot::Cell(_)));
+                column_constrained = column_constrained || cell_constrained;
+            }
+            self.column_constrainedness.push(column_constrained);
+            self.column_has_originating_cell
+                .push(column_has_originating_cell);
+        }
+    }
+
+    /// This is an implementation of *Computing Column Measures* from
+    /// <https://drafts.csswg.org/css-tables/#computing-column-measures>.
+    fn compute_column_measures(&mut self) {
+        let mut column_measures = Vec::new();
+
+        // Compute the column measures only taking into account cells with colspan == 1.
+        // This is the base case that will be used to iteratively account for cells with
+        // larger colspans afterward.
+        //
+        // > min-content width of a column based on cells of span up to 1
+        // >     The largest of:
+        // >         - the width specified for the column:
+        // >               - the outer min-content width of its corresponding table-column,
+        // >                 if any (and not auto)
+        // >               - the outer min-content width of its corresponding table-column-group, if any
+        // >               - or 0, if there is none
+        // >         - the outer min-content width of each cell that spans the column whose colSpan
+        // >           is 1 (or just the one in the first row in fixed mode) or 0 if there is none
+        // >
+        // > max-content width of a column based on cells of span up to 1
+        // >     The largest of:
+        // >         - the outer max-content width of its corresponding
+        // >           table-column-group, if any
+        // >         - the outer max-content width of its corresponding table-column, if any
+        // >         - the outer max-content width of each cell that spans the column
+        // >           whose colSpan is 1 (or just the one in the first row if in fixed mode) or 0
+        // >           if there is no such cell
+        // >
+        // > intrinsic percentage width of a column based on cells of span up to 1
+        // >     The largest of the percentage contributions of each cell that spans the column whose colSpan is
+        // >     1, of its corresponding table-column (if any), and of its corresponding table-column-group (if
+        // >     any)
+        //
+        // TODO: Take into account `table-column` and `table-column-group` lengths.
+        // TODO: Take into account changes to this computation for fixed table layout.
+        let mut next_span_n = usize::MAX;
+        for column_index in 0..self.table.size.width {
+            let mut column_measure = CellOrColumnMeasure::zero();
+
+            for row_index in 0..self.table.size.height {
+                let coords = TableSlotCoordinates::new(column_index, row_index);
+                match self.table.resolve_first_cell(coords) {
+                    Some(cell) if cell.colspan == 1 => cell,
+                    Some(cell) => {
+                        next_span_n = next_span_n.min(cell.colspan);
+                        continue;
+                    },
+                    _ => continue,
+                };
+
+                // This takes the max of `min_content`, `max_content`, and
+                // intrinsic percentage width as described above.
+                let cell_measure = &self.cell_measures[row_index][column_index];
+                column_measure
+                    .content_sizes
+                    .max_assign(cell_measure.content_sizes);
+                column_measure.percentage_width = Percentage(
+                    column_measure
+                        .percentage_width
+                        .0
+                        .max(cell_measure.percentage_width.0),
+                );
+            }
+
+            column_measures.push(column_measure);
+        }
+
+        // Now we have the base computation complete, so iteratively take into account cells
+        // with higher colspan. Using `next_span_n` we can skip over span counts that don't
+        // correspond to any cells.
+        while next_span_n < usize::MAX {
+            (next_span_n, column_measures) = self
+                .compute_content_sizes_for_columns_with_span_up_to_n(next_span_n, &column_measures);
+        }
+
+        // > intrinsic percentage width of a column:
+        // > the smaller of:
+        // >   * the intrinsic percentage width of the column based on cells of span up to N,
+        // >     where N is the number of columns in the table
+        // >   * 100% minus the sum of the intrinsic percentage width of all prior columns in
+        // >     the table (further left when direction is "ltr" (right for "rtl"))
+        let mut total_intrinsic_percentage_width = 0.;
+        for column_index in 0..self.table.size.width {
+            let column_measure = &mut column_measures[column_index];
+            let final_intrinsic_percentage_width = column_measure
+                .percentage_width
+                .0
+                .min(100. - total_intrinsic_percentage_width);
+            total_intrinsic_percentage_width += final_intrinsic_percentage_width;
+            column_measure.percentage_width = Percentage(final_intrinsic_percentage_width);
+        }
+
+        self.column_measures = column_measures;
+    }
+
+    fn compute_content_sizes_for_columns_with_span_up_to_n(
+        &self,
+        n: usize,
+        old_column_measures: &[CellOrColumnMeasure],
+    ) -> (usize, Vec<CellOrColumnMeasure>) {
+        let mut next_span_n = usize::MAX;
+        let mut new_content_sizes_for_columns = Vec::new();
+
+        for column_index in 0..self.table.size.width {
+            let old_column_measure = &old_column_measures[column_index];
+            let mut new_column_content_sizes = ContentSizes::zero();
+            let mut new_column_intrinsic_percentage_width = Percentage(0.);
+
+            for row_index in 0..self.table.size.height {
+                let coords = TableSlotCoordinates::new(column_index, row_index);
+                let resolved_coords = match self.table.resolve_first_cell_coords(coords) {
+                    Some(resolved_coords) => resolved_coords,
+                    None => continue,
+                };
+
+                let cell = match self.table.resolve_first_cell(resolved_coords) {
+                    Some(cell) if cell.colspan <= n => cell,
+                    Some(cell) => {
+                        next_span_n = next_span_n.min(cell.colspan);
+                        continue;
+                    },
+                    _ => continue,
+                };
+
+                let cell_measures = &self.cell_measures[resolved_coords.y][resolved_coords.x];
+                let cell_inline_content_sizes = cell_measures.content_sizes;
+
+                let columns_spanned = resolved_coords.x..resolved_coords.x + cell.colspan;
+                let baseline_content_sizes: ContentSizes = columns_spanned.clone().fold(
+                    ContentSizes::zero(),
+                    |total: ContentSizes, spanned_column_index| {
+                        total + old_column_measures[spanned_column_index].content_sizes
+                    },
+                );
+
+                // TODO: Take into account border spacing.
+                let old_column_content_size = old_column_measure.content_sizes;
+
+                // > **min-content width of a column based on cells of span up to N (N > 1)**
+                // >
+                // > the largest of the min-content width of the column based on cells of span up to
+                // > N-1 and the contributions of the cells in the column whose colSpan is N, where
+                // > the contribution of a cell is the result of taking the following steps:
+                // >
+                // >     1. Define the baseline min-content width as the sum of the max-content
+                // >        widths based on cells of span up to N-1 of all columns that the cell spans.
+                //
+                // Note: This definition is likely a typo, so we use the sum of the min-content
+                // widths here instead.
+                let baseline_min_content_width = baseline_content_sizes.min_content;
+                let baseline_max_content_width = baseline_content_sizes.max_content;
+
+                // >     2. Define the baseline border spacing as the sum of the horizontal
+                // >        border-spacing for any columns spanned by the cell, other than the one in
+                // >        which the cell originates.
+                //
+                // TODO: Take into account border spacing.
+
+                // >     3. The contribution of the cell is the sum of:
+                // >         a. the min-content width of the column based on cells of span up to N-1
+                let a = old_column_content_size.min_content;
+
+                // >         b. the product of:
+                // >             - the ratio of:
+                // >                 - the max-content width of the column based on cells of span up
+                // >                   to N-1 of the column minus the min-content width of the
+                // >                   column based on cells of span up to N-1 of the column, to
+                // >                 - the baseline max-content width minus the baseline min-content
+                // >                   width
+                // >               or zero if this ratio is undefined, and
+                // >             - the outer min-content width of the cell minus the baseline
+                // >               min-content width and the baseline border spacing, clamped to be
+                // >               at least 0 and at most the difference between the baseline
+                // >               max-content width and the baseline min-content width
+                //
+                // TODO: Take into account border spacing.
+                let old_content_size_difference =
+                    old_column_content_size.max_content - old_column_content_size.min_content;
+                let baseline_difference = baseline_min_content_width - baseline_max_content_width;
+
+                let mut b =
+                    old_content_size_difference.to_f32_px() / baseline_difference.to_f32_px();
+                if !b.is_finite() {
+                    b = 0.0;
+                }
+                let b = (cell_inline_content_sizes.min_content -
+                    baseline_content_sizes.min_content)
+                    .clamp_between_extremums(Au::zero(), Some(baseline_difference))
+                    .scale_by(b);
+
+                // >         c. the product of:
+                // >             - the ratio of the max-content width based on cells of span up to
+                // >               N-1 of the column to the baseline max-content width
+                // >             - the outer min-content width of the cell minus the baseline
+                // >               max-content width and baseline border spacing, or 0 if this is
+                // >               negative
+                let c = (cell_inline_content_sizes.min_content -
+                    baseline_content_sizes.max_content)
+                    .min(Au::zero())
+                    .scale_by(
+                        old_column_content_size.max_content.to_f32_px() /
+                            baseline_content_sizes.max_content.to_f32_px(),
+                    );
+
+                let new_column_min_content_width = a + b + c;
+
+                // > **max-content width of a column based on cells of span up to N (N > 1)**
+                // >
+                // > The largest of the max-content width based on cells of span up to N-1 and the
+                // > contributions of the cells in the column whose colSpan is N, where the
+                // > contribution of a cell is the result of taking the following steps:
+
+                // >     1. Define the baseline max-content width as the sum of the max-content
+                // >        widths based on cells of span up to N-1 of all columns that the cell spans.
+                //
+                // This is calculated above for the min-content width.
+
+                // >     2. Define the baseline border spacing as the sum of the horizontal
+                // >        border-spacing for any columns spanned by the cell, other than the one in
+                // >        which the cell originates.
+                //
+                // TODO: Take into account. border spacing.
+
+                // >     3. The contribution of the cell is the sum of:
+                // >          a. the max-content width of the column based on cells of span up to N-1
+                let a = old_column_content_size.max_content;
+
+                // >          b. the product of:
+                // >              1. the ratio of the max-content width based on cells of span up to
+                // >                 N-1 of the column to the baseline max-content width
+                let b_1 = old_column_content_size.max_content.to_f32_px() /
+                    baseline_content_sizes.max_content.to_f32_px();
+
+                // >              2. the outer max-content width of the cell minus the baseline
+                // >                 max-content width and the baseline border spacing, or 0 if this
+                // >                 is negative
+                //
+                // TODO: Take into account. border spacing.
+                let b_2 = (cell_inline_content_sizes.max_content -
+                    baseline_content_sizes.max_content)
+                    .min(Au::zero());
+                let b = b_2.scale_by(b_1);
+                let new_column_max_content_width = a + b + c;
+
+                // The computed values for the column are always the largest of any processed cell
+                // in that column.
+                new_column_content_sizes.max_assign(ContentSizes {
+                    min_content: new_column_min_content_width,
+                    max_content: new_column_max_content_width,
+                });
+
+                // > If the intrinsic percentage width of a column based on cells of span up to N-1 is
+                // > greater than 0%, then the intrinsic percentage width of the column based on cells
+                // > of span up to N is the same as the intrinsic percentage width of the column based
+                // > on cells of span up to N-1.
+                // > Otherwise, it is the largest of the contributions of the cells in the column
+                // > whose colSpan is N, where the contribution of a cell is the result of taking
+                // > the following steps:
+                if old_column_measure.percentage_width.0 <= 0. &&
+                    cell_measures.percentage_width.0 != 0.
+                {
+                    // > 1. Start with the percentage contribution of the cell.
+                    // > 2. Subtract the intrinsic percentage width of the column based on cells
+                    // >    of span up to N-1 of all columns that the cell spans. If this gives a
+                    // >    negative result, change it to 0%.
+                    let mut spanned_columns_with_zero = 0;
+                    let other_column_percentages_sum =
+                        (columns_spanned).fold(0., |sum, spanned_column_index| {
+                            let spanned_column_percentage =
+                                old_column_measures[spanned_column_index].percentage_width;
+                            if spanned_column_percentage.0 == 0. {
+                                spanned_columns_with_zero += 1;
+                            }
+                            sum + spanned_column_percentage.0
+                        });
+                    let step_2 = (cell_measures.percentage_width -
+                        Percentage(other_column_percentages_sum))
+                    .clamp_to_non_negative();
+
+                    // > Multiply by the ratio of:
+                    // >  1. the column’s non-spanning max-content width to
+                    // >  2. the sum of the non-spanning max-content widths of all columns
+                    // >      spanned by the cell that have an intrinsic percentage width of the column
+                    // >      based on cells of span up to N-1 equal to 0%.
+                    // > However, if this ratio is undefined because the denominator is zero,
+                    // > instead use the 1 divided by the number of columns spanned by the cell
+                    // > that have an intrinsic percentage width of the column based on cells of
+                    // > span up to N-1 equal to zero.
+                    let step_3 = step_2.0 * (1.0 / spanned_columns_with_zero as f32);
+
+                    new_column_intrinsic_percentage_width =
+                        Percentage(new_column_intrinsic_percentage_width.0.max(step_3));
+                }
+            }
+            new_content_sizes_for_columns.push(CellOrColumnMeasure {
+                content_sizes: new_column_content_sizes,
+                percentage_width: new_column_intrinsic_percentage_width,
+            });
+        }
+        (next_span_n, new_content_sizes_for_columns)
+    }
+
+    fn compute_table_width(&mut self, containing_block: &ContainingBlock) {
+        // https://drafts.csswg.org/css-tables/#gridmin:
+        // > The row/column-grid width minimum (GRIDMIN) width is the sum of the min-content width of
+        // > all the columns plus cell spacing or borders.
+        // https://drafts.csswg.org/css-tables/#gridmax:
+        // > The row/column-grid width maximum (GRIDMAX) width is the sum of the max-content width of
+        // > all the columns plus cell spacing or borders.
+        let grid_min_and_max = self
+            .column_measures
+            .iter()
+            .fold(ContentSizes::zero(), |result, measure| {
+                result + measure.content_sizes
+            });
 
         self.pbm = self.table.style.padding_border_margin(containing_block);
         let content_box_size = self
@@ -95,7 +562,9 @@ impl<'a> TableLayout<'a> {
 
         // https://drafts.csswg.org/css-tables/#used-min-width-of-table
         // > The used min-width of a table is the greater of the resolved min-width, CAPMIN, and GRIDMIN.
-        let used_min_width_of_table = grid_min_inline_size.max(min_content_sizes.inline.into());
+        let used_min_width_of_table = grid_min_and_max
+            .min_content
+            .max(min_content_sizes.inline.into());
 
         // https://drafts.csswg.org/css-tables/#used-width-of-table
         // > The used width of a table depends on the columns and captions widths as follows:
@@ -106,24 +575,20 @@ impl<'a> TableLayout<'a> {
         // >   the table’s containing block width), the used min-width of the table.
         let used_width_of_table = match content_box_size.inline {
             LengthPercentage(length_percentage) => {
-                length_percentage.max(used_min_width_of_table.into())
+                Au::from(length_percentage).max(used_min_width_of_table)
             },
-            Auto => grid_max_inline_size
+            Auto => grid_min_and_max
+                .max_content
                 .min(containing_block.inline_size.into())
-                .max(used_min_width_of_table)
-                .into(),
+                .max(used_min_width_of_table),
         };
 
-        self.assignable_width = used_width_of_table.into();
+        self.assignable_width = used_width_of_table;
     }
 
     /// Distribute width to columns, performing step 2.4 of table layout from
     /// <https://drafts.csswg.org/css-tables/#table-layout-algorithm>.
-    fn distribute_width_to_columns(
-        &self,
-        column_content_sizes: Vec<ContentSizes>,
-        containing_block: &ContainingBlock,
-    ) -> Vec<Au> {
+    fn distribute_width_to_columns(&self) -> Vec<Au> {
         if self.table.slots.is_empty() {
             return Vec::new();
         }
@@ -162,41 +627,27 @@ impl<'a> TableLayout<'a> {
         let mut max_content_sizing_guesses = Vec::new();
 
         for column_idx in 0..self.table.size.width {
-            let coords = TableSlotCoordinates::new(column_idx, 0);
-            let cell = match self.table.resolve_first_cell(coords) {
-                Some(cell) => cell,
-                None => {
-                    min_content_sizing_guesses.push(Au::zero());
-                    min_content_percentage_sizing_guesses.push(Au::zero());
-                    min_content_specified_sizing_guesses.push(Au::zero());
-                    max_content_sizing_guesses.push(Au::zero());
-                    continue;
-                },
-            };
+            use style::Zero;
 
-            let inline_size = cell
-                .style
-                .box_size(containing_block.style.writing_mode)
-                .inline;
-            let min_and_max_content = &column_content_sizes[column_idx];
-            let min_content_width = min_and_max_content.min_content;
-            let max_content_width = min_and_max_content.max_content;
+            let column_measure = &self.column_measures[column_idx];
+            let min_content_width = column_measure.content_sizes.min_content;
+            let max_content_width = column_measure.content_sizes.max_content;
+            let constrained = self.column_constrainedness[column_idx];
 
             let (
                 min_content_percentage_sizing_guess,
                 min_content_specified_sizing_guess,
                 max_content_sizing_guess,
-            ) = match inline_size {
-                LengthPercentage(length_percentage) if length_percentage.has_percentage() => {
-                    let percent_guess = min_content_width.max(
-                        length_percentage
-                            .resolve(self.assignable_width.into())
-                            .into(),
-                    );
-                    (percent_guess, percent_guess, percent_guess)
-                },
-                LengthPercentage(_) => (min_content_width, max_content_width, max_content_width),
-                Auto => (min_content_width, min_content_width, max_content_width),
+            ) = if !column_measure.percentage_width.is_zero() {
+                let resolved = self
+                    .assignable_width
+                    .scale_by(column_measure.percentage_width.0);
+                let percent_guess = min_content_width.max(resolved.into());
+                (percent_guess, percent_guess, percent_guess)
+            } else if constrained {
+                (min_content_width, max_content_width, max_content_width)
+            } else {
+                (min_content_width, min_content_width, max_content_width)
             };
 
             min_content_sizing_guesses.push(min_content_width);
@@ -284,17 +735,143 @@ impl<'a> TableLayout<'a> {
         )
     }
 
-    fn distribute_extra_width_to_columns(
-        &self,
-        max_content_sizing_guesses: &mut Vec<Au>,
-        max_content_sum: Au,
-    ) {
-        // The simplest distribution algorithm, until we have support for proper extra space
-        // distribution is to equally distribute the extra space.
-        let ratio_factor = 1.0 / max_content_sizing_guesses.len() as f32;
+    /// This is an implementation of *Distributing excess width to columns* from
+    /// <https://drafts.csswg.org/css-tables/#distributing-width-to-columns>.
+    fn distribute_extra_width_to_columns(&self, column_sizes: &mut Vec<Au>, column_sizes_sum: Au) {
+        let all_columns = 0..self.table.size.width;
+        let extra_inline_size = self.assignable_width - column_sizes_sum;
+
+        let has_originating_cells =
+            |column_index: &usize| self.column_has_originating_cell[*column_index];
+        let is_constrained = |column_index: &usize| self.column_constrainedness[*column_index];
+        let is_unconstrained = |column_index: &usize| !is_constrained(column_index);
+        let has_percent_greater_than_zero =
+            |column_index: &usize| self.column_measures[*column_index].percentage_width.0 > 0.;
+        let has_percent_zero = |column_index: &usize| !has_percent_greater_than_zero(column_index);
+        let has_max_content = |column_index: &usize| {
+            self.column_measures[*column_index]
+                .content_sizes
+                .max_content !=
+                Au(0)
+        };
+
+        let max_content_sum =
+            |column_index: usize| self.column_measures[column_index].content_sizes.max_content;
+
+        // > If there are non-constrained columns that have originating cells with intrinsic
+        // > percentage width of 0% and with nonzero max-content width (aka the columns allowed to
+        // > grow by this rule), the distributed widths of the columns allowed to grow by this rule
+        // > are increased in proportion to max-content width so the total increase adds to the
+        // > excess width.
+        let unconstrained_max_content_columns = all_columns
+            .clone()
+            .filter(is_unconstrained)
+            .filter(has_originating_cells)
+            .filter(has_percent_zero)
+            .filter(has_max_content);
+        let total_max_content_width = unconstrained_max_content_columns
+            .clone()
+            .map(max_content_sum)
+            .fold(Au::zero(), |a, b| a + b);
+        if total_max_content_width != Au::zero() {
+            for column_index in unconstrained_max_content_columns {
+                column_sizes[column_index] += extra_inline_size.scale_by(
+                    self.column_measures[column_index]
+                        .content_sizes
+                        .max_content
+                        .to_f32_px() /
+                        total_max_content_width.to_f32_px(),
+                );
+            }
+            return;
+        }
+
+        // > Otherwise, if there are non-constrained columns that have originating cells with intrinsic
+        // > percentage width of 0% (aka the columns allowed to grow by this rule, which thanks to the
+        // > previous rule must have zero max-content width), the distributed widths of the columns
+        // > allowed to grow by this rule are increased by equal amounts so the total increase adds to
+        // > the excess width.V
+        let unconstrained_no_percent_columns = all_columns
+            .clone()
+            .filter(is_unconstrained)
+            .filter(has_originating_cells)
+            .filter(has_percent_zero);
+        let total_unconstrained_no_percent = unconstrained_no_percent_columns.clone().count();
+        if total_unconstrained_no_percent > 0 {
+            let extra_space_per_column =
+                extra_inline_size.scale_by(1.0 / total_unconstrained_no_percent as f32);
+            for column_index in unconstrained_no_percent_columns {
+                column_sizes[column_index] += extra_space_per_column;
+            }
+            return;
+        }
+
+        // > Otherwise, if there are constrained columns with intrinsic percentage width of 0% and
+        // > with nonzero max-content width (aka the columns allowed to grow by this rule, which, due
+        // > to other rules, must have originating cells), the distributed widths of the columns
+        // > allowed to grow by this rule are increased in proportion to max-content width so the
+        // > total increase adds to the excess width.
+        let constrained_max_content_columns = all_columns
+            .clone()
+            .filter(is_constrained)
+            .filter(has_originating_cells)
+            .filter(has_percent_zero)
+            .filter(has_max_content);
+        let total_max_content_width = constrained_max_content_columns
+            .clone()
+            .map(max_content_sum)
+            .fold(Au::zero(), |a, b| a + b);
+        if total_max_content_width != Au::zero() {
+            for column_index in constrained_max_content_columns {
+                column_sizes[column_index] += extra_inline_size.scale_by(
+                    self.column_measures[column_index]
+                        .content_sizes
+                        .max_content
+                        .to_f32_px() /
+                        total_max_content_width.to_f32_px(),
+                );
+            }
+            return;
+        }
+
+        // > Otherwise, if there are columns with intrinsic percentage width greater than 0% (aka the
+        // > columns allowed to grow by this rule, which, due to other rules, must have originating
+        // > cells), the distributed widths of the columns allowed to grow by this rule are increased
+        // > in proportion to intrinsic percentage width so the total increase adds to the excess
+        // > width.
+        let columns_with_percentage = all_columns.clone().filter(has_percent_greater_than_zero);
+        let total_percent = columns_with_percentage
+            .clone()
+            .map(|column_index| self.column_measures[column_index].percentage_width.0)
+            .sum::<f32>();
+        if total_percent > 0. {
+            for column_index in columns_with_percentage {
+                column_sizes[column_index] += extra_inline_size.scale_by(
+                    self.column_measures[column_index].percentage_width.0 / total_percent,
+                );
+            }
+            return;
+        }
+
+        // > Otherwise, if there is any such column, the distributed widths of all columns that have
+        // > originating cells are increased by equal amounts so the total increase adds to the excess
+        // > width.
+        let has_originating_cells_columns = all_columns.clone().filter(has_originating_cells);
+        let total_has_originating_cells = has_originating_cells_columns.clone().count();
+        if total_has_originating_cells > 0 {
+            let extra_space_per_column =
+                extra_inline_size.scale_by(1.0 / total_has_originating_cells as f32);
+            for column_index in has_originating_cells_columns {
+                column_sizes[column_index] += extra_space_per_column;
+            }
+            return;
+        }
+
+        // > Otherwise, the distributed widths of all columns are increased by equal amounts so the
+        // total increase adds to the excess width.
         let extra_space_for_all_columns =
-            (self.assignable_width - max_content_sum).scale_by(ratio_factor);
-        for guess in max_content_sizing_guesses.iter_mut() {
+            extra_inline_size.scale_by(1.0 / self.table.size.width as f32);
+        for guess in column_sizes.iter_mut() {
             *guess += extra_space_for_all_columns;
         }
     }
@@ -319,7 +896,7 @@ impl<'a> TableLayout<'a> {
 
                 let mut total_width = Au::zero();
                 for width_index in column_index..column_index + cell.colspan {
-                    total_width += self.column_sizes[width_index];
+                    total_width += self.distributed_column_widths[width_index];
                 }
 
                 let border = cell.style.border_width(containing_block.style.writing_mode);
@@ -393,7 +970,7 @@ impl<'a> TableLayout<'a> {
         positioning_context: &mut PositioningContext,
     ) -> (Vec<Fragment>, Au) {
         assert_eq!(self.table.size.height, self.row_sizes.len());
-        assert_eq!(self.table.size.width, self.column_sizes.len());
+        assert_eq!(self.table.size.width, self.distributed_column_widths.len());
 
         let mut fragments = Vec::new();
         let mut row_offset = Au::zero();
@@ -402,7 +979,7 @@ impl<'a> TableLayout<'a> {
             let row_size = self.row_sizes[row_index];
 
             for column_index in 0..self.table.size.width {
-                let column_size = self.column_sizes[column_index];
+                let column_size = self.distributed_column_widths[column_index];
                 let layout = match self.cells_laid_out[row_index][column_index].take() {
                     Some(layout) => layout,
                     None => continue,
@@ -463,19 +1040,27 @@ impl Table {
         &self,
         layout_context: &LayoutContext,
         writing_mode: WritingMode,
-    ) -> (ContentSizes, Vec<ContentSizes>) {
-        let mut final_size = ContentSizes::zero();
-        let column_content_sizes = (0..self.size.width)
-            .map(|column_idx| {
-                let coords = TableSlotCoordinates::new(column_idx, 0);
+    ) -> (ContentSizes, Vec<Vec<ContentSizes>>) {
+        let mut total_size = ContentSizes::zero();
+        let mut inline_content_sizes = Vec::new();
+        for column_index in 0..self.size.width {
+            let mut row_inline_content_sizes = Vec::new();
+            let mut max_content_sizes_in_column = ContentSizes::zero();
+
+            for row_index in 0..self.size.width {
+                // TODO: Take into account padding and border here.
+                let coords = TableSlotCoordinates::new(column_index, row_index);
+
                 let content_sizes =
                     self.inline_content_sizes_for_cell_at(coords, layout_context, writing_mode);
-                final_size.min_content += content_sizes.min_content;
-                final_size.max_content += content_sizes.max_content;
-                content_sizes
-            })
-            .collect();
-        (final_size, column_content_sizes)
+                max_content_sizes_in_column.max_assign(content_sizes);
+                row_inline_content_sizes.push(content_sizes);
+            }
+
+            inline_content_sizes.push(row_inline_content_sizes);
+            total_size += max_content_sizes_in_column;
+        }
+        (total_size, inline_content_sizes)
     }
 
     pub(crate) fn inline_content_sizes(

@@ -4,6 +4,8 @@
 
 //! <https://drafts.csswg.org/css-sizing/>
 
+use std::ops::{Add, AddAssign};
+
 use app_units::Au;
 use serde::Serialize;
 use style::logical_geometry::WritingMode;
@@ -14,7 +16,7 @@ use style::Zero;
 
 use crate::style_ext::{Clamp, ComputedValuesExt};
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub(crate) struct ContentSizes {
     pub min_content: Au,
     pub max_content: Au,
@@ -43,11 +45,32 @@ impl ContentSizes {
         }
     }
 
-    pub fn add(&self, other: &Self) -> Self {
+    pub fn max_assign(&mut self, other: Self) {
+        *self = self.max(other);
+    }
+
+    pub fn union(&self, other: &Self) -> Self {
         Self {
             min_content: self.min_content.max(other.min_content),
             max_content: self.max_content + other.max_content,
         }
+    }
+}
+
+impl Add for ContentSizes {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        Self {
+            min_content: self.min_content + rhs.min_content,
+            max_content: self.max_content + rhs.max_content,
+        }
+    }
+}
+
+impl AddAssign for ContentSizes {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = self.add(rhs)
     }
 }
 
