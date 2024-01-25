@@ -19,7 +19,8 @@ use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
 use crate::flow::float::FloatBox;
-use crate::flow::inline::{InlineBox, InlineFormattingContext, InlineLevelBox, TextRun};
+use crate::flow::inline::{InlineBox, InlineFormattingContext, InlineLevelBox};
+use crate::flow::text_run::TextRun;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
@@ -56,6 +57,7 @@ impl BlockFormattingContext {
 
     pub fn construct_for_text_runs<'dom>(
         runs: impl Iterator<Item = TextRun>,
+        layout_context: &LayoutContext,
         text_decoration_line: TextDecorationLine,
     ) -> Self {
         // FIXME: do white space collapsing
@@ -70,10 +72,8 @@ impl BlockFormattingContext {
             contains_floats: false,
             ends_with_whitespace: false,
         };
-        let contents = BlockContainer::InlineFormattingContext(ifc);
-
         Self {
-            contents,
+            contents: BlockContainer::construct_inline_formatting_context(layout_context, ifc),
             contains_floats: false,
         }
     }
@@ -216,6 +216,16 @@ impl BlockContainer {
         contents.traverse(context, info, &mut builder);
         builder.finish()
     }
+
+    pub(super) fn construct_inline_formatting_context(
+        layout_context: &LayoutContext,
+        mut ifc: InlineFormattingContext,
+    ) -> Self {
+        // TODO(mrobinson): Perhaps it would be better to iteratively break and shape the contents
+        // of the IFC, and not wait until it is completely built.
+        ifc.break_and_shape_text(layout_context);
+        BlockContainer::InlineFormattingContext(ifc)
+    }
 }
 
 impl<'dom, 'style, Node> BlockContainerBuilder<'dom, 'style, Node>
@@ -251,7 +261,8 @@ where
 
         if !self.ongoing_inline_formatting_context.is_empty() {
             if self.block_level_boxes.is_empty() {
-                return BlockContainer::InlineFormattingContext(
+                return BlockContainer::construct_inline_formatting_context(
+                    self.context,
                     self.ongoing_inline_formatting_context,
                 );
             }
@@ -427,6 +438,7 @@ where
             parent_style: Arc::clone(&info.style),
             text: output,
             has_uncollapsible_content,
+            shaped_text: None,
         })));
     }
 }
@@ -811,15 +823,15 @@ where
             /* ends_with_whitespace */ false,
         );
         std::mem::swap(&mut self.ongoing_inline_formatting_context, &mut ifc);
-        let kind = BlockLevelCreator::SameFormattingContextBlock(
-            IntermediateBlockContainer::InlineFormattingContext(ifc),
-        );
+
         let info = self.info.new_replacing_style(anonymous_style.clone());
         self.block_level_boxes.push(BlockLevelJob {
             info,
             // FIXME(nox): We should be storing this somewhere.
             box_slot: BoxSlot::dummy(),
-            kind,
+            kind: BlockLevelCreator::SameFormattingContextBlock(
+                IntermediateBlockContainer::InlineFormattingContext(ifc),
+            ),
         });
     }
 
@@ -919,7 +931,7 @@ impl IntermediateBlockContainer {
                 is_list_item,
             ),
             IntermediateBlockContainer::InlineFormattingContext(ifc) => {
-                BlockContainer::InlineFormattingContext(ifc)
+                BlockContainer::construct_inline_formatting_context(context, ifc)
             },
         }
     }
