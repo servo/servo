@@ -92,9 +92,7 @@ impl ResizeObserver {
             observation.state = Default::default();
             if observation.is_active(target) {
                 let target_depth = calculate_depth_for_node(target);
-                println!("Target depth: {:?}", target_depth);
                 if target_depth > *depth {
-                    println!("Found active");
                     observation.state = ObservationState::Active;
                     *has_active = true;
                 } else {
@@ -114,7 +112,6 @@ impl ResizeObserver {
         let mut entries: Vec<DomRoot<ResizeObserverEntry>> = Default::default();
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
             if matches!(observation.state, ObservationState::Skipped) {
-                println!("Found skipped");
                 *has_skipped = true;
                 continue;
             }
@@ -151,7 +148,6 @@ impl ResizeObserver {
             observation.last_reported_sizes.borrow_mut().push_back(size_impl);
             observation.state = ObservationState::Done;
             let target_depth = calculate_depth_for_node(target);
-            println!("Target depth: {:?} shallowest: {:?}", target_depth, shallowest_target_depth);
             if target_depth < *shallowest_target_depth {
                 *shallowest_target_depth = target_depth;
             }
@@ -171,7 +167,6 @@ impl ResizeObserverMethods for ResizeObserver {
             .iter()
             .any(|(_obs, other)| &**other == target);
         if is_present {
-            println!("Already present");
             return self.Unobserve(target);
         }
 
@@ -182,7 +177,6 @@ impl ResizeObserverMethods for ResizeObserver {
         self.observation_targets
             .borrow_mut()
             .push((resize_observation, Dom::from_ref(target)));
-        println!("targets: {:?}", self.observation_targets
             .borrow_mut().len());
     }
 
