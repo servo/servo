@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::Instant;
 use std::{iter, str};
 
 use app_units::Au;
@@ -253,7 +254,7 @@ impl Font {
             .borrow_mut()
             .entry(lookup_key)
             .or_insert_with(|| {
-                let start_time = time::precise_time_ns();
+                let start_time = Instant::now();
                 let mut glyphs = GlyphStore::new(
                     text.len(),
                     options
@@ -276,9 +277,11 @@ impl Font {
                         .shape_text(text, options, &mut glyphs);
                 }
 
-                let end_time = time::precise_time_ns();
-                TEXT_SHAPING_PERFORMANCE_COUNTER
-                    .fetch_add((end_time - start_time) as usize, Ordering::Relaxed);
+                let end_time = Instant::now();
+                TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add(
+                    (end_time.duration_since(start_time).as_nanos()) as usize,
+                    Ordering::Relaxed,
+                );
                 Arc::new(glyphs)
             })
             .clone();

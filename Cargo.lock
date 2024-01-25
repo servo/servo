@@ -2065,7 +2065,6 @@ dependencies = [
  "servo_url",
  "smallvec",
  "style",
- "time 0.1.45",
  "truetype",
  "ucd",
  "unicode-bidi",
