@@ -2909,15 +2909,15 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
-    /// Returns a boolean representing #has-active-observations-h
+    /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub fn gather_active_resize_observations_at_depth(
         &self,
-        depth: ResizeObservationDepth,
+        depth: &ResizeObservationDepth,
     ) -> bool {
         let mut has_active_resize_observations = false;
         for observer in self.resize_observers.borrow_mut().iter_mut() {
             observer.gather_active_resize_observations_at_depth(
-                &depth,
+                depth,
                 &mut has_active_resize_observations,
             );
         }
@@ -2925,9 +2925,12 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
-    pub fn broadcast_active_resize_observations(&self) -> ResizeObservationDepth {
-        let mut shallowest_target_depth = Default::default();
-
+    /// <https://drafts.csswg.org/resize-observer/#has-skipped-observations-h>
+    pub fn broadcast_active_resize_observations(
+        &self,
+        shallowest_target_depth: &mut ResizeObservationDepth,
+        has_skipped: &mut bool,
+    ) {
         // Breaking potential re-borrow cycle.
         let observations: Vec<DomRoot<ResizeObserver>> = self
             .resize_observers
@@ -2936,9 +2939,9 @@ impl Document {
             .map(|obs| DomRoot::from_ref(&**obs))
             .collect();
         for observer in observations {
-            observer.broadcast_active_resize_observations(&mut shallowest_target_depth);
+            observer
+                .broadcast_active_resize_observations(shallowest_target_depth, has_skipped);
         }
-        shallowest_target_depth
     }
 }
 

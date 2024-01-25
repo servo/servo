@@ -74,7 +74,7 @@ impl ResizeObserver {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
-    /// Sets a boolean representing #has-active-observations-h
+    /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub fn gather_active_resize_observations_at_depth(
         &self,
         depth: &ResizeObservationDepth,
@@ -95,13 +95,16 @@ impl ResizeObserver {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
+    /// <https://drafts.csswg.org/resize-observer/#has-skipped-observations-h>
     pub fn broadcast_active_resize_observations(
         &self,
         shallowest_target_depth: &mut ResizeObservationDepth,
+        has_skipped: &mut bool,
     ) {
         let mut entries: Vec<DomRoot<ResizeObserverEntry>> = Default::default();
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
             if matches!(observation.state, ObservationState::Skipped) {
+                *has_skipped = true;
                 continue;
             }
             // #create-and-populate-a-resizeobserverentry

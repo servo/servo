@@ -1701,13 +1701,16 @@ impl ScriptThread {
             let _realm = enter_realm(&*document);
 
             let mut depth = Default::default();
+            let mut has_skipped = false;
             loop {
-                if !document.gather_active_resize_observations_at_depth(depth) {
+                if !document.gather_active_resize_observations_at_depth(&depth) {
                     break;
                 }
                 // Note: this will reflow the doc.
-                depth = document.broadcast_active_resize_observations();
+                document.broadcast_active_resize_observations(&mut depth, &mut has_skipped);
             }
+
+            if has_skipped {}
         }
 
         // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7.12
