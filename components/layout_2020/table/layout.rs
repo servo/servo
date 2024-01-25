@@ -123,12 +123,10 @@ impl<'a> TableLayout<'a> {
                     .percentage_relative_to(Length::zero())
                     .map(|value| value.into())
                     .auto_is(Au::zero);
-                let max_inline_size: Au = cell
-                    .style
-                    .max_box_size(writing_mode)
-                    .inline
-                    .map(|length_percentage| length_percentage.resolve(Length::zero()))
-                    .map_or_else(|| MAX_AU, |value| value.into());
+                let max_inline_size: Au = cell.style.max_box_size(writing_mode).inline.map_or_else(
+                    || MAX_AU,
+                    |length_percentage| length_percentage.resolve(Length::zero()).into(),
+                );
                 let inline_size: Au = cell
                     .style
                     .box_size(writing_mode)
@@ -270,7 +268,7 @@ impl<'a> TableLayout<'a> {
         //
         // TODO: Take into account `table-column` and `table-column-group` lengths.
         // TODO: Take into account changes to this computation for fixed table layout.
-        let mut next_span_n = None;
+        let mut next_span_n = usize::MAX;
         for column_index in 0..self.table.size.width {
             let mut column_measure = CellOrColumnMeasure::zero();
 
@@ -279,9 +277,7 @@ impl<'a> TableLayout<'a> {
                 match self.table.resolve_first_cell(coords) {
                     Some(cell) if cell.colspan == 1 => cell,
                     Some(cell) => {
-                        next_span_n = next_span_n
-                            .map(|next_span_n: usize| next_span_n.min(cell.colspan))
-                            .or(Some(cell.colspan));
+                        next_span_n = next_span_n.min(cell.colspan);
                         continue;
                     },
                     _ => continue,
@@ -307,9 +303,9 @@ impl<'a> TableLayout<'a> {
         // Now we have the base computation complete, so iteratively take into account cells
         // with higher colspan. Using `next_span_n` we can skip over span counts that don't
         // correspond to any cells.
-        while let Some(n) = next_span_n {
-            (next_span_n, column_measures) =
-                self.compute_content_sizes_for_columns_with_span_up_to_n(n, &column_measures);
+        while next_span_n < usize::MAX {
+            (next_span_n, column_measures) = self
+                .compute_content_sizes_for_columns_with_span_up_to_n(next_span_n, &column_measures);
         }
 
         // > intrinsic percentage width of a column:
@@ -336,8 +332,8 @@ impl<'a> TableLayout<'a> {
         &self,
         n: usize,
         old_column_measures: &[CellOrColumnMeasure],
-    ) -> (Option<usize>, Vec<CellOrColumnMeasure>) {
-        let mut next_span_n = None;
+    ) -> (usize, Vec<CellOrColumnMeasure>) {
+        let mut next_span_n = usize::MAX;
         let mut new_content_sizes_for_columns = Vec::new();
 
         for column_index in 0..self.table.size.width {
@@ -355,9 +351,7 @@ impl<'a> TableLayout<'a> {
                 let cell = match self.table.resolve_first_cell(resolved_coords) {
                     Some(cell) if cell.colspan <= n => cell,
                     Some(cell) => {
-                        next_span_n = next_span_n
-                            .map(|next_span_n: usize| next_span_n.min(cell.colspan))
-                            .or(Some(cell.colspan));
+                        next_span_n = next_span_n.min(cell.colspan);
                         continue;
                     },
                     _ => continue,
@@ -367,11 +361,12 @@ impl<'a> TableLayout<'a> {
                 let cell_inline_content_sizes = cell_measures.content_sizes;
 
                 let columns_spanned = resolved_coords.x..resolved_coords.x + cell.colspan;
-                let baseline_content_sizes: ContentSizes = (columns_spanned.clone())
-                    .map(|spanned_column_index| {
-                        old_column_measures[spanned_column_index].content_sizes
-                    })
-                    .fold(ContentSizes::zero(), |a: ContentSizes, b| a + b);
+                let baseline_content_sizes: ContentSizes = columns_spanned.clone().fold(
+                    ContentSizes::zero(),
+                    |total: ContentSizes, spanned_column_index| {
+                        total + old_column_measures[spanned_column_index].content_sizes
+                    },
+                );
 
                 // TODO: Take into account border spacing.
                 let old_column_content_size = old_column_measure.content_sizes;
