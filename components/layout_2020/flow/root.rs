@@ -43,7 +43,7 @@ impl BoxTree {
     where
         Node: 'dom + Copy + LayoutNode<'dom> + Send + Sync,
     {
-        let boxes = construct_for_root_element(&context, root_element);
+        let boxes = construct_for_root_element(context, root_element);
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
         assert!(boxes.len() <= 1);
@@ -291,7 +291,7 @@ impl BoxTree {
         let mut root_fragments = independent_layout
             .fragments
             .into_iter()
-            .map(|fragment| ArcRefCell::new(fragment))
+            .map(ArcRefCell::new)
             .collect::<Vec<_>>();
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.

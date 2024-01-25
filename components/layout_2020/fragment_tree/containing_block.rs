@@ -67,11 +67,11 @@ impl<'a, T> ContainingBlockManager<'a, T> {
         &self,
         for_non_absolute_descendants: &'a T,
     ) -> Self {
-        return ContainingBlockManager {
+        ContainingBlockManager {
             for_non_absolute_descendants,
             for_absolute_descendants: self.for_absolute_descendants,
             for_absolute_and_fixed_descendants: self.for_absolute_and_fixed_descendants,
-        };
+        }
     }
 
     pub(crate) fn new_for_absolute_descendants(
@@ -79,11 +79,11 @@ impl<'a, T> ContainingBlockManager<'a, T> {
         for_non_absolute_descendants: &'a T,
         for_absolute_descendants: &'a T,
     ) -> Self {
-        return ContainingBlockManager {
+        ContainingBlockManager {
             for_non_absolute_descendants,
             for_absolute_descendants: Some(for_absolute_descendants),
             for_absolute_and_fixed_descendants: self.for_absolute_and_fixed_descendants,
-        };
+        }
     }
 
     pub(crate) fn new_for_absolute_and_fixed_descendants(
@@ -91,10 +91,10 @@ impl<'a, T> ContainingBlockManager<'a, T> {
         for_non_absolute_descendants: &'a T,
         for_absolute_and_fixed_descendants: &'a T,
     ) -> Self {
-        return ContainingBlockManager {
+        ContainingBlockManager {
             for_non_absolute_descendants,
             for_absolute_descendants: None,
             for_absolute_and_fixed_descendants,
-        };
+        }
     }
 }

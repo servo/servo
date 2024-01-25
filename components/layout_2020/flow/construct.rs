@@ -71,11 +71,11 @@ impl BlockFormattingContext {
             ends_with_whitespace: false,
         };
         let contents = BlockContainer::InlineFormattingContext(ifc);
-        let bfc = Self {
+
+        Self {
             contents,
             contains_floats: false,
-        };
-        bfc
+        }
     }
 }
 
@@ -442,8 +442,8 @@ fn preserve_segment_break() -> bool {
 ///
 /// Returns the transformed text as a [String] and also whether or not the input had
 /// any uncollapsible content.
-fn collapse_and_transform_whitespace<'text>(
-    input: &'text str,
+fn collapse_and_transform_whitespace(
+    input: &str,
     white_space: WhiteSpace,
     trim_beginning_white_space: bool,
 ) -> (String, bool) {

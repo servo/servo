@@ -58,7 +58,7 @@ impl<Node: Clone> NodeAndStyleInfo<Node> {
     pub(crate) fn new_replacing_style(&self, style: ServoArc<ComputedValues>) -> Self {
         Self {
             node: self.node.clone(),
-            pseudo_element_type: self.pseudo_element_type.clone(),
+            pseudo_element_type: self.pseudo_element_type,
             style,
         }
     }
@@ -221,7 +221,7 @@ fn traverse_pseudo_element_contents<'dom, Node>(
     let mut anonymous_style = None;
     for item in items {
         match item {
-            PseudoElementContentItem::Text(text) => handler.handle_text(&info, text.into()),
+            PseudoElementContentItem::Text(text) => handler.handle_text(info, text.into()),
             PseudoElementContentItem::Replaced(contents) => {
                 let item_style = anonymous_style.get_or_insert_with(|| {
                     context

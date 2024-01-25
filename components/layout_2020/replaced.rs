@@ -150,9 +150,8 @@ impl ReplacedContent {
             }
         };
 
-        let intrinsic = intrinsic_size_in_dots.map_or_else(
-            || IntrinsicSizes::empty(),
-            |intrinsic_size_in_dots| {
+        let intrinsic =
+            intrinsic_size_in_dots.map_or_else(IntrinsicSizes::empty, |intrinsic_size_in_dots| {
                 // FIXME: should 'image-resolution' (when implemented) be used *instead* of
                 // `script::dom::htmlimageelement::ImageRequest::current_pixel_density`?
                 // https://drafts.csswg.org/css-images-4/#the-image-resolution
@@ -160,15 +159,14 @@ impl ReplacedContent {
                 let width = (intrinsic_size_in_dots.width as CSSFloat) / dppx;
                 let height = (intrinsic_size_in_dots.height as CSSFloat) / dppx;
                 IntrinsicSizes::from_width_and_height(width, height)
-            },
-        );
+            });
 
         let base_fragment_info = BaseFragmentInfo::new_for_node(element.opaque());
-        return Some(Self {
+        Some(Self {
             kind,
             intrinsic,
             base_fragment_info,
-        });
+        })
     }
 
     pub fn from_image_url<'dom>(
@@ -246,8 +244,8 @@ impl ReplacedContent {
         }
     }
 
-    pub fn make_fragments<'a>(
-        &'a self,
+    pub fn make_fragments(
+        &self,
         style: &ServoArc<ComputedValues>,
         size: LogicalVec2<Length>,
     ) -> Vec<Fragment> {
@@ -334,10 +332,10 @@ impl ReplacedContent {
         let intrinsic_size = self.flow_relative_intrinsic_size(style);
         let intrinsic_ratio = self.inline_size_over_block_size_intrinsic_ratio(style);
 
-        let box_size = box_size.unwrap_or(style.content_box_size(containing_block, &pbm));
-        let max_box_size = style.content_max_box_size(containing_block, &pbm);
+        let box_size = box_size.unwrap_or(style.content_box_size(containing_block, pbm));
+        let max_box_size = style.content_max_box_size(containing_block, pbm);
         let min_box_size = style
-            .content_min_box_size(containing_block, &pbm)
+            .content_min_box_size(containing_block, pbm)
             .auto_is(Length::zero);
 
         let default_object_size = || {

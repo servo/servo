@@ -89,26 +89,26 @@ impl LayoutRPC for LayoutRPCImpl {
     // The neat thing here is that in order to answer the following two queries we only
     // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
     fn content_box(&self) -> ContentBoxResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ContentBoxResponse(rw_data.content_box_response)
     }
 
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
     fn content_boxes(&self) -> ContentBoxesResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ContentBoxesResponse(rw_data.content_boxes_response.clone())
     }
 
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress> {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.nodes_from_point_response.clone()
     }
 
     fn node_geometry(&self) -> NodeGeometryResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         NodeGeometryResponse {
             client_rect: rw_data.client_rect_response,
@@ -133,39 +133,39 @@ impl LayoutRPC for LayoutRPCImpl {
 
     /// Retrieves the resolved value for a CSS style property.
     fn resolved_style(&self) -> ResolvedStyleResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ResolvedStyleResponse(rw_data.resolved_style_response.clone())
     }
 
     fn resolved_font_style(&self) -> Option<ServoArc<Font>> {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.resolved_font_style_response.clone()
     }
 
     fn offset_parent(&self) -> OffsetParentResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.offset_parent_response.clone()
     }
 
     fn text_index(&self) -> TextIndexResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.text_index_response.clone()
     }
 
     fn element_inner_text(&self) -> String {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.element_inner_text_response.clone()
     }
 
     fn inner_window_dimensions(&self) -> Option<Size2D<f32, CSSPixel>> {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
-        rw_data.inner_window_dimensions_response.clone()
+        rw_data.inner_window_dimensions_response
     }
 }
 
@@ -323,7 +323,7 @@ pub fn process_resolved_style_request<'dom>(
 
             let content_rect = box_fragment
                 .content_rect
-                .to_physical(box_fragment.style.writing_mode, &containing_block);
+                .to_physical(box_fragment.style.writing_mode, containing_block);
             let margins = box_fragment
                 .margin
                 .to_physical(box_fragment.style.writing_mode);
@@ -436,10 +436,10 @@ fn process_offset_parent_query_inner(
             let fragment_relative_rect = match fragment {
                 Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
                     .border_rect()
-                    .to_physical(fragment.style.writing_mode, &containing_block),
+                    .to_physical(fragment.style.writing_mode, containing_block),
                 Fragment::Text(fragment) => fragment
                     .rect
-                    .to_physical(fragment.parent_style.writing_mode, &containing_block),
+                    .to_physical(fragment.parent_style.writing_mode, containing_block),
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) |
@@ -555,7 +555,7 @@ fn process_offset_parent_query_inner(
                                 // Again, take the *first* associated CSS layout box.
                                 let padding_box_corner = fragment
                                     .padding_rect()
-                                    .to_physical(fragment.style.writing_mode, &containing_block)
+                                    .to_physical(fragment.style.writing_mode, containing_block)
                                     .origin
                                     .to_vector() +
                                     containing_block.origin.to_vector();

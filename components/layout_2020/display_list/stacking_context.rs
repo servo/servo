@@ -198,7 +198,7 @@ impl DisplayList {
             .spatial_id;
 
         let new_scroll_node_id = self.compositor_info.scroll_tree.add_scroll_tree_node(
-            Some(&parent_scroll_node_id),
+            Some(parent_scroll_node_id),
             new_spatial_id,
             Some(ScrollableNodeInfo {
                 external_id,
@@ -374,7 +374,7 @@ impl StackingContext {
     ) -> Self {
         Self {
             spatial_id,
-            clip_chain_id: clip_chain_id,
+            clip_chain_id,
             initializing_fragment_style: Some(initializing_fragment_style),
             context_type,
             contents: vec![],
@@ -423,9 +423,9 @@ impl StackingContext {
     }
 
     pub(crate) fn sort(&mut self) {
-        self.contents.sort_by(|a, b| a.section().cmp(&b.section()));
+        self.contents.sort_by_key(|a| a.section());
         self.real_stacking_contexts_and_positioned_stacking_containers
-            .sort_by(|a, b| a.z_index().cmp(&b.z_index()));
+            .sort_by_key(|a| a.z_index());
 
         debug_assert!(self
             .real_stacking_contexts_and_positioned_stacking_containers
@@ -502,8 +502,8 @@ impl StackingContext {
             style.get_used_transform_style().to_webrender(),
             effects.mix_blend_mode.to_webrender(),
             &filters,
-            &vec![], // filter_datas
-            &vec![], // filter_primitives
+            &[], // filter_datas
+            &[], // filter_primitives
             wr::RasterSpace::Screen,
             wr::StackingContextFlags::empty(),
         );
@@ -541,7 +541,7 @@ impl StackingContext {
 
         let background_color = style.resolve_color(style.get_background().background_color.clone());
         if background_color.alpha > 0.0 {
-            let common = builder.common_properties(painting_area, &style);
+            let common = builder.common_properties(painting_area, style);
             let color = super::rgba(background_color);
             builder
                 .display_list
@@ -1212,7 +1212,7 @@ impl BoxFragment {
 
         let border_rect = self
             .border_rect()
-            .to_physical(self.style.writing_mode, &containing_block_rect);
+            .to_physical(self.style.writing_mode, containing_block_rect);
         let clip_rect = clip_rect
             .for_border_rect(border_rect)
             .translate(containing_block_rect.origin.to_vector())
@@ -1225,7 +1225,7 @@ impl BoxFragment {
 
         let clip_id = display_list
             .wr
-            .define_clip_rect(&parent_space_and_clip, clip_rect);
+            .define_clip_rect(parent_space_and_clip, clip_rect);
         Some(
             display_list
                 .wr
@@ -1261,7 +1261,7 @@ impl BoxFragment {
 
         let padding_rect = self
             .padding_rect()
-            .to_physical(self.style.writing_mode, &containing_block_rect)
+            .to_physical(self.style.writing_mode, containing_block_rect)
             .translate(containing_block_rect.origin.to_vector())
             .to_webrender();
 
@@ -1269,7 +1269,7 @@ impl BoxFragment {
             parent_scroll_node_id,
             parent_clip_id,
             external_id,
-            self.scrollable_overflow(&containing_block_rect)
+            self.scrollable_overflow(containing_block_rect)
                 .to_webrender(),
             padding_rect,
             sensitivity,
@@ -1331,7 +1331,7 @@ impl BoxFragment {
 
         let frame_rect = self
             .border_rect()
-            .to_physical(self.style.writing_mode, &containing_block_rect)
+            .to_physical(self.style.writing_mode, containing_block_rect)
             .translate(containing_block_rect.origin.to_vector())
             .to_webrender();
 
@@ -1379,7 +1379,7 @@ impl BoxFragment {
 
         let relative_border_rect = self
             .border_rect()
-            .to_physical(self.style.writing_mode, &containing_block_rect);
+            .to_physical(self.style.writing_mode, containing_block_rect);
         let border_rect = relative_border_rect.translate(containing_block_rect.origin.to_vector());
         let untyped_border_rect = border_rect.to_untyped();
 
@@ -1431,7 +1431,7 @@ impl BoxFragment {
     ) -> Option<LayoutTransform> {
         let list = &self.style.get_box().transform;
         let transform =
-            LayoutTransform::from_untyped(&list.to_transform_3d_matrix(Some(&border_rect)).ok()?.0);
+            LayoutTransform::from_untyped(&list.to_transform_3d_matrix(Some(border_rect)).ok()?.0);
         // WebRender will end up dividing by the scale value of this transform, so we
         // want to ensure we don't feed it a divisor of 0.
         assert_ne!(transform.m11, 0.);

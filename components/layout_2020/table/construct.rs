@@ -133,20 +133,16 @@ impl Table {
     /// the target and returns a [`ResolvedSlotAndLocation`] for each of them. If there is
     /// no slot at the given coordinates or that slot is an empty space, an empty vector
     /// is returned.
-    pub(super) fn resolve_slot_at<'a>(
-        &'a self,
+    pub(super) fn resolve_slot_at(
+        &self,
         coords: TableSlotCoordinates,
-    ) -> Vec<ResolvedSlotAndLocation<'a>> {
+    ) -> Vec<ResolvedSlotAndLocation<'_>> {
         let slot = self.get_slot(coords);
         match slot {
-            Some(TableSlot::Cell(cell)) => vec![ResolvedSlotAndLocation {
-                cell: &cell,
-                coords,
-            }],
+            Some(TableSlot::Cell(cell)) => vec![ResolvedSlotAndLocation { cell, coords }],
             Some(TableSlot::Spanned(ref offsets)) => offsets
                 .iter()
-                .map(|offset| self.resolve_slot_at(coords - *offset))
-                .flatten()
+                .flat_map(|offset| self.resolve_slot_at(coords - *offset))
                 .collect(),
             Some(TableSlot::Empty) | None => {
                 warn!("Tried to resolve an empty or nonexistant slot!");
@@ -170,12 +166,12 @@ impl Table {
 
         let coords_of_slots_that_cover_target: Vec<_> = slots_covering_slot_above
             .into_iter()
-            .filter(|ref slot| slot.covers_cell_at(target_coords))
+            .filter(|slot| slot.covers_cell_at(target_coords))
             .map(|slot| target_coords - slot.coords)
             .collect();
 
         if coords_of_slots_that_cover_target.is_empty() {
-            return None;
+            None
         } else {
             Some(TableSlot::Spanned(coords_of_slots_that_cover_target))
         }
@@ -245,7 +241,7 @@ impl TableBuilder {
         TableSlotCoordinates::new(self.current_x(), self.current_y())
     }
 
-    pub fn start_row<'builder>(&'builder mut self) {
+    pub fn start_row(&mut self) {
         self.table.slots.push(Vec::new());
         self.table.size.height += 1;
         self.create_slots_for_cells_above_with_rowspan(true);
@@ -421,7 +417,7 @@ where
             return;
         }
 
-        let row_content = std::mem::replace(&mut self.current_anonymous_row_content, Vec::new());
+        let row_content = std::mem::take(&mut self.current_anonymous_row_content);
         let context = self.context;
         let anonymous_style = self
             .context

@@ -123,9 +123,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 }
 
 impl DisplayList {
-    pub fn build<'a>(
+    pub fn build(
         &mut self,
-        context: &'a LayoutContext,
+        context: &LayoutContext,
         fragment_tree: &FragmentTree,
         root_stacking_context: &StackingContext,
     ) -> (FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>, bool) {
@@ -280,7 +280,7 @@ impl Fragment {
             .rect
             .to_physical(fragment.parent_style.writing_mode, containing_block)
             .translate(containing_block.origin.to_vector());
-        let mut baseline_origin = rect.origin.clone();
+        let mut baseline_origin = rect.origin;
         baseline_origin.y += Length::from(fragment.font_metrics.ascent);
         let glyphs = glyphs(
             &fragment.glyphs,
@@ -317,8 +317,7 @@ impl Fragment {
             .contains(TextDecorationLine::UNDERLINE)
         {
             let mut rect = rect;
-            rect.origin.y =
-                rect.origin.y + Length::from(font_metrics.ascent - font_metrics.underline_offset);
+            rect.origin.y += Length::from(font_metrics.ascent - font_metrics.underline_offset);
             rect.size.height = Length::new(font_metrics.underline_size.to_nearest_pixel(dppx));
             self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
         }
@@ -350,8 +349,7 @@ impl Fragment {
             .contains(TextDecorationLine::LINE_THROUGH)
         {
             let mut rect = rect;
-            rect.origin.y =
-                rect.origin.y + Length::from(font_metrics.ascent - font_metrics.strikeout_offset);
+            rect.origin.y += Length::from(font_metrics.ascent - font_metrics.strikeout_offset);
             // XXX(ferjm) This does not work on MacOS #942
             rect.size.height = Length::new(font_metrics.strikeout_size.to_nearest_pixel(dppx));
             self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
@@ -590,7 +588,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     if let Some(layer) =
                         &background::layout_layer(self, &source, builder, index, intrinsic)
                     {
-                        gradient::build(&style, &gradient, layer, builder)
+                        gradient::build(style, gradient, layer, builder)
                     }
                 },
                 Image::Url(ref image_url) => {
@@ -898,7 +896,7 @@ fn clip_for_radii(
     if radii.is_zero() {
         None
     } else {
-        let clip_chain_id = builder.current_clip_chain_id.clone();
+        let clip_chain_id = builder.current_clip_chain_id;
         let parent_space_and_clip = wr::SpaceAndClipInfo {
             spatial_id: builder.current_scroll_node_id.spatial_id,
             clip_id: ClipId::ClipChain(clip_chain_id),

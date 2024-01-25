@@ -104,10 +104,10 @@ impl FragmentTree {
             let fragment_relative_rect = match fragment {
                 Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
                     .border_rect()
-                    .to_physical(fragment.style.writing_mode, &containing_block),
+                    .to_physical(fragment.style.writing_mode, containing_block),
                 Fragment::Text(fragment) => fragment
                     .rect
-                    .to_physical(fragment.parent_style.writing_mode, &containing_block),
+                    .to_physical(fragment.parent_style.writing_mode, containing_block),
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) |
@@ -156,7 +156,7 @@ impl FragmentTree {
                 return Some(Rect::zero());
             }
 
-            let padding_rect = padding_rect.to_physical(style.writing_mode, &containing_block);
+            let padding_rect = padding_rect.to_physical(style.writing_mode, containing_block);
             let border = style.get_border();
             Some(Rect::new(
                 Point2D::new(
@@ -187,7 +187,7 @@ impl FragmentTree {
         let tag_to_find = Tag::new(requested_node);
         let scroll_area = self.find(|fragment, _, containing_block| {
             if fragment.tag() == Some(tag_to_find) {
-                Some(fragment.scrolling_area(&containing_block))
+                Some(fragment.scrolling_area(containing_block))
             } else {
                 None
             }

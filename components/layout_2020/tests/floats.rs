@@ -260,8 +260,8 @@ fn test_tree_find() {
             right: None,
         });
         let mut tree = FloatBandTree::new();
-        for ref band in &bands {
-            tree = tree.insert((*band).clone());
+        for band in &bands {
+            tree = tree.insert(*band);
         }
         bands.sort_by(|a, b| a.top.partial_cmp(&b.top).unwrap());
         for lookup in lookups {
@@ -290,8 +290,8 @@ fn test_tree_find_next() {
         bands.sort_by(|a, b| a.top.partial_cmp(&b.top).unwrap());
         bands.dedup_by(|a, b| a.top == b.top);
         let mut tree = FloatBandTree::new();
-        for ref band in &bands {
-            tree = tree.insert((*band).clone());
+        for band in &bands {
+            tree = tree.insert(*band);
         }
         for lookup in lookups {
             check_tree_find_next(&tree, Au::from_f32_px(lookup as f32), &bands);
@@ -307,7 +307,7 @@ fn test_tree_range_setting() {
     fn check(bands: Vec<FloatBandWrapper>, ranges: Vec<FloatRangeInput>) {
         let mut tree = FloatBandTree::new();
         for FloatBandWrapper(ref band) in &bands {
-            tree = tree.insert((*band).clone());
+            tree = tree.insert(*band);
         }
 
         let mut tops: Vec<Au> = bands.iter().map(|band| band.0.top).collect();
@@ -648,7 +648,7 @@ fn check_floats_rule_7(placement: &FloatPlacement) {
 fn check_floats_rule_8(floats_and_perturbations: Vec<(FloatInput, u32)>) {
     let floats = floats_and_perturbations
         .iter()
-        .map(|&(ref float, _)| (*float).clone())
+        .map(|(float, _)| (*float).clone())
         .collect();
     let placement = FloatPlacement::place(floats);
 
@@ -658,9 +658,7 @@ fn check_floats_rule_8(floats_and_perturbations: Vec<(FloatInput, u32)>) {
         }
 
         let mut placement = placement.clone();
-        placement.placed_floats[float_index].origin.block =
-            placement.placed_floats[float_index].origin.block -
-                Au::from_f32_px(perturbation as f32);
+        placement.placed_floats[float_index].origin.block -= Au::from_f32_px(perturbation as f32);
 
         let result = {
             let mutex_guard = PANIC_HOOK_MUTEX.lock().unwrap();
@@ -677,7 +675,7 @@ fn check_floats_rule_8(floats_and_perturbations: Vec<(FloatInput, u32)>) {
 fn check_floats_rule_9(floats_and_perturbations: Vec<(FloatInput, u32)>) {
     let floats = floats_and_perturbations
         .iter()
-        .map(|&(ref float, _)| (*float).clone())
+        .map(|(float, _)| (*float).clone())
         .collect();
     let placement = FloatPlacement::place(floats);
 
@@ -691,12 +689,8 @@ fn check_floats_rule_9(floats_and_perturbations: Vec<(FloatInput, u32)>) {
             let placed_float = &mut placement.placed_floats[float_index];
             let perturbation = Au::from_f32_px(perturbation as f32);
             match placed_float.info.side {
-                FloatSide::Left => {
-                    placed_float.origin.inline = placed_float.origin.inline - perturbation
-                },
-                FloatSide::Right => {
-                    placed_float.origin.inline = placed_float.origin.inline + perturbation
-                },
+                FloatSide::Left => placed_float.origin.inline -= perturbation,
+                FloatSide::Right => placed_float.origin.inline += perturbation,
             }
         }
 

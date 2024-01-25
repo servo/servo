@@ -57,8 +57,8 @@ pub(crate) enum AbsoluteBoxOffsets {
 impl AbsoluteBoxOffsets {
     pub(crate) fn both_specified(&self) -> bool {
         match self {
-            AbsoluteBoxOffsets::Both { .. } => return true,
-            _ => return false,
+            AbsoluteBoxOffsets::Both { .. } => true,
+            _ => false,
         }
     }
 
