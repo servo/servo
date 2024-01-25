@@ -4,16 +4,13 @@
 
 use dom_struct::dom_struct;
 use js::jsval::JSVal;
-use js::rust::HandleObject;
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ResizeObserverEntryBinding::ResizeObserverEntryMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
-use crate::dom::node::window_from_node;
 use crate::dom::resizeobserversize::ResizeObserverSize;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::VecDeque;
 use std::rc::Rc;
 
 use app_units::Au;
@@ -16,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::ResizeObserverBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObjectWrap, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
@@ -24,11 +25,9 @@ use crate::dom::node::{window_from_node, Node};
 use crate::dom::resizeobserverentry::ResizeObserverEntry;
 use crate::dom::resizeobserversize::{ResizeObserverSize, ResizeObserverSizeImpl};
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext as SafeJSContext;
-use std::collections::VecDeque;
 
 /// <https://drafts.csswg.org/resize-observer/#calculate-depth-for-node>
-#[derive(Debug, Default, PartialOrd, PartialEq)]
+#[derive(Debug, Default, PartialEq, PartialOrd)]
 pub struct ResizeObservationDepth(usize);
 
 impl ResizeObservationDepth {
@@ -145,14 +144,18 @@ impl ResizeObserver {
                 &[&*observer_size],
             );
             entries.push(entry);
-            observation.last_reported_sizes.borrow_mut().push_back(size_impl);
+            observation
+                .last_reported_sizes
+                .borrow_mut()
+                .push_back(size_impl);
             observation.state = ObservationState::Done;
             let target_depth = calculate_depth_for_node(target);
             if target_depth < *shallowest_target_depth {
                 *shallowest_target_depth = target_depth;
             }
         }
-        self.callback
+        let _ = self
+            .callback
             .Call__(entries, self, ExceptionHandling::Report);
     }
 }
@@ -177,7 +180,6 @@ impl ResizeObserverMethods for ResizeObserver {
         self.observation_targets
             .borrow_mut()
             .push((resize_observation, Dom::from_ref(target)));
-            .borrow_mut().len());
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-unobserve>

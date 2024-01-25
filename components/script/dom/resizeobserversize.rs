@@ -55,9 +55,12 @@ impl ResizeObserverSize {
 }
 
 impl ResizeObserverSizeMethods for ResizeObserverSize {
+    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserversize-inlinesize>
     fn InlineSize(&self) -> f64 {
         self.size_impl.inline_size()
     }
+
+    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserversize-blocksize>
     fn BlockSize(&self) -> f64 {
         self.size_impl.block_size()
     }
