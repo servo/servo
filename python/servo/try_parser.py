@@ -63,7 +63,7 @@ def handle_preset(s: str) -> JobConfig | None:
     elif s in ["win", "windows"]:
         return JobConfig("Windows", Workflow.WINDOWS, unit_tests=True)
     elif s in ["wpt", "linux-wpt"]:
-        return JobConfig("Linux WPT", Workflow.LINUX, wpt_layout=Layout.all())
+        return JobConfig("Linux WPT", Workflow.LINUX, unit_tests=True, wpt_layout=Layout.all())
     elif s in ["wpt-2013", "linux-wpt-2013"]:
         return JobConfig("Linux WPT legacy-layout", Workflow.LINUX, wpt_layout=Layout.layout2013)
     elif s in ["wpt-2020", "linux-wpt-2020"]:
@@ -116,7 +116,7 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux", "macos", "windows", "android"])
+                words.extend(["linux-wpt", "macos", "windows", "android"])
                 continue  # skip over keyword
 
             preset = handle_preset(word)
@@ -152,7 +152,7 @@ class TestParser(unittest.TestCase):
     def test_empty(self):
         self.assertEqual(Config("").to_json(),
                          '{"fail_fast": false, "matrix": [\
-{"name": "Linux", "workflow": "linux", "wpt_layout": "none", "profile": "release", \
+{"name": "Linux WPT", "workflow": "linux", "wpt_layout": "all", "profile": "release", \
 "unit_tests": true, "wpt_tests_to_run": ""}, \
 {"name": "MacOS", "workflow": "macos", "wpt_layout": "none", "profile": "release", \
 "unit_tests": true, "wpt_tests_to_run": ""}, \
@@ -162,7 +162,7 @@ class TestParser(unittest.TestCase):
 "unit_tests": false, "wpt_tests_to_run": ""}]}')
 
     def test_full(self):
-        self.assertEqual(Config("linux macos windows android").to_json(), Config("").to_json())
+        self.assertEqual(Config("linux-wpt macos windows android").to_json(), Config("").to_json())
 
 
 def run_tests():
