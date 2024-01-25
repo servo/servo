@@ -951,15 +951,18 @@ impl FloatBox {
                     IndependentFormattingContext::Replaced(ref replaced) => {
                         // https://drafts.csswg.org/css2/#float-replaced-width
                         // https://drafts.csswg.org/css2/#inline-replaced-height
-                        content_size = replaced.contents.used_size_as_if_inline_element(
-                            containing_block,
-                            &replaced.style,
-                            None,
-                            &pbm,
-                        ).into();
+                        content_size = replaced
+                            .contents
+                            .used_size_as_if_inline_element(
+                                containing_block,
+                                &replaced.style,
+                                None,
+                                &pbm,
+                            )
+                            .into();
                         children = replaced
                             .contents
-                            .make_fragments(&replaced.style, content_size.clone());
+                            .make_fragments(&replaced.style, content_size.clone().into());
                     },
                 };
 

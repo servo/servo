@@ -536,7 +536,7 @@ impl HoistedAbsolutelyPositionedBox {
                     content_size = computed_size.auto_is(|| unreachable!());
                     fragments = replaced
                         .contents
-                        .make_fragments(style, content_size.clone());
+                        .make_fragments(style, content_size.clone().into());
                 },
                 IndependentFormattingContext::NonReplaced(non_replaced) => {
                     // https://drafts.csswg.org/css2/#min-max-widths

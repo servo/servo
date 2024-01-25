@@ -247,7 +247,7 @@ impl ReplacedContent {
     pub fn make_fragments(
         &self,
         style: &ServoArc<ComputedValues>,
-        size: LogicalVec2<Length>,
+        size: LogicalVec2<Au>,
     ) -> Vec<Fragment> {
         match &self.kind {
             ReplacedContentKind::Image(image) => image
@@ -259,7 +259,7 @@ impl ReplacedContent {
                         style: style.clone(),
                         rect: LogicalRect {
                             start_corner: LogicalVec2::zero(),
-                            size,
+                            size: size.into(),
                         },
                         image_key,
                     })
@@ -274,7 +274,7 @@ impl ReplacedContent {
                     browsing_context_id: iframe.browsing_context_id,
                     rect: LogicalRect {
                         start_corner: LogicalVec2::zero(),
-                        size,
+                        size: size.into(),
                     },
                 })]
             },
@@ -308,7 +308,7 @@ impl ReplacedContent {
                     style: style.clone(),
                     rect: LogicalRect {
                         start_corner: LogicalVec2::zero(),
-                        size,
+                        size: size.into(),
                     },
                     image_key,
                 })]
@@ -351,8 +351,14 @@ impl ReplacedContent {
             )
         };
         let clamp = |inline_size: Au, block_size: Au| LogicalVec2 {
-            inline: inline_size.clamp_between_extremums(min_box_size.inline.into(), max_box_size.inline.map(|t| t.into())),
-            block: block_size.clamp_between_extremums(min_box_size.block.into(), max_box_size.block.map(|t| t.into())),
+            inline: inline_size.clamp_between_extremums(
+                min_box_size.inline.into(),
+                max_box_size.inline.map(|t| t.into()),
+            ),
+            block: block_size.clamp_between_extremums(
+                min_box_size.block.into(),
+                max_box_size.block.map(|t| t.into()),
+            ),
         };
         // https://drafts.csswg.org/css2/visudet.html#min-max-widths
         // https://drafts.csswg.org/css2/visudet.html#min-max-heights
@@ -460,7 +466,9 @@ impl ReplacedContent {
                     // Row 3.
                     (Violation::Below(min_inline_size), Violation::None) => LogicalVec2 {
                         inline: min_inline_size.into(),
-                        block: (min_inline_size / i_over_b).clamp_below_max(max_box_size.block).into(),
+                        block: (min_inline_size / i_over_b)
+                            .clamp_below_max(max_box_size.block)
+                            .into(),
                     },
                     // Row 4.
                     (Violation::None, Violation::Above(max_block_size)) => LogicalVec2 {
@@ -469,7 +477,9 @@ impl ReplacedContent {
                     },
                     // Row 5.
                     (Violation::None, Violation::Below(min_block_size)) => LogicalVec2 {
-                        inline: (min_block_size * i_over_b).clamp_below_max(max_box_size.inline).into(),
+                        inline: (min_block_size * i_over_b)
+                            .clamp_below_max(max_box_size.inline)
+                            .into(),
                         block: min_block_size.into(),
                     },
                     // Rows 6-7.
@@ -498,7 +508,8 @@ impl ReplacedContent {
                             // Row 8.
                             LogicalVec2 {
                                 inline: (min_block_size * i_over_b)
-                                    .clamp_below_max(max_box_size.inline).into(),
+                                    .clamp_below_max(max_box_size.inline)
+                                    .into(),
                                 block: min_block_size.into(),
                             }
                         } else {
@@ -506,7 +517,8 @@ impl ReplacedContent {
                             LogicalVec2 {
                                 inline: min_inline_size.into(),
                                 block: (min_inline_size / i_over_b)
-                                    .clamp_below_max(max_box_size.block).into(),
+                                    .clamp_below_max(max_box_size.block)
+                                    .into(),
                             }
                         }
                     },
