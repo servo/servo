@@ -27,7 +27,7 @@ use crate::dom::window::Window;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://drafts.csswg.org/resize-observer/#calculate-depth-for-node>
-#[derive(Default, PartialOrd, PartialEq)]
+#[derive(Debug, Default, PartialOrd, PartialEq)]
 pub struct ResizeObservationDepth(usize);
 
 /// <https://drafts.csswg.org/resize-observer/#resize-observer-slots>
@@ -80,13 +80,16 @@ impl ResizeObserver {
         depth: &ResizeObservationDepth,
         has_active: &mut bool,
     ) {
+        println!("Gathering at depth: {:?}", depth);
         // Step 2.2
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
             if observation.is_active(target) {
                 let target_depth = calculate_depth_for_node(target);
+                println!("Target depth: {:?}", target_depth);
                 if target_depth <= *depth {
                     observation.state = ObservationState::Skipped;
                 } else {
+                    println!("Found active");
                     observation.state = ObservationState::Active;
                     *has_active = true;
                 }
@@ -104,6 +107,7 @@ impl ResizeObserver {
         let mut entries: Vec<DomRoot<ResizeObserverEntry>> = Default::default();
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
             if matches!(observation.state, ObservationState::Skipped) {
+                println!("Found skipped");
                 *has_skipped = true;
                 continue;
             }
@@ -135,8 +139,9 @@ impl ResizeObserver {
             );
             entries.push(entry);
             observation.last_reported_sizes.borrow_mut().push(size_impl);
-            observation.state = ObservationState::Skipped;
+            observation.state = ObservationState::Done;
             let target_depth = calculate_depth_for_node(target);
+            println!("Target depth: {:?} shallowest: {:?}", target_depth, shallowest_target_depth);
             if target_depth < *shallowest_target_depth {
                 *shallowest_target_depth = target_depth;
             }
@@ -184,8 +189,9 @@ impl ResizeObserverMethods for ResizeObserver {
 /// State machine equivalent of active and skipped observations.
 #[derive(Default, JSTraceable, MallocSizeOf)]
 enum ObservationState {
-    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-activetargets-slot>
     #[default]
+    Done,
+    /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-activetargets-slot>
     Active,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-skippedtargets-slot>
     Skipped,
@@ -219,7 +225,7 @@ impl ResizeObservation {
     pub fn is_active(&self, target: &Element) -> bool {
         let box_size = calculate_box_size(target, &self.observed_box);
         let reported_sizes = self.last_reported_sizes.borrow();
-        let Some(size) = reported_sizes.get(0) else {return false};
+        let Some(size) = reported_sizes.get(0) else {return true};
         let width = box_size.width().to_f64_px();
         let height = box_size.height().to_f64_px();
         !((size.inline_size(), size.block_size()) == (width, height))

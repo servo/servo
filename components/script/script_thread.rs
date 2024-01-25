@@ -1703,6 +1703,7 @@ impl ScriptThread {
             let mut depth = Default::default();
             let mut has_skipped = false;
             loop {
+                println!("Depth: {:?}", depth);
                 if !document.gather_active_resize_observations_at_depth(&depth) {
                     break;
                 }

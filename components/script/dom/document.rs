@@ -2921,6 +2921,7 @@ impl Document {
                 &mut has_active_resize_observations,
             );
         }
+        println!("has_active_resize_observations: {:?}", has_active_resize_observations);
         has_active_resize_observations
     }
 
