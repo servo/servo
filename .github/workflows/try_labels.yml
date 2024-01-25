@@ -37,7 +37,7 @@ jobs:
             let try_string = "${{ inputs.try_string }}" || "";
 
             if (context.eventName == 'pull_request_target') {
-              for (const label of context.payload.pull_request.labels) {
+              for (let label of context.payload.pull_request.labels) {
                 if (!label.name.startsWith("T-")) {
                   continue;
                 }
