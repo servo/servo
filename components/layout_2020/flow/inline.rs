@@ -1776,7 +1776,7 @@ impl IndependentFormattingContext {
                 );
                 let fragments = replaced
                     .contents
-                    .make_fragments(&replaced.style, size.clone().into());
+                    .make_fragments(&replaced.style, size.clone());
                 let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
                     size: size.into(),

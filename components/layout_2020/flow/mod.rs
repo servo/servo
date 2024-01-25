@@ -1135,7 +1135,7 @@ fn layout_in_flow_replaced_block_level<'a>(
     let margin_inline_start;
     let margin_inline_end;
     let (margin_block_start, margin_block_end) = solve_block_margins_for_in_flow_block_level(&pbm);
-    let fragments = replaced.make_fragments(style, content_size.clone().into());
+    let fragments = replaced.make_fragments(style, content_size.clone());
 
     let clearance;
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {

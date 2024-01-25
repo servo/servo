@@ -211,8 +211,8 @@ impl ReplacedContent {
 
     fn flow_relative_intrinsic_size(&self, style: &ComputedValues) -> LogicalVec2<Option<Au>> {
         let intrinsic_size = PhysicalSize::new(
-            self.intrinsic.width.map(|v| v.into()),
-            self.intrinsic.height.map(|v| v.into()),
+            self.intrinsic.width,
+            self.intrinsic.height,
         );
         LogicalVec2::from_physical_size(&intrinsic_size, style.writing_mode)
     }
@@ -239,8 +239,8 @@ impl ReplacedContent {
             .inline
             .unwrap_or(Au::zero());
         ContentSizes {
-            min_content: inline.into(),
-            max_content: inline.into(),
+            min_content: inline,
+            max_content: inline,
         }
     }
 
@@ -372,7 +372,7 @@ impl ReplacedContent {
                 } else if let Some(block) = intrinsic_size.block {
                     block.into()
                 } else {
-                    default_object_size().block.into()
+                    default_object_size().block
                 };
                 clamp(inline.into(), block.into())
             },
@@ -382,7 +382,7 @@ impl ReplacedContent {
                 } else if let Some(inline) = intrinsic_size.inline {
                     inline.into()
                 } else {
-                    default_object_size().inline.into()
+                    default_object_size().inline
                 };
                 clamp(inline.into(), block.into())
             },
