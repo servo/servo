@@ -1710,7 +1710,9 @@ impl ScriptThread {
                 document.broadcast_active_resize_observations(&mut depth, &mut has_skipped);
             }
 
-            if has_skipped {}
+            if has_skipped {
+                document.deliver_resize_loop_error_notification();
+            }
         }
 
         // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7.12

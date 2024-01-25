@@ -27,7 +27,7 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSObject;
-use js::rust::HandleObject;
+use js::rust::{HandleObject, HandleValue};
 use keyboard_types::{Code, Key, KeyState};
 use lazy_static::lazy_static;
 use metrics::{
@@ -96,7 +96,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{
     FrameRequestCallback, ScrollBehavior, WindowMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{NodeOrString, StringOrElementCreationOptions};
-use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -2939,9 +2939,17 @@ impl Document {
             .map(|obs| DomRoot::from_ref(&**obs))
             .collect();
         for observer in observations {
-            observer
-                .broadcast_active_resize_observations(shallowest_target_depth, has_skipped);
+            observer.broadcast_active_resize_observations(shallowest_target_depth, has_skipped);
         }
+    }
+
+    /// <https://drafts.csswg.org/resize-observer/#deliver-resize-loop-error-notification>
+    pub fn deliver_resize_loop_error_notification(&self) {
+        let global_scope = self.window.upcast::<GlobalScope>();
+        let mut error_info: ErrorInfo = Default::default();
+        error_info.message =
+            "ResizeObserver loop completed with undelivered notifications.".to_string();
+        global_scope.report_an_error(error_info, HandleValue::null());
     }
 }
 

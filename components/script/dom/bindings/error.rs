@@ -166,6 +166,7 @@ pub fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, result: Erro
 }
 
 /// A struct encapsulating information about a runtime script error.
+#[derive(Default)]
 pub struct ErrorInfo {
     /// The error message.
     pub message: String,
