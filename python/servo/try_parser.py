@@ -49,7 +49,7 @@ class JobConfig(object):
     workflow: Workflow = Workflow.LINUX
     wpt_layout: Layout = Layout.none
     profile: str = "release"
-    unit_tests: bool = True
+    unit_tests: bool = False
     wpt_tests_to_run: str = ""
 
 
@@ -57,11 +57,11 @@ def handle_preset(s: str) -> JobConfig | None:
     s = s.lower()
 
     if s == "linux":
-        return JobConfig("Linux", Workflow.LINUX)
+        return JobConfig("Linux", Workflow.LINUX, unit_tests=True)
     elif s in ["mac", "macos"]:
-        return JobConfig("MacOS", Workflow.MACOS)
+        return JobConfig("MacOS", Workflow.MACOS, unit_tests=True)
     elif s in ["win", "windows"]:
-        return JobConfig("Windows", Workflow.WINDOWS)
+        return JobConfig("Windows", Workflow.WINDOWS, unit_tests=True)
     elif s in ["wpt", "linux-wpt"]:
         return JobConfig("Linux WPT", Workflow.LINUX, wpt_layout=Layout.all())
     elif s in ["wpt-2013", "linux-wpt-2013"]:
@@ -159,7 +159,7 @@ class TestParser(unittest.TestCase):
 {"name": "Windows", "workflow": "windows", "wpt_layout": "none", "profile": "release", \
 "unit_tests": true, "wpt_tests_to_run": ""}, \
 {"name": "Android", "workflow": "android", "wpt_layout": "none", "profile": "release", \
-"unit_tests": true, "wpt_tests_to_run": ""}]}')
+"unit_tests": false, "wpt_tests_to_run": ""}]}')
 
     def test_full(self):
         self.assertEqual(Config("linux macos windows android").to_json(), Config("").to_json())
