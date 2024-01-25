@@ -29,6 +29,17 @@ jobs:
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
     steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            python/servo/try_parser.py
+          sparse-checkout-cone-mode: false
+      - name: Generate full
+        id: full
+        run: |
+          out=$(python ./python/servo/try_parser.py)
+          echo "config<<EOF"$'\n'"$out"$'\n'EOF >> $GITHUB_OUTPUT
       - name: Configuration
         id: configuration
         uses: actions/github-script@v6
@@ -52,35 +63,7 @@ jobs:
             }
 
             // If we reach here we are likely doing a full run.
-            configuration = {
-              "fail_fast": false,
-              "matrix": [
-                {
-                  "workflow": "linux",
-                  "name": "Linux",
-                  "wpt_layout": "all",
-                  "profile": "release",
-                  "unit_tests": true,
-                  "wpt_tests_to_run": "",
-                },
-                {
-                  "workflow": "windows",
-                  "name": "Windows",
-                  "wpt_layout": "none", // not used
-                  "profile": "release",
-                  "unit_tests": true,
-                  "wpt_tests_to_run": "",
-                },
-                {
-                  "workflow": "mac",
-                  "name": "MacOS",
-                  "wpt_layout": "none",
-                  "profile": "release",
-                  "unit_tests": true,
-                  "wpt_tests_to_run": "",
-                }
-              ],
-            };
+            configuration = ${{ steps.full.outputs.config }};
 
             // Process `workflow_dispatch` provided configuration overrides.
             if (context.eventName == "workflow_dispatch") {
