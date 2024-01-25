@@ -81,13 +81,6 @@ jobs:
               return "";
             }
 
-            const url = context.serverUrl +
-              "/" + context.repo.owner +
-              "/" + context.repo.repo +
-              "/actions/runs/" + context.runId;
-            const formattedURL = "[#" + context.runId + "](" + url + ")";
-            makeComment("🔨 Triggering try run (" + formattedURL + ")");
-
             return try_string;
       - uses: actions/checkout@v3
         if: github.event_name != 'pull_request_target'
@@ -112,8 +105,34 @@ jobs:
         run: |
           out=$(python ./python/try_parser.py ${{ steps.try_string.outputs.result }})
           echo "config<<EOF"$'\n'"$out"$'\n'EOF >> $GITHUB_OUTPUT
-      - name: Check output var
-        run: echo ${{ steps.configuration.outputs.config }}
+      - name: Collect Labels
+        if: ${{ steps.try_string.outputs.result }}
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            let config = ${{ steps.configuration.outputs.config }};
+            function makeComment(body) {
+                console.log(body);
+
+                if (context.eventName != 'pull_request_target')
+                  return;
+
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body
+                })
+            }
+
+            const url = context.serverUrl +
+              "/" + context.repo.owner +
+              "/" + context.repo.repo +
+              "/actions/runs/" + context.runId;
+            const formattedURL = "[#" + context.runId + "](" + url + ")";
+            makeComment("🔨 Triggering try run (" + formattedURL + ") for "
+             + config.matrix.map(m => m.name).join(", "));
 
 
   run-try:
