@@ -29,6 +29,9 @@ jobs:
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
     steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1

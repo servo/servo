@@ -82,6 +82,9 @@ jobs:
             }
 
             return try_string;
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
       - uses: actions/checkout@v3
         if: github.event_name != 'pull_request_target'
         with:
