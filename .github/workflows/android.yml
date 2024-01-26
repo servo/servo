@@ -11,10 +11,8 @@ on:
       profile:
         required: false
         default: "release"
-        type: string
+        type: choice
         options: ["release", "debug", "production"]
-  push:
-    branches: ["try-android"]
 
 env:
   RUST_BACKTRACE: 1

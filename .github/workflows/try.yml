@@ -1,203 +1,123 @@
 name: Try
 
 on:
-  pull_request_target:
-    types: [labeled]
   push:
-    branches: ["try", "try-linux", "try-mac", "try-wpt-mac", "try-wpt-mac-2020", "try-wpt", "try-wpt-2020", "try-windows"]
+    branches: ["try"]
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: choice
+        options: ["release", "debug", "production"]
+      wpt-tests-to-run:
+        default: ""
+        required: false
+        type: string
+      wpt-layout:
+        required: false
+        type: choice
+        options: ["none", "2013", "2020", "all"]
+      unit-tests:
+        required: false
+        type: boolean
 
 jobs:
-  parse-comment:
-    name: Trigger Try
-    runs-on: ubuntu-latest
-    concurrency:
-      group: try-${{ github.event.number }}
+  decision:
+    name: Generate Try Configuration
+    runs-on: ubuntu-20.04
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
     steps:
-      - uses: actions/github-script@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            python/servo/try_parser.py
+          sparse-checkout-cone-mode: false
+      - name: Get Full Configuration
+        id: full_config
+        run: |
+          {
+            echo 'config<<EOF'
+            python ./python/servo/try_parser.py
+            echo EOF
+           } >> $GITHUB_OUTPUT
+      - name: Configuration
         id: configuration
+        uses: actions/github-script@v6
         with:
           script: |
-            function makeComment(body) {
-                console.log(body);
+            // When triggered via a push try the `try` branch, search the last commit for a configuration object.
+            if (${{ github.ref_name == 'try' }}) {
+              let commit_msg = context.payload.head_commit.message;
+              try {
+                var config = JSON.parse(commit_msg.split('\n').slice(-1));
 
-                if (context.eventName != 'pull_request_target')
-                  return;
-
-                github.rest.issues.createComment({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body
-                })
-            }
-
-            function combineWPTLayoutOptions(layout, newLayout) {
-                let has2013 = layout == "2013" || layout == "all";
-                let has2020 = layout == "2020" || layout == "all";
-                let adding2013 = newLayout == "2013";
-                let adding2020 = newLayout == "2020";
-
-                if ((adding2020 && has2020) || (adding2013 && has2013)) {
-                  return layout;
+                if (config && typeof config === "object") {
+                  console.log("Using try commit configuration: " + JSON.stringify(config));
+                  return config;
                 }
-                if (adding2020) {
-                  return has2013 ? "all" : "2020";
-                }
-                if (adding2013) {
-                  return has2020 ? "all" : "2013";
-                }
-                return layout;
-            }
-
-            function addPlatformToConfiguration(platform, configuration) {
-              if (!configuration.platforms.includes(platform)) {
-                configuration.platforms.push(platform);
+              }
+              catch (exception) {
+                console.log("Could not parse try configuration from commit message: " + exception);
+                console.log("Triggering full try run.");
               }
             }
 
-            function updateConfigurationFromString(tryString, configuration) {
-                if (tryString.includes("full")) {
-                  configuration.platforms = ["linux", "macos", "windows"];
-                  configuration.unit_tests = true;
-                  configuration.wpt_layout = "all";
-                  return configuration;
-                }
+            // If we reach here we are likely doing a full run.
+            configuration = ${{ steps.full_config.outputs.config }};
 
-                if (tryString.includes("linux")) {
-                  addPlatformToConfiguration("linux", configuration);
-                  configuration.unit_tests = true;
-                } else if (tryString.includes("mac")) {
-                  addPlatformToConfiguration("macos", configuration);
-                  configuration.unit_tests = true;
-                } else if (tryString.includes("win")) {
-                  addPlatformToConfiguration("windows", configuration);
-                  configuration.unit_tests = true;
-                }
+            // Process `workflow_dispatch` provided configuration overrides.
+            if (context.eventName == "workflow_dispatch") {
+              // WPT-related overrides only affect Linux currently, as tests don't run by default on other platforms.
+              configuration.matrix[0].wpt_layout = "${{ inputs.wpt-layout }}" || "none";
+              configuration.matrix[0].wpt_tests_to_run = "${{ inputs.wpt-tests-to-run }}" || "";
 
-                if (tryString.includes("wpt")) {
-                  addPlatformToConfiguration("linux", configuration);
-                  if (tryString.includes("2020")) {
-                    configuration.wpt_layout = combineWPTLayoutOptions(configuration.wpt_layout, "2020");
-                  } else {
-                    configuration.wpt_layout = combineWPTLayoutOptions(configuration.wpt_layout, "2013");
-                  }
-                }
-            }
-
-            let configuration = {
-              platforms: [],
-              wpt_layout: "none",
-              unit_tests: false,
-              profile: "release",
-              wpt_tests_to_run: "",
-            };
-
-            if (context.eventName == 'pull_request_target') {
-              for (const label of context.payload.pull_request.labels) {
-                if (!label.name.startsWith("T-")) {
-                  continue;
-                }
-
-                // Try to remove the label. If that fails, it's likely that another
-                // workflow has already processed it or a user has removed it.
-                try {
-                  await github.rest.issues.removeLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: context.issue.number,
-                    name: label.name,
-                  });
-                } catch (exception) {
-                  console.log("Assuming '" + label.name + "' is already removed: " + exception);
-                  continue;
-                }
-
-                console.log("Found label: " + label.name);
-                updateConfigurationFromString(label.name, configuration);
-              }
-            } else {
-              let ref_name = "${{ github.ref_name || 'empty' }}";
-              if (ref_name == "try") {
-                updateConfigurationFromString("full", configuration);
-              } else {
-                updateConfigurationFromString(ref_name, configuration);
+              let unit_tests = Boolean(${{ inputs.unit-tests }});
+              let profile = '${{ inputs.profile }}';
+              for (const platform of configuration.matrix) {
+                platform.profile = profile;
+                platform.unit_tests = unit_tests;
               }
             }
 
-            console.log(JSON.stringify(configuration));
-
-            if (configuration.platforms.length == 0) {
-                return { platforms: [] };
-            }
-
-            let username = context.payload.sender.login;
-            let result = await github.rest.repos.getCollaboratorPermissionLevel({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              username
-            });
-            if (!result.data.user.permissions.push) {
-              makeComment('🔒 User @' + username + ' does not have permission to trigger try jobs.');
-              return { platforms: [] };
-            }
-
-            const url = context.serverUrl +
-              "/" + context.repo.owner +
-              "/" + context.repo.repo +
-              "/actions/runs/" + context.runId;
-            const formattedURL = "[#" + context.runId + "](" + url + ")";
-            let platformsString = configuration.platforms.toString();
-            makeComment("🔨 Triggering try run (" + formattedURL + ") with platforms=" +
-                        platformsString + " and layout=" + configuration.wpt_layout);
+            console.log("Using configuration: " + JSON.stringify(configuration));
             return configuration;
 
-  run-try:
-    name: Run Try
-    needs: ["parse-comment"]
-    if: ${{ fromJson(needs.parse-comment.outputs.configuration).platforms[0] != null }}
-    uses: ./.github/workflows/main.yml
+  build:
+    needs: ["decision"]
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: ${{ fromJson(needs.decision.outputs.configuration).fail_fast }}
+      matrix:
+        include: ${{ fromJson(needs.decision.outputs.configuration).matrix }}
+    # We need to use `dipatch-workflow.yml` because workflows do not support using: ${}
+    uses: ./.github/workflows/dispatch-workflow.yml
+    secrets: inherit
     with:
-      configuration: ${{ needs.parse-comment.outputs.configuration }}
+      workflow: ${{ matrix.workflow }}
+      wpt-layout: ${{ matrix.wpt_layout }}
+      profile: ${{ matrix.profile }}
+      unit-tests: ${{ matrix.unit_tests }}
+      wpt-tests-to-run: ${{ matrix.wpt_tests_to_run }}
 
-  results:
-    name: Results
-    needs: ["parse-comment", "run-try"]
+  build-result:
+    name: Result
     runs-on: ubuntu-latest
-    if: ${{ always() && fromJson(needs.parse-comment.outputs.configuration).platforms[0] != null }}
+    if: always()
+    # `needs: "build"` is necessary to detect cancellation.
+    needs:
+      - "decision"
+      - "build"
+
     steps:
-      - name: Success
-        if: ${{ github.event_name == 'pull_request_target' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
-        uses: actions/github-script@v6
-        with:
-          script: |
-              const url = context.serverUrl +
-                "/" + context.repo.owner +
-                "/" + context.repo.repo +
-                "/actions/runs/" + context.runId;
-              const formattedURL = "[#" + context.runId + "](" + url + ")";
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: "✨ Try run (" + formattedURL + ") " + "succeeded.",
-              });
-      - name: Failure
-        if: ${{ github.event_name == 'pull_request_target' && contains(needs.*.result, 'failure') }}
-        uses: actions/github-script@v6
-        with:
-          script: |
-              const url = context.serverUrl +
-                "/" + context.repo.owner +
-                "/" + context.repo.repo +
-                "/actions/runs/" + context.runId;
-              const formattedURL = "[#" + context.runId + "](" + url + ")";
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: "⚠️ Try run (" + formattedURL + ") " + "failed.",
-              });
-
-
+      - name: Mark the job as successful
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        run: exit 0
+      - name: Mark the job as unsuccessful
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

@@ -244,6 +244,10 @@ class MachCommands(CommandBase):
         print("Running tidy tests...")
         passed = tidy.run_tests() and passed
 
+        import python.servo.try_parser as try_parser
+        print("Running try_parser tests...")
+        passed = try_parser.run_tests() and passed
+
         print("Running WPT tests...")
         passed = wpt.run_tests() and passed
 
