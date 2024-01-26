@@ -143,25 +143,58 @@ if __name__ == "__main__":
 
 class TestParser(unittest.TestCase):
     def test_string(self):
-        self.assertEqual(Config("linux fail-fast").to_json(),
-                         '{"fail_fast": true, "matrix": [\
-{"name": "Linux", "workflow": "linux", "wpt_layout": "none", "profile": "release", \
-"unit_tests": true, "wpt_tests_to_run": ""}]}')
+        self.assertDictEqual(json.loads(Config("linux fail-fast").to_json()),
+                             {'fail_fast': True,
+                              'matrix': [{
+                                  'name': 'Linux',
+                                  'profile': 'release',
+                                  'unit_tests': True,
+                                  'workflow': 'linux',
+                                  'wpt_layout': 'none',
+                                  'wpt_tests_to_run': ''
+                              }]
+                              })
 
     def test_empty(self):
-        self.assertEqual(Config("").to_json(),
-                         '{"fail_fast": false, "matrix": [\
-{"name": "Linux WPT", "workflow": "linux", "wpt_layout": "all", "profile": "release", \
-"unit_tests": true, "wpt_tests_to_run": ""}, \
-{"name": "MacOS", "workflow": "macos", "wpt_layout": "none", "profile": "release", \
-"unit_tests": true, "wpt_tests_to_run": ""}, \
-{"name": "Windows", "workflow": "windows", "wpt_layout": "none", "profile": "release", \
-"unit_tests": true, "wpt_tests_to_run": ""}, \
-{"name": "Android", "workflow": "android", "wpt_layout": "none", "profile": "release", \
-"unit_tests": false, "wpt_tests_to_run": ""}]}')
+        self.assertDictEqual(json.loads(Config("").to_json()),
+                             {"fail_fast": False, "matrix": [
+                              {
+                                  "name": "Linux WPT",
+                                  "workflow": "linux",
+                                  "wpt_layout": "all",
+                                  "profile": "release",
+                                  "unit_tests": True,
+                                  "wpt_tests_to_run": ""
+                              },
+                              {
+                                  "name": "MacOS",
+                                  "workflow": "macos",
+                                  "wpt_layout": "none",
+                                  "profile": "release",
+                                  "unit_tests": True,
+                                  "wpt_tests_to_run": ""
+                              },
+                              {
+                                  "name": "Windows",
+                                  "workflow": "windows",
+                                  "wpt_layout": "none",
+                                  "profile": "release",
+                                  "unit_tests": True,
+                                  "wpt_tests_to_run": ""
+                              },
+                              {
+                                  "name": "Android",
+                                  "workflow": "android",
+                                  "wpt_layout": "none",
+                                  "profile": "release",
+                                  "unit_tests": False,
+                                  "wpt_tests_to_run": ""
+                              }
+                              ]})
 
     def test_full(self):
-        self.assertEqual(Config("linux-wpt macos windows android").to_json(), Config("").to_json())
+        self.assertDictEqual(json.loads(Config("linux-wpt macos windows android").to_json()),
+                             json.loads(Config("").to_json()))
 
 
 def run_tests():
