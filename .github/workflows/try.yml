@@ -24,7 +24,7 @@ on:
 
 jobs:
   decision:
-    name: Generate matrix
+    name: Generate Try Configuration
     runs-on: ubuntu-20.04
     outputs:
       configuration: ${{ steps.configuration.outputs.result }}
@@ -38,11 +38,14 @@ jobs:
           sparse-checkout: |
             python/servo/try_parser.py
           sparse-checkout-cone-mode: false
-      - name: Generate full
-        id: full
+      - name: Get Full Configuration
+        id: full_config
         run: |
-          out=$(python ./python/servo/try_parser.py)
-          echo "config<<EOF"$'\n'"$out"$'\n'EOF >> $GITHUB_OUTPUT
+          {
+            echo 'config<<EOF'
+            python ./python/servo/try_parser.py
+            echo EOF
+           } >> $GITHUB_OUTPUT
       - name: Configuration
         id: configuration
         uses: actions/github-script@v6
@@ -66,7 +69,7 @@ jobs:
             }
 
             // If we reach here we are likely doing a full run.
-            configuration = ${{ steps.full.outputs.config }};
+            configuration = ${{ steps.full_config.outputs.config }};
 
             // Process `workflow_dispatch` provided configuration overrides.
             if (context.eventName == "workflow_dispatch") {

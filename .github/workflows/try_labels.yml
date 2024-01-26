@@ -23,9 +23,6 @@ jobs:
             function makeComment(body) {
                 console.log(body);
 
-                if (context.eventName != 'pull_request_target')
-                  return;
-
                 github.rest.issues.createComment({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
@@ -34,33 +31,31 @@ jobs:
                 })
             }
 
-            let try_string = "${{ inputs.try_string }}" || "";
+            let try_string = "";
 
-            if (context.eventName == 'pull_request_target') {
-              for (let label of context.payload.pull_request.labels) {
-                if (!label.name.startsWith("T-")) {
-                  continue;
-                }
-
-                // Try to remove the label. If that fails, it's likely that another
-                // workflow has already processed it or a user has removed it.
-                try {
-                  await github.rest.issues.removeLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: context.issue.number,
-                    name: label.name,
-                  });
-                } catch (exception) {
-                  console.log("Assuming '" + label.name + "' is already removed: " + exception);
-                  continue;
-                }
-
-                console.log("Found label: " + label.name);
-                // Remove the "T-" prefix.
-                label = label.name.slice(2);
-                try_string += " " + label;
+            for (let label of context.payload.pull_request.labels) {
+              if (!label.name.startsWith("T-")) {
+                continue;
               }
+
+              // Try to remove the label. If that fails, it's likely that another
+              // workflow has already processed it or a user has removed it.
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  name: label.name,
+                });
+              } catch (exception) {
+                console.log("Assuming '" + label.name + "' is already removed: " + exception);
+                continue;
+              }
+
+              console.log("Found label: " + label.name);
+              // Remove the "T-" prefix.
+              label = label.name.slice(2);
+              try_string += " " + label;
             }
 
             console.log(try_string);
@@ -86,29 +81,24 @@ jobs:
         with:
           python-version: '3.10'
       - uses: actions/checkout@v3
-        if: github.event_name != 'pull_request_target'
         with:
-          fetch-depth: 1
-          sparse-checkout: |
-            python/servo/try_parser.py
-          sparse-checkout-cone-mode: false
-      # This is necessary to checkout the pull request if this run was triggered
-      # via an `issue_comment` action on a pull request.
-      - uses: actions/checkout@v3
-        if: github.event_name == 'pull_request_target'
-        with:
+          # This is necessary to checkout the pull request if this run was triggered
+          # via an `label` action on a pull request.
           ref: refs/pull/${{ github.event.number }}/head
           fetch-depth: 1
           sparse-checkout: |
             python/servo/try_parser.py
           sparse-checkout-cone-mode: false
-      - name: Parse Try string
+      - name: Parse Labels
         if: ${{ steps.try_string.outputs.result }}
         id: configuration
         run: |
-          out=$(python ./python/servo/try_parser.py ${{ steps.try_string.outputs.result }})
-          echo "config<<EOF"$'\n'"$out"$'\n'EOF >> $GITHUB_OUTPUT
-      - name: Report triggered run
+          {
+            echo 'config<<EOF'
+            python ./python/servo/try_parser.py ${{ steps.try_string.outputs.result }}
+            echo EOF
+           } >> $GITHUB_OUTPUT
+      - name: Comment Run Start
         if: ${{ steps.try_string.outputs.result }}
         uses: actions/github-script@v6
         with:
@@ -117,9 +107,6 @@ jobs:
             let config = ${{ steps.configuration.outputs.config }};
             function makeComment(body) {
                 console.log(body);
-
-                if (context.eventName != 'pull_request_target')
-                  return;
 
                 github.rest.issues.createComment({
                   issue_number: context.issue.number,
@@ -136,7 +123,6 @@ jobs:
             const formattedURL = "[#" + context.runId + "](" + url + ")";
             makeComment("🔨 Triggering try run (" + formattedURL + ") for "
              + config.matrix.map(m => m.name).join(", "));
-
 
   run-try:
     if: ${{ needs.parse-comment.outputs.try_string }}
@@ -163,7 +149,7 @@ jobs:
     if: ${{ always() && needs.parse-comment.outputs.try_string }}
     steps:
       - name: Success
-        if: ${{ github.event_name == 'pull_request_target' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         uses: actions/github-script@v6
         with:
           script: |
@@ -179,7 +165,7 @@ jobs:
                 body: "✨ Try run (" + formattedURL + ") " + "succeeded.",
               });
       - name: Failure
-        if: ${{ github.event_name == 'pull_request_target' && contains(needs.*.result, 'failure') }}
+        if: ${{ contains(needs.*.result, 'failure') }}
         uses: actions/github-script@v6
         with:
           script: |

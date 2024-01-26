@@ -303,6 +303,6 @@ class MachCommands(CommandBase):
         git_remote = git_remote.replace(".git", "/actions")
         print(f"You can find triggered workflow here: {git_remote}")
 
-        # we need to delete last commit
+        # Remove the last commit which only contains the try configuration.
         result += call(["git", "reset", "--soft", "HEAD~1"])
         return result

@@ -11,6 +11,9 @@
 
 import json
 import sys
+from typing import Optional
+import unittest
+import logging
 
 from dataclasses import dataclass
 from enum import Enum, Flag, auto
@@ -53,7 +56,7 @@ class JobConfig(object):
     wpt_tests_to_run: str = ""
 
 
-def handle_preset(s: str) -> JobConfig | None:
+def handle_preset(s: str) -> Optional[JobConfig]:
     s = s.lower()
 
     if s == "linux":
@@ -96,7 +99,7 @@ class Encoder(json.JSONEncoder):
 
 
 class Config(object):
-    def __init__(self, s: str | None = None):
+    def __init__(self, s: Optional[str] = None):
         self.fail_fast: bool = False
         self.matrix: list[JobConfig] = list()
         if s is not None:
@@ -136,10 +139,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-import unittest # noqa
-import logging # noqa
 
 
 class TestParser(unittest.TestCase):
