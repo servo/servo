@@ -10,7 +10,7 @@ use js::jsapi::{Heap, JSObject, JS_GetArrayBufferViewBuffer};
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, MutableHandleObject};
 use js::typedarray::{
-    CreateWith, Float32, Float32Array, TypedArray, TypedArrayElement, TypedArrayElementCreator,
+    CreateWith, Float32, TypedArray, TypedArrayElement, TypedArrayElementCreator,
 };
 
 use crate::script_runtime::JSContext;
@@ -23,22 +23,47 @@ pub struct HeapFloat32Array {
 impl HeapTypedArray for HeapFloat32Array {
     type ArrayType = Float32;
 
-    fn set_data(&self, cx: JSContext, data: &[f32]) -> Result<(), ()> {
+    fn internal(&self) -> &Box<Heap<*mut JSObject>> {
+        &self.internal
+    }
+}
+
+pub trait HeapTypedArray {
+    type ArrayType: TypedArrayElementCreator + TypedArrayElement;
+
+    fn internal(&self) -> &Box<Heap<*mut JSObject>>;
+
+    fn set_data(
+        &self,
+        cx: JSContext,
+        data: &[<Self::ArrayType as TypedArrayElement>::Element],
+    ) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        let _: Float32Array = create_typed_array(cx, data, array.handle_mut())?;
-        self.internal.set(*array);
+        let _: TypedArray<Self::ArrayType, *mut JSObject> =
+            create_typed_array(cx, data, array.handle_mut())?;
+        self.internal().set(*array);
         Ok(())
     }
 
-    fn acquire_data(&self, cx: JSContext) -> Result<Vec<f32>, ()> {
+    fn acquire_data(
+        &self,
+        cx: JSContext,
+    ) -> Result<Vec<<Self::ArrayType as TypedArrayElement>::Element>, ()>
+    where
+        <Self::ArrayType as TypedArrayElement>::Element: Clone,
+    {
         assert!(self.is_initialized());
-        typedarray!(in(*cx) let array: Float32Array = self.internal.get());
-        let data = if let Ok(array) = array {
+        typedarray!(in(*cx) let array: TypedArray = self.internal().get());
+        let data = if let Ok(array) = array
+            as Result<
+                CustomAutoRooterGuard<'_, TypedArray<Self::ArrayType, *mut JSObject>>,
+                &mut (),
+            > {
             let data = array.to_vec();
             let mut is_shared = false;
             unsafe {
                 rooted!(in (*cx) let view_buffer =
-                    JS_GetArrayBufferViewBuffer(*cx, self.internal.handle(), &mut is_shared));
+                    JS_GetArrayBufferViewBuffer(*cx, self.internal().handle(), &mut is_shared));
                 // This buffer is always created unshared
                 debug_assert!(!is_shared);
                 let _ = DetachArrayBuffer(*cx, view_buffer.handle());
@@ -47,20 +72,27 @@ impl HeapTypedArray for HeapFloat32Array {
         } else {
             Err(())
         };
-        self.internal.set(ptr::null_mut());
+        self.internal().set(ptr::null_mut());
         data
     }
 
     fn copy_data_to(
         &self,
         cx: JSContext,
-        dest: &mut [f32],
+        dest: &mut [<Self::ArrayType as TypedArrayElement>::Element],
         source_start: usize,
         length: usize,
-    ) -> Result<(), ()> {
+    ) -> Result<(), ()>
+    where
+        <Self::ArrayType as TypedArrayElement>::Element: Copy,
+    {
         assert!(self.is_initialized());
-        typedarray!(in(*cx) let array: Float32Array = self.internal.get());
-        let Ok(array) = array else { return Err(()) };
+        typedarray!(in(*cx) let array: TypedArray = self.internal().get());
+        let Ok(array) = array
+            as Result<
+                CustomAutoRooterGuard<'_, TypedArray<Self::ArrayType, *mut JSObject>>,
+                &mut (),
+            > else { return Err(()) };
         unsafe {
             let slice = (*array).as_slice();
             dest.copy_from_slice(&slice[source_start..length]);
@@ -71,13 +103,20 @@ impl HeapTypedArray for HeapFloat32Array {
     fn copy_data_from(
         &self,
         cx: JSContext,
-        source: CustomAutoRooterGuard<Float32Array>,
+        source: CustomAutoRooterGuard<TypedArray<Self::ArrayType, *mut JSObject>>,
         dest_start: usize,
         length: usize,
-    ) -> Result<(), ()> {
+    ) -> Result<(), ()>
+    where
+        <Self::ArrayType as TypedArrayElement>::Element: Copy,
+    {
         assert!(self.is_initialized());
-        typedarray!(in(*cx) let mut array: Float32Array = self.internal.get());
-        let Ok(mut array) = array else { return Err(()) };
+        typedarray!(in(*cx) let array: TypedArray = self.internal().get());
+        let Ok(mut array) = array
+            as Result<
+                CustomAutoRooterGuard<'_, TypedArray<Self::ArrayType, *mut JSObject>>,
+                &mut (),
+            >  else { return Err(()) };
         unsafe {
             let slice = (*array).as_mut_slice();
             let (_, dest) = slice.split_at_mut(dest_start);
@@ -87,14 +126,14 @@ impl HeapTypedArray for HeapFloat32Array {
     }
 
     fn is_initialized(&self) -> bool {
-        !self.internal.get().is_null()
+        !self.internal().get().is_null()
     }
 
-    fn get_internal(&self) -> Result<Float32Array, ()> {
-        Float32Array::from(self.internal.get())
+    fn get_internal(&self) -> Result<TypedArray<Self::ArrayType, *mut JSObject>, ()> {
+        TypedArray::from(self.internal().get())
     }
 
-    fn internal_to_option(&self) -> Option<Float32Array> {
+    fn internal_to_option(&self) -> Option<TypedArray<Self::ArrayType, *mut JSObject>> {
         if self.is_initialized() {
             Some(self.get_internal().expect("Failed to get internal."))
         } else {
@@ -102,43 +141,6 @@ impl HeapTypedArray for HeapFloat32Array {
             None
         }
     }
-}
-
-pub trait HeapTypedArray {
-    type ArrayType: TypedArrayElementCreator + TypedArrayElement;
-
-    fn set_data(
-        &self,
-        cx: JSContext,
-        data: &[<Self::ArrayType as TypedArrayElement>::Element],
-    ) -> Result<(), ()>;
-
-    fn acquire_data(
-        &self,
-        cx: JSContext,
-    ) -> Result<Vec<<Self::ArrayType as TypedArrayElement>::Element>, ()>;
-
-    fn copy_data_to(
-        &self,
-        cx: JSContext,
-        dest: &mut [<Self::ArrayType as TypedArrayElement>::Element],
-        source_start: usize,
-        length: usize,
-    ) -> Result<(), ()>;
-
-    fn copy_data_from(
-        &self,
-        cx: JSContext,
-        source: CustomAutoRooterGuard<TypedArray<Self::ArrayType, *mut JSObject>>,
-        dest_start: usize,
-        length: usize,
-    ) -> Result<(), ()>;
-
-    fn is_initialized(&self) -> bool;
-
-    fn get_internal(&self) -> Result<TypedArray<Self::ArrayType, *mut JSObject>, ()>;
-
-    fn internal_to_option(&self) -> Option<TypedArray<Self::ArrayType, *mut JSObject>>;
 }
 
 pub fn create_typed_array<T>(
