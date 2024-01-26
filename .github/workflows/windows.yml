@@ -121,20 +121,3 @@ jobs:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
           NIGHTLY_REPO_TOKEN: ${{ secrets.NIGHTLY_REPO_TOKEN }}
           NIGHTLY_REPO: ${{ github.repository_owner }}/servo-nightly-builds
-
-  result:
-    name: Result
-    runs-on: ubuntu-latest
-    if: always()
-    # needs all build to detect cancellation
-    needs:
-      - "build"
-
-    steps:
-      - name: Mark the job as successful
-        run: exit 0
-        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
-      - name: Mark the job as unsuccessful
-        run: exit 1
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
-

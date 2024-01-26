@@ -169,21 +169,3 @@ jobs:
       wpt-layout: "layout-2013"
       wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
     secrets: inherit
-
-  result:
-    name: Result
-    runs-on: ubuntu-latest
-    if: always()
-    # needs all build to detect cancellation
-    needs:
-      - "build"
-      - "wpt-2020"
-      - "wpt-2013"
-
-    steps:
-      - name: Mark the job as successful
-        run: exit 0
-        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
-      - name: Mark the job as unsuccessful
-        run: exit 1
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
