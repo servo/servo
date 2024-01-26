@@ -436,11 +436,11 @@ pub struct Document {
     animations: DomRefCell<Animations>,
     /// The nearest inclusive ancestors to all the nodes that require a restyle.
     dirty_root: MutNullableDom<Element>,
-    /// https://drafts.csswg.org/resize-observer/#dom-document-resizeobservers-slot
+    /// <https://drafts.csswg.org/resize-observer/#dom-document-resizeobservers-slot>
     ///
     /// Note: will leak,
-    /// find a way to remove,
-    /// https://drafts.csswg.org/resize-observer/#lifetime
+    /// find a way to remove according to
+    /// https://drafts.csswg.org/resize-observer/#lifetime.
     resize_observers: DomRefCell<Vec<Dom<ResizeObserver>>>,
 }
 
