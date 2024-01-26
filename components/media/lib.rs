@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 
 use euclid::default::Size2D;
 use serde::{Deserialize, Serialize};
-use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
+pub use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
 };
