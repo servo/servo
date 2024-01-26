@@ -390,7 +390,7 @@ impl ReplacedContent {
                         (None, Some(block), Some(i_over_b)) => {
                             // “used height” in CSS 2 is always gonna be the intrinsic one,
                             // since it is available.
-                            block * i_over_b as i32
+                            block.scale_by(1.0 * i_over_b)
                         },
                         // FIXME
                         //
@@ -415,7 +415,7 @@ impl ReplacedContent {
                     block
                 } else if let Some(i_over_b) = intrinsic_ratio {
                     // “used width” in CSS 2 is what we just computed above
-                    inline_size / i_over_b as i32
+                    inline_size.scale_by(1.0 / i_over_b)
                 } else {
                     default_object_size().block.into()
                 };
