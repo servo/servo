@@ -25,4 +25,3 @@ script_traits = { workspace = true }
 servo_url = { path = "../../url" }
 style_traits = { workspace = true }
 webrender_api = { workspace = true }
-webrender_surfman = { path = "../../webrender_surfman" }

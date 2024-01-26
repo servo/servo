@@ -11,10 +11,10 @@ use euclid::{Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
 };
+use servo::rendering_context::RenderingContext;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::DeviceIntRect;
-use servo::webrender_surfman::WebrenderSurfman;
 use servo_media::player::context as MediaPlayerCtxt;
 use surfman::{Connection, Context, Device, SurfaceType};
 
@@ -22,7 +22,7 @@ use crate::events_loop::WakerEvent;
 use crate::window_trait::WindowPortsMethods;
 
 pub struct Window {
-    webrender_surfman: WebrenderSurfman,
+    rendering_context: RenderingContext,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<f32>,
@@ -40,11 +40,11 @@ impl Window {
             .expect("Failed to create adapter");
         let size = size.to_untyped().to_i32();
         let surface_type = SurfaceType::Generic { size };
-        let webrender_surfman = WebrenderSurfman::create(&connection, &adapter, surface_type)
+        let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
             .expect("Failed to create WR surfman");
 
         let window = Window {
-            webrender_surfman,
+            rendering_context,
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             device_pixel_ratio_override,
@@ -79,7 +79,7 @@ impl WindowPortsMethods for Window {
 
     fn page_height(&self) -> f32 {
         let height = self
-            .webrender_surfman
+            .rendering_context
             .context_surface_info()
             .unwrap_or(None)
             .map(|info| info.size.height)
@@ -124,7 +124,7 @@ impl WindowMethods for Window {
     fn get_coordinates(&self) -> EmbedderCoordinates {
         let dpr = self.hidpi_factor();
         let size = self
-            .webrender_surfman
+            .rendering_context
             .context_surface_info()
             .unwrap_or(None)
             .map(|info| Size2D::from_untyped(info.size))
@@ -156,8 +156,8 @@ impl WindowMethods for Window {
         MediaPlayerCtxt::GlApi::None
     }
 
-    fn webrender_surfman(&self) -> WebrenderSurfman {
-        self.webrender_surfman.clone()
+    fn rendering_context(&self) -> RenderingContext {
+        self.rendering_context.clone()
     }
 }
 

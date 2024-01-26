@@ -41,7 +41,6 @@ surfman = { workspace = true }
 time = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
-webrender_surfman = { path = "../webrender_surfman" }
 webrender_traits = { workspace = true }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc"] }

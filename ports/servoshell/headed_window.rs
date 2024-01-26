@@ -17,13 +17,13 @@ use servo::compositing::windowing::{
 };
 use servo::embedder_traits::Cursor;
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
+use servo::rendering_context::RenderingContext;
 use servo::script_traits::{TouchEventType, WheelDelta, WheelMode};
 use servo::servo_config::{opts, pref};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_surfman::WebrenderSurfman;
 use servo_media::player::context::{GlApi, GlContext as PlayerGLContext, NativeDisplay};
 #[cfg(target_os = "linux")]
 use surfman::platform::generic::multi::connection::NativeConnection;
@@ -47,7 +47,7 @@ use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
 pub struct Window {
     winit_window: winit::window::Window,
-    webrender_surfman: WebrenderSurfman,
+    rendering_context: RenderingContext,
     screen_size: Size2D<u32, DevicePixel>,
     inner_size: Cell<Size2D<u32, DevicePixel>>,
     toolbar_height: Cell<Length<f32, DeviceIndependentPixel>>,
@@ -136,13 +136,13 @@ impl Window {
             .create_native_widget_from_rwh(window_handle)
             .expect("Failed to create native widget");
         let surface_type = SurfaceType::Widget { native_widget };
-        let webrender_surfman = WebrenderSurfman::create(&connection, &adapter, surface_type)
+        let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
             .expect("Failed to create WR surfman");
 
         debug!("Created window {:?}", winit_window.id());
         Window {
             winit_window,
-            webrender_surfman,
+            rendering_context,
             event_queue: RefCell::new(vec![]),
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(Point2D::new(0, 0)),
@@ -477,7 +477,7 @@ impl WindowPortsMethods for Window {
                 let new_size = Size2D::new(width, height);
                 if self.inner_size.get() != new_size {
                     let physical_size = Size2D::new(physical_size.width, physical_size.height);
-                    self.webrender_surfman
+                    self.rendering_context
                         .resize(physical_size.to_i32())
                         .expect("Failed to resize");
                     self.inner_size.set(new_size);
@@ -550,8 +550,8 @@ impl WindowMethods for Window {
         self.animation_state.set(state);
     }
 
-    fn webrender_surfman(&self) -> WebrenderSurfman {
-        self.webrender_surfman.clone()
+    fn rendering_context(&self) -> RenderingContext {
+        self.rendering_context.clone()
     }
 
     fn get_gl_context(&self) -> PlayerGLContext {
@@ -560,7 +560,7 @@ impl WindowMethods for Window {
         }
 
         #[allow(unused_variables)]
-        let native_context = self.webrender_surfman.native_context();
+        let native_context = self.rendering_context.native_context();
 
         #[cfg(target_os = "windows")]
         return PlayerGLContext::Egl(native_context.egl_context as usize);
@@ -591,9 +591,9 @@ impl WindowMethods for Window {
         }
 
         #[allow(unused_variables)]
-        let native_connection = self.webrender_surfman.connection().native_connection();
+        let native_connection = self.rendering_context.connection().native_connection();
         #[allow(unused_variables)]
-        let native_device = self.webrender_surfman.native_device();
+        let native_device = self.rendering_context.native_device();
 
         #[cfg(target_os = "windows")]
         return NativeDisplay::Egl(native_device.egl_display as usize);
@@ -619,8 +619,8 @@ impl WindowMethods for Window {
     }
 
     fn get_gl_api(&self) -> GlApi {
-        let api = self.webrender_surfman.connection().gl_api();
-        let attributes = self.webrender_surfman.context_attributes();
+        let api = self.rendering_context.connection().gl_api();
+        let attributes = self.rendering_context.context_attributes();
         let GLVersion { major, minor } = attributes.version;
         match api {
             GLApi::GL if major >= 3 && minor >= 2 => GlApi::OpenGL3,

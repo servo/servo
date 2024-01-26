@@ -61,6 +61,7 @@ use euclid::Scale;
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
+pub use gfx::rendering_context;
 pub use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{error, trace, warn, Log, Metadata, Record};
@@ -89,7 +90,7 @@ pub use {
     keyboard_types, layout_thread_2013, layout_thread_2020, media, msg, net, net_traits, profile,
     profile_traits, script, script_layout_interface, script_traits, servo_config as config,
     servo_config, servo_geometry, servo_url as url, servo_url, style, style_traits, webgpu,
-    webrender_api, webrender_surfman, webrender_traits,
+    webrender_api, webrender_traits,
 };
 
 #[cfg(feature = "webdriver")]
@@ -259,22 +260,22 @@ where
         };
 
         // Initialize surfman
-        let webrender_surfman = window.webrender_surfman();
+        let rendering_context = window.rendering_context();
 
         // Get GL bindings
-        let webrender_gl = match webrender_surfman.connection().gl_api() {
-            GLApi::GL => unsafe { gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s)) },
+        let webrender_gl = match rendering_context.connection().gl_api() {
+            GLApi::GL => unsafe { gl::GlFns::load_with(|s| rendering_context.get_proc_address(s)) },
             GLApi::GLES => unsafe {
-                gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
+                gl::GlesFns::load_with(|s| rendering_context.get_proc_address(s))
             },
         };
 
         // Make sure the gl context is made current.
-        webrender_surfman.make_gl_context_current().unwrap();
+        rendering_context.make_gl_context_current().unwrap();
         debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
 
         // Bind the webrender framebuffer
-        let framebuffer_object = webrender_surfman
+        let framebuffer_object = rendering_context
             .context_surface_info()
             .unwrap_or(None)
             .map(|info| info.framebuffer_object)
@@ -369,7 +370,7 @@ where
             webxr_layer_grand_manager,
             image_handler,
         } = WebGLComm::new(
-            webrender_surfman.clone(),
+            rendering_context.clone(),
             webrender_api.create_sender(),
             webrender_document,
             external_images.clone(),
@@ -468,7 +469,7 @@ where
                 webrender,
                 webrender_document,
                 webrender_api,
-                webrender_surfman,
+                rendering_context,
                 webrender_gl,
                 webxr_main_thread,
             },

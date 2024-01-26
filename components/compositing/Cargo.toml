@@ -22,6 +22,7 @@ crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
+gfx = { path = "../gfx" }
 gfx_traits = { workspace = true }
 gleam = { workspace = true }
 image = { workspace = true }
@@ -42,7 +43,6 @@ style_traits = { workspace = true }
 time = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
-webrender_surfman = { path = "../webrender_surfman" }
 webxr = { git = "https://github.com/servo/webxr" }
 
 [build-dependencies]

@@ -30,6 +30,7 @@ use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 pub use servo::msg::constellation_msg::InputMethodType;
 use servo::msg::constellation_msg::{TraversalDirection, WebViewId};
+use servo::rendering_context::RenderingContext;
 pub use servo::script_traits::{MediaSessionActionType, MouseButton};
 use servo::script_traits::{TouchEventType, TouchId};
 use servo::servo_config::{opts, pref};
@@ -37,7 +38,6 @@ use servo::servo_url::ServoUrl;
 pub use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
-use servo::webrender_surfman::WebrenderSurfman;
 use servo::{self, gl, Servo, TopLevelBrowsingContextId};
 use servo_media::player::context as MediaPlayerContext;
 use surfman::{Connection, SurfaceType};
@@ -162,7 +162,7 @@ pub trait HostTrait {
 }
 
 pub struct ServoGlue {
-    webrender_surfman: WebrenderSurfman,
+    rendering_context: RenderingContext,
     servo: Servo<ServoWindowCallbacks>,
     batch_mode: bool,
     callbacks: Rc<ServoWindowCallbacks>,
@@ -285,7 +285,7 @@ pub fn init(
             SurfaceType::Generic { size }
         },
     };
-    let webrender_surfman = WebrenderSurfman::create(&connection, &adapter, surface_type)
+    let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
         .or(Err("Failed to create surface manager"))?;
 
     let window_callbacks = Rc::new(ServoWindowCallbacks {
@@ -294,7 +294,7 @@ pub fn init(
         density: init_opts.density,
         gl_context_pointer: init_opts.gl_context_pointer,
         native_display_pointer: init_opts.native_display_pointer,
-        webrender_surfman: webrender_surfman.clone(),
+        rendering_context: rendering_context.clone(),
     });
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks {
@@ -312,7 +312,7 @@ pub fn init(
 
     SERVO.with(|s| {
         let mut servo_glue = ServoGlue {
-            webrender_surfman,
+            rendering_context,
             servo: servo.servo,
             batch_mode: false,
             callbacks: window_callbacks,
@@ -354,8 +354,8 @@ impl ServoGlue {
 
     /// Returns the webrender surface management integration interface.
     /// This provides the embedder access to the current front buffer.
-    pub fn surfman(&self) -> WebrenderSurfman {
-        self.webrender_surfman.clone()
+    pub fn surfman(&self) -> RenderingContext {
+        self.rendering_context.clone()
     }
 
     /// This is the Servo heartbeat. This needs to be called
@@ -863,7 +863,7 @@ struct ServoWindowCallbacks {
     density: f32,
     gl_context_pointer: Option<*const c_void>,
     native_display_pointer: Option<*const c_void>,
-    webrender_surfman: WebrenderSurfman,
+    rendering_context: RenderingContext,
 }
 
 impl EmbedderMethods for ServoEmbedderCallbacks {
@@ -885,8 +885,8 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
 }
 
 impl WindowMethods for ServoWindowCallbacks {
-    fn webrender_surfman(&self) -> WebrenderSurfman {
-        self.webrender_surfman.clone()
+    fn rendering_context(&self) -> RenderingContext {
+        self.rendering_context.clone()
     }
 
     fn set_animation_state(&self, state: AnimationState) {

@@ -21,6 +21,7 @@ use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
+use gfx::rendering_context::RenderingContext;
 use gfx_traits::{Epoch, FontData, WebRenderEpochToU16};
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
@@ -54,7 +55,6 @@ use webrender_api::{
     ReferenceFrameKind, ScrollClamping, ScrollLocation, SpaceAndClipInfo, SpatialId,
     TransformStyle, ZoomFactor,
 };
-use webrender_surfman::WebrenderSurfman;
 
 use crate::gl::RenderTargetInfo;
 use crate::touch::{TouchAction, TouchHandler};
@@ -199,7 +199,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     webrender_api: RenderApi,
 
     /// The surfman instance that webrender targets
-    webrender_surfman: WebrenderSurfman,
+    rendering_context: RenderingContext,
 
     /// The GL bindings for webrender
     webrender_gl: Rc<dyn gleam::gl::Gl>,
@@ -403,7 +403,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             webrender: state.webrender,
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
-            webrender_surfman: state.webrender_surfman,
+            rendering_context: state.rendering_context,
             webrender_gl: state.webrender_gl,
             webxr_main_thread: state.webxr_main_thread,
             pending_paint_metrics: HashMap::new(),
@@ -449,7 +449,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn deinit(self) {
-        if let Err(err) = self.webrender_surfman.make_gl_context_current() {
+        if let Err(err) = self.rendering_context.make_gl_context_current() {
             warn!("Failed to make GL context current: {:?}", err);
         }
         self.webrender.deinit();
@@ -506,7 +506,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// We need to unbind the surface so that we don't try to use it again.
     pub fn invalidate_native_surface(&mut self) {
         debug!("Invalidating native surface in compositor");
-        if let Err(e) = self.webrender_surfman.unbind_native_surface_from_context() {
+        if let Err(e) = self.rendering_context.unbind_native_surface_from_context() {
             warn!("Unbinding native surface from context failed ({:?})", e);
         }
     }
@@ -517,11 +517,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     #[allow(unsafe_code)]
     pub fn replace_native_surface(&mut self, native_widget: *mut c_void, coords: DeviceIntSize) {
         debug!("Replacing native surface in compositor: {native_widget:?}");
-        let connection = self.webrender_surfman.connection();
+        let connection = self.rendering_context.connection();
         let native_widget =
             unsafe { connection.create_native_widget_from_ptr(native_widget, coords.to_untyped()) };
         if let Err(e) = self
-            .webrender_surfman
+            .rendering_context
             .bind_native_surface_to_context(native_widget)
         {
             warn!("Binding native surface to context failed ({:?})", e);
@@ -1721,7 +1721,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         let size = self.embedder_coordinates.framebuffer.to_u32();
 
-        if let Err(err) = self.webrender_surfman.make_gl_context_current() {
+        if let Err(err) = self.rendering_context.make_gl_context_current() {
             warn!("Failed to make GL context current: {:?}", err);
         }
         self.assert_no_gl_error();
@@ -1765,7 +1765,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         } else {
             // Bind the webrender framebuffer
             let framebuffer_object = self
-                .webrender_surfman
+                .rendering_context
                 .context_surface_info()
                 .unwrap_or(None)
                 .map(|info| info.framebuffer_object)
@@ -1941,7 +1941,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn present(&mut self) {
-        if let Err(err) = self.webrender_surfman.present() {
+        if let Err(err) = self.rendering_context.present() {
             warn!("Failed to present surface: {:?}", err);
         }
         self.waiting_on_present = false;
@@ -2049,7 +2049,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webxr_main_thread.run_one_frame();
 
         // The WebXR thread may make a different context current
-        let _ = self.webrender_surfman.make_gl_context_current();
+        let _ = self.rendering_context.make_gl_context_current();
 
         if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {
             self.process_pending_scroll_events()

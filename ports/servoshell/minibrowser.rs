@@ -16,9 +16,9 @@ use glow::NativeFramebuffer;
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::msg::constellation_msg::TraversalDirection;
+use servo::rendering_context::RenderingContext;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
-use servo::webrender_surfman::WebrenderSurfman;
 
 use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
@@ -53,13 +53,13 @@ pub enum MinibrowserEvent {
 
 impl Minibrowser {
     pub fn new(
-        webrender_surfman: &WebrenderSurfman,
+        rendering_context: &RenderingContext,
         events_loop: &EventsLoop,
         window: &dyn WindowPortsMethods,
         initial_url: ServoUrl,
     ) -> Self {
         let gl = unsafe {
-            glow::Context::from_loader_function(|s| webrender_surfman.get_proc_address(s))
+            glow::Context::from_loader_function(|s| rendering_context.get_proc_address(s))
         };
 
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
@@ -68,7 +68,7 @@ impl Minibrowser {
             .egui_ctx
             .set_pixels_per_point(window.hidpi_factor().get());
 
-        let widget_surface_fbo = match webrender_surfman.context_surface_info() {
+        let widget_surface_fbo = match rendering_context.context_surface_info() {
             Ok(Some(info)) => NonZeroU32::new(info.framebuffer_object).map(NativeFramebuffer),
             Ok(None) => panic!("Failed to get widget surface info from surfman!"),
             Err(error) => panic!("Failed to get widget surface info from surfman! {error:?}"),

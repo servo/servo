@@ -33,6 +33,7 @@ servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
+surfman = { workspace = true }
 style = { path = "../style", features = ["servo"] }
 ucd = "0.1.1"
 unicode-bidi = { workspace = true, features = ["with_serde"] }

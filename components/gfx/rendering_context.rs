@@ -16,19 +16,19 @@ use surfman::{
     SurfaceTexture, SurfaceType,
 };
 
-/// A bridge between webrender and surfman
-// TODO: move this into a different crate so that script doesn't depend on surfman
+/// A Servo rendering context, which holds all of the information needed
+/// to render Servo's layout, and bridges WebRender and surfman.
 #[derive(Clone)]
-pub struct WebrenderSurfman(Rc<WebrenderSurfmanData>);
+pub struct RenderingContext(Rc<RenderingContextData>);
 
-struct WebrenderSurfmanData {
+struct RenderingContextData {
     device: RefCell<Device>,
     context: RefCell<Context>,
     // We either render to a swap buffer or to a native widget
     swap_chain: Option<SwapChain<Device>>,
 }
 
-impl Drop for WebrenderSurfmanData {
+impl Drop for RenderingContextData {
     fn drop(&mut self) {
         let ref mut device = self.device.borrow_mut();
         let ref mut context = self.context.borrow_mut();
@@ -39,7 +39,7 @@ impl Drop for WebrenderSurfmanData {
     }
 }
 
-impl WebrenderSurfman {
+impl RenderingContext {
     pub fn create(
         connection: &Connection,
         adapter: &Adapter,
@@ -82,12 +82,12 @@ impl WebrenderSurfman {
         };
         let device = RefCell::new(device);
         let context = RefCell::new(context);
-        let data = WebrenderSurfmanData {
+        let data = RenderingContextData {
             device,
             context,
             swap_chain,
         };
-        Ok(WebrenderSurfman(Rc::new(data)))
+        Ok(RenderingContext(Rc::new(data)))
     }
 
     pub fn create_surface_texture(

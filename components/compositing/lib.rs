@@ -8,10 +8,10 @@ use std::rc::Rc;
 
 use compositing_traits::{CompositorProxy, CompositorReceiver, ConstellationMsg};
 use crossbeam_channel::Sender;
+use gfx::rendering_context::RenderingContext;
 use profile_traits::{mem, time};
 use webrender::RenderApi;
 use webrender_api::DocumentId;
-use webrender_surfman::WebrenderSurfman;
 
 pub use crate::compositor::{CompositeTarget, IOCompositor, ShutdownState};
 
@@ -36,7 +36,7 @@ pub struct InitialCompositorState {
     pub webrender: webrender::Renderer,
     pub webrender_document: DocumentId,
     pub webrender_api: RenderApi,
-    pub webrender_surfman: WebrenderSurfman,
+    pub rendering_context: RenderingContext,
     pub webrender_gl: Rc<dyn gleam::gl::Gl>,
     pub webxr_main_thread: webxr::MainThreadRegistry,
 }

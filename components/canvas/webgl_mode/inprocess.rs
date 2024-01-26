@@ -8,13 +8,13 @@ use std::sync::{Arc, Mutex};
 use canvas_traits::webgl::{webgl_channel, WebGLContextId, WebGLMsg, WebGLThreads};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
+use gfx::rendering_context::RenderingContext;
 use log::debug;
 use sparkle::gl::GlType;
 use surfman::chains::{SwapChainAPI, SwapChains, SwapChainsAPI};
 use surfman::{Device, SurfaceInfo, SurfaceTexture};
 use webrender::RenderApiSender;
 use webrender_api::DocumentId;
-use webrender_surfman::WebrenderSurfman;
 use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
 };
@@ -32,7 +32,7 @@ pub struct WebGLComm {
 impl WebGLComm {
     /// Creates a new `WebGLComm` object.
     pub fn new(
-        surfman: WebrenderSurfman,
+        surfman: RenderingContext,
         webrender_api_sender: RenderApiSender,
         webrender_doc: DocumentId,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -72,13 +72,13 @@ impl WebGLComm {
 
 /// Bridge between the webrender::ExternalImage callbacks and the WebGLThreads.
 struct WebGLExternalImages {
-    surfman: WebrenderSurfman,
+    surfman: RenderingContext,
     swap_chains: SwapChains<WebGLContextId, Device>,
     locked_front_buffers: FnvHashMap<WebGLContextId, SurfaceTexture>,
 }
 
 impl WebGLExternalImages {
-    fn new(surfman: WebrenderSurfman, swap_chains: SwapChains<WebGLContextId, Device>) -> Self {
+    fn new(surfman: RenderingContext, swap_chains: SwapChains<WebGLContextId, Device>) -> Self {
         Self {
             surfman,
             swap_chains,
