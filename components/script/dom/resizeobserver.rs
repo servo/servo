@@ -173,7 +173,7 @@ impl ResizeObserverMethods for ResizeObserver {
             .iter()
             .any(|(_obs, other)| &**other == target);
         if is_present {
-            return self.Unobserve(target);
+            self.Unobserve(target);
         }
 
         // Step 2 and 3.
