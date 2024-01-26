@@ -1701,16 +1701,15 @@ impl ScriptThread {
             let _realm = enter_realm(&*document);
 
             let mut depth = Default::default();
-            let mut has_skipped = false;
             loop {
                 if !document.gather_active_resize_observations_at_depth(&depth) {
                     break;
                 }
                 // Note: this will reflow the doc.
-                depth = document.broadcast_active_resize_observations(&mut has_skipped);
+                depth = document.broadcast_active_resize_observations();
             }
 
-            if has_skipped {
+            if document.has_skipped_resize_observations() {
                 document.deliver_resize_loop_error_notification();
             }
         }

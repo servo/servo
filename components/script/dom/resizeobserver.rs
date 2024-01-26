@@ -106,15 +106,10 @@ impl ResizeObserver {
     pub fn broadcast_active_resize_observations(
         &self,
         shallowest_target_depth: &mut ResizeObservationDepth,
-        has_skipped: &mut bool,
     ) {
         let mut entries: Vec<DomRoot<ResizeObserverEntry>> = Default::default();
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
-            if matches!(observation.state, ObservationState::Skipped) {
-                *has_skipped = true;
-                continue;
-            }
-            if matches!(observation.state, ObservationState::Done) {
+            if !matches!(observation.state, ObservationState::Active) {
                 continue;
             }
             // #create-and-populate-a-resizeobserverentry
@@ -157,6 +152,14 @@ impl ResizeObserver {
         let _ = self
             .callback
             .Call__(entries, self, ExceptionHandling::Report);
+    }
+
+    /// <https://drafts.csswg.org/resize-observer/#has-skipped-observations-h>
+    pub fn has_skipped_resize_observations(&self) -> bool {
+        self.observation_targets
+            .borrow()
+            .iter()
+            .any(|(obs, _)| matches!(obs.state, ObservationState::Skipped))
     }
 }
 
