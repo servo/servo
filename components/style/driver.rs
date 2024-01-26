@@ -16,7 +16,7 @@ use crate::traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 use rayon;
 use std::collections::VecDeque;
 use std::mem;
-use time;
+use std::time::Instant;
 
 #[cfg(feature = "servo")]
 fn should_report_statistics() -> bool {
@@ -94,7 +94,7 @@ where
     let report_stats = should_report_statistics();
     let dump_stats = traversal.shared_context().options.dump_style_statistics;
     let start_time = if dump_stats {
-        Some(time::precise_time_s())
+        Some(Instant::now())
     } else {
         None
     };
