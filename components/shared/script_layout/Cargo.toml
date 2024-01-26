@@ -16,7 +16,6 @@ atomic_refcell = { workspace = true }
 canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
-fxhash = { workspace = true }
 gfx_traits = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
@@ -26,7 +25,6 @@ malloc_size_of_derive = { workspace = true }
 metrics = { path = "../../metrics" }
 msg = { workspace = true }
 net_traits = { workspace = true }
-parking_lot = { workspace = true }
 profile_traits = { workspace = true }
 range = { path = "../../range" }
 script_traits = { workspace = true }

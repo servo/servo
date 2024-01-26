@@ -14,7 +14,6 @@ log = { workspace = true }
 servo-media = { git = "https://github.com/servo/media" }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 webxr = { git = "https://github.com/servo/webxr" }
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 libc = { workspace = true }

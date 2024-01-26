@@ -27,7 +27,6 @@ devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 flate2 = "1"
 futures = { version = "0.3", package = "futures" }
-futures-util = { version = "0.3" }
 generic-array = "0.14"
 headers = { workspace = true }
 http = { workspace = true }

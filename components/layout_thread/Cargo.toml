@@ -12,7 +12,6 @@ path = "lib.rs"
 
 [dependencies]
 app_units = { workspace = true }
-atomic_refcell = { workspace = true }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
@@ -21,12 +20,10 @@ fxhash = { workspace = true }
 gfx = { path = "../gfx" }
 gfx_traits = { workspace = true }
 histogram = "0.6.8"
-html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 layout = { path = "../layout", package = "layout_2013" }
 layout_traits = { workspace = true }
 lazy_static = { workspace = true }
-libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
 metrics = { path = "../metrics" }
@@ -34,12 +31,10 @@ msg = { workspace = true }
 net_traits = { workspace = true }
 parking_lot = { workspace = true }
 profile_traits = { workspace = true }
-range = { path = "../range" }
 rayon = { workspace = true }
 script = { path = "../script" }
 script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
-selectors = { path = "../selectors", features = ["shmem"] }
 serde_json = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_arc = { path = "../servo_arc" }

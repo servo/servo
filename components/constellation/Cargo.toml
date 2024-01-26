@@ -27,7 +27,6 @@ euclid = { workspace = true }
 gfx = { path = "../gfx" }
 gfx_traits = { workspace = true }
 http = { workspace = true }
-headers = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 layout_traits = { workspace = true }

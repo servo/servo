@@ -12,7 +12,6 @@ path = "lib.rs"
 
 [dependencies]
 bitflags = { workspace = true }
-headers = { workspace = true }
 http = { workspace = true }
 ipc-channel = { workspace = true }
 malloc_size_of = { path = "../../malloc_size_of" }

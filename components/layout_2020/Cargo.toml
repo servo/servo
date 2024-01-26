@@ -26,7 +26,6 @@ gfx = { path = "../gfx" }
 gfx_traits = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
-libc = { workspace = true }
 log = { workspace = true }
 msg = { workspace = true }
 net_traits = { workspace = true }

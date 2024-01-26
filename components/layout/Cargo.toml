@@ -25,12 +25,10 @@ gfx_traits = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
-libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
 msg = { workspace = true }
 net_traits = { workspace = true }
-num-traits = { workspace = true }
 parking_lot = { workspace = true }
 profile_traits = { workspace = true }
 range = { path = "../range" }
