@@ -20,7 +20,6 @@ devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 gfx_traits = { workspace = true }
-headers = { workspace = true }
 http = { workspace = true }
 hyper_serde = { workspace = true }
 ipc-channel = { workspace = true }

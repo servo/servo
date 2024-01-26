@@ -25,7 +25,6 @@ euclid = { workspace = true }
 font-kit = "0.11"
 fnv = { workspace = true }
 gfx = { path = "../gfx" }
-gleam = { workspace = true }
 half = "2"
 ipc-channel = { workspace = true }
 log = { workspace = true }
@@ -35,7 +34,6 @@ pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
 raqote = "0.8.2"
 servo_arc = { path = "../servo_arc" }
-servo_config = { path = "../config" }
 sparkle = { workspace = true }
 style = { path = "../style" }
 style_traits = { workspace = true }
