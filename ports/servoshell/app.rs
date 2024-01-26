@@ -462,7 +462,7 @@ impl App {
 
             // Take any new embedder messages from Servo itself.
             embedder_messages = self.servo.as_mut().unwrap().get_events();
-            if embedder_messages.is_empty() {
+            if embedder_messages.len() == 0 {
                 break;
             }
         }

@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::Write;
 use std::rc::Rc;
 use std::time::Duration;
+use std::vec::Drain;
 use std::{env, thread};
 
 use arboard::Clipboard;
@@ -292,7 +293,7 @@ where
     /// Returns true if the caller needs to manually present a new frame.
     pub fn handle_servo_events(
         &mut self,
-        events: Vec<(Option<WebViewId>, EmbedderMsg)>,
+        events: Drain<'_, (Option<WebViewId>, EmbedderMsg)>,
     ) -> ServoEventResponse {
         let mut need_present = false;
         let mut history_changed = false;

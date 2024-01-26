@@ -23,6 +23,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::vec::Drain;
 
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
@@ -722,8 +723,8 @@ where
         }
     }
 
-    pub fn get_events(&mut self) -> Vec<(Option<BrowserId>, EmbedderMsg)> {
-        ::std::mem::replace(&mut self.messages_for_embedder, Vec::new())
+    pub fn get_events(&mut self) -> Drain<'_, (Option<BrowserId>, EmbedderMsg)> {
+        self.messages_for_embedder.drain(..)
     }
 
     pub fn handle_events(&mut self, events: impl IntoIterator<Item = EmbedderEvent>) -> bool {
