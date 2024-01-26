@@ -231,10 +231,10 @@ impl ResizeObservation {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-isactive>
-    pub fn is_active(&self, target: &Element) -> bool {
+    fn is_active(&self, target: &Element) -> bool {
         let box_size = calculate_box_size(target, &self.observed_box);
         let reported_sizes = self.last_reported_sizes.borrow();
-        let Some(size) = reported_sizes.front() else {return true};
+        let Some(size) = reported_sizes.back() else {return true};
         let width = box_size.width().to_f64_px();
         let height = box_size.height().to_f64_px();
         !((size.inline_size(), size.block_size()) == (width, height))
