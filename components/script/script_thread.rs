@@ -1691,9 +1691,8 @@ impl ScriptThread {
             docs.clear();
         }
 
-        // Step 15: run the resize observation steps.
+        // Run the resize observation steps.
         for (_, document) in self.documents.borrow().iter() {
-            // Step 13
             if !document.is_fully_active() {
                 continue;
             }

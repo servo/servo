@@ -86,7 +86,6 @@ impl ResizeObserver {
         depth: &ResizeObservationDepth,
         has_active: &mut bool,
     ) {
-        // Step 2.2
         for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
             observation.state = Default::default();
             if observation.is_active(target) {
@@ -165,7 +164,6 @@ impl ResizeObserver {
 impl ResizeObserverMethods for ResizeObserver {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observe>
     fn Observe(&self, target: &Element, options: &ResizeObserverOptions) {
-        // Step 1.
         let is_present = self
             .observation_targets
             .borrow()
@@ -175,10 +173,8 @@ impl ResizeObserverMethods for ResizeObserver {
             self.Unobserve(target);
         }
 
-        // Step 2 and 3.
         let resize_observation = ResizeObservation::new(options.box_);
 
-        // Step 4.
         self.observation_targets
             .borrow_mut()
             .push((resize_observation, Dom::from_ref(target)));
