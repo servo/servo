@@ -174,13 +174,13 @@ impl<'a> TableLayout<'a> {
                     .inline
                     .non_auto()
                     .and_then(|length_percentage| length_percentage.to_percentage())
-                    .unwrap_or_else(|| Percentage(0.));
+                    .unwrap_or(Percentage(0.));
                 let max_inline_size_percent = cell
                     .style
                     .max_box_size(writing_mode)
                     .inline
                     .and_then(|length_percentage| length_percentage.to_percentage())
-                    .unwrap_or_else(|| Percentage(f32::INFINITY));
+                    .unwrap_or(Percentage(f32::INFINITY));
                 let percentage_contribution =
                     Percentage(inline_size_percent.0.min(max_inline_size_percent.0));
 
@@ -649,7 +649,7 @@ impl<'a> TableLayout<'a> {
                 let resolved = self
                     .assignable_width
                     .scale_by(column_measure.percentage_width.0);
-                let percent_guess = min_content_width.max(resolved.into());
+                let percent_guess = min_content_width.max(resolved);
                 (percent_guess, percent_guess, percent_guess)
             } else if constrained {
                 (min_content_width, max_content_width, max_content_width)
