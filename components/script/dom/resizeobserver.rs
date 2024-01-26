@@ -102,7 +102,6 @@ impl ResizeObserver {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
-    /// <https://drafts.csswg.org/resize-observer/#has-skipped-observations-h>
     pub fn broadcast_active_resize_observations(
         &self,
         shallowest_target_depth: &mut ResizeObservationDepth,
