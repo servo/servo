@@ -23,6 +23,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::vec::Drain;
 
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
@@ -64,7 +65,7 @@ pub use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{error, trace, warn, Log, Metadata, Record};
 use media::{GLPlayerThreads, WindowGLContext};
-pub use msg::constellation_msg::TopLevelBrowsingContextId as BrowserId;
+pub use msg::constellation_msg::TopLevelBrowsingContextId;
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
@@ -162,7 +163,7 @@ pub struct Servo<Window: WindowMethods + 'static + ?Sized> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver,
-    messages_for_embedder: Vec<(Option<BrowserId>, EmbedderMsg)>,
+    messages_for_embedder: Vec<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
     profiler_enabled: bool,
     /// For single-process Servo instances, this field controls the initialization
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
@@ -213,7 +214,7 @@ impl webrender_api::RenderNotifier for RenderNotifier {
 
 pub struct InitializedServo<Window: WindowMethods + 'static + ?Sized> {
     pub servo: Servo<Window>,
-    pub browser_id: BrowserId,
+    pub browser_id: TopLevelBrowsingContextId,
 }
 
 impl<Window> Servo<Window>
@@ -282,7 +283,7 @@ where
 
         // Reserving a namespace to create TopLevelBrowsingContextId.
         PipelineNamespace::install(PipelineNamespaceId(0));
-        let top_level_browsing_context_id = BrowserId::new();
+        let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
 
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
@@ -722,8 +723,8 @@ where
         }
     }
 
-    pub fn get_events(&mut self) -> Vec<(Option<BrowserId>, EmbedderMsg)> {
-        ::std::mem::replace(&mut self.messages_for_embedder, Vec::new())
+    pub fn get_events(&mut self) -> Drain<'_, (Option<TopLevelBrowsingContextId>, EmbedderMsg)> {
+        self.messages_for_embedder.drain(..)
     }
 
     pub fn handle_events(&mut self, events: impl IntoIterator<Item = EmbedderEvent>) -> bool {
