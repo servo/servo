@@ -60,6 +60,29 @@ manually, try the [manual build setup][manual-build].
 
 See also [Windows Troubleshooting Tips][windows-tips].
 
+### Android
+
+- Ensure that the following environment variables are set:
+  - `ANDROID_SDK_ROOT`
+  - `ANDROID_NDK_ROOT`: `$ANDROID_SDK_ROOT/ndk/25.2.9519653/`
+ `ANDROID_SDK_ROOT` can be any directory (such as `~/android-sdk`).
+  All of the Android build dependencies will be installed there.
+- Install the latest version of the [Android command-line
+  tools](https://developer.android.com/studio#command-tools) to
+  `$ANDROID_SDK_ROOT/cmdline-tools/latest`.
+- Run the following command to install the necessary components and the path t
+  ```shell
+  sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --install
+   "build-tools;33.0.2" \
+   "emulator" \
+   "ndk;25.2.9519653" \
+   "platform-tools" \
+   "platforms;android-33" \
+   "system-images;android-33;google_apis;x86_64"
+  ```
+For information about building and running the Android build, see
+the [Android documentation][android-docs].
+
 ### Cloning the Repo
 Your CARGO_HOME needs to point to (or be in) the same drive as your Servo repository (See [#28530](https://github.com/servo/servo/issues/28530)).
 ``` sh
@@ -108,6 +131,14 @@ Add the `--release` flag to create an optimized build:
 ./mach run --release tests/html/about-mozilla.html
 ```
 
+### Android build
+
+For an armv7 Android build run the following command.
+
+```shell
+./mach build --android
+```
+
 ### Checking for build errors, without building
 
 If you’re making changes to one crate that cause build errors in another crate,
@@ -121,49 +152,6 @@ It will run `cargo check`, which runs the analysis phase of the compiler
 (and so shows build errors if any) but skips the code generation phase.
 This can be a lot faster than a full build,
 though of course it doesn’t produce a binary you can run.
-
-### Building for Android target
-
-Prerequisites:
-Servo's build system assumes that both the Android SDK & NDK are
-already installed and expects the paths to be specified via the
-environment variables `ANDROID_SDK_ROOT` and `ANDROID_NDK_ROOT`.
-
-Servo also expects the following components are installed via
-sdkmanager:
-
-For building:
-
-``` sh
-sdkmanager install platform-tools platforms;android-33
-```
-
-To run in emulator, also install the related components:
-
-``` sh
-sdkmanager install emulator system-images;android-33;google_apis;x86
-```
-
-Build commands:
-For ARM (`armv7-linux-androideabi`, most phones):
-
-``` sh
-./mach build --release --android
-./mach package --release --android
-```
-
-For x86 (typically for the emulator):
-
-```sh
-./mach build --release --target i686-linux-android
-./mach package --release --target i686-linux-android
-```
-
-Install the APK to the device or emulator:
-
-``` sh
-./mach install --release --android
-```
 
 ## Running
 
@@ -199,8 +187,8 @@ Run Servo with the command:
 
 #### Linux
 
-* `GStreamer` >=1.16
-* `gst-plugins-bad` >=1.16
+* `GStreamer` >=1.18
+* `gst-plugins-bad` >=1.18
 * `libXcursor`
 * `libXrandr`
 * `libXi`
@@ -217,3 +205,4 @@ The generated documentation can be found on https://doc.servo.org/servo/index.ht
 
 [manual-build]: https://github.com/servo/servo/wiki/Building#manual-build-setup
 [windows-tips]: https://github.com/servo/servo/wiki/Building#troubleshooting-the-windows-build
+[android-docs]: https://github.com/servo/servo/wiki/Android
