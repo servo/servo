@@ -40,7 +40,7 @@ pub use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_surfman::WebrenderSurfman;
-use servo::{self, gl, BrowserId, Servo};
+use servo::{self, gl, Servo, TopLevelBrowsingContextId};
 use servo_media::player::context as MediaPlayerContext;
 use surfman::{Connection, SurfaceType};
 
@@ -336,7 +336,7 @@ pub fn deinit() {
 }
 
 impl ServoGlue {
-    fn get_browser_id(&self) -> Result<BrowserId, &'static str> {
+    fn get_browser_id(&self) -> Result<TopLevelBrowsingContextId, &'static str> {
         let webview_id = match self.focused_webview_id {
             Some(id) => id,
             None => return Err("No focused WebViewId yet."),
@@ -646,6 +646,8 @@ impl ServoGlue {
     }
 
     fn handle_servo_events(&mut self) -> Result<(), &'static str> {
+        let mut need_update = false;
+        let mut need_present = false;
         for (browser_id, event) in self.servo.get_events() {
             match event {
                 EmbedderMsg::ChangePageTitle(title) => {
@@ -660,7 +662,7 @@ impl ServoGlue {
                         let window_event =
                             EmbedderEvent::AllowNavigationResponse(pipeline_id, data);
                         self.events.push(window_event);
-                        let _ = self.perform_updates();
+                        need_update = true;
                     }
                 },
                 EmbedderMsg::HistoryChanged(entries, current) => {
@@ -824,7 +826,7 @@ impl ServoGlue {
                     self.callbacks.host_callbacks.on_panic(reason, backtrace);
                 },
                 EmbedderMsg::ReadyToPresent => {
-                    self.servo.present();
+                    need_present = true;
                 },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
@@ -838,6 +840,13 @@ impl ServoGlue {
                 EmbedderMsg::ReportProfile(..) |
                 EmbedderMsg::EventDelivered(..) => {},
             }
+        }
+
+        if need_update {
+            let _ = self.perform_updates();
+        }
+        if need_present {
+            self.servo.present();
         }
         Ok(())
     }
