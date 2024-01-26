@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::typedarray::Float32Array;
+use js::typedarray::{Float32, Float32Array};
 
-use super::bindings::typedarrays::HeapFloat32Array;
+use super::bindings::typedarrays::HeapTypedArray;
 use crate::dom::bindings::codegen::Bindings::GamepadPoseBinding::GamepadPoseMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -16,17 +16,17 @@ use crate::script_runtime::JSContext;
 pub struct GamepadPose {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "mozjs"]
-    position: HeapFloat32Array,
+    position: HeapTypedArray<Float32>,
     #[ignore_malloc_size_of = "mozjs"]
-    orientation: HeapFloat32Array,
+    orientation: HeapTypedArray<Float32>,
     #[ignore_malloc_size_of = "mozjs"]
-    linear_vel: HeapFloat32Array,
+    linear_vel: HeapTypedArray<Float32>,
     #[ignore_malloc_size_of = "mozjs"]
-    angular_vel: HeapFloat32Array,
+    angular_vel: HeapTypedArray<Float32>,
     #[ignore_malloc_size_of = "mozjs"]
-    linear_acc: HeapFloat32Array,
+    linear_acc: HeapTypedArray<Float32>,
     #[ignore_malloc_size_of = "mozjs"]
-    angular_acc: HeapFloat32Array,
+    angular_acc: HeapTypedArray<Float32>,
 }
 
 // TODO: support gamepad discovery
@@ -35,12 +35,12 @@ impl GamepadPose {
     fn new_inherited() -> GamepadPose {
         GamepadPose {
             reflector_: Reflector::new(),
-            position: HeapFloat32Array::default(),
-            orientation: HeapFloat32Array::default(),
-            linear_vel: HeapFloat32Array::default(),
-            angular_vel: HeapFloat32Array::default(),
-            linear_acc: HeapFloat32Array::default(),
-            angular_acc: HeapFloat32Array::default(),
+            position: HeapTypedArray::default(),
+            orientation: HeapTypedArray::default(),
+            linear_vel: HeapTypedArray::default(),
+            angular_vel: HeapTypedArray::default(),
+            linear_acc: HeapTypedArray::default(),
+            angular_acc: HeapTypedArray::default(),
         }
     }
 
