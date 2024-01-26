@@ -5,6 +5,7 @@
 use app_units::{Au, MAX_AU};
 use euclid::num::Zero;
 use log::warn;
+use style::computed_values::border_collapse::T as BorderCollapse;
 use style::logical_geometry::WritingMode;
 use style::values::computed::{CSSPixelLength, Length, LengthOrAuto, Percentage};
 use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
@@ -335,6 +336,7 @@ impl<'a> TableLayout<'a> {
     ) -> (usize, Vec<CellOrColumnMeasure>) {
         let mut next_span_n = usize::MAX;
         let mut new_content_sizes_for_columns = Vec::new();
+        let border_spacing = self.table.border_spacing();
 
         for column_index in 0..self.table.size.width {
             let old_column_measure = &old_column_measures[column_index];
@@ -368,7 +370,6 @@ impl<'a> TableLayout<'a> {
                     },
                 );
 
-                // TODO: Take into account border spacing.
                 let old_column_content_size = old_column_measure.content_sizes;
 
                 // > **min-content width of a column based on cells of span up to N (N > 1)**
@@ -388,8 +389,7 @@ impl<'a> TableLayout<'a> {
                 // >     2. Define the baseline border spacing as the sum of the horizontal
                 // >        border-spacing for any columns spanned by the cell, other than the one in
                 // >        which the cell originates.
-                //
-                // TODO: Take into account border spacing.
+                let baseline_border_spacing = border_spacing.inline * (n as i32 - 1);
 
                 // >     3. The contribution of the cell is the sum of:
                 // >         a. the min-content width of the column based on cells of span up to N-1
@@ -407,8 +407,6 @@ impl<'a> TableLayout<'a> {
                 // >               min-content width and the baseline border spacing, clamped to be
                 // >               at least 0 and at most the difference between the baseline
                 // >               max-content width and the baseline min-content width
-                //
-                // TODO: Take into account border spacing.
                 let old_content_size_difference =
                     old_column_content_size.max_content - old_column_content_size.min_content;
                 let baseline_difference = baseline_min_content_width - baseline_max_content_width;
@@ -419,7 +417,8 @@ impl<'a> TableLayout<'a> {
                     b = 0.0;
                 }
                 let b = (cell_inline_content_sizes.min_content -
-                    baseline_content_sizes.min_content)
+                    baseline_content_sizes.min_content -
+                    baseline_border_spacing)
                     .clamp_between_extremums(Au::zero(), Some(baseline_difference))
                     .scale_by(b);
 
@@ -430,7 +429,8 @@ impl<'a> TableLayout<'a> {
                 // >               max-content width and baseline border spacing, or 0 if this is
                 // >               negative
                 let c = (cell_inline_content_sizes.min_content -
-                    baseline_content_sizes.max_content)
+                    baseline_content_sizes.max_content -
+                    baseline_border_spacing)
                     .min(Au::zero())
                     .scale_by(
                         old_column_content_size.max_content.to_f32_px() /
@@ -454,7 +454,7 @@ impl<'a> TableLayout<'a> {
                 // >        border-spacing for any columns spanned by the cell, other than the one in
                 // >        which the cell originates.
                 //
-                // TODO: Take into account. border spacing.
+                // This is calculated above for min-content width.
 
                 // >     3. The contribution of the cell is the sum of:
                 // >          a. the max-content width of the column based on cells of span up to N-1
@@ -469,10 +469,9 @@ impl<'a> TableLayout<'a> {
                 // >              2. the outer max-content width of the cell minus the baseline
                 // >                 max-content width and the baseline border spacing, or 0 if this
                 // >                 is negative
-                //
-                // TODO: Take into account. border spacing.
                 let b_2 = (cell_inline_content_sizes.max_content -
-                    baseline_content_sizes.max_content)
+                    baseline_content_sizes.max_content -
+                    baseline_border_spacing)
                     .min(Au::zero());
                 let b = b_2.scale_by(b_1);
                 let new_column_max_content_width = a + b + c;
@@ -542,12 +541,17 @@ impl<'a> TableLayout<'a> {
         // https://drafts.csswg.org/css-tables/#gridmax:
         // > The row/column-grid width maximum (GRIDMAX) width is the sum of the max-content width of
         // > all the columns plus cell spacing or borders.
-        let grid_min_and_max = self
+
+        let mut grid_min_and_max = self
             .column_measures
             .iter()
             .fold(ContentSizes::zero(), |result, measure| {
                 result + measure.content_sizes
             });
+        let border_spacing = self.table.border_spacing();
+        let inline_border_spacing = border_spacing.inline * (self.table.size.width as i32 + 1);
+        grid_min_and_max.min_content += inline_border_spacing;
+        grid_min_and_max.max_content += inline_border_spacing;
 
         self.pbm = self.table.style.padding_border_margin(containing_block);
         let content_box_size = self
@@ -583,7 +587,10 @@ impl<'a> TableLayout<'a> {
                 .max(used_min_width_of_table),
         };
 
-        self.assignable_width = used_width_of_table;
+        // > The assignable table width is the used width of the table minus the total horizontal
+        // > border spacing (if any). This is the width that we will be able to allocate to the
+        // > columns.
+        self.assignable_width = used_width_of_table - inline_border_spacing;
     }
 
     /// Distribute width to columns, performing step 2.4 of table layout from
@@ -972,10 +979,11 @@ impl<'a> TableLayout<'a> {
         assert_eq!(self.table.size.height, self.row_sizes.len());
         assert_eq!(self.table.size.width, self.distributed_column_widths.len());
 
+        let border_spacing = self.table.border_spacing();
         let mut fragments = Vec::new();
-        let mut row_offset = Au::zero();
+        let mut row_offset = border_spacing.block;
         for row_index in 0..self.table.size.height {
-            let mut column_offset = Au::zero();
+            let mut column_offset = border_spacing.inline;
             let row_size = self.row_sizes[row_index];
 
             for column_index in 0..self.table.size.width {
@@ -1010,10 +1018,10 @@ impl<'a> TableLayout<'a> {
                     positioning_context,
                 )));
 
-                column_offset += column_size;
+                column_offset += column_size + border_spacing.inline;
             }
 
-            row_offset += row_size;
+            row_offset += row_size + border_spacing.block;
         }
 
         (fragments, row_offset)
@@ -1021,6 +1029,18 @@ impl<'a> TableLayout<'a> {
 }
 
 impl Table {
+    fn border_spacing(&self) -> LogicalVec2<Au> {
+        if self.style.clone_border_collapse() == BorderCollapse::Collapse {
+            LogicalVec2::zero()
+        } else {
+            let border_spacing = self.style.clone_border_spacing();
+            LogicalVec2 {
+                inline: border_spacing.horizontal(),
+                block: border_spacing.vertical(),
+            }
+        }
+    }
+
     fn inline_content_sizes_for_cell_at(
         &self,
         coords: TableSlotCoordinates,
