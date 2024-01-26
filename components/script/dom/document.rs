@@ -441,6 +441,7 @@ pub struct Document {
     /// Note: will leak,
     /// find a way to remove according to
     /// https://drafts.csswg.org/resize-observer/#lifetime.
+    /// See also https://github.com/w3c/csswg-drafts/issues/4518.
     resize_observers: DomRefCell<Vec<Dom<ResizeObserver>>>,
 }
 
