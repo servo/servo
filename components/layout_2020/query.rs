@@ -211,9 +211,12 @@ pub fn process_node_scroll_area_request(
     };
 
     Rect::new(
-        Point2D::new(rect.origin.x.px() as i32, rect.origin.y.px() as i32),
-        Size2D::new(rect.size.width.px() as i32, rect.size.height.px() as i32),
+        Point2D::new(rect.origin.x.px(), rect.origin.y.px()),
+        Size2D::new(rect.size.width.px(), rect.size.height.px()),
     )
+    .round()
+    .to_i32()
+    .to_untyped()
 }
 
 /// Return the resolved value of property for a given (pseudo)element.

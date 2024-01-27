@@ -156,18 +156,20 @@ impl FragmentTree {
                 return Some(Rect::zero());
             }
 
-            let padding_rect = padding_rect.to_physical(style.writing_mode, containing_block);
             let border = style.get_border();
-            Some(Rect::new(
-                Point2D::new(
-                    border.border_left_width.to_px(),
-                    border.border_top_width.to_px(),
-                ),
-                Size2D::new(
-                    padding_rect.size.width.px() as i32,
-                    padding_rect.size.height.px() as i32,
-                ),
-            ))
+            let padding_rect = padding_rect.to_physical(style.writing_mode, containing_block);
+            Some(
+                Rect::new(
+                    Point2D::new(
+                        border.border_left_width.to_f32_px(),
+                        border.border_top_width.to_f32_px(),
+                    ),
+                    Size2D::new(padding_rect.size.width.px(), padding_rect.size.height.px()),
+                )
+                .round()
+                .to_i32()
+                .to_untyped(),
+            )
         })
         .unwrap_or_else(Rect::zero)
     }
