@@ -1327,3 +1327,29 @@ impl SerializedImageData {
         }
     }
 }
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+/// Index of gamepad in list of system's connected gamepads
+pub struct GamepadIndex(pub u8);
+
+#[derive(Debug, Deserialize, Serialize)]
+/// The type of Gamepad event
+pub enum GamepadEvent {
+    /// A new gamepad has been connected
+    Connected(GamepadIndex, String),
+    /// An existing gamepad has been disconnected
+    Disconnected(GamepadIndex),
+    /// An existing gamepad has been updated
+    Updated(GamepadIndex, GamepadUpdateType),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+/// The type of Gamepad input being updated
+pub enum GamepadUpdateType {
+    /// Axis index and input value
+    Axis(u8, f32),
+    /// Button index and input value
+    Button(u8, f32)
+}
