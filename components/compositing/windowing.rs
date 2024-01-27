@@ -9,6 +9,7 @@ use std::time::Duration;
 
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use euclid::Scale;
+use gfx::rendering_context::RenderingContext;
 use keyboard_types::KeyboardEvent;
 use libc::c_void;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, TraversalDirection};
@@ -19,7 +20,6 @@ use servo_url::ServoUrl;
 use style_traits::DevicePixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint};
 use webrender_api::ScrollLocation;
-use webrender_surfman::WebrenderSurfman;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -177,8 +177,8 @@ pub trait WindowMethods {
     fn get_native_display(&self) -> NativeDisplay;
     /// Get the GL api
     fn get_gl_api(&self) -> GlApi;
-    /// Get the webrender surfman instance
-    fn webrender_surfman(&self) -> WebrenderSurfman;
+    /// Get the RenderingContext instance.
+    fn rendering_context(&self) -> RenderingContext;
 }
 
 pub trait EmbedderMethods {

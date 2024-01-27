@@ -79,7 +79,6 @@ webdriver_server = { path = "../webdriver_server", optional = true }
 webgpu = { path = "../webgpu" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
-webrender_surfman = { path = "../webrender_surfman" }
 webrender_traits = { workspace = true }
 webxr = { git = "https://github.com/servo/webxr" }
 webxr-api = { git = "https://github.com/servo/webxr" }

@@ -4,15 +4,11 @@
 
 #![deny(unsafe_code)]
 
-// Fonts
 pub mod font;
 pub mod font_cache_thread;
 pub mod font_context;
 pub mod font_template;
-
-// Platform-specific implementations.
 #[allow(unsafe_code)]
 mod platform;
-
-// Text
+pub mod rendering_context;
 pub mod text;

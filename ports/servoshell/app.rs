@@ -99,21 +99,21 @@ impl App {
 
         if opts::get().minibrowser && window.winit_window().is_some() {
             // Make sure the gl context is made current.
-            let webrender_surfman = window.webrender_surfman();
-            let webrender_gl = match webrender_surfman.connection().gl_api() {
+            let rendering_context = window.rendering_context();
+            let webrender_gl = match rendering_context.connection().gl_api() {
                 GLApi::GL => unsafe {
-                    gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s))
+                    gl::GlFns::load_with(|s| rendering_context.get_proc_address(s))
                 },
                 GLApi::GLES => unsafe {
-                    gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
+                    gl::GlesFns::load_with(|s| rendering_context.get_proc_address(s))
                 },
             };
-            webrender_surfman.make_gl_context_current().unwrap();
+            rendering_context.make_gl_context_current().unwrap();
             debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR);
 
             app.minibrowser = Some(
                 Minibrowser::new(
-                    &webrender_surfman,
+                    &rendering_context,
                     &events_loop,
                     window.as_ref(),
                     initial_url.clone(),
@@ -156,7 +156,7 @@ impl App {
             t = now;
             match event {
                 winit::event::Event::NewEvents(winit::event::StartCause::Init) => {
-                    let surfman = window.webrender_surfman();
+                    let surfman = window.rendering_context();
 
                     let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless
                     {
