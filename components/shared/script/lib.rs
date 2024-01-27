@@ -569,6 +569,8 @@ pub enum CompositorEvent {
     CompositionEvent(CompositionEvent),
     /// Virtual keyboard was dismissed
     IMEDismissedEvent,
+    /// Connected gamepad state updated
+    GamepadEvent(GamepadEvent)
 }
 
 impl From<&CompositorEvent> for CompositorEventVariant {
@@ -582,6 +584,7 @@ impl From<&CompositorEvent> for CompositorEventVariant {
             CompositorEvent::KeyboardEvent(..) => CompositorEventVariant::KeyboardEvent,
             CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
             CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
+            CompositorEvent::GamepadEvent(..) => CompositorEventVariant::GamepadEvent,
         }
     }
 }

@@ -75,7 +75,7 @@ use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
-    CompositionEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
+    CompositionEvent, GamepadEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
     ResizeEvent, TouchEvent, WheelEvent,
 };
 use script_traits::{
@@ -3669,6 +3669,14 @@ impl ScriptThread {
                 };
                 document.dispatch_composition_event(composition_event);
             },
+
+            GamepadEvent(gamepad_event) => {
+                let document = match self.documents.borrow().find_document(pipeline_id) {
+                    Some(document) => document,
+                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                };
+                document.dispatch_gamepad_event(gamepad_event);
+            }
         }
 
         ScriptThread::set_user_interacting(false);
