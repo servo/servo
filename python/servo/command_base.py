@@ -331,23 +331,15 @@ class CommandBase(object):
         apk_name = "servoapp.apk"
         return path.join(base_path, build_type.directory_name(), apk_name)
 
-    def get_binary_path(self, build_type: BuildType, target=None, android=False, simpleservo=False):
+    def get_binary_path(self, build_type: BuildType, target=None, android=False):
         base_path = util.get_target_dir()
         if android:
             base_path = path.join(base_path, self.config["android"]["target"])
-            simpleservo = True
+            return path.join(base_path, build_type.directory_name(), "libsimpleservo.so")
         elif target:
             base_path = path.join(base_path, target)
 
         binary_name = f"servo{servo.platform.get().executable_suffix()}"
-        if simpleservo:
-            if sys.platform == "win32":
-                binary_name = "simpleservo.dll"
-            elif sys.platform == "darwin":
-                binary_name = "libsimpleservo.dylib"
-            else:
-                binary_name = "libsimpleservo.so"
-
         binary_path = path.join(base_path, build_type.directory_name(), binary_name)
 
         if not path.exists(binary_path):
@@ -689,13 +681,6 @@ class CommandBase(object):
                     choices=["gstreamer", "dummy"], help='Which media stack to use',
                 ),
                 CommandArgument(
-                    '--libsimpleservo',
-                    default=None,
-                    group="Feature Selection",
-                    action='store_true',
-                    help='Build the libsimpleservo library instead of the servo executable',
-                ),
-                CommandArgument(
                     '--debug-mozjs',
                     default=False,
                     group="Feature Selection",
@@ -828,7 +813,6 @@ class CommandBase(object):
     def run_cargo_build_like_command(
         self, command: str, cargo_args: List[str],
         env=None, verbose=False,
-        libsimpleservo=False,
         debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, without_wgl=False,
         **_kwargs
@@ -848,12 +832,8 @@ class CommandBase(object):
 
         args = []
         if "--manifest-path" not in cargo_args:
-            if libsimpleservo or self.is_android_build:
-                if self.is_android_build:
-                    api = "jniapi"
-                else:
-                    api = "capi"
-                port = path.join("libsimpleservo", api)
+            if self.is_android_build:
+                port = "jniapi"
             else:
                 port = "servoshell"
             args += [

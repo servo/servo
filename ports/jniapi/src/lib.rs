@@ -4,6 +4,9 @@
 
 #![allow(non_snake_case)]
 
+mod gl_glue;
+mod simpleservo;
+
 use std::os::raw::{c_char, c_int, c_void};
 use std::sync::Arc;
 use std::thread;
@@ -15,8 +18,8 @@ use jni::{JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::{debug, error, info, warn};
 use simpleservo::{
-    self, gl_glue, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait, InitOptions,
-    InputMethodType, MediaSessionPlaybackState, PromptResult, ServoGlue, SERVO,
+    Coordinates, DeviceIntRect, EventLoopWaker, HostTrait, InitOptions, InputMethodType,
+    MediaSessionPlaybackState, PromptResult, ServoGlue, SERVO,
 };
 
 struct HostCallbacks {

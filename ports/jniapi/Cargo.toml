@@ -1,40 +1,43 @@
 [package]
-name = "simpleservo"
+name = "simpleservo_jniapi"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 edition = "2018"
 publish = false
+build = "build.rs"
+
+[lib]
+name = "simpleservo"
+crate-type = ["cdylib"]
+test = false
+bench = false
 
 [dependencies]
+android_logger = "0.13"
 getopts = { workspace = true }
 ipc-channel = { workspace = true }
-libservo = { path = "../../../components/servo" }
+jni = "0.18.0"
+libc = { workspace = true }
+libloading = "0.8"
+libservo = { path = "../../components/servo" }
 log = { workspace = true }
+serde_json = { workspace = true }
 servo-media = { git = "https://github.com/servo/media" }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 webxr = { git = "https://github.com/servo/webxr" }
 
-[target.'cfg(not(target_os = "macos"))'.dependencies]
-libc = { workspace = true }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-core-foundation = "0.9"
-
-[target.'cfg(target_os = "windows")'.dependencies]
-winapi = { workspace = true }
-
-[target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "openbsd"))'.dependencies]
-libloading = "0.8"
-
 [build-dependencies]
+cc = "1.0"
 gl_generator = "0.14"
 serde_json = { workspace = true }
 vergen = { version = "8.0.0", features = ["git", "gitcl"] }
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["max_log_level", "native-bluetooth", "webdriver"]
+# TODO: Once the native-bluetooth feature works for
+# Android, re-add it here.
+default = ["max_log_level", "webdriver"]
 googlevr = ["libservo/googlevr"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]

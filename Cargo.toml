@@ -2,8 +2,7 @@
 resolver = "2"
 members = [
     "ports/servoshell",
-    "ports/libsimpleservo/capi/",
-    "ports/libsimpleservo/jniapi/",
+    "ports/jniapi/",
     "tests/unit/*",
     "support/crown",
 ]
