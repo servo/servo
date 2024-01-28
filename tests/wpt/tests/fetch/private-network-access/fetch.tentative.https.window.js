@@ -236,7 +236,7 @@ subsetTestByKey("from-private", promise_test, t => fetchTest(t, {
 subsetTestByKey("from-private", promise_test, t => fetchTest(t, {
   source: { server: Server.HTTPS_PRIVATE },
   target: {
-    server: Server.HTTPS_PRIVATE,
+    server: Server.HTTPS_PUBLIC,
     behavior: { response: ResponseBehavior.allowCrossOrigin() },
   },
   expected: FetchTestResult.SUCCESS,

@@ -29,6 +29,8 @@ pressure_test(async (t, mockPressureService) => {
     while (observerChanges.length < minChangesThreshold) {
       mockPressureService.setPressureUpdate(
           'cpu', readings[i++ % readings.length]);
+      // Allow tasks to run (avoid a micro-task loop).
+      await new Promise((resolve) => t.step_timeout(resolve, 0));
       await t.step_wait(
           () => mockPressureService.updatesDelivered() >= i,
           `At least ${i} readings have been delivered`);

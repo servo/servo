@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<!-- Changing ids and creating an aria-owns cycle with the new id doesn't crash -->
+<script class="test-wait">
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById('will-be-div-child').id='div-child';
+  document.querySelector('div').setAttribute('aria-owns','div-child');
+  document.getElementById('div-child').setAttribute('aria-owns','cycle-owns');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.className = '';
+    });
+  });
+});
+</script>
+<body>
+  <option>
+    <canvas id="cycle-owns">
+      <dialog id="will-be-div-child"></dialog>
+    </canvas>
+  </option>
+  <meter id="div-child"></meter>
+  <div></div>
+</body>

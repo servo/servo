@@ -82,7 +82,7 @@ async def test_page_script_context_isolation(bidi_session, add_preload_script,
         target=ContextTarget(new_context["context"]),
         await_promise=True,
     )
-    assert result == {type: "undefined"}
+    assert result == {"type": "undefined"}
 
 
 @pytest.mark.asyncio
@@ -108,4 +108,4 @@ async def test_identical_contexts(
         target=ContextTarget(new_tab["context"]),
         await_promise=True,
     )
-    assert result == {"type": "number", "value": "1"}
+    assert result == {"type": "number", "value": 1}

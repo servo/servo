@@ -234,6 +234,7 @@ SET TIMEOUT: png/apng/fcTL-dispose-previous-final.html
 SET TIMEOUT: png/apng/fcTL-dispose-previous-first.html
 SET TIMEOUT: png/apng/fcTL-dispose-previous.html
 SET TIMEOUT: png/apng/fdAT-16bit.html
+SET TIMEOUT: png/apng/fDAT-inherits-cICP.html
 SET TIMEOUT: png/apng/fdAT-1bit-PLTE-tRNS.html
 SET TIMEOUT: png/apng/fdAT-1bit-PLTE.html
 SET TIMEOUT: png/apng/fdAT-2bit-PLTE-tRNS.html

@@ -62,6 +62,10 @@ class Storage(BidiModule):
             cookie: PartialCookie,
             partition: Optional[PartitionDescriptor] = None
     ) -> Mapping[str, Any]:
+        """
+        Use with caution: this command will not clean the cookie up after the test is done, which can lead to unexpected
+        test failures. Use `set_cookie` fixture instead.
+        """
         params: MutableMapping[str, Any] = {
             "cookie": cookie
         }

@@ -77,6 +77,40 @@ let testParams = function(session, fakeDeviceController, t, sessionObjects) {
   });
 };
 
+let testMinMaxClippingPlanes = function(session, fakeDeviceController, t, sessionObjects) {
+  return new Promise((resolve, reject) => {
+    let gl = sessionObjects.gl;
+    gl.makeXRCompatible().then(() => {
+      t.step(() => {
+        let near = 0.2;
+        let far = 0.8;
+        let layer = new XRWebGLLayer(session, gl);
+        session.updateRenderState({ depthNear: near, depthFar: far, baseLayer: layer });
+        assert_not_equals(session.renderState.depthNear, near);
+        assert_not_equals(session.renderState.depthFar, far);
+        assert_not_equals(session.renderState.baseLayer, layer);
+        session.requestAnimationFrame((time, xrFrame) => {
+          t.step(() => {
+            assert_equals(session.renderState.depthNear, near);
+            assert_equals(session.renderState.depthFar, far);
+            // Clamp negative values
+            near = -20.3;
+            far = -1.5;
+            session.updateRenderState({ depthNear: near, depthFar: far });
+            session.requestAnimationFrame((time, xrFrame) => {
+              t.step(() => {
+                assert_equals(session.renderState.depthNear, 0.0);
+                assert_equals(session.renderState.depthFar, 0.0);
+                resolve();
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+};
+
 let testName = "updateRenderState handles appropriately ended sessions";
 xr_session_promise_test(testName, testSessionEnded, fakeDeviceInitParams, 'immersive-vr');
 
@@ -91,5 +125,8 @@ xr_session_promise_test(testName, testNoParams, fakeDeviceInitParams, 'immersive
 
 testName = "updateRenderState handles appropriately XRRenderStateInit params";
 xr_session_promise_test(testName, testParams, fakeDeviceInitParams, 'inline');
+
+testName = "updateRenderState clamps appropriately near/far clipping planes";
+xr_session_promise_test(testName, testMinMaxClippingPlanes, fakeDeviceInitParams, 'immersive-vr');
 
 </script>

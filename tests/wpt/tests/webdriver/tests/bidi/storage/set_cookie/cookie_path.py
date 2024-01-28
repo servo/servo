@@ -13,8 +13,8 @@ pytestmark = pytest.mark.asyncio
         None
     ]
 )
-async def test_cookie_path(bidi_session, test_page, domain_value, path):
-    set_cookie_result = await bidi_session.storage.set_cookie(cookie=create_cookie(domain=domain_value(), path=path))
+async def test_cookie_path(bidi_session, test_page, set_cookie, domain_value, path):
+    set_cookie_result = await set_cookie(cookie=create_cookie(domain=domain_value(), path=path))
 
     assert set_cookie_result == {
         'partitionKey': {},

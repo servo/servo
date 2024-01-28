@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/visual-viewport/viewport_support.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+</head>
+<body>
+<style>
+  .large {
+    height: 200vh;
+    width: 200vw;
+    border: solid 1px black;
+  }
+</style>
+<div class="large"></div>
+<script>
+  window.onload = () => {
+    promise_test(async () => {
+      await waitForCompositorCommit();
+
+      await pinchZoomIn();
+      assert_greater_than(visualViewport.scale, 1, "page should be zoomed in.");
+
+      const preScrollVisualViewportOffsetTop = visualViewport.offsetTop;
+      const preScrollWindowScrollOffset = window.scrollY;
+      const scrollend_promise = new Promise((resolve) => {
+        visualViewport.addEventListener("scrollend", resolve);
+      });
+
+      const scrollAmount = 50;
+      await touchScrollInTarget(scrollAmount, document.documentElement, "up");
+      await scrollend_promise;
+
+      assert_less_than(visualViewport.offsetTop, preScrollVisualViewportOffsetTop,
+        `visualViewport should be scrolled.`);
+      assert_equals(window.scrollY, preScrollWindowScrollOffset,
+        "the window should not scroll.");
+    }, "scrollend fires when visual viewport is panned.");
+  }
+</script>
+</body>
+</html>

@@ -10,6 +10,9 @@
 </head>
 <body>
   <script>
+      const kBackspaceKey = "\uE003";
+      const kDeleteKey = "\uE017";
+
     promise_test(async function() {
       const editContext = new EditContext();
       const div = document.createElement("div");
@@ -22,17 +25,44 @@
           staticRange => [staticRange.startOffset, staticRange.endOffset]);
       });
       editContext.addEventListener("textupdate", e => {
-        div.innerHTML = e.text;
+        div.innerHTML = `${div.innerHTML.substring(0, e.updateRangeStart)}${e.text}${div.innerHTML.substring(e.updateRangeEnd)}`;
       });
       div.editContext = editContext;
       div.focus();
       await test_driver.send_keys(div, 'a');
+      assert_equals(editContext.text, "a");
       assert_equals(div.innerHTML, "a");
       assert_equals(beforeInputType, "insertText");
       assert_equals(beforeInputTargetRanges.length, 1);
       assert_array_equals(beforeInputTargetRanges[0], [0, 0]);
       div.remove();
     }, 'Testing EditContext English typing');
+
+    promise_test(async function() {
+      const editContext = new EditContext();
+      const div = document.createElement("div");
+      document.body.appendChild(div);
+      editContext.addEventListener("textupdate", e => {
+        div.innerHTML = `${div.innerHTML.substring(0, e.updateRangeStart)}${e.text}${div.innerHTML.substring(e.updateRangeEnd)}`;
+      });
+      div.editContext = editContext;
+      div.focus();
+
+      editContext.updateText(0, 0, "abcd");
+      div.innerText = "abcd";
+      assert_equals(editContext.text, "abcd");
+      editContext.updateSelection(2, 3);
+      await test_driver.send_keys(div, 'Z');
+      assert_equals(editContext.text, "abZd");
+      assert_equals(div.innerHTML, "abZd");
+
+      editContext.updateSelection(2, 1);
+      await test_driver.send_keys(div, 'Y');
+      assert_equals(editContext.text, "aYZd");
+      assert_equals(div.innerHTML, "aYZd");
+
+      div.remove();
+    }, 'Text insertion with non-collapsed selection');
 
     promise_test(async function() {
       const editContext = new EditContext();
@@ -111,19 +141,76 @@
       const selection = window.getSelection();
       selection.setBaseAndExtent(div.firstChild, 10, div.firstChild, 10);
 
-      await test_driver.send_keys(div, "\uE003");
+      await test_driver.send_keys(div, kBackspaceKey);
       assert_equals(div.innerHTML, "hello thee");
       assert_array_equals(textUpdateSelection, [9, 9]);
       assert_equals(beforeInputType, "deleteContentBackward");
       assert_equals(beforeInputTargetRanges.length, 0, "Backspace should not have a target range in EditContext");
 
-      await test_driver.send_keys(div, "\uE017");
+      await test_driver.send_keys(div, kDeleteKey);
       assert_equals(div.innerHTML, "hello the");
       assert_array_equals(textUpdateSelection, [9, 9]);
       assert_equals(beforeInputType, "deleteContentForward");
       assert_equals(beforeInputTargetRanges.length, 0, "Delete should not have a target range in EditContext");
       div.remove();
     }, "Backspace and delete in EditContext");
+
+    promise_test(async function() {
+      const editContext = new EditContext();
+      const div = document.createElement("div");
+      document.body.appendChild(div);
+      let beforeInputType = null;
+      let beforeInputTargetRanges = null;
+      div.addEventListener("beforeinput", e => {
+        beforeInputType = e.inputType;
+        beforeInputTargetRanges = e.getTargetRanges().map(
+          staticRange => [staticRange.startOffset, staticRange.endOffset]);
+      });
+      let textUpdateSelection = null;
+      editContext.addEventListener("textupdate", e => {
+        textUpdateSelection = [e.selectionStart, e.selectionEnd];
+        div.innerText = `${div.innerText.substring(0, e.updateRangeStart)}${e.text}${div.innerText.substring(e.updateRangeEnd)}`;
+      });
+      div.editContext = editContext;
+      const initialText = "abcdefghijklmnopqrstuvwxyz";
+      editContext.updateText(0, initialText.length, initialText);
+      div.innerText = initialText;
+      div.focus();
+
+      editContext.updateSelection(3, 6);
+      await test_driver.send_keys(div, kBackspaceKey);
+      assert_equals(editContext.text, "abcghijklmnopqrstuvwxyz");
+      assert_equals(div.innerHTML, "abcghijklmnopqrstuvwxyz");
+      assert_array_equals(textUpdateSelection, [3, 3]);
+      assert_equals(beforeInputType, "deleteContentBackward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Backspace should not have a target range in EditContext");
+
+      editContext.updateSelection(3, 6);
+      await test_driver.send_keys(div, kDeleteKey);
+      assert_equals(editContext.text, "abcjklmnopqrstuvwxyz");
+      assert_equals(div.innerHTML, "abcjklmnopqrstuvwxyz");
+      assert_array_equals(textUpdateSelection, [3, 3]);
+      assert_equals(beforeInputType, "deleteContentForward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Delete should not have a target range in EditContext");
+
+      editContext.updateSelection(6, 3);
+      await test_driver.send_keys(div, kBackspaceKey);
+      assert_equals(editContext.text, "abcmnopqrstuvwxyz");
+      assert_equals(div.innerHTML, "abcmnopqrstuvwxyz");
+      assert_array_equals(textUpdateSelection, [3, 3]);
+      assert_equals(beforeInputType, "deleteContentBackward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Backspace should not have a target range in EditContext");
+
+      editContext.updateSelection(6, 3);
+      await test_driver.send_keys(div, kDeleteKey);
+      assert_equals(editContext.text, "abcpqrstuvwxyz");
+      assert_equals(div.innerHTML, "abcpqrstuvwxyz");
+      assert_array_equals(textUpdateSelection, [3, 3]);
+      assert_equals(beforeInputType, "deleteContentForward");
+      assert_equals(beforeInputTargetRanges.length, 0, "Delete should not have a target range in EditContext");
+
+      div.remove();
+    }, "Backspace and delete with existing selection");
 
     promise_test(async function() {
       const iframe = document.createElement("iframe");

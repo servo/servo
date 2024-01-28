@@ -139,10 +139,12 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     if kwargs["enable_experimental"]:
         chrome_options["args"].extend(["--enable-experimental-web-platform-features"])
 
+    new_headless_mode = ("--headless=new" in kwargs.get("binary_args", []))
+
     # Pass the --headless flag to Chrome if WPT's own --headless flag was set
     # or if we're running print reftests because of crbug.com/753118
     if ((kwargs["headless"] or test_type == "print-reftest") and
-        "--headless" not in chrome_options["args"]):
+        "--headless" not in chrome_options["args"] and not new_headless_mode):
         chrome_options["args"].append("--headless")
 
     # Copy over any other flags that were passed in via `--binary-arg`

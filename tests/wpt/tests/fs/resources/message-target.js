@@ -120,6 +120,26 @@ function add_message_event_handlers(receiver, target, target_origin) {
             { targetOrigin: target_origin });
           break;
 
+        case 'create-file-system-observer':
+          // Attempt to create a file system observer with a dummy callback.
+          // Respond with whether creating the observer succeeded.
+          function dummyCallback(records, observer) {};
+
+          let createObserverSuccess = true;
+          try {
+            const observer = new FileSystemObserver(dummyCallback);
+          } catch (error) {
+            createObserverSuccess = false;
+          }
+
+          message_source.postMessage(
+              {
+                type: 'receive-create-file-system-observer-result',
+                createObserverSuccess
+              },
+              {targetOrigin: target_origin});
+          break;
+
         default:
           throw `Unknown message type: '${message_data.type}'`;
       }

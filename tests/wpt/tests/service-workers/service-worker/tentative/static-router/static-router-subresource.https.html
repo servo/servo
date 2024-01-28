@@ -19,6 +19,8 @@ const ROUTER_RULE_KEY_URL_PATTERN_URLPATTERNINIT =
 const ROUTER_RULE_KEY_URL_PATTERN_STRING =
   'condition-urlpattern-string-source-network';
 const ROUTER_RULE_KEY_REQUEST = 'condition-request-source-network'
+const ROUTER_RULE_KEY_URL_PATTERN_STRING_CACHE =
+  'condition-urlpattern-string-source-cache';
 const ROUTER_RULE_KEY_OR = 'condition-or-source-network'
 const SCOPE = 'resources/';
 const HTML_FILE = 'resources/simple.html';
@@ -168,6 +170,19 @@ iframeTest(OR_TEST_FILES[2], ROUTER_RULE_KEY_OR, async (t, iwin) => {
   const response = await iwin.fetch('?nonce=' + rnd);
   assert_equals(await response.text(), rnd);
 }, 'Subresource load not matched with `or` condition');
+
+iframeTest(HTML_FILE, ROUTER_RULE_KEY_URL_PATTERN_STRING_CACHE, async (t, iwin) => {
+  // No need to set `resources/` because the request is dispatched from iframe.
+  const CACHED_FILE = 'cache.txt';
+  const response = await iwin.fetch(CACHED_FILE);
+  assert_equals(response.status, 200);
+  assert_equals(await response.text(), "From cache");
+
+  // This doesn't match because the cache key is wrong.
+  const rnd = randomString();
+  const response_with_param = await iwin.fetch(`${CACHED_FILE}?nonce=${rnd}`);
+  assert_equals(response_with_param.status, 404);
+}, 'Subresource load matched with the cache source rule');
 
 </script>
 </body>

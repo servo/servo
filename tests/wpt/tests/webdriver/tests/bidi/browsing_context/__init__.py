@@ -11,7 +11,7 @@ from .. import (
 
 
 def assert_browsing_context(
-    info, context, children=None, is_root=True, parent=None, url=None
+    info, context, children=None, is_root=True, parent=None, url=None, user_context = None
 ):
     assert "children" in info
     if children is not None:
@@ -44,6 +44,8 @@ def assert_browsing_context(
     assert "url" in info
     assert isinstance(info["url"], str)
     assert info["url"] == url
+    if user_context is not None:
+      assert info["userContext"] == user_context
 
 
 def assert_navigation_info(event, expected_navigation_info):

@@ -289,6 +289,7 @@ const PrecisionMetrics = {
   argMax: {ULP: {int64: 0}},
   argMin: {ULP: {int64: 0}},
   batchNormalization: {ULP: {float32: 6, float16: 6}},
+  cast: {ULP: {float32: 1, float16: 1, int32: 0, uint32: 0, int64: 0, int8: 0, uint8: 0}},
   clamp: {ULP: {float32: 0, float16: 0}},
   concat: {ULP: {float32: 0, float16: 0}},
   conv2d: {ULP: {float32: getConv2dPrecisionTolerance, float16: getConv2dPrecisionTolerance}},
@@ -329,6 +330,7 @@ const PrecisionMetrics = {
   expand: {ULP: {float32: 0, float16: 0}},
   gather: {ULP: {float32: 0, float16: 0}},
   gemm: {ULP: {float32: getGemmPrecisionTolerance, float16: getGemmPrecisionTolerance}},
+  instanceNormalization: {ULP: {float32: 840, float16: 8400}},
   hardSigmoid: {ULP: {float32: 2, float16: 2}},
   hardSwish: {ULP: {float32: 4, float16: 4}},
   layerNormalization: {ATOL: {float32: 1/1024, float16: 1/512}},
@@ -606,6 +608,15 @@ const buildBatchNorm = (operationName, builder, resources) => {
   return namedOutputOperand;
 };
 
+const buildCast = (operationName, builder, resources) => {
+  // MLOperand cast(MLOperand input, MLOperandDataType type);
+  const namedOutputOperand = {};
+  const inputOperand = createSingleInputOperand(builder, resources);
+  // invoke builder.cast()
+  namedOutputOperand[resources.expected.name] = builder[operationName](inputOperand, resources.type);
+  return namedOutputOperand;
+};
+
 const buildConcat = (operationName, builder, resources) => {
   // MLOperand concat(sequence<MLOperand> inputs, unsigned long axis);
   const namedOutputOperand = {};
@@ -674,6 +685,7 @@ const buildGemm = (operationName, builder, resources) => {
 
 const buildLayerNorm = (operationName, builder, resources) => {
   // MLOperand layerNormalization(MLOperand input, optional MLLayerNormalizationOptions options = {});
+  // MLOperand instanceNormalization(MLOperand input, optional MLInstanceNormalizationOptions options = {});
   const namedOutputOperand = {};
   const inputOperand = createSingleInputOperand(builder, resources);
   const layerNormOptions = {...resources.options};
@@ -683,7 +695,7 @@ const buildLayerNorm = (operationName, builder, resources) => {
   if (layerNormOptions.bias) {
     layerNormOptions.bias = createConstantOperand(builder, layerNormOptions.bias);
   }
-  // invoke builder.layerNormalization()
+  // invoke builder.layerNormalization() or builder.instanceNormalization()
   namedOutputOperand[resources.expected.name] = builder[operationName](inputOperand, layerNormOptions);
   return namedOutputOperand;
 };

@@ -13,8 +13,8 @@ pytestmark = pytest.mark.asyncio
         None
     ]
 )
-async def test_cookie_secure(bidi_session, test_page, domain_value, same_site):
-    set_cookie_result = await bidi_session.storage.set_cookie(
+async def test_cookie_secure(bidi_session, set_cookie, test_page, domain_value, same_site):
+    set_cookie_result = await set_cookie(
         cookie=create_cookie(domain=domain_value(), same_site=same_site))
 
     assert set_cookie_result == {

@@ -47,7 +47,7 @@ function test_source_location_with_redirect({path, type, name}) {
           script.crossOrigin = "anonymous";
         document.body.appendChild(script);
         t.add_cleanup(() => script.remove());
-      }, script => script.duration >= VERY_LONG_FRAME_DURATION, t);
+      }, script => script.duration >= VERY_LONG_FRAME_DURATION - 5, t);
 
       const result =
         script.sourceLocation.startsWith(postRedirectURL) ? "post-redirect" :

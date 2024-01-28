@@ -7,7 +7,8 @@
 <link rel="help" href="https://github.com/whatwg/html/issues/7534">
 <meta name="assert" content="Checks that elements being used as relevant canvas
     fallback content can't be focusable if they are not rendered because of an
-    explicit 'display: none' or 'display: contents' style.">
+    explicit 'display: none' style, but can if they are not rendered because of
+    a 'display: contents' style.">
 <div id="log"></div>
 <canvas>
   <button hidden data-focusable="false"></button>
@@ -16,11 +17,11 @@
     <span tabindex="-1" data-focusable="false"></span>
     <a href="#" data-focusable="false"></a>
   </section>
-  <button style="display: contents" data-focusable="false"></button>
-  <section style="display: contents" tabindex="-1" data-focusable="false">
-    <div style="display: contents" tabindex="-1" data-focusable="false"></div>
-    <span style="display: contents" tabindex="-1" data-focusable="false"></span>
-    <a style="display: contents" href="#" data-focusable="false"></a>
+  <button style="display: contents" data-focusable="true"></button>
+  <section style="display: contents" tabindex="-1" data-focusable="true">
+    <div style="display: contents" tabindex="-1" data-focusable="true"></div>
+    <span style="display: contents" tabindex="-1" data-focusable="true"></span>
+    <a style="display: contents" href="#" data-focusable="true"></a>
   </section>
 </canvas>
 <script src="/resources/testharness.js"></script>
