@@ -1,4 +1,4 @@
-// META: title=Testing BFCache support for page with open WebRTC connection.
+// META: title=Testing BFCache support for page with open WebRTC connection and live MediaStreamTrack.
 // META: script=/common/dispatcher/dispatcher.js
 // META: script=/common/utils.js
 // META: script=/html/browsers/browsing-the-web/back-forward-cache/resources/rc-helper.js
@@ -14,7 +14,7 @@ promise_test(async t => {
   const rc1 = await rcHelper.addWindow(
       /*config=*/ null, /*options=*/ { features: 'noopener' });
   await openWebRTC(rc1);
-  // The page should not be eligible for BFCache because of open WebRTC connection.
+  // The page should not be eligible for BFCache because of open WebRTC connection and live MediaStreamTrack.
   await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ false);
-  await assertNotRestoredFromBFCache(rc1, ['WebRTC']);
+  await assertNotRestoredFromBFCache(rc1, ['WebRTC', 'LiveMediaStreamTrack']);
 });

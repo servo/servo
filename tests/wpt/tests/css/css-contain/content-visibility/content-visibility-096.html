@@ -1,0 +1,56 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: auto, scroll away and back</title>
+<link rel="author" title="Rob Buis" href="mailto:rbuis@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="content-visibility-096-ref.html">
+<meta name="assert" content="scolling away from c-v: auto container and back renders as expected">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.spacer {
+  height: 10000px;
+}
+#child {
+  width: 100px;
+  height: 100px;
+  background: green;
+  position: relative
+}
+#target {
+  width: 10px;
+  height: 10px;
+}
+.auto { content-visibility: auto; }
+
+</style>
+
+<div class="auto">
+  <div id=child></div>
+</div>
+<div class=spacer></div>
+<div id=target></div>
+
+<script>
+
+function runTest() {
+  document.getElementById("target").scrollIntoView(true /* alignToTop */);
+  requestAnimationFrame(finishTest);
+}
+
+function finishTest() {
+  scrollTo(0, 0);
+  requestAnimationFrame(takeScreenshot);
+}
+
+window.onload = requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      runTest();
+    });
+  });
+});
+
+</script>
+</html>

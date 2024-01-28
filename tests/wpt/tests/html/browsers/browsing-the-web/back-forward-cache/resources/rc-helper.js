@@ -53,6 +53,17 @@ function matchReasons(expectedNotRestoredReasonsSet, notRestoredReasonsSet) {
     `Extra: ${sorted(extra)}\n`);
 }
 
+// This function takes a set of reasons and extracts reasons out of it and returns a set of strings.
+// For example, if the input is [{"reason": "error-document"}, {"reason": "masked"}],
+// the output is ["error-document", "masked"].
+function extractReason(reasonSet) {
+  let reasonsExtracted = new Set();
+  for (let reason of reasonSet) {
+    reasonsExtracted.add(reason.reason);
+  }
+  return reasonsExtracted;
+}
+
 // A helper function to assert that the page is not restored from BFCache by
 // checking whether the `beforeBFCache` value from `window` is undefined
 // due to page reload.
@@ -96,7 +107,7 @@ async function assertNotRestoredFromBFCache(
   // Flatten the reasons from the main frame and all the child frames.
   const collectReason = (node) => {
     for (let reason of node.reasons) {
-      notRestoredReasonsSet.add(reason);
+      notRestoredReasonsSet.add(reason.reason);
     }
     for (let child of node.children) {
       collectReason(child);

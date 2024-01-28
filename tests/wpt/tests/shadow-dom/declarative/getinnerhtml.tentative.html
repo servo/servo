@@ -31,6 +31,7 @@ function testElementType(allowsShadowDom, elementType, applyToShadow, mode, dele
       const delegatesAttr = delegatesFocus ? ' shadowrootdelegatesfocus=""' : '';
       const correctShadowHtml = `<template shadowrootmode="${mode}"${delegatesAttr}><slot></slot></template>`;
       const correctHtml = `<${elementType}>${correctShadowHtml}</${elementType}>`;
+      const emptyElement = `<${elementType}></${elementType}>`;
       const shadowRoot = element.attachShadow({mode: mode, delegatesFocus: delegatesFocus});
       shadowRoot.appendChild(document.createElement('slot'));
       if (isOpen) {
@@ -38,11 +39,12 @@ function testElementType(allowsShadowDom, elementType, applyToShadow, mode, dele
         assert_equals(wrapper.getInnerHTML(),correctHtml,'The default for includeShadowRoots should be true');
       } else {
         // Closed shadow roots should not be returned unless closedRoots contains the shadow root:
-        const emptyElement = `<${elementType}></${elementType}>`;
         assert_equals(wrapper.getInnerHTML({includeShadowRoots: true}), emptyElement);
         assert_equals(wrapper.getInnerHTML({includeShadowRoots: true, closedRoots: []}), emptyElement);
       }
       assert_equals(wrapper.getInnerHTML({includeShadowRoots: true, closedRoots: [shadowRoot]}),correctHtml);
+      // ClosedRoots are not included if includeShadowRoots is false:
+      assert_equals(wrapper.getInnerHTML({includeShadowRoots: false, closedRoots: [shadowRoot]}),emptyElement);
     } else {
       // For non-shadow hosts, getInnerHTML() should also match .innerHTML
       assert_equals(wrapper.getInnerHTML({includeShadowRoots: true}),wrapper.innerHTML);

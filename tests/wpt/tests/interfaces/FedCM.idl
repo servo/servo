@@ -26,6 +26,7 @@ dictionary IdentityCredentialDisconnectOptions : IdentityProviderConfig {
 interface IdentityCredential : Credential {
   static Promise<undefined> disconnect(optional IdentityCredentialDisconnectOptions options = {});
   readonly attribute USVString? token;
+  readonly attribute boolean isAutoSelected;
 };
 
 dictionary DisconnectedAccount {

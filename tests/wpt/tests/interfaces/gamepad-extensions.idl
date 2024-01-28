@@ -10,38 +10,6 @@ enum GamepadHand {
 };
 
 [Exposed=Window]
-interface GamepadHapticActuator {
-  readonly attribute GamepadHapticActuatorType type;
-  boolean canPlayEffectType(GamepadHapticEffectType type);
-  Promise<GamepadHapticsResult> playEffect(
-      GamepadHapticEffectType type,
-      optional GamepadEffectParameters params = {});
-  Promise<boolean> pulse(double value, double duration);
-  Promise<GamepadHapticsResult> reset();
-};
-
-enum GamepadHapticsResult {
-  "complete",
-  "preempted"
-};
-
-enum GamepadHapticActuatorType {
-  "vibration",
-  "dual-rumble"
-};
-
-enum GamepadHapticEffectType {
-  "dual-rumble"
-};
-
-dictionary GamepadEffectParameters {
-    double duration = 0.0;
-    double startDelay = 0.0;
-    double strongMagnitude = 0.0;
-    double weakMagnitude = 0.0;
-};
-
-[Exposed=Window]
 interface GamepadPose {
   readonly attribute boolean hasOrientation;
   readonly attribute boolean hasPosition;
@@ -67,5 +35,9 @@ partial interface Gamepad {
   readonly attribute FrozenArray<GamepadHapticActuator> hapticActuators;
   readonly attribute GamepadPose? pose;
   readonly attribute FrozenArray<GamepadTouch>? touchEvents;
-  [SameObject] readonly attribute GamepadHapticActuator? vibrationActuator;
+};
+
+[Exposed=Window]
+partial interface GamepadHapticActuator {
+  Promise<boolean> pulse(double value, double duration);
 };

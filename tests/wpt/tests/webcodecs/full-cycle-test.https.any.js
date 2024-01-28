@@ -5,6 +5,8 @@
 // META: variant=?vp8
 // META: variant=?vp9_p0
 // META: variant=?vp9_p2
+// META: variant=?vp9_444_p1
+// META: variant=?vp9_444_p3
 // META: variant=?h264_avc
 // META: variant=?h264_annexb
 // META: variant=?h265_hevc
@@ -13,7 +15,6 @@
 var ENCODER_CONFIG = null;
 promise_setup(async () => {
   const config = {
-    // FIXME: H.264 has embedded color space information too.
     '?av1': {
       codec: 'av01.0.04M.08',
       hasEmbeddedColorSpace: true,
@@ -33,6 +34,21 @@ promise_setup(async () => {
       codec: 'vp09.02.10.10',
       hasEmbeddedColorSpace: true,
       hardwareAcceleration: 'prefer-software',
+      // TODO(https://github.com/w3c/webcodecs/issues/384):
+      // outputPixelFormat should be 'I420P10'
+    },
+    '?vp9_444_p1': {
+      codec: 'vp09.01.10.08.03',
+      hasEmbeddedColorSpace: true,
+      hardwareAcceleration: 'prefer-software',
+      outputPixelFormat: 'I444',
+    },
+    '?vp9_444_p3': {
+      codec: 'vp09.03.10.10.03',
+      hasEmbeddedColorSpace: true,
+      hardwareAcceleration: 'prefer-software',
+      // TODO(https://github.com/w3c/webcodecs/issues/384):
+      // outputPixelFormat should be 'I444P10'
     },
     '?h264_avc': {
       codec: 'avc1.42001E',
@@ -89,6 +105,12 @@ async function runFullCycleTest(t, options) {
       assert_equals(frame.visibleRect.height, h, "visibleRect.height");
       if (!options.realTimeLatencyMode) {
         assert_equals(frame.timestamp, next_ts++, "decode timestamp");
+      }
+
+      if (ENCODER_CONFIG.outputPixelFormat) {
+        assert_equals(
+            frame.format, ENCODER_CONFIG.outputPixelFormat,
+            "decoded pixel format");
       }
 
       // The encoder is allowed to change the color space to satisfy the

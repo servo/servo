@@ -508,7 +508,7 @@ partial interface MLGraphBuilder {
 };
 
 partial interface MLGraphBuilder {
-  MLOperand reshape(MLOperand input, sequence<unsigned long?> newShape);
+  MLOperand reshape(MLOperand input, sequence<unsigned long> newShape);
 };
 
 partial interface MLGraphBuilder {

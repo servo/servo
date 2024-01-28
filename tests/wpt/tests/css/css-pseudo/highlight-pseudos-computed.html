@@ -43,9 +43,9 @@
       test(() => {
         let style = getComputedStyle(target, illFormedPseudo);
         let defaultStyle = getComputedStyle(target);
-        assert_equals(style.backgroundColor, defaultStyle.backgroundColor, "Background color is element's default.");
-        assert_equals(style.color,  defaultStyle.color, "Color is element's default.");
-      }, `getComputedStyle() for ${illFormedPseudo} should be element's default`);
+        assert_equals(style.backgroundColor, "");
+        assert_equals(style.color,  "");
+      }, `getComputedStyle() for ${illFormedPseudo} should return an empty CSSStyleDeclaration`);
     }
   }
 

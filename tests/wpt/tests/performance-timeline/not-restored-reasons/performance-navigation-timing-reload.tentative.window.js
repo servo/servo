@@ -26,14 +26,13 @@ promise_test(async t => {
   // Check the BFCache result and the reported reasons.
   await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ false);
   await assertNotRestoredReasonsEquals(
-      rc1,
-      /*preventedBackForwardCache=*/ "yes",
-      /*url=*/ rc1_url,
-      /*src=*/ null,
-      /*id=*/ null,
-      /*name=*/ null,
-      /*reasons=*/['websocket'],
-      /*children=*/ []);
+        rc1,
+        /*url=*/ rc1_url,
+        /*src=*/ null,
+        /*id=*/ null,
+        /*name=*/ null,
+        /*reasons=*/[{'reason': 'websocket'}],
+        /*children=*/ []);
 
   // Reload.
   await rc1.navigate(() => {

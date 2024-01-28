@@ -402,98 +402,11 @@
     ctx.clip();
     ctx.drawImage(canvas3, 0, 0);
 
-- name: 2d.layer.unclosed
-  desc: Check that layers are rendered even if not closed.
-  size: [200, 200]
-  code: |
-    {% set ns = namespace(ctx='ctx') %}
-    {% if canvas_type == 'worker' %}
-    // `transferToImageBitmap` is used to transfer the test result to the
-    // worker's parent, but `transferToImageBitmap` can't be called on canvas
-    // with unclosed layers. We can however draw to a separate offscreen canvas
-    // and write it to the main canvas using `drawImage`.
-    const canvas2 = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
-    const ctx2 = canvas2.getContext('2d');
-    {% set ns.ctx = 'ctx2' %}
-    {% endif %}
-
-    {{ ns.ctx }}.fillStyle = 'purple';
-    {{ ns.ctx }}.fillRect(60, 60, 75, 50);
-    {{ ns.ctx }}.globalAlpha = 0.5;
-
-    {{ ns.ctx }}.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
-    {{ ns.ctx }}.fillRect(40, 40, 75, 50);
-    {{ ns.ctx }}.fillStyle = 'grey';
-    {{ ns.ctx }}.fillRect(50, 50, 75, 50);
-
-    {% if canvas_type == 'worker' %}
-    ctx.drawImage(canvas2, 0, 0);
-    {% endif %}
-  reference: |
-    ctx.fillStyle = 'purple';
-    ctx.fillRect(60, 60, 75, 50);
-    ctx.globalAlpha = 0.5;
-
-    ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
-    ctx.fillStyle = 'purple';
-    ctx.fillRect(40, 40, 75, 50);
-    ctx.fillStyle = 'grey';
-    ctx.fillRect(50, 50, 75, 50);
-    ctx.endLayer();
-
-- name: 2d.layer.unclosed-nested
-  desc: Check that layers are rendered even if not closed.
-  size: [200, 200]
-  code: |
-    {% set ns = namespace(ctx='ctx') %}
-    {% if canvas_type == 'worker' %}
-    // `transferToImageBitmap` is used to transfer the test result to the
-    // worker's parent, but `transferToImageBitmap` can't be called on canvas
-    // with unclosed layers. We can however draw to a separate offscreen canvas
-    // and write it to the main canvas using `drawImage`.
-    const canvas2 = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
-    const ctx2 = canvas2.getContext('2d');
-    {% set ns.ctx = 'ctx2' %}
-    {% endif %}
-
-    {{ ns.ctx }}.fillStyle = 'rgba(0, 0, 255, 1)';
-    {{ ns.ctx }}.fillRect(60, 60, 75, 50);
-    {{ ns.ctx }}.globalAlpha = 0.5;
-
-    {{ ns.ctx }}.beginLayer();
-    {{ ns.ctx }}.fillStyle = 'rgba(225, 0, 0, 1)';
-    {{ ns.ctx }}.fillRect(50, 50, 75, 50);
-
-    {{ ns.ctx }}.beginLayer();
-    {{ ns.ctx }}.fillStyle = 'rgba(0, 255, 0, 1)';
-    {{ ns.ctx }}.fillRect(70, 70, 75, 50);
-
-    {{ ns.ctx }}.endLayer();
-    // Missing {{ ns.ctx }}.endLayer() here.
-
-    {% if canvas_type == 'worker' %}
-    ctx.drawImage(canvas2, 0, 0);
-    {% endif %}
-  reference: |
-    const canvas1 = document.createElement('canvas');
-    const ctx1 = canvas1.getContext('2d');
-    ctx1.fillStyle = 'rgba(0,255,0,1)';
-    ctx1.fillRect(70,70,75,50);
-
-    const canvas2 = document.createElement('canvas');
-    const ctx2 = canvas2.getContext('2d');
-    ctx2.fillStyle = 'rgba(225,0,0,1)';
-    ctx2.fillRect(50,50,75,50);
-    ctx2.drawImage(canvas1, 0, 0);
-
-    ctx.fillStyle = 'rgba(0,0,255,1)';
-    ctx.fillRect(60,60,75,50);
-    ctx.globalAlpha = 0.5;
-    ctx.drawImage(canvas2, 0, 0);
-
-- name: 2d.layer.render-opportunities
+- name: 2d.layer.flush-on-frame-presentation
   desc: Check that layers state stack is flushed and rebuilt on frame renders.
   size: [200, 200]
+  canvasType: ['HTMLCanvas']
+  test_type: "promise"
   code: |
     ctx.fillStyle = 'purple';
     ctx.fillRect(60, 60, 75, 50);
@@ -505,7 +418,7 @@
     ctx.fillRect(50, 50, 75, 50);
 
     // Force a flush and restoration of the state stack:
-    {{ flush_canvas }}
+    await new Promise(resolve => requestAnimationFrame(resolve));
 
     ctx.fillRect(70, 70, 75, 50);
     ctx.fillStyle = 'orange';
@@ -533,61 +446,72 @@
     ctx.endLayer();
 
     ctx.fillRect(80, 40, 75, 50);
-  variants:
-    convertToBlob:
-      test_type: "promise"
-      canvasType: ['OffscreenCanvas', 'Worker']
-      flush_canvas: |-
-        await canvas.convertToBlob();
-    createImageBitmap:
-      flush_canvas: createImageBitmap(canvas);
-    drawImage:
-      flush_canvas: |-
-        const canvas2 = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
-        const ctx2 = canvas2.getContext('2d');
-        ctx2.drawImage(canvas, 0, 0);
-    getImageData:
-      flush_canvas: ctx.getImageData(0, 0, {{ size[0] }}, {{ size[1] }});
-    requestAnimationFrame:
-      canvasType: ['HTMLCanvas']
-      test_type: "promise"
-      flush_canvas: |-
-        await new Promise(resolve => requestAnimationFrame(resolve));
-    toBlob:
-      test_type: "promise"
-      canvasType: ['HTMLCanvas']
-      flush_canvas: |-
-        await new Promise(resolve => canvas.toBlob(resolve));
-    toDataURL:
-      canvasType: ['HTMLCanvas']
-      flush_canvas: canvas.toDataURL();
 
-- name: 2d.layer.putImageData
-  desc: Check that calling putImageData in a layer throws an exception.
+- name: 2d.layer.malformed-operations
+  desc: >-
+    Check that exceptions are thrown for operations that are malformed while
+    layers are open.
+  size: [200, 200]
   code: |
-    const canvas2 = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
-    const ctx2 = canvas2.getContext('2d')
-    const data = ctx2.getImageData(0, 0, 1, 1);
-    // `putImageData` shouldn't throw on it's own.
-    ctx.putImageData(data, 0, 0);
+    {{ setup }}
+    // Shouldn't throw on its own.
+    {{ operation }};
     // Make sure the exception isn't caused by calling the function twice.
-    ctx.putImageData(data, 0, 0);
-    // Calling again inside a layer should throw.
-    ctx.beginLayer();
-    assert_throws_dom("InvalidStateError", () => ctx.putImageData(data, 0, 0));
-
-- name: 2d.layer.transferToImageBitmap
-  desc: Check that calling transferToImageBitmap in a layer throws an exception.
-  canvasType: ['OffscreenCanvas', 'Worker']
-  code: |
-    // `transferToImageBitmap` shouldn't throw on it's own.
-    canvas.transferToImageBitmap();
-    // Make sure the exception isn't caused by calling the function twice.
-    canvas.transferToImageBitmap();
+    {{ operation }};
     // Calling again inside a layer should throw.
     ctx.beginLayer();
     assert_throws_dom("InvalidStateError",
-                      () => canvas.transferToImageBitmap());
+                      () => {{ operation }});
+  variants:
+    createPattern:
+      operation: ctx.createPattern(canvas, 'repeat')
+    drawImage:
+      setup: |-
+        const canvas2 = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
+        const ctx2 = canvas2.getContext('2d');
+      operation: |-
+        ctx2.drawImage(canvas, 0, 0)
+    getImageData:
+      operation: ctx.getImageData(0, 0, {{ size[0] }}, {{ size[1] }})
+    putImageData:
+      setup: |-
+        const canvas2 = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
+        const ctx2 = canvas2.getContext('2d')
+        const data = ctx2.getImageData(0, 0, 1, 1);
+      operation: |-
+        ctx.putImageData(data, 0, 0)
+    toDataURL:
+      canvasType: ['HTMLCanvas']
+      operation: canvas.toDataURL()
+    transferToImageBitmap:
+      canvasType: ['OffscreenCanvas', 'Worker']
+      operation: canvas.transferToImageBitmap()
+
+- name: 2d.layer.malformed-operations-with-promises
+  desc: >-
+    Check that exceptions are thrown for operations that are malformed while
+    layers are open.
+  size: [200, 200]
+  test_type: "promise"
+  code: |
+    // Shouldn't throw on its own.
+    await {{ operation }};
+    // Make sure the exception isn't caused by calling the function twice.
+    await {{ operation }};
+    // Calling again inside a layer should throw.
+    ctx.beginLayer();
+    await promise_rejects_dom(t, 'InvalidStateError', {{ operation }});
+  variants:
+    convertToBlob:
+      canvasType: ['OffscreenCanvas', 'Worker']
+      operation: |-
+        canvas.convertToBlob()
+    createImageBitmap:
+      operation: createImageBitmap(canvas)
+    toBlob:
+      canvasType: ['HTMLCanvas']
+      operation: |-
+        new Promise(resolve => canvas.toBlob(resolve))
 
 - name: 2d.layer.several-complex
   desc: >-

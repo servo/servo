@@ -102,7 +102,7 @@ test(() => {
   assert_dsd(fragment.body,false);
   fragment = parser.parseFromString(content, 'text/html', {includeShadowRoots: true});
   assert_dsd(fragment.body,false);
-}, 'DOMParser (includingShadowRoots is historical)');
+}, 'DOMParser (includeShadowRoots is historical)');
 
 test(() => {
   const doc = document.implementation.createHTMLDocument('');

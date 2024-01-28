@@ -34,11 +34,10 @@ promise_test(async t => {
   // Reasons are not reset for same-origin replace.
   await assertNotRestoredReasonsEquals(
       rc1,
-      /*preventedBackForwardCache=*/ "yes",
       /*url=*/ rc1_url,
       /*src=*/ null,
       /*id=*/ null,
       /*name=*/ null,
-      /*reasons=*/['websocket'],
+      /*reasons=*/[{'reason': 'websocket'}],
       /*children=*/ []);
 });

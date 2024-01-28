@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: anchor-name is style contained - dynamic containment</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/#determining">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9100">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/test-common.js"></script>
+<style>
+  .container {
+    position: relative;
+  }
+  .anchor {
+    width: 100px;
+    height: 100px;
+  }
+  .a1 {
+    anchor-name: --a1;
+  }
+  .a2 {
+    anchor-name: --a2;
+  }
+  .contain-style {
+    contain: style;
+  }
+  .target {
+    position: absolute;
+    top: anchor(bottom, 50px);
+  }
+  #target-a1 {
+    anchor-default: --a1;
+  }
+  #target-a2 {
+    anchor-default: --a2;
+  }
+</style>
+<div class="container">
+  <div class="anchor a1"></div>
+  <div class="contain-style">
+    <div class="anchor a1"></div>
+  </div>
+  <div id="target-a1" class="target" data-offset-y="100"></div>
+</div>
+<div class="container">
+  <div class="anchor a2"></div>
+  <div class="anchor a2"></div>
+  <div class="contain-style">
+    <div id="target-a2" class="target" data-offset-y="50"></div>
+  </div>
+</div>
+<script type="module">
+  await checkLayoutForAnchorPos('.target');
+
+  const t1 = document.querySelector("#target-a1");
+  const t2 = document.querySelector("#target-a2");
+  t1.setAttribute("data-offset-y", "200");
+  t2.setAttribute("data-offset-y", "200");
+  for (let element of document.querySelectorAll(".contain-style")) {
+    element.style.contain = "none";
+  }
+  await checkLayoutForAnchorPos('.target');
+
+  t1.setAttribute("data-offset-y", "100");
+  t2.setAttribute("data-offset-y", "50");
+  for (let element of document.querySelectorAll(".contain-style")) {
+    element.style.contain = "";
+  }
+  await checkLayoutForAnchorPos('.target');
+</script>

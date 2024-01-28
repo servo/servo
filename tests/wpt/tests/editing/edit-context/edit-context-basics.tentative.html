@@ -115,8 +115,8 @@
       editContext.updateSelection(0, 0);
       assert_equals(editContext.selectionStart, 0);
       assert_equals(editContext.selectionEnd, 0);
-      assert_throws_dom("IndexSizeError", function() { editContext.updateSelection(1, 0); });
-      assert_equals(editContext.selectionStart, 0);
+      editContext.updateSelection(1, 0);
+      assert_equals(editContext.selectionStart, 1);
       assert_equals(editContext.selectionEnd, 0);
       editContext.updateSelection(0, 1);
       assert_equals(editContext.selectionStart, 0);
@@ -151,17 +151,29 @@
       assert_equals(actualRectArray[1].height, 400);
     }, 'updateCharacterBounds(), characterBounds(), and characterBoundsRangeStart should work properly');
 
+    // The behavior in this test case is not well-defined in the spec.
+    // See https://github.com/w3c/edit-context/issues/88
+    // test(function() {
+    //   const editContext = new EditContext();
+    //   assert_not_equals(editContext, null);
+    //   editContext.updateText(0, 3, "foo");
+    //   assert_equals(editContext.text, "foo");
+    //   assert_throws_dom("IndexSizeError", function() { editContext.updateSelection(10, 0); });
+    //   assert_equals(editContext.selectionStart, 0);
+    //   assert_equals(editContext.selectionEnd, 0);
+    //   assert_throws_dom("IndexSizeError", function() { editContext.updateText(10, 1, "h"); });
+    //   assert_equals(editContext.text, "foo");
+    // }, 'Testing EditContext update text and selection with invalid values');
+
     test(function() {
       const editContext = new EditContext();
       assert_not_equals(editContext, null);
       editContext.updateText(0, 3, "foo");
       assert_equals(editContext.text, "foo");
-      assert_throws_dom("IndexSizeError", function() { editContext.updateSelection(10, 0); });
-      assert_equals(editContext.selectionStart, 0);
+      editContext.updateSelection(3, 0);
+      assert_equals(editContext.selectionStart, 3);
       assert_equals(editContext.selectionEnd, 0);
-      assert_throws_dom("IndexSizeError", function() { editContext.updateText(10, 1, "h"); });
-      assert_equals(editContext.text, "foo");
-    }, 'Testing EditContext update text and selection with invalid values');
+    }, 'EditContext should allow a backwards selection');
   </script>
 </body>
 </html>

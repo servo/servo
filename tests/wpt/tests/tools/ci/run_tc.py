@@ -92,7 +92,7 @@ def get_parser():
                    help="Browsers that will be used in the job")
     p.add_argument("--channel",
                    default=None,
-                   choices=["experimental", "dev", "nightly", "beta", "stable"],
+                   choices=["experimental", "canary", "dev", "nightly", "beta", "stable"],
                    help="Chrome browser channel")
     p.add_argument("--xvfb",
                    action="store_true",
@@ -148,6 +148,9 @@ def start_dbus():
 
 
 def install_chrome(channel):
+    if channel == "canary":
+        # Chrome for Testing Canary is installed via --install-browser
+        return
     if channel in ("experimental", "dev"):
         deb_archive = "google-chrome-unstable_current_amd64.deb"
     elif channel == "beta":
