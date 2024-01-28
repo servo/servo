@@ -5,12 +5,18 @@ from tests.support.image import cm_to_px, png_dimensions, ImageDifference
 from typing import Any, Coroutine, Mapping
 
 import asyncio
+import copy
+from datetime import datetime, timedelta
 import pytest
 import pytest_asyncio
+import time
 from webdriver.bidi.error import (
     InvalidArgumentException,
     NoSuchFrameException,
     NoSuchScriptException,
+    NoSuchUserContextException,
+    UnableToSetCookieException,
+    UnderspecifiedStoragePartitionException
 )
 from webdriver.bidi.modules.script import ContextTarget
 from webdriver.error import TimeoutException
@@ -55,6 +61,39 @@ async def subscribe_events(bidi_session):
             await bidi_session.session.unsubscribe(events=events,
                                                    contexts=contexts)
         except (InvalidArgumentException, NoSuchFrameException):
+            pass
+
+
+@pytest_asyncio.fixture
+async def set_cookie(bidi_session):
+    """
+    Set a cookie and remove them after the test is finished.
+    """
+    cookies = []
+
+    async def set_cookie(cookie, partition=None):
+        partition_descriptor = None
+        set_cookie_result = await bidi_session.storage.set_cookie(cookie=cookie, partition=partition)
+        if set_cookie_result["partitionKey"] != {}:
+            # Make a copy of the partition key, as the original dict is used for assertion.
+            partition_descriptor = copy.deepcopy(set_cookie_result["partitionKey"])
+            partition_descriptor["type"] = "storageKey"
+        # Store the cookie partition to remove the cookie after the test.
+        # The requested partition can be a browsing context, so the returned partition descriptor (it's always of type
+        # "storageKey") is used.
+        cookies.append((copy.deepcopy(cookie), partition_descriptor))
+        return set_cookie_result
+
+    yield set_cookie
+
+    yesterday = datetime.now() - timedelta(1)
+    yesterday_timestamp = time.mktime(yesterday.timetuple())
+
+    for cookie, partition in reversed(cookies):
+        try:
+            cookie["expiry"] = yesterday_timestamp
+            await bidi_session.storage.set_cookie(cookie=cookie, partition=partition)
+        except (InvalidArgumentException, UnableToSetCookieException, UnderspecifiedStoragePartitionException):
             pass
 
 
@@ -388,3 +427,28 @@ def load_static_test_page(bidi_session, url, top_context):
         )
 
     return load_static_test_page
+
+
+@pytest_asyncio.fixture
+async def create_user_context(bidi_session):
+    """Create a user context and ensure it is removed at the end of the test."""
+
+    user_contexts = []
+
+    async def create_user_context():
+        nonlocal user_contexts
+        user_context = await bidi_session.browser.create_user_context()
+        user_contexts.append(user_context)
+
+        return user_context
+
+    yield create_user_context
+
+    # Remove all created user contexts at the end of the test
+    for user_context in user_contexts:
+        try:
+            await bidi_session.browser.remove_user_context(user_context=user_context)
+        except NoSuchUserContextException:
+            # Ignore exceptions in case a specific user context was already
+            # removed during the test.
+            pass

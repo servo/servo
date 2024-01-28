@@ -41,7 +41,14 @@
     }
   </style>
 
-  <body onload="window.scroll(0, document.body.offsetHeight); document.documentElement.classList.remove('reftest-wait');">
+  <script>
+
+  document.documentElement.addEventListener("TestRendered", () => {
+    window.scroll(0, document.body.offsetHeight);
+    document.documentElement.classList.remove('reftest-wait');
+  });
+
+  </script>
 
   <div>F</div>
 

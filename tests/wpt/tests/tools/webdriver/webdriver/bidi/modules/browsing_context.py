@@ -81,7 +81,8 @@ class BrowsingContext(BidiModule):
     def create(self,
                type_hint: str,
                reference_context: Optional[str] = None,
-               background: Optional[bool] = None) -> Mapping[str, Any]:
+               background: Optional[bool] = None,
+               user_context: Optional[str] = None) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"type": type_hint}
 
         if reference_context is not None:
@@ -89,6 +90,9 @@ class BrowsingContext(BidiModule):
 
         if background is not None:
             params["background"] = background
+
+        if user_context is not None:
+            params["userContext"] = user_context
 
         return params
 

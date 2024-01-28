@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+addEventListener("load", () => {
+  const textarea = document.createElement("textarea");
+  document.documentElement.appendChild(textarea);
+  textarea.focus();
+  textarea.dir = "rtl";
+  textarea.prepend("0123456789A", document.createElement("marquee"));
+  textarea.setSelectionRange(8, 13, "");
+});
+</script>
+</head>
+</html>

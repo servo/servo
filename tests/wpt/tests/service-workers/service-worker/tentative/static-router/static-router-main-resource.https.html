@@ -7,9 +7,9 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
+<script src="resources/static-router-helpers.sub.js"></script>
 <body>
 <script>
-const SCRIPT = 'resources/static-router-sw.js';
 const ROUTER_RULE_KEY = 'condition-urlpattern-constructed-source-network';
 const ROUTER_RULE_KEY_IGNORE_CASE =
   'condition-urlpattern-constructed-ignore-case-source-network';
@@ -18,7 +18,7 @@ const ROUTER_RULE_KEY_RESPECT_CASE =
 const ROUTER_RULE_KEY_MULTIPLE_RULES = 'multiple-router-rules';
 const ROUTER_RULE_KEY_URLPATTERN_CACHE =
   'condition-urlpattern-string-source-cache';
-const SCOPE = 'resources/';
+const ROUTER_RULE_KEY_REQUEST_CACHE = 'condition-request-navigate-source-cache';
 const REGISTERED_ROUTE = 'resources/direct.txt';
 const ADDITIONAL_REGISTERED_ROUTE = 'resources/direct.html';
 const CACHED_ROUTE = 'resources/cache.txt';
@@ -26,63 +26,25 @@ const NON_REGISTERED_ROUTE = 'resources/simple.html';
 const host_info = get_host_info();
 const path = new URL(".", window.location).pathname;
 
-const registerAndActivate = async (t, ruleKey) => {
-  const swURL = `${SCRIPT}?key=${ruleKey}`;
-  const reg = await service_worker_unregister_and_register(
-    t, swURL, SCOPE, { type: 'module' });
-  add_completion_callback(() => reg.unregister());
-  const worker = reg.installing;
-  await wait_for_state(t, worker, 'activated');
-
-  return worker;
-};
-
-const createIframe = async (t, url) => {
-  const iframe = await with_iframe(url);
-  t.add_cleanup(() => iframe.remove());
-
-  return iframe;
-};
-
-// Register a service worker, then create an iframe at url.
-function iframeTest(url, ruleKey, callback, name) {
-  return promise_test(async t => {
-    const worker = await registerAndActivate(t, ruleKey);
-    const iframe = await createIframe(t, url);
-    await callback(t, iframe.contentWindow, worker);
-  }, name);
-}
-
-const get_fetched_urls = async worker => {
-  const promise = new Promise(function(resolve) {
-      var channel = new MessageChannel();
-      channel.port1.onmessage = function(msg) { resolve(msg); };
-      worker.postMessage({port: channel.port2}, [channel.port2]);
-    });
-  const message = await promise;
-
-  return message.data;
-}
-
 iframeTest(REGISTERED_ROUTE, ROUTER_RULE_KEY, async (t, iwin, worker) => {
-  const {requests} = await get_fetched_urls(worker);
+  const {requests} = await get_info_from_worker(worker);
   assert_equals(requests.length, 0);
   assert_equals(iwin.document.body.innerText, "Network\n");
 }, 'Main resource load matched with the condition');
 
 iframeTest(REGISTERED_ROUTE, ROUTER_RULE_KEY_IGNORE_CASE, async (t, iwin, worker) => {
-  const {requests} = await get_fetched_urls(worker);
+  const {requests} = await get_info_from_worker(worker);
   assert_equals(requests.length, 0);
   assert_equals(iwin.document.body.innerText, "Network\n");
 }, 'Main resource load matched with the ignore case condition');
 
 iframeTest(REGISTERED_ROUTE, ROUTER_RULE_KEY_RESPECT_CASE, async (t, iwin, worker) => {
-  const {requests} = await get_fetched_urls(worker);
+  const {requests} = await get_info_from_worker(worker);
   assert_equals(requests.length, 1);
 }, 'Main resource load matched without the ignore case condition');
 
 iframeTest(NON_REGISTERED_ROUTE, ROUTER_RULE_KEY, async (t, iwin, worker) => {
-  const {requests} = await get_fetched_urls(worker);
+  const {requests} = await get_info_from_worker(worker);
   assert_equals(requests.length, 1);
   assert_equals(
     requests[0].url,
@@ -101,15 +63,24 @@ promise_test(async t => {
   const second_iframe = await createIframe(t, ADDITIONAL_REGISTERED_ROUTE);
   assert_equals(second_iframe.contentWindow.document.body.innerText, "Here's a direct html from network.");
 
-  const {requests} = await get_fetched_urls(worker);
+  const {requests} = await get_info_from_worker(worker);
   assert_equals(requests.length, 0);
 }, 'Main reosurce load matched with the service worker having multiple rules');
 
 iframeTest(CACHED_ROUTE, ROUTER_RULE_KEY_URLPATTERN_CACHE, async (t, iwin, worker) => {
-  const {requests} = await get_fetched_urls(worker);
+  const {requests} = await get_info_from_worker(worker);
   assert_equals(requests.length, 0);
   assert_equals(iwin.document.body.innerText, "From cache");
 }, 'Main resource load matched with the cache source');
+
+iframeTest(NON_REGISTERED_ROUTE, ROUTER_RULE_KEY_REQUEST_CACHE, async (t, iwin, worker) => {
+  const {requests} = await get_info_from_worker(worker);
+  // When the request matched to the rule with the "cache" source but failed to
+  // get the cache entry, the fetch handler is not involved and the network
+  // fallback is triggered instead.
+  assert_equals(requests.length, 0);
+  assert_equals(iwin.document.body.innerText, "Here's a simple html file.");
+}, 'Main resource fallback to the network when there is no cache entry');
 
 </script>
 </body>

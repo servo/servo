@@ -2,6 +2,7 @@
 <meta charset="utf-8">
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/storage-access-api/helpers.js"></script>
 <body>
 <script>
 (async function() {
@@ -11,9 +12,27 @@
   let message = "";
   // Step 4 (storage-access-api/storage-access-beyond-cookies.{}.tentative.sub.https.html)
   try {
+    await MaybeSetStorageAccess("*", "*", "blocked");
     await test_driver.set_permission({ name: 'storage-access' }, 'granted');
+    let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+    if (hasUnpartitionedCookieAccess) {
+      message = "First-party cookies should not be readable before handle is loaded.";
+    }
     const handle = await document.requestStorageAccess({all: true});
+    hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
+    if (!hasUnpartitionedCookieAccess) {
+      message = "First-party cookies should be readable after handle is loaded.";
+    }
     switch (type) {
+      case "none": {
+        break;
+      }
+      case "cookies": {
+        if (document.cookie.includes("test="+id)) {
+          message = "Cross-site first-party cookies should be empty";
+        }
+        break;
+      }
       case "sessionStorage": {
         if (!!handle.sessionStorage.getItem("test")) {
           message = "Cross-site first-party Session Storage should be empty";
@@ -97,6 +116,7 @@
   } catch (_) {
     message = "Unable to load handle in cross-site context for all";
   }
+  await MaybeSetStorageAccess("*", "*", "allowed");
   await test_driver.set_permission({ name: 'storage-access' }, 'prompt');
   if (message) {
     window.top.postMessage(message, "*");

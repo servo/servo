@@ -3,7 +3,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#overflow-values">
 <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
 <meta name="assert"
-  content="safe flex-start allows for overflow past the flex-end edge, which is top in the case of wrap-reverse" />
+  content="safe flex-start allows for overflow past the end edge, which is bottom/right even in the case of wrap-reverse" />
 
 <style>
   #reference-overlapped-red {
@@ -16,16 +16,16 @@
 
   .flex {
     display: flex;
-    width: 100px;
+    width: 90px;
     height: 90px;
     align-content: safe flex-start;
+    justify-content: safe flex-start;
     flex-wrap: wrap-reverse;
-    /* Make the green square cover the red square. */
-    translate: 0 10px;
   }
 
   .item {
     flex: 0 0 100px;
+    width: 100px;
     height: 100px;
     background: green;
   }

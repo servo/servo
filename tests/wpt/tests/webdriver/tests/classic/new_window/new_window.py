@@ -18,7 +18,13 @@ def test_payload(session):
     assert len(handles) == len(original_handles) + 1
     assert value["handle"] in handles
     assert value["handle"] not in original_handles
-    assert value["type"] == "window"
+
+    # On Android applications have a single window only and a new tab will
+    # be opened instead.
+    if session.capabilities["platformName"] == "android":
+        assert value["type"] == "tab"
+    else:
+        assert value["type"] == "window"
 
 
 def test_keeps_current_window_handle(session):
@@ -26,7 +32,6 @@ def test_keeps_current_window_handle(session):
 
     response = new_window(session, type_hint="window")
     value = assert_success(response)
-    assert value["type"] == "window"
 
     assert session.window_handle == original_handle
 
@@ -37,7 +42,6 @@ def test_opens_about_blank_in_new_window(session, inline):
 
     response = new_window(session, type_hint="window")
     value = assert_success(response)
-    assert value["type"] == "window"
 
     assert session.url == url
 
@@ -48,7 +52,6 @@ def test_opens_about_blank_in_new_window(session, inline):
 def test_sets_no_window_name(session):
     response = new_window(session, type_hint="window")
     value = assert_success(response)
-    assert value["type"] == "window"
 
     session.window_handle = value["handle"]
     assert window_name(session) == ""
@@ -57,7 +60,6 @@ def test_sets_no_window_name(session):
 def test_sets_no_opener(session):
     response = new_window(session, type_hint="window")
     value = assert_success(response)
-    assert value["type"] == "window"
 
     session.window_handle = value["handle"]
     assert opener(session) is None
@@ -66,7 +68,6 @@ def test_sets_no_opener(session):
 def test_focus_content(session, inline):
     response = new_window(session, type_hint="window")
     value = assert_success(response)
-    assert value["type"] == "window"
 
     session.window_handle = value["handle"]
 

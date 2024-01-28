@@ -51,6 +51,11 @@
         --unregistered-ex: 10ex;
         --unregistered-ch: 10ch;
         --unregistered-lh: 10lh;
+        --unregistered-em-env: calc(10em + env(test, 0px));
+        --unregistered-rem-env: calc(10rem + env(test, 0px));
+        --unregistered-ex-env: calc(10ex + env(test, 0px));
+        --unregistered-ch-env: calc(10ch + env(test, 0px));
+        --unregistered-lh-env: calc(10lh + env(test, 0px));
     }
 
     :root, #target {
@@ -165,6 +170,26 @@
             assert_property_equals('font-size', expected);
         }
     }, 'Registered universal variables referencing font-dependent units can be used in font-size');
+
+
+    test(function() {
+        // Unregistered variables behave as if they're copy & paste, so
+        // follow the regular font-relative size resolution.
+        const unregistered_variables = {
+            'unregistered-em-env': target.parentElement,
+            'unregistered-ex-env': target.parentElement,
+            'unregistered-ch-env': target.parentElement,
+            'unregistered-lh-env': target.parentElement,
+            'unregistered-rem-env': document.documentElement,
+        };
+
+        for (let variable in unregistered_variables) {
+            const e = unregistered_variables[variable];
+            const v = `var(--${variable})`;
+            target.style = `font-size: ${v};`;
+            assert_property_equals('font-size', compute_margin_bottom(v, e));
+        }
+    }, 'Font-dependent unregistered variables referencing env() can be used in font-size');
 
     test(function() {
         target.style = 'font-size: var(--font-size-px);';

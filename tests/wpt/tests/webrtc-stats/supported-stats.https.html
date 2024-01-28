@@ -72,6 +72,9 @@ function isPropertyTestable(type, property) {
     'outbound-rtp': [
       'rid', // requires simulcast.
     ],
+    'inbound-rtp': [
+      'fecSsrc', // requires FlexFEC to be negotiated.
+    ],
     'media-source': [
       'echoReturnLoss', // requires gUM with an audio input device.
       'echoReturnLossEnhancement', // requires gUM with an audio input device.

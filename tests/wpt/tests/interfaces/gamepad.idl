@@ -12,6 +12,7 @@ interface Gamepad {
   readonly attribute GamepadMappingType mapping;
   readonly attribute FrozenArray<double> axes;
   readonly attribute FrozenArray<GamepadButton> buttons;
+  [SameObject] readonly attribute GamepadHapticActuator vibrationActuator;
 };
 
 [Exposed=Window, SecureContext]
@@ -25,6 +26,32 @@ enum GamepadMappingType {
   "",
   "standard",
   "xr-standard",
+};
+
+[Exposed=Window]
+interface GamepadHapticActuator {
+  [SameObject] readonly attribute FrozenArray<GamepadHapticEffectType> effects;
+  Promise<GamepadHapticsResult> playEffect(
+      GamepadHapticEffectType type,
+      optional GamepadEffectParameters params = {}
+  );
+  Promise<GamepadHapticsResult> reset();
+};
+
+enum GamepadHapticsResult {
+  "complete",
+  "preempted"
+};
+
+enum GamepadHapticEffectType {
+  "dual-rumble"
+};
+
+dictionary GamepadEffectParameters {
+    unsigned long long duration = 0;
+    unsigned long long startDelay = 0;
+    double strongMagnitude = 0.0;
+    double weakMagnitude = 0.0;
 };
 
 [Exposed=Window]

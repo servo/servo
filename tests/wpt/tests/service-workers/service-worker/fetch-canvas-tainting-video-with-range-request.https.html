@@ -18,6 +18,7 @@
 // byte range). Then the <video> element automatically makes ranged requests
 // (the "Range" HTTP request header specifies a byte range). The server responds
 // to these with 206 Partial Content for the given range.
+let unique = 0; // See https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
 function range_request_test(script, expected, description) {
   promise_test(t => {
       let frame;
@@ -38,9 +39,10 @@ function range_request_test(script, expected, description) {
           })
         .then(f => {
             frame = f;
-            // Add "?VIDEO&PartialContent" to get a video resource from the
+            // Add "?PartialContent&VIDEO" to get a video resource from the
             // server using range requests.
-            const video_url = 'fetch-access-control.py?VIDEO&PartialContent';
+            const video_url =
+              'fetch-access-control.py?PartialContent&VIDEO=' + unique++;
             return frame.contentWindow.create_test_case_promise(video_url);
           })
         .then(result => {

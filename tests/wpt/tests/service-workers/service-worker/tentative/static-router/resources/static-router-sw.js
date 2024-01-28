@@ -1,8 +1,11 @@
 'use strict';
 
 import {routerRules} from './router-rules.js';
-
-var requests = [];
+import {
+  recordRequest,
+  recordError,
+  getRecords,
+  resetRecords } from './static-router-sw.sub.js';
 
 self.addEventListener('install', async e => {
   e.waitUntil(caches.open('v1').then(
@@ -10,7 +13,11 @@ self.addEventListener('install', async e => {
 
   const params = new URLSearchParams(location.search);
   const key = params.get('key');
-  await e.addRoutes(routerRules[key]);
+  try {
+    await e.addRoutes(routerRules[key]);
+  } catch (e) {
+    recordError(e);
+  }
   self.skipWaiting();
 });
 
@@ -19,13 +26,18 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', function(event) {
-  requests.push({url: event.request.url, mode: event.request.mode});
+  recordRequest(event.request);
   const url = new URL(event.request.url);
   const nonce = url.searchParams.get('nonce');
   event.respondWith(new Response(nonce));
 });
 
 self.addEventListener('message', function(event) {
-  event.data.port.postMessage({requests: requests});
-  requests = [];
+  if (event.data.reset) {
+    resetRecords();
+  }
+  if (event.data.port) {
+    const {requests, errors} = getRecords();
+    event.data.port.postMessage({requests, errors});
+  }
 });

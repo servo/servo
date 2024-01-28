@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+  <title>MediaStreamTrackProcessor</title>
+  <link rel="help" href="https://w3c.github.io/mediacapture-insertable-streams">
+</head>
+<body>
+<p class="instructions">When prompted, use the accept button to give permission to use your audio and video devices.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that MediaStreamTrackProcessor works as expected on video MediaStreamTracks.</p>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src='/mediacapture-streams/permission-helper.js'></script>
+<script>
+promise_test(async t => {
+  await setMediaPermission("granted", ["camera"]);
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const track = stream.getTracks()[0];
+  const processor = new MediaStreamTrackProcessor({track: track});
+  const reader = processor.readable.getReader();
+  const readResult = await reader.read();
+  assert_false(readResult.done)
+  assert_true(readResult.value instanceof VideoFrame);
+  readResult.value.close();
+  track.stop();
+  return reader.closed;
+}, "Tests that the reader of a video MediaStreamTrackProcessor produces video frames and is closed on track stop");
+
+promise_test(async t => {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  const track = stream.getTracks()[0];
+  const processor = new MediaStreamTrackProcessor({track: track});
+  const worker = new Worker('MediaStreamTrackProcessor-worker.js');
+  const promise = new Promise(resolve => {
+    worker.onmessage = t.step_func(msg => {
+      if (msg.data instanceof VideoFrame) {
+        msg.data.close();
+        track.stop();
+      } else if (msg.data == 'closed') {
+        resolve();
+      } else {
+        assert_unreached();
+      }
+    })
+  });
+  worker.postMessage({readable: processor.readable},
+                     [processor.readable]);
+  return promise;
+}, "Tests that the reader of a video MediaStreamTrackProcessor produces VideoFrame objects and is closed on track stop while running on a worker");
+
+function makeVideoFrame(timestamp) {
+  const canvas = new OffscreenCanvas(100, 100);
+  const ctx = canvas.getContext('2d');
+  return new VideoFrame(canvas, {timestamp});
+}
+
+promise_test(async t => {
+  // The generator will be used as the source for the processor to
+  // produce frames in a controlled manner.
+  const generator = new MediaStreamTrackGenerator('video');
+  t.add_cleanup(() => generator.stop());
+  // Use a larger maxBufferSize than the default to ensure no frames
+  // will be dropped.
+  const processor = new MediaStreamTrackProcessor({track: generator, maxBufferSize:10});
+  const reader = processor.readable.getReader();
+  const writer = generator.writable.getWriter();
+
+  let numReads = 0;
+  let resolve = null;
+  const promise = new Promise(r => resolve = r);
+
+  const numOperations = 4;
+  // Issue reads without waiting for the frames to arrive.
+  for (let i = 0; i < numOperations; i++) {
+    reader.read().then(dv=> {
+      dv.value.close();
+      if (++numReads == numOperations)
+        resolve();
+    });
+  }
+
+  // Write video frames in different tasks to "slowly" settle the pending read
+  // requests.
+  for (let i = 0; i<numOperations; i++) {
+     await writer.write(makeVideoFrame(i));
+     await new Promise(r=>t.step_timeout(r,0));
+  }
+
+  return promise;
+
+}, "Tests that multiple read requests are eventually settled");
+
+</script>
+</body>
+</html>
