@@ -143,6 +143,7 @@ class Linux(Base):
             'nixos',
             'ubuntu',
             'void',
+            'fedora linux asahi remix'
         ]:
             raise NotImplementedError("mach bootstrap does not support "
                                       f"{self.distro}, please file a bug")
@@ -159,7 +160,7 @@ class Linux(Base):
             if subprocess.call(['dpkg', '-s'] + pkgs, shell=True,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
                 install = True
-        elif self.distro in ['CentOS', 'CentOS Linux', 'Fedora', 'Fedora Linux']:
+        elif self.distro in ['CentOS', 'CentOS Linux', 'Fedora', 'Fedora Linux', 'Fedora Linux Asahi Remix']:
             installed_pkgs = str(subprocess.check_output(['rpm', '-qa'])).replace('\n', '|')
             pkgs = DNF_PKGS
             for pkg in pkgs:
