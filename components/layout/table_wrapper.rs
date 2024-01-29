@@ -80,9 +80,9 @@ impl TableWrapperFlow {
                 TableLayout::Auto
             };
         TableWrapperFlow {
-            block_flow: block_flow,
+            block_flow,
             column_intrinsic_inline_sizes: vec![],
-            table_layout: table_layout,
+            table_layout,
         }
     }
 
@@ -163,7 +163,7 @@ impl TableWrapperFlow {
         {
             intermediate_column_inline_size.size = guess.calculate(selection);
             // intermediate_column_inline_size.percentage = 0.0;
-            total_used_inline_size = total_used_inline_size + intermediate_column_inline_size.size
+            total_used_inline_size += intermediate_column_inline_size.size
         }
 
         // Distribute excess inline-size if necessary per INTRINSIC § 4.4.
@@ -269,8 +269,8 @@ impl TableWrapperFlow {
         // the constraint solutions in.
         if self.block_flow.base.flags.is_float() {
             let inline_size_computer = FloatedTable {
-                minimum_width_of_all_columns: minimum_width_of_all_columns,
-                preferred_width_of_all_columns: preferred_width_of_all_columns,
+                minimum_width_of_all_columns,
+                preferred_width_of_all_columns,
                 table_border_padding: border_padding,
             };
             let input = inline_size_computer.compute_inline_size_constraint_inputs(
@@ -295,8 +295,8 @@ impl TableWrapperFlow {
             .contains(FlowFlags::INLINE_POSITION_IS_STATIC)
         {
             let inline_size_computer = AbsoluteTable {
-                minimum_width_of_all_columns: minimum_width_of_all_columns,
-                preferred_width_of_all_columns: preferred_width_of_all_columns,
+                minimum_width_of_all_columns,
+                preferred_width_of_all_columns,
                 table_border_padding: border_padding,
             };
             let input = inline_size_computer.compute_inline_size_constraint_inputs(
@@ -315,8 +315,8 @@ impl TableWrapperFlow {
         }
 
         let inline_size_computer = Table {
-            minimum_width_of_all_columns: minimum_width_of_all_columns,
-            preferred_width_of_all_columns: preferred_width_of_all_columns,
+            minimum_width_of_all_columns,
+            preferred_width_of_all_columns,
             table_border_padding: border_padding,
         };
         let input = inline_size_computer.compute_inline_size_constraint_inputs(
@@ -625,7 +625,7 @@ impl AutoLayoutCandidateGuess {
         );
         AutoLayoutCandidateGuess {
             minimum_guess: column_intrinsic_inline_size.minimum_length,
-            minimum_percentage_guess: minimum_percentage_guess,
+            minimum_percentage_guess,
             // FIXME(pcwalton): We need the notion of *constrainedness* per INTRINSIC § 4 to
             // implement this one correctly.
             minimum_specified_guess: if column_intrinsic_inline_size.percentage > 0.0 {
@@ -765,17 +765,13 @@ impl ExcessInlineSizeDistributionInfo {
         if !column_intrinsic_inline_size.constrained &&
             column_intrinsic_inline_size.percentage == 0.0
         {
-            self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage = self
-                .preferred_inline_size_of_nonconstrained_columns_with_no_percentage +
-                column_intrinsic_inline_size.preferred;
+            self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage += column_intrinsic_inline_size.preferred;
             self.count_of_nonconstrained_columns_with_no_percentage += 1
         }
         if column_intrinsic_inline_size.constrained &&
             column_intrinsic_inline_size.percentage == 0.0
         {
-            self.preferred_inline_size_of_constrained_columns_with_no_percentage = self
-                .preferred_inline_size_of_constrained_columns_with_no_percentage +
-                column_intrinsic_inline_size.preferred
+            self.preferred_inline_size_of_constrained_columns_with_no_percentage += column_intrinsic_inline_size.preferred
         }
         self.total_percentage += column_intrinsic_inline_size.percentage;
         self.column_count += 1
@@ -825,9 +821,8 @@ impl ExcessInlineSizeDistributionInfo {
             excess_inline_size.scale_by(proportion),
             excess_inline_size - *total_distributed_excess_size,
         );
-        *total_distributed_excess_size = *total_distributed_excess_size + amount_to_distribute;
-        intermediate_column_inline_size.size =
-            intermediate_column_inline_size.size + amount_to_distribute
+        *total_distributed_excess_size += amount_to_distribute;
+        intermediate_column_inline_size.size += amount_to_distribute
     }
 }
 

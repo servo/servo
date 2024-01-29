@@ -89,7 +89,7 @@ impl FloatedBlockInfo {
         FloatedBlockInfo {
             containing_inline_size: Au(0),
             float_ceiling: Au(0),
-            float_kind: float_kind,
+            float_kind,
         }
     }
 }
@@ -111,10 +111,10 @@ impl BSizeConstraintSolution {
         margin_block_end: Au,
     ) -> BSizeConstraintSolution {
         BSizeConstraintSolution {
-            block_start: block_start,
-            block_size: block_size,
-            margin_block_start: margin_block_start,
-            margin_block_end: margin_block_end,
+            block_start,
+            block_size,
+            margin_block_start,
+            margin_block_end,
         }
     }
 
@@ -509,7 +509,7 @@ enum CandidateBSizeIteratorStatus {
 
 // A helper function used in block-size calculation.
 fn translate_including_floats(cur_b: &mut Au, delta: Au, floats: &mut Floats) {
-    *cur_b = *cur_b + delta;
+    *cur_b += delta;
     let writing_mode = floats.writing_mode;
     floats.translate(LogicalSize::new(writing_mode, Au(0), -delta));
 }
@@ -638,7 +638,7 @@ impl BlockFlow {
                     None => ForceNonfloatedFlag::ForceNonfloated,
                 },
             ),
-            fragment: fragment,
+            fragment,
             float: float_kind.map(|kind| Box::new(FloatedBlockInfo::new(kind))),
             flags: BlockFlowFlags::empty(),
         }
@@ -673,12 +673,10 @@ impl BlockFlow {
             } else {
                 BlockType::InlineBlockNonReplaced
             }
+        } else if self.fragment.is_replaced() {
+            BlockType::Replaced
         } else {
-            if self.fragment.is_replaced() {
-                BlockType::Replaced
-            } else {
-                BlockType::NonReplaced
-            }
+            BlockType::NonReplaced
         }
     }
 
@@ -771,7 +769,7 @@ impl BlockFlow {
     }
 
     pub fn stacking_relative_border_box(&self, coor: CoordinateSystem) -> Rect<Au> {
-        return self.fragment.stacking_relative_border_box(
+        self.fragment.stacking_relative_border_box(
             &self.base.stacking_relative_position,
             &self
                 .base
@@ -781,7 +779,7 @@ impl BlockFlow {
                 .early_absolute_position_info
                 .relative_containing_block_mode,
             coor,
-        );
+        )
     }
 
     /// Return the size of the containing block for the given immediate absolute descendant of this
@@ -852,7 +850,7 @@ impl BlockFlow {
         if block_start_margin_value != Au(0) {
             for kid in self.base.child_iter_mut() {
                 let kid_base = kid.mut_base();
-                kid_base.position.start.b = kid_base.position.start.b + block_start_margin_value
+                kid_base.position.start.b += block_start_margin_value
             }
         }
 
@@ -1075,7 +1073,7 @@ impl BlockFlow {
                 // Collapse-through margins should be placed at the top edge,
                 // so we'll handle the delta after the bottom margin is processed
                 if let CollapsibleMargins::CollapseThrough(_) = kid.base().collapsible_margins {
-                    cur_b = cur_b - delta;
+                    cur_b -= delta;
                 }
 
                 // Clear past the floats that came in, if necessary.
@@ -1104,7 +1102,7 @@ impl BlockFlow {
                 // function here because the child has already translated floats past its border
                 // box.
                 let kid_base = kid.mut_base();
-                cur_b = cur_b + kid_base.position.size.block;
+                cur_b += kid_base.position.size.block;
 
                 // Handle any (possibly collapsed) block-end margin.
                 let delta =
@@ -1115,8 +1113,8 @@ impl BlockFlow {
                 let collapse_delta = match kid_base.collapsible_margins {
                     CollapsibleMargins::CollapseThrough(_) => {
                         let delta = margin_collapse_info.current_float_ceiling();
-                        cur_b = cur_b + delta;
-                        kid_base.position.start.b = kid_base.position.start.b + delta;
+                        cur_b += delta;
+                        kid_base.position.start.b += delta;
                         delta
                     },
                     _ => Au(0),
@@ -1137,7 +1135,7 @@ impl BlockFlow {
 
                 // For consecutive collapse-through flows, their top margin should be calculated
                 // from the same baseline.
-                cur_b = cur_b - collapse_delta;
+                cur_b -= collapse_delta;
             }
 
             // Add in our block-end margin and compute our collapsible margins.
@@ -1169,7 +1167,7 @@ impl BlockFlow {
             {
                 // The content block-size includes all the floats per CSS 2.1 § 10.6.7. The easiest
                 // way to handle this is to just treat it as clearance.
-                block_size = block_size + floats.clearance(ClearType::Both);
+                block_size += floats.clearance(ClearType::Both);
             }
 
             if self
@@ -1576,7 +1574,7 @@ impl BlockFlow {
     ) where
         F: FnMut(&mut dyn Flow, usize, Au, WritingMode, &mut Au, &mut Au),
     {
-        let flags = self.base.flags.clone();
+        let flags = self.base.flags;
 
         let opaque_self = OpaqueFlow::from_flow(self);
 
@@ -1610,8 +1608,8 @@ impl BlockFlow {
         let mut inline_start_margin_edge = inline_start_content_edge;
         let mut inline_end_margin_edge = inline_end_content_edge;
 
-        let mut iterator = self.base.child_iter_mut().enumerate().peekable();
-        while let Some((i, kid)) = iterator.next() {
+        let iterator = self.base.child_iter_mut().enumerate().peekable();
+        for (i, kid) in iterator {
             kid.mut_base().block_container_explicit_block_size = explicit_content_size;
 
             // The inline-start margin edge of the child flow is at our inline-start content edge,
@@ -1942,12 +1940,10 @@ impl BlockFlow {
                     )
                 },
                 (Float::Left, _) => {
-                    left_float_width_accumulator = left_float_width_accumulator +
-                        child_base.intrinsic_inline_sizes.preferred_inline_size;
+                    left_float_width_accumulator += child_base.intrinsic_inline_sizes.preferred_inline_size;
                 },
                 (Float::Right, _) => {
-                    right_float_width_accumulator = right_float_width_accumulator +
-                        child_base.intrinsic_inline_sizes.preferred_inline_size;
+                    right_float_width_accumulator += child_base.intrinsic_inline_sizes.preferred_inline_size;
                 },
             }
         }
@@ -2609,14 +2605,14 @@ impl Flow for BlockFlow {
 
     fn compute_overflow(&self) -> Overflow {
         let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
-        let overflow = self.fragment.compute_overflow(
+        
+        self.fragment.compute_overflow(
             &flow_size,
             &self
                 .base
                 .early_absolute_position_info
                 .relative_containing_block_size,
-        );
-        overflow
+        )
     }
 
     fn iterate_through_fragment_border_boxes(
@@ -2693,13 +2689,13 @@ impl ISizeConstraintInput {
         available_inline_size: Au,
     ) -> ISizeConstraintInput {
         ISizeConstraintInput {
-            computed_inline_size: computed_inline_size,
-            inline_start_margin: inline_start_margin,
-            inline_end_margin: inline_end_margin,
-            inline_start: inline_start,
-            inline_end: inline_end,
-            text_align: text_align,
-            available_inline_size: available_inline_size,
+            computed_inline_size,
+            inline_start_margin,
+            inline_end_margin,
+            inline_start,
+            inline_end,
+            text_align,
+            available_inline_size,
         }
     }
 }
@@ -2721,9 +2717,9 @@ impl ISizeConstraintSolution {
     ) -> ISizeConstraintSolution {
         ISizeConstraintSolution {
             inline_start: Au(0),
-            inline_size: inline_size,
-            margin_inline_start: margin_inline_start,
-            margin_inline_end: margin_inline_end,
+            inline_size,
+            margin_inline_start,
+            margin_inline_end,
         }
     }
 
@@ -2734,10 +2730,10 @@ impl ISizeConstraintSolution {
         margin_inline_end: Au,
     ) -> ISizeConstraintSolution {
         ISizeConstraintSolution {
-            inline_start: inline_start,
-            inline_size: inline_size,
-            margin_inline_start: margin_inline_start,
-            margin_inline_end: margin_inline_end,
+            inline_start,
+            inline_size,
+            margin_inline_start,
+            margin_inline_end,
         }
     }
 }

@@ -63,6 +63,12 @@ pub struct FlowListIterator<'a> {
     it: linked_list::Iter<'a, FlowRef>,
 }
 
+impl Default for FlowList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FlowList {
     /// Add an element last in the list
     ///
@@ -96,7 +102,7 @@ impl FlowList {
     /// SECURITY-NOTE(pcwalton): This does not hand out `FlowRef`s by design. Do not add a method
     /// to do so! See the comment above in `FlowList`.
     #[inline]
-    pub fn iter<'a>(&'a self) -> FlowListIterator {
+    pub fn iter(&self) -> FlowListIterator {
         FlowListIterator {
             it: self.flows.iter(),
         }
@@ -187,7 +193,7 @@ pub struct FlowListRandomAccessMut<'a> {
 }
 
 impl<'a> FlowListRandomAccessMut<'a> {
-    pub fn get<'b>(&'b mut self, index: usize) -> &'b mut dyn Flow {
+    pub fn get(&mut self, index: usize) -> &mut dyn Flow {
         while index >= self.cache.len() {
             match self.iterator.next() {
                 None => panic!("Flow index out of range!"),

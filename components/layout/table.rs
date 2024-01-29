@@ -14,7 +14,7 @@ use serde::Serialize;
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
-use style::properties::style_structs::Background;
+
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::Size;
@@ -85,12 +85,12 @@ impl TableFlow {
                 TableLayout::Auto
             };
         TableFlow {
-            block_flow: block_flow,
+            block_flow,
             column_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
             collapsed_inline_direction_border_widths_for_table: Vec::new(),
             collapsed_block_direction_border_widths_for_table: Vec::new(),
-            table_layout: table_layout,
+            table_layout,
         }
     }
 
@@ -253,7 +253,7 @@ impl TableFlow {
                     // XXXManishearth Arc-cloning colgroup_style is suboptimal
                     styles.push(ColumnStyle {
                         span: col.column_span(),
-                        colgroup_style: colgroup_style,
+                        colgroup_style,
                         col_style: Some(col.style()),
                     })
                 }
@@ -339,11 +339,11 @@ impl Flow for TableFlow {
         let table_inline_collapsed_borders = if collapsing_borders {
             Some(TableInlineCollapsedBorders {
                 start: CollapsedBorder::inline_start(
-                    &*self.block_flow.fragment.style,
+                    &self.block_flow.fragment.style,
                     CollapsedBorderProvenance::FromTable,
                 ),
                 end: CollapsedBorder::inline_end(
-                    &*self.block_flow.fragment.style,
+                    &self.block_flow.fragment.style,
                     CollapsedBorderProvenance::FromTable,
                 ),
             })
@@ -354,7 +354,7 @@ impl Flow for TableFlow {
         let mut computation = IntrinsicISizesContribution::new();
         let mut previous_collapsed_block_end_borders =
             PreviousBlockCollapsedBorders::FromTable(CollapsedBorder::block_start(
-                &*self.block_flow.fragment.style,
+                &self.block_flow.fragment.style,
                 CollapsedBorderProvenance::FromTable,
             ));
         let mut first_row = true;
@@ -381,7 +381,7 @@ impl Flow for TableFlow {
                                 .block_start,
                         ),
                         None => NextBlockCollapsedBorders::FromTable(CollapsedBorder::block_end(
-                            &*self.block_flow.fragment.style,
+                            &self.block_flow.fragment.style,
                             CollapsedBorderProvenance::FromTable,
                         )),
                     };
@@ -476,7 +476,7 @@ impl Flow for TableFlow {
                     } else if column_inline_size.percentage != 0.0 {
                         let size = remaining_inline_size.scale_by(column_inline_size.percentage);
                         self.column_computed_inline_sizes
-                            .push(ColumnComputedInlineSize { size: size });
+                            .push(ColumnComputedInlineSize { size });
                         remaining_inline_size -= size;
                     } else {
                         // Set the size to 0 now, distribute the remaining widths later
@@ -486,7 +486,7 @@ impl Flow for TableFlow {
                 }
 
                 // Distribute remaining content inline size
-                if unspecified_inline_sizes_indices.len() > 0 {
+                if !unspecified_inline_sizes_indices.is_empty() {
                     for &index in &unspecified_inline_sizes_indices {
                         self.column_computed_inline_sizes[index].size = remaining_inline_size
                             .scale_by(1.0 / unspecified_inline_sizes_indices.len() as f32);
@@ -602,7 +602,7 @@ impl Flow for TableFlow {
         self.block_flow
             .build_display_list_for_block(state, border_painting_mode);
 
-        let iter = TableCellStyleIterator::new(&self);
+        let iter = TableCellStyleIterator::new(self);
         for style in iter {
             style.build_display_list(state)
         }
@@ -722,6 +722,12 @@ pub struct ColumnIntrinsicInlineSize {
     pub constrained: bool,
 }
 
+impl Default for ColumnIntrinsicInlineSize {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ColumnIntrinsicInlineSize {
     /// Returns a newly-initialized `ColumnIntrinsicInlineSize` with all fields blank.
     pub fn new() -> ColumnIntrinsicInlineSize {
@@ -830,7 +836,7 @@ fn perform_border_collapse_for_row(
                 }
             },
             PreviousBlockCollapsedBorders::FromTable(ref table_border) => {
-                this_border.combine(&table_border);
+                this_border.combine(table_border);
             },
         }
     }
@@ -967,8 +973,7 @@ impl TableLikeFlow for BlockFlow {
                     row.mut_base().restyle_damage.remove(
                         ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW,
                     );
-                    current_block_offset = current_block_offset +
-                        border_spacing_for_row(&self.fragment, row, block_direction_spacing);
+                    current_block_offset += border_spacing_for_row(&self.fragment, row, block_direction_spacing);
                     i += 1;
                 }
 
@@ -979,7 +984,7 @@ impl TableLikeFlow for BlockFlow {
                 // function here because the child has already translated floats past its border
                 // box.
                 let kid_base = kid.mut_base();
-                current_block_offset = current_block_offset + kid_base.position.size.block;
+                current_block_offset += kid_base.position.size.block;
             }
 
             // Compute any explicitly-specified block size.
@@ -1001,7 +1006,7 @@ impl TableLikeFlow for BlockFlow {
             // block-size.
             block_size = candidate_block_size_iterator.candidate_value;
             let delta = block_size - (current_block_offset - block_start_border_padding);
-            current_block_offset = current_block_offset + delta;
+            current_block_offset += delta;
 
             // Take border, padding, and spacing into account.
             let block_end_offset = self.fragment.border_padding.block_end +
@@ -1010,7 +1015,7 @@ impl TableLikeFlow for BlockFlow {
                 } else {
                     Au(0)
                 };
-            current_block_offset = current_block_offset + block_end_offset;
+            current_block_offset += block_end_offset;
 
             // Now that `current_block_offset` is at the block-end of the border box, compute the
             // final border box position.
@@ -1187,7 +1192,7 @@ impl<'table> TableCellStyleIterator<'table> {
         let mut row_iterator = TableRowAndGroupIterator::new(&table.block_flow.base);
         let row_info = if let Some((group, row)) = row_iterator.next() {
             Some(TableCellStyleIteratorRowInfo {
-                row: &row,
+                row,
                 rowgroup: group,
                 cell_iterator: row.block_flow.base.child_iter(),
             })
@@ -1211,6 +1216,7 @@ struct TableCellStyleInfo<'table> {
     row_style: &'table ComputedValues,
 }
 
+#[derive(Default)]
 struct TableCellColumnIndexData {
     /// Which column this is in the table
     pub absolute: u32,
@@ -1222,15 +1228,7 @@ struct TableCellColumnIndexData {
     pub relative_offset: u32,
 }
 
-impl Default for TableCellColumnIndexData {
-    fn default() -> Self {
-        TableCellColumnIndexData {
-            absolute: 0,
-            relative: 0,
-            relative_offset: 0,
-        }
-    }
-}
+
 
 impl TableCellColumnIndexData {
     /// Moves forward by `amount` columns, updating the various indices used
@@ -1286,8 +1284,8 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                     self.column_styles.get(self.column_index.relative as usize)
                 {
                     let styles = (
-                        column_style.col_style.clone(),
-                        column_style.colgroup_style.clone(),
+                        column_style.col_style,
+                        column_style.colgroup_style,
                     );
                     self.column_index
                         .advance(cell.column_span, &self.column_styles);
@@ -1298,18 +1296,18 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                 };
                 // put row_info back in
                 self.row_info = Some(row_info);
-                return Some(TableCellStyleInfo {
+                Some(TableCellStyleInfo {
                     cell,
                     colgroup_style,
                     col_style,
                     rowgroup_style,
                     row_style,
-                });
+                })
             } else {
                 // next row
                 if let Some((group, row)) = self.row_iterator.next() {
                     self.row_info = Some(TableCellStyleIteratorRowInfo {
-                        row: &row,
+                        row,
                         rowgroup: group,
                         cell_iterator: row.block_flow.base.child_iter(),
                     });
@@ -1363,7 +1361,7 @@ impl<'table> TableCellStyleInfo<'table> {
             let build_dl = |sty: &ComputedValues, state: &mut &mut DisplayListBuildState| {
                 let background = sty.get_background();
                 // Don't redraw backgrounds that we've already drawn
-                if background as *const Background == initial.get_background() as *const _ {
+                if std::ptr::eq(background, initial.get_background()) {
                     return;
                 }
                 let background_color = sty.resolve_color(background.background_color.clone());
@@ -1374,13 +1372,13 @@ impl<'table> TableCellStyleInfo<'table> {
                 );
             };
 
-            if let Some(ref sty) = self.colgroup_style {
-                build_dl(&sty, &mut state);
+            if let Some(sty) = self.colgroup_style {
+                build_dl(sty, &mut state);
             }
-            if let Some(ref sty) = self.col_style {
-                build_dl(&sty, &mut state);
+            if let Some(sty) = self.col_style {
+                build_dl(sty, &mut state);
             }
-            if let Some(ref sty) = self.rowgroup_style {
+            if let Some(sty) = self.rowgroup_style {
                 build_dl(sty, &mut state);
             }
             build_dl(self.row_style, &mut state);
