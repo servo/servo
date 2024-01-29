@@ -1,8 +1,0 @@
----
-root:
-  items:
-    - type: box-shadow
-      bounds: [ 50, 50, 100, 800 ]
-      color: red
-      blur-radius: 16
-      border-radius: 32

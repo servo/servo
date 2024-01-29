@@ -1,8 +1,0 @@
----
-root:
-  items:
-    - type: conic-gradient
-      bounds: 50 50 300 300
-      center: 150 150
-      angle: 0.0
-      stops: [0.0, red, 1.0, yellow]

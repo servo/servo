@@ -1,5 +1,0 @@
----
-root:
-  items:
-    - type: stacking-context
-      bounds: [0, 0, 1000, 1000]

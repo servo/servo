@@ -1,9 +1,0 @@
----
-root:
-  items:
-    # an aligned gradient from [0, 400] and clipped to [100, 300]
-    - type: gradient
-      bounds: 0 100 200 200
-      start: 100 -100
-      end: 100 300
-      stops: [0.0, green, 1.0, blue]

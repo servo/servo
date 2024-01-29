@@ -1,9 +1,0 @@
---- # checks that embedded bitmaps are rasterized and use a proper layout
-root:
-  items:
-        - text: "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 {}[]()<>$*-+=/#_%^@\\&|~?'\"!,.;:"
-          origin: 20 30
-          bounds: [0, 0, 710, 50]
-          size: 8.25
-          font: "Proggy.ttf"
-          embedded-bitmaps: true

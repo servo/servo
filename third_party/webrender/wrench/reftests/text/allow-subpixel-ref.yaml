@@ -1,8 +1,0 @@
----
-root:
-  items:
-    - text: "This should not be subpixel text"
-      origin: 20 120
-      size: 18
-      color: black
-      font: "VeraBd.ttf"

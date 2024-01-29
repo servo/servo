@@ -1,8 +1,0 @@
---- # Verify that large glyphs actually render at all.
-root: 
-  items: 
-    - text: "HI" 
-      origin: 0 1234
-      size: 1234
-      color: black
-      font: "VeraBd.ttf"

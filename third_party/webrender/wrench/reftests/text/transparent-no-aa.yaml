@@ -1,9 +1,0 @@
----
-root: 
-  items: 
-        - 
-          text: "hello everybody"
-          origin: [10, 20]
-          size: 18
-          color: [0, 0, 0, 0.5]
-          font: "VeraBd.ttf"

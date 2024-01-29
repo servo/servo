@@ -1,7 +1,0 @@
-root:
-  bounds: [0, 0, 1024, 10000]
-  scroll-offset: [0, 100]
-  items:
-    - type: rect
-      bounds: [10, 110, 50, 50]
-      color: green

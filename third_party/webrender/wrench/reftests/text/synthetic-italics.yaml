@@ -1,7 +1,0 @@
-root:
-  items:
-    - text: "Fake italics are great"
-      origin: 20 40
-      size: 20
-      synthetic-italics: true
-
