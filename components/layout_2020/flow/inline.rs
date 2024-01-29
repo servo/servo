@@ -1779,7 +1779,7 @@ impl IndependentFormattingContext {
                     .make_fragments(&replaced.style, size.clone());
                 let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
-                    size,
+                    size: size.into(),
                 };
 
                 BoxFragment::new(
