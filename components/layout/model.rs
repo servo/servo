@@ -27,12 +27,6 @@ pub struct AdjoiningMargins {
     pub most_negative: Au,
 }
 
-impl Default for AdjoiningMargins {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl AdjoiningMargins {
     pub fn new() -> AdjoiningMargins {
         AdjoiningMargins {
@@ -65,6 +59,12 @@ impl AdjoiningMargins {
     }
 }
 
+impl Default for AdjoiningMargins {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Represents the block-start and block-end margins of a flow with collapsible margins. See CSS 2.1 § 8.3.1.
 #[derive(Clone, Copy, Debug)]
 pub enum CollapsibleMargins {
@@ -78,12 +78,6 @@ pub enum CollapsibleMargins {
     /// Margins collapse *through* this flow. This means, essentially, that the flow doesn’t
     /// have any border, padding, or out-of-flow (floating or positioned) content
     CollapseThrough(AdjoiningMargins),
-}
-
-impl Default for CollapsibleMargins {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl CollapsibleMargins {
@@ -108,6 +102,12 @@ impl CollapsibleMargins {
             CollapsibleMargins::Collapse(_, ref block_end) |
             CollapsibleMargins::CollapseThrough(ref block_end) => block_end.collapse(),
         }
+    }
+}
+
+impl Default for CollapsibleMargins {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -360,18 +360,18 @@ impl fmt::Debug for IntrinsicISizes {
     }
 }
 
-impl Default for IntrinsicISizes {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl IntrinsicISizes {
     pub fn new() -> IntrinsicISizes {
         IntrinsicISizes {
             minimum_inline_size: Au(0),
             preferred_inline_size: Au(0),
         }
+    }
+}
+
+impl Default for IntrinsicISizes {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -382,12 +382,6 @@ pub struct IntrinsicISizesContribution {
     pub content_intrinsic_sizes: IntrinsicISizes,
     /// The inline size of borders and padding, as well as margins if appropriate.
     pub surrounding_size: Au,
-}
-
-impl Default for IntrinsicISizesContribution {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl IntrinsicISizesContribution {
@@ -448,6 +442,12 @@ impl IntrinsicISizesContribution {
             self.content_intrinsic_sizes.preferred_inline_size,
             sizes.preferred_inline_size,
         )
+    }
+}
+
+impl Default for IntrinsicISizesContribution {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -721,12 +721,6 @@ pub struct ColumnIntrinsicInlineSize {
     pub constrained: bool,
 }
 
-impl Default for ColumnIntrinsicInlineSize {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl ColumnIntrinsicInlineSize {
     /// Returns a newly-initialized `ColumnIntrinsicInlineSize` with all fields blank.
     pub fn new() -> ColumnIntrinsicInlineSize {
@@ -745,6 +739,12 @@ impl ColumnIntrinsicInlineSize {
         } else {
             other.percentage
         }
+    }
+}
+
+impl Default for ColumnIntrinsicInlineSize {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

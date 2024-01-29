@@ -683,12 +683,6 @@ pub struct CollapsedBordersForRow {
     pub block_end: Vec<CollapsedBorder>,
 }
 
-impl Default for CollapsedBordersForRow {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl CollapsedBordersForRow {
     pub fn new() -> CollapsedBordersForRow {
         CollapsedBordersForRow {
@@ -703,6 +697,12 @@ impl CollapsedBordersForRow {
         self.inline.push(first_inline_border);
         self.block_start.clear();
         self.block_end.clear()
+    }
+}
+
+impl Default for CollapsedBordersForRow {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -761,12 +761,6 @@ pub enum CollapsedBorderProvenance {
     FromTableColumn = 2,
     FromTableColumnGroup = 1,
     FromTable = 0,
-}
-
-impl Default for CollapsedBorder {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl CollapsedBorder {
@@ -911,6 +905,12 @@ impl CollapsedBorder {
             _ if (self.provenance as i8) >= other.provenance as i8 => {},
             _ => *self = other.clone(),
         }
+    }
+}
+
+impl Default for CollapsedBorder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

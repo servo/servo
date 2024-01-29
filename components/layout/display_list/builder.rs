@@ -150,7 +150,7 @@ impl StackingContextInfo {
     }
 
     fn take_children(&mut self) -> Vec<StackingContext> {
-        std::mem::take(&mut self.children)
+        mem::take(&mut self.children)
     }
 }
 

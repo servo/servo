@@ -63,12 +63,6 @@ pub struct FlowListIterator<'a> {
     it: linked_list::Iter<'a, FlowRef>,
 }
 
-impl Default for FlowList {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl FlowList {
     /// Add an element last in the list
     ///
@@ -144,6 +138,12 @@ impl FlowList {
         FlowList {
             flows: self.flows.split_off(i),
         }
+    }
+}
+
+impl Default for FlowList {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

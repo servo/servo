@@ -696,12 +696,6 @@ pub struct AbsoluteDescendants {
     descendant_links: Vec<AbsoluteDescendantInfo>,
 }
 
-impl Default for AbsoluteDescendants {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl AbsoluteDescendants {
     pub fn new() -> AbsoluteDescendants {
         AbsoluteDescendants {
@@ -745,6 +739,12 @@ impl AbsoluteDescendants {
         for descendant_info in self.descendant_links.iter_mut() {
             descendant_info.has_reached_containing_block = true
         }
+    }
+}
+
+impl Default for AbsoluteDescendants {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -824,17 +824,17 @@ pub struct LateAbsolutePositionInfo {
     pub stacking_relative_position_of_absolute_containing_block: Point2D<Au>,
 }
 
-impl Default for LateAbsolutePositionInfo {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl LateAbsolutePositionInfo {
     pub fn new() -> LateAbsolutePositionInfo {
         LateAbsolutePositionInfo {
             stacking_relative_position_of_absolute_containing_block: Point2D::zero(),
         }
+    }
+}
+
+impl Default for LateAbsolutePositionInfo {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

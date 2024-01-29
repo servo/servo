@@ -327,7 +327,7 @@ impl LineBreaker {
             })
             .collect();
 
-        let mut lines = std::mem::take(&mut self.lines);
+        let mut lines = mem::take(&mut self.lines);
 
         // If everything is LTR, don't bother with reordering.
         if bidi::level::has_rtl(&levels) {
@@ -352,7 +352,7 @@ impl LineBreaker {
         }
 
         // Place the fragments back into the flow.
-        old_fragments.fragments = std::mem::take(&mut self.new_fragments);
+        old_fragments.fragments = mem::take(&mut self.new_fragments);
         flow.fragments = old_fragments;
         flow.lines = lines;
     }
@@ -924,12 +924,6 @@ pub struct InlineFragments {
     pub fragments: Vec<Fragment>,
 }
 
-impl Default for InlineFragments {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl InlineFragments {
     /// Creates an empty set of inline fragments.
     pub fn new() -> InlineFragments {
@@ -955,6 +949,12 @@ impl InlineFragments {
     /// A convenience function to return a mutable reference to the fragment at a given index.
     pub fn get_mut(&mut self, index: usize) -> &mut Fragment {
         &mut self.fragments[index]
+    }
+}
+
+impl Default for InlineFragments {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -2078,12 +2078,6 @@ pub struct InlineFragmentContext {
     pub nodes: Vec<InlineFragmentNodeInfo>,
 }
 
-impl Default for InlineFragmentContext {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl InlineFragmentContext {
     pub fn new() -> InlineFragmentContext {
         InlineFragmentContext { nodes: vec![] }
@@ -2104,6 +2098,12 @@ impl InlineFragmentContext {
             }
         }
         true
+    }
+}
+
+impl Default for InlineFragmentContext {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

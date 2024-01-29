@@ -1608,8 +1608,7 @@ impl BlockFlow {
         let mut inline_start_margin_edge = inline_start_content_edge;
         let mut inline_end_margin_edge = inline_end_content_edge;
 
-        let iterator = self.base.child_iter_mut().enumerate().peekable();
-        for (i, kid) in iterator {
+        for (i, kid) in self.base.child_iter_mut().enumerate().peekable() {
             kid.mut_base().block_container_explicit_block_size = explicit_content_size;
 
             // The inline-start margin edge of the child flow is at our inline-start content edge,
@@ -2607,7 +2606,6 @@ impl Flow for BlockFlow {
 
     fn compute_overflow(&self) -> Overflow {
         let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
-
         self.fragment.compute_overflow(
             &flow_size,
             &self

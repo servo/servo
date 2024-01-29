@@ -517,7 +517,7 @@ where
         let scanned_fragments =
             with_thread_local_font_context(self.layout_context, |font_context| {
                 TextRunScanner::new()
-                    .scan_for_runs(font_context, std::mem::take(&mut fragments.fragments))
+                    .scan_for_runs(font_context, mem::take(&mut fragments.fragments))
             });
         let mut inline_flow_ref = FlowRef::new(Arc::new(InlineFlow::from_fragments(
             scanned_fragments,

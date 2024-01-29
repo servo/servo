@@ -51,18 +51,18 @@ pub struct FlowParallelInfo {
     pub parent: UnsafeFlow,
 }
 
-impl Default for FlowParallelInfo {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl FlowParallelInfo {
     pub fn new() -> FlowParallelInfo {
         FlowParallelInfo {
             children_count: AtomicIsize::new(0),
             parent: null_unsafe_flow(),
         }
+    }
+}
+
+impl Default for FlowParallelInfo {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -3419,12 +3419,6 @@ pub struct Overflow {
     pub paint: Rect<Au>,
 }
 
-impl Default for Overflow {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Overflow {
     pub fn new() -> Overflow {
         Overflow {
@@ -3448,6 +3442,12 @@ impl Overflow {
     pub fn translate(&mut self, by: &Vector2D<Au>) {
         self.scroll = self.scroll.translate(*by);
         self.paint = self.paint.translate(*by);
+    }
+}
+
+impl Default for Overflow {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
