@@ -989,6 +989,32 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
                 PropertyDeclaration::BorderRightWidth(width_value),
             ));
         }
+
+        if let Some(cellpadding) = self
+            .downcast::<HTMLTableCellElement>()
+            .and_then(|this| this.get_table())
+            .and_then(|table| table.get_cellpadding())
+        {
+            let cellpadding = NonNegative(specified::LengthPercentage::Length(
+                specified::NoCalcLength::from_px(cellpadding as f32),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingTop(cellpadding.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingLeft(cellpadding.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingBottom(cellpadding.clone()),
+            ));
+            hints.push(from_declaration(
+                shared_lock,
+                PropertyDeclaration::PaddingRight(cellpadding),
+            ));
+        }
     }
 
     fn get_colspan(self) -> u32 {

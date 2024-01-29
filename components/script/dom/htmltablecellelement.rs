@@ -17,8 +17,10 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{Element, LayoutElementHelpers};
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmltableelement::HTMLTableElement;
 use crate::dom::htmltablerowelement::HTMLTableRowElement;
-use crate::dom::node::Node;
+use crate::dom::htmltablesectionelement::HTMLTableSectionElement;
+use crate::dom::node::{LayoutNodeHelpers, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 
 const DEFAULT_COLSPAN: u32 = 1;
@@ -103,14 +105,15 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
     }
 }
 
-pub trait HTMLTableCellElementLayoutHelpers {
+pub trait HTMLTableCellElementLayoutHelpers<'dom> {
     fn get_background_color(self) -> Option<RGBA>;
     fn get_colspan(self) -> Option<u32>;
     fn get_rowspan(self) -> Option<u32>;
+    fn get_table(self) -> Option<LayoutDom<'dom, HTMLTableElement>>;
     fn get_width(self) -> LengthOrPercentageOrAuto;
 }
 
-impl HTMLTableCellElementLayoutHelpers for LayoutDom<'_, HTMLTableCellElement> {
+impl<'dom> HTMLTableCellElementLayoutHelpers<'dom> for LayoutDom<'dom, HTMLTableCellElement> {
     fn get_background_color(self) -> Option<RGBA> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
@@ -128,6 +131,17 @@ impl HTMLTableCellElementLayoutHelpers for LayoutDom<'_, HTMLTableCellElement> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("rowspan"))
             .map(AttrValue::as_uint)
+    }
+
+    fn get_table(self) -> Option<LayoutDom<'dom, HTMLTableElement>> {
+        let row = self.upcast::<Node>().composed_parent_node_ref()?;
+        row.downcast::<HTMLTableRowElement>()?;
+        let section = row.composed_parent_node_ref()?;
+        section.downcast::<HTMLTableElement>().or_else(|| {
+            section.downcast::<HTMLTableSectionElement>()?;
+            let table = section.composed_parent_node_ref()?;
+            table.downcast::<HTMLTableElement>()
+        })
     }
 
     fn get_width(self) -> LengthOrPercentageOrAuto {

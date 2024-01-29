@@ -33,6 +33,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
     border: Cell<Option<u32>>,
+    cellpadding: Cell<Option<u32>>,
     cellspacing: Cell<Option<u32>>,
     tbodies: MutNullableDom<HTMLCollection>,
 }
@@ -62,6 +63,7 @@ impl HTMLTableElement {
         HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             border: Cell::new(None),
+            cellpadding: Cell::new(None),
             cellspacing: Cell::new(None),
             tbodies: Default::default(),
         }
@@ -425,6 +427,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
 pub trait HTMLTableElementLayoutHelpers {
     fn get_background_color(self) -> Option<RGBA>;
     fn get_border(self) -> Option<u32>;
+    fn get_cellpadding(self) -> Option<u32>;
     fn get_cellspacing(self) -> Option<u32>;
     fn get_width(self) -> LengthOrPercentageOrAuto;
 }
@@ -440,6 +443,11 @@ impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
     #[allow(unsafe_code)]
     fn get_border(self) -> Option<u32> {
         unsafe { (*self.unsafe_get()).border.get() }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_cellpadding(self) -> Option<u32> {
+        unsafe { (*self.unsafe_get()).cellpadding.get() }
     }
 
     #[allow(unsafe_code)]
@@ -470,6 +478,13 @@ impl VirtualMethods for HTMLTableElement {
                     mutation
                         .new_value(attr)
                         .map(|value| parse_unsigned_integer(value.chars()).unwrap_or(1)),
+                );
+            },
+            local_name!("cellpadding") => {
+                self.cellpadding.set(
+                    mutation
+                        .new_value(attr)
+                        .and_then(|value| parse_unsigned_integer(value.chars()).ok()),
                 );
             },
             local_name!("cellspacing") => {
