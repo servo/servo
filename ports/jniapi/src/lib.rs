@@ -126,11 +126,9 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
     let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
     let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
-    if let Err(err) = gl_glue::egl::init().and_then(|egl_init| {
-        opts.gl_context_pointer = Some(egl_init.gl_context);
-        opts.native_display_pointer = Some(egl_init.display);
-        simpleservo::init(opts, egl_init.gl_wrapper, wakeup, callbacks)
-    }) {
+    if let Err(err) = gl_glue::egl::init()
+        .and_then(|egl_init| simpleservo::init(opts, egl_init.gl_wrapper, wakeup, callbacks))
+    {
         throw(&env, err)
     };
 }
@@ -852,8 +850,6 @@ fn get_options(
         coordinates,
         density,
         xr_discovery: None,
-        gl_context_pointer: None,
-        native_display_pointer: None,
         surfman_integration: simpleservo::SurfmanIntegration::Widget(native_window),
         prefs: None,
     };

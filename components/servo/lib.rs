@@ -17,7 +17,7 @@
 //! `Servo` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
-use std::borrow::Cow;
+use std::borrow::{BorrowMut, Cow};
 use std::cmp::max;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -62,10 +62,11 @@ use euclid::Scale;
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 pub use gfx::rendering_context;
+use gfx::rendering_context::RenderingContext;
 pub use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{error, trace, warn, Log, Metadata, Record};
-use media::{GLPlayerThreads, WindowGLContext};
+use media::{GLPlayerThreads, GlApi, NativeDisplay, WindowGLContext};
 pub use msg::constellation_msg::TopLevelBrowsingContextId;
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;
@@ -78,7 +79,13 @@ use script_traits::{ScriptToConstellationChan, WindowSizeData};
 use servo_config::{opts, pref, prefs};
 use servo_media::player::context::GlContext;
 use servo_media::ServoMedia;
-use surfman::GLApi;
+#[cfg(target_os = "linux")]
+use surfman::platform::generic::multi::connection::NativeConnection as LinuxNativeConnection;
+#[cfg(target_os = "linux")]
+use surfman::platform::generic::multi::context::NativeContext as LinuxNativeContext;
+use surfman::{GLApi, GLVersion};
+#[cfg(target_os = "linux")]
+use surfman::{NativeConnection, NativeContext};
 use webrender::{RenderApiSender, ShaderPrecacheFlags};
 use webrender_api::{DocumentId, FontInstanceKey, FontKey, ImageKey};
 use webrender_traits::{
@@ -388,17 +395,6 @@ where
             embedder.register_webxr(&mut webxr_main_thread, embedder_proxy.clone());
         }
 
-        let glplayer_threads = match window.get_gl_context() {
-            GlContext::Unknown => None,
-            _ => {
-                let (glplayer_threads, image_handler) =
-                    GLPlayerThreads::new(external_images.clone());
-                external_image_handlers
-                    .set_handler(image_handler, WebrenderImageHandlerType::Media);
-                Some(glplayer_threads)
-            },
-        };
-
         let wgpu_image_handler = webgpu::WGPUExternalImages::new();
         let wgpu_image_map = wgpu_image_handler.images.clone();
         external_image_handlers.set_handler(
@@ -406,12 +402,11 @@ where
             WebrenderImageHandlerType::WebGPU,
         );
 
-        let player_context = WindowGLContext {
-            gl_context: window.get_gl_context(),
-            native_display: window.get_native_display(),
-            gl_api: window.get_gl_api(),
-            glplayer_chan: glplayer_threads.as_ref().map(GLPlayerThreads::pipeline),
-        };
+        let (player_context, glplayer_threads) = Self::create_media_window_gl_context(
+            external_image_handlers.borrow_mut(),
+            external_images.clone(),
+            &rendering_context,
+        );
 
         webrender.set_external_image_handler(external_image_handlers);
 
@@ -492,6 +487,108 @@ where
             servo,
             browser_id: top_level_browsing_context_id,
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn get_native_media_display_and_gl_context(
+        rendering_context: &RenderingContext,
+    ) -> Option<(NativeDisplay, GlContext)> {
+        let gl_context = match rendering_context.native_context() {
+            NativeContext::Default(LinuxNativeContext::Default(native_context)) => {
+                GlContext::Egl(native_context.egl_context as usize)
+            },
+            NativeContext::Default(LinuxNativeContext::Alternate(native_context)) => {
+                GlContext::Egl(native_context.egl_context as usize)
+            },
+            NativeContext::Alternate(_) => return None,
+        };
+
+        let native_display = match rendering_context.connection().native_connection() {
+            NativeConnection::Default(LinuxNativeConnection::Default(connection)) => {
+                NativeDisplay::Egl(connection.0 as usize)
+            },
+            NativeConnection::Default(LinuxNativeConnection::Alternate(connection)) => {
+                NativeDisplay::X11(connection.x11_display as usize)
+            },
+            NativeConnection::Alternate(_) => return None,
+        };
+        Some((native_display, gl_context))
+    }
+
+    // @TODO(victor): https://github.com/servo/media/pull/315
+    #[cfg(target_os = "windows")]
+    fn get_native_media_display_and_gl_context(
+        rendering_context: &RenderingContext,
+    ) -> Option<(NativeDisplay, GlContext)> {
+        let gl_context = GlContext::Egl(rendering_context.native_context().egl_context as usize);
+        let native_display =
+            NativeDisplay::Egl(rendering_context.native_device().egl_display as usize);
+        Some((native_display, gl_context))
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    fn get_native_media_display_and_gl_context(
+        _rendering_context: &RenderingContext,
+    ) -> Option<(NativeDisplay, GlContext)> {
+        None
+    }
+
+    fn create_media_window_gl_context(
+        external_image_handlers: &mut WebrenderExternalImageHandlers,
+        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+        rendering_context: &RenderingContext,
+    ) -> (WindowGLContext, Option<GLPlayerThreads>) {
+        if !pref!(media.glvideo.enabled) {
+            return (
+                WindowGLContext {
+                    gl_context: GlContext::Unknown,
+                    gl_api: GlApi::None,
+                    native_display: NativeDisplay::Unknown,
+                    glplayer_chan: None,
+                },
+                None,
+            );
+        }
+
+        let (native_display, gl_context) =
+            match Self::get_native_media_display_and_gl_context(rendering_context) {
+                Some((native_display, gl_context)) => (native_display, gl_context),
+                None => {
+                    return (
+                        WindowGLContext {
+                            gl_context: GlContext::Unknown,
+                            gl_api: GlApi::None,
+                            native_display: NativeDisplay::Unknown,
+                            glplayer_chan: None,
+                        },
+                        None,
+                    );
+                },
+            };
+
+        let api = rendering_context.connection().gl_api();
+        let attributes = rendering_context.context_attributes();
+        let GLVersion { major, minor } = attributes.version;
+        let gl_api = match api {
+            GLApi::GL if major >= 3 && minor >= 2 => GlApi::OpenGL3,
+            GLApi::GL => GlApi::OpenGL,
+            GLApi::GLES if major > 1 => GlApi::Gles2,
+            GLApi::GLES => GlApi::Gles1,
+        };
+
+        assert!(!matches!(gl_context, GlContext::Unknown));
+        let (glplayer_threads, image_handler) = GLPlayerThreads::new(external_images.clone());
+        external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::Media);
+
+        (
+            WindowGLContext {
+                gl_context,
+                native_display,
+                gl_api,
+                glplayer_chan: Some(GLPlayerThreads::pipeline(&glplayer_threads)),
+            },
+            Some(glplayer_threads),
+        )
     }
 
     fn handle_window_event(&mut self, event: EmbedderEvent) -> bool {
