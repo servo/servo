@@ -5,15 +5,15 @@
 use dom_struct::dom_struct;
 use euclid::{Angle, RigidTransform3D, Rotation3D, Vector3D};
 use js::rust::HandleObject;
-use js::typedarray::Float32Array;
+use js::typedarray::{Float32, Float32Array};
 use webxr_api::{ApiSpace, Ray};
 
+use super::bindings::typedarrays::HeapTypedArray;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRayBinding::{XRRayDirectionInit, XRRayMethods};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::typedarrays::HeapFloat32Array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -27,7 +27,7 @@ pub struct XRRay {
     #[no_trace]
     ray: Ray<ApiSpace>,
     #[ignore_malloc_size_of = "defined in mozjs"]
-    matrix: HeapFloat32Array,
+    matrix: HeapTypedArray<Float32>,
 }
 
 impl XRRay {
@@ -35,7 +35,7 @@ impl XRRay {
         XRRay {
             reflector_: Reflector::new(),
             ray,
-            matrix: HeapFloat32Array::default(),
+            matrix: HeapTypedArray::default(),
         }
     }
 

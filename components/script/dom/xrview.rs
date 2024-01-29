@@ -4,13 +4,13 @@
 
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
-use js::typedarray::Float32Array;
+use js::typedarray::{Float32, Float32Array};
 use webxr_api::{ApiSpace, View};
 
+use super::bindings::typedarrays::HeapTypedArray;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::typedarrays::HeapFloat32Array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
 use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
@@ -23,7 +23,7 @@ pub struct XRView {
     eye: XREye,
     viewport_index: usize,
     #[ignore_malloc_size_of = "mozjs"]
-    proj: HeapFloat32Array,
+    proj: HeapTypedArray<Float32>,
     #[ignore_malloc_size_of = "defined in rust-webxr"]
     #[no_trace]
     view: View<ApiSpace>,
@@ -43,7 +43,7 @@ impl XRView {
             session: Dom::from_ref(session),
             eye,
             viewport_index,
-            proj: HeapFloat32Array::default(),
+            proj: HeapTypedArray::default(),
             view,
             transform: Dom::from_ref(transform),
         }

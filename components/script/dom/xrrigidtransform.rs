@@ -5,14 +5,14 @@
 use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Rotation3D, Vector3D};
 use js::rust::HandleObject;
-use js::typedarray::Float32Array;
+use js::typedarray::{Float32, Float32Array};
 
+use super::bindings::typedarrays::HeapTypedArray;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTransformMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::typedarrays::HeapFloat32Array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -29,7 +29,7 @@ pub struct XRRigidTransform {
     transform: ApiRigidTransform,
     inverse: MutNullableDom<XRRigidTransform>,
     #[ignore_malloc_size_of = "defined in mozjs"]
-    matrix: HeapFloat32Array,
+    matrix: HeapTypedArray<Float32>,
 }
 
 impl XRRigidTransform {
@@ -40,7 +40,7 @@ impl XRRigidTransform {
             orientation: MutNullableDom::default(),
             transform,
             inverse: MutNullableDom::default(),
-            matrix: HeapFloat32Array::default(),
+            matrix: HeapTypedArray::default(),
         }
     }
 

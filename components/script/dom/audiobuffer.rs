@@ -6,9 +6,10 @@ use std::cmp::min;
 
 use dom_struct::dom_struct;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
-use js::typedarray::Float32Array;
+use js::typedarray::{Float32, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 
+use super::bindings::typedarrays::HeapTypedArray;
 use crate::dom::audionode::MAX_CHANNEL_COUNT;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
@@ -18,7 +19,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::typedarrays::HeapFloat32Array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::realms::enter_realm;
@@ -42,7 +42,7 @@ pub struct AudioBuffer {
     reflector_: Reflector,
     /// Float32Arrays returned by calls to GetChannelData.
     #[ignore_malloc_size_of = "mozjs"]
-    js_channels: DomRefCell<Vec<HeapFloat32Array>>,
+    js_channels: DomRefCell<Vec<HeapTypedArray<Float32>>>,
     /// Aggregates the data from js_channels.
     /// This is Some<T> iff the buffers in js_channels are detached.
     #[ignore_malloc_size_of = "servo_media"]
@@ -63,7 +63,7 @@ impl AudioBuffer {
     #[allow(unsafe_code)]
     pub fn new_inherited(number_of_channels: u32, length: u32, sample_rate: f32) -> AudioBuffer {
         let vec = (0..number_of_channels)
-            .map(|_| HeapFloat32Array::default())
+            .map(|_| HeapTypedArray::default())
             .collect();
         AudioBuffer {
             reflector_: Reflector::new(),
