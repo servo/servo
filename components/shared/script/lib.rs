@@ -1337,7 +1337,7 @@ impl SerializedImageData {
 /// Index of gamepad in list of system's connected gamepads
 pub struct GamepadIndex(pub u8);
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 /// The type of Gamepad event
 pub enum GamepadEvent {
     /// A new gamepad has been connected
@@ -1348,7 +1348,7 @@ pub enum GamepadEvent {
     Updated(GamepadIndex, GamepadUpdateType),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 /// The type of Gamepad input being updated
 pub enum GamepadUpdateType {
     /// Axis index and input value

@@ -5479,7 +5479,7 @@ where
             .map(|(_, webview)| webview.focused_browsing_context_id);
         match focused_browsing_context_id {
             Some(browsing_context_id) => {
-                let event = GamepadEvent(event);
+                let event = CompositorEvent::GamepadEvent(event);
                 let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
                     Some(ctx) => ctx.pipeline_id,
                     None => {
