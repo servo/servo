@@ -3372,30 +3372,26 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 
 impl Element {
     fn client_rect(&self) -> Rect<i32> {
+        let doc = self.node.owner_doc();
+
         if let Some(rect) = self
             .rare_data()
             .as_ref()
             .and_then(|data| data.client_rect.as_ref())
             .and_then(|rect| rect.get().ok())
         {
-            return rect;
+            if doc.needs_reflow().is_none() {
+                return rect;
+            }
         }
 
         let mut rect = self.upcast::<Node>().client_rect();
-        let in_quirks_mode = self.node.owner_doc().quirks_mode() == QuirksMode::Quirks;
+        let in_quirks_mode = doc.quirks_mode() == QuirksMode::Quirks;
 
-        if (in_quirks_mode &&
-            self.node.owner_doc().GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
+        if (in_quirks_mode && doc.GetBody().as_deref() == self.downcast::<HTMLElement>()) ||
             (!in_quirks_mode && *self.root_element() == *self)
         {
-            let viewport_dimensions = self
-                .node
-                .owner_doc()
-                .window()
-                .window_size()
-                .initial_viewport
-                .round()
-                .to_i32();
+            let viewport_dimensions = doc.window().window_size().initial_viewport.round().to_i32();
             rect.size = Size2D::<i32>::new(viewport_dimensions.width, viewport_dimensions.height);
         }
 
