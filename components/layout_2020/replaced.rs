@@ -390,7 +390,7 @@ impl ReplacedContent {
                         (None, Some(block), Some(i_over_b)) => {
                             // “used height” in CSS 2 is always gonna be the intrinsic one,
                             // since it is available.
-                            block.scale_by(1.0 * i_over_b)
+                            block.scale_by(i_over_b)
                         },
                         // FIXME
                         //
