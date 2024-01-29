@@ -280,7 +280,9 @@ impl ModuleTree {
     }
 
     pub fn remove_incomplete_fetch_url(&self, dependency: ServoUrl) {
-        self.incomplete_fetch_urls.borrow_mut().remove(&dependency);
+        self.incomplete_fetch_urls
+            .borrow_mut()
+            .shift_remove(&dependency);
     }
 
     /// recursively checks if all of the transitive descendants are
