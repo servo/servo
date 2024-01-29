@@ -14,7 +14,6 @@ use serde::Serialize;
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
-
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::Size;
@@ -973,7 +972,8 @@ impl TableLikeFlow for BlockFlow {
                     row.mut_base().restyle_damage.remove(
                         ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW,
                     );
-                    current_block_offset += border_spacing_for_row(&self.fragment, row, block_direction_spacing);
+                    current_block_offset +=
+                        border_spacing_for_row(&self.fragment, row, block_direction_spacing);
                     i += 1;
                 }
 
@@ -1228,8 +1228,6 @@ struct TableCellColumnIndexData {
     pub relative_offset: u32,
 }
 
-
-
 impl TableCellColumnIndexData {
     /// Moves forward by `amount` columns, updating the various indices used
     ///
@@ -1283,10 +1281,7 @@ impl<'table> Iterator for TableCellStyleIterator<'table> {
                 let (col_style, colgroup_style) = if let Some(column_style) =
                     self.column_styles.get(self.column_index.relative as usize)
                 {
-                    let styles = (
-                        column_style.col_style,
-                        column_style.colgroup_style,
-                    );
+                    let styles = (column_style.col_style, column_style.colgroup_style);
                     self.column_index
                         .advance(cell.column_span, &self.column_styles);
 

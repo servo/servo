@@ -1940,10 +1940,12 @@ impl BlockFlow {
                     )
                 },
                 (Float::Left, _) => {
-                    left_float_width_accumulator += child_base.intrinsic_inline_sizes.preferred_inline_size;
+                    left_float_width_accumulator +=
+                        child_base.intrinsic_inline_sizes.preferred_inline_size;
                 },
                 (Float::Right, _) => {
-                    right_float_width_accumulator += child_base.intrinsic_inline_sizes.preferred_inline_size;
+                    right_float_width_accumulator +=
+                        child_base.intrinsic_inline_sizes.preferred_inline_size;
                 },
             }
         }
@@ -2605,7 +2607,7 @@ impl Flow for BlockFlow {
 
     fn compute_overflow(&self) -> Overflow {
         let flow_size = self.base.position.size.to_physical(self.base.writing_mode);
-        
+
         self.fragment.compute_overflow(
             &flow_size,
             &self

@@ -1055,9 +1055,7 @@ impl InlineFlow {
             TextAlign::Center | TextAlign::ServoCenter => {
                 inline_start_position_for_fragment += slack_inline_size.scale_by(0.5)
             },
-            TextAlign::End => {
-                inline_start_position_for_fragment += slack_inline_size
-            },
+            TextAlign::End => inline_start_position_for_fragment += slack_inline_size,
             TextAlign::Left | TextAlign::ServoLeft | TextAlign::Right | TextAlign::ServoRight => {
                 unreachable!()
             },
@@ -1438,8 +1436,10 @@ impl InlineFlow {
 
     // Returns the last line that doesn't consist entirely of hypothetical boxes.
     fn last_line_containing_real_fragments(&self) -> Option<&Line> {
-        self.lines.iter().rev().find(|&line| (line.range.begin().get()..line.range.end().get())
-                .any(|index| !self.fragments.fragments[index as usize].is_hypothetical()))
+        self.lines.iter().rev().find(|&line| {
+            (line.range.begin().get()..line.range.end().get())
+                .any(|index| !self.fragments.fragments[index as usize].is_hypothetical())
+        })
     }
 
     fn build_display_list_for_inline_fragment_at_index(
@@ -2091,9 +2091,7 @@ impl InlineFragmentContext {
 
     #[inline]
     pub fn contains_node(&self, node_address: OpaqueNode) -> bool {
-        self.nodes
-            .iter()
-            .any(|node| node.address == node_address)
+        self.nodes.iter().any(|node| node.address == node_address)
     }
 
     fn ptr_eq(&self, other: &InlineFragmentContext) -> bool {

@@ -282,7 +282,8 @@ impl TableRowFlow {
         self.collapsed_border_spacing.inline.clear();
         self.collapsed_border_spacing.inline.extend(
             collapsed_inline_direction_border_widths_for_table
-                .iter().copied(),
+                .iter()
+                .copied(),
         );
 
         if let Some(collapsed_block_direction_border_width_for_table) =

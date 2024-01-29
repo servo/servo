@@ -470,10 +470,7 @@ impl ImageFragmentInfo {
                         width,
                         ..(*i).clone()
                     })),
-                    Some(ImageMetadata {
-                        height,
-                        width,
-                    }),
+                    Some(ImageMetadata { height, width }),
                 )
             },
             Some(ImageOrMetadata::Metadata(m)) => (
@@ -486,10 +483,7 @@ impl ImageFragmentInfo {
             None => (None, None),
         };
 
-        ImageFragmentInfo {
-            image,
-            metadata,
-        }
+        ImageFragmentInfo { image, metadata }
     }
 }
 
@@ -604,10 +598,7 @@ pub struct SplitInfo {
 impl SplitInfo {
     fn new(range: Range<ByteIndex>, info: &ScannedTextFragmentInfo) -> SplitInfo {
         let inline_size = info.run.advance_for_range(&range);
-        SplitInfo {
-            range,
-            inline_size,
-        }
+        SplitInfo { range, inline_size }
     }
 }
 
@@ -644,10 +635,7 @@ impl UnscannedTextFragmentInfo {
     /// Creates a new instance of `UnscannedTextFragmentInfo` from the given text.
     #[inline]
     pub fn new(text: Box<str>, selection: Option<Range<ByteIndex>>) -> UnscannedTextFragmentInfo {
-        UnscannedTextFragmentInfo {
-            text,
-            selection,
-        }
+        UnscannedTextFragmentInfo { text, selection }
     }
 }
 

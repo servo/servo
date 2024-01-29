@@ -1102,12 +1102,7 @@ pub fn process_offset_parent_query(
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
 
     let node_offset_box = iterator.node_offset_box;
-    let parent_info = iterator
-        .parent_nodes
-        .into_iter()
-        .rev()
-        .flatten()
-        .next();
+    let parent_info = iterator.parent_nodes.into_iter().rev().flatten().next();
     match (node_offset_box, parent_info) {
         (Some(node_offset_box), Some(parent_info)) => {
             let origin = node_offset_box.offset - parent_info.origin.to_vector();

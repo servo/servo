@@ -385,10 +385,7 @@ impl Counter {
         }
 
         // Otherwise, push a new instance of the counter.
-        self.values.push(CounterValue {
-            level,
-            value,
-        })
+        self.values.push(CounterValue { level, value })
     }
 
     fn truncate_to_level(&mut self, level: u32) {

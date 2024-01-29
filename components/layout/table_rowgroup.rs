@@ -79,7 +79,8 @@ impl TableRowGroupFlow {
         self.collapsed_inline_direction_border_widths_for_table
             .extend(
                 collapsed_inline_direction_border_widths_for_table
-                    .iter().copied(),
+                    .iter()
+                    .copied(),
             );
 
         for _ in 0..self.block_flow.base.children.len() {

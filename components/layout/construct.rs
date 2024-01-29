@@ -516,10 +516,8 @@ where
         // remain. In that case the inline flow will compute its ascent and descent to be zero.
         let scanned_fragments =
             with_thread_local_font_context(self.layout_context, |font_context| {
-                TextRunScanner::new().scan_for_runs(
-                    font_context,
-                    std::mem::take(&mut fragments.fragments),
-                )
+                TextRunScanner::new()
+                    .scan_for_runs(font_context, std::mem::take(&mut fragments.fragments))
             });
         let mut inline_flow_ref = FlowRef::new(Arc::new(InlineFlow::from_fragments(
             scanned_fragments,
@@ -841,10 +839,7 @@ where
 
         match text_content {
             TextContent::Text(string) => {
-                let info = Box::new(UnscannedTextFragmentInfo::new(
-                    string,
-                    node.selection(),
-                ));
+                let info = Box::new(UnscannedTextFragmentInfo::new(string, node.selection()));
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
                 fragments
                     .fragments
@@ -2464,7 +2459,6 @@ impl Legalizer {
 }
 
 pub fn is_image_data(uri: &str) -> bool {
-    static TYPES: &[&str] =
-        &["data:image/png", "data:image/gif", "data:image/jpeg"];
+    static TYPES: &[&str] = &["data:image/png", "data:image/gif", "data:image/jpeg"];
     TYPES.iter().any(|&type_| uri.starts_with(type_))
 }

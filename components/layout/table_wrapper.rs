@@ -765,13 +765,15 @@ impl ExcessInlineSizeDistributionInfo {
         if !column_intrinsic_inline_size.constrained &&
             column_intrinsic_inline_size.percentage == 0.0
         {
-            self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage += column_intrinsic_inline_size.preferred;
+            self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage +=
+                column_intrinsic_inline_size.preferred;
             self.count_of_nonconstrained_columns_with_no_percentage += 1
         }
         if column_intrinsic_inline_size.constrained &&
             column_intrinsic_inline_size.percentage == 0.0
         {
-            self.preferred_inline_size_of_constrained_columns_with_no_percentage += column_intrinsic_inline_size.preferred
+            self.preferred_inline_size_of_constrained_columns_with_no_percentage +=
+                column_intrinsic_inline_size.preferred
         }
         self.total_percentage += column_intrinsic_inline_size.percentage;
         self.column_count += 1

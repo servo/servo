@@ -456,10 +456,7 @@ impl<'a> DisplayListBuildState<'a> {
         list: &mut Vec<DisplayItem>,
         stacking_context: StackingContext,
     ) {
-        let mut child_items = self
-            .items
-            .remove(&stacking_context.id)
-            .unwrap_or_default();
+        let mut child_items = self.items.remove(&stacking_context.id).unwrap_or_default();
         child_items.sort_by(|a, b| a.base().section.cmp(&b.base().section));
         child_items.reverse();
 

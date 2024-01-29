@@ -6,7 +6,6 @@
 
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
-
 use std::sync::Arc;
 
 use app_units::Au;
@@ -402,9 +401,8 @@ impl TextRunScanner {
         let mut mappings = mappings.into_iter().peekable();
         let mut prev_fragments_to_meld = Vec::new();
 
-        for (logical_offset, old_fragment) in std::mem::take(&mut self.clump)
-            .into_iter()
-            .enumerate()
+        for (logical_offset, old_fragment) in
+            std::mem::take(&mut self.clump).into_iter().enumerate()
         {
             let mut is_first_mapping_of_this_old_fragment = true;
             loop {

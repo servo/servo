@@ -170,7 +170,10 @@ impl Floats {
 
     /// Returns the position of the last float in flow coordinates.
     pub fn last_float_pos(&self) -> Option<LogicalRect<Au>> {
-        self.list.floats.front().map(|float| float.bounds.translate_by_size(self.offset))
+        self.list
+            .floats
+            .front()
+            .map(|float| float.bounds.translate_by_size(self.offset))
     }
 
     /// Returns a rectangle that encloses the region from block-start to block-start + block-size,
