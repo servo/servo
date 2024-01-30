@@ -691,13 +691,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat64array
     fn ToFloat64Array(&self, cx: JSContext) -> Float64Array {
-        let vec: Vec<f64> = self
-            .matrix
-            .borrow()
-            .to_array()
-            .iter()
-            .map(|&x| x as f64)
-            .collect();
+        let vec: Vec<f64> = self.matrix.borrow().to_array().to_vec();
 
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         create_typed_array(cx, &vec, array.handle_mut())
