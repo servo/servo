@@ -5814,9 +5814,9 @@ dependencies = [
 
 [[package]]
 name = "surfman"
-version = "0.8.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db2e4280229411d6eb8a8f873152dece1904df2682003bdc748adc181e003568"
+checksum = "29362235cba051e9e6eb5a136b32c1ab6933d2545e4fffd0ba22ac904498d0e2"
 dependencies = [
  "bitflags 1.3.2",
  "cfg_aliases",
@@ -5839,7 +5839,6 @@ dependencies = [
  "sparkle",
  "wayland-sys 0.30.1",
  "winapi",
- "winit",
  "wio",
  "x11",
 ]
@@ -6892,7 +6891,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#3b2f303c0bdb70a8ca81ae30b012b4164c32fd40"
+source = "git+https://github.com/servo/webxr#f1cc78521616883ca1592129848b525dcf8b4136"
 dependencies = [
  "android_injected_glue",
  "bindgen 0.69.2",
@@ -6911,7 +6910,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#3b2f303c0bdb70a8ca81ae30b012b4164c32fd40"
+source = "git+https://github.com/servo/webxr#f1cc78521616883ca1592129848b525dcf8b4136"
 dependencies = [
  "euclid",
  "ipc-channel",
