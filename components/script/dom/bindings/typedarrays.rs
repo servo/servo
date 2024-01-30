@@ -142,3 +142,20 @@ where
         TypedArray::from(dest.get())
     }
 }
+
+pub fn create_typed_array_with_length<T>(
+    cx: JSContext,
+    len: usize,
+    dest: MutableHandleObject,
+) -> Result<TypedArray<T, *mut JSObject>, ()>
+where
+    T: TypedArrayElement + TypedArrayElementCreator,
+{
+    let res = unsafe { TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Length(len), dest) };
+
+    if res.is_err() {
+        Err(())
+    } else {
+        TypedArray::from(dest.get())
+    }
+}
