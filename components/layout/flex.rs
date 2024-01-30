@@ -120,10 +120,10 @@ impl FlexItem {
             base_size: Au(0),
             min_size: Au(0),
             max_size: MAX_AU,
-            index: index,
+            index,
             flex_grow: flex_grow.into(),
             flex_shrink: flex_shrink.into(),
-            order: order,
+            order,
             is_frozen: false,
             is_strut: false,
         }
@@ -202,7 +202,7 @@ impl FlexItem {
     /// Returns the outer main size of the item, including paddings and margins,
     /// clamped by max and min size.
     pub fn outer_main_size(&self, flow: &dyn Flow, direction: Direction) -> Au {
-        let ref fragment = flow.as_block().fragment;
+        let fragment = &flow.as_block().fragment;
         let outer_width = match direction {
             Direction::Inline => {
                 fragment.border_padding.inline_start_end() + fragment.margin.inline_start_end()
@@ -259,9 +259,9 @@ struct FlexLine {
 impl FlexLine {
     pub fn new(range: Range<usize>, free_space: Au, auto_margin_count: i32) -> FlexLine {
         FlexLine {
-            range: range,
-            auto_margin_count: auto_margin_count,
-            free_space: free_space,
+            range,
+            auto_margin_count,
+            free_space,
             cross_size: Au(0),
         }
     }
@@ -399,14 +399,14 @@ impl FlexFlow {
 
         FlexFlow {
             block_flow: BlockFlow::from_fragment_and_float_kind(fragment, flotation),
-            main_mode: main_mode,
+            main_mode,
             available_main_size: AxisSize::Infinite,
             available_cross_size: AxisSize::Infinite,
             lines: Vec::new(),
             items: Vec::new(),
-            main_reverse: main_reverse,
-            is_wrappable: is_wrappable,
-            cross_reverse: cross_reverse,
+            main_reverse,
+            is_wrappable,
+            cross_reverse,
         }
     }
 
@@ -709,9 +709,9 @@ impl FlexFlow {
             let base = children.get(item.index).mut_base();
             if !self.main_reverse {
                 base.position.start.b = cur_b;
-                cur_b = cur_b + base.position.size.block;
+                cur_b += base.position.size.block;
             } else {
-                cur_b = cur_b - base.position.size.block;
+                cur_b -= base.position.size.block;
                 base.position.start.b = cur_b;
             }
         }

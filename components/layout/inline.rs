@@ -269,7 +269,7 @@ impl LineBreaker {
             lines: Vec::new(),
             cur_b: Au(0),
             last_known_line_breaking_opportunity: None,
-            first_line_indentation: first_line_indentation,
+            first_line_indentation,
             minimum_metrics: *minimum_line_metrics,
         }
     }
@@ -327,7 +327,7 @@ impl LineBreaker {
             })
             .collect();
 
-        let mut lines = mem::replace(&mut self.lines, Vec::new());
+        let mut lines = mem::take(&mut self.lines);
 
         // If everything is LTR, don't bother with reordering.
         if bidi::level::has_rtl(&levels) {
@@ -352,16 +352,16 @@ impl LineBreaker {
         }
 
         // Place the fragments back into the flow.
-        old_fragments.fragments = mem::replace(&mut self.new_fragments, vec![]);
+        old_fragments.fragments = mem::take(&mut self.new_fragments);
         flow.fragments = old_fragments;
         flow.lines = lines;
     }
 
     /// Reflows the given fragments, which have been plucked out of the inline flow.
-    fn reflow_fragments<'a, I>(
+    fn reflow_fragments<I>(
         &mut self,
         mut old_fragment_iter: I,
-        flow: &'a InlineFlow,
+        flow: &InlineFlow,
         layout_context: &LayoutContext,
     ) where
         I: Iterator<Item = Fragment>,
@@ -428,7 +428,7 @@ impl LineBreaker {
             let need_to_merge = match (&mut result.specific, &candidate.specific) {
                 (
                     &mut SpecificFragmentInfo::ScannedText(ref mut result_info),
-                    &SpecificFragmentInfo::ScannedText(ref candidate_info),
+                    SpecificFragmentInfo::ScannedText(candidate_info),
                 ) => {
                     result.margin.inline_end == Au(0) &&
                         candidate.margin.inline_start == Au(0) &&
@@ -516,7 +516,7 @@ impl LineBreaker {
                 placement_inline_size,
                 first_fragment.border_box.size.block,
             ),
-            ceiling: ceiling,
+            ceiling,
             max_inline_size: flow.base.position.size.inline,
             kind: FloatKind::Left,
         });
@@ -809,7 +809,7 @@ impl LineBreaker {
                     None
                 }
             },
-            (&TextOverflowSide::String(ref string), _) => {
+            (TextOverflowSide::String(string), _) => {
                 if fragment.margin_box_inline_size() > available_inline_size {
                     Some(string.to_string())
                 } else {
@@ -952,6 +952,12 @@ impl InlineFragments {
     }
 }
 
+impl Default for InlineFragments {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[allow(unsafe_code)]
 unsafe impl crate::flow::HasBaseFlow for InlineFlow {}
 
@@ -983,7 +989,7 @@ impl InlineFlow {
     pub fn from_fragments(fragments: InlineFragments, writing_mode: WritingMode) -> InlineFlow {
         let mut flow = InlineFlow {
             base: BaseFlow::new(None, writing_mode, ForceNonfloatedFlag::ForceNonfloated),
-            fragments: fragments,
+            fragments,
             lines: Vec::new(),
             minimum_line_metrics: LineMetrics::new(Au(0), Au(0)),
             first_line_indentation: Au(0),
@@ -1047,13 +1053,9 @@ impl InlineFlow {
             },
             TextAlign::Justify | TextAlign::Start => {},
             TextAlign::Center | TextAlign::ServoCenter => {
-                inline_start_position_for_fragment =
-                    inline_start_position_for_fragment + slack_inline_size.scale_by(0.5)
+                inline_start_position_for_fragment += slack_inline_size.scale_by(0.5)
             },
-            TextAlign::End => {
-                inline_start_position_for_fragment =
-                    inline_start_position_for_fragment + slack_inline_size
-            },
+            TextAlign::End => inline_start_position_for_fragment += slack_inline_size,
             TextAlign::Left | TextAlign::ServoLeft | TextAlign::Right | TextAlign::ServoRight => {
                 unreachable!()
             },
@@ -1101,8 +1103,7 @@ impl InlineFlow {
 
             for fragment_index in fragment_indices {
                 let fragment = fragments.get_mut(fragment_index as usize);
-                inline_start_position_for_fragment =
-                    inline_start_position_for_fragment + fragment.margin.inline_start;
+                inline_start_position_for_fragment += fragment.margin.inline_start;
 
                 let border_start = if fragment.style.writing_mode.is_bidi_ltr() == is_ltr {
                     inline_start_position_for_fragment
@@ -1295,7 +1296,7 @@ impl InlineFlow {
             for node in &inline_context.nodes {
                 let font_style = node.style.clone_font();
                 let font_metrics = text::font_metrics_for_style(font_context, font_style);
-                let line_height = text::line_height_from_style(&*node.style, &font_metrics);
+                let line_height = text::line_height_from_style(&node.style, &font_metrics);
                 let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
 
                 update_line_metrics_for_fragment(
@@ -1435,14 +1436,10 @@ impl InlineFlow {
 
     // Returns the last line that doesn't consist entirely of hypothetical boxes.
     fn last_line_containing_real_fragments(&self) -> Option<&Line> {
-        for line in self.lines.iter().rev() {
-            if (line.range.begin().get()..line.range.end().get())
+        self.lines.iter().rev().find(|&line| {
+            (line.range.begin().get()..line.range.end().get())
                 .any(|index| !self.fragments.fragments[index as usize].is_hypothetical())
-            {
-                return Some(line);
-            }
-        }
-        None
+        })
     }
 
     fn build_display_list_for_inline_fragment_at_index(
@@ -1825,7 +1822,7 @@ impl Flow for InlineFlow {
 
                     // Write the clip in our coordinate system into the child flow. (The kid will
                     // fix it up to be in its own coordinate system if necessary.)
-                    block_flow.base.clip = self.base.clip.clone()
+                    block_flow.base.clip = self.base.clip
                 },
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                     let flow = FlowRef::deref_mut(&mut info.flow_ref);
@@ -1837,7 +1834,7 @@ impl Flow for InlineFlow {
                         stacking_relative_border_box.origin.to_vector();
 
                     // As above, this is in our coordinate system for now.
-                    block_flow.base.clip = self.base.clip.clone()
+                    block_flow.base.clip = self.base.clip
                 },
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                     let flow = FlowRef::deref_mut(&mut info.flow_ref);
@@ -1857,7 +1854,7 @@ impl Flow for InlineFlow {
                         stacking_relative_border_box.origin.to_vector();
 
                     // As above, this is in our coordinate system for now.
-                    block_flow.base.clip = self.base.clip.clone()
+                    block_flow.base.clip = self.base.clip
                 },
                 _ => {},
             }
@@ -1957,7 +1954,7 @@ impl Flow for InlineFlow {
             .early_absolute_position_info
             .relative_containing_block_size;
         for fragment in &self.fragments.fragments {
-            overflow.union(&fragment.compute_overflow(&flow_size, &relative_containing_block_size))
+            overflow.union(&fragment.compute_overflow(&flow_size, relative_containing_block_size))
         }
         overflow
     }
@@ -2025,8 +2022,7 @@ impl Flow for InlineFlow {
             if fragment.is_absolutely_positioned() {
                 continue;
             }
-            containing_block_size.inline =
-                containing_block_size.inline + fragment.border_box.size.inline;
+            containing_block_size.inline += fragment.border_box.size.inline;
             containing_block_size.block =
                 max(containing_block_size.block, fragment.border_box.size.block);
         }
@@ -2089,10 +2085,7 @@ impl InlineFragmentContext {
 
     #[inline]
     pub fn contains_node(&self, node_address: OpaqueNode) -> bool {
-        self.nodes
-            .iter()
-            .position(|node| node.address == node_address)
-            .is_some()
+        self.nodes.iter().any(|node| node.address == node_address)
     }
 
     fn ptr_eq(&self, other: &InlineFragmentContext) -> bool {
@@ -2108,12 +2101,18 @@ impl InlineFragmentContext {
     }
 }
 
+impl Default for InlineFragmentContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn inline_contexts_are_equal(
     inline_context_a: &Option<InlineFragmentContext>,
     inline_context_b: &Option<InlineFragmentContext>,
 ) -> bool {
     match (inline_context_a, inline_context_b) {
-        (&Some(ref inline_context_a), &Some(ref inline_context_b)) => {
+        (Some(inline_context_a), Some(inline_context_b)) => {
             inline_context_a.ptr_eq(inline_context_b)
         },
         (&None, &None) => true,
@@ -2141,9 +2140,9 @@ impl InlineMetrics {
     /// Creates a new set of inline metrics.
     pub fn new(space_above_baseline: Au, space_below_baseline: Au, ascent: Au) -> InlineMetrics {
         InlineMetrics {
-            space_above_baseline: space_above_baseline,
-            space_below_baseline: space_below_baseline,
-            ascent: ascent,
+            space_above_baseline,
+            space_below_baseline,
+            ascent,
         }
     }
 
@@ -2185,8 +2184,8 @@ pub struct LineMetrics {
 impl LineMetrics {
     pub fn new(space_above_baseline: Au, space_below_baseline: Au) -> LineMetrics {
         LineMetrics {
-            space_above_baseline: space_above_baseline,
-            space_below_baseline: space_below_baseline,
+            space_above_baseline,
+            space_below_baseline,
         }
     }
 
@@ -2213,7 +2212,7 @@ impl LineMetrics {
         if !fragment.is_hypothetical() {
             let space_above_baseline = line.metrics.space_above_baseline;
             return LineMetrics {
-                space_above_baseline: space_above_baseline,
+                space_above_baseline,
                 space_below_baseline: line.bounds.size.block - space_above_baseline,
             };
         }

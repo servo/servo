@@ -125,7 +125,7 @@ impl<'a> ResolveGeneratedContent<'a> {
     /// Creates a new generated content resolution traversal.
     pub fn new(layout_context: &'a LayoutContext) -> ResolveGeneratedContent<'a> {
         ResolveGeneratedContent {
-            layout_context: layout_context,
+            layout_context,
             list_item: Counter::new(),
             counters: HashMap::new(),
             quote: 0,
@@ -138,7 +138,7 @@ impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
     fn process(&mut self, flow: &mut dyn Flow, level: u32) {
         let mut mutator = ResolveGeneratedContentFragmentMutator {
             traversal: self,
-            level: level,
+            level,
             is_block: flow.is_block_like(),
             incremented: false,
         };
@@ -195,7 +195,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                     new_info = self.traversal.list_item.render(
                         self.traversal.layout_context,
                         fragment.node,
-                        fragment.pseudo.clone(),
+                        fragment.pseudo,
                         fragment.style.clone(),
                         list_style_type,
                         RenderingMode::Suffix(".\u{00a0}"),
@@ -214,7 +214,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                     new_info = counter.render(
                         self.traversal.layout_context,
                         fragment.node,
-                        fragment.pseudo.clone(),
+                        fragment.pseudo,
                         fragment.style.clone(),
                         counter_style,
                         RenderingMode::Plain,
@@ -237,7 +237,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                         fragment.pseudo,
                         fragment.style.clone(),
                         counter_style,
-                        RenderingMode::All(&separator),
+                        RenderingMode::All(separator),
                     );
                 },
                 GeneratedContentInfo::ContentItem(ContentItem::OpenQuote) => {
@@ -246,7 +246,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                         fragment.node,
                         fragment.pseudo,
                         fragment.style.clone(),
-                        self.quote(&*fragment.style, false),
+                        self.quote(&fragment.style, false),
                     );
                     self.traversal.quote += 1
                 },
@@ -260,7 +260,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                         fragment.node,
                         fragment.pseudo,
                         fragment.style.clone(),
-                        self.quote(&*fragment.style, true),
+                        self.quote(&fragment.style, true),
                     );
                 },
                 GeneratedContentInfo::ContentItem(ContentItem::NoOpenQuote) => {
@@ -385,10 +385,7 @@ impl Counter {
         }
 
         // Otherwise, push a new instance of the counter.
-        self.values.push(CounterValue {
-            level: level,
-            value: value,
-        })
+        self.values.push(CounterValue { level, value })
     }
 
     fn truncate_to_level(&mut self, level: u32) {
@@ -404,7 +401,7 @@ impl Counter {
         }
 
         self.values.push(CounterValue {
-            level: level,
+            level,
             value: amount,
         })
     }
@@ -422,14 +419,14 @@ impl Counter {
         match mode {
             RenderingMode::Plain => {
                 let value = match self.values.last() {
-                    Some(ref value) => value.value,
+                    Some(value) => value.value,
                     None => 0,
                 };
                 push_representation(value, list_style_type, &mut string)
             },
             RenderingMode::Suffix(suffix) => {
                 let value = match self.values.last() {
-                    Some(ref value) => value.value,
+                    Some(value) => value.value,
                     None => 0,
                 };
                 push_representation(value, list_style_type, &mut string);
@@ -585,11 +582,11 @@ fn push_alphabetic_representation(value: i32, system: &[char], accumulator: &mut
     let mut string: SmallVec<[char; 8]> = SmallVec::new();
     while abs_value != 0 {
         // Step 1.
-        abs_value = abs_value - 1;
+        abs_value -= 1;
         // Step 2.
         string.push(system[abs_value % system.len()]);
         // Step 3.
-        abs_value = abs_value / system.len();
+        abs_value /= system.len();
     }
 
     accumulator.extend(string.iter().cloned().rev())
@@ -612,7 +609,7 @@ fn push_numeric_representation(value: i32, system: &[char], accumulator: &mut St
         // Step 2.1.
         string.push(system[abs_value % system.len()]);
         // Step 2.2.
-        abs_value = abs_value / system.len();
+        abs_value /= system.len();
     }
 
     // Step 3.
@@ -629,7 +626,7 @@ fn handle_negative_value(value: i32, accumulator: &mut String) -> usize {
         // TODO: Support different negative signs using the 'negative' descriptor.
         // https://drafts.csswg.org/date/2015-07-16/css-counter-styles/#counter-style-negative
         accumulator.push('-');
-        value.abs() as usize
+        value.unsigned_abs() as usize
     } else {
         value as usize
     }

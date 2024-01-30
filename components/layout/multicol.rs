@@ -131,7 +131,7 @@ impl Flow for MulticolFlow {
                     (content_inline_size + column_gap).0 / (column_width + column_gap).0,
                 );
                 if let ColumnCount::Integer(specified_column_count) = column_style.column_count {
-                    column_count = min(column_count, specified_column_count.0 as i32);
+                    column_count = min(column_count, specified_column_count.0);
                 }
             } else {
                 column_count = match column_style.column_count {
@@ -216,7 +216,7 @@ impl Flow for MulticolFlow {
         let pitch = pitch.to_physical(self.block_flow.base.writing_mode);
         for (i, child) in self.block_flow.base.children.iter_mut().enumerate() {
             let point = &mut child.mut_base().stacking_relative_position;
-            *point = *point + Vector2D::new(pitch.width * i as i32, pitch.height * i as i32);
+            *point += Vector2D::new(pitch.width * i as i32, pitch.height * i as i32);
         }
     }
 

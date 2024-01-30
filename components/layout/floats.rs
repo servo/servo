@@ -157,7 +157,7 @@ impl Floats {
         Floats {
             list: FloatList::new(),
             offset: LogicalSize::zero(writing_mode),
-            writing_mode: writing_mode,
+            writing_mode,
         }
     }
 
@@ -170,10 +170,10 @@ impl Floats {
 
     /// Returns the position of the last float in flow coordinates.
     pub fn last_float_pos(&self) -> Option<LogicalRect<Au>> {
-        match self.list.floats.front() {
-            None => None,
-            Some(float) => Some(float.bounds.translate_by_size(self.offset)),
-        }
+        self.list
+            .floats
+            .front()
+            .map(|float| float.bounds.translate_by_size(self.offset))
     }
 
     /// Returns a rectangle that encloses the region from block-start to block-start + block-size,
@@ -522,10 +522,10 @@ impl SpeculatedFloatPlacement {
                     let speculated_inline_content_edge_offsets =
                         block_flow.fragment.guess_inline_content_edge_offsets();
                     if self.left > Au(0) && speculated_inline_content_edge_offsets.start > Au(0) {
-                        self.left = self.left + speculated_inline_content_edge_offsets.start
+                        self.left += speculated_inline_content_edge_offsets.start
                     }
                     if self.right > Au(0) && speculated_inline_content_edge_offsets.end > Au(0) {
-                        self.right = self.right + speculated_inline_content_edge_offsets.end
+                        self.right += speculated_inline_content_edge_offsets.end
                     }
                 }
 
@@ -546,30 +546,28 @@ impl SpeculatedFloatPlacement {
         }
 
         let mut float_inline_size = base_flow.intrinsic_inline_sizes.preferred_inline_size;
-        if float_inline_size == Au(0) {
-            if flow.is_block_like() {
-                // Hack: If the size of the float is not fixed, then there's no
-                // way we can guess at its size now. So just pick an arbitrary
-                // nonzero value (in this case, 1px) so that the layout
-                // traversal logic will know that objects later in the document
-                // might flow around this float.
-                let inline_size = flow.as_block().fragment.style.content_inline_size();
-                let fixed = match inline_size {
-                    Size::Auto => false,
-                    Size::LengthPercentage(ref lp) => {
-                        lp.0.is_definitely_zero() || lp.0.maybe_to_used_value(None).is_some()
-                    },
-                };
-                if !fixed {
-                    float_inline_size = Au::from_px(1)
-                }
+        if float_inline_size == Au(0) && flow.is_block_like() {
+            // Hack: If the size of the float is not fixed, then there's no
+            // way we can guess at its size now. So just pick an arbitrary
+            // nonzero value (in this case, 1px) so that the layout
+            // traversal logic will know that objects later in the document
+            // might flow around this float.
+            let inline_size = flow.as_block().fragment.style.content_inline_size();
+            let fixed = match inline_size {
+                Size::Auto => false,
+                Size::LengthPercentage(ref lp) => {
+                    lp.0.is_definitely_zero() || lp.0.maybe_to_used_value(None).is_some()
+                },
+            };
+            if !fixed {
+                float_inline_size = Au::from_px(1)
             }
         }
 
         match base_flow.flags.float_kind() {
             StyleFloat::None => {},
-            StyleFloat::Left => self.left = self.left + float_inline_size,
-            StyleFloat::Right => self.right = self.right + float_inline_size,
+            StyleFloat::Left => self.left += float_inline_size,
+            StyleFloat::Right => self.right += float_inline_size,
         }
     }
 

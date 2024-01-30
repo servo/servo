@@ -5,7 +5,7 @@
 //! CSS table formatting contexts.
 
 use std::fmt;
-use std::iter::{IntoIterator, Iterator, Peekable};
+use std::iter::{Iterator, Peekable};
 
 use app_units::Au;
 use euclid::default::Point2D;
@@ -79,8 +79,8 @@ impl TableRowGroupFlow {
         self.collapsed_inline_direction_border_widths_for_table
             .extend(
                 collapsed_inline_direction_border_widths_for_table
-                    .into_iter()
-                    .map(|x| *x),
+                    .iter()
+                    .copied(),
             );
 
         for _ in 0..self.block_flow.base.children.len() {

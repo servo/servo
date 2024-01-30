@@ -6,7 +6,7 @@
 
 use std::cmp::max;
 use std::fmt;
-use std::iter::{Enumerate, IntoIterator, Peekable};
+use std::iter::{Enumerate, Peekable};
 
 use app_units::Au;
 use euclid::default::Point2D;
@@ -113,8 +113,8 @@ impl TableRowFlow {
     /// TODO(pcwalton): This doesn't handle floats and positioned elements right.
     ///
     /// Returns the block size
-    pub fn compute_block_size_table_row_base<'a>(
-        &'a mut self,
+    pub fn compute_block_size_table_row_base(
+        &mut self,
         layout_context: &LayoutContext,
         incoming_rowspan_data: &mut Vec<Au>,
         border_info: &[TableRowSizeData],
@@ -282,8 +282,8 @@ impl TableRowFlow {
         self.collapsed_border_spacing.inline.clear();
         self.collapsed_border_spacing.inline.extend(
             collapsed_inline_direction_border_widths_for_table
-                .into_iter()
-                .map(|x| *x),
+                .iter()
+                .copied(),
         );
 
         if let Some(collapsed_block_direction_border_width_for_table) =
@@ -389,7 +389,7 @@ impl Flow for TableRowFlow {
         let row_style = &*self.block_flow.fragment.style;
         self.preliminary_collapsed_borders
             .reset(CollapsedBorder::inline_start(
-                &row_style,
+                row_style,
                 CollapsedBorderProvenance::FromTableRow,
             ));
 
@@ -448,8 +448,8 @@ impl Flow for TableRowFlow {
                         Size::LengthPercentage(ref lp) => lp.0.maybe_to_used_value(None).is_some(),
                     },
                 };
-                min_inline_size = min_inline_size + child_column_inline_size.minimum_length;
-                pref_inline_size = pref_inline_size + child_column_inline_size.preferred;
+                min_inline_size += child_column_inline_size.minimum_length;
+                pref_inline_size += child_column_inline_size.preferred;
                 self.cell_intrinsic_inline_sizes
                     .push(CellIntrinsicInlineSize {
                         column_size: child_column_inline_size,
@@ -700,6 +700,12 @@ impl CollapsedBordersForRow {
     }
 }
 
+impl Default for CollapsedBordersForRow {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct CollapsedBorderSpacingForRow {
     /// The spacing in between each column.
@@ -773,9 +779,9 @@ impl CollapsedBorder {
     fn top(css_style: &ComputedValues, provenance: CollapsedBorderProvenance) -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_top_style,
-            width: Au::from(css_style.get_border().border_top_width),
+            width: css_style.get_border().border_top_width,
             color: css_style.get_border().border_top_color.clone(),
-            provenance: provenance,
+            provenance,
         }
     }
 
@@ -784,9 +790,9 @@ impl CollapsedBorder {
     fn right(css_style: &ComputedValues, provenance: CollapsedBorderProvenance) -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_right_style,
-            width: Au::from(css_style.get_border().border_right_width),
+            width: css_style.get_border().border_right_width,
             color: css_style.get_border().border_right_color.clone(),
-            provenance: provenance,
+            provenance,
         }
     }
 
@@ -798,9 +804,9 @@ impl CollapsedBorder {
     ) -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_bottom_style,
-            width: Au::from(css_style.get_border().border_bottom_width),
+            width: css_style.get_border().border_bottom_width,
             color: css_style.get_border().border_bottom_color.clone(),
-            provenance: provenance,
+            provenance,
         }
     }
 
@@ -809,9 +815,9 @@ impl CollapsedBorder {
     fn left(css_style: &ComputedValues, provenance: CollapsedBorderProvenance) -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_left_style,
-            width: Au::from(css_style.get_border().border_left_width),
+            width: css_style.get_border().border_left_width,
             color: css_style.get_border().border_left_color.clone(),
-            provenance: provenance,
+            provenance,
         }
     }
 
@@ -899,6 +905,12 @@ impl CollapsedBorder {
             _ if (self.provenance as i8) >= other.provenance as i8 => {},
             _ => *self = other.clone(),
         }
+    }
+}
+
+impl Default for CollapsedBorder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -1107,7 +1119,7 @@ fn perform_inline_direction_border_collapse_for_row(
     if child_index == 0 {
         let first_inline_border = &mut preliminary_collapsed_borders.inline[0];
         first_inline_border.combine(&CollapsedBorder::inline_start(
-            &*child_table_cell.block_flow.fragment.style,
+            &child_table_cell.block_flow.fragment.style,
             CollapsedBorderProvenance::FromNextTableCell,
         ));
     }
@@ -1115,15 +1127,15 @@ fn perform_inline_direction_border_collapse_for_row(
     let inline_collapsed_border = preliminary_collapsed_borders.inline.push_or_set(
         child_index + 1,
         CollapsedBorder::inline_end(
-            &*child_table_cell.block_flow.fragment.style,
+            &child_table_cell.block_flow.fragment.style,
             CollapsedBorderProvenance::FromPreviousTableCell,
         ),
     );
 
-    if let Some(&(_, ref next_child_flow)) = iterator.peek() {
+    if let Some((_, next_child_flow)) = iterator.peek() {
         let next_child_flow = next_child_flow.as_block();
         inline_collapsed_border.combine(&CollapsedBorder::inline_start(
-            &*next_child_flow.fragment.style,
+            &next_child_flow.fragment.style,
             CollapsedBorderProvenance::FromNextTableCell,
         ))
     };
@@ -1132,13 +1144,13 @@ fn perform_inline_direction_border_collapse_for_row(
     // come from the row.
     if child_index + 1 == children_count {
         inline_collapsed_border.combine(&CollapsedBorder::inline_end(
-            &row_style,
+            row_style,
             CollapsedBorderProvenance::FromTableRow,
         ));
     }
 
     let mut block_start_border = CollapsedBorder::block_start(
-        &*child_table_cell.block_flow.fragment.style,
+        &child_table_cell.block_flow.fragment.style,
         CollapsedBorderProvenance::FromNextTableCell,
     );
     block_start_border.combine(&CollapsedBorder::block_start(
@@ -1149,7 +1161,7 @@ fn perform_inline_direction_border_collapse_for_row(
         .block_start
         .push_or_set(child_index, block_start_border);
     let mut block_end_border = CollapsedBorder::block_end(
-        &*child_table_cell.block_flow.fragment.style,
+        &child_table_cell.block_flow.fragment.style,
         CollapsedBorderProvenance::FromPreviousTableCell,
     );
     block_end_border.combine(&CollapsedBorder::block_end(

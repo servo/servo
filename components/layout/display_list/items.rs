@@ -109,7 +109,7 @@ impl DisplayList {
     /// stacking context.
     pub fn bounds(&self) -> LayoutRect {
         match self.list.get(0) {
-            Some(&DisplayItem::PushStackingContext(ref item)) => item.stacking_context.bounds,
+            Some(DisplayItem::PushStackingContext(item)) => item.stacking_context.bounds,
             Some(_) => unreachable!("Root element of display list not stacking context."),
             None => LayoutRect::zero(),
         }

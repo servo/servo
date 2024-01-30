@@ -60,6 +60,12 @@ impl FlowParallelInfo {
     }
 }
 
+impl Default for FlowParallelInfo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Process current flow and potentially traverse its ancestors.
 ///
 /// If we are the last child that finished processing, recursively process
@@ -145,7 +151,7 @@ fn top_down_flow<'scope>(
 
         // If there were no more children, start assigning block-sizes.
         if !had_children {
-            bottom_up_flow(*unsafe_flow, &assign_bsize_traversal)
+            bottom_up_flow(*unsafe_flow, assign_bsize_traversal)
         }
     }
 
@@ -159,8 +165,8 @@ fn top_down_flow<'scope>(
             &discovered_child_flows,
             pool,
             scope,
-            &assign_isize_traversal,
-            &assign_bsize_traversal,
+            assign_isize_traversal,
+            assign_bsize_traversal,
         );
     } else {
         // Spawn a new work unit for each chunk after the first.
@@ -173,8 +179,8 @@ fn top_down_flow<'scope>(
                     &nodes,
                     pool,
                     scope,
-                    &assign_isize_traversal,
-                    &assign_bsize_traversal,
+                    assign_isize_traversal,
+                    assign_bsize_traversal,
                 );
             });
         }
@@ -183,8 +189,8 @@ fn top_down_flow<'scope>(
                 chunk,
                 pool,
                 scope,
-                &assign_isize_traversal,
-                &assign_bsize_traversal,
+                assign_isize_traversal,
+                assign_bsize_traversal,
             );
         }
     }
@@ -200,16 +206,16 @@ pub fn reflow(
 ) {
     if opts::get().debug.bubble_inline_sizes_separately {
         let bubble_inline_sizes = BubbleISizes {
-            layout_context: &context,
+            layout_context: context,
         };
         bubble_inline_sizes.traverse(root);
     }
 
     let assign_isize_traversal = &AssignISizes {
-        layout_context: &context,
+        layout_context: context,
     };
     let assign_bsize_traversal = &AssignBSizes {
-        layout_context: &context,
+        layout_context: context,
     };
     let nodes = [UnsafeFlow(root)];
 

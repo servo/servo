@@ -200,7 +200,7 @@ impl InlineBlockSplit {
                 InlineFragmentsAccumulator::from_inline_node(node, style_context),
             )
             .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(style_context),
-            flow: flow,
+            flow,
         };
 
         fragment_accumulator
@@ -381,7 +381,7 @@ where
     /// Creates a new flow constructor.
     pub fn new(layout_context: &'a LayoutContext<'a>) -> Self {
         FlowConstructor {
-            layout_context: layout_context,
+            layout_context,
             phantom2: PhantomData,
         }
     }
@@ -411,7 +411,7 @@ where
                     node.image_url(),
                     node.image_density(),
                     node,
-                    &self.layout_context,
+                    self.layout_context,
                 ));
                 SpecificFragmentInfo::Image(image_info)
             },
@@ -433,7 +433,7 @@ where
                     object_data,
                     None,
                     node,
-                    &self.layout_context,
+                    self.layout_context,
                 ));
                 SpecificFragmentInfo::Image(image_info)
             },
@@ -516,10 +516,8 @@ where
         // remain. In that case the inline flow will compute its ascent and descent to be zero.
         let scanned_fragments =
             with_thread_local_font_context(self.layout_context, |font_context| {
-                TextRunScanner::new().scan_for_runs(
-                    font_context,
-                    mem::replace(&mut fragments.fragments, LinkedList::new()),
-                )
+                TextRunScanner::new()
+                    .scan_for_runs(font_context, mem::take(&mut fragments.fragments))
             });
         let mut inline_flow_ref = FlowRef::new(Arc::new(InlineFlow::from_fragments(
             scanned_fragments,
@@ -841,10 +839,7 @@ where
 
         match text_content {
             TextContent::Text(string) => {
-                let info = Box::new(UnscannedTextFragmentInfo::new(
-                    string.into(),
-                    node.selection(),
-                ));
+                let info = Box::new(UnscannedTextFragmentInfo::new(string, node.selection()));
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
                 fragments
                     .fragments
@@ -979,7 +974,7 @@ where
                     } else {
                         // Push the absolutely-positioned kid as an inline containing block.
                         let kid_node = flow.as_block().fragment.node;
-                        let kid_pseudo = flow.as_block().fragment.pseudo.clone();
+                        let kid_pseudo = flow.as_block().fragment.pseudo;
                         let kid_style = flow.as_block().fragment.style.clone();
                         let kid_selected_style = flow.as_block().fragment.selected_style.clone();
                         let kid_restyle_damage = flow.as_block().fragment.restyle_damage;
@@ -1062,9 +1057,9 @@ where
         }
 
         // Finally, make a new construction result.
-        if opt_inline_block_splits.len() > 0 ||
+        if !opt_inline_block_splits.is_empty() ||
             !fragment_accumulator.fragments.is_empty() ||
-            abs_descendants.len() > 0
+            !abs_descendants.is_empty()
         {
             fragment_accumulator
                 .fragments
@@ -1149,7 +1144,7 @@ where
         let construction_item =
             ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
                 splits: LinkedList::new(),
-                fragments: fragments,
+                fragments,
             });
         ConstructionResult::ConstructionItem(construction_item)
     }
@@ -1520,7 +1515,7 @@ where
                     url_value.url().cloned(),
                     None,
                     node,
-                    &self.layout_context,
+                    self.layout_context,
                 ));
                 vec![Fragment::new(
                     node,
@@ -1549,9 +1544,9 @@ where
                         self.layout_context,
                     ));
                     let marker_fragments =
-                        with_thread_local_font_context(self.layout_context, |mut font_context| {
+                        with_thread_local_font_context(self.layout_context, |font_context| {
                             TextRunScanner::new()
-                                .scan_for_runs(&mut font_context, unscanned_marker_fragments)
+                                .scan_for_runs(font_context, unscanned_marker_fragments)
                         });
                     marker_fragments.fragments
                 },
@@ -1716,7 +1711,7 @@ where
             let damage = node.restyle_damage();
             let mut data = node.mutate_layout_data().unwrap();
 
-            match *node.construction_result_mut(&mut *data) {
+            match *node.construction_result_mut(&mut data) {
                 ConstructionResult::None => true,
                 ConstructionResult::Flow(ref mut flow, _) => {
                     // The node's flow is of the same type and has the same set of children and can
@@ -1804,7 +1799,7 @@ where
         if set_has_newly_constructed_flow_flag {
             node.insert_flags(LayoutDataFlags::HAS_NEWLY_CONSTRUCTED_FLOW);
         }
-        return result;
+        result
     }
 }
 
@@ -2046,14 +2041,14 @@ where
     #[inline(always)]
     fn set_flow_construction_result(self, result: ConstructionResult) {
         let mut layout_data = self.mutate_layout_data().unwrap();
-        let dst = self.construction_result_mut(&mut *layout_data);
+        let dst = self.construction_result_mut(&mut layout_data);
         *dst = result;
     }
 
     #[inline(always)]
     fn get_construction_result(self) -> ConstructionResult {
         let mut layout_data = self.mutate_layout_data().unwrap();
-        self.construction_result_mut(&mut *layout_data).get()
+        self.construction_result_mut(&mut layout_data).get()
     }
 }
 
@@ -2464,7 +2459,6 @@ impl Legalizer {
 }
 
 pub fn is_image_data(uri: &str) -> bool {
-    static TYPES: &'static [&'static str] =
-        &["data:image/png", "data:image/gif", "data:image/jpeg"];
+    static TYPES: &[&str] = &["data:image/png", "data:image/gif", "data:image/jpeg"];
     TYPES.iter().any(|&type_| uri.starts_with(type_))
 }
