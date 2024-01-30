@@ -2408,6 +2408,7 @@ class IDLType(IDLObject):
         "int32array",
         "uint32array",
         "float32array",
+        "float64array",
         "dictionary",
         "enum",
         "callback",
@@ -3648,7 +3649,7 @@ class IDLBuiltinType(IDLType):
         Types.Int32Array: IDLType.Tags.int32array,
         Types.Uint32Array: IDLType.Tags.uint32array,
         Types.Float32Array: IDLType.Tags.float32array,
-        Types.Float64Array: IDLType.Tags.interface,
+        Types.Float64Array: IDLType.Tags.float64array,
         Types.ReadableStream: IDLType.Tags.interface,
     }
 
