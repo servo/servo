@@ -12,8 +12,8 @@
 import os
 import sys
 
-if sys.version_info < (3, 5):
-    print("mach does not support python < 3.5, please install python 3 >= 3.5")
+if sys.version_info < (3, 10):
+    print("mach does not support python < 3.10, please install python 3 >= 3.10")
     sys.exit(1)
 
 
