@@ -1,8 +1,0 @@
-root:
-  items:
-    - image: xy-gradient(500, 50)
-      bounds: 0 0 800 800
-      stretch-size: 50 50
-    - image: xy-gradient(50, 500)
-      bounds: 800 0 800 800
-      stretch-size: 50 50

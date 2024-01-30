@@ -1,2 +1,0 @@
-skip_on(android) == color_targets(2) alpha_targets(0) no-clip-mask.yaml no-clip-mask.png  # Too wide for Android
-platform(linux,mac) == compositor-surface-opaque-slice.yaml compositor-surface-opaque-slice-ref.yaml

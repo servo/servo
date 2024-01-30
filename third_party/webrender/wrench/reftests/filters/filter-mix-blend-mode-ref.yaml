@@ -1,6 +1,0 @@
----
-root:
-  items:
-    - type: rect
-      color: [128, 128, 127, 1]
-      bounds: 100 100 100 100

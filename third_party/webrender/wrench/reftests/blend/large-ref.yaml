@@ -1,9 +1,0 @@
----
-root:
-  items:
-    - type: stacking-context
-      bounds: 0 0 2000 2000
-      items:
-        - type: rect
-          bounds: 0 0 2000 2000
-          color: [0, 128, 0, 1]

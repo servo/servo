@@ -1,6 +1,0 @@
-reorder_imports = false
-reorder_imports_in_group = true
-reorder_imported_names = true
-error_on_line_overflow_comments = false
-max_width = 100
-spaces_around_ranges = true

@@ -1,9 +1,0 @@
----
-root:
-  items:
-    - type: box-shadow
-      bounds: [ 50, 50, 800, 100 ]
-      color: green
-      clip-mode: inset
-      blur-radius: 16
-      border-radius: 32

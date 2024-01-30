@@ -1,7 +1,0 @@
-# Don't crash when supplied an invalid image key for the mask!
----
-root:
-  items:
-    - type: rect
-      bounds: [0, 0, 35, 35]
-      color: blue

@@ -1,9 +1,0 @@
-root:
-  items:
-    - type: rect
-      bounds: 0 0 500 500
-      color: green
-    - image: solid-color(255, 0, 0, 255, 100000, 1000)
-      bounds: 0 0 500 500
-      stretch-size: 1000000 1000
-      tile-size: 60000

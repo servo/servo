@@ -1,8 +1,0 @@
----
-root:
-  items:
-    - type: gradient
-      bounds: [0, 0, 100, 100]
-      start: [0, 0]
-      end: [0, 100]
-      stops: [0.0, [0,0,0,0], 1.0, green]

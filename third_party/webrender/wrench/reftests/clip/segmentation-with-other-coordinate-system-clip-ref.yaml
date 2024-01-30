@@ -1,8 +1,0 @@
----
-root:
-  items:
-  -
-    type: rect
-    color: green
-    bounds: [0, 0, 100, 100]
-    "clip-rect": [0, 0, 100, 100]
