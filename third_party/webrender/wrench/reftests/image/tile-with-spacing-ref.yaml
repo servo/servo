@@ -1,6 +1,0 @@
-root:
-  items:
-    - image: solid-color(255, 0, 0, 255, 300, 300)
-      bounds: 0 0 800 800
-      stretch-size: 200 200
-      tile-spacing: 10 10

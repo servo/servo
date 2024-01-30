@@ -1,9 +1,0 @@
-# this tests opacity rectangle overlapping with opaque one
-root:
-  items:
-    - type: stacking-context
-      bounds: [10, 10, 500, 500]
-      items:
-        - type: rect
-          bounds: [10, 10, 100, 100]
-          color: [32, 0, 96]

@@ -1,9 +1,0 @@
-[package]
-name = "compositor-windows"
-version = "0.1.0"
-authors = ["Glenn Watson <gw@intuitionlibrary.com>"]
-edition = "2018"
-license = "MPL-2.0"
-
-[build-dependencies]
-cc = "1.0"

@@ -1,8 +1,0 @@
-root:
-  items:
-    - bounds: [0, 0, 35, 35]
-      glyphs: [50]
-      offsets: [10.3, 30]
-      clip-rect: [0, 0, 29.7, 35]
-      size: 20
-      font: "FreeSans.ttf"

@@ -1,3 +1,0 @@
-skip_on(android) fuzzy(1,1) fuzzy-if(platform(swgl),4,27) == rounded-rects.yaml rounded-rects-ref.png  # Too wide for Android
-== aa-dist-bug.yaml aa-dist-bug-ref.yaml
-== fractional-radii.yaml fractional-radii-ref.yaml

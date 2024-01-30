@@ -1,9 +1,0 @@
-root:
-  items:
-    -
-      bounds: [0, 0, 200, 200]
-      image: checkerboard(2, 16, 12)
-      stretch-size: 200 200
-    - type: rect
-      bounds: [0, 0, 200, 200]
-      color: [255, 0, 0, 0.5]

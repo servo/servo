@@ -1,9 +1,0 @@
----
-root:
-  items:
-    -
-      bounds: [10, 10, 100, 100]
-      "clip-rect": [10, 10, 100, 100]
-      "backface-visible": true
-      type: rect
-      color: 0 255 0 1

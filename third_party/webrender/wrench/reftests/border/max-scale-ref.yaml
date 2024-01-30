@@ -1,9 +1,0 @@
----
-root:
-  items:
-    - type: border
-      bounds: [ 0, 0, 4000, 1 ]
-      width: [ 1, 0, 0, 0 ]
-      border-type: normal
-      style: solid
-      color: red
