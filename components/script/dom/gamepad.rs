@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::ptr::NonNull;
 
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject};
+use js::typedarray::{Float64, Float64Array};
 
+use super::bindings::typedarrays::HeapTypedArray;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -31,7 +31,7 @@ pub struct Gamepad {
     timestamp: Cell<f64>,
     mapping_type: String,
     #[ignore_malloc_size_of = "mozjs"]
-    axes: Heap<*mut JSObject>,
+    axes: HeapTypedArray<Float64>,
     buttons: Dom<GamepadButtonList>,
     pose: Option<Dom<GamepadPose>>,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
@@ -60,7 +60,7 @@ impl Gamepad {
             connected: Cell::new(connected),
             timestamp: Cell::new(timestamp),
             mapping_type: mapping_type,
-            axes: Heap::default(),
+            axes: HeapTypedArray::default(),
             buttons: Dom::from_ref(buttons),
             pose: pose.map(Dom::from_ref),
             hand: hand,
@@ -94,10 +94,11 @@ impl GamepadMethods for Gamepad {
         DOMString::from(self.mapping_type.clone())
     }
 
-    #[allow(unsafe_code)]
     // https://w3c.github.io/gamepad/#dom-gamepad-axes
-    fn Axes(&self, _cx: JSContext) -> NonNull<JSObject> {
-        unsafe { NonNull::new_unchecked(self.axes.get()) }
+    fn Axes(&self, _cx: JSContext) -> Float64Array {
+        self.axes
+            .get_internal()
+            .expect("Failed to get gamepad axes.")
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
