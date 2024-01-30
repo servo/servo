@@ -6,7 +6,6 @@
 
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
-use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -50,7 +49,7 @@ fn text(fragments: &LinkedList<Fragment>) -> String {
             if fragment.white_space().preserve_newlines() {
                 text.push_str(&info.text);
             } else {
-                text.push_str(&info.text.replace("\n", " "));
+                text.push_str(&info.text.replace('\n', " "));
             }
         }
     }
@@ -151,7 +150,7 @@ impl TextRunScanner {
     /// be adjusted.
     fn flush_clump_to_list(
         &mut self,
-        mut font_context: &mut LayoutFontContext,
+        font_context: &mut LayoutFontContext,
         out_fragments: &mut Vec<Fragment>,
         paragraph_bytes_processed: &mut usize,
         bidi_levels: Option<&[bidi::Level]>,
@@ -207,7 +206,7 @@ impl TextRunScanner {
                     .unwrap_or_else(|| {
                         let space_width = font_group
                             .borrow_mut()
-                            .find_by_codepoint(&mut font_context, ' ')
+                            .find_by_codepoint(font_context, ' ')
                             .and_then(|font| {
                                 let font = font.borrow();
                                 font.glyph_index(' ')
@@ -252,7 +251,7 @@ impl TextRunScanner {
                     if !character.is_control() {
                         let font = font_group
                             .borrow_mut()
-                            .find_by_codepoint(&mut font_context, character);
+                            .find_by_codepoint(font_context, character);
 
                         let bidi_level = match bidi_levels {
                             Some(levels) => levels[*paragraph_bytes_processed],
@@ -290,7 +289,7 @@ impl TextRunScanner {
                                 mapping.flush(
                                     &mut mappings,
                                     &mut run_info,
-                                    &**text,
+                                    text,
                                     compression,
                                     text_transform,
                                     &mut last_whitespace,
@@ -298,7 +297,7 @@ impl TextRunScanner {
                                     end_position,
                                 );
                             }
-                            if run_info.text.len() > 0 {
+                            if !run_info.text.is_empty() {
                                 if flush_run {
                                     run_info.flush(&mut run_info_list, &mut insertion_point);
                                     run_info = RunInfo::new();
@@ -321,7 +320,7 @@ impl TextRunScanner {
                 mapping.flush(
                     &mut mappings,
                     &mut run_info,
-                    &**text,
+                    text,
                     compression,
                     text_transform,
                     &mut last_whitespace,
@@ -356,7 +355,7 @@ impl TextRunScanner {
                 },
                 word_spacing,
                 script: Script::Common,
-                flags: flags,
+                flags,
             };
 
             let mut result = Vec::with_capacity(run_info_list.len());
@@ -370,7 +369,7 @@ impl TextRunScanner {
                 // If no font is found (including fallbacks), there's no way we can render.
                 let font = match run_info
                     .font
-                    .or_else(|| font_group.borrow_mut().first(&mut font_context))
+                    .or_else(|| font_group.borrow_mut().first(font_context))
                 {
                     Some(font) => font,
                     None => {
@@ -380,7 +379,7 @@ impl TextRunScanner {
                 };
 
                 let (run, break_at_zero) = TextRun::new(
-                    &mut *font.borrow_mut(),
+                    &mut font.borrow_mut(),
                     run_info.text,
                     &options,
                     run_info.bidi_level,
@@ -402,9 +401,8 @@ impl TextRunScanner {
         let mut mappings = mappings.into_iter().peekable();
         let mut prev_fragments_to_meld = Vec::new();
 
-        for (logical_offset, old_fragment) in mem::replace(&mut self.clump, LinkedList::new())
-            .into_iter()
-            .enumerate()
+        for (logical_offset, old_fragment) in
+            std::mem::take(&mut self.clump).into_iter().enumerate()
         {
             let mut is_first_mapping_of_this_old_fragment = true;
             loop {
@@ -539,11 +537,11 @@ fn bounding_box_for_run_metrics(
 /// Panics if no font can be found for the given font style.
 #[inline]
 pub fn font_metrics_for_style(
-    mut font_context: &mut LayoutFontContext,
+    font_context: &mut LayoutFontContext,
     style: crate::ServoArc<FontStyleStruct>,
 ) -> FontMetrics {
     let font_group = font_context.font_group(style);
-    let font = font_group.borrow_mut().first(&mut font_context);
+    let font = font_group.borrow_mut().first(font_context);
     let font = font.as_ref().unwrap().borrow();
 
     font.metrics.clone()
@@ -553,7 +551,7 @@ pub fn font_metrics_for_style(
 pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> Au {
     let font_size = style.get_font().font_size.computed_size();
     match style.get_inherited_text().line_height {
-        LineHeight::Normal => Au::from(metrics.line_gap),
+        LineHeight::Normal => metrics.line_gap,
         LineHeight::Number(l) => Au::from(font_size * l.0),
         LineHeight::Length(l) => Au::from(l),
     }

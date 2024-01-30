@@ -155,12 +155,12 @@ impl<'a> LayoutContext<'a> {
             .read()
             .get(&(url.clone(), use_placeholder))
         {
-            return Some((*existing_webrender_image).clone());
+            return Some(*existing_webrender_image);
         }
 
         match self.get_or_request_image_or_meta(node, url.clone(), use_placeholder) {
             Some(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {
-                let image_info = WebRenderImageInfo::from_image(&*image);
+                let image_info = WebRenderImageInfo::from_image(&image);
                 if image_info.key.is_none() {
                     Some(image_info)
                 } else {

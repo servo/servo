@@ -44,7 +44,7 @@ where
     pub fn prepend_elem(&self, value: T) -> PersistentList<T> {
         PersistentList {
             head: Some(Arc::new(PersistentListEntry {
-                value: value,
+                value,
                 next: self.head.clone(),
             })),
             length: self.length + 1,
@@ -56,7 +56,7 @@ where
         // This could clone (and would not need the lifetime if it did), but then it would incur
         // atomic operations on every call to `.next()`. Bad.
         PersistentListIterator {
-            entry: self.head.as_ref().map(|head| &**head),
+            entry: self.head.as_deref(),
         }
     }
 }

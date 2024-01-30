@@ -132,26 +132,26 @@ impl LayoutRPC for LayoutRPCImpl {
     // The neat thing here is that in order to answer the following two queries we only
     // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
     fn content_box(&self) -> ContentBoxResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ContentBoxResponse(rw_data.content_box_response)
     }
 
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
     fn content_boxes(&self) -> ContentBoxesResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ContentBoxesResponse(rw_data.content_boxes_response.clone())
     }
 
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress> {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.nodes_from_point_response.clone()
     }
 
     fn node_geometry(&self) -> NodeGeometryResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         NodeGeometryResponse {
             client_rect: rw_data.client_rect_response,
@@ -176,39 +176,39 @@ impl LayoutRPC for LayoutRPCImpl {
 
     /// Retrieves the resolved value for a CSS style property.
     fn resolved_style(&self) -> ResolvedStyleResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ResolvedStyleResponse(rw_data.resolved_style_response.clone())
     }
 
     fn resolved_font_style(&self) -> Option<ServoArc<Font>> {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.resolved_font_style_response.clone()
     }
 
     fn offset_parent(&self) -> OffsetParentResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.offset_parent_response.clone()
     }
 
     fn text_index(&self) -> TextIndexResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.text_index_response.clone()
     }
 
     fn element_inner_text(&self) -> String {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.element_inner_text_response.clone()
     }
 
     fn inner_window_dimensions(&self) -> Option<TypedSize2D<f32, CSSPixel>> {
-        let &LayoutRPCImpl(ref rw_data) = self;
+        let LayoutRPCImpl(rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
-        rw_data.inner_window_dimensions_response.clone()
+        rw_data.inner_window_dimensions_response
     }
 }
 
@@ -220,7 +220,7 @@ struct UnioningFragmentBorderBoxIterator {
 impl UnioningFragmentBorderBoxIterator {
     fn new(node_address: OpaqueNode) -> UnioningFragmentBorderBoxIterator {
         UnioningFragmentBorderBoxIterator {
-            node_address: node_address,
+            node_address,
             rect: None,
         }
     }
@@ -247,7 +247,7 @@ struct CollectingFragmentBorderBoxIterator {
 impl CollectingFragmentBorderBoxIterator {
     fn new(node_address: OpaqueNode) -> CollectingFragmentBorderBoxIterator {
         CollectingFragmentBorderBoxIterator {
-            node_address: node_address,
+            node_address,
             rects: Vec::new(),
         }
     }
@@ -306,9 +306,9 @@ impl PositionRetrievingFragmentBorderBoxIterator {
         position: Point2D<Au>,
     ) -> PositionRetrievingFragmentBorderBoxIterator {
         PositionRetrievingFragmentBorderBoxIterator {
-            node_address: node_address,
-            position: position,
-            property: property,
+            node_address,
+            position,
+            property,
             result: None,
         }
     }
@@ -353,11 +353,11 @@ impl MarginRetrievingFragmentBorderBoxIterator {
         writing_mode: WritingMode,
     ) -> MarginRetrievingFragmentBorderBoxIterator {
         MarginRetrievingFragmentBorderBoxIterator {
-            node_address: node_address,
-            side: side,
-            margin_padding: margin_padding,
+            node_address,
+            side,
+            margin_padding,
             result: None,
-            writing_mode: writing_mode,
+            writing_mode,
         }
     }
 }
@@ -411,7 +411,7 @@ struct FragmentClientRectQueryIterator {
 impl FragmentClientRectQueryIterator {
     fn new(node_address: OpaqueNode) -> FragmentClientRectQueryIterator {
         FragmentClientRectQueryIterator {
-            node_address: node_address,
+            node_address,
             client_rect: Rect::zero(),
         }
     }
@@ -429,7 +429,7 @@ struct UnioningFragmentScrollAreaIterator {
 impl UnioningFragmentScrollAreaIterator {
     fn new(node_address: OpaqueNode) -> UnioningFragmentScrollAreaIterator {
         UnioningFragmentScrollAreaIterator {
-            node_address: node_address,
+            node_address,
             union_rect: Rect::zero(),
             origin_rect: Rect::zero(),
             level: None,
@@ -460,7 +460,7 @@ struct ParentOffsetBorderBoxIterator {
 impl ParentOffsetBorderBoxIterator {
     fn new(node_address: OpaqueNode) -> ParentOffsetBorderBoxIterator {
         ParentOffsetBorderBoxIterator {
-            node_address: node_address,
+            node_address,
             has_processed_node: false,
             node_offset_box: None,
             parent_nodes: Vec::new(),
@@ -509,8 +509,8 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
         let (top_border, bottom_border) = (top_border.to_px(), bottom_border.to_px());
         let right_padding = border_box.size.width.to_px() - right_border - left_border;
         let bottom_padding = border_box.size.height.to_px() - bottom_border - top_border;
-        let top_padding = top_border as i32;
-        let left_padding = left_border as i32;
+        let top_padding = top_border;
+        let left_padding = left_border;
 
         match self.level {
             Some(start_level) if level <= start_level => {
@@ -826,14 +826,14 @@ where
     E: LayoutNode<'dom>,
 {
     let parent_style = match parent_style {
-        Some(parent) => &*parent,
+        Some(parent) => parent,
         None => context.stylist.device().default_computed_values(),
     };
     context
         .stylist
         .compute_for_declarations::<E::ConcreteElement>(
             &context.guards,
-            &*parent_style,
+            parent_style,
             ServoArc::new(shared_lock.wrap(declarations)),
         )
 }
@@ -1011,7 +1011,7 @@ fn process_resolved_style_request_internal<'dom>(
     {
         let maybe_data = layout_el.borrow_layout_data();
         let position = maybe_data.map_or(Point2D::zero(), |data| {
-            match (*data).flow_construction_result {
+            match data.flow_construction_result {
                 ConstructionResult::Flow(ref flow_ref, _) => flow_ref
                     .deref()
                     .base()
@@ -1040,7 +1040,7 @@ fn process_resolved_style_request_internal<'dom>(
         iterator
             .result
             .map(|r| r.to_css_string())
-            .unwrap_or(String::new())
+            .unwrap_or_default()
     }
 
     // TODO: we will return neither the computed nor used value for margin and padding.
@@ -1076,7 +1076,7 @@ fn process_resolved_style_request_internal<'dom>(
             iterator
                 .result
                 .map(|r| r.to_css_string())
-                .unwrap_or(String::new())
+                .unwrap_or_default()
         },
 
         LonghandId::Bottom | LonghandId::Top | LonghandId::Right | LonghandId::Left
@@ -1102,12 +1102,7 @@ pub fn process_offset_parent_query(
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
 
     let node_offset_box = iterator.node_offset_box;
-    let parent_info = iterator
-        .parent_nodes
-        .into_iter()
-        .rev()
-        .filter_map(|info| info)
-        .next();
+    let parent_info = iterator.parent_nodes.into_iter().rev().flatten().next();
     match (node_offset_box, parent_info) {
         (Some(node_offset_box), Some(parent_info)) => {
             let origin = node_offset_box.offset - parent_info.origin.to_vector();
@@ -1154,7 +1149,7 @@ pub fn process_element_inner_text_query<'dom>(
             },
             InnerTextItem::RequiredLineBreakCount(count) => {
                 // Step 4.
-                if inner_text.len() == 0 {
+                if inner_text.is_empty() {
                     // Remove required line break count at the start.
                     continue;
                 }

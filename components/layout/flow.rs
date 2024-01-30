@@ -742,6 +742,12 @@ impl AbsoluteDescendants {
     }
 }
 
+impl Default for AbsoluteDescendants {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Information about each absolutely-positioned descendant of the given flow.
 #[derive(Clone)]
 pub struct AbsoluteDescendantInfo {
@@ -823,6 +829,12 @@ impl LateAbsolutePositionInfo {
         LateAbsolutePositionInfo {
             stacking_relative_position_of_absolute_containing_block: Point2D::zero(),
         }
+    }
+}
+
+impl Default for LateAbsolutePositionInfo {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -944,7 +956,7 @@ impl fmt::Debug for BaseFlow {
             "".to_owned()
         };
 
-        let absolute_descendants_string = if self.abs_descendants.len() > 0 {
+        let absolute_descendants_string = if !self.abs_descendants.is_empty() {
             format!("\nabs-descendents={}", self.abs_descendants.len())
         } else {
             "".to_owned()
@@ -1144,7 +1156,7 @@ impl BaseFlow {
     /// Return a new BaseFlow like this one but with the given children list
     pub fn clone_with_children(&self, children: FlowList) -> BaseFlow {
         BaseFlow {
-            children: children,
+            children,
             restyle_damage: self.restyle_damage |
                 ServoRestyleDamage::REPAINT |
                 ServoRestyleDamage::REFLOW_OUT_OF_FLOW |
@@ -1153,7 +1165,7 @@ impl BaseFlow {
             floats: self.floats.clone(),
             abs_descendants: self.abs_descendants.clone(),
             absolute_cb: self.absolute_cb.clone(),
-            clip: self.clip.clone(),
+            clip: self.clip,
 
             ..*self
         }

@@ -59,6 +59,12 @@ impl AdjoiningMargins {
     }
 }
 
+impl Default for AdjoiningMargins {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Represents the block-start and block-end margins of a flow with collapsible margins. See CSS 2.1 § 8.3.1.
 #[derive(Clone, Copy, Debug)]
 pub enum CollapsibleMargins {
@@ -96,6 +102,12 @@ impl CollapsibleMargins {
             CollapsibleMargins::Collapse(_, ref block_end) |
             CollapsibleMargins::CollapseThrough(ref block_end) => block_end.collapse(),
         }
+    }
+}
+
+impl Default for CollapsibleMargins {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -357,6 +369,12 @@ impl IntrinsicISizes {
     }
 }
 
+impl Default for IntrinsicISizes {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// The temporary result of the computation of intrinsic inline-sizes.
 #[derive(Debug)]
 pub struct IntrinsicISizesContribution {
@@ -397,8 +415,7 @@ impl IntrinsicISizesContribution {
             self.content_intrinsic_sizes.minimum_inline_size,
             sizes.minimum_inline_size,
         );
-        self.content_intrinsic_sizes.preferred_inline_size =
-            self.content_intrinsic_sizes.preferred_inline_size + sizes.preferred_inline_size
+        self.content_intrinsic_sizes.preferred_inline_size += sizes.preferred_inline_size
     }
 
     /// Updates the computation so that the minimum is the sum of the current minimum and the
@@ -406,10 +423,8 @@ impl IntrinsicISizesContribution {
     /// preferred. This is used when laying out fragments in the inline direction when
     /// `white-space` is `pre` or `nowrap`.
     pub fn union_nonbreaking_inline(&mut self, sizes: &IntrinsicISizes) {
-        self.content_intrinsic_sizes.minimum_inline_size =
-            self.content_intrinsic_sizes.minimum_inline_size + sizes.minimum_inline_size;
-        self.content_intrinsic_sizes.preferred_inline_size =
-            self.content_intrinsic_sizes.preferred_inline_size + sizes.preferred_inline_size
+        self.content_intrinsic_sizes.minimum_inline_size += sizes.minimum_inline_size;
+        self.content_intrinsic_sizes.preferred_inline_size += sizes.preferred_inline_size
     }
 
     /// Updates the computation so that the minimum is the maximum of the current minimum and the
@@ -427,6 +442,12 @@ impl IntrinsicISizesContribution {
             self.content_intrinsic_sizes.preferred_inline_size,
             sizes.preferred_inline_size,
         )
+    }
+}
+
+impl Default for IntrinsicISizesContribution {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

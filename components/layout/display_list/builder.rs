@@ -150,7 +150,7 @@ impl StackingContextInfo {
     }
 
     fn take_children(&mut self) -> Vec<StackingContext> {
-        mem::replace(&mut self.children, Vec::new())
+        mem::take(&mut self.children)
     }
 }
 
@@ -220,7 +220,7 @@ impl StackingContextCollectionState {
         let clip_scroll_nodes = vec![ClipScrollNode::placeholder(), ClipScrollNode::placeholder()];
 
         StackingContextCollectionState {
-            pipeline_id: pipeline_id,
+            pipeline_id,
             root_stacking_context: StackingContext::root(),
             stacking_context_info,
             clip_scroll_nodes,
@@ -337,7 +337,7 @@ impl<'a> DisplayListBuildState<'a> {
         state: StackingContextCollectionState,
     ) -> DisplayListBuildState<'a> {
         DisplayListBuildState {
-            layout_context: layout_context,
+            layout_context,
             root_stacking_context: state.root_stacking_context,
             items: FnvHashMap::default(),
             stacking_context_info: state.stacking_context_info,
@@ -356,7 +356,7 @@ impl<'a> DisplayListBuildState<'a> {
         let items = self
             .items
             .entry(display_item.stacking_context_id())
-            .or_insert(Vec::new());
+            .or_default();
         items.push(display_item);
     }
 
@@ -446,7 +446,7 @@ impl<'a> DisplayListBuildState<'a> {
         self.to_display_list_for_stacking_context(&mut list, root_context);
 
         DisplayList {
-            list: list,
+            list,
             clip_scroll_nodes: self.clip_scroll_nodes,
         }
     }
@@ -456,10 +456,7 @@ impl<'a> DisplayListBuildState<'a> {
         list: &mut Vec<DisplayItem>,
         stacking_context: StackingContext,
     ) {
-        let mut child_items = self
-            .items
-            .remove(&stacking_context.id)
-            .unwrap_or(Vec::new());
+        let mut child_items = self.items.remove(&stacking_context.id).unwrap_or_default();
         child_items.sort_by(|a, b| a.base().section.cmp(&b.base().section));
         child_items.reverse();
 
@@ -557,7 +554,7 @@ impl<'a> DisplayListBuildState<'a> {
 }
 
 /// The logical width of an insertion point: at the moment, a one-pixel-wide line.
-const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
+const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
 
 /// Get the border radius for the rectangle inside of a rounded border. This is useful
 /// for building the clip for the content inside the border.
@@ -632,7 +629,7 @@ impl Fragment {
         let current_stacking_context_id = state.current_stacking_context_id;
         let stacking_context = self.create_stacking_context(
             self.stacking_context_id,
-            &base,
+            base,
             StackingContextType::Real,
             established_reference_frame,
             state.current_clipping_and_scrolling,
@@ -703,7 +700,7 @@ impl Fragment {
             let base = state.create_base_display_item(
                 bounds,
                 self.node,
-                get_cursor(&style, Cursor::Default),
+                get_cursor(style, Cursor::Default),
                 display_list_section,
             );
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
@@ -843,7 +840,7 @@ impl Fragment {
             let base = state.create_base_display_item(
                 placement.clip_rect,
                 self.node,
-                get_cursor(&style, Cursor::Default),
+                get_cursor(style, Cursor::Default),
                 display_list_section,
             );
 
@@ -965,7 +962,7 @@ impl Fragment {
             let base = state.create_base_display_item(
                 placement.clip_rect,
                 self.node,
-                get_cursor(&style, Cursor::Default),
+                get_cursor(style, Cursor::Default),
                 display_list_section,
             );
 
@@ -1032,7 +1029,7 @@ impl Fragment {
             let base = state.create_base_display_item(
                 clip,
                 self.node,
-                get_cursor(&style, Cursor::Default),
+                get_cursor(style, Cursor::Default),
                 display_list_section,
             );
             let border_radius = border::radii(absolute_bounds, style.get_border());
@@ -1050,7 +1047,7 @@ impl Fragment {
                     ),
                     blur_radius: box_shadow.base.blur.px(),
                     spread_radius: box_shadow.spread.px(),
-                    border_radius: border_radius,
+                    border_radius,
                     clip_mode: if box_shadow.inset {
                         BoxShadowClipMode::Inset
                     } else {
@@ -1118,7 +1115,7 @@ impl Fragment {
         let base = state.create_base_display_item(
             clip,
             self.node,
-            get_cursor(&style, Cursor::Default),
+            get_cursor(style, Cursor::Default),
             display_list_section,
         );
 
@@ -1297,7 +1294,7 @@ impl Fragment {
     ) {
         use style::values::specified::outline::OutlineStyle;
 
-        let width = Au::from(style.get_outline().outline_width);
+        let width = style.get_outline().outline_width;
         if width == Au(0) {
             return;
         }
@@ -1323,7 +1320,7 @@ impl Fragment {
         let base = state.create_base_display_item(
             clip,
             self.node,
-            get_cursor(&style, Cursor::Default),
+            get_cursor(style, Cursor::Default),
             DisplayListSection::Outlines,
         );
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
@@ -1355,7 +1352,7 @@ impl Fragment {
         let base = state.create_base_display_item(
             clip,
             self.node,
-            get_cursor(&style, Cursor::Default),
+            get_cursor(style, Cursor::Default),
             DisplayListSection::Content,
         );
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
@@ -1378,14 +1375,14 @@ impl Fragment {
             stacking_relative_content_box,
             container_size,
         );
-        baseline.start.b = baseline.start.b + text_fragment.run.ascent();
+        baseline.start.b += text_fragment.run.ascent();
         baseline.size.block = Au(0);
         let baseline = baseline.to_physical(self.style.writing_mode, container_size);
 
         let base = state.create_base_display_item(
             clip,
             self.node,
-            get_cursor(&style, Cursor::Default),
+            get_cursor(style, Cursor::Default),
             DisplayListSection::Content,
         );
         // TODO(gw): Use a better estimate for wavy line thickness.
@@ -1591,14 +1588,14 @@ impl Fragment {
                 for node in inline_context.nodes.iter().rev() {
                     self.build_display_list_for_background_if_applicable(
                         state,
-                        &*node.style,
+                        &node.style,
                         display_list_section,
                         stacking_relative_border_box,
                     );
 
                     self.build_display_list_for_box_shadow_if_applicable(
                         state,
-                        &*node.style,
+                        &node.style,
                         display_list_section,
                         stacking_relative_border_box,
                         clip,
@@ -1606,7 +1603,7 @@ impl Fragment {
 
                     self.build_display_list_for_borders_if_applicable(
                         state,
-                        &*node.style,
+                        &node.style,
                         Some(InlineNodeBorderInfo {
                             is_first_fragment_of_element: node
                                 .flags
@@ -1625,7 +1622,7 @@ impl Fragment {
                     // fixup as border?
                     self.build_display_list_for_outline_if_applicable(
                         state,
-                        &*node.style,
+                        &node.style,
                         stacking_relative_border_box,
                         clip,
                     );
@@ -1635,14 +1632,14 @@ impl Fragment {
             if !self.is_scanned_text_fragment() {
                 self.build_display_list_for_background_if_applicable(
                     state,
-                    &*self.style,
+                    &self.style,
                     display_list_section,
                     stacking_relative_border_box,
                 );
 
                 self.build_display_list_for_box_shadow_if_applicable(
                     state,
-                    &*self.style,
+                    &self.style,
                     display_list_section,
                     stacking_relative_border_box,
                     clip,
@@ -1650,7 +1647,7 @@ impl Fragment {
 
                 self.build_display_list_for_borders_if_applicable(
                     state,
-                    &*self.style,
+                    &self.style,
                     /* inline_node_info = */ None,
                     border_painting_mode,
                     stacking_relative_border_box,
@@ -1660,7 +1657,7 @@ impl Fragment {
 
                 self.build_display_list_for_outline_if_applicable(
                     state,
-                    &*self.style,
+                    &self.style,
                     stacking_relative_border_box,
                     clip,
                 );
@@ -1769,7 +1766,7 @@ impl Fragment {
                 // Create the main text display item.
                 self.build_display_list_for_text_fragment(
                     state,
-                    &text_fragment,
+                    text_fragment,
                     stacking_relative_content_box,
                     &self.style.get_inherited_text().text_shadow.0,
                     clip,
@@ -1781,7 +1778,7 @@ impl Fragment {
                         self.style(),
                         stacking_relative_border_box,
                         stacking_relative_content_box,
-                        &text_fragment,
+                        text_fragment,
                         clip,
                     );
                 }
@@ -1790,7 +1787,7 @@ impl Fragment {
                 // Create the main text display item.
                 self.build_display_list_for_text_fragment(
                     state,
-                    &text_fragment,
+                    text_fragment,
                     stacking_relative_content_box,
                     &self.style.get_inherited_text().text_shadow.0,
                     clip,
@@ -1802,7 +1799,7 @@ impl Fragment {
                         self.style(),
                         stacking_relative_border_box,
                         stacking_relative_content_box,
-                        &text_fragment,
+                        text_fragment,
                         clip,
                     );
                 }
@@ -1914,7 +1911,7 @@ impl Fragment {
                             ipc_renderer
                                 .send(CanvasMsg::FromLayout(
                                     FromLayoutMsg::SendData(sender),
-                                    canvas_fragment_info.canvas_id.clone(),
+                                    canvas_fragment_info.canvas_id,
                                 ))
                                 .unwrap();
                             receiver.recv().unwrap().image_key
@@ -2235,7 +2232,7 @@ impl Fragment {
 
     fn unique_id(&self) -> u64 {
         let fragment_type = self.fragment_type();
-        let id = self.node.id() as usize;
+        let id = self.node.id();
         combine_id_with_fragment_type(id, fragment_type) as u64
     }
 
@@ -2707,7 +2704,7 @@ impl BlockFlow {
             ExternalScrollId(self.fragment.unique_id(), state.pipeline_id.to_webrender());
         let new_clip_scroll_index = state.add_clip_scroll_node(ClipScrollNode {
             parent_index: self.clipping_and_scrolling().scrolling,
-            clip: clip,
+            clip,
             content_rect: Rect::new(content_box.origin, content_size).to_layout(),
             node_type: ClipScrollNodeType::ScrollFrame(sensitivity, external_id),
             scroll_node_id: None,
@@ -3076,7 +3073,7 @@ pub struct IndexableText {
 
 impl IndexableText {
     fn insert(&mut self, node: OpaqueNode, item: IndexableTextItem) {
-        let entries = self.inner.entry(node).or_insert(Vec::new());
+        let entries = self.inner.entry(node).or_default();
         entries.push(item);
     }
 

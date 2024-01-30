@@ -166,7 +166,7 @@ fn convert_gradient_stops(
                     let (end_index, end_stop) = stop_items[(i + 1)..]
                         .iter()
                         .enumerate()
-                        .find(|&(_, ref stop)| stop.position.is_some())
+                        .find(|(_, stop)| stop.position.is_some())
                         .unwrap();
                     let end_offset =
                         position_to_offset(end_stop.position.as_ref().unwrap(), total_length);
@@ -191,7 +191,7 @@ fn convert_gradient_stops(
         };
         assert!(offset.is_finite());
         stops.push(GradientStop {
-            offset: offset,
+            offset,
             color: style.resolve_color(stop.color.clone()).to_layout(),
         })
     }

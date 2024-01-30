@@ -49,10 +49,10 @@ impl ListItemFlow {
     ) -> ListItemFlow {
         let mut this = ListItemFlow {
             block_flow: BlockFlow::from_fragment_and_float_kind(main_fragment, flotation),
-            marker_fragments: marker_fragments,
+            marker_fragments,
         };
 
-        if let Some(ref marker) = this.marker_fragments.first() {
+        if let Some(marker) = this.marker_fragments.first() {
             match marker.style().get_list().list_style_type {
                 ListStyleType::Disc |
                 ListStyleType::None |
@@ -107,7 +107,7 @@ impl ListItemFlow {
             marker.border_box.size.inline = intrinsic_inline_sizes
                 .content_intrinsic_sizes
                 .preferred_inline_size;
-            marker_inline_start = marker_inline_start - marker.border_box.size.inline;
+            marker_inline_start -= marker.border_box.size.inline;
             marker.border_box.start.i = marker_inline_start;
         }
     }
@@ -118,7 +118,7 @@ impl ListItemFlow {
             InlineFlow::minimum_line_metrics_for_fragments(
                 &self.marker_fragments,
                 font_context,
-                &*self.block_flow.fragment.style,
+                &self.block_flow.fragment.style,
             )
         });
 
@@ -235,7 +235,7 @@ impl Flow for ListItemFlow {
             .relative_containing_block_size;
 
         for fragment in &self.marker_fragments {
-            overflow.union(&fragment.compute_overflow(&flow_size, &relative_containing_block_size))
+            overflow.union(&fragment.compute_overflow(&flow_size, relative_containing_block_size))
         }
         overflow
     }
