@@ -637,7 +637,7 @@ dependencies = [
  "style",
  "style_traits",
  "surfman",
- "time 0.1.45",
+ "time 0.3.31",
  "webrender",
  "webrender_api",
  "webrender_traits",
@@ -662,7 +662,7 @@ dependencies = [
  "servo_config",
  "sparkle",
  "style",
- "time 0.1.45",
+ "time 0.3.31",
  "webrender_api",
  "webxr-api",
 ]
@@ -875,7 +875,7 @@ dependencies = [
  "servo_geometry",
  "servo_url",
  "style_traits",
- "time 0.1.45",
+ "time 0.3.31",
  "toml 0.5.11",
  "webrender",
  "webrender_api",
@@ -1303,7 +1303,7 @@ dependencies = [
  "msg",
  "serde",
  "servo_url",
- "time 0.1.45",
+ "time 0.3.31",
  "uuid",
 ]
 
@@ -2760,7 +2760,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_test",
- "time 0.1.45",
+ "time 0.3.31",
 ]
 
 [[package]]
@@ -3146,7 +3146,7 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
- "time 0.1.45",
+ "time 0.3.31",
  "webrender_api",
 ]
 
@@ -3458,7 +3458,7 @@ dependencies = [
  "smallvec",
  "string_cache",
  "thin-vec",
- "time 0.1.45",
+ "time 0.3.31",
  "tokio",
  "url",
  "uuid",
@@ -3601,7 +3601,7 @@ dependencies = [
  "msg",
  "profile_traits",
  "servo_url",
- "time 0.1.45",
+ "time 0.3.31",
 ]
 
 [[package]]
@@ -3832,7 +3832,7 @@ dependencies = [
  "servo_config",
  "servo_url",
  "sha2",
- "time 0.1.45",
+ "time 0.3.31",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
@@ -4491,7 +4491,7 @@ dependencies = [
  "serde",
  "servo_config",
  "signpost",
- "time 0.1.45",
+ "time 0.3.31",
 ]
 
 [[package]]
@@ -4925,7 +4925,7 @@ dependencies = [
  "swapper",
  "tempfile",
  "tendril",
- "time 0.1.45",
+ "time 0.3.31",
  "unicode-bidi",
  "unicode-segmentation",
  "url",
@@ -5009,7 +5009,7 @@ dependencies = [
  "servo_url",
  "smallvec",
  "style_traits",
- "time 0.1.45",
+ "time 0.3.31",
  "uuid",
  "webdriver",
  "webgpu",

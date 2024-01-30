@@ -100,7 +100,7 @@ surfman = { version = "0.8", features = ["chains", "sm-angle", "sm-angle-default
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
-time = "0.1.41"
+time = "0.3.31"
 tokio = "1"
 tokio-rustls = "0.24"
 tungstenite = "0.20"
