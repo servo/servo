@@ -4,6 +4,7 @@
 
 pub mod dom_manipulation;
 pub mod file_reading;
+pub mod gamepad;
 pub mod history_traversal;
 pub mod media_element;
 pub mod networking;
@@ -38,6 +39,7 @@ pub enum TaskSourceName {
     MediaElement,
     Websocket,
     Timer,
+    Gamepad,
 }
 
 impl TaskSourceName {

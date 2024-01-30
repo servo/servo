@@ -151,6 +151,7 @@ use crate::script_runtime::{
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
+use crate::task_source::gamepad::GamepadTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::history_traversal::HistoryTraversalTaskSource;
 use crate::task_source::media_element::MediaElementTaskSource;
@@ -567,6 +568,8 @@ pub struct ScriptThread {
     chan: MainThreadScriptChan,
 
     dom_manipulation_task_sender: Box<dyn ScriptChan>,
+
+    gamepad_task_sender: Box<dyn ScriptChan>,
 
     #[no_trace]
     media_element_task_sender: Sender<MainThreadScriptMsg>,
@@ -1354,6 +1357,7 @@ impl ScriptThread {
 
             chan: MainThreadScriptChan(chan.clone()),
             dom_manipulation_task_sender: boxed_script_sender.clone(),
+            gamepad_task_sender: boxed_script_sender.clone(),
             media_element_task_sender: chan.clone(),
             user_interaction_task_sender: chan.clone(),
             networking_task_sender: boxed_script_sender.clone(),
@@ -2858,6 +2862,10 @@ impl ScriptThread {
         DOMManipulationTaskSource(self.dom_manipulation_task_sender.clone(), pipeline_id)
     }
 
+    pub fn gamepad_task_source(&self, pipeline_id: PipelineId) -> GamepadTaskSource {
+        GamepadTaskSource(self.gamepad_task_sender.clone(), pipeline_id)
+    }
+
     pub fn media_element_task_source(&self, pipeline_id: PipelineId) -> MediaElementTaskSource {
         MediaElementTaskSource(self.media_element_task_sender.clone(), pipeline_id)
     }
@@ -3283,6 +3291,7 @@ impl ScriptThread {
         let task_manager = TaskManager::new(
             self.dom_manipulation_task_source(incomplete.pipeline_id),
             self.file_reading_task_source(incomplete.pipeline_id),
+            self.gamepad_task_source(incomplete.pipeline_id),
             self.history_traversal_task_source(incomplete.pipeline_id),
             self.media_element_task_source(incomplete.pipeline_id),
             self.networking_task_source(incomplete.pipeline_id),
