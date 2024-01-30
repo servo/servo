@@ -94,7 +94,9 @@ use crate::dom::create::create_element;
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementState,
 };
-use crate::dom::document::{determine_policy_for_token, Document, LayoutDocumentHelpers};
+use crate::dom::document::{
+    determine_policy_for_token, Document, LayoutDocumentHelpers, ReflowTriggerCondition,
+};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domtokenlist::DOMTokenList;
@@ -3380,7 +3382,10 @@ impl Element {
             .and_then(|data| data.client_rect.as_ref())
             .and_then(|rect| rect.get().ok())
         {
-            if doc.needs_reflow().is_none() {
+            if matches!(
+                doc.needs_reflow(),
+                None | Some(ReflowTriggerCondition::PaintPostponed)
+            ) {
                 return rect;
             }
         }
