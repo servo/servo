@@ -473,7 +473,7 @@ mod gen {
                     enabled: bool,
                 },
                 testing: {
-                    /// Enable a non-standard event handler for verifying behavior of media elements during tests. 
+                    /// Enable a non-standard event handler for verifying behavior of media elements during tests.
                     enabled: bool,
                 }
             },
