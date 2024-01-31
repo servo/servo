@@ -117,15 +117,9 @@ pub(super) enum LineItem {
 }
 
 impl LineItem {
-    pub(super) fn trim_whitespace_at_end(
-        &mut self,
-        whitespace_trimmed: &mut Length,
-        word_seperators_trimmed: &mut usize,
-    ) -> bool {
+    pub(super) fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Length) -> bool {
         match self {
-            LineItem::TextRun(ref mut item) => {
-                item.trim_whitespace_at_end(whitespace_trimmed, word_seperators_trimmed)
-            },
+            LineItem::TextRun(ref mut item) => item.trim_whitespace_at_end(whitespace_trimmed),
             LineItem::StartInlineBox(_) => true,
             LineItem::EndInlineBox => true,
             LineItem::Atomic(_) => false,
@@ -134,15 +128,9 @@ impl LineItem {
         }
     }
 
-    pub(super) fn trim_whitespace_at_start(
-        &mut self,
-        whitespace_trimmed: &mut Length,
-        word_separators_trimmed: &mut usize,
-    ) -> bool {
+    pub(super) fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Length) -> bool {
         match self {
-            LineItem::TextRun(ref mut item) => {
-                item.trim_whitespace_at_start(whitespace_trimmed, word_separators_trimmed)
-            },
+            LineItem::TextRun(ref mut item) => item.trim_whitespace_at_start(whitespace_trimmed),
             LineItem::StartInlineBox(_) => true,
             LineItem::EndInlineBox => true,
             LineItem::Atomic(_) => false,
@@ -162,11 +150,7 @@ pub(super) struct TextRunLineItem {
 }
 
 impl TextRunLineItem {
-    fn trim_whitespace_at_end(
-        &mut self,
-        whitespace_trimmed: &mut Length,
-        word_seperators_trimmed: &mut usize,
-    ) -> bool {
+    fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Length) -> bool {
         if self
             .parent_style
             .get_inherited_text()
@@ -187,21 +171,14 @@ impl TextRunLineItem {
         *whitespace_trimmed += self
             .text
             .drain(first_whitespace_index..)
-            .map(|glyph| {
-                *word_seperators_trimmed += glyph.total_word_separators();
-                Length::from(glyph.total_advance())
-            })
+            .map(|glyph| Length::from(glyph.total_advance()))
             .sum();
 
         // Only keep going if we only encountered whitespace.
         index_of_last_non_whitespace.is_none()
     }
 
-    fn trim_whitespace_at_start(
-        &mut self,
-        whitespace_trimmed: &mut Length,
-        word_separators_trimmed: &mut usize,
-    ) -> bool {
+    fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Length) -> bool {
         if self
             .parent_style
             .get_inherited_text()
@@ -220,10 +197,7 @@ impl TextRunLineItem {
         *whitespace_trimmed += self
             .text
             .drain(0..index_of_first_non_whitespace)
-            .map(|glyph| {
-                *word_separators_trimmed += glyph.total_word_separators();
-                Length::from(glyph.total_advance())
-            })
+            .map(|glyph| Length::from(glyph.total_advance()))
             .sum();
 
         // Only keep going if we only encountered whitespace.
