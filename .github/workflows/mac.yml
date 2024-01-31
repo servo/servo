@@ -132,12 +132,12 @@ jobs:
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v4
         with:
-          name: mac
+          name: ${{ inputs.arm && 'mac-arm' || 'mac' }}
           path: target/${{ inputs.profile }}/servo-tech-demo.dmg
       - name: Upload nightly
         if: ${{ inputs.upload }}
         run: |
-          python3 ./mach upload-nightly mac --secret-from-environment \
+          python3 ./mach upload-nightly ${{ inputs.arm && 'mac-arm' || 'mac' }} --secret-from-environment \
             --github-release-id ${{ inputs.github-release-id }}
         env:
           S3_UPLOAD_CREDENTIALS: ${{ secrets.S3_UPLOAD_CREDENTIALS }}
@@ -149,7 +149,7 @@ jobs:
       - name: Upload package for target
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.profile }}-binary-macos
+          name: ${{ inputs.profile }}-binary-${{ inputs.arm && 'mac-arm' || 'mac' }}
           path: target.tar.gz
 
   wpt-2020:
