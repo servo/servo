@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::VecDeque;
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use app_units::Au;
@@ -137,10 +137,7 @@ impl ResizeObserver {
                 &[&*observer_size],
             );
             entries.push(entry);
-            observation
-                .last_reported_sizes
-                .borrow_mut()
-                .push_back(size_impl);
+            *observation.last_reported_sizes.borrow_mut() = vec![size_impl];
             observation.state = ObservationState::Done;
             let target_depth = calculate_depth_for_node(target);
             if target_depth < *shallowest_target_depth {
@@ -213,7 +210,7 @@ struct ResizeObservation {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-observedbox>
     observed_box: ResizeObserverBoxOptions,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-lastreportedsizes>
-    last_reported_sizes: DomRefCell<VecDeque<ResizeObserverSizeImpl>>,
+    last_reported_sizes: RefCell<Vec<ResizeObserverSizeImpl>>,
     /// State machine mimicking the "active" and "skipped" targets slots of the observer.
     state: ObservationState,
 }
@@ -221,9 +218,11 @@ struct ResizeObservation {
 impl ResizeObservation {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-resizeobservation>
     pub fn new(observed_box: ResizeObserverBoxOptions) -> ResizeObservation {
+        let size_impl = ResizeObserverSizeImpl::new(0.0, 0.0);
+        let sizes = vec![size_impl];
         ResizeObservation {
             observed_box,
-            last_reported_sizes: Default::default(),
+            last_reported_sizes: RefCell::new(sizes),
             state: Default::default(),
         }
     }
@@ -231,11 +230,14 @@ impl ResizeObservation {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-isactive>
     fn is_active(&self, target: &Element) -> bool {
         let reported_sizes = self.last_reported_sizes.borrow();
-        let Some(size) = reported_sizes.back() else {return true};
+        let last_reported_size = reported_sizes[0];
         let box_size = calculate_box_size(target, &self.observed_box);
         let width = box_size.width().to_f64_px();
         let height = box_size.height().to_f64_px();
-        !((size.inline_size(), size.block_size()) == (width, height))
+        !((
+            last_reported_size.inline_size(),
+            last_reported_size.block_size(),
+        ) == (width, height))
     }
 }
 
