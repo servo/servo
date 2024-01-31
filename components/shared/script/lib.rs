@@ -1335,7 +1335,7 @@ impl SerializedImageData {
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
 /// Index of gamepad in list of system's connected gamepads
-pub struct GamepadIndex(pub u8);
+pub struct GamepadIndex(pub usize);
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 /// The type of Gamepad event

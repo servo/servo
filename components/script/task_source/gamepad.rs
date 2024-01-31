@@ -5,11 +5,9 @@
 use std::fmt;
 use std::result::Result;
 
-use crossbeam_channel::Sender;
 use msg::constellation_msg::PipelineId;
 
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use crate::script_thread::MainThreadScriptMsg;
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
 
