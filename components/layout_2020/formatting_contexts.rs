@@ -61,7 +61,7 @@ pub(crate) enum NonReplacedFormattingContextContents {
 
 /// The baselines of a layout or a [`BoxFragment`]. Some layout uses the first and some layout uses
 /// the last.
-#[derive(Default, Serialize)]
+#[derive(Debug, Default, Serialize)]
 pub(crate) struct Baselines {
     pub first: Option<Au>,
     pub last: Option<Au>,
