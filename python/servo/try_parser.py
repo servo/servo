@@ -42,10 +42,11 @@ class Layout(Flag):
 
 
 class Workflow(str, Enum):
-    LINUX = "linux"
-    MACOS = "macos"
-    WINDOWS = "windows"
-    ANDROID = "android"
+    LINUX = 'linux'
+    MACOS = 'macos'
+    MACOS_ARM = 'macos-arm'
+    WINDOWS = 'windows'
+    ANDROID = 'android'
 
 
 @dataclass
@@ -79,6 +80,8 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("Linux", Workflow.LINUX, unit_tests=True)
     elif s in ["mac", "macos"]:
         return JobConfig("MacOS", Workflow.MACOS, unit_tests=True)
+    elif s in ["mac-arm", "macos-arm"]:
+        return JobConfig("MacOS ARM", Workflow.MACOS_ARM, unit_tests=True)
     elif s in ["win", "windows"]:
         return JobConfig("Windows", Workflow.WINDOWS, unit_tests=True)
     elif s in ["wpt", "linux-wpt"]:
@@ -135,7 +138,7 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-wpt", "macos", "windows", "android"])
+                words.extend(["linux-wpt", "macos", "macos-arm", "windows", "android"])
                 continue  # skip over keyword
 
             job = handle_preset(word)
@@ -197,6 +200,14 @@ class TestParser(unittest.TestCase):
                                   "wpt_tests_to_run": ""
                               },
                               {
+                                  "name": "MacOS ARM",
+                                  "workflow": "macos-arm",
+                                  "wpt_layout": "none",
+                                  "profile": "release",
+                                  "unit_tests": True,
+                                  "wpt_tests_to_run": ""
+                              },
+                              {
                                   "name": "Windows",
                                   "workflow": "windows",
                                   "wpt_layout": "none",
@@ -248,7 +259,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):
-        self.assertDictEqual(json.loads(Config("linux-wpt macos windows android").to_json()),
+        self.assertDictEqual(json.loads(Config("linux-wpt macos macos-arm windows android").to_json()),
                              json.loads(Config("").to_json()))
 
 

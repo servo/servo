@@ -30,6 +30,15 @@ jobs:
       unit-tests: true
     secrets: inherit
 
+  build-mac-arm:
+    name: Mac Arm
+    if: ${{ github.event_name != 'pull_request' }}
+    uses: ./.github/workflows/mac.yml
+    with:
+      arm: true
+      unit-tests: true
+    secrets: inherit
+
   build-linux:
     name: Linux
     uses: ./.github/workflows/linux.yml

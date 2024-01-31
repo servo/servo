@@ -3,6 +3,10 @@ name: MacOS
 on:
   workflow_call:
     inputs:
+      arm:
+        required: false
+        default: false
+        type: boolean
       profile:
         required: false
         default: "release"
@@ -27,6 +31,10 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      arm:
+        required: false
+        default: false
+        type: boolean
       profile:
         required: false
         default: "release"
@@ -59,7 +67,7 @@ env:
 jobs:
   build:
     name: MacOS Build
-    runs-on: macos-13
+    runs-on: ${{ inputs.arm && 'macos-14' || 'macos-13' }}
     steps:
       # XProtect can cause random failures if it decides that the DMG we create
       # during the packaging phase is malware.

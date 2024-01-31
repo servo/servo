@@ -39,6 +39,17 @@ jobs:
       unit-tests: ${{ inputs.unit-tests }}
       wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
 
+  macos-arm:
+    if: ${{ inputs.workflow == 'macos-arm' }}
+    uses: ./.github/workflows/mac.yml
+    secrets: inherit
+    with:
+      arm: true
+      profile: ${{ inputs.profile }}
+      wpt-layout: ${{ inputs.wpt-layout }}
+      unit-tests: ${{ inputs.unit-tests }}
+      wpt-tests-to-run: ${{ inputs.wpt-tests-to-run }}
+
   linux:
     if: ${{ inputs.workflow == 'linux' }}
     name: Linux
