@@ -20,8 +20,6 @@ pub struct GamepadButton {
     value: Cell<f64>,
 }
 
-// TODO: support gamepad discovery
-#[allow(dead_code)]
 impl GamepadButton {
     pub fn new_inherited(pressed: bool, touched: bool) -> GamepadButton {
         Self {

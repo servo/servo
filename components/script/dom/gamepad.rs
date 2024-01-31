@@ -11,14 +11,16 @@ use super::bindings::typedarrays::HeapTypedArray;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{DomObject, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::gamepadbutton::GamepadButton;
 use crate::dom::gamepadbuttonlist::GamepadButtonList;
 use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
 use crate::dom::gamepadpose::GamepadPose;
+use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
 #[dom_struct]
@@ -38,8 +40,6 @@ pub struct Gamepad {
     hand: GamepadHand,
 }
 
-// TODO: support gamepad discovery
-#[allow(dead_code)]
 impl Gamepad {
     fn new_inherited(
         gamepad_id: u32,
@@ -65,6 +65,41 @@ impl Gamepad {
             pose: pose.map(Dom::from_ref),
             hand: hand,
         }
+    }
+
+    pub fn new(
+        global: &GlobalScope,
+        gamepad_id: u32,
+        id: String
+    ) -> DomRoot<Gamepad> {
+        Self::new_with_proto(global, None, gamepad_id, id)
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        gamepad_id: u32,
+        id: String
+    ) -> DomRoot<Gamepad> {
+        let buttons = [];
+        let button = GamepadButton::new(global, false, false);
+        let button_list = GamepadButtonList::new(global, &buttons);
+        let gamepad = reflect_dom_object_with_proto(
+            Box::new(Gamepad::new_inherited(
+                gamepad_id,
+                id,
+                0,
+                true,
+                0.,
+                String::from("standard"),
+                &button_list,
+                None,
+                GamepadHand::Left
+            )),
+            global,
+            proto,
+        );
+        gamepad
     }
 }
 

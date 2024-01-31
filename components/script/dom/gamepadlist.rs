@@ -18,8 +18,6 @@ pub struct GamepadList {
     list: DomRefCell<Vec<Dom<Gamepad>>>,
 }
 
-// TODO: support gamepad discovery
-#[allow(dead_code)]
 impl GamepadList {
     fn new_inherited(list: &[&Gamepad]) -> GamepadList {
         GamepadList {

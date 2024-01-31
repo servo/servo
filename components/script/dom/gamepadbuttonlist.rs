@@ -5,9 +5,10 @@
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
-use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::gamepadbutton::GamepadButton;
+use crate::dom::globalscope::GlobalScope;
 
 // https://w3c.github.io/gamepad/#gamepadbutton-interface
 #[dom_struct]
@@ -16,8 +17,6 @@ pub struct GamepadButtonList {
     list: Vec<Dom<GamepadButton>>,
 }
 
-// TODO: support gamepad discovery
-#[allow(dead_code)]
 impl GamepadButtonList {
     #[allow(crown::unrooted_must_root)]
     fn new_inherited(list: &[&GamepadButton]) -> GamepadButtonList {
@@ -25,6 +24,13 @@ impl GamepadButtonList {
             reflector_: Reflector::new(),
             list: list.iter().map(|button| Dom::from_ref(*button)).collect(),
         }
+    }
+
+    pub fn new(global: &GlobalScope, list: &[&GamepadButton]) -> DomRoot<GamepadButtonList> {
+        reflect_dom_object(
+            Box::new(GamepadButtonList::new_inherited(list)),
+            global,
+        )
     }
 }
 
