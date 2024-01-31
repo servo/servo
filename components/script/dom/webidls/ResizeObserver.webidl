@@ -4,7 +4,7 @@
 
 // https://drafts.csswg.org/resize-observer/#resize-observer-interface
 
-[Exposed=(Window)]
+[Pref="dom.resize_observer.enabled", Exposed=(Window)]
 interface ResizeObserver {
     constructor(ResizeObserverCallback callback);
     undefined observe(Element target, optional ResizeObserverOptions options = {});
