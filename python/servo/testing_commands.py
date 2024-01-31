@@ -218,7 +218,7 @@ class MachCommands(CommandBase):
         else:
             print("\r ✅ test-tidy reported no errors.")
 
-        tidy_failed
+        return tidy_failed
 
     @Command('test-scripts',
              description='Run tests for all build and support scripts.',

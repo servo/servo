@@ -10,9 +10,7 @@
 import os
 import shutil
 import subprocess
-from typing import Dict, Optional
-
-from .. import util
+from typing import Optional
 
 
 class Base:
