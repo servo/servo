@@ -66,7 +66,7 @@ env:
 
 jobs:
   build:
-    name: MacOS Build
+    name: MacOS ${{ inputs.arm && 'ARM' || '' }} Build
     runs-on: ${{ inputs.arm && 'macos-14' || 'macos-13' }}
     steps:
       # XProtect can cause random failures if it decides that the DMG we create
