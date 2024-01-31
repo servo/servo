@@ -4,10 +4,15 @@
 
 #![allow(unsafe_code)]
 
+use std::cell::RefCell;
+use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::ptr;
+use std::rc::Rc;
 
-use js::jsapi::{Heap, JSObject, JS_GetArrayBufferViewBuffer};
+use js::jsapi::{
+    Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
+};
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, MutableHandleObject};
 use js::typedarray::{CreateWith, TypedArray, TypedArrayElement, TypedArrayElementCreator};
@@ -31,6 +36,13 @@ where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
+    pub fn new(internal: *mut JSObject) -> HeapTypedArray<T> {
+        HeapTypedArray {
+            internal: Heap::boxed(internal),
+            phantom: PhantomData::default(),
+        }
+    }
+
     pub fn default() -> HeapTypedArray<T> {
         HeapTypedArray {
             internal: Box::new(Heap::default()),
@@ -52,20 +64,26 @@ where
             array as Result<CustomAutoRooterGuard<'_, TypedArray<T, *mut JSObject>>, &mut ()>
         {
             let data = array.to_vec();
-            let mut is_shared = false;
-            unsafe {
-                rooted!(in (*cx) let view_buffer =
-                    JS_GetArrayBufferViewBuffer(*cx, self.internal.handle(), &mut is_shared));
-                // This buffer is always created unshared
-                debug_assert!(!is_shared);
-                let _ = DetachArrayBuffer(*cx, view_buffer.handle());
-            }
+            let _ = self.detach_data(cx);
             Ok(data)
         } else {
             Err(())
         };
         self.internal.set(ptr::null_mut());
         data
+    }
+
+    pub fn detach_data(&self, cx: JSContext) -> bool {
+        assert!(self.is_initialized());
+        let mut is_shared = false;
+        unsafe {
+            assert!(JS_IsArrayBufferViewObject(*self.internal.handle()));
+            rooted!(in (*cx) let view_buffer =
+                 JS_GetArrayBufferViewBuffer(*cx, self.internal.handle(), &mut is_shared));
+            // This buffer is always created unshared
+            debug_assert!(!is_shared);
+            DetachArrayBuffer(*cx, view_buffer.handle())
+        }
     }
 
     pub fn copy_data_to(
@@ -140,5 +158,27 @@ where
         Err(())
     } else {
         TypedArray::from(dest.get())
+    }
+}
+
+pub fn create_new_external_array_buffer(
+    cx: JSContext,
+    mapping: Rc<RefCell<Vec<u8>>>,
+    offset: usize,
+    range_size: usize,
+    m_end: usize,
+) -> *mut JSObject {
+    unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
+        let _ = Rc::from_raw(free_user_data as _);
+    }
+
+    unsafe {
+        NewExternalArrayBuffer(
+            *cx,
+            range_size as usize,
+            mapping.borrow_mut()[offset as usize..m_end as usize].as_mut_ptr() as _,
+            Some(free_func),
+            Rc::into_raw(mapping.clone()) as _,
+        )
     }
 }
