@@ -1,6 +1,9 @@
 # This provides a shell with all the necesarry packages required to run mach and build servo
 # NOTE: This does not work offline or for nix-build
 
+{
+  buildAndroid ? false
+}:
 with import (builtins.fetchTarball {
   url = "https://github.com/NixOS/nixpkgs/archive/46ae0210ce163b3cba6c7da08840c1d63de9c701.tar.gz";
 }) {
@@ -11,8 +14,8 @@ with import (builtins.fetchTarball {
     }))
   ];
   config = {
-    android_sdk.accept_license = true;
-    allowUnfree = true;
+    android_sdk.accept_license = buildAndroid;
+    allowUnfree = buildAndroid;
   };
 };
 let
@@ -134,21 +137,15 @@ stdenv.mkDerivation rec {
 
       RUSTC_BOOTSTRAP = "crown";
     }))
-
-    # for android builds
-    # TODO: make this optional
-    openjdk17_headless
-    androidSdk
   ] ++ (lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.AppKit
+  ]) ++ (lib.optionals buildAndroid [
+    # for android builds
+    openjdk17_headless
+    androidSdk
   ]);
 
   LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
-
-  # Required by ./mach build --android
-  ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
-  ANDROID_NDK_ROOT = "${ANDROID_SDK_ROOT}/ndk-bundle";
-  GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${ANDROID_SDK_ROOT}/build-tools/${buildToolsVersion}/aapt2";
 
   # Allow cargo to download crates
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
@@ -217,4 +214,9 @@ stdenv.mkDerivation rec {
       export RUSTUP_HOME=$repo_root/.rustup
     fi
   '';
+} // lib.optionalAttrs buildAndroid {
+  # Required by ./mach build --android
+  ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
+  ANDROID_NDK_ROOT = "${ANDROID_SDK_ROOT}/ndk-bundle";
+  GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${ANDROID_SDK_ROOT}/build-tools/${buildToolsVersion}/aapt2";
 }
