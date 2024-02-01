@@ -70,10 +70,6 @@ impl Navigator {
         reflect_dom_object(Box::new(Navigator::new_inherited()), window)
     }
 
-    pub fn gamepads(&self) -> Option<DomRoot<GamepadList>> {
-        self.gamepads.get()
-    }
-
     pub fn xr(&self) -> Option<DomRoot<XRSystem>> {
         self.xr.get()
     }

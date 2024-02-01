@@ -49,7 +49,7 @@ use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataR
 use script_layout_interface::message::{Msg, PendingRestyle, ReflowGoal};
 use script_layout_interface::TrustedNodeAddress;
 use script_traits::{
-    AnimationState, DocumentActivity, MouseButton, MouseEventType, MsDuration, ScriptMsg,
+    AnimationState, DocumentActivity, GamepadUpdateType, MouseButton, MouseEventType, MsDuration, ScriptMsg,
     TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
 };
 use servo_arc::Arc;
@@ -83,6 +83,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::GamepadListBinding::GamepadList_Binding::GamepadListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
@@ -124,6 +125,7 @@ use crate::dom::element::{
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
+use crate::dom::gamepad::Gamepad;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpucanvascontext::{GPUCanvasContext, WebGPUContextId};
 use crate::dom::hashchangeevent::HashChangeEvent;
@@ -1860,6 +1862,77 @@ impl Document {
         );
         let event = compositionevent.upcast::<Event>();
         event.fire(target);
+    }
+
+    pub fn dispatch_gamepad_event(&self, gamepad_event: script_traits::GamepadEvent) {
+        let global = self.window.upcast::<GlobalScope>();
+        match gamepad_event {
+            script_traits::GamepadEvent::Connected(index, name) => {
+                // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission, then abort these steps.
+                // 3. Queue a task on the gamepad task source to perform the following steps:
+                let document = Trusted::new(self);
+                self.window().task_manager().gamepad_task_source().queue(
+                    task!(gamepad_connected: move || {
+                        let document = document.root();
+                        let window = document.window();
+                        let global = window.upcast::<GlobalScope>();
+
+                        // 3.1 Let gamepad be a new Gamepad representing the gamepad.
+                        let gamepad = Gamepad::new(&global, index.0 as u32, name);
+                        // 3.2 Let navigator be gamepad's relevant global object's Navigator object.
+                        // 3.3 Set navigator.[[gamepads]][gamepad.index] to gamepad.
+                        let gamepad_list = window.Navigator().GetGamepads();
+                        let gamepad_arr: [DomRoot<Gamepad>; 1] = [gamepad.clone()];
+                        gamepad_list.add_if_not_exists(&gamepad_arr);
+
+                        // 3.4 If navigator.[[hasGamepadGesture]] is true:
+                        // 3.4.1 Set gamepad.[[exposed]] to true.
+                        // 3.4.2 If document is not null and is fully active, then fire an event named
+                        // gamepadconnected at gamepad's relevant global object using GamepadEvent
+                        // with its gamepad attribute initialized to gamepad.
+                        gamepad.update_connected(true);
+                    }),
+                &global
+                )
+                .unwrap();
+            },
+            script_traits::GamepadEvent::Disconnected(index) => {
+                // 2. Queue a task on the gamepad task source to perform the following steps:
+                let document = Trusted::new(self);
+                self.window().task_manager().gamepad_task_source().queue(
+                    task!(gamepad_disconnected: move || {
+                        let document = document.root();
+                        let window = document.window();
+
+                        // 2.1 Set gamepad.[[connected]] to false.
+                        // 2.2 Let document be gamepad's relevant global object's associated Document; otherwise null.
+                        // 2.3 If gamepad.[[exposed]] is true and document is not null and is fully active, then fire
+                        //     an event named gamepaddisconnected at gamepad's relevant global object using GamepadEvent
+                        //     with its gamepad attribute initialized to gamepad.
+                        // 2.4 Let navigator be gamepad's relevant global object's Navigator object.
+                        // 2.5 Set navigator.[[gamepads]][gamepad.index] to null.
+                        // 2.6 While navigator.[[gamepads]] is not empty and the last item of navigator.[[gamepads]]
+                        //     is null, remove the last item of navigator.[[gamepads]].
+                        let gamepad_list = window.Navigator().GetGamepads();
+                        if gamepad_list.Length() > 0 {
+                            gamepad_list.remove_gamepad(index.0);
+                        }
+                    }),
+                &global
+                )
+                .unwrap();
+            },
+            script_traits::GamepadEvent::Updated(index, update_type) => {
+                match update_type {
+                    GamepadUpdateType::Axis(index, value) => {
+                        println!("Updating axis {} with value {}", index, value);
+                    },
+                    GamepadUpdateType::Button(index, value) => {
+                        println!("Updating button {} with value {}", index, value);
+                    }
+                };
+            },
+        };
     }
 
     // https://dom.spec.whatwg.org/#converting-nodes-into-a-node

@@ -89,7 +89,7 @@ impl Gamepad {
                 gamepad_id,
                 id,
                 0,
-                true,
+                false,
                 0.,
                 String::from("standard"),
                 &button_list,
