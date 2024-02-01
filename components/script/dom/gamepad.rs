@@ -72,12 +72,11 @@ impl Gamepad {
         gamepad_id: u32,
         id: String
     ) -> DomRoot<Gamepad> {
-        Self::new_with_proto(global, None, gamepad_id, id)
+        Self::new_with_proto(global, gamepad_id, id)
     }
 
     fn new_with_proto(
         global: &GlobalScope,
-        proto: Option<HandleObject>,
         gamepad_id: u32,
         id: String
     ) -> DomRoot<Gamepad> {
@@ -97,7 +96,7 @@ impl Gamepad {
                 GamepadHand::Left
             )),
             global,
-            proto,
+            None,
         );
         gamepad
     }
