@@ -537,6 +537,9 @@ class CommandBase(object):
             if os.path.isdir(default):
                 env.setdefault(f"ANDROID_{kind.upper()}_ROOT", default)
 
+        if "IN_NIX_SHELL" in env and ("ANDROID_NDK_ROOT" not in env or "ANDROID_SDK_ROOT" not in env):
+            print("Please set SERVO_ANDROID_BUILD=1 when starting the Nix shell to include the Android SDK/NDK.")
+            sys.exit(1)
         if "ANDROID_NDK_ROOT" not in env:
             print("Please set the ANDROID_NDK_ROOT environment variable.")
             sys.exit(1)
