@@ -161,9 +161,9 @@ checksum = "080e9890a082662b09c1ad45f567faeeb47f22b5fb23895fbe1e651e718e25ca"
 
 [[package]]
 name = "app_units"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34655f9657fbb59fdd430438ba907566eb2d90b7fb0410d488d8ddabcd7b2cc9"
+checksum = "7cbe8c4b9bab416bd47708122e73fd3e4068be171b3c39819c249452276b6f39"
 dependencies = [
  "num-traits",
  "serde",
