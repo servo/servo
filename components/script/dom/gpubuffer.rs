@@ -97,7 +97,6 @@ impl GPUBuffer {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
@@ -210,7 +209,6 @@ impl GPUBufferMethods for GPUBuffer {
         Ok(())
     }
 
-    #[allow(unsafe_code)]
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync-offset-size>
     fn MapAsync(
         &self,
@@ -349,7 +347,6 @@ impl GPUBufferMethods for GPUBuffer {
 }
 
 impl AsyncWGPUListener for GPUBuffer {
-    #[allow(unsafe_code)]
     fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
         match response {
             Some(response) => match response {
