@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::borrow::Borrow;
+use std::cell::Cell;
 use std::ops::Range;
 use std::rc::Rc;
 use std::string::String;
+use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
@@ -46,11 +48,12 @@ pub enum GPUBufferState {
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct GPUBufferMapInfo {
     #[ignore_malloc_size_of = "Rc"]
-    pub mapping: Rc<RefCell<Vec<u8>>>,
+    #[no_trace]
+    pub mapping: Arc<Mutex<Vec<u8>>>,
     pub mapping_range: Range<u64>,
     pub mapped_ranges: Vec<Range<u64>>,
     #[ignore_malloc_size_of = "defined in mozjs"]
-    pub js_buffers: Vec<Box<HeapTypedArray<ArrayBufferU8>>>,
+    pub js_buffers: Vec<HeapTypedArray<ArrayBufferU8>>,
     pub map_mode: Option<u32>,
 }
 
@@ -157,7 +160,7 @@ impl GPUBufferMethods for GPUBuffer {
                         buffer_id: self.id().0,
                         device_id: self.device.id().0,
                         array_buffer: IpcSharedMemory::from_bytes(
-                            m_info.mapping.borrow().as_slice(),
+                            m_info.mapping.lock().unwrap().borrow().as_slice(),
                         ),
                         is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
                         offset: m_range.start,
@@ -270,7 +273,7 @@ impl GPUBufferMethods for GPUBuffer {
 
         self.state.set(GPUBufferState::MappingPending);
         *self.map_info.borrow_mut() = Some(GPUBufferMapInfo {
-            mapping: Rc::new(RefCell::new(Vec::with_capacity(0))),
+            mapping: Arc::new(Mutex::new(Vec::with_capacity(0))),
             mapping_range: map_range,
             mapped_ranges: Vec::new(),
             js_buffers: Vec::new(),
@@ -329,7 +332,7 @@ impl GPUBufferMethods for GPUBuffer {
 
         let result = heap_typed_array.get_internal().map_err(|_| Error::JSFailed);
         m_info.mapped_ranges.push(offset..m_end);
-        m_info.js_buffers.push(Box::new(heap_typed_array));
+        m_info.js_buffers.push(heap_typed_array);
 
         result
     }
@@ -357,7 +360,9 @@ impl AsyncWGPUListener for GPUBuffer {
                         .as_mut()
                         .unwrap()
                         .mapping
-                        .borrow_mut() = bytes.to_vec();
+                        .lock()
+                        .unwrap()
+                        .as_mut() = bytes.to_vec();
                     promise.resolve_native(&());
                     self.state.set(GPUBufferState::Mapped);
                 },

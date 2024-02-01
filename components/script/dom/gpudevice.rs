@@ -5,10 +5,11 @@
 #![allow(unsafe_code)]
 
 use std::borrow::Cow;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
@@ -401,7 +402,7 @@ impl GPUDeviceMethods for GPUDevice {
         if descriptor.mappedAtCreation {
             let buf_data = vec![0u8; descriptor.size as usize];
             map_info = DomRefCell::new(Some(GPUBufferMapInfo {
-                mapping: Rc::new(RefCell::new(buf_data)),
+                mapping: Arc::new(Mutex::new(buf_data)),
                 mapping_range: 0..descriptor.size,
                 mapped_ranges: Vec::new(),
                 js_buffers: Vec::new(),

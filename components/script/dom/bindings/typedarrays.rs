@@ -4,11 +4,12 @@
 
 #![allow(unsafe_code)]
 
-use std::cell::RefCell;
+use std::borrow::BorrowMut;
 use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::ptr;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use js::jsapi::{
     Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
@@ -163,7 +164,7 @@ where
 
 pub fn create_new_external_array_buffer(
     cx: JSContext,
-    mapping: Rc<RefCell<Vec<u8>>>,
+    mapping: Arc<Mutex<Vec<u8>>>,
     offset: usize,
     range_size: usize,
     m_end: usize,
@@ -176,9 +177,9 @@ pub fn create_new_external_array_buffer(
         NewExternalArrayBuffer(
             *cx,
             range_size as usize,
-            mapping.borrow_mut()[offset as usize..m_end as usize].as_mut_ptr() as _,
+            mapping.lock().unwrap().borrow_mut()[offset as usize..m_end as usize].as_mut_ptr() as _,
             Some(free_func),
-            Rc::into_raw(mapping.clone()) as _,
+            mapping.lock().unwrap().borrow_mut().as_ptr() as _,
         )
     }
 }
