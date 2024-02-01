@@ -9,20 +9,20 @@
  ProtoObjectHack]
 namespace console {
   // Logging
-  undefined log(DOMString... messages);
-  undefined debug(DOMString... messages);
-  undefined info(DOMString... messages);
-  undefined warn(DOMString... messages);
-  undefined error(DOMString... messages);
-  undefined assert(boolean condition, optional DOMString message);
+  undefined log(any... messages);
+  undefined debug(any... messages);
+  undefined info(any... messages);
+  undefined warn(any... messages);
+  undefined error(any... messages);
+  undefined assert(boolean condition, optional any message);
   undefined clear();
 
   // Grouping
-  undefined group(DOMString... data);
-  undefined groupCollapsed(DOMString... data);
+  undefined group(any... data);
+  undefined groupCollapsed(any... data);
   undefined groupEnd();
 
   // Timing
-  undefined time(DOMString message);
-  undefined timeEnd(DOMString message);
+  undefined time(any message);
+  undefined timeEnd(any message);
 };
