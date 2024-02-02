@@ -47,8 +47,10 @@ pub enum GPUBufferState {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct GPUBufferMapInfo {
-    #[ignore_malloc_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
+    /// The `mapping` is wrapped in an `Arc` to ensure thread safety.
+    /// This is necessary for integration with the SpiderMonkey engine,
     pub mapping: Arc<Mutex<Vec<u8>>>,
     pub mapping_range: Range<u64>,
     pub mapped_ranges: Vec<Range<u64>>,
@@ -170,7 +172,7 @@ impl GPUBufferMethods for GPUBuffer {
                 }
                 // Step 3.3
                 m_info.js_buffers.drain(..).for_each(|obj| {
-                    obj.detach_data(cx);
+                    obj.detach_internal(cx);
                 });
             },
             // Step 2
@@ -320,7 +322,7 @@ impl GPUBufferMethods for GPUBuffer {
 
         let array_buffer = create_new_external_array_buffer(
             cx,
-            m_info.mapping.clone(),
+            Arc::clone(&m_info.mapping),
             offset as usize,
             range_size as usize,
             m_end as usize,

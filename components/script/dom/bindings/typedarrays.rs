@@ -8,7 +8,6 @@ use std::borrow::BorrowMut;
 use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::ptr;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use js::jsapi::{
@@ -65,7 +64,7 @@ where
             array as Result<CustomAutoRooterGuard<'_, TypedArray<T, *mut JSObject>>, &mut ()>
         {
             let data = array.to_vec();
-            let _ = self.detach_data(cx);
+            let _ = self.detach_internal(cx);
             Ok(data)
         } else {
             Err(())
@@ -74,7 +73,8 @@ where
         data
     }
 
-    pub fn detach_data(&self, cx: JSContext) -> bool {
+    /// <https://tc39.es/ecma262/#sec-detacharraybuffer>
+    pub fn detach_internal(&self, cx: JSContext) -> bool {
         assert!(self.is_initialized());
         let mut is_shared = false;
         unsafe {
@@ -169,8 +169,11 @@ pub fn create_new_external_array_buffer(
     range_size: usize,
     m_end: usize,
 ) -> *mut JSObject {
+    /// `freeFunc()` must be threadsafe, should be safely called from any thread
+    /// without causing conflicts or unexpected behavior.
+    /// <https://github.com/servo/mozjs/blob/main/mozjs-sys/mozjs/js/public/ArrayBuffer.h#L89>
     unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
-        let _ = Rc::from_raw(free_user_data as _);
+        let _ = Arc::from_raw(free_user_data as _);
     }
 
     unsafe {
@@ -179,7 +182,7 @@ pub fn create_new_external_array_buffer(
             range_size as usize,
             mapping.lock().unwrap().borrow_mut()[offset as usize..m_end as usize].as_mut_ptr() as _,
             Some(free_func),
-            mapping.lock().unwrap().borrow_mut().as_ptr() as _,
+            Arc::into_raw(mapping.lock().unwrap().into()) as _,
         )
     }
 }
