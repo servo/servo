@@ -93,8 +93,9 @@ impl FragmentTree {
         });
     }
 
-    pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Rect<Au> {
+    pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Option<Rect<Au>> {
         let mut bounding_box = PhysicalRect::zero();
+        let mut found_any_nodes = false;
         let tag_to_find = Tag::new(requested_node);
         self.find(|fragment, _, containing_block| {
             if fragment.tag() != Some(tag_to_find) {
@@ -114,22 +115,27 @@ impl FragmentTree {
                 Fragment::Anonymous(_) => return None,
             };
 
+            found_any_nodes = true;
             bounding_box = fragment_relative_rect
                 .translate(containing_block.origin.to_vector())
                 .union(&bounding_box);
             None::<()>
         });
 
-        Rect::new(
-            Point2D::new(
-                Au::from_f32_px(bounding_box.origin.x.px()),
-                Au::from_f32_px(bounding_box.origin.y.px()),
-            ),
-            Size2D::new(
-                Au::from_f32_px(bounding_box.size.width.px()),
-                Au::from_f32_px(bounding_box.size.height.px()),
-            ),
-        )
+        if found_any_nodes {
+            Some(Rect::new(
+                Point2D::new(
+                    Au::from_f32_px(bounding_box.origin.x.px()),
+                    Au::from_f32_px(bounding_box.origin.y.px()),
+                ),
+                Size2D::new(
+                    Au::from_f32_px(bounding_box.size.width.px()),
+                    Au::from_f32_px(bounding_box.size.height.px()),
+                ),
+            ))
+        } else {
+            None
+        }
     }
 
     pub fn get_border_dimensions_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {
