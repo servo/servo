@@ -173,7 +173,7 @@ pub fn process_content_box_request(
     requested_node: OpaqueNode,
     fragment_tree: Option<Arc<FragmentTree>>,
 ) -> Option<Rect<Au>> {
-    Some(fragment_tree?.get_content_box_for_node(requested_node))
+    fragment_tree?.get_content_box_for_node(requested_node)
 }
 
 pub fn process_content_boxes_request(_requested_node: OpaqueNode) -> Vec<Rect<Au>> {
