@@ -72,17 +72,42 @@ impl Gamepad {
         gamepad_id: u32,
         id: String
     ) -> DomRoot<Gamepad> {
-        Self::new_with_proto(global, gamepad_id, id)
+        let gamepad = Self::new_with_proto(global, gamepad_id, id);
+        gamepad.init_axes();
+        gamepad
     }
 
+    #[allow(crown::unrooted_must_root)]
     fn new_with_proto(
         global: &GlobalScope,
         gamepad_id: u32,
         id: String
     ) -> DomRoot<Gamepad> {
-        let buttons = [];
-        let button = GamepadButton::new(global, false, false);
-        let button_list = GamepadButtonList::new(global, &buttons);
+        // Initialize the number of buttons in the "standard" gamepad mapping.
+        // The spec says UAs *may* do this for fingerprint mitigation, and it also
+        // happens to simplify implementation
+        let standard_buttons = [
+            GamepadButton::new_inherited(false, false), // South Button
+            GamepadButton::new_inherited(false, false), // East Button
+            GamepadButton::new_inherited(false, false), // West Button
+            GamepadButton::new_inherited(false, false), // North Button
+            GamepadButton::new_inherited(false, false), // Left Shoulder
+            GamepadButton::new_inherited(false, false), // Right Shoulder
+            GamepadButton::new_inherited(false, false), // Left Trigger
+            GamepadButton::new_inherited(false, false), // Right Trigger
+            GamepadButton::new_inherited(false, false), // Select/Back
+            GamepadButton::new_inherited(false, false), // Start/Forward
+            GamepadButton::new_inherited(false, false), // Left Thumbstick Press
+            GamepadButton::new_inherited(false, false), // Right Thumbstick Press
+            GamepadButton::new_inherited(false, false), // D-pad Up
+            GamepadButton::new_inherited(false, false), // D-pad Down
+            GamepadButton::new_inherited(false, false), // D-pad Left
+            GamepadButton::new_inherited(false, false), // D-pad Right
+            GamepadButton::new_inherited(false, false), // System Button
+        ];
+        let buttons_vec = standard_buttons.iter().collect::<Vec<_>>();
+        let references = buttons_vec.as_slice();
+        let button_list = GamepadButtonList::new(global, &references);
         let gamepad = reflect_dom_object_with_proto(
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
@@ -182,5 +207,20 @@ impl Gamepad {
         event
             .upcast::<Event>()
             .fire(self.global().as_window().upcast::<EventTarget>());
+    }
+
+    pub fn init_axes(&self) {
+        // Initialize the number of axes in the "standard" gamepad mapping.
+        // See above comment on buttons
+        let initial_axes: Vec<f64> = vec![
+            0., // Left Thumbstick X
+            0., // Left Thumbstick Y
+            0., // Right Thumbstick X
+            0.  // Right Thumbstick Y
+        ];
+        let _cx = GlobalScope::get_cx();
+        self.axes
+            .set_data(_cx, &initial_axes)
+            .expect("Failed to set axes data on gamepad.")
     }
 }
