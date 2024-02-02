@@ -148,12 +148,13 @@ where
             .into_par_iter()
             .map(|job| match job {
                 FlexLevelJob::TextRuns(runs) => ArcRefCell::new(FlexLevelBox::FlexItem({
-                    let runs = runs.into_iter().map(|run| crate::flow::text_run::TextRun {
-                        base_fragment_info: (&run.info).into(),
-                        text: run.text.into(),
-                        parent_style: run.info.style,
-                        has_uncollapsible_content: false,
-                        shaped_text: None,
+                    let runs = runs.into_iter().map(|run| {
+                        crate::flow::text_run::TextRun::new(
+                            (&run.info).into(),
+                            run.info.style,
+                            run.text.into(),
+                            false, /* has_uncollapsible_content */
+                        )
                     });
                     let bfc = BlockFormattingContext::construct_for_text_runs(
                         runs,

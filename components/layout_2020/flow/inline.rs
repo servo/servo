@@ -8,7 +8,6 @@ use std::mem;
 use app_units::Au;
 use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
-use log::warn;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::white_space::T as WhiteSpace;
@@ -28,7 +27,7 @@ use super::line::{
     layout_line_items, AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem,
     InlineBoxLineItem, LineItem, LineItemLayoutState, LineMetrics, TextRunLineItem,
 };
-use super::text_run::TextRun;
+use super::text_run::{add_or_get_font, get_font_for_first_font_for_style, TextRun};
 use super::CollapsibleWithParentStartMargin;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -52,11 +51,20 @@ static FONT_SUPERSCRIPT_OFFSET_RATIO: f32 = 0.34;
 #[derive(Debug, Serialize)]
 pub(crate) struct InlineFormattingContext {
     pub(super) inline_level_boxes: Vec<ArcRefCell<InlineLevelBox>>,
+
+    /// A store of font information for all the shaped segments in this formatting
+    /// context in order to avoid duplicating this information.
+    pub font_metrics: Vec<FontKeyAndMetrics>,
+
     pub(super) text_decoration_line: TextDecorationLine,
-    // Whether this IFC contains the 1st formatted line of an element
-    // https://www.w3.org/TR/css-pseudo-4/#first-formatted-line
+
+    /// Whether this IFC contains the 1st formatted line of an element:
+    /// <https://www.w3.org/TR/css-pseudo-4/#first-formatted-line>.
     pub(super) has_first_formatted_line: bool,
+
+    /// Whether or not this [`InlineFormattingContext`] contains floats.
     pub(super) contains_floats: bool,
+
     /// Whether this IFC being constructed currently ends with whitespace. This is used to
     /// implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
     ///
@@ -65,6 +73,14 @@ pub(crate) struct InlineFormattingContext {
     /// > within the same inline formatting context—is collapsed to have zero advance width.
     /// > (It is invisible, but retains its soft wrap opportunity, if any.)
     pub(super) ends_with_whitespace: bool,
+}
+
+/// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
+#[derive(Debug, Serialize)]
+pub(crate) struct FontKeyAndMetrics {
+    pub key: FontInstanceKey,
+    pub actual_pt_size: Au,
+    pub metrics: FontMetrics,
 }
 
 #[derive(Debug, Serialize)]
@@ -84,6 +100,9 @@ pub(crate) struct InlineBox {
     pub is_first_fragment: bool,
     pub is_last_fragment: bool,
     pub children: Vec<ArcRefCell<InlineLevelBox>>,
+    /// The index of the default font in the [`InlineFormattingContext`]'s font metrics store.
+    /// This is initialized during IFC shaping.
+    pub default_font_index: Option<usize>,
 }
 
 /// Information about the current line under construction for a particular
@@ -508,6 +527,10 @@ pub(super) struct InlineFormattingContextState<'a, 'b> {
     sequential_layout_state: Option<&'a mut SequentialLayoutState>,
     layout_context: &'b LayoutContext<'b>,
 
+    /// The list of [`FontMetrics`] used by the [`InlineFormattingContext`] that
+    /// we are laying out.
+    fonts: &'a Vec<FontKeyAndMetrics>,
+
     /// The [`InlineContainerState`] for the container formed by the root of the
     /// [`InlineFormattingContext`]. This is effectively the "root inline box" described
     /// by <https://drafts.csswg.org/css-inline/#model>:
@@ -619,6 +642,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             self.layout_context,
             self.current_inline_container_state(),
             inline_box.is_last_fragment,
+            inline_box
+                .default_font_index
+                .map(|index| &self.fonts[index].metrics),
         );
 
         if inline_box.is_first_fragment {
@@ -1121,26 +1147,37 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     pub(super) fn push_glyph_store_to_unbreakable_segment(
         &mut self,
         glyph_store: std::sync::Arc<GlyphStore>,
-        base_fragment_info: BaseFragmentInfo,
-        parent_style: &Arc<ComputedValues>,
-        font_metrics: &FontMetrics,
-        font_key: FontInstanceKey,
+        text_run: &TextRun,
+        font_index: usize,
     ) {
         let inline_advance = Length::from(glyph_store.total_advance());
-        let preserve_spaces = parent_style
+        let preserve_spaces = text_run
+            .parent_style
             .get_inherited_text()
             .white_space
             .preserve_spaces();
         let is_collapsible_whitespace = glyph_store.is_whitespace() && !preserve_spaces;
 
-        // Normally, the strut is incorporated into the nested block size. In quirks mode though
-        // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
-        // TODO(mrobinson): This isn't quite right for situations where collapsible white space
-        // ultimately does not collapse because it is between two other pieces of content.
-        // TODO(mrobinson): When we have font fallback, this should be calculating the
-        // block sizes of the fallback font.
+        // If the metrics of this font don't match the default font, we are likely using a fallback
+        // font and need to adjust the line size to account for a potentially different font.
+        // If somehow the metrics match, the line size won't change.
+        let ifc_font_info = &self.fonts[font_index];
+        let font_metrics = ifc_font_info.metrics.clone();
+        let using_fallback_font =
+            self.current_inline_container_state().font_metrics != font_metrics;
+
         let quirks_mode = self.layout_context.style_context.quirks_mode() != QuirksMode::NoQuirks;
-        let strut_size = if quirks_mode && !is_collapsible_whitespace {
+        let strut_size = if using_fallback_font {
+            // TODO(mrobinson): This value should probably be cached somewhere.
+            let container_state = self.current_inline_container_state();
+            let mut block_size = container_state.get_block_size_contribution(&font_metrics);
+            block_size.adjust_for_baseline_offset(container_state.baseline_offset);
+            block_size
+        } else if quirks_mode && !is_collapsible_whitespace {
+            // Normally, the strut is incorporated into the nested block size. In quirks mode though
+            // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
+            // TODO(mrobinson): This isn't quite right for situations where collapsible white space
+            // ultimately does not collapse because it is between two other pieces of content.
             self.current_inline_container_state()
                 .strut_block_sizes
                 .clone()
@@ -1154,9 +1191,8 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         );
 
         match self.current_line_segment.line_items.last_mut() {
-            Some(LineItem::TextRun(text_run)) => {
-                debug_assert!(font_key == text_run.font_key);
-                text_run.text.push(glyph_store);
+            Some(LineItem::TextRun(line_item)) if ifc_font_info.key == line_item.font_key => {
+                line_item.text.push(glyph_store);
                 return;
             },
             _ => {},
@@ -1164,10 +1200,10 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
         self.push_line_item_to_unbreakable_segment(LineItem::TextRun(TextRunLineItem {
             text: vec![glyph_store],
-            base_fragment_info,
-            parent_style: parent_style.clone(),
-            font_metrics: font_metrics.clone(),
-            font_key,
+            base_fragment_info: text_run.base_fragment_info,
+            parent_style: text_run.parent_style.clone(),
+            font_metrics,
+            font_key: ifc_font_info.key,
             text_decoration_line: self.current_inline_container_state().text_decoration_line,
         }));
     }
@@ -1293,7 +1329,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             (
                 Some(LineItem::TextRun(last_line_item)),
                 Some(LineItem::TextRun(first_segment_item)),
-            ) => {
+            ) if last_line_item.font_key == first_segment_item.font_key => {
                 last_line_item.text.append(&mut first_segment_item.text);
                 1
             },
@@ -1322,6 +1358,7 @@ impl InlineFormattingContext {
     ) -> InlineFormattingContext {
         InlineFormattingContext {
             inline_level_boxes: Default::default(),
+            font_metrics: Vec::new(),
             text_decoration_line,
             has_first_formatted_line,
             contains_floats: false,
@@ -1423,11 +1460,21 @@ impl InlineFormattingContext {
         };
 
         let style = containing_block.style;
+
+        // It's unfortunate that it isn't possible to get this during IFC text processing, but in
+        // that situation the style of the containing block is unknown.
+        let default_font_metrics =
+            crate::context::with_thread_local_font_context(layout_context, |font_context| {
+                get_font_for_first_font_for_style(style, font_context)
+                    .map(|font| font.borrow().metrics.clone())
+            });
+
         let mut ifc = InlineFormattingContextState {
             positioning_context,
             containing_block,
             sequential_layout_state,
             layout_context,
+            fonts: &self.font_metrics,
             fragments: Vec::new(),
             current_line: LineUnderConstruction::new(LogicalVec2 {
                 inline: first_line_inline_start,
@@ -1435,9 +1482,9 @@ impl InlineFormattingContext {
             }),
             root_nesting_level: InlineContainerState::new(
                 style.to_arc(),
-                layout_context,
                 None, /* parent_container */
                 self.text_decoration_line,
+                default_font_metrics.as_ref(),
                 inline_container_needs_strut(style, layout_context, None),
             ),
             inline_box_state_stack: Vec::new(),
@@ -1530,26 +1577,41 @@ impl InlineFormattingContext {
     /// Break and shape text of this InlineFormattingContext's TextRun's, which requires doing
     /// all font matching and FontMetrics collection.
     pub(crate) fn break_and_shape_text(&mut self, layout_context: &LayoutContext) {
-        let mut linebreaker = None;
-        self.foreach(|iter_item| match iter_item {
-            InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(ref mut text_run)) => {
-                text_run.break_and_shape(layout_context, &mut linebreaker);
-            },
-            _ => {},
+        let mut ifc_fonts = Vec::new();
+        crate::context::with_thread_local_font_context(layout_context, |font_context| {
+            let mut linebreaker = None;
+            self.foreach(|iter_item| match iter_item {
+                InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(
+                    ref mut text_run,
+                )) => {
+                    text_run.break_and_shape(font_context, &mut linebreaker, &mut ifc_fonts);
+                },
+                InlineFormattingContextIterItem::Item(InlineLevelBox::InlineBox(inline_box)) => {
+                    if let Some(font) =
+                        get_font_for_first_font_for_style(&inline_box.style, font_context)
+                    {
+                        inline_box.default_font_index =
+                            Some(add_or_get_font(&font, &mut ifc_fonts));
+                    }
+                },
+                _ => {},
+            });
         });
+
+        self.font_metrics = ifc_fonts;
     }
 }
 
 impl InlineContainerState {
     fn new(
         style: Arc<ComputedValues>,
-        layout_context: &LayoutContext,
         parent_container: Option<&InlineContainerState>,
         parent_text_decoration_line: TextDecorationLine,
+        font_metrics: Option<&FontMetrics>,
         create_strut: bool,
     ) -> Self {
         let text_decoration_line = parent_text_decoration_line | style.clone_text_decoration_line();
-        let font_metrics = font_metrics_from_style(layout_context, &style);
+        let font_metrics = font_metrics.cloned().unwrap_or_else(FontMetrics::empty);
         let line_height = line_height(&style, &font_metrics);
 
         let mut baseline_offset = Au::zero();
@@ -1712,6 +1774,7 @@ impl InlineBoxContainerState {
         layout_context: &LayoutContext,
         parent_container: &InlineContainerState,
         is_last_fragment: bool,
+        font_metrics: Option<&FontMetrics>,
     ) -> Self {
         let style = inline_box.style.clone();
         let pbm = style.padding_border_margin(containing_block);
@@ -1719,9 +1782,9 @@ impl InlineBoxContainerState {
         Self {
             base: InlineContainerState::new(
                 style,
-                layout_context,
                 Some(parent_container),
                 parent_container.text_decoration_line,
+                font_metrics,
                 create_strut,
             ),
             base_fragment_info: inline_box.base_fragment_info,
@@ -1978,21 +2041,6 @@ fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Len
     }
 }
 
-fn font_metrics_from_style(layout_context: &LayoutContext, style: &ComputedValues) -> FontMetrics {
-    crate::context::with_thread_local_font_context(layout_context, |font_context| {
-        let font_group = font_context.font_group(style.clone_font());
-        let font = match font_group.borrow_mut().first(font_context) {
-            Some(font) => font,
-            None => {
-                warn!("Could not find find for TextRun.");
-                return FontMetrics::empty();
-            },
-        };
-        let font = font.borrow();
-        font.metrics.clone()
-    })
-}
-
 fn is_baseline_relative(vertical_align: GenericVerticalAlign<LengthPercentage>) -> bool {
     match vertical_align {
         GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) |
@@ -2099,41 +2147,42 @@ impl<'a> ContentSizesComputation<'a> {
                 self.add_length(length);
             },
             InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(text_run)) => {
-                let result = match text_run.shaped_text {
-                    Some(ref result) => result,
-                    None => return,
-                };
+                for segment in text_run.shaped_text.iter() {
+                    // TODO: This should take account whether or not the first and last character prevent
+                    // linebreaks after atomics as in layout.
+                    if segment.break_at_start {
+                        self.line_break_opportunity()
+                    }
 
-                if result.break_at_start {
-                    self.line_break_opportunity()
-                }
-                for run in result.runs.iter() {
-                    let advance = Length::from(run.glyph_store.total_advance());
+                    for run in segment.runs.iter() {
+                        let advance = Length::from(run.glyph_store.total_advance());
 
-                    if !run.glyph_store.is_whitespace() {
-                        self.had_non_whitespace_content_yet = true;
-                        self.current_line.min_content += advance.into();
-                        self.current_line.max_content += (self.pending_whitespace + advance).into();
-                        self.pending_whitespace = Length::zero();
-                    } else {
-                        // If this run is a forced line break, we *must* break the line
-                        // and start measuring from the inline origin once more.
-                        if text_run.glyph_run_is_whitespace_ending_with_preserved_newline(run) {
+                        if !run.glyph_store.is_whitespace() {
                             self.had_non_whitespace_content_yet = true;
-                            self.forced_line_break();
-                            self.current_line = ContentSizes::zero();
-                            continue;
-                        }
+                            self.current_line.min_content += advance.into();
+                            self.current_line.max_content +=
+                                (self.pending_whitespace + advance).into();
+                            self.pending_whitespace = Length::zero();
+                        } else {
+                            // If this run is a forced line break, we *must* break the line
+                            // and start measuring from the inline origin once more.
+                            if text_run.glyph_run_is_whitespace_ending_with_preserved_newline(run) {
+                                self.had_non_whitespace_content_yet = true;
+                                self.forced_line_break();
+                                self.current_line = ContentSizes::zero();
+                                continue;
+                            }
 
-                        // Discard any leading whitespace in the IFC. This will always be trimmed.
-                        if !self.had_non_whitespace_content_yet {
-                            continue;
-                        }
+                            // Discard any leading whitespace in the IFC. This will always be trimmed.
+                            if !self.had_non_whitespace_content_yet {
+                                continue;
+                            }
 
-                        // Wait to take into account other whitespace until we see more content.
-                        // Whitespace at the end of the IFC will always be trimmed.
-                        self.line_break_opportunity();
-                        self.pending_whitespace += advance;
+                            // Wait to take into account other whitespace until we see more content.
+                            // Whitespace at the end of the IFC will always be trimmed.
+                            self.line_break_opportunity();
+                            self.pending_whitespace += advance;
+                        }
                     }
                 }
             },
