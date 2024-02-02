@@ -216,7 +216,14 @@ impl CanvasState {
     pub fn set_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.reset_to_initial_state();
         self.ipc_renderer
-            .send(CanvasMsg::Recreate(size, self.get_canvas_id()))
+            .send(CanvasMsg::Recreate(Some(size), self.get_canvas_id()))
+            .unwrap();
+    }
+
+    pub fn reset(&self) {
+        self.reset_to_initial_state();
+        self.ipc_renderer
+            .send(CanvasMsg::Recreate(None, self.get_canvas_id()))
             .unwrap();
     }
 
