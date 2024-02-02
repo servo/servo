@@ -1146,49 +1146,28 @@ impl Table {
         }
     }
 
-    fn inline_content_sizes_for_cell_at(
-        &self,
-        coords: TableSlotCoordinates,
-        layout_context: &LayoutContext,
-        writing_mode: WritingMode,
-    ) -> ContentSizes {
-        let cell = match self.resolve_first_cell(coords) {
-            Some(cell) => cell,
-            None => return ContentSizes::zero(),
-        };
-
-        let sizes = cell.inline_content_sizes(layout_context, writing_mode);
-        sizes.map(|size| size.scale_by(1.0 / cell.colspan as f32))
-    }
-
     pub(crate) fn compute_inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
         writing_mode: WritingMode,
-    ) -> (ContentSizes, Vec<Vec<ContentSizes>>) {
+    ) -> ContentSizes {
         let mut total_size = ContentSizes::zero();
-        let mut inline_content_sizes = Vec::new();
-        for column_index in 0..self.size.width {
-            let mut row_inline_content_sizes = Vec::new();
-            let mut max_content_sizes_in_column = ContentSizes::zero();
-
-            for row_index in 0..self.size.width {
-                // TODO: Take into account padding and border here.
+        for row_index in 0..self.size.height {
+            let mut row_inline_content_sizes = ContentSizes::zero();
+            for column_index in 0..self.size.width {
                 let coords = TableSlotCoordinates::new(column_index, row_index);
-
-                let content_sizes =
-                    self.inline_content_sizes_for_cell_at(coords, layout_context, writing_mode);
-                max_content_sizes_in_column.max_assign(content_sizes);
-                row_inline_content_sizes.push(content_sizes);
+                let cell = match self.get_slot(coords) {
+                    Some(TableSlot::Cell(cell)) => cell,
+                    _ => continue,
+                };
+                row_inline_content_sizes += cell.inline_content_sizes(layout_context, writing_mode);
             }
-
-            inline_content_sizes.push(row_inline_content_sizes);
-            total_size += max_content_sizes_in_column;
+            total_size.max_assign(row_inline_content_sizes)
         }
         let gutters = self.border_spacing().inline * (self.size.width as i32 + 1);
         total_size.min_content += gutters;
         total_size.max_content += gutters;
-        (total_size, inline_content_sizes)
+        total_size
     }
 
     pub(crate) fn inline_content_sizes(
@@ -1197,7 +1176,6 @@ impl Table {
         writing_mode: WritingMode,
     ) -> ContentSizes {
         self.compute_inline_content_sizes(layout_context, writing_mode)
-            .0
     }
 
     pub(crate) fn layout(

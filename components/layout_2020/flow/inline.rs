@@ -1884,8 +1884,13 @@ impl IndependentFormattingContext {
                 // https://drafts.csswg.org/css2/visudet.html#min-max-widths
                 // In this case “applying the rules above again” with a non-auto inline-size
                 // always results in that size.
+                let min_inline_size = min_box_size.inline.max(
+                    non_replaced
+                        .intrinsic_min_inline_size(layout_context)
+                        .into(),
+                );
                 let inline_size = tentative_inline_size
-                    .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+                    .clamp_between_extremums(min_inline_size, max_box_size.inline);
 
                 let containing_block_for_children = ContainingBlock {
                     inline_size,
@@ -1918,8 +1923,12 @@ impl IndependentFormattingContext {
                 // https://drafts.csswg.org/css2/visudet.html#min-max-heights
                 // In this case “applying the rules above again” with a non-auto block-size
                 // always results in that size.
+                let mut min_block_size = min_box_size.block;
+                if non_replaced.use_content_block_size_as_min_block_size() {
+                    min_block_size = independent_layout.content_block_size.into();
+                }
                 let block_size = tentative_block_size
-                    .clamp_between_extremums(min_box_size.block, max_box_size.block);
+                    .clamp_between_extremums(min_block_size, max_box_size.block);
 
                 let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),

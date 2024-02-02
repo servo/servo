@@ -84,6 +84,7 @@ impl ContentSizes {
 pub(crate) fn outer_inline(
     style: &ComputedValues,
     containing_block_writing_mode: WritingMode,
+    intrinsic_min_inline_size: Au,
     get_content_size: impl FnOnce() -> ContentSizes,
 ) -> ContentSizes {
     let padding = style.padding(containing_block_writing_mode);
@@ -118,7 +119,8 @@ pub(crate) fn outer_inline(
         // Percentages for 'min-width' are treated as zero
         .percentage_relative_to(zero)
         // FIXME: 'auto' is not zero in Flexbox
-        .auto_is(Length::zero);
+        .auto_is(Length::zero)
+        .max(intrinsic_min_inline_size.into());
     let max_inline_size = style
         .max_box_size(containing_block_writing_mode)
         .inline

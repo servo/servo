@@ -275,7 +275,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
             BlockLevelBox::SameFormattingContextBlock {
                 style, contents, ..
             } => {
-                let size = sizing::outer_inline(style, writing_mode, || {
+                let size = sizing::outer_inline(style, writing_mode, Au::zero(), || {
                     contents.inline_content_sizes(layout_context, style.writing_mode)
                 })
                 .max(ContentSizes::zero());

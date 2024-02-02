@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Borrow;
 use std::convert::TryInto;
 
 use app_units::Au;
@@ -10,6 +11,7 @@ use servo_arc::Arc;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::specified::text::TextDecorationLine;
+use style::Zero;
 
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
@@ -39,6 +41,26 @@ pub(crate) struct NonReplacedFormattingContext {
     /// If it was requested during construction
     pub content_sizes: Option<ContentSizes>,
     pub contents: NonReplacedFormattingContextContents,
+}
+
+impl NonReplacedFormattingContext {
+    pub(crate) fn intrinsic_min_inline_size(&mut self, layout_context: &LayoutContext) -> Au {
+        match self.contents {
+            NonReplacedFormattingContextContents::Flow(_) => return Au::zero(),
+            NonReplacedFormattingContextContents::Flex(_) => return Au::zero(),
+            NonReplacedFormattingContextContents::Table(_) => {},
+        };
+
+        self.inline_content_sizes(layout_context).min_content
+    }
+
+    pub(crate) fn use_content_block_size_as_min_block_size(&self) -> bool {
+        match self.contents {
+            NonReplacedFormattingContextContents::Flow(_) => false,
+            NonReplacedFormattingContextContents::Flex(_) => false,
+            NonReplacedFormattingContextContents::Table(_) => true,
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -164,20 +186,22 @@ impl IndependentFormattingContext {
     ) -> ContentSizes {
         match self {
             Self::NonReplaced(non_replaced) => {
-                let style = &non_replaced.style;
-                let content_sizes = &mut non_replaced.content_sizes;
-                let contents = &mut non_replaced.contents;
-                sizing::outer_inline(style, containing_block_writing_mode, || {
-                    *content_sizes.get_or_insert_with(|| {
-                        contents.inline_content_sizes(layout_context, style.writing_mode)
-                    })
-                })
+                let intrinsic_min_inline_size =
+                    non_replaced.intrinsic_min_inline_size(layout_context);
+                let style = non_replaced.style.clone();
+                sizing::outer_inline(
+                    style.borrow(),
+                    containing_block_writing_mode,
+                    intrinsic_min_inline_size,
+                    || non_replaced.inline_content_sizes(layout_context),
+                )
             },
-            Self::Replaced(replaced) => {
-                sizing::outer_inline(&replaced.style, containing_block_writing_mode, || {
-                    replaced.contents.inline_content_sizes(&replaced.style)
-                })
-            },
+            Self::Replaced(replaced) => sizing::outer_inline(
+                &replaced.style,
+                containing_block_writing_mode,
+                Au::zero(),
+                || replaced.contents.inline_content_sizes(&replaced.style),
+            ),
         }
     }
 }
