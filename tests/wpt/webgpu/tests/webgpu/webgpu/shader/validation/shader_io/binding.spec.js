@@ -124,17 +124,3 @@ var<storage> a: i32;
 }`;
   t.expectCompileResult(false, code);
 });
-
-g.test('binding_without_group').
-desc(`Test validation of binding without group`).
-fn((t) => {
-  const code = `
-@binding(1)
-var<storage> a: i32;
-
-@workgroup_size(1, 1, 1)
-@compute fn main() {
-  _ = a;
-}`;
-  t.expectCompileResult(false, code);
-});

@@ -32,7 +32,8 @@ class ErrorScopeTests extends Fixture {
     const device = this.trackForCleanup(
       await adapter.requestDevice({
         requiredLimits: {
-          maxTextureDimension2D: adapter.limits.maxTextureDimension2D
+          maxTextureDimension2D: adapter.limits.maxTextureDimension2D,
+          maxTextureArrayLayers: adapter.limits.maxTextureArrayLayers
         }
       })
     );

@@ -26,10 +26,12 @@ class F extends ValidationTest {
 
 
 
+
   {})
   {
     const {
       format = 'rgba8unorm',
+      dimension = '2d',
       width = 16,
       height = 16,
       arrayLayerCount = 1,
@@ -41,6 +43,7 @@ class F extends ValidationTest {
     return this.device.createTexture({
       size: { width, height, depthOrArrayLayers: arrayLayerCount },
       format,
+      dimension,
       mipLevelCount,
       sampleCount,
       usage
@@ -90,6 +93,7 @@ class F extends ValidationTest {
 }
 
 export const g = makeTestGroup(F);
+const kArrayLayerCount = 10;
 
 g.test('attachments,one_color_attachment').
 desc(`Test that a render pass works with only one color attachment.`).
@@ -276,6 +280,184 @@ fn((t) => {
   computeBytesPerSampleFromFormats(formats) <= t.device.limits.maxColorAttachmentBytesPerSample;
 
   t.tryRenderPass(success, { colorAttachments });
+});
+
+g.test('color_attachments,depthSlice,definedness').
+desc(
+  `
+  Test that depthSlice must be undefined for 2d color attachments and defined for 3d color attachments."
+  - The special value '0xFFFFFFFF' is not treated as 'undefined'.
+  `
+).
+params((u) =>
+u.
+combine('dimension', ['2d', '3d']).
+beginSubcases().
+combine('depthSlice', [undefined, 0, 0xffffffff])
+).
+fn((t) => {
+  const { dimension, depthSlice } = t.params;
+  const texture = t.createTexture({ dimension });
+
+  const colorAttachment = t.getColorAttachment(texture);
+  if (depthSlice !== undefined) {
+    colorAttachment.depthSlice = depthSlice;
+  }
+
+  const descriptor = {
+    colorAttachments: [colorAttachment]
+  };
+
+  const success =
+  dimension === '2d' && depthSlice === undefined || dimension === '3d' && depthSlice === 0;
+
+  t.tryRenderPass(success, descriptor);
+});
+
+g.test('color_attachments,depthSlice,bound_check').
+desc(
+  `
+  Test that depthSlice must be less than the depthOrArrayLayers of 3d texture's subresource at mip levels.
+  - Check depth bounds with 3d texture size [16, 1, 10], which has 5 mip levels with depth [10, 5, 2, 1, 1]
+    for testing more mip level size computation.
+  - Failed if depthSlice >= the depth of each mip level.
+  `
+).
+params((u) =>
+u.
+combine('mipLevel', [0, 1, 2, 3, 4]).
+beginSubcases().
+expand('depthSlice', ({ mipLevel }) => {
+  const depthAtMipLevel = Math.max(kArrayLayerCount >> mipLevel, 1);
+  // Use Set() to exclude duplicates when the depthAtMipLevel is 1 and 2
+  return [...new Set([0, 1, depthAtMipLevel - 1, depthAtMipLevel])];
+})
+).
+fn((t) => {
+  const { mipLevel, depthSlice } = t.params;
+
+  const texture = t.createTexture({
+    dimension: '3d',
+    width: 16,
+    height: 1,
+    arrayLayerCount: kArrayLayerCount,
+    mipLevelCount: mipLevel + 1
+  });
+
+  const viewDescriptor = {
+    baseMipLevel: mipLevel,
+    mipLevelCount: 1,
+    baseArrayLayer: 0,
+    arrayLayerCount: 1
+  };
+
+  const colorAttachment = t.getColorAttachment(texture, viewDescriptor);
+  colorAttachment.depthSlice = depthSlice;
+
+  const passDescriptor = {
+    colorAttachments: [colorAttachment]
+  };
+
+  const success = depthSlice < Math.max(kArrayLayerCount >> mipLevel, 1);
+
+  t.tryRenderPass(success, passDescriptor);
+});
+
+g.test('color_attachments,depthSlice,overlaps,same_miplevel').
+desc(
+  `
+  Test that the depth slices of 3d color attachments have no overlaps for same texture in a render
+  pass.
+  - Succeed if the depth slices are different, or from different textures, or on different render
+    passes.
+  - Fail if same depth slice from same texture's same mip level is overwritten in a render pass.
+  `
+).
+params((u) =>
+u.
+combine('sameDepthSlice', [true, false]).
+beginSubcases().
+combine('sameTexture', [true, false]).
+combine('samePass', [true, false])
+).
+fn((t) => {
+  const { sameDepthSlice, sameTexture, samePass } = t.params;
+  const arrayLayerCount = 4;
+
+  const texDescriptor = {
+    dimension: '3d',
+    arrayLayerCount
+  };
+  const texture = t.createTexture(texDescriptor);
+
+  const colorAttachments = [];
+  for (let i = 0; i < arrayLayerCount; i++) {
+    const colorAttachment = t.getColorAttachment(
+      sameTexture ? texture : t.createTexture(texDescriptor)
+    );
+    colorAttachment.depthSlice = sameDepthSlice ? 0 : i;
+    colorAttachments.push(colorAttachment);
+  }
+
+  const encoder = t.createEncoder('non-pass');
+  if (samePass) {
+    const pass = encoder.encoder.beginRenderPass({ colorAttachments });
+    pass.end();
+  } else {
+    for (let i = 0; i < arrayLayerCount; i++) {
+      const pass = encoder.encoder.beginRenderPass({ colorAttachments: [colorAttachments[i]] });
+      pass.end();
+    }
+  }
+
+  const success = !sameDepthSlice || !sameTexture || !samePass;
+
+  encoder.validateFinish(success);
+});
+
+g.test('color_attachments,depthSlice,overlaps,diff_miplevel').
+desc(
+  `
+  Test that the same depth slice from different mip levels of a 3d texture with size [1, 1, N] can
+  be set in a render pass's color attachments.
+  `
+).
+params((u) => u.combine('sameMipLevel', [true, false])).
+fn((t) => {
+  const { sameMipLevel } = t.params;
+  const mipLevelCount = 4;
+
+  const texDescriptor = {
+    dimension: '3d',
+    width: 1,
+    height: 1,
+    arrayLayerCount: 1 << mipLevelCount,
+    mipLevelCount
+  };
+  const texture = t.createTexture(texDescriptor);
+
+  const viewDescriptor = {
+    baseMipLevel: 0,
+    mipLevelCount: 1,
+    baseArrayLayer: 0,
+    arrayLayerCount: 1
+  };
+
+  const colorAttachments = [];
+  for (let i = 0; i < mipLevelCount; i++) {
+    if (!sameMipLevel) {
+      viewDescriptor.baseMipLevel = i;
+    }
+    const colorAttachment = t.getColorAttachment(texture, viewDescriptor);
+    colorAttachment.depthSlice = 0;
+    colorAttachments.push(colorAttachment);
+  }
+
+  const encoder = t.createEncoder('non-pass');
+  const pass = encoder.encoder.beginRenderPass({ colorAttachments });
+  pass.end();
+
+  encoder.validateFinish(!sameMipLevel);
 });
 
 g.test('attachments,same_size').

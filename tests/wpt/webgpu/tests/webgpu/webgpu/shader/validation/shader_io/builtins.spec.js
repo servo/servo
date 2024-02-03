@@ -103,9 +103,9 @@ desc(
 params((u) =>
 u.
 combineWithParams(kBuiltins).
-combine('use_struct', [true, false]).
+beginSubcases().
 combine('target_type', kTestTypes).
-beginSubcases()
+combine('use_struct', [true, false])
 ).
 fn((t) => {
   let code = '';

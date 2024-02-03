@@ -97,8 +97,6 @@ class F extends CopyToTextureUtils {
     }
 
     const imageData = new ImageData(imagePixels, width, height, { colorSpace });
-    // MAINTENANCE_TODO: Remove as any when tsc support imageData.colorSpace
-
     if (typeof imageData.colorSpace === 'undefined') {
       this.skip('color space attr is not supported for ImageData');
     }
@@ -762,7 +760,7 @@ desc(
 params((u) =>
 u.
 combine('srcColorSpace', ['srgb', 'display-p3']).
-combine('dstColorSpace', ['srgb']).
+combine('dstColorSpace', ['srgb', 'display-p3']).
 combine('dstColorFormat', kValidTextureFormatsForCopyE2T).
 combine('dstPremultiplied', [true, false]).
 combine('srcDoFlipYDuringCopy', [true, false]).

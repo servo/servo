@@ -303,7 +303,8 @@ new Int16Array(),
 new Int32Array(),
 new Float16Array(),
 new Float32Array(),
-new Float64Array()];
+new Float64Array(),
+new BigInt64Array()];
 
 
 
