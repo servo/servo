@@ -211,7 +211,7 @@ class F extends TextureTestMixin(GPUTest) {
     align(dstBlocksPerRow * bytesPerBlock, 4);
 
     if (isCompressedTextureFormat(dstTexture.format) && this.isCompatibility) {
-      assert(viewCompatible(srcFormat, dstFormat));
+      assert(viewCompatible(this.isCompatibility, srcFormat, dstFormat));
       // compare by rendering. We need the expected texture to match
       // the dstTexture so we'll create a texture where we supply
       // all of the data in JavaScript.
@@ -1376,6 +1376,9 @@ desc(
     texture can only be 1.
   `
 ).
+beforeAllSubcases((t) => {
+  t.skipIf(t.isCompatibility, 'multisample textures are not copyable in compatibility mode');
+}).
 fn((t) => {
   const textureSize = [32, 16, 1];
   const kColorFormat = 'rgba8unorm';
@@ -1564,6 +1567,9 @@ desc(
     texture can only be 1.
   `
 ).
+beforeAllSubcases((t) => {
+  t.skipIf(t.isCompatibility, 'multisample textures are not copyable in compatibility mode');
+}).
 fn((t) => {
   const textureSize = [32, 16, 1];
   const kDepthFormat = 'depth24plus';

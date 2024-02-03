@@ -304,6 +304,12 @@ u //
 }]
 )
 ).
+beforeAllSubcases((t) => {
+  t.skipIf(
+    t.isCompatibility && t.params.biasClamp !== 0,
+    'non zero depthBiasClamp is not supported in compatibility mode'
+  );
+}).
 fn((t) => {
   t.runDepthBiasTest('depth32float', t.params);
 });
@@ -346,6 +352,12 @@ combineWithParams([
 }]
 )
 ).
+beforeAllSubcases((t) => {
+  t.skipIf(
+    t.isCompatibility && t.params.biasClamp !== 0,
+    'non zero depthBiasClamp is not supported in compatibility mode'
+  );
+}).
 fn((t) => {
   const { format } = t.params;
   t.runDepthBiasTestFor24BitFormat(format, t.params);

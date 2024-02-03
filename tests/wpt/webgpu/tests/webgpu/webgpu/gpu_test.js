@@ -60,7 +60,7 @@ import {
   textureContentIsOKByT2B } from
 './util/texture/texture_ok.js';
 import { createTextureFromTexelView, createTextureFromTexelViews } from './util/texture.js';
-import { reifyOrigin3D } from './util/unions.js';
+import { reifyExtent3D, reifyOrigin3D } from './util/unions.js';
 
 const devicePool = new DevicePool();
 
@@ -459,19 +459,23 @@ export class GPUTestBase extends Fixture {
   }
 
   /** Skips this test case if the `langFeature` is *not* supported. */
-  requireLanguageFeatureOrSkipTestCase(langFeature) {
-    const lf = getGPU(this.rec).wgslLanguageFeatures;
-    if (lf === undefined || !lf.has(langFeature)) {
+  skipIfLanguageFeatureNotSupported(langFeature) {
+    if (!this.hasLanguageFeature(langFeature)) {
       this.skip(`WGSL language feature '${langFeature}' is not supported`);
     }
   }
 
   /** Skips this test case if the `langFeature` is supported. */
   skipIfLanguageFeatureSupported(langFeature) {
-    const lf = getGPU(this.rec).wgslLanguageFeatures;
-    if (lf !== undefined && lf.has(langFeature)) {
+    if (this.hasLanguageFeature(langFeature)) {
       this.skip(`WGSL language feature '${langFeature}' is supported`);
     }
+  }
+
+  /** returns true iff the `langFeature` is supported  */
+  hasLanguageFeature(langFeature) {
+    const lf = getGPU(this.rec).wgslLanguageFeatures;
+    return lf !== undefined && lf.has(langFeature);
   }
 
   /**
@@ -784,7 +788,8 @@ export class GPUTestBase extends Fixture {
     slice = 0,
     layout,
     generateWarningOnly = false,
-    checkElementsBetweenFn = (act, [a, b]) => checkElementsBetween(act, [(i) => a[i], (i) => b[i]])
+    checkElementsBetweenFn = (act, [a, b]) =>
+    checkElementsBetween(act, [(i) => a[i], (i) => b[i]])
 
 
 
@@ -811,24 +816,32 @@ export class GPUTestBase extends Fixture {
 
   /**
    * Emulate a texture to buffer copy by using a compute shader
-   * to load texture value of a single pixel and write to a storage buffer.
-   * For sample count == 1, the buffer contains only one value of the sample.
-   * For sample count > 1, the buffer contains (N = sampleCount) values sorted
+   * to load texture values of a subregion of a 2d texture and write to a storage buffer.
+   * For sample count == 1, the buffer contains extent[0] * extent[1] of the sample.
+   * For sample count > 1, the buffer contains extent[0] * extent[1] * (N = sampleCount) values sorted
    * in the order of their sample index [0, sampleCount - 1]
    *
    * This can be useful when the texture to buffer copy is not available to the texture format
    * e.g. (depth24plus), or when the texture is multisampled.
    *
-   * MAINTENANCE_TODO: extend to read multiple pixels with given origin and size.
+   * MAINTENANCE_TODO: extend texture dimension to 1d and 3d.
    *
    * @returns storage buffer containing the copied value from the texture.
    */
-  copySinglePixelTextureToBufferUsingComputePass(
+  copy2DTextureToBufferUsingComputePass(
   type,
   componentCount,
   textureView,
-  sampleCount)
+  sampleCount = 1,
+  extent_ = [1, 1, 1],
+  origin_ = [0, 0, 0])
   {
+    const origin = reifyOrigin3D(origin_);
+    const extent = reifyExtent3D(extent_);
+    const width = extent.width;
+    const height = extent.height;
+    const kWorkgroupSizeX = 8;
+    const kWorkgroupSizeY = 8;
     const textureSrcCode =
     sampleCount === 1 ?
     `@group(0) @binding(0) var src: texture_2d<${type}>;` :
@@ -841,13 +854,24 @@ export class GPUTestBase extends Fixture {
       ${textureSrcCode}
       @group(0) @binding(1) var<storage, read_write> dst : Buffer;
 
-      @compute @workgroup_size(1) fn main() {
-        var coord = vec2<i32>(0, 0);
-        for (var sampleIndex = 0; sampleIndex < ${sampleCount};
+      struct Params {
+        origin: vec2u,
+        extent: vec2u,
+      };
+      @group(0) @binding(2) var<uniform> params : Params;
+
+      @compute @workgroup_size(${kWorkgroupSizeX}, ${kWorkgroupSizeY}, 1) fn main(@builtin(global_invocation_id) id : vec3u) {
+        let boundary = params.origin + params.extent;
+        let coord = params.origin + id.xy;
+        if (any(coord >= boundary)) {
+          return;
+        }
+        let offset = (id.x + id.y * params.extent.x) * ${componentCount} * ${sampleCount};
+        for (var sampleIndex = 0u; sampleIndex < ${sampleCount};
           sampleIndex = sampleIndex + 1) {
-          let o = sampleIndex * ${componentCount};
-          let v = textureLoad(src, coord, sampleIndex);
-          for (var component = 0; component < ${componentCount}; component = component + 1) {
+          let o = offset + sampleIndex * ${componentCount};
+          let v = textureLoad(src, coord.xy, sampleIndex);
+          for (var component = 0u; component < ${componentCount}; component = component + 1) {
             dst.data[o + component] = v[component];
           }
         }
@@ -864,10 +888,15 @@ export class GPUTestBase extends Fixture {
     });
 
     const storageBuffer = this.device.createBuffer({
-      size: sampleCount * type.size * componentCount,
+      size: sampleCount * type.size * componentCount * width * height,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC
     });
     this.trackForCleanup(storageBuffer);
+
+    const uniformBuffer = this.makeBufferWithContents(
+      new Uint32Array([origin.x, origin.y, width, height]),
+      GPUBufferUsage.UNIFORM
+    );
 
     const uniformBindGroup = this.device.createBindGroup({
       layout: computePipeline.getBindGroupLayout(0),
@@ -881,6 +910,12 @@ export class GPUTestBase extends Fixture {
         resource: {
           buffer: storageBuffer
         }
+      },
+      {
+        binding: 2,
+        resource: {
+          buffer: uniformBuffer
+        }
       }]
 
     });
@@ -889,7 +924,11 @@ export class GPUTestBase extends Fixture {
     const pass = encoder.beginComputePass();
     pass.setPipeline(computePipeline);
     pass.setBindGroup(0, uniformBindGroup);
-    pass.dispatchWorkgroups(1);
+    pass.dispatchWorkgroups(
+      Math.floor((width + kWorkgroupSizeX - 1) / kWorkgroupSizeX),
+      Math.floor((height + kWorkgroupSizeY - 1) / kWorkgroupSizeY),
+      1
+    );
     pass.end();
     this.device.queue.submit([encoder.finish()]);
 

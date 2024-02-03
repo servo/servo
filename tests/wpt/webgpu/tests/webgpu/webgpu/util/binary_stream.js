@@ -85,6 +85,16 @@ export default class BinaryStream {
     return this.view.getInt16(this.alignedOffset(2), /* littleEndian */true);
   }
 
+  /** writeI64() writes a bitint to the buffer at the next 64-bit aligned offset */
+  writeI64(value) {
+    this.view.setBigInt64(this.alignedOffset(8), value, /* littleEndian */true);
+  }
+
+  /** readI64() reads a bigint from the buffer at the next 64-bit aligned offset */
+  readI64() {
+    return this.view.getBigInt64(this.alignedOffset(8), /* littleEndian */true);
+  }
+
   /** writeI32() writes a int32 to the buffer at the next 32-bit aligned offset */
   writeI32(value) {
     this.view.setInt32(this.alignedOffset(4), value, /* littleEndian */true);

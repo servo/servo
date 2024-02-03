@@ -1910,8 +1910,12 @@ format)
  *
  * This function may need to be generalized to use `baseFormat` from `kTextureFormatInfo`.
  */
-export function viewCompatible(a, b) {
-  return a === b || a + '-srgb' === b || b + '-srgb' === a;
+export function viewCompatible(
+compatibilityMode,
+a,
+b)
+{
+  return compatibilityMode ? a === b : a === b || a + '-srgb' === b || b + '-srgb' === a;
 }
 
 export function getFeaturesForFormats(
@@ -1931,16 +1935,19 @@ export function isCompressedTextureFormat(format) {
   return format in kCompressedTextureFormatInfo;
 }
 
+export const kCompatModeUnsupportedStorageTextureFormats = [
+'rg32float',
+'rg32sint',
+'rg32uint'];
+
+
 export function isTextureFormatUsableAsStorageFormat(
 format,
 isCompatibilityMode)
 {
   if (isCompatibilityMode) {
-    switch (format) {
-      case 'rg32float':
-      case 'rg32sint':
-      case 'rg32uint':
-        return false;
+    if (kCompatModeUnsupportedStorageTextureFormats.indexOf(format) >= 0) {
+      return false;
     }
   }
   return !!kTextureFormatInfo[format].color?.storage;

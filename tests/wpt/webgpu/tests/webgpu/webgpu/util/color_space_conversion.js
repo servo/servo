@@ -230,9 +230,10 @@ export function makeInPlaceColorConversion({
     // This technically represents colors outside the src gamut, so no clamping yet.
 
     if (requireColorSpaceConversion) {
-      // WebGPU currently only supports dstColorSpace = 'srgb'.
       if (srcColorSpace === 'display-p3' && dstColorSpace === 'srgb') {
-        rgba = displayP3ToSrgb(rgba);
+        Object.assign(rgba, displayP3ToSrgb(rgba));
+      } else if (srcColorSpace === 'srgb' && dstColorSpace === 'display-p3') {
+        Object.assign(rgba, srgbToDisplayP3(rgba));
       } else {
         unreachable();
       }

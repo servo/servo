@@ -59,9 +59,9 @@ g.test('constant_expression_no_assert').
 desc(`Test that const_assert does not assert on a true conditional expression`).
 params((u) =>
 u.
-combine('case', keysOf(kConditionCases)).
 combine('scope', ['module', 'function']).
-beginSubcases()
+beginSubcases().
+combine('case', keysOf(kConditionCases))
 ).
 fn((t) => {
   const expr = kConditionCases[t.params.case].expr;
@@ -76,9 +76,9 @@ g.test('constant_expression_assert').
 desc(`Test that const_assert does assert on a false conditional expression`).
 params((u) =>
 u.
-combine('case', keysOf(kConditionCases)).
 combine('scope', ['module', 'function']).
-beginSubcases()
+beginSubcases().
+combine('case', keysOf(kConditionCases))
 ).
 fn((t) => {
   const expr = kConditionCases[t.params.case].expr;
@@ -95,10 +95,10 @@ desc(
 ).
 params((u) =>
 u.
-combine('lhs', keysOf(kConditionCases)).
-combine('rhs', keysOf(kConditionCases)).
 combine('scope', ['module', 'function']).
-beginSubcases()
+beginSubcases().
+combine('lhs', keysOf(kConditionCases)).
+combine('rhs', keysOf(kConditionCases))
 ).
 fn((t) => {
   const expr = `(${kConditionCases[t.params.lhs].expr}) || (${
@@ -117,10 +117,10 @@ desc(
 ).
 params((u) =>
 u.
-combine('lhs', keysOf(kConditionCases)).
-combine('rhs', keysOf(kConditionCases)).
 combine('scope', ['module', 'function']).
-beginSubcases()
+beginSubcases().
+combine('lhs', keysOf(kConditionCases)).
+combine('rhs', keysOf(kConditionCases))
 ).
 fn((t) => {
   const expr = `(${kConditionCases[t.params.lhs].expr}) || (${
@@ -139,10 +139,10 @@ desc(
 ).
 params((u) =>
 u.
-combine('lhs', keysOf(kConditionCases)).
-combine('rhs', keysOf(kConditionCases)).
 combine('scope', ['module', 'function']).
-beginSubcases()
+beginSubcases().
+combine('lhs', keysOf(kConditionCases)).
+combine('rhs', keysOf(kConditionCases))
 ).
 fn((t) => {
   const expr = `(${kConditionCases[t.params.lhs].expr}) && (${
@@ -161,10 +161,10 @@ desc(
 ).
 params((u) =>
 u.
-combine('lhs', keysOf(kConditionCases)).
-combine('rhs', keysOf(kConditionCases)).
 combine('scope', ['module', 'function']).
-beginSubcases()
+beginSubcases().
+combine('lhs', keysOf(kConditionCases)).
+combine('rhs', keysOf(kConditionCases))
 ).
 fn((t) => {
   const expr = `(${kConditionCases[t.params.lhs].expr}) && (${

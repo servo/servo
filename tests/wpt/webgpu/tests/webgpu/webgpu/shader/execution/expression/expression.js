@@ -32,6 +32,9 @@ export const allInputSources = ['const', 'uniform', 'storage_r', 'storage_rw'];
 /** Just constant input source */
 export const onlyConstInputSource = ['const'];
 
+/** All input sources except const */
+export const allButConstInputSource = ['uniform', 'storage_r', 'storage_rw'];
+
 /** Configuration for running a expression test */
 
 
@@ -47,9 +50,9 @@ export const onlyConstInputSource = ['const'];
 
 // Helper for returning the stride for a given Type
 function valueStride(ty) {
-  // AbstractFloats are passed out of the shader via a struct of 2x u32s and
-  // unpacking containers as arrays
-  if (scalarTypeOf(ty).kind === 'abstract-float') {
+  // AbstractFloats and AbstractInts are passed out of the shader via structs of
+  // 2x u32s and unpacking containers as arrays
+  if (scalarTypeOf(ty).kind === 'abstract-float' || scalarTypeOf(ty).kind === 'abstract-int') {
     if (ty instanceof ScalarType) {
       return 16;
     }
@@ -139,7 +142,7 @@ function valueStride(ty) {
   return 16;
 }
 
-// Helper for summing up all of the stride values for an array of Types
+// Helper for summing up all the stride values for an array of Types
 function valueStrides(tys) {
   return tys.map(valueStride).reduce((sum, c) => sum + c);
 }
@@ -148,6 +151,7 @@ function valueStrides(tys) {
 function storageType(ty) {
   if (ty instanceof ScalarType) {
     assert(ty.kind !== 'f64', `No storage type defined for 'f64' values`);
+    assert(ty.kind !== 'abstract-int', `Custom handling is implemented for 'abstract-int' values`);
     assert(
       ty.kind !== 'abstract-float',
       `Custom handling is implemented for 'abstract-float' values`
@@ -165,7 +169,8 @@ function storageType(ty) {
 // Helper for converting a value of the type 'ty' from the storage type.
 function fromStorage(ty, expr) {
   if (ty instanceof ScalarType) {
-    assert(ty.kind !== 'abstract-float', `AbstractFloat values should not be in input storage`);
+    assert(ty.kind !== 'abstract-int', `'abstract-int' values should not be in input storage`);
+    assert(ty.kind !== 'abstract-float', `'abstract-float' values should not be in input storage`);
     assert(ty.kind !== 'f64', `'No storage type defined for 'f64' values`);
     if (ty.kind === 'bool') {
       return `${expr} != 0u`;
@@ -173,8 +178,12 @@ function fromStorage(ty, expr) {
   }
   if (ty instanceof VectorType) {
     assert(
+      ty.elementType.kind !== 'abstract-int',
+      `'abstract-int' values cannot appear in input storage`
+    );
+    assert(
       ty.elementType.kind !== 'abstract-float',
-      `AbstractFloat values cannot appear in input storage`
+      `'abstract-float' values cannot appear in input storage`
     );
     assert(ty.elementType.kind !== 'f64', `'No storage type defined for 'f64' values`);
     if (ty.elementType.kind === 'bool') {
@@ -188,8 +197,12 @@ function fromStorage(ty, expr) {
 function toStorage(ty, expr) {
   if (ty instanceof ScalarType) {
     assert(
+      ty.kind !== 'abstract-int',
+      `'abstract-int' values have custom code for writing to storage`
+    );
+    assert(
       ty.kind !== 'abstract-float',
-      `AbstractFloat values have custom code for writing to storage`
+      `'abstract-float' values have custom code for writing to storage`
     );
     assert(ty.kind !== 'f64', `No storage type defined for 'f64' values`);
     if (ty.kind === 'bool') {
@@ -198,8 +211,12 @@ function toStorage(ty, expr) {
   }
   if (ty instanceof VectorType) {
     assert(
+      ty.elementType.kind !== 'abstract-int',
+      `'abstract-int' values have custom code for writing to storage`
+    );
+    assert(
       ty.elementType.kind !== 'abstract-float',
-      `AbstractFloat values have custom code for writing to storage`
+      `'abstract-float' values have custom code for writing to storage`
     );
     assert(ty.elementType.kind !== 'f64', `'No storage type defined for 'f64' values`);
     if (ty.elementType.kind === 'bool') {
@@ -460,7 +477,10 @@ function map(v, fn) {
  */
 function wgslOutputs(resultType, count) {
   let output_struct = undefined;
-  if (scalarTypeOf(resultType).kind !== 'abstract-float') {
+  if (
+  scalarTypeOf(resultType).kind !== 'abstract-float' &&
+  scalarTypeOf(resultType).kind !== 'abstract-int')
+  {
     output_struct = `
 struct Output {
   @size(${valueStride(resultType)}) value : ${storageType(resultType)}
@@ -569,8 +589,12 @@ cases,
 inputSource)
 {
   assert(
+    scalarTypeOf(resultType).kind !== 'abstract-int',
+    `abstractIntShaderBuilder should be used when result type is 'abstract-int'`
+  );
+  assert(
     scalarTypeOf(resultType).kind !== 'abstract-float',
-    `abstractFloatShaderBuilder should be used when result type is 'abstract-float`
+    `abstractFloatShaderBuilder should be used when result type is 'abstract-float'`
   );
   if (inputSource === 'const') {
     //////////////////////////////////////////////////////////////////////////
@@ -925,7 +949,7 @@ export function abstractFloatShaderBuilder(expressionBuilder) {
   cases,
   inputSource) =>
   {
-    assert(inputSource === 'const', 'AbstractFloat results are only defined for const-eval');
+    assert(inputSource === 'const', `'abstract-float' results are only defined for const-eval`);
     assert(
       scalarTypeOf(resultType).kind === 'abstract-float',
       `Expected resultType of 'abstract-float', received '${scalarTypeOf(resultType).kind}' instead`
@@ -935,6 +959,90 @@ export function abstractFloatShaderBuilder(expressionBuilder) {
     map((c, i) => {
       const expr = `${expressionBuilder(map(c.input, (v) => v.wgsl()))}`;
       return abstractFloatCaseBody(expr, resultType, i);
+    }).
+    join('\n  ');
+
+    return `
+${wgslHeader(parameterTypes, resultType)}
+
+${wgslOutputs(resultType, cases.length)}
+
+@compute @workgroup_size(1)
+fn main() {
+${body}
+}`;
+  };
+}
+
+/**
+ * @returns a string that extracts the value of an AbstractInt into an output
+ *          destination
+ * @param expr expression for an AbstractInt value, if working with vectors,
+ *             this string needs to include indexing into the container.
+ * @param case_idx index in the case output array to assign the result
+ * @param accessor string representing how access to the AbstractInt that needs
+ *                 to be operated on.
+ *                 For scalars this should be left as ''.
+ *                 For vectors this will be an indexing operation,
+ *                 i.e. '[i]'
+ */
+function abstractIntSnippet(expr, case_idx, accessor = '') {
+  // AbstractInts are i64s under the hood. WebGPU does not support
+  // putting i64s in buffers, or any 64-bit simple types, so the result needs to
+  // be split up into u32 bitfields
+  //
+  // Since there is no 64-bit data type that can be used as an element for a
+  // vector or a matrix in WGSL, the testing framework needs to pass the u32s
+  // via a struct with two u32s, and deconstruct vectors into arrays.
+  //
+  // This is complicated by the fact that user defined functions cannot
+  // take/return AbstractInts, and AbstractInts cannot be stored in
+  // variables, so the code cannot just inject a simple utility function
+  // at the top of the shader, instead this snippet needs to be inlined
+  // everywhere the test needs to return an AbstractInt.
+  return `  {
+    outputs[${case_idx}].value${accessor}.high = bitcast<u32>(i32(${expr}${accessor} >> 32)) & 0xFFFFFFFF;
+    const low_sign = (${expr}${accessor} & (1 << 31));
+    outputs[${case_idx}].value${accessor}.low = bitcast<u32>((${expr}${accessor} & 0x7FFFFFFF)) | low_sign;
+  }`;
+}
+
+/** @returns a string for a specific case that has a AbstractInt result */
+function abstractIntCaseBody(expr, resultType, i) {
+  if (resultType instanceof ScalarType) {
+    return abstractIntSnippet(expr, i);
+  }
+
+  if (resultType instanceof VectorType) {
+    return [...Array(resultType.width).keys()].
+    map((idx) => abstractIntSnippet(expr, i, `[${idx}]`)).
+    join('  \n');
+  }
+
+  unreachable(`Results of type '${resultType}' not yet implemented`);
+}
+
+/**
+ * @returns a ShaderBuilder that builds a test shader hands AbstractInt results.
+ * @param expressionBuilder an expression builder that will return AbstractInts
+ */
+export function abstractIntShaderBuilder(expressionBuilder) {
+  return (
+  parameterTypes,
+  resultType,
+  cases,
+  inputSource) =>
+  {
+    assert(inputSource === 'const', `'abstract-int' results are only defined for const-eval`);
+    assert(
+      scalarTypeOf(resultType).kind === 'abstract-int',
+      `Expected resultType of 'abstract-int', received '${scalarTypeOf(resultType).kind}' instead`
+    );
+
+    const body = cases.
+    map((c, i) => {
+      const expr = `${expressionBuilder(map(c.input, (v) => v.wgsl()))}`;
+      return abstractIntCaseBody(expr, resultType, i);
     }).
     join('\n  ');
 
