@@ -39,7 +39,6 @@ pub use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
 use servo::{self, gl, Servo, TopLevelBrowsingContextId};
-use servo_media::player::context as MediaPlayerContext;
 use surfman::{Connection, SurfaceType};
 
 thread_local! {
@@ -56,8 +55,6 @@ pub struct InitOptions {
     pub coordinates: Coordinates,
     pub density: f32,
     pub xr_discovery: Option<webxr::Discovery>,
-    pub gl_context_pointer: Option<*const c_void>,
-    pub native_display_pointer: Option<*const c_void>,
     pub surfman_integration: SurfmanIntegration,
     pub prefs: Option<HashMap<String, PrefValue>>,
 }
@@ -292,8 +289,6 @@ pub fn init(
         host_callbacks: callbacks,
         coordinates: RefCell::new(init_opts.coordinates),
         density: init_opts.density,
-        gl_context_pointer: init_opts.gl_context_pointer,
-        native_display_pointer: init_opts.native_display_pointer,
         rendering_context: rendering_context.clone(),
     });
 
@@ -861,8 +856,6 @@ struct ServoWindowCallbacks {
     host_callbacks: Box<dyn HostTrait>,
     coordinates: RefCell<Coordinates>,
     density: f32,
-    gl_context_pointer: Option<*const c_void>,
-    native_display_pointer: Option<*const c_void>,
     rendering_context: RenderingContext,
 }
 
@@ -905,24 +898,6 @@ impl WindowMethods for ServoWindowCallbacks {
             screen_avail: coords.viewport.size,
             hidpi_factor: Scale::new(self.density),
         }
-    }
-
-    fn get_gl_context(&self) -> MediaPlayerContext::GlContext {
-        match self.gl_context_pointer {
-            Some(context) => MediaPlayerContext::GlContext::Egl(context as usize),
-            None => MediaPlayerContext::GlContext::Unknown,
-        }
-    }
-
-    fn get_native_display(&self) -> MediaPlayerContext::NativeDisplay {
-        match self.native_display_pointer {
-            Some(display) => MediaPlayerContext::NativeDisplay::Egl(display as usize),
-            None => MediaPlayerContext::NativeDisplay::Unknown,
-        }
-    }
-
-    fn get_gl_api(&self) -> MediaPlayerContext::GlApi {
-        MediaPlayerContext::GlApi::Gles2
     }
 }
 

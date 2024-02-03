@@ -15,7 +15,6 @@ use libc::c_void;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, TraversalDirection};
 use script_traits::{MediaSessionActionType, MouseButton, TouchEventType, TouchId, WheelDelta};
 use servo_geometry::DeviceIndependentPixel;
-use servo_media::player::context::{GlApi, GlContext, NativeDisplay};
 use servo_url::ServoUrl;
 use style_traits::DevicePixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint};
@@ -171,13 +170,7 @@ pub trait WindowMethods {
     /// will want to avoid blocking on UI events, and just
     /// run the event loop at the vsync interval.
     fn set_animation_state(&self, _state: AnimationState);
-    /// Get the media GL context
-    fn get_gl_context(&self) -> GlContext;
-    /// Get the media native display
-    fn get_native_display(&self) -> NativeDisplay;
-    /// Get the GL api
-    fn get_gl_api(&self) -> GlApi;
-    /// Get the RenderingContext instance.
+    /// Get the [`RenderingContext`] of this Window.
     fn rendering_context(&self) -> RenderingContext;
 }
 

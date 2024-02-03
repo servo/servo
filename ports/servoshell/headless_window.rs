@@ -15,7 +15,6 @@ use servo::rendering_context::RenderingContext;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::DeviceIntRect;
-use servo_media::player::context as MediaPlayerCtxt;
 use surfman::{Connection, Context, Device, SurfaceType};
 
 use crate::events_loop::WakerEvent;
@@ -142,18 +141,6 @@ impl WindowMethods for Window {
 
     fn set_animation_state(&self, state: AnimationState) {
         self.animation_state.set(state);
-    }
-
-    fn get_gl_context(&self) -> MediaPlayerCtxt::GlContext {
-        MediaPlayerCtxt::GlContext::Unknown
-    }
-
-    fn get_native_display(&self) -> MediaPlayerCtxt::NativeDisplay {
-        MediaPlayerCtxt::NativeDisplay::Unknown
-    }
-
-    fn get_gl_api(&self) -> MediaPlayerCtxt::GlApi {
-        MediaPlayerCtxt::GlApi::None
     }
 
     fn rendering_context(&self) -> RenderingContext {

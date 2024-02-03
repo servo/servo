@@ -14,7 +14,7 @@ use gleam::gl;
 use log::{info, trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
-use servo::config::opts;
+use servo::config::{opts, set_pref};
 use servo::servo_config::pref;
 use servo::Servo;
 use surfman::GLApi;
@@ -67,6 +67,8 @@ impl App {
 
         // Implements window methods, used by compositor.
         let window = if opts::get().headless {
+            // GL video rendering is not supported on headless windows.
+            set_pref!(media.glvideo.enabled, false);
             headless_window::Window::new(
                 opts::get().initial_window_size,
                 device_pixel_ratio_override,
