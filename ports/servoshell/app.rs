@@ -437,6 +437,7 @@ impl App {
         }
 
         // Catch some keyboard events, and push the rest onto the WebViewManager event queue.
+        webviews.handle_gamepad_events();
         webviews.handle_window_events(embedder_events);
 
         // Take any new embedder messages from Servo itself.
