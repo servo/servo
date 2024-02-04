@@ -9,10 +9,11 @@ use js::typedarray::{Float64, Float64Array};
 
 use super::bindings::typedarrays::HeapTypedArray;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
+use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, DomSlice};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -77,7 +78,6 @@ impl Gamepad {
         gamepad
     }
 
-    #[allow(crown::unrooted_must_root)]
     fn new_with_proto(
         global: &GlobalScope,
         gamepad_id: u32,
@@ -86,28 +86,27 @@ impl Gamepad {
         // Initialize the number of buttons in the "standard" gamepad mapping.
         // The spec says UAs *may* do this for fingerprint mitigation, and it also
         // happens to simplify implementation
-        let standard_buttons = [
-            GamepadButton::new_inherited(false, false), // South Button
-            GamepadButton::new_inherited(false, false), // East Button
-            GamepadButton::new_inherited(false, false), // West Button
-            GamepadButton::new_inherited(false, false), // North Button
-            GamepadButton::new_inherited(false, false), // Left Shoulder
-            GamepadButton::new_inherited(false, false), // Right Shoulder
-            GamepadButton::new_inherited(false, false), // Left Trigger
-            GamepadButton::new_inherited(false, false), // Right Trigger
-            GamepadButton::new_inherited(false, false), // Select/Back
-            GamepadButton::new_inherited(false, false), // Start/Forward
-            GamepadButton::new_inherited(false, false), // Left Thumbstick Press
-            GamepadButton::new_inherited(false, false), // Right Thumbstick Press
-            GamepadButton::new_inherited(false, false), // D-pad Up
-            GamepadButton::new_inherited(false, false), // D-pad Down
-            GamepadButton::new_inherited(false, false), // D-pad Left
-            GamepadButton::new_inherited(false, false), // D-pad Right
-            GamepadButton::new_inherited(false, false), // System Button
+        let standard_buttons = &[
+            GamepadButton::new(global, false, false), // Bottom button in right cluster
+            GamepadButton::new(global, false, false), // Right button in right cluster
+            GamepadButton::new(global, false, false), // Left button in right cluster
+            GamepadButton::new(global, false, false), // Top button in right cluster
+            GamepadButton::new(global, false, false), // Top left front button
+            GamepadButton::new(global, false, false), // Top right front button
+            GamepadButton::new(global, false, false), // Bottom left front button
+            GamepadButton::new(global, false, false), // Bottom right front button
+            GamepadButton::new(global, false, false), // Left button in center cluster
+            GamepadButton::new(global, false, false), // Right button in center cluster
+            GamepadButton::new(global, false, false), // Left stick pressed button
+            GamepadButton::new(global, false, false), // Right stick pressed button
+            GamepadButton::new(global, false, false), // Top button in left cluster
+            GamepadButton::new(global, false, false), // Bottom button in left cluster
+            GamepadButton::new(global, false, false), // Left button in left cluster
+            GamepadButton::new(global, false, false), // Right button in left cluster
+            GamepadButton::new(global, false, false), // Center button in center cluster
         ];
-        let buttons_vec = standard_buttons.iter().collect::<Vec<_>>();
-        let references = buttons_vec.as_slice();
-        let button_list = GamepadButtonList::new(global, &references);
+        rooted_vec!(let buttons <- standard_buttons.iter().map(|button| DomRoot::from_ref(&**button)));
+        let button_list = GamepadButtonList::new(global, buttons.r());
         let gamepad = reflect_dom_object_with_proto(
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
@@ -118,7 +117,7 @@ impl Gamepad {
                 String::from("standard"),
                 &button_list,
                 None,
-                GamepadHand::Left
+                GamepadHand::_empty
             )),
             global,
             None,
@@ -176,7 +175,6 @@ impl GamepadMethods for Gamepad {
     }
 }
 
-// TODO: support gamepad discovery
 #[allow(dead_code)]
 impl Gamepad {
     pub fn gamepad_id(&self) -> u32 {
@@ -213,14 +211,27 @@ impl Gamepad {
         // Initialize the number of axes in the "standard" gamepad mapping.
         // See above comment on buttons
         let initial_axes: Vec<f64> = vec![
-            0., // Left Thumbstick X
-            0., // Left Thumbstick Y
-            0., // Right Thumbstick X
-            0.  // Right Thumbstick Y
+            0., // Horizontal axis for left stick (negative left/positive right)
+            0., // Vertical axis for left stick (negative up/positive down)
+            0., // Horizontal axis for right stick (negative left/positive right)
+            0.  // Vertical axis for right stick (negative up/positive down)
         ];
-        let _cx = GlobalScope::get_cx();
         self.axes
-            .set_data(_cx, &initial_axes)
+            .set_data(GlobalScope::get_cx(), &initial_axes)
             .expect("Failed to set axes data on gamepad.")
+    }
+
+    pub fn update_axis(&self, axis_index: usize, value: f32) {
+        let mut axis_vec = self.axes.get_internal().unwrap().to_vec();
+        axis_vec[axis_index] = value as f64;
+        self.axes
+            .set_data(GlobalScope::get_cx(), &axis_vec)
+            .expect("Failed to update axis info on gamepad.")
+    }
+
+    pub fn update_button(&self, button_index: usize, touched: bool, pressed: bool, value: f32) {
+        if let Some(button) = self.buttons.IndexedGetter(button_index as u32) {
+            button.update(touched, pressed, value.into());
+        }
     }
 }
