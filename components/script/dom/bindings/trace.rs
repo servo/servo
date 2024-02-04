@@ -313,6 +313,18 @@ unsafe impl<T: JSTraceable> CustomTraceable for ServoArc<T> {
     }
 }
 
+unsafe impl<T: JSTraceable> CustomTraceable for std::sync::Arc<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        (**self).trace(trc)
+    }
+}
+
+unsafe impl<T: JSTraceable> CustomTraceable for std::sync::Mutex<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        self.lock().unwrap().trace(trc)
+    }
+}
+
 unsafe impl<T: JSTraceable> CustomTraceable for RwLock<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         self.read().trace(trc)
