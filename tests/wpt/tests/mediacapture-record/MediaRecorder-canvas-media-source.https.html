@@ -4,6 +4,11 @@
 
 <head>
   <title>MediaRecorder canvas media source</title>
+  <meta name=variant content="?mimeType=''">
+  <meta name=variant content="?mimeType=video/webm;codecs=vp8,opus">
+  <meta name=variant content="?mimeType=video/webm;codecs=vp9,opus">
+  <meta name=variant content="?mimeType=video/webm;codecs=av1,opus">
+  <meta name=variant content="?mimeType=video/mp4;codecs=avc1,mp4a.40.2">
   <link rel="help"
         href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#dom-mediarecorder-mimeType">
   <script src="/resources/testharness.js"></script>
@@ -20,6 +25,8 @@
 async_test(test => {
   const CANVAS_WIDTH = 256;
   const CANVAS_HEIGHT = 144;
+
+  let large_size_data_available = false;
 
   // Empty video frames from this resolution consistently have ~750 bytes in my
   // tests, while valid video frames usually contain 7-8KB. A threshold of
@@ -53,10 +60,9 @@ async_test(test => {
     return { startCamera, stopCamera };
   }
 
-  function useMediaRecorder(stream, frameSizeCallback) {
+  function useMediaRecorder(stream, mimeType, frameSizeCallback) {
     const mediaRecorder = new MediaRecorder(
-      stream,
-      {}
+      stream, { mimeType }
     );
 
     mediaRecorder.ondataavailable = event => {
@@ -68,7 +74,19 @@ async_test(test => {
       }
     };
 
+    mediaRecorder.onstop = event => {
+      assert_equals(large_size_data_available, true),
+          "onstop is called after valid data is available";
+    };
+
     mediaRecorder.start(1000);
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const mimeType = params.get('mimeType');
+  if (mimeType) {
+    assert_implements_optional(MediaRecorder.isTypeSupported(mimeType),
+      `"${mimeType}" for MediaRecorder is not supported`);
   }
 
   const canvas = document.querySelector("canvas");
@@ -115,9 +133,12 @@ async_test(test => {
 
     const compositedMediaStream = new MediaStream([composedTrackGenerator]);
 
-    useMediaRecorder(compositedMediaStream, test.step_func_done(size => {
-      assert_greater_than(size, THRESHOLD_FOR_EMPTY_FRAMES);
-      stopCamera();
+    useMediaRecorder(compositedMediaStream, mimeType, (size => {
+      if (size > THRESHOLD_FOR_EMPTY_FRAMES) {
+        large_size_data_available = true;
+        stopCamera();
+        test.done();
+      }
     }));
   });
 }, "MediaRecorder returns frames containing video content");

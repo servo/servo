@@ -16,7 +16,7 @@
     }
 
     test(t => {
-        const mimeType = [ 'audio/aac', 'audio/ogg', 'audio/webm' ].find(MediaRecorder.isTypeSupported);
+        const mimeType = [ 'audio/aac', 'audio/ogg', 'audio/webm', 'audio/mp4' ].find(MediaRecorder.isTypeSupported);
         const mediaRecorder = new MediaRecorder(createVideoStream(), {mimeType});
         assert_throws_dom("NotSupportedError", () => mediaRecorder.start());
     }, "MediaRecorder cannot record the stream using the current configuration");

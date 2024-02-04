@@ -107,29 +107,6 @@ def test_data_urls(session, inline):
     assert session.url == test_pages[1]
 
 
-def test_dismissed_beforeunload(session, inline):
-    url_beforeunload = inline("""
-      <input type="text">
-      <script>
-        window.addEventListener("beforeunload", function (event) {
-          event.preventDefault();
-        });
-      </script>
-    """)
-
-    session.url = url_beforeunload
-    session.url = inline("<div id=foo>")
-    session.back()
-
-    element = session.find.css("input", all=False)
-    element.send_keys("bar")
-
-    response = forward(session)
-    assert_success(response)
-
-    assert session.url != url_beforeunload
-
-
 def test_fragments(session, url):
     test_pages = [
         url("/common/blank.html"),

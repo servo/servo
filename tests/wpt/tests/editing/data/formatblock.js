@@ -1886,4 +1886,10 @@ var browserTests = [
     "<div><div contenteditable=\"false\"><div contenteditable=\"\"><div>[foo]</div></div></div></div>", // <div> can have <div>, so, wrap it with <div>
     [true],
     {"formatblock":[false,false,"",false,false,"div"]}],
+
+["<span style=display:block>abc</span><span style=display:block>[def]</span><span style=display:block>ghi</span>",
+    [["formatblock","div"]],
+    "<span style=\"display:block\">abc</span><div><span style=\"display:block\">def</span></div><span style=\"display:block\">ghi</span>",
+    [true],
+    {"formatblock":[false,false,"",false,false,"div"]}],
 ]

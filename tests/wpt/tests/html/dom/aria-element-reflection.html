@@ -772,6 +772,29 @@
       assert_equals(ariaFlowToElementsArray, cachingInvariantMain.ariaFlowToElements, "Caching invariant for ariaFlowToElements");
       assert_equals(ariaLabelledByElementsArray, cachingInvariantMain.ariaLabelledByElements, "Caching invariant for ariaLabelledByElements");
       assert_equals(ariaOwnsElementsArray, cachingInvariantMain.ariaOwnsElements, "Caching invariant for ariaOwnsElements");
+
+      // Ensure that stale values don't continue to be cached
+      cachingInvariantMain.ariaControlsElements = [cachingInvariantElement4, cachingInvariantElement5];
+      cachingInvariantMain.ariaDescribedByElements = [cachingInvariantElement1, cachingInvariantElement2];
+      cachingInvariantMain.ariaDetailsElements = [cachingInvariantElement3];
+      cachingInvariantMain.ariaFlowToElements = [cachingInvariantElement4, cachingInvariantElement5];
+      cachingInvariantMain.ariaLabelledByElements = [cachingInvariantElement1, cachingInvariantElement2];
+      cachingInvariantMain.ariaOwnsElements = [cachingInvariantElement3, cachingInvariantElement4, cachingInvariantElement1];
+
+      ariaControlsElementsArray = cachingInvariantMain.ariaControlsElements;
+      ariaDescribedByElementsArray = cachingInvariantMain.ariaDescribedByElements;
+      ariaDetailsElementsArray = cachingInvariantMain.ariaDetailsElements;
+      ariaFlowToElementsArray = cachingInvariantMain.ariaFlowToElements;
+      ariaLabelledByElementsArray = cachingInvariantMain.ariaLabelledByElements;
+      ariaOwnsElementsArray = cachingInvariantMain.ariaOwnsElements;
+
+      assert_equals(ariaControlsElementsArray, cachingInvariantMain.ariaControlsElements, "Caching invariant for ariaControlsElements");
+      assert_equals(ariaDescribedByElementsArray, cachingInvariantMain.ariaDescribedByElements, "Caching invariant for ariaDescribedByElements");
+      assert_equals(ariaDetailsElementsArray, cachingInvariantMain.ariaDetailsElements, "Caching invariant for ariaDetailsElements");
+      assert_equals(ariaFlowToElementsArray, cachingInvariantMain.ariaFlowToElements, "Caching invariant for ariaFlowToElements");
+      assert_equals(ariaLabelledByElementsArray, cachingInvariantMain.ariaLabelledByElements, "Caching invariant for ariaLabelledByElements");
+      assert_equals(ariaOwnsElementsArray, cachingInvariantMain.ariaOwnsElements, "Caching invariant for ariaOwnsElements");
+
     }, "Caching invariant different attributes.");
   </script>
 

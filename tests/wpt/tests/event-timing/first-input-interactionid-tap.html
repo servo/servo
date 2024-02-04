@@ -45,6 +45,8 @@
 
     assert_greater_than(firstInputInteractionId, 0, 'The first input entry should have a non-trivial interactionId');
     assert_equals(firstInputInteractionId, eventTimingPointerDownInteractionId, 'The first input entry should have the same interactionId as the event timing pointerdown entry');
+    assert_equals(firstInputInteractionId.target, eventTimingPointerDownInteractionId.target, 'The first input entry should have the same target as the event timing pointerdown entry');
+    assert_not_equals(firstInputInteractionId.target, null, 'The first input entry should have a non-null target');
 
   }, "The interactionId of the first input entry should match the same pointerdown entry of event timing when tap.");
 </script>

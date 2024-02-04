@@ -152,20 +152,20 @@
   <div data-offset-x="0" data-offset-y="40" data-expected-height="20"></div>
 </div>
 
-<!-- If we overflow, we should true center. -->
+<!-- If we overflow, we should safe center. -->
 <div data-expected-height="30" class="flexbox horizontal" style="align-content: space-around; height: 30px">
-  <div data-offset-x="0" data-offset-y="-15" data-expected-height="20"></div>
-  <div data-offset-x="100" data-offset-y="-15" data-expected-height="20"></div>
-  <div data-offset-x="0" data-offset-y="5" data-expected-height="20"></div>
-  <div data-offset-x="0" data-offset-y="25" data-expected-height="20"></div>
+  <div data-offset-x="0" data-offset-y="0" data-expected-height="20"></div>
+  <div data-offset-x="100" data-offset-y="0" data-expected-height="20"></div>
+  <div data-offset-x="0" data-offset-y="20" data-expected-height="20"></div>
+  <div data-offset-x="0" data-offset-y="40" data-expected-height="20"></div>
 </div>
 
 <!-- If we overflow, we should true center. -->
 <div data-expected-height="30" class="flexbox horizontal" style="align-content: space-evenly; height: 30px">
-  <div data-offset-x="0" data-offset-y="-15" data-expected-height="20"></div>
-  <div data-offset-x="100" data-offset-y="-15" data-expected-height="20"></div>
-  <div data-offset-x="0" data-offset-y="5" data-expected-height="20"></div>
-  <div data-offset-x="0" data-offset-y="25" data-expected-height="20"></div>
+  <div data-offset-x="0" data-offset-y="0" data-expected-height="20"></div>
+  <div data-offset-x="100" data-offset-y="0" data-expected-height="20"></div>
+  <div data-offset-x="0" data-offset-y="20" data-expected-height="20"></div>
+  <div data-offset-x="0" data-offset-y="40" data-expected-height="20"></div>
 </div>
 
 <!-- Stretch should only grow, not shrink. -->
@@ -281,20 +281,20 @@
   <div data-offset-x="-30" data-offset-y="0" data-expected-width="20"></div>
 </div>
 
-<!-- If we overflow, we should true center. -->
+<!-- If we overflow, we should safe center. -->
 <div data-expected-width="30" class="flexbox vertical-rl" style="align-content: space-around; width: 30px;">
-  <div data-offset-x="25" data-offset-y="0" data-expected-width="20"></div>
-  <div data-offset-x="25" data-offset-y="10" data-expected-width="20"></div>
-  <div data-offset-x="5" data-offset-y="0" data-expected-width="20"></div>
-  <div data-offset-x="-15" data-offset-y="0" data-expected-width="20"></div>
+  <div data-offset-x="10" data-offset-y="0" data-expected-width="20"></div>
+  <div data-offset-x="10" data-offset-y="10" data-expected-width="20"></div>
+  <div data-offset-x="-10" data-offset-y="0" data-expected-width="20"></div>
+  <div data-offset-x="-30" data-offset-y="0" data-expected-width="20"></div>
 </div>
 
 <!-- If we overflow, we should true center. -->
 <div data-expected-width="30" class="flexbox vertical-rl" style="align-content: space-evenly; width: 30px;">
-  <div data-offset-x="25" data-offset-y="0" data-expected-width="20"></div>
-  <div data-offset-x="25" data-offset-y="10" data-expected-width="20"></div>
-  <div data-offset-x="5" data-offset-y="0" data-expected-width="20"></div>
-  <div data-offset-x="-15" data-offset-y="0" data-expected-width="20"></div>
+  <div data-offset-x="10" data-offset-y="0" data-expected-width="20"></div>
+  <div data-offset-x="10" data-offset-y="10" data-expected-width="20"></div>
+  <div data-offset-x="-10" data-offset-y="0" data-expected-width="20"></div>
+  <div data-offset-x="-30" data-offset-y="0" data-expected-width="20"></div>
 </div>
 
 <!-- Stretch should only grow, not shrink. -->

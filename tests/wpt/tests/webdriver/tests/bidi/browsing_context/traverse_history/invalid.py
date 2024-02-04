@@ -1,5 +1,4 @@
 import pytest
-
 import webdriver.bidi.error as error
 
 
@@ -13,10 +12,12 @@ MIN_INT = -MAX_INT
 @pytest.mark.parametrize("value", [None, False, 42, {}, []])
 async def test_params_context_invalid_type(bidi_session, value):
     with pytest.raises(error.InvalidArgumentException):
-        await bidi_session.browsing_context.traverse_history(
-            context=value,
-            delta=1
-        )
+        await bidi_session.browsing_context.traverse_history(context=value, delta=1)
+
+
+async def test_params_context_invalid_value(bidi_session):
+    with pytest.raises(error.NoSuchFrameException):
+        await bidi_session.browsing_context.traverse_history(context="foo", delta=1)
 
 
 @pytest.mark.parametrize(
@@ -26,4 +27,18 @@ async def test_params_delta_invalid_type(bidi_session, top_context, value):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.browsing_context.traverse_history(
             context=top_context["context"], delta=value
+        )
+
+
+@pytest.mark.parametrize("value", [-2, 1])
+async def test_delta_invalid_value(bidi_session, current_url, new_tab, inline, value):
+    page = inline("<div>page 1</div>")
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=page, wait="complete"
+    )
+    assert await current_url(new_tab["context"]) == page
+
+    with pytest.raises(error.NoSuchHistoryEntryException):
+        await bidi_session.browsing_context.traverse_history(
+            context=new_tab["context"], delta=value
         )

@@ -42,7 +42,7 @@ promise_test(async t => {
     Math.ceil(span1Rect.y + span1Rect.height / 2)
   ).send();
 
-  await waitForTick();
+  await afterNextPaint();
 
   const observerPromise = new Promise(resolve => {
     new PerformanceObserver(t.step_func(entryList => {
@@ -60,7 +60,7 @@ promise_test(async t => {
     Math.ceil(span2Rect.y + span2Rect.height / 2)
   ).send();
 
-  await waitForTick();
+  await afterNextPaint();
 
   await observerPromise;
 }, "Event Timing: Move pointer within shadow DOM should create event-timing entry with null target.");

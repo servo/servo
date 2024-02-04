@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <title>Canvas test: unclosed-layers</title>
 <h1>unclosed-layers</h1>
-<p class="desc">Check that layers are rendered even if not closed.</p>
+<p class="desc">Check that unclosed layers aren't rendered.</p>
 <canvas id="canvas" width="200" height="200">
   <p class="fallback">FAIL (fallback content)</p>
 </canvas>
@@ -11,11 +11,4 @@
 
   ctx.fillStyle = 'purple';
   ctx.fillRect(60, 60, 75, 50);
-  ctx.globalAlpha = 0.5;
-
-  ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
-  ctx.fillRect(40, 40, 75, 50);
-  ctx.fillStyle = 'grey';
-  ctx.fillRect(50, 50, 75, 50);
-  ctx.endLayer();
 </script>

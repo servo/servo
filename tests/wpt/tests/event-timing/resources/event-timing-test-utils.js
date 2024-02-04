@@ -1,24 +1,44 @@
-// Clicks on the element with the given ID. It adds an event handler to the element which
-// ensures that the events have a duration of at least |delay|. Calls |callback| during
-// event handler if |callback| is provided.
-async function clickOnElementAndDelay(id, delay, callback) {
-  const element = document.getElementById(id);
-  const pointerdownHandler = () => {
-    mainThreadBusy(delay);
-    if (callback) {
-      callback();
-    }
-    element.removeEventListener("pointerdown", pointerdownHandler);
+function mainThreadBusy(ms) {
+  const target = performance.now() + ms;
+  while (performance.now() < target);
+}
+
+async function wait() {
+  return new Promise(resolve => step_timeout(resolve, 0));
+}
+
+async function raf() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+async function afterNextPaint() {
+  await raf();
+  await wait();
+}
+
+async function blockNextEventListener(target, eventType, duration = 120) {
+  return new Promise(resolve => {
+    target.addEventListener(eventType, () => {
+      mainThreadBusy(duration);
+      resolve();
+    }, { once: true });
+  });
+}
+
+async function clickAndBlockMain(id, options = {}) {
+  options = {
+    eventType: "pointerdown",
+    duration: 120,
+    ...options
   };
+  const element = document.getElementById(id);
 
-  element.addEventListener("pointerdown", pointerdownHandler);
-  await click(element);
+  await Promise.all([
+    blockNextEventListener(element, options.eventType, options.duration),
+    click(element),
+  ]);
 }
 
-function mainThreadBusy(duration) {
-  const now = performance.now();
-  while (performance.now() < now + duration);
-}
 
 // This method should receive an entry of type 'event'. |isFirst| is true only when we want
 // to check that the event also happens to correspond to the first event. In this case, the
@@ -58,27 +78,7 @@ function verifyClickEvent(entry, targetId, isFirst=false, minDuration=104, event
   verifyEvent(entry, event, targetId, isFirst, minDuration);
 }
 
-function wait() {
-  return new Promise((resolve, reject) => {
-    step_timeout(() => {
-      resolve();
-    }, 0);
-  });
-}
 
-function clickAndBlockMain(id) {
-  return new Promise((resolve, reject) => {
-    clickOnElementAndDelay(id, 120, resolve);
-  });
-}
-
-function waitForTick() {
-  return new Promise(resolve => {
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(resolve);
-    });
-  });
-}
   // Add a PerformanceObserver and observe with a durationThreshold of |dur|. This test will
   // attempt to check that the duration is appropriately checked by:
   // * Asserting that entries received have a duration which is the smallest multiple of 8
@@ -115,7 +115,7 @@ async function testDuration(t, id, numEntries, dur, slowDur) {
   const clicksPromise = new Promise(async resolve => {
     for (let index = 0; index < numEntries; index++) {
       // Add some click events that has at least slowDur for duration.
-      await clickOnElementAndDelay(id, slowDur);
+      await clickAndBlockMain(id, { duration: slowDur });
     }
     resolve();
   });
@@ -154,11 +154,11 @@ async function testDuration(t, id, numEntries, dur, slowDur) {
       // These clicks are expected to be ignored, unless the test has some extra delays.
       // In that case, the test will verify the event duration to ensure the event duration is
       // greater than the duration threshold
-      await clickOnElementAndDelay(id, processingDelay);
+      await clickAndBlockMain(id, { duration: processingDelay });
     }
     // Send click with event duration equals to or greater than |durThreshold|, so the
     // observer promise can be resolved
-    await clickOnElementAndDelay(id, durThreshold);
+    await clickAndBlockMain(id, { duration: durThreshold });
     return observerPromise;
   }
 
@@ -269,7 +269,7 @@ async function testEventType(t, eventType, looseCount=false) {
   // Trigger two 'fast' events of the type.
   await applyAction(eventType, target);
   await applyAction(eventType, target);
-  await waitForTick();
+  await afterNextPaint();
   await new Promise(t.step_func(resolve => {
     testCounts(t, resolve, looseCount, eventType, initialCount + 2);
   }));
@@ -313,7 +313,7 @@ async function testEventType(t, eventType, looseCount=false) {
   // Cause a slow event.
   await applyAction(eventType, target);
 
-  await waitForTick();
+  await afterNextPaint();
 
   await observerPromise;
 }

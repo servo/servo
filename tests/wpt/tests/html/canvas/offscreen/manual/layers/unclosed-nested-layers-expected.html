@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <title>Canvas test: unclosed-nested-layers</title>
 <h1>unclosed-nested-layers</h1>
-<p class="desc">Check that layers are rendered even if not closed.</p>
+<p class="desc">Check that unclosed nested layers aren't rendered.</p>
 <canvas id="canvas" width="200" height="200">
   <p class="fallback">FAIL (fallback content)</p>
 </canvas>
@@ -9,19 +9,6 @@
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext('2d');
 
-  const canvas1 = document.createElement('canvas');
-  const ctx1 = canvas1.getContext('2d');
-  ctx1.fillStyle = 'rgba(0,255,0,1)';
-  ctx1.fillRect(70,70,75,50);
-
-  const canvas2 = document.createElement('canvas');
-  const ctx2 = canvas2.getContext('2d');
-  ctx2.fillStyle = 'rgba(225,0,0,1)';
-  ctx2.fillRect(50,50,75,50);
-  ctx2.drawImage(canvas1, 0, 0);
-
   ctx.fillStyle = 'rgba(0,0,255,1)';
   ctx.fillRect(60,60,75,50);
-  ctx.globalAlpha = 0.5;
-  ctx.drawImage(canvas2, 0, 0);
 </script>

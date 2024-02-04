@@ -44,11 +44,15 @@ promise_test(async () => {
   wss.close();
 }, 'setting a protocol in the constructor should work');
 
+function IsWebSocketError(e) {
+  return e.constructor == WebSocketError;
+}
+
 promise_test(t => {
   const wss = new WebSocketStream(`${BASEURL}/404`);
   return Promise.all([
-    promise_rejects_dom(t, 'NetworkError', wss.opened, 'opened should reject'),
-    promise_rejects_dom(t, 'NetworkError', wss.closed, 'closed should reject'),
+    wss.opened.then(t.unreached_func('should have rejected')).catch(e => assert_true(IsWebSocketError(e))),
+    wss.closed.then(t.unreached_func('should have rejected')).catch(e => assert_true(IsWebSocketError(e))),
   ]);
 }, 'connection failure should reject the promises');
 

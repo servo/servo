@@ -80,14 +80,14 @@
                         scrolling_element.clientHeight);
     assert_equals(scrolling_element.scrollTop, 0);
 
-    let scrollend_promise = waitForScrollendEvent(test, listening_element);
-    await upwardScroll(scrolling_element, button_element, scroll_type);
-    await scrollend_promise.then(
+    let scrollend_promise = waitForScrollendEvent(test, listening_element).then(
       (/*resolve*/) => {
         assert_true(false, "no scroll, so no scrollend expected");
       },
       (/*reject*/) => { /* Did not see scrollend, which is okay. */ }
     );
+    await upwardScroll(scrolling_element, button_element, scroll_type);
+    await scrollend_promise;
   }
 
   function runTest() {

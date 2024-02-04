@@ -2,7 +2,7 @@
 <link rel="match" href="unclosed-nested-layers-expected.html">
 <title>Canvas test: unclosed-nested-layers</title>
 <h1>unclosed-nested-layers</h1>
-<p class="desc">Check that layers are rendered even if not closed.</p>
+<p class="desc">Check that unclosed nested layers aren't rendered.</p>
 <canvas id="canvas" width="200" height="200">
   <p class="fallback">FAIL (fallback content)</p>
 </canvas>
@@ -12,7 +12,6 @@
 
   ctx.fillStyle = 'rgba(0, 0, 255, 1)';
   ctx.fillRect(60, 60, 75, 50);
-  ctx.globalAlpha = 0.5;
 
   ctx.beginLayer();
   ctx.fillStyle = 'rgba(225, 0, 0, 1)';

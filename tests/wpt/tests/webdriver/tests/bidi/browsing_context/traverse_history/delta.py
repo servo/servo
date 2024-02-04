@@ -1,46 +1,18 @@
 from pathlib import Path
 
 import pytest
-
-import webdriver.bidi.error as error
+from webdriver import error
 from webdriver.bidi.modules.script import ContextTarget
 
-from . import get_url_for_context
+from tests.support.sync import AsyncPoll
 
 
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.mark.parametrize("value", [-2, 1])
-async def test_delta_invalid_value(bidi_session, new_tab, inline, value):
-    page = inline("<div>page 1</div>")
-    await bidi_session.browsing_context.navigate(
-        context=new_tab["context"], url=page, wait="complete"
-    )
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == page
-
-    with pytest.raises(error.NoSuchHistoryEntryException):
-        await bidi_session.browsing_context.traverse_history(
-            context=new_tab["context"], delta=value
-        )
-
-
-async def test_delta_0(bidi_session, new_tab, inline):
-    page = inline("<div>page 1</div>")
-    await bidi_session.browsing_context.navigate(
-        context=new_tab["context"], url=page, wait="complete"
-    )
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == page
-
-    await bidi_session.browsing_context.traverse_history(
-        context=new_tab["context"], delta=0
-    )
-
-    # Check that url didn't change
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == page
-
-
-async def test_delta_forward_and_back(bidi_session, new_tab, inline):
+async def test_delta_0(
+    bidi_session, current_url, wait_for_url, wait_for_not_url, new_tab, inline
+):
     pages = [
         inline("<div>page 1</div>"),
         inline("<div>page 2</div>"),
@@ -50,22 +22,51 @@ async def test_delta_forward_and_back(bidi_session, new_tab, inline):
         await bidi_session.browsing_context.navigate(
             context=new_tab["context"], url=page, wait="complete"
         )
-        assert await get_url_for_context(bidi_session, new_tab["context"]) == page
+        assert await current_url(new_tab["context"]) == page
+
+    await bidi_session.browsing_context.traverse_history(
+        context=new_tab["context"], delta=-1
+    )
+    await wait_for_url(new_tab["context"], pages[1])
+
+    # With delta 0 no navigation has to happen
+    await bidi_session.browsing_context.traverse_history(
+        context=new_tab["context"], delta=0
+    )
+    with pytest.raises(error.TimeoutException):
+        await wait_for_not_url(new_tab["context"], pages[1])
+
+
+async def test_delta_forward_and_back(
+    bidi_session, current_url, wait_for_url, new_tab, inline
+):
+    pages = [
+        inline("<div>page 1</div>"),
+        inline("<div>page 2</div>"),
+        inline("<div>page 3</div>"),
+    ]
+    for page in pages:
+        await bidi_session.browsing_context.navigate(
+            context=new_tab["context"], url=page, wait="complete"
+        )
+        assert await current_url(new_tab["context"]) == page
 
     await bidi_session.browsing_context.traverse_history(
         context=new_tab["context"], delta=-2
     )
 
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == pages[0]
+    await wait_for_url(new_tab["context"], pages[0])
 
     await bidi_session.browsing_context.traverse_history(
         context=new_tab["context"], delta=2
     )
 
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == pages[2]
+    await wait_for_url(new_tab["context"], pages[2])
 
 
-async def test_navigate_in_the_same_document(bidi_session, new_tab, url):
+async def test_navigate_in_the_same_document(
+    bidi_session, current_url, wait_for_url, new_tab, url
+):
     page_url = "/webdriver/tests/bidi/browsing_context/support/empty.html"
     pages = [
         url(page_url),
@@ -76,27 +77,29 @@ async def test_navigate_in_the_same_document(bidi_session, new_tab, url):
         await bidi_session.browsing_context.navigate(
             context=new_tab["context"], url=page, wait="complete"
         )
-        assert await get_url_for_context(bidi_session, new_tab["context"]) == page
+        assert await current_url(new_tab["context"]) == page
 
     await bidi_session.browsing_context.traverse_history(
         context=new_tab["context"], delta=-1
     )
 
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == pages[1]
+    await wait_for_url(new_tab["context"], pages[1])
 
     await bidi_session.browsing_context.traverse_history(
         context=new_tab["context"], delta=1
     )
 
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == pages[2]
+    await wait_for_url(new_tab["context"], pages[2])
 
 
-async def test_history_push_state(bidi_session, new_tab, url):
+async def test_history_push_state(
+    bidi_session, current_url, wait_for_url, new_tab, url
+):
     page_url = url("/webdriver/tests/bidi/browsing_context/support/empty.html")
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=page_url, wait="complete"
     )
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == page_url
+    assert await current_url(new_tab["context"]) == page_url
 
     pages = [
         f"{page_url}#foo",
@@ -113,19 +116,19 @@ async def test_history_push_state(bidi_session, new_tab, url):
             await_promise=False,
             target=ContextTarget(new_tab["context"]),
         )
-        assert await get_url_for_context(bidi_session, new_tab["context"]) == page
+        await wait_for_url(new_tab["context"], page)
 
     await bidi_session.browsing_context.traverse_history(
         context=new_tab["context"], delta=-1
     )
 
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == pages[0]
+    await wait_for_url(new_tab["context"], pages[0])
 
     await bidi_session.browsing_context.traverse_history(
         context=new_tab["context"], delta=1
     )
 
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == pages[1]
+    await wait_for_url(new_tab["context"], pages[1])
 
 
 @pytest.mark.parametrize(
@@ -142,21 +145,23 @@ async def test_history_push_state(bidi_session, new_tab, url):
         "file url",
     ],
 )
-async def test_navigate_special_protocols(bidi_session, new_tab, pages):
+async def test_navigate_special_protocols(
+    bidi_session, current_url, wait_for_url, new_tab, pages
+):
     for page in pages:
         await bidi_session.browsing_context.navigate(
             context=new_tab["context"], url=page, wait="complete"
         )
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == page
+        assert await current_url(new_tab["context"]) == page
 
     await bidi_session.browsing_context.traverse_history(
         context=new_tab["context"], delta=-1
     )
 
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == pages[0]
+    await wait_for_url(new_tab["context"], pages[0])
 
     await bidi_session.browsing_context.traverse_history(
         context=new_tab["context"], delta=1
     )
 
-    assert await get_url_for_context(bidi_session, new_tab["context"]) == pages[1]
+    await wait_for_url(new_tab["context"], pages[1])

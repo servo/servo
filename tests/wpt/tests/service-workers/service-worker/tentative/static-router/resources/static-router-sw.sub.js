@@ -1,8 +1,8 @@
-var requests = [];
-var errors = [];
+let requests = [];
+let errors = [];
 
 const recordRequest = req => {
-  requests.push({url: req.url, mode: req.mode});
+  requests.push({url: req.url, mode: req.mode, destination: req.destination});
 };
 
 const recordError = (error) => {

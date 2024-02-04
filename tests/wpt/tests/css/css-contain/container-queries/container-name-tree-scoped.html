@@ -52,6 +52,21 @@
       #t2 { color: red; }
     }
   </style>
+
+  <div id="container-name-host-inner-container-rule">
+    <div id="t3host">
+      <template shadowrootmode="open">
+        <style>
+          :host { container-name: foo; }
+          #t3 { color: red; }
+          @container foo (width > 0px) {
+            #t3 { color: green; }
+          }
+        </style>
+        <div id="t3"></div>
+      </template>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -69,5 +84,9 @@
   test(() => {
     assert_equals(getComputedStyle(t2).color, green);
   }, "Outer scope query should not match container-name set by ::slotted rule in shadow tree");
+
+  test(() => {
+    assert_equals(getComputedStyle(t3host.shadowRoot.querySelector('#t3')).color, green);
+  }, "Inner scope query should match container-name set by :host rule in shadow tree");
 
 </script>
