@@ -55,11 +55,10 @@ impl GamepadButtonMethods for GamepadButton {
     }
 }
 
-// TODO: support gamepad discovery
-#[allow(dead_code)]
 impl GamepadButton {
-    pub fn update(&self, pressed: bool, touched: bool) {
+    pub fn update(&self, pressed: bool, touched: bool, value: f64) {
         self.pressed.set(pressed);
         self.touched.set(touched);
+        self.value.set(value);
     }
 }
