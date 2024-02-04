@@ -21,6 +21,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::JSContext;
 
+/// The maximum object depth logged by console methods.
+const MAX_LOG_DEPTH: usize = 10;
+
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 pub struct Console(());
 
@@ -64,131 +67,133 @@ where
     f()
 }
 
-const MAX_LOG_DEPTH: usize = 10;
-
 #[allow(unsafe_code)]
-unsafe fn value_to_source(cx: *mut jsapi::JSContext, value: HandleValue) -> DOMString {
+unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) -> DOMString {
     rooted!(in(cx) let mut js_string = std::ptr::null_mut::<jsapi::JSString>());
     js_string.set(JS_ValueToSource(cx, value));
     return jsstring_to_str(cx, *js_string);
 }
 
 #[allow(unsafe_code)]
-fn stringify_message(message: HandleValue) -> DOMString {
+fn stringify_handle_value(message: HandleValue) -> DOMString {
     let cx = *GlobalScope::get_cx();
     unsafe {
         if message.is_string() {
-            jsstring_to_str(cx, message.to_string())
-        } else {
-            unsafe fn stringify_inner(
-                cx: *mut jsapi::JSContext,
-                value: HandleValue,
-                mut parents: Vec<u64>,
-            ) -> DOMString {
-                if parents.len() >= MAX_LOG_DEPTH {
-                    return DOMString::from("...");
+            return jsstring_to_str(cx, message.to_string());
+        }
+        unsafe fn stringify_object_from_handle_value(
+            cx: *mut jsapi::JSContext,
+            value: HandleValue,
+            parents: Vec<u64>,
+        ) -> DOMString {
+            rooted!(in(cx) let mut obj = value.to_object());
+            let mut object_class = ESClass::Other;
+            if !GetBuiltinClass(cx, obj.handle().into(), &mut object_class as *mut _) {
+                return DOMString::from("/* invalid */");
+            }
+            if object_class != ESClass::Array && object_class != ESClass::Object {
+                return handle_value_to_string(cx, value);
+            }
+
+            let mut ids = IdVector::new(cx);
+            if !GetPropertyKeys(
+                cx,
+                obj.handle().into(),
+                jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
+                ids.handle_mut(),
+            ) {
+                return DOMString::from("/* invalid */");
+            }
+            let mut explicit_keys = object_class == ESClass::Object;
+            let mut props = Vec::with_capacity(ids.len());
+            for id in &*ids {
+                rooted!(in(cx) let id = *id);
+                rooted!(in(cx) let mut desc = PropertyDescriptor::default());
+
+                let mut is_none = false;
+                if !JS_GetOwnPropertyDescriptorById(
+                    cx,
+                    obj.handle().into(),
+                    id.handle().into(),
+                    desc.handle_mut().into(),
+                    &mut is_none,
+                ) {
+                    return DOMString::from("/* invalid */");
                 }
-                let value_bits = value.asBits_;
-                if parents.contains(&value_bits) {
-                    return DOMString::from("[circular]");
+
+                rooted!(in(cx) let mut property = UndefinedValue());
+                if !JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) {
+                    return DOMString::from("/* invalid */");
                 }
-                parents.push(value_bits);
-                if value.is_undefined() {
-                    // This produces a better value than "(void 0)" from JS_ValueToSource.
-                    DOMString::from("undefined")
-                } else if value.is_object() {
-                    rooted!(in(cx) let mut obj = value.to_object());
-                    let mut object_class = ESClass::Other;
-                    if !GetBuiltinClass(cx, obj.handle().into(), &mut object_class as *mut _) {
-                        return DOMString::from("/* invalid */");
-                    }
-                    if object_class != ESClass::Array && object_class != ESClass::Object {
-                        return value_to_source(cx, value);
-                    }
 
-                    let mut ids = IdVector::new(cx);
-                    if !GetPropertyKeys(
-                        cx,
-                        obj.handle().into(),
-                        jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
-                        ids.handle_mut(),
-                    ) {
-                        return DOMString::from("/* invalid */");
-                    }
-                    let mut explicit_keys = object_class == ESClass::Object;
-                    let mut props = Vec::with_capacity(ids.len());
-                    for id in &*ids {
-                        rooted!(in(cx) let id = *id);
-                        rooted!(in(cx) let mut desc = PropertyDescriptor::default());
-
-                        let mut is_none = false;
-                        if !JS_GetOwnPropertyDescriptorById(
-                            cx,
-                            obj.handle().into(),
-                            id.handle().into(),
-                            desc.handle_mut().into(),
-                            &mut is_none,
-                        ) {
-                            return DOMString::from("/* invalid */");
-                        }
-
-                        rooted!(in(cx) let mut property = UndefinedValue());
-                        if !JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut())
-                        {
-                            return DOMString::from("/* invalid */");
-                        }
-
-                        if !explicit_keys {
-                            if id.is_int() {
-                                if let Ok(id_int) = usize::try_from(id.to_int()) {
-                                    explicit_keys = props.len() != id_int;
-                                } else {
-                                    explicit_keys = false;
-                                }
-                            } else {
-                                explicit_keys = false;
-                            }
-                        }
-                        let value_string = stringify_inner(cx, property.handle(), parents.clone());
-                        if explicit_keys {
-                            let key = if id.is_string() || id.is_symbol() || id.is_int() {
-                                rooted!(in(cx) let mut key_value = UndefinedValue());
-                                let raw_id: jsapi::HandleId = id.handle().into();
-                                if !JS_IdToValue(cx, *raw_id.ptr, key_value.handle_mut()) {
-                                    return DOMString::from("/* invalid */");
-                                }
-                                value_to_source(cx, key_value.handle())
-                            } else {
-                                panic!("Key with impossible type")
-                            };
-                            props.push(format!("{}: {}", key, value_string,));
+                if !explicit_keys {
+                    if id.is_int() {
+                        if let Ok(id_int) = usize::try_from(id.to_int()) {
+                            explicit_keys = props.len() != id_int;
                         } else {
-                            props.push(value_string.to_string());
+                            explicit_keys = false;
                         }
-                    }
-                    if object_class == ESClass::Array {
-                        DOMString::from(format!("[{}]", itertools::join(props, ", ")))
                     } else {
-                        DOMString::from(format!("{{{}}}", itertools::join(props, ", ")))
+                        explicit_keys = false;
                     }
+                }
+                let value_string = stringify_inner(cx, property.handle(), parents.clone());
+                if explicit_keys {
+                    let key = if id.is_string() || id.is_symbol() || id.is_int() {
+                        rooted!(in(cx) let mut key_value = UndefinedValue());
+                        let raw_id: jsapi::HandleId = id.handle().into();
+                        if !JS_IdToValue(cx, *raw_id.ptr, key_value.handle_mut()) {
+                            return DOMString::from("/* invalid */");
+                        }
+                        handle_value_to_string(cx, key_value.handle())
+                    } else {
+                        return DOMString::from("/* invalid */");
+                    };
+                    props.push(format!("{}: {}", key, value_string,));
                 } else {
-                    return value_to_source(cx, value);
+                    props.push(value_string.to_string());
                 }
             }
-            stringify_inner(cx, message.into(), Vec::new())
+            if object_class == ESClass::Array {
+                DOMString::from(format!("[{}]", itertools::join(props, ", ")))
+            } else {
+                DOMString::from(format!("{{{}}}", itertools::join(props, ", ")))
+            }
         }
+        unsafe fn stringify_inner(
+            cx: *mut jsapi::JSContext,
+            value: HandleValue,
+            mut parents: Vec<u64>,
+        ) -> DOMString {
+            if parents.len() >= MAX_LOG_DEPTH {
+                return DOMString::from("...");
+            }
+            let value_bits = value.asBits_;
+            if parents.contains(&value_bits) {
+                return DOMString::from("[circular]");
+            }
+            if value.is_undefined() {
+                // This produces a better value than "(void 0)" from JS_ValueToSource.
+                return DOMString::from("undefined");
+            } else if !value.is_object() {
+                return handle_value_to_string(cx, value);
+            }
+            parents.push(value_bits);
+            stringify_object_from_handle_value(cx, value, parents)
+        }
+        stringify_inner(cx, message.into(), Vec::new())
     }
 }
 
-fn stringify_messages(messages: Vec<HandleValue>) -> DOMString {
+fn stringify_handle_values(messages: Vec<HandleValue>) -> DOMString {
     DOMString::from(itertools::join(
-        messages.into_iter().map(stringify_message),
+        messages.into_iter().map(stringify_handle_value),
         " ",
     ))
 }
 
 fn console_messages(global: &GlobalScope, messages: Vec<HandleValue>, level: LogLevel) {
-    let message = stringify_messages(messages);
+    let message = stringify_handle_values(messages);
     console_message(global, message, level)
 }
 
@@ -244,7 +249,7 @@ impl Console {
             let message = if message.is_undefined() {
                 DOMString::from("no message")
             } else {
-                stringify_message(message)
+                stringify_handle_value(message)
             };
             let message = DOMString::from(format!("Assertion failed: {}", message));
             console_message(global, message, LogLevel::Error)
@@ -253,7 +258,7 @@ impl Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/time
     pub fn Time(_cx: JSContext, global: &GlobalScope, label: HandleValue) {
-        let label = stringify_message(label);
+        let label = stringify_handle_value(label);
         if let Ok(()) = global.time(label.clone()) {
             let message = DOMString::from(format!("{}: timer started", label));
             console_message(global, message, LogLevel::Log);
@@ -262,7 +267,7 @@ impl Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/timeEnd
     pub fn TimeEnd(_cx: JSContext, global: &GlobalScope, label: HandleValue) {
-        let label = stringify_message(label);
+        let label = stringify_handle_value(label);
         if let Ok(delta) = global.time_end(&label) {
             let message = DOMString::from(format!("{}: {}ms", label, delta));
             console_message(global, message, LogLevel::Log);
@@ -271,12 +276,12 @@ impl Console {
 
     // https://console.spec.whatwg.org/#group
     pub fn Group(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        global.push_console_group(stringify_messages(messages));
+        global.push_console_group(stringify_handle_values(messages));
     }
 
     // https://console.spec.whatwg.org/#groupcollapsed
     pub fn GroupCollapsed(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
-        global.push_console_group(stringify_messages(messages));
+        global.push_console_group(stringify_handle_values(messages));
     }
 
     // https://console.spec.whatwg.org/#groupend
