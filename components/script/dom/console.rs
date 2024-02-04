@@ -257,8 +257,7 @@ impl Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/time
-    pub fn Time(_cx: JSContext, global: &GlobalScope, label: HandleValue) {
-        let label = stringify_handle_value(label);
+    pub fn Time(global: &GlobalScope, label: DOMString) {
         if let Ok(()) = global.time(label.clone()) {
             let message = DOMString::from(format!("{}: timer started", label));
             console_message(global, message, LogLevel::Log);
@@ -266,8 +265,7 @@ impl Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/timeEnd
-    pub fn TimeEnd(_cx: JSContext, global: &GlobalScope, label: HandleValue) {
-        let label = stringify_handle_value(label);
+    pub fn TimeEnd(global: &GlobalScope, label: DOMString) {
         if let Ok(delta) = global.time_end(&label) {
             let message = DOMString::from(format!("{}: {}ms", label, delta));
             console_message(global, message, LogLevel::Log);

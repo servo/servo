@@ -23,6 +23,6 @@ namespace console {
   undefined groupEnd();
 
   // Timing
-  undefined time(any message);
-  undefined timeEnd(any message);
+  undefined time(DOMString message);
+  undefined timeEnd(DOMString message);
 };
