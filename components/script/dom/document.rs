@@ -1923,14 +1923,19 @@ impl Document {
                 .unwrap();
             },
             script_traits::GamepadEvent::Updated(index, update_type) => {
-                match update_type {
-                    GamepadUpdateType::Axis(index, value) => {
-                        println!("Updating axis {} with value {}", index, value);
-                    },
-                    GamepadUpdateType::Button(index, value) => {
-                        println!("Updating button {} with value {}", index, value);
-                    }
-                };
+                let gamepad_list = self.window().Navigator().GetGamepads();
+                if let Some(gamepad) = gamepad_list.IndexedGetter(index.0 as u32) {
+                    match update_type {
+                        GamepadUpdateType::Axis(index, value) => {
+                            gamepad.update_axis(index, value);
+                        },
+                        GamepadUpdateType::Button(index, value) => {
+                            let pressed = value == 1.0;
+                            let touched = value > 0.0;
+                            gamepad.update_button(index, pressed, touched, value);
+                        }
+                    };
+                }
             },
         };
     }

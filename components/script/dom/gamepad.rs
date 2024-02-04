@@ -229,9 +229,9 @@ impl Gamepad {
             .expect("Failed to update axis info on gamepad.")
     }
 
-    pub fn update_button(&self, button_index: usize, touched: bool, pressed: bool, value: f32) {
+    pub fn update_button(&self, button_index: usize, pressed: bool, touched: bool, value: f32) {
         if let Some(button) = self.buttons.IndexedGetter(button_index as u32) {
-            button.update(touched, pressed, value.into());
+            button.update(pressed, touched, value.into());
         }
     }
 }
