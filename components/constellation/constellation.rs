@@ -5471,8 +5471,7 @@ where
     }
 
     fn handle_gamepad_msg(&mut self, event: GamepadEvent) {
-        // Send to the focused browsing contexts' current pipeline.  If it
-        // doesn't exist, fall back to sending to the compositor.
+        // Send to the focused browsing contexts' current pipeline.
         let focused_browsing_context_id = self
             .webviews
             .focused_webview()
