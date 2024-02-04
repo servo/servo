@@ -1352,7 +1352,7 @@ pub enum GamepadEvent {
 /// The type of Gamepad input being updated
 pub enum GamepadUpdateType {
     /// Axis index and input value
-    Axis(u8, f32),
+    Axis(usize, f32),
     /// Button index and input value
-    Button(u8, f32)
+    Button(usize, f32)
 }
