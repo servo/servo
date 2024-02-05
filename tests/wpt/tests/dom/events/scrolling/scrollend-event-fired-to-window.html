@@ -48,14 +48,14 @@
       assert_equals(document.scrollingElement.scrollTop, 0,
         "document should not be scrolled");
 
-      let scrollend_promise = waitForScrollendEvent(t, target_div);
+      let scrollend_promise = waitForScrollendEventNoTimeout(target_div);
       let max_target_div_scroll_top = target_div.scrollHeight - target_div.clientHeight;
       target_div.scrollTo({ top: target_div.scrollHeight, left: 0 });
       await scrollend_promise;
       assert_approx_equals(target_div.scrollTop, max_target_div_scroll_top, 1,
         "target_div should be fully scrolled down");
 
-      scrollend_promise = waitForScrollendEvent(t, window, 2000);
+      scrollend_promise = waitForScrollendEventNoTimeout(window);
       target_div.addEventListener("scrollend", fail);
       // Scroll up on target div and wait for the doc to get scrollend event.
       await scrollElementDown(target_div, target_div.clientHeight + 25);

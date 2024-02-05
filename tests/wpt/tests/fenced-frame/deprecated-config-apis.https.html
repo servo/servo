@@ -21,7 +21,7 @@ promise_test(async () => {
   const config = new FencedFrameConfig(location.href);
   try {
     await navigator.deprecatedReplaceInURN(config, {});
-    assert_unreached('deprecatedReplaceInURN must throwfor default configs');
+    assert_unreached('deprecatedReplaceInURN must throw for default configs');
   } catch (e) {
     assert_equals(e.message,
                   "Failed to execute 'deprecatedReplaceInURN' on 'Navigator': "

@@ -2,6 +2,7 @@
 // META: global=window,dedicatedworker
 // META: script=/webcodecs/video-encoder-utils.js
 // META: variant=?av1
+// META: variant=?av1_444_high
 // META: variant=?vp8
 // META: variant=?vp9_p0
 // META: variant=?vp9_p2
@@ -19,6 +20,12 @@ promise_setup(async () => {
       codec: 'av01.0.04M.08',
       hasEmbeddedColorSpace: true,
       hardwareAcceleration: 'prefer-software',
+    },
+    '?av1_444_high': {
+      codec: 'av01.1.04M.08.0.000',
+      hasEmbeddedColorSpace: true,
+      hardwareAcceleration: 'prefer-software',
+      outputPixelFormat: 'I444',
     },
     '?vp8': {
       codec: 'vp8',

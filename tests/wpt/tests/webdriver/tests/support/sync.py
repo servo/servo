@@ -1,5 +1,6 @@
 import asyncio
 import collections
+import inspect
 import sys
 import time
 
@@ -250,6 +251,8 @@ class AsyncPoll(object):
 
                 try:
                     result = condition(self.session)
+                    if inspect.isawaitable(result):
+                        result = await result
                 except (KeyboardInterrupt, SystemExit):
                     raise
                 except self.exceptions:

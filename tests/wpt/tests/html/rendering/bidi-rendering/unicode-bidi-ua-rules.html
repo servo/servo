@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>unicode-bidi UA stylesheet rules</title>
+<link rel="author" href="masonf@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#bidi-rendering">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<body>
+<script>
+  const elements = ['address', 'blockquote', 'center', 'div', 'figure',
+      'figcaption', 'footer', 'form', 'header', 'hr', 'legend', 'listing',
+      'main', 'p', 'plaintext', 'pre', 'summary', 'xmp', 'article', 'aside',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hgroup', 'nav', 'section', 'search',
+      'table', 'caption', 'colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr',
+      'td', 'th', 'dir', 'dd', 'dl', 'dt', 'menu', 'ol', 'ul', 'li', 'bdi',
+      'output'];
+  for(let tagname of elements) {
+    test((t) => {
+      const element = document.createElement(tagname);
+      t.add_cleanup(() => element.remove());
+      document.body.appendChild(element);
+      assert_equals(window.getComputedStyle(element, "").unicodeBidi,'isolate');
+    },`UA stylesheet rule for unicode-bidi, for <${tagname}>`);
+  }
+</script>

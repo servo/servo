@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1520442">
+<style>
+.c3 {
+  border-style: hidden;
+  height: 10px;
+  padding-right: 0px;
+  padding-bottom: 100px;
+  direction: rtl;
+  zoom: 0.1;
+  column-span: all;
+}
+
+.c7 {
+  overflow: hidden;
+  position: fixed;
+  float: left;
+  opacity: 0.0;
+}
+
+.c13 {
+  float: right;
+  border-style: solid;
+  zoom: 1;
+  transform: rotate3d(0, 1, 0, 90deg);
+  column-count: 3;
+  column-gap: 65536px;
+}
+
+.c16 {
+  padding-right: 100px;
+  padding-bottom: 65536px;
+  direction: rtl;
+  opacity: 1.00.5;
+  column-width: 10px;
+}
+
+.c17 {
+  position: fixed;
+  float: none;
+  border-style: dashed;
+  zoom: 0.1;
+  column-width: 100%;
+  column-span: all;
+  column-count: 3;
+}
+</style>
+<bdo class="c3">
+  <li class="c17">
+    <span class="c13">
+      <option class="c16"></option>
+      <dt class="c7"></dt>
+    </span>
+    -1467632561
+  </li>
+</bdo>

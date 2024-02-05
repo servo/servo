@@ -1,9 +1,11 @@
 # META: timeout=long
 
 import pytest
+from webdriver import error
 
 from tests.classic.perform_actions.support.refine import get_keys
 from tests.support.asserts import assert_error, assert_success, assert_dialog_handled
+from tests.support.sync import Poll
 from . import perform_actions
 
 actions = [{
@@ -115,3 +117,28 @@ def test_ignore(check_user_prompt_not_closed_but_exception, dialog_type):
 ])
 def test_default(check_user_prompt_closed_with_exception, dialog_type, retval):
     check_user_prompt_closed_with_exception(dialog_type, retval)
+
+
+def test_dismissed_beforeunload(session, url, mouse_chain):
+    page_beforeunload = url("/webdriver/tests/support/html/beforeunload.html")
+    page_target = url("/webdriver/tests/support/html/default.html")
+
+    session.url = page_beforeunload
+    input = session.find.css("input", all=False)
+    input.send_keys("bar")
+
+    link = session.find.css("a", all=False)
+
+    mouse_chain.pointer_move(0, 0, origin=link) \
+        .click() \
+        .perform()
+
+    wait = Poll(
+        session,
+        timeout=5,
+        message="Target page did not load")
+    wait.until(lambda s: s.url == page_target)
+
+    # navigation auto-dismissed beforeunload prompt
+    with pytest.raises(error.NoSuchAlertException):
+        session.alert.text

@@ -8,6 +8,7 @@
     var scriptWithoutEndTagRan = false;
     var scriptWithBogusEndTagInsideRan = false;
     var scriptWithBreakout = false;
+    var scriptSelfClosing = false;
 </script>
 <svg>
     <script>scriptWithEndTagRan = true;</script>
@@ -20,6 +21,9 @@
 </svg>
 <svg>
     <script>scriptWithBreakout = true;<s></script>
+</svg>
+<svg>
+    <script href="support/svg-script-self-closing.js"/>
 </svg>
 </s>
 <script>
@@ -35,4 +39,7 @@
     test(function() {
         assert_false(scriptWithBreakout);
     }, "SVG scripts ended by HTML breakout should not run");
+    test(function() {
+        assert_true(scriptSelfClosing);
+    }, "SVG scripts with self-closing start tag should run");
 </script>

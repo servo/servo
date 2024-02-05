@@ -457,8 +457,7 @@ function runGenericSensorTests(sensorData, readingData) {
       sensor.stop();
       await test_driver.remove_virtual_sensor(testDriverName);
     });
-    const sensorWatcher =
-        new EventWatcher(t, sensor, ['activate', 'reading', 'error']);
+    const sensorWatcher = new EventWatcher(t, sensor, ['activate', 'error']);
 
     sensor.start();
     await sensorWatcher.wait_for('activate');
@@ -474,34 +473,40 @@ function runGenericSensorTests(sensorData, readingData) {
     assert_false(sensor.hasReading);
     assert_sensor_reading_is_null(sensor);
 
+    const hiddenEventPromise = new Promise(resolve => {
+      sensor.addEventListener('reading', t.step_func((event) => {
+        assert_false(document.hidden);
+        resolve(event);
+      }, {once: true}));
+    });
+
     const reading = readings.next().value;
     await test_driver.update_virtual_sensor(testDriverName, reading);
 
+    const visibilityChangeEventPromise =
+        new EventWatcher(t, document, 'visibilitychange')
+            .wait_for('visibilitychange');
+
+    const preRestoreTimestamp = performance.now();
     await restore();
+
+    const readingEvent = await hiddenEventPromise;
+
     assert_false(document.hidden);
     assert_true(sensor.activated);
-    assert_false(sensor.hasReading);
-    assert_sensor_reading_is_null(sensor);
-
-    const visiblePageTimestamp = performance.now();
-
-    const [readingEvent] = await Promise.all([
-      sensorWatcher.wait_for('reading'),
-      test_driver.update_virtual_sensor(testDriverName, reading),
-    ]);
-
-    const postReadingTimestamp = performance.now();
-
+    assert_true(sensor.hasReading);
     assert_sensor_reading_equals(sensor, expectedReadings.next().value);
 
-    // Check that the only reading we received all this time was the one sent
-    // after the page was made visible again. This is done by verifying the
-    // timestamps of the event as well as the current reading's.
-    assert_greater_than_equal(sensor.timestamp, visiblePageTimestamp);
-    assert_greater_than(readingEvent.timeStamp, sensor.timestamp);
-    assert_greater_than_equal(
-        postReadingTimestamp, readingEvent.timeStamp,
-        'No new reading events have been delivered');
+    // Check that a reading sent while the page is hidden is stashed and
+    // triggers an update only when it is visible again: the original timestamp
+    // remains, but the event is emitted only after the "visibilitychange"
+    // event is fired.
+    assert_less_than(
+        sensor.timestamp, preRestoreTimestamp,
+        'Original sensor timestamp is used even if the update is delayed');
+    assert_greater_than(
+        readingEvent.timeStamp, (await visibilityChangeEventPromise).timeStamp,
+        'Sensor "reading" event is always emitted after page visibility is restored');
   }, `${sensorName}: Readings are not delivered when the page has no visibility`);
 
   sensor_test(async t => {

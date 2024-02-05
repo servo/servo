@@ -50,23 +50,30 @@ test((t) => {
 
 <div id=open2>
   <template shadowrootmode=open shadowrootdelegatesfocus>
-    Open, delegates focus (not the default), named slot assignment (the default)
+    Open, delegates focus (not the default),
+    named slot assignment (the default), clonable (the default for declarative)
   </template>
 </div>
 
 <script>
 test((t) => {
   assert_throws_dom("NotSupportedError",() => {
-    open2.attachShadow({mode: "closed", delegatesFocus: true, slotAssignment: "named"});
+    open2.attachShadow({mode: "closed", delegatesFocus: true, slotAssignment: "named", clonable: true});
   },'Mismatched shadow root type should throw');
   assert_throws_dom("NotSupportedError",() => {
-    open2.attachShadow({mode: "open", delegatesFocus: false, slotAssignment: "named"});
+    open2.attachShadow({mode: "open", delegatesFocus: false, slotAssignment: "named", clonable: true});
   },'Mismatched shadow root delegatesFocus should throw');
   assert_throws_dom("NotSupportedError",() => {
-    open2.attachShadow({mode: "open", delegatesFocus: true, slotAssignment: "manual"});
+    open2.attachShadow({mode: "open", delegatesFocus: true, slotAssignment: "manual", clonable: true});
   },'Mismatched shadow root slotAssignment should throw');
+  // See https://github.com/whatwg/html/issues/10107: the behavior of the
+  // clonable flag is still being discussed.
+  // assert_throws_dom("NotSupportedError",() => {
+  //   open2.attachShadow({mode: "open", delegatesFocus: true, slotAssignment: "named", clonable: false});
+  // },'Mismatched shadow root clonable should throw');
+
   const initialShadow = open2.shadowRoot;
-  const shadow = open2.attachShadow({mode: "open", delegatesFocus: true, slotAssignment: "named"}); // Shouldn't throw
+  const shadow = open2.attachShadow({mode: "open", delegatesFocus: true, slotAssignment: "named", clonable: true}); // Shouldn't throw
   assert_equals(shadow,initialShadow,'Same shadow should be returned');
   assert_equals(shadow.textContent,'','Shadow should be empty');
 },'Calling attachShadow() on declarative shadow root must match all parameters');

@@ -63,29 +63,6 @@ def test_seen_nodes(session, get_test_page, protocol, parameters):
     session.find.css("#custom-element", all=False)
 
 
-def test_dismissed_beforeunload(session, inline):
-    url_beforeunload = inline("""
-      <input type="text">
-      <script>
-        window.addEventListener("beforeunload", function (event) {
-          event.preventDefault();
-        });
-      </script>
-    """)
-
-    session.url = url_beforeunload
-    element = session.find.css("input", all=False)
-    element.send_keys("bar")
-
-    response = refresh(session)
-    assert_success(response)
-
-    with pytest.raises(error.StaleElementReferenceException):
-        element.property("id")
-
-    session.find.css("input", all=False)
-
-
 def test_history_pushstate(session, inline):
     pushstate_page = inline("""
       <script>

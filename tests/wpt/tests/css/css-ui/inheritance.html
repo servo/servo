@@ -37,6 +37,9 @@ assert_not_inherited('appearance', 'none', 'auto');
 assert_inherited('caret-color', currentColor, 'rgba(42, 53, 64, 0.75)');
 assert_inherited('caret-shape', 'auto', 'bar');
 assert_inherited('cursor', 'auto', 'pointer');
+if (CSS.supports('user-find', 'auto')) {
+  assert_inherited('user-find', 'auto', 'none');
+}
 assert_not_inherited('nav-down', 'auto', '#foo');
 assert_not_inherited('nav-left', 'auto', '#foo');
 assert_not_inherited('nav-right', 'auto', '#foo');

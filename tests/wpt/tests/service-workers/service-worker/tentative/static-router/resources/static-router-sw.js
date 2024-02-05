@@ -7,6 +7,8 @@ import {
   getRecords,
   resetRecords } from './static-router-sw.sub.js';
 
+import './imported-sw.js';
+
 self.addEventListener('install', async e => {
   e.waitUntil(caches.open('v1').then(
       cache => {cache.put('cache.txt', new Response('From cache'))}));

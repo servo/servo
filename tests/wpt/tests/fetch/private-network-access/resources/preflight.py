@@ -78,9 +78,8 @@ def _get_response_headers(method, mode, origin):
     return [
         acam,
         ("Access-Control-Allow-Origin", origin),
-        _ACAPN,
         ("Access-Control-Allow-Credentials", "true"),
-        ("Access-Control-Allow-Headers", "Upgrade-Insecure-Requests")
+        _ACAPN,
     ]
 
   return []

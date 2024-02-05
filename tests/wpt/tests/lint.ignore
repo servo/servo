@@ -745,5 +745,6 @@ HTML INVALID SYNTAX: domparsing/DOMParser-parseFromString-xml-doctype.html
 HTML INVALID SYNTAX: domparsing/DOMParser-parseFromString-xml-parsererror.html
 HTML INVALID SYNTAX: domparsing/XMLSerializer-serializeToString.html
 HTML INVALID SYNTAX: html/canvas/element/manual/unclosed-canvas-4.htm
+HTML INVALID SYNTAX: html/syntax/parsing/unclosed-svg-script.html
 HTML INVALID SYNTAX: quirks/percentage-height-calculation.html
 HTML INVALID SYNTAX: trusted-types/TrustedTypePolicyFactory-getAttributeType-namespace.html

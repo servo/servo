@@ -13,23 +13,6 @@ test(() => {
 }, "Observable constructor");
 
 test(() => {
-  assert_implements(self.Subscriber, "The Subscriber interface is not implemented");
-  assert_true(
-    typeof Subscriber === "function",
-    "Subscriber interface is defined as a function"
-  );
-
-  assert_throws_js(TypeError, () => { new Subscriber(); });
-
-  new Observable(subscriber => {
-    assert_not_equals(subscriber, undefined, "A Subscriber must be passed into the subscribe callback");
-    assert_implements(subscriber.next, "A Subscriber object must have a next() method");
-    assert_implements(subscriber.complete, "A Subscriber object must have a complete() method");
-    assert_implements(subscriber.error, "A Subscriber object must have an error() method");
-  }).subscribe();
-}, "Subscriber interface is not constructible");
-
-test(() => {
   let initializerCalled = false;
   const source = new Observable(() => {
     initializerCalled = true;
@@ -42,6 +25,26 @@ test(() => {
   source.subscribe();
   assert_true(initializerCalled, "initializer should be called by subscribe");
 }, "subscribe() can be called with no arguments");
+
+test(() => {
+  assert_implements(self.Subscriber, "The Subscriber interface is not implemented");
+  assert_true(
+    typeof Subscriber === "function",
+    "Subscriber interface is defined as a function"
+  );
+
+  assert_throws_js(TypeError, () => { new Subscriber(); });
+
+  let initializerCalled = false;
+  new Observable(subscriber => {
+    assert_not_equals(subscriber, undefined, "A Subscriber must be passed into the subscribe callback");
+    assert_implements(subscriber.next, "A Subscriber object must have a next() method");
+    assert_implements(subscriber.complete, "A Subscriber object must have a complete() method");
+    assert_implements(subscriber.error, "A Subscriber object must have an error() method");
+    initializerCalled = true;
+  }).subscribe();
+  assert_true(initializerCalled, "initializer should be called by subscribe");
+}, "Subscriber interface is not constructible");
 
 test(() => {
   let initializerCalled = false;
@@ -124,6 +127,51 @@ test(() => {
 }, "Observable error path called synchronously");
 
 test(() => {
+  let subscriber;
+  new Observable(s => { subscriber = s }).subscribe();
+  const {next, complete, error} = subscriber;
+  assert_throws_js(TypeError, () => next(1));
+  assert_throws_js(TypeError, () => complete());
+  assert_throws_js(TypeError, () => error(1));
+}, "Subscriber must have receiver");
+
+test(() => {
+  let subscriber;
+  new Observable(s => { subscriber = s }).subscribe();
+  assert_throws_js(TypeError, () => subscriber.next());
+  assert_throws_js(TypeError, () => subscriber.error());
+}, "Subscriber next & error must recieve argument");
+
+test(() => {
+  let subscriber;
+  new Observable(s => { subscriber = s }).subscribe();
+  assert_true(subscriber.active);
+  assert_false(subscriber.signal.aborted);
+  subscriber.complete();
+  assert_false(subscriber.active);
+  assert_true(subscriber.signal.aborted);
+}, "Subscriber complete() will set active to false, and abort signal");
+
+test(() => {
+  let subscriber;
+  new Observable(s => { subscriber = s }).subscribe();
+  assert_true(subscriber.active);
+  subscriber.active = false;
+  assert_true(subscriber.active);
+}, "Subscriber active is readonly");
+
+test(() => {
+  let subscriber;
+  new Observable(s => { subscriber = s }).subscribe();
+  assert_false(subscriber.signal.aborted);
+  const oldSignal = subscriber.signal;
+  const newSignal = AbortSignal.abort();
+  subscriber.signal = newSignal;
+  assert_false(subscriber.signal.aborted);
+  assert_equals(subscriber.signal, oldSignal, "signal did not change");
+}, "Subscriber signal is readonly");
+
+test(() => {
   const error = new Error("error");
   const results = [];
   let errorReported = null;
@@ -168,37 +216,68 @@ test(() => {
 
 test(t => {
   let innerSubscriber = null;
+  let activeBeforeComplete = false;
   let activeAfterComplete = false;
   let activeDuringComplete = false;
+  let abortedBeforeComplete = false;
+  let abortedDuringComplete = false;
+  let abortedAfterComplete = false;
 
   const source = new Observable((subscriber) => {
     innerSubscriber = subscriber;
+    activeBeforeComplete = subscriber.active;
+    abortedBeforeComplete = subscriber.signal.aborted;
 
     subscriber.complete();
     activeAfterComplete = subscriber.active;
+    abortedAfterComplete = subscriber.signal.aborted;
   });
 
-  source.subscribe({complete: () => activeDuringComplete = innerSubscriber.active});
+  source.subscribe({
+    complete: () => {
+      activeDuringComplete = innerSubscriber.active
+      abortedDuringComplete = innerSubscriber.active
+    }
+  });
+  assert_true(activeBeforeComplete, "Subscription is active before complete");
+  assert_false(abortedBeforeComplete, "Subscription is not aborted before complete");
   assert_false(activeDuringComplete, "Subscription is not active during complete");
+  assert_false(abortedDuringComplete, "Subscription is not aborted during complete");
   assert_false(activeAfterComplete, "Subscription is not active after complete");
+  assert_true(abortedAfterComplete, "Subscription is aborted after complete");
 }, "Subscription is inactive after complete()");
 
 test(t => {
   let innerSubscriber = null;
+  let activeBeforeError = false;
   let activeAfterError = false;
   let activeDuringError = false;
+  let abortedBeforeError = false;
+  let abortedDuringError = false;
+  let abortedAfterError = false;
 
   const error = new Error("error");
   const source = new Observable((subscriber) => {
     innerSubscriber = subscriber;
+    activeBeforeError = subscriber.active;
+    abortedBeforeError = subscriber.signal.aborted;
 
     subscriber.error(error);
     activeAfterError = subscriber.active;
+    abortedAfterError = subscriber.signal.aborted;
   });
 
-  source.subscribe({error: () => activeDuringError = innerSubscriber.active});
+  source.subscribe({
+    error: () => {
+      activeDuringError = innerSubscriber.active
+    }
+  });
+  assert_true(activeBeforeError, "Subscription is active before error");
+  assert_false(abortedBeforeError, "Subscription is not aborted before error");
   assert_false(activeDuringError, "Subscription is not active during error");
+  assert_false(abortedDuringError, "Subscription is not aborted during error");
   assert_false(activeAfterError, "Subscription is not active after error");
+  assert_true(abortedAfterError, "Subscription is not aborted after error");
 }, "Subscription is inactive after error()");
 
 test(t => {
@@ -284,9 +363,7 @@ test(() => {
     subscriber.next(1);
     subscriber.next(2);
     subscriber.error(error);
-    // TODO(https://github.com/WICG/observable/issues/76): Assert
-    // `subscriber.closed` is true, if we add that attribute.
-    // assert_true(subscriber.closed, "subscriber is closed after error");
+    assert_false(subscriber.active, "subscriber is closed after error");
     subscriber.next(3);
     subscriber.complete();
   });
@@ -551,29 +628,38 @@ test(() => {
   );
 }, "Subscriber#error() cannot re-entrantly invoke itself");
 
-// TODO(domfarolino): Once `Subscriber#addTeardown()` and `Subscriber#active`
-// are implemented, add corresponding code for them here so we can assert the following order of everything:
-//   1. The passed-in `Observer#signal` is marked as `aborted`
-//   2. Abort event handlers are invoked for the that outer, passed-in signal.
-//   3. `Subscriber#closed` is true
-//   4. `Subscriber#signal` is marked as aborted
-//   5. Teardown callbacks are executed in the right order
-//   6. Abort event handlers are invoked for `Subscriber#signal`.
-// This ensures we have the "dependent signal" logic wired up correctly:
-// https://dom.spec.whatwg.org/#create-a-dependent-abort-signal.
 test(() => {
   const results = [];
   let innerSubscriber = null;
+  let activeDuringTeardown1 = null;
+  let abortedDuringTeardown1 = null;
+  let activeDuringTeardown2 = null;
+  let abortedDuringTeardown2 = null;
 
   const source = new Observable((subscriber) => {
+    assert_true(subscriber.active);
+    assert_false(subscriber.signal.aborted);
     results.push('subscribe() callback');
     innerSubscriber = subscriber;
 
     subscriber.signal.addEventListener('abort', () => {
+      assert_false(subscriber.active);
       assert_true(subscriber.signal.aborted);
       results.push('inner abort handler');
       subscriber.next('next from inner abort handler');
       subscriber.complete();
+    });
+
+    subscriber.addTeardown(() => {
+      activeDuringTeardown1 = subscriber.active;
+      abortedDuringTeardown1 = subscriber.signal.aborted;
+      results.push('teardown 1');
+    });
+
+    subscriber.addTeardown(() => {
+      activeDuringTeardown2 = subscriber.active;
+      abortedDuringTeardown2 = subscriber.signal.aborted;
+      results.push('teardown 2');
     });
   });
 
@@ -593,21 +679,28 @@ test(() => {
   assert_array_equals(results, ['subscribe() callback']);
   ac.abort();
   results.push('abort() returned');
-  assert_array_equals(results, ['subscribe() callback',
-      'outer abort handler', 'inner abort handler', 'abort() returned']);
+  assert_array_equals(results, [
+      'subscribe() callback',
+      'outer abort handler', 'teardown 2', 'teardown 1',
+      'inner abort handler', 'abort() returned',
+  ]);
+  assert_false(activeDuringTeardown1, 'should not be active during teardown callback 1');
+  assert_false(activeDuringTeardown2, 'should not be active during teardown callback 2');
+  assert_true(abortedDuringTeardown1, 'should be aborted during teardown callback 1');
+  assert_true(abortedDuringTeardown2, 'should be aborted during teardown callback 2');
 }, "Unsubscription lifecycle");
 
-// TODO(domfarolino): If we add `subscriber.closed`, assert that its value is
-// `true` in this test. See https://github.com/WICG/observable/issues/76.
 test(t => {
   const source = new Observable((subscriber) => {
     let n = 0;
     while (!subscriber.signal.aborted) {
+      assert_true(subscriber.active);
       subscriber.next(n++);
       if (n > 3) {
         assert_unreached("The subscriber should be closed by now");
       }
     }
+    assert_false(subscriber.active);
   });
 
   const ac = new AbortController();

@@ -102,9 +102,11 @@
     let called = false;
     assert_false(svgInvokee instanceof HTMLElement);
     assert_true(svgInvokee instanceof Element);
+    let eventInvoker = null;
     svgInvokee.addEventListener(
       "invoke",
       (event) => {
+        eventInvoker = event.invoker;
         called = true;
       },
       { once: true },
@@ -112,5 +114,6 @@
     invokerbutton.invokeTargetElement = svgInvokee;
     await clickOn(invokerbutton);
     assert_true(called, "event was called");
+    assert_true(eventInvoker == svgInvokee, "event invoker is set to right element");
   }, "event dispatches if invoker is non-HTML Element");
 </script>

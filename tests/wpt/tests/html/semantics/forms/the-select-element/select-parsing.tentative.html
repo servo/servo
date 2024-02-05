@@ -17,34 +17,32 @@
 </select>
 
 <select id=s2>
-  <div>div 1</div>
-  <button>
-    <span>level 1</span>
-    <button>
-      <span>level 2</span>
-    </button>
-  </button>
-  <div>div 2</div>
-</select>
-
-<select id=s3>
   <button>button
 </select>
 
-<select id=s4>
+<select id=s3>
   <datalist>datalist
 </select>
 
-<select id=s5>
+<select id=s4>
   <button>
     <select></select>
   </button>
 </select>
 
-<select id=s6>
+<select id=s5>
   <button>
     <div>
       <select>
+</select>
+
+<select id=s6>
+<button>
+<button></button>
+</button>
+<datalist>
+<datalist></datalist>
+</datalist>
 </select>
 
 <div id=afterlast>
@@ -70,44 +68,43 @@ test(() => {
 test(() => {
   assert_equals(document.getElementById('s2').parentNode, document.body);
   assert_equals(document.getElementById('s2').innerHTML, `
-  div 1
-  <button>
-    <span>level 1</span>
-    </button><button>
-      <span>level 2</span>
-    </button>
-  \n  div 2
-`);
-}, 'Nested <button>s in <select> should be flattened out.');
-
-test(() => {
-  assert_equals(document.getElementById('s3').parentNode, document.body);
-  assert_equals(document.getElementById('s3').innerHTML, `
   <button>button
 </button>`);
 }, '</select> should close <button>.');
 
 test(() => {
-  assert_equals(document.getElementById('s4').parentNode, document.body);
-  assert_equals(document.getElementById('s4').innerHTML, `
+  assert_equals(document.getElementById('s3').parentNode, document.body);
+  assert_equals(document.getElementById('s3').innerHTML, `
   <datalist>datalist
 </datalist>`);
 }, '</select> should close <datalist>.');
 
 test(() => {
-  assert_equals(document.getElementById('s5').parentNode, document.body);
-  assert_equals(document.getElementById('s5').innerHTML, `
+  assert_equals(document.getElementById('s4').parentNode, document.body);
+  assert_equals(document.getElementById('s4').innerHTML, `
   <button>
     </button>`);
 }, '<select> in <button> in <select> should remove inner <select>.');
 
 test(() => {
-  assert_equals(document.getElementById('s6').parentNode, document.body);
-  assert_equals(document.getElementById('s6').innerHTML, `
+  assert_equals(document.getElementById('s5').parentNode, document.body);
+  assert_equals(document.getElementById('s5').innerHTML, `
   <button>
     <div>
       </div></button>`);
 }, '<select> in <select><button><div> should remove inner <select>.');
+
+test(() => {
+  assert_equals(document.getElementById('s6').parentNode, document.body);
+  assert_equals(document.getElementById('s6').innerHTML, `
+<button>
+</button>
+
+<datalist>
+</datalist>
+
+`);
+}, 'Nested <button>s or <datalist>s in <select> should be dropped.');
 
 test(() => {
   assert_equals(document.getElementById('afterlast').parentNode, document.body);

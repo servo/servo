@@ -15,12 +15,10 @@ const ROUTER_RULE_KEY_IGNORE_CASE =
   'condition-urlpattern-constructed-ignore-case-source-network';
 const ROUTER_RULE_KEY_RESPECT_CASE =
   'condition-urlpattern-constructed-respect-case-source-network';
-const ROUTER_RULE_KEY_MULTIPLE_RULES = 'multiple-router-rules';
 const ROUTER_RULE_KEY_URLPATTERN_CACHE =
   'condition-urlpattern-string-source-cache';
 const ROUTER_RULE_KEY_REQUEST_CACHE = 'condition-request-navigate-source-cache';
 const REGISTERED_ROUTE = 'resources/direct.txt';
-const ADDITIONAL_REGISTERED_ROUTE = 'resources/direct.html';
 const CACHED_ROUTE = 'resources/cache.txt';
 const NON_REGISTERED_ROUTE = 'resources/simple.html';
 const host_info = get_host_info();
@@ -51,21 +49,6 @@ iframeTest(NON_REGISTERED_ROUTE, ROUTER_RULE_KEY, async (t, iwin, worker) => {
     `${host_info['HTTPS_ORIGIN']}${path}${NON_REGISTERED_ROUTE}`);
   assert_equals(requests[0].mode, 'navigate');
 }, 'Main resource load not matched with the condition');
-
-promise_test(async t => {
-  const worker = await registerAndActivate(t, ROUTER_RULE_KEY_MULTIPLE_RULES);
-
-  // Matched with the first rule.
-  const iframe = await createIframe(t, REGISTERED_ROUTE);
-  assert_equals(iframe.contentWindow.document.body.innerText, "Network\n");
-
-  // Matched with the second rule.
-  const second_iframe = await createIframe(t, ADDITIONAL_REGISTERED_ROUTE);
-  assert_equals(second_iframe.contentWindow.document.body.innerText, "Here's a direct html from network.");
-
-  const {requests} = await get_info_from_worker(worker);
-  assert_equals(requests.length, 0);
-}, 'Main reosurce load matched with the service worker having multiple rules');
 
 iframeTest(CACHED_ROUTE, ROUTER_RULE_KEY_URLPATTERN_CACHE, async (t, iwin, worker) => {
   const {requests} = await get_info_from_worker(worker);

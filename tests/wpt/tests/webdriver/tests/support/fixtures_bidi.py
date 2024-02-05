@@ -351,6 +351,15 @@ def compare_png_bidi(bidi_session, url):
 
 
 @pytest.fixture
+def current_url(bidi_session):
+    async def current_url(context):
+        contexts = await bidi_session.browsing_context.get_tree(root=context, max_depth=0)
+        return contexts[0]["url"]
+
+    return current_url
+
+
+@pytest.fixture
 def get_element(bidi_session, top_context):
     async def get_element(css_selector, context=top_context):
         result = await bidi_session.script.evaluate(
