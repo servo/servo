@@ -44,6 +44,7 @@ interface mixin CanvasState {
   // state
   undefined save(); // push state on state stack
   undefined restore(); // pop state stack and restore state
+  undefined reset();
 };
 
 interface mixin CanvasTransform {

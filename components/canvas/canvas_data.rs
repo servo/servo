@@ -1054,7 +1054,8 @@ impl<'a> CanvasData<'a> {
         self.backend.set_global_composition(op, &mut self.state);
     }
 
-    pub fn recreate(&mut self, size: Size2D<u64>) {
+    pub fn recreate(&mut self, size: Option<Size2D<u64>>) {
+        let size = size.unwrap_or_else(|| self.drawtarget.get_size().to_u64());
         self.drawtarget = self
             .backend
             .create_drawtarget(Size2D::new(size.width, size.height));

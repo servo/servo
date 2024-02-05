@@ -28,7 +28,7 @@ pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg, CanvasId),
     FromLayout(FromLayoutMsg, CanvasId),
     FromScript(FromScriptMsg, CanvasId),
-    Recreate(Size2D<u64>, CanvasId),
+    Recreate(Option<Size2D<u64>>, CanvasId),
     Close(CanvasId),
 }
 
