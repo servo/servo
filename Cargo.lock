@@ -1633,9 +1633,9 @@ dependencies = [
 
 [[package]]
 name = "exr"
-version = "1.71.0"
+version = "1.72.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "832a761f35ab3e6664babfbdc6cef35a4860e816ec3916dcfd0882954e98a8a8"
+checksum = "887d93f60543e9a9362ef8a21beedd0a833c5d9610e18c67abe15a5963dcb1a4"
 dependencies = [
  "bit_field",
  "flume",
