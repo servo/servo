@@ -16,7 +16,6 @@ use webgpu::identity::WebGPUOpResult;
 use webgpu::wgpu::device::HostMap;
 use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
-use super::bindings::trace::CustomTraceable;
 use super::bindings::typedarrays::{create_new_external_array_buffer, HeapTypedArray};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -49,6 +48,7 @@ pub enum GPUBufferState {
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct GPUBufferMapInfo {
     #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
     /// The `mapping` is wrapped in an `Arc` to ensure thread safety.
     /// This is necessary for integration with the SpiderMonkey engine,
     pub mapping: Arc<Mutex<Vec<u8>>>,
@@ -161,7 +161,7 @@ impl GPUBufferMethods for GPUBuffer {
                         buffer_id: self.id().0,
                         device_id: self.device.id().0,
                         array_buffer: IpcSharedMemory::from_bytes(
-                            m_info.mapping.lock().unwrap().borrow().as_slice(),
+                            m_info.mapping.lock().unwrap().borrow(),
                         ),
                         is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
                         offset: m_range.start,

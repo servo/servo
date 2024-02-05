@@ -182,7 +182,7 @@ pub fn create_new_external_array_buffer(
             range_size as usize,
             mapping.lock().unwrap().borrow_mut()[offset as usize..m_end as usize].as_mut_ptr() as _,
             Some(free_func),
-            Arc::into_raw(mapping.lock().unwrap().into()) as _,
+            Arc::into_raw(mapping.clone()) as _,
         )
     }
 }
