@@ -40,7 +40,7 @@ pub(super) struct LineMetrics {
     pub block_size: Length,
 
     /// The block offset of this line's baseline from [`Self:block_offset`].
-    pub baseline_block_offset: Length,
+    pub baseline_block_offset: Au,
 }
 
 /// State used when laying out the [`LineItem`]s collected for the line currently being
@@ -54,7 +54,7 @@ pub(super) struct LineItemLayoutState<'a> {
     /// The block offset of the parent's baseline relative to the block start of the line. This
     /// is often the same as [`Self::block_offset_of_parent`], but can be different for the root
     /// element.
-    pub baseline_offset: Length,
+    pub baseline_offset: Au,
 
     pub ifc_containing_block: &'a ContainingBlock<'a>,
     pub positioning_context: &'a mut PositioningContext,
@@ -255,7 +255,7 @@ impl TextRunLineItem {
         // fallback fonts that use baseline relatve alignment, it might be different.
         let mut start_corner = &LogicalVec2 {
             inline: state.inline_position,
-            block: state.baseline_offset - self.font_metrics.ascent.into(),
+            block: (state.baseline_offset - self.font_metrics.ascent).into(),
         } - &state.parent_offset;
         if !is_baseline_relative(
             self.parent_style
@@ -350,7 +350,7 @@ impl InlineBoxLineItem {
             inline_position: state.inline_position,
             parent_offset: LogicalVec2 {
                 inline: state.inline_position,
-                block: block_start_offset,
+                block: block_start_offset.into(),
             },
             ifc_containing_block: state.ifc_containing_block,
             positioning_context: nested_positioning_context,
@@ -388,7 +388,7 @@ impl InlineBoxLineItem {
         let mut content_rect = LogicalRect {
             start_corner: LogicalVec2 {
                 inline: state.inline_position,
-                block: block_start_offset,
+                block: block_start_offset.into(),
             },
             size: LogicalVec2 {
                 inline: nested_state.inline_position - state.inline_position,
@@ -405,6 +405,9 @@ impl InlineBoxLineItem {
             content_rect.start_corner += &relative_adjustement(&style, state.ifc_containing_block);
         }
 
+        // NB: There is no need to set a baseline offset for this BoxFragment, because the
+        // baselines of this InlineFormattingContext is what will propagate to `display:
+        // inline-block` ancestors.
         let mut fragment = BoxFragment::new(
             self.base_fragment_info,
             self.style.clone(),
@@ -414,10 +417,6 @@ impl InlineBoxLineItem {
             border,
             margin,
             None, /* clearance */
-            // There is no need to set a baseline offset for this BoxFragment, because
-            // the last baseline of this InlineFormattingContext is what will propagate
-            // to `display: inline-block` ancestors.
-            None, /* last_inflow_baseline_offset */
             CollapsedBlockMargins::zero(),
         );
 
@@ -446,23 +445,19 @@ impl InlineBoxLineItem {
     /// Given our font metrics, calculate the space above the baseline we need for our content.
     /// Note that this space does not include space for any content in child inline boxes, as
     /// they are not included in our content rect.
-    fn calculate_space_above_baseline(&self) -> Length {
+    fn calculate_space_above_baseline(&self) -> Au {
         let (ascent, descent, line_gap) = (
             self.font_metrics.ascent,
             self.font_metrics.descent,
             self.font_metrics.line_gap,
         );
         let leading = line_gap - (ascent + descent);
-        (leading.scale_by(0.5) + ascent).into()
+        leading.scale_by(0.5) + ascent
     }
 
     /// Given the state for a line item layout and the space above the baseline for this inline
     /// box, find the block start position relative to the line block start position.
-    fn calculate_block_start(
-        &self,
-        state: &LineItemLayoutState,
-        space_above_baseline: Length,
-    ) -> Length {
+    fn calculate_block_start(&self, state: &LineItemLayoutState, space_above_baseline: Au) -> Au {
         let vertical_align = self.style.effective_vertical_align_for_inline_layout();
         let line_gap = self.font_metrics.line_gap;
 
@@ -470,16 +465,16 @@ impl InlineBoxLineItem {
         // baseline, so we need to make it relative to the line block start.
         match vertical_align {
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => {
-                let line_height = line_height(&self.style, &self.font_metrics);
-                (line_height - line_gap.into()).scale_by(0.5)
+                let line_height: Au = line_height(&self.style, &self.font_metrics).into();
+                (line_height - line_gap).scale_by(0.5)
             },
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
-                let line_height = line_height(&self.style, &self.font_metrics);
-                let half_leading = (line_height - line_gap.into()).scale_by(0.5);
-                state.line_metrics.block_size - line_height + half_leading
+                let line_height: Au = line_height(&self.style, &self.font_metrics).into();
+                let half_leading = (line_height - line_gap).scale_by(0.5);
+                Au::from(state.line_metrics.block_size) - line_height + half_leading
             },
             _ => {
-                state.line_metrics.baseline_block_offset + Length::from(self.baseline_offset) -
+                state.line_metrics.baseline_block_offset + self.baseline_offset -
                     space_above_baseline
             },
         }
@@ -542,9 +537,8 @@ impl AtomicLineItem {
 
             // This covers all baseline-relative vertical alignment.
             _ => {
-                let baseline = line_metrics.baseline_block_offset +
-                    Length::from(self.baseline_offset_in_parent);
-                baseline - Length::from(self.baseline_offset_in_item)
+                let baseline = line_metrics.baseline_block_offset + self.baseline_offset_in_parent;
+                Length::from(baseline - self.baseline_offset_in_item)
             },
         }
     }

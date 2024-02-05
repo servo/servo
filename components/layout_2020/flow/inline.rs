@@ -34,7 +34,7 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::FlowLayout;
-use crate::formatting_contexts::IndependentFormattingContext;
+use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     AnonymousFragment, BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
     Fragment,
@@ -246,9 +246,9 @@ impl LineBlockSizes {
         let height_from_ascent_and_descent = self
             .baseline_relative_size_for_line_height
             .as_ref()
-            .map(|size| Length::from((size.ascent + size.descent).abs()))
-            .unwrap_or_else(Length::zero);
-        self.line_height.max(height_from_ascent_and_descent)
+            .map(|size| (size.ascent + size.descent).abs())
+            .unwrap_or_else(Au::zero);
+        self.line_height.max(height_from_ascent_and_descent.into())
     }
 
     fn max(&self, other: &LineBlockSizes) -> LineBlockSizes {
@@ -286,17 +286,16 @@ impl LineBlockSizes {
     ///  > to minimize the line box height. If such boxes are tall enough, there are multiple
     ///  > solutions and CSS 2 does not define the position of the line box's baseline (i.e.,
     ///  > the position of the strut, see below).
-    fn find_baseline_offset(&self) -> Length {
+    fn find_baseline_offset(&self) -> Au {
         match self.baseline_relative_size_for_line_height.as_ref() {
-            Some(size) => size.ascent.into(),
+            Some(size) => size.ascent,
             None => {
                 // This is the case mentinoned above where there are multiple solutions.
                 // This code is putting the baseline roughly in the middle of the line.
-                let leading = self.resolve() -
+                let leading = Au::from(self.resolve()) -
                     (self.size_for_baseline_positioning.ascent +
-                        self.size_for_baseline_positioning.descent)
-                        .into();
-                leading.scale_by(0.5) + self.size_for_baseline_positioning.ascent.into()
+                        self.size_for_baseline_positioning.descent);
+                leading.scale_by(0.5) + self.size_for_baseline_positioning.ascent
             },
         }
     }
@@ -573,10 +572,10 @@ pub(super) struct InlineFormattingContextState<'a, 'b> {
     /// common ancestor is used.
     white_space: WhiteSpace,
 
-    /// The offset of the last baseline in the inline formatting context that we
+    /// The offset of the first and last baselines in the inline formatting context that we
     /// are laying out. This is used to propagate baselines to the ancestors of
-    /// `display: inline-block` elements.
-    last_baseline_offset: Option<Length>,
+    /// `display: inline-block` elements and table content.
+    baselines: Baselines,
 }
 
 impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
@@ -760,7 +759,10 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             return;
         }
 
-        self.last_baseline_offset = Some(baseline_offset + block_start_position.into());
+        let baseline = baseline_offset + block_start_position;
+        self.baselines.first.get_or_insert(baseline);
+        self.baselines.last = Some(baseline);
+
         let line_rect = LogicalRect {
             // The inline part of this start offset was taken into account when determining
             // the inline start of the line in `calculate_inline_start_for_current_line` so
@@ -1453,7 +1455,7 @@ impl InlineFormattingContext {
             prevent_soft_wrap_opportunity_before_next_atomic: false,
             had_inflow_content: false,
             white_space: containing_block.style.get_inherited_text().white_space,
-            last_baseline_offset: None,
+            baselines: Baselines::default(),
         };
 
         // FIXME(pcwalton): This assumes that margins never collapse through inline formatting
@@ -1506,7 +1508,7 @@ impl InlineFormattingContext {
             fragments: ifc.fragments,
             content_block_size,
             collapsible_margins_in_children,
-            last_inflow_baseline_offset: ifc.last_baseline_offset,
+            baselines: ifc.baselines,
         }
     }
 
@@ -1791,7 +1793,6 @@ impl IndependentFormattingContext {
                     pbm.border,
                     margin,
                     None, /* clearance */
-                    None, /* last_inflow_baseline_offset */
                     CollapsedBlockMargins::zero(),
                 )
             },
@@ -1873,11 +1874,9 @@ impl IndependentFormattingContext {
                     pbm.border,
                     margin,
                     None,
-                    independent_layout
-                        .last_inflow_baseline_offset
-                        .map(|t| t.into()),
                     CollapsedBlockMargins::zero(),
                 )
+                .with_baselines(independent_layout.baselines)
             },
         };
 
@@ -1891,10 +1890,10 @@ impl IndependentFormattingContext {
 
         let size = &pbm_sums.sum() + &fragment.content_rect.size;
         let baseline_offset = fragment
-            .last_baseline_offset
-            .map(|baseline_offset| pbm_sums.block_start + baseline_offset)
-            .unwrap_or(size.block);
-        let baseline_offset = Au::from_f32_px(baseline_offset.px());
+            .baselines
+            .last
+            .map(|baseline| Au::from(pbm_sums.block_start) + baseline)
+            .unwrap_or(size.block.into());
 
         let (block_sizes, baseline_offset_in_parent) =
             self.get_block_sizes_and_baseline_offset(ifc, size.block, baseline_offset);

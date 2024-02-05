@@ -12,7 +12,7 @@ use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, Lengt
 
 use super::{Table, TableSlot, TableSlotCell};
 use crate::context::LayoutContext;
-use crate::formatting_contexts::IndependentLayout;
+use crate::formatting_contexts::{Baselines, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{PositioningContext, PositioningContextLength};
@@ -1105,7 +1105,7 @@ impl Table {
         IndependentLayout {
             fragments,
             content_block_size,
-            last_inflow_baseline_offset: None,
+            baselines: Baselines::default(),
         }
     }
 }
@@ -1167,11 +1167,8 @@ impl TableSlotCell {
             layout.border,
             LogicalSides::zero(), /* margin */
             None,                 /* clearance */
-            layout
-                .layout
-                .last_inflow_baseline_offset
-                .map(|baseline| baseline.into()),
             CollapsedBlockMargins::zero(),
         )
+        .with_baselines(layout.layout.baselines)
     }
 }

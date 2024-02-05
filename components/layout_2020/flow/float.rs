@@ -982,7 +982,6 @@ impl FloatBox {
                     // Clearance is handled internally by the float placement logic, so there's no need
                     // to store it explicitly in the fragment.
                     None, // clearance
-                    None, // last_inflow_baseline_offset
                     CollapsedBlockMargins::zero(),
                 )
             },
