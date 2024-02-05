@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2018 The Servo Project Developers. See the COPYRIGHT
 # file at the top-level directory of this distribution.
@@ -35,10 +35,10 @@ class StringTable:
         return self.table[s]
 
     def length(self):
-        return len(self.table.keys())
+        return len(list(self.table.keys()))
 
     def contents(self):
-        return sorted(self.table.keys(), key=self.table.__getitem__)
+        return sorted(list(self.table.keys()), key=self.table.__getitem__)
 
 
 with open(sys.argv[1]) as f:
@@ -63,7 +63,7 @@ for sample in samples:
 
 tid = 0
 threads = []
-for (name, raw_samples) in sorted(thread_data.iteritems(), key=lambda x: thread_order[x[0]]):
+for (name, raw_samples) in sorted(iter(thread_data.items()), key=lambda x: thread_order[x[0]]):
     string_table = StringTable()
     tid += 1
 
