@@ -213,6 +213,11 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         self.canvas_state.restore()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-reset>
+    fn Reset(&self) {
+        self.canvas_state.reset()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
     fn GlobalAlpha(&self) -> f64 {
         self.canvas_state.global_alpha()

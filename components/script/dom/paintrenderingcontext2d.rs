@@ -95,6 +95,11 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
         self.context.Restore()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-reset>
+    fn Reset(&self) {
+        self.context.Reset()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-scale
     fn Scale(&self, x: f64, y: f64) {
         self.context.Scale(x, y)

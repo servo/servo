@@ -74,7 +74,7 @@ impl CanvasRenderingContext2D {
         self.canvas_state
             .get_ipc_renderer()
             .send(CanvasMsg::Recreate(
-                size.to_u64(),
+                Some(size.to_u64()),
                 self.canvas_state.get_canvas_id(),
             ))
             .unwrap();
@@ -179,6 +179,11 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-restore
     fn Restore(&self) {
         self.canvas_state.restore()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-reset>
+    fn Reset(&self) {
+        self.canvas_state.reset()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-scale
