@@ -2929,13 +2929,12 @@ impl Document {
     pub fn broadcast_active_resize_observations(&self) -> ResizeObservationDepth {
         let mut shallowest = ResizeObservationDepth::max();
         // Breaking potential re-borrow cycle.
-        let observations: Vec<DomRoot<ResizeObserver>> = self
+        for observer in self
             .resize_observers
             .borrow()
             .iter()
             .map(|obs| DomRoot::from_ref(&**obs))
-            .collect();
-        for observer in observations {
+        {
             observer.broadcast_active_resize_observations(&mut shallowest);
         }
         shallowest
