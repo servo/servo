@@ -59,6 +59,14 @@ pub(crate) enum NonReplacedFormattingContextContents {
     // Other layout modes go here
 }
 
+/// The baselines of a layout or a [`BoxFragment`]. Some layout uses the first and some layout uses
+/// the last.
+#[derive(Default, Serialize)]
+pub(crate) struct Baselines {
+    pub first: Option<Au>,
+    pub last: Option<Au>,
+}
+
 pub(crate) struct IndependentLayout {
     pub fragments: Vec<Fragment>,
 
@@ -68,7 +76,7 @@ pub(crate) struct IndependentLayout {
     /// The offset of the last inflow baseline of this layout in the content area, if
     /// there was one. This is used to propagate baselines to the ancestors of `display:
     /// inline-block`.
-    pub last_inflow_baseline_offset: Option<Au>,
+    pub baselines: Baselines,
 }
 
 impl IndependentFormattingContext {

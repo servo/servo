@@ -25,7 +25,7 @@ use super::geom::{
 use super::{FlexContainer, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
+use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{AuOrAuto, LengthOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
@@ -410,7 +410,7 @@ impl FlexContainer {
         IndependentLayout {
             fragments,
             content_block_size: content_block_size.into(),
-            last_inflow_baseline_offset: None,
+            baselines: Baselines::default(),
         }
     }
 }
@@ -848,6 +848,7 @@ impl FlexLine<'_> {
                 let margin = flex_context.sides_to_flow_relative(*margin);
                 let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
                 (
+                    // TODO: We should likely propagate baselines from `display: flex`.
                     BoxFragment::new(
                         item.box_.base_fragment_info(),
                         item.box_.style().clone(),
@@ -857,8 +858,6 @@ impl FlexLine<'_> {
                         flex_context.sides_to_flow_relative(item.border.map(|t| (*t).into())),
                         margin,
                         None, /* clearance */
-                        // TODO: We should likely propagate baselines from `display: flex`.
-                        None, /* last_inflow_baseline_offset */
                         collapsed_margin,
                     ),
                     item_result.positioning_context,

@@ -22,7 +22,7 @@ use crate::flow::float::{
 };
 use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{
-    IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
+    Baselines, IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
 };
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment,
@@ -198,10 +198,10 @@ struct FlowLayout {
     pub fragments: Vec<Fragment>,
     pub content_block_size: Length,
     pub collapsible_margins_in_children: CollapsedBlockMargins,
-    /// The offset of the last inflow baseline in this layout in the content area, if
-    /// there was one. This is used to propagate inflow baselines to the ancestors
-    /// of `display: inline-block` elements.
-    pub last_inflow_baseline_offset: Option<Length>,
+    /// The offset of the baselines in this layout in the content area, if there were some. This is
+    /// used to propagate inflow baselines to the ancestors of `display: inline-block` elements
+    /// and table content.
+    pub baselines: Baselines,
 }
 
 #[derive(Clone, Copy)]
@@ -248,7 +248,7 @@ impl BlockFormattingContext {
                 flow_layout.collapsible_margins_in_children.end.solve() +
                 clearance.unwrap_or_else(Au::zero).into())
             .into(),
-            last_inflow_baseline_offset: flow_layout.last_inflow_baseline_offset.map(|t| t.into()),
+            baselines: flow_layout.baselines,
         }
     }
 }
@@ -476,13 +476,12 @@ fn layout_block_level_children_in_parallel(
         })
         .collect();
 
-    let (content_block_size, collapsible_margins_in_children, baseline_offset) =
-        placement_state.finish();
+    let (content_block_size, collapsible_margins_in_children, baselines) = placement_state.finish();
     FlowLayout {
         fragments,
         content_block_size,
         collapsible_margins_in_children,
-        last_inflow_baseline_offset: baseline_offset,
+        baselines,
     }
 }
 
@@ -524,13 +523,12 @@ fn layout_block_level_children_sequentially(
         })
         .collect();
 
-    let (content_block_size, collapsible_margins_in_children, baseline_offset) =
-        placement_state.finish();
+    let (content_block_size, collapsible_margins_in_children, baselines) = placement_state.finish();
     FlowLayout {
         fragments,
         content_block_size,
         collapsible_margins_in_children,
-        last_inflow_baseline_offset: baseline_offset,
+        baselines,
     }
 }
 
@@ -818,9 +816,9 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         pbm.border,
         margin,
         clearance.map(|t| t.into()),
-        flow_layout.last_inflow_baseline_offset,
         block_margins_collapsed_with_children,
     )
+    .with_baselines(flow_layout.baselines)
 }
 
 impl NonReplacedFormattingContext {
@@ -893,9 +891,9 @@ impl NonReplacedFormattingContext {
             pbm.border,
             margin,
             None, /* clearance */
-            layout.last_inflow_baseline_offset.map(|t| t.into()),
             block_margins_collapsed_with_children,
         )
+        .with_baselines(layout.baselines)
     }
 
     /// Lay out a normal in flow non-replaced block that establishes an independent
@@ -1114,9 +1112,9 @@ impl NonReplacedFormattingContext {
             pbm.border,
             margin,
             clearance,
-            layout.last_inflow_baseline_offset.map(|t| t.into()),
             block_margins_collapsed_with_children,
         )
+        .with_baselines(layout.baselines)
     }
 }
 
@@ -1211,7 +1209,6 @@ fn layout_in_flow_replaced_block_level<'a>(
         pbm.border,
         margin,
         clearance,
-        None, /* last_inflow_base_offset */
         block_margins_collapsed_with_children,
     )
 }
@@ -1389,7 +1386,7 @@ struct PlacementState {
     start_margin: CollapsedMargin,
     current_margin: CollapsedMargin,
     current_block_direction_position: Length,
-    last_inflow_baseline_offset: Option<Length>,
+    inflow_baselines: Baselines,
 }
 
 impl PlacementState {
@@ -1403,7 +1400,7 @@ impl PlacementState {
             start_margin: CollapsedMargin::zero(),
             current_margin: CollapsedMargin::zero(),
             current_block_direction_position: Length::zero(),
-            last_inflow_baseline_offset: None,
+            inflow_baselines: Baselines::default(),
         }
     }
 
@@ -1414,14 +1411,15 @@ impl PlacementState {
     ) {
         self.place_fragment(fragment, sequential_layout_state);
 
-        match fragment {
-            Fragment::Box(box_fragment) => {
-                if let Some(baseline) = box_fragment.last_baseline_offset {
-                    self.last_inflow_baseline_offset =
-                        Some(baseline + box_fragment.content_rect.start_corner.block);
-                }
-            },
-            _ => {},
+        if let Fragment::Box(box_fragment) = fragment {
+            let box_block_offset = box_fragment.content_rect.start_corner.block.into();
+            match (self.inflow_baselines.first, box_fragment.baselines.first) {
+                (None, Some(first)) => self.inflow_baselines.first = Some(first + box_block_offset),
+                _ => {},
+            }
+            if let Some(last) = box_fragment.baselines.last {
+                self.inflow_baselines.last = Some(last + box_block_offset);
+            }
         }
     }
 
@@ -1511,7 +1509,7 @@ impl PlacementState {
         }
     }
 
-    fn finish(mut self) -> (Length, CollapsedBlockMargins, Option<Length>) {
+    fn finish(mut self) -> (Length, CollapsedBlockMargins, Baselines) {
         if !self.last_in_flow_margin_collapses_with_parent_end_margin {
             self.current_block_direction_position += self.current_margin.solve();
             self.current_margin = CollapsedMargin::zero();
@@ -1523,7 +1521,7 @@ impl PlacementState {
                 start: self.start_margin,
                 end: self.current_margin,
             },
-            self.last_inflow_baseline_offset,
+            self.inflow_baselines,
         )
     }
 }
