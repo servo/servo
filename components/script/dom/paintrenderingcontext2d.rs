@@ -95,7 +95,7 @@ impl PaintRenderingContext2DMethods for PaintRenderingContext2D {
         self.context.Restore()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-reset
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-reset>
     fn Reset(&self) {
         self.context.Reset()
     }
