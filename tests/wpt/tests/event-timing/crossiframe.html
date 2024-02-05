@@ -46,11 +46,14 @@
 
   promise_test(async t => {
     assert_implements(window.PerformanceEventTiming, "Event Timing is not supported");
+
     // Wait for load event so we can interact with the iframe.
     await new Promise(resolve => {
       window.addEventListener('load', resolve);
     });
+
     clickTimeMin = performance.now();
+
     let observedPointerDown = false;
     const observerPromise = new Promise(resolve => {
       new PerformanceObserver(t.step_func(entries => {
@@ -61,14 +64,16 @@
 
         assert_false(observedPointerDown,
             "Observer of main frames should only capture main-frame event-timing entries");
-        validateEntries(pointerDowns);
         observedPointerDown = true;
-        resolve();
+        resolve(pointerDowns);
       })).observe({type: 'event'});
     });
-    clickAndBlockMain('button').then(() => {
-      clickDone = performance.now();
-    });
+
+    await clickAndBlockMain('button');
+    clickDone = performance.now();
+    const pointerDowns = await observerPromise;
+    validateEntries(pointerDowns);
+
     const childFrameEntriesPromise = new Promise(resolve => {
       window.addEventListener("message", (event) => {
         // testdriver-complete is a webdriver internal event
@@ -80,13 +85,15 @@
         }
       }, false);
     });
+
     // Tap on the iframe, with an offset of 10 to target the div inside it.
     const actions = new test_driver.Actions()
         .pointerMove(10, 10, { origin: document.getElementById("iframe") })
         .pointerDown()
         .pointerUp();
     actions.send();
-    return Promise.all([observerPromise, childFrameEntriesPromise]);
+
+    await childFrameEntriesPromise;
   }, "Event Timing: entries should only be observable by its own frame.");
 
 </script>

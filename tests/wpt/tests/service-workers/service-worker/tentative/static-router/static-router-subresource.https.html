@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="resources/static-router-helpers.sub.js"></script>
 <body>
 <script>
 const SCRIPT = 'resources/static-router-sw.js';
@@ -34,38 +35,6 @@ const OR_TEST_FILES = [
   'resources/or-test/does-not-exist.text',
 ];
 
-// Register a service worker, then create an iframe at url.
-function iframeTest(url, ruleKey, callback, name) {
-  return promise_test(async t => {
-    const swURL = `${SCRIPT}?key=${ruleKey}`;
-    const reg = await service_worker_unregister_and_register(
-      t, swURL, SCOPE, {type: 'module'});
-    add_completion_callback(() => reg.unregister());
-    const worker = reg.installing;
-    await wait_for_state(t, worker, 'activated');
-    const iframe = await with_iframe(url);
-    const iwin = iframe.contentWindow;
-    t.add_cleanup(() => iframe.remove());
-    await callback(t, iwin, worker);
-  }, name);
-}
-
-function randomString() {
-  let result = "";
-  for (let i = 0; i < 5; i++) {
-    result += String.fromCharCode(97 + Math.floor(Math.random() * 26));
-  }
-  return result;
-}
-
-function get_fetched_urls(worker) {
-  return new Promise(function(resolve) {
-      var channel = new MessageChannel();
-      channel.port1.onmessage = function(msg) { resolve(msg); };
-      worker.postMessage({port: channel.port2}, [channel.port2]);
-    });
-}
-
 iframeTest(HTML_FILE, ROUTER_RULE_KEY_URL_PATTERN_CONSTRUCTED, async (t, iwin) => {
   const rnd = randomString();
   const response = await iwin.fetch('?nonce=' + rnd);
@@ -89,8 +58,7 @@ iframeTest(TXT_FILE, ROUTER_RULE_KEY_URL_PATTERN_CONSTRUCTED, async (t, iwin, wo
   const origin = get_host_info().HTTPS_REMOTE_ORIGIN;
   const response = await iwin.fetch(
     `${origin}/${TXT_FILE}?nonce=${rnd}`, {mode: 'no-cors'});
-  const fetched_urls = await get_fetched_urls(worker);
-  const {requests} = fetched_urls.data;
+  const {requests} = await get_info_from_worker(worker);
   assert_equals(requests.length, 0);
   assert_equals(response.type, 'opaque');
 }, 'Subresource cross origin load matched with URLPattern condition via constructed object');
@@ -121,8 +89,7 @@ iframeTest(TXT_FILE, ROUTER_RULE_KEY_URL_PATTERN_URLPATTERNINIT, async (t, iwin,
   const rnd = randomString();
   const origin = get_host_info().HTTPS_REMOTE_ORIGIN;
   const response = await iwin.fetch(`${origin}/${TXT_FILE}?nonce=${rnd}`);
-  const fetched_urls = await get_fetched_urls(worker);
-  const {requests} = fetched_urls.data;
+  const {requests} = await get_info_from_worker(worker);
   assert_equals(requests.length, 1);
   assert_equals(await response.text(), rnd);
 }, 'Subresource cross origin load not matched with URLPattern condition via URLPatternInit');
@@ -141,8 +108,7 @@ iframeTest(TXT_FILE, ROUTER_RULE_KEY_URL_PATTERN_STRING, async (t, iwin, worker)
   const rnd = randomString();
   const origin = get_host_info().HTTPS_REMOTE_ORIGIN;
   const response = await iwin.fetch(`${origin}/${TXT_FILE}?nonce=${rnd}`);
-  const fetched_urls = await get_fetched_urls(worker);
-  const {requests} = fetched_urls.data;
+  const {requests} = await get_info_from_worker(worker);
   assert_equals(requests.length, 1);
   assert_equals(await response.text(), rnd);
 }, 'Subresource cross origin load not matched with URLPattern condition via string');

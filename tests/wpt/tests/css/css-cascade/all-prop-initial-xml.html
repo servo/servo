@@ -16,6 +16,8 @@ iframe.onload = setup_test.step_func_done(function() {
     // Grab initial styles from a random element, as the root can get non-initial UA styling.
     const div = iframe.contentDocument.createElementNS("http://www.w3.org/1999/xhtml", "div");
     root.appendChild(div);
+    // the document element should have unicode-bidi 'normal', while <div> has 'isolate':
+    div.style.unicodeBidi = 'normal';
     const cs = iframe.contentWindow.getComputedStyle(div);
 
     let actual_initial = Object.create(null);

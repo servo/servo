@@ -62,8 +62,8 @@
         anim.currentTime = 500;
         promises.push(anim.ready);
       });
-      Promise.all(promises).then(() => {
-        assert_equals(promises.length, 5, 'Unexpected animation count');
+      await Promise.all(promises).then(() => {
+        assert_equals(promises.length, 6, 'Unexpected animation count');
         verifyPosition('box1', 200);  // linear easing
         verifyPosition('box2', ease());
         verifyPosition('box3', easeIn());

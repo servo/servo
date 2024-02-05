@@ -38,7 +38,7 @@ const AriaUtils = {
       AriaUtils.verifyRolesBySelector(".ex")
 
   */
-  verifyRolesBySelector: function(selector) {
+  verifyRolesBySelector: function(selector, roleTestNamePrefix) {
     const els = document.querySelectorAll(selector);
     if (!els.length) {
       throw `Selector passed in verifyRolesBySelector("${selector}") should match at least one element.`;
@@ -46,6 +46,9 @@ const AriaUtils = {
     for (const el of els) {
       let role = el.getAttribute("data-expectedrole");
       let testName = el.getAttribute("data-testname") || role; // data-testname optional if role is unique per test file
+      if (typeof roleTestNamePrefix !== "undefined") {
+        testName = roleTestNamePrefix + testName;
+      }
       promise_test(async t => {
         const expectedRole = el.getAttribute("data-expectedrole");
         const computedRole = await test_driver.get_computed_role(el);
@@ -127,7 +130,7 @@ const AriaUtils = {
       AriaUtils.verifyLabelsBySelector(".ex")
 
   */
-  verifyLabelsBySelector: function(selector) {
+  verifyLabelsBySelector: function(selector, labelTestNamePrefix) {
     const els = document.querySelectorAll(selector);
     if (!els.length) {
       throw `Selector passed in verifyLabelsBySelector("${selector}") should match at least one element.`;
@@ -135,9 +138,13 @@ const AriaUtils = {
     for (const el of els) {
       let label = el.getAttribute("data-expectedlabel");
       let testName = el.getAttribute("data-testname") || label; // data-testname optional if label is unique per test file
+      if (typeof labelTestNamePrefix !== "undefined") {
+        testName = labelTestNamePrefix + testName;
+      }
       promise_test(async t => {
         const expectedLabel = el.getAttribute("data-expectedlabel");
         let computedLabel = await test_driver.get_computed_label(el);
+        assert_not_equals(computedLabel, null, `get_computed_label(el) shouldn't return null for ${el.outerHTML}`);
 
         // See:
         // - https://github.com/w3c/accname/pull/165
@@ -157,5 +164,33 @@ const AriaUtils = {
   },
 
 
+  /*
+  Tests computed LABEL and ROLE of all elements matching selector using existing
+    verifyLabelsBySelector(), verifyRolesBySelector() functions and passes a test name prefix
+    to ensure uniqueness.
+
+  Ex: <div aria-label="foo" role="button"
+        data-testname="div with role=button is labelled via aria-label"
+        data-expectedlabel="foo"
+        data-expectedrole="button"
+        class="ex-role-and-label">
+
+      AriaUtils.verifyRolesAndLabelsBySelector(".ex-role-and-label")
+
+  */
+  verifyRolesAndLabelsBySelector: function(selector) {
+    let labelTestNamePrefix = "Label: ";
+    let roleTestNamePrefix = "Role: ";
+    const els = document.querySelectorAll(selector);
+    if (!els.length) {
+      throw `Selector passed in verifyRolesAndLabelsBySelector("${selector}") should match at least one element.`;
+    }
+    for (const el of els) {
+      el.classList.add("ex-label-only");
+      el.classList.add("ex-role-only");
+    }
+    this.verifyLabelsBySelector(".ex-label-only", labelTestNamePrefix);
+    this.verifyRolesBySelector(".ex-role-only", roleTestNamePrefix);
+  },
 };
 

@@ -19,7 +19,7 @@ promise_test(async t => {
       new PerformanceObserver(() => {
         resolve2();
       }).observe({type: "event", durationThreshold: 16});
-      await clickOnElementAndDelay('myDiv', 30);
+      await clickAndBlockMain('myDiv', { duration: 30 });
     });
     const afterFirstClick = performance.now();
     new PerformanceObserver(t.step_func(list => {
@@ -37,7 +37,7 @@ promise_test(async t => {
       });
     })).observe({type: 'event', durationThreshold: 16, buffered: true});
     // This should be the only click observed since the other one would not be buffered.
-    await clickOnElementAndDelay('myDiv', 30);
+    await clickAndBlockMain('myDiv', { duration: 30 } );
   });
 }, "PerformanceObserver buffering independent of durationThreshold");
 </script>

@@ -66,3 +66,11 @@ function iframeTest(url, ruleKey, callback, name) {
     await callback(t, iframe.contentWindow, worker);
   }, name);
 };
+
+function randomString() {
+  let result = "";
+  for (let i = 0; i < 5; i++) {
+    result += String.fromCharCode(97 + Math.floor(Math.random() * 26));
+  }
+  return result;
+}

@@ -5,18 +5,13 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src="../webrtc/RTCPeerConnection-helper.js"></script>
-<script src="../webrtc/dictionary-helper.js"></script>
-<script src="../webrtc/RTCStats-helper.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
 <script>
 'use strict';
 
 // inspired from similar test for MTI stats in ../webrtc/RTCPeerConnection-mandatory-getStats.https.html
 
-
-
 // From https://w3c.github.io/webrtc-stats/webrtc-stats.html#rtcstatstype-str*
-
 const dictionaryNames = {
   "codec": "RTCCodecStats",
   "inbound-rtp": "RTCInboundRtpStreamStats",
@@ -118,7 +113,6 @@ async function getAllStats(t, pc) {
   }
   return stats;
 }
-
 
 promise_test(async t => {
   // load the IDL to know which members to be looking for

@@ -4,7 +4,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../RTCPeerConnection-helper.js"></script>
-<script src="../RTCStats-helper.js"></script>
 <script>
 'use strict';
 
@@ -56,8 +55,7 @@ for (const name of Object.keys(acceptableValues)) {
     await exchangeOfferAnswer(pc1, pc2);
     await waitForState(pc1.sctp.transport, 'connected');
     const statsReport = await pc1.getStats();
-    const transportStats = findStatsFromReport(statsReport,
-                                               stats => stats.type === 'transport')
+    const transportStats = [...statsReport.values()].find(({type}) => type === 'transport');
     verifyStat(name, transportStats);
   }, name + ' is acceptable on data-only');
 
@@ -72,8 +70,7 @@ for (const name of Object.keys(acceptableValues)) {
     await exchangeOfferAnswer(pc1, pc2);
     await waitForState(transceiver.sender.transport, 'connected');
     const statsReport = await pc1.getStats();
-    const transportStats = findStatsFromReport(statsReport,
-                                               stats => stats.type === 'transport')
+    const transportStats = [...statsReport.values()].find(({type}) => type === 'transport');
     verifyStat(name, transportStats);
   }, name + ' is acceptable on video-only');
 }

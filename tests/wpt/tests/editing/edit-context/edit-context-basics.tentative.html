@@ -126,6 +126,23 @@
       assert_equals(editContext.selectionEnd, 1);
       editContext.updateControlBounds(viewRect);
       editContext.updateSelectionBounds(caretRect);
+      editContext.updateCharacterBounds(0, [caretRect]);
+
+      assert_throws_js(TypeError, function() { editContext.updateControlBounds(42); });
+      assert_throws_js(TypeError, function() { editContext.updateSelectionBounds(42); });
+      assert_throws_js(TypeError, function() { editContext.updateControlBounds(undefined); });
+      assert_throws_js(TypeError, function() { editContext.updateSelectionBounds(undefined); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds(0); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds([caretRect]); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds(0, caretRect); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds(0, 42); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds(0, undefined); });
+      assert_throws_js(TypeError, function() { editContext.updateCharacterBounds(0, [undefined]); });
+
+      viewRect.x = viewRect.y = viewRect.width = viewRect.height = undefined;
+      editContext.updateControlBounds(viewRect);
+      editContext.updateSelectionBounds(viewRect);
+      editContext.updateCharacterBounds(0, [viewRect]);
     }, 'Testing EditContext update text, selection and layout');
 
     test(function() {

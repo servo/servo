@@ -22,12 +22,35 @@
 <a data-testname="el-a-no-href" class="ex-generic">x</a>
 
 <!-- el-aside -->
+<aside data-testname="el-aside" data-expectedrole="complementary" class="ex">x</aside>
+<main>
+  <aside data-testname="el-aside-in-main" data-expectedrole="complementary" class="ex">x</aside>
+  <article>
+    <aside data-testname="el-aside-in-article-in-main" class="ex-generic">x</aside>
+    <aside data-testname="el-aside-in-article-in-main-with-name" data-expectedrole="complementary" aria-label="x" class="ex">x</aside>
+  </article>
+</main>
+<article>
+  <aside data-testname="el-aside-in-article" class="ex-generic">x</aside>
+  <aside data-testname="el-aside-in-article-with-name" data-expectedrole="complementary" aria-label="x" class="ex">x</aside>
+</article>
+<aside>
+  <aside data-testname="el-aside-in-aside" class="ex-generic">x</aside>
+  <aside data-testname="el-aside-in-aside-with-name" data-expectedrole="complementary" aria-label="x" class="ex">x</aside>
+</aside>
 <nav>
-  <aside data-testname="el-aside-in-section-with-name" data-expectedrole="complementary" aria-label="x" class="ex">x</aside>
-  <aside data-testname="el-aside-in-section-without-name" class="ex-generic">x</aside>
-  <aside data-testname="el-aside-in-section-with-role" data-expectedrole="complementary" class="ex" role="complementary">x</aside>
+  <aside data-testname="el-aside-in-nav" class="ex-generic">x</aside>
+  <aside data-testname="el-aside-in-nav-with-name" data-expectedrole="complementary" aria-label="x" class="ex">x</aside>
+  <aside data-testname="el-aside-in-nav-with-role" data-expectedrole="complementary" class="ex" role="complementary">x</aside>
 </nav>
-<aside data-testname="el-aside-ancestorbodymain" data-expectedrole="complementary" class="ex">x</aside>
+<!-- Spec says that the conditional aside mapping happens when nested in a sectioning content element.
+  However, this doesn't make sense if the parent <section> isn't a landmark in the first place.
+  Let's force the section to always be a landmark for now, but we should probably expand on this test
+  case pending discussions in https://github.com/w3c/html-aam/pull/484 -->
+<section aria-label="x">
+  <aside data-testname="el-aside-in-section" class="ex-generic">x</aside>
+  <aside data-testname="el-aside-in-section-with-name" data-expectedrole="complementary" aria-label="x" class="ex">x</aside>
+</section>
 
 <!-- el-footer -->
 <nav>

@@ -436,9 +436,7 @@
     ctx.fillRect(40, 40, 75, 50);
     ctx.fillStyle = 'grey';
     ctx.fillRect(50, 50, 75, 50);
-    ctx.endLayer();
 
-    ctx.beginLayer({filter: {name: 'dropShadow', dx: -2, dy: 2}});
     ctx.fillStyle = 'grey';
     ctx.fillRect(70, 70, 75, 50);
     ctx.fillStyle = 'orange';
@@ -589,6 +587,45 @@
     ctx.fillRect(10, 10, 75, 50);
   reference:
     ctx.fillRect(10, 10, 75, 50);
+
+- name: 2d.layer.clearRect.partial
+  desc: clearRect inside a layer can clear a portion of the layer content.
+  size: [100, 100]
+  code: |
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(10, 10, 80, 50);
+
+    ctx.beginLayer();
+    ctx.fillStyle = 'red';
+    ctx.fillRect(20, 20, 80, 50);
+    ctx.clearRect(30, 30, 60, 30);
+    ctx.endLayer();
+  reference: |
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(10, 10, 80, 50);
+
+    ctx.fillStyle = 'red';
+    ctx.fillRect(20, 20, 80, 10);
+    ctx.fillRect(20, 60, 80, 10);
+    ctx.fillRect(20, 20, 10, 50);
+    ctx.fillRect(90, 20, 10, 50);
+
+- name: 2d.layer.clearRect.full
+  desc: clearRect inside a layer can clear all of the layer content.
+  size: [100, 100]
+  code: |
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(10, 10, 80, 50);
+
+    ctx.beginLayer();
+    ctx.fillStyle = 'red';
+    ctx.fillRect(20, 20, 80, 50);
+    ctx.fillStyle = 'green';
+    ctx.clearRect(0, 0, {{ size[0] }}, {{ size[1] }});
+    ctx.endLayer();
+  reference: |
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(10, 10, 80, 50);
 
 - name: 2d.layer.valid-calls
   desc: No exception raised on {{ variant_desc }}.

@@ -8,6 +8,11 @@
   <meta name="variant" content="?mouse-right">
   <meta name="variant" content="?pen-right">
   <meta name="variant" content="?touch">
+  <meta name="variant" content="?mouse-nonstandard">
+  <meta name="variant" content="?pen-nonstandard">
+  <meta name="variant" content="?mouse-right-nonstandard">
+  <meta name="variant" content="?pen-right-nonstandard">
+  <meta name="variant" content="?touch-nonstandard">
   <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
   <style>
     html {
@@ -83,7 +88,8 @@ const frameLoadedPromise = new Promise(resolve => {
 
     const queryStringFragments = location.search.substring(1).split('-');
     const pointerType = queryStringFragments[0];
-    const button = queryStringFragments[1];
+    const button = queryStringFragments[1] === "right" ? "right" : undefined;
+    const standard = !(queryStringFragments[queryStringFragments.length - 1] === "nonstandard");
 
     const eventList = [
       'pointerover',
@@ -218,7 +224,7 @@ const frameLoadedPromise = new Promise(resolve => {
        verifyButtonAttributes(event);
        verifyPosition(event);
        assert_true(event.isPrimary, 'isPrimary attribute is true');
-       check_PointerEvent(event, testNamePrefix);
+       check_PointerEvent(event, testNamePrefix, standard);
     }
 
     function pointerPromise(test, testNamePrefix, type, target) {

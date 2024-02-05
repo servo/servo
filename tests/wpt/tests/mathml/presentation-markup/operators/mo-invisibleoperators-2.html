@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <link rel="match" href="mo-invisibleoperators-2-ref.html">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <link rel="help" href="This test verifies proper invalidation after dynamically replacing the text of invisible operators.">
+    <meta name="assert" content="https://bugzilla.mozilla.org/show_bug.cgi?id=522393">
+  </head>
+  <body>
+  <math>
+    <mo id="mo1">&#x2061;<!-- FUNCTION APPLICATION --></mo>
+  </math>
+  <p>
+  <math>
+    <mo id="mo2">&#x2062;<!-- INVISIBLE TIMES --></mo>
+  </math>
+  <p>
+  <math>
+    <mo id="mo3">&#x2063;<!-- INVISIBLE SEPARATOR --></mo>
+  </math>
+  <p>
+  <math>
+    <mo id="mo4">&#x2064;<!-- INVISIBLE PLUS --></mo>
+  </math>
+  <p>
+  <!-- Test preferred width after dynamic change-->
+  <table>
+    <tr>
+      <td style="border: 1px solid;">
+        <math>
+          <mo id="mo5">&ApplyFunction;</mo>
+        </math>
+      </td>
+    </tr>
+  </table>
+  <script type="text/javascript">
+    function doTest() {
+      document.getElementById('mo1').firstChild.data = '1';
+      document.getElementById('mo2').firstChild.data = '2';
+      document.getElementById('mo3').firstChild.data = '3';
+      document.getElementById('mo4').firstChild.data = '4';
+      document.getElementById('mo5').firstChild.data = 'x';
+      document.documentElement.removeAttribute("class");
+    }
+    window.addEventListener("TestRendered", doTest);
+  </script>
+  </body>
+</html>

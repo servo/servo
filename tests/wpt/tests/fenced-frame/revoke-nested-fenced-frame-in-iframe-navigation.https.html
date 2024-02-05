@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>Test that window.fence.disableUntrustedNetwork disables
+  embedder-initiated navigation of FF -> IF -> FF.</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<script>
+
+// Run a test with a fenced frame nested in an iframe nested in a fenced frame.
+// If `should_disable_network` is true, window.fence.disableUntrustedNetwork
+// will be called before creating the nested fenced frame.
+// If `use_urn_iframe` is true, the nested iframe will be a urn iframe.
+async function ff_if_ff_test(t, should_disable_network, use_urn_iframe, should_succeed) {
+const fencedframe = await attachFencedFrameContext({generator_api: 'sharedstorage'});
+  const navigation_promise =
+      fencedframe.execute(async (should_disable_network, use_urn_iframe) => {
+        let args = {};
+        if (use_urn_iframe) {
+          args = {generator_api: 'sharedstorage'};
+        }
+        const nested_iframe = await attachIFrameContext(args);
+        await nested_iframe.execute(() => {});
+        if (should_disable_network) {
+          await window.fence.disableUntrustedNetwork();
+        }
+        return nested_iframe.execute(async () => {
+          const nested_fenced_frame = await attachFencedFrameContext({
+              generator_api: 'sharedstorage'});
+          return nested_fenced_frame.execute(() => { return 'nav success'; });
+        });
+      },
+      [should_disable_network, use_urn_iframe]);
+  if (should_succeed) {
+    const result = await navigation_promise;
+    assert_equals(result, 'nav success');
+  } else {
+    const result = await Promise.race([navigation_promise,
+      new Promise((resolve, reject) => t.step_timeout(
+       () => resolve('timeout'), 1000))
+    ]);
+    assert_equals(result, 'timeout');
+  }
+}
+
+promise_test(async(t) => {
+  await ff_if_ff_test(t, /*should_disable_network=*/false,
+                         /*use_urn_iframe=*/false,
+                         /*should_succeed=*/true);
+}, 'FF->IF->FF navigation works');
+
+promise_test(async(t) => {
+  await ff_if_ff_test(t, /*should_disable_network=*/false,
+                         /*use_urn_iframe=*/true,
+                         /*should_succeed=*/true);
+}, 'FF->UIF->FF navigation works');
+
+promise_test(async(t) => {
+  await ff_if_ff_test(t, /*should_disable_network=*/true,
+                         /*use_urn_iframe=*/false,
+                         /*should_succeed=*/false);
+}, 'window.fence.disableUntrustedNetwork disables FF->IF->FF navigation');
+
+promise_test(async(t) => {
+  await ff_if_ff_test(t, /*should_disable_network=*/true,
+                         /*use_urn_iframe=*/true,
+                         /*should_succeed=*/false);
+}, 'window.fence.disableUntrustedNetwork disables FF->UF->FF navigation');
+
+</script>
+</body>

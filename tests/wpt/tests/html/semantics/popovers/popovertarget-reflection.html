@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1523410">
+<link rel=help href="https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#reflecting-content-attributes-in-idl-attributes:element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<button id=mybutton>toggle popover</button>
+<div id=mypopover popover=auto>popover</div>
+
+<script>
+test(() => {
+  mybutton.popoverTargetElement = mypopover;
+  assert_true(mybutton.hasAttribute('popovertarget'),
+    'Assigning to element.popoverTargetElement should set the popovertarget attribute.');
+
+  mybutton.removeAttribute('popovertarget');
+  assert_equals(mybutton.popoverTargetElement, null,
+    'Removing the popovertarget attribute should remove the element from element.popoverTargetElement.');
+}, 'Element attribute reflection of popoverTargetElement/popovertarget should be kept in sync.');
+</script>

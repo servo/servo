@@ -2,6 +2,11 @@
 <html>
 <head>
     <title>MediaRecorder Stop</title>
+    <meta name=variant content="?mimeType=''">
+    <meta name=variant content="?mimeType=video/webm;codecs=vp8,opus">
+    <meta name=variant content="?mimeType=video/webm;codecs=vp9,opus">
+    <meta name=variant content="?mimeType=video/webm;codecs=av1,opus">
+    <meta name=variant content="?mimeType=video/mp4;codecs=avc1,mp4a.40.2">
     <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
@@ -33,9 +38,21 @@
       return true;
     }
 
+    function doneWithUnsupportedType(mimeType) {
+      if (mimeType) {
+        assert_implements_optional(MediaRecorder.isTypeSupported(mimeType),
+          `"${mimeType}" for MediaRecorder is not supported`);
+      }
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const mimeType = params.get('mimeType');
+    const tag = `mimeType "${mimeType}"`;
     promise_test(async t => {
+        doneWithUnsupportedType(mimeType);
+
         const {stream: video} = createVideoStream(t);
-        const recorder = new MediaRecorder(video);
+        const recorder = new MediaRecorder(video, {mimeType});
         const events = recordEvents(recorder,
             ["start", "stop", "dataavailable", "pause", "resume", "error"]);
         assert_equals(video.getVideoTracks().length, 1, "video mediastream starts with one track");
@@ -56,8 +73,10 @@
     }, "MediaRecorder will stop recording and fire a stop event when all tracks are ended");
 
     promise_test(async t => {
+        doneWithUnsupportedType(mimeType);
+
         const {stream: video} = createVideoStream(t);
-        const recorder = new MediaRecorder(video);
+        const recorder = new MediaRecorder(video, {mimeType});
         const events = recordEvents(recorder,
             ["start", "stop", "dataavailable", "pause", "resume", "error"]);
         recorder.start();
@@ -77,7 +96,9 @@
     }, "MediaRecorder will stop recording and fire a stop event when stop() is called");
 
     promise_test(async t => {
-        const recorder = new MediaRecorder(createVideoStream(t).stream);
+        doneWithUnsupportedType(mimeType);
+
+        const recorder = new MediaRecorder(createVideoStream(t).stream, {mimeType});
         recorder.stop();
         await Promise.race([
             new Promise((_, reject) => recorder.onstop =
@@ -86,7 +107,9 @@
     }, "MediaRecorder will not fire an exception when stopped after creation");
 
     promise_test(async t => {
-        const recorder = new MediaRecorder(createVideoStream(t).stream);
+        doneWithUnsupportedType(mimeType);
+
+        const recorder = new MediaRecorder(createVideoStream(t).stream, {mimeType});
         recorder.start();
         recorder.stop();
         const event = await new Promise(r => recorder.onstop = r);
@@ -98,8 +121,10 @@
     }, "MediaRecorder will not fire an exception when stopped after having just been stopped");
 
     promise_test(async t => {
+        doneWithUnsupportedType(mimeType);
+
         const {stream} = createVideoStream(t);
-        const recorder = new MediaRecorder(stream);
+        const recorder = new MediaRecorder(stream, {mimeType});
         recorder.start();
         stream.getVideoTracks()[0].stop();
         const event = await new Promise(r => recorder.onstop = r);
@@ -111,8 +136,10 @@
     }, "MediaRecorder will not fire an exception when stopped after having just been spontaneously stopped");
 
     promise_test(async t => {
+        doneWithUnsupportedType(mimeType);
+
         const {stream} = createAudioVideoStream(t);
-        const recorder = new MediaRecorder(stream);
+        const recorder = new MediaRecorder(stream, {mimeType});
         const events = [];
         const startPromise = new Promise(resolve => recorder.onstart = resolve);
         const stopPromise = new Promise(resolve => recorder.onstop = resolve);
@@ -128,8 +155,10 @@
     }, "MediaRecorder will fire start event even if stopped synchronously");
 
     promise_test(async t => {
+        doneWithUnsupportedType(mimeType);
+
         const {stream} = createAudioVideoStream(t);
-        const recorder = new MediaRecorder(stream);
+        const recorder = new MediaRecorder(stream, {mimeType});
         const events = [];
         const startPromise = new Promise(resolve => recorder.onstart = resolve);
         const stopPromise = new Promise(resolve => recorder.onstop = resolve);
@@ -149,8 +178,10 @@
     }, "MediaRecorder will fire start event even if a track is removed synchronously");
 
     promise_test(async t => {
+        doneWithUnsupportedType(mimeType);
+
         const {stream} = createFlowingAudioVideoStream(t);
-        const recorder = new MediaRecorder(stream);
+        const recorder = new MediaRecorder(stream, {mimeType});
         const events = recordEvents(recorder,
             ["start", "stop", "dataavailable", "pause", "resume", "error"]);
         const dataPromise = new Promise(r => recorder.ondataavailable = r);

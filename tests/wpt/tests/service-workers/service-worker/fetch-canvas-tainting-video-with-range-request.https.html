@@ -19,7 +19,8 @@
 // (the "Range" HTTP request header specifies a byte range). The server responds
 // to these with 206 Partial Content for the given range.
 let unique = 0; // See https://bugzilla.mozilla.org/show_bug.cgi?id=1129121
-function range_request_test(script, expected, description) {
+function range_request_test(script, expected, description,
+                            {remote_origin_src} = {}) {
   promise_test(t => {
       let frame;
       let registration;
@@ -41,8 +42,12 @@ function range_request_test(script, expected, description) {
             frame = f;
             // Add "?PartialContent&VIDEO" to get a video resource from the
             // server using range requests.
-            const video_url =
+            let video_url =
               'fetch-access-control.py?PartialContent&VIDEO=' + unique++;
+            if (remote_origin_src) {
+              video_url = get_host_info().HTTPS_REMOTE_ORIGIN +
+                base_path() + 'resources/' + video_url;
+            }
             return frame.contentWindow.create_test_case_promise(video_url);
           })
         .then(result => {
@@ -90,5 +95,21 @@ range_request_test(
 //     non-opaque responses. The first request uses 'cors' mode to
 //     receive an non-opaque response, and subsequent range requests use
 //     'no-cors' to receive non-opaque responses. Like (2) this is not possible.
+
+// (7) The first Range response is synthesized using the Response constructor.
+//     Subsequent responses are same-origin, not handled by the service worker.
+range_request_test(
+  'resources/range-request-with-synth-head-worker.js',
+  'NOT_TAINTED',
+  'synth and same-origin fallback range responses');
+
+// (8) The first Range response is synthesized using the Response constructor.
+//     Subsequent responses are cross-origin, not handled by the service worker,
+//     no-cors and opaque.
+range_request_test(
+  'resources/range-request-with-synth-head-worker.js',
+  'LOAD_ERROR',
+  'synth and cross-origin fallback range responses',
+  {remote_origin_src: true});
 </script>
 </body>
