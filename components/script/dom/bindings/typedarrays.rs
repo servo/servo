@@ -162,13 +162,17 @@ where
     }
 }
 
-pub fn create_new_external_array_buffer(
+pub fn create_new_external_array_buffer<T>(
     cx: JSContext,
-    mapping: Arc<Mutex<Vec<u8>>>,
+    mapping: Arc<Mutex<Vec<T::Element>>>,
     offset: usize,
     range_size: usize,
     m_end: usize,
-) -> *mut JSObject {
+) -> HeapTypedArray<T>
+where
+    T: TypedArrayElement + TypedArrayElementCreator,
+    T::Element: Clone + Copy,
+{
     /// `freeFunc()` must be threadsafe, should be safely called from any thread
     /// without causing conflicts or unexpected behavior.
     /// <https://github.com/servo/mozjs/blob/main/mozjs-sys/mozjs/js/public/ArrayBuffer.h#L89>
@@ -177,12 +181,14 @@ pub fn create_new_external_array_buffer(
     }
 
     unsafe {
-        NewExternalArrayBuffer(
+        let array_buffer = NewExternalArrayBuffer(
             *cx,
             range_size as usize,
             mapping.lock().unwrap().borrow_mut()[offset as usize..m_end as usize].as_mut_ptr() as _,
             Some(free_func),
             Arc::into_raw(mapping.clone()) as _,
-        )
+        );
+
+        HeapTypedArray::<T>::new(array_buffer)
     }
 }

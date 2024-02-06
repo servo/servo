@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Borrow;
 use std::cell::Cell;
 use std::ops::Range;
 use std::rc::Rc;
@@ -160,9 +159,7 @@ impl GPUBufferMethods for GPUBuffer {
                     WebGPURequest::UnmapBuffer {
                         buffer_id: self.id().0,
                         device_id: self.device.id().0,
-                        array_buffer: IpcSharedMemory::from_bytes(
-                            m_info.mapping.lock().unwrap().borrow(),
-                        ),
+                        array_buffer: IpcSharedMemory::from_bytes(&*m_info.mapping.lock().unwrap()),
                         is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
                         offset: m_range.start,
                         size: m_range.end - m_range.start,
@@ -320,15 +317,13 @@ impl GPUBufferMethods for GPUBuffer {
             return Err(Error::Operation);
         }
 
-        let array_buffer = create_new_external_array_buffer(
+        let heap_typed_array = create_new_external_array_buffer::<ArrayBufferU8>(
             cx,
             Arc::clone(&m_info.mapping),
             offset as usize,
             range_size as usize,
             m_end as usize,
         );
-
-        let heap_typed_array = HeapTypedArray::<ArrayBufferU8>::new(array_buffer);
 
         let result = heap_typed_array.get_internal().map_err(|_| Error::JSFailed);
         m_info.mapped_ranges.push(offset..m_end);
