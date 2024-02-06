@@ -298,12 +298,17 @@ impl InlineBoxLineItem {
         let mut margin = self.pbm.margin.auto_is(Length::zero);
 
         if !self.is_first_fragment {
-            padding.inline_start = Length::zero();
-            border.inline_start = Length::zero();
+            padding.inline_start = Au::zero();
+            border.inline_start = Au::zero();
             margin.inline_start = Length::zero();
         }
-        let pbm_sums = &(&padding + &border) + &margin;
-        state.inline_position += pbm_sums.inline_start;
+        if !self.is_last_fragment_of_ib_split {
+            padding.inline_end = Au::zero();
+            border.inline_end = Au::zero();
+            margin.inline_end = Length::zero();
+        }
+        let pbm_sums = &(&padding + &border) + &margin.map(|t| (*t).into());
+        state.inline_position += pbm_sums.inline_start.into();
 
         let space_above_baseline = self.calculate_space_above_baseline();
         let block_start_offset = self.calculate_block_start(state, space_above_baseline);
@@ -336,14 +341,14 @@ impl InlineBoxLineItem {
         // potential block-in-inline split and this line included the actual end of this
         // fragment (it doesn't continue on the next line).
         if !self.is_last_fragment_of_ib_split || !saw_end {
-            padding.inline_end = Length::zero();
-            border.inline_end = Length::zero();
+            padding.inline_end = Au::zero();
+            border.inline_end = Au::zero();
             margin.inline_end = Length::zero();
         }
-        let pbm_sums = &(&padding + &border) + &margin;
+        let pbm_sums = &(&padding + &border) + &margin.clone().into();
 
         // If the inline box didn't have any content at all, don't add a Fragment for it.
-        let box_has_padding_border_or_margin = pbm_sums.inline_sum() > Length::zero();
+        let box_has_padding_border_or_margin = pbm_sums.inline_sum() > Au::zero();
         let box_had_absolutes =
             original_nested_positioning_context_length != nested_state.positioning_context.len();
         if !self.is_first_fragment &&
@@ -374,22 +379,19 @@ impl InlineBoxLineItem {
             content_rect.start_corner += &relative_adjustement(&style, state.ifc_containing_block);
         }
 
-        // NB: There is no need to set a baseline offset for this BoxFragment, because the
-        // baselines of this InlineFormattingContext is what will propagate to `display:
-        // inline-block` ancestors.
         let mut fragment = BoxFragment::new(
             self.base_fragment_info,
             self.style.clone(),
             fragments,
             content_rect,
-            padding,
-            border,
+            padding.into(),
+            border.into(),
             margin,
             None, /* clearance */
             CollapsedBlockMargins::zero(),
         );
 
-        state.inline_position = nested_state.inline_position + pbm_sums.inline_end;
+        state.inline_position = nested_state.inline_position + pbm_sums.inline_end.into();
 
         if let Some(mut positioning_context) = positioning_context.take() {
             assert!(original_nested_positioning_context_length == PositioningContextLength::zero());

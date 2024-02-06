@@ -648,13 +648,15 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         );
 
         if inline_box.is_first_fragment {
-            self.current_line.inline_position += inline_box_state.pbm.padding.inline_start +
+            self.current_line.inline_position += (inline_box_state.pbm.padding.inline_start +
                 inline_box_state.pbm.border.inline_start +
                 inline_box_state
                     .pbm
                     .margin
                     .inline_start
-                    .auto_is(Length::zero);
+                    .auto_is(Length::zero)
+                    .into())
+            .into();
         }
 
         let line_item = inline_box_state
@@ -688,8 +690,13 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         if inline_box_state.is_last_fragment {
             let pbm_end = inline_box_state.pbm.padding.inline_end +
                 inline_box_state.pbm.border.inline_end +
-                inline_box_state.pbm.margin.inline_end.auto_is(Length::zero);
-            self.current_line_segment.inline_size += pbm_end;
+                inline_box_state
+                    .pbm
+                    .margin
+                    .inline_end
+                    .auto_is(Length::zero)
+                    .into();
+            self.current_line_segment.inline_size += pbm_end.into();
         }
     }
 
@@ -1819,7 +1826,7 @@ impl IndependentFormattingContext {
         let style = self.style();
         let pbm = style.padding_border_margin(ifc.containing_block);
         let margin = pbm.margin.auto_is(Length::zero);
-        let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
+        let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone().into();
         let mut child_positioning_context = None;
 
         // We need to know the inline size of the atomic before deciding whether to do the line break.
@@ -1836,16 +1843,16 @@ impl IndependentFormattingContext {
                     .make_fragments(&replaced.style, size.clone());
                 let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
-                    size: size.into(),
+                    size,
                 };
 
                 BoxFragment::new(
                     replaced.base_fragment_info,
                     replaced.style.clone(),
                     fragments,
-                    content_rect,
-                    pbm.padding,
-                    pbm.border,
+                    content_rect.into(),
+                    pbm.padding.into(),
+                    pbm.border.into(),
                     margin,
                     None, /* clearance */
                     CollapsedBlockMargins::zero(),
@@ -1865,7 +1872,8 @@ impl IndependentFormattingContext {
 
                 // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
                 let tentative_inline_size = box_size.inline.auto_is(|| {
-                    let available_size = ifc.containing_block.inline_size - pbm_sums.inline_sum();
+                    let available_size =
+                        ifc.containing_block.inline_size - pbm_sums.inline_sum().into();
                     non_replaced
                         .inline_content_sizes(layout_context)
                         .shrink_to_fit(available_size.into())
@@ -1915,8 +1923,8 @@ impl IndependentFormattingContext {
                 let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
                     size: LogicalVec2 {
-                        block: block_size,
-                        inline: inline_size,
+                        block: block_size.into(),
+                        inline: inline_size.into(),
                     },
                 };
 
@@ -1924,9 +1932,9 @@ impl IndependentFormattingContext {
                     non_replaced.base_fragment_info,
                     non_replaced.style.clone(),
                     independent_layout.fragments,
-                    content_rect,
-                    pbm.padding,
-                    pbm.border,
+                    content_rect.into(),
+                    pbm.padding.into(),
+                    pbm.border.into(),
                     margin,
                     None,
                     CollapsedBlockMargins::zero(),
@@ -1943,11 +1951,11 @@ impl IndependentFormattingContext {
             ifc.process_soft_wrap_opportunity();
         }
 
-        let size = &pbm_sums.sum() + &fragment.content_rect.size;
+        let size = &pbm_sums.sum().into() + &fragment.content_rect.size;
         let baseline_offset = fragment
             .baselines
             .last
-            .map(|baseline| Au::from(pbm_sums.block_start) + baseline)
+            .map(|baseline| pbm_sums.block_start + baseline)
             .unwrap_or(size.block.into());
 
         let (block_sizes, baseline_offset_in_parent) =

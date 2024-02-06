@@ -900,7 +900,7 @@ impl FloatBox {
                 // or non-replaced.
                 let pbm = style.padding_border_margin(containing_block);
                 let margin = pbm.margin.auto_is(Length::zero);
-                let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
+                let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone().into();
 
                 let (content_size, children);
                 match self.contents {
@@ -918,7 +918,7 @@ impl FloatBox {
 
                         let tentative_inline_size = box_size.inline.auto_is(|| {
                             let available_size =
-                                containing_block.inline_size - pbm_sums.inline_sum();
+                                containing_block.inline_size - pbm_sums.inline_sum().into();
                             non_replaced
                                 .inline_content_sizes(layout_context)
                                 .shrink_to_fit(available_size.into())
@@ -976,8 +976,8 @@ impl FloatBox {
                     style.clone(),
                     children,
                     content_rect,
-                    pbm.padding,
-                    pbm.border,
+                    pbm.padding.into(),
+                    pbm.border.into(),
                     margin,
                     // Clearance is handled internally by the float placement logic, so there's no need
                     // to store it explicitly in the fragment.
