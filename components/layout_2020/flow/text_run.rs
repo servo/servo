@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::mem;
+use std::str::Chars;
 
 use app_units::Au;
 use gfx::font::{FontRef, ShapingFlags, ShapingOptions};
@@ -15,6 +16,7 @@ use range::Range;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::text_rendering::T as TextRendering;
+use style::computed_values::white_space::T as WhiteSpace;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
 use unicode_script::Script;
@@ -42,10 +44,6 @@ pub(crate) struct TextRun {
     /// The text of this [`TextRun`] with a font selected, broken into unbreakable
     /// segments, and shaped.
     pub shaped_text: Vec<TextRunSegment>,
-
-    /// Whether or not this [`TextRun`] has uncollapsible content. This is used
-    /// to determine if an [`super::InlineFormattingContext`] is considered empty or not.
-    pub has_uncollapsible_content: bool,
 
     /// Whether or not to prevent a soft wrap opportunity at the start of this [`TextRun`].
     /// This depends on the whether the first character in the run prevents a soft wrap
@@ -174,17 +172,35 @@ impl TextRun {
         base_fragment_info: BaseFragmentInfo,
         parent_style: Arc<ComputedValues>,
         text: String,
-        has_uncollapsible_content: bool,
     ) -> Self {
         Self {
             base_fragment_info,
             parent_style,
             text,
-            has_uncollapsible_content,
             shaped_text: Vec::new(),
             prevent_soft_wrap_opportunity_at_start: false,
             prevent_soft_wrap_opportunity_at_end: false,
         }
+    }
+
+    /// Whether or not this [`TextRun`] has uncollapsible content. This is used
+    /// to determine if an [`super::InlineFormattingContext`] is considered empty or not.
+    pub(super) fn has_uncollapsible_content(&self) -> bool {
+        let white_space = self.parent_style.clone_white_space();
+        if white_space.preserve_spaces() && !self.text.is_empty() {
+            return true;
+        }
+
+        for character in self.text.chars() {
+            if !character.is_ascii_whitespace() {
+                return true;
+            }
+            if character == '\n' && white_space.preserve_newlines() {
+                return true;
+            }
+        }
+
+        false
     }
 
     pub(super) fn break_and_shape(
@@ -192,8 +208,13 @@ impl TextRun {
         font_context: &mut FontContext<FontCacheThread>,
         linebreaker: &mut Option<LineBreakLeafIter>,
         font_cache: &mut Vec<FontKeyAndMetrics>,
+        last_inline_box_ended_with_white_space: &mut bool,
     ) {
-        let segment_results = self.segment_text(font_context, font_cache);
+        let segment_results = self.segment_text(
+            font_context,
+            font_cache,
+            last_inline_box_ended_with_white_space,
+        );
         let inherited_text_style = self.parent_style.get_inherited_text().clone();
         let letter_spacing = if inherited_text_style.letter_spacing.0.px() != 0. {
             Some(app_units::Au::from(inherited_text_style.letter_spacing.0))
@@ -256,54 +277,76 @@ impl TextRun {
         &mut self,
         font_context: &mut FontContext<FontCacheThread>,
         font_cache: &mut Vec<FontKeyAndMetrics>,
+        last_inline_box_ended_with_white_space: &mut bool,
     ) -> Vec<(TextRunSegment, FontRef)> {
         let font_group = font_context.font_group(self.parent_style.clone_font());
         let mut current: Option<(TextRunSegment, FontRef)> = None;
         let mut results = Vec::new();
 
-        for (byte_index, character) in self.text.char_indices() {
-            let prevents_soft_wrap_opportunity =
-                char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character);
-            if byte_index == 0 && prevents_soft_wrap_opportunity {
-                self.prevent_soft_wrap_opportunity_at_start = true;
-            }
-            self.prevent_soft_wrap_opportunity_at_end = prevents_soft_wrap_opportunity;
+        let text = std::mem::replace(&mut self.text, String::new());
+        let collapsed = WhitespaceCollapse::new(
+            text.as_str(),
+            self.parent_style.clone_white_space(),
+            *last_inline_box_ended_with_white_space,
+        );
 
-            if char_does_not_change_font(character) {
-                continue;
-            }
+        let mut next_byte_index = 0;
+        let text = collapsed
+            .map(|character| {
+                let current_byte_index = next_byte_index;
+                next_byte_index += character.len_utf8();
 
-            let font = match font_group
-                .borrow_mut()
-                .find_by_codepoint(font_context, character)
-            {
-                Some(font) => font,
-                None => continue,
-            };
-
-            // If the existing segment is compatible with the character, keep going.
-            let script = Script::from(character);
-            if let Some(current) = current.as_mut() {
-                if current.0.update_if_compatible(&font, script, font_cache) {
-                    continue;
+                *last_inline_box_ended_with_white_space = character.is_whitespace();
+                let prevents_soft_wrap_opportunity =
+                    char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character);
+                if current_byte_index == 0 && prevents_soft_wrap_opportunity {
+                    self.prevent_soft_wrap_opportunity_at_start = true;
                 }
-            }
+                self.prevent_soft_wrap_opportunity_at_end = prevents_soft_wrap_opportunity;
 
-            let font_index = add_or_get_font(&font, font_cache);
+                if char_does_not_change_font(character) {
+                    return character;
+                }
 
-            // Add the new segment and finish the existing one, if we had one. If the first
-            // characters in the run were control characters we may be creating the first
-            // segment in the middle of the run (ie the start should be 0).
-            let byte_index = match current {
-                Some(_) => ByteIndex(byte_index as isize),
-                None => ByteIndex(0 as isize),
-            };
-            let new = (TextRunSegment::new(font_index, script, byte_index), font);
-            if let Some(mut finished) = current.replace(new) {
-                finished.0.range.extend_to(byte_index);
-                results.push(finished);
-            }
-        }
+                let font = match font_group
+                    .borrow_mut()
+                    .find_by_codepoint(font_context, character)
+                {
+                    Some(font) => font,
+                    None => return character,
+                };
+
+                // If the existing segment is compatible with the character, keep going.
+                let script = Script::from(character);
+                if let Some(current) = current.as_mut() {
+                    if current.0.update_if_compatible(&font, script, font_cache) {
+                        return character;
+                    }
+                }
+
+                let font_index = add_or_get_font(&font, font_cache);
+
+                // Add the new segment and finish the existing one, if we had one. If the first
+                // characters in the run were control characters we may be creating the first
+                // segment in the middle of the run (ie the start should be 0).
+                let start_byte_index = match current {
+                    Some(_) => ByteIndex(current_byte_index as isize),
+                    None => ByteIndex(0 as isize),
+                };
+                let new = (
+                    TextRunSegment::new(font_index, script, start_byte_index),
+                    font,
+                );
+                if let Some(mut finished) = current.replace(new) {
+                    finished.0.range.extend_to(start_byte_index);
+                    results.push(finished);
+                }
+
+                character
+            })
+            .collect();
+
+        let _ = std::mem::replace(&mut self.text, text);
 
         // Either we have a current segment or we only had control character and whitespace. In both
         // of those cases, just use the first font.
@@ -442,4 +485,163 @@ pub(super) fn get_font_for_first_font_for_style(
         warn!("Could not find font for style: {:?}", style.clone_font());
     }
     font
+}
+
+fn preserve_segment_break() -> bool {
+    true
+}
+
+pub struct WhitespaceCollapse<'a> {
+    char_iterator: Chars<'a>,
+    white_space: WhiteSpace,
+
+    /// Whether or not we should collapse white space completely at the start of the string.
+    /// This is true when the last character handled in our owning [`InlineFormattingContext`]
+    /// was collapsible white space.
+    remove_collapsible_white_space_at_start: bool,
+
+    /// Whether or not the last character produced was newline. There is special behavior
+    /// we do after each newline.
+    following_newline: bool,
+
+    /// Whether or not we have seen any non-white space characters, indicating that we are not
+    /// in a collapsible white space section at the beginning of the string.
+    have_seen_non_white_space_characters: bool,
+
+    /// Whether the last character that we processed was a non-newline white space character. When
+    /// collapsing white space we need to wait until the next non-white space character or the end
+    /// of the string to push a single white space.
+    inside_white_space: bool,
+
+    /// When we enter a collapsible white space region, we may need to wait to produce a single
+    /// white space character as soon as we encounter a non-white space character. When that
+    /// happens we queue up the non-white space character for the next iterator call.
+    character_pending_to_return: Option<char>,
+}
+
+impl<'a> WhitespaceCollapse<'a> {
+    pub fn new(input: &'a str, white_space: WhiteSpace, trim_beginning_white_space: bool) -> Self {
+        Self {
+            char_iterator: input.chars(),
+            white_space,
+            remove_collapsible_white_space_at_start: trim_beginning_white_space,
+            inside_white_space: false,
+            following_newline: false,
+            have_seen_non_white_space_characters: false,
+            character_pending_to_return: None,
+        }
+    }
+
+    fn is_leading_trimmed_white_space(&self) -> bool {
+        !self.have_seen_non_white_space_characters && self.remove_collapsible_white_space_at_start
+    }
+
+    /// Whether or not we need to produce a space character if the next character is not a newline
+    /// and not white space. This happens when we are exiting a section of white space and we
+    /// waited to produce a single space character for the entire section of white space (but
+    /// not following or preceding a newline).
+    fn need_to_produce_space_character_after_white_space(&self) -> bool {
+        self.inside_white_space && !self.following_newline && !self.is_leading_trimmed_white_space()
+    }
+}
+
+impl<'a> Iterator for WhitespaceCollapse<'a> {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Point 4.1.1 first bullet:
+        // > If white-space is set to normal, nowrap, or pre-line, whitespace
+        // > characters are considered collapsible
+        // If whitespace is not considered collapsible, it is preserved entirely, which
+        // means that we can simply return the input string exactly.
+        if self.white_space.preserve_spaces() {
+            return self.char_iterator.next();
+        }
+
+        if let Some(character) = self.character_pending_to_return.take() {
+            self.inside_white_space = false;
+            self.have_seen_non_white_space_characters = true;
+            self.following_newline = false;
+            return Some(character);
+        }
+
+        while let Some(character) = self.char_iterator.next() {
+            // Don't push non-newline whitespace immediately. Instead wait to push it until we
+            // know that it isn't followed by a newline. See `push_pending_whitespace_if_needed`
+            // above.
+            if character.is_ascii_whitespace() && character != '\n' {
+                self.inside_white_space = true;
+                continue;
+            }
+
+            // Point 4.1.1:
+            // > 2. Collapsible segment breaks are transformed for rendering according to the
+            // >    segment break transformation rules.
+            if character == '\n' {
+                // From <https://drafts.csswg.org/css-text-3/#line-break-transform>
+                // (4.1.3 -- the segment break transformation rules):
+                //
+                // > When white-space is pre, pre-wrap, or pre-line, segment breaks are not
+                // > collapsible and are instead transformed into a preserved line feed"
+                if self.white_space == WhiteSpace::PreLine {
+                    self.inside_white_space = false;
+                    self.following_newline = true;
+                    return Some(character);
+
+                // Point 4.1.3:
+                // > 1. First, any collapsible segment break immediately following another
+                // >    collapsible segment break is removed.
+                // > 2. Then any remaining segment break is either transformed into a space (U+0020)
+                // >    or removed depending on the context before and after the break.
+                } else if !self.following_newline &&
+                    preserve_segment_break() &&
+                    !self.is_leading_trimmed_white_space()
+                {
+                    self.inside_white_space = false;
+                    self.following_newline = true;
+                    return Some(' ');
+                } else {
+                    self.following_newline = true;
+                    continue;
+                }
+            }
+
+            // Point 4.1.1:
+            // > 2. Any sequence of collapsible spaces and tabs immediately preceding or
+            // >    following a segment break is removed.
+            // > 3. Every collapsible tab is converted to a collapsible space (U+0020).
+            // > 4. Any collapsible space immediately following another collapsible space—even
+            // >    one outside the boundary of the inline containing that space, provided both
+            // >    spaces are within the same inline formatting context—is collapsed to have zero
+            // >    advance width.
+            if self.need_to_produce_space_character_after_white_space() {
+                self.inside_white_space = false;
+                self.character_pending_to_return = Some(character);
+                return Some(' ');
+            }
+
+            self.inside_white_space = false;
+            self.have_seen_non_white_space_characters = true;
+            self.following_newline = false;
+            return Some(character);
+        }
+
+        if self.need_to_produce_space_character_after_white_space() {
+            self.inside_white_space = false;
+            return Some(' ');
+        }
+
+        None
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.char_iterator.size_hint()
+    }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.char_iterator.count()
+    }
 }
