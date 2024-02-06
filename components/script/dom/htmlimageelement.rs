@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::collections::HashSet;
 use std::default::Default;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::{char, i32, mem};
 
@@ -47,6 +48,8 @@ use style::values::specified::AbsoluteLength;
 use style_traits::ParsingMode;
 use url::Url;
 
+use super::domexception::DOMErrorName;
+use super::types::DOMException;
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -84,6 +87,7 @@ use crate::dom::node::{
     UnbindContext,
 };
 use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::promise::Promise;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
@@ -1603,6 +1607,26 @@ impl HTMLImageElementMethods for HTMLImageElement {
             // We don't want to start an update if referrerpolicy is set to the same value.
             element.set_string_attribute(&referrerpolicy_attr_name, correct_value_or_empty_string);
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-decode>
+    fn Decode(&self) -> Rc<Promise> {
+        // Step 1
+        let promise = Promise::new(&self.global());
+
+        // Step 2
+        let document = document_from_node(self);
+        if !document.is_fully_active() {
+            promise.reject_native(&DOMException::new(
+                &self.global(),
+                DOMErrorName::EncodingError,
+            ));
+        } else if self.current_request.borrow().image.is_some() {
+            promise.resolve_native(&());
+        }
+
+        // Step 3
+        promise
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-name
