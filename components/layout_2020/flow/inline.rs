@@ -124,9 +124,6 @@ struct LineUnderConstruction {
     /// The LineItems for the current line under construction that have already
     /// been committed to this line.
     line_items: Vec<LineItem>,
-
-    /// The number of justification opportunities in this line.
-    justification_opportunities: usize,
 }
 
 impl LineUnderConstruction {
@@ -139,7 +136,6 @@ impl LineUnderConstruction {
             has_floats_waiting_to_be_placed: false,
             placement_among_floats: OnceCell::new(),
             line_items: Vec::new(),
-            justification_opportunities: 0,
         }
     }
 
@@ -162,15 +158,30 @@ impl LineUnderConstruction {
         // >    as well as any trailing U+1680   OGHAM SPACE MARK whose white-space
         // >    property is normal, nowrap, or pre-line.
         let mut whitespace_trimmed = Length::zero();
-        let mut word_seperators_trimmed = 0;
         for item in self.line_items.iter_mut().rev() {
-            if !item.trim_whitespace_at_end(&mut whitespace_trimmed, &mut word_seperators_trimmed) {
+            if !item.trim_whitespace_at_end(&mut whitespace_trimmed) {
                 break;
             }
         }
 
-        self.justification_opportunities -= word_seperators_trimmed;
         whitespace_trimmed
+    }
+
+    /// Count the number of justification opportunities in this line.
+    fn count_justification_opportunities(&self) -> usize {
+        self.line_items
+            .iter()
+            .filter_map(|item| match item {
+                LineItem::TextRun(text_run) => Some(
+                    text_run
+                        .text
+                        .iter()
+                        .map(|glyph_store| glyph_store.total_word_separators())
+                        .sum::<usize>(),
+                ),
+                _ => None,
+            })
+            .sum()
     }
 }
 
@@ -326,9 +337,6 @@ struct UnbreakableSegmentUnderConstruction {
 
     /// The inline size of any trailing whitespace in this segment.
     trailing_whitespace_size: Length,
-
-    /// The number of justification opportunities in this unbreakable segment.
-    justification_opportunities: usize,
 }
 
 impl UnbreakableSegmentUnderConstruction {
@@ -344,7 +352,6 @@ impl UnbreakableSegmentUnderConstruction {
             inline_box_hierarchy_depth: None,
             has_content: false,
             trailing_whitespace_size: Length::zero(),
-            justification_opportunities: 0,
         }
     }
 
@@ -356,7 +363,6 @@ impl UnbreakableSegmentUnderConstruction {
         self.inline_box_hierarchy_depth = None;
         self.has_content = false;
         self.trailing_whitespace_size = Length::zero();
-        self.justification_opportunities = 0;
     }
 
     /// Push a single line item to this segment. In addition, record the inline box
@@ -382,15 +388,12 @@ impl UnbreakableSegmentUnderConstruction {
     /// This prevents whitespace from being added to the beginning of a line.
     fn trim_leading_whitespace(&mut self) {
         let mut whitespace_trimmed = Length::zero();
-        let mut word_seperators_trimmed = 0;
         for item in self.line_items.iter_mut() {
-            if !item.trim_whitespace_at_start(&mut whitespace_trimmed, &mut word_seperators_trimmed)
-            {
+            if !item.trim_whitespace_at_start(&mut whitespace_trimmed) {
                 break;
             }
         }
         self.inline_size -= whitespace_trimmed;
-        self.justification_opportunities -= word_seperators_trimmed;
     }
 
     /// Prepare this segment for placement on a new and empty line. This happens when the
@@ -829,20 +832,10 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             TextAlignKeyword::Start => TextAlign::Start,
             TextAlignKeyword::Center => TextAlign::Center,
             TextAlignKeyword::End => TextAlign::End,
-            TextAlignKeyword::Left => {
-                if line_left_is_inline_start {
-                    TextAlign::Start
-                } else {
-                    TextAlign::End
-                }
-            },
-            TextAlignKeyword::Right => {
-                if line_left_is_inline_start {
-                    TextAlign::End
-                } else {
-                    TextAlign::Start
-                }
-            },
+            TextAlignKeyword::Left if line_left_is_inline_start => TextAlign::Start,
+            TextAlignKeyword::Left => TextAlign::End,
+            TextAlignKeyword::Right if line_left_is_inline_start => TextAlign::End,
+            TextAlignKeyword::Right => TextAlign::Start,
             TextAlignKeyword::Justify => TextAlign::Start,
             TextAlignKeyword::ServoCenter |
             TextAlignKeyword::ServoLeft |
@@ -878,14 +871,18 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // Calculate the justification adjustment. This is simply the remaining space on the line,
         // dividided by the number of justficiation opportunities that we recorded when building
         // the line.
-        let num_justification_opportunities = self.current_line.justification_opportunities as f32;
         let text_justify = self.containing_block.style.clone_text_justify();
         let justification_adjustment = match (text_align_keyword, text_justify) {
             // `text-justify: none` should disable text justification.
             // TODO: Handle more `text-justify` values.
             (TextAlignKeyword::Justify, TextJustify::None) => Length::zero(),
-            (TextAlignKeyword::Justify, _) if num_justification_opportunities > 0. => {
-                (available_space - line_length) / num_justification_opportunities
+            (TextAlignKeyword::Justify, _) => {
+                match self.current_line.count_justification_opportunities() {
+                    0 => Length::zero(),
+                    num_justification_opportunities => {
+                        (available_space - line_length) / (num_justification_opportunities as f32)
+                    },
+                }
             },
             _ => Length::zero(),
         };
@@ -1129,9 +1126,6 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         font_metrics: &FontMetrics,
         font_key: FontInstanceKey,
     ) {
-        self.current_line_segment.justification_opportunities +=
-            glyph_store.total_word_separators();
-
         let inline_advance = Length::from(glyph_store.total_advance());
         let preserve_spaces = parent_style
             .get_inherited_text()
@@ -1262,8 +1256,6 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         self.current_line.max_block_size = self
             .current_line_max_block_size_including_nested_containers()
             .max(&self.current_line_segment.max_block_size);
-        self.current_line.justification_opportunities +=
-            self.current_line_segment.justification_opportunities;
         let line_inline_size_without_trailing_whitespace =
             self.current_line.inline_position - self.current_line_segment.trailing_whitespace_size;
 
