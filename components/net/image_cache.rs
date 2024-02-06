@@ -40,6 +40,7 @@ use webrender_api::{ImageData, ImageDescriptor, ImageDescriptorFlags, ImageForma
 // ======================================================================
 
 fn decode_bytes_sync(key: LoadKey, bytes: &[u8], cors: CorsStatus) -> DecoderMsg {
+    // decode
     let image = load_from_memory(bytes, cors);
     DecoderMsg {
         key: key,
