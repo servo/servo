@@ -7,8 +7,8 @@
 interface HTMLTableColElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  // [CEReactions]
-  //          attribute unsigned long span;
+  [CEReactions]
+            attribute unsigned long span;
 
   // also has obsolete members
 };

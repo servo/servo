@@ -36,62 +36,68 @@ fn get_cyclic<T>(values: &[T], layer_index: usize) -> &T {
     &values[layer_index % values.len()]
 }
 
-pub(super) enum Source<'a> {
-    Fragment,
-    Canvas {
-        style: &'a ComputedValues,
-
-        // Theoretically the painting area is the infinite 2D plane,
-        // but WebRender doesn’t really do infinite so this is the part of it that can be visible.
-        painting_area: units::LayoutRect,
-    },
+pub(super) struct BackgroundPainter<'a> {
+    pub style: &'a ComputedValues,
+    pub positioning_area_override: Option<units::LayoutRect>,
+    pub painting_area_override: Option<units::LayoutRect>,
 }
 
-pub(super) fn painting_area<'a>(
-    fragment_builder: &'a super::BuilderForBoxFragment,
-    source: &'a Source,
-    builder: &mut super::DisplayListBuilder,
-    layer_index: usize,
-) -> (&'a units::LayoutRect, wr::CommonItemProperties) {
-    let fb = fragment_builder;
-    let (painting_area, clip) = match source {
-        Source::Canvas { painting_area, .. } => (painting_area, None),
-        Source::Fragment => {
-            let b = fb.fragment.style.get_background();
-            match get_cyclic(&b.background_clip.0, layer_index) {
-                Clip::ContentBox => (fb.content_rect(), fb.content_edge_clip(builder)),
-                Clip::PaddingBox => (fb.padding_rect(), fb.padding_edge_clip(builder)),
-                Clip::BorderBox => (&fb.border_rect, fb.border_edge_clip(builder)),
-            }
-        },
-    };
-    // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
-    let mut common = builder.common_properties(*painting_area, &fb.fragment.style);
-    if let Some(clip_chain_id) = clip {
-        common.clip_id = wr::ClipId::ClipChain(clip_chain_id)
+impl<'a> BackgroundPainter<'a> {
+    pub(super) fn painting_area(
+        &self,
+        fragment_builder: &'a super::BuilderForBoxFragment,
+        builder: &mut super::DisplayListBuilder,
+        layer_index: usize,
+    ) -> (&units::LayoutRect, wr::CommonItemProperties) {
+        let fb = fragment_builder;
+        let (painting_area, clip) = match self.painting_area_override {
+            Some(ref painting_area) => (painting_area, None),
+            None if self.positioning_area_override.is_none() => {
+                let b = self.style.get_background();
+                match get_cyclic(&b.background_clip.0, layer_index) {
+                    Clip::ContentBox => (fb.content_rect(), fb.content_edge_clip(builder)),
+                    Clip::PaddingBox => (fb.padding_rect(), fb.padding_edge_clip(builder)),
+                    Clip::BorderBox => (&fb.border_rect, fb.border_edge_clip(builder)),
+                }
+            },
+            None => (&fb.border_rect, fb.border_edge_clip(builder)),
+        };
+
+        // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
+        let mut common = builder.common_properties(*painting_area, &fb.fragment.style);
+        if let Some(clip_chain_id) = clip {
+            common.clip_id = wr::ClipId::ClipChain(clip_chain_id)
+        }
+        (painting_area, common)
     }
-    (painting_area, common)
+
+    pub(super) fn positioning_area(
+        &self,
+        fragment_builder: &'a super::BuilderForBoxFragment,
+        layer_index: usize,
+    ) -> &units::LayoutRect {
+        self.positioning_area_override.as_ref().unwrap_or_else(|| {
+            match get_cyclic(
+                &self.style.get_background().background_origin.0,
+                layer_index,
+            ) {
+                Origin::ContentBox => fragment_builder.content_rect(),
+                Origin::PaddingBox => fragment_builder.padding_rect(),
+                Origin::BorderBox => &fragment_builder.border_rect,
+            }
+        })
+    }
 }
 
 pub(super) fn layout_layer(
     fragment_builder: &mut super::BuilderForBoxFragment,
-    source: &Source,
+    painter: &BackgroundPainter,
     builder: &mut super::DisplayListBuilder,
     layer_index: usize,
     intrinsic: IntrinsicSizes,
 ) -> Option<BackgroundLayer> {
-    let style = match *source {
-        Source::Canvas { style, .. } => style,
-        Source::Fragment => &fragment_builder.fragment.style,
-    };
-    let b = style.get_background();
-    let (painting_area, common) = painting_area(fragment_builder, source, builder, layer_index);
-
-    let positioning_area = match get_cyclic(&b.background_origin.0, layer_index) {
-        Origin::ContentBox => fragment_builder.content_rect(),
-        Origin::PaddingBox => fragment_builder.padding_rect(),
-        Origin::BorderBox => &fragment_builder.border_rect,
-    };
+    let (painting_area, common) = painter.painting_area(fragment_builder, builder, layer_index);
+    let positioning_area = painter.positioning_area(fragment_builder, layer_index);
 
     // https://drafts.csswg.org/css-backgrounds/#background-size
     enum ContainOrCover {
@@ -117,6 +123,8 @@ pub(super) fn layout_layer(
         }
         tile_size
     };
+
+    let b = painter.style.get_background();
     let mut tile_size = match get_cyclic(&b.background_size.0, layer_index) {
         Size::Contain => size_contain_or_cover(ContainOrCover::Contain),
         Size::Cover => size_contain_or_cover(ContainOrCover::Cover),

@@ -5,6 +5,7 @@
 use html5ever::LocalName;
 use style::attr::AttrValue;
 
+use super::htmltablecolelement::HTMLTableColElement;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::inheritance::{
     Castable, ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
@@ -250,6 +251,9 @@ pub fn vtable_for(node: &Node) -> &dyn VirtualMethods {
         NodeTypeId::Element(ElementTypeId::HTMLElement(
             HTMLElementTypeId::HTMLTableCellElement,
         )) => node.downcast::<HTMLTableCellElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement)) => {
+            node.downcast::<HTMLTableColElement>().unwrap() as &dyn VirtualMethods
+        },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement)) => {
             node.downcast::<HTMLTableRowElement>().unwrap() as &dyn VirtualMethods
         },

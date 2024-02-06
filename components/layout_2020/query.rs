@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
-use euclid::{Size2D, Vector2D};
+use euclid::{SideOffsets2D, Size2D, Vector2D};
 use log::warn;
 use msg::constellation_msg::PipelineId;
 use script_layout_interface::rpc::{
@@ -309,32 +309,46 @@ pub fn process_resolved_style_request<'dom>(
                 return None;
             }
 
-            let box_fragment = match fragment {
-                Fragment::Box(ref box_fragment) => box_fragment,
+            let (content_rect, margins, padding) = match fragment {
+                Fragment::Box(ref box_fragment) | Fragment::Float(ref box_fragment) => {
+                    if style.get_box().position != Position::Static {
+                        let resolved_insets = || {
+                            box_fragment.calculate_resolved_insets_if_positioned(containing_block)
+                        };
+                        match longhand_id {
+                            LonghandId::Top => return Some(resolved_insets().top.to_css_string()),
+                            LonghandId::Right => {
+                                return Some(resolved_insets().right.to_css_string())
+                            },
+                            LonghandId::Bottom => {
+                                return Some(resolved_insets().bottom.to_css_string())
+                            },
+                            LonghandId::Left => {
+                                return Some(resolved_insets().left.to_css_string())
+                            },
+                            _ => {},
+                        }
+                    }
+                    let content_rect = box_fragment
+                        .content_rect
+                        .to_physical(box_fragment.style.writing_mode, containing_block);
+                    let margins = box_fragment
+                        .margin
+                        .to_physical(box_fragment.style.writing_mode);
+                    let padding = box_fragment
+                        .padding
+                        .to_physical(box_fragment.style.writing_mode);
+                    (content_rect, margins, padding)
+                },
+                Fragment::Positioning(positioning_fragment) => {
+                    let content_rect = positioning_fragment
+                        .rect
+                        .to_physical(positioning_fragment.writing_mode, containing_block);
+                    (content_rect, SideOffsets2D::zero(), SideOffsets2D::zero())
+                },
                 _ => return None,
             };
 
-            if style.get_box().position != Position::Static {
-                let resolved_insets =
-                    || box_fragment.calculate_resolved_insets_if_positioned(containing_block);
-                match longhand_id {
-                    LonghandId::Top => return Some(resolved_insets().top.to_css_string()),
-                    LonghandId::Right => return Some(resolved_insets().right.to_css_string()),
-                    LonghandId::Bottom => return Some(resolved_insets().bottom.to_css_string()),
-                    LonghandId::Left => return Some(resolved_insets().left.to_css_string()),
-                    _ => {},
-                }
-            }
-
-            let content_rect = box_fragment
-                .content_rect
-                .to_physical(box_fragment.style.writing_mode, containing_block);
-            let margins = box_fragment
-                .margin
-                .to_physical(box_fragment.style.writing_mode);
-            let padding = box_fragment
-                .padding
-                .to_physical(box_fragment.style.writing_mode);
             match longhand_id {
                 LonghandId::Width => Some(content_rect.size.width),
                 LonghandId::Height => Some(content_rect.size.height),
@@ -464,10 +478,12 @@ fn process_offset_parent_query_inner(
                 Fragment::Text(fragment) => fragment
                     .rect
                     .to_physical(fragment.parent_style.writing_mode, containing_block),
+                Fragment::Positioning(fragment) => fragment
+                    .rect
+                    .to_physical(fragment.writing_mode, containing_block),
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
-                Fragment::IFrame(_) |
-                Fragment::Anonymous(_) => unreachable!(),
+                Fragment::IFrame(_) => unreachable!(),
             };
             let border_box = fragment_relative_rect.translate(containing_block.origin.to_vector());
 
@@ -541,10 +557,10 @@ fn process_offset_parent_query_inner(
                     }
                 },
                 Fragment::AbsoluteOrFixedPositioned(_) |
-                Fragment::Text(_) |
-                Fragment::Image(_) |
                 Fragment::IFrame(_) |
-                Fragment::Anonymous(_) => None,
+                Fragment::Image(_) |
+                Fragment::Positioning(_) |
+                Fragment::Text(_) => None,
             };
 
             while parent_node_addresses.len() <= level {
@@ -596,7 +612,7 @@ fn process_offset_parent_query_inner(
                         Fragment::Text(_) |
                         Fragment::Image(_) |
                         Fragment::IFrame(_) |
-                        Fragment::Anonymous(_) => None,
+                        Fragment::Positioning(_) => None,
                     }
                 })
                 .unwrap()

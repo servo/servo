@@ -35,8 +35,8 @@ use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
-    AnonymousFragment, BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
-    Fragment,
+    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment,
+    PositioningFragment,
 };
 use crate::geom::{LogicalRect, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
@@ -806,7 +806,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             );
 
         self.fragments
-            .push(Fragment::Anonymous(AnonymousFragment::new(
+            .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 line_rect,
                 fragments,
                 self.containing_block.style.writing_mode,

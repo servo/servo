@@ -12,6 +12,8 @@
 mod construct;
 mod layout;
 
+use std::ops::Range;
+
 pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
@@ -32,6 +34,19 @@ pub struct Table {
     #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
 
+    /// The column groups for this table.
+    pub column_groups: Vec<TableTrackGroup>,
+
+    /// The columns of this tabled defined by `<colgroup> | display: table-column-group`
+    /// and `<col> | display: table-column` elements as well as `display: table-column`.
+    pub columns: Vec<TableTrack>,
+
+    /// The rows groups for this table deinfed by `<tbody>`, `<thead>`, and `<tfoot>`.
+    pub row_groups: Vec<TableTrackGroup>,
+
+    /// The rows of this tabled defined by `<tr>` or `display: table-row` elements.
+    pub rows: Vec<TableTrack>,
+
     /// The content of the slots of this table.
     pub slots: Vec<Vec<TableSlot>>,
 
@@ -46,6 +61,10 @@ impl Table {
     pub(crate) fn new(style: Arc<ComputedValues>) -> Self {
         Self {
             style,
+            column_groups: Vec::new(),
+            columns: Vec::new(),
+            row_groups: Vec::new(),
+            rows: Vec::new(),
             slots: Vec::new(),
             size: TableSize::zero(),
             anonymous: false,
@@ -165,5 +184,54 @@ impl std::fmt::Debug for TableSlot {
 impl TableSlot {
     fn new_spanned(offset: TableSlotOffset) -> Self {
         Self::Spanned(vec![offset])
+    }
+}
+
+/// A row or column of a table.
+#[derive(Clone, Debug, Serialize)]
+pub struct TableTrack {
+    /// The [`BaseFragmentInfo`] of this cell.
+    base_fragment_info: BaseFragmentInfo,
+
+    /// The style of this table column.
+    #[serde(skip_serializing)]
+    style: Arc<ComputedValues>,
+
+    /// The index of the table row or column group parent in the table's list of row or column
+    /// groups.
+    group_index: Option<usize>,
+
+    /// Whether or not this [`TableTrack`] was anonymous, for instance created due to
+    /// a `span` attribute set on a parent `<colgroup>`.
+    is_anonymous: bool,
+}
+
+#[derive(Debug, PartialEq, Serialize)]
+pub enum TableTrackGroupType {
+    HeaderGroup,
+    FooterGroup,
+    RowGroup,
+    ColumnGroup,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TableTrackGroup {
+    /// The [`BaseFragmentInfo`] of this [`TableTrackGroup`].
+    base_fragment_info: BaseFragmentInfo,
+
+    /// The style of this [`TableTrackGroup`].
+    #[serde(skip_serializing)]
+    style: Arc<ComputedValues>,
+
+    /// The type of this [`TableTrackGroup`].
+    group_type: TableTrackGroupType,
+
+    /// The range of tracks in this [`TableTrackGroup`].
+    track_range: Range<usize>,
+}
+
+impl TableTrackGroup {
+    pub(super) fn is_empty(&self) -> bool {
+        self.track_range.is_empty()
     }
 }
