@@ -23,6 +23,8 @@ use crate::script_runtime::JSContext;
 
 /// The maximum object depth logged by console methods.
 const MAX_LOG_DEPTH: usize = 10;
+/// The maximum elements in an object logged by console methods.
+const MAX_LOG_CHILDREN: usize = 15;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 pub struct Console(());
@@ -91,10 +93,6 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
             if !GetBuiltinClass(cx, obj.handle().into(), &mut object_class as *mut _) {
                 return DOMString::from("/* invalid */");
             }
-            if object_class != ESClass::Array && object_class != ESClass::Object {
-                return handle_value_to_string(cx, value);
-            }
-
             let mut ids = IdVector::new(cx);
             if !GetPropertyKeys(
                 cx,
@@ -104,9 +102,18 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
             ) {
                 return DOMString::from("/* invalid */");
             }
+            let truncate = ids.len() > MAX_LOG_CHILDREN;
+            if object_class != ESClass::Array && object_class != ESClass::Object {
+                if truncate {
+                    return DOMString::from("…");
+                } else {
+                    return handle_value_to_string(cx, value);
+                }
+            }
+
             let mut explicit_keys = object_class == ESClass::Object;
             let mut props = Vec::with_capacity(ids.len());
-            for id in &*ids {
+            for id in ids.iter().take(MAX_LOG_CHILDREN) {
                 rooted!(in(cx) let id = *id);
                 rooted!(in(cx) let mut desc = PropertyDescriptor::default());
 
@@ -153,6 +160,9 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
                 } else {
                     props.push(value_string.to_string());
                 }
+            }
+            if truncate {
+                props.push("…".to_string());
             }
             if object_class == ESClass::Array {
                 DOMString::from(format!("[{}]", itertools::join(props, ", ")))
