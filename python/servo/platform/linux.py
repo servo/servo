@@ -154,9 +154,15 @@ class Linux(Base):
     def install_non_gstreamer_dependencies(self, force: bool) -> bool:
         install = False
         pkgs = []
-        if self.distro in ['Ubuntu', 'Debian GNU/Linux', 'Raspbian GNU/Linux']:
+        if self.distro in ['Ubuntu', 'Raspbian GNU/Linux']:
             command = ['apt-get', 'install']
             pkgs = APT_PKGS
+            if subprocess.call(['dpkg', '-s'] + pkgs, shell=True,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
+                install = True
+        elif self.distro == 'Debian GNU/Linux':
+            command = ['apt-get', 'install']
+            pkgs = [pkg for pkg in APT_PKGS if pkg != 'libgstreamer-plugins-good1.0-dev']
             if subprocess.call(['dpkg', '-s'] + pkgs, shell=True,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
                 install = True
