@@ -33,6 +33,7 @@
 // IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+use egui::{ViewportId, ViewportOutput};
 use egui_glow::ShaderVersion;
 pub use egui_winit;
 use egui_winit::winit;
@@ -52,7 +53,7 @@ impl EguiGlow {
     /// For automatic shader version detection set `shader_version` to `None`.
     pub fn new<E>(
         event_loop: &winit::event_loop::EventLoopWindowTarget<E>,
-        gl: std::sync::Arc<glow::Context>,
+        gl: std::rc::Rc<glow::Context>,
         shader_version: Option<ShaderVersion>,
     ) -> Self {
         let painter = egui_glow::Painter::new(gl, "", shader_version)
@@ -63,7 +64,7 @@ impl EguiGlow {
 
         Self {
             egui_ctx: Default::default(),
-            egui_winit: egui_winit::State::new(event_loop),
+            egui_winit: egui_winit::State::new(ViewportId::ROOT, event_loop, None, None),
             painter,
             shapes: Default::default(),
             textures_delta: Default::default(),
@@ -71,7 +72,7 @@ impl EguiGlow {
     }
 
     pub fn on_event(&mut self, event: &winit::event::WindowEvent<'_>) -> EventResponse {
-        self.egui_winit.on_event(&self.egui_ctx, event)
+        self.egui_winit.on_window_event(&self.egui_ctx, event)
     }
 
     /// Returns the `Duration` of the timeout after which egui should be repainted even if there's no new events.
@@ -85,9 +86,10 @@ impl EguiGlow {
         let raw_input = self.egui_winit.take_egui_input(window);
         let egui::FullOutput {
             platform_output,
-            repaint_after,
+            viewport_output,
             textures_delta,
             shapes,
+            pixels_per_point: _pixels_per_point
         } = self.egui_ctx.run(raw_input, run_ui);
 
         self.egui_winit
@@ -95,7 +97,10 @@ impl EguiGlow {
 
         self.shapes = shapes;
         self.textures_delta.append(textures_delta);
-        repaint_after
+        match viewport_output.get(&ViewportId::ROOT) {
+            Some(&ViewportOutput{repaint_delay, ..}) => repaint_delay,
+            None => std::time::Duration::ZERO
+        }
     }
 
     /// Paint the results of the last call to [`Self::run`].
@@ -108,12 +113,13 @@ impl EguiGlow {
             self.painter.set_texture(id, &image_delta);
         }
 
+        let pixels_per_point = self.egui_ctx.pixels_per_point();
         /////// let clipped_primitives = self.egui_ctx.tessellate(shapes);
-        let clipped_primitives = self.egui_ctx.tessellate(shapes.clone());
+        let clipped_primitives = self.egui_ctx.tessellate(shapes.clone(), pixels_per_point);
         let dimensions: [u32; 2] = window.inner_size().into();
         self.painter.paint_primitives(
             dimensions,
-            self.egui_ctx.pixels_per_point(),
+            pixels_per_point,
             &clipped_primitives,
         );
 

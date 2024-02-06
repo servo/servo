@@ -4,6 +4,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::num::NonZeroU32;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -63,7 +64,7 @@ impl Minibrowser {
         };
 
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
-        let context = EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None);
+        let context = EguiGlow::new(events_loop.as_winit(), Rc::new(gl), None);
         context
             .egui_ctx
             .set_pixels_per_point(window.hidpi_factor().get());
