@@ -73,23 +73,27 @@ impl WindowPortsMethods for Window {
         unsafe { winit::window::WindowId::dummy() }
     }
 
-    fn set_inner_size(&self, size: DeviceIntSize) {
+    fn request_inner_size(&self, size: DeviceIntSize) -> Option<DeviceIntSize> {
         let (width, height) = size.into();
 
         // Surfman doesn't support zero-sized surfaces.
-        let new_size = Size2D::new(width.max(1), height.max(1));
-        if self.inner_size.get() == new_size {
-            return;
+        let new_size = DeviceIntSize::new(width.max(1), height.max(1));
+        if self.inner_size.get() == new_size.to_untyped() {
+            return Some(new_size);
         }
 
         match self.rendering_context.resize(new_size.to_untyped()) {
             Ok(()) => {
-                self.inner_size.set(new_size);
+                self.inner_size.set(new_size.to_untyped());
                 if let Ok(ref mut queue) = self.event_queue.write() {
                     queue.push(EmbedderEvent::WindowResize);
                 }
+                Some(new_size)
             },
-            Err(error) => warn!("Could not resize window: {error:?}"),
+            Err(error) => {
+                warn!("Could not resize window: {error:?}");
+                None
+            },
         }
     }
 
@@ -126,7 +130,7 @@ impl WindowPortsMethods for Window {
         self.animation_state.get() == AnimationState::Animating
     }
 
-    fn queue_embedder_events_for_winit_event(&self, _event: winit::event::WindowEvent<'_>) {
+    fn queue_embedder_events_for_winit_event(&self, _event: winit::event::WindowEvent) {
         // Not expecting any winit events.
     }
 

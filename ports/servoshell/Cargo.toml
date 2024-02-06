@@ -54,29 +54,29 @@ xr-profile = ["libservo/xr-profile"]
 servo_allocator = { path = "../../components/allocator" }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-arboard = "3"
+arboard = { version = "3" }
 backtrace = { workspace = true }
 cfg-if = { workspace = true }
-egui = "0.22.0"
-egui_glow = { version = "0.22.0", features = ["winit"] }
-egui-winit = { version = "0.22.0", default-features = false, features = ["clipboard", "wayland"] }
+egui = { version = "0.26.2" }
+egui_glow = { version = "0.26.2", features = ["winit"] }
+egui-winit = { version = "0.26.2", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 getopts = { workspace = true }
 gilrs = "0.10.7"
 gleam = { workspace = true }
-glow = "0.12.2"
+glow = "0.13.1"
 keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
 libservo = { path = "../../components/servo" }
 log = { workspace = true }
-raw-window-handle = "0.5"
+raw-window-handle = "0.6"
 servo-media = { workspace = true }
 shellwords = "1.0.0"
-surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle"] }
+surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 tinyfiledialogs = "3.0"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
-winit = "0.28.7"
+winit = "0.29.10"
 url = { workspace = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]

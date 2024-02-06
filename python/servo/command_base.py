@@ -486,11 +486,6 @@ class CommandBase(object):
                 if platform.is_macos:
                     util.prepend_paths_to_env(env, "DYLD_LIBRARY_PATH", os.path.join(gstreamer_root, "lib"))
 
-        effective_target = self.cross_compile_target or servo.platform.host_triple()
-        if "msvc" in effective_target:
-            # Always build harfbuzz from source
-            env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
-
         if sys.platform != "win32":
             env.setdefault("CC", "clang")
             env.setdefault("CXX", "clang++")
@@ -615,7 +610,6 @@ class CommandBase(object):
         env['OBJCOPY'] = to_ndk_bin("llvm-objcopy")
         env['YASM'] = to_ndk_bin("yasm")
         env['STRIP'] = to_ndk_bin("llvm-strip")
-        env['HARFBUZZ_SYS_NO_PKG_CONFIG'] = "true"
         env['RUST_FONTCONFIG_DLOPEN'] = "on"
 
         env["LIBCLANG_PATH"] = path.join(llvm_toolchain, "lib64")
