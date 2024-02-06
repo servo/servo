@@ -532,8 +532,13 @@ unsafe fn new_rt_and_cx_with_parent(
     let cx_opts = &mut *ContextOptionsRef(cx);
     JS_SetGlobalJitCompilerOption(
         cx,
+        JSJitCompilerOption::JSJITCOMPILER_BASELINE_INTERPRETER_ENABLE,
+        pref!(js.baseline_interpreter.enabled) as u32,
+    );
+    JS_SetGlobalJitCompilerOption(
+        cx,
         JSJitCompilerOption::JSJITCOMPILER_BASELINE_ENABLE,
-        pref!(js.baseline.enabled) as u32,
+        pref!(js.baseline_jit.enabled) as u32,
     );
     JS_SetGlobalJitCompilerOption(
         cx,
@@ -564,7 +569,7 @@ unsafe fn new_rt_and_cx_with_parent(
     JS_SetGlobalJitCompilerOption(
         cx,
         JSJitCompilerOption::JSJITCOMPILER_BASELINE_WARMUP_TRIGGER,
-        if pref!(js.baseline.unsafe_eager_compilation.enabled) {
+        if pref!(js.baseline_jit.unsafe_eager_compilation.enabled) {
             0
         } else {
             u32::max_value()
