@@ -24,7 +24,7 @@ use style::computed_values::position::T as Position;
 use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::{OpaqueNode, TElement};
 use style::properties::style_structs::Font;
-use style::properties::{LonghandId, PropertyDeclarationId, PropertyId};
+use style::properties::{Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId, PropertyId};
 use style::selector_parser::PseudoElement;
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
@@ -260,7 +260,19 @@ pub fn process_resolved_style_request<'dom>(
         PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
         // Firefox returns blank strings for the computed value of shorthands,
         // so this should be web-compatible.
-        PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
+        PropertyId::ShorthandAlias(id, _) | PropertyId::Shorthand(id) => {
+            use style::values::resolved::Context;
+            let mut block = PropertyDeclarationBlock::new();
+            let mut dest = String::new();
+            for longhands in id.longhands() {
+                block.push(style.computed_or_resolved_declaration(longhands, Some( &Context{ style} )), Importance::Normal);
+            }
+            let css = block.shorthand_to_css(id, &mut dest);
+            match css {
+                Ok(_) => return dest.to_owned(),
+                Err(_) => return String::new(),
+            }
+        },
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
         },
@@ -379,9 +391,19 @@ pub fn process_resolved_style_request_for_unstyled_node<'dom>(
     let style = styles.primary();
     let longhand_id = match *property {
         PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
-        // Firefox returns blank strings for the computed value of shorthands,
-        // so this should be web-compatible.
-        PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
+        PropertyId::ShorthandAlias(id, _) | PropertyId::Shorthand(id) => {
+            use style::values::resolved::Context;
+            let mut block = PropertyDeclarationBlock::new();
+            let mut dest = String::new();
+            for longhands in id.longhands() {
+                block.push(style.computed_or_resolved_declaration(longhands, Some( &Context{ style} )), Importance::Normal);
+            }
+            let css = block.shorthand_to_css(id, &mut dest);
+            match css {
+                Ok(_) => return dest.to_owned(),
+                Err(_) => return String::new(),
+            }
+        }
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
         },
