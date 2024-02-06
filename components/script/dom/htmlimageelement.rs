@@ -1609,7 +1609,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-decode>
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
     fn Decode(&self) -> Rc<Promise> {
         // Step 1
         let promise = Promise::new(&self.global());
