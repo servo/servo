@@ -27,7 +27,6 @@ APT_PKGS = [
     'build-essential', 'ccache', 'clang', 'cmake', 'curl', 'g++', 'git',
     'gperf', 'libdbus-1-dev', 'libfreetype6-dev', 'libgl1-mesa-dri',
     'libgles2-mesa-dev', 'libglib2.0-dev',
-    'libgstreamer-plugins-base1.0-dev',
     'gstreamer1.0-plugins-good', 'libgstreamer-plugins-good1.0-dev',
     'gstreamer1.0-plugins-bad', 'libgstreamer-plugins-bad1.0-dev',
     'gstreamer1.0-plugins-ugly',
