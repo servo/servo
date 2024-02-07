@@ -440,7 +440,7 @@ where
                     self.window.set_position(point);
                 },
                 EmbedderMsg::ResizeTo(size) => {
-                    self.window.set_inner_size(size);
+                    self.window.request_inner_size(size);
                 },
                 EmbedderMsg::Prompt(definition, origin) => {
                     let res = if opts::get().headless {

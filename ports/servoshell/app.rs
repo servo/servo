@@ -63,7 +63,8 @@ impl App {
         user_agent: Option<String>,
         url: Option<String>,
     ) {
-        let events_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some());
+        let events_loop = EventsLoop::new(opts::get().headless, opts::get().output_file.is_some())
+            .expect("Failed to create events loop");
 
         // Implements window methods, used by compositor.
         let window = if opts::get().headless {
@@ -206,7 +207,11 @@ impl App {
                 return;
             }
 
-            if let winit::event::Event::RedrawRequested(_) = event {
+            if let winit::event::Event::WindowEvent {
+                window_id: _,
+                event: winit::event::WindowEvent::RedrawRequested,
+            } = event
+            {
                 // We need to redraw the window for some reason.
                 trace!("RedrawRequested");
 
@@ -238,7 +243,7 @@ impl App {
                         event: WindowEvent::ScaleFactorChanged { scale_factor, .. },
                         ..
                     } => {
-                        // Intercept any ScaleFactorChanged events away from EguiGlow::on_event, so
+                        // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
                         // we can use our own logic for calculating the scale factor and set egui’s
                         // scale factor to that value manually.
                         let effective_scale_factor = window.hidpi_factor().get();
@@ -255,8 +260,12 @@ impl App {
                         // the minibrowser, and present the new frame.
                         window.winit_window().unwrap().request_redraw();
                     },
-                    winit::event::Event::WindowEvent { ref event, .. } => {
-                        let response = minibrowser.on_event(event);
+                    winit::event::Event::WindowEvent {
+                        ref event,
+                        window_id: _,
+                    } => {
+                        let response =
+                            minibrowser.on_window_event(window.winit_window().unwrap(), &event);
                         if response.repaint {
                             // Request a winit redraw event, so we can recomposite, update and paint
                             // the minibrowser, and present the new frame.
@@ -278,9 +287,9 @@ impl App {
 
             // Block until the window gets an event
             if !animating || app.suspended.get() {
-                *control_flow = winit::event_loop::ControlFlow::Wait;
+                *control_flow = crate::events_loop::ControlFlow::Wait;
             } else {
-                *control_flow = winit::event_loop::ControlFlow::Poll;
+                *control_flow = crate::events_loop::ControlFlow::Poll;
             }
 
             // Consume and handle any events from the Minibrowser.
@@ -292,7 +301,7 @@ impl App {
 
             match app.handle_events() {
                 PumpResult::Shutdown => {
-                    *control_flow = winit::event_loop::ControlFlow::Exit;
+                    *control_flow = crate::events_loop::ControlFlow::Exit;
                     app.servo.take().unwrap().deinit();
                     if let Some(mut minibrowser) = app.minibrowser() {
                         minibrowser.context.destroy();
@@ -368,7 +377,7 @@ impl App {
 
     /// Processes the given winit Event, possibly converting it to an [EmbedderEvent] and
     /// routing that to the App or relevant Window event queues.
-    fn queue_embedder_events_for_winit_event(&self, event: winit::event::Event<'_, WakerEvent>) {
+    fn queue_embedder_events_for_winit_event(&self, event: winit::event::Event<WakerEvent>) {
         match event {
             // App level events
             winit::event::Event::Suspended => {
@@ -383,10 +392,6 @@ impl App {
             },
             winit::event::Event::DeviceEvent { .. } => {},
 
-            winit::event::Event::RedrawRequested(_) => {
-                self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
-            },
-
             // Window level events
             winit::event::Event::WindowEvent {
                 window_id, event, ..
@@ -395,14 +400,18 @@ impl App {
                     warn!("Got an event from unknown window");
                 },
                 Some(window) => {
+                    if event == winit::event::WindowEvent::RedrawRequested {
+                        self.event_queue.borrow_mut().push(EmbedderEvent::Idle);
+                    }
+
                     window.queue_embedder_events_for_winit_event(event);
                 },
             },
 
-            winit::event::Event::LoopDestroyed |
-            winit::event::Event::NewEvents(..) |
-            winit::event::Event::MainEventsCleared |
-            winit::event::Event::RedrawEventsCleared => {},
+            winit::event::Event::LoopExiting |
+            winit::event::Event::AboutToWait |
+            winit::event::Event::MemoryWarning |
+            winit::event::Event::NewEvents(..) => {},
         }
     }
 

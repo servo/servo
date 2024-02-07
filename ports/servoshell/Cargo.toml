@@ -57,14 +57,14 @@ servo_allocator = { path = "../../components/allocator" }
 arboard = "3"
 backtrace = { workspace = true }
 cfg-if = { workspace = true }
-egui = "0.24.1"
-egui_glow = { version = "0.24.1", features = ["winit"] }
-egui-winit = { version = "0.24.1", default-features = false, features = ["clipboard", "wayland"] }
+egui = "0.25.0"
+egui_glow = { version = "0.25.0", features = ["winit"] }
+egui-winit = { version = "0.25.0", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 getopts = { workspace = true }
 gilrs = "0.10.6"
 gleam = { workspace = true }
-glow = "0.12.2"
+glow = "0.13.1"
 keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
@@ -76,7 +76,7 @@ shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle"] }
 tinyfiledialogs = "3.0"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
-winit = "0.28.7"
+winit = "0.29.10"
 url = { workspace = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]

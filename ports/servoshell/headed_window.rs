@@ -28,10 +28,8 @@ use surfman::{Connection, Context, Device, SurfaceType};
 #[cfg(target_os = "windows")]
 use winapi;
 use winit::dpi::{LogicalPosition, PhysicalPosition, PhysicalSize};
-use winit::event::{
-    ElementState, KeyboardInput, ModifiersState, MouseButton, MouseScrollDelta, TouchPhase,
-    VirtualKeyCode,
-};
+use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
+use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 
@@ -51,10 +49,10 @@ pub struct Window {
     primary_monitor: winit::monitor::MonitorHandle,
     event_queue: RefCell<Vec<EmbedderEvent>>,
     mouse_pos: Cell<Point2D<i32, DevicePixel>>,
-    last_pressed: Cell<Option<(KeyboardEvent, Option<VirtualKeyCode>)>>,
+    last_pressed: Cell<Option<(KeyboardEvent, Option<LogicalKey>)>>,
     /// A map of winit's key codes to key values that are interpreted from
     /// winit's ReceivedChar events.
-    keys_down: RefCell<HashMap<VirtualKeyCode, Key>>,
+    keys_down: RefCell<HashMap<LogicalKey, Key>>,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<f32>,
@@ -200,20 +198,25 @@ impl Window {
             .push(EmbedderEvent::Keyboard(event));
     }
 
-    fn handle_keyboard_input(&self, input: KeyboardInput) {
-        let mut event = keyboard_event_from_winit(input, self.modifiers_state.get());
+    fn handle_keyboard_input(&self, input: KeyEvent) {
+        if let Some(input_text) = &input.text {
+            for ch in input_text.chars() {
+                self.handle_received_character(ch);
+            }
+        }
+
+        let mut event = keyboard_event_from_winit(&input, self.modifiers_state.get());
         trace!("handling {:?}", event);
         if event.state == KeyState::Down && event.key == Key::Unidentified {
             // If pressed and probably printable, we expect a ReceivedCharacter event.
             // Wait for that to be received and don't queue any event right now.
-            self.last_pressed.set(Some((event, input.virtual_keycode)));
+            self.last_pressed
+                .set(Some((event, Some(input.logical_key))));
             return;
         } else if event.state == KeyState::Up && event.key == Key::Unidentified {
             // If release and probably printable, this is following a ReceiverCharacter event.
-            if let Some(key_code) = input.virtual_keycode {
-                if let Some(key) = self.keys_down.borrow_mut().remove(&key_code) {
-                    event.key = key;
-                }
+            if let Some(key) = self.keys_down.borrow_mut().remove(&input.logical_key) {
+                event.key = key;
             }
         }
 
@@ -308,9 +311,15 @@ impl WindowPortsMethods for Window {
         self.winit_window.set_title(title);
     }
 
-    fn set_inner_size(&self, size: DeviceIntSize) {
+    fn request_inner_size(&self, size: DeviceIntSize) -> Option<DeviceIntSize> {
         self.winit_window
-            .set_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(size.width, size.height))
+            .request_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(size.width, size.height))
+            .and_then(|size| {
+                Some(DeviceIntSize::new(
+                    size.width.try_into().ok()?,
+                    size.height.try_into().ok()?,
+                ))
+            })
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
@@ -340,7 +349,7 @@ impl WindowPortsMethods for Window {
 
         let winit_cursor = match cursor {
             Cursor::Default => CursorIcon::Default,
-            Cursor::Pointer => CursorIcon::Hand,
+            Cursor::Pointer => CursorIcon::Pointer,
             Cursor::ContextMenu => CursorIcon::ContextMenu,
             Cursor::Help => CursorIcon::Help,
             Cursor::Progress => CursorIcon::Progress,
@@ -386,13 +395,14 @@ impl WindowPortsMethods for Window {
         self.winit_window.id()
     }
 
-    fn queue_embedder_events_for_winit_event(&self, event: winit::event::WindowEvent<'_>) {
+    fn queue_embedder_events_for_winit_event(&self, event: winit::event::WindowEvent) {
         match event {
-            winit::event::WindowEvent::ReceivedCharacter(ch) => self.handle_received_character(ch),
-            winit::event::WindowEvent::KeyboardInput { input, .. } => {
-                self.handle_keyboard_input(input)
+            winit::event::WindowEvent::KeyboardInput { event, .. } => {
+                self.handle_keyboard_input(event)
             },
-            winit::event::WindowEvent::ModifiersChanged(state) => self.modifiers_state.set(state),
+            winit::event::WindowEvent::ModifiersChanged(modifiers) => {
+                self.modifiers_state.set(modifiers.state())
+            },
             winit::event::WindowEvent::MouseInput { state, button, .. } => {
                 if button == MouseButton::Left || button == MouseButton::Right {
                     self.handle_mouse(button, state, self.mouse_pos.get());
@@ -651,20 +661,20 @@ impl XRWindowPose {
         self.xr_translation.set(vec);
     }
 
-    fn handle_xr_rotation(&self, input: &KeyboardInput, modifiers: ModifiersState) {
+    fn handle_xr_rotation(&self, input: &KeyEvent, modifiers: ModifiersState) {
         if input.state != winit::event::ElementState::Pressed {
             return;
         }
         let mut x = 0.0;
         let mut y = 0.0;
-        match input.virtual_keycode {
-            Some(VirtualKeyCode::Up) => x = 1.0,
-            Some(VirtualKeyCode::Down) => x = -1.0,
-            Some(VirtualKeyCode::Left) => y = 1.0,
-            Some(VirtualKeyCode::Right) => y = -1.0,
+        match input.logical_key {
+            LogicalKey::Named(NamedKey::ArrowUp) => x = 1.0,
+            LogicalKey::Named(NamedKey::ArrowDown) => x = -1.0,
+            LogicalKey::Named(NamedKey::ArrowLeft) => y = 1.0,
+            LogicalKey::Named(NamedKey::ArrowRight) => y = -1.0,
             _ => return,
         };
-        if modifiers.shift() {
+        if modifiers.shift_key() {
             x *= 10.0;
             y *= 10.0;
         }

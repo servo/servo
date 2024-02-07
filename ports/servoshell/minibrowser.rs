@@ -4,7 +4,6 @@
 
 use std::cell::{Cell, RefCell};
 use std::num::NonZeroU32;
-use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -64,7 +63,7 @@ impl Minibrowser {
         };
 
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
-        let context = EguiGlow::new(events_loop.as_winit(), Rc::new(gl), None);
+        let context = EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None);
         context
             .egui_ctx
             .set_pixels_per_point(window.hidpi_factor().get());
@@ -90,8 +89,12 @@ impl Minibrowser {
     /// Preprocess the given [winit::event::WindowEvent], returning unconsumed for mouse events in
     /// the Servo browser rect. This is needed because the CentralPanel we create for our webview
     /// would otherwise make egui report events in that area as consumed.
-    pub fn on_event(&mut self, event: &winit::event::WindowEvent<'_>) -> EventResponse {
-        let mut result = self.context.on_event(event);
+    pub fn on_window_event(
+        &mut self,
+        window: &winit::window::Window,
+        event: &winit::event::WindowEvent,
+    ) -> EventResponse {
+        let mut result = self.context.on_window_event(window, event);
         result.consumed &= match event {
             winit::event::WindowEvent::CursorMoved { position, .. } => {
                 let scale = Scale::<_, DeviceIndependentPixel, _>::new(
