@@ -346,7 +346,10 @@ mod gen {
                 asyncstack: {
                     enabled: bool,
                 },
-                baseline: {
+                baseline_interpreter: {
+                    enabled: bool,
+                },
+                baseline_jit: {
                     enabled: bool,
                     unsafe_eager_compilation: {
                         enabled: bool,
