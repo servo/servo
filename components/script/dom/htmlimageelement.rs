@@ -1616,12 +1616,19 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
         // Step 2
         let document = document_from_node(self);
-        if !document.is_fully_active() {
+        let ready = match self.current_request.borrow().state {
+            State::Unavailable => false,
+            State::PartiallyAvailable => false,
+            State::CompletelyAvailable => true,
+            State::Broken => false,
+        };
+
+        if document.is_fully_active() && ready && self.current_request.borrow().image.is_some() {
             promise.reject_native(&DOMException::new(
                 &self.global(),
                 DOMErrorName::EncodingError,
             ));
-        } else if self.current_request.borrow().image.is_some() {
+        } else {
             promise.resolve_native(&());
         }
 
