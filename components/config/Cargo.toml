@@ -16,7 +16,7 @@ euclid = { workspace = true }
 getopts = { workspace = true }
 lazy_static = { workspace = true }
 log = { workspace = true }
-num_cpus = "1.1.0"
+num_cpus = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 servo_config_plugins = { path = "../config_plugins" }

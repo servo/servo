@@ -8,6 +8,7 @@ interface WorkerNavigator {};
 WorkerNavigator includes NavigatorID;
 WorkerNavigator includes NavigatorLanguage;
 //WorkerNavigator includes NavigatorOnLine;
+WorkerNavigator includes NavigatorConcurrentHardware;
 
 // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
 
