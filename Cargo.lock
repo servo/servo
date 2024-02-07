@@ -4894,6 +4894,7 @@ dependencies = [
  "msg",
  "net_traits",
  "num-traits",
+ "num_cpus",
  "parking_lot",
  "percent-encoding",
  "phf",
