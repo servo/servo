@@ -173,7 +173,7 @@ where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
-    /// `freeFunc()` must be threadsafe, should be safely called from any thread
+    /// `freeFunc()` must be threadsafe, should be safely callable from any thread
     /// without causing conflicts or unexpected behavior.
     /// <https://github.com/servo/mozjs/blob/main/mozjs-sys/mozjs/js/public/ArrayBuffer.h#L89>
     unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
@@ -184,9 +184,10 @@ where
         let array_buffer = NewExternalArrayBuffer(
             *cx,
             range_size as usize,
-            mapping.lock().unwrap().borrow_mut()[offset as usize..m_end as usize].as_mut_ptr() as _,
+            mapping.clone().lock().unwrap().borrow_mut()[offset as usize..m_end as usize]
+                .as_mut_ptr() as _,
             Some(free_func),
-            Arc::into_raw(mapping.clone()) as _,
+            Arc::into_raw(mapping) as _,
         );
 
         HeapTypedArray::<T>::new(array_buffer)
