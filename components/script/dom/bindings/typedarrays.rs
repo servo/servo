@@ -36,13 +36,6 @@ where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
-    pub fn new(internal: *mut JSObject) -> HeapTypedArray<T> {
-        HeapTypedArray {
-            internal: Heap::boxed(internal),
-            phantom: PhantomData::default(),
-        }
-    }
-
     pub fn default() -> HeapTypedArray<T> {
         HeapTypedArray {
             internal: Box::new(Heap::default()),
@@ -181,15 +174,20 @@ where
     }
 
     unsafe {
+        let mapping_slice_ptr =
+            mapping.lock().unwrap().borrow_mut()[offset as usize..m_end as usize].as_mut_ptr();
+
         let array_buffer = NewExternalArrayBuffer(
             *cx,
             range_size as usize,
-            mapping.clone().lock().unwrap().borrow_mut()[offset as usize..m_end as usize]
-                .as_mut_ptr() as _,
+            mapping_slice_ptr as _,
             Some(free_func),
             Arc::into_raw(mapping) as _,
         );
 
-        HeapTypedArray::<T>::new(array_buffer)
+        HeapTypedArray {
+            internal: Heap::boxed(array_buffer),
+            phantom: PhantomData::default(),
+        }
     }
 }
