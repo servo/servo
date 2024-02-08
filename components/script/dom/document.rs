@@ -1868,7 +1868,8 @@ impl Document {
         let global = self.window.upcast::<GlobalScope>();
         match gamepad_event {
             script_traits::GamepadEvent::Connected(index, name) => {
-                // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission, then abort these steps.
+                // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
+                //          then abort these steps.
                 // 3. Queue a task on the gamepad task source to perform the following steps:
                 let document = Trusted::new(self);
                 self.window()
@@ -1911,14 +1912,15 @@ impl Document {
                             let window = document.window();
 
                             // 2.1 Set gamepad.[[connected]] to false.
-                            // 2.2 Let document be gamepad's relevant global object's associated Document; otherwise null.
-                            // 2.3 If gamepad.[[exposed]] is true and document is not null and is fully active, then fire
-                            //     an event named gamepaddisconnected at gamepad's relevant global object using GamepadEvent
-                            //     with its gamepad attribute initialized to gamepad.
+                            // 2.2 Let document be gamepad's relevant global object's associated Document;
+                            //     otherwise null.
+                            // 2.3 If gamepad.[[exposed]] is true and document is not null and is fully active,
+                            //     then fire an event named gamepaddisconnected at gamepad's relevant global object
+                            //     using GamepadEvent with its gamepad attribute initialized to gamepad.
                             // 2.4 Let navigator be gamepad's relevant global object's Navigator object.
                             // 2.5 Set navigator.[[gamepads]][gamepad.index] to null.
-                            // 2.6 While navigator.[[gamepads]] is not empty and the last item of navigator.[[gamepads]]
-                            //     is null, remove the last item of navigator.[[gamepads]].
+                            // 2.6 While navigator.[[gamepads]] is not empty and the last item of \
+                            //     navigator.[[gamepads]] is null, remove the last item of navigator.[[gamepads]].
                             let gamepad_list = window.Navigator().GetGamepads();
                             if gamepad_list.Length() > 0 {
                                 gamepad_list.remove_gamepad(index.0);
