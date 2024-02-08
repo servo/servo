@@ -128,8 +128,8 @@ class Config(object):
             else:
                 self.matrix.append(preset)
 
-    def to_json(self) -> str:
-        return json.dumps(self, cls=Encoder)
+    def to_json(self, **kwargs) -> str:
+        return json.dumps(self, cls=Encoder, **kwargs)
 
 
 def main():
