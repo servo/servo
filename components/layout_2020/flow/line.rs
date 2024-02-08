@@ -302,11 +302,6 @@ impl InlineBoxLineItem {
             border.inline_start = Length::zero();
             margin.inline_start = Length::zero();
         }
-        if !self.is_last_fragment_of_ib_split {
-            padding.inline_end = Length::zero();
-            border.inline_end = Length::zero();
-            margin.inline_end = Length::zero();
-        }
         let pbm_sums = &(&padding + &border) + &margin;
         state.inline_position += pbm_sums.inline_start;
 
