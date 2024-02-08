@@ -13,7 +13,9 @@ use gfx::rendering_context::RenderingContext;
 use keyboard_types::KeyboardEvent;
 use libc::c_void;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, TraversalDirection};
-use script_traits::{GamepadEvent, MediaSessionActionType, MouseButton, TouchEventType, TouchId, WheelDelta};
+use script_traits::{
+    GamepadEvent, MediaSessionActionType, MouseButton, TouchEventType, TouchId, WheelDelta,
+};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::DevicePixel;

@@ -18,30 +18,30 @@ pub struct GamepadTaskSource(
 );
 
 impl Clone for GamepadTaskSource {
-  fn clone(&self) -> GamepadTaskSource {
-    GamepadTaskSource(self.0.clone(), self.1.clone())
-  }
+    fn clone(&self) -> GamepadTaskSource {
+        GamepadTaskSource(self.0.clone(), self.1.clone())
+    }
 }
 
 impl fmt::Debug for GamepadTaskSource {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-      write!(f, "GamepadTaskSource(...)")
-  }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "GamepadTaskSource(...)")
+    }
 }
 
 impl TaskSource for GamepadTaskSource {
-  const NAME: TaskSourceName = TaskSourceName::Gamepad;
+    const NAME: TaskSourceName = TaskSourceName::Gamepad;
 
-  fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
-  where
-      T: TaskOnce + 'static,
-  {
-      let msg = CommonScriptMsg::Task(
-          ScriptThreadEventCategory::InputEvent,
-          Box::new(canceller.wrap_task(task)),
-          Some(self.1),
-          GamepadTaskSource::NAME,
-      );
-      self.0.send(msg).map_err(|_| ())
-  }
+    fn queue_with_canceller<T>(&self, task: T, canceller: &TaskCanceller) -> Result<(), ()>
+    where
+        T: TaskOnce + 'static,
+    {
+        let msg = CommonScriptMsg::Task(
+            ScriptThreadEventCategory::InputEvent,
+            Box::new(canceller.wrap_task(task)),
+            Some(self.1),
+            GamepadTaskSource::NAME,
+        );
+        self.0.send(msg).map_err(|_| ())
+    }
 }

@@ -75,8 +75,8 @@ use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
-    CompositionEvent, GamepadEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
-    ResizeEvent, TouchEvent, WheelEvent,
+    CompositionEvent, GamepadEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent,
+    MouseMoveEvent, ResizeEvent, TouchEvent, WheelEvent,
 };
 use script_traits::{
     AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
@@ -151,8 +151,8 @@ use crate::script_runtime::{
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
-use crate::task_source::gamepad::GamepadTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
+use crate::task_source::gamepad::GamepadTaskSource;
 use crate::task_source::history_traversal::HistoryTraversalTaskSource;
 use crate::task_source::media_element::MediaElementTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
@@ -3685,7 +3685,7 @@ impl ScriptThread {
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
                 document.dispatch_gamepad_event(gamepad_event);
-            }
+            },
         }
 
         ScriptThread::set_user_interacting(false);

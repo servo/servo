@@ -68,21 +68,13 @@ impl Gamepad {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        gamepad_id: u32,
-        id: String
-    ) -> DomRoot<Gamepad> {
+    pub fn new(global: &GlobalScope, gamepad_id: u32, id: String) -> DomRoot<Gamepad> {
         let gamepad = Self::new_with_proto(global, gamepad_id, id);
         gamepad.init_axes();
         gamepad
     }
 
-    fn new_with_proto(
-        global: &GlobalScope,
-        gamepad_id: u32,
-        id: String
-    ) -> DomRoot<Gamepad> {
+    fn new_with_proto(global: &GlobalScope, gamepad_id: u32, id: String) -> DomRoot<Gamepad> {
         // https://www.w3.org/TR/gamepad/#dfn-initializing-buttons
         // https://www.w3.org/TR/gamepad/#fingerprinting-mitigation
         // Initialize the number of buttons in the "standard" gamepad mapping.
@@ -119,7 +111,7 @@ impl Gamepad {
                 String::from("standard"),
                 &button_list,
                 None,
-                GamepadHand::_empty
+                GamepadHand::_empty,
             )),
             global,
             None,
@@ -222,7 +214,7 @@ impl Gamepad {
             0., // Horizontal axis for left stick (negative left/positive right)
             0., // Vertical axis for left stick (negative up/positive down)
             0., // Horizontal axis for right stick (negative left/positive right)
-            0.  // Vertical axis for right stick (negative up/positive down)
+            0., // Vertical axis for right stick (negative up/positive down)
         ];
         self.axes
             .set_data(GlobalScope::get_cx(), &initial_axes)

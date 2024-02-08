@@ -148,7 +148,7 @@ where
                             gilrs::Button::DPadLeft => 14,
                             gilrs::Button::DPadRight => 15,
                             gilrs::Button::Mode => 16,
-                            _ => 17 // Other buttons do not map to "standard" gamepad mapping and are ignored
+                            _ => 17, // Other buttons do not map to "standard" gamepad mapping and are ignored
                         };
                         if mapped_index < 17 {
                             let update_type = GamepadUpdateType::Button(mapped_index, value);
@@ -170,7 +170,7 @@ where
                             let axis_value = match mapped_axis {
                                 0 | 2 => value,
                                 1 | 3 => -value,
-                                _ => 0. // Should not reach here
+                                _ => 0., // Should not reach here
                             };
                             let update_type = GamepadUpdateType::Axis(mapped_axis, axis_value);
                             let event = GamepadEvent::Updated(index, update_type);

@@ -27,10 +27,7 @@ impl GamepadButtonList {
     }
 
     pub fn new(global: &GlobalScope, list: &[&GamepadButton]) -> DomRoot<GamepadButtonList> {
-        reflect_dom_object(
-            Box::new(GamepadButtonList::new_inherited(list)),
-            global,
-        )
+        reflect_dom_object(Box::new(GamepadButtonList::new_inherited(list)), global)
     }
 }
 

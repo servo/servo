@@ -14,7 +14,8 @@ use msg::constellation_msg::{
     BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection,
 };
 use script_traits::{
-    AnimationTickType, CompositorEvent, GamepadEvent, LogEntry, MediaSessionActionType, WebDriverCommandMsg, WindowSizeData, WindowSizeType
+    AnimationTickType, CompositorEvent, GamepadEvent, LogEntry, MediaSessionActionType,
+    WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use servo_url::ServoUrl;
 
@@ -118,7 +119,7 @@ impl fmt::Debug for ConstellationMsg {
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",
-            Gamepad(..) => "Gamepad"
+            Gamepad(..) => "Gamepad",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

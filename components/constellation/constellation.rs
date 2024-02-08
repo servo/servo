@@ -1552,7 +1552,7 @@ where
             },
             FromCompositorMsg::Gamepad(gamepad_event) => {
                 self.handle_gamepad_msg(gamepad_event);
-            }
+            },
         }
     }
 

@@ -570,7 +570,7 @@ pub enum CompositorEvent {
     /// Virtual keyboard was dismissed
     IMEDismissedEvent,
     /// Connected gamepad state updated
-    GamepadEvent(GamepadEvent)
+    GamepadEvent(GamepadEvent),
 }
 
 impl From<&CompositorEvent> for CompositorEventVariant {
@@ -1354,5 +1354,5 @@ pub enum GamepadUpdateType {
     /// Axis index and input value
     Axis(usize, f32),
     /// Button index and input value
-    Button(usize, f32)
+    Button(usize, f32),
 }
