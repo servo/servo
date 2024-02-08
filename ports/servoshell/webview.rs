@@ -178,7 +178,6 @@ where
                         }
                     },
                     EventType::Connected => {
-                        println!("Gamepad was connected, firing GamepadEvent::Connected");
                         let name = String::from(name);
                         let event = GamepadEvent::Connected(index, name);
                         self.event_queue.push(EmbedderEvent::Gamepad(event));

@@ -1922,20 +1922,38 @@ impl Document {
                 )
                 .unwrap();
             },
+            // https://www.w3.org/TR/gamepad/#receiving-inputs
             script_traits::GamepadEvent::Updated(index, update_type) => {
-                let gamepad_list = self.window().Navigator().GetGamepads();
-                if let Some(gamepad) = gamepad_list.IndexedGetter(index.0 as u32) {
-                    match update_type {
-                        GamepadUpdateType::Axis(index, value) => {
-                            gamepad.update_axis(index, value);
-                        },
-                        GamepadUpdateType::Button(index, value) => {
-                            let pressed = value == 1.0;
-                            let touched = value > 0.0;
-                            gamepad.update_button(index, pressed, touched, value);
+                let document = Trusted::new(self);
+                // 2. Queue a task on the gamepad task source to update gamepad state for gamepad.
+                self.window().task_manager().gamepad_task_source().queue(
+                    task!(gamepad_updated: move || {
+                        let document = document.root();
+                        let window = document.window();
+                        let gamepad_list = window.Navigator().GetGamepads();
+                        if let Some(gamepad) = gamepad_list.IndexedGetter(index.0 as u32) {
+                            // 1. Let now be the current high resolution time.
+                            let current_time = time::get_time();
+                            let now = (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as f64;
+                            // 2. Set gamepad.[[timestamp]] to now.
+                            gamepad.update_timestamp(now);
+                            match update_type {
+                                GamepadUpdateType::Axis(index, value) => {
+                                    // 3. Run the steps to map and normalize axes for gamepad.
+                                    gamepad.update_axis(index, value);
+                                },
+                                GamepadUpdateType::Button(index, value) => {
+                                    // 4. Run the steps to map and normalize buttons for gamepad.
+                                    let pressed = value == 1.0;
+                                    let touched = value > 0.0;
+                                    gamepad.update_button(index, pressed, touched, value);
+                                }
+                            };
                         }
-                    };
-                }
+                    }),
+                    &global
+                )
+                .unwrap();
             },
         };
     }

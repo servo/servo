@@ -83,6 +83,8 @@ impl Gamepad {
         gamepad_id: u32,
         id: String
     ) -> DomRoot<Gamepad> {
+        // https://www.w3.org/TR/gamepad/#dfn-initializing-buttons
+        // https://www.w3.org/TR/gamepad/#fingerprinting-mitigation
         // Initialize the number of buttons in the "standard" gamepad mapping.
         // The spec says UAs *may* do this for fingerprint mitigation, and it also
         // happens to simplify implementation
@@ -200,6 +202,10 @@ impl Gamepad {
         self.index.set(index);
     }
 
+    pub fn update_timestamp(&self, timestamp: f64) {
+        self.timestamp.set(timestamp);
+    }
+
     pub fn notify_event(&self, event_type: GamepadEventType) {
         let event = GamepadEvent::new_with_type(&self.global(), event_type, &self);
         event
@@ -207,6 +213,8 @@ impl Gamepad {
             .fire(self.global().as_window().upcast::<EventTarget>());
     }
 
+    // https://www.w3.org/TR/gamepad/#dfn-initializing-axes
+    // https://www.w3.org/TR/gamepad/#fingerprinting-mitigation
     pub fn init_axes(&self) {
         // Initialize the number of axes in the "standard" gamepad mapping.
         // See above comment on buttons
@@ -221,12 +229,12 @@ impl Gamepad {
             .expect("Failed to set axes data on gamepad.")
     }
 
+    #[allow(unsafe_code)]
     pub fn update_axis(&self, axis_index: usize, value: f32) {
-        let mut axis_vec = self.axes.get_internal().unwrap().to_vec();
-        axis_vec[axis_index] = value as f64;
-        self.axes
-            .set_data(GlobalScope::get_cx(), &axis_vec)
-            .expect("Failed to update axis info on gamepad.")
+        let mut axis_vec = self.axes.get_internal().unwrap();
+        unsafe {
+            axis_vec.as_mut_slice()[axis_index] = value as f64;
+        }
     }
 
     pub fn update_button(&self, button_index: usize, pressed: bool, touched: bool, value: f32) {
