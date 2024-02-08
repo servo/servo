@@ -15,6 +15,7 @@ import os
 import os.path as path
 import shutil
 import subprocess
+import textwrap
 
 import wpt
 import wpt.manifestupdate
@@ -27,6 +28,7 @@ from mach.decorators import (
     Command,
 )
 
+import servo.try_parser
 import tidy
 
 from servo.command_base import BuildType, CommandBase, call, check_call
@@ -747,3 +749,51 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
         # of panics won't cause timeouts on CI.
         return self.context.commands.dispatch('run', self.context, build_type=build_type,
                                               params=params + ['-f', 'tests/html/close-on-load.html'])
+
+    @Command('try', description='Runs try jobs by force pushing to try branch', category='testing')
+    @CommandArgument('--remote', '-r', default="origin", help='A git remote to run the try job on')
+    @CommandArgument('try_strings', default=["full"], nargs='...',
+                     help="A list of try strings specifying what kind of job to run.")
+    def try_command(self, remote: str, try_strings: list[str]):
+        remote_url = subprocess.check_output(["git", "config", "--get", f"remote.{remote}.url"]).decode().strip()
+        if "github.com" not in remote_url:
+            print(f"The remote provided ({remote_url}) isn't a GitHub remote.")
+            return 1
+
+        try_string = " ".join(try_strings)
+        config = servo.try_parser.Config(try_string)
+        print(f"Trying on {remote} ({remote_url}) with following configuration:")
+        print()
+        print(textwrap.indent(config.to_json(indent=2), prefix="  "))
+        print()
+
+        # The commit message is composed of both the last commit message and the try string.
+        commit_message = subprocess.check_output(["git", "show", "-s", "--format=%s"]).decode().strip()
+        commit_message = f"{commit_message} ({try_string})"
+
+        result = call(["git", "commit", "--quiet", "--allow-empty", "-m", commit_message, "-m", f"{config.to_json()}"])
+        if result != 0:
+            return result
+
+        # From here on out, we need to always clean up the commit we added to the branch.
+        try:
+            result = call(["git", "push", "--quiet", remote, "--force", "HEAD:try"])
+            if result != 0:
+                return result
+
+            # TODO: This is a pretty naive approach to turning a GitHub remote URL (either SSH or HTTPS)
+            # into a URL to the Actions page. It might be better to create this action with the `gh`
+            # tool and get the real URL.
+            actions_url = remote_url.replace(".git", "/actions")
+            if not actions_url.startswith("https"):
+                actions_url = actions_url.replace(':', '/')
+                actions_url = actions_url.replace("git@", "")
+                actions_url = f"https://{actions_url}"
+            print(f"Actions available at: {actions_url}")
+
+        finally:
+            # Remove the last commit which only contains the try configuration.
+            result = call(["git", "reset", "--quiet", "--soft", "HEAD~1"])
+            if result != 0:
+                print("Could not clean up try commit. Sorry! Please try to reset to the previous commit.")
+            return result

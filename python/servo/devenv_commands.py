@@ -22,7 +22,6 @@ from mach.decorators import (
 )
 
 from servo.command_base import CommandBase, cd, call
-from servo.try_parser import Config
 
 
 @CommandProvider
@@ -272,37 +271,3 @@ class MachCommands(CommandBase):
             "--verbose",
         ], env=env)
         return p.wait()
-
-    @Command('try',
-             description='Runs try jobs by force pushing to try branch',
-             category='devenv')
-    @CommandArgument(
-        '--remote', '-r', default="origin",
-        help='git remote to use for try pushes')
-    @CommandArgument(
-        'try_string', default=None, nargs='...',
-        help="Try string")
-    def try_jobs(self, remote="origin", try_string=None):
-        if not try_string:
-            try_string = "full"
-        else:
-            try_string = " ".join(try_string)
-        conf = Config(try_string)
-        result = call(["git", "commit", "--allow-empty", "-m", try_string, "-m", f"{conf.to_json()}"])
-        if result != 0:
-            return result
-
-        git_remote = subprocess.check_output(["git", "config", "--get", f"remote.{remote}.url"]).decode()
-        if "servo/servo" in git_remote:
-            print("WARNING: You are triggering try build in upstream repo!")
-
-        result = call(["git", "push", remote, "--force", "HEAD:try"])
-        if result != 0:
-            return result
-
-        git_remote = git_remote.replace(".git", "/actions")
-        print(f"You can find triggered workflow here: {git_remote}")
-
-        # Remove the last commit which only contains the try configuration.
-        result += call(["git", "reset", "--soft", "HEAD~1"])
-        return result
