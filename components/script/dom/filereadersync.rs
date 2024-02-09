@@ -51,7 +51,7 @@ impl FileReaderSync {
 }
 
 impl FileReaderSyncMethods for FileReaderSync {
-    // https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection
+    /// <https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection>
     fn ReadAsBinaryString(&self, blob: &Blob) -> Fallible<DOMString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
@@ -60,7 +60,7 @@ impl FileReaderSyncMethods for FileReaderSync {
         Ok(DOMString::from(String::from_utf8_lossy(&blob_contents)))
     }
 
-    // https://w3c.github.io/FileAPI/#readAsTextSync
+    /// <https://w3c.github.io/FileAPI/#readAsTextSync>
     fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>) -> Fallible<DOMString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
@@ -75,7 +75,7 @@ impl FileReaderSyncMethods for FileReaderSync {
         Ok(output)
     }
 
-    // https://w3c.github.io/FileAPI/#readAsDataURLSync-section
+    /// <https://w3c.github.io/FileAPI/#readAsDataURLSync-section>
     fn ReadAsDataURL(&self, blob: &Blob) -> Fallible<DOMString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
@@ -87,7 +87,7 @@ impl FileReaderSyncMethods for FileReaderSync {
         Ok(output)
     }
 
-    // https://w3c.github.io/FileAPI/#readAsArrayBufferSyncSection
+    /// <https://w3c.github.io/FileAPI/#readAsArrayBufferSyncSection>
     fn ReadAsArrayBuffer(&self, cx: JSContext, blob: &Blob) -> Fallible<ArrayBuffer> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
