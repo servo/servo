@@ -401,16 +401,15 @@ fn shorthand_to_css_string(
     use style::values::resolved::Context;
     let mut block = PropertyDeclarationBlock::new();
     let mut dest = String::new();
-    for longhands in id.longhands() {
+    for longhand in id.longhands() {
         block.push(
-            style.computed_or_resolved_declaration(longhands, Some(&Context { style })),
+            style.computed_or_resolved_declaration(longhand, Some(&Context { style })),
             Importance::Normal,
         );
     }
-    let css = block.shorthand_to_css(id, &mut dest);
-    match css {
-        Ok(_) => return dest.to_owned(),
-        Err(_) => return String::new(),
+    match block.shorthand_to_css(id, &mut dest) {
+        Ok(_) => dest.to_owned(),
+        Err(_) => String::new(),
     }
 }
 
