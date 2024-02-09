@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::CssStringWriter;
 use dom_struct::dom_struct;
 use html5ever::local_name;
 use servo_arc::Arc;
@@ -15,7 +14,7 @@ use style::properties::{
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
 use style::stylesheets::{CssRuleType, Origin};
-use style_traits::{CssWriter, ParsingMode, ToCss};
+use style_traits::ParsingMode;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -432,11 +431,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
         self.owner.with_block(|pdb| {
             let declaration = pdb.declarations().get(index as usize)?;
-            let mut dest = String::new();
-            let mut writer = CssStringWriter::new(&mut dest);
-            let mut writer = CssWriter::new(&mut writer);
-            declaration.id().to_css(&mut writer).ok()?;
-            Some(DOMString::from(dest))
+            Some(DOMString::from(declaration.id().name()))
         })
     }
 
