@@ -25,7 +25,7 @@ serde_json = { workspace = true }
 lazy_static = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-mach = "0.3"
+mach2 = "0.4"
 
 [target.'cfg(all(target_os = "linux", not(any(target_arch = "arm", target_arch = "aarch64"))))'.dependencies]
 nix = "0.25"
