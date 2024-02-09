@@ -325,11 +325,13 @@ impl GPUBufferMethods for GPUBuffer {
             m_end as usize,
         );
 
-        let result = heap_typed_array.get_internal().map_err(|_| Error::JSFailed);
+        let result = heap_typed_array
+            .get_internal()
+            .expect("Failed to get HeapTypedArray internal.");
         m_info.mapped_ranges.push(offset..m_end);
         m_info.js_buffers.push(heap_typed_array);
 
-        result
+        Ok(result)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
