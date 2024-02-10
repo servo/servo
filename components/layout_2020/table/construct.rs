@@ -107,11 +107,14 @@ impl Table {
             }
         }
 
+        let mut table = table_builder.finish();
+        table.anonymous = true;
+
         IndependentFormattingContext::NonReplaced(NonReplacedFormattingContext {
             base_fragment_info: (&anonymous_info).into(),
             style: anonymous_style,
             content_sizes: None,
-            contents: NonReplacedFormattingContextContents::Table(table_builder.finish()),
+            contents: NonReplacedFormattingContextContents::Table(table),
         })
     }
 
@@ -226,6 +229,24 @@ impl TableBuilder {
         for row in self.table.slots.iter_mut() {
             row.resize_with(self.table.size.width, || TableSlot::Empty);
         }
+
+        // Turn all rowspan=0 rows into the real value to avoid having to
+        // make the calculation continually during layout. In addition, make
+        // sure that there are no rowspans that extend past the end of the
+        // table.
+        for row_index in 0..self.table.size.height {
+            for cell in self.table.slots[row_index].iter_mut() {
+                if let TableSlot::Cell(ref mut cell) = cell {
+                    let rowspan_to_end_of_table = self.table.size.height - row_index;
+                    if cell.rowspan == 0 {
+                        cell.rowspan = rowspan_to_end_of_table;
+                    } else {
+                        cell.rowspan = cell.rowspan.min(rowspan_to_end_of_table);
+                    }
+                }
+            }
+        }
+
         self.table
     }
 

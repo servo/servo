@@ -202,6 +202,7 @@ impl BoxFragment {
                 \nmargin={:?}\
                 \nclearance={:?}\
                 \nscrollable_overflow={:?}\
+                \nbaselines={:?}\
                 \noverflow={:?} / {:?}",
             self.base,
             self.content_rect,
@@ -210,6 +211,7 @@ impl BoxFragment {
             self.margin,
             self.clearance,
             self.scrollable_overflow(&PhysicalRect::zero()),
+            self.baselines,
             self.style.get_box().overflow_x,
             self.style.get_box().overflow_y,
         ));
