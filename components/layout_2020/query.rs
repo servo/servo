@@ -24,7 +24,9 @@ use style::computed_values::position::T as Position;
 use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::{OpaqueNode, TElement};
 use style::properties::style_structs::Font;
-use style::properties::{LonghandId, PropertyDeclarationId, PropertyId};
+use style::properties::{
+    Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId, PropertyId,
+};
 use style::selector_parser::PseudoElement;
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
@@ -258,9 +260,9 @@ pub fn process_resolved_style_request<'dom>(
     let style = &*layout_element.resolved_style();
     let longhand_id = match *property {
         PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
-        // Firefox returns blank strings for the computed value of shorthands,
-        // so this should be web-compatible.
-        PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
+        PropertyId::ShorthandAlias(id, _) | PropertyId::Shorthand(id) => {
+            return shorthand_to_css_string(id, style);
+        },
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
         },
@@ -379,9 +381,9 @@ pub fn process_resolved_style_request_for_unstyled_node<'dom>(
     let style = styles.primary();
     let longhand_id = match *property {
         PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
-        // Firefox returns blank strings for the computed value of shorthands,
-        // so this should be web-compatible.
-        PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
+        PropertyId::ShorthandAlias(id, _) | PropertyId::Shorthand(id) => {
+            return shorthand_to_css_string(id, style);
+        },
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
         },
@@ -390,6 +392,25 @@ pub fn process_resolved_style_request_for_unstyled_node<'dom>(
     // No need to care about used values here, since we're on a display: none
     // subtree, use the resolved value.
     style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id))
+}
+
+fn shorthand_to_css_string(
+    id: style::properties::ShorthandId,
+    style: &style::properties::ComputedValues,
+) -> String {
+    use style::values::resolved::Context;
+    let mut block = PropertyDeclarationBlock::new();
+    let mut dest = String::new();
+    for longhand in id.longhands() {
+        block.push(
+            style.computed_or_resolved_declaration(longhand, Some(&Context { style })),
+            Importance::Normal,
+        );
+    }
+    match block.shorthand_to_css(id, &mut dest) {
+        Ok(_) => dest.to_owned(),
+        Err(_) => String::new(),
+    }
 }
 
 pub fn process_offset_parent_query(
