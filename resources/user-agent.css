@@ -266,7 +266,16 @@ input[type="submit"], select, button {
 
 input, textarea, select, button { display: inline-block; }
 
-hr { color: gray; border-style: inset; border-width: 1px; margin: 0.5em auto; }
+hr { 
+  color: gray;
+  border-style: inset;
+  border-width: 1px;
+  margin-block-start: 0.5em;
+  margin-inline-end: auto;
+  margin-block-end: 0.5em;
+  margin-inline-start: auto;
+  overflow: hidden;
+}
 
 
 fieldset {
