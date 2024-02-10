@@ -69,38 +69,16 @@ impl Gamepad {
     }
 
     pub fn new(global: &GlobalScope, gamepad_id: u32, id: String) -> DomRoot<Gamepad> {
-        let gamepad = Self::new_with_proto(global, gamepad_id, id);
-        gamepad.init_axes();
-        gamepad
+        Self::new_with_proto(global, gamepad_id, id)
     }
 
+    /// When we construct a new gamepad, we initialize the number of buttons and
+    /// axes corresponding to the "standard" gamepad mapping.
+    /// The spec says UAs *may* do this for fingerprint mitigation, and it also
+    /// happens to simplify implementation
+    /// <https://www.w3.org/TR/gamepad/#fingerprinting-mitigation>
     fn new_with_proto(global: &GlobalScope, gamepad_id: u32, id: String) -> DomRoot<Gamepad> {
-        // https://www.w3.org/TR/gamepad/#dfn-initializing-buttons
-        // https://www.w3.org/TR/gamepad/#fingerprinting-mitigation
-        // Initialize the number of buttons in the "standard" gamepad mapping.
-        // The spec says UAs *may* do this for fingerprint mitigation, and it also
-        // happens to simplify implementation
-        let standard_buttons = &[
-            GamepadButton::new(global, false, false), // Bottom button in right cluster
-            GamepadButton::new(global, false, false), // Right button in right cluster
-            GamepadButton::new(global, false, false), // Left button in right cluster
-            GamepadButton::new(global, false, false), // Top button in right cluster
-            GamepadButton::new(global, false, false), // Top left front button
-            GamepadButton::new(global, false, false), // Top right front button
-            GamepadButton::new(global, false, false), // Bottom left front button
-            GamepadButton::new(global, false, false), // Bottom right front button
-            GamepadButton::new(global, false, false), // Left button in center cluster
-            GamepadButton::new(global, false, false), // Right button in center cluster
-            GamepadButton::new(global, false, false), // Left stick pressed button
-            GamepadButton::new(global, false, false), // Right stick pressed button
-            GamepadButton::new(global, false, false), // Top button in left cluster
-            GamepadButton::new(global, false, false), // Bottom button in left cluster
-            GamepadButton::new(global, false, false), // Left button in left cluster
-            GamepadButton::new(global, false, false), // Right button in left cluster
-            GamepadButton::new(global, false, false), // Center button in center cluster
-        ];
-        rooted_vec!(let buttons <- standard_buttons.iter().map(|button| DomRoot::from_ref(&**button)));
-        let button_list = GamepadButtonList::new(global, buttons.r());
+        let button_list = Gamepad::init_buttons(global);
         let gamepad = reflect_dom_object_with_proto(
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
@@ -116,6 +94,7 @@ impl Gamepad {
             global,
             None,
         );
+        gamepad.init_axes();
         gamepad
     }
 }
@@ -205,11 +184,9 @@ impl Gamepad {
             .fire(self.global().as_window().upcast::<EventTarget>());
     }
 
-    // https://www.w3.org/TR/gamepad/#dfn-initializing-axes
-    // https://www.w3.org/TR/gamepad/#fingerprinting-mitigation
+    /// Initialize the number of axes in the "standard" gamepad mapping.
+    /// <https://www.w3.org/TR/gamepad/#dfn-initializing-axes>
     pub fn init_axes(&self) {
-        // Initialize the number of axes in the "standard" gamepad mapping.
-        // See above comment on buttons
         let initial_axes: Vec<f64> = vec![
             0., // Horizontal axis for left stick (negative left/positive right)
             0., // Vertical axis for left stick (negative up/positive down)
@@ -219,6 +196,32 @@ impl Gamepad {
         self.axes
             .set_data(GlobalScope::get_cx(), &initial_axes)
             .expect("Failed to set axes data on gamepad.")
+    }
+
+    /// Initialize the number of buttons in the "standard" gamepad mapping.
+    /// <https://www.w3.org/TR/gamepad/#dfn-initializing-buttons>
+    pub fn init_buttons(global: &GlobalScope) -> DomRoot<GamepadButtonList> {
+        let standard_buttons = &[
+            GamepadButton::new(global, false, false), // Bottom button in right cluster
+            GamepadButton::new(global, false, false), // Right button in right cluster
+            GamepadButton::new(global, false, false), // Left button in right cluster
+            GamepadButton::new(global, false, false), // Top button in right cluster
+            GamepadButton::new(global, false, false), // Top left front button
+            GamepadButton::new(global, false, false), // Top right front button
+            GamepadButton::new(global, false, false), // Bottom left front button
+            GamepadButton::new(global, false, false), // Bottom right front button
+            GamepadButton::new(global, false, false), // Left button in center cluster
+            GamepadButton::new(global, false, false), // Right button in center cluster
+            GamepadButton::new(global, false, false), // Left stick pressed button
+            GamepadButton::new(global, false, false), // Right stick pressed button
+            GamepadButton::new(global, false, false), // Top button in left cluster
+            GamepadButton::new(global, false, false), // Bottom button in left cluster
+            GamepadButton::new(global, false, false), // Left button in left cluster
+            GamepadButton::new(global, false, false), // Right button in left cluster
+            GamepadButton::new(global, false, false), // Center button in center cluster
+        ];
+        rooted_vec!(let buttons <- standard_buttons.iter().map(|button| DomRoot::from_ref(&**button)));
+        GamepadButtonList::new(global, buttons.r())
     }
 
     #[allow(unsafe_code)]
