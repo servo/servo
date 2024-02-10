@@ -94,10 +94,8 @@ impl FileReaderSyncMethods for FileReaderSync {
 
         // step 2
         rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-        let array_buffer =
-            create_typed_array::<ArrayBufferU8>(cx, &blob_contents, array_buffer.handle_mut())
-                .expect("Converting blob_contents to ArrayBuffer should never fail");
 
-        Ok(array_buffer)
+        create_typed_array::<ArrayBufferU8>(cx, &blob_contents, array_buffer.handle_mut())
+            .map_err(|_| Error::JSFailed)
     }
 }
