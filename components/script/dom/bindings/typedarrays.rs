@@ -11,10 +11,10 @@ use std::ptr;
 use std::sync::{Arc, Mutex};
 
 use js::jsapi::{
-    Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
+     Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject, NewExternalArrayBuffer
 };
 use js::rust::wrappers::DetachArrayBuffer;
-use js::rust::{CustomAutoRooterGuard, MutableHandleObject};
+use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
 use js::typedarray::{CreateWith, TypedArray, TypedArrayElement, TypedArrayElementCreator};
 
 use crate::script_runtime::JSContext;
@@ -71,12 +71,18 @@ where
         assert!(self.is_initialized());
         let mut is_shared = false;
         unsafe {
-            assert!(JS_IsArrayBufferViewObject(*self.internal.handle()));
-            rooted!(in (*cx) let view_buffer =
-                 JS_GetArrayBufferViewBuffer(*cx, self.internal.handle(), &mut is_shared));
-            // This buffer is always created unshared
-            debug_assert!(!is_shared);
-            DetachArrayBuffer(*cx, view_buffer.handle())
+            if JS_IsArrayBufferViewObject(*self.internal.handle()) {
+                // If it is an ArrayBuffer view, get the buffer using JS_GetArrayBufferViewBuffer
+                rooted!(in (*cx) let view_buffer =
+                    JS_GetArrayBufferViewBuffer(*cx, self.internal.handle(), &mut is_shared));
+                // This buffer is always created unshared
+                debug_assert!(!is_shared);
+                // Detach the ArrayBuffer
+                DetachArrayBuffer(*cx, view_buffer.handle())
+            } else {
+                // If it's not an ArrayBuffer view, Detach the internal buffer directly
+                DetachArrayBuffer(*cx, Handle::from_raw(self.internal.handle()))
+            }
         }
     }
 
