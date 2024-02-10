@@ -13,6 +13,7 @@ use style::computed_values::float::T as Float;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
+use style::values::specified::Display;
 use style::Zero;
 
 use crate::cell::ArcRefCell;
@@ -418,22 +419,33 @@ fn layout_block_level_children(
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
 ) -> FlowLayout {
-    match sequential_layout_state {
+    let mut placement_state =
+        PlacementState::new(collapsible_with_parent_start_margin, containing_block.style);
+
+    let fragments = match sequential_layout_state {
         Some(ref mut sequential_layout_state) => layout_block_level_children_sequentially(
             layout_context,
             positioning_context,
             child_boxes,
             containing_block,
             sequential_layout_state,
-            collapsible_with_parent_start_margin,
+            &mut placement_state,
         ),
         None => layout_block_level_children_in_parallel(
             layout_context,
             positioning_context,
             child_boxes,
             containing_block,
-            collapsible_with_parent_start_margin,
+            &mut placement_state,
         ),
+    };
+
+    let (content_block_size, collapsible_margins_in_children, baselines) = placement_state.finish();
+    FlowLayout {
+        fragments,
+        content_block_size,
+        collapsible_margins_in_children,
+        baselines,
     }
 }
 
@@ -442,8 +454,8 @@ fn layout_block_level_children_in_parallel(
     positioning_context: &mut PositioningContext,
     child_boxes: &[ArcRefCell<BlockLevelBox>],
     containing_block: &ContainingBlock,
-    collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
-) -> FlowLayout {
+    placement_state: &mut PlacementState,
+) -> Vec<Fragment> {
     let collects_for_nearest_positioned_ancestor =
         positioning_context.collects_for_nearest_positioned_ancestor();
     let layout_results: Vec<(Fragment, PositioningContext)> = child_boxes
@@ -462,8 +474,7 @@ fn layout_block_level_children_in_parallel(
         })
         .collect();
 
-    let mut placement_state = PlacementState::new(collapsible_with_parent_start_margin);
-    let fragments = layout_results
+    layout_results
         .into_iter()
         .map(|(mut fragment, mut child_positioning_context)| {
             placement_state.place_fragment_and_update_baseline(&mut fragment, None);
@@ -474,15 +485,7 @@ fn layout_block_level_children_in_parallel(
             positioning_context.append(child_positioning_context);
             fragment
         })
-        .collect();
-
-    let (content_block_size, collapsible_margins_in_children, baselines) = placement_state.finish();
-    FlowLayout {
-        fragments,
-        content_block_size,
-        collapsible_margins_in_children,
-        baselines,
-    }
+        .collect()
 }
 
 fn layout_block_level_children_sequentially(
@@ -491,14 +494,12 @@ fn layout_block_level_children_sequentially(
     child_boxes: &[ArcRefCell<BlockLevelBox>],
     containing_block: &ContainingBlock,
     sequential_layout_state: &mut SequentialLayoutState,
-    collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
-) -> FlowLayout {
-    let mut placement_state = PlacementState::new(collapsible_with_parent_start_margin);
-
+    placement_state: &mut PlacementState,
+) -> Vec<Fragment> {
     // Because floats are involved, we do layout for this block formatting context in tree
     // order without parallelism. This enables mutable access to a `SequentialLayoutState` that
     // tracks every float encountered so far (again in tree order).
-    let fragments = child_boxes
+    child_boxes
         .iter()
         .map(|child_box| {
             let positioning_context_length_before_layout = positioning_context.len();
@@ -521,15 +522,7 @@ fn layout_block_level_children_sequentially(
 
             fragment
         })
-        .collect();
-
-    let (content_block_size, collapsible_margins_in_children, baselines) = placement_state.finish();
-    FlowLayout {
-        fragments,
-        content_block_size,
-        collapsible_margins_in_children,
-        baselines,
-    }
+        .collect()
 }
 
 impl BlockLevelBox {
@@ -1387,12 +1380,16 @@ struct PlacementState {
     current_margin: CollapsedMargin,
     current_block_direction_position: Length,
     inflow_baselines: Baselines,
+    is_inline_block_context: bool,
 }
 
 impl PlacementState {
     fn new(
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
+        containing_block_style: &ComputedValues,
     ) -> PlacementState {
+        let is_inline_block_context =
+            containing_block_style.get_box().clone_display() == Display::InlineBlock;
         PlacementState {
             next_in_flow_margin_collapses_with_parent_start_margin:
                 collapsible_with_parent_start_margin.0,
@@ -1401,6 +1398,7 @@ impl PlacementState {
             current_margin: CollapsedMargin::zero(),
             current_block_direction_position: Length::zero(),
             inflow_baselines: Baselines::default(),
+            is_inline_block_context,
         }
     }
 
@@ -1411,15 +1409,27 @@ impl PlacementState {
     ) {
         self.place_fragment(fragment, sequential_layout_state);
 
-        if let Fragment::Box(box_fragment) = fragment {
-            let box_block_offset = box_fragment.content_rect.start_corner.block.into();
-            match (self.inflow_baselines.first, box_fragment.baselines.first) {
-                (None, Some(first)) => self.inflow_baselines.first = Some(first + box_block_offset),
-                _ => {},
-            }
-            if let Some(last) = box_fragment.baselines.last {
-                self.inflow_baselines.last = Some(last + box_block_offset);
-            }
+        let box_fragment = match fragment {
+            Fragment::Box(box_fragment) => box_fragment,
+            _ => return,
+        };
+
+        // From <https://drafts.csswg.org/css-align-3/#baseline-export>:
+        // > When finding the first/last baseline set of an inline-block, any baselines
+        // > contributed by table boxes must be skipped. (This quirk is a legacy behavior from
+        // > [CSS2].)
+        let display = box_fragment.style.clone_display();
+        let is_table = display == Display::Table;
+        if self.is_inline_block_context && is_table {
+            return;
+        }
+
+        let box_block_offset = box_fragment.content_rect.start_corner.block.into();
+        if let (None, Some(first)) = (self.inflow_baselines.first, box_fragment.baselines.first) {
+            self.inflow_baselines.first = Some(first + box_block_offset);
+        }
+        if let Some(last) = box_fragment.baselines.last {
+            self.inflow_baselines.last = Some(last + box_block_offset);
         }
     }
 

@@ -2,18 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ops::Add;
+
 use app_units::{Au, MAX_AU};
 use euclid::num::Zero;
 use log::warn;
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::logical_geometry::WritingMode;
 use style::values::computed::{CSSPixelLength, Length, LengthOrAuto, Percentage};
+use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, VerticalAlignKeyword};
 use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
 
 use super::{Table, TableSlot, TableSlotCell};
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentLayout};
-use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::fragment_tree::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
@@ -29,7 +32,20 @@ struct CellLayout {
     padding: LogicalSides<Length>,
     border: LogicalSides<Length>,
     positioning_context: PositioningContext,
-    rowspan: usize,
+}
+
+impl CellLayout {
+    fn ascent(&self) -> Au {
+        self.layout
+            .baselines
+            .first
+            .unwrap_or(self.layout.content_block_size)
+    }
+
+    /// The block size of this laid out cell including its border and padding.
+    fn outer_block_size(&self) -> Au {
+        self.layout.content_block_size + (self.border.block_sum() + self.padding.block_sum()).into()
+    }
 }
 
 /// A helper struct that performs the layout of the box tree version
@@ -45,6 +61,7 @@ struct TableLayout<'a> {
     column_measures: Vec<CellOrColumnMeasure>,
     distributed_column_widths: Vec<Au>,
     row_sizes: Vec<Au>,
+    row_baselines: Vec<Au>,
     cells_laid_out: Vec<Vec<Option<CellLayout>>>,
 }
 
@@ -75,6 +92,7 @@ impl<'a> TableLayout<'a> {
             column_measures: Vec::new(),
             distributed_column_widths: Vec::new(),
             row_sizes: Vec::new(),
+            row_baselines: Vec::new(),
             cells_laid_out: Vec::new(),
         }
     }
@@ -883,6 +901,8 @@ impl<'a> TableLayout<'a> {
         }
     }
 
+    /// This is an implementation of *Row layout (first pass)* from
+    /// <https://drafts.csswg.org/css-tables/#row-layout>.
     fn do_row_layout_first_pass(
         &mut self,
         layout_context: &LayoutContext,
@@ -936,7 +956,6 @@ impl<'a> TableLayout<'a> {
                     padding,
                     border,
                     positioning_context,
-                    rowspan: cell.rowspan,
                 }))
             }
             self.cells_laid_out.push(cells_laid_out_row);
@@ -945,52 +964,110 @@ impl<'a> TableLayout<'a> {
 
     fn distribute_height_to_rows(&mut self) {
         for row_index in 0..self.table.size.height {
-            let mut max_row_height = Au::zero();
+            let (mut max_ascent, mut max_descent, mut max_row_height) =
+                (Au::zero(), Au::zero(), Au::zero());
+
             for column_index in 0..self.table.size.width {
                 let coords = TableSlotCoordinates::new(column_index, row_index);
-                self.table
-                    .resolve_first_cell_coords(coords)
-                    .map(|resolved_coords| {
-                        let cell = self.cells_laid_out[resolved_coords.y][resolved_coords.x]
-                            .as_ref()
-                            .unwrap();
-                        let total_height = cell.layout.content_block_size +
-                            cell.border.block_sum().into() +
-                            cell.padding.block_sum().into();
-                        // TODO: We are accounting for rowspan=0 here, but perhaps this should be
-                        // translated into a real rowspan during table box tree construction.
-                        let effective_rowspan = match cell.rowspan {
-                            0 => (self.table.size.height - resolved_coords.y) as i32,
-                            rowspan => rowspan as i32,
-                        };
-                        max_row_height = (total_height / effective_rowspan).max(max_row_height)
-                    });
+
+                let cell = match self.table.slots[row_index][column_index] {
+                    TableSlot::Cell(ref cell) => cell,
+                    TableSlot::Spanned(ref spanned_cells) if spanned_cells[0].y != 0 => {
+                        let offset = spanned_cells[0];
+                        let origin = coords - offset;
+
+                        // We only allocate the remaining space for the last row of the rowspanned cell.
+                        if let Some(TableSlot::Cell(origin_cell)) = self.table.get_slot(origin) {
+                            if origin_cell.rowspan != offset.y + 1 {
+                                continue;
+                            }
+                        }
+
+                        // This is all of the rows that are spanned except this one.
+                        let used_block_size = (origin.y..coords.y)
+                            .map(|row_index| self.row_sizes[row_index])
+                            .fold(Au::zero(), |sum, size| sum + size);
+                        if let Some(layout) = &self.cells_laid_out[origin.y][origin.x] {
+                            max_row_height =
+                                max_row_height.max(layout.outer_block_size() - used_block_size);
+                        }
+                        continue;
+                    },
+                    _ => continue,
+                };
+
+                let layout = match self.cells_laid_out[row_index][column_index] {
+                    Some(ref layout) => layout,
+                    None => {
+                        warn!("Did not find a layout at a slot index with an originating cell.");
+                        continue;
+                    },
+                };
+
+                let outer_block_size = layout.outer_block_size();
+                if cell.rowspan == 1 {
+                    max_row_height = max_row_height.max(outer_block_size);
+                }
+
+                if cell.effective_vertical_align() == VerticalAlignKeyword::Baseline {
+                    let ascent = layout.ascent();
+                    let border_padding_start =
+                        layout.border.block_start + layout.padding.block_start;
+                    let border_padding_end = layout.border.block_end + layout.padding.block_end;
+                    max_ascent = max_ascent.max(ascent + border_padding_start.into());
+
+                    // Only take into account the descent of this cell if doesn't span
+                    // rows. The descent portion of the cell in cells that do span rows
+                    // will be allocated to the other rows that it spans.
+                    if cell.rowspan == 1 {
+                        max_descent = max_descent.max(
+                            layout.layout.content_block_size - ascent + border_padding_end.into(),
+                        );
+                    }
+                }
             }
-            self.row_sizes.push(max_row_height);
+
+            self.row_baselines.push(max_ascent);
+            self.row_sizes
+                .push(max_row_height.max(max_ascent + max_descent));
         }
     }
 
     /// Lay out the table of this [`TableLayout`] into fragments. This should only be be called
     /// after calling [`TableLayout.compute_measures`].
-    fn layout_into_box_fragments(
-        mut self,
-        positioning_context: &mut PositioningContext,
-    ) -> (Vec<Fragment>, Au) {
+    fn layout(mut self, positioning_context: &mut PositioningContext) -> IndependentLayout {
         assert_eq!(self.table.size.height, self.row_sizes.len());
         assert_eq!(self.table.size.width, self.distributed_column_widths.len());
 
+        let mut baselines = Baselines::default();
         let border_spacing = self.table.border_spacing();
         let mut fragments = Vec::new();
         let mut row_offset = border_spacing.block;
         for row_index in 0..self.table.size.height {
             let mut column_offset = border_spacing.inline;
             let row_size = self.row_sizes[row_index];
+            let row_baseline = self.row_baselines[row_index];
+
+            // From <https://drafts.csswg.org/css-align-3/#baseline-export>
+            // > If any cells in the row participate in first baseline/last baseline alignment along
+            // > the inline axis, the first/last baseline set of the row is generated from their
+            // > shared alignment baseline and the row’s first available font, after alignment has
+            // > been performed. Otherwise, the first/last baseline set of the row is synthesized from
+            // > the lowest and highest content edges of the cells in the row. [CSS2]
+            //
+            // If any cell below has baseline alignment, these values will be overwritten,
+            // but they are initialized to the content edge of the first row.
+            if row_index == 0 {
+                baselines.first = Some(row_offset + row_size);
+                baselines.last = Some(row_offset + row_size);
+            }
 
             for column_index in 0..self.table.size.width {
-                let column_size = self.distributed_column_widths[column_index];
                 let layout = match self.cells_laid_out[row_index][column_index].take() {
                     Some(layout) => layout,
-                    None => continue,
+                    None => {
+                        continue;
+                    },
                 };
 
                 let cell = match self.table.slots[row_index][column_index] {
@@ -1001,30 +1078,58 @@ impl<'a> TableLayout<'a> {
                     },
                 };
 
+                // If this cell has baseline alignment, it can adjust the table's overall baseline.
+                if cell.effective_vertical_align() == VerticalAlignKeyword::Baseline {
+                    if row_index == 0 {
+                        baselines.first = Some(row_offset + row_baseline);
+                    }
+                    baselines.last = Some(row_offset + row_baseline);
+                }
+
+                // Calculate the inline and block size of all rows and columns that this cell spans.
+                let inline_size: Au = (column_index..column_index + cell.colspan)
+                    .map(|index| self.distributed_column_widths[index])
+                    .fold(Au::zero(), Au::add) +
+                    ((cell.colspan - 1) as i32 * border_spacing.inline);
+                let block_size: Au = (row_index..row_index + cell.rowspan)
+                    .map(|index| self.row_sizes[index])
+                    .fold(Au::zero(), Au::add) +
+                    ((cell.rowspan - 1) as i32 * border_spacing.block);
+
                 let cell_rect: LogicalRect<Length> = LogicalRect {
                     start_corner: LogicalVec2 {
                         inline: column_offset.into(),
                         block: row_offset.into(),
                     },
                     size: LogicalVec2 {
-                        inline: column_size.into(),
-                        block: row_size.into(),
+                        inline: inline_size.into(),
+                        block: block_size.into(),
                     },
                 };
 
                 fragments.push(Fragment::Box(cell.create_fragment(
                     layout,
                     cell_rect,
+                    row_baseline,
                     positioning_context,
                 )));
 
-                column_offset += column_size + border_spacing.inline;
+                column_offset += inline_size + border_spacing.inline;
             }
 
             row_offset += row_size + border_spacing.block;
         }
 
-        (fragments, row_offset)
+        if self.table.anonymous {
+            baselines.first = None;
+            baselines.last = None;
+        }
+
+        IndependentLayout {
+            fragments,
+            content_block_size: row_offset,
+            baselines,
+        }
     }
 }
 
@@ -1100,13 +1205,7 @@ impl Table {
     ) -> IndependentLayout {
         let mut table_layout = TableLayout::new(self);
         table_layout.compute_measures(layout_context, positioning_context, containing_block);
-        let (fragments, content_block_size) =
-            table_layout.layout_into_box_fragments(positioning_context);
-        IndependentLayout {
-            fragments,
-            content_block_size,
-            baselines: Baselines::default(),
-        }
+        table_layout.layout(positioning_context)
     }
 }
 
@@ -1136,24 +1235,63 @@ impl TableSlotCell {
         sizes
     }
 
+    fn effective_vertical_align(&self) -> VerticalAlignKeyword {
+        match self.style.clone_vertical_align() {
+            VerticalAlign::Keyword(VerticalAlignKeyword::Top) => VerticalAlignKeyword::Top,
+            VerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => VerticalAlignKeyword::Bottom,
+            VerticalAlign::Keyword(VerticalAlignKeyword::Middle) => VerticalAlignKeyword::Middle,
+            _ => VerticalAlignKeyword::Baseline,
+        }
+    }
+
     fn create_fragment(
         &self,
         mut layout: CellLayout,
         cell_rect: LogicalRect<Length>,
+        cell_baseline: Au,
         positioning_context: &mut PositioningContext,
     ) -> BoxFragment {
         // This must be scoped to this function because it conflicts with euclid's Zero.
         use style::Zero as StyleZero;
 
-        let fragments = layout.layout.fragments;
-        let content_rect = cell_rect.deflate(&(&layout.padding + &layout.border));
+        let cell_content_rect = cell_rect.deflate(&(&layout.padding + &layout.border));
+        let content_block_size = layout.layout.content_block_size.into();
+        let vertical_align_offset = match self.effective_vertical_align() {
+            VerticalAlignKeyword::Top => Length::new(0.),
+            VerticalAlignKeyword::Bottom => cell_content_rect.size.block - content_block_size,
+            VerticalAlignKeyword::Middle => {
+                (cell_content_rect.size.block - content_block_size).scale_by(0.5)
+            },
+            _ => {
+                Length::from(cell_baseline) -
+                    (layout.padding.block_start + layout.border.block_start) -
+                    Length::from(layout.ascent())
+            },
+        };
+
+        // Create an `AnonymousFragment` to move the cell contents to the cell baseline.
+        let mut vertical_align_fragment_rect = cell_content_rect.clone();
+        vertical_align_fragment_rect.start_corner = LogicalVec2 {
+            inline: Length::new(0.),
+            block: vertical_align_offset,
+        };
+        let vertical_align_fragment = AnonymousFragment::new(
+            vertical_align_fragment_rect,
+            layout.layout.fragments,
+            self.style.writing_mode,
+        );
 
         // Adjust the static position of all absolute children based on the
-        // final content rect of this fragment.
+        // final content rect of this fragment. Note that we are not shifting by the position of the
+        // Anonymous fragment we use to shift content to the baseline.
+        //
+        // TODO(mrobinson): This is correct for absolutes that are direct children of the table
+        // cell, but wrong for absolute fragments that are more deeply nested in the hierarchy of
+        // fragments.
         layout
             .positioning_context
             .adjust_static_position_of_hoisted_fragments_with_offset(
-                &content_rect.start_corner,
+                &cell_content_rect.start_corner,
                 PositioningContextLength::zero(),
             );
         positioning_context.append(layout.positioning_context);
@@ -1161,8 +1299,8 @@ impl TableSlotCell {
         BoxFragment::new(
             self.base_fragment_info,
             self.style.clone(),
-            fragments,
-            content_rect,
+            vec![Fragment::Anonymous(vertical_align_fragment)],
+            cell_content_rect,
             layout.padding,
             layout.border,
             LogicalSides::zero(), /* margin */

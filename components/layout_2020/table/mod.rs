@@ -37,6 +37,9 @@ pub struct Table {
 
     /// The size of this table.
     pub size: TableSize,
+
+    /// Whether or not this Table is anonymous.
+    anonymous: bool,
 }
 
 impl Table {
@@ -45,6 +48,7 @@ impl Table {
             style,
             slots: Vec::new(),
             size: TableSize::zero(),
+            anonymous: false,
         }
     }
 
