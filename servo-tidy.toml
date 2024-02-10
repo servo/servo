@@ -59,9 +59,6 @@ packages = [
     # Duplicated by style, cbindgen, clap, and GStreamer.
     "indexmap",
 
-    # style (0.64) vs. webxr (0.66) vs. mozjs_sys (0.68).
-    "bindgen",
-
     # quickcheck (required by layout_2020 for tests) is
     # stuck on 0.8.4 with no new releases.
     "env_logger",

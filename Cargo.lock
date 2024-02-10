@@ -328,58 +328,17 @@ dependencies = [
 
 [[package]]
 name = "bindgen"
-version = "0.64.0"
+version = "0.69.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4243e6031260db77ede97ad86c27e501d646a27ab57b59a574f725d98ab1fb4"
-dependencies = [
- "bitflags 1.3.2",
- "cexpr",
- "clang-sys",
- "lazy_static",
- "lazycell",
- "peeking_take_while",
- "proc-macro2",
- "quote",
- "regex",
- "rustc-hash",
- "shlex",
- "syn 1.0.109",
-]
-
-[[package]]
-name = "bindgen"
-version = "0.68.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "726e4313eb6ec35d2730258ad4e15b547ee75d6afaa1361a922e78e59b7d8078"
+checksum = "a00dc851838a2120612785d195287475a3ac45514741da670b735818822129a0"
 dependencies = [
  "bitflags 2.4.2",
  "cexpr",
  "clang-sys",
- "lazy_static",
- "lazycell",
- "peeking_take_while",
- "proc-macro2",
- "quote",
- "regex",
- "rustc-hash",
- "shlex",
- "syn 2.0.48",
- "which",
-]
-
-[[package]]
-name = "bindgen"
-version = "0.69.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4c69fae65a523209d34240b60abe0c42d33d1045d445c0839d8a4894a736e2d"
-dependencies = [
- "bitflags 2.4.2",
- "cexpr",
- "clang-sys",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "log",
- "peeking_take_while",
  "prettyplease",
  "proc-macro2",
  "quote",
@@ -1159,7 +1118,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e16e44ab292b1dddfdaf7be62cfd8877df52f2f3fde5858d95bab606be259f20"
 dependencies = [
  "bitflags 2.4.2",
- "libloading 0.8.1",
+ "libloading 0.7.4",
  "winapi",
 ]
 
@@ -1356,7 +1315,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.8.1",
+ "libloading 0.7.4",
 ]
 
 [[package]]
@@ -3679,11 +3638,11 @@ dependencies = [
 
 [[package]]
 name = "mozangle"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aeb5ed416ca0e4bc02daa155b8fb7f58bf1ada40db78bfb168ee14f945d6abf3"
+checksum = "b14af7d1a65278923835af94ac23d4c3662478001ac6e78075fe1210a7067e4b"
 dependencies = [
- "bindgen 0.68.1",
+ "bindgen",
  "cc",
  "gl_generator",
  "lazy_static",
@@ -3700,9 +3659,9 @@ checksum = "903970ae2f248d7275214cf8f387f8ba0c4ea7e3d87a320e85493db60ce28616"
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#7184f658b7e2de8a8d288ff39001364513115782"
+source = "git+https://github.com/servo/mozjs#d1f1519b8a9a57d97e3f623ea119e86c5dcbf524"
 dependencies = [
- "bindgen 0.68.1",
+ "bindgen",
  "cc",
  "lazy_static",
  "libc",
@@ -3714,9 +3673,9 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.68.2"
-source = "git+https://github.com/servo/mozjs#7184f658b7e2de8a8d288ff39001364513115782"
+source = "git+https://github.com/servo/mozjs#d1f1519b8a9a57d97e3f623ea119e86c5dcbf524"
 dependencies = [
- "bindgen 0.68.1",
+ "bindgen",
  "cc",
  "encoding_c",
  "encoding_c_mem",
@@ -4221,12 +4180,6 @@ dependencies = [
  "synstructure 0.12.6",
  "unicode-xid",
 ]
-
-[[package]]
-name = "peeking_take_while"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19b17cddbe7ec3f8bc800887bab5e717348c95ea2ca0b1bf0837fb964dc67099"
 
 [[package]]
 name = "percent-encoding"
@@ -5717,7 +5670,7 @@ dependencies = [
  "app_units",
  "arrayvec",
  "atomic_refcell",
- "bindgen 0.64.0",
+ "bindgen",
  "bitflags 1.3.2",
  "byteorder",
  "cssparser",
@@ -6902,7 +6855,7 @@ version = "0.0.1"
 source = "git+https://github.com/servo/webxr#614420b9830615376563fc6e1d98c52119f97123"
 dependencies = [
  "android_injected_glue",
- "bindgen 0.69.2",
+ "bindgen",
  "crossbeam-channel",
  "euclid",
  "gl_generator",
@@ -6976,7 +6929,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.8.1",
+ "libloading 0.7.4",
  "log",
  "metal 0.27.0",
  "naga",
