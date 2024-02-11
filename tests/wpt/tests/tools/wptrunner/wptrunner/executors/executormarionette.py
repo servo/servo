@@ -979,7 +979,7 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
         if success:
             return self.convert_result(test, data, extra=extra)
 
-        return (test.result_cls(extra=extra, *data), [])
+        return (test.make_result(extra=extra, *data), [])
 
     def do_testharness(self, protocol, url, timeout):
         parent_window = protocol.testharness.close_old_windows(self.last_environment["protocol"])
@@ -1277,7 +1277,7 @@ class MarionetteCrashtestExecutor(CrashtestExecutor):
         if success:
             return self.convert_result(test, data)
 
-        return (test.result_cls(extra=extra, *data), [])
+        return (test.make_result(extra=extra, *data), [])
 
     def do_crashtest(self, protocol, url, timeout):
         if self.protocol.coverage.is_enabled:

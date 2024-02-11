@@ -440,6 +440,12 @@ const gCSSProperties1 = {
       { type: 'discrete', options: [ [ 'show', 'hide' ] ] }
     ]
   },
+  'field-sizing': {
+    // https://drafts.csswg.org/css-ui/#field-sizing
+    types: [
+      { type: 'discrete', options: [ [ 'fixed', 'content' ] ] }
+    ]
+  },
   'fill': {
     // https://svgwg.org/svg2-draft/painting.html#FillProperty
     types: [

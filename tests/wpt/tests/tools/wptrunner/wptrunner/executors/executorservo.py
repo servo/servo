@@ -136,10 +136,10 @@ class ServoTestharnessExecutor(ServoExecutor):
                     result = self.convert_result(test, self.result_data)
                 else:
                     self.proc.wait()
-                    result = (test.result_cls("CRASH", None), [])
+                    result = (test.make_result("CRASH", None), [])
                     proc_is_running = False
             else:
-                result = (test.result_cls("TIMEOUT", None), [])
+                result = (test.make_result("TIMEOUT", None), [])
 
             if proc_is_running:
                 if self.pause_after_test:
@@ -312,7 +312,7 @@ class ServoCrashtestExecutor(ServoExecutor):
         if success:
             return self.convert_result(test, data)
 
-        return (test.result_cls(*data), [])
+        return (test.make_result(*data), [])
 
     def do_crashtest(self, protocol, url, timeout):
         self.command = self.build_servo_command(self.test, extra_args=["-x"])

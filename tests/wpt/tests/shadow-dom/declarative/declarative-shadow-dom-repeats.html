@@ -49,9 +49,9 @@ test((t) => {
 </script>
 
 <div id=open2>
-  <template shadowrootmode=open shadowrootdelegatesfocus>
-    Open, delegates focus (not the default),
-    named slot assignment (the default), clonable (the default for declarative)
+  <template shadowrootmode=open shadowrootdelegatesfocus shadowrootclonable>
+    Open, delegates focus (not the default), clonable (not the default)
+    named slot assignment (the default)
   </template>
 </div>
 
@@ -66,11 +66,9 @@ test((t) => {
   assert_throws_dom("NotSupportedError",() => {
     open2.attachShadow({mode: "open", delegatesFocus: true, slotAssignment: "manual", clonable: true});
   },'Mismatched shadow root slotAssignment should throw');
-  // See https://github.com/whatwg/html/issues/10107: the behavior of the
-  // clonable flag is still being discussed.
-  // assert_throws_dom("NotSupportedError",() => {
-  //   open2.attachShadow({mode: "open", delegatesFocus: true, slotAssignment: "named", clonable: false});
-  // },'Mismatched shadow root clonable should throw');
+  assert_throws_dom("NotSupportedError",() => {
+    open2.attachShadow({mode: "open", delegatesFocus: true, slotAssignment: "named", clonable: false});
+  },'Mismatched shadow root clonable should throw');
 
   const initialShadow = open2.shadowRoot;
   const shadow = open2.attachShadow({mode: "open", delegatesFocus: true, slotAssignment: "named", clonable: true}); // Shouldn't throw

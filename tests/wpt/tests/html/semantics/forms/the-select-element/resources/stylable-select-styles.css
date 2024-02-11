@@ -1,0 +1,18 @@
+.stylable-select-datalist {
+  box-shadow: 0px 12.8px 28.8px rgba(0, 0, 0, 0.13), 0px 0px 9.2px rgba(0, 0, 0, 0.11);
+  box-sizing: border-box;
+  overflow: auto;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0.25em;
+  padding: 0.25em 0;
+  background-color: Field;
+  margin: 0;
+  inset: auto;
+  min-inline-size: anchor-size(self-inline);
+  min-block-size: 1lh;
+  inset-block-start: anchor(auto);
+  inset-inline-start: anchor(auto-same);
+
+  font-family: Arial;
+  font-size: 13.3333px;
+}

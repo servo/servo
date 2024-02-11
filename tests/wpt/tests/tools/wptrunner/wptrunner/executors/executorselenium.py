@@ -369,7 +369,7 @@ class SeleniumTestharnessExecutor(TestharnessExecutor):
         if success:
             return self.convert_result(test, data)
 
-        return (test.result_cls(*data), [])
+        return (test.make_result(*data), [])
 
     def do_testharness(self, protocol, url, timeout):
         format_map = {"url": strip_server(url)}

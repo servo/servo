@@ -141,6 +141,28 @@ test(() => {
   assert_true(!!host.shadowRoot,"No shadow root found");
   assert_false(host.shadowRoot.delegatesFocus,"delegatesFocus should be false without the shadowrootdelegatesfocus attribute");
 }, 'Declarative Shadow DOM: delegates focus attribute');
+
+test(() => {
+  const div = document.createElement('div');
+  div.setHTMLUnsafe(`
+    <div id="host">
+      <template shadowrootmode="open" shadowrootclonable>
+      </template>
+    </div>
+    `);
+  var host = div.querySelector('#host');
+  assert_true(!!host.shadowRoot,"No shadow root found");
+  assert_true(host.shadowRoot.clonable,"clonable should be true");
+  div.setHTMLUnsafe(`
+    <div id="host">
+      <template shadowrootmode="open">
+      </template>
+    </div>
+    `);
+  host = div.querySelector('#host');
+  assert_true(!!host.shadowRoot,"No shadow root found");
+  assert_false(host.shadowRoot.clonable,"clonable should be false without the shadowrootclonable attribute");
+}, 'Declarative Shadow DOM: clonable attribute');
 </script>
 
 <div id="multi-host" style="display:none">
@@ -168,7 +190,7 @@ test(() => {
 
 <template id="template-containing-shadow">
   <div class="innerdiv">
-    <template shadowrootmode=open>Content</template>
+    <template shadowrootmode=open shadowrootclonable>Content</template>
   </div>
 </template>
 <script>
@@ -205,13 +227,13 @@ test(() => {
   assert_equals(innerDiv.querySelector('template'), null, "No leftover template node");
   assert_not_equals(shadowRoot1,shadowRoot3,'Should not get back the same shadow root');
 
-}, 'Declarative Shadow DOM: template containing declarative shadow root');
+}, 'Declarative Shadow DOM: template containing declarative shadow root (with shadowrootclonable)');
 </script>
 
 <template id="template-containing-deep-shadow">
   <div><div><div><div><div>
     <div class="innerdiv">
-      <template shadowrootmode=open>Content</template>
+      <template shadowrootmode=open shadowrootclonable>Content</template>
     </div>
   </div></div></div></div></div>
 </template>
@@ -230,7 +252,7 @@ test(() => {
   <div>
     <template id="inner-template">
       <div class="innerdiv">
-        <template shadowrootmode=open>Content</template>
+        <template shadowrootmode=open shadowrootclonable>Content</template>
       </div>
     </template>
   </div>
@@ -249,7 +271,7 @@ test(() => {
 
 <template id="template-containing-ua-shadow">
   <div class="innerdiv">
-    <template shadowrootmode=open>
+    <template shadowrootmode=open shadowrootclonable>
       <video></video> <!--Assumed to have UA shadow root-->
     </template>
   </div>

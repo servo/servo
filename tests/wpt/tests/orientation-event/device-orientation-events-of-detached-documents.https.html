@@ -1,5 +1,9 @@
 <!DOCTYPE html>
+<html>
+<head>
 <title>Device sensor event listeners for `window` of detached documents.</title>
+</head>
+<body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -7,7 +11,7 @@
 <script src="resources/orientation-event-helpers.js"></script>
 <script>
 
-sensor_test(async t => {
+promise_test(async t => {
   const childFrame = document.createElement('iframe');
   childFrame.src = "/common/blank.html";
   document.body.append(childFrame);
@@ -17,6 +21,15 @@ sensor_test(async t => {
 
   const contentWindow = childFrame.contentWindow;
   const contentDocument = childFrame.contentDocument;
+
+  await test_driver.set_permission({ name: 'accelerometer' }, 'granted', contentWindow);
+  await test_driver.set_permission({ name: 'gyroscope' }, 'granted', contentWindow);
+  await test_driver.set_permission({ name: 'magnetometer' }, 'granted', contentWindow);
+
+  assert_equals(await contentWindow.DeviceOrientationEvent.requestPermission(),
+                'granted');
+  assert_equals(await contentWindow.DeviceMotionEvent.requestPermission(),
+                'granted');
 
   document.body.remove(childFrame);
 
@@ -31,3 +44,5 @@ sensor_test(async t => {
 }, 'Adding an event listener on the window of a detached document does not crash.');
 
 </script>
+</body>
+</html>

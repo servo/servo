@@ -3,7 +3,6 @@
 <link rel="help" href="https://drafts.csswg.org/css-anchor-1/#fallback-rule">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 <style>
   body { margin: 0; }
 </style>
@@ -22,10 +21,6 @@
 </div>
 
 <script>
-  setup(() => {
-    polyfill_declarative_shadow_dom(host);
-  });
-
   test(() => {
     assert_equals(host.offsetLeft, 0);
   }, "#host is initially left:auto");

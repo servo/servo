@@ -7,24 +7,21 @@
 <script>
 'use strict';
 
-sensor_test(async (t, sensorProvider) => {
-  const orientationData1 = generateOrientationData(1.1, null, null, false);
-  const orientationData2 = generateOrientationData(null, 2.2, null, false);
-  const orientationData3 = generateOrientationData(null, null, 3.3, false);
-  // The all null event is last because DeviceSingleWindowEventController
-  // will stop updating the sensor when it sees a null event.
-  const orientationData4 = generateOrientationData(null, null, null, false);
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientation');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors({disabledSensors: ['absolute-orientation', 'relative-orientation']});
 
-  setMockOrientationData(sensorProvider, orientationData1);
-  await waitForEvent(getExpectedOrientationEvent(orientationData1));
+  const orientationData1 = generateOrientationData(1.1, 2.2, 3.3, false);
+  // Currently it is not possible to set individual values to null because the
+  // parsing algorithms used by
+  // https://w3c.github.io/sensors/#update-virtual-sensor-reading-command
+  // always expect numbers.
+  const orientationData2 = generateOrientationData(null, null, null, false);
 
-  setMockOrientationData(sensorProvider, orientationData2);
+  // An example how setting relative-orientation sensor as disabled will output
+  // null values. Even if we try to set non null values to sensor.
+  await helper.setData(orientationData1);
   await waitForEvent(getExpectedOrientationEvent(orientationData2));
-
-  setMockOrientationData(sensorProvider, orientationData3);
-  await waitForEvent(getExpectedOrientationEvent(orientationData3));
-
-  setMockOrientationData(sensorProvider, orientationData4);
-  await waitForEvent(getExpectedOrientationEvent(orientationData4));
 }, 'Tests using null values for some of the event properties.');
 </script>

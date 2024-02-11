@@ -147,7 +147,8 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     # Pass the --headless=new flag to Chrome if WPT's own --headless flag was
     # set. '--headless' should always mean the new headless mode, as the old
     # headless mode is not used anyway.
-    if kwargs["headless"] and "--headless=new" not in chrome_options["args"]:
+    if kwargs["headless"] and ("--headless=new" not in chrome_options["args"] and
+                               "--headless" not in chrome_options["args"]):
         chrome_options["args"].append("--headless=new")
 
     if test_type == "wdspec":

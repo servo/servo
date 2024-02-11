@@ -7,19 +7,24 @@
 <script>
 'use strict';
 
-sensor_test(async (t, sensorProvider) => {
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientation');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
   const orientationData = generateOrientationData(1.1, 2.2, 3.3, false);
-  setMockOrientationData(sensorProvider, orientationData);
-  return waitForEvent(getExpectedOrientationEvent(orientationData));
+  await helper.setData(orientationData);
+  await waitForEvent(getExpectedOrientationEvent(orientationData));
 }, 'Tests basic operation of deviceorientation event using mock data.');
 
-sensor_test(async (t, sensorProvider) => {
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientation');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors({disabledSensors: ['relative-orientation']});
+
   const orientationData = generateOrientationData(null, null, null, false);
   const watcher = new EventWatcher(t, window, ['deviceorientation']);
 
-  // Make the orientation sensor unavailable
-  sensorProvider.setGetSensorShouldFail('AbsoluteOrientationEulerAngles', true);
-  sensorProvider.setGetSensorShouldFail('RelativeOrientationEulerAngles', true);
   const event = await watcher.wait_for('deviceorientation');
   assert_equals(event.type, 'deviceorientation', 'type is set to \"deviceorientation\"');
   assert_true(event instanceof DeviceOrientationEvent, 'event is DeviceOrientationEvent');

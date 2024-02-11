@@ -7,19 +7,31 @@
 <script>
 'use strict';
 
-sensor_test(async (t, sensorProvider) => {
-  const orientationData = generateOrientationData(1.1, 2.2, 3.3, false);
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientation');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
+  const orientationData1 = generateOrientationData(1.1, 2.2, 3.3, false);
+  const orientationData2 = generateOrientationData(11.1, 22.2, 33.3, false);
 
   let firstListener = null;
   let secondListener = null;
   let firstEventCount = 0;
   let firstPromise = new Promise(resolve => {
-    firstListener = (event) => {
+    firstListener = async (event) => {
       assert_true(event instanceof DeviceOrientationEvent, 'event is DeviceOrientationEvent');
       assert_equals(event.type, 'deviceorientation', 'event.type is devicemotion');
       assert_true(event.target instanceof Window, 'event is fired on the window object');
-      assertEventEquals(event, getExpectedOrientationEvent(orientationData));
+      assertEventEquals(event, getExpectedOrientationEvent(orientationData1));
       window.removeEventListener('deviceorientation', firstListener);
+      // Some implementations (e.g. Chromium) work without the call below
+      // because they disconnect from the virtual sensor in the
+      // removeEventListener() call above before connecting again, and in this
+      // case the same orientation data is still considered a significant
+      // change. This is an implementation detail though, so we explicitly pass
+      // different data here.
+      await helper.setData(orientationData2);
       if (++firstEventCount == 1) {
         window.addEventListener('deviceorientation', secondListener);
       }
@@ -30,14 +42,14 @@ sensor_test(async (t, sensorProvider) => {
   let secondEventCount = 0;
   let secondPromise = new Promise(resolve => {
     secondListener = (event) => {
-      assertEventEquals(event, getExpectedOrientationEvent(orientationData));
+      assertEventEquals(event, getExpectedOrientationEvent(orientationData2));
       window.removeEventListener('deviceorientation', secondListener);
       ++secondEventCount;
       resolve(event);
     };
   });
 
-  setMockOrientationData(sensorProvider, orientationData);
+  await helper.setData(orientationData1);
   window.addEventListener('deviceorientation', firstListener);
   await firstPromise;
   await secondPromise;

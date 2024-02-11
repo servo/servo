@@ -90,9 +90,9 @@ class TestharnessResultConverter:
         """Convert a JSON result into a (TestResult, [SubtestResult]) tuple"""
         result_url, status, message, stack, subtest_results = result
         assert result_url == test.url, (f"Got results from {result_url}, expected {test.url}")
-        harness_result = test.result_cls(self.harness_codes[status], message, extra=extra, stack=stack)
+        harness_result = test.make_result(self.harness_codes[status], message, extra=extra, stack=stack)
         return (harness_result,
-                [test.subtest_result_cls(st_name, self.test_codes[st_status], st_message, st_stack)
+                [test.make_subtest_result(st_name, self.test_codes[st_status], st_message, st_stack)
                  for st_name, st_status, st_message, st_stack in subtest_results])
 
 
@@ -152,7 +152,7 @@ def get_pages(ranges_value, total_pages):
 def reftest_result_converter(self, test, result):
     extra = result.get("extra", {})
     _ensure_hash_in_reftest_screenshots(extra)
-    return (test.result_cls(
+    return (test.make_result(
         result["status"],
         result["message"],
         extra=extra,
@@ -165,14 +165,14 @@ def pytest_result_converter(self, test, data):
     if subtest_data is None:
         subtest_data = []
 
-    harness_result = test.result_cls(*harness_data)
-    subtest_results = [test.subtest_result_cls(*item) for item in subtest_data]
+    harness_result = test.make_result(*harness_data)
+    subtest_results = [test.make_subtest_result(*item) for item in subtest_data]
 
     return (harness_result, subtest_results)
 
 
 def crashtest_result_converter(self, test, result):
-    return test.result_cls(**result), []
+    return test.make_result(**result), []
 
 
 class ExecutorException(Exception):
@@ -352,7 +352,7 @@ class TestExecutor:
         if message:
             message += "\n"
         message += exception_string
-        return test.result_cls(status, message), []
+        return test.make_result(status, message), []
 
     def wait(self):
         return self.protocol.base.wait()
@@ -648,7 +648,7 @@ class WdspecExecutor(TestExecutor):
         if success:
             return self.convert_result(test, data)
 
-        return (test.result_cls(*data), [])
+        return (test.make_result(*data), [])
 
     def do_wdspec(self, path, timeout):
         session_config = {"host": self.browser.host,

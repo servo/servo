@@ -22,7 +22,7 @@ function mySurroundContents(range, newParent) {
     var node = range.commonAncestorContainer;
     var stop = nextNodeDescendants(node);
     for (; node != stop; node = nextNode(node)) {
-      if (node.nodeType != Node.TEXT_NODE
+      if (!isText(node)
       && isPartiallyContained(node, range)) {
         return "INVALID_STATE_ERR";
       }

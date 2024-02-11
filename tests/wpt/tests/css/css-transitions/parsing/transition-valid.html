@@ -13,17 +13,17 @@
 <script>
 // <single-transition> = [ none | <single-transition-property> ] ||
 // <time> || <easing-function> || <time>
-test_valid_value("transition", "1s", ["1s", "all 1s ease 0s"]);
-test_valid_value("transition", "cubic-bezier(0, -2, 1, 3)", ["cubic-bezier(0, -2, 1, 3)", "all 0s cubic-bezier(0, -2, 1, 3) 0s"]);
-test_valid_value("transition", "1s -3s", ["1s -3s", "all 1s ease -3s"]);
-test_valid_value("transition", "none", ["none", "none 0s ease 0s"]);
-test_valid_value("transition", "top", ["top", "top 0s ease 0s"]);
+test_valid_value("transition", "1s");
+test_valid_value("transition", "cubic-bezier(0, -2, 1, 3)");
+test_valid_value("transition", "1s -3s");
+test_valid_value("transition", "none");
+test_valid_value("transition", "top");
 
 test_valid_value("transition", "1s -3s cubic-bezier(0, -2, 1, 3) top", "top 1s cubic-bezier(0, -2, 1, 3) -3s");
-test_valid_value("transition", "1s -3s, cubic-bezier(0, -2, 1, 3) top", ["1s -3s, top cubic-bezier(0, -2, 1, 3)", "all 1s ease -3s, top 0s cubic-bezier(0, -2, 1, 3) 0s"]);
+test_valid_value("transition", "1s -3s, cubic-bezier(0, -2, 1, 3) top", "1s -3s, top cubic-bezier(0, -2, 1, 3)");
 
-test_valid_value("transition", "all", ["all", "all 0s ease 0s"]);
-test_valid_value("transition", "all 1s", ["1s", "all 1s ease 0s"]);
+test_valid_value("transition", "all");
+test_valid_value("transition", "all 1s", "1s");
 
 test_valid_value("transition", "initial", "initial");
 
