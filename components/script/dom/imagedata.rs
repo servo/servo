@@ -11,14 +11,14 @@ use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
-use js::typedarray::{ClampedU8, Uint8ClampedArray};
+use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
 
 use super::bindings::typedarrays::HeapTypedArray;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::typedarrays::{create_typed_array, create_typed_array_with_length};
+use crate::dom::bindings::typedarrays::create_typed_array_with_length;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
@@ -68,6 +68,10 @@ impl ImageData {
     ) -> Fallible<DomRoot<ImageData>> {
         // checking jsobject type
         let cx = GlobalScope::get_cx();
+        let heap_typed_array = HeapTypedArray::new_initialized(Some(jsobject));
+        let array = heap_typed_array.acquire_data(cx).map_err(|_| {
+            Error::Type("Argument to Image data is not an Uint8ClampedArray".to_owned())
+        })?;
 
         let byte_len = data.len() as u32;
         if byte_len == 0 || byte_len % 4 != 0 {
@@ -88,10 +92,8 @@ impl ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,
-            data: HeapTypedArray::default(),
+            data: heap_typed_array,
         });
-
-        let _ = (*imagedata).data.set_data(cx, data);
 
         Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
@@ -111,7 +113,7 @@ impl ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,
-            data: HeapTypedArray::default(),
+            data: HeapTypedArray::new_initialized(None),
         });
 
         let len = width * height * 4;
@@ -121,7 +123,6 @@ impl ImageData {
         let typed_array =
             create_typed_array_with_length::<ClampedU8>(cx, len as usize, array.handle_mut())
                 .expect("Creating ClampedU8 array from length should never fail");
-
         let _ = (*imagedata).data.set_data(cx, typed_array.as_slice());
 
         Ok(reflect_dom_object_with_proto(imagedata, global, proto))
@@ -155,7 +156,8 @@ impl ImageData {
     #[allow(unsafe_code)]
     pub unsafe fn as_slice(&self) -> &[u8] {
         assert!(!self.data.is_initialized());
-        let internal_data = self.data
+        let internal_data = self
+            .data
             .get_internal()
             .expect("Failed to get Data from ImageData.");
         // NOTE(nox): This is just as unsafe as `as_slice` itself even though we

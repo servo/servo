@@ -31,6 +31,16 @@ where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
+    pub fn new_initialized(js_object: Option<*mut JSObject>) -> HeapTypedArray<T> {
+        match js_object {
+            Some(inner_js_object) => HeapTypedArray {
+                internal: Heap::boxed(inner_js_object),
+                phantom: PhantomData::default(),
+            },
+            None => Self::default(),
+        }
+    }
+
     pub fn default() -> HeapTypedArray<T> {
         HeapTypedArray {
             internal: Box::new(Heap::default()),
