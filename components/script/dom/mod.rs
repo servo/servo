@@ -274,6 +274,7 @@ pub mod cssstylevalue;
 pub mod csssupportsrule;
 pub mod customelementregistry;
 pub mod customevent;
+pub mod datatransferitem;
 pub mod dedicatedworkerglobalscope;
 pub mod dissimilaroriginlocation;
 pub mod dissimilaroriginwindow;
