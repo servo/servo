@@ -11,7 +11,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
-use std::time::Instant;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use std::{mem, ptr};
 
 use content_security_policy::CspList;
@@ -3172,9 +3172,11 @@ impl GlobalScope {
                 if let Some(window) = global.downcast::<Window>() {
                     let gamepad_list = window.Navigator().GetGamepads();
                     if let Some(gamepad) = gamepad_list.IndexedGetter(index as u32) {
-                        let current_time = time::get_time();
-                        let now = (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as f64;
-                        gamepad.update_timestamp(now);
+                        let current_time = SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_millis() as f64;
+                        gamepad.update_timestamp(current_time);
 
                         match update_type {
                             GamepadUpdateType::Axis(index, value) => {
