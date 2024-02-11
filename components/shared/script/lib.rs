@@ -1338,10 +1338,19 @@ impl SerializedImageData {
 pub struct GamepadIndex(pub usize);
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// The minimum and maximum values that can be reported for axis or button input from this gamepad
+pub struct GamepadInputBounds {
+    /// Minimum and maximum axis values
+    pub axis_bounds: (f64, f64),
+    /// Minimum and maximum button values
+    pub button_bounds: (f64, f64),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 /// The type of Gamepad event
 pub enum GamepadEvent {
     /// A new gamepad has been connected
-    Connected(GamepadIndex, String),
+    Connected(GamepadIndex, String, GamepadInputBounds),
     /// An existing gamepad has been disconnected
     Disconnected(GamepadIndex),
     /// An existing gamepad has been updated
@@ -1352,7 +1361,7 @@ pub enum GamepadEvent {
 /// The type of Gamepad input being updated
 pub enum GamepadUpdateType {
     /// Axis index and input value
-    Axis(usize, f32),
+    Axis(usize, f64),
     /// Button index and input value
-    Button(usize, f32),
+    Button(usize, f64),
 }

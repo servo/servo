@@ -3106,8 +3106,8 @@ impl GlobalScope {
 
     pub fn handle_gamepad_event(&self, gamepad_event: script_traits::GamepadEvent) {
         match gamepad_event {
-            script_traits::GamepadEvent::Connected(index, name) => {
-                self.handle_gamepad_connect(index.0, name);
+            script_traits::GamepadEvent::Connected(index, name, bounds) => {
+                self.handle_gamepad_connect(index.0, name, bounds.axis_bounds, bounds.button_bounds);
             },
             script_traits::GamepadEvent::Disconnected(index) => {
                 self.handle_gamepad_disconnect(index.0);
@@ -3119,14 +3119,14 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
-    pub fn handle_gamepad_connect(&self, index: usize, name: String) {
+    pub fn handle_gamepad_connect(&self, index: usize, name: String, axis_bounds: (f64, f64), button_bounds: (f64, f64)) {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
         let this = Trusted::new(&*self);
         self.gamepad_task_source().queue(
             task!(gamepad_connected: move || {
                 let global = this.root();
-                let gamepad = Gamepad::new(&global, index as u32, name);
+                let gamepad = Gamepad::new(&global, index as u32, name, axis_bounds, button_bounds);
 
                 // TODO: 3.4 If navigator.[[hasGamepadGesture]] is true:
                 // TODO: 3.4.1 Set gamepad.[[exposed]] to true.
@@ -3152,16 +3152,6 @@ impl GlobalScope {
             task!(gamepad_disconnected: move || {
                 let global = this.root();
                 if let Some(window) = global.downcast::<Window>() {
-                    // 2.1 Set gamepad.[[connected]] to false.
-                    // 2.2 Let document be gamepad's relevant global object's associated Document;
-                    //     otherwise null.
-                    // 2.3 If gamepad.[[exposed]] is true and document is not null and is fully active,
-                    //     then fire an event named gamepaddisconnected at gamepad's relevant global object
-                    //     using GamepadEvent with its gamepad attribute initialized to gamepad.
-                    // 2.4 Let navigator be gamepad's relevant global object's Navigator object.
-                    // TODO: 2.5 Set navigator.[[gamepads]][gamepad.index] to null.
-                    // 2.6 While navigator.[[gamepads]] is not empty and the last item of \
-                    //     navigator.[[gamepads]] is null, remove the last item of navigator.[[gamepads]].
                     let gamepad_list = window.Navigator().GetGamepads();
                     if gamepad_list.Length() > 0 {
                         gamepad_list.remove_gamepad(index);
@@ -3182,21 +3172,18 @@ impl GlobalScope {
                 if let Some(window) = global.downcast::<Window>() {
                     let gamepad_list = window.Navigator().GetGamepads();
                     if let Some(gamepad) = gamepad_list.IndexedGetter(index as u32) {
-                        // 1. Let now be the current high resolution time.
                         let current_time = time::get_time();
                         let now = (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as f64;
-                        // 2. Set gamepad.[[timestamp]] to now.
                         gamepad.update_timestamp(now);
+
                         match update_type {
                             GamepadUpdateType::Axis(index, value) => {
-                                // 3. Run the steps to map and normalize axes for gamepad.
-                                gamepad.update_axis(index, value);
+                                gamepad.map_and_normalize_axes(index, value);
                             },
                             GamepadUpdateType::Button(index, value) => {
-                                // 4. Run the steps to map and normalize buttons for gamepad.
                                 let pressed = value == 1.0;
                                 let touched = value > 0.0;
-                                gamepad.update_button(index, pressed, touched, value);
+                                gamepad.map_and_normalize_buttons(index, pressed, touched, value);
                             }
                         };
                     }

@@ -21,7 +21,7 @@ use servo::embedder_traits::{
     PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
 };
 use servo::msg::constellation_msg::{TopLevelBrowsingContextId as WebViewId, TraversalDirection};
-use servo::script_traits::{GamepadEvent, GamepadIndex, GamepadUpdateType, TouchEventType};
+use servo::script_traits::{GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadUpdateType, TouchEventType};
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
@@ -151,7 +151,7 @@ where
                             _ => 17, // Other buttons do not map to "standard" gamepad mapping and are ignored
                         };
                         if mapped_index < 17 {
-                            let update_type = GamepadUpdateType::Button(mapped_index, value);
+                            let update_type = GamepadUpdateType::Button(mapped_index, value as f64);
                             let event = GamepadEvent::Updated(index, update_type);
                             self.event_queue.push(EmbedderEvent::Gamepad(event));
                         }
@@ -172,14 +172,18 @@ where
                                 1 | 3 => -value,
                                 _ => 0., // Should not reach here
                             };
-                            let update_type = GamepadUpdateType::Axis(mapped_axis, axis_value);
+                            let update_type = GamepadUpdateType::Axis(mapped_axis, axis_value as f64);
                             let event = GamepadEvent::Updated(index, update_type);
                             self.event_queue.push(EmbedderEvent::Gamepad(event));
                         }
                     },
                     EventType::Connected => {
                         let name = String::from(name);
-                        let event = GamepadEvent::Connected(index, name);
+                        let bounds = GamepadInputBounds {
+                            axis_bounds: (-1.0, 1.0),
+                            button_bounds: (0.0, 1.0),
+                        };
+                        let event = GamepadEvent::Connected(index, name, bounds);
                         self.event_queue.push(EmbedderEvent::Gamepad(event));
                     },
                     EventType::Disconnected => {
