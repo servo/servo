@@ -54,7 +54,7 @@ impl ImageData {
         }
     }
 
-     fn new_with_jsobject(
+    fn new_with_jsobject(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u32,
