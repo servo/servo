@@ -13,6 +13,7 @@
 <input id="size20" size="20">
 <input id="size21" size="21">
 <input id="computed" style="border:none; padding:0;" size="19">
+<input id="computedNone" style="display:none" size="17">
 
 <script>
 test(() => {
@@ -34,6 +35,11 @@ test(() => {
   const computedString = getComputedStyle(computed).width;
   assert_equals(computed.offsetWidth,
       parseInt(computedString.substring(0, computedString.length - 2)));
-}, 'Size attribute value affects computed style');
+}, 'Size attribute value affects layout-dependent computed style');
+
+test(() => {
+  const computedString = getComputedStyle(computedNone).width;
+  assert_equals(computedString, 'auto');
+}, 'Size attribute value is not a presentational hint');
 </script>
 

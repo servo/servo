@@ -61,7 +61,7 @@ async function runComponentAdLoadingTest(test, uuid, numComponentAdsInInterestGr
       `// "status" is passed to the beacon URL, to be verified by waitForObservedRequests().
        let status = "ok";
        const componentAds = window.fence.getNestedConfigs()
-       if (componentAds.length != 20)
+       if (componentAds.length != 40)
          status = "unexpected getNestedConfigs() length";
        for (let i of ${JSON.stringify(componentAdsToLoad)}) {
          let fencedFrame = document.createElement("fencedframe");
@@ -72,8 +72,7 @@ async function runComponentAdLoadingTest(test, uuid, numComponentAdsInInterestGr
 
        window.fence.reportEvent({eventType: "beacon",
                                  eventData: status,
-                                 destination: ["buyer"]});`
-      );
+                                 destination: ["buyer"]});`);
 
   let bid = {bid:1, render: renderURL};
   if (componentAdsInBid) {
@@ -141,13 +140,11 @@ async function runComponentAdLoadingTest(test, uuid, numComponentAdsInInterestGr
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
 
-  const renderURL = createRenderURL(
-    uuid,
-    `let status = "ok";
+  const renderURL = createRenderURL(uuid, `let status = "ok";
      const nestedConfigsLength = window.fence.getNestedConfigs().length
-     // "getNestedConfigs()" should return a list of 20 configs, to avoid leaking
+     // "getNestedConfigs()" should return a list of 40 configs, to avoid leaking
      // whether there were any component URLs to the page.
-     if (nestedConfigsLength != 20)
+     if (nestedConfigsLength != 40)
        status = "unexpected getNestedConfigs() length: " + nestedConfigsLength;
      window.fence.reportEvent({eventType: "beacon",
                                eventData: status,
@@ -293,6 +290,18 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
+  const intsUpTo39 = [];
+  for (let i = 0; i < 40; ++i) {
+    intsUpTo39.push(i);
+  }
+  await runComponentAdLoadingTest(
+      test, uuid, /*numComponentAdsInInterestGroup=*/ 40,
+      /*componentAdsInBid=*/ intsUpTo39,
+      /*componentAdsToLoad=*/ intsUpTo39);
+}, '40 of 40 component ads in bid and then shown.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
   await runComponentAdLoadingTest(test, uuid, /*numComponentAdsInInterestGroup=*/20,
                                   /*componentAdsInBid=*/[1, 2, 3, 4, 5, 6],
                                   /*componentAdsToLoad=*/[1, 3]);
@@ -330,7 +339,7 @@ subsetTest(promise_test, async test => {
 
   let adComponents = [];
   let adComponentsList = [];
-  for (let i = 0; i < 21; ++i) {
+  for (let i = 0; i < 41; ++i) {
     let componentRenderURL = createComponentAdTrackerURL(uuid, i);
     adComponents.push({renderURL: componentRenderURL});
     adComponentsList.push(componentRenderURL);
@@ -348,7 +357,7 @@ subsetTest(promise_test, async test => {
                                  adComponents: ${JSON.stringify(adComponentsList)}};`}),
             ads: [{renderURL: renderURL}],
             adComponents: adComponents}});
-}, '21 component ads not allowed in bid.');
+}, '41 component ads not allowed in bid.');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
@@ -356,7 +365,7 @@ subsetTest(promise_test, async test => {
 
   let adComponents = [];
   let adComponentsList = [];
-  for (let i = 0; i < 21; ++i) {
+  for (let i = 0; i < 41; ++i) {
     let componentRenderURL = createComponentAdTrackerURL(uuid, i);
     adComponents.push({renderURL: componentRenderURL});
     adComponentsList.push(adComponents[0].renderURL);
@@ -374,7 +383,7 @@ subsetTest(promise_test, async test => {
                          adComponents: ${JSON.stringify(adComponentsList)}};`}),
             ads: [{renderURL: renderURL}],
             adComponents: adComponents}});
-}, 'Same component ad not allowed 21 times in bid.');
+}, 'Same component ad not allowed 41 times in bid.');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);

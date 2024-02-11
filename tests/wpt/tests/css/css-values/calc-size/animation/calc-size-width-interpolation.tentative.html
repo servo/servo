@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>width: calc-size() animations</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/626#issuecomment-1800254442">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../support/interpolation-testcommon.js"></script>
+
+<style>
+.parent {
+  display: block;
+  width: 200px;
+}
+.target {
+  display: block;
+}
+.target::before {
+  display: block;
+  content: "";
+  width: 100px;
+}
+</style>
+
+<body>
+
+<script>
+  test_interpolation({
+    property: 'width',
+    from: neutralKeyframe,
+    to: 'calc-size(auto, size * 2)',
+  }, [
+    { at: -0.25, expect: '150px' },
+    { at: 0, expect: '200px' },
+    { at: 0.25, expect: 'calc-size(auto, size * 1.25)' },
+    { at: 0.5, expect: 'calc-size(auto, size * 1.5)' },
+    { at: 0.75, expect: 'calc-size(auto, size * 1.75)' },
+    { at: 1, expect: 'calc-size(auto, size * 2)' },
+    { at: 1.25, expect: 'calc-size(auto, size * 2.25)' },
+  ]);
+
+  test_interpolation({
+    property: 'width',
+    from: 'calc-size(min-content, 0px)',
+    to: 'calc-size(min-content, size)',
+  }, [
+    { at: -0.25, expect: '0' },
+    { at: 0, expect: '0' },
+    { at: 0.25, expect: '25px' },
+    { at: 0.5, expect: '50px' },
+    { at: 0.75, expect: '75px' },
+    { at: 1, expect: '100px' },
+    { at: 1.25, expect: '125px' },
+  ]);
+
+</script>

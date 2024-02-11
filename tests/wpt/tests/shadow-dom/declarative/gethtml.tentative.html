@@ -9,7 +9,7 @@
 <body>
 
 <script>
-function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, declarativeShadowDom, mode, delegatesFocus, serializable) {
+function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, declarativeShadowDom, mode, delegatesFocus, serializable, clonable) {
   const t = test(t => {
     // Create and attach element
     let wrapper;
@@ -27,7 +27,7 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, d
 
     let shadowRoot;
     const isOpen = mode === 'open';
-    let initDict = {mode: mode, delegatesFocus: delegatesFocus};
+    let initDict = {mode: mode, delegatesFocus: delegatesFocus, clonable};
     let expectedSerializable = null;
     switch (serializable) {
       case undefined: expectedSerializable = false; break;
@@ -37,9 +37,10 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, d
     }
     const delegatesAttr = delegatesFocus ? ' shadowrootdelegatesfocus=""' : '';
     const serializableAttr = expectedSerializable ? ' serializable=""' : '';
+    const clonableAttr = clonable ? ' shadowrootclonable=""' : '';
 
     if (allowsShadowDom && declarativeShadowDom) {
-      const html = `<${elementType}><template shadowrootmode=${mode}${delegatesAttr}${serializableAttr}>`;
+      const html = `<${elementType}><template shadowrootmode=${mode}${delegatesAttr}${serializableAttr}${clonableAttr}>`;
       wrapper.setHTMLUnsafe(html);
       if (isOpen) {
         shadowRoot = wrapper.firstElementChild.shadowRoot;
@@ -58,11 +59,12 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, d
     assert_true(!allowsShadowDom || !!shadowRoot);
 
     if (allowsShadowDom) {
-      const correctShadowHtml = `<template shadowrootmode="${mode}"${delegatesAttr}${serializableAttr}><slot></slot></template>`;
+      const correctShadowHtml = `<template shadowrootmode="${mode}"${delegatesAttr}${serializableAttr}${clonableAttr}><slot></slot></template>`;
       const correctHtml = `<${elementType}>${correctShadowHtml}</${elementType}>`;
       assert_equals(shadowRoot.mode,mode);
       assert_equals(shadowRoot.delegatesFocus,delegatesFocus);
       assert_equals(shadowRoot.serializable,expectedSerializable);
+      assert_equals(shadowRoot.clonable,clonable);
       shadowRoot.appendChild(document.createElement('slot'));
       const emptyElement = `<${elementType}></${elementType}>`;
       if (isOpen) {
@@ -91,7 +93,7 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, d
     // ...and that the default for includeShadowRoots is false.
     assert_equals(wrapper.getHTML(),wrapper.innerHTML,'The default for includeShadowRoots should be false');
 
-  }, `${runGetHTMLOnShadowRoot ? 'ShadowRoot' : 'Element'}.getHTML() on <${elementType}>${allowsShadowDom ? `, with ${declarativeShadowDom ? 'declarative' : 'imperative'} shadow, mode=${mode}, delegatesFocus=${delegatesFocus}, serializable=${serializable}.` : ''}`);
+  }, `${runGetHTMLOnShadowRoot ? 'ShadowRoot' : 'Element'}.getHTML() on <${elementType}>${allowsShadowDom ? `, with ${declarativeShadowDom ? 'declarative' : 'imperative'} shadow, mode=${mode}, delegatesFocus=${delegatesFocus}, serializable=${serializable}, clonable=${clonable}.` : ''}`);
 }
 
 function runAllTests() {
@@ -103,9 +105,11 @@ function runAllTests() {
       if (allowsShadowDom) {
         for (const declarativeShadowDom of [false, true]) {
           for (const delegatesFocus of [false, true]) {
-            for (const mode of ['open', 'closed']) {
-              for (const serializable of [undefined, 'false', 'true']) {
-                testElementType(true, elementName, runGetHTMLOnShadowRoot, declarativeShadowDom, mode, delegatesFocus, serializable);
+            for (const clonable of [false, true]) {
+              for (const mode of ['open', 'closed']) {
+                for (const serializable of [undefined, 'false', 'true']) {
+                  testElementType(true, elementName, runGetHTMLOnShadowRoot, declarativeShadowDom, mode, delegatesFocus, serializable, clonable);
+                }
               }
             }
           }

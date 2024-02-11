@@ -9,8 +9,13 @@
 <meta name="assert" content="Use UAX9L1 to determine which space is at the end of the line, taking into account that such spaces, when pre-wrap, must hang.">
 
 <style>
+@font-face {
+    font-family: "Hasubi Mono";
+    src: url("/fonts/hasubi-mono/HasubiMono-Regular.woff2");
+}
+
 div {
-    font-family: monospace;
+    font-family: "Hasubi Mono", monospace;
     border: solid blue;
     font-size: 1.5em;
     white-space: pre-wrap;
@@ -19,10 +24,10 @@ div {
     border-color: orange;
     white-space: pre;
 }
-.w6 { width: 6ch; }
-.w7 { width: 7ch; }
-.w8 { width: 8ch; }
-.w9 { width: 9ch; }
+.w6 { width: 6.01ch; } /* .01 to cover floating point errors */
+.w7 { width: 7.01ch; }
+.w8 { width: 8.01ch; }
+.w9 { width: 9.01ch; }
 
 .blue { background: #aaaaff; }
 .red { background: #ffaaaa; }

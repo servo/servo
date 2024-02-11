@@ -17,7 +17,7 @@ promise_test(async (t) => {
   const response = await nextValueFromServer(key);
   const [length] = response.split(",");
 
-  assert_equals(length, '20', 'There should be 20 nested configurations.');
+  assert_equals(length, '40', 'There should be 40 nested configurations.');
 }, 'getNestedConfigs() created by FLEDGE should return configurations');
 
 for (const resolve_to_config of [true, false]) {
@@ -57,7 +57,7 @@ promise_test(async (t) => {
   const response = await nextValueFromServer(key);
   const [length, first_url] = response.split(",");
 
-  assert_equals(length, '20', 'There should be 20 nested configurations.');
+  assert_equals(length, '40', 'There should be 40 nested configurations.');
 }, 'getNestedConfigs() should work in a same-origin nested iframe');
 
 promise_test(async (t) => {

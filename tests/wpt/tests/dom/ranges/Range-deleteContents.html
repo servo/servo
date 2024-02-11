@@ -72,7 +72,7 @@ function myDeleteContents(range) {
   // offset minus original start offset, and data the empty string, and then
   // terminate these steps"
   if (originalStartNode == originalEndNode
-  && (range.startContainer.nodeType == Node.TEXT_NODE
+  && (isText(range.startContainer)
   || range.startContainer.nodeType == Node.PROCESSING_INSTRUCTION_NODE
   || range.startContainer.nodeType == Node.COMMENT_NODE)) {
     originalStartNode.deleteData(originalStartOffset, originalEndOffset - originalStartOffset);
@@ -126,7 +126,7 @@ function myDeleteContents(range) {
   // replace data with node original start node, offset original start offset,
   // count original start node's length minus original start offset, data the
   // empty start"
-  if (originalStartNode.nodeType == Node.TEXT_NODE
+  if (isText(originalStartNode)
   || originalStartNode.nodeType == Node.PROCESSING_INSTRUCTION_NODE
   || originalStartNode.nodeType == Node.COMMENT_NODE) {
     originalStartNode.deleteData(originalStartOffset, nodeLength(originalStartNode) - originalStartOffset);
@@ -141,7 +141,7 @@ function myDeleteContents(range) {
   // "If original end node is a Text, ProcessingInstruction, or Comment node,
   // replace data with node original end node, offset 0, count original end
   // offset, and data the empty string."
-  if (originalEndNode.nodeType == Node.TEXT_NODE
+  if (isText(originalEndNode)
   || originalEndNode.nodeType == Node.PROCESSING_INSTRUCTION_NODE
   || originalEndNode.nodeType == Node.COMMENT_NODE) {
     originalEndNode.deleteData(0, originalEndOffset);

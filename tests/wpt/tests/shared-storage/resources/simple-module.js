@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+var globalVar = 0;
+
 class TestURLSelectionOperation {
   async run(urls, data) {
     if (data && data.hasOwnProperty('mockResult')) {
@@ -9,6 +11,12 @@ class TestURLSelectionOperation {
     }
 
     return -1;
+  }
+}
+
+class IncrementGlobalVariableAndReturnOriginalValueOperation {
+  async run(urls, data) {
+    return globalVar++;
   }
 }
 
@@ -39,5 +47,7 @@ class VerifyKeyNotFound {
 }
 
 register('test-url-selection-operation', TestURLSelectionOperation);
+register('increment-global-variable-and-return-original-value-operation',
+         IncrementGlobalVariableAndReturnOriginalValueOperation);
 register('verify-key-value', VerifyKeyValue);
 register('verify-key-not-found', VerifyKeyNotFound);

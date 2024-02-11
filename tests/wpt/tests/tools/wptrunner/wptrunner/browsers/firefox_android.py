@@ -49,6 +49,7 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
     return {"adb_binary": kwargs["adb_binary"],
             "webdriver_binary": kwargs["webdriver_binary"],
             "webdriver_args": kwargs["webdriver_args"].copy(),
+            "binary": None,
             "package_name": kwargs["package_name"],
             "device_serial": kwargs["device_serial"],
             "prefs_root": kwargs["prefs_root"],
@@ -145,10 +146,12 @@ def get_environ(chaos_mode_flags, env_extras=None):
 
 class ProfileCreator(FirefoxProfileCreator):
     def __init__(self, logger, prefs_root, config, test_type, extra_prefs,
-                 disable_fission, debug_test, browser_channel, certutil_binary, ca_certificate_path):
+                 disable_fission, debug_test, browser_channel, binary,
+                 package_name, certutil_binary, ca_certificate_path):
+
         super().__init__(logger, prefs_root, config, test_type, extra_prefs,
                          disable_fission, debug_test, browser_channel, None,
-                         certutil_binary, ca_certificate_path)
+                         package_name, certutil_binary, ca_certificate_path)
 
     def _set_required_prefs(self, profile):
         profile.set_preferences({
@@ -225,6 +228,8 @@ class FirefoxAndroidBrowser(Browser):
                                               disable_fission,
                                               debug_test,
                                               browser_channel,
+                                              None,
+                                              package_name,
                                               certutil_binary,
                                               ca_certificate_path)
 
@@ -349,21 +354,21 @@ class FirefoxAndroidWdSpecBrowser(FirefoxWdSpecBrowser):
                  certutil_binary=None, ca_certificate_path=None,
                  disable_fission=False, stackfix_dir=None, leak_check=False,
                  asan=False, chaos_mode_flags=None, config=None,
-                 browser_channel="nightly", headless=None,
-                 package_name="org.mozilla.geckoview.test_runner", device_serial=None,
-                 adb_binary=None, **kwargs):
+                 browser_channel="nightly", headless=None, debug_test=None,
+                 binary=None, package_name="org.mozilla.geckoview.test_runner", device_serial=None,
+                 adb_binary=None, profile_creator_cls=ProfileCreator, **kwargs):
 
-        super().__init__(logger, None, prefs_root, webdriver_binary, webdriver_args,
+        super().__init__(logger, None, package_name, prefs_root, webdriver_binary, webdriver_args,
                          extra_prefs=extra_prefs, debug_info=debug_info, symbols_path=symbols_path,
                          stackwalk_binary=stackwalk_binary, certutil_binary=certutil_binary,
                          ca_certificate_path=ca_certificate_path,
                          disable_fission=disable_fission, stackfix_dir=stackfix_dir,
                          leak_check=leak_check, asan=asan,
                          chaos_mode_flags=chaos_mode_flags, config=config,
-                         browser_channel=browser_channel, headless=headless, **kwargs)
+                         browser_channel=browser_channel, headless=headless,
+                         debug_test=debug_test, profile_creator_cls=profile_creator_cls, **kwargs)
 
         self.config = config
-        self.package_name = package_name
         self.device_serial = device_serial
         # This is just to support the same adb lookup as for other test types
         context = get_app_context("fennec")(adb_path=adb_binary, device_serial=device_serial)

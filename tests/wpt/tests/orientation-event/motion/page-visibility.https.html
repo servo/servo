@@ -10,12 +10,16 @@
 <script>
 'use strict';
 
-sensor_test(async (t, sensorProvider) => {
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'devicemotion');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
   const motionData = generateMotionData(0, 0, 0,
                                         0, 0, 0,
                                         0, 0, 0);
 
-  setMockMotionData(sensorProvider, motionData);
+  await helper.setData(motionData);
   const event = getExpectedMotionEvent(motionData);
   await waitForEvent(event);
 

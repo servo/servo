@@ -7,7 +7,6 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
-<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 <script src="resources/shadow-dom.js"></script>
 <script src="resources/focus-utils.js"></script>
 
@@ -27,7 +26,6 @@
 <script>
 
 promise_test(async () => {
-  polyfill_declarative_shadow_dom(document);
   div1.focus();
   assert_equals(document.activeElement, div1);
 

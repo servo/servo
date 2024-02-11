@@ -7,16 +7,21 @@
 <script>
 'use strict';
 
-sensor_test(async (t, sensorProvider) => {
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientation');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
   const orientationData1 = generateOrientationData(1, 2, 3, false);
-  setMockOrientationData(sensorProvider, orientationData1);
+  await helper.setData(orientationData1);
+
   await Promise.all([
     waitForEvent(getExpectedOrientationEvent(orientationData1)),
     waitForEvent(getExpectedOrientationEvent(orientationData1))
   ]);
 
   const orientationData2 = generateOrientationData(11, 12, 13, false);
-  setMockOrientationData(sensorProvider, orientationData2);
+  await helper.setData(orientationData2);
   await waitForEvent(getExpectedOrientationEvent(orientationData2));
 }, 'Tests using multiple event handlers for the Device Orientation API.');
 </script>

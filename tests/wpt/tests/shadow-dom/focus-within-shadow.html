@@ -4,7 +4,6 @@
 <link rel="help" href="https://crbug.com/1300584">
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
-<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 
 <div id=host>
   <template shadowrootmode=open>
@@ -15,9 +14,6 @@
 
 <script>
   const host = document.getElementById('host');
-  setup(() => {
-    polyfill_declarative_shadow_dom(host);
-  });
   test(() => {
     const shadowButton = host.shadowRoot.querySelector('button');
     shadowButton.focus();

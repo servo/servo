@@ -3,6 +3,7 @@ from tests.support.sync import AsyncPoll
 
 from webdriver.bidi.modules.script import RealmTarget
 from webdriver.error import TimeoutException
+from ... import any_string, recursive_compare
 from .. import create_sandbox
 
 
@@ -220,3 +221,145 @@ async def test_script_when_realm_is_created(
         )
 
     assert result == {"type": "number", "value": 3}
+
+
+async def test_dedicated_worker(
+    wait_for_future_safe,
+    bidi_session,
+    subscribe_events,
+    top_context,
+    inline,
+    event_loop,
+):
+    await subscribe_events(events=[REALM_CREATED_EVENT])
+
+    window_realm = None
+    worker_realm = event_loop.create_future()
+
+    async def on_event(method, data):
+        if data["type"] == "dedicated-worker":
+            if worker_realm.done():
+                raise "More than one dedicated worker"
+            else:
+                worker_realm.set_result(data)
+        elif data["type"] == "window":
+            nonlocal window_realm
+            window_realm = data
+
+    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+
+    worker_url = inline("while(true){}", doctype="js")
+    url = inline(f"<script>const worker = new Worker('{worker_url}');</script>")
+    await bidi_session.browsing_context.navigate(
+        url=url, context=top_context["context"], wait="complete"
+    )
+
+    realm = await wait_for_future_safe(worker_realm)
+    remove_listener()
+
+    recursive_compare(
+        {
+            "type": "dedicated-worker",
+            "realm": any_string,
+            "origin": worker_url,
+            "owners": [window_realm["realm"]],
+        },
+        realm,
+    )
+
+
+async def test_shared_worker(
+    wait_for_future_safe,
+    bidi_session,
+    subscribe_events,
+    top_context,
+    inline,
+    event_loop,
+):
+    await subscribe_events(events=[REALM_CREATED_EVENT])
+
+    window_realm = None
+    worker_realm = event_loop.create_future()
+
+    async def on_event(method, data):
+        if data["type"] == "shared-worker":
+            if worker_realm.done():
+                raise "More than one shared worker"
+            else:
+                worker_realm.set_result(data)
+        elif data["type"] == "window":
+            nonlocal window_realm
+            window_realm = data
+
+    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+
+    worker_url = inline("while(true){}", doctype="js")
+    url = inline(
+        f"""<script>
+        const worker = new SharedWorker('{worker_url}');
+    </script>"""
+    )
+    await bidi_session.browsing_context.navigate(
+        url=url, context=top_context["context"], wait="complete"
+    )
+
+    realm = await wait_for_future_safe(worker_realm)
+    remove_listener()
+
+    recursive_compare(
+        {
+            "type": "shared-worker",
+            "realm": any_string,
+            "origin": worker_url,
+        },
+        realm,
+    )
+
+
+async def test_service_worker(
+    wait_for_future_safe,
+    bidi_session,
+    subscribe_events,
+    top_context,
+    inline,
+    event_loop,
+):
+    await subscribe_events(events=[REALM_CREATED_EVENT])
+
+    window_realm = None
+    worker_realm = event_loop.create_future()
+
+    async def on_event(method, data):
+        if data["type"] == "service-worker":
+            if worker_realm.done():
+                raise "More than one service worker"
+            else:
+                worker_realm.set_result(data)
+        elif data["type"] == "window":
+            nonlocal window_realm
+            window_realm = data
+
+    remove_listener = bidi_session.add_event_listener(REALM_CREATED_EVENT, on_event)
+
+    worker_url = inline("while(true){}", doctype="js")
+    url = inline(
+        f"""<script>
+        navigator.serviceWorker.register('{worker_url}');
+        navigator.serviceWorker.startMessages();
+    </script>"""
+    )
+    await bidi_session.browsing_context.navigate(
+        url=url, context=top_context["context"], wait="complete"
+    )
+
+    realm = await wait_for_future_safe(worker_realm)
+    remove_listener()
+
+    recursive_compare(
+        {
+            "type": "service-worker",
+            "realm": any_string,
+            "origin": worker_url,
+        },
+        realm,
+    )

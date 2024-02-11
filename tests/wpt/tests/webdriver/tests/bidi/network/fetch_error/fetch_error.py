@@ -66,6 +66,26 @@ async def test_subscribe_status(
 
 
 @pytest.mark.asyncio
+async def test_aborted_request(
+    wait_for_event,
+    wait_for_future_safe,
+    setup_network_test,
+    url,
+    fetch,
+):
+    network_events = await setup_network_test(events=[FETCH_ERROR_EVENT])
+    events = network_events[FETCH_ERROR_EVENT]
+
+    # Prepare a slow url
+    slow_url = url(
+        "/webdriver/tests/bidi/browsing_context/support/empty.txt?pipe=trickle(d10)"
+    )
+    on_fetch_error = wait_for_event(FETCH_ERROR_EVENT)
+    asyncio.ensure_future(fetch(PAGE_INVALID_URL, timeout_in_seconds=0))
+    fetch_error_event = await wait_for_future_safe(on_fetch_error)
+
+
+@pytest.mark.asyncio
 async def test_iframe_load(
     bidi_session,
     top_context,
@@ -140,7 +160,7 @@ async def test_navigation_id(
         ("GET", False),
         ("HEAD", False),
         ("POST", False),
-        ("OPTIONS", False),
+        ("OPTIONS", True),
         ("DELETE", True),
         ("PATCH", True),
         ("PUT", True),
@@ -148,6 +168,7 @@ async def test_navigation_id(
 )
 @pytest.mark.asyncio
 async def test_request_method(
+    bidi_session,
     wait_for_event,
     wait_for_future_safe,
     fetch,
@@ -158,23 +179,30 @@ async def test_request_method(
     network_events = await setup_network_test(events=[FETCH_ERROR_EVENT])
     events = network_events[FETCH_ERROR_EVENT]
 
-    on_fetch_error = wait_for_event(FETCH_ERROR_EVENT)
     asyncio.ensure_future(fetch(PAGE_INVALID_URL, method=method))
-    await wait_for_future_safe(on_fetch_error)
 
-    assert len(events) == 1
-
-    # Requests which might update the server will fail on the CORS preflight
+    # Requests which might update the server will also fail the CORS preflight
     # request which uses the OPTIONS method.
-    if has_preflight:
-        method = "OPTIONS"
+    expected_events = 2 if has_preflight else 1
 
-    expected_request = {"method": method, "url": PAGE_INVALID_URL}
-    assert_fetch_error_event(
-        events[0],
-        expected_request=expected_request,
-        redirect_count=0,
-    )
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= expected_events)
+    assert len(events) == expected_events
+
+    # TODO: At the moment the event order for preflight requests differs between
+    # Chrome and Firefox so we cannot assume the order of fetchError events.
+    # See https://bugzilla.mozilla.org/show_bug.cgi?id=1879402.
+
+    # Check that fetch_error events have the expected methods.
+    assert method in [e["request"]["method"] for e in events]
+    if has_preflight:
+        assert "OPTIONS" in [e["request"]["method"] for e in events]
+
+    for event in events:
+        assert_fetch_error_event(
+            event,
+            expected_request={"url": PAGE_INVALID_URL},
+        )
 
 
 @pytest.mark.asyncio

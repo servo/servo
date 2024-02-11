@@ -224,7 +224,15 @@ async def test_subscribe_to_one_context(
     remove_listener()
 
 
-async def test_new_user_context(bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, create_user_context):
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+async def test_new_user_context(
+    bidi_session,
+    wait_for_event,
+    wait_for_future_safe,
+    subscribe_events,
+    create_user_context,
+    type_hint,
+):
     events = []
 
     async def on_event(method, data):
@@ -238,7 +246,9 @@ async def test_new_user_context(bidi_session, wait_for_event, wait_for_future_sa
     assert len(events) == 0
 
     on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
-    context = await bidi_session.browsing_context.create(type_hint="tab", user_context=user_context)
+    context = await bidi_session.browsing_context.create(
+        type_hint=type_hint, user_context=user_context
+    )
     context_info = await wait_for_future_safe(on_entry)
 
     assert len(events) == 1
@@ -249,7 +259,7 @@ async def test_new_user_context(bidi_session, wait_for_event, wait_for_future_sa
         children=None,
         url="about:blank",
         parent=None,
-        user_context=user_context
+        user_context=user_context,
     )
 
     remove_listener()

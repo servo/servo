@@ -55,6 +55,13 @@ function setupRangeTests() {
     paras[4].textContent = "Ghijklmn";
     testDiv.appendChild(paras[4]);
 
+    paras.push(document.createElement("p"));
+    const xmlDocument = new Document();
+    paras[5].appendChild(xmlDocument.createCDATASection("1234"));
+    paras[5].appendChild(xmlDocument.createCDATASection("5678"));
+    paras[5].append("9012");
+    testDiv.appendChild(paras[5]);
+
     detachedDiv = document.createElement("div");
     detachedPara1 = document.createElement("p");
     detachedPara1.appendChild(document.createTextNode("Opqrstuv"));
@@ -128,6 +135,8 @@ function setupRangeTests() {
         "[paras[0].firstChild, 2, paras[0].firstChild, 9]",
         "[paras[1].firstChild, 0, paras[1].firstChild, 0]",
         "[paras[1].firstChild, 2, paras[1].firstChild, 9]",
+        "[paras[5].firstChild, 2, paras[5].lastChild, 4]",
+        "[paras[5].firstChild, 1, paras[5].firstChild, 3]",
         "[detachedPara1.firstChild, 0, detachedPara1.firstChild, 0]",
         "[detachedPara1.firstChild, 2, detachedPara1.firstChild, 8]",
         "[foreignPara1.firstChild, 0, foreignPara1.firstChild, 0]",
@@ -210,6 +219,8 @@ function setupRangeTests() {
         "[paras[1].firstChild, 9]",
         "[paras[1].firstChild, 10]",
         "[paras[1].firstChild, 65535]",
+        "[paras[5].firstChild, 2]",
+        "[paras[5].firstChild, 20]",
         "[detachedPara1.firstChild, 0]",
         "[detachedPara1.firstChild, 1]",
         "[detachedPara1.firstChild, 8]",
@@ -290,6 +301,7 @@ function setupRangeTests() {
         "paras[0]",
         "paras[0].firstChild",
         "paras[1].firstChild",
+        "paras[5].firstChild",
         "foreignPara1",
         "foreignPara1.firstChild",
         "detachedPara1",
@@ -337,7 +349,7 @@ if ("setup" in window) {
 }
 
 /**
- * The "length" of a node as defined by the Ranges section of DOM4.
+ * The "length" of a node as defined by DOM.
  */
 function nodeLength(node) {
     // "The length of a node node depends on node:
@@ -347,14 +359,11 @@ function nodeLength(node) {
     if (node.nodeType == Node.DOCUMENT_TYPE_NODE) {
         return 0;
     }
-    // "Text
-    // "ProcessingInstruction
-    // "Comment
-    //   "Its length attribute value."
+    // "If node is a CharacterData node, then return node’s data’s length."
     // Browsers don't historically support the length attribute on
     // ProcessingInstruction, so to avoid spurious failures, do
     // node.data.length instead of node.length.
-    if (node.nodeType == Node.TEXT_NODE || node.nodeType == Node.PROCESSING_INSTRUCTION_NODE || node.nodeType == Node.COMMENT_NODE) {
+    if (isText(node) || node.nodeType == Node.PROCESSING_INSTRUCTION_NODE || node.nodeType == Node.COMMENT_NODE) {
         return node.data.length;
     }
     // "Any other node
@@ -593,10 +602,9 @@ function myExtractContents(range) {
     var originalEndNode = range.endContainer;
     var originalEndOffset = range.endOffset;
 
-    // "If original start node is original end node, and they are a Text,
-    // ProcessingInstruction, or Comment node:"
+    // "If original start node is original end node and it is a CharacterData node, then:"
     if (range.startContainer == range.endContainer
-    && (range.startContainer.nodeType == Node.TEXT_NODE
+    && (isText(range.startContainer)
     || range.startContainer.nodeType == Node.PROCESSING_INSTRUCTION_NODE
     || range.startContainer.nodeType == Node.COMMENT_NODE)) {
         // "Let clone be the result of calling cloneNode(false) on original
@@ -709,10 +717,9 @@ function myExtractContents(range) {
         newOffset = 1 + indexOf(referenceNode);
     }
 
-    // "If first partially contained child is a Text, ProcessingInstruction, or
-    // Comment node:"
+    // "If first partially contained child is a CharacterData node, then:"
     if (firstPartiallyContainedChild
-    && (firstPartiallyContainedChild.nodeType == Node.TEXT_NODE
+    && (isText(firstPartiallyContainedChild)
     || firstPartiallyContainedChild.nodeType == Node.PROCESSING_INSTRUCTION_NODE
     || firstPartiallyContainedChild.nodeType == Node.COMMENT_NODE)) {
         // "Let clone be the result of calling cloneNode(false) on original
@@ -768,10 +775,9 @@ function myExtractContents(range) {
         frag.appendChild(containedChildren[i]);
     }
 
-    // "If last partially contained child is a Text, ProcessingInstruction, or
-    // Comment node:"
+    // "If last partially contained child is a CharacterData node, then:"
     if (lastPartiallyContainedChild
-    && (lastPartiallyContainedChild.nodeType == Node.TEXT_NODE
+    && (isText(lastPartiallyContainedChild)
     || lastPartiallyContainedChild.nodeType == Node.PROCESSING_INSTRUCTION_NODE
     || lastPartiallyContainedChild.nodeType == Node.COMMENT_NODE)) {
         // "Let clone be the result of calling cloneNode(false) on original
@@ -833,7 +839,7 @@ function myInsertNode(range, node) {
     // "HierarchyRequestError" exception and terminate these steps."
     if (range.startContainer.nodeType == Node.PROCESSING_INSTRUCTION_NODE
             || range.startContainer.nodeType == Node.COMMENT_NODE
-            || (range.startContainer.nodeType == Node.TEXT_NODE
+            || (isText(range.startContainer)
                 && !range.startContainer.parentNode)
             || range.startContainer == node) {
                     return "HIERARCHY_REQUEST_ERR";
@@ -843,7 +849,7 @@ function myInsertNode(range, node) {
     var referenceNode = null;
 
     // "If range's start node is a Text node, set referenceNode to that Text node."
-    if (range.startContainer.nodeType == Node.TEXT_NODE) {
+    if (isText(range.startContainer)) {
         referenceNode = range.startContainer;
 
         // "Otherwise, set referenceNode to the child of start node whose index is
@@ -870,7 +876,7 @@ function myInsertNode(range, node) {
 
     // "If range's start node is a Text node, set referenceNode to the result
     // of splitting it with offset range's start offset."
-    if (range.startContainer.nodeType == Node.TEXT_NODE) {
+    if (isText(range.startContainer)) {
         referenceNode = range.startContainer.splitText(range.startOffset);
     }
 
@@ -911,7 +917,7 @@ function isElement(node) {
 }
 
 function isText(node) {
-    return node.nodeType == Node.TEXT_NODE;
+    return node.nodeType == Node.TEXT_NODE || node.nodeType == Node.CDATA_SECTION_NODE;
 }
 
 function isDoctype(node) {
@@ -941,12 +947,12 @@ function ensurePreInsertionValidity(node, parent_, child) {
         return "NOT_FOUND_ERR";
     }
 
-    // "If node is not a DocumentFragment, DocumentType, Element, Text,
-    // ProcessingInstruction, or Comment node, throw a HierarchyRequestError."
+    // "If node is not a DocumentFragment, DocumentType, Element, or CharacterData node,
+    // then throw a HierarchyRequestError."
     if (node.nodeType != Node.DOCUMENT_FRAGMENT_NODE
             && node.nodeType != Node.DOCUMENT_TYPE_NODE
             && node.nodeType != Node.ELEMENT_NODE
-            && node.nodeType != Node.TEXT_NODE
+            && !isText(node)
             && node.nodeType != Node.PROCESSING_INSTRUCTION_NODE
             && node.nodeType != Node.COMMENT_NODE) {
                 return "HIERARCHY_REQUEST_ERR";
@@ -954,7 +960,7 @@ function ensurePreInsertionValidity(node, parent_, child) {
 
     // "If either node is a Text node and parent is a document, or node is a
     // doctype and parent is not a document, throw a HierarchyRequestError."
-    if ((node.nodeType == Node.TEXT_NODE
+    if ((isText(node)
                 && parent_.nodeType == Node.DOCUMENT_NODE)
             || (node.nodeType == Node.DOCUMENT_TYPE_NODE
                 && parent_.nodeType != Node.DOCUMENT_NODE)) {

@@ -5,7 +5,6 @@
 <link rel=help href="https://html.spec.whatwg.org/multipage/popover.html">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 <script src="resources/popover-utils.js"></script>
 
 <script>
@@ -184,7 +183,6 @@
 </div>
 <script>
   promise_test(async function() {
-    polyfill_declarative_shadow_dom(test5);
     const [popover1,popover2] = getPopoverReferences('test5');
     popover1.showPopover();
     popover1.querySelector('button').click(); // Use invoker to keep 2 visible
