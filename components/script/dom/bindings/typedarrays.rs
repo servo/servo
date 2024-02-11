@@ -31,6 +31,16 @@ where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
+    pub fn new_initialized(js_object: Option<*mut JSObject>) -> HeapTypedArray<T> {
+        match js_object {
+            Some(inner_js_object) => HeapTypedArray {
+                internal: Heap::boxed(inner_js_object),
+                phantom: PhantomData::default(),
+            },
+            None => Self::default(),
+        }
+    }
+
     pub fn default() -> HeapTypedArray<T> {
         HeapTypedArray {
             internal: Box::new(Heap::default()),
@@ -135,6 +145,23 @@ where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
     let res = unsafe { TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Slice(data), dest) };
+
+    if res.is_err() {
+        Err(())
+    } else {
+        TypedArray::from(dest.get())
+    }
+}
+
+pub fn create_typed_array_with_length<T>(
+    cx: JSContext,
+    len: usize,
+    dest: MutableHandleObject,
+) -> Result<TypedArray<T, *mut JSObject>, ()>
+where
+    T: TypedArrayElement + TypedArrayElementCreator,
+{
+    let res = unsafe { TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Length(len), dest) };
 
     if res.is_err() {
         Err(())
