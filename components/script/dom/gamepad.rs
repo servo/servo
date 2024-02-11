@@ -243,8 +243,10 @@ impl Gamepad {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-map-and-normalize-buttons>
-    pub fn map_and_normalize_buttons(&self, button_index: usize, pressed: bool, touched: bool, value: f64) {
+    pub fn map_and_normalize_buttons(&self, button_index: usize, value: f64) {
         let normalized_value: f64 = (value - self.button_bounds.0) / (self.button_bounds.1 - self.button_bounds.0);
+        let pressed = normalized_value == 1.0;
+        let touched = normalized_value > 0.0;
         if let Some(button) = self.buttons.IndexedGetter(button_index as u32) {
             button.update(pressed, touched, normalized_value);
         }

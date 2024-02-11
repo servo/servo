@@ -3183,9 +3183,7 @@ impl GlobalScope {
                                 gamepad.map_and_normalize_axes(index, value);
                             },
                             GamepadUpdateType::Button(index, value) => {
-                                let pressed = value == 1.0;
-                                let touched = value > 0.0;
-                                gamepad.map_and_normalize_buttons(index, pressed, touched, value);
+                                gamepad.map_and_normalize_buttons(index, value);
                             }
                         };
                     }
