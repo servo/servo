@@ -67,6 +67,7 @@ impl BlockFormattingContext {
 
         let ifc = InlineFormattingContext {
             inline_level_boxes,
+            font_metrics: Vec::new(),
             text_decoration_line,
             has_first_formatted_line: true,
             contains_floats: false,
@@ -433,13 +434,12 @@ where
             _ => {},
         }
 
-        inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun {
-            base_fragment_info: info.into(),
-            parent_style: Arc::clone(&info.style),
-            text: output,
+        inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun::new(
+            info.into(),
+            Arc::clone(&info.style),
+            output,
             has_uncollapsible_content,
-            shaped_text: None,
-        })));
+        ))));
     }
 }
 
@@ -606,6 +606,7 @@ where
                 is_first_fragment: true,
                 is_last_fragment: false,
                 children: vec![],
+                default_font_index: None,
             });
 
             if is_list_item {
@@ -670,6 +671,7 @@ where
                         // are obviously not the last fragment.
                         is_last_fragment: false,
                         children: std::mem::take(&mut ongoing.children),
+                        default_font_index: None,
                     };
                     ongoing.is_first_fragment = false;
                     fragmented
