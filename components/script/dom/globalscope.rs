@@ -3107,7 +3107,12 @@ impl GlobalScope {
     pub fn handle_gamepad_event(&self, gamepad_event: script_traits::GamepadEvent) {
         match gamepad_event {
             script_traits::GamepadEvent::Connected(index, name, bounds) => {
-                self.handle_gamepad_connect(index.0, name, bounds.axis_bounds, bounds.button_bounds);
+                self.handle_gamepad_connect(
+                    index.0,
+                    name,
+                    bounds.axis_bounds,
+                    bounds.button_bounds,
+                );
             },
             script_traits::GamepadEvent::Disconnected(index) => {
                 self.handle_gamepad_disconnect(index.0);
@@ -3119,7 +3124,13 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
-    pub fn handle_gamepad_connect(&self, index: usize, name: String, axis_bounds: (f64, f64), button_bounds: (f64, f64)) {
+    pub fn handle_gamepad_connect(
+        &self,
+        index: usize,
+        name: String,
+        axis_bounds: (f64, f64),
+        button_bounds: (f64, f64),
+    ) {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
         let this = Trusted::new(&*self);
@@ -3148,50 +3159,52 @@ impl GlobalScope {
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
     pub fn handle_gamepad_disconnect(&self, index: usize) {
         let this = Trusted::new(&*self);
-        self.gamepad_task_source().queue(
-            task!(gamepad_disconnected: move || {
-                let global = this.root();
-                if let Some(window) = global.downcast::<Window>() {
-                    let gamepad_list = window.Navigator().GetGamepads();
-                    if gamepad_list.Length() > 0 {
-                        gamepad_list.remove_gamepad(index);
+        self.gamepad_task_source()
+            .queue(
+                task!(gamepad_disconnected: move || {
+                    let global = this.root();
+                    if let Some(window) = global.downcast::<Window>() {
+                        let gamepad_list = window.Navigator().GetGamepads();
+                        if gamepad_list.Length() > 0 {
+                            gamepad_list.remove_gamepad(index);
+                        }
                     }
-                }
-            }),
-            &self,
-        )
-        .unwrap();
+                }),
+                &self,
+            )
+            .unwrap();
     }
 
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
     pub fn handle_gamepad_update(&self, index: usize, update_type: GamepadUpdateType) {
         let this = Trusted::new(&*self);
-        self.gamepad_task_source().queue(
-            task!(gamepad_updated: move || {
-                let global = this.root();
-                if let Some(window) = global.downcast::<Window>() {
-                    let gamepad_list = window.Navigator().GetGamepads();
-                    if let Some(gamepad) = gamepad_list.IndexedGetter(index as u32) {
-                        let current_time = SystemTime::now()
-                            .duration_since(UNIX_EPOCH)
-                            .unwrap_or_default()
-                            .as_millis() as f64;
-                        gamepad.update_timestamp(current_time);
+        self.gamepad_task_source()
+            .queue(
+                task!(gamepad_updated: move || {
+                    let global = this.root();
+                    if let Some(window) = global.downcast::<Window>() {
+                        let gamepad_list = window.Navigator().GetGamepads();
+                        if let Some(gamepad) = gamepad_list.IndexedGetter(index as u32) {
+                            let current_time = SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_millis() as f64;
+                            gamepad.update_timestamp(current_time);
 
-                        match update_type {
-                            GamepadUpdateType::Axis(index, value) => {
-                                gamepad.map_and_normalize_axes(index, value);
-                            },
-                            GamepadUpdateType::Button(index, value) => {
-                                gamepad.map_and_normalize_buttons(index, value);
-                            }
-                        };
+                            match update_type {
+                                GamepadUpdateType::Axis(index, value) => {
+                                    gamepad.map_and_normalize_axes(index, value);
+                                },
+                                GamepadUpdateType::Button(index, value) => {
+                                    gamepad.map_and_normalize_buttons(index, value);
+                                }
+                            };
+                        }
                     }
-                }
-            }),
-            &self
-        )
-        .unwrap();
+                }),
+                &self,
+            )
+            .unwrap();
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {

@@ -21,7 +21,9 @@ use servo::embedder_traits::{
     PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
 };
 use servo::msg::constellation_msg::{TopLevelBrowsingContextId as WebViewId, TraversalDirection};
-use servo::script_traits::{GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadUpdateType, TouchEventType};
+use servo::script_traits::{
+    GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadUpdateType, TouchEventType,
+};
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
@@ -172,7 +174,8 @@ where
                                 1 | 3 => -value,
                                 _ => 0., // Should not reach here
                             };
-                            let update_type = GamepadUpdateType::Axis(mapped_axis, axis_value as f64);
+                            let update_type =
+                                GamepadUpdateType::Axis(mapped_axis, axis_value as f64);
                             let event = GamepadEvent::Updated(index, update_type);
                             self.event_queue.push(EmbedderEvent::Gamepad(event));
                         }

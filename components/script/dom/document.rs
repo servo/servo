@@ -49,8 +49,8 @@ use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataR
 use script_layout_interface::message::{Msg, PendingRestyle, ReflowGoal};
 use script_layout_interface::TrustedNodeAddress;
 use script_traits::{
-    AnimationState, DocumentActivity, MouseButton, MouseEventType, MsDuration,
-    ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
+    AnimationState, DocumentActivity, MouseButton, MouseEventType, MsDuration, ScriptMsg,
+    TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
 };
 use servo_arc::Arc;
 use servo_atoms::Atom;

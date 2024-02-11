@@ -70,11 +70,17 @@ impl Gamepad {
             pose: pose.map(Dom::from_ref),
             hand: hand,
             axis_bounds: axis_bounds,
-            button_bounds: button_bounds
+            button_bounds: button_bounds,
         }
     }
 
-    pub fn new(global: &GlobalScope, gamepad_id: u32, id: String, axis_bounds: (f64, f64), button_bounds: (f64, f64)) -> DomRoot<Gamepad> {
+    pub fn new(
+        global: &GlobalScope,
+        gamepad_id: u32,
+        id: String,
+        axis_bounds: (f64, f64),
+        button_bounds: (f64, f64),
+    ) -> DomRoot<Gamepad> {
         Self::new_with_proto(global, gamepad_id, id, axis_bounds, button_bounds)
     }
 
@@ -83,7 +89,13 @@ impl Gamepad {
     /// The spec says UAs *may* do this for fingerprint mitigation, and it also
     /// happens to simplify implementation
     /// <https://www.w3.org/TR/gamepad/#fingerprinting-mitigation>
-    fn new_with_proto(global: &GlobalScope, gamepad_id: u32, id: String, axis_bounds: (f64, f64), button_bounds: (f64, f64)) -> DomRoot<Gamepad> {
+    fn new_with_proto(
+        global: &GlobalScope,
+        gamepad_id: u32,
+        id: String,
+        axis_bounds: (f64, f64),
+        button_bounds: (f64, f64),
+    ) -> DomRoot<Gamepad> {
         let button_list = Gamepad::init_buttons(global);
         let gamepad = reflect_dom_object_with_proto(
             Box::new(Gamepad::new_inherited(
@@ -235,7 +247,8 @@ impl Gamepad {
     #[allow(unsafe_code)]
     /// <https://www.w3.org/TR/gamepad/#dfn-map-and-normalize-axes>
     pub fn map_and_normalize_axes(&self, axis_index: usize, value: f64) {
-        let normalized_value: f64 = 2.0 * (value - self.axis_bounds.0) / (self.axis_bounds.1 - self.axis_bounds.0) - 1.0;
+        let normalized_value: f64 =
+            2.0 * (value - self.axis_bounds.0) / (self.axis_bounds.1 - self.axis_bounds.0) - 1.0;
         let mut axis_vec = self.axes.get_internal().unwrap();
         unsafe {
             axis_vec.as_mut_slice()[axis_index] = normalized_value;
@@ -244,7 +257,8 @@ impl Gamepad {
 
     /// <https://www.w3.org/TR/gamepad/#dfn-map-and-normalize-buttons>
     pub fn map_and_normalize_buttons(&self, button_index: usize, value: f64) {
-        let normalized_value: f64 = (value - self.button_bounds.0) / (self.button_bounds.1 - self.button_bounds.0);
+        let normalized_value: f64 =
+            (value - self.button_bounds.0) / (self.button_bounds.1 - self.button_bounds.0);
         let pressed = normalized_value == 1.0;
         let touched = normalized_value > 0.0;
         if let Some(button) = self.buttons.IndexedGetter(button_index as u32) {
