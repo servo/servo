@@ -51,7 +51,7 @@ use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_tim
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
-    BroadcastMsg, MessagePortMsg, MsDuration, PortMessageTask, ScriptMsg,
+    BroadcastMsg, GamepadUpdateType, MessagePortMsg, MsDuration, PortMessageTask, ScriptMsg,
     ScriptToConstellationChan, TimerEvent, TimerEventId, TimerSchedulerMsg, TimerSource,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -63,9 +63,11 @@ use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSource_Binding::EventSourceMethods;
+use crate::dom::bindings::codegen::Bindings::GamepadListBinding::GamepadList_Binding::GamepadListMethods;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
+use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -92,6 +94,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
+use crate::dom::gamepad::Gamepad;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::identityhub::Identities;
@@ -118,6 +121,7 @@ use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
+use crate::task_source::gamepad::GamepadTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
 use crate::task_source::port_message::PortMessageQueue;
@@ -2517,6 +2521,15 @@ impl GlobalScope {
         unreachable!();
     }
 
+    /// `TaskSource` to send messages to the gamepad task source of
+    /// this global scope.
+    pub fn gamepad_task_source(&self) -> GamepadTaskSource {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.task_manager().gamepad_task_source();
+        }
+        unreachable!();
+    }
+
     /// `TaskSource` to send messages to the networking task source of
     /// this global scope.
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
@@ -3089,6 +3102,109 @@ impl GlobalScope {
             .get(&device)
             .expect("GPUDevice not found")
             .handle_server_msg(scope, result);
+    }
+
+    pub fn handle_gamepad_event(&self, gamepad_event: script_traits::GamepadEvent) {
+        match gamepad_event {
+            script_traits::GamepadEvent::Connected(index, name) => {
+                self.handle_gamepad_connect(index.0, name);
+            },
+            script_traits::GamepadEvent::Disconnected(index) => {
+                self.handle_gamepad_disconnect(index.0);
+            },
+            script_traits::GamepadEvent::Updated(index, update_type) => {
+                self.handle_gamepad_update(index.0, update_type);
+            },
+        };
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
+    pub fn handle_gamepad_connect(&self, index: usize, name: String) {
+        // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
+        //          then abort these steps.
+        let this = Trusted::new(&*self);
+        self.gamepad_task_source().queue(
+            task!(gamepad_connected: move || {
+                let global = this.root();
+                let gamepad = Gamepad::new(&global, index as u32, name);
+
+                // TODO: 3.4 If navigator.[[hasGamepadGesture]] is true:
+                // TODO: 3.4.1 Set gamepad.[[exposed]] to true.
+                if let Some(window) = global.downcast::<Window>() {
+                    let gamepad_list = window.Navigator().GetGamepads();
+                    let gamepad_arr: [DomRoot<Gamepad>; 1] = [gamepad.clone()];
+                    gamepad_list.add_if_not_exists(&gamepad_arr);
+
+                    if window.Document().is_fully_active() {
+                        gamepad.update_connected(true);
+                    }
+                }
+            }),
+            &self,
+        )
+        .unwrap();
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
+    pub fn handle_gamepad_disconnect(&self, index: usize) {
+        let this = Trusted::new(&*self);
+        self.gamepad_task_source().queue(
+            task!(gamepad_disconnected: move || {
+                let global = this.root();
+                if let Some(window) = global.downcast::<Window>() {
+                    // 2.1 Set gamepad.[[connected]] to false.
+                    // 2.2 Let document be gamepad's relevant global object's associated Document;
+                    //     otherwise null.
+                    // 2.3 If gamepad.[[exposed]] is true and document is not null and is fully active,
+                    //     then fire an event named gamepaddisconnected at gamepad's relevant global object
+                    //     using GamepadEvent with its gamepad attribute initialized to gamepad.
+                    // 2.4 Let navigator be gamepad's relevant global object's Navigator object.
+                    // TODO: 2.5 Set navigator.[[gamepads]][gamepad.index] to null.
+                    // 2.6 While navigator.[[gamepads]] is not empty and the last item of \
+                    //     navigator.[[gamepads]] is null, remove the last item of navigator.[[gamepads]].
+                    let gamepad_list = window.Navigator().GetGamepads();
+                    if gamepad_list.Length() > 0 {
+                        gamepad_list.remove_gamepad(index);
+                    }
+                }
+            }),
+            &self,
+        )
+        .unwrap();
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
+    pub fn handle_gamepad_update(&self, index: usize, update_type: GamepadUpdateType) {
+        let this = Trusted::new(&*self);
+        self.gamepad_task_source().queue(
+            task!(gamepad_updated: move || {
+                let global = this.root();
+                if let Some(window) = global.downcast::<Window>() {
+                    let gamepad_list = window.Navigator().GetGamepads();
+                    if let Some(gamepad) = gamepad_list.IndexedGetter(index as u32) {
+                        // 1. Let now be the current high resolution time.
+                        let current_time = time::get_time();
+                        let now = (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as f64;
+                        // 2. Set gamepad.[[timestamp]] to now.
+                        gamepad.update_timestamp(now);
+                        match update_type {
+                            GamepadUpdateType::Axis(index, value) => {
+                                // 3. Run the steps to map and normalize axes for gamepad.
+                                gamepad.update_axis(index, value);
+                            },
+                            GamepadUpdateType::Button(index, value) => {
+                                // 4. Run the steps to map and normalize buttons for gamepad.
+                                let pressed = value == 1.0;
+                                let touched = value > 0.0;
+                                gamepad.update_button(index, pressed, touched, value);
+                            }
+                        };
+                    }
+                }
+            }),
+            &self
+        )
+        .unwrap();
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {

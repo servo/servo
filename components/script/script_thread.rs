@@ -3680,11 +3680,12 @@ impl ScriptThread {
             },
 
             GamepadEvent(gamepad_event) => {
-                let document = match self.documents.borrow().find_document(pipeline_id) {
-                    Some(document) => document,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                let window = match self.documents.borrow().find_window(pipeline_id) {
+                    None => return,
+                    Some(window) => window,
                 };
-                document.dispatch_gamepad_event(gamepad_event);
+                let global = window.upcast::<GlobalScope>();
+                global.handle_gamepad_event(gamepad_event);
             },
         }
 
