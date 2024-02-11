@@ -15,7 +15,7 @@ interface DataTransfer {
   undefined setDragImage(Element image, long x, long y);
 
   /* old interface */
-  readonly attribute FrozenArray<DOMString> types;
+  // readonly attribute FrozenArray<DOMString> types;
   DOMString getData(DOMString format);
   undefined setData(DOMString format, DOMString data);
   undefined clearData(optional DOMString format);
