@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>calc-size() expressions</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/626#issuecomment-1800254442">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../support/parsing-testcommon.js"></script>
+
+<script>
+
+test_valid_value("width",      "calc-size(fit-content, size)");
+test_valid_value("height",     "calc-size(min-content, size * 2)");
+test_valid_value("max-width",  "calc-size(max-content, size / 2)");
+test_valid_value("max-height", "calc-size(fit-content, 30px + size / 2)");
+test_valid_value("width",      "calc-size(fit-content, 50% + size / 2)");
+
+test_valid_value("width",      "calc-size(any, 25em)");
+test_valid_value("width",      "calc-size(any, 40%)");
+test_valid_value("width",      "calc-size(any, 50px + 30%)", "calc-size(any, 30% + 50px)");
+test_invalid_value("width",    "calc-size(any, size)");
+test_invalid_value("width",    "calc-size(any, fit-content)");
+test_invalid_value("width",    "calc-size(any, max-content)");
+test_invalid_value("width",    "calc-size(any, min-content)");
+test_valid_value("width",      "calc-size(any, calc-size(10px, sign(size) * size))");
+test_invalid_value("width",    "calc-size(any, calc-size(10px, sign(size) * size) * sign(size))");
+
+test_valid_value("width", "calc-size(30px, 25em)");
+test_valid_value("width", "calc-size(calc-size(any, 30px), 25em)");
+test_valid_value("width", "calc-size(calc-size(2in, 30px), 25em)", "calc-size(calc-size(192px, 30px), 25em)");
+test_valid_value("width", "calc-size(calc-size(min-content, 30px), 25em)");
+test_valid_value("width", "calc-size(calc-size(min-content, size), size)");
+
+</script>

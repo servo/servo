@@ -161,11 +161,11 @@
     assert_equals(topElement(), d11);
 
     // Removing the open attribute and running through the showModal() algorithm
-    // again should not promote d10 to the top.
+    // again should promote d10 to the top.
     d10.removeAttribute("open");
     assert_equals(topElement(), d11);
     d10.showModal();
-    assert_equals(topElement(), d11);
+    assert_equals(topElement(), d10);
 
     // Closing d11 with close() should cause d10 to be the topmost element.
     d11.close();

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/5802">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<button>button</button>
+<dialog>hello world</dialog>
+
+<script>
+const dialog = document.querySelector('dialog');
+const button = document.querySelector('button');
+
+promise_test(async t => {
+  dialog.showModal();
+
+  let closeFired = false;
+  let cancelFired = false;
+  dialog.addEventListener('close', () => closeFired = true);
+  dialog.addEventListener('cancel', () => cancelFired = true);
+
+  dialog.removeAttribute('open');
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  await new Promise(requestAnimationFrame);
+
+  assert_false(dialog.matches(':modal'),
+    'The dialog should not match :modal after closing.');
+  assert_false(cancelFired,
+    'The cancel event should not fire when removing the open attribute.');
+  assert_true(closeFired,
+    'The close event should be fired when removing the open attribute.');
+
+  let buttonFiredClick = false;
+  button.addEventListener('click', () => buttonFiredClick = true);
+  await test_driver.click(button);
+  assert_true(buttonFiredClick,
+    'The page should not be inert or blocked after removing the open attribute.');
+}, 'Removing the open attribute from an open modal dialog should run the closing algorithm.');
+
+promise_test(async t => {
+  dialog.show();
+
+  let closeFired = false;
+  let cancelFired = false;
+  dialog.addEventListener('close', () => closeFired = true);
+  dialog.addEventListener('cancel', () => cancelFired = true);
+
+  dialog.removeAttribute('open');
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  await new Promise(requestAnimationFrame);
+
+  assert_false(cancelFired,
+    'The cancel event should not fire when removing the open attribute.');
+  assert_true(closeFired,
+    'The close event should be fired when removing the open attribute.');
+}, 'Removing the open attribute from an open non-modal dialog should fire a close event.');
+</script>

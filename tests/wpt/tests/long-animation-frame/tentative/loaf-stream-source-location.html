@@ -11,8 +11,6 @@
 <div id="log"></div>
 <script>
 
-const source_location_regex = /^([^@]+\@)?https?\:\/\/[^\/]+[^\:]+\:\d*$/;
-
 promise_test(async t => {
   const scriptLocation = new URL("resources/stream-promise-generates-loaf.js", location.href);
   const [entry, script] = await expect_long_frame_with_script(() => {
@@ -21,7 +19,7 @@ promise_test(async t => {
     document.body.appendChild(scriptElement);
   }, script => script.invoker === "StreamPromise.resolve.then", t);
 
-  assert_true(script.sourceLocation?.includes("stream-promise-generates-loaf.js"));
+  assert_true(script.sourceURL.includes("stream-promise-generates-loaf.js"));
 }, "Source location should be extracted for stream promises");
 
 </script>

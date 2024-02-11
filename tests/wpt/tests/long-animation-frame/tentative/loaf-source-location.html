@@ -11,16 +11,15 @@
 <div id="log"></div>
 <script>
 
-const source_location_regex = /^([^@]+\@)?https?\:\/\/[^\/]+[^\:]+\:\d*$/;
-
 promise_test(async t => {
   const [entry, script] = await expect_long_frame_with_script(() => {
     requestAnimationFrame(function non_bound_function() {
       busy_wait();
     });
   }, script => script.invoker === "FrameRequestCallback", t);
-  assert_true(script.sourceLocation?.startsWith("non_bound_function"));
-  assert_regexp_match(script.sourceLocation, source_location_regex);
+  assert_equals(script.sourceURL, location.href);
+  assert_equals(script.sourceFunctionName, "non_bound_function");
+  assert_greater_than(script.sourceCharPosition, 0);
 }, "Source location should be extracted from non-bound functions");
 
 promise_test(async t => {
@@ -30,8 +29,9 @@ promise_test(async t => {
       busy_wait();
     }).bind(object));
   }, script => script.invoker === "FrameRequestCallback", t);
-  assert_true(script.sourceLocation?.startsWith("my_bound_function"));
-  assert_regexp_match(script.sourceLocation, source_location_regex);
+  assert_equals(script.sourceURL, location.href);
+  assert_equals(script.sourceFunctionName, "my_bound_function");
+  assert_greater_than(script.sourceCharPosition, 0);
 }, "Source location should be extracted from bound functions");
 
 promise_test(async t => {
@@ -39,9 +39,8 @@ promise_test(async t => {
     t.step_timeout(function my_timeout() {
       busy_wait();
     });
-  }, script => script.invoker === "TimerHandler:setTimeout" && script.sourceLocation, t );
-  assert_true(script.sourceLocation.includes("testharness.js"));
-  assert_regexp_match(script.sourceLocation, source_location_regex);
+  }, script => script.invoker === "TimerHandler:setTimeout" && script.sourceURL, t );
+  assert_true(script.sourceURL.includes("testharness.js"));
 }, "Source location should be extracted for setTimeout");
 
 promise_test(async t => {
@@ -51,7 +50,7 @@ promise_test(async t => {
     scriptElement.src = scriptLocation;
     document.body.appendChild(scriptElement);
   }, script => script.invoker === "Window.fetch.then", t);
-  assert_true(script.sourceLocation?.includes("promise-generates-loaf.js"));
+  assert_true(script.sourceURL.includes("promise-generates-loaf.js"));
 }, "Source location should be extracted for promises");
 
 </script>

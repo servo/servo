@@ -5,7 +5,6 @@
 <link rel="help" href="https://drafts.csswg.org/css-scoping-1/#shadow-names">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 <script src="support/cq-testcommon.js"></script>
 
 <div id="container-name-host">
@@ -67,12 +66,29 @@
       </template>
     </div>
   </div>
+
+  <div id="container-name-host-inner-slotted">
+    <div>
+      <template shadowrootmode="open">
+        <style>
+          :host { container-name: foo; }
+          ::slotted(div) { color: red; }
+          @container foo (width > 0px) {
+            ::slotted(div) {
+              color: green;
+            }
+          }
+        </style>
+        <slot></slot>
+      </template>
+      <div id="t4"></div>
+    </div>
+  </div>
 </div>
 
 <script>
   setup(() => {
     assert_implements_container_queries();
-    polyfill_declarative_shadow_dom(document);
   });
 
   const green = "rgb(0, 128, 0)";
@@ -88,5 +104,9 @@
   test(() => {
     assert_equals(getComputedStyle(t3host.shadowRoot.querySelector('#t3')).color, green);
   }, "Inner scope query should match container-name set by :host rule in shadow tree");
+
+  test(() => {
+    assert_equals(getComputedStyle(t4).color, green);
+  }, "Inner scope query containing ::slotted should match container-name set by :host rule in shadow tree");
 
 </script>

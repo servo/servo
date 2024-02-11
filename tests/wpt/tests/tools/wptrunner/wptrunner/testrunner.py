@@ -663,9 +663,9 @@ class TestRunnerManager(threading.Thread):
         self.inject_message(
             "test_ended",
             test,
-            (test.result_cls("EXTERNAL-TIMEOUT",
-                             "TestRunner hit external timeout "
-                             "(this may indicate a hang)"), []),
+            (test.make_result("EXTERNAL-TIMEOUT",
+                              "TestRunner hit external timeout "
+                              "(this may indicate a hang)"), []),
         )
 
     def test_ended(self, test, results):
@@ -691,8 +691,8 @@ class TestRunnerManager(threading.Thread):
         for result in test_results:
             if test.disabled(result.name):
                 continue
-            expected = test.expected(result.name)
-            known_intermittent = test.known_intermittent(result.name)
+            expected = result.expected
+            known_intermittent = result.known_intermittent
             is_unexpected = expected != result.status and result.status not in known_intermittent
             is_expected_notrun = (expected == "NOTRUN" or "NOTRUN" in known_intermittent)
 
@@ -728,8 +728,8 @@ class TestRunnerManager(threading.Thread):
                                     stack=result.stack,
                                     subsuite=self.state.subsuite)
 
-        expected = test.expected()
-        known_intermittent = test.known_intermittent()
+        expected = file_result.expected
+        known_intermittent = file_result.known_intermittent
         status = file_result.status
 
         if self.browser.check_crash(test.id) and status != "CRASH":

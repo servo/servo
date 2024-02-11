@@ -50,22 +50,20 @@ function test_source_location_with_redirect({path, type, name}) {
       }, script => script.duration >= VERY_LONG_FRAME_DURATION - 5, t);
 
       const result =
-        script.sourceLocation.startsWith(postRedirectURL) ? "post-redirect" :
-        script.sourceLocation.startsWith(preRedirectURL) ? "pre-redirect" :
-        script.sourceLocation === "" ?
+        script.sourceURL.startsWith(postRedirectURL) ? "post-redirect" :
+        script.sourceURL.startsWith(preRedirectURL) ? "pre-redirect" :
+        script.sourceURL === "" ?
         "empty" : "other";
 
-      assert_not_equals(result, "other", `Unexpected source location ${script.sourceLocation}`);
+      assert_not_equals(result, "other", `Unexpected source location ${script.sourceURL}`);
       if (!cors)
         assert_equals(script.executionStart, script.startTime, "Opaque scripts should hide execution start time");
 
       if (cors) {
         assert_not_equals(result, "empty", "CORS-ok scripts should expose sourceLocation");
       } else {
-        const char_index = result === "empty" ? 0 :
-          parseInt(script.sourceLocation.match(/\:(\d+)$/)?.[1] ?? "0");
         assert_not_equals(result, "post-redirect", "No-CORS classic scripts should not expose post-redirect URL");
-        assert_equals(char_index, 0, "No-CORS classic scripts should not expose character index");
+        assert_equals(script.sourceCharPosition, type === "script-block" ? 0 : -1, "No-CORS classic scripts should not expose character index");
       }
     }, `Test ${type} with ${scriptType}`);
   }

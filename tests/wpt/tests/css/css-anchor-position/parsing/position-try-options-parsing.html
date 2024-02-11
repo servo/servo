@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Test: Parsing of position-try-options</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-try-options">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_valid_value("position-try-options", "initial");
+  test_valid_value("position-try-options", "inherit");
+  test_valid_value("position-try-options", "unset");
+  test_valid_value("position-try-options", "revert");
+  test_valid_value("position-try-options", "none");
+  test_valid_value("position-try-options", "flip-block");
+  test_valid_value("position-try-options", "flip-start, flip-block");
+  test_valid_value("position-try-options", "flip-start flip-inline, flip-block");
+  test_valid_value("position-try-options", "flip-start, flip-start");
+  test_valid_value("position-try-options", "flip-block, --foo");
+  test_valid_value("position-try-options", "--bar, flip-block flip-start");
+  test_valid_value("position-try-options", "--foo, --bar, --baz");
+
+  test_invalid_value("position-try-options", "none, flip-start");
+  test_invalid_value("position-try-options", "flip-block flip-block");
+  test_invalid_value("position-try-options", "flip-block --foo");
+  test_invalid_value("position-try-options", "--foo --bar");
+  test_invalid_value("position-try-options", "-foo");
+  test_invalid_value("position-try-options", "foo");
+</script>

@@ -1,10 +1,11 @@
+import json
 import mimetypes
 import os
-import json
-import wptserve.stash
-from fledge.tentative.resources.fledge_http_server_util import headersToAscii
 
+from fledge.tentative.resources import fledge_http_server_util
+import wptserve.stash
 from wptserve.utils import isomorphic_decode, isomorphic_encode
+
 
 # Test server that tracks requests it has previously seen, keyed by a token.
 #
@@ -92,7 +93,7 @@ def main(request, response):
             if server_state["trackedHeaders"] != None:
                 server_state["errors"].append("Second track_headers request received.")
             else:
-                server_state["trackedHeaders"] = headersToAscii(request.headers)
+                server_state["trackedHeaders"] = fledge_http_server_util.headers_to_ascii(request.headers)
 
             stash.put(uuid, server_state)
             return simple_response(request, response, 200, b"OK", b"")
