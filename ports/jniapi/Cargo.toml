@@ -17,7 +17,7 @@ bench = false
 android_logger = "0.13"
 getopts = { workspace = true }
 ipc-channel = { workspace = true }
-jni = "0.18.0"
+jni = "0.21.1"
 libc = { workspace = true }
 libloading = "0.8"
 libservo = { path = "../../components/servo" }
