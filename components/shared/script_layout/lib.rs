@@ -13,15 +13,25 @@ pub mod rpc;
 pub mod wrapper_traits;
 
 use std::any::Any;
+use std::borrow::Cow;
 use std::sync::atomic::AtomicIsize;
+use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use gfx::font_cache_thread::FontCacheThread;
+use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::PendingImageId;
-use script_traits::UntrustedNodeAddress;
+use metrics::PaintTimeMetrics;
+use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
+use net_traits::image_cache::{ImageCache, PendingImageId};
+use profile_traits::{mem, time};
+use script_traits::{
+    ConstellationControlMsg, InitialScriptState, LayoutControlMsg, LayoutMsg, LoadData,
+    UntrustedNodeAddress, WebrenderIpcSender, WindowSizeData,
+};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::data::ElementData;
 use webrender_api::ImageKey;
@@ -161,4 +171,74 @@ pub struct PendingImage {
 
 pub struct HTMLMediaData {
     pub current_frame: Option<(ImageKey, i32, i32)>,
+}
+
+pub struct LayoutConfig {
+    pub id: PipelineId,
+    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    pub url: ServoUrl,
+    pub is_iframe: bool,
+    pub constellation_chan: IpcSender<LayoutMsg>,
+    pub script_chan: IpcSender<ConstellationControlMsg>,
+    pub image_cache: Arc<dyn ImageCache>,
+    pub font_cache_thread: FontCacheThread,
+    pub time_profiler_chan: time::ProfilerChan,
+    pub mem_profiler_chan: mem::ProfilerChan,
+    pub webrender_api_sender: WebrenderIpcSender,
+    pub paint_time_metrics: PaintTimeMetrics,
+    pub window_size: WindowSizeData,
+}
+
+/// The initial data required to create a new layout attached to an existing script thread.
+pub struct LayoutChildConfig {
+    pub id: PipelineId,
+    pub url: ServoUrl,
+    pub is_parent: bool,
+    pub constellation_chan: IpcSender<LayoutMsg>,
+    pub script_chan: IpcSender<ConstellationControlMsg>,
+    pub image_cache: Arc<dyn ImageCache>,
+    pub paint_time_metrics: PaintTimeMetrics,
+    pub window_size: WindowSizeData,
+}
+
+pub trait LayoutFactory: Send + Sync {
+    fn create(&self, config: LayoutConfig) -> Box<dyn Layout>;
+}
+
+pub trait Layout {
+    /// Process a single message from script.
+    fn process(&mut self, msg: message::Msg);
+
+    /// Handle a single message from the Constellation.
+    fn handle_constellation_msg(&mut self, msg: LayoutControlMsg);
+
+    fn handle_font_cache_msg(&mut self);
+
+    /// Create a new layout for this `TopLevelBrowsingContext.`
+    fn create_new_layout(&self, init: LayoutChildConfig) -> Box<dyn Layout>;
+
+    /// Return the interface used for scipt queries.
+    /// TODO: Make this part of the the Layout interface itself now that the
+    /// layout thread has been removed.
+    fn rpc(&self) -> Box<dyn rpc::LayoutRPC>;
+
+    /// Whether or not this layout is waiting for fonts from loaded stylesheets to finish loading.
+    fn waiting_for_web_fonts_to_load(&self) -> bool;
+
+    /// The currently laid out Epoch that this Layout has finished.
+    fn current_epoch(&self) -> Epoch;
+}
+
+/// This trait is part of `layout_traits` because it depends on both `script_traits` and also
+/// `LayoutFactory` from this crate. If it was in `script_traits` there would be a circular
+/// dependency.
+pub trait ScriptThreadFactory {
+    /// Create a `ScriptThread`.
+    fn create(
+        state: InitialScriptState,
+        layout_factory: Arc<dyn LayoutFactory>,
+        font_cache_thread: FontCacheThread,
+        load_data: LoadData,
+        user_agent: Cow<'static, str>,
+    );
 }

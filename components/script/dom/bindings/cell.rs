@@ -30,7 +30,7 @@ pub struct DomRefCell<T> {
 impl<T> DomRefCell<T> {
     /// Return a reference to the contents.
     ///
-    /// For use in the layout thread only.
+    /// For use in layout only.
     #[allow(unsafe_code)]
     pub unsafe fn borrow_for_layout(&self) -> &T {
         assert_in_layout();

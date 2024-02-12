@@ -234,7 +234,7 @@ impl PendingTasksStruct {
 /// when a worklet adds a module. It is dropped when the script thread
 /// is dropped, and asks each of the worklet threads to quit.
 ///
-/// The layout thread can end up blocking on the primary worklet thread
+/// Layout can end up blocking on the primary worklet thread
 /// (e.g. when invoking a paint callback), so it is important to avoid
 /// deadlock by making sure the primary worklet thread doesn't end up
 /// blocking waiting on layout. In particular, since the constellation

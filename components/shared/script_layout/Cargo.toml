@@ -16,6 +16,7 @@ atomic_refcell = { workspace = true }
 canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
+gfx = { path = "../../gfx" }
 gfx_traits = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
