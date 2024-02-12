@@ -11,7 +11,7 @@ use std::rc::Rc;
 use euclid::num::Zero;
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use log::{debug, info, trace};
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, MouseWindowEvent, WindowMethods,
 };
@@ -118,15 +118,19 @@ impl Window {
         let inner_size = winit_size_to_euclid_size(winit_window.inner_size());
 
         // Initialize surfman
-        let display_handle = winit_window.raw_display_handle();
-        let connection = Connection::from_raw_display_handle(display_handle)
-            .expect("Failed to create connection");
+        let display_handle = winit_window
+            .display_handle()
+            .expect("could not get display handle from window");
+        let connection =
+            Connection::from_display_handle(display_handle).expect("Failed to create connection");
         let adapter = connection
             .create_adapter()
             .expect("Failed to create adapter");
-        let window_handle = winit_window.raw_window_handle();
+        let window_handle = winit_window
+            .window_handle()
+            .expect("could not get window handle from window");
         let native_widget = connection
-            .create_native_widget_from_raw_window_handle(window_handle, Size2D::new(width, height))
+            .create_native_widget_from_window_handle(window_handle, Size2D::new(width, height))
             .expect("Failed to create native widget");
         let surface_type = SurfaceType::Widget { native_widget };
         let rendering_context = RenderingContext::create(&connection, &adapter, surface_type)
@@ -600,12 +604,15 @@ impl webxr::glwindow::GlWindow for XRWindow {
         device: &mut Device,
         _context: &mut Context,
     ) -> webxr::glwindow::GlWindowRenderTarget {
-        let window_handle = self.winit_window.raw_window_handle();
+        let window_handle = self
+            .winit_window
+            .window_handle()
+            .expect("could not get window handle from window");
         let size = self.winit_window.inner_size();
         let size = Size2D::new(size.width as i32, size.height as i32);
         let native_widget = device
             .connection()
-            .create_native_widget_from_raw_window_handle(window_handle, size)
+            .create_native_widget_from_window_handle(window_handle, size)
             .expect("Failed to create native widget");
         webxr::glwindow::GlWindowRenderTarget::NativeWidget(native_widget)
     }

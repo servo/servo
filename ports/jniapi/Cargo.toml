@@ -25,7 +25,7 @@ log = { workspace = true }
 serde_json = { workspace = true }
 servo-media = { workspace = true }
 surfman = { workspace = true, features = ["sm-angle-default"] }
-webxr = { git = "https://github.com/servo/webxr" }
+webxr = { git = "https://github.com/servo/webxr", rev = "88fd368d1cc110db0f6f5000de2e22a14c9423b5" }
 
 [build-dependencies]
 cc = "1.0"
