@@ -95,8 +95,7 @@ impl ImageData {
         Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn new_without_jsobject(
+    fn new_without_jsobject(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u32,
@@ -121,19 +120,19 @@ impl ImageData {
         Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
     // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3
-    #[allow(unsafe_code, non_snake_case)]
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u32,
         height: u32,
     ) -> Fallible<DomRoot<Self>> {
-        unsafe { Self::new_without_jsobject(global, proto, width, height) }
+        Self::new_without_jsobject(global, proto, width, height)
     }
 
     // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4
-    #[allow(unsafe_code, unused_variables, non_snake_case)]
-    pub unsafe fn Constructor_(
+    #[allow(unused_variables, non_snake_case)]
+    pub fn Constructor_(
         cx: JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
