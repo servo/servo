@@ -119,7 +119,7 @@ impl ImageData {
 
         Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
-    // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3
+    /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3>
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
@@ -130,7 +130,7 @@ impl ImageData {
         Self::new_without_jsobject(global, proto, width, height)
     }
 
-    // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4
+    /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4>
     #[allow(unused_variables, non_snake_case)]
     pub fn Constructor_(
         cx: JSContext,
@@ -176,17 +176,17 @@ impl ImageData {
 }
 
 impl ImageDataMethods for ImageData {
-    // https://html.spec.whatwg.org/multipage/#dom-imagedata-width
+    /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-width>
     fn Width(&self) -> u32 {
         self.width
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-imagedata-height
+    /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-height>
     fn Height(&self) -> u32 {
         self.height
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
+    /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-data>
     fn Data(&self, _: JSContext) -> Uint8ClampedArray {
         self.data
             .get_internal()
