@@ -362,6 +362,28 @@ impl<T: Zero> LogicalSides<T> {
     }
 }
 
+impl From<LogicalSides<CSSPixelLength>> for LogicalSides<Au> {
+    fn from(value: LogicalSides<CSSPixelLength>) -> Self {
+        LogicalSides {
+            inline_start: value.inline_start.into(),
+            inline_end: value.inline_end.into(),
+            block_start: value.block_start.into(),
+            block_end: value.block_end.into(),
+        }
+    }
+}
+
+impl From<LogicalSides<Au>> for LogicalSides<CSSPixelLength> {
+    fn from(value: LogicalSides<Au>) -> Self {
+        LogicalSides {
+            inline_start: value.inline_start.into(),
+            inline_end: value.inline_end.into(),
+            block_start: value.block_start.into(),
+            block_end: value.block_end.into(),
+        }
+    }
+}
+
 impl<T> LogicalRect<T> {
     pub fn max_inline_position(&self) -> T
     where

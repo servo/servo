@@ -202,8 +202,8 @@ impl<'a> TableLayout<'a> {
                 let percentage_contribution =
                     Percentage(inline_size_percent.0.min(max_inline_size_percent.0));
 
-                outer_min_content_width += pbm.padding_border_sums.inline.into();
-                outer_max_content_width += pbm.padding_border_sums.inline.into();
+                outer_min_content_width += pbm.padding_border_sums.inline;
+                outer_max_content_width += pbm.padding_border_sums.inline;
                 row_measures[column_index] = CellOrColumnMeasure {
                     content_sizes: ContentSizes {
                         min_content: outer_min_content_width,

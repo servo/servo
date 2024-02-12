@@ -500,7 +500,7 @@ impl HoistedAbsolutelyPositionedBox {
         let shared_fragment = self.fragment.borrow();
         let inline_axis_solver = AbsoluteAxisSolver {
             containing_size: cbis,
-            padding_border_sum: pbm.padding_border_sums.inline,
+            padding_border_sum: pbm.padding_border_sums.inline.into(),
             computed_margin_start: pbm.margin.inline_start,
             computed_margin_end: pbm.margin.inline_end,
             avoid_negative_margin_start: true,
@@ -509,7 +509,7 @@ impl HoistedAbsolutelyPositionedBox {
 
         let block_axis_solver = AbsoluteAxisSolver {
             containing_size: cbbs,
-            padding_border_sum: pbm.padding_border_sums.block,
+            padding_border_sum: pbm.padding_border_sums.block.into(),
             computed_margin_start: pbm.margin.block_start,
             computed_margin_end: pbm.margin.block_end,
             avoid_negative_margin_start: false,
@@ -558,7 +558,7 @@ impl HoistedAbsolutelyPositionedBox {
                         };
                         let margin_sum = inline_axis.margin_start + inline_axis.margin_end;
                         let available_size =
-                            cbis - anchor - pbm.padding_border_sums.inline - margin_sum;
+                            cbis - anchor - pbm.padding_border_sums.inline.into() - margin_sum;
                         non_replaced
                             .inline_content_sizes(layout_context)
                             .shrink_to_fit(available_size.into())
@@ -672,15 +672,15 @@ impl HoistedAbsolutelyPositionedBox {
 
             let pb = &pbm.padding + &pbm.border;
             let inline_start = match inline_axis.anchor {
-                Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
+                Anchor::Start(start) => start + pb.inline_start.into() + margin.inline_start,
                 Anchor::End(end) => {
-                    cbis - end - pb.inline_end - margin.inline_end - content_size.inline
+                    cbis - end - pb.inline_end.into() - margin.inline_end - content_size.inline
                 },
             };
             let block_start = match block_axis.anchor {
-                Anchor::Start(start) => start + pb.block_start + margin.block_start,
+                Anchor::Start(start) => start + pb.block_start.into() + margin.block_start,
                 Anchor::End(end) => {
-                    cbbs - end - pb.block_end - margin.block_end - content_size.block
+                    cbbs - end - pb.block_end.into() - margin.block_end - content_size.block
                 },
             };
 
@@ -700,8 +700,8 @@ impl HoistedAbsolutelyPositionedBox {
                 absolutely_positioned_box.context.style().clone(),
                 fragments,
                 content_rect,
-                pbm.padding,
-                pbm.border,
+                pbm.padding.into(),
+                pbm.border.into(),
                 margin,
                 None, /* clearance */
                 // We do not set the baseline offset, because absolutely positioned

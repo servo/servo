@@ -517,7 +517,10 @@ impl<'a> FlexItem<'a> {
         let padding = flex_context.sides_to_flex_relative(pbm.padding);
         let border = flex_context.sides_to_flex_relative(pbm.border);
         let padding_border = padding.sum_by_axis() + border.sum_by_axis();
-        let pbm_auto_is_zero = padding_border + margin_auto_is_zero.sum_by_axis();
+        let pbm_auto_is_zero = FlexRelativeVec2 {
+            main: padding_border.main.into(),
+            cross: padding_border.cross.into(),
+        } + margin_auto_is_zero.sum_by_axis();
 
         let align_self = flex_context.align_for(&box_.style().clone_align_self());
 
@@ -540,8 +543,8 @@ impl<'a> FlexItem<'a> {
             content_box_size,
             content_min_size,
             content_max_size,
-            padding: padding.map(|t| (*t).into()),
-            border: border.map(|t| (*t).into()),
+            padding,
+            border,
             margin,
             pbm_auto_is_zero,
             flex_base_size,
@@ -557,7 +560,7 @@ fn flex_base_size(
     flex_item: &mut IndependentFormattingContext,
     cross_axis_is_item_block_axis: bool,
     content_box_size: FlexRelativeVec2<LengthOrAuto>,
-    padding_border_sums: FlexRelativeVec2<Length>,
+    padding_border_sums: FlexRelativeVec2<Au>,
 ) -> Length {
     let used_flex_basis = match &flex_item.style().get_position().flex_basis {
         FlexBasis::Content => FlexBasis::Content,
@@ -568,7 +571,7 @@ fn flex_base_size(
                     BoxSizing::BorderBox => {
                         // This may make `length` negative,
                         // but it will be clamped in the hypothetical main size
-                        length - padding_border_sums.main
+                        length - padding_border_sums.main.into()
                     },
                 }
             };
