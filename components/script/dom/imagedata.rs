@@ -13,12 +13,13 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
 
-use super::bindings::typedarrays::HeapTypedArray;
+use super::bindings::typedarrays::{
+    new_initialized_heap_typed_array, HeapTypedArray, HeapTypedArrayInit,
+};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::typedarrays::create_typed_array_with_length;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
@@ -63,7 +64,8 @@ impl ImageData {
     ) -> Fallible<DomRoot<ImageData>> {
         // checking jsobject type
         let cx = GlobalScope::get_cx();
-        let heap_typed_array = HeapTypedArray::new_initialized(Some(jsobject));
+        let heap_typed_array =
+            new_initialized_heap_typed_array(HeapTypedArrayInit::Object(jsobject));
         let array = heap_typed_array.acquire_data(cx).map_err(|_| {
             Error::Type("Argument to Image data is not an Uint8ClampedArray".to_owned())
         })?;
@@ -103,23 +105,18 @@ impl ImageData {
         if width == 0 || height == 0 {
             return Err(Error::IndexSize);
         }
+        let cx = GlobalScope::get_cx();
+        let len = width * height * 4;
 
         let imagedata = Box::new(ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,
-            data: HeapTypedArray::new_initialized(None),
+            data: new_initialized_heap_typed_array::<ClampedU8>(HeapTypedArrayInit::Info {
+                len,
+                cx,
+            }),
         });
-
-        let len = width * height * 4;
-        let cx = GlobalScope::get_cx();
-
-        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        let typed_array =
-            create_typed_array_with_length::<ClampedU8>(cx, len as usize, array.handle_mut())
-                .expect("Creating ClampedU8 array from length should never fail");
-
-        let _ = (*imagedata).data.set_data(cx, typed_array.as_slice());
 
         Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
