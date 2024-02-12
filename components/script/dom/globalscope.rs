@@ -3166,7 +3166,8 @@ impl GlobalScope {
                     let global = this.root();
                     if let Some(window) = global.downcast::<Window>() {
                         let gamepad_list = window.Navigator().GetGamepads();
-                        if gamepad_list.Length() > 0 {
+                        if let Some(gamepad) = gamepad_list.Item(index as u32) {
+                            gamepad.update_connected(false);
                             gamepad_list.remove_gamepad(index);
                         }
                     }

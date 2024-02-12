@@ -46,7 +46,7 @@ impl GamepadList {
     }
 
     pub fn remove_gamepad(&self, index: usize) {
-        self.list.borrow_mut().remove(index).update_connected(false);
+        self.list.borrow_mut().remove(index);
     }
 }
 
