@@ -132,8 +132,8 @@ where
                 let index = GamepadIndex(event.id.into());
                 match event.event {
                     EventType::ButtonChanged(button, value, _) => {
-                        /// Map button index and value to represent Standard Gamepad button
-                        /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
+                        // Map button index and value to represent Standard Gamepad button
+                        // <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
                         let mapped_index: usize = match button {
                             gilrs::Button::South => 0,
                             gilrs::Button::East => 1,
@@ -161,8 +161,8 @@ where
                         }
                     },
                     EventType::AxisChanged(axis, value, _) => {
-                        /// Map axis index and value to represent Standard Gamepad axis
-                        /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
+                        // Map axis index and value to represent Standard Gamepad axis
+                        // <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
                         let mapped_axis: usize = match axis {
                             gilrs::Axis::LeftStickX => 0,
                             gilrs::Axis::LeftStickY => 1,

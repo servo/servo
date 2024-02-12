@@ -3180,7 +3180,7 @@ impl GlobalScope {
     pub fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
         let this = Trusted::new(&*self);
 
-        /// <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
+        // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
         self.gamepad_task_source()
             .queue(
                 task!(update_gamepad_state: move || {
