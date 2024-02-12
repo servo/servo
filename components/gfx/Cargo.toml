@@ -44,7 +44,7 @@ xi-unicode = { workspace = true }
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }
 core-foundation = "0.9"
-core-graphics = "0.22"
+core-graphics = "0.23"
 core-text = "19.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]

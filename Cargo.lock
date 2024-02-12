@@ -1980,7 +1980,7 @@ dependencies = [
  "bitflags 2.5.0",
  "byteorder",
  "core-foundation",
- "core-graphics 0.22.3",
+ "core-graphics 0.23.1",
  "core-text 19.2.0",
  "dwrote",
  "euclid",
