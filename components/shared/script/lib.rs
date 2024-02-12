@@ -1350,10 +1350,13 @@ pub struct GamepadInputBounds {
 /// The type of Gamepad event
 pub enum GamepadEvent {
     /// A new gamepad has been connected
+    /// <https://www.w3.org/TR/gamepad/#event-gamepadconnected>
     Connected(GamepadIndex, String, GamepadInputBounds),
     /// An existing gamepad has been disconnected
+    /// <https://www.w3.org/TR/gamepad/#event-gamepaddisconnected>
     Disconnected(GamepadIndex),
     /// An existing gamepad has been updated
+    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
     Updated(GamepadIndex, GamepadUpdateType),
 }
 
@@ -1361,7 +1364,9 @@ pub enum GamepadEvent {
 /// The type of Gamepad input being updated
 pub enum GamepadUpdateType {
     /// Axis index and input value
+    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
     Axis(usize, f64),
     /// Button index and input value
+    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button
     Button(usize, f64),
 }

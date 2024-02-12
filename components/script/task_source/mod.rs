@@ -39,6 +39,7 @@ pub enum TaskSourceName {
     MediaElement,
     Websocket,
     Timer,
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepad-task-source>
     Gamepad,
 }
 

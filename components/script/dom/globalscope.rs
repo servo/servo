@@ -51,7 +51,7 @@ use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_tim
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
-    BroadcastMsg, GamepadUpdateType, MessagePortMsg, MsDuration, PortMessageTask, ScriptMsg,
+    BroadcastMsg, GamepadEvent, GamepadUpdateType, MessagePortMsg, MsDuration, PortMessageTask, ScriptMsg,
     ScriptToConstellationChan, TimerEvent, TimerEventId, TimerSchedulerMsg, TimerSource,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -2523,6 +2523,7 @@ impl GlobalScope {
 
     /// `TaskSource` to send messages to the gamepad task source of
     /// this global scope.
+    /// <https://w3c.github.io/gamepad/#dfn-gamepad-task-source>
     pub fn gamepad_task_source(&self) -> GamepadTaskSource {
         if let Some(window) = self.downcast::<Window>() {
             return window.task_manager().gamepad_task_source();
@@ -3104,9 +3105,9 @@ impl GlobalScope {
             .handle_server_msg(scope, result);
     }
 
-    pub fn handle_gamepad_event(&self, gamepad_event: script_traits::GamepadEvent) {
+    pub fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
         match gamepad_event {
-            script_traits::GamepadEvent::Connected(index, name, bounds) => {
+            GamepadEvent::Connected(index, name, bounds) => {
                 self.handle_gamepad_connect(
                     index.0,
                     name,
@@ -3114,11 +3115,11 @@ impl GlobalScope {
                     bounds.button_bounds,
                 );
             },
-            script_traits::GamepadEvent::Disconnected(index) => {
+            GamepadEvent::Disconnected(index) => {
                 self.handle_gamepad_disconnect(index.0);
             },
-            script_traits::GamepadEvent::Updated(index, update_type) => {
-                self.handle_gamepad_update(index.0, update_type);
+            GamepadEvent::Updated(index, update_type) => {
+                self.receive_new_gamepad_button_or_axis(index.0, update_type);
             },
         };
     }
@@ -3176,11 +3177,13 @@ impl GlobalScope {
     }
 
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
-    pub fn handle_gamepad_update(&self, index: usize, update_type: GamepadUpdateType) {
+    pub fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
         let this = Trusted::new(&*self);
+
+        /// <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
         self.gamepad_task_source()
             .queue(
-                task!(gamepad_updated: move || {
+                task!(update_gamepad_state: move || {
                     let global = this.root();
                     if let Some(window) = global.downcast::<Window>() {
                         let gamepad_list = window.Navigator().GetGamepads();

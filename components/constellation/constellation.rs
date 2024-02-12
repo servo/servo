@@ -5500,7 +5500,7 @@ where
                 }
             },
             None => {
-                warn!("No focused browsing context! TODO: handle this?");
+                warn!("No focused webview to handle gamepad event");
             },
         }
     }
