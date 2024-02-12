@@ -774,10 +774,9 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         // the block direction. In that case, the ceiling for floats is effectively raised
         // as long as no floats in the overflowing content lowered it.
         sequential_layout_state.advance_block_position(
-            (block_size - content_block_size +
-                pbm.padding.block_end.into() +
-                pbm.border.block_end.into())
-            .into(),
+            Au::from(block_size - content_block_size) +
+                pbm.padding.block_end +
+                pbm.border.block_end,
         );
 
         if !end_margin_can_collapse_with_children {
@@ -963,7 +962,7 @@ impl NonReplacedFormattingContext {
                     containing_block,
                     &collapsed_margin_block_start,
                     &pbm,
-                    (&content_size.clone().into() + &pbm.padding_border_sums).into(),
+                    &content_size + &pbm.padding_border_sums.clone().into(),
                     &self.style,
                 );
         } else {
@@ -1030,7 +1029,7 @@ impl NonReplacedFormattingContext {
                 // size of auto. Try to fit it into our precalculated placement among the
                 // floats. If it fits, then we can stop trying layout candidates.
                 if placement.try_to_expand_for_auto_block_size(
-                    (content_size.block + pbm.padding_border_sums.block.into()).into(),
+                    Au::from(content_size.block) + pbm.padding_border_sums.block,
                     &placement_rect.size,
                 ) {
                     break;
@@ -1083,8 +1082,7 @@ impl NonReplacedFormattingContext {
         sequential_layout_state.collapse_margins();
         sequential_layout_state.advance_block_position(
             pbm.padding_border_sums.block +
-                content_size.block.into() +
-                clearance.unwrap_or_else(Length::zero).into(),
+                (content_size.block + clearance.unwrap_or_else(Length::zero)).into(),
         );
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
 

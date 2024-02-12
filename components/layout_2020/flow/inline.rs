@@ -648,15 +648,14 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         );
 
         if inline_box.is_first_fragment {
-            self.current_line.inline_position += (inline_box_state.pbm.padding.inline_start +
-                inline_box_state.pbm.border.inline_start +
-                inline_box_state
-                    .pbm
-                    .margin
-                    .inline_start
-                    .auto_is(Length::zero)
-                    .into())
-            .into();
+            self.current_line.inline_position += Length::from(
+                inline_box_state.pbm.padding.inline_start +
+                    inline_box_state.pbm.border.inline_start,
+            ) + inline_box_state
+                .pbm
+                .margin
+                .inline_start
+                .auto_is(Length::zero)
         }
 
         let line_item = inline_box_state
@@ -688,14 +687,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         }
 
         if inline_box_state.is_last_fragment {
-            let pbm_end = inline_box_state.pbm.padding.inline_end +
-                inline_box_state.pbm.border.inline_end +
-                inline_box_state
-                    .pbm
-                    .margin
-                    .inline_end
-                    .auto_is(Length::zero)
-                    .into();
+            let pbm_end = Length::from(
+                inline_box_state.pbm.padding.inline_end + inline_box_state.pbm.border.inline_end,
+            ) + inline_box_state.pbm.margin.inline_end.auto_is(Length::zero);
             self.current_line_segment.inline_size += pbm_end.into();
         }
     }
