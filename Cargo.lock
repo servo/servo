@@ -2852,9 +2852,9 @@ dependencies = [
 
 [[package]]
 name = "is-terminal"
-version = "0.4.11"
+version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe8f25ce1159c7740ff0b9b2f5cdf4a8428742ba7c112b9f20f22cd5219c7dab"
+checksum = "f23ff5ef2b80d608d61efee834934d862cd92461afc0560dedf493e4c033738b"
 dependencies = [
  "hermit-abi",
  "libc",
