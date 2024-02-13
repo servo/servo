@@ -153,7 +153,6 @@ where
                             (&run.info).into(),
                             run.info.style,
                             run.text.into(),
-                            false, /* has_uncollapsible_content */
                         )
                     });
                     let bfc = BlockFormattingContext::construct_for_text_runs(

@@ -64,15 +64,6 @@ pub(crate) struct InlineFormattingContext {
 
     /// Whether or not this [`InlineFormattingContext`] contains floats.
     pub(super) contains_floats: bool,
-
-    /// Whether this IFC being constructed currently ends with whitespace. This is used to
-    /// implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
-    ///
-    /// > Any collapsible space immediately following another collapsible space—even one
-    /// > outside the boundary of the inline containing that space, provided both spaces are
-    /// > within the same inline formatting context—is collapsed to have zero advance width.
-    /// > (It is invisible, but retains its soft wrap opportunity, if any.)
-    pub(super) ends_with_whitespace: bool,
 }
 
 /// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
@@ -1355,7 +1346,6 @@ impl InlineFormattingContext {
     pub(super) fn new(
         text_decoration_line: TextDecorationLine,
         has_first_formatted_line: bool,
-        ends_with_whitespace: bool,
     ) -> InlineFormattingContext {
         InlineFormattingContext {
             inline_level_boxes: Default::default(),
@@ -1363,7 +1353,6 @@ impl InlineFormattingContext {
             text_decoration_line,
             has_first_formatted_line,
             contains_floats: false,
-            ends_with_whitespace,
         }
     }
 
@@ -1565,7 +1554,7 @@ impl InlineFormattingContext {
         fn inline_level_box_is_empty(inline_level_box: &InlineLevelBox) -> bool {
             match inline_level_box {
                 InlineLevelBox::InlineBox(_) => false,
-                InlineLevelBox::TextRun(text_run) => !text_run.has_uncollapsible_content,
+                InlineLevelBox::TextRun(text_run) => !text_run.has_uncollapsible_content(),
                 InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => false,
                 InlineLevelBox::OutOfFlowFloatBox(_) => false,
                 InlineLevelBox::Atomic(_) => false,
@@ -1579,13 +1568,28 @@ impl InlineFormattingContext {
     /// all font matching and FontMetrics collection.
     pub(crate) fn break_and_shape_text(&mut self, layout_context: &LayoutContext) {
         let mut ifc_fonts = Vec::new();
+
+        // Whether the last processed node ended with whitespace. This is used to
+        // implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
+        //
+        // > Any collapsible space immediately following another collapsible space—even one
+        // > outside the boundary of the inline containing that space, provided both spaces are
+        // > within the same inline formatting context—is collapsed to have zero advance width.
+        // > (It is invisible, but retains its soft wrap opportunity, if any.)
+        let mut last_inline_box_ended_with_white_space = false;
+
         crate::context::with_thread_local_font_context(layout_context, |font_context| {
             let mut linebreaker = None;
             self.foreach(|iter_item| match iter_item {
                 InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(
                     ref mut text_run,
                 )) => {
-                    text_run.break_and_shape(font_context, &mut linebreaker, &mut ifc_fonts);
+                    text_run.break_and_shape(
+                        font_context,
+                        &mut linebreaker,
+                        &mut ifc_fonts,
+                        &mut last_inline_box_ended_with_white_space,
+                    );
                 },
                 InlineFormattingContextIterItem::Item(InlineLevelBox::InlineBox(inline_box)) => {
                     if let Some(font) =
@@ -1594,6 +1598,9 @@ impl InlineFormattingContext {
                         inline_box.default_font_index =
                             Some(add_or_get_font(&font, &mut ifc_fonts));
                     }
+                },
+                InlineFormattingContextIterItem::Item(InlineLevelBox::Atomic(_)) => {
+                    last_inline_box_ended_with_white_space = false;
                 },
                 _ => {},
             });
