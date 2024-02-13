@@ -907,6 +907,7 @@ impl NonReplacedFormattingContext {
 
         let margin_inline_start;
         let margin_inline_end;
+        let effective_margin_inline_start;
         let (margin_block_start, margin_block_end) =
             solve_block_margins_for_in_flow_block_level(&pbm);
         let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start);
@@ -950,15 +951,17 @@ impl NonReplacedFormattingContext {
                 }),
             };
 
-            (clearance, (margin_inline_start, margin_inline_end)) =
-                solve_clearance_and_inline_margins_avoiding_floats(
-                    sequential_layout_state,
-                    containing_block,
-                    &collapsed_margin_block_start,
-                    &pbm,
-                    &content_size + &pbm.padding_border_sums.clone().into(),
-                    &self.style,
-                );
+            (
+                clearance,
+                (margin_inline_start, margin_inline_end),
+                effective_margin_inline_start,
+            ) = solve_clearance_and_inline_margins_avoiding_floats(
+                sequential_layout_state,
+                &collapsed_margin_block_start,
+                &pbm,
+                &content_size + &pbm.padding_border_sums.clone().into(),
+                &self.style,
+            );
         } else {
             // First compute the clear position required by the 'clear' property.
             // The code below may then add extra clearance when the element can't fit
@@ -1049,9 +1052,11 @@ impl NonReplacedFormattingContext {
                 None
             };
 
-            (margin_inline_start, margin_inline_end) = solve_inline_margins_avoiding_floats(
+            (
+                (margin_inline_start, margin_inline_end),
+                effective_margin_inline_start,
+            ) = solve_inline_margins_avoiding_floats(
                 sequential_layout_state,
-                containing_block,
                 &pbm,
                 content_size.inline + pbm.padding_border_sums.inline.into(),
                 placement_rect.into(),
@@ -1087,7 +1092,7 @@ impl NonReplacedFormattingContext {
                     clearance.unwrap_or_else(Length::zero).into(),
                 inline: pbm.padding.inline_start +
                     pbm.border.inline_start +
-                    margin.inline_start.into(),
+                    effective_margin_inline_start.into(),
             },
             size: content_size.into(),
         };
@@ -1123,6 +1128,7 @@ fn layout_in_flow_replaced_block_level<'a>(
 
     let margin_inline_start;
     let margin_inline_end;
+    let effective_margin_inline_start;
     let (margin_block_start, margin_block_end) = solve_block_margins_for_in_flow_block_level(&pbm);
     let fragments = replaced.make_fragments(style, content_size.clone());
 
@@ -1140,15 +1146,17 @@ fn layout_in_flow_replaced_block_level<'a>(
         //  element next to the float or by how much said element may become narrower."
         let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start);
         let size = &content_size + &pbm.padding_border_sums.clone();
-        (clearance, (margin_inline_start, margin_inline_end)) =
-            solve_clearance_and_inline_margins_avoiding_floats(
-                sequential_layout_state,
-                containing_block,
-                &collapsed_margin_block_start,
-                &pbm,
-                size.clone().into(),
-                style,
-            );
+        (
+            clearance,
+            (margin_inline_start, margin_inline_end),
+            effective_margin_inline_start,
+        ) = solve_clearance_and_inline_margins_avoiding_floats(
+            sequential_layout_state,
+            &collapsed_margin_block_start,
+            &pbm,
+            size.clone().into(),
+            style,
+        );
 
         // Clearance prevents margin collapse between this block and previous ones,
         // so in that case collapse margins before adjoining them below.
@@ -1169,6 +1177,7 @@ fn layout_in_flow_replaced_block_level<'a>(
             &pbm,
             content_size.inline.into(),
         );
+        effective_margin_inline_start = margin_inline_start;
     };
 
     let margin = LogicalSides {
@@ -1182,7 +1191,9 @@ fn layout_in_flow_replaced_block_level<'a>(
         block: pbm.padding.block_start +
             pbm.border.block_start +
             clearance.unwrap_or_else(Length::zero).into(),
-        inline: pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start.into(),
+        inline: pbm.padding.inline_start +
+            pbm.border.inline_start +
+            effective_margin_inline_start.into(),
     };
 
     let content_rect = LogicalRect {
@@ -1277,67 +1288,22 @@ fn solve_containing_block_padding_border_and_margin_for_in_flow_box<'a>(
     }
 }
 
-/// A block-level element that establishes an independent formatting context (or is replaced)
-/// must not overlap floats.
-/// This can be achieved by adding clearance (to adjust the position in the block axis)
-/// and/or modifying the margins in the inline axis.
-/// This function takes care of calculating them.
-fn solve_clearance_and_inline_margins_avoiding_floats(
-    sequential_layout_state: &SequentialLayoutState,
-    containing_block: &ContainingBlock,
-    block_start_margin: &CollapsedMargin,
-    pbm: &PaddingBorderMargin,
-    size: LogicalVec2<Length>,
-    style: &Arc<ComputedValues>,
-) -> (Option<Length>, (Length, Length)) {
-    let (clearance, placement_rect) = sequential_layout_state
-        .calculate_clearance_and_inline_adjustment(
-            style.get_box().clear,
-            block_start_margin,
-            pbm,
-            size.clone().into(),
-        );
-    let inline_margins = solve_inline_margins_avoiding_floats(
-        sequential_layout_state,
-        containing_block,
-        pbm,
-        size.inline,
-        placement_rect.into(),
-    );
-    (clearance.map(|t| t.into()), inline_margins)
+/// Resolves 'auto' margins of an in-flow block-level box in the block axis.
+/// <https://drafts.csswg.org/css2/#normal-block>
+/// <https://drafts.csswg.org/css2/#block-root-margin>
+fn solve_block_margins_for_in_flow_block_level(pbm: &PaddingBorderMargin) -> (Length, Length) {
+    (
+        pbm.margin.block_start.auto_is(Length::zero),
+        pbm.margin.block_end.auto_is(Length::zero),
+    )
 }
 
-/// Resolves the margins of an in-flow block-level box in the inline axis
-/// so that it's placed within the given rect, avoiding floats.
-/// Auto margins resolve using the free space in the rect.
-fn solve_inline_margins_avoiding_floats(
-    sequential_layout_state: &SequentialLayoutState,
-    containing_block: &ContainingBlock,
-    pbm: &PaddingBorderMargin,
-    inline_size: Length,
-    placement_rect: LogicalRect<Length>,
-) -> (Length, Length) {
-    let inline_adjustment = placement_rect.start_corner.inline -
-        sequential_layout_state
-            .floats
-            .containing_block_info
-            .inline_start
-            .into();
-    assert!(placement_rect.size.inline >= inline_size);
-    let free_space = placement_rect.size.inline - inline_size;
-    let margin_inline_start = match (pbm.margin.inline_start, pbm.margin.inline_end) {
-        (LengthOrAuto::Auto, LengthOrAuto::Auto) => inline_adjustment + free_space / 2.,
-        (LengthOrAuto::Auto, _) => inline_adjustment + free_space,
-        _ => inline_adjustment,
-    };
-    let margin_inline_end =
-        Length::from(containing_block.inline_size) - inline_size - margin_inline_start;
-    (margin_inline_start, margin_inline_end)
-}
-
-/// Resolves the margins of an in-flow block-level box in the inline axis,
-/// distributing free space into 'auto' values and solving over-constrained cases.
-/// <https://drafts.csswg.org/css2/#blockwidth>
+/// Resolves 'auto' margins of an in-flow block-level box in the inline axis,
+/// distributing the free space in the containing block.
+///
+/// This is based on CSS2.1 § 10.3.3 <https://drafts.csswg.org/css2/#blockwidth>
+/// but without adjusting the margins in "over-contrained" cases, as mandated by
+/// <https://drafts.csswg.org/css-align/#justify-block>.
 ///
 /// Note that in the presence of floats, this shouldn't be used for a block-level box
 /// that establishes an independent formatting context (or is replaced).
@@ -1348,23 +1314,92 @@ fn solve_inline_margins_for_in_flow_block_level(
 ) -> (Length, Length) {
     let free_space =
         Length::from(containing_block.inline_size - pbm.padding_border_sums.inline) - inline_size;
-    let margin_inline_start = match (pbm.margin.inline_start, pbm.margin.inline_end) {
-        (LengthOrAuto::Auto, LengthOrAuto::Auto) => Length::zero().max(free_space / 2.),
-        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
-            Length::zero().max(free_space - end)
+    match (pbm.margin.inline_start, pbm.margin.inline_end) {
+        (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
+            let start = Length::zero().max(free_space / 2.);
+            (start, free_space - start)
         },
-        (LengthOrAuto::LengthPercentage(start), _) => start,
-    };
-    (margin_inline_start, free_space - margin_inline_start)
+        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
+            (Length::zero().max(free_space - end), end)
+        },
+        (LengthOrAuto::LengthPercentage(start), LengthOrAuto::Auto) => (start, free_space - start),
+        (LengthOrAuto::LengthPercentage(start), LengthOrAuto::LengthPercentage(end)) => {
+            (start, end)
+        },
+    }
 }
 
-/// Resolves the margins of an in-flow block-level box in the block axis.
-/// <https://drafts.csswg.org/css2/#normal-block>
-/// <https://drafts.csswg.org/css2/#block-root-margin>
-fn solve_block_margins_for_in_flow_block_level(pbm: &PaddingBorderMargin) -> (Length, Length) {
+/// Resolves 'auto' margins of an in-flow block-level box in the inline axis
+/// similarly to |solve_inline_margins_for_in_flow_block_level|. However,
+/// they align within the provided rect (instead of the containing block),
+/// to avoid overlapping floats.
+/// In addition to the used margins, it also returns what we will call
+/// "effective margin-inline-start". That's the distance between the border box
+/// and the containing block on the inline-start side. Note it may differ
+/// from the used inline-start margin if the computed value wasn't 'auto'
+/// and there are floats to avoid.
+/// The reason we aren't just adjusting the used margin-inline-start is that
+/// this shouldn't be observable via getComputedStyle().
+/// See <https://github.com/w3c/csswg-drafts/issues/9174>
+fn solve_inline_margins_avoiding_floats(
+    sequential_layout_state: &SequentialLayoutState,
+    pbm: &PaddingBorderMargin,
+    inline_size: Length,
+    placement_rect: LogicalRect<Length>,
+) -> ((Length, Length), Length) {
+    let free_space = placement_rect.size.inline - inline_size;
+    debug_assert!(free_space >= Length::zero());
+    let cb_info = &sequential_layout_state.floats.containing_block_info;
+    let start_adjustment = placement_rect.start_corner.inline - cb_info.inline_start.into();
+    let end_adjustment = Length::from(cb_info.inline_end) - placement_rect.max_inline_position();
+    let inline_margins = match (pbm.margin.inline_start, pbm.margin.inline_end) {
+        (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
+            let half = free_space / 2.;
+            (start_adjustment + half, end_adjustment + free_space - half)
+        },
+        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
+            (start_adjustment + free_space, end)
+        },
+        (LengthOrAuto::LengthPercentage(start), LengthOrAuto::Auto) => {
+            (start, end_adjustment + free_space)
+        },
+        (LengthOrAuto::LengthPercentage(start), LengthOrAuto::LengthPercentage(end)) => {
+            (start, end)
+        },
+    };
+    let effective_margin_inline_start = inline_margins.0.max(start_adjustment);
+    (inline_margins, effective_margin_inline_start)
+}
+
+/// A block-level element that establishes an independent formatting context (or is replaced)
+/// must not overlap floats.
+/// This can be achieved by adding clearance (to adjust the position in the block axis)
+/// and/or modifying the margins in the inline axis.
+/// This function takes care of calculating them.
+fn solve_clearance_and_inline_margins_avoiding_floats(
+    sequential_layout_state: &SequentialLayoutState,
+    block_start_margin: &CollapsedMargin,
+    pbm: &PaddingBorderMargin,
+    size: LogicalVec2<Length>,
+    style: &Arc<ComputedValues>,
+) -> (Option<Length>, (Length, Length), Length) {
+    let (clearance, placement_rect) = sequential_layout_state
+        .calculate_clearance_and_inline_adjustment(
+            style.get_box().clear,
+            block_start_margin,
+            pbm,
+            size.clone().into(),
+        );
+    let (inline_margins, effective_margin_inline_start) = solve_inline_margins_avoiding_floats(
+        sequential_layout_state,
+        pbm,
+        size.inline,
+        placement_rect.into(),
+    );
     (
-        pbm.margin.block_start.auto_is(Length::zero),
-        pbm.margin.block_end.auto_is(Length::zero),
+        clearance.map(|t| t.into()),
+        inline_margins,
+        effective_margin_inline_start,
     )
 }
 
