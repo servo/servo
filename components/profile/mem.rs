@@ -387,16 +387,16 @@ impl ReportsForest {
 //---------------------------------------------------------------------------
 
 mod system_reporter {
-    #[cfg(not(any(target_os = "windows", target_os = "android")))]
+    #[cfg(not(any(target_os = "windows", target_os = "android", target_env = "ohos")))]
     use std::ffi::CString;
-    #[cfg(not(any(target_os = "windows", target_os = "android")))]
+    #[cfg(not(any(target_os = "windows", target_os = "android", target_env = "ohos")))]
     use std::mem::size_of;
-    #[cfg(not(any(target_os = "windows", target_os = "android")))]
+    #[cfg(not(any(target_os = "windows", target_os = "android", target_env = "ohos")))]
     use std::ptr::null_mut;
 
     #[cfg(target_os = "linux")]
     use libc::c_int;
-    #[cfg(not(any(target_os = "windows", target_os = "android")))]
+    #[cfg(not(any(target_os = "windows", target_os = "android", target_env = "ohos")))]
     use libc::{c_void, size_t};
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
     use profile_traits::path;
@@ -499,10 +499,10 @@ mod system_reporter {
         None
     }
 
-    #[cfg(not(any(target_os = "windows", target_os = "android")))]
+    #[cfg(not(any(target_os = "windows", target_os = "android", target_env = "ohos")))]
     use jemalloc_sys::mallctl;
 
-    #[cfg(not(any(target_os = "windows", target_os = "android")))]
+    #[cfg(not(any(target_os = "windows", target_os = "android", target_env = "ohos")))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {
         // Before we request the measurement of interest, we first send an "epoch"
         // request. Without that jemalloc gives cached statistics(!) which can be
@@ -549,7 +549,7 @@ mod system_reporter {
         Some(value as usize)
     }
 
-    #[cfg(any(target_os = "windows", target_os = "android"))]
+    #[cfg(any(target_os = "windows", target_os = "android", target_env = "ohos"))]
     fn jemalloc_stat(_value_name: &str) -> Option<usize> {
         None
     }
