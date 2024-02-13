@@ -1012,18 +1012,6 @@ dependencies = [
 
 [[package]]
 name = "core-text"
-version = "19.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99d74ada66e07c1cefa18f8abfba765b486f250de2e4a999e5727fc0dd4b4a25"
-dependencies = [
- "core-foundation",
- "core-graphics 0.22.3",
- "foreign-types 0.3.2",
- "libc",
-]
-
-[[package]]
-name = "core-text"
 version = "20.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c9d2790b5c08465d49f8dc05c8bcae9fea467855947db39b0f8145c091aaced5"
@@ -1713,7 +1701,7 @@ dependencies = [
  "byteorder",
  "core-foundation",
  "core-graphics 0.23.1",
- "core-text 20.1.0",
+ "core-text",
  "dirs-next",
  "dwrote",
  "float-ord",
@@ -1985,7 +1973,7 @@ dependencies = [
  "byteorder",
  "core-foundation",
  "core-graphics 0.23.1",
- "core-text 19.2.0",
+ "core-text",
  "dwrote",
  "euclid",
  "fnv",
@@ -2594,15 +2582,15 @@ dependencies = [
 [[package]]
 name = "harfbuzz-sys"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf8c27ca13930dc4ffe474880040fe9e0f03c2121600dc9c95423624cab3e467"
+source = "git+https://github.com/servo/rust-harfbuzz.git?rev=2ce0a6d3e0cbdf36dedfbe1de7267e134c8d7446#2ce0a6d3e0cbdf36dedfbe1de7267e134c8d7446"
 dependencies = [
  "cc",
- "core-graphics 0.22.3",
- "core-text 19.2.0",
- "foreign-types 0.3.2",
- "freetype",
+ "core-graphics 0.23.1",
+ "core-text",
+ "foreign-types 0.5.0",
+ "freetype-sys",
  "pkg-config",
+ "winapi",
 ]
 
 [[package]]
@@ -7514,7 +7502,7 @@ source = "git+https://github.com/servo/webrender?branch=0.64#9d354adf8955b1390dd
 dependencies = [
  "core-foundation",
  "core-graphics 0.23.1",
- "core-text 20.1.0",
+ "core-text",
  "dwrote",
  "euclid",
  "freetype",
