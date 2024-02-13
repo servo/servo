@@ -59,4 +59,4 @@ xml-rs = "0.8"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.11"
-truetype = { version = "0.40.0", features = ["ignore-invalid-language-ids"] }
+truetype = { version = "0.47.3", features = ["ignore-invalid-language-ids"] }
