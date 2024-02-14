@@ -31,8 +31,8 @@ precomputed-hash = "0.1"
 servo_arc = { version = "0.2", path = "../servo_arc" }
 size_of_test = { path = "../size_of_test" }
 smallvec = "1.0"
-to_shmem = { version = "0.0.0", path = "../to_shmem", optional = true }
-to_shmem_derive = { version = "0.0.0", path = "../to_shmem_derive", optional = true }
+to_shmem = { version = "0.0.1", path = "../to_shmem", optional = true }
+to_shmem_derive = { version = "0.0.1", path = "../to_shmem_derive", optional = true }
 
 [build-dependencies]
 phf_codegen = "0.10"
