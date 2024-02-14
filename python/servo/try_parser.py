@@ -227,28 +227,25 @@ class TestParser(unittest.TestCase):
                               }]
                               })
 
-        # These two jobs should not be merged to one that turns on unit tests.
         a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Linux", Workflow.LINUX, unit_tests=False)
-        self.assertTrue(a.merge(b))
+        self.assertTrue(a.merge(b), "Should not merge jobs that have different unit test configurations.")
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
-        # These two jobs should not be mergable to one that turns on unit tests.
         a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Linux", Workflow.MACOS, unit_tests=True)
-        self.assertFalse(a.merge(b))
+        self.assertFalse(a.merge(b), "Should not merge jobs with different workflows.")
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
-        # Ditto.
         a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Linux", Workflow.LINUX, unit_tests=True, profile="production")
-        self.assertFalse(a.merge(b))
+        self.assertFalse(a.merge(b), "Should not merge jobs with different profiles.")
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
         # Ditto.
         a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Linux", Workflow.LINUX, unit_tests=True, wpt_tests_to_run="/css")
-        self.assertFalse(a.merge(b))
+        self.assertFalse(a.merge(b), "Should not merge jobs that run different WPT tests.")
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):
