@@ -11,7 +11,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::Instant;
 use std::{mem, ptr};
 
 use content_security_policy::CspList;
@@ -51,8 +51,8 @@ use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_tim
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
-    BroadcastMsg, GamepadEvent, GamepadUpdateType, MessagePortMsg, MsDuration, PortMessageTask, ScriptMsg,
-    ScriptToConstellationChan, TimerEvent, TimerEventId, TimerSchedulerMsg, TimerSource,
+    BroadcastMsg, GamepadEvent, GamepadUpdateType, MessagePortMsg, MsDuration, PortMessageTask,
+    ScriptMsg, ScriptToConstellationChan, TimerEvent, TimerEventId, TimerSchedulerMsg, TimerSource,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -68,6 +68,7 @@ use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
+use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -3140,12 +3141,13 @@ impl GlobalScope {
                 let global = this.root();
                 let gamepad = Gamepad::new(&global, index as u32, name, axis_bounds, button_bounds);
 
-                // TODO: 3.4 If navigator.[[hasGamepadGesture]] is true:
-                // TODO: 3.4.1 Set gamepad.[[exposed]] to true.
                 if let Some(window) = global.downcast::<Window>() {
                     let gamepad_list = window.Navigator().GetGamepads();
                     let gamepad_arr: [DomRoot<Gamepad>; 1] = [gamepad.clone()];
                     gamepad_list.add_if_not_exists(&gamepad_arr);
+
+                    // TODO: 3.4 If navigator.[[hasGamepadGesture]] is true:
+                    // TODO: 3.4.1 Set gamepad.[[exposed]] to true.
 
                     if window.Document().is_fully_active() {
                         gamepad.update_connected(true);
@@ -3167,8 +3169,16 @@ impl GlobalScope {
                     if let Some(window) = global.downcast::<Window>() {
                         let gamepad_list = window.Navigator().GetGamepads();
                         if let Some(gamepad) = gamepad_list.Item(index as u32) {
+                            // TODO: If gamepad.[[exposed]]
                             gamepad.update_connected(false);
                             gamepad_list.remove_gamepad(index);
+                        }
+                        for i in (0..gamepad_list.Length()).rev() {
+                            if gamepad_list.Item(i as u32).is_none() {
+                                gamepad_list.remove_gamepad(i as usize);
+                            } else {
+                                break;
+                            }
                         }
                     }
                 }),
@@ -3189,11 +3199,8 @@ impl GlobalScope {
                     if let Some(window) = global.downcast::<Window>() {
                         let gamepad_list = window.Navigator().GetGamepads();
                         if let Some(gamepad) = gamepad_list.IndexedGetter(index as u32) {
-                            let current_time = SystemTime::now()
-                                .duration_since(UNIX_EPOCH)
-                                .unwrap_or_default()
-                                .as_millis() as f64;
-                            gamepad.update_timestamp(current_time);
+                            let current_time = global.performance().Now();
+                            gamepad.update_timestamp(*current_time);
 
                             match update_type {
                                 GamepadUpdateType::Axis(index, value) => {
@@ -3203,6 +3210,9 @@ impl GlobalScope {
                                     gamepad.map_and_normalize_buttons(index, value);
                                 }
                             };
+
+                            // TODO: 6. If navigator.[[hasGamepadGesture]] is false
+                            //          and gamepad contains a gamepad user gesture:
                         }
                     }
                 }),

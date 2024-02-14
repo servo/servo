@@ -13,16 +13,19 @@ use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadBu
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, DomSlice};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::gamepadbutton::GamepadButton;
 use crate::dom::gamepadbuttonlist::GamepadButtonList;
 use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
 use crate::dom::gamepadpose::GamepadPose;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
+
+// This value is for determining when to consider a non-digital button "pressed".
+// Like Gecko and Chromium it derives from the XInput trigger threshold.
+const BUTTON_PRESS_THRESHOLD: f64 = 30.0 / 255.0;
 
 #[dom_struct]
 pub struct Gamepad {
@@ -96,7 +99,7 @@ impl Gamepad {
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
     ) -> DomRoot<Gamepad> {
-        let button_list = Gamepad::init_buttons(global);
+        let button_list = GamepadButtonList::init_buttons(global);
         let gamepad = reflect_dom_object_with_proto(
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
@@ -206,7 +209,7 @@ impl Gamepad {
 
     /// Initialize the number of axes in the "standard" gamepad mapping.
     /// <https://www.w3.org/TR/gamepad/#dfn-initializing-axes>
-    pub fn init_axes(&self) {
+    fn init_axes(&self) {
         let initial_axes: Vec<f64> = vec![
             0., // Horizontal axis for left stick (negative left/positive right)
             0., // Vertical axis for left stick (negative up/positive down)
@@ -218,51 +221,48 @@ impl Gamepad {
             .expect("Failed to set axes data on gamepad.")
     }
 
-    /// Initialize the number of buttons in the "standard" gamepad mapping.
-    /// <https://www.w3.org/TR/gamepad/#dfn-initializing-buttons>
-    pub fn init_buttons(global: &GlobalScope) -> DomRoot<GamepadButtonList> {
-        let standard_buttons = &[
-            GamepadButton::new(global, false, false), // Bottom button in right cluster
-            GamepadButton::new(global, false, false), // Right button in right cluster
-            GamepadButton::new(global, false, false), // Left button in right cluster
-            GamepadButton::new(global, false, false), // Top button in right cluster
-            GamepadButton::new(global, false, false), // Top left front button
-            GamepadButton::new(global, false, false), // Top right front button
-            GamepadButton::new(global, false, false), // Bottom left front button
-            GamepadButton::new(global, false, false), // Bottom right front button
-            GamepadButton::new(global, false, false), // Left button in center cluster
-            GamepadButton::new(global, false, false), // Right button in center cluster
-            GamepadButton::new(global, false, false), // Left stick pressed button
-            GamepadButton::new(global, false, false), // Right stick pressed button
-            GamepadButton::new(global, false, false), // Top button in left cluster
-            GamepadButton::new(global, false, false), // Bottom button in left cluster
-            GamepadButton::new(global, false, false), // Left button in left cluster
-            GamepadButton::new(global, false, false), // Right button in left cluster
-            GamepadButton::new(global, false, false), // Center button in center cluster
-        ];
-        rooted_vec!(let buttons <- standard_buttons.iter().map(|button| DomRoot::from_ref(&**button)));
-        GamepadButtonList::new(global, buttons.r())
-    }
-
     #[allow(unsafe_code)]
     /// <https://www.w3.org/TR/gamepad/#dfn-map-and-normalize-axes>
     pub fn map_and_normalize_axes(&self, axis_index: usize, value: f64) {
-        let normalized_value: f64 =
-            2.0 * (value - self.axis_bounds.0) / (self.axis_bounds.1 - self.axis_bounds.0) - 1.0;
-        let mut axis_vec = self.axes.get_internal().unwrap();
-        unsafe {
-            axis_vec.as_mut_slice()[axis_index] = normalized_value;
+        // Let normalizedValue be 2 (logicalValue − logicalMinimum) / (logicalMaximum − logicalMinimum) − 1.
+        let numerator = value - self.axis_bounds.0;
+        let denominator = self.axis_bounds.1 - self.axis_bounds.0;
+        if denominator != 0.0 && denominator.is_finite() {
+            let normalized_value: f64 = 2.0 * numerator / denominator - 1.0;
+            if normalized_value.is_finite() {
+                let mut axis_vec = self
+                    .axes
+                    .internal_to_option()
+                    .expect("Axes have not been initialized!");
+                unsafe {
+                    axis_vec.as_mut_slice()[axis_index] = normalized_value;
+                }
+            } else {
+                warn!("Axis value is not finite!");
+            }
+        } else {
+            warn!("Axis bounds difference is either 0 or non-finite!");
         }
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-map-and-normalize-buttons>
     pub fn map_and_normalize_buttons(&self, button_index: usize, value: f64) {
-        let normalized_value: f64 =
-            (value - self.button_bounds.0) / (self.button_bounds.1 - self.button_bounds.0);
-        let pressed = normalized_value == 1.0;
-        let touched = normalized_value > 0.0;
-        if let Some(button) = self.buttons.IndexedGetter(button_index as u32) {
-            button.update(pressed, touched, normalized_value);
+        // Let normalizedValue be (logicalValue − logicalMinimum) / (logicalMaximum − logicalMinimum).
+        let numerator = value - self.button_bounds.0;
+        let denominator = self.button_bounds.1 - self.button_bounds.0;
+        if denominator != 0.0 && denominator.is_finite() {
+            let normalized_value: f64 = numerator / denominator;
+            if normalized_value.is_finite() {
+                let pressed = normalized_value >= BUTTON_PRESS_THRESHOLD;
+                // TODO: Determine a way of getting touch capability for button
+                if let Some(button) = self.buttons.IndexedGetter(button_index as u32) {
+                    button.update(pressed, /*touched*/ pressed, normalized_value);
+                }
+            } else {
+                warn!("Button value is not finite!");
+            }
+        } else {
+            warn!("Button bounds difference is either 0 or non-finite!");
         }
     }
 }
