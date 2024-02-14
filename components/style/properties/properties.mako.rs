@@ -32,7 +32,6 @@ use fxhash::FxHashMap;
 use crate::media_queries::Device;
 use crate::parser::ParserContext;
 use crate::selector_parser::PseudoElement;
-#[cfg(feature = "servo")] use servo_config::prefs;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError, ParsingMode};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use to_shmem::impl_trivial_to_shmem;
@@ -525,7 +524,7 @@ impl NonCustomPropertyId {
                     Some(pref) => pref,
                 };
 
-                prefs::pref_map().get(pref).as_bool().unwrap_or(false)
+                style_config::get_bool(pref)
             % endif
         };
 

@@ -74,6 +74,7 @@ smallvec = "1.0"
 static_assertions = "1.1"
 static_prefs = { path = "../style_static_prefs" }
 string_cache = { version = "0.8", optional = true }
+style_config = { path = "../style_config" }
 style_derive = { path = "../style_derive" }
 style_traits = { path = "../style_traits" }
 time = "0.1"

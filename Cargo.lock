@@ -5801,6 +5801,7 @@ dependencies = [
  "static_assertions",
  "static_prefs",
  "string_cache",
+ "style_config",
  "style_derive",
  "style_traits",
  "thin-vec",
@@ -5814,6 +5815,21 @@ dependencies = [
  "url",
  "void",
  "walkdir",
+]
+
+[[package]]
+name = "style_config"
+version = "0.0.1"
+dependencies = [
+ "embedder_traits",
+ "euclid",
+ "getopts",
+ "lazy_static",
+ "log",
+ "num_cpus",
+ "serde",
+ "serde_json",
+ "url",
 ]
 
 [[package]]
