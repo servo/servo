@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
-use std::ffi::c_void;
+use std::cell::Cell;
 use std::ops::Range;
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::string::String;
+use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use js::jsapi::{DetachArrayBuffer, Heap, JSObject, NewExternalArrayBuffer};
+use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use webgpu::identity::WebGPUOpResult;
 use webgpu::wgpu::device::HostMap;
 use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
+use super::bindings::typedarrays::{create_new_external_array_buffer, HeapTypedArray};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBufferMethods, GPUMapModeConstants, GPUSize64,
@@ -46,12 +46,15 @@ pub enum GPUBufferState {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct GPUBufferMapInfo {
-    #[ignore_malloc_size_of = "Rc"]
-    pub mapping: Rc<RefCell<Vec<u8>>>,
+    #[ignore_malloc_size_of = "Arc"]
+    #[no_trace]
+    /// The `mapping` is wrapped in an `Arc` to ensure thread safety.
+    /// This is necessary for integration with the SpiderMonkey engine,
+    pub mapping: Arc<Mutex<Vec<u8>>>,
     pub mapping_range: Range<u64>,
     pub mapped_ranges: Vec<Range<u64>>,
     #[ignore_malloc_size_of = "defined in mozjs"]
-    pub js_buffers: Vec<Box<Heap<*mut JSObject>>>,
+    pub js_buffers: Vec<HeapTypedArray<ArrayBufferU8>>,
     pub map_mode: Option<u32>,
 }
 
@@ -95,7 +98,6 @@ impl GPUBuffer {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
@@ -134,7 +136,6 @@ impl Drop for GPUBuffer {
 }
 
 impl GPUBufferMethods for GPUBuffer {
-    #[allow(unsafe_code)]
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self) -> Fallible<()> {
         let cx = GlobalScope::get_cx();
@@ -147,16 +148,18 @@ impl GPUBufferMethods for GPUBuffer {
             // Step 3
             GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => {
                 let mut info = self.map_info.borrow_mut();
-                let m_info = info.as_mut().unwrap();
+                let m_info = if let Some(m_info) = info.as_mut() {
+                    m_info
+                } else {
+                    return Err(Error::Operation);
+                };
                 let m_range = m_info.mapping_range.clone();
                 if let Err(e) = self.channel.0.send((
                     self.device.use_current_scope(),
                     WebGPURequest::UnmapBuffer {
                         buffer_id: self.id().0,
                         device_id: self.device.id().0,
-                        array_buffer: IpcSharedMemory::from_bytes(
-                            m_info.mapping.borrow().as_slice(),
-                        ),
+                        array_buffer: IpcSharedMemory::from_bytes(&*m_info.mapping.lock().unwrap()),
                         is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
                         offset: m_range.start,
                         size: m_range.end - m_range.start,
@@ -165,8 +168,8 @@ impl GPUBufferMethods for GPUBuffer {
                     warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
                 }
                 // Step 3.3
-                m_info.js_buffers.drain(..).for_each(|obj| unsafe {
-                    DetachArrayBuffer(*cx, obj.handle());
+                m_info.js_buffers.drain(..).for_each(|obj| {
+                    obj.detach_internal(cx);
                 });
             },
             // Step 2
@@ -205,7 +208,6 @@ impl GPUBufferMethods for GPUBuffer {
         Ok(())
     }
 
-    #[allow(unsafe_code)]
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapasync-offset-size>
     fn MapAsync(
         &self,
@@ -268,7 +270,7 @@ impl GPUBufferMethods for GPUBuffer {
 
         self.state.set(GPUBufferState::MappingPending);
         *self.map_info.borrow_mut() = Some(GPUBufferMapInfo {
-            mapping: Rc::new(RefCell::new(Vec::with_capacity(0))),
+            mapping: Arc::new(Mutex::new(Vec::with_capacity(0))),
             mapping_range: map_range,
             mapped_ranges: Vec::new(),
             js_buffers: Vec::new(),
@@ -279,13 +281,12 @@ impl GPUBufferMethods for GPUBuffer {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange>
-    #[allow(unsafe_code)]
     fn GetMappedRange(
         &self,
         cx: JSContext,
         offset: GPUSize64,
         size: Option<GPUSize64>,
-    ) -> Fallible<NonNull<JSObject>> {
+    ) -> Fallible<ArrayBuffer> {
         let range_size = if let Some(s) = size {
             s
         } else if offset >= self.size {
@@ -295,8 +296,11 @@ impl GPUBufferMethods for GPUBuffer {
         };
         let m_end = offset + range_size;
         let mut info = self.map_info.borrow_mut();
-        let m_info = info.as_mut().unwrap();
-
+        let m_info = if let Some(m_info) = info.as_mut() {
+            m_info
+        } else {
+            return Err(Error::Operation);
+        };
         let mut valid = match self.state.get() {
             GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => true,
             _ => false,
@@ -313,24 +317,20 @@ impl GPUBufferMethods for GPUBuffer {
             return Err(Error::Operation);
         }
 
-        unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
-            let _ = Rc::from_raw(free_user_data as _);
-        }
+        let heap_typed_array = create_new_external_array_buffer::<ArrayBufferU8>(
+            cx,
+            Arc::clone(&m_info.mapping),
+            offset as usize,
+            range_size as usize,
+            m_end as usize,
+        );
 
-        let array_buffer = unsafe {
-            NewExternalArrayBuffer(
-                *cx,
-                range_size as usize,
-                m_info.mapping.borrow_mut()[offset as usize..m_end as usize].as_mut_ptr() as _,
-                Some(free_func),
-                Rc::into_raw(m_info.mapping.clone()) as _,
-            )
-        };
+        let result = heap_typed_array.get_internal().map_err(|_| Error::JSFailed);
 
         m_info.mapped_ranges.push(offset..m_end);
-        m_info.js_buffers.push(Heap::boxed(array_buffer));
+        m_info.js_buffers.push(heap_typed_array);
 
-        Ok(NonNull::new(array_buffer).unwrap())
+        result
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
@@ -345,7 +345,6 @@ impl GPUBufferMethods for GPUBuffer {
 }
 
 impl AsyncWGPUListener for GPUBuffer {
-    #[allow(unsafe_code)]
     fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
         match response {
             Some(response) => match response {
@@ -356,7 +355,9 @@ impl AsyncWGPUListener for GPUBuffer {
                         .as_mut()
                         .unwrap()
                         .mapping
-                        .borrow_mut() = bytes.to_vec();
+                        .lock()
+                        .unwrap()
+                        .as_mut() = bytes.to_vec();
                     promise.resolve_native(&());
                     self.state.set(GPUBufferState::Mapped);
                 },

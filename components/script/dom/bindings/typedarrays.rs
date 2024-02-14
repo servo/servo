@@ -4,12 +4,17 @@
 
 #![allow(unsafe_code)]
 
+use std::borrow::BorrowMut;
+use std::ffi::c_void;
 use std::marker::PhantomData;
 use std::ptr;
+use std::sync::{Arc, Mutex};
 
-use js::jsapi::{Heap, JSObject, JS_GetArrayBufferViewBuffer};
+use js::jsapi::{
+    Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
+};
 use js::rust::wrappers::DetachArrayBuffer;
-use js::rust::{CustomAutoRooterGuard, MutableHandleObject};
+use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
 use js::typedarray::{CreateWith, TypedArray, TypedArrayElement, TypedArrayElementCreator};
 
 use crate::script_runtime::JSContext;
@@ -78,20 +83,33 @@ where
             array as Result<CustomAutoRooterGuard<'_, TypedArray<T, *mut JSObject>>, &mut ()>
         {
             let data = array.to_vec();
-            let mut is_shared = false;
-            unsafe {
-                rooted!(in (*cx) let view_buffer =
-                    JS_GetArrayBufferViewBuffer(*cx, self.internal.handle(), &mut is_shared));
-                // This buffer is always created unshared
-                debug_assert!(!is_shared);
-                let _ = DetachArrayBuffer(*cx, view_buffer.handle());
-            }
+            let _ = self.detach_internal(cx);
             Ok(data)
         } else {
             Err(())
         };
         self.internal.set(ptr::null_mut());
         data
+    }
+
+    /// <https://tc39.es/ecma262/#sec-detacharraybuffer>
+    pub fn detach_internal(&self, cx: JSContext) -> bool {
+        assert!(self.is_initialized());
+        let mut is_shared = false;
+        unsafe {
+            if JS_IsArrayBufferViewObject(*self.internal.handle()) {
+                // If it is an ArrayBuffer view, get the buffer using JS_GetArrayBufferViewBuffer
+                rooted!(in (*cx) let view_buffer =
+                    JS_GetArrayBufferViewBuffer(*cx, self.internal.handle(), &mut is_shared));
+                // This buffer is always created unshared
+                debug_assert!(!is_shared);
+                // Detach the ArrayBuffer
+                DetachArrayBuffer(*cx, view_buffer.handle())
+            } else {
+                // If it's not an ArrayBuffer view, Detach the internal buffer directly
+                DetachArrayBuffer(*cx, Handle::from_raw(self.internal.handle()))
+            }
+        }
     }
 
     pub fn copy_data_to(
@@ -183,5 +201,44 @@ where
         Err(())
     } else {
         TypedArray::from(dest.get())
+    }
+}
+
+pub fn create_new_external_array_buffer<T>(
+    cx: JSContext,
+    mapping: Arc<Mutex<Vec<T::Element>>>,
+    offset: usize,
+    range_size: usize,
+    m_end: usize,
+) -> HeapTypedArray<T>
+where
+    T: TypedArrayElement + TypedArrayElementCreator,
+    T::Element: Clone + Copy,
+{
+    /// `freeFunc()` must be threadsafe, should be safely callable from any thread
+    /// without causing conflicts or unexpected behavior.
+    /// <https://github.com/servo/mozjs/blob/main/mozjs-sys/mozjs/js/public/ArrayBuffer.h#L89>
+    unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
+        let _ = Arc::from_raw(free_user_data as _);
+    }
+
+    unsafe {
+        let mapping_slice_ptr =
+            mapping.lock().unwrap().borrow_mut()[offset as usize..m_end as usize].as_mut_ptr();
+
+        // rooted! is needed to ensure memory safety and prevent potential garbage collection issues.
+        // https://github.com/mozilla-spidermonkey/spidermonkey-embedding-examples/blob/esr78/docs/GC%20Rooting%20Guide.md#performance-tweaking
+        rooted!(in(*cx) let array_buffer = NewExternalArrayBuffer(
+            *cx,
+            range_size as usize,
+            mapping_slice_ptr as _,
+            Some(free_func),
+            Arc::into_raw(mapping) as _,
+        ));
+
+        HeapTypedArray {
+            internal: Heap::boxed(*array_buffer),
+            phantom: PhantomData::default(),
+        }
     }
 }

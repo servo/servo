@@ -10,7 +10,7 @@ use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::codegen::Bindings::DOMParserBinding;
 use crate::dom::bindings::codegen::Bindings::DOMParserBinding::DOMParserMethods;
 use crate::dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{
-    Application_xhtml_xml, Application_xml, Text_html, Text_xml,
+    Application_xhtml_xml, Application_xml, Image_svg_xml, Text_html, Text_xml,
 };
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -84,7 +84,7 @@ impl DOMParserMethods for DOMParser {
                 document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             },
-            Text_xml | Application_xml | Application_xhtml_xml => {
+            Text_xml | Application_xml | Application_xhtml_xml | Image_svg_xml => {
                 let document = Document::new(
                     &self.window,
                     HasBrowsingContext::No,

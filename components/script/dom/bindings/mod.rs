@@ -36,10 +36,11 @@
 //! trait is then implemented for `Foo`. (All methods take an `&self`
 //! parameter, as pointers to DOM objects can be freely aliased.)
 //!
-//! The return type and argument types are determined [as described below]
-//! (#rust-reflections-of-webidl-types).
-//! In addition to those, all methods that are [allowed to throw]
-//! (#throwing-exceptions) will have the return value wrapped in
+//! The return type and argument types are determined
+//! [as described below](#rust-reflections-of-webidl-types).
+//! In addition to those, all methods that are
+//! [allowed to throw](#throwing-exceptions)
+//! will have the return value wrapped in
 //! [`Fallible<T>`](error/type.Fallible.html).
 //! Methods that use certain WebIDL types like `any` or `object` will get a
 //! `*mut JSContext` argument prepended to the argument list. Static methods

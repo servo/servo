@@ -64,15 +64,6 @@ pub(crate) struct InlineFormattingContext {
 
     /// Whether or not this [`InlineFormattingContext`] contains floats.
     pub(super) contains_floats: bool,
-
-    /// Whether this IFC being constructed currently ends with whitespace. This is used to
-    /// implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
-    ///
-    /// > Any collapsible space immediately following another collapsible space—even one
-    /// > outside the boundary of the inline containing that space, provided both spaces are
-    /// > within the same inline formatting context—is collapsed to have zero advance width.
-    /// > (It is invisible, but retains its soft wrap opportunity, if any.)
-    pub(super) ends_with_whitespace: bool,
 }
 
 /// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
@@ -648,13 +639,14 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         );
 
         if inline_box.is_first_fragment {
-            self.current_line.inline_position += inline_box_state.pbm.padding.inline_start +
-                inline_box_state.pbm.border.inline_start +
-                inline_box_state
-                    .pbm
-                    .margin
-                    .inline_start
-                    .auto_is(Length::zero);
+            self.current_line.inline_position += Length::from(
+                inline_box_state.pbm.padding.inline_start +
+                    inline_box_state.pbm.border.inline_start,
+            ) + inline_box_state
+                .pbm
+                .margin
+                .inline_start
+                .auto_is(Length::zero)
         }
 
         let line_item = inline_box_state
@@ -686,10 +678,10 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         }
 
         if inline_box_state.is_last_fragment {
-            let pbm_end = inline_box_state.pbm.padding.inline_end +
-                inline_box_state.pbm.border.inline_end +
-                inline_box_state.pbm.margin.inline_end.auto_is(Length::zero);
-            self.current_line_segment.inline_size += pbm_end;
+            let pbm_end = Length::from(
+                inline_box_state.pbm.padding.inline_end + inline_box_state.pbm.border.inline_end,
+            ) + inline_box_state.pbm.margin.inline_end.auto_is(Length::zero);
+            self.current_line_segment.inline_size += pbm_end.into();
         }
     }
 
@@ -1354,7 +1346,6 @@ impl InlineFormattingContext {
     pub(super) fn new(
         text_decoration_line: TextDecorationLine,
         has_first_formatted_line: bool,
-        ends_with_whitespace: bool,
     ) -> InlineFormattingContext {
         InlineFormattingContext {
             inline_level_boxes: Default::default(),
@@ -1362,7 +1353,6 @@ impl InlineFormattingContext {
             text_decoration_line,
             has_first_formatted_line,
             contains_floats: false,
-            ends_with_whitespace,
         }
     }
 
@@ -1564,7 +1554,7 @@ impl InlineFormattingContext {
         fn inline_level_box_is_empty(inline_level_box: &InlineLevelBox) -> bool {
             match inline_level_box {
                 InlineLevelBox::InlineBox(_) => false,
-                InlineLevelBox::TextRun(text_run) => !text_run.has_uncollapsible_content,
+                InlineLevelBox::TextRun(text_run) => !text_run.has_uncollapsible_content(),
                 InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => false,
                 InlineLevelBox::OutOfFlowFloatBox(_) => false,
                 InlineLevelBox::Atomic(_) => false,
@@ -1578,13 +1568,28 @@ impl InlineFormattingContext {
     /// all font matching and FontMetrics collection.
     pub(crate) fn break_and_shape_text(&mut self, layout_context: &LayoutContext) {
         let mut ifc_fonts = Vec::new();
+
+        // Whether the last processed node ended with whitespace. This is used to
+        // implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
+        //
+        // > Any collapsible space immediately following another collapsible space—even one
+        // > outside the boundary of the inline containing that space, provided both spaces are
+        // > within the same inline formatting context—is collapsed to have zero advance width.
+        // > (It is invisible, but retains its soft wrap opportunity, if any.)
+        let mut last_inline_box_ended_with_white_space = false;
+
         crate::context::with_thread_local_font_context(layout_context, |font_context| {
             let mut linebreaker = None;
             self.foreach(|iter_item| match iter_item {
                 InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(
                     ref mut text_run,
                 )) => {
-                    text_run.break_and_shape(font_context, &mut linebreaker, &mut ifc_fonts);
+                    text_run.break_and_shape(
+                        font_context,
+                        &mut linebreaker,
+                        &mut ifc_fonts,
+                        &mut last_inline_box_ended_with_white_space,
+                    );
                 },
                 InlineFormattingContextIterItem::Item(InlineLevelBox::InlineBox(inline_box)) => {
                     if let Some(font) =
@@ -1593,6 +1598,9 @@ impl InlineFormattingContext {
                         inline_box.default_font_index =
                             Some(add_or_get_font(&font, &mut ifc_fonts));
                     }
+                },
+                InlineFormattingContextIterItem::Item(InlineLevelBox::Atomic(_)) => {
+                    last_inline_box_ended_with_white_space = false;
                 },
                 _ => {},
             });
@@ -1819,7 +1827,7 @@ impl IndependentFormattingContext {
         let style = self.style();
         let pbm = style.padding_border_margin(ifc.containing_block);
         let margin = pbm.margin.auto_is(Length::zero);
-        let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
+        let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone().into();
         let mut child_positioning_context = None;
 
         // We need to know the inline size of the atomic before deciding whether to do the line break.
@@ -1836,16 +1844,16 @@ impl IndependentFormattingContext {
                     .make_fragments(&replaced.style, size.clone());
                 let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
-                    size: size.into(),
+                    size,
                 };
 
                 BoxFragment::new(
                     replaced.base_fragment_info,
                     replaced.style.clone(),
                     fragments,
-                    content_rect,
-                    pbm.padding,
-                    pbm.border,
+                    content_rect.into(),
+                    pbm.padding.into(),
+                    pbm.border.into(),
                     margin,
                     None, /* clearance */
                     CollapsedBlockMargins::zero(),
@@ -1865,7 +1873,8 @@ impl IndependentFormattingContext {
 
                 // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
                 let tentative_inline_size = box_size.inline.auto_is(|| {
-                    let available_size = ifc.containing_block.inline_size - pbm_sums.inline_sum();
+                    let available_size =
+                        ifc.containing_block.inline_size - pbm_sums.inline_sum().into();
                     non_replaced
                         .inline_content_sizes(layout_context)
                         .shrink_to_fit(available_size.into())
@@ -1915,8 +1924,8 @@ impl IndependentFormattingContext {
                 let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
                     size: LogicalVec2 {
-                        block: block_size,
-                        inline: inline_size,
+                        block: block_size.into(),
+                        inline: inline_size.into(),
                     },
                 };
 
@@ -1924,9 +1933,9 @@ impl IndependentFormattingContext {
                     non_replaced.base_fragment_info,
                     non_replaced.style.clone(),
                     independent_layout.fragments,
-                    content_rect,
-                    pbm.padding,
-                    pbm.border,
+                    content_rect.into(),
+                    pbm.padding.into(),
+                    pbm.border.into(),
                     margin,
                     None,
                     CollapsedBlockMargins::zero(),
@@ -1943,11 +1952,11 @@ impl IndependentFormattingContext {
             ifc.process_soft_wrap_opportunity();
         }
 
-        let size = &pbm_sums.sum() + &fragment.content_rect.size;
+        let size = &pbm_sums.sum().into() + &fragment.content_rect.size;
         let baseline_offset = fragment
             .baselines
             .last
-            .map(|baseline| Au::from(pbm_sums.block_start) + baseline)
+            .map(|baseline| pbm_sums.block_start + baseline)
             .unwrap_or(size.block.into());
 
         let (block_sizes, baseline_offset_in_parent) =
