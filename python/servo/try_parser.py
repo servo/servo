@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Optional
+from typing import ClassVar, List, Optional
 import unittest
 import logging
 
@@ -56,13 +56,17 @@ class JobConfig(object):
     profile: str = "release"
     unit_tests: bool = False
     wpt_tests_to_run: str = ""
+    # These are the fields that must match in between two JobConfigs for them to be able to be
+    # merged. If you modify any of the fields above, make sure to update this line as well.
+    merge_compatibility_fields: ClassVar[List[str]] = ['workflow', 'profile', 'wpt_tests_to_run']
 
     def merge(self, other: JobConfig) -> bool:
         """Try to merge another job with this job. Returns True if merging is successful
            or False if not. If merging is successful this job will be modified."""
-        if self.workflow != other.workflow or self.profile != other.profile or \
-                self.wpt_tests_to_run != other.wpt_tests_to_run:
-            return False
+        for field in self.merge_compatibility_fields:
+            if getattr(self, field) != getattr(other, field):
+                return False
+
         self.wpt_layout |= other.wpt_layout
         self.unit_tests |= other.unit_tests
         return True
@@ -222,6 +226,30 @@ class TestParser(unittest.TestCase):
                                   'wpt_tests_to_run': ''
                               }]
                               })
+
+        # These two jobs should not be merged to one that turns on unit tests.
+        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+        b = JobConfig("Linux", Workflow.LINUX, unit_tests=False)
+        self.assertTrue(a.merge(b))
+        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
+
+        # These two jobs should not be mergable to one that turns on unit tests.
+        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+        b = JobConfig("Linux", Workflow.MACOS, unit_tests=True)
+        self.assertFalse(a.merge(b))
+        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
+
+        # Ditto.
+        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+        b = JobConfig("Linux", Workflow.LINUX, unit_tests=True, profile="production")
+        self.assertFalse(a.merge(b))
+        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
+
+        # Ditto.
+        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+        b = JobConfig("Linux", Workflow.LINUX, unit_tests=True, wpt_tests_to_run="/css")
+        self.assertFalse(a.merge(b))
+        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):
         self.assertDictEqual(json.loads(Config("linux-wpt macos windows android").to_json()),
