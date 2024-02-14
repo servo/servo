@@ -720,10 +720,7 @@ impl Parse for FontSizeAdjust {
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         if let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
-            #[cfg(feature = "gecko")]
             let basis_enabled = static_prefs::pref!("layout.css.font-size-adjust.basis.enabled");
-            #[cfg(feature = "servo")]
-            let basis_enabled = false;
             let basis = match_ignore_ascii_case! { &ident,
                 "none" => return Ok(Self::None),
                 // Check for size adjustment basis keywords if enabled.

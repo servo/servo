@@ -5626,6 +5626,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "static_prefs"
+version = "0.1.0"
+
+[[package]]
 name = "str-buf"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5707,6 +5711,7 @@ dependencies = [
  "smallbitvec",
  "smallvec",
  "static_assertions",
+ "static_prefs",
  "string_cache",
  "style_derive",
  "style_traits",
