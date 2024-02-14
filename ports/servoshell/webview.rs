@@ -124,6 +124,7 @@ where
         }
     }
 
+    /// Handle updates to connected gamepads from GilRs
     pub fn handle_gamepad_events(&mut self) {
         if let Some(ref mut gilrs) = self.gamepad {
             while let Some(event) = gilrs.next_event() {
@@ -131,30 +132,28 @@ where
                 let name = gamepad.name();
                 let index = GamepadIndex(event.id.into());
                 match event.event {
+                    EventType::ButtonPressed(button, _) => {
+                        let mapped_index = Self::map_gamepad_button(button);
+                        // We only want to send this for a valid digital button, aka on/off only
+                        if !matches!(mapped_index, 6 | 7 | 17) {
+                            let update_type = GamepadUpdateType::Button(mapped_index, 1.0);
+                            let event = GamepadEvent::Updated(index, update_type);
+                            self.event_queue.push(EmbedderEvent::Gamepad(event));
+                        }
+                    },
+                    EventType::ButtonReleased(button, _) => {
+                        let mapped_index = Self::map_gamepad_button(button);
+                        // We only want to send this for a valid digital button, aka on/off only
+                        if !matches!(mapped_index, 6 | 7 | 17) {
+                            let update_type = GamepadUpdateType::Button(mapped_index, 0.0);
+                            let event = GamepadEvent::Updated(index, update_type);
+                            self.event_queue.push(EmbedderEvent::Gamepad(event));
+                        }
+                    },
                     EventType::ButtonChanged(button, value, _) => {
-                        // Map button index and value to represent Standard Gamepad button
-                        // <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
-                        let mapped_index: usize = match button {
-                            gilrs::Button::South => 0,
-                            gilrs::Button::East => 1,
-                            gilrs::Button::West => 2,
-                            gilrs::Button::North => 3,
-                            gilrs::Button::LeftTrigger => 4,
-                            gilrs::Button::RightTrigger => 5,
-                            gilrs::Button::LeftTrigger2 => 6,
-                            gilrs::Button::RightTrigger2 => 7,
-                            gilrs::Button::Select => 8,
-                            gilrs::Button::Start => 9,
-                            gilrs::Button::LeftThumb => 10,
-                            gilrs::Button::RightThumb => 11,
-                            gilrs::Button::DPadUp => 12,
-                            gilrs::Button::DPadDown => 13,
-                            gilrs::Button::DPadLeft => 14,
-                            gilrs::Button::DPadRight => 15,
-                            gilrs::Button::Mode => 16,
-                            _ => 17, // Other buttons do not map to "standard" gamepad mapping and are ignored
-                        };
-                        if mapped_index < 17 {
+                        let mapped_index = Self::map_gamepad_button(button);
+                        // We only want to send this for a valid non-digital button, aka the triggers
+                        if matches!(mapped_index, 6 | 7) {
                             let update_type = GamepadUpdateType::Button(mapped_index, value as f64);
                             let event = GamepadEvent::Updated(index, update_type);
                             self.event_queue.push(EmbedderEvent::Gamepad(event));
@@ -200,6 +199,31 @@ where
                     _ => {},
                 }
             }
+        }
+    }
+
+    // Map button index and value to represent Standard Gamepad button
+    // <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
+    fn map_gamepad_button(button: gilrs::Button) -> usize {
+        match button {
+            gilrs::Button::South => 0,
+            gilrs::Button::East => 1,
+            gilrs::Button::West => 2,
+            gilrs::Button::North => 3,
+            gilrs::Button::LeftTrigger => 4,
+            gilrs::Button::RightTrigger => 5,
+            gilrs::Button::LeftTrigger2 => 6,
+            gilrs::Button::RightTrigger2 => 7,
+            gilrs::Button::Select => 8,
+            gilrs::Button::Start => 9,
+            gilrs::Button::LeftThumb => 10,
+            gilrs::Button::RightThumb => 11,
+            gilrs::Button::DPadUp => 12,
+            gilrs::Button::DPadDown => 13,
+            gilrs::Button::DPadLeft => 14,
+            gilrs::Button::DPadRight => 15,
+            gilrs::Button::Mode => 16,
+            _ => 17, // Other buttons do not map to "standard" gamepad mapping and are ignored
         }
     }
 

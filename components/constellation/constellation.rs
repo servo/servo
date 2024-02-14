@@ -5470,6 +5470,7 @@ where
         }
     }
 
+    /// Handle GamepadEvents from the embedder and forward them to the script thread
     fn handle_gamepad_msg(&mut self, event: GamepadEvent) {
         // Send to the focused browsing contexts' current pipeline.
         let focused_browsing_context_id = self
@@ -5483,7 +5484,7 @@ where
                     Some(ctx) => ctx.pipeline_id,
                     None => {
                         return warn!(
-                            "{}: Got key event for nonexistent browsing context",
+                            "{}: Got gamepad event for nonexistent browsing context",
                             browsing_context_id,
                         );
                     },
@@ -5492,7 +5493,7 @@ where
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.event_loop.send(msg),
                     None => {
-                        return debug!("{}: Got key event after closure", pipeline_id);
+                        return debug!("{}: Got gamepad event after closure", pipeline_id);
                     },
                 };
                 if let Err(e) = result {
