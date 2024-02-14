@@ -5795,7 +5795,6 @@ dependencies = [
  "serde",
  "servo_arc",
  "servo_atoms",
- "servo_config",
  "smallbitvec",
  "smallvec",
  "static_assertions",
