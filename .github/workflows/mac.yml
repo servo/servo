@@ -94,6 +94,7 @@ jobs:
       - name: Build (${{ inputs.profile }})
         run: |
           python3 ./mach build --${{ inputs.profile }}
+          cp -r target/cargo-timings target/cargo-timings-macos
       - name: Smoketest
         uses: nick-fields/retry@v2
         with: # See https://github.com/servo/servo/issues/30757
@@ -117,16 +118,14 @@ jobs:
           timeout_minutes: 5
           max_attempts: 2
           command: ./etc/ci/macos_package_smoketest.sh target/${{ inputs.profile }}/servo-tech-demo.dmg
-      - name: Rename build timing
-        run: cp -r target/cargo-timings target/cargo-timings-macos
       - name: Archive build timing
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings
+          name: cargo-timings-macos
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload artifact for mach package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mac
           path: target/${{ inputs.profile }}/servo-tech-demo.dmg
@@ -143,9 +142,9 @@ jobs:
       - name: Build package for target
         run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servo target/${{ inputs.profile }}/lib/*.dylib resources
       - name: Upload package for target
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: release-binary-macos
+          name: ${{ inputs.profile }}-binary-macos
           path: target.tar.gz
 
   wpt-2020:
