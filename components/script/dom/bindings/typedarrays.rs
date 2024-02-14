@@ -38,13 +38,10 @@ where
         },
         HeapTypedArrayInit::Info { len, cx } => {
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-            let typed_array =
-                create_typed_array_with_length::<T>(cx, len as usize, array.handle_mut())
-                    .expect("Creating TypedArray from length should never fail");
+            let _ = create_typed_array_with_length::<T>(cx, len as usize, array.handle_mut())
+                .expect("Creating TypedArray from length should never fail");
             let heap_typed_array = HeapTypedArray::<T>::default();
-            heap_typed_array
-                .set_data(cx, unsafe { typed_array.as_slice() })
-                .expect("Failed to set internal data.");
+            heap_typed_array.internal.set(*array);
             heap_typed_array
         },
     }

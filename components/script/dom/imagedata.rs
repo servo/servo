@@ -55,6 +55,7 @@ impl ImageData {
         }
     }
 
+    #[allow(unsafe_code)]
     fn new_with_jsobject(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -63,14 +64,13 @@ impl ImageData {
         jsobject: *mut JSObject,
     ) -> Fallible<DomRoot<ImageData>> {
         // checking jsobject type
-        let cx = GlobalScope::get_cx();
         let heap_typed_array =
             new_initialized_heap_typed_array(HeapTypedArrayInit::Object(jsobject));
-        let array = heap_typed_array.acquire_data(cx).map_err(|_| {
+        let array = heap_typed_array.get_internal().map_err(|_| {
             Error::Type("Argument to Image data is not an Uint8ClampedArray".to_owned())
         })?;
 
-        let byte_len = array.as_slice().len() as u32;
+        let byte_len = unsafe { array.as_slice().len() } as u32;
         if byte_len == 0 || byte_len % 4 != 0 {
             return Err(Error::InvalidState);
         }
