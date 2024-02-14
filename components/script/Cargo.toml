@@ -107,7 +107,7 @@ tempfile = "3"
 tendril = { version = "0.4.1", features = ["encoding_rs"] }
 time = { workspace = true }
 unicode-bidi = { workspace = true }
-unicode-segmentation = "1.1.0"
+unicode-segmentation = { workspace = true }
 url = { workspace = true }
 utf-8 = "0.7"
 uuid = { workspace = true, features = ["serde"] }

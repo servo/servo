@@ -684,7 +684,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     );
 
                     if let Some(layer) =
-                        background::layout_layer(self, &painter, builder, index, intrinsic)
+                        background::layout_layer(self, painter, builder, index, intrinsic)
                     {
                         let image_rendering = image_rendering(style.clone_image_rendering());
                         if layer.repeat {

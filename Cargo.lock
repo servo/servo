@@ -3130,6 +3130,7 @@ dependencies = [
  "style",
  "style_traits",
  "unicode-script",
+ "unicode-segmentation",
  "webrender_api",
  "xi-unicode",
 ]
