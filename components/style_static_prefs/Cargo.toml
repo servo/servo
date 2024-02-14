@@ -1,0 +1,7 @@
+[package]
+name = "static_prefs"
+version = "0.1.0"
+edition = "2021"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false

@@ -93,12 +93,7 @@ fn distribute_one_chunk<'a, 'scope, E, D>(
             items,
             traversal_root,
             work_unit_max,
-            (|| {
-                #[cfg(feature = "gecko")]
-                return static_prefs::pref!("layout.css.stylo-local-work-queue.in-worker") as usize;
-                #[cfg(feature = "servo")]
-                return 0;
-            })(),
+            static_prefs::pref!("layout.css.stylo-local-work-queue.in-worker") as usize,
             traversal_data,
             Some(scope),
             traversal,
