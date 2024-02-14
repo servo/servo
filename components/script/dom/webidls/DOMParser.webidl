@@ -10,8 +10,8 @@ enum SupportedType {
   "text/html",
   "text/xml",
   "application/xml",
-  "application/xhtml+xml"/*,
-  "image/svg+xml"*/
+  "application/xhtml+xml",
+  "image/svg+xml"
 };
 
 [Exposed=Window]
