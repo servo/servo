@@ -1020,54 +1020,52 @@ where
             self.public_resource_threads.clone()
         };
 
-        let result = Pipeline::spawn::<STF>(
-            InitialPipelineState {
-                id: pipeline_id,
-                browsing_context_id,
-                top_level_browsing_context_id,
-                parent_pipeline_id,
-                opener,
-                script_to_constellation_chan: ScriptToConstellationChan {
-                    sender: self.script_sender.clone(),
-                    pipeline_id: pipeline_id,
-                },
-                namespace_request_sender: self.namespace_ipc_sender.clone(),
-                pipeline_namespace_id: self.next_pipeline_namespace_id(),
-                background_monitor_register: self.background_monitor_register.clone(),
-                background_hang_monitor_to_constellation_chan: self
-                    .background_hang_monitor_sender
-                    .clone(),
-                layout_to_constellation_chan: self.layout_sender.clone(),
-                scheduler_chan: self.scheduler_ipc_sender.clone(),
-                compositor_proxy: self.compositor_proxy.clone(),
-                devtools_sender: self.devtools_sender.clone(),
-                bluetooth_thread: self.bluetooth_ipc_sender.clone(),
-                swmanager_thread: self.swmanager_ipc_sender.clone(),
-                font_cache_thread: self.font_cache_thread.clone(),
-                resource_threads,
-                time_profiler_chan: self.time_profiler_chan.clone(),
-                mem_profiler_chan: self.mem_profiler_chan.clone(),
-                window_size: WindowSizeData {
-                    initial_viewport: initial_window_size,
-                    device_pixel_ratio: self.window_size.device_pixel_ratio,
-                },
-                event_loop,
-                load_data,
-                prev_visibility: is_visible,
-                webrender_api_sender: self.webrender_api_ipc_sender.clone(),
-                webrender_image_api_sender: self.webrender_image_api_sender.clone(),
-                webrender_document: self.webrender_document,
-                webgl_chan: self
-                    .webgl_threads
-                    .as_ref()
-                    .map(|threads| threads.pipeline()),
-                webxr_registry: self.webxr_registry.clone(),
-                player_context: self.player_context.clone(),
-                event_loop_waker: None,
-                user_agent: self.user_agent.clone(),
+        let result = Pipeline::spawn::<STF>(InitialPipelineState {
+            id: pipeline_id,
+            browsing_context_id,
+            top_level_browsing_context_id,
+            parent_pipeline_id,
+            opener,
+            script_to_constellation_chan: ScriptToConstellationChan {
+                sender: self.script_sender.clone(),
+                pipeline_id: pipeline_id,
             },
-            self.layout_factory.clone(),
-        );
+            namespace_request_sender: self.namespace_ipc_sender.clone(),
+            pipeline_namespace_id: self.next_pipeline_namespace_id(),
+            background_monitor_register: self.background_monitor_register.clone(),
+            background_hang_monitor_to_constellation_chan: self
+                .background_hang_monitor_sender
+                .clone(),
+            layout_to_constellation_chan: self.layout_sender.clone(),
+            layout_factory: self.layout_factory.clone(),
+            scheduler_chan: self.scheduler_ipc_sender.clone(),
+            compositor_proxy: self.compositor_proxy.clone(),
+            devtools_sender: self.devtools_sender.clone(),
+            bluetooth_thread: self.bluetooth_ipc_sender.clone(),
+            swmanager_thread: self.swmanager_ipc_sender.clone(),
+            font_cache_thread: self.font_cache_thread.clone(),
+            resource_threads,
+            time_profiler_chan: self.time_profiler_chan.clone(),
+            mem_profiler_chan: self.mem_profiler_chan.clone(),
+            window_size: WindowSizeData {
+                initial_viewport: initial_window_size,
+                device_pixel_ratio: self.window_size.device_pixel_ratio,
+            },
+            event_loop,
+            load_data,
+            prev_visibility: is_visible,
+            webrender_api_sender: self.webrender_api_ipc_sender.clone(),
+            webrender_image_api_sender: self.webrender_image_api_sender.clone(),
+            webrender_document: self.webrender_document,
+            webgl_chan: self
+                .webgl_threads
+                .as_ref()
+                .map(|threads| threads.pipeline()),
+            webxr_registry: self.webxr_registry.clone(),
+            player_context: self.player_context.clone(),
+            event_loop_waker: None,
+            user_agent: self.user_agent.clone(),
+        });
 
         let pipeline = match result {
             Ok(result) => result,

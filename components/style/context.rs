@@ -555,7 +555,7 @@ where
     E: TElement,
 {
     fn drop(&mut self) {
-        //debug_assert_eq!(thread_state::get(), ThreadState::LAYOUT);
+        debug_assert!(thread_state::get().contains(ThreadState::LAYOUT));
         for task in self.0.drain(..) {
             task.execute()
         }

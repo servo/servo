@@ -53,10 +53,10 @@ use lazy_static::lazy_static;
 use log::{debug, error, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
-use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
+use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::path;
 use profile_traits::time::{
     self as profile_time, profile, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
@@ -67,7 +67,7 @@ use script_layout_interface::message::{
 };
 use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse, TextIndexResponse};
 use script_layout_interface::wrapper_traits::LayoutNode;
-use script_layout_interface::{Layout, LayoutChildConfig, LayoutConfig, LayoutFactory};
+use script_layout_interface::{Layout, LayoutConfig, LayoutFactory};
 use script_traits::{
     ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutControlMsg,
     LayoutMsg as ConstellationMsg, PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress,
@@ -108,9 +108,6 @@ pub struct LayoutThread {
     /// The ID of the pipeline that we belong to.
     id: PipelineId,
 
-    /// The ID of the top-level browsing context that we belong to.
-    top_level_browsing_context_id: TopLevelBrowsingContextId,
-
     /// The URL of the pipeline that we belong to.
     url: ServoUrl,
 
@@ -131,9 +128,6 @@ pub struct LayoutThread {
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
-
-    /// The channel on which messages can be sent to the memory profiler.
-    mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// Reference to the script thread image cache.
     image_cache: Arc<dyn ImageCache>,
@@ -201,7 +195,6 @@ impl LayoutFactory for LayoutFactoryImpl {
     fn create(&self, config: LayoutConfig) -> Box<dyn Layout> {
         Box::new(LayoutThread::new(
             config.id,
-            config.top_level_browsing_context_id,
             config.url,
             config.is_iframe,
             config.constellation_chan,
@@ -209,7 +202,6 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.image_cache,
             config.font_cache_thread,
             config.time_profiler_chan,
-            config.mem_profiler_chan.clone(),
             config.webrender_api_sender,
             config.paint_time_metrics,
             config.window_size,
@@ -353,25 +345,6 @@ impl Layout for LayoutThread {
         self.handle_request(Request::FromFontCache);
     }
 
-    fn create_new_layout(&self, child_config: LayoutChildConfig) -> Box<dyn Layout> {
-        let config = LayoutConfig {
-            id: child_config.id,
-            top_level_browsing_context_id: self.top_level_browsing_context_id,
-            url: child_config.url.clone(),
-            is_iframe: child_config.is_parent,
-            constellation_chan: child_config.constellation_chan,
-            script_chan: child_config.script_chan,
-            image_cache: child_config.image_cache,
-            font_cache_thread: self.font_cache_thread.clone(),
-            time_profiler_chan: self.time_profiler_chan.clone(),
-            mem_profiler_chan: self.mem_profiler_chan.clone(),
-            webrender_api_sender: self.webrender_api.clone(),
-            paint_time_metrics: child_config.paint_time_metrics,
-            window_size: child_config.window_size,
-        };
-        LayoutFactoryImpl().create(config)
-    }
-
     fn rpc(&self) -> Box<dyn script_layout_interface::rpc::LayoutRPC> {
         Box::new(LayoutRPCImpl(self.rw_data.clone())) as Box<dyn LayoutRPC>
     }
@@ -393,7 +366,6 @@ enum Request {
 impl LayoutThread {
     fn new(
         id: PipelineId,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
         url: ServoUrl,
         is_iframe: bool,
         constellation_chan: IpcSender<ConstellationMsg>,
@@ -401,7 +373,6 @@ impl LayoutThread {
         image_cache: Arc<dyn ImageCache>,
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
-        mem_profiler_chan: profile_mem::ProfilerChan,
         webrender_api: WebrenderIpcSender,
         paint_time_metrics: PaintTimeMetrics,
         window_size: WindowSizeData,
@@ -429,13 +400,11 @@ impl LayoutThread {
 
         LayoutThread {
             id,
-            top_level_browsing_context_id: top_level_browsing_context_id,
             url,
             is_iframe,
             script_chan,
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan,
-            mem_profiler_chan,
             registered_painters: RegisteredPaintersImpl(Default::default()),
             image_cache,
             font_cache_thread,

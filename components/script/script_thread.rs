@@ -3266,7 +3266,6 @@ impl ScriptThread {
 
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
-            top_level_browsing_context_id: incomplete.top_level_browsing_context_id,
             url: final_url.clone(),
             is_iframe: incomplete.parent_info.is_some(),
             constellation_chan: self.layout_to_constellation_chan.clone(),
@@ -3274,7 +3273,6 @@ impl ScriptThread {
             image_cache: self.image_cache.clone(),
             font_cache_thread: self.font_cache_thread.clone(),
             time_profiler_chan: self.time_profiler_chan.clone(),
-            mem_profiler_chan: self.mem_profiler_chan.clone(),
             webrender_api_sender: self.webrender_api_sender.clone(),
             paint_time_metrics,
             window_size: incomplete.window_size.clone(),

@@ -25,9 +25,9 @@ use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{ImageCache, PendingImageId};
-use profile_traits::{mem, time};
+use profile_traits::time;
 use script_traits::{
     ConstellationControlMsg, InitialScriptState, LayoutControlMsg, LayoutMsg, LoadData,
     UntrustedNodeAddress, WebrenderIpcSender, WindowSizeData,
@@ -175,7 +175,6 @@ pub struct HTMLMediaData {
 
 pub struct LayoutConfig {
     pub id: PipelineId,
-    pub top_level_browsing_context_id: TopLevelBrowsingContextId,
     pub url: ServoUrl,
     pub is_iframe: bool,
     pub constellation_chan: IpcSender<LayoutMsg>,
@@ -183,20 +182,7 @@ pub struct LayoutConfig {
     pub image_cache: Arc<dyn ImageCache>,
     pub font_cache_thread: FontCacheThread,
     pub time_profiler_chan: time::ProfilerChan,
-    pub mem_profiler_chan: mem::ProfilerChan,
     pub webrender_api_sender: WebrenderIpcSender,
-    pub paint_time_metrics: PaintTimeMetrics,
-    pub window_size: WindowSizeData,
-}
-
-/// The initial data required to create a new layout attached to an existing script thread.
-pub struct LayoutChildConfig {
-    pub id: PipelineId,
-    pub url: ServoUrl,
-    pub is_parent: bool,
-    pub constellation_chan: IpcSender<LayoutMsg>,
-    pub script_chan: IpcSender<ConstellationControlMsg>,
-    pub image_cache: Arc<dyn ImageCache>,
     pub paint_time_metrics: PaintTimeMetrics,
     pub window_size: WindowSizeData,
 }
@@ -212,10 +198,8 @@ pub trait Layout {
     /// Handle a single message from the Constellation.
     fn handle_constellation_msg(&mut self, msg: LayoutControlMsg);
 
+    /// Handle a a single mesasge from the FontCacheThread.
     fn handle_font_cache_msg(&mut self);
-
-    /// Create a new layout for this `TopLevelBrowsingContext.`
-    fn create_new_layout(&self, init: LayoutChildConfig) -> Box<dyn Layout>;
 
     /// Return the interface used for scipt queries.
     /// TODO: Make this part of the the Layout interface itself now that the

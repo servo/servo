@@ -134,6 +134,9 @@ pub struct InitialPipelineState {
     /// A channel for the layout to send messages to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
+    /// A fatory for creating layouts to be used by the ScriptThread.
+    pub layout_factory: Arc<dyn LayoutFactory>,
+
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
 
@@ -213,7 +216,6 @@ impl Pipeline {
     /// Possibly starts a script thread, in a new process if requested.
     pub fn spawn<STF: ScriptThreadFactory>(
         state: InitialPipelineState,
-        layout_factory: Arc<dyn LayoutFactory>,
     ) -> Result<NewPipeline, Error> {
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
@@ -316,7 +318,11 @@ impl Pipeline {
                     let register = state
                         .background_monitor_register
                         .expect("Couldn't start content, no background monitor has been initiated");
-                    unprivileged_pipeline_content.start_all::<STF>(false, layout_factory, register);
+                    unprivileged_pipeline_content.start_all::<STF>(
+                        false,
+                        state.layout_factory,
+                        register,
+                    );
                     None
                 };
 
