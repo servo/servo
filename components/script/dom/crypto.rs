@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::{self};
-
 use dom_struct::dom_struct;
 use js::jsapi::{JSObject, Type};
 use js::rust::CustomAutoRooterGuard;
@@ -15,7 +13,6 @@ use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::typedarrays::create_typed_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
