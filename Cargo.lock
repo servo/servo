@@ -5410,6 +5410,7 @@ dependencies = [
  "servo_config_plugins",
  "servo_geometry",
  "servo_url",
+ "style_config",
  "url",
 ]
 
