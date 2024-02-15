@@ -46,22 +46,6 @@ jobs:
       profile: "release"
     secrets: inherit
 
-  merge-build-timings:
-    name: Merge Build Timings
-    runs-on: ubuntu-latest
-    if: ${{ always() }}
-    needs:
-      - "build-win"
-      - "build-mac"
-      - "build-linux"
-      - "build-android"
-    steps:
-      - name: Merge
-        uses: actions/upload-artifact/merge@v4
-        with:
-          name: cargo-timings
-          pattern: cargo-timings-*
-
   build-result:
     name: Result
     runs-on: ubuntu-latest
@@ -73,9 +57,15 @@ jobs:
       - "build-linux"
       - "build-android"
     steps:
-      - name: Mark the job as successful
+      - name: Merge build timings
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: cargo-timings
+          pattern: cargo-timings-*
+          delete-merged: true
+      - name: Success
         if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         run: exit 0
-      - name: Mark the job as unsuccessful
+      - name: Failure
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: exit 1
