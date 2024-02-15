@@ -99,6 +99,7 @@ impl MediaQueryListMethods for MediaQueryList {
             AddEventListenerOptions {
                 parent: EventListenerOptions { capture: false },
                 once: false,
+                signal: None,
             },
         );
     }
