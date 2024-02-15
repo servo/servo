@@ -48,14 +48,15 @@ where
             let typed_array_result =
                 create_typed_array_with_length::<T>(cx, len as usize, array.handle_mut());
 
-            match typed_array_result {
+            let heap_typed_array = match typed_array_result {
                 Ok(_) => {
                     let heap_typed_array = HeapTypedArray::<T>::default();
                     heap_typed_array.internal.set(*array);
                     Ok(heap_typed_array)
                 },
-                Err(_) => Err(()),
-            }
+                Err(_) => return Err(()),
+            };
+            heap_typed_array
         },
     }
 }
