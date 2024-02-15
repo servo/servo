@@ -27,10 +27,10 @@ servo = [
     "cssparser/serde",
     "encoding_rs",
     "malloc_size_of/servo",
-    "servo_url",
     "string_cache",
     "to_shmem/servo",
     "servo_arc/servo",
+    "url",
 ]
 gecko_debug = []
 gecko_refcount_logging = []
@@ -69,7 +69,6 @@ serde = { version = "1.0", optional = true, features = ["derive"] }
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms", optional = true }
 servo_config = { path = "../config", optional = true }
-servo_url = { path = "../url", optional = true }
 smallbitvec = "2.3.0"
 smallvec = "1.0"
 static_assertions = "1.1"
@@ -81,6 +80,7 @@ time = "0.1"
 thin-vec = { workspace = true }
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
+url = { workspace = true, optional = true, features = ["serde"] }
 uluru = "3.0"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"

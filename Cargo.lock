@@ -3107,6 +3107,7 @@ dependencies = [
  "style",
  "style_traits",
  "time 0.1.45",
+ "url",
  "webrender_api",
 ]
 
@@ -3143,6 +3144,7 @@ dependencies = [
  "servo_url",
  "style",
  "style_traits",
+ "url",
  "webrender_api",
 ]
 
@@ -5374,6 +5376,7 @@ dependencies = [
  "malloc_size_of",
  "malloc_size_of_derive",
  "serde",
+ "servo_arc",
  "servo_rand",
  "to_shmem",
  "url",
@@ -5707,7 +5710,6 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_config",
- "servo_url",
  "smallbitvec",
  "smallvec",
  "static_assertions",
@@ -5723,6 +5725,7 @@ dependencies = [
  "uluru",
  "unicode-bidi",
  "unicode-segmentation",
+ "url",
  "void",
  "walkdir",
 ]
@@ -5753,9 +5756,9 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_config",
- "servo_url",
  "style",
  "style_traits",
+ "url",
 ]
 
 [[package]]
@@ -5773,10 +5776,10 @@ dependencies = [
  "serde",
  "servo_arc",
  "servo_atoms",
- "servo_url",
  "size_of_test",
  "to_shmem",
  "to_shmem_derive",
+ "url",
  "webrender_api",
 ]
 

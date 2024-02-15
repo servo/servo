@@ -14,10 +14,10 @@ use std::hash::Hasher;
 use std::net::IpAddr;
 use std::ops::{Index, Range, RangeFrom, RangeFull, RangeTo};
 use std::path::Path;
-use std::sync::Arc;
 
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_arc::Arc;
 use to_shmem::{SharedMemoryBuilder, ToShmem};
 pub use url::Host;
 use url::{Position, Url};
@@ -46,11 +46,15 @@ impl ServoUrl {
     }
 
     pub fn into_string(self) -> String {
-        String::from(Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone()))
+        String::from(self.into_url())
     }
 
     pub fn into_url(self) -> Url {
-        Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone())
+        self.as_url().clone()
+    }
+
+    pub fn get_arc(&self) -> Arc<Url> {
+        self.0.clone()
     }
 
     pub fn as_url(&self) -> &Url {
@@ -94,14 +98,6 @@ impl ServoUrl {
     pub fn is_local_scheme(&self) -> bool {
         let scheme = self.scheme();
         scheme == "about" || scheme == "blob" || scheme == "data"
-    }
-
-    pub fn chrome_rules_enabled(&self) -> bool {
-        self.is_chrome()
-    }
-
-    pub fn is_chrome(&self) -> bool {
-        self.scheme() == "chrome"
     }
 
     pub fn as_str(&self) -> &str {
@@ -296,5 +292,11 @@ impl Index<Range<Position>> for ServoUrl {
 impl From<Url> for ServoUrl {
     fn from(url: Url) -> Self {
         ServoUrl::from_url(url)
+    }
+}
+
+impl From<Arc<Url>> for ServoUrl {
+    fn from(url: Arc<Url>) -> Self {
+        ServoUrl(url)
     }
 }

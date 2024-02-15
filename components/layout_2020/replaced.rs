@@ -177,7 +177,7 @@ impl ReplacedContent {
         if let ComputedUrl::Valid(image_url) = image_url {
             let (image, width, height) = match context.get_or_request_image_or_meta(
                 element.opaque(),
-                image_url.clone(),
+                image_url.clone().into(),
                 UsePlaceholder::No,
             ) {
                 Some(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {

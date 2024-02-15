@@ -160,7 +160,6 @@ impl FontTemplateData {
                 .to_string(),
         )
         .expect("Couldn't parse Core Text font URL!")
-        .as_url()
         .to_file_path()
         .expect("Core Text font didn't name a path!");
         let mut bytes = Vec::new();

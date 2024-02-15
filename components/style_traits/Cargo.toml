@@ -11,7 +11,7 @@ name = "style_traits"
 path = "lib.rs"
 
 [features]
-servo = ["servo_atoms", "cssparser/serde", "webrender_api", "servo_url", "euclid/serde"]
+servo = ["servo_atoms", "cssparser/serde", "webrender_api", "url", "euclid/serde"]
 gecko = []
 
 [dependencies]
@@ -26,8 +26,8 @@ selectors = { path = "../selectors", features = ["shmem"] }
 serde = "1.0"
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms", optional = true }
-servo_url = { path = "../url", optional = true }
 size_of_test = { path = "../size_of_test" }
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
+url = { workspace = true, optional = true }
 webrender_api = { workspace = true, optional = true }

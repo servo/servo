@@ -608,7 +608,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     };
                     let (width, height, key) = match builder.context.get_webrender_image_for_url(
                         node,
-                        image_url,
+                        image_url.into(),
                         UsePlaceholder::No,
                     ) {
                         Some(WebRenderImageInfo {

@@ -44,4 +44,5 @@ servo_url = { path = "../url" }
 style = { path = "../style" }
 style_traits = { workspace = true }
 time = { workspace = true }
+url = { workspace = true }
 webrender_api = { workspace = true }
