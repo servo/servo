@@ -31,23 +31,31 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapTypedArray<T> {
     }
 }
 
-pub fn new_initialized_heap_typed_array<T>(init: HeapTypedArrayInit) -> HeapTypedArray<T>
+pub fn new_initialized_heap_typed_array<T>(
+    init: HeapTypedArrayInit,
+) -> Result<HeapTypedArray<T>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
     match init {
-        HeapTypedArrayInit::Object(js_object) => HeapTypedArray {
+        HeapTypedArrayInit::Object(js_object) => Ok(HeapTypedArray {
             internal: Heap::boxed(js_object),
             phantom: PhantomData::default(),
-        },
+        }),
         HeapTypedArrayInit::Info { len, cx } => {
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-            let _ = create_typed_array_with_length::<T>(cx, len as usize, array.handle_mut())
-                .expect("Creating TypedArray from length should never fail");
-            let heap_typed_array = HeapTypedArray::<T>::default();
-            heap_typed_array.internal.set(*array);
-            heap_typed_array
+            let typed_array_result =
+                create_typed_array_with_length::<T>(cx, len as usize, array.handle_mut());
+
+            match typed_array_result {
+                Ok(_) => {
+                    let heap_typed_array = HeapTypedArray::<T>::default();
+                    heap_typed_array.internal.set(*array);
+                    Ok(heap_typed_array)
+                },
+                Err(_) => Err(()),
+            }
         },
     }
 }

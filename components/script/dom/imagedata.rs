@@ -63,14 +63,23 @@ impl ImageData {
         opt_height: Option<u32>,
         jsobject: *mut JSObject,
     ) -> Fallible<DomRoot<ImageData>> {
-        // checking jsobject type
-        let heap_typed_array =
-            new_initialized_heap_typed_array(HeapTypedArrayInit::Object(jsobject));
-        let array = heap_typed_array.get_internal().map_err(|_| {
-            Error::Type("Argument to Image data is not an Uint8ClampedArray".to_owned())
-        })?;
+        let heap_typed_array = match new_initialized_heap_typed_array::<ClampedU8>(
+            HeapTypedArrayInit::Object(jsobject),
+        ) {
+            Ok(heap_typed_array) => heap_typed_array,
+            Err(_) => return Err(Error::JSFailed),
+        };
 
-        let byte_len = unsafe { array.as_slice().len() } as u32;
+        let typed_array = match heap_typed_array.get_internal() {
+            Ok(array) => array,
+            Err(_) => {
+                return Err(Error::Type(
+                    "Argument to Image data is not an Uint8ClampedArray".to_owned(),
+                ))
+            },
+        };
+
+        let byte_len = unsafe { typed_array.as_slice().len() } as u32;
         if byte_len == 0 || byte_len % 4 != 0 {
             return Err(Error::InvalidState);
         }
@@ -107,14 +116,19 @@ impl ImageData {
         let cx = GlobalScope::get_cx();
         let len = width * height * 4;
 
+        let heap_typed_array =
+            match new_initialized_heap_typed_array::<ClampedU8>(HeapTypedArrayInit::Info {
+                len,
+                cx,
+            }) {
+                Ok(heap_typed_array) => heap_typed_array,
+                Err(_) => return Err(Error::JSFailed),
+            };
         let imagedata = Box::new(ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,
-            data: new_initialized_heap_typed_array::<ClampedU8>(HeapTypedArrayInit::Info {
-                len,
-                cx,
-            }),
+            data: heap_typed_array,
         });
 
         Ok(reflect_dom_object_with_proto(imagedata, global, proto))
@@ -187,9 +201,7 @@ impl ImageDataMethods for ImageData {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-data>
-    fn Data(&self, _: JSContext) -> Uint8ClampedArray {
-        self.data
-            .get_internal()
-            .expect("Failed to get Data from ImageData.")
+    fn GetData(&self, _: JSContext) -> Fallible<Uint8ClampedArray> {
+        self.data.get_internal().map_err(|_| Error::JSFailed)
     }
 }
