@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::ToOwned;
+use std::convert::TryFrom;
+use std::{borrow::ToOwned, convert::TryInto};
 use std::collections::HashMap;
 
 use embedder_traits::resources::{self, Resource};
 use gen::Prefs;
 use lazy_static::lazy_static;
+use log::warn;
 use serde_json::{self, Value};
 
 use crate::pref_util::Preferences;
@@ -38,9 +40,11 @@ macro_rules! pref {
 #[macro_export]
 macro_rules! set_pref {
     ($($segment: ident).+, $value: expr) => {{
+        let value = $value;
+        $crate::prefs::set_stylo_pref(stringify!($($segment).+), value);
         let values = $crate::prefs::pref_map().values();
         let mut lock = values.write().unwrap();
-        lock$ (.$segment)+ = $value;
+        lock$ (.$segment)+ = value;
     }};
 }
 
@@ -56,8 +60,55 @@ pub fn pref_map() -> &'static Preferences<'static, Prefs> {
 }
 
 pub fn add_user_prefs(prefs: HashMap<String, PrefValue>) {
+    for (key, value) in prefs.iter() {
+        set_stylo_pref_ref(key, value);
+    }
     if let Err(error) = PREFS.set_all(prefs.into_iter()) {
         panic!("Error setting preference: {:?}", error);
+    }
+}
+
+pub fn set_stylo_pref(key: &str, value: impl Into<PrefValue>) {
+    set_stylo_pref_ref(key, &value.into());
+}
+
+fn set_stylo_pref_ref(key: &str, value: &PrefValue) {
+    dbg!(key);
+    match value.try_into() {
+        Ok(StyloPrefValue::Bool(value)) => style_config::set_bool(key, value),
+        Ok(StyloPrefValue::Int(value)) => style_config::set_i32(key, value),
+        Err(TryFromPrefValueError::IntegerOverflow(value)) => {
+            warn!("Pref value too big for Stylo: {} ({})", key, value);
+        }
+        Err(TryFromPrefValueError::UnmappedType) => {}
+    }
+}
+
+enum StyloPrefValue {
+    Bool(bool),
+    Int(i32),
+}
+
+enum TryFromPrefValueError {
+    IntegerOverflow(i64),
+    UnmappedType,
+}
+
+impl TryFrom<&PrefValue> for StyloPrefValue {
+    type Error = TryFromPrefValueError;
+
+    fn try_from(value: &PrefValue) -> Result<Self, Self::Error> {
+        match value {
+            &PrefValue::Int(value) => {
+                if let Ok(value) = value.try_into() {
+                    Ok(Self::Int(value))
+                } else {
+                    Err(TryFromPrefValueError::IntegerOverflow(value))
+                }
+            }
+            &PrefValue::Bool(value) => Ok(Self::Bool(value)),
+            _ => Err(TryFromPrefValueError::UnmappedType),
+        }
     }
 }
 
