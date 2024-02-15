@@ -5856,7 +5856,6 @@ dependencies = [
  "serde_json",
  "servo_arc",
  "servo_atoms",
- "servo_config",
  "style",
  "style_traits",
  "url",
