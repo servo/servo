@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
+use std::ptr::{self};
 
 use dom_struct::dom_struct;
 use js::jsapi::{JSObject, Type};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::ArrayBufferView;
+use js::typedarray::{ArrayBufferView, ArrayBufferViewU8, TypedArray};
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -15,6 +15,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::typedarrays::create_typed_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
@@ -47,7 +48,7 @@ impl CryptoMethods for Crypto {
         &self,
         _cx: JSContext,
         mut input: CustomAutoRooterGuard<ArrayBufferView>,
-    ) -> Fallible<NonNull<JSObject>> {
+    ) -> Fallible<ArrayBufferView> {
         let array_type = input.get_array_type();
 
         if !is_integer_buffer(array_type) {
@@ -58,9 +59,11 @@ impl CryptoMethods for Crypto {
                 return Err(Error::QuotaExceeded);
             }
             self.rng.borrow_mut().fill_bytes(&mut data);
+            TypedArray::<ArrayBufferViewU8, *mut JSObject>::from(*unsafe {
+                input.underlying_object()
+            })
+            .map_err(|_| Error::JSFailed)
         }
-
-        unsafe { Ok(NonNull::new_unchecked(*input.underlying_object())) }
     }
 }
 
