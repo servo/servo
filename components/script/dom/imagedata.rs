@@ -160,7 +160,7 @@ impl ImageData {
     /// Nothing must change the array on the JS side while the slice is live.
     #[allow(unsafe_code)]
     pub unsafe fn as_slice(&self) -> &[u8] {
-        assert!(!self.data.is_initialized());
+        assert!(self.data.is_initialized());
         let internal_data = self
             .data
             .get_internal()
