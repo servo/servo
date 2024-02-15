@@ -623,7 +623,7 @@ impl LayoutThread {
         reports_chan.send(reports);
     }
 
-    /// Shuts down layout now. If there are any DOM nodes left, layout will now (safely) crash.
+    /// Shuts down layout now.
     fn exit_now(&mut self) {
         // Drop the root flow explicitly to avoid holding style data, such as
         // rule nodes.  The `Stylist` checks when it is dropped that all rule

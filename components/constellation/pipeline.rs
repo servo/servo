@@ -46,7 +46,7 @@ use webrender_api::DocumentId;
 use crate::event_loop::EventLoop;
 use crate::sandboxing::{spawn_multiprocess, UnprivilegedContent};
 
-/// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an event loop
+/// A `Pipeline` is the constellation's view of a `Window`. Each pipeline has an event loop
 /// (executed by a script thread). A script thread may be responsible for many pipelines.
 pub struct Pipeline {
     /// The ID of the pipeline.

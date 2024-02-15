@@ -298,8 +298,8 @@ pub struct Constellation<STF, SWF> {
     background_hang_monitor_receiver: Receiver<Result<HangMonitorAlert, IpcError>>,
 
     /// A factory for creating layouts. This allows customizing the kind
-    /// of layout created for a [`Constellation`] and preventing a circular dependency
-    /// between script and layout.
+    /// of layout created for a [`Constellation`] and prevents a circular crate
+    /// dependency between script and layout.
     layout_factory: Arc<dyn LayoutFactory>,
 
     /// An IPC channel for layout to send messages to the constellation.
