@@ -18,7 +18,7 @@ use style::attr::AttrValue;
 use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{CssRuleType, Origin, Stylesheet};
+use style::stylesheets::{CssRuleType, Origin, Stylesheet, UrlExtraData};
 use style_traits::ParsingMode;
 
 use crate::dom::attr::Attr;
@@ -310,14 +310,14 @@ impl HTMLLinkElement {
 
         let mut input = ParserInput::new(&mq_str);
         let mut css_parser = CssParser::new(&mut input);
-        let doc_url = document.url();
+        let document_url_data = &UrlExtraData(document.url().get_arc());
         let window = document.window();
         // FIXME(emilio): This looks somewhat fishy, since we use the context
         // only to parse the media query list, CssRuleType::Media doesn't make
         // much sense.
         let context = CssParserContext::new(
             Origin::Author,
-            &doc_url,
+            &document_url_data,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             document.quirks_mode(),

@@ -1512,7 +1512,7 @@ where
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
             Image::Url(ref url_value) => {
                 let image_info = Box::new(ImageFragmentInfo::new(
-                    url_value.url().cloned(),
+                    url_value.url().cloned().map(Into::into),
                     None,
                     node,
                     self.layout_context,

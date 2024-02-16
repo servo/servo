@@ -20,6 +20,6 @@ selectors = {path = "../../../components/selectors", features = ["shmem"] }
 servo_arc = {path = "../../../components/servo_arc"}
 servo_atoms = {path = "../../../components/atoms"}
 servo_config = {path = "../../../components/config"}
-servo_url = {path = "../../../components/url"}
 style = {path = "../../../components/style", features = ["servo"]}
 style_traits = {path = "../../../components/style_traits"}
+url = { workspace = true }

@@ -7,14 +7,6 @@
 use super::{Context, ToResolvedValue};
 use crate::values::computed;
 
-#[inline]
-fn allow_element_content_none() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.element-content-none.enabled");
-    #[cfg(feature = "servo")]
-    return false;
-}
-
 /// https://drafts.csswg.org/css-content/#content-property
 ///
 /// We implement this at resolved value time because otherwise it causes us to
@@ -43,7 +35,8 @@ impl ToResolvedValue for computed::Content {
             // Ditto for non-pseudo elements if the pref is disabled.
             Self::None
                 if (is_pseudo && !is_before_or_after && !is_marker) ||
-                    (!is_pseudo && !allow_element_content_none()) =>
+                    (!is_pseudo &&
+                        !static_prefs::pref!("layout.css.element-content-none.enabled")) =>
             {
                 Self::Normal
             },

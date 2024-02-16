@@ -170,12 +170,10 @@ impl SupportsCondition {
                     input.slice_from(pos).to_owned()
                 )))
             },
-            #[cfg(feature = "gecko")]
             "font-format" if static_prefs::pref!("layout.css.font-tech.enabled") => {
                 let kw = FontFaceSourceFormatKeyword::parse(input)?;
                 Ok(SupportsCondition::FontFormat(kw))
             },
-            #[cfg(feature = "gecko")]
             "font-tech" if static_prefs::pref!("layout.css.font-tech.enabled") => {
                 let flag = FontFaceSourceTechFlags::parse_one(input)?;
                 Ok(SupportsCondition::FontTech(flag))

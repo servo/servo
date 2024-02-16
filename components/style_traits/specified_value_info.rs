@@ -92,7 +92,7 @@ impl SpecifiedValueInfo for crate::owned_str::OwnedStr {}
 #[cfg(feature = "servo")]
 impl SpecifiedValueInfo for ::servo_atoms::Atom {}
 #[cfg(feature = "servo")]
-impl SpecifiedValueInfo for ::servo_url::ServoUrl {}
+impl SpecifiedValueInfo for ::url::Url {}
 
 impl<T: SpecifiedValueInfo + ?Sized> SpecifiedValueInfo for Box<T> {
     const SUPPORTED_TYPES: u8 = T::SUPPORTED_TYPES;

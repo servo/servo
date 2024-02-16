@@ -517,10 +517,7 @@ pub enum SingleFontFamily {
 }
 
 fn system_ui_enabled(_: &ParserContext) -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.system-ui.enabled");
-    #[cfg(feature = "servo")]
-    return false;
+    static_prefs::pref!("layout.css.system-ui.enabled")
 }
 
 /// A generic font-family name.

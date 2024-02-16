@@ -41,7 +41,7 @@ use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
-use style::stylesheets::Stylesheet;
+use style::stylesheets::{Stylesheet, UrlExtraData};
 use uuid::Uuid;
 
 use crate::document_loader::DocumentLoader;
@@ -961,7 +961,10 @@ impl Node {
     pub fn query_selector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         // Step 1.
         let doc = self.owner_doc();
-        match SelectorParser::parse_author_origin_no_namespace(&selectors, &doc.url()) {
+        match SelectorParser::parse_author_origin_no_namespace(
+            &selectors,
+            &UrlExtraData(doc.url().get_arc()),
+        ) {
             // Step 2.
             Err(_) => Err(Error::Syntax),
             // Step 3.
@@ -989,7 +992,10 @@ impl Node {
     pub fn query_selector_iter(&self, selectors: DOMString) -> Fallible<QuerySelectorIterator> {
         // Step 1.
         let url = self.owner_doc().url();
-        match SelectorParser::parse_author_origin_no_namespace(&selectors, &url) {
+        match SelectorParser::parse_author_origin_no_namespace(
+            &selectors,
+            &UrlExtraData(url.get_arc()),
+        ) {
             // Step 2.
             Err(_) => Err(Error::Syntax),
             // Step 3.

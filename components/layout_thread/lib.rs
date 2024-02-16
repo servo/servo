@@ -100,13 +100,15 @@ use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
-    DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument, UserAgentStylesheets,
+    DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument, UrlExtraData,
+    UserAgentStylesheets,
 };
 use style::stylist::Stylist;
 use style::thread_state::{self, ThreadState};
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
 use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
+use url::Url;
 use webrender_api::{units, ColorF, HitTestFlags};
 
 /// Information needed by the layout thread.
@@ -1795,9 +1797,12 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         filename: &str,
         content: &[u8],
     ) -> Result<DocumentStyleSheet, &'static str> {
+        let url = Url::parse(&format!("chrome://resources/{:?}", filename))
+            .ok()
+            .unwrap();
         Ok(DocumentStyleSheet(ServoArc::new(Stylesheet::from_bytes(
             content,
-            ServoUrl::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
+            url.into(),
             None,
             None,
             Origin::UserAgent,
@@ -1835,7 +1840,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         user_or_user_agent_stylesheets.push(DocumentStyleSheet(ServoArc::new(
             Stylesheet::from_bytes(
                 &contents,
-                url.clone(),
+                UrlExtraData(url.get_arc()),
                 None,
                 None,
                 Origin::User,

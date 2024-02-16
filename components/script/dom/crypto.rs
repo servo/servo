@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
-
 use dom_struct::dom_struct;
 use js::jsapi::{JSObject, Type};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::ArrayBufferView;
+use js::typedarray::{ArrayBufferView, ArrayBufferViewU8, TypedArray};
 use servo_rand::{RngCore, ServoRng};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -47,7 +45,7 @@ impl CryptoMethods for Crypto {
         &self,
         _cx: JSContext,
         mut input: CustomAutoRooterGuard<ArrayBufferView>,
-    ) -> Fallible<NonNull<JSObject>> {
+    ) -> Fallible<ArrayBufferView> {
         let array_type = input.get_array_type();
 
         if !is_integer_buffer(array_type) {
@@ -58,9 +56,10 @@ impl CryptoMethods for Crypto {
                 return Err(Error::QuotaExceeded);
             }
             self.rng.borrow_mut().fill_bytes(&mut data);
+            let underlying_object = unsafe { input.underlying_object() };
+            TypedArray::<ArrayBufferViewU8, *mut JSObject>::from(*underlying_object)
+                .map_err(|_| Error::JSFailed)
         }
-
-        unsafe { Ok(NonNull::new_unchecked(*input.underlying_object())) }
     }
 }
 

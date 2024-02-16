@@ -734,7 +734,7 @@ impl Fragment {
                     if let Some(url) = image_url.url() {
                         let webrender_image = state.layout_context.get_webrender_image_for_url(
                             self.node,
-                            url.clone(),
+                            url.clone().into(),
                             UsePlaceholder::No,
                         );
                         if let Some(webrender_image) = webrender_image {
@@ -1205,7 +1205,7 @@ impl Fragment {
                 let url = image_url.url()?;
                 let image = state.layout_context.get_webrender_image_for_url(
                     self.node,
-                    url.clone(),
+                    url.clone().into(),
                     UsePlaceholder::No,
                 )?;
                 width = image.width;

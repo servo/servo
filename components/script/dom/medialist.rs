@@ -8,7 +8,7 @@ use servo_arc::Arc;
 use style::media_queries::{MediaList as StyleMediaList, MediaQuery};
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::{CssRuleType, Origin};
+use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::{ParsingMode, ToCss};
 
 use crate::dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
@@ -80,11 +80,11 @@ impl MediaListMethods for MediaList {
         let mut parser = Parser::new(&mut input);
         let global = self.global();
         let window = global.as_window();
-        let url = window.get_url();
+        let url_data = UrlExtraData(window.get_url().get_arc());
         let quirks_mode = window.Document().quirks_mode();
         let context = ParserContext::new(
             Origin::Author,
-            &url,
+            &url_data,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             quirks_mode,
@@ -123,11 +123,11 @@ impl MediaListMethods for MediaList {
         let mut parser = Parser::new(&mut input);
         let global = self.global();
         let win = global.as_window();
-        let url = win.get_url();
+        let url_data = UrlExtraData(win.get_url().get_arc());
         let quirks_mode = win.Document().quirks_mode();
         let context = ParserContext::new(
             Origin::Author,
-            &url,
+            &url_data,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             quirks_mode,
@@ -162,11 +162,11 @@ impl MediaListMethods for MediaList {
         let mut parser = Parser::new(&mut input);
         let global = self.global();
         let win = global.as_window();
-        let url = win.get_url();
+        let url_data = UrlExtraData(win.get_url().get_arc());
         let quirks_mode = win.Document().quirks_mode();
         let context = ParserContext::new(
             Origin::Author,
-            &url,
+            &url_data,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             quirks_mode,

@@ -40,11 +40,12 @@ use style::context::QuirksMode;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
 use style::str::is_ascii_digit;
-use style::stylesheets::{CssRuleType, Origin};
+use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::values::specified::length::{Length, NoCalcLength};
 use style::values::specified::source_size_list::SourceSizeList;
 use style::values::specified::AbsoluteLength;
 use style_traits::ParsingMode;
+use url::Url;
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
@@ -678,7 +679,7 @@ impl HTMLImageElement {
     fn matches_environment(&self, media_query: String) -> bool {
         let document = document_from_node(self);
         let quirks_mode = document.quirks_mode();
-        let document_url = &document.url();
+        let document_url_data = UrlExtraData(document.url().get_arc());
         // FIXME(emilio): This should do the same that we do for other media
         // lists regarding the rule type and such, though it doesn't really
         // matter right now...
@@ -686,7 +687,7 @@ impl HTMLImageElement {
         // Also, ParsingMode::all() is wrong, and should be DEFAULT.
         let context = ParserContext::new(
             Origin::Author,
-            document_url,
+            &document_url_data,
             Some(CssRuleType::Style),
             ParsingMode::all(),
             quirks_mode,
@@ -1434,10 +1435,10 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
 pub fn parse_a_sizes_attribute(value: DOMString) -> SourceSizeList {
     let mut input = ParserInput::new(&value);
     let mut parser = Parser::new(&mut input);
-    let url = ServoUrl::parse("about:blank").unwrap();
+    let url_data = Url::parse("about:blank").unwrap().into();
     let context = ParserContext::new(
         Origin::Author,
-        &url,
+        &url_data,
         Some(CssRuleType::Style),
         // FIXME(emilio): why ::empty() instead of ::DEFAULT? Also, what do
         // browsers do regarding quirks-mode in a media list?

@@ -25,7 +25,7 @@ use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::import_rule::{ImportLayer, ImportSheet, ImportSupportsCondition};
 use style::stylesheets::{
     CssRules, ImportRule, Origin, Stylesheet, StylesheetContents,
-    StylesheetLoader as StyleStylesheetLoader,
+    StylesheetLoader as StyleStylesheetLoader, UrlExtraData,
 };
 use style::values::CssUrl;
 
@@ -159,7 +159,7 @@ impl FetchResponseListener for StylesheetContext {
                         let shared_lock = document.style_shared_lock().clone();
                         let sheet = Arc::new(Stylesheet::from_bytes(
                             &data,
-                            final_url,
+                            UrlExtraData(final_url.get_arc()),
                             protocol_encoding_label,
                             Some(environment_encoding),
                             Origin::Author,
@@ -183,7 +183,7 @@ impl FetchResponseListener for StylesheetContext {
                         &data,
                         protocol_encoding_label,
                         Some(environment_encoding),
-                        final_url,
+                        UrlExtraData(final_url.get_arc()),
                         Some(&loader),
                         win.css_error_reporter(),
                     );
@@ -404,7 +404,7 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
         // TODO (mrnayak) : Whether we should use the original loader's CORS
         // setting? Fix this when spec has more details.
         let source = StylesheetContextSource::Import(sheet.clone());
-        self.load(source, url, None, "".to_owned());
+        self.load(source, url.into(), None, "".to_owned());
 
         Arc::new(lock.wrap(import))
     }

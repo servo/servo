@@ -13,6 +13,7 @@ use js::jsapi::JSObject;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Float64Array};
 use style::parser::ParserContext;
+use url::Url;
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
@@ -830,10 +831,10 @@ pub fn transform_to_matrix(value: String) -> Fallible<(bool, Transform3D<f64>)> 
 
     let mut input = ParserInput::new(&value);
     let mut parser = Parser::new(&mut input);
-    let url = ::servo_url::ServoUrl::parse("about:blank").unwrap();
+    let url_data = Url::parse("about:blank").unwrap().into();
     let context = ParserContext::new(
         ::style::stylesheets::Origin::Author,
-        &url,
+        &url_data,
         Some(::style::stylesheets::CssRuleType::Style),
         ::style_traits::ParsingMode::DEFAULT,
         ::style::context::QuirksMode::NoQuirks,

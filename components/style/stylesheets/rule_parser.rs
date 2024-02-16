@@ -5,7 +5,6 @@
 //! Parsing of the stylesheet contents.
 
 use crate::counter_style::{parse_counter_style_body, parse_counter_style_name_definition};
-#[cfg(feature = "gecko")]
 use crate::custom_properties::parse_name as parse_custom_property_name;
 use crate::error_reporting::ContextualParseError;
 use crate::font_face::parse_font_face_block;
@@ -32,7 +31,6 @@ use crate::stylesheets::{
 };
 use crate::values::computed::font::FamilyName;
 use crate::values::{CssUrl, CustomIdent, DashedIdent, KeyframesName};
-#[cfg(feature = "gecko")]
 use crate::Atom;
 use crate::{Namespace, Prefix};
 use cssparser::{
@@ -455,10 +453,7 @@ impl<'a, 'b, 'i> NestedRuleParser<'a, 'b, 'i> {
         if !self.context.rule_types.contains(CssRuleType::Style) {
             return true;
         }
-        #[cfg(feature = "gecko")]
-        return static_prefs::pref!("layout.css.nesting.enabled");
-        #[cfg(feature = "servo")]
-        return false;
+        static_prefs::pref!("layout.css.nesting.enabled")
     }
 
     fn nest_for_rule<R>(&mut self, rule_type: CssRuleType, cb: impl FnOnce(&mut Self) -> R) -> R {
@@ -520,16 +515,6 @@ impl<'a, 'b, 'i> NestedRuleParser<'a, 'b, 'i> {
     }
 }
 
-fn container_queries_enabled() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.container-queries.enabled");
-    #[cfg(feature = "servo")]
-    return servo_config::prefs::pref_map()
-        .get("layout.container-queries.enabled")
-        .as_bool()
-        .unwrap_or(false);
-}
-
 impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
     type Prelude = AtRulePrelude;
     type AtRule = ();
@@ -556,7 +541,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
             "font-face" => {
                 AtRulePrelude::FontFace
             },
-            "container" if container_queries_enabled() => {
+            "container" if static_prefs::pref!("layout.css.container-queries.enabled") => {
                 let condition = Arc::new(ContainerCondition::parse(self.context, input)?);
                 AtRulePrelude::Container(condition)
             },
@@ -572,7 +557,6 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
                 let family_names = parse_family_name_list(self.context, input)?;
                 AtRulePrelude::FontFeatureValues(family_names)
             },
-            #[cfg(feature = "gecko")]
             "font-palette-values" if static_prefs::pref!("layout.css.font-palette.enabled") => {
                 let name = DashedIdent::parse(self.context, input)?;
                 AtRulePrelude::FontPaletteValues(name)
@@ -602,7 +586,6 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b, 'i> {
                     input.try_parse(|i| PageSelectors::parse(self.context, i)).unwrap_or_default()
                 )
             },
-            #[cfg(feature = "gecko")]
             "property" if static_prefs::pref!("layout.css.properties-and-values.enabled") => {
                 let name = input.expect_ident_cloned()?;
                 let name = parse_custom_property_name(&name).map_err(|_| {
