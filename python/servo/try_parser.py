@@ -9,9 +9,11 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from __future__ import annotations
+
 import json
 import sys
-from typing import Optional
+from typing import ClassVar, List, Optional
 import unittest
 import logging
 
@@ -40,10 +42,10 @@ class Layout(Flag):
 
 
 class Workflow(str, Enum):
-    LINUX = 'linux'
-    MACOS = 'macos'
-    WINDOWS = 'windows'
-    ANDROID = 'android'
+    LINUX = "linux"
+    MACOS = "macos"
+    WINDOWS = "windows"
+    ANDROID = "android"
 
 
 @dataclass
@@ -54,6 +56,20 @@ class JobConfig(object):
     profile: str = "release"
     unit_tests: bool = False
     wpt_tests_to_run: str = ""
+    # These are the fields that must match in between two JobConfigs for them to be able to be
+    # merged. If you modify any of the fields above, make sure to update this line as well.
+    merge_compatibility_fields: ClassVar[List[str]] = ['workflow', 'profile', 'wpt_tests_to_run']
+
+    def merge(self, other: JobConfig) -> bool:
+        """Try to merge another job with this job. Returns True if merging is successful
+           or False if not. If merging is successful this job will be modified."""
+        for field in self.merge_compatibility_fields:
+            if getattr(self, field) != getattr(other, field):
+                return False
+
+        self.wpt_layout |= other.wpt_layout
+        self.unit_tests |= other.unit_tests
+        return True
 
 
 def handle_preset(s: str) -> Optional[JobConfig]:
@@ -68,15 +84,15 @@ def handle_preset(s: str) -> Optional[JobConfig]:
     elif s in ["wpt", "linux-wpt"]:
         return JobConfig("Linux WPT", Workflow.LINUX, unit_tests=True, wpt_layout=Layout.all())
     elif s in ["wpt-2013", "linux-wpt-2013"]:
-        return JobConfig("Linux WPT legacy-layout", Workflow.LINUX, wpt_layout=Layout.layout2013)
+        return JobConfig("Linux WPT", Workflow.LINUX, wpt_layout=Layout.layout2013)
     elif s in ["wpt-2020", "linux-wpt-2020"]:
-        return JobConfig("Linux WPT layout-2020", Workflow.LINUX, wpt_layout=Layout.layout2020)
+        return JobConfig("Linux WPT", Workflow.LINUX, wpt_layout=Layout.layout2020)
     elif s in ["mac-wpt", "wpt-mac"]:
         return JobConfig("MacOS WPT", Workflow.MACOS, wpt_layout=Layout.all())
     elif s == "mac-wpt-2013":
-        return JobConfig("MacOS WPT legacy-layout", Workflow.MACOS, wpt_layout=Layout.layout2013)
+        return JobConfig("MacOS WPT", Workflow.MACOS, wpt_layout=Layout.layout2013)
     elif s == "mac-wpt-2020":
-        return JobConfig("MacOS WPT layout-2020", Workflow.MACOS, wpt_layout=Layout.layout2020)
+        return JobConfig("MacOS WPT", Workflow.MACOS, wpt_layout=Layout.layout2020)
     elif s == "android":
         return JobConfig("Android", Workflow.ANDROID)
     elif s == "webgpu":
@@ -122,11 +138,17 @@ class Config(object):
                 words.extend(["linux-wpt", "macos", "windows", "android"])
                 continue  # skip over keyword
 
-            preset = handle_preset(word)
-            if preset is None:
+            job = handle_preset(word)
+            if job is None:
                 print(f"Ignoring unknown preset {word}")
             else:
-                self.matrix.append(preset)
+                self.add_or_merge_job_to_matrix(job)
+
+    def add_or_merge_job_to_matrix(self, job: JobConfig):
+        for existing_job in self.matrix:
+            if existing_job.merge(job):
+                return
+        self.matrix.append(job)
 
     def to_json(self, **kwargs) -> str:
         return json.dumps(self, cls=Encoder, **kwargs)
@@ -191,6 +213,39 @@ class TestParser(unittest.TestCase):
                                   "wpt_tests_to_run": ""
                               }
                               ]})
+
+    def test_job_merging(self):
+        self.assertDictEqual(json.loads(Config("wpt-2020 wpt-2013").to_json()),
+                             {'fail_fast': False,
+                              'matrix': [{
+                                  'name': 'Linux WPT',
+                                  'profile': 'release',
+                                  'unit_tests': False,
+                                  'workflow': 'linux',
+                                  'wpt_layout': 'all',
+                                  'wpt_tests_to_run': ''
+                              }]
+                              })
+
+        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+        b = JobConfig("Linux", Workflow.LINUX, unit_tests=False)
+        self.assertTrue(a.merge(b), "Should not merge jobs that have different unit test configurations.")
+        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
+
+        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+        b = JobConfig("Mac", Workflow.MACOS, unit_tests=True)
+        self.assertFalse(a.merge(b), "Should not merge jobs with different workflows.")
+        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
+
+        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+        b = JobConfig("Linux", Workflow.LINUX, unit_tests=True, profile="production")
+        self.assertFalse(a.merge(b), "Should not merge jobs with different profiles.")
+        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
+
+        a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
+        b = JobConfig("Linux", Workflow.LINUX, unit_tests=True, wpt_tests_to_run="/css")
+        self.assertFalse(a.merge(b), "Should not merge jobs that run different WPT tests.")
+        self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):
         self.assertDictEqual(json.loads(Config("linux-wpt macos windows android").to_json()),
