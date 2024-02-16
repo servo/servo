@@ -38,27 +38,24 @@ where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
-    match init {
-        HeapTypedArrayInit::Object(js_object) => Ok(HeapTypedArray {
+    let heap_typed_array = match init {
+        HeapTypedArrayInit::Object(js_object) => HeapTypedArray {
             internal: Heap::boxed(js_object),
             phantom: PhantomData::default(),
-        }),
+        },
         HeapTypedArrayInit::Info { len, cx } => {
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
             let typed_array_result =
                 create_typed_array_with_length::<T>(cx, len as usize, array.handle_mut());
-
-            let heap_typed_array = match typed_array_result {
-                Ok(_) => {
-                    let heap_typed_array = HeapTypedArray::<T>::default();
-                    heap_typed_array.internal.set(*array);
-                    Ok(heap_typed_array)
-                },
-                Err(_) => return Err(()),
-            };
+            if typed_array_result.is_err() {
+                return Err(());
+            }
+            let heap_typed_array = HeapTypedArray::<T>::default();
+            heap_typed_array.internal.set(*array);
             heap_typed_array
         },
-    }
+    };
+    Ok(heap_typed_array)
 }
 
 pub enum HeapTypedArrayInit {
