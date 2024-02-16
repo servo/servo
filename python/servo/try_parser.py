@@ -242,7 +242,6 @@ class TestParser(unittest.TestCase):
         self.assertFalse(a.merge(b), "Should not merge jobs with different profiles.")
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
-        # Ditto.
         a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
         b = JobConfig("Linux", Workflow.LINUX, unit_tests=True, wpt_tests_to_run="/css")
         self.assertFalse(a.merge(b), "Should not merge jobs that run different WPT tests.")
