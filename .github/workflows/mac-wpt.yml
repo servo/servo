@@ -63,11 +63,13 @@ jobs:
             --filter-intermittents wpt-filtered-logs/macos-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.json
       - name: Archive results (filtered)
         uses: actions/upload-artifact@v4
+        if: ${{ always() }}
         with:
           name: wpt-filtered-logs-macos-${{ inputs.wpt-layout }}-${{ matrix.chunk_id }}
           path: wpt-filtered-logs/*/
       - name: Archive results (full)
         uses: actions/upload-artifact@v4
+        if: ${{ always() }}
         with:
           name: wpt-full-logs-macos-${{ inputs.wpt-layout }}-${{ matrix.chunk_id }}
           path: wpt-full-logs/*/
