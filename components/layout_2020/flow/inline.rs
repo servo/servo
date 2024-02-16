@@ -681,7 +681,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             let pbm_end = Length::from(
                 inline_box_state.pbm.padding.inline_end + inline_box_state.pbm.border.inline_end,
             ) + inline_box_state.pbm.margin.inline_end.auto_is(Length::zero);
-            self.current_line_segment.inline_size += pbm_end.into();
+            self.current_line_segment.inline_size += pbm_end;
         }
     }
 

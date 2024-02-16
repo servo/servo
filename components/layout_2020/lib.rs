@@ -25,6 +25,7 @@ mod style_ext;
 pub mod table;
 pub mod traversal;
 
+use app_units::Au;
 pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
 use style::properties::ComputedValues;
@@ -39,15 +40,15 @@ pub struct ContainingBlock<'a> {
 }
 
 struct DefiniteContainingBlock<'a> {
-    size: LogicalVec2<Length>,
+    size: LogicalVec2<Au>,
     style: &'a ComputedValues,
 }
 
 impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
     fn from(definite: &DefiniteContainingBlock<'a>) -> Self {
         ContainingBlock {
-            inline_size: definite.size.inline,
-            block_size: LengthOrAuto::LengthPercentage(definite.size.block),
+            inline_size: definite.size.inline.into(),
+            block_size: LengthOrAuto::LengthPercentage(definite.size.block.into()),
             style: definite.style,
         }
     }

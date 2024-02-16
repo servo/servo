@@ -253,7 +253,7 @@ impl PositioningContext {
         }
         .inflate(&new_fragment.padding);
         let containing_block = DefiniteContainingBlock {
-            size: padding_rect.size.clone(),
+            size: padding_rect.size.clone().into(),
             style: &new_fragment.style,
         };
 
@@ -499,7 +499,7 @@ impl HoistedAbsolutelyPositionedBox {
 
         let shared_fragment = self.fragment.borrow();
         let inline_axis_solver = AbsoluteAxisSolver {
-            containing_size: cbis,
+            containing_size: cbis.into(),
             padding_border_sum: pbm.padding_border_sums.inline.into(),
             computed_margin_start: pbm.margin.inline_start,
             computed_margin_end: pbm.margin.inline_end,
@@ -508,7 +508,7 @@ impl HoistedAbsolutelyPositionedBox {
         };
 
         let block_axis_solver = AbsoluteAxisSolver {
-            containing_size: cbbs,
+            containing_size: cbbs.into(),
             padding_border_sum: pbm.padding_border_sums.block.into(),
             computed_margin_start: pbm.margin.block_start,
             computed_margin_end: pbm.margin.block_end,
@@ -557,11 +557,13 @@ impl HoistedAbsolutelyPositionedBox {
                             Anchor::End(end) => end,
                         };
                         let margin_sum = inline_axis.margin_start + inline_axis.margin_end;
-                        let available_size =
-                            cbis - anchor - pbm.padding_border_sums.inline.into() - margin_sum;
+                        let available_size = cbis -
+                            anchor.into() -
+                            pbm.padding_border_sums.inline -
+                            margin_sum.into();
                         non_replaced
                             .inline_content_sizes(layout_context)
-                            .shrink_to_fit(available_size.into())
+                            .shrink_to_fit(available_size)
                             .into()
                     });
 
@@ -673,15 +675,21 @@ impl HoistedAbsolutelyPositionedBox {
             let pb = &pbm.padding + &pbm.border;
             let inline_start = match inline_axis.anchor {
                 Anchor::Start(start) => start + pb.inline_start.into() + margin.inline_start,
-                Anchor::End(end) => {
-                    cbis - end - pb.inline_end.into() - margin.inline_end - content_size.inline
-                },
+                Anchor::End(end) => Length::from(
+                    cbis - end.into() -
+                        pb.inline_end -
+                        margin.inline_end.into() -
+                        content_size.inline.into(),
+                ),
             };
             let block_start = match block_axis.anchor {
                 Anchor::Start(start) => start + pb.block_start.into() + margin.block_start,
-                Anchor::End(end) => {
-                    cbbs - end - pb.block_end.into() - margin.block_end - content_size.block
-                },
+                Anchor::End(end) => Length::from(
+                    cbbs - end.into() -
+                        pb.block_end -
+                        margin.block_end.into() -
+                        content_size.block.into(),
+                ),
             };
 
             let content_rect = LogicalRect {
