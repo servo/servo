@@ -130,6 +130,7 @@ builtinNames = {
     IDLType.Tags.float64array: 'Float64Array',
     IDLType.Tags.arrayBuffer: 'ArrayBuffer',
     IDLType.Tags.arrayBufferView: 'ArrayBufferView',
+    IDLType.Tags.uint8clampedarray: 'Uint8ClampedArray',
 }
 
 numericTags = [
@@ -6520,6 +6521,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::typedarray::Float64Array',
         'js::typedarray::ArrayBuffer',
         'js::typedarray::ArrayBufferView',
+        'js::typedarray::Uint8ClampedArray',
         'crate::dom',
         'crate::dom::bindings',
         'crate::dom::bindings::codegen::InterfaceObjectMap',

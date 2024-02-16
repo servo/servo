@@ -3,18 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::default::Default;
 use std::ptr;
-use std::ptr::NonNull;
 use std::vec::Vec;
 
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
-use js::jsapi::{Heap, JSObject};
-use js::rust::{HandleObject, Runtime};
-use js::typedarray::{CreateWith, Uint8ClampedArray};
+use js::jsapi::JSObject;
+use js::rust::HandleObject;
+use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
 
+use super::bindings::typedarrays::{
+    new_initialized_heap_typed_array, HeapTypedArray, HeapTypedArrayInit,
+};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
@@ -28,7 +29,7 @@ pub struct ImageData {
     width: u32,
     height: u32,
     #[ignore_malloc_size_of = "mozjs"]
-    data: Heap<*mut JSObject>,
+    data: HeapTypedArray<ClampedU8>,
 }
 
 impl ImageData {
@@ -55,21 +56,30 @@ impl ImageData {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn new_with_jsobject(
+    fn new_with_jsobject(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u32,
         opt_height: Option<u32>,
         jsobject: *mut JSObject,
     ) -> Fallible<DomRoot<ImageData>> {
-        // checking jsobject type
-        let cx = GlobalScope::get_cx();
-        typedarray!(in(*cx) let array_res: Uint8ClampedArray = jsobject);
-        let array = array_res.map_err(|_| {
-            Error::Type("Argument to Image data is not an Uint8ClampedArray".to_owned())
-        })?;
+        let heap_typed_array = match new_initialized_heap_typed_array::<ClampedU8>(
+            HeapTypedArrayInit::Object(jsobject),
+        ) {
+            Ok(heap_typed_array) => heap_typed_array,
+            Err(_) => return Err(Error::JSFailed),
+        };
 
-        let byte_len = array.as_slice().len() as u32;
+        let typed_array = match heap_typed_array.get_internal() {
+            Ok(array) => array,
+            Err(_) => {
+                return Err(Error::Type(
+                    "Argument to Image data is not an Uint8ClampedArray".to_owned(),
+                ))
+            },
+        };
+
+        let byte_len = unsafe { typed_array.as_slice().len() } as u32;
         if byte_len == 0 || byte_len % 4 != 0 {
             return Err(Error::InvalidState);
         }
@@ -88,16 +98,13 @@ impl ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,
-            data: Heap::default(),
+            data: heap_typed_array,
         });
-
-        (*imagedata).data.set(jsobject);
 
         Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
 
-    #[allow(unsafe_code)]
-    unsafe fn new_without_jsobject(
+    fn new_without_jsobject(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u32,
@@ -106,37 +113,40 @@ impl ImageData {
         if width == 0 || height == 0 {
             return Err(Error::IndexSize);
         }
+        let cx = GlobalScope::get_cx();
+        let len = width * height * 4;
 
+        let heap_typed_array =
+            match new_initialized_heap_typed_array::<ClampedU8>(HeapTypedArrayInit::Info {
+                len,
+                cx,
+            }) {
+                Ok(heap_typed_array) => heap_typed_array,
+                Err(_) => return Err(Error::JSFailed),
+            };
         let imagedata = Box::new(ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,
-            data: Heap::default(),
+            data: heap_typed_array,
         });
-
-        let len = width * height * 4;
-        let cx = GlobalScope::get_cx();
-        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        Uint8ClampedArray::create(*cx, CreateWith::Length(len as usize), array.handle_mut())
-            .unwrap();
-        (*imagedata).data.set(array.get());
 
         Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
-    // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3
-    #[allow(unsafe_code, non_snake_case)]
+    /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3>
+    #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u32,
         height: u32,
     ) -> Fallible<DomRoot<Self>> {
-        unsafe { Self::new_without_jsobject(global, proto, width, height) }
+        Self::new_without_jsobject(global, proto, width, height)
     }
 
-    // https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4
-    #[allow(unsafe_code, unused_variables, non_snake_case)]
-    pub unsafe fn Constructor_(
+    /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4>
+    #[allow(unused_variables, non_snake_case)]
+    pub fn Constructor_(
         cx: JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -150,17 +160,17 @@ impl ImageData {
     /// Nothing must change the array on the JS side while the slice is live.
     #[allow(unsafe_code)]
     pub unsafe fn as_slice(&self) -> &[u8] {
-        assert!(!self.data.get().is_null());
-        let cx = Runtime::get();
-        assert!(!cx.is_null());
-        typedarray!(in(cx) let array: Uint8ClampedArray = self.data.get());
-        let array = array.as_ref().unwrap();
+        assert!(self.data.is_initialized());
+        let internal_data = self
+            .data
+            .get_internal()
+            .expect("Failed to get Data from ImageData.");
         // NOTE(nox): This is just as unsafe as `as_slice` itself even though we
         // are extending the lifetime of the slice, because the data in
         // this ImageData instance will never change. The method is thus unsafe
         // because the array may be manipulated from JS while the reference
         // is live.
-        let ptr = array.as_slice() as *const _;
+        let ptr: *const [u8] = internal_data.as_slice() as *const _;
         &*ptr
     }
 
@@ -180,18 +190,18 @@ impl ImageData {
 }
 
 impl ImageDataMethods for ImageData {
-    // https://html.spec.whatwg.org/multipage/#dom-imagedata-width
+    /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-width>
     fn Width(&self) -> u32 {
         self.width
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-imagedata-height
+    /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-height>
     fn Height(&self) -> u32 {
         self.height
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
-    fn Data(&self, _: JSContext) -> NonNull<JSObject> {
-        NonNull::new(self.data.get()).expect("got a null pointer")
+    /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-data>
+    fn GetData(&self, _: JSContext) -> Fallible<Uint8ClampedArray> {
+        self.data.get_internal().map_err(|_| Error::JSFailed)
     }
 }

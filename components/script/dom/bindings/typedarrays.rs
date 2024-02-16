@@ -31,6 +31,38 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapTypedArray<T> {
     }
 }
 
+pub fn new_initialized_heap_typed_array<T>(
+    init: HeapTypedArrayInit,
+) -> Result<HeapTypedArray<T>, ()>
+where
+    T: TypedArrayElement + TypedArrayElementCreator,
+    T::Element: Clone + Copy,
+{
+    let heap_typed_array = match init {
+        HeapTypedArrayInit::Object(js_object) => HeapTypedArray {
+            internal: Heap::boxed(js_object),
+            phantom: PhantomData::default(),
+        },
+        HeapTypedArrayInit::Info { len, cx } => {
+            rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+            let typed_array_result =
+                create_typed_array_with_length::<T>(cx, len as usize, array.handle_mut());
+            if typed_array_result.is_err() {
+                return Err(());
+            }
+            let heap_typed_array = HeapTypedArray::<T>::default();
+            heap_typed_array.internal.set(*array);
+            heap_typed_array
+        },
+    };
+    Ok(heap_typed_array)
+}
+
+pub enum HeapTypedArrayInit {
+    Object(*mut JSObject),
+    Info { len: u32, cx: JSContext },
+}
+
 impl<T> HeapTypedArray<T>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
@@ -153,6 +185,23 @@ where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
     let res = unsafe { TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Slice(data), dest) };
+
+    if res.is_err() {
+        Err(())
+    } else {
+        TypedArray::from(dest.get())
+    }
+}
+
+fn create_typed_array_with_length<T>(
+    cx: JSContext,
+    len: usize,
+    dest: MutableHandleObject,
+) -> Result<TypedArray<T, *mut JSObject>, ()>
+where
+    T: TypedArrayElement + TypedArrayElementCreator,
+{
+    let res = unsafe { TypedArray::<T, *mut JSObject>::create(*cx, CreateWith::Length(len), dest) };
 
     if res.is_err() {
         Err(())

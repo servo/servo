@@ -5,14 +5,14 @@
 // check-tidy: no specs after this line
 
 use std::borrow::ToOwned;
-use std::ptr::NonNull;
+use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSObject, JS_NewPlainObject, JS_NewUint8ClampedArray};
+use js::jsapi::{Heap, JSObject, JS_NewPlainObject};
 use js::jsval::{JSVal, NullValue};
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue};
-use js::typedarray;
+use js::typedarray::{self, Uint8ClampedArray};
 use script_traits::serializable::BlobImpl;
 use script_traits::MsDuration;
 use servo_config::prefs;
@@ -41,6 +41,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::typedarrays::create_typed_array;
 use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
@@ -209,12 +210,12 @@ impl TestBindingMethods for TestBinding {
         ByteStringOrLong::ByteString(ByteString::new(vec![]))
     }
     fn SetUnion9Attribute(&self, _: ByteStringOrLong) {}
-    #[allow(unsafe_code)]
-    fn ArrayAttribute(&self, cx: SafeJSContext) -> NonNull<JSObject> {
-        unsafe {
-            rooted!(in(*cx) let array = JS_NewUint8ClampedArray(*cx, 16));
-            NonNull::new(array.get()).expect("got a null pointer")
-        }
+    fn ArrayAttribute(&self, cx: SafeJSContext) -> Uint8ClampedArray {
+        let data: [u8; 16] = [0; 16];
+
+        rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+        create_typed_array(cx, &data, array.handle_mut())
+            .expect("Creating ClampedU8 array should never fail")
     }
     fn AnyAttribute(&self, _: SafeJSContext) -> JSVal {
         NullValue()
