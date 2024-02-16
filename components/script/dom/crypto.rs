@@ -56,10 +56,9 @@ impl CryptoMethods for Crypto {
                 return Err(Error::QuotaExceeded);
             }
             self.rng.borrow_mut().fill_bytes(&mut data);
-            TypedArray::<ArrayBufferViewU8, *mut JSObject>::from(*unsafe {
-                input.underlying_object()
-            })
-            .map_err(|_| Error::JSFailed)
+            let underlying_object = unsafe { input.underlying_object() };
+            TypedArray::<ArrayBufferViewU8, *mut JSObject>::from(*underlying_object)
+                .map_err(|_| Error::JSFailed)
         }
     }
 }
