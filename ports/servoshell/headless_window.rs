@@ -6,15 +6,17 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
+use std::sync::RwLock;
 
 use euclid::{Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
+use log::warn;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
 };
 use servo::rendering_context::RenderingContext;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
-use servo::webrender_api::units::DeviceIntRect;
+use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize};
 use surfman::{Connection, Context, Device, SurfaceType};
 
 use crate::events_loop::WakerEvent;
@@ -25,6 +27,8 @@ pub struct Window {
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     device_pixel_ratio_override: Option<f32>,
+    inner_size: Cell<Size2D<i32, UnknownUnit>>,
+    event_queue: RwLock<Vec<EmbedderEvent>>,
 }
 
 impl Window {
@@ -47,6 +51,8 @@ impl Window {
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             device_pixel_ratio_override,
+            inner_size: Cell::new(size.to_i32()),
+            event_queue: RwLock::new(Vec::new()),
         };
 
         Rc::new(window)
@@ -55,15 +61,42 @@ impl Window {
 
 impl WindowPortsMethods for Window {
     fn get_events(&self) -> Vec<EmbedderEvent> {
-        vec![]
+        match self.event_queue.write() {
+            Ok(ref mut event_queue) => std::mem::take(event_queue),
+            Err(_) => vec![],
+        }
     }
 
     fn has_events(&self) -> bool {
-        false
+        self.event_queue
+            .read()
+            .ok()
+            .map(|queue| !queue.is_empty())
+            .unwrap_or(false)
     }
 
     fn id(&self) -> winit::window::WindowId {
         unsafe { winit::window::WindowId::dummy() }
+    }
+
+    fn set_inner_size(&self, size: DeviceIntSize) {
+        let (width, height) = size.into();
+
+        // Surfman doesn't support zero-sized surfaces.
+        let new_size = Size2D::new(width.max(1), height.max(1));
+        if self.inner_size.get() == new_size {
+            return;
+        }
+
+        match self.rendering_context.resize(new_size.to_untyped()) {
+            Ok(()) => {
+                self.inner_size.set(new_size);
+                if let Ok(ref mut queue) = self.event_queue.write() {
+                    queue.push(EmbedderEvent::Resize);
+                }
+            },
+            Err(error) => warn!("Could not resize window: {error:?}"),
+        }
     }
 
     fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {

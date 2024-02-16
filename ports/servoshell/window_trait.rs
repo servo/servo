@@ -38,7 +38,7 @@ pub trait WindowPortsMethods: WindowMethods {
     fn queue_embedder_events_for_winit_event(&self, event: winit::event::WindowEvent<'_>);
     fn is_animating(&self) -> bool;
     fn set_title(&self, _title: &str) {}
-    fn set_inner_size(&self, _size: DeviceIntSize) {}
+    fn set_inner_size(&self, _size: DeviceIntSize);
     fn set_position(&self, _point: DeviceIntPoint) {}
     fn set_fullscreen(&self, _state: bool) {}
     fn set_cursor(&self, _cursor: Cursor) {}
