@@ -233,7 +233,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
         a = JobConfig("Linux", Workflow.LINUX, unit_tests=True)
-        b = JobConfig("Linux", Workflow.MACOS, unit_tests=True)
+        b = JobConfig("Mac", Workflow.MACOS, unit_tests=True)
         self.assertFalse(a.merge(b), "Should not merge jobs with different workflows.")
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
