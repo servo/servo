@@ -19,16 +19,12 @@
 
 use crate::parser::{Combinator, Component, RelativeSelector, Selector, SelectorImpl};
 use crate::sink::Push;
-use bitflags::bitflags;
-use derive_more::{Add, AddAssign};
 use servo_arc::{Arc, HeaderWithLength, ThinArc};
 use smallvec::{self, SmallVec};
 use std::cmp;
 use std::iter;
 use std::ptr;
 use std::slice;
-#[cfg(feature = "shmem")]
-use to_shmem_derive::ToShmem;
 
 /// Top-level SelectorBuilder struct. This should be stack-allocated by the
 /// consumer and never moved (because it contains a lot of inline data that
@@ -182,8 +178,7 @@ fn split_from_end<T>(s: &[T], at: usize) -> (&[T], &[T]) {
 
 bitflags! {
     /// Flags that indicate at which point of parsing a selector are we.
-    #[derive(Default)]
-    #[cfg_attr(feature = "shmem", derive(ToShmem))]
+    #[derive(Default, ToShmem)]
     pub (crate) struct SelectorFlags : u8 {
         const HAS_PSEUDO = 1 << 0;
         const HAS_SLOTTED = 1 << 1;
@@ -192,8 +187,7 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "shmem", derive(ToShmem))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ToShmem)]
 pub struct SpecificityAndFlags {
     /// There are two free bits here, since we use ten bits for each specificity
     /// kind (id, class, element).
