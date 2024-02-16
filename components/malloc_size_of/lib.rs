@@ -46,6 +46,41 @@
 //!   Note: WebRender has a reduced fork of this crate, so that we can avoid
 //!   publishing this crate on crates.io.
 
+#[cfg(feature = "servo")]
+extern crate accountable_refcell;
+extern crate app_units;
+#[cfg(feature = "servo")]
+extern crate content_security_policy;
+#[cfg(feature = "servo")]
+extern crate crossbeam_channel;
+extern crate cssparser;
+extern crate euclid;
+#[cfg(feature = "servo")]
+extern crate http;
+#[cfg(feature = "servo")]
+extern crate keyboard_types;
+extern crate selectors;
+#[cfg(feature = "servo")]
+extern crate serde;
+#[cfg(feature = "servo")]
+extern crate serde_bytes;
+extern crate servo_arc;
+extern crate smallbitvec;
+extern crate smallvec;
+#[cfg(feature = "servo")]
+extern crate string_cache;
+#[cfg(feature = "servo")]
+extern crate time;
+#[cfg(feature = "url")]
+extern crate url;
+#[cfg(feature = "servo")]
+extern crate uuid;
+extern crate void;
+#[cfg(feature = "webrender_api")]
+extern crate webrender_api;
+#[cfg(feature = "servo")]
+extern crate xml5ever;
+
 use std::hash::{BuildHasher, Hash};
 use std::mem::size_of;
 use std::ops::{Deref, DerefMut, Range};
