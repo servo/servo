@@ -15,10 +15,10 @@ extern crate selectors;
 extern crate serde_json;
 extern crate servo_arc;
 extern crate servo_atoms;
-extern crate servo_url;
 extern crate style;
 extern crate style_traits;
 extern crate test;
+extern crate url;
 
 mod animated_properties;
 mod attr;

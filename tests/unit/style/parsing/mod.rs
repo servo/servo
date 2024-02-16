@@ -9,6 +9,7 @@ use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
 use style_traits::{ParseError, ParsingMode};
+use url::Url;
 
 fn parse<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
 where
@@ -22,10 +23,10 @@ fn parse_input<'i: 't, 't, T, F>(f: F, input: &'t mut ParserInput<'i>) -> Result
 where
     F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>>,
 {
-    let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
+    let url_data = Url::parse("http://localhost").unwrap().into();
     let context = ParserContext::new(
         Origin::Author,
-        &url,
+        &url_data,
         Some(CssRuleType::Style),
         ParsingMode::DEFAULT,
         QuirksMode::NoQuirks,

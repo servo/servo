@@ -53,7 +53,7 @@ use style::selector_parser::{
 };
 use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::layer_rule::LayerOrder;
-use style::stylesheets::CssRuleType;
+use style::stylesheets::{CssRuleType, UrlExtraData};
 use style::values::generics::NonNegative;
 use style::values::{computed, specified, AtomIdent, AtomString, CSSFloat};
 use style::{dom_apis, thread_state, CaseSensitivityExt};
@@ -724,7 +724,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BackgroundImage(background_image::SpecifiedValue(
-                    vec![specified::Image::for_cascade(url.into())].into(),
+                    vec![specified::Image::for_cascade(url.get_arc())].into(),
                 )),
             ));
         }
@@ -2752,7 +2752,10 @@ impl ElementMethods for Element {
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
         let doc = document_from_node(self);
         let url = doc.url();
-        let selectors = match SelectorParser::parse_author_origin_no_namespace(&selectors, &url) {
+        let selectors = match SelectorParser::parse_author_origin_no_namespace(
+            &selectors,
+            &UrlExtraData(url.get_arc()),
+        ) {
             Err(_) => return Err(Error::Syntax),
             Ok(selectors) => selectors,
         };
@@ -2772,7 +2775,10 @@ impl ElementMethods for Element {
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         let doc = document_from_node(self);
         let url = doc.url();
-        let selectors = match SelectorParser::parse_author_origin_no_namespace(&selectors, &url) {
+        let selectors = match SelectorParser::parse_author_origin_no_namespace(
+            &selectors,
+            &UrlExtraData(url.get_arc()),
+        ) {
             Err(_) => return Err(Error::Syntax),
             Ok(selectors) => selectors,
         };
@@ -2926,7 +2932,7 @@ impl VirtualMethods for Element {
                             let win = window_from_node(self);
                             Arc::new(doc.style_shared_lock().wrap(parse_style_attribute(
                                 &attr.value(),
-                                &doc.base_url(),
+                                &UrlExtraData(doc.base_url().get_arc()),
                                 win.css_error_reporter(),
                                 doc.quirks_mode(),
                                 CssRuleType::Style,
