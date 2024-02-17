@@ -1,9 +1,48 @@
+use std::rc::Rc;
+
 use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding;
-use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding::DataTransferItemMethods;
+use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding::{
+    DataTransferItemMethods, FunctionStringCallback,
+};
+use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::str::DOMString;
+
+use super::bindings::callback::ExceptionHandling;
+use super::file::File;
+use super::text::Text;
+
+enum DataTransferItemKinds {
+    string(Text),
+    file(File),
+}
 
 #[dom_struct]
 pub struct DataTransferItem {
-    kind: DOMString,
+    reflector_: Reflector,
+    kind: DOMString, // 'string' or 'file' enum?
     r#type: DOMString,
+
+    // internal
+    item: DataTransferItemKinds,
+}
+
+impl DataTransferItemMethods for DataTransferItem {
+    fn getAsString(&self, callback: Option<Rc<FunctionStringCallback>>) {
+        match self.item {
+            DataTransferItemKinds::string(text) => {
+                if let Some(callback) = callback {
+                    callback.Call__(text, ExceptionHandling::Report)
+                }
+            },
+            _ => (),
+        };
+        ()
+    }
+    fn getAsFile(&self) -> Option<File> {
+        // should check self.kind DOMString instead of internal state
+        match self.item {
+            DataTransferItemKinds::file(file) => Some(file),
+            _ => return None,
+        }
+    }
 }
