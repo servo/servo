@@ -81,7 +81,9 @@ jobs:
           python mach bootstrap-gstreamer
           cargo install --path support/crown
       - name: Build (${{ inputs.profile }})
-        run: python mach build --${{ inputs.profile }}
+        run: |
+          python mach build --${{ inputs.profile }}
+          cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Copy resources
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
@@ -93,18 +95,16 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
           command: python mach test-unit --${{ inputs.profile }} -- -- --test-threads=1
-      - name: Rename build timing
-        run: cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Archive build timing
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings
+          name: cargo-timings-windows
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
       - name: Build mach package
         run: python mach package --${{ inputs.profile }}
       - name: Upload artifact for mach package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: win
           # These files are available

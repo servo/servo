@@ -70,20 +70,19 @@ jobs:
           ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: |
           python3 ./mach build --android --target ${{ matrix.arch }} --${{ inputs.profile }}
+          cp -r target/cargo-timings target/cargo-timings-android-${{ matrix.arch }}
       # TODO: This is disabled since APK crashes during startup.
       # See https://github.com/servo/servo/issues/31134
       # - name: Script tests
       #   run: ./mach test-android-startup
-      - name: Rename build timing
-        run: cp -r target/cargo-timings target/cargo-timings-android-${{ matrix.arch }}
       - name: Archive build timing
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings
+          name: cargo-timings-android-${{ matrix.arch }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload APK artifact for mach package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: android-${{ matrix.arch }}-${{ inputs.profile }}
+          name: ${{ inputs.profile }}-binary-android-${{ matrix.arch }}
           path: target/android/${{ matrix.arch }}/${{ inputs.profile }}/servoapp.apk

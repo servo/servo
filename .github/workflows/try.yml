@@ -110,14 +110,17 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     # `needs: "build"` is necessary to detect cancellation.
-    needs:
-      - "decision"
-      - "build"
-
+    needs: [ "decision", "build" ]
     steps:
-      - name: Mark the job as successful
+      - name: Merge build timings
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: cargo-timings
+          pattern: cargo-timings-*
+          delete-merged: true
+      - name: Success
         if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         run: exit 0
-      - name: Mark the job as unsuccessful
+      - name: Failure
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: exit 1
