@@ -12,6 +12,7 @@ use std::{env, thread};
 
 use arboard::Clipboard;
 use euclid::{Point2D, Vector2D};
+use gilrs::{EventType, Gilrs};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{debug, error, info, trace, warn};
 use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
@@ -20,7 +21,9 @@ use servo::embedder_traits::{
     PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
 };
 use servo::msg::constellation_msg::{TopLevelBrowsingContextId as WebViewId, TraversalDirection};
-use servo::script_traits::TouchEventType;
+use servo::script_traits::{
+    GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadUpdateType, TouchEventType,
+};
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
@@ -51,6 +54,7 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     window: Rc<Window>,
     event_queue: Vec<EmbedderEvent>,
     clipboard: Option<Clipboard>,
+    gamepad: Option<Gilrs>,
     shutdown_requested: bool,
 }
 
@@ -82,6 +86,13 @@ where
                     None
                 },
             },
+            gamepad: match Gilrs::new() {
+                Ok(g) => Some(g),
+                Err(e) => {
+                    warn!("Error creating gamepad input connection ({})", e);
+                    None
+                },
+            },
             event_queue: Vec::new(),
             shutdown_requested: false,
         }
@@ -110,6 +121,109 @@ where
                     self.event_queue.push(event);
                 },
             }
+        }
+    }
+
+    /// Handle updates to connected gamepads from GilRs
+    pub fn handle_gamepad_events(&mut self) {
+        if let Some(ref mut gilrs) = self.gamepad {
+            while let Some(event) = gilrs.next_event() {
+                let gamepad = gilrs.gamepad(event.id);
+                let name = gamepad.name();
+                let index = GamepadIndex(event.id.into());
+                match event.event {
+                    EventType::ButtonPressed(button, _) => {
+                        let mapped_index = Self::map_gamepad_button(button);
+                        // We only want to send this for a valid digital button, aka on/off only
+                        if !matches!(mapped_index, 6 | 7 | 17) {
+                            let update_type = GamepadUpdateType::Button(mapped_index, 1.0);
+                            let event = GamepadEvent::Updated(index, update_type);
+                            self.event_queue.push(EmbedderEvent::Gamepad(event));
+                        }
+                    },
+                    EventType::ButtonReleased(button, _) => {
+                        let mapped_index = Self::map_gamepad_button(button);
+                        // We only want to send this for a valid digital button, aka on/off only
+                        if !matches!(mapped_index, 6 | 7 | 17) {
+                            let update_type = GamepadUpdateType::Button(mapped_index, 0.0);
+                            let event = GamepadEvent::Updated(index, update_type);
+                            self.event_queue.push(EmbedderEvent::Gamepad(event));
+                        }
+                    },
+                    EventType::ButtonChanged(button, value, _) => {
+                        let mapped_index = Self::map_gamepad_button(button);
+                        // We only want to send this for a valid non-digital button, aka the triggers
+                        if matches!(mapped_index, 6 | 7) {
+                            let update_type = GamepadUpdateType::Button(mapped_index, value as f64);
+                            let event = GamepadEvent::Updated(index, update_type);
+                            self.event_queue.push(EmbedderEvent::Gamepad(event));
+                        }
+                    },
+                    EventType::AxisChanged(axis, value, _) => {
+                        // Map axis index and value to represent Standard Gamepad axis
+                        // <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
+                        let mapped_axis: usize = match axis {
+                            gilrs::Axis::LeftStickX => 0,
+                            gilrs::Axis::LeftStickY => 1,
+                            gilrs::Axis::RightStickX => 2,
+                            gilrs::Axis::RightStickY => 3,
+                            _ => 4, // Other axes do not map to "standard" gamepad mapping and are ignored
+                        };
+                        if mapped_axis < 4 {
+                            // The Gamepad spec designates down as positive and up as negative.
+                            // GilRs does the inverse of this, so correct for it here.
+                            let axis_value = match mapped_axis {
+                                0 | 2 => value,
+                                1 | 3 => -value,
+                                _ => 0., // Should not reach here
+                            };
+                            let update_type =
+                                GamepadUpdateType::Axis(mapped_axis, axis_value as f64);
+                            let event = GamepadEvent::Updated(index, update_type);
+                            self.event_queue.push(EmbedderEvent::Gamepad(event));
+                        }
+                    },
+                    EventType::Connected => {
+                        let name = String::from(name);
+                        let bounds = GamepadInputBounds {
+                            axis_bounds: (-1.0, 1.0),
+                            button_bounds: (0.0, 1.0),
+                        };
+                        let event = GamepadEvent::Connected(index, name, bounds);
+                        self.event_queue.push(EmbedderEvent::Gamepad(event));
+                    },
+                    EventType::Disconnected => {
+                        let event = GamepadEvent::Disconnected(index);
+                        self.event_queue.push(EmbedderEvent::Gamepad(event));
+                    },
+                    _ => {},
+                }
+            }
+        }
+    }
+
+    // Map button index and value to represent Standard Gamepad button
+    // <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
+    fn map_gamepad_button(button: gilrs::Button) -> usize {
+        match button {
+            gilrs::Button::South => 0,
+            gilrs::Button::East => 1,
+            gilrs::Button::West => 2,
+            gilrs::Button::North => 3,
+            gilrs::Button::LeftTrigger => 4,
+            gilrs::Button::RightTrigger => 5,
+            gilrs::Button::LeftTrigger2 => 6,
+            gilrs::Button::RightTrigger2 => 7,
+            gilrs::Button::Select => 8,
+            gilrs::Button::Start => 9,
+            gilrs::Button::LeftThumb => 10,
+            gilrs::Button::RightThumb => 11,
+            gilrs::Button::DPadUp => 12,
+            gilrs::Button::DPadDown => 13,
+            gilrs::Button::DPadLeft => 14,
+            gilrs::Button::DPadRight => 15,
+            gilrs::Button::Mode => 16,
+            _ => 17, // Other buttons do not map to "standard" gamepad mapping and are ignored
         }
     }
 

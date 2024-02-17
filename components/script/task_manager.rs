@@ -10,6 +10,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
+use crate::task_source::gamepad::GamepadTaskSource;
 use crate::task_source::history_traversal::HistoryTraversalTaskSource;
 use crate::task_source::media_element::MediaElementTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
@@ -42,6 +43,8 @@ pub struct TaskManager {
     #[ignore_malloc_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
+    gamepad_task_source: GamepadTaskSource,
+    #[ignore_malloc_size_of = "task sources are hard"]
     history_traversal_task_source: HistoryTraversalTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     media_element_task_source: MediaElementTaskSource,
@@ -65,6 +68,7 @@ impl TaskManager {
     pub fn new(
         dom_manipulation_task_source: DOMManipulationTaskSource,
         file_reading_task_source: FileReadingTaskSource,
+        gamepad_task_source: GamepadTaskSource,
         history_traversal_task_source: HistoryTraversalTaskSource,
         media_element_task_source: MediaElementTaskSource,
         networking_task_source: NetworkingTaskSource,
@@ -78,6 +82,7 @@ impl TaskManager {
         TaskManager {
             dom_manipulation_task_source,
             file_reading_task_source,
+            gamepad_task_source,
             history_traversal_task_source,
             media_element_task_source,
             networking_task_source,
@@ -97,6 +102,14 @@ impl TaskManager {
         dom_manipulation_task_source,
         DOMManipulationTaskSource,
         DOMManipulation
+    );
+
+    task_source_functions!(
+        self,
+        gamepad_task_source_with_canceller,
+        gamepad_task_source,
+        GamepadTaskSource,
+        Gamepad
     );
 
     task_source_functions!(

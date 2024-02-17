@@ -14,8 +14,8 @@ use msg::constellation_msg::{
     BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection,
 };
 use script_traits::{
-    AnimationTickType, CompositorEvent, LogEntry, MediaSessionActionType, WebDriverCommandMsg,
-    WindowSizeData, WindowSizeType,
+    AnimationTickType, CompositorEvent, GamepadEvent, LogEntry, MediaSessionActionType,
+    WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use servo_url::ServoUrl;
 
@@ -82,6 +82,8 @@ pub enum ConstellationMsg {
     IMEDismissed,
     /// Compositing done, but external code needs to present.
     ReadyToPresent(TopLevelBrowsingContextId),
+    /// Gamepad state has changed
+    Gamepad(GamepadEvent),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -117,6 +119,7 @@ impl fmt::Debug for ConstellationMsg {
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",
+            Gamepad(..) => "Gamepad",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

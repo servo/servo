@@ -569,6 +569,8 @@ pub enum CompositorEvent {
     CompositionEvent(CompositionEvent),
     /// Virtual keyboard was dismissed
     IMEDismissedEvent,
+    /// Connected gamepad state updated
+    GamepadEvent(GamepadEvent),
 }
 
 impl From<&CompositorEvent> for CompositorEventVariant {
@@ -582,6 +584,7 @@ impl From<&CompositorEvent> for CompositorEventVariant {
             CompositorEvent::KeyboardEvent(..) => CompositorEventVariant::KeyboardEvent,
             CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
             CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
+            CompositorEvent::GamepadEvent(..) => CompositorEventVariant::GamepadEvent,
         }
     }
 }
@@ -1326,4 +1329,44 @@ impl SerializedImageData {
             SerializedImageData::External(image) => Ok(ImageData::External(image.clone())),
         }
     }
+}
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+/// Index of gamepad in list of system's connected gamepads
+pub struct GamepadIndex(pub usize);
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The minimum and maximum values that can be reported for axis or button input from this gamepad
+pub struct GamepadInputBounds {
+    /// Minimum and maximum axis values
+    pub axis_bounds: (f64, f64),
+    /// Minimum and maximum button values
+    pub button_bounds: (f64, f64),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The type of Gamepad event
+pub enum GamepadEvent {
+    /// A new gamepad has been connected
+    /// <https://www.w3.org/TR/gamepad/#event-gamepadconnected>
+    Connected(GamepadIndex, String, GamepadInputBounds),
+    /// An existing gamepad has been disconnected
+    /// <https://www.w3.org/TR/gamepad/#event-gamepaddisconnected>
+    Disconnected(GamepadIndex),
+    /// An existing gamepad has been updated
+    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
+    Updated(GamepadIndex, GamepadUpdateType),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The type of Gamepad input being updated
+pub enum GamepadUpdateType {
+    /// Axis index and input value
+    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
+    Axis(usize, f64),
+    /// Button index and input value
+    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button
+    Button(usize, f64),
 }

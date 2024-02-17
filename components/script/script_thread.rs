@@ -75,8 +75,8 @@ use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
-    CompositionEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
-    ResizeEvent, TouchEvent, WheelEvent,
+    CompositionEvent, GamepadEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent,
+    MouseMoveEvent, ResizeEvent, TouchEvent, WheelEvent,
 };
 use script_traits::{
     AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
@@ -152,6 +152,7 @@ use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
+use crate::task_source::gamepad::GamepadTaskSource;
 use crate::task_source::history_traversal::HistoryTraversalTaskSource;
 use crate::task_source::media_element::MediaElementTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
@@ -567,6 +568,8 @@ pub struct ScriptThread {
     chan: MainThreadScriptChan,
 
     dom_manipulation_task_sender: Box<dyn ScriptChan>,
+
+    gamepad_task_sender: Box<dyn ScriptChan>,
 
     #[no_trace]
     media_element_task_sender: Sender<MainThreadScriptMsg>,
@@ -1354,6 +1357,7 @@ impl ScriptThread {
 
             chan: MainThreadScriptChan(chan.clone()),
             dom_manipulation_task_sender: boxed_script_sender.clone(),
+            gamepad_task_sender: boxed_script_sender.clone(),
             media_element_task_sender: chan.clone(),
             user_interaction_task_sender: chan.clone(),
             networking_task_sender: boxed_script_sender.clone(),
@@ -2858,6 +2862,10 @@ impl ScriptThread {
         DOMManipulationTaskSource(self.dom_manipulation_task_sender.clone(), pipeline_id)
     }
 
+    pub fn gamepad_task_source(&self, pipeline_id: PipelineId) -> GamepadTaskSource {
+        GamepadTaskSource(self.gamepad_task_sender.clone(), pipeline_id)
+    }
+
     pub fn media_element_task_source(&self, pipeline_id: PipelineId) -> MediaElementTaskSource {
         MediaElementTaskSource(self.media_element_task_sender.clone(), pipeline_id)
     }
@@ -3283,6 +3291,7 @@ impl ScriptThread {
         let task_manager = TaskManager::new(
             self.dom_manipulation_task_source(incomplete.pipeline_id),
             self.file_reading_task_source(incomplete.pipeline_id),
+            self.gamepad_task_source(incomplete.pipeline_id),
             self.history_traversal_task_source(incomplete.pipeline_id),
             self.media_element_task_source(incomplete.pipeline_id),
             self.networking_task_source(incomplete.pipeline_id),
@@ -3668,6 +3677,15 @@ impl ScriptThread {
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
                 document.dispatch_composition_event(composition_event);
+            },
+
+            GamepadEvent(gamepad_event) => {
+                let window = match self.documents.borrow().find_window(pipeline_id) {
+                    Some(window) => window,
+                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                };
+                let global = window.upcast::<GlobalScope>();
+                global.handle_gamepad_event(gamepad_event);
             },
         }
 

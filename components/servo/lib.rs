@@ -791,6 +791,13 @@ where
                     );
                 }
             },
+
+            EmbedderEvent::Gamepad(gamepad_event) => {
+                let msg = ConstellationMsg::Gamepad(gamepad_event);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending Gamepad event to constellation failed ({:?}).", e);
+                }
+            },
         }
         return false;
     }

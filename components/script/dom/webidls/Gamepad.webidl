@@ -27,3 +27,9 @@ enum GamepadHand {
   "left",
   "right"
 };
+
+// https://www.w3.org/TR/gamepad/#extensions-to-the-windoweventhandlers-interface-mixin
+partial interface mixin WindowEventHandlers {
+  attribute EventHandler ongamepadconnected;
+  attribute EventHandler ongamepaddisconnected;
+};

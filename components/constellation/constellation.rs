@@ -142,7 +142,7 @@ use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
     webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
     BroadcastMsg, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, DocumentState, HistoryEntryReplacement, IFrameLoadInfo,
+    DocumentActivity, DocumentState, GamepadEvent, HistoryEntryReplacement, IFrameLoadInfo,
     IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutControlMsg,
     LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MediaSessionActionType,
     MessagePortMsg, MouseEventType, PortMessageTask, SWManagerMsg, SWManagerSenders,
@@ -1549,6 +1549,9 @@ where
                     Some(top_level_browsing_context_id),
                     EmbedderMsg::ReadyToPresent,
                 ));
+            },
+            FromCompositorMsg::Gamepad(gamepad_event) => {
+                self.handle_gamepad_msg(gamepad_event);
             },
         }
     }
@@ -5464,6 +5467,42 @@ where
             }
         } else {
             error!("Got a media session action but no active media session is registered");
+        }
+    }
+
+    /// Handle GamepadEvents from the embedder and forward them to the script thread
+    fn handle_gamepad_msg(&mut self, event: GamepadEvent) {
+        // Send to the focused browsing contexts' current pipeline.
+        let focused_browsing_context_id = self
+            .webviews
+            .focused_webview()
+            .map(|(_, webview)| webview.focused_browsing_context_id);
+        match focused_browsing_context_id {
+            Some(browsing_context_id) => {
+                let event = CompositorEvent::GamepadEvent(event);
+                let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
+                    Some(ctx) => ctx.pipeline_id,
+                    None => {
+                        return warn!(
+                            "{}: Got gamepad event for nonexistent browsing context",
+                            browsing_context_id,
+                        );
+                    },
+                };
+                let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+                let result = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.event_loop.send(msg),
+                    None => {
+                        return debug!("{}: Got gamepad event after closure", pipeline_id);
+                    },
+                };
+                if let Err(e) = result {
+                    self.handle_send_error(pipeline_id, e);
+                }
+            },
+            None => {
+                warn!("No focused webview to handle gamepad event");
+            },
         }
     }
 }

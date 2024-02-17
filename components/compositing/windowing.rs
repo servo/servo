@@ -13,7 +13,9 @@ use gfx::rendering_context::RenderingContext;
 use keyboard_types::KeyboardEvent;
 use libc::c_void;
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, TraversalDirection};
-use script_traits::{MediaSessionActionType, MouseButton, TouchEventType, TouchId, WheelDelta};
+use script_traits::{
+    GamepadEvent, MediaSessionActionType, MouseButton, TouchEventType, TouchId, WheelDelta,
+};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::DevicePixel;
@@ -113,6 +115,8 @@ pub enum EmbedderEvent {
     /// the native widget when it is brough back to foreground. This event
     /// carries the pointer to the native widget and its new size.
     ReplaceNativeSurface(*mut c_void, DeviceIntSize),
+    /// Sent when new Gamepad information is available.
+    Gamepad(GamepadEvent),
 }
 
 impl Debug for EmbedderEvent {
@@ -149,6 +153,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
             EmbedderEvent::InvalidateNativeSurface => write!(f, "InvalidateNativeSurface"),
             EmbedderEvent::ReplaceNativeSurface(..) => write!(f, "ReplaceNativeSurface"),
+            EmbedderEvent::Gamepad(..) => write!(f, "Gamepad"),
         }
     }
 }
