@@ -140,6 +140,7 @@ class Linux(Base):
             'raspbian gnu/linux',
             'fedora linux',
             'fedora',
+            'manjaro linux',
             'nixos',
             'ubuntu',
             'void',

@@ -142,6 +142,7 @@ debug-assertions = false
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
+bindgen = { git = "https://github.com/sagudev/rust-bindgen", branch = "f16" }
 
 # This is required because we want all dependencies that use WebRender to
 # use our vendored version.

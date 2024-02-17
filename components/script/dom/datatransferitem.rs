@@ -28,21 +28,15 @@ pub struct DataTransferItem {
 
 impl DataTransferItemMethods for DataTransferItem {
     fn getAsString(&self, callback: Option<Rc<FunctionStringCallback>>) {
-        match self.item {
-            DataTransferItemKinds::string(text) => {
-                if let Some(callback) = callback {
-                    callback.Call__(text, ExceptionHandling::Report)
-                }
-            },
-            _ => (),
-        };
-        ()
+        if let (Some(callback), DataTransferItemKinds::string(text)) = (callback, self.item) {
+            callback.Call__(text, ExceptionHandling::Report);
+        }
     }
     fn getAsFile(&self) -> Option<File> {
-        // should check self.kind DOMString instead of internal state
-        match self.item {
-            DataTransferItemKinds::file(file) => Some(file),
-            _ => return None,
+        // should check self.kind DOMString instead of internal state?
+        if let DataTransferItemKinds::file(file) = self.item {
+            Some(file)
         }
+        None
     }
 }
