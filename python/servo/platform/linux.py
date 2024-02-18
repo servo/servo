@@ -35,7 +35,7 @@ APT_PKGS = [
     'libgstrtspserver-1.0-dev',
     'gstreamer1.0-tools',
     'libges-1.0-dev',
-    'libharfbuzz-dev', 'liblzma-dev', 'libunwind-dev', 'libunwind-dev',
+    'libharfbuzz-dev', 'liblzma-dev', 'libudev-dev', 'libunwind-dev',
     'libvulkan1', 'libx11-dev', 'libxcb-render0-dev', 'libxcb-shape0-dev',
     'libxcb-xfixes0-dev', 'libxmu-dev', 'libxmu6', 'libegl1-mesa-dev',
     'llvm-dev', 'm4', 'xorg-dev',
