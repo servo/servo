@@ -57,7 +57,7 @@ async def test_subscribe(bidi_session, subscribe_events, url, new_tab, wait_for_
     assert_navigation_info(event, {"context": new_tab["context"], "url": target_url})
 
 
-async def test_timestamp(bidi_session, current_time, subscribe_events, url, new_tab, wait_for_event):
+async def test_timestamp(bidi_session, current_time, subscribe_events, url, new_tab, wait_for_event, wait_for_future_safe):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=url(EMPTY_PAGE), wait="complete"
     )

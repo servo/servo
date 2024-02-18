@@ -191,6 +191,19 @@
       assert_equals(editContext.selectionStart, 3);
       assert_equals(editContext.selectionEnd, 0);
     }, 'EditContext should allow a backwards selection');
+
+    test(function() {
+      const editContext = new EditContext();
+      assert_not_equals(editContext, null);
+      editContext.updateText(6, 0, "abcdef");
+      assert_equals(editContext.text, "abcdef");
+
+      editContext.updateText(2, 5, "ghi");
+      assert_equals(editContext.text, "abghif");
+
+      editContext.updateText(5, 2, "jkl");
+      assert_equals(editContext.text, "abjklf");
+    }, 'updateText can replace substrings including with backwards parameters');
   </script>
 </body>
 </html>

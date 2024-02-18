@@ -79,7 +79,7 @@ window.addEventListener("message", async (event) => {
       reply(await fetch(event.data.url, {mode: 'no-cors', credentials: 'include'}).then((resp) => resp.text()));
       break;
     case "start_dedicated_worker":
-      worker = new Worker("embedded_worker.js");
+      worker = new Worker("embedded_worker.py");
       reply(undefined);
       break;
     case "message_worker": {

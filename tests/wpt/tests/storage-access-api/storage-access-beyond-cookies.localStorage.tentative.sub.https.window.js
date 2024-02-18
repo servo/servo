@@ -16,7 +16,10 @@
 async_test(t => {
   // Step 1
   window.addEventListener("message", t.step_func(e => {
-    assert_equals(e.data, "HasAccess for localStorage", "Storage Access API should be accessible and return first-party data");
+    if (e.data.type != "result") {
+      return;
+    }
+    assert_equals(e.data.message, "HasAccess for localStorage", "Storage Access API should be accessible and return first-party data");
     window.localStorage.setItem("window_event", id);
   }));
 

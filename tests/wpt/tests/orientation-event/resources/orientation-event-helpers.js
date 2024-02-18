@@ -203,6 +203,17 @@ function generateOrientationData(alpha, beta, gamma, absolute) {
   return orientationData;
 }
 
+function assertValueIsCoarsened(value) {
+  // Checks that the precision of the value is at most 0.1.
+  // https://www.w3.org/TR/orientation-event/ specification defines that all
+  // measurements are required to be coarsened to 0.1 degrees, 0.1 m/s^2 or
+  // 0.1 deg/s.
+  const resolution = 0.1;
+  const coarsenedValue = Math.round(value / resolution) * resolution;
+  assert_approx_equals(value, coarsenedValue, Number.EPSILON,
+                       `Expected ${value}'s precision to be at most ${resolution}`);
+}
+
 function assertEventEquals(actualEvent, expectedEvent) {
   // If two doubles differ by less than this amount, we can consider them
   // to be effectively equal.

@@ -15,7 +15,7 @@ def main(request, response):
     renderUrls = None
     adComponentRenderURLs = None
     # List of {type: <render URL type>, urls: <render URL list>} pairs, where <render URL type> is
-    # one of the two render URL dictionary keys used in the response ("renderUrls" or
+    # one of the two render URL dictionary keys used in the response ("renderURLs" or
     # "adComponentRenderURLs"). May be of length 1 or 2, depending on whether there
     # are any component URLs.
     urlLists = []
@@ -36,7 +36,7 @@ def main(request, response):
             continue
         if pair[0] == "renderUrls" and renderUrls == None:
             renderUrls = list(map(unquote_plus, pair[1].split(",")))
-            urlLists.append({"type":"renderUrls", "urls":renderUrls})
+            urlLists.append({"type":"renderURLs", "urls":renderUrls})
             continue
         if pair[0] == "adComponentRenderUrls" and adComponentRenderURLs == None:
             adComponentRenderURLs = list(map(unquote_plus, pair[1].split(",")))

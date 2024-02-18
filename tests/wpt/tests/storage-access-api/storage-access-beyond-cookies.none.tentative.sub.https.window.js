@@ -17,7 +17,10 @@ async_test(t => {
   // Step 1
   window.addEventListener("message", t.step_func(e => {
     // Step 8
-    assert_equals(e.data, "HasAccess for none", "Storage Access API should not allow access for empty requests.");
+    if (e.data.type != "result") {
+      return;
+    }
+    assert_equals(e.data.message, "HasAccess for none", "Storage Access API should not allow access for empty requests.");
     t.done();
   }));
 

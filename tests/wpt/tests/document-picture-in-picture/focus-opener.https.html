@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Test that a document picture-in-picture window can use Window's focus()
+  API to focus its opener window</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+  <iframe></iframe>
+<script>
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window from top window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  // Blur this window by focusing the iframe. This will allow us to detect that
+  // the document picture-in-picture window has focused us.
+  const blurPromise = new Promise(async (resolve) => {
+    window.addEventListener('blur', resolve, { once: true });
+    await test_driver.bless('focus inner iframe to blur window');
+    document.getElementsByTagName('iframe')[0].focus();
+  });
+  await blurPromise;
+
+  // Now focus this window from the document picture-in-picture window's
+  // context.
+  const focusPromise = new Promise(async (resolve) => {
+    window.addEventListener('focus', resolve, { once: true });
+    await test_driver.bless('focus opener window', pipWindow);
+    const focusScript = pipWindow.document.createElement('script');
+    focusScript.setAttribute('src', 'support/focus-opener.js');
+    pipWindow.document.body.append(focusScript);
+  });
+  return focusPromise;
+});
+</script>
+</body>

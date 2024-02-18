@@ -62,18 +62,18 @@ const candidate = {
 // Opens a new WebRTC connection.
 async function openWebRTC(remoteContextHelper) {
   await remoteContextHelper.executeScript(async (sessionDesc, candidate) => {
-    const testRTCPeerConnection = new RTCPeerConnection();
-    await testRTCPeerConnection.setRemoteDescription(sessionDesc);
-    await testRTCPeerConnection.addIceCandidate(candidate);
+    window.testRTCPeerConnection = new RTCPeerConnection();
+    await window.testRTCPeerConnection.setRemoteDescription(sessionDesc);
+    await window.testRTCPeerConnection.addIceCandidate(candidate);
   }, [sessionDesc, candidate]);
 }
 
 // Opens a new WebRTC connection and then close it.
 async function openThenCloseWebRTC(remoteContextHelper) {
   await remoteContextHelper.executeScript(async (sessionDesc, candidate) => {
-    const testRTCPeerConnection = new RTCPeerConnection();
-    await testRTCPeerConnection.setRemoteDescription(sessionDesc);
-    await testRTCPeerConnection.addIceCandidate(candidate);
-    testRTCPeerConnection.close();
+    window.testRTCPeerConnection = new RTCPeerConnection();
+    await window.testRTCPeerConnection.setRemoteDescription(sessionDesc);
+    await window.testRTCPeerConnection.addIceCandidate(candidate);
+    window.testRTCPeerConnection.close();
   }, [sessionDesc, candidate]);
 }

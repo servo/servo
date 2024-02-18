@@ -4,7 +4,7 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <body>
 <script>
-// Step 3 (workers/same-site-cookies/third-party.{})
+// Step 4 (workers/same-site-cookies/third-party.{})
 test_driver.set_test_context(window.top);
 const type = (new URLSearchParams(window.location.search)).get("type");
 let options = {};
@@ -18,9 +18,9 @@ switch (type) {
         options.sameSiteCookies = "none";
         break;
 }
-// Step 5 (workers/same-site-cookies/third-party.{})
+// Step 7 (workers/same-site-cookies/third-party.{})
 try {
-    const worker = new SharedWorker("/workers/same-site-cookies/resources/worker.js", options);
+    const worker = new SharedWorker("/workers/same-site-cookies/resources/worker_redirect.py", options);
     worker.port.onmessage = (e) => {
         window.top.postMessage(e.data, "*");
     };

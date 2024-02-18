@@ -55,6 +55,49 @@ test(() => {
 }, 'Shadowrootmode reflection, setter');
 
 test(() => {
+  const t = document.createElement('template');
+  t.setAttribute('shadowrootdelegatesfocus','');
+  assert_equals(t.shadowRootDelegatesFocus,true,'The shadowRootDelegatesFocus IDL should reflect the content attribute');
+  t.setAttribute('shadowrootdelegatesfocus','foobar');
+  assert_equals(t.shadowRootDelegatesFocus,true,'The value doesn\'t matter');
+  t.removeAttribute('shadowrootdelegatesfocus');
+  assert_equals(t.shadowRootDelegatesFocus,false,'No shadowRootDelegatesFocus attribute maps to false');
+}, 'Shadowrootdelegatesfocus reflection');
+
+test(() => {
+  const t = document.createElement('template');
+  assert_equals(t.getAttribute('shadowrootdelegatesfocus'), null);
+  t.shadowRootDelegatesFocus = true;
+  assert_equals(t.getAttribute('shadowrootdelegatesfocus'), '');
+  assert_equals(t.shadowRootDelegatesFocus, true);
+  t.shadowRootDelegatesFocus = false;
+  assert_equals(t.getAttribute('shadowrootdelegatesfocus'), null);
+  assert_equals(t.shadowRootDelegatesFocus, false);
+}, 'Shadowrootdelegatesfocus reflection, setter');
+
+
+test(() => {
+  const t = document.createElement('template');
+  t.setAttribute('shadowrootclonable','');
+  assert_equals(t.shadowRootClonable,true,'The shadowRootClonable IDL should reflect the content attribute');
+  t.setAttribute('shadowrootclonable','foobar');
+  assert_equals(t.shadowRootClonable,true,'The value doesn\'t matter');
+  t.removeAttribute('shadowrootclonable');
+  assert_equals(t.shadowRootClonable,false,'No shadowRootClonable attribute maps to false');
+}, 'Shadowrootclonable reflection');
+
+test(() => {
+  const t = document.createElement('template');
+  assert_equals(t.getAttribute('shadowrootclonable'), null);
+  t.shadowRootClonable = true;
+  assert_equals(t.getAttribute('shadowrootclonable'), '');
+  assert_equals(t.shadowRootClonable, true);
+  t.shadowRootClonable = false;
+  assert_equals(t.getAttribute('shadowrootclonable'), null);
+  assert_equals(t.shadowRootClonable, false);
+}, 'Shadowrootclonable reflection, setter');
+
+test(() => {
   const div = document.createElement('div');
   div.setHTMLUnsafe(`
     <div id="host">

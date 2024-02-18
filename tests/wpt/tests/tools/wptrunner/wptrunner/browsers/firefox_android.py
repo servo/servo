@@ -161,6 +161,10 @@ class ProfileCreator(FirefoxProfileCreator):
             "dom.send_after_paint_to_content": True,
         })
 
+        if self.package_name == "org.mozilla.geckoview.test_runner":
+            # Bug 1879324: The TestRunner doesn't support "beforeunload" prompts yet
+            profile.set_preferences({"dom.disable_beforeunload": True})
+
         if self.test_type == "reftest":
             self.logger.info("Setting android reftest preferences")
             profile.set_preferences({

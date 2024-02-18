@@ -250,6 +250,11 @@ function buildRemoteContextForObject(object, uuid, html) {
     }
   };
 
+  // If `object` is null (e.g. a window created with noopener), set it to a
+  // dummy value so that the Proxy constructor won't fail.
+  if (object == null) {
+    object = {};
+  }
   const proxy = new Proxy(object, handler);
   return proxy;
 }

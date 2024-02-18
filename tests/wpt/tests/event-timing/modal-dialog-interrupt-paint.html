@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing: Modal Dialog Interrupt Paint</title>
+<button id='testButtonId'>Click me.</button>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/event-timing-test-utils.js></script>
+
+<script>
+  let observedEntries = [];
+  const map = new Map();
+  const events = ['click'];
+  const showModalDialog = () => {
+    alert();
+  };
+  document.getElementById('testButtonId').addEventListener("click", showModalDialog);
+
+  promise_test(async t => {
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+
+    const callback = (entryList) => { observedEntries = observedEntries.concat(entryList.getEntries().filter(filterAndAddToMap(events, map))); };
+    const readyToResolve = () => { return observedEntries.length >= 1; };
+    const observerPromise = createPerformanceObserverPromise(['event'], callback, readyToResolve);
+
+    await interactAndObserve('click', document.getElementById('testButtonId'), observerPromise);
+
+    const clickEntry = observedEntries[0];
+    assert_less_than(clickEntry.startTime + clickEntry.duration, clickEntry.processingEnd, 'Event duration measurement should stop at the modal dialog showing time, which should be before processingEnd.');
+    assert_greater_than(clickEntry.interactionId, 0, 'Should have a non-trivial interactionId for click event');
+  }, "Event Timing: showing modal dialogs is an alternative end point.");
+
+</script>
+
+</html>

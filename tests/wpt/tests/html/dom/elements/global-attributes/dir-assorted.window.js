@@ -90,10 +90,11 @@ for (const bdi_test of [
   { markup: "<bdi dir=rtl></bdi>", expected: "rtl", desc: "dir=rtl empty" },
   { markup: "<bdi dir=auto>A</bdi>", expected: "ltr", desc: "dir=auto with LTR contents" },
   { markup: "<bdi dir=auto>\u05d0</bdi>", expected: "rtl", desc: "dir=auto with RTL contents" },
-  { markup: "<bdi dir=auto></bdi>", expected: "parent", desc: "dir=auto empty" },
+  { markup: "<bdi dir=auto></bdi>", expected: "ltr", desc: "dir=auto empty" },
+  { markup: "<bdi dir=auto>123</bdi>", expected: "ltr", desc: "dir=auto numbers" },
   { markup: "<bdi>A</bdi>", expected: "ltr", desc: "no dir attribute with LTR contents" },
   { markup: "<bdi>\u05d0</bdi>", expected: "rtl", desc: "no dir attribute with RTL contents" },
-  { markup: "<bdi></bdi>", expected: "parent", desc: "no dir attribute empty" },
+  { markup: "<bdi></bdi>", expected: "ltr", desc: "no dir attribute empty" },
 ]) {
   for (const parent_dir of [ "ltr", "rtl" ]) {
     test(() => {
