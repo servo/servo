@@ -103,6 +103,7 @@ jobs:
     steps:
       - name: Merge logs (filtered)
         uses: actions/upload-artifact/merge@v4
+        continue-on-error: true
         with:
           name: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}
           pattern: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}-*
@@ -122,6 +123,7 @@ jobs:
       - uses: actions/checkout@v4
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
       - uses: actions/download-artifact@v4
+        continue-on-error: true
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         with:
           name: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}
