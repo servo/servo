@@ -10,8 +10,8 @@
   inset: auto;
   min-inline-size: anchor-size(self-inline);
   min-block-size: 1lh;
-  inset-block-start: anchor(auto);
-  inset-inline-start: anchor(auto-same);
+  inset-block-start: anchor(self-end);
+  inset-inline-start: anchor(self-start);
 
   font-family: Arial;
   font-size: 13.3333px;

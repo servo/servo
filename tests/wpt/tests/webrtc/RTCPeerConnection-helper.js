@@ -236,6 +236,11 @@ async function waitForIceGatheringState(pc, wantedStates) {
   }
 }
 
+async function waitForTrackUnmuted(track) {
+  if (track.muted === false) return true;
+  return waitUntilEvent(track, 'unmute');
+}
+
 // Resolves when RTP packets have been received.
 async function listenForSSRCs(t, receiver) {
   while (true) {
@@ -646,7 +651,7 @@ function findTransceiverForSender(pc, sender) {
 }
 
 function preferCodec(transceiver, mimeType, sdpFmtpLine) {
-  const {codecs} = RTCRtpSender.getCapabilities(transceiver.receiver.track.kind);
+  const {codecs} = RTCRtpReceiver.getCapabilities(transceiver.receiver.track.kind);
   // sdpFmtpLine is optional, pick the first partial match if not given.
   const selectedCodecIndex = codecs.findIndex(c => {
     return c.mimeType === mimeType && (c.sdpFmtpLine === sdpFmtpLine || !sdpFmtpLine);

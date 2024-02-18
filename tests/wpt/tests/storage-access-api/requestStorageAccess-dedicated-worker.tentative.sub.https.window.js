@@ -38,6 +38,9 @@
     await StartDedicatedWorker(frame);
 
     assert_true(cookieStringHasCookie("cookie", "unpartitioned",
+          await MessageWorker(frame, {command: "load"})),
+        "Worker's load was credentialed.");
+    assert_true(cookieStringHasCookie("cookie", "unpartitioned",
           await MessageWorker(frame, {command: "fetch", url: altRootEchoCookies})),
         "Worker's fetch is credentialed.");
   }, "Workers inherit storage access");
@@ -47,8 +50,13 @@
     await SetFirstPartyCookieAndUnsetStorageAccessPermission(altRoot);
 
     const frame = await SetUpResponderFrame(t, altRootResponder);
+    assert_false(await FrameHasStorageAccess(frame), "frame lacks storage access before request.");
+    assert_false(await HasUnpartitionedCookie(frame), "frame lacks access to cookies before request.");
 
     await StartDedicatedWorker(frame);
+    assert_false(cookieStringHasCookie("cookie", "unpartitioned",
+          await MessageWorker(frame, {command: "load"})),
+        "Worker's load was uncredentialed.");
     assert_false(cookieStringHasCookie("cookie", "unpartitioned",
           await MessageWorker(frame, {command: "fetch", url: altRootEchoCookies})),
         "Worker's first fetch is uncredentialed.");

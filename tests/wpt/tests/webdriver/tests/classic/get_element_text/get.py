@@ -108,7 +108,7 @@ def test_read_element_text(session, inline):
     ("cheese", "<slot><span style=\"display: none\">foo</span>bar</slot>", "cheese"),
     ("", "<slot><span>foo</span>bar</slot>", "foobar"),
     ("", "<slot><span>foo</span></slot>bar", "foobar"),
-    ("", "<slot><span style=\"display: none\">foo</span>bar</slot>", "bar"),
+    ("", "<slot><span style='display: none'>foo</span>bar</slot>", "bar"),
 ], ids=[
     "custom visible",
     "custom outside",

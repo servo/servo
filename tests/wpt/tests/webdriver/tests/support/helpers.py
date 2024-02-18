@@ -1,6 +1,7 @@
 import collections
 import math
 import sys
+from urllib.parse import urlparse
 
 import webdriver
 
@@ -250,6 +251,11 @@ def filter_supported_key_events(all_events, expected):
         events = [filter_dict(e, expected[0]) for e in events]
 
     return (events, expected)
+
+
+def get_origin_from_url(url):
+    parsed_uri = urlparse(url)
+    return '{uri.scheme}://{uri.netloc}'.format(uri=parsed_uri)
 
 
 def wait_for_new_handle(session, handles_before):

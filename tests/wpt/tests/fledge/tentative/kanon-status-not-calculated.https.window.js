@@ -13,7 +13,7 @@ subsetTest(promise_test, async test => {
             `browserSignals.kAnonStatus === "notCalculated"`,
           reportWin:
             `sendReportTo('${createBidderReportURL(uuid)}');` },
-        // expectedReportUrls:
+        // expectedReportURLs:
         [createBidderReportURL(uuid)]);
     },
     'Check kAnonStatus is "notCalculated" when FledgeConsiderKAnonymity' +

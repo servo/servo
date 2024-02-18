@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>This tests for a bug in ReplaceSelectionCommand where styles are lost during paste.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<span id="copy" style="font-weight: bold;">copy this</span>
+<div id="paste" contenteditable="true"> <ul><li id="list1"></li></ul></div>
+<div id="log"></div>
+<script>
+"use strict";
+
+setup({explicit_done: true});
+
+function runTests() {
+    test(function() {
+        var selection = window.getSelection();
+        selection.selectAllChildren(document.getElementById('copy'));
+        document.execCommand('Copy');
+        var sample = document.getElementById('list1');
+        selection.collapse(sample);
+        document.execCommand('Paste');
+
+        assert_equals(sample.innerHTML, '<span style="font-weight: 700;">copy this</span>');
+        assert_true(selection.isCollapsed);
+    }, "");
+    done();
+}
+
+window.addEventListener("load", runTests, {once: true});
+</script>

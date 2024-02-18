@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from webdriver.bidi.modules.network import NetworkBytesValue, NetworkStringValue
 from webdriver.bidi.modules.storage import PartialCookie, PartitionDescriptor
@@ -73,3 +74,17 @@ def create_cookie(
         secure=secure,
         same_site=same_site,
         expiry=expiry)
+
+
+def generate_expiry_date(day_diff=1):
+    return (
+        (datetime.utcnow() + timedelta(days=day_diff))
+        .replace(microsecond=0)
+        .replace(tzinfo=timezone.utc)
+    )
+
+
+def format_expiry_string(date):
+    # same formatting as Date.toUTCString() in javascript
+    utc_string_format = "%a, %d %b %Y %H:%M:%S GMT"
+    return date.strftime(utc_string_format)

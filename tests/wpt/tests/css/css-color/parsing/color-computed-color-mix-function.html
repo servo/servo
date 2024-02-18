@@ -42,6 +42,9 @@
     fuzzy_test_computed_color(`color-mix(in hsl, hsl(120deg 10% 20% / 0), hsl(30deg 30% 40%))`, `color(srgb 0.46 0.52 0.28 / 0.5)`);
     fuzzy_test_computed_color(`color-mix(in hsl, hsl(120deg 10% 20% / 0) 10%, hsl(30deg 30% 40%))`, `color(srgb 0.52 0.436 0.28 / 0.9)`);
 
+    fuzzy_test_computed_color(`color-mix(in hsl, white, blue)`, `color(srgb 0.62 0.62 0.87)`);
+    fuzzy_test_computed_color(`color-mix(in hsl, white 10%, blue)`, `color(srgb 0.15 0.15 0.96)`);
+
     fuzzy_test_computed_color(`color-mix(in hsl, hsl(40deg 50% 50%), hsl(60deg 50% 50%))`, `color(srgb 0.75 0.666667 0.25)`);
     fuzzy_test_computed_color(`color-mix(in hsl, hsl(60deg 50% 50%), hsl(40deg 50% 50%))`, `color(srgb 0.75 0.666667 0.25)`);
     fuzzy_test_computed_color(`color-mix(in hsl, hsl(50deg 50% 50%), hsl(330deg 50% 50%))`, `color(srgb 0.75 0.333333 0.25)`);
@@ -125,6 +128,9 @@
     fuzzy_test_computed_color(`color-mix(in hwb, hwb(120deg 10% 20% / 0), hwb(30deg 30% 40%))`, `color(srgb 0.525 0.6 0.3 / 0.5)`);
     fuzzy_test_computed_color(`color-mix(in hwb, hwb(120deg 10% 20% / 0) 10%, hwb(30deg 30% 40%))`, `color(srgb 0.6 0.495 0.3 / 0.9)`);
 
+    fuzzy_test_computed_color(`color-mix(in hwb, white, blue)`, `color(srgb 0.5 0.5 1)`);
+    fuzzy_test_computed_color(`color-mix(in hwb, white 10%, blue)`, `color(srgb 0.1 0.1 1)`);
+
     fuzzy_test_computed_color(`color-mix(in hwb, hwb(40deg 30% 40%), hwb(60deg 30% 40%))`, `color(srgb 0.6 0.55 0.3)`);
     fuzzy_test_computed_color(`color-mix(in hwb, hwb(60deg 30% 40%), hwb(40deg 30% 40%))`, `color(srgb 0.6 0.55 0.3)`);
     fuzzy_test_computed_color(`color-mix(in hwb, hwb(50deg 30% 40%), hwb(330deg 30% 40%))`, `color(srgb 0.6 0.35 0.3)`);
@@ -202,6 +208,9 @@
     fuzzy_test_computed_color(`color-mix(in lch, transparent 10%, lch(0.3 0.4 30deg))`, `lch(0.3 0.4 30 / 0.9)`);
     fuzzy_test_computed_color(`color-mix(in lch, lch(0.1 0.2 120deg / 0), lch(0.3 0.4 30deg))`, `lch(0.3 0.4 75 / 0.5)`);
     fuzzy_test_computed_color(`color-mix(in lch, lch(0.1 0.2 120deg / 0) 10%, lch(0.3 0.4 30deg))`, `lch(0.3 0.4 39 / 0.9)`);
+
+    fuzzy_test_computed_color(`color-mix(in lch, white, blue)`, `lch(64.78 65.6 301.37)`, 0.1);
+    fuzzy_test_computed_color(`color-mix(in lch, white 10%, blue)`, `lch(36.61 118.09 301.37)`, 0.1);
 
     fuzzy_test_computed_color(`color-mix(in lch, lch(100 0 40deg), lch(100 0 60deg))`, `lch(100 0 50)`);
     fuzzy_test_computed_color(`color-mix(in lch, lch(100 0 60deg), lch(100 0 40deg))`, `lch(100 0 50)`);
@@ -283,6 +292,9 @@
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(0.1 20 120deg / 0), oklch(0.3 40 30deg))`, `oklch(0.3 40 75 / 0.5)`);
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(0.1 20 120deg / 0) 10%, oklch(0.3 40 30deg))`, `oklch(0.3 40 39 / 0.9)`);
 
+    fuzzy_test_computed_color(`color-mix(in oklch, white, blue)`, `oklch(0.726 0.156 264.052)`);
+    fuzzy_test_computed_color(`color-mix(in oklch, white 10%, blue)`, `oklch(0.506 0.281 264.052)`);
+
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(1 0 40deg), oklch(1 0 60deg))`, `oklch(1 0 50)`);
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(1 0 60deg), oklch(1 0 40deg))`, `oklch(1 0 50)`);
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(1 0 50deg), oklch(1 0 330deg))`, `oklch(1 0 10)`);
@@ -363,6 +375,9 @@
     fuzzy_test_computed_color(`color-mix(in lab, lab(10 20 30 / 0), lab(30 40 50))`, 'lab(30 40 50 / 0.5)');
     fuzzy_test_computed_color(`color-mix(in lab, lab(10 20 30 / 0) 10%, lab(30 40 50))`, 'lab(30 40 50 / 0.9)');
 
+    fuzzy_test_computed_color(`color-mix(in lab, white, blue)`, `lab(64.78 34.15 -56.02)`, 0.1);
+    fuzzy_test_computed_color(`color-mix(in lab, white 10%, blue)`, `lab(36.61 61.45 -100.82)`, 0.1);
+
     fuzzy_test_computed_color(`color-mix(in lab, lab(none none none), lab(none none none))`, `lab(none none none)`);
     fuzzy_test_computed_color(`color-mix(in lab, lab(none none none), lab(50 60 70))`, `lab(50 60 70)`);
     fuzzy_test_computed_color(`color-mix(in lab, lab(10 20 30), lab(none none none))`, `lab(10 20 30)`);
@@ -405,6 +420,9 @@
     fuzzy_test_computed_color(`color-mix(in oklab, transparent 10%, oklab(0.3 0.4 0.5))`, 'oklab(0.3 0.4 0.5 / 0.9)');
     fuzzy_test_computed_color(`color-mix(in oklab, oklab(0.1 0.2 0.3 / 0), oklab(0.3 0.4 0.5))`, 'oklab(0.3 0.4 0.5 / 0.5)');
     fuzzy_test_computed_color(`color-mix(in oklab, oklab(0.1 0.2 0.3 / 0) 10%, oklab(0.3 0.4 0.5))`, 'oklab(0.3 0.4 0.5 / 0.9)');
+
+    fuzzy_test_computed_color(`color-mix(in oklab, white, blue)`, `oklab(0.73 -0.02 -0.16)`);
+    fuzzy_test_computed_color(`color-mix(in oklab, white 10%, blue)`, `oklab(0.51 -0.03 -0.28)`);
 
     fuzzy_test_computed_color(`color-mix(in oklab, oklab(none none none), oklab(none none none))`, `oklab(none none none)`);
     fuzzy_test_computed_color(`color-mix(in oklab, oklab(none none none), oklab(0.5 0.6 0.7))`, `oklab(0.5 0.6 0.7)`);
@@ -450,6 +468,9 @@
         fuzzy_test_computed_color(`color-mix(in ${colorSpace}, transparent 10%, color(${colorSpace} 0.3 0.4 0.5))`, `color(${resultColorSpace} 0.3 0.4 0.5 / 0.9)`);
         fuzzy_test_computed_color(`color-mix(in ${colorSpace}, color(${colorSpace} 0.1 0.2 0.3 / 0), color(${colorSpace} 0.3 0.4 0.5))`, `color(${resultColorSpace} 0.3 0.4 0.5 / 0.5)`);
         fuzzy_test_computed_color(`color-mix(in ${colorSpace}, color(${colorSpace} 0.1 0.2 0.3 / 0) 10%, color(${colorSpace} 0.3 0.4 0.5))`, `color(${resultColorSpace} 0.3 0.4 0.5 / 0.9)`);
+
+        fuzzy_test_computed_color(`color-mix(in ${colorSpace}, color(${colorSpace} 1 1 1), color(${colorSpace} 0 0 1))`, `color(${resultColorSpace} 0.5 0.5 1)`);
+        fuzzy_test_computed_color(`color-mix(in ${colorSpace}, color(${colorSpace} 1 1 1) 10%, color(${colorSpace} 0 0 1))`, `color(${resultColorSpace} 0.1 0.1 1)`);
 
         fuzzy_test_computed_color(`color-mix(in ${colorSpace}, color(${colorSpace} 2 3 4 / 5), color(${colorSpace} 4 6 8 / 10))`, `color(${resultColorSpace} 3 4.5 6)`);
         fuzzy_test_computed_color(`color-mix(in ${colorSpace}, color(${colorSpace} -2 -3 -4), color(${colorSpace} -4 -6 -8))`, `color(${resultColorSpace} -3 -4.5 -6)`);

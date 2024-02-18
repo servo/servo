@@ -390,3 +390,80 @@ makeTest({
                             [{width: '100', height: '100'},
                              {width: '200furlongs', height: '200'}]}
 });
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  // The renderURL / report URLs for the first/second iterations of the auction.
+  let renderURL = createRenderURL(uuid);
+  let bidderReportURL1 = createBidderReportURL(uuid, /*id=*/ 1);
+  let bidderReportURL2 = createBidderReportURL(uuid, /*id=*/ 2);
+  let bidderDebugReportURL =
+      createBidderReportURL(uuid, /*id=*/ 'forDebuggingOnly');
+  let sellerReportURL1 = createSellerReportURL(uuid, /*id=*/ 1);
+  let sellerReportURL2 = createSellerReportURL(uuid, /*id=*/ 2);
+  let sellerDebugReportURL =
+      createSellerReportURL(uuid, /*id=*/ 'forDebuggingOnly');
+
+  // reportWin() sends "bidderReportURL1" if
+  // browserSignals.forDebuggingOnlyInCooldownOrLockout is true,
+  // "bidderReportURL2" otherwise.
+  await joinInterestGroup(test, uuid, {
+    ads: [{renderURL: renderURL}],
+    biddingLogicURL: createBiddingScriptURL({
+      generateBid: `
+        forDebuggingOnly.reportAdAuctionWin('${bidderDebugReportURL}');
+        if (!browserSignals.hasOwnProperty(
+          'forDebuggingOnlyInCooldownOrLockout')) {
+          throw "Missing forDebuggingOnlyInCooldownOrLockout in browserSignals";
+        }
+        let bid = browserSignals.forDebuggingOnlyInCooldownOrLockout ? 1 : 2;
+        return {bid: bid, render: '${renderURL}'};`,
+      reportWin: `
+        if (browserSignals.bid == 1)
+          sendReportTo('${bidderReportURL1}');
+        if (browserSignals.bid == 2)
+          sendReportTo('${bidderReportURL2}');`
+
+    })
+  });
+
+  // reportResult() sends "sellerReportURL1" if
+  // browserSignals.forDebuggingOnlyInCooldownOrLockout in scoreAd() is true,
+  // "sellerReportURL2" otherwise.
+  const auctionConfigOverrides = {
+    decisionLogicURL: createDecisionScriptURL(uuid, {
+      scoreAd: `
+        forDebuggingOnly.reportAdAuctionWin('${sellerDebugReportURL}');
+        if (!browserSignals.hasOwnProperty(
+          'forDebuggingOnlyInCooldownOrLockout')) {
+          throw "Missing forDebuggingOnlyInCooldownOrLockout in browserSignals";
+        }
+        let desirability =
+            browserSignals.forDebuggingOnlyInCooldownOrLockout ? 1 : 2;
+        return {desirability: desirability};`,
+      reportResult: `
+        if (browserSignals.desirability == 1)
+          sendReportTo('${sellerReportURL1}');
+        if (browserSignals.desirability == 2)
+          sendReportTo('${sellerReportURL2}');`
+    })
+  };
+
+  // In the first auction, browserSignals.forDebuggingOnlyInCooldownOrLockout in
+  // generateBid() and scoreAd() should both be false. After the auction,
+  // lockout and cooldowns should be updated.
+  await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfigOverrides);
+  await waitForObservedRequestsIgnoreDebugOnlyReports(
+      uuid, [bidderReportURL2, sellerReportURL2]);
+
+  // In the second auction, browserSignals.forDebuggingOnlyInCooldownOrLockout
+  // in generateBid() and scoreAd() should both be true, since both the buyer
+  // and seller called forDebuggingOnly API in the first auction, so they are in
+  // cooldowns at least (and also in lockout if a debug report is allowed to be
+  // sent).
+  await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfigOverrides);
+  await waitForObservedRequestsIgnoreDebugOnlyReports(
+    uuid,
+    [bidderReportURL2, sellerReportURL2, bidderReportURL1, sellerReportURL1]);
+}, `forDebuggingOnly lockout and cooldowns updating in one auction, read in another's.`);

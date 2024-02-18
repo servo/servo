@@ -82,7 +82,7 @@ async function runTrustedScoringSignalsDataVersionTest(
 // Creates a render URL that, when sent to the trusted-scoring-signals.py,
 // results in a trusted scoring signals response with the provided response
 // body.
-function createScoringSignalsRenderUrlWithBody(uuid, responseBody) {
+function createScoringSignalsRenderURLWithBody(uuid, responseBody) {
   return createRenderURL(uuid, /*script=*/null,
                          /*signalsParam=*/`replace-body:${responseBody}`);
 }
@@ -93,13 +93,13 @@ function createScoringSignalsRenderUrlWithBody(uuid, responseBody) {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  const decisionLogicScriptUrl = createDecisionScriptURL(
+  const decisionLogicScriptURL = createDecisionScriptURL(
       uuid,
       { scoreAd: 'if (trustedScoringSignals !== null) throw "error";' });
   await joinGroupAndRunBasicFledgeTestExpectingWinner(
       test,
       { uuid: uuid,
-        auctionConfigOverrides: { decisionLogicURL: decisionLogicScriptUrl }
+        auctionConfigOverrides: { decisionLogicURL: decisionLogicScriptURL }
       });
 }, 'No trustedScoringSignalsURL.');
 
@@ -149,35 +149,35 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  const renderURL = createScoringSignalsRenderUrlWithBody(
+  const renderURL = createScoringSignalsRenderURLWithBody(
       uuid, /*responseBody=*/'');
   await runTrustedScoringSignalsTest(test, uuid, renderURL, 'trustedScoringSignals === null');
 }, 'Trusted scoring signals response has no body.');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  const renderURL = createScoringSignalsRenderUrlWithBody(
+  const renderURL = createScoringSignalsRenderURLWithBody(
       uuid, /*responseBody=*/'Not JSON');
   await runTrustedScoringSignalsTest(test, uuid, renderURL, 'trustedScoringSignals === null');
 }, 'Trusted scoring signals response is not JSON.');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  const renderURL = createScoringSignalsRenderUrlWithBody(
+  const renderURL = createScoringSignalsRenderURLWithBody(
       uuid, /*responseBody=*/'[]');
   await runTrustedScoringSignalsTest(test, uuid, renderURL, 'trustedScoringSignals === null');
 }, 'Trusted scoring signals response is a JSON array.');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  const renderURL = createScoringSignalsRenderUrlWithBody(
+  const renderURL = createScoringSignalsRenderURLWithBody(
       uuid, /*responseBody=*/'{JSON_keys_need_quotes: 1}');
   await runTrustedScoringSignalsTest(test, uuid, renderURL, 'trustedScoringSignals === null');
 }, 'Trusted scoring signals response is invalid JSON object.');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  const renderURL = createScoringSignalsRenderUrlWithBody(
+  const renderURL = createScoringSignalsRenderURLWithBody(
       uuid, /*responseBody=*/'{}');
   await runTrustedScoringSignalsTest(
       test, uuid, renderURL,
@@ -444,7 +444,7 @@ subsetTest(promise_test, async test => {
   const renderURL = createRenderURL(uuid, /*script=*/null, /*signalsParam=*/'num-value');
   // This should not be sent. If it is, it will take precedence over the "num-value" parameter
   // from "renderURL", resulting in the "renderURL" having a null "trustedScoringSignals" value.
-  const componentURL = createScoringSignalsRenderUrlWithBody(
+  const componentURL = createScoringSignalsRenderURLWithBody(
     uuid, /*responseBody=*/'{}');
   await runTrustedScoringSignalsTest(
       test, uuid, renderURL,
@@ -456,7 +456,7 @@ subsetTest(promise_test, async test => {
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
-  const renderURL = createScoringSignalsRenderUrlWithBody(
+  const renderURL = createScoringSignalsRenderURLWithBody(
     uuid, /*responseBody=*/'{}');
   const componentURL = createRenderURL(uuid, /*script=*/null);
   await runTrustedScoringSignalsTest(

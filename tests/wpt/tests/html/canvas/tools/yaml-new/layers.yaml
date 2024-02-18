@@ -627,6 +627,49 @@
     ctx.fillStyle = 'blue';
     ctx.fillRect(10, 10, 80, 50);
 
+- name: 2d.layer.drawImage
+  size: [200, 200]
+  desc: >-
+    Checks that drawImage writes the image to the layer and not the parent
+    directly.
+  code: |
+    ctx.fillStyle = 'skyblue';
+    ctx.fillRect(0, 0, 100, 100);
+
+    ctx.beginLayer({filter: {name: 'dropShadow', dx: -10, dy: -10,
+      stdDeviation: 0, floodColor: 'navy'}});
+
+    ctx.fillStyle = 'maroon';
+    ctx.fillRect(20, 20, 50, 50);
+
+    ctx.globalCompositeOperation = 'xor';
+
+    // The image should xor only with the layer content, not the parents'.
+    const canvas_image = new OffscreenCanvas(200,200);
+    const ctx_image = canvas_image.getContext("2d");
+    ctx_image.fillStyle = 'pink';
+    ctx_image.fillRect(40, 40, 50, 50);
+    ctx.drawImage(canvas_image, 0, 0);
+
+    ctx.endLayer();
+  reference: |
+    ctx.fillStyle = 'skyblue';
+    ctx.fillRect(0, 0, 100, 100);
+
+    ctx.beginLayer({filter: {name: 'dropShadow', dx: -10, dy: -10,
+      stdDeviation: 0, floodColor: 'navy'}});
+
+    ctx.fillStyle = 'maroon';
+    ctx.fillRect(20, 20, 50, 50);
+
+    ctx.globalCompositeOperation = 'xor';
+
+    // Should xor only with the layer content, not the parents'.
+    ctx.fillStyle = 'pink';
+    ctx.fillRect(40, 40, 50, 50);
+
+    ctx.endLayer();
+
 - name: 2d.layer.valid-calls
   desc: No exception raised on {{ variant_desc }}.
   variants:

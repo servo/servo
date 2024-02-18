@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Test that window.fence.disableUntrustedNetwork disables
+  popup navigations.</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+
+promise_test(async(t) => {
+  const fencedframe = await attachFencedFrameContext({generator_api: 'fledge'});
+  await fencedframe.execute(() => {});
+
+  const actions = new test_driver.Actions();
+  await actions.setContext(window)
+             .pointerMove(0, 0, {origin: fencedframe.element})
+             .pointerDown()
+             .pointerUp()
+             .send();
+
+  await fencedframe.execute(async () => {
+    await window.fence.disableUntrustedNetwork();
+    // After disabling network, popup navigations should not work.
+    assert_true(navigator.userActivation.isActive,
+                'The frame should have user activation.');
+    window.popup = attachWindowContext();
+  });
+
+  const result = await Promise.race([
+      fencedframe.execute(async () => {
+        return await window.popup.execute(() => { return 'popup_loaded'; });
+      }),
+      new Promise((resolve) => t.step_timeout(
+        () => resolve('timeout'), 2000))
+  ]);
+  assert_equals(result, 'timeout');
+}, 'window.fence.disableUntrustedNetwork disables popup navigations');
+
+</script>
+</body>

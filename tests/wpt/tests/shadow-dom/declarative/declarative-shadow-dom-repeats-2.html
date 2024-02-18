@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Duplicate declarative shadow trees</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<div id=multiple1>
+  <template shadowrootmode=open>1</template>
+  <template shadowrootmode=open>2</template>
+  <template shadowrootmode=open>3</template>
+</div>
+
+<div id=multiple2>
+  <template shadowrootmode=closed>1</template>
+  <template shadowrootmode=closed>2</template>
+  <template shadowrootmode=open>3</template>
+</div>
+
+<script>
+test((t) => {
+  t.add_cleanup(() => {
+    multiple1.remove();
+    multiple2.remove();
+  });
+  let shadow = multiple1.shadowRoot;
+  assert_true(!!shadow,'Remaining shadow root should be open');
+  assert_equals(shadow.textContent,"1");
+  assert_equals(multiple1.childElementCount, 2);
+  assert_equals(multiple1.firstElementChild.content.textContent, "2");
+  assert_equals(multiple1.lastElementChild.content.textContent, "3");
+  shadow = multiple2.shadowRoot;
+  assert_false(!!shadow,'Remaining shadow root should be closed');
+  assert_equals(multiple2.childElementCount, 2);
+  assert_equals(multiple2.firstElementChild.content.textContent, "2");
+  assert_equals(multiple2.lastElementChild.content.textContent, "3");
+},'Repeated declarative shadow roots keep only the first');
+</script>

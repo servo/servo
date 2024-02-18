@@ -3,21 +3,11 @@
 <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
 <link rel="match" href="two-clip-path-animation-diff-length1-ref.html">
 <style>
-  .container {
+  #container {
     width: 100px;
     height: 100px;
     background-color: green;
-    animation: clippath2 10s step-end, clippath1 0.001s;
-  }
-
-  @keyframes clippath1 {
-    0% {
-      clip-path: circle(10% at 50% 50%);
-    }
-
-    100% {
-      clip-path: circle(50% at 50% 50%);
-    }
+    animation: clippath2 10s step-end;
   }
 
   @keyframes clippath2 {
@@ -34,15 +24,20 @@
 <script src="../../../../web-animations/testcommon.js"></script>
 
 <body>
-  <div class="container"></div>
+  <div id="container"></div>
 
   <script>
     // This test ensures that if we have two different-length animations, when
     // the one with higher compositing order finishes, the other one would still
     // run normally.
-    const animations = document.getAnimations();
-    animations[1].finished.then(() => {
-      takeScreenshot();
+    document.getAnimations()[0].ready.then(() => {
+      document.getElementById("container").animate(
+        [
+          { clipPath: "circle(10% at 50% 50%)" },
+          { clipPath: "circle(50% at 50% 50%)" },
+        ],
+        100,
+      ).finished.then(takeScreenshot);
     });
   </script>
 </body>

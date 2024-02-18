@@ -16,8 +16,11 @@
 async_test(t => {
   // Step 1
   window.addEventListener("message", t.step_func(e => {
+    if (e.data.type != "result") {
+      return;
+    }
     // Step 8
-    assert_equals(e.data, "HasAccess for cookies", "Storage Access API should be accessible and return first-party data");
+    assert_equals(e.data.message, "HasAccess for cookies", "Storage Access API should be accessible and return first-party data");
     test_driver.delete_all_cookies().then(t.step_func(() => {
       t.done();
     }));

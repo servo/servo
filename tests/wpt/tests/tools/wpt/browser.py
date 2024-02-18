@@ -1856,65 +1856,6 @@ class EdgeChromium(Browser):
         return m.group(1)
 
 
-class Edge(Browser):
-    """Edge-specific interface."""
-
-    product = "edge"
-    requirements = "requirements_edge.txt"
-
-    def download(self, dest=None, channel=None, rename=None):
-        raise NotImplementedError
-
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
-
-    def find_binary(self, venv_path=None, channel=None):
-        raise NotImplementedError
-
-    def find_webdriver(self, venv_path=None, channel=None):
-        return which("MicrosoftWebDriver")
-
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        raise NotImplementedError
-
-    def version(self, binary=None, webdriver_binary=None):
-        command = "(Get-AppxPackage Microsoft.MicrosoftEdge).Version"
-        try:
-            return call("powershell.exe", command).strip()
-        except (subprocess.CalledProcessError, OSError):
-            self.logger.warning("Failed to call %s in PowerShell" % command)
-            return None
-
-
-class EdgeWebDriver(Edge):
-    product = "edge_webdriver"
-
-
-class InternetExplorer(Browser):
-    """Internet Explorer-specific interface."""
-
-    product = "ie"
-    requirements = "requirements_ie.txt"
-
-    def download(self, dest=None, channel=None, rename=None):
-        raise NotImplementedError
-
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
-
-    def find_binary(self, venv_path=None, channel=None):
-        raise NotImplementedError
-
-    def find_webdriver(self, venv_path=None, channel=None):
-        return which("IEDriverServer.exe")
-
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        raise NotImplementedError
-
-    def version(self, binary=None, webdriver_binary=None):
-        return None
-
-
 class Safari(Browser):
     """Safari-specific interface.
 

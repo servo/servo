@@ -35,7 +35,10 @@ body {
 }
 
 dialog::backdrop {
-  inset: calc(anchor(auto-same) - 10px);
+  top: calc(anchor(top) - 10px);
+  right: calc(anchor(right) - 10px);
+  bottom: calc(anchor(bottom) - 10px);
+  left: calc(anchor(left) - 10px);
   background: lime;
 }
 

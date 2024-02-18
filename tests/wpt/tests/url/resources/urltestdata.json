@@ -735,6 +735,36 @@
     "hash": ""
   },
   {
+    "input": "http://a:b@c\\",
+    "base": null,
+    "href": "http://a:b@c/",
+    "origin": "http://c",
+    "protocol": "http:",
+    "username": "a",
+    "password": "b",
+    "host": "c",
+    "hostname": "c",
+    "port": "",
+    "pathname": "/",
+    "search": "",
+    "hash": ""
+  },
+  {
+    "input": "ws://a@b\\c",
+    "base": null,
+    "href": "ws://a@b/c",
+    "origin": "ws://b",
+    "protocol": "ws:",
+    "username": "a",
+    "password": "",
+    "host": "b",
+    "hostname": "b",
+    "port": "",
+    "pathname": "/c",
+    "search": "",
+    "hash": ""
+  },
+  {
     "input": "foo:/",
     "base": "http://example.org/foo/bar",
     "href": "foo:/",
