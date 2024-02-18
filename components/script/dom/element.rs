@@ -1190,23 +1190,35 @@ impl Element {
 
     // Element branch of https://dom.spec.whatwg.org/#locate-a-namespace
     pub fn locate_namespace(&self, prefix: Option<DOMString>) -> Namespace {
-        let prefix = prefix.map(String::from).map(LocalName::from);
+        let ns_prefix = prefix.clone().map(|s| Prefix::from(&*s));
+
+        // Step 1.
+        if ns_prefix == Some(namespace_prefix!("xml")) {
+            return ns!(xml);
+        }
+
+        // Step 2.
+        if ns_prefix == Some(namespace_prefix!("xmlns")) {
+            return ns!(xmlns);
+        }
+
+        let prefix = prefix.map(|s| LocalName::from(&*s));
 
         let inclusive_ancestor_elements = self
             .upcast::<Node>()
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Self>);
 
-        // Steps 3-4.
+        // Steps 5-6.
         for element in inclusive_ancestor_elements {
-            // Step 1.
+            // Step 3.
             if element.namespace() != &ns!() &&
                 element.prefix().as_ref().map(|p| &**p) == prefix.as_ref().map(|p| &**p)
             {
                 return element.namespace().clone();
             }
 
-            // Step 2.
+            // Step 4.
             let attr = ref_filter_map(self.attrs(), |attrs| {
                 attrs.iter().find(|attr| {
                     if attr.namespace() != &ns!(xmlns) {
