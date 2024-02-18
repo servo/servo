@@ -9,12 +9,12 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::Uint8Array;
 
+use crate::dom::bindings::buffer_source_types::create_buffer_source_types;
 use crate::dom::bindings::codegen::Bindings::TextEncoderBinding::TextEncoderMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::typedarrays::create_typed_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
@@ -55,7 +55,7 @@ impl TextEncoderMethods for TextEncoder {
         let encoded = input.0.as_bytes();
 
         rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-        create_typed_array(cx, &encoded, js_object.handle_mut())
+        create_buffer_source_types(cx, &encoded, js_object.handle_mut())
             .expect("Converting input to uint8 array should never fail")
     }
 }

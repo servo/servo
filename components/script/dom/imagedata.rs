@@ -9,12 +9,13 @@ use std::vec::Vec;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
-use js::jsapi::JSObject;
+use js::jsapi::{Heap, JSObject};
 use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
 
-use super::bindings::typedarrays::{
-    new_initialized_heap_typed_array, HeapTypedArray, HeapTypedArrayInit,
+use super::bindings::buffer_source_types::{
+    new_initialized_heap_buffer_source_types, BufferSource, HeapBufferSourceTypes,
+    HeapTypedArrayInit,
 };
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -29,7 +30,7 @@ pub struct ImageData {
     width: u32,
     height: u32,
     #[ignore_malloc_size_of = "mozjs"]
-    data: HeapTypedArray<ClampedU8>,
+    data: HeapBufferSourceTypes<ClampedU8>,
 }
 
 impl ImageData {
@@ -63,14 +64,14 @@ impl ImageData {
         opt_height: Option<u32>,
         jsobject: *mut JSObject,
     ) -> Fallible<DomRoot<ImageData>> {
-        let heap_typed_array = match new_initialized_heap_typed_array::<ClampedU8>(
-            HeapTypedArrayInit::Object(jsobject),
+        let heap_typed_array = match new_initialized_heap_buffer_source_types::<ClampedU8>(
+            HeapTypedArrayInit::Buffer(BufferSource::Uint8ClampedArray(Heap::boxed(jsobject))),
         ) {
             Ok(heap_typed_array) => heap_typed_array,
             Err(_) => return Err(Error::JSFailed),
         };
 
-        let typed_array = match heap_typed_array.get_internal() {
+        let typed_array = match heap_typed_array.get_buffer() {
             Ok(array) => array,
             Err(_) => {
                 return Err(Error::Type(
@@ -117,7 +118,7 @@ impl ImageData {
         let len = width * height * 4;
 
         let heap_typed_array =
-            match new_initialized_heap_typed_array::<ClampedU8>(HeapTypedArrayInit::Info {
+            match new_initialized_heap_buffer_source_types::<ClampedU8>(HeapTypedArrayInit::Info {
                 len,
                 cx,
             }) {
@@ -163,7 +164,7 @@ impl ImageData {
         assert!(self.data.is_initialized());
         let internal_data = self
             .data
-            .get_internal()
+            .get_buffer()
             .expect("Failed to get Data from ImageData.");
         // NOTE(nox): This is just as unsafe as `as_slice` itself even though we
         // are extending the lifetime of the slice, because the data in
@@ -202,6 +203,6 @@ impl ImageDataMethods for ImageData {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-data>
     fn GetData(&self, _: JSContext) -> Fallible<Uint8ClampedArray> {
-        self.data.get_internal().map_err(|_| Error::JSFailed)
+        self.data.get_buffer().map_err(|_| Error::JSFailed)
     }
 }

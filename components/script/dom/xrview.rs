@@ -7,7 +7,7 @@ use euclid::RigidTransform3D;
 use js::typedarray::{Float32, Float32Array};
 use webxr_api::{ApiSpace, View};
 
-use super::bindings::typedarrays::HeapTypedArray;
+use super::bindings::buffer_source_types::HeapBufferSourceTypes;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -23,7 +23,7 @@ pub struct XRView {
     eye: XREye,
     viewport_index: usize,
     #[ignore_malloc_size_of = "mozjs"]
-    proj: HeapTypedArray<Float32>,
+    proj: HeapBufferSourceTypes<Float32>,
     #[ignore_malloc_size_of = "defined in rust-webxr"]
     #[no_trace]
     view: View<ApiSpace>,
@@ -43,7 +43,7 @@ impl XRView {
             session: Dom::from_ref(session),
             eye,
             viewport_index,
-            proj: HeapTypedArray::default(),
+            proj: HeapBufferSourceTypes::default(),
             view,
             transform: Dom::from_ref(transform),
         }
@@ -98,7 +98,7 @@ impl XRViewMethods for XRView {
                 .expect("Failed to set projection matrix.")
         }
         self.proj
-            .get_internal()
+            .get_buffer()
             .expect("Failed to get projection matrix.")
     }
 

@@ -15,7 +15,9 @@ use webgpu::identity::WebGPUOpResult;
 use webgpu::wgpu::device::HostMap;
 use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
-use super::bindings::typedarrays::{create_new_external_array_buffer, HeapTypedArray};
+use super::bindings::buffer_source_types::{
+    create_new_external_array_buffer, HeapBufferSourceTypes,
+};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBufferMethods, GPUMapModeConstants, GPUSize64,
@@ -54,7 +56,7 @@ pub struct GPUBufferMapInfo {
     pub mapping_range: Range<u64>,
     pub mapped_ranges: Vec<Range<u64>>,
     #[ignore_malloc_size_of = "defined in mozjs"]
-    pub js_buffers: Vec<HeapTypedArray<ArrayBufferU8>>,
+    pub js_buffers: Vec<HeapBufferSourceTypes<ArrayBufferU8>>,
     pub map_mode: Option<u32>,
 }
 
@@ -169,7 +171,7 @@ impl GPUBufferMethods for GPUBuffer {
                 }
                 // Step 3.3
                 m_info.js_buffers.drain(..).for_each(|obj| {
-                    obj.detach_internal(cx);
+                    obj.detach_buffer(cx);
                 });
             },
             // Step 2
@@ -325,7 +327,7 @@ impl GPUBufferMethods for GPUBuffer {
             m_end as usize,
         );
 
-        let result = heap_typed_array.get_internal().map_err(|_| Error::JSFailed);
+        let result = heap_typed_array.get_buffer().map_err(|_| Error::JSFailed);
 
         m_info.mapped_ranges.push(offset..m_end);
         m_info.js_buffers.push(heap_typed_array);

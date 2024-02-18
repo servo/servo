@@ -9,13 +9,13 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 
+use crate::dom::bindings::buffer_source_types::create_buffer_source_types;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::FileReaderSyncMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::typedarrays::create_typed_array;
 use crate::dom::blob::Blob;
 use crate::dom::filereader::FileReaderSharedFunctionality;
 use crate::dom::globalscope::GlobalScope;
@@ -95,7 +95,7 @@ impl FileReaderSyncMethods for FileReaderSync {
         // step 2
         rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
 
-        create_typed_array::<ArrayBufferU8>(cx, &blob_contents, array_buffer.handle_mut())
+        create_buffer_source_types::<ArrayBufferU8>(cx, &blob_contents, array_buffer.handle_mut())
             .map_err(|_| Error::JSFailed)
     }
 }
