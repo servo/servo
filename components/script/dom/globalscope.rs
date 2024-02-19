@@ -96,6 +96,7 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::gamepad::Gamepad;
+use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::identityhub::Identities;
@@ -3142,15 +3143,16 @@ impl GlobalScope {
                 let gamepad = Gamepad::new(&global, index as u32, name, axis_bounds, button_bounds);
 
                 if let Some(window) = global.downcast::<Window>() {
-                    let gamepad_list = window.Navigator().GetGamepads();
+                    let has_gesture = window.Navigator().has_gamepad_gesture();
+                    if has_gesture {
+                        gamepad.set_exposed(true);
+                    }
+                    let gamepad_list = window.Navigator().gamepads();
                     let gamepad_arr: [DomRoot<Gamepad>; 1] = [gamepad.clone()];
                     gamepad_list.add_if_not_exists(&gamepad_arr);
 
-                    // TODO: 3.4 If navigator.[[hasGamepadGesture]] is true:
-                    // TODO: 3.4.1 Set gamepad.[[exposed]] to true.
-
                     if window.Document().is_fully_active() {
-                        gamepad.update_connected(true);
+                        gamepad.update_connected(true, has_gesture);
                     }
                 }
             }),
@@ -3169,9 +3171,10 @@ impl GlobalScope {
                     if let Some(window) = global.downcast::<Window>() {
                         let gamepad_list = window.Navigator().GetGamepads();
                         if let Some(gamepad) = gamepad_list.Item(index as u32) {
-                            // TODO: If gamepad.[[exposed]]
-                            gamepad.update_connected(false);
-                            gamepad_list.remove_gamepad(index);
+                            if window.Document().is_fully_active() {
+                                gamepad.update_connected(false, gamepad.exposed());
+                                gamepad_list.remove_gamepad(index);
+                            }
                         }
                         for i in (0..gamepad_list.Length()).rev() {
                             if gamepad_list.Item(i as u32).is_none() {
@@ -3197,8 +3200,8 @@ impl GlobalScope {
                 task!(update_gamepad_state: move || {
                     let global = this.root();
                     if let Some(window) = global.downcast::<Window>() {
-                        let gamepad_list = window.Navigator().GetGamepads();
-                        if let Some(gamepad) = gamepad_list.IndexedGetter(index as u32) {
+                        let gamepad_list = window.Navigator().gamepads();
+                        if let Some(gamepad) = gamepad_list.Item(index as u32) {
                             let current_time = global.performance().Now();
                             gamepad.update_timestamp(*current_time);
 
@@ -3211,8 +3214,26 @@ impl GlobalScope {
                                 }
                             };
 
-                            // TODO: 6. If navigator.[[hasGamepadGesture]] is false
-                            //          and gamepad contains a gamepad user gesture:
+                            if !window.Navigator().has_gamepad_gesture() {
+                                window.Navigator().set_has_gamepad_gesture(true);
+                                for i in 0..gamepad_list.Length() {
+                                    if let Some(gamepad) = gamepad_list.Item(i as u32) {
+                                        gamepad.set_exposed(true);
+                                        gamepad.update_timestamp(*current_time);
+                                        let new_gamepad = Trusted::new(&*gamepad);
+                                        if window.Document().is_fully_active() {
+                                            window.task_manager().gamepad_task_source().queue(
+                                                task!(update_gamepad_connect: move || {
+                                                    let gamepad = new_gamepad.root();
+                                                    gamepad.notify_event(GamepadEventType::Connected);
+                                                }),
+                                                window.upcast(),
+                                            )
+                                            .unwrap();
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }),

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::convert::TryInto;
 
 use dom_struct::dom_struct;
@@ -47,6 +48,7 @@ pub struct Navigator {
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
     gpu: MutNullableDom<GPU>,
+    has_gamepad_gesture: Cell<bool>
 }
 
 impl Navigator {
@@ -63,6 +65,7 @@ impl Navigator {
             permissions: Default::default(),
             mediasession: Default::default(),
             gpu: Default::default(),
+            has_gamepad_gesture: Cell::new(false),
         }
     }
 
@@ -72,6 +75,21 @@ impl Navigator {
 
     pub fn xr(&self) -> Option<DomRoot<XRSystem>> {
         self.xr.get()
+    }
+
+    pub fn gamepads(&self) -> DomRoot<GamepadList> {
+        let gamepads = self
+            .gamepads
+            .or_init(|| GamepadList::new(&self.global(), &[]));
+        gamepads
+    }
+
+    pub fn has_gamepad_gesture(&self) -> bool {
+        self.has_gamepad_gesture.get()
+    }
+
+    pub fn set_has_gamepad_gesture(&self, has_gamepad_gesture: bool) {
+        self.has_gamepad_gesture.set(has_gamepad_gesture);
     }
 }
 
@@ -175,8 +193,11 @@ impl NavigatorMethods for Navigator {
             .gamepads
             .or_init(|| GamepadList::new(&self.global(), &[]));
 
-        // TODO: Add gamepads
-        root
+        if !self.has_gamepad_gesture.get() {
+            GamepadList::new(&self.global(), &[])
+        } else {
+            root
+        }
     }
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {

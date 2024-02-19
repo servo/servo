@@ -44,6 +44,7 @@ pub struct Gamepad {
     hand: GamepadHand,
     axis_bounds: (f64, f64),
     button_bounds: (f64, f64),
+    exposed: Cell<bool>
 }
 
 impl Gamepad {
@@ -74,6 +75,7 @@ impl Gamepad {
             hand: hand,
             axis_bounds: axis_bounds,
             button_bounds: button_bounds,
+            exposed: Cell::new(false)
         }
     }
 
@@ -105,7 +107,7 @@ impl Gamepad {
                 gamepad_id,
                 id,
                 0,
-                false,
+                true,
                 0.,
                 String::from("standard"),
                 &button_list,
@@ -175,7 +177,7 @@ impl Gamepad {
         self.gamepad_id
     }
 
-    pub fn update_connected(&self, connected: bool) {
+    pub fn update_connected(&self, connected: bool, should_notify: bool) {
         if self.connected.get() == connected {
             return;
         }
@@ -187,7 +189,9 @@ impl Gamepad {
             GamepadEventType::Disconnected
         };
 
-        self.notify_event(event_type);
+        if should_notify {
+            self.notify_event(event_type);
+        }
     }
 
     pub fn update_index(&self, index: i32) {
@@ -262,5 +266,13 @@ impl Gamepad {
         } else {
             warn!("Button bounds difference is either 0 or non-finite!");
         }
+    }
+
+    pub fn exposed(&self) -> bool {
+        self.exposed.get()
+    }
+
+    pub fn set_exposed(&self, exposed: bool) {
+        self.exposed.set(exposed);
     }
 }
