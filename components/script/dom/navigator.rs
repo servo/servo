@@ -10,6 +10,7 @@ use js::jsval::JSVal;
 use lazy_static::lazy_static;
 
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -189,15 +190,19 @@ impl NavigatorMethods for Navigator {
 
     // https://www.w3.org/TR/gamepad/#navigator-interface-extension
     fn GetGamepads(&self) -> DomRoot<GamepadList> {
+        let global = self.global();
+        let window = global.as_window();
+        let doc = window.Document();
+
+        if !doc.is_fully_active() || !self.has_gamepad_gesture.get() {
+            return GamepadList::new(&global, &[]);
+        }
+
         let root = self
             .gamepads
-            .or_init(|| GamepadList::new(&self.global(), &[]));
+            .or_init(|| GamepadList::new(&global, &[]));
 
-        if !self.has_gamepad_gesture.get() {
-            GamepadList::new(&self.global(), &[])
-        } else {
-            root
-        }
+        root
     }
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {
