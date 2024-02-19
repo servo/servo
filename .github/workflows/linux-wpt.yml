@@ -36,17 +36,14 @@ jobs:
       matrix:
         chunk_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
-        with:
-          fetch-depth: 2
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: github.event_name == 'pull_request_target'
         with:
           ref: refs/pull/${{ github.event.number }}/head
-          fetch-depth: 2
       - uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.profile }}-binary-linux
@@ -109,10 +106,8 @@ jobs:
           name: wpt-full-logs-linux-${{ inputs.wpt-layout }}
           pattern: wpt-full-logs-linux-${{ inputs.wpt-layout }}-*
           delete-merged: true
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
-        with:
-          fetch-depth: 2
       - uses: actions/download-artifact@v4
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         with:
