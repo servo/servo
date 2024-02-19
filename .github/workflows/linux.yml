@@ -71,17 +71,17 @@ jobs:
     # runners which still use 20.04.
     runs-on: ubuntu-${{ inputs.upload && '20.04' || '22.04' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
         with:
-          fetch-depth: 2
+          fetch-depth: 2 # This is necessary for `test-tidy`.
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: github.event_name == 'pull_request_target'
         with:
           ref: refs/pull/${{ github.event.number }}/head
-          fetch-depth: 2
+          fetch-depth: 2 # This is necessary for `test-tidy`.
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
