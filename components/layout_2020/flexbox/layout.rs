@@ -243,8 +243,8 @@ impl FlexContainer {
             ),
             // https://drafts.csswg.org/css-flexbox/#definite-sizes
             container_definite_inner_size: flex_axis.vec2_to_flex_relative(LogicalVec2 {
-                inline: Some(containing_block.inline_size),
-                block: containing_block.block_size.non_auto(),
+                inline: Some(containing_block.inline_size.into()),
+                block: containing_block.block_size.non_auto().map(|t| t.into()),
             }),
         };
 
@@ -273,9 +273,9 @@ impl FlexContainer {
         // https://drafts.csswg.org/css-flexbox/#algo-flex
         let flex_lines = collect_flex_lines(
             &mut flex_context,
-            container_main_size,
+            container_main_size.into(),
             &mut flex_items,
-            |flex_context, mut line| line.layout(flex_context, container_main_size),
+            |flex_context, mut line| line.layout(flex_context, container_main_size.into()),
         );
 
         let content_cross_size = flex_lines
@@ -343,7 +343,7 @@ impl FlexContainer {
                 // And we’ll need to change the signature of `IndependentFormattingContext::layout`
                 // to allow the inner formatting context to “negotiate” a used inline-size
                 // with the outer one somehow.
-                container_main_size
+                container_main_size.into()
             },
         };
 
@@ -1091,12 +1091,12 @@ impl<'a> FlexItem<'a> {
                     },
                     IndependentFormattingContext::NonReplaced(non_replaced) => {
                         let block_size = match used_cross_size_override {
-                            Some(s) => LengthOrAuto::LengthPercentage(s),
-                            None => self.content_box_size.cross,
+                            Some(s) => AuOrAuto::LengthPercentage(s.into()),
+                            None => self.content_box_size.cross.map(|t| t.into()),
                         };
 
                         let item_as_containing_block = ContainingBlock {
-                            inline_size: used_main_size,
+                            inline_size: used_main_size.into(),
                             block_size,
                             style: &non_replaced.style,
                         };

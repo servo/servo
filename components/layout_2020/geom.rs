@@ -136,10 +136,10 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
         LogicalVec2 {
             inline: self
                 .inline
-                .percentage_relative_to(containing_block.inline_size),
-            block: self
-                .block
-                .maybe_percentage_relative_to(containing_block.block_size.non_auto()),
+                .percentage_relative_to(containing_block.inline_size.into()),
+            block: self.block.maybe_percentage_relative_to(
+                containing_block.block_size.map(|t| t.into()).non_auto(),
+            ),
         }
     }
 }
@@ -152,9 +152,11 @@ impl LogicalVec2<Option<&'_ LengthPercentage>> {
         LogicalVec2 {
             inline: self
                 .inline
-                .map(|lp| lp.percentage_relative_to(containing_block.inline_size)),
+                .map(|lp| lp.percentage_relative_to(containing_block.inline_size.into())),
             block: self.block.and_then(|lp| {
-                lp.maybe_percentage_relative_to(containing_block.block_size.non_auto())
+                lp.maybe_percentage_relative_to(
+                    containing_block.block_size.map(|t| t.into()).non_auto(),
+                )
             }),
         }
     }

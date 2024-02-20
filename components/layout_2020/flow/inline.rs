@@ -793,7 +793,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 block: block_start_position.into(),
             },
             size: LogicalVec2 {
-                inline: self.containing_block.inline_size,
+                inline: self.containing_block.inline_size.into(),
                 block: effective_block_advance.resolve(),
             },
         };
@@ -868,7 +868,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 placement_among_floats.start_corner.inline,
                 placement_among_floats.size.inline,
             ),
-            None => (Length::zero(), self.containing_block.inline_size),
+            None => (Length::zero(), self.containing_block.inline_size.into()),
         };
 
         // Properly handling text-indent requires that we do not align the text
@@ -945,7 +945,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
         let available_inline_size = match self.current_line.placement_among_floats.get() {
             Some(placement_among_floats) => placement_among_floats.size.inline,
-            None => self.containing_block.inline_size,
+            None => self.containing_block.inline_size.into(),
         } - line_inline_size_without_trailing_whitespace;
 
         // If this float doesn't fit on the current line or a previous float didn't fit on
@@ -1034,7 +1034,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .clone()
         } else {
             LogicalVec2 {
-                inline: self.containing_block.inline_size,
+                inline: self.containing_block.inline_size.into(),
                 block: Length::new(f32::INFINITY),
             }
         };
@@ -1067,7 +1067,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
         // If the potential line is larger than the containing block we do not even need to consider
         // floats. We definitely have to do a linebreak.
-        if potential_line_size.inline > self.containing_block.inline_size {
+        if potential_line_size.inline > self.containing_block.inline_size.into() {
             return true;
         }
 
@@ -1443,7 +1443,7 @@ impl InlineFormattingContext {
                 .style
                 .get_inherited_text()
                 .text_indent
-                .to_used_value(containing_block.inline_size.into())
+                .to_used_value(containing_block.inline_size)
                 .into()
         } else {
             Length::zero()
@@ -1873,11 +1873,10 @@ impl IndependentFormattingContext {
 
                 // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
                 let tentative_inline_size = box_size.inline.auto_is(|| {
-                    let available_size =
-                        ifc.containing_block.inline_size - pbm_sums.inline_sum().into();
+                    let available_size = ifc.containing_block.inline_size - pbm_sums.inline_sum();
                     non_replaced
                         .inline_content_sizes(layout_context)
-                        .shrink_to_fit(available_size.into())
+                        .shrink_to_fit(available_size)
                         .into()
                 });
 
@@ -1888,8 +1887,8 @@ impl IndependentFormattingContext {
                     .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
 
                 let containing_block_for_children = ContainingBlock {
-                    inline_size,
-                    block_size: box_size.block,
+                    inline_size: inline_size.into(),
+                    block_size: box_size.block.map(|t| t.into()),
                     style: &non_replaced.style,
                 };
                 assert_eq!(

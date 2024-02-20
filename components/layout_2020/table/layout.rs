@@ -9,7 +9,7 @@ use euclid::num::Zero;
 use log::warn;
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::logical_geometry::WritingMode;
-use style::values::computed::{CSSPixelLength, Length, LengthOrAuto, Percentage};
+use style::values::computed::{CSSPixelLength, Length, Percentage};
 use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, VerticalAlignKeyword};
 use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
 
@@ -17,7 +17,7 @@ use super::{Table, TableSlot, TableSlotCell};
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentLayout};
 use crate::fragment_tree::{AnonymousFragment, BoxFragment, CollapsedBlockMargins, Fragment};
-use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
+use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
@@ -601,7 +601,7 @@ impl<'a> TableLayout<'a> {
             },
             Auto => grid_min_and_max
                 .max_content
-                .min(containing_block.inline_size.into())
+                .min(containing_block.inline_size)
                 .max(used_min_width_of_table),
         };
 
@@ -937,8 +937,8 @@ impl<'a> TableLayout<'a> {
                 total_width = total_width.max(Length::zero());
 
                 let containing_block_for_children = ContainingBlock {
-                    inline_size: total_width,
-                    block_size: LengthOrAuto::Auto,
+                    inline_size: total_width.into(),
+                    block_size: AuOrAuto::Auto,
                     style: &cell.style,
                 };
                 let collect_for_nearest_positioned_ancestor =
