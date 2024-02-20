@@ -28,14 +28,14 @@ pub mod traversal;
 use app_units::Au;
 pub use flow::BoxTree;
 pub use fragment_tree::FragmentTree;
+use geom::AuOrAuto;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthOrAuto};
 
 use crate::geom::LogicalVec2;
 
 pub struct ContainingBlock<'a> {
-    inline_size: Length,
-    block_size: LengthOrAuto,
+    inline_size: Au,
+    block_size: AuOrAuto,
     style: &'a ComputedValues,
 }
 
@@ -47,8 +47,8 @@ struct DefiniteContainingBlock<'a> {
 impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
     fn from(definite: &DefiniteContainingBlock<'a>) -> Self {
         ContainingBlock {
-            inline_size: definite.size.inline.into(),
-            block_size: LengthOrAuto::LengthPercentage(definite.size.block.into()),
+            inline_size: definite.size.inline,
+            block_size: AuOrAuto::LengthPercentage(definite.size.block),
             style: definite.style,
         }
     }

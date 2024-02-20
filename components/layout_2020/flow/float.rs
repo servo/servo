@@ -918,10 +918,10 @@ impl FloatBox {
 
                         let tentative_inline_size = box_size.inline.auto_is(|| {
                             let available_size =
-                                containing_block.inline_size - pbm_sums.inline_sum().into();
+                                containing_block.inline_size - pbm_sums.inline_sum();
                             non_replaced
                                 .inline_content_sizes(layout_context)
-                                .shrink_to_fit(available_size.into())
+                                .shrink_to_fit(available_size)
                                 .into()
                         });
                         let inline_size = tentative_inline_size
@@ -931,8 +931,8 @@ impl FloatBox {
                         // https://drafts.csswg.org/css2/#block-root-margin
                         // FIXME(pcwalton): Is a tree rank of zero correct here?
                         let containing_block_for_children = ContainingBlock {
-                            inline_size,
-                            block_size: box_size.block,
+                            inline_size: inline_size.into(),
+                            block_size: box_size.block.map(|t| t.into()),
                             style: &non_replaced.style,
                         };
                         let independent_layout = non_replaced.layout(
