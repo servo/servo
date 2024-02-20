@@ -294,9 +294,9 @@ pub trait ThreadSafeLayoutNode<'dom>:
     /// not an iframe element, fails. Returns None if there is no nested browsing context.
     fn iframe_pipeline_id(&self) -> Option<PipelineId>;
 
-    fn get_colspan(&self) -> u32;
-
-    fn get_rowspan(&self) -> u32;
+    fn get_span(&self) -> Option<u32>;
+    fn get_colspan(&self) -> Option<u32>;
+    fn get_rowspan(&self) -> Option<u32>;
 
     fn fragment_type(&self) -> FragmentType {
         self.get_pseudo_element_type().fragment_type()

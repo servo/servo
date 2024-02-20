@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use gfx_traits::print_tree::PrintTree;
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
@@ -19,6 +20,11 @@ use crate::geom::{
     PhysicalSize,
 };
 use crate::style_ext::ComputedValuesExt;
+
+pub(crate) struct ExtraBackground {
+    pub style: ServoArc<ComputedValues>,
+    pub rect: LogicalRect<Au>,
+}
 
 #[derive(Serialize)]
 pub(crate) struct BoxFragment {
@@ -62,6 +68,9 @@ pub(crate) struct BoxFragment {
     /// during stacking context tree construction because they rely on the size of the
     /// scroll container.
     pub(crate) resolved_sticky_insets: Option<PhysicalSides<LengthOrAuto>>,
+
+    #[serde(skip_serializing)]
+    pub extra_backgrounds: Vec<ExtraBackground>,
 }
 
 impl BoxFragment {
@@ -149,6 +158,7 @@ impl BoxFragment {
             scrollable_overflow_from_children,
             overconstrained,
             resolved_sticky_insets: None,
+            extra_backgrounds: Vec::new(),
         }
     }
 
@@ -163,6 +173,10 @@ impl BoxFragment {
         }
         self.baselines.first = baselines.first;
         self
+    }
+
+    pub fn add_extra_background(&mut self, extra_background: ExtraBackground) {
+        self.extra_backgrounds.push(extra_background);
     }
 
     pub fn scrollable_overflow(

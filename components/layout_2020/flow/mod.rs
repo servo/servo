@@ -1513,7 +1513,7 @@ impl PlacementState {
                     block_offset_from_containing_block_top.into(),
                 );
             },
-            Fragment::Anonymous(_) => {},
+            Fragment::Positioning(_) => {},
             _ => unreachable!(),
         }
     }

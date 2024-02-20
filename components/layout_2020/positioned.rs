@@ -176,7 +176,7 @@ impl PositioningContext {
         let start_offset = match &parent_fragment {
             Fragment::Box(b) | Fragment::Float(b) => &b.content_rect.start_corner,
             Fragment::AbsoluteOrFixedPositioned(_) => return,
-            Fragment::Anonymous(a) => &a.rect.start_corner,
+            Fragment::Positioning(a) => &a.rect.start_corner,
             _ => unreachable!(),
         };
         self.adjust_static_position_of_hoisted_fragments_with_offset(start_offset, index);

@@ -64,6 +64,7 @@ use xml5ever::serialize::TraversalScope::{
 };
 use xml5ever::serialize::{SerializeOpts as XmlSerializeOpts, TraversalScope as XmlTraversalScope};
 
+use super::htmltablecolelement::{HTMLTableColElement, HTMLTableColElementLayoutHelpers};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::{Attr, AttrHelpersForLayout};
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
@@ -614,8 +615,9 @@ pub trait LayoutElementHelpers<'dom> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
     where
         V: Push<ApplicableDeclarationBlock>;
-    fn get_colspan(self) -> u32;
-    fn get_rowspan(self) -> u32;
+    fn get_span(self) -> Option<u32>;
+    fn get_colspan(self) -> Option<u32>;
+    fn get_rowspan(self) -> Option<u32>;
     fn is_html_element(self) -> bool;
     fn id_attribute(self) -> *const Option<Atom>;
     fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
@@ -1019,24 +1021,22 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         }
     }
 
-    fn get_colspan(self) -> u32 {
-        if let Some(this) = self.downcast::<HTMLTableCellElement>() {
-            this.get_colspan().unwrap_or(1)
-        } else {
-            // Don't panic since `display` can cause this to be called on arbitrary
-            // elements.
-            1
-        }
+    fn get_span(self) -> Option<u32> {
+        // Don't panic since `display` can cause this to be called on arbitrary elements.
+        self.downcast::<HTMLTableColElement>()
+            .and_then(|element| element.get_span())
     }
 
-    fn get_rowspan(self) -> u32 {
-        if let Some(this) = self.downcast::<HTMLTableCellElement>() {
-            this.get_rowspan().unwrap_or(1)
-        } else {
-            // Don't panic since `display` can cause this to be called on arbitrary
-            // elements.
-            1
-        }
+    fn get_colspan(self) -> Option<u32> {
+        // Don't panic since `display` can cause this to be called on arbitrary elements.
+        self.downcast::<HTMLTableCellElement>()
+            .and_then(|element| element.get_colspan())
+    }
+
+    fn get_rowspan(self) -> Option<u32> {
+        // Don't panic since `display` can cause this to be called on arbitrary elements.
+        self.downcast::<HTMLTableCellElement>()
+            .and_then(|element| element.get_rowspan())
     }
 
     #[inline]
