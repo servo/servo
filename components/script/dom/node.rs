@@ -2399,7 +2399,7 @@ impl Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#locate-a-namespace
+    /// <https://dom.spec.whatwg.org/#locate-a-namespace>
     pub fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
         match node.type_id() {
             NodeTypeId::Element(_) => node.downcast::<Element>().unwrap().locate_namespace(prefix),

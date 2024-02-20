@@ -1190,23 +1190,40 @@ impl Element {
 
     // Element branch of https://dom.spec.whatwg.org/#locate-a-namespace
     pub fn locate_namespace(&self, prefix: Option<DOMString>) -> Namespace {
-        let prefix = prefix.map(String::from).map(LocalName::from);
+        let namespace_prefix = prefix.clone().map(|s| Prefix::from(&*s));
+
+        // "1. If prefix is "xml", then return the XML namespace."
+        if namespace_prefix == Some(namespace_prefix!("xml")) {
+            return ns!(xml);
+        }
+
+        // "2. If prefix is "xmlns", then return the XMLNS namespace."
+        if namespace_prefix == Some(namespace_prefix!("xmlns")) {
+            return ns!(xmlns);
+        }
+
+        let prefix = prefix.map(|s| LocalName::from(&*s));
 
         let inclusive_ancestor_elements = self
             .upcast::<Node>()
             .inclusive_ancestors(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<Self>);
 
-        // Steps 3-4.
+        // "5. If its parent element is null, then return null."
+        // "6. Return the result of running locate a namespace on its parent element using prefix."
         for element in inclusive_ancestor_elements {
-            // Step 1.
+            // "3. If its namespace is non-null and its namespace prefix is prefix, then return
+            // namespace."
             if element.namespace() != &ns!() &&
                 element.prefix().as_ref().map(|p| &**p) == prefix.as_ref().map(|p| &**p)
             {
                 return element.namespace().clone();
             }
 
-            // Step 2.
+            // "4. If it has an attribute whose namespace is the XMLNS namespace, namespace prefix
+            // is "xmlns", and local name is prefix, or if prefix is null and it has an attribute
+            // whose namespace is the XMLNS namespace, namespace prefix is null, and local name is
+            // "xmlns", then return its value if it is not the empty string, and null otherwise."
             let attr = ref_filter_map(self.attrs(), |attrs| {
                 attrs.iter().find(|attr| {
                     if attr.namespace() != &ns!(xmlns) {
