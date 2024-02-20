@@ -4,10 +4,7 @@
 
 //! Types used to access the DOM from style calculation.
 
-use bitflags::bitflags;
 use malloc_size_of::malloc_size_of_is_0;
-use malloc_size_of_derive::MallocSizeOf;
-use serde::{Deserialize, Serialize};
 
 /// An opaque handle to a node, which, unlike UnsafeNode, cannot be transformed
 /// back into a non-opaque representation. The only safe operation that can be

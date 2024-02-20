@@ -6,13 +6,9 @@
 
 //! A replacement for `Box<str>` that has a defined layout for FFI.
 
+use crate::owned_slice::OwnedSlice;
 use std::fmt;
 use std::ops::{Deref, DerefMut};
-
-use malloc_size_of_derive::MallocSizeOf;
-use to_shmem_derive::ToShmem;
-
-use crate::owned_slice::OwnedSlice;
 
 /// A struct that basically replaces a Box<str>, but with a defined layout,
 /// suitable for FFI.

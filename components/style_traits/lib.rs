@@ -9,16 +9,36 @@
 #![crate_name = "style_traits"]
 #![crate_type = "rlib"]
 
-use bitflags::bitflags;
-use cssparser::{CowRcStr, Token};
-use malloc_size_of_derive::MallocSizeOf;
-use selectors::parser::SelectorParseErrorKind;
-use serde::{Deserialize, Serialize};
+extern crate app_units;
+#[macro_use]
+extern crate bitflags;
+extern crate cssparser;
+extern crate euclid;
+#[macro_use]
+extern crate lazy_static;
+extern crate malloc_size_of;
+#[macro_use]
+extern crate malloc_size_of_derive;
+extern crate selectors;
+#[macro_use]
+extern crate serde;
+extern crate servo_arc;
 #[cfg(feature = "servo")]
-use servo_atoms::Atom;
-use size_of_test::size_of_test;
+extern crate servo_atoms;
+extern crate to_shmem;
+#[macro_use]
+extern crate to_shmem_derive;
+#[cfg(feature = "servo")]
+extern crate webrender_api;
+#[cfg(feature = "servo")]
+extern crate url;
 #[cfg(feature = "servo")]
 pub use webrender_api::units::DevicePixel;
+
+use cssparser::{CowRcStr, Token};
+use selectors::parser::SelectorParseErrorKind;
+#[cfg(feature = "servo")]
+use servo_atoms::Atom;
 
 /// One hardware pixel.
 ///
@@ -78,11 +98,9 @@ pub use crate::values::{
 
 /// The error type for all CSS parsing routines.
 pub type ParseError<'i> = cssparser::ParseError<'i, StyleParseErrorKind<'i>>;
-size_of_test!(ParseError, 64);
 
 /// Error in property value parsing
 pub type ValueParseError<'i> = cssparser::ParseError<'i, ValueParseErrorKind<'i>>;
-size_of_test!(ValueParseError, 48);
 
 #[derive(Clone, Debug, PartialEq)]
 /// Errors that can be encountered while parsing CSS values.
@@ -149,7 +167,6 @@ pub enum StyleParseErrorKind<'i> {
     /// The property is not allowed within a page rule.
     NotAllowedInPageRule,
 }
-size_of_test!(StyleParseErrorKind, 56);
 
 impl<'i> From<ValueParseErrorKind<'i>> for StyleParseErrorKind<'i> {
     fn from(this: ValueParseErrorKind<'i>) -> Self {
@@ -171,7 +188,6 @@ pub enum ValueParseErrorKind<'i> {
     /// An invalid filter value was encountered.
     InvalidFilter(Token<'i>),
 }
-size_of_test!(ValueParseErrorKind, 40);
 
 impl<'i> StyleParseErrorKind<'i> {
     /// Create an InvalidValue parse error
