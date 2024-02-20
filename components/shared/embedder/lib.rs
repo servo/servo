@@ -156,14 +156,16 @@ pub enum EmbedderMsg {
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningWebView(IpcSender<bool>),
-    /// A browser was created
+    /// A web view was created
     WebViewOpened(TopLevelBrowsingContextId),
-    /// A browser was destroyed
+    /// A web view was destroyed
     WebViewClosed(TopLevelBrowsingContextId),
-    /// A browser gained focus for keyboard events
+    /// A web view gained focus for keyboard events
     WebViewFocused(TopLevelBrowsingContextId),
-    /// All browsers lost focus for keyboard events
+    /// All web views lost focus for keyboard events
     WebViewBlurred,
+    /// The order to paint the web views
+    WebViewPaintingOrder(Vec<TopLevelBrowsingContextId>),
     /// Wether or not to unload a document
     AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
@@ -262,6 +264,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::WebViewClosed(..) => write!(f, "WebViewClosed"),
             EmbedderMsg::WebViewFocused(..) => write!(f, "WebViewFocused"),
             EmbedderMsg::WebViewBlurred => write!(f, "WebViewUnfocused"),
+            EmbedderMsg::WebViewPaintingOrder(..) => write!(f, "WebViewPaintingOrder"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),

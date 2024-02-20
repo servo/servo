@@ -142,3 +142,6 @@ debug-assertions = false
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
+
+[patch."https://github.com/servo/mozjs"]
+mozjs = { git = "https://github.com/wusyong/mozjs", branch = "mozjs_download" }

@@ -1476,6 +1476,70 @@ where
                 }
                 self.handle_panic(top_level_browsing_context_id, error, None);
             },
+            FromCompositorMsg::MoveResizeWebView(top_level_browsing_context_id, rect) => {
+                if self.webviews.get(top_level_browsing_context_id).is_none() {
+                    return warn!(
+                        "{}: MoveResizeWebView on unknown top-level browsing context",
+                        top_level_browsing_context_id
+                    );
+                }
+                self.compositor_proxy.send(CompositorMsg::MoveResizeWebView(
+                    top_level_browsing_context_id,
+                    rect,
+                ));
+            },
+            FromCompositorMsg::ShowWebView(top_level_browsing_context_id) => {
+                if self.webviews.get(top_level_browsing_context_id).is_none() {
+                    return warn!(
+                        "{}: ShowWebView on unknown top-level browsing context",
+                        top_level_browsing_context_id
+                    );
+                }
+                self.compositor_proxy
+                    .send(CompositorMsg::ShowWebView(top_level_browsing_context_id));
+                self.webviews
+                    .set_webview_visibility(top_level_browsing_context_id, true);
+                self.notify_webview_visibility(
+                    top_level_browsing_context_id,
+                    self.webviews
+                        .is_effectively_visible(top_level_browsing_context_id),
+                );
+            },
+            FromCompositorMsg::HideWebView(top_level_browsing_context_id) => {
+                if self.webviews.get(top_level_browsing_context_id).is_none() {
+                    return warn!(
+                        "{}: HideWebView on unknown top-level browsing context",
+                        top_level_browsing_context_id
+                    );
+                }
+                self.compositor_proxy
+                    .send(CompositorMsg::HideWebView(top_level_browsing_context_id));
+                self.webviews
+                    .set_webview_visibility(top_level_browsing_context_id, false);
+                self.notify_webview_visibility(
+                    top_level_browsing_context_id,
+                    self.webviews
+                        .is_effectively_visible(top_level_browsing_context_id),
+                );
+            },
+            FromCompositorMsg::RaiseWebViewToTop(top_level_browsing_context_id) => {
+                if self.webviews.get(top_level_browsing_context_id).is_none() {
+                    return warn!(
+                        "{}: RaiseWebViewToTop on unknown top-level browsing context",
+                        top_level_browsing_context_id
+                    );
+                }
+                self.compositor_proxy.send(CompositorMsg::RaiseWebViewToTop(
+                    top_level_browsing_context_id,
+                ));
+                self.webviews
+                    .set_webview_visibility(top_level_browsing_context_id, true);
+                self.notify_webview_visibility(
+                    top_level_browsing_context_id,
+                    self.webviews
+                        .is_effectively_visible(top_level_browsing_context_id),
+                );
+            },
             FromCompositorMsg::FocusWebView(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {
                     return warn!("{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context");
@@ -1486,7 +1550,7 @@ where
                     EmbedderMsg::WebViewFocused(top_level_browsing_context_id),
                 ));
                 if !cfg!(feature = "multiview") {
-                    self.update_frame_tree_if_focused(top_level_browsing_context_id);
+                    self.update_webview(top_level_browsing_context_id);
                 }
             },
             FromCompositorMsg::BlurWebView => {
@@ -1542,7 +1606,16 @@ where
                 self.handle_media_session_action_msg(action);
             },
             FromCompositorMsg::WebViewVisibilityChanged(webview_id, visible) => {
+                // TODO is this correct?
+                self.webviews.set_native_window_visibility(visible);
                 self.notify_webview_visibility(webview_id, visible);
+                let webviews = self.webviews.iter().map(|(&id, _)| id).collect::<Vec<_>>();
+                for top_level_browsing_context_id in webviews {
+                    let visible = self
+                        .webviews
+                        .is_effectively_visible(top_level_browsing_context_id);
+                    self.notify_webview_visibility(top_level_browsing_context_id, visible);
+                }
             },
             FromCompositorMsg::ReadyToPresent(top_level_browsing_context_id) => {
                 self.embedder_proxy.send((
@@ -1552,6 +1625,10 @@ where
             },
             FromCompositorMsg::Gamepad(gamepad_event) => {
                 self.handle_gamepad_msg(gamepad_event);
+            },
+            FromCompositorMsg::WebViewPaintingOrder(browser_ids) => {
+                self.embedder_proxy
+                    .send((None, EmbedderMsg::WebViewPaintingOrder(browser_ids)));
             },
         }
     }
@@ -3020,7 +3097,8 @@ where
                 .send((None, EmbedderMsg::WebViewBlurred));
         }
         self.webviews.remove(top_level_browsing_context_id);
-        // TODO Send the compositor a RemoveWebView event.
+        self.compositor_proxy
+            .send(CompositorMsg::RemoveWebView(top_level_browsing_context_id));
         self.embedder_proxy.send((
             Some(top_level_browsing_context_id),
             EmbedderMsg::WebViewClosed(top_level_browsing_context_id),
@@ -3818,7 +3896,7 @@ where
         self.notify_history_changed(top_level_browsing_context_id);
 
         self.trim_history(top_level_browsing_context_id);
-        self.update_frame_tree_if_focused(top_level_browsing_context_id);
+        self.update_webview(top_level_browsing_context_id);
     }
 
     fn update_browsing_context(
@@ -4781,7 +4859,7 @@ where
         }
 
         self.notify_history_changed(change.top_level_browsing_context_id);
-        self.update_frame_tree_if_focused(change.top_level_browsing_context_id);
+        self.update_webview(change.top_level_browsing_context_id);
     }
 
     fn focused_browsing_context_is_descendant_of(
@@ -5423,17 +5501,18 @@ where
             })
     }
 
-    /// Send the frame tree for the given webview to the compositor.
-    fn update_frame_tree_if_focused(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) {
-        // Only send the frame tree if the given webview is focused.
-        if let Some(focused_webview_id) = self.webviews.focused_webview().map(|(id, _)| id) {
-            if top_level_browsing_context_id != focused_webview_id {
-                return;
+    /// Send the frame tree for the given web view to the compositor.
+    fn update_webview(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+        if !cfg!(feature = "multiview") {
+            if let Some(focused_browser_id) = self.webviews.focused_webview().map(|(id, _)| id) {
+                if top_level_browsing_context_id != focused_browser_id {
+                    return;
+                }
+            } else {
+                self.webviews.focus(top_level_browsing_context_id);
             }
         }
+
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
@@ -5441,7 +5520,7 @@ where
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
             debug!("{}: Sending frame tree", browsing_context_id);
             self.compositor_proxy
-                .send(CompositorMsg::SetFrameTree(frame_tree));
+                .send(CompositorMsg::UpdateWebView(frame_tree));
         }
     }
 

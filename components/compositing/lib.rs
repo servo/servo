@@ -19,6 +19,7 @@ mod compositor;
 mod gl;
 mod touch;
 pub mod windowing;
+mod webview;
 
 /// Data used to construct a compositor.
 pub struct InitialCompositorState {
