@@ -44,7 +44,7 @@ pub struct Gamepad {
     hand: GamepadHand,
     axis_bounds: (f64, f64),
     button_bounds: (f64, f64),
-    exposed: Cell<bool>
+    exposed: Cell<bool>,
 }
 
 impl Gamepad {
@@ -75,7 +75,7 @@ impl Gamepad {
             hand: hand,
             axis_bounds: axis_bounds,
             button_bounds: button_bounds,
-            exposed: Cell::new(false)
+            exposed: Cell::new(false),
         }
     }
 

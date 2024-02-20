@@ -49,7 +49,7 @@ pub struct Navigator {
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
     gpu: MutNullableDom<GPU>,
-    has_gamepad_gesture: Cell<bool>
+    has_gamepad_gesture: Cell<bool>,
 }
 
 impl Navigator {
@@ -198,9 +198,7 @@ impl NavigatorMethods for Navigator {
             return GamepadList::new(&global, &[]);
         }
 
-        let root = self
-            .gamepads
-            .or_init(|| GamepadList::new(&global, &[]));
+        let root = self.gamepads.or_init(|| GamepadList::new(&global, &[]));
 
         root
     }
