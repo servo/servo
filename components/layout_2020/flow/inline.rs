@@ -828,7 +828,6 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             End,
         }
         let style = self.containing_block.style;
-        let line_left_is_inline_start = style.writing_mode.line_left_is_inline_start();
         let mut text_align_keyword = style.clone_text_align();
 
         if last_line_or_forced_line_break {
@@ -848,19 +847,23 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
         let text_align = match text_align_keyword {
             TextAlignKeyword::Start => TextAlign::Start,
-            TextAlignKeyword::Center => TextAlign::Center,
+            TextAlignKeyword::Center | TextAlignKeyword::ServoCenter => TextAlign::Center,
             TextAlignKeyword::End => TextAlign::End,
-            TextAlignKeyword::Left if line_left_is_inline_start => TextAlign::Start,
-            TextAlignKeyword::Left => TextAlign::End,
-            TextAlignKeyword::Right if line_left_is_inline_start => TextAlign::End,
-            TextAlignKeyword::Right => TextAlign::Start,
-            TextAlignKeyword::Justify => TextAlign::Start,
-            TextAlignKeyword::ServoCenter |
-            TextAlignKeyword::ServoLeft |
-            TextAlignKeyword::ServoRight => {
-                // TODO: Implement these modes which seem to be used by quirks mode.
-                TextAlign::Start
+            TextAlignKeyword::Left | TextAlignKeyword::ServoLeft => {
+                if style.writing_mode.line_left_is_inline_start() {
+                    TextAlign::Start
+                } else {
+                    TextAlign::End
+                }
             },
+            TextAlignKeyword::Right | TextAlignKeyword::ServoRight => {
+                if style.writing_mode.line_left_is_inline_start() {
+                    TextAlign::End
+                } else {
+                    TextAlign::Start
+                }
+            },
+            TextAlignKeyword::Justify => TextAlign::Start,
         };
 
         let (line_start, available_space) = match self.current_line.placement_among_floats.get() {
