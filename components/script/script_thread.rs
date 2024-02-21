@@ -862,7 +862,7 @@ impl ScriptThreadFactory for ScriptThread {
 impl ScriptThread {
     pub fn with_layout<'a, T>(
         pipeline_id: PipelineId,
-        call: Box<dyn FnOnce(&mut dyn Layout) -> T + 'a>,
+        call: impl FnOnce(&mut dyn Layout) -> T,
     ) -> Result<T, ()> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
@@ -1211,9 +1211,8 @@ impl ScriptThread {
             },
         };
 
-        let _ = window.with_layout(Box::new(|layout: &mut dyn Layout| {
-            layout.process(Msg::RegisterPaint(name, properties, painter))
-        }));
+        let _ = window
+            .with_layout(|layout| layout.process(Msg::RegisterPaint(name, properties, painter)));
     }
 
     pub fn push_new_element_queue() {
@@ -2104,17 +2103,11 @@ impl ScriptThread {
     }
 
     fn handle_layout_message(&self, msg: LayoutControlMsg, pipeline_id: PipelineId) {
-        let _ = Self::with_layout(
-            pipeline_id,
-            Box::new(|layout: &mut dyn Layout| layout.handle_constellation_msg(msg)),
-        );
+        let _ = Self::with_layout(pipeline_id, |layout| layout.handle_constellation_msg(msg));
     }
 
     fn handle_font_cache(&self, pipeline_id: PipelineId) {
-        let _ = Self::with_layout(
-            pipeline_id,
-            Box::new(|layout: &mut dyn Layout| layout.handle_font_cache_msg()),
-        );
+        let _ = Self::with_layout(pipeline_id, |layout| layout.handle_font_cache_msg());
     }
 
     fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {
@@ -2910,7 +2903,7 @@ impl ScriptThread {
 
     /// Handles a request to exit a pipeline and shut down layout.
     fn handle_exit_pipeline_msg(&self, id: PipelineId, discard_bc: DiscardBrowsingContext) {
-        debug!("{id}: Starting pipeling exit.");
+        debug!("{id}: Starting pipeline exit.");
 
         self.closed_pipelines.borrow_mut().insert(id);
 
@@ -2918,16 +2911,21 @@ impl ScriptThread {
         // to prevent any further incoming networking messages from being handled.
         let document = self.documents.borrow_mut().remove(id);
         if let Some(document) = document {
+            // We should never have a pipeline that's still an incomplete load, but also has a Document.
+            debug_assert!(!self
+                .incomplete_loads
+                .borrow()
+                .iter()
+                .any(|load| load.pipeline_id == id));
+
             if let Some(parser) = document.get_current_parser() {
                 parser.abort();
             }
 
             debug!("{id}: Shutting down layout");
-            let _ = document
-                .window()
-                .with_layout(Box::new(|layout: &mut dyn Layout| {
-                    layout.process(Msg::ExitNow);
-                }));
+            let _ = document.window().with_layout(|layout| {
+                layout.process(Msg::ExitNow);
+            });
 
             debug!("{id}: Sending PipelineExited message to constellation");
             self.script_sender

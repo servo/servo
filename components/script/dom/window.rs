@@ -1884,9 +1884,7 @@ impl Window {
             animations: document.animations().sets.clone(),
         };
 
-        let _ = self.with_layout(Box::new(move |layout: &mut dyn Layout| {
-            layout.process(Msg::Reflow(reflow))
-        }));
+        let _ = self.with_layout(move |layout| layout.process(Msg::Reflow(reflow)));
 
         let complete = match join_port.try_recv() {
             Err(TryRecvError::Empty) => {
@@ -2002,9 +2000,7 @@ impl Window {
             });
 
             let pending_web_fonts = self
-                .with_layout(Box::new(move |layout: &mut dyn Layout| {
-                    layout.waiting_for_web_fonts_to_load()
-                }))
+                .with_layout(move |layout| layout.waiting_for_web_fonts_to_load())
                 .unwrap();
 
             let has_sent_idle_message = self.has_sent_idle_message.get();
@@ -2038,9 +2034,7 @@ impl Window {
         }
 
         let epoch = self
-            .with_layout(Box::new(move |layout: &mut dyn Layout| {
-                layout.current_epoch()
-            }))
+            .with_layout(move |layout| layout.current_epoch())
             .unwrap();
 
         debug!(
@@ -2073,8 +2067,7 @@ impl Window {
     }
 
     pub fn layout_rpc(&self) -> Box<dyn LayoutRPC> {
-        self.with_layout(Box::new(|layout: &mut dyn Layout| layout.rpc()))
-            .unwrap()
+        self.with_layout(|layout| layout.rpc()).unwrap()
     }
 
     pub fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
@@ -2314,10 +2307,7 @@ impl Window {
         self.Document().url()
     }
 
-    pub fn with_layout<'a, T>(
-        &self,
-        call: Box<dyn FnOnce(&mut dyn Layout) -> T + 'a>,
-    ) -> Result<T, ()> {
+    pub fn with_layout<'a, T>(&self, call: impl FnOnce(&mut dyn Layout) -> T) -> Result<T, ()> {
         ScriptThread::with_layout(self.pipeline_id(), call)
     }
 
