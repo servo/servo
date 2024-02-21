@@ -32,17 +32,13 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapTypedArray<T> {
 }
 
 pub fn new_initialized_heap_typed_array<T>(
-    init: HeapTypedArrayInit,
+    init: HeapTypedArrayInit<T>,
 ) -> Result<HeapTypedArray<T>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
     let heap_typed_array = match init {
-        HeapTypedArrayInit::Object(js_object) => HeapTypedArray {
-            internal: Heap::boxed(js_object),
-            phantom: PhantomData::default(),
-        },
         HeapTypedArrayInit::Info { len, cx } => {
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
             let typed_array_result =
@@ -54,13 +50,29 @@ where
             heap_typed_array.internal.set(*array);
             heap_typed_array
         },
+        HeapTypedArrayInit::Data { data, cx } => {
+            rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+            let typed_array_result = create_typed_array::<T>(cx, data, array.handle_mut());
+            if typed_array_result.is_err() {
+                return Err(());
+            }
+            let heap_typed_array = HeapTypedArray::<T>::default();
+            heap_typed_array.internal.set(*array);
+            heap_typed_array
+        },
     };
     Ok(heap_typed_array)
 }
 
-pub enum HeapTypedArrayInit {
-    Object(*mut JSObject),
-    Info { len: u32, cx: JSContext },
+pub enum HeapTypedArrayInit<'a, T: TypedArrayElement + TypedArrayElementCreator> {
+    Data {
+        data: &'a [T::Element],
+        cx: JSContext,
+    },
+    Info {
+        len: u32,
+        cx: JSContext,
+    },
 }
 
 impl<T> HeapTypedArray<T>

@@ -10,8 +10,8 @@ use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::JSObject;
-use js::rust::HandleObject;
-use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject};
+use js::typedarray::{ClampedU8, Uint8ClampedArray};
 
 use super::bindings::typedarrays::{
     new_initialized_heap_typed_array, HeapTypedArray, HeapTypedArrayInit,
@@ -20,6 +20,7 @@ use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::Im
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::typedarrays::create_typed_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
@@ -33,7 +34,6 @@ pub struct ImageData {
 }
 
 impl ImageData {
-    #[allow(unsafe_code)]
     pub fn new(
         global: &GlobalScope,
         width: u32,
@@ -41,34 +41,47 @@ impl ImageData {
         mut data: Option<Vec<u8>>,
     ) -> Fallible<DomRoot<ImageData>> {
         let len = width * height * 4;
-        unsafe {
-            let cx = GlobalScope::get_cx();
-            rooted!(in (*cx) let mut js_object = ptr::null_mut::<JSObject>());
-            if let Some(ref mut d) = data {
-                d.resize(len as usize, 0);
-                let data = CreateWith::Slice(&d[..]);
-                Uint8ClampedArray::create(*cx, data, js_object.handle_mut()).unwrap();
-                Self::new_with_jsobject(global, None, width, Some(height), js_object.get())
-            } else {
-                Self::new_without_jsobject(global, None, width, height)
-            }
+
+        let cx = GlobalScope::get_cx();
+        rooted!(in (*cx) let mut js_object = ptr::null_mut::<JSObject>());
+        if let Some(ref mut d) = data {
+            d.resize(len as usize, 0);
+
+            let typed_array =
+                match create_typed_array::<ClampedU8>(cx, &d[..], js_object.handle_mut()) {
+                    Ok(typed_array) => typed_array,
+                    Err(_) => return Err(Error::JSFailed),
+                };
+
+            Self::new_with_data(
+                global,
+                None,
+                width,
+                Some(height),
+                CustomAutoRooterGuard::new(*cx, &mut CustomAutoRooter::new(typed_array)),
+            )
+        } else {
+            Self::new_without_data(global, None, width, height)
         }
     }
 
     #[allow(unsafe_code)]
-    fn new_with_jsobject(
+    fn new_with_data(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u32,
         opt_height: Option<u32>,
-        jsobject: *mut JSObject,
+        data: CustomAutoRooterGuard<Uint8ClampedArray>,
     ) -> Fallible<DomRoot<ImageData>> {
-        let heap_typed_array = match new_initialized_heap_typed_array::<ClampedU8>(
-            HeapTypedArrayInit::Object(jsobject),
-        ) {
-            Ok(heap_typed_array) => heap_typed_array,
-            Err(_) => return Err(Error::JSFailed),
-        };
+        let cx = GlobalScope::get_cx();
+        let heap_typed_array =
+            match new_initialized_heap_typed_array::<ClampedU8>(HeapTypedArrayInit::Data {
+                data: unsafe { data.as_slice() },
+                cx: cx,
+            }) {
+                Ok(heap_typed_array) => heap_typed_array,
+                Err(_) => return Err(Error::JSFailed),
+            };
 
         let typed_array = match heap_typed_array.get_internal() {
             Ok(array) => array,
@@ -78,6 +91,8 @@ impl ImageData {
                 ))
             },
         };
+
+        // let dest = unsafe { data.as_mut_slice() };
 
         let byte_len = unsafe { typed_array.as_slice().len() } as u32;
         if byte_len == 0 || byte_len % 4 != 0 {
@@ -104,7 +119,7 @@ impl ImageData {
         Ok(reflect_dom_object_with_proto(imagedata, global, proto))
     }
 
-    fn new_without_jsobject(
+    fn new_without_data(
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u32,
@@ -141,20 +156,19 @@ impl ImageData {
         width: u32,
         height: u32,
     ) -> Fallible<DomRoot<Self>> {
-        Self::new_without_jsobject(global, proto, width, height)
+        Self::new_without_data(global, proto, width, height)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4>
     #[allow(unused_variables, non_snake_case)]
     pub fn Constructor_(
-        cx: JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        jsobject: *mut JSObject,
+        data: CustomAutoRooterGuard<Uint8ClampedArray>,
         width: u32,
         opt_height: Option<u32>,
     ) -> Fallible<DomRoot<Self>> {
-        Self::new_with_jsobject(global, proto, width, opt_height, jsobject)
+        Self::new_with_data(global, proto, width, opt_height, data)
     }
 
     /// Nothing must change the array on the JS side while the slice is live.
