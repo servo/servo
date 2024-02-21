@@ -162,24 +162,22 @@ impl VirtualMethods for HTMLTableCellElement {
         match *local_name {
             local_name!("colspan") => {
                 let mut attr = AttrValue::from_u32(value.into(), DEFAULT_COLSPAN);
-                if let AttrValue::UInt(ref mut s, ref mut val) = attr {
+                if let AttrValue::UInt(_, ref mut val) = attr {
                     if *val == 0 {
                         *val = 1;
-                        *s = "1".into();
                     }
                 }
                 attr
             },
             local_name!("rowspan") => {
                 let mut attr = AttrValue::from_u32(value.into(), DEFAULT_ROWSPAN);
-                if let AttrValue::UInt(ref mut s, ref mut val) = attr {
+                if let AttrValue::UInt(_, ref mut val) = attr {
                     if *val == 0 {
                         let node = self.upcast::<Node>();
                         let doc = node.owner_doc();
                         // rowspan = 0 is not supported in quirks mode
                         if doc.quirks_mode() != QuirksMode::NoQuirks {
                             *val = 1;
-                            *s = "1".into();
                         }
                     }
                 }

@@ -73,8 +73,8 @@ impl TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_fragment(fragment),
             collapsed_borders: CollapsedBordersForCell::new(),
-            column_span: node.get_colspan(),
-            row_span: node.get_rowspan(),
+            column_span: node.get_colspan().unwrap_or(1),
+            row_span: node.get_rowspan().unwrap_or(1),
             visible,
         }
     }

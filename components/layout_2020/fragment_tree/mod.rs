@@ -8,6 +8,7 @@ mod containing_block;
 mod fragment;
 mod fragment_tree;
 mod hoisted_shared_fragment;
+mod positioning_fragment;
 
 pub(crate) use base_fragment::*;
 pub(crate) use box_fragment::*;
@@ -15,3 +16,4 @@ pub(crate) use containing_block::*;
 pub(crate) use fragment::*;
 pub use fragment_tree::*;
 pub(crate) use hoisted_shared_fragment::*;
+pub(crate) use positioning_fragment::*;

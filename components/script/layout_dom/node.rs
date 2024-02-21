@@ -465,7 +465,16 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ThreadSafeLayoutNode<'dom>
         this.iframe_pipeline_id()
     }
 
-    fn get_colspan(&self) -> u32 {
+    fn get_span(&self) -> Option<u32> {
+        unsafe {
+            self.get_jsmanaged()
+                .downcast::<Element>()
+                .unwrap()
+                .get_span()
+        }
+    }
+
+    fn get_colspan(&self) -> Option<u32> {
         unsafe {
             self.get_jsmanaged()
                 .downcast::<Element>()
@@ -474,7 +483,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ThreadSafeLayoutNode<'dom>
         }
     }
 
-    fn get_rowspan(&self) -> u32 {
+    fn get_rowspan(&self) -> Option<u32> {
         unsafe {
             self.get_jsmanaged()
                 .downcast::<Element>()

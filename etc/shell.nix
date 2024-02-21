@@ -77,6 +77,8 @@ stdenv.mkDerivation (androidEnvironment // rec {
     taplo
     llvmPackages.bintools # provides lld
 
+    udev # Needed by libudev-sys for GamePad API.
+
     # Build utilities
     cmake dbus gcc git pkg-config which llvm perl yasm m4
     (python3.withPackages (ps: with ps; [virtualenv pip dbus]))

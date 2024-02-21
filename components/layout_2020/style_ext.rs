@@ -349,7 +349,7 @@ impl ComputedValuesExt for ComputedValues {
         let cbis = containing_block.inline_size;
         let padding = self
             .padding(containing_block.style.writing_mode)
-            .percentages_relative_to(cbis);
+            .percentages_relative_to(cbis.into());
         let border = self.border_width(containing_block.style.writing_mode);
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {
@@ -360,7 +360,7 @@ impl ComputedValuesExt for ComputedValues {
             border: border.into(),
             margin: self
                 .margin(containing_block.style.writing_mode)
-                .percentages_relative_to(cbis),
+                .percentages_relative_to(cbis.into()),
         }
     }
 

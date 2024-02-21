@@ -32,7 +32,7 @@ use crate::cell::ArcRefCell;
 use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
 use crate::display_list::DisplayListBuilder;
 use crate::fragment_tree::{
-    AnonymousFragment, BoxFragment, ContainingBlockManager, Fragment, FragmentTree,
+    BoxFragment, ContainingBlockManager, Fragment, FragmentTree, PositioningFragment,
 };
 use crate::geom::{PhysicalRect, PhysicalSides};
 use crate::style_ext::ComputedValuesExt;
@@ -636,11 +636,12 @@ impl StackingContext {
 
         let mut fragment_builder =
             super::BuilderForBoxFragment::new(box_fragment, containing_block);
-        let source = super::background::Source::Canvas {
+        let painter = super::background::BackgroundPainter {
             style,
-            painting_area,
+            painting_area_override: Some(painting_area),
+            positioning_area_override: None,
         };
-        fragment_builder.build_background_image(builder, source);
+        fragment_builder.build_background_image(builder, &painter);
     }
 
     pub(crate) fn build_display_list(&self, builder: &mut DisplayListBuilder) {
@@ -858,7 +859,7 @@ impl Fragment {
                     StackingContextBuildMode::IncludeHoisted,
                 );
             },
-            Fragment::Anonymous(fragment) => {
+            Fragment::Positioning(fragment) => {
                 fragment.build_stacking_context_tree(
                     display_list,
                     containing_block,
@@ -1501,7 +1502,7 @@ impl BoxFragment {
     }
 }
 
-impl AnonymousFragment {
+impl PositioningFragment {
     fn build_stacking_context_tree(
         &self,
         display_list: &mut DisplayList,
@@ -1511,7 +1512,7 @@ impl AnonymousFragment {
     ) {
         let rect = self
             .rect
-            .to_physical(self.mode, &containing_block.rect)
+            .to_physical(self.writing_mode, &containing_block.rect)
             .translate(containing_block.rect.origin.to_vector());
         let new_containing_block = containing_block.new_replacing_rect(&rect);
         let new_containing_block_info =
