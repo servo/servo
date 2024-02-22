@@ -62,3 +62,30 @@ pub fn set_bool(key: &str, value: bool) {
 pub fn set_i32(key: &str, value: i32) {
     PREFS.set_i32(key, value)
 }
+
+#[test]
+fn test() {
+    let mut prefs = Preferences::default();
+
+    // Prefs have default values when unset.
+    assert_eq!(prefs.get_bool("foo"), false);
+    assert_eq!(prefs.get_i32("bar"), 0);
+
+    // Prefs can be set and retrieved.
+    prefs.set_bool("foo", true);
+    prefs.set_i32("bar", 1);
+    assert_eq!(prefs.get_bool("foo"), true);
+    assert_eq!(prefs.get_i32("bar"), 1);
+    prefs.set_bool("foo", false);
+    prefs.set_i32("bar", 2);
+    assert_eq!(prefs.get_bool("foo"), false);
+    assert_eq!(prefs.get_i32("bar"), 2);
+
+    // Each value type currently has an independent namespace.
+    prefs.set_i32("foo", 3);
+    prefs.set_bool("bar", true);
+    assert_eq!(prefs.get_i32("foo"), 3);
+    assert_eq!(prefs.get_bool("foo"), false);
+    assert_eq!(prefs.get_bool("bar"), true);
+    assert_eq!(prefs.get_i32("bar"), 2);
+}
