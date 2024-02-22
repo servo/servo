@@ -21,7 +21,7 @@ gfx_traits = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
-malloc_size_of = { path = "../../malloc_size_of" }
+malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 metrics = { path = "../../metrics" }
 msg = { workspace = true }
@@ -29,10 +29,10 @@ net_traits = { workspace = true }
 profile_traits = { workspace = true }
 range = { path = "../../range" }
 script_traits = { workspace = true }
-selectors = { path = "../../selectors" }
-servo_arc = { path = "../../servo_arc" }
-servo_atoms = { path = "../../atoms" }
+selectors = { workspace = true }
+servo_arc = { workspace = true }
+servo_atoms = { workspace = true }
 servo_url = { path = "../../url" }
-style = { path = "../../style", features = ["servo"] }
+style = { workspace = true }
 style_traits = { workspace = true }
 webrender_api = { workspace = true }
