@@ -19,12 +19,12 @@ pub struct Preferences {
 
 impl Preferences {
     pub fn get_bool(&self, key: &str) -> bool {
-        let prefs = self.bool_prefs.write().expect("RwLock is poisoned");
+        let prefs = self.bool_prefs.read().expect("RwLock is poisoned");
         *prefs.get(key).unwrap_or(&false)
     }
 
     pub fn get_i32(&self, key: &str) -> i32 {
-        let prefs = self.i32_prefs.write().expect("RwLock is poisoned");
+        let prefs = self.i32_prefs.read().expect("RwLock is poisoned");
         *prefs.get(key).unwrap_or(&0)
     }
 
