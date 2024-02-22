@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::to_computed_value;
-use darling::FromField;
 use derive_common::cg;
 use proc_macro2::TokenStream;
-use quote::quote;
-use syn::{parse_quote, DeriveInput};
+use syn::DeriveInput;
 use synstructure::BindStyle;
+use to_computed_value;
 
 pub fn derive(input: DeriveInput) -> TokenStream {
     let trait_impl = |from_body, to_body| {
