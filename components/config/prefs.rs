@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::convert::TryFrom;
-use std::{borrow::ToOwned, convert::TryInto};
+use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::convert::{TryFrom, TryInto};
 
 use embedder_traits::resources::{self, Resource};
 use gen::Prefs;
@@ -79,8 +79,8 @@ fn set_stylo_pref_ref(key: &str, value: &PrefValue) {
         Ok(StyloPrefValue::Int(value)) => style_config::set_i32(key, value),
         Err(TryFromPrefValueError::IntegerOverflow(value)) => {
             warn!("Pref value too big for Stylo: {} ({})", key, value);
-        }
-        Err(TryFromPrefValueError::UnmappedType) => {}
+        },
+        Err(TryFromPrefValueError::UnmappedType) => {},
     }
 }
 
@@ -105,7 +105,7 @@ impl TryFrom<&PrefValue> for StyloPrefValue {
                 } else {
                     Err(TryFromPrefValueError::IntegerOverflow(value))
                 }
-            }
+            },
             &PrefValue::Bool(value) => Ok(Self::Bool(value)),
             _ => Err(TryFromPrefValueError::UnmappedType),
         }
