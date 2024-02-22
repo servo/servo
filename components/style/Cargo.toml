@@ -18,9 +18,20 @@ doctest = false
 
 [features]
 gecko = ["style_traits/gecko", "bindgen", "regex", "toml", "mozbuild"]
-servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
-         "cssparser/serde", "encoding_rs", "malloc_size_of/servo",
-         "string_cache", "to_shmem/servo", "servo_arc/servo", "url"]
+servo = [
+    "serde",
+    "style_traits/servo",
+    "servo_atoms",
+    "servo_config",
+    "html5ever",
+    "cssparser/serde",
+    "encoding_rs",
+    "malloc_size_of/servo",
+    "string_cache",
+    "to_shmem/servo",
+    "servo_arc/servo",
+    "url",
+]
 gecko_debug = []
 gecko_refcount_logging = []
 
@@ -56,7 +67,7 @@ rayon = "1"
 selectors = { path = "../selectors" }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 servo_arc = { path = "../servo_arc" }
-servo_atoms = {path = "../atoms", optional = true}
+servo_atoms = { path = "../atoms", optional = true }
 servo_config = { path = "../config", optional = true }
 smallbitvec = "2.3.0"
 smallvec = "1.0"
