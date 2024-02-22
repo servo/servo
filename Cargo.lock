@@ -5821,15 +5821,7 @@ dependencies = [
 name = "style_config"
 version = "0.0.1"
 dependencies = [
- "embedder_traits",
- "euclid",
- "getopts",
  "lazy_static",
- "log",
- "num_cpus",
- "serde",
- "serde_json",
- "url",
 ]
 
 [[package]]
