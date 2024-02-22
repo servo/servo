@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::char::{ToLowercase, ToUppercase};
 use std::mem;
-use std::str::Chars;
 
 use app_units::Au;
 use gfx::font::{FontRef, ShapingFlags, ShapingOptions};
@@ -19,7 +19,10 @@ use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
+use style::values::specified::text::TextTransformCase;
+use style::values::specified::TextTransform;
 use unicode_script::Script;
+use unicode_segmentation::UnicodeSegmentation;
 use xi_unicode::{linebreak_property, LineBreakLeafIter};
 
 use super::inline::{FontKeyAndMetrics, InlineFormattingContextState};
@@ -209,11 +212,13 @@ impl TextRun {
         linebreaker: &mut Option<LineBreakLeafIter>,
         font_cache: &mut Vec<FontKeyAndMetrics>,
         last_inline_box_ended_with_white_space: &mut bool,
+        on_word_boundary: &mut bool,
     ) {
         let segment_results = self.segment_text(
             font_context,
             font_cache,
             last_inline_box_ended_with_white_space,
+            on_word_boundary,
         );
         let inherited_text_style = self.parent_style.get_inherited_text().clone();
         let letter_spacing = if inherited_text_style.letter_spacing.0.px() != 0. {
@@ -278,25 +283,49 @@ impl TextRun {
         font_context: &mut FontContext<FontCacheThread>,
         font_cache: &mut Vec<FontKeyAndMetrics>,
         last_inline_box_ended_with_white_space: &mut bool,
+        on_word_boundary: &mut bool,
     ) -> Vec<(TextRunSegment, FontRef)> {
         let font_group = font_context.font_group(self.parent_style.clone_font());
         let mut current: Option<(TextRunSegment, FontRef)> = None;
         let mut results = Vec::new();
 
-        let text = std::mem::replace(&mut self.text, String::new());
+        // TODO: Eventually the text should come directly from the Cow strings of the DOM nodes.
+        let text = std::mem::take(&mut self.text);
         let collapsed = WhitespaceCollapse::new(
-            text.as_str(),
+            text.as_str().chars(),
             self.parent_style.clone_white_space(),
             *last_inline_box_ended_with_white_space,
         );
 
+        let text_transform = self.parent_style.clone_text_transform();
+        let collected_text: String;
+        let char_iterator: Box<dyn Iterator<Item = char>> =
+            if text_transform.case_ == TextTransformCase::Capitalize {
+                // `TextTransformation` doesn't support capitalization, so we must capitalize the whole
+                // string at once and make a copy. Here `on_word_boundary` indicates whether or not the
+                // inline formatting context as a whole is on a word boundary. This is different from
+                // `last_inline_box_ended_with_white_space` because the word boundaries are between
+                // atomic inlines and at the start of the IFC.
+                let collapsed_string: String = collapsed.collect();
+                collected_text = capitalize_string(&collapsed_string, *on_word_boundary);
+                Box::new(collected_text.chars())
+            } else if !text_transform.is_none() {
+                // If `text-transform` is active, wrap the `WhitespaceCollapse` iterator in
+                // a `TextTransformation` iterator.
+                Box::new(TextTransformation::new(collapsed, text_transform))
+            } else {
+                Box::new(collapsed)
+            };
+
         let mut next_byte_index = 0;
-        let text = collapsed
+        let text = char_iterator
             .map(|character| {
                 let current_byte_index = next_byte_index;
                 next_byte_index += character.len_utf8();
 
                 *last_inline_box_ended_with_white_space = character.is_whitespace();
+                *on_word_boundary = *last_inline_box_ended_with_white_space;
+
                 let prevents_soft_wrap_opportunity =
                     char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character);
                 if current_byte_index == 0 && prevents_soft_wrap_opportunity {
@@ -331,7 +360,7 @@ impl TextRun {
                 // segment in the middle of the run (ie the start should be 0).
                 let start_byte_index = match current {
                     Some(_) => ByteIndex(current_byte_index as isize),
-                    None => ByteIndex(0 as isize),
+                    None => ByteIndex(0_isize),
                 };
                 let new = (
                     TextRunSegment::new(font_index, script, start_byte_index),
@@ -491,8 +520,8 @@ fn preserve_segment_break() -> bool {
     true
 }
 
-pub struct WhitespaceCollapse<'a> {
-    char_iterator: Chars<'a>,
+pub struct WhitespaceCollapse<InputIterator> {
+    char_iterator: InputIterator,
     white_space: WhiteSpace,
 
     /// Whether or not we should collapse white space completely at the start of the string.
@@ -519,10 +548,14 @@ pub struct WhitespaceCollapse<'a> {
     character_pending_to_return: Option<char>,
 }
 
-impl<'a> WhitespaceCollapse<'a> {
-    pub fn new(input: &'a str, white_space: WhiteSpace, trim_beginning_white_space: bool) -> Self {
+impl<InputIterator> WhitespaceCollapse<InputIterator> {
+    pub fn new(
+        char_iterator: InputIterator,
+        white_space: WhiteSpace,
+        trim_beginning_white_space: bool,
+    ) -> Self {
         Self {
-            char_iterator: input.chars(),
+            char_iterator,
             white_space,
             remove_collapsible_white_space_at_start: trim_beginning_white_space,
             inside_white_space: false,
@@ -545,7 +578,10 @@ impl<'a> WhitespaceCollapse<'a> {
     }
 }
 
-impl<'a> Iterator for WhitespaceCollapse<'a> {
+impl<InputIterator> Iterator for WhitespaceCollapse<InputIterator>
+where
+    InputIterator: Iterator<Item = char>,
+{
     type Item = char;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -644,4 +680,116 @@ impl<'a> Iterator for WhitespaceCollapse<'a> {
     {
         self.char_iterator.count()
     }
+}
+
+enum PendingCaseConversionResult {
+    Uppercase(ToUppercase),
+    Lowercase(ToLowercase),
+}
+
+impl PendingCaseConversionResult {
+    fn next(&mut self) -> Option<char> {
+        match self {
+            PendingCaseConversionResult::Uppercase(to_uppercase) => to_uppercase.next(),
+            PendingCaseConversionResult::Lowercase(to_lowercase) => to_lowercase.next(),
+        }
+    }
+}
+
+/// This is an interator that consumes a char iterator and produces character transformed
+/// by the given CSS `text-transform` value. It currently does not support
+/// `text-transform: capitalize` because Unicode segmentation libraries do not support
+/// streaming input one character at a time.
+pub struct TextTransformation<InputIterator> {
+    /// The input character iterator.
+    char_iterator: InputIterator,
+    /// The `text-transform` value to use.
+    text_transform: TextTransform,
+    /// If an uppercasing or lowercasing produces more than one character, this
+    /// caches them so that they can be returned in subsequent iterator calls.
+    pending_case_conversion_result: Option<PendingCaseConversionResult>,
+}
+
+impl<'a, InputIterator> TextTransformation<InputIterator> {
+    pub fn new(char_iterator: InputIterator, text_transform: TextTransform) -> Self {
+        Self {
+            char_iterator,
+            text_transform,
+            pending_case_conversion_result: None,
+        }
+    }
+}
+
+impl<InputIterator> Iterator for TextTransformation<InputIterator>
+where
+    InputIterator: Iterator<Item = char>,
+{
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(character) = self
+            .pending_case_conversion_result
+            .as_mut()
+            .and_then(|result| result.next())
+        {
+            return Some(character);
+        }
+        self.pending_case_conversion_result = None;
+
+        for character in self.char_iterator.by_ref() {
+            match self.text_transform.case_ {
+                TextTransformCase::None => return Some(character),
+                TextTransformCase::Uppercase => {
+                    let mut pending_result =
+                        PendingCaseConversionResult::Uppercase(character.to_uppercase());
+                    if let Some(character) = pending_result.next() {
+                        self.pending_case_conversion_result = Some(pending_result);
+                        return Some(character);
+                    }
+                },
+                TextTransformCase::Lowercase => {
+                    let mut pending_result =
+                        PendingCaseConversionResult::Lowercase(character.to_lowercase());
+                    if let Some(character) = pending_result.next() {
+                        self.pending_case_conversion_result = Some(pending_result);
+                        return Some(character);
+                    }
+                },
+                // `text-transform: capitalize` currently cannot work on a per-character basis,
+                // so must be handled outside of this iterator.
+                // TODO: Add support for `full-width` and `full-size-kana`.
+                _ => return Some(character),
+            }
+        }
+        None
+    }
+}
+
+/// Given a string and whether the start of the string represents a word boundary, create a copy of
+/// the string with letters after word boundaries capitalized.
+fn capitalize_string(string: &str, allow_word_at_start: bool) -> String {
+    let mut output_string = String::new();
+    output_string.reserve(string.len());
+
+    let mut bounds = string.unicode_word_indices().peekable();
+    let mut byte_index = 0;
+    for character in string.chars() {
+        let current_byte_index = byte_index;
+        byte_index += character.len_utf8();
+
+        if let Some((next_index, _)) = bounds.peek() {
+            if *next_index == current_byte_index {
+                bounds.next();
+
+                if current_byte_index != 0 || allow_word_at_start {
+                    output_string.extend(character.to_uppercase());
+                    continue;
+                }
+            }
+        }
+
+        output_string.push(character);
+    }
+
+    output_string
 }

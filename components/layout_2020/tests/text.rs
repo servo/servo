@@ -8,8 +8,8 @@ mod text {
 
     #[test]
     fn test_collapse_whitespace() {
-        let collapse = |input, white_space, trim_beginning_white_space| {
-            WhitespaceCollapse::new(input, white_space, trim_beginning_white_space)
+        let collapse = |input: &str, white_space, trim_beginning_white_space| {
+            WhitespaceCollapse::new(input.chars(), white_space, trim_beginning_white_space)
                 .collect::<String>()
         };
 

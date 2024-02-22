@@ -1578,6 +1578,9 @@ impl InlineFormattingContext {
         // > (It is invisible, but retains its soft wrap opportunity, if any.)
         let mut last_inline_box_ended_with_white_space = false;
 
+        // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
+        let mut on_word_boundary = true;
+
         crate::context::with_thread_local_font_context(layout_context, |font_context| {
             let mut linebreaker = None;
             self.foreach(|iter_item| match iter_item {
@@ -1589,6 +1592,7 @@ impl InlineFormattingContext {
                         &mut linebreaker,
                         &mut ifc_fonts,
                         &mut last_inline_box_ended_with_white_space,
+                        &mut on_word_boundary,
                     );
                 },
                 InlineFormattingContextIterItem::Item(InlineLevelBox::InlineBox(inline_box)) => {
@@ -1601,6 +1605,7 @@ impl InlineFormattingContext {
                 },
                 InlineFormattingContextIterItem::Item(InlineLevelBox::Atomic(_)) => {
                     last_inline_box_ended_with_white_space = false;
+                    on_word_boundary = true;
                 },
                 _ => {},
             });
