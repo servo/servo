@@ -30,6 +30,8 @@ impl Preferences {
 
     pub fn set_bool(&self, key: &str, value: bool) {
         let mut prefs = self.bool_prefs.write().expect("RwLock is poisoned");
+
+        // Avoid cloning the key if it exists.
         if let Some(pref) = prefs.get_mut(key) {
             *pref = value;
         } else {
@@ -39,6 +41,8 @@ impl Preferences {
 
     pub fn set_i32(&self, key: &str, value: i32) {
         let mut prefs = self.i32_prefs.write().expect("RwLock is poisoned");
+
+        // Avoid cloning the key if it exists.
         if let Some(pref) = prefs.get_mut(key) {
             *pref = value;
         } else {
