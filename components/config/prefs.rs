@@ -73,7 +73,6 @@ pub fn set_stylo_pref(key: &str, value: impl Into<PrefValue>) {
 }
 
 fn set_stylo_pref_ref(key: &str, value: &PrefValue) {
-    dbg!(key);
     match value.try_into() {
         Ok(StyloPrefValue::Bool(value)) => style_config::set_bool(key, value),
         Ok(StyloPrefValue::Int(value)) => style_config::set_i32(key, value),
