@@ -16,7 +16,7 @@ euclid = { workspace = true }
 html5ever = { workspace = true }
 rayon = { workspace = true }
 serde_json = { workspace = true }
-selectors = {path = "../../../components/selectors", features = ["shmem"] }
+selectors = {path = "../../../components/selectors" }
 servo_arc = {path = "../../../components/servo_arc"}
 servo_atoms = {path = "../../../components/atoms"}
 servo_config = {path = "../../../components/config"}

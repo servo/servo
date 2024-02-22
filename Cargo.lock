@@ -3492,7 +3492,6 @@ dependencies = [
  "cssparser",
  "euclid",
  "http",
- "hyper_serde",
  "indexmap 2.2.3",
  "keyboard-types",
  "selectors",

@@ -27,10 +27,10 @@ ${helpers.single_keyword(
     ${helpers.single_keyword(
         "list-style-type",
         """disc none circle square disclosure-open disclosure-closed
-           decimal lower-alpha upper-alpha arabic-indic bengali cambodian cjk-decimal devanagari
-           gujarati gurmukhi kannada khmer lao malayalam mongolian myanmar oriya persian telugu
-           thai tibetan cjk-earthly-branch cjk-heavenly-stem lower-greek hiragana hiragana-iroha
-           katakana katakana-iroha
+            decimal lower-alpha upper-alpha arabic-indic bengali cambodian cjk-decimal devanagari
+            gujarati gurmukhi kannada khmer lao malayalam mongolian myanmar oriya persian telugu
+            thai tibetan cjk-earthly-branch cjk-heavenly-stem lower-greek hiragana hiragana-iroha
+            katakana katakana-iroha
         """,
         engines="servo",
         animation_value_type="discrete",

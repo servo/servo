@@ -14,7 +14,6 @@ servo = [
     "content-security-policy",
     "crossbeam-channel",
     "http",
-    "hyper_serde",
     "keyboard-types",
     "serde",
     "serde_bytes",
@@ -34,10 +33,9 @@ crossbeam-channel = { workspace = true, optional = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }
 http = { workspace = true, optional = true }
-hyper_serde = { workspace = true, optional = true }
 indexmap = { workspace = true }
 keyboard-types = { workspace = true, optional = true }
-selectors = { path = "../selectors", features = ["shmem"] }
+selectors = { path = "../selectors" }
 serde = { workspace = true, optional = true }
 serde_bytes = { workspace = true, optional = true }
 servo_arc = { path = "../servo_arc" }
@@ -46,7 +44,7 @@ smallvec = { workspace = true }
 string_cache = { workspace = true, optional = true }
 thin-vec = { workspace = true }
 time = { workspace = true, optional = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 void = "1.0.2"
