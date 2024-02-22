@@ -64,7 +64,7 @@ owning_ref = "0.4"
 parking_lot = "0.12"
 precomputed-hash = "0.1.1"
 rayon = "1"
-selectors = { path = "../selectors", features = ["shmem"] }
+selectors = { path = "../selectors" }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms", optional = true }
@@ -75,15 +75,15 @@ static_assertions = "1.1"
 static_prefs = { path = "../style_static_prefs" }
 string_cache = { version = "0.8", optional = true }
 style_derive = { path = "../style_derive" }
-style_traits = { workspace = true }
+style_traits = { path = "../style_traits" }
 time = "0.1"
 thin-vec = { workspace = true }
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
-url = { workspace = true, optional = true, features = ["serde"] }
 uluru = "3.0"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
+url = { workspace = true, optional = true }
 void = "1.0.2"
 
 [build-dependencies]

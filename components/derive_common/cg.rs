@@ -5,11 +5,11 @@
 use darling::{FromDeriveInput, FromField, FromVariant};
 use proc_macro2::{Span, TokenStream};
 use quote::TokenStreamExt;
-use syn::{
-    self, AngleBracketedGenericArguments, AssocType, DeriveInput, Field, GenericArgument,
-    GenericParam, Ident, Path, PathArguments, PathSegment, QSelf, Type, TypeArray, TypeGroup,
-    TypeParam, TypeParen, TypePath, TypeSlice, TypeTuple, Variant, WherePredicate,
-};
+use syn::{self, AngleBracketedGenericArguments, AssocType, DeriveInput, Field};
+use syn::{GenericArgument, GenericParam, Ident, Path};
+use syn::{PathArguments, PathSegment, QSelf, Type, TypeArray, TypeGroup};
+use syn::{TypeParam, TypeParen, TypePath, TypeSlice, TypeTuple};
+use syn::{Variant, WherePredicate};
 use synstructure::{self, BindStyle, BindingInfo, VariantAst, VariantInfo};
 
 /// Given an input type which has some where clauses already, like:

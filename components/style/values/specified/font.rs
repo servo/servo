@@ -1591,7 +1591,7 @@ macro_rules! impl_variant_numeric {
     } => {
         bitflags! {
             #[derive(MallocSizeOf, ToComputedValue, ToResolvedValue, ToShmem)]
-            /// Vairants of numeric values
+            /// Variants of numeric values
             pub struct FontVariantNumeric: u8 {
                 /// None of other variants are enabled.
                 const NORMAL = 0;

@@ -31,8 +31,7 @@ use crate::stylesheets::{
 };
 use crate::values::computed::font::FamilyName;
 use crate::values::{CssUrl, CustomIdent, DashedIdent, KeyframesName};
-use crate::Atom;
-use crate::{Namespace, Prefix};
+use crate::{Atom, Namespace, Prefix};
 use cssparser::{
     AtRuleParser, BasicParseError, BasicParseErrorKind, CowRcStr, DeclarationParser, Parser,
     ParserState, QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser, SourceLocation,

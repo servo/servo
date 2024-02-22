@@ -81,24 +81,18 @@ extern crate webrender_api;
 #[cfg(feature = "servo")]
 extern crate xml5ever;
 
-use std::hash::{BuildHasher, Hash};
-use std::mem::size_of;
-use std::ops::{Deref, DerefMut, Range};
-use std::os::raw::c_void;
-
 #[cfg(feature = "servo")]
 use content_security_policy as csp;
 #[cfg(feature = "servo")]
 use serde_bytes::ByteBuf;
+use std::hash::{BuildHasher, Hash};
+use std::mem::size_of;
+use std::ops::Range;
+use std::ops::{Deref, DerefMut};
+use std::os::raw::c_void;
 #[cfg(feature = "servo")]
 use uuid::Uuid;
 use void::Void;
-use webrender_api::{
-    BorderRadius, BorderStyle, BoxShadowClipMode, ColorF, ComplexClipRegion, ExtendMode,
-    ExternalScrollId, FilterOp, FontInstanceKey, GlyphInstance, GradientStop, ImageKey,
-    ImageRendering, LineStyle, MixBlendMode, NinePatchBorder, NormalBorder, RepeatMode,
-    StickyOffsetBounds, TransformStyle,
-};
 
 /// A C function that takes a pointer to a heap allocation and returns its size.
 type VoidPtrToSizeFn = unsafe extern "C" fn(ptr: *const c_void) -> usize;
@@ -863,45 +857,45 @@ impl MallocSizeOf for url::Host {
     }
 }
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(BorderRadius);
+malloc_size_of_is_0!(webrender_api::BorderRadius);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(BorderStyle);
+malloc_size_of_is_0!(webrender_api::BorderStyle);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(BoxShadowClipMode);
+malloc_size_of_is_0!(webrender_api::BoxShadowClipMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(ColorF);
+malloc_size_of_is_0!(webrender_api::ColorF);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(ComplexClipRegion);
+malloc_size_of_is_0!(webrender_api::ComplexClipRegion);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(ExtendMode);
+malloc_size_of_is_0!(webrender_api::ExtendMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(FilterOp);
+malloc_size_of_is_0!(webrender_api::FilterOp);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(ExternalScrollId);
+malloc_size_of_is_0!(webrender_api::ExternalScrollId);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(FontInstanceKey);
+malloc_size_of_is_0!(webrender_api::FontInstanceKey);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(GradientStop);
+malloc_size_of_is_0!(webrender_api::GradientStop);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(GlyphInstance);
+malloc_size_of_is_0!(webrender_api::GlyphInstance);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(NinePatchBorder);
+malloc_size_of_is_0!(webrender_api::NinePatchBorder);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(ImageKey);
+malloc_size_of_is_0!(webrender_api::ImageKey);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(ImageRendering);
+malloc_size_of_is_0!(webrender_api::ImageRendering);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(LineStyle);
+malloc_size_of_is_0!(webrender_api::LineStyle);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(MixBlendMode);
+malloc_size_of_is_0!(webrender_api::MixBlendMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(NormalBorder);
+malloc_size_of_is_0!(webrender_api::NormalBorder);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(RepeatMode);
+malloc_size_of_is_0!(webrender_api::RepeatMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(StickyOffsetBounds);
+malloc_size_of_is_0!(webrender_api::StickyOffsetBounds);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(TransformStyle);
+malloc_size_of_is_0!(webrender_api::TransformStyle);
 
 #[cfg(feature = "servo")]
 impl MallocSizeOf for keyboard_types::Key {
@@ -933,18 +927,6 @@ malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::SystemTime);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(std::time::Instant);
-
-#[cfg(feature = "servo")]
-impl<T> MallocSizeOf for hyper_serde::Serde<T>
-where
-    for<'de> hyper_serde::De<T>: serde::Deserialize<'de>,
-    for<'a> hyper_serde::Ser<'a, T>: serde::Serialize,
-    T: MallocSizeOf,
-{
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.0.size_of(ops)
-    }
-}
 
 // Placeholder for unique case where internals of Sender cannot be measured.
 // malloc size of is 0 macro complains about type supplied!
