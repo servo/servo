@@ -531,17 +531,17 @@ impl HoistedAbsolutelyPositionedBox {
         let mut positioning_context =
             PositioningContext::new_for_style(absolutely_positioned_box.context.style()).unwrap();
         let mut new_fragment = {
-            let content_size;
+            let content_size: LogicalVec2<Au>;
             let fragments;
             match &mut absolutely_positioned_box.context {
                 IndependentFormattingContext::Replaced(replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
                     let style = &replaced.style;
-                    content_size = computed_size.auto_is(|| unreachable!());
+                    content_size = computed_size.auto_is(|| unreachable!()).into();
                     fragments = replaced
                         .contents
-                        .make_fragments(style, content_size.clone().into());
+                        .make_fragments(style, content_size.clone());
                 },
                 IndependentFormattingContext::NonReplaced(non_replaced) => {
                     // https://drafts.csswg.org/css2/#min-max-widths
@@ -549,10 +549,11 @@ impl HoistedAbsolutelyPositionedBox {
                     let min_size = non_replaced
                         .style
                         .content_min_box_size(&containing_block.into(), &pbm)
-                        .auto_is(Length::zero);
+                        .map(|t| t.map(Au::from).auto_is(Au::zero));
                     let max_size = non_replaced
                         .style
-                        .content_max_box_size(&containing_block.into(), &pbm);
+                        .content_max_box_size(&containing_block.into(), &pbm)
+                        .map(|t| t.map(Au::from));
 
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
@@ -575,9 +576,9 @@ impl HoistedAbsolutelyPositionedBox {
                     // because a non-‘auto’ computed ‘inline-size’ always becomes the used value.
                     // https://drafts.csswg.org/css2/#min-max-widths (step 2)
                     if let Some(max) = max_size.inline {
-                        if inline_size > max.into() {
-                            inline_axis = inline_axis_solver
-                                .solve_for_size(AuOrAuto::LengthPercentage(max.into()));
+                        if inline_size > max {
+                            inline_axis =
+                                inline_axis_solver.solve_for_size(AuOrAuto::LengthPercentage(max));
                             inline_size = inline_axis.size.auto_is(|| unreachable!());
                         }
                     }
@@ -587,14 +588,14 @@ impl HoistedAbsolutelyPositionedBox {
                     // computed ‘inline-size’. We can assume the new inline size won’t be ‘auto’,
                     // because a non-‘auto’ computed ‘inline-size’ always becomes the used value.
                     // https://drafts.csswg.org/css2/#min-max-widths (step 3)
-                    if inline_size < min_size.inline.into() {
+                    if inline_size < min_size.inline {
                         inline_axis = inline_axis_solver
-                            .solve_for_size(AuOrAuto::LengthPercentage(min_size.inline.into()));
+                            .solve_for_size(AuOrAuto::LengthPercentage(min_size.inline));
                         inline_size = inline_axis.size.auto_is(|| unreachable!());
                     }
 
                     struct Result {
-                        content_size: LogicalVec2<CSSPixelLength>,
+                        content_size: LogicalVec2<Au>,
                         fragments: Vec<Fragment>,
                     }
 
@@ -628,8 +629,8 @@ impl HoistedAbsolutelyPositionedBox {
                         let block_size = size.auto_is(|| independent_layout.content_block_size);
                         Result {
                             content_size: LogicalVec2 {
-                                inline: inline_size.into(),
-                                block: block_size.into(),
+                                inline: inline_size,
+                                block: block_size,
                             },
                             fragments: independent_layout.fragments,
                         }
@@ -644,9 +645,9 @@ impl HoistedAbsolutelyPositionedBox {
                     // https://drafts.csswg.org/css2/#min-max-heights (step 2)
                     if let Some(max) = max_size.block {
                         if result.content_size.block > max {
-                            block_axis = block_axis_solver
-                                .solve_for_size(AuOrAuto::LengthPercentage(max.into()));
-                            result = try_layout(AuOrAuto::LengthPercentage(max.into()));
+                            block_axis =
+                                block_axis_solver.solve_for_size(AuOrAuto::LengthPercentage(max));
+                            result = try_layout(AuOrAuto::LengthPercentage(max));
                         }
                     }
 
@@ -657,8 +658,8 @@ impl HoistedAbsolutelyPositionedBox {
                     // https://drafts.csswg.org/css2/#min-max-heights (step 3)
                     if result.content_size.block < min_size.block {
                         block_axis = block_axis_solver
-                            .solve_for_size(AuOrAuto::LengthPercentage(min_size.block.into()));
-                        result = try_layout(AuOrAuto::LengthPercentage(min_size.block.into()));
+                            .solve_for_size(AuOrAuto::LengthPercentage(min_size.block));
+                        result = try_layout(AuOrAuto::LengthPercentage(min_size.block));
                     }
 
                     content_size = result.content_size;
@@ -677,13 +678,13 @@ impl HoistedAbsolutelyPositionedBox {
             let inline_start = match inline_axis.anchor {
                 Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
                 Anchor::End(end) => {
-                    cbis - end - pb.inline_end - margin.inline_end - content_size.inline.into()
+                    cbis - end - pb.inline_end - margin.inline_end - content_size.inline
                 },
             };
             let block_start = match block_axis.anchor {
                 Anchor::Start(start) => start + pb.block_start + margin.block_start,
                 Anchor::End(end) => {
-                    cbbs - end - pb.block_end - margin.block_end - content_size.block.into()
+                    cbbs - end - pb.block_end - margin.block_end - content_size.block
                 },
             };
 
@@ -692,7 +693,7 @@ impl HoistedAbsolutelyPositionedBox {
                     inline: inline_start,
                     block: block_start,
                 },
-                size: content_size.into(),
+                size: content_size,
             };
 
             let physical_overconstrained =
