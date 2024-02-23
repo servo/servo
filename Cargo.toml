@@ -95,6 +95,7 @@ smallvec = "1.13"
 sparkle = "0.1.26"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
+style_config = { path = "components/style_config" }
 style_traits = { path = "components/style_traits", features = ["servo"] }
 # NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
 surfman = { version = "0.9", features = ["chains", "sm-angle", "sm-angle-default"] }

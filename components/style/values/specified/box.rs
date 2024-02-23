@@ -27,10 +27,7 @@ fn flexbox_enabled() -> bool {
 
 #[cfg(feature = "servo")]
 fn flexbox_enabled() -> bool {
-    servo_config::prefs::pref_map()
-        .get("layout.flexbox.enabled")
-        .as_bool()
-        .unwrap_or(false)
+    style_config::get_bool("layout.flexbox.enabled")
 }
 
 /// Defines an element’s display type, which consists of
