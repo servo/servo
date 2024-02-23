@@ -79,6 +79,7 @@ struct TableLayout<'a> {
     columns: Vec<ColumnLayout>,
     cell_measures: Vec<Vec<LogicalVec2<CellOrTrackMeasure>>>,
     assignable_width: Au,
+    final_table_height: Au,
     column_measures: Vec<CellOrTrackMeasure>,
     distributed_column_widths: Vec<Au>,
     row_sizes: Vec<Au>,
@@ -115,6 +116,7 @@ impl<'a> TableLayout<'a> {
             columns: Vec::new(),
             cell_measures: Vec::new(),
             assignable_width: Au::zero(),
+            final_table_height: Au::zero(),
             column_measures: Vec::new(),
             distributed_column_widths: Vec::new(),
             row_sizes: Vec::new(),
@@ -130,18 +132,27 @@ impl<'a> TableLayout<'a> {
         &mut self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
+        containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
     ) {
-        let writing_mode = containing_block.style.writing_mode;
+        let writing_mode = containing_block_for_children.style.writing_mode;
         self.compute_track_constrainedness_and_has_originating_cells(writing_mode);
-        self.compute_cell_measures(layout_context, containing_block);
-        self.compute_column_measures(containing_block.style.writing_mode);
-        self.compute_table_width(containing_block);
+        self.compute_cell_measures(layout_context, containing_block_for_children);
+        self.compute_column_measures(writing_mode);
+        self.compute_table_width(containing_block_for_children, containing_block);
         self.distributed_column_widths = self.distribute_width_to_columns();
 
-        self.layout_cells_in_row(layout_context, containing_block, positioning_context);
+        self.layout_cells_in_row(
+            layout_context,
+            containing_block_for_children,
+            positioning_context,
+        );
         let first_layout_row_heights = self.do_first_row_layout(writing_mode);
-        self.compute_table_height_and_final_row_heights(first_layout_row_heights, containing_block);
+        self.compute_table_height_and_final_row_heights(
+            first_layout_row_heights,
+            containing_block_for_children,
+            containing_block,
+        );
     }
 
     /// This is an implementation of *Computing Cell Measures* from
@@ -623,7 +634,11 @@ impl<'a> TableLayout<'a> {
         (next_span_n, new_content_sizes_for_columns)
     }
 
-    fn compute_table_width(&mut self, containing_block: &ContainingBlock) {
+    fn compute_table_width(
+        &mut self,
+        containing_block_for_children: &ContainingBlock,
+        containing_block: &ContainingBlock,
+    ) {
         // https://drafts.csswg.org/css-tables/#gridmin:
         // > The row/column-grid width minimum (GRIDMIN) width is the sum of the min-content width of
         // > all the columns plus cell spacing or borders.
@@ -638,10 +653,16 @@ impl<'a> TableLayout<'a> {
                 result + measure.content_sizes
             });
         let border_spacing = self.table.border_spacing();
-        let inline_border_spacing = border_spacing.inline * (self.table.size.width as i32 + 1);
+        let inline_border_spacing = if self.table.size.width > 0 {
+            border_spacing.inline * (self.table.size.width as i32 + 1)
+        } else {
+            Au::zero()
+        };
         grid_min_and_max.min_content += inline_border_spacing;
         grid_min_and_max.max_content += inline_border_spacing;
 
+        // TODO: `containing_block` is the containing block for the contents of the table,
+        // it shouldn't be used to resolve percentages on the table itself!
         self.pbm = self.table.style.padding_border_margin(containing_block);
         let content_box_size = self
             .table
@@ -667,12 +688,12 @@ impl<'a> TableLayout<'a> {
         // > * If the table-root has 'width: auto', the used width is the greater of min(GRIDMAX,
         // >   the table’s containing block width), the used min-width of the table.
         let used_width_of_table = match content_box_size.inline {
-            LengthPercentage(length_percentage) => {
-                Au::from(length_percentage).max(used_min_width_of_table)
-            },
+            LengthPercentage(_) => grid_min_and_max
+                .min_content
+                .max(containing_block_for_children.inline_size),
             Auto => grid_min_and_max
                 .max_content
-                .min(containing_block.inline_size)
+                .min(containing_block_for_children.inline_size)
                 .max(used_min_width_of_table),
         };
 
@@ -1327,27 +1348,33 @@ impl<'a> TableLayout<'a> {
     fn compute_table_height_and_final_row_heights(
         &mut self,
         mut row_sizes: Vec<Au>,
+        containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
     ) {
         // The table content height is the maximum of the computed table height from style and the
         // sum of computed row heights from row layout plus size from borders and spacing.
-        let table_height_from_style = self
-            .table
-            .style
-            .content_box_size(containing_block, &self.pbm)
-            .block
-            .auto_is(Length::zero)
-            .into();
+        let style = &self.table.style;
+        let table_height_from_style =
+            match style.content_box_size(containing_block, &self.pbm).block {
+                LengthPercentage(_) => containing_block_for_children.block_size,
+                Auto => style
+                    .content_min_box_size(containing_block, &self.pbm)
+                    .block
+                    .map(Au::from),
+            }
+            .auto_is(Au::zero);
 
-        let border_spacing = self.table.border_spacing();
-        let border_and_spacing = self.pbm.border.block_sum() +
-            border_spacing.block * (self.table.size.height as i32 + 1);
-        let table_height_from_rows = row_sizes.iter().sum::<Au>() + border_and_spacing;
-        let final_table_height = table_height_from_rows.max(table_height_from_style);
+        let block_border_spacing = if self.table.size.height > 0 {
+            self.table.border_spacing().block * (self.table.size.height as i32 + 1)
+        } else {
+            Au::zero()
+        };
+        let table_height_from_rows = row_sizes.iter().sum::<Au>() + block_border_spacing;
+        self.final_table_height = table_height_from_rows.max(table_height_from_style);
 
         // If the table height is defined by the rows sizes, there is no extra space to distribute
         // to rows.
-        if final_table_height == table_height_from_rows {
+        if self.final_table_height == table_height_from_rows {
             self.row_sizes = row_sizes;
             return;
         }
@@ -1357,10 +1384,10 @@ impl<'a> TableLayout<'a> {
         // space.
         // TODO: This should first distribute space to row groups and then to rows.
         self.distribute_extra_size_to_rows(
-            final_table_height - table_height_from_rows,
+            self.final_table_height - table_height_from_rows,
             0..self.table.size.height,
             &mut row_sizes,
-            Some(final_table_height),
+            Some(self.final_table_height),
             false, /* rowspan_distribution */
         );
         self.row_sizes = row_sizes;
@@ -1378,7 +1405,8 @@ impl<'a> TableLayout<'a> {
         if self.table.size.width == 0 || self.table.size.height == 0 {
             return IndependentLayout {
                 fragments,
-                content_block_size: Au::zero(),
+                content_block_size: self.final_table_height,
+                content_inline_size_for_table: Some(self.assignable_width),
                 baselines,
             };
         }
@@ -1487,6 +1515,7 @@ impl<'a> TableLayout<'a> {
         IndependentLayout {
             fragments,
             content_block_size: dimensions.table_rect.max_block_position(),
+            content_inline_size_for_table: Some(dimensions.table_rect.max_inline_position()),
             baselines,
         }
     }
@@ -1780,10 +1809,16 @@ impl Table {
         &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
+        containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
     ) -> IndependentLayout {
         let mut table_layout = TableLayout::new(self);
-        table_layout.compute_measures(layout_context, positioning_context, containing_block);
+        table_layout.compute_measures(
+            layout_context,
+            positioning_context,
+            containing_block_for_children,
+            containing_block,
+        );
         table_layout.layout(positioning_context)
     }
 }

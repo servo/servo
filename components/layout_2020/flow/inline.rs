@@ -1940,24 +1940,32 @@ impl IndependentFormattingContext {
                     layout_context,
                     child_positioning_context.as_mut().unwrap(),
                     &containing_block_for_children,
+                    &ifc.containing_block,
                 );
+                let (inline_size, block_size) =
+                    match independent_layout.content_inline_size_for_table {
+                        Some(inline) => (inline, independent_layout.content_block_size),
+                        None => {
+                            // https://drafts.csswg.org/css2/visudet.html#block-root-margin
+                            let tentative_block_size = box_size
+                                .block
+                                .auto_is(|| independent_layout.content_block_size.into());
 
-                // https://drafts.csswg.org/css2/visudet.html#block-root-margin
-                let tentative_block_size = box_size
-                    .block
-                    .auto_is(|| independent_layout.content_block_size.into());
+                            // https://drafts.csswg.org/css2/visudet.html#min-max-heights
+                            // In this case “applying the rules above again” with a non-auto block-size
+                            // always results in that size.
+                            let block_size = tentative_block_size
+                                .clamp_between_extremums(min_box_size.block, max_box_size.block);
 
-                // https://drafts.csswg.org/css2/visudet.html#min-max-heights
-                // In this case “applying the rules above again” with a non-auto block-size
-                // always results in that size.
-                let block_size = tentative_block_size
-                    .clamp_between_extremums(min_box_size.block, max_box_size.block);
+                            (inline_size.into(), block_size.into())
+                        },
+                    };
 
                 let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
                     size: LogicalVec2 {
-                        block: block_size.into(),
-                        inline: inline_size.into(),
+                        block: block_size,
+                        inline: inline_size,
                     },
                 };
 
