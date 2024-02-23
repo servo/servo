@@ -81,9 +81,14 @@ fn set_stylo_pref_ref(key: &str, value: &PrefValue) {
         Ok(StyloPrefValue::Bool(value)) => style_config::set_bool(key, value),
         Ok(StyloPrefValue::Int(value)) => style_config::set_i32(key, value),
         Err(TryFromPrefValueError::IntegerOverflow(value)) => {
+            // TODO: logging doesn’t actually work this early, so we should
+            // split PrefValue into i32 and i64 variants.
             warn!("Pref value too big for Stylo: {} ({})", key, value);
         },
-        Err(TryFromPrefValueError::UnmappedType) => {},
+        Err(TryFromPrefValueError::UnmappedType) => {
+            // Most of Servo’s prefs will hit this. When adding a new pref type
+            // in Stylo, update TryFrom<&PrefValue> for StyloPrefValue as well.
+        },
     }
 }
 

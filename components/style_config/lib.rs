@@ -13,6 +13,8 @@ lazy_static! {
 
 #[derive(Debug, Default)]
 pub struct Preferences {
+    // When adding a new pref type, be sure to update the TryFrom<&PrefValue> in
+    // servo_config, to plumb the values in from Servo.
     bool_prefs: RwLock<HashMap<String, bool>>,
     i32_prefs: RwLock<HashMap<String, i32>>,
 }
