@@ -345,6 +345,10 @@ pub trait ThreadSafeLayoutElement<'dom>:
     /// lazily_compute_pseudo_element_style, which operates on TElement.
     unsafe fn unsafe_get(self) -> Self::ConcreteElement;
 
+    /// Get the local name of this element. See
+    /// <https://dom.spec.whatwg.org/#concept-element-local-name>.
+    fn get_local_name(&self) -> &LocalName;
+
     fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&str>;
 
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue>;

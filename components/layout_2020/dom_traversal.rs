@@ -4,7 +4,7 @@
 
 use std::borrow::Cow;
 
-use html5ever::LocalName;
+use html5ever::{local_name, LocalName};
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
@@ -78,6 +78,9 @@ where
         let flags = match threadsafe_node.as_element() {
             Some(element) if element.is_body_element_of_html_element_root() => {
                 FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT
+            },
+            Some(element) if element.get_local_name() == &local_name!("br") => {
+                FragmentFlags::IS_BR_ELEMENT
             },
             _ => FragmentFlags::empty(),
         };

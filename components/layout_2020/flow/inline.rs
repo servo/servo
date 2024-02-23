@@ -35,7 +35,7 @@ use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment,
+    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
     PositioningFragment,
 };
 use crate::geom::{LogicalRect, LogicalVec2};
@@ -624,6 +624,18 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         self.white_space = style.get_inherited_text().white_space;
     }
 
+    fn processing_br_element(&self) -> bool {
+        self.inline_box_state_stack
+            .last()
+            .map(|state| {
+                state
+                    .base_fragment_info
+                    .flags
+                    .contains(FragmentFlags::IS_BR_ELEMENT)
+            })
+            .unwrap_or(false)
+    }
+
     /// Start laying out a particular [`InlineBox`] into line items. This will push
     /// a new [`InlineBoxContainerState`] onto [`Self::inline_box_state_stack`].
     fn start_inline_box(&mut self, inline_box: &InlineBox) {
@@ -1114,12 +1126,22 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // Defer the actual line break until we've cleared all ending inline boxes.
         self.linebreak_before_new_content = true;
 
-        // We need to ensure that the appropriate space for a linebox is created even if there
-        // was no other content on this line. We mark the line as having content (needing a
-        // advance) and having at least the height associated with this nesting of inline boxes.
-        self.current_line
-            .max_block_size
-            .max_assign(&self.current_line_max_block_size_including_nested_containers());
+        // In quirks mode, the line-height isn't automatically added to the line. If we consider a
+        // forced line break a kind of preserved white space, quirks mode requires that we add the
+        // line-height of the current element to the line box height.
+        //
+        // The exception here is `<br>` elements. They are implemented with `pre-line` in Servo, but
+        // this is an implementation detail. The "magic" behavior of `<br>` elements is that they
+        // add line-height to the line conditionally: only when they are on an otherwise empty line.
+        let line_is_empty =
+            !self.current_line_segment.has_content && !self.current_line.has_content;
+        if !self.processing_br_element() || line_is_empty {
+            let strut_size = self
+                .current_inline_container_state()
+                .strut_block_sizes
+                .clone();
+            self.update_unbreakable_segment_for_new_content(&strut_size, Length::zero(), false);
+        }
 
         self.had_inflow_content = true;
     }
@@ -1275,7 +1297,10 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     /// Commit the current unbrekable segment to the current line. In addition, this will
     /// place all floats in the unbreakable segment and expand the line dimensions.
     fn commit_current_segment_to_line(&mut self) {
-        if self.current_line_segment.line_items.is_empty() {
+        // The line segments might have no items and have content after processing a forced
+        // linebreak on an empty line.
+        if self.current_line_segment.line_items.is_empty() && !self.current_line_segment.has_content
+        {
             return;
         }
 
