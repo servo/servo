@@ -15,7 +15,7 @@ jobs:
     # This job is only useful when run on upstream servo.
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Create Draft GH Release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - id: create-release
         run: |
@@ -43,10 +43,10 @@ jobs:
     # This job is only useful when run on upstream servo.
     if: always() && (github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch')
     name: Publish GH Release for nightly
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Publish as latest (success)
-        if: success()
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         run: |
           gh api \
             --method PATCH \
@@ -55,7 +55,7 @@ jobs:
             /repos/${NIGHTLY_REPO}/releases/${RELEASE_ID} \
             -F draft=false
       - name: Publish as latest (failure)
-        if: failure()
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         run: |
           gh api \
             --method PATCH \
