@@ -13,6 +13,7 @@ use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage};
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
 use style::values::generics::text::LineHeight;
+use style::values::specified::box_::DisplayOutside;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::FontInstanceKey;
@@ -27,9 +28,7 @@ use crate::geom::{LogicalRect, LogicalVec2};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
-use crate::style_ext::{
-    ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside, PaddingBorderMargin,
-};
+use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
 
 pub(super) struct LineMetrics {
@@ -523,31 +522,34 @@ impl AbsolutelyPositionedLineItem {
     fn layout(self, state: &mut LineItemLayoutState) -> ArcRefCell<HoistedSharedFragment> {
         let box_ = self.absolutely_positioned_box;
         let style = AtomicRef::map(box_.borrow(), |box_| box_.context.style());
-        let initial_start_corner = match Display::from(style.get_box().original_display) {
-            Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { outside, inside: _ }) => {
+
+        // From https://drafts.csswg.org/css2/#abs-non-replaced-width
+        // > The static-position containing block is the containing block of a
+        // > hypothetical box that would have been the first box of the element if its
+        // > specified position value had been static and its specified float had been
+        // > none. (Note that due to the rules in section 9.7 this hypothetical
+        // > calculation might require also assuming a different computed value for
+        // > display.)
+        //
+        // This box is different based on the original `display` value of the
+        // absolutely positioned element. If it's `inline` it would be placed inline
+        // at the top of the line, but if it's block it would be placed in a new
+        // block position after the linebox established by this line.
+        let initial_start_corner =
+            if style.get_box().original_display.outside() == DisplayOutside::Inline {
+                // Top of the line at the current inline position.
                 LogicalVec2 {
-                    inline: match outside {
-                        DisplayOutside::Inline => {
-                            state.inline_position - state.parent_offset.inline
-                        },
-                        DisplayOutside::Block => Length::zero(),
-                    },
-                    // The blocks start position of the absolute should be at the top of the line.
+                    inline: state.inline_position - state.parent_offset.inline,
                     block: -state.parent_offset.block,
                 }
-            },
-            Display::GeneratingBox(DisplayGeneratingBox::LayoutInternal(_)) => {
-                unreachable!(
-                    "The result of blockification should never be a layout-internal value."
-                );
-            },
-            Display::Contents => {
-                panic!("display:contents does not generate an abspos box")
-            },
-            Display::None => {
-                panic!("display:none does not generate an abspos box")
-            },
-        };
+            } else {
+                // After the bottom of the line at the start of the inline formatting context.
+                LogicalVec2 {
+                    inline: Length::zero(),
+                    block: state.line_metrics.block_size - state.parent_offset.block,
+                }
+            };
+
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             box_.clone(),
             initial_start_corner,

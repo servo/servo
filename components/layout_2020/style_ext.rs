@@ -34,7 +34,7 @@ pub(crate) enum Display {
     GeneratingBox(DisplayGeneratingBox),
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum DisplayGeneratingBox {
     OutsideInside {
         outside: DisplayOutside,
@@ -72,13 +72,13 @@ impl DisplayGeneratingBox {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum DisplayOutside {
     Block,
     Inline,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum DisplayInside {
     // “list-items are limited to the Flow Layout display types”
     // <https://drafts.csswg.org/css-display/#list-items>
