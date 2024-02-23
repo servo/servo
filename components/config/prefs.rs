@@ -19,7 +19,11 @@ lazy_static! {
     static ref PREFS: Preferences<'static, Prefs> = {
         let def_prefs: Prefs = serde_json::from_str(&resources::read_string(Resource::Preferences))
             .expect("Failed to initialize config preferences.");
-        Preferences::new(def_prefs, &gen::PREF_ACCESSORS)
+        let result = Preferences::new(def_prefs, &gen::PREF_ACCESSORS);
+        for (key, value) in result.iter() {
+            set_stylo_pref_ref(&key, &value);
+        }
+        result
     };
 }
 
