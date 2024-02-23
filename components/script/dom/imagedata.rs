@@ -92,8 +92,6 @@ impl ImageData {
             },
         };
 
-        // let dest = unsafe { data.as_mut_slice() };
-
         let byte_len = unsafe { typed_array.as_slice().len() } as u32;
         if byte_len == 0 || byte_len % 4 != 0 {
             return Err(Error::InvalidState);
