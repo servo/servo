@@ -812,6 +812,10 @@ thread_local!(
     static THREAD_ACTIVE: Cell<bool> = Cell::new(true);
 );
 
+pub(crate) fn runtime_is_alive() -> bool {
+    THREAD_ACTIVE.with(|t| t.get())
+}
+
 #[allow(unsafe_code)]
 unsafe extern "C" fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
     if !THREAD_ACTIVE.with(|t| t.get()) {
