@@ -142,7 +142,7 @@ impl LogicalVec2<LengthPercentageOrAuto<'_>> {
                 .inline
                 .percentage_relative_to(containing_block.inline_size.into()),
             block: self.block.maybe_percentage_relative_to(
-                containing_block.block_size.non_auto().map(|t| t.into()),
+                containing_block.block_size.map(|t| t.into()).non_auto(),
             ),
         }
     }
