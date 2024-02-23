@@ -28,11 +28,12 @@ fn test_paint_metrics_construction() {
         layout_sender,
         script_sender,
         ServoUrl::parse("about:blank").unwrap(),
+        0,
     );
     assert_eq!(
         (&paint_time_metrics).get_navigation_start(),
-        None,
-        "navigation start is None"
+        Some(0),
+        "navigation start is set properly"
     );
     assert_eq!(
         paint_time_metrics.get_first_paint(),
@@ -57,6 +58,7 @@ fn test_common(display_list_is_contentful: bool, epoch: Epoch) -> PaintTimeMetri
         layout_sender,
         script_sender,
         ServoUrl::parse("about:blank").unwrap(),
+        0,
     );
     let dummy_profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
@@ -66,8 +68,6 @@ fn test_common(display_list_is_contentful: bool, epoch: Epoch) -> PaintTimeMetri
         display_list_is_contentful,
     );
 
-    // Should not set any metric until navigation start is set.
-    paint_time_metrics.maybe_set_metric(epoch, 0);
     assert_eq!(
         paint_time_metrics.get_first_paint(),
         None,

@@ -13,8 +13,7 @@
 //!
 //! * The set of all `Pipeline` objects.  Each pipeline gives the
 //!   constellation's view of a `Window`, with its script thread and
-//!   layout threads.  Pipelines may share script threads, but not
-//!   layout threads.
+//!   layout.  Pipelines may share script threads.
 //!
 //! * The set of all `BrowsingContext` objects. Each browsing context
 //!   gives the constellation's view of a `WindowProxy`.
@@ -45,7 +44,7 @@
 //
 //! The constellation also maintains channels to threads, including:
 //!
-//! * The script and layout threads.
+//! * The script thread.
 //! * The graphics compositor.
 //! * The font cache, image cache, and resource manager, which load
 //!   and cache shared fonts, images, or other resources.
@@ -67,12 +66,8 @@
 //! sender to send some data. Servo tries to achieve deadlock-freedom by using the following
 //! can-block-on relation:
 //!
-//! * Layout can block on canvas
-//! * Layout can block on font cache
-//! * Layout can block on image cache
 //! * Constellation can block on compositor
 //! * Constellation can block on embedder
-//! * Constellation can block on layout
 //! * Script can block on anything (other than script)
 //! * Blocking is transitive (if T1 can block on T2 and T2 can block on T3 then T1 can block on T3)
 //! * Nothing can block on itself!
@@ -124,7 +119,6 @@ use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::KeyboardEvent;
-use layout_traits::LayoutThreadFactory;
 use log::{debug, error, info, trace, warn};
 use media::{GLPlayerThreads, WindowGLContext};
 use msg::constellation_msg::{
@@ -138,17 +132,18 @@ use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{self, FetchResponseMsg, IpcSend, ResourceThreads};
 use profile_traits::{mem, time};
+use script_layout_interface::{LayoutFactory, ScriptThreadFactory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent};
 use script_traits::{
     webdriver_msg, AnimationState, AnimationTickType, AuxiliaryBrowsingContextLoadInfo,
     BroadcastMsg, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
     DocumentActivity, DocumentState, GamepadEvent, HistoryEntryReplacement, IFrameLoadInfo,
-    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutControlMsg,
-    LayoutMsg as FromLayoutMsg, LoadData, LoadOrigin, LogEntry, MediaSessionActionType,
-    MessagePortMsg, MouseEventType, PortMessageTask, SWManagerMsg, SWManagerSenders,
-    ScriptMsg as FromScriptMsg, ScriptThreadFactory, ScriptToConstellationChan,
-    ServiceWorkerManagerFactory, ServiceWorkerMsg, StructuredSerializedData, TimerSchedulerMsg,
-    UpdatePipelineIdReason, WebDriverCommandMsg, WindowSizeData, WindowSizeType,
+    IFrameLoadInfoWithData, IFrameSandboxState, IFrameSizeMsg, Job, LayoutMsg as FromLayoutMsg,
+    LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType,
+    PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
+    ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    StructuredSerializedData, TimerSchedulerMsg, UpdatePipelineIdReason, WebDriverCommandMsg,
+    WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
@@ -270,7 +265,7 @@ struct BrowsingContextGroup {
 /// `LayoutThread` in the `layout` crate, and `ScriptThread` in
 /// the `script` crate). Script and layout communicate using a `Message`
 /// type.
-pub struct Constellation<Message, LTF, STF, SWF> {
+pub struct Constellation<STF, SWF> {
     /// An ipc-sender/threaded-receiver pair
     /// to facilitate installing pipeline namespaces in threads
     /// via a per-process installer.
@@ -302,11 +297,16 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     /// from the background hang monitor.
     background_hang_monitor_receiver: Receiver<Result<HangMonitorAlert, IpcError>>,
 
-    /// An IPC channel for layout threads to send messages to the constellation.
-    /// This is the layout threads' view of `layout_receiver`.
+    /// A factory for creating layouts. This allows customizing the kind
+    /// of layout created for a [`Constellation`] and prevents a circular crate
+    /// dependency between script and layout.
+    layout_factory: Arc<dyn LayoutFactory>,
+
+    /// An IPC channel for layout to send messages to the constellation.
+    /// This is the layout's view of `layout_receiver`.
     layout_sender: IpcSender<FromLayoutMsg>,
 
-    /// A channel for the constellation to receive messages from layout threads.
+    /// A channel for the constellation to receive messages from layout.
     /// This is the constellation's view of `layout_sender`.
     layout_receiver: Receiver<Result<FromLayoutMsg, IpcError>>,
 
@@ -455,7 +455,7 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     random_pipeline_closure: Option<(ServoRng, f32)>,
 
     /// Phantom data that keeps the Rust type system happy.
-    phantom: PhantomData<(Message, LTF, STF, SWF)>,
+    phantom: PhantomData<(STF, SWF)>,
 
     /// Entry point to create and get channels to a WebGLThread.
     webgl_threads: Option<WebGLThreads>,
@@ -575,7 +575,6 @@ impl WebDriverData {
 enum ReadyToSave {
     NoTopLevelBrowsingContext,
     PendingChanges,
-    WebFontNotLoaded,
     DocumentLoading,
     EpochMismatch,
     PipelineUnknown,
@@ -610,15 +609,15 @@ where
     crossbeam_receiver
 }
 
-impl<Message, LTF, STF, SWF> Constellation<Message, LTF, STF, SWF>
+impl<STF, SWF> Constellation<STF, SWF>
 where
-    LTF: LayoutThreadFactory<Message = Message>,
-    STF: ScriptThreadFactory<Message = Message>,
+    STF: ScriptThreadFactory,
     SWF: ServiceWorkerManagerFactory,
 {
     /// Create a new constellation thread.
     pub fn start(
         state: InitialConstellationState,
+        layout_factory: Arc<dyn LayoutFactory>,
         initial_window_size: WindowSizeData,
         random_pipeline_closure_probability: Option<f32>,
         random_pipeline_closure_seed: Option<usize>,
@@ -738,7 +737,7 @@ where
                     wgpu_image_map: state.wgpu_image_map,
                 };
 
-                let mut constellation: Constellation<Message, LTF, STF, SWF> = Constellation {
+                let mut constellation: Constellation<STF, SWF> = Constellation {
                     namespace_receiver,
                     namespace_ipc_sender,
                     script_sender: script_ipc_sender,
@@ -749,6 +748,7 @@ where
                     layout_sender: layout_ipc_sender,
                     script_receiver: script_receiver,
                     compositor_receiver: compositor_receiver,
+                    layout_factory,
                     layout_receiver: layout_receiver,
                     network_listener_sender: network_listener_sender,
                     network_listener_receiver: network_listener_receiver,
@@ -1020,7 +1020,7 @@ where
             self.public_resource_threads.clone()
         };
 
-        let result = Pipeline::spawn::<Message, LTF, STF>(InitialPipelineState {
+        let result = Pipeline::spawn::<STF>(InitialPipelineState {
             id: pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
@@ -1037,6 +1037,7 @@ where
                 .background_hang_monitor_sender
                 .clone(),
             layout_to_constellation_chan: self.layout_sender.clone(),
+            layout_factory: self.layout_factory.clone(),
             scheduler_chan: self.scheduler_ipc_sender.clone(),
             compositor_proxy: self.compositor_proxy.clone(),
             devtools_sender: self.devtools_sender.clone(),
@@ -1652,11 +1653,11 @@ where
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             },
-            FromScriptMsg::ScriptNewIFrame(load_info, response_sender) => {
-                self.handle_script_new_iframe(load_info, response_sender);
+            FromScriptMsg::ScriptNewIFrame(load_info) => {
+                self.handle_script_new_iframe(load_info);
             },
-            FromScriptMsg::ScriptNewAuxiliary(load_info, response_sender) => {
-                self.handle_script_new_auxiliary(load_info, response_sender);
+            FromScriptMsg::ScriptNewAuxiliary(load_info) => {
+                self.handle_script_new_auxiliary(load_info);
             },
             FromScriptMsg::ChangeRunningAnimationsState(animation_state) => {
                 self.handle_change_running_animations_state(source_pipeline_id, animation_state)
@@ -1736,6 +1737,13 @@ where
             },
             FromScriptMsg::SetDocumentState(state) => {
                 self.document_states.insert(source_pipeline_id, state);
+            },
+            FromScriptMsg::SetLayoutEpoch(epoch, response_sender) => {
+                if let Some(pipeline) = self.pipelines.get_mut(&source_pipeline_id) {
+                    pipeline.layout_epoch = epoch;
+                }
+
+                response_sender.send(true).unwrap_or_default();
             },
             FromScriptMsg::GetClientWindow(response_sender) => {
                 self.compositor_proxy
@@ -2560,6 +2568,8 @@ where
     }
 
     fn handle_exit(&mut self) {
+        debug!("Handling exit.");
+
         // TODO: add a timer, which forces shutdown if threads aren't responsive.
         if self.shutting_down {
             return;
@@ -2638,6 +2648,8 @@ where
     }
 
     fn handle_shutdown(&mut self) {
+        debug!("Handling shutdown.");
+
         // At this point, there are no active pipelines,
         // so we can safely block on other threads, without worrying about deadlock.
         // Channels to receive signals when threads are done exiting.
@@ -3233,11 +3245,7 @@ where
         });
     }
 
-    fn handle_script_new_iframe(
-        &mut self,
-        load_info: IFrameLoadInfoWithData,
-        layout_sender: IpcSender<LayoutControlMsg>,
-    ) {
+    fn handle_script_new_iframe(&mut self, load_info: IFrameLoadInfoWithData) {
         let IFrameLoadInfo {
             parent_pipeline_id,
             new_pipeline_id,
@@ -3274,7 +3282,6 @@ where
             top_level_browsing_context_id,
             None,
             script_sender,
-            layout_sender,
             self.compositor_proxy.clone(),
             is_parent_visible,
             load_info.load_data,
@@ -3298,11 +3305,7 @@ where
         });
     }
 
-    fn handle_script_new_auxiliary(
-        &mut self,
-        load_info: AuxiliaryBrowsingContextLoadInfo,
-        layout_sender: IpcSender<LayoutControlMsg>,
-    ) {
+    fn handle_script_new_auxiliary(&mut self, load_info: AuxiliaryBrowsingContextLoadInfo) {
         let AuxiliaryBrowsingContextLoadInfo {
             load_data,
             opener_pipeline_id,
@@ -3337,7 +3340,6 @@ where
             new_top_level_browsing_context_id,
             Some(opener_browsing_context_id),
             script_sender,
-            layout_sender,
             self.compositor_proxy.clone(),
             is_opener_visible,
             load_data,
@@ -4956,14 +4958,9 @@ where
             return ReadyToSave::PendingChanges;
         }
 
-        let (state_sender, state_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let (epoch_ipc_sender, epoch_ipc_receiver) =
-            ipc::channel().expect("Failed to create IPC channel!");
-
-        // Step through the fully active browsing contexts, checking that the script
-        // thread is idle, and that the current epoch of the layout thread
-        // matches what the compositor has painted. If all these conditions
-        // are met, then the output image should not change and a reftest
+        // Step through the fully active browsing contexts, checking that the script thread is idle,
+        // and that the current epoch of the layout matches what the compositor has painted. If all
+        // these conditions are met, then the output image should not change and a reftest
         // screenshot can safely be written.
         for browsing_context in
             self.fully_active_browsing_contexts_iter(top_level_browsing_context_id)
@@ -4983,22 +4980,6 @@ where
                 Some(pipeline) => pipeline,
             };
 
-            // Check to see if there are any webfonts still loading.
-            //
-            // If GetWebFontLoadState returns false, either there are no
-            // webfonts loading, or there's a WebFontLoaded message waiting in
-            // script_chan's message queue. Therefore, we need to check this
-            // before we check whether the document is ready; otherwise,
-            // there's a race condition where a webfont has finished loading,
-            // but hasn't yet notified the document.
-            let msg = LayoutControlMsg::GetWebFontLoadState(state_sender.clone());
-            if let Err(e) = pipeline.layout_chan.send(msg) {
-                warn!("Get web font failed ({})", e);
-            }
-            if state_receiver.recv().unwrap_or(true) {
-                return ReadyToSave::WebFontNotLoaded;
-            }
-
             // See if this pipeline has reached idle script state yet.
             match self.document_states.get(&browsing_context.pipeline_id) {
                 Some(&DocumentState::Idle) => {},
@@ -5017,25 +4998,14 @@ where
                 continue;
             }
 
-            // Get the epoch that the compositor has drawn for this pipeline.
+            // Get the epoch that the compositor has drawn for this pipeline and then check if the
+            // last laid out epoch matches what the compositor has drawn. If they match (and script
+            // is idle) then this pipeline won't change again and can be considered stable.
             let compositor_epoch = pipeline_states.get(&browsing_context.pipeline_id);
             match compositor_epoch {
                 Some(compositor_epoch) => {
-                    // Synchronously query the layout thread to see if the current
-                    // epoch matches what the compositor has drawn. If they match
-                    // (and script is idle) then this pipeline won't change again
-                    // and can be considered stable.
-                    let message = LayoutControlMsg::GetCurrentEpoch(epoch_ipc_sender.clone());
-                    if let Err(e) = pipeline.layout_chan.send(message) {
-                        warn!("Failed to send GetCurrentEpoch ({}).", e);
-                    }
-                    match epoch_ipc_receiver.recv() {
-                        Err(e) => warn!("Failed to receive current epoch ({:?}).", e),
-                        Ok(layout_thread_epoch) => {
-                            if layout_thread_epoch != *compositor_epoch {
-                                return ReadyToSave::EpochMismatch;
-                            }
-                        },
+                    if pipeline.layout_epoch != *compositor_epoch {
+                        return ReadyToSave::EpochMismatch;
                     }
                 },
                 None => {

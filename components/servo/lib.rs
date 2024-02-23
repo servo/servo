@@ -75,6 +75,7 @@ use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::{mem, time};
 use script::serviceworker_manager::ServiceWorkerManager;
 use script::JSEngineSetup;
+use script_layout_interface::LayoutFactory;
 use script_traits::{ScriptToConstellationChan, WindowSizeData};
 use servo_config::{opts, pref, prefs};
 use servo_media::player::context::GlContext;
@@ -417,9 +418,8 @@ where
             device_pixel_ratio: Scale::new(device_pixel_ratio),
         };
 
-        // Create the constellation, which maintains the engine
-        // pipelines, including the script and layout threads, as well
-        // as the navigation context.
+        // Create the constellation, which maintains the engine pipelines, including script and
+        // layout, as well as the navigation context.
         let constellation_chan = create_constellation(
             user_agent,
             opts.config_dir.clone(),
@@ -986,24 +986,18 @@ fn create_constellation(
         wgpu_image_map,
     };
 
-    let start_constellation_chan = if opts::get().legacy_layout {
-        Constellation::<
-            script_layout_interface::message::Msg,
-            layout_thread_2013::LayoutThread,
-            script::script_thread::ScriptThread,
-            script::serviceworker_manager::ServiceWorkerManager,
-        >::start
+    let layout_factory: Arc<dyn LayoutFactory> = if opts::get().legacy_layout {
+        Arc::new(layout_thread_2013::LayoutFactoryImpl())
     } else {
-        Constellation::<
-            script_layout_interface::message::Msg,
-            layout_thread_2020::LayoutThread,
-            script::script_thread::ScriptThread,
-            script::serviceworker_manager::ServiceWorkerManager,
-        >::start
+        Arc::new(layout_thread_2020::LayoutFactoryImpl())
     };
 
-    start_constellation_chan(
+    Constellation::<
+        script::script_thread::ScriptThread,
+        script::serviceworker_manager::ServiceWorkerManager,
+    >::start(
         initial_state,
+        layout_factory,
         initial_window_size,
         opts.random_pipeline_closure_probability,
         opts.random_pipeline_closure_seed,
@@ -1129,21 +1123,17 @@ pub fn run_content_process(token: String) {
             set_logger(content.script_to_constellation_chan().clone());
 
             let background_hang_monitor_register = content.register_with_background_hang_monitor();
-            if opts::get().legacy_layout {
-                content.start_all::<script_layout_interface::message::Msg,
-                                    layout_thread_2013::LayoutThread,
-                                    script::script_thread::ScriptThread>(
-                                        true,
-                                        background_hang_monitor_register,
-                                    );
+            let layout_factory: Arc<dyn LayoutFactory> = if opts::get().legacy_layout {
+                Arc::new(layout_thread_2013::LayoutFactoryImpl())
             } else {
-                content.start_all::<script_layout_interface::message::Msg,
-                                    layout_thread_2020::LayoutThread,
-                                    script::script_thread::ScriptThread>(
-                                        true,
-                                        background_hang_monitor_register,
-                                    );
-            }
+                Arc::new(layout_thread_2020::LayoutFactoryImpl())
+            };
+
+            content.start_all::<script::script_thread::ScriptThread>(
+                true,
+                layout_factory,
+                background_hang_monitor_register,
+            );
         },
         UnprivilegedContent::ServiceWorker(content) => {
             content.start::<ServiceWorkerManager>();

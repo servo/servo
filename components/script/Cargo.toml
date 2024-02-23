@@ -53,6 +53,7 @@ euclid = { workspace = true }
 fnv = { workspace = true }
 fxhash = { workspace = true }
 gfx_traits = { workspace = true }
+gfx = { path = "../gfx" }
 headers = { workspace = true }
 html5ever = { workspace = true }
 http = { workspace = true }

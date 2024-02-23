@@ -488,7 +488,7 @@ impl ImageFragmentInfo {
 }
 
 /// A fragment that represents an inline frame (iframe). This stores the frame ID so that the
-/// size of this iframe can be communicated via the constellation to the iframe's own layout thread.
+/// size of this iframe can be communicated via the constellation to the iframe's own layout.
 #[derive(Clone)]
 pub struct IframeFragmentInfo {
     /// The frame ID of this iframe. None if there is no nested browsing context.

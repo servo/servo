@@ -886,7 +886,6 @@ dependencies = [
  "http",
  "ipc-channel",
  "keyboard-types",
- "layout_traits",
  "log",
  "media",
  "metrics",
@@ -894,6 +893,7 @@ dependencies = [
  "net",
  "net_traits",
  "profile_traits",
+ "script_layout_interface",
  "script_traits",
  "serde",
  "servo_config",
@@ -3150,7 +3150,6 @@ dependencies = [
  "histogram",
  "ipc-channel",
  "layout_2013",
- "layout_traits",
  "lazy_static",
  "log",
  "malloc_size_of",
@@ -3190,7 +3189,6 @@ dependencies = [
  "gfx_traits",
  "ipc-channel",
  "layout_2020",
- "layout_traits",
  "lazy_static",
  "log",
  "malloc_size_of",
@@ -3211,21 +3209,6 @@ dependencies = [
  "style_traits",
  "url",
  "webrender_api",
-]
-
-[[package]]
-name = "layout_traits"
-version = "0.0.1"
-dependencies = [
- "crossbeam-channel",
- "gfx",
- "ipc-channel",
- "metrics",
- "msg",
- "net_traits",
- "profile_traits",
- "script_traits",
- "servo_url",
 ]
 
 [[package]]
@@ -4919,6 +4902,7 @@ dependencies = [
  "euclid",
  "fnv",
  "fxhash",
+ "gfx",
  "gfx_traits",
  "headers",
  "html5ever",
@@ -4998,6 +4982,7 @@ dependencies = [
  "canvas_traits",
  "crossbeam-channel",
  "euclid",
+ "gfx",
  "gfx_traits",
  "html5ever",
  "ipc-channel",

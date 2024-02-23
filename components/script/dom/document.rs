@@ -320,7 +320,7 @@ pub struct Document {
     /// This field is set to the document itself for inert documents.
     /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
     appropriate_template_contents_owner_document: MutNullableDom<Document>,
-    /// Information on elements needing restyle to ship over to the layout thread when the
+    /// Information on elements needing restyle to ship over to layout when the
     /// time comes.
     pending_restyles: DomRefCell<HashMap<Dom<Element>, NoTrace<PendingRestyle>>>,
     /// This flag will be true if layout suppressed a reflow attempt that was
@@ -367,7 +367,7 @@ pub struct Document {
     spurious_animation_frames: Cell<u8>,
 
     /// Track the total number of elements in this DOM's tree.
-    /// This is sent to the layout thread every time a reflow is done;
+    /// This is sent to layout every time a reflow is done;
     /// layout uses this to determine if the gains from parallel layout will be worth the overhead.
     ///
     /// See also: <https://github.com/servo/servo/issues/10110>
@@ -827,10 +827,9 @@ impl Document {
         let old_mode = self.quirks_mode.replace(new_mode);
 
         if old_mode != new_mode {
-            match self.window.layout_chan() {
-                Some(chan) => chan.send(Msg::SetQuirksMode(new_mode)).unwrap(),
-                None => warn!("Layout channel unavailable"),
-            }
+            let _ = self
+                .window
+                .with_layout(move |layout| layout.process(Msg::SetQuirksMode(new_mode)));
         }
     }
 
@@ -2092,7 +2091,7 @@ impl Document {
             },
             LoadType::PageSource(_) => {
                 if self.has_browsing_context && self.is_fully_active() {
-                    // Note: if the document is not fully active, the layout thread will have exited already.
+                    // Note: if the document is not fully active, layout will have exited already.
                     // The underlying problem might actually be that layout exits while it should be kept alive.
                     // See https://github.com/servo/servo/issues/22507
 
@@ -2264,7 +2263,7 @@ impl Document {
             None => false,
         };
 
-        // Note: if the document is not fully active, the layout thread will have exited already,
+        // Note: if the document is not fully active, layout will have exited already,
         // and this method will panic.
         // The underlying problem might actually be that layout exits while it should be kept alive.
         // See https://github.com/servo/servo/issues/22507
@@ -3441,12 +3440,11 @@ impl Document {
     /// Flushes the stylesheet list, and returns whether any stylesheet changed.
     pub fn flush_stylesheets_for_reflow(&self) -> bool {
         // NOTE(emilio): The invalidation machinery is used on the replicated
-        // list on the layout thread.
+        // list in layout.
         //
         // FIXME(emilio): This really should differentiate between CSSOM changes
         // and normal stylesheets additions / removals, because in the last case
-        // the layout thread already has that information and we could avoid
-        // dirtying the whole thing.
+        // layout already has that information and we could avoid dirtying the whole thing.
         let mut stylesheets = self.stylesheets.borrow_mut();
         let have_changed = stylesheets.has_changed();
         stylesheets.flush_without_invalidation();
@@ -3830,15 +3828,14 @@ impl Document {
             })
             .cloned();
 
-        match self.window.layout_chan() {
-            Some(chan) => chan
-                .send(Msg::AddStylesheet(
-                    sheet.clone(),
-                    insertion_point.as_ref().map(|s| s.sheet.clone()),
-                ))
-                .unwrap(),
-            None => return warn!("Layout channel unavailable"),
-        }
+        let cloned_stylesheet = sheet.clone();
+        let insertion_point2 = insertion_point.clone();
+        let _ = self.window.with_layout(move |layout| {
+            layout.process(Msg::AddStylesheet(
+                cloned_stylesheet,
+                insertion_point2.as_ref().map(|s| s.sheet.clone()),
+            ));
+        });
 
         DocumentOrShadowRoot::add_stylesheet(
             owner,
@@ -3851,15 +3848,15 @@ impl Document {
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
-    pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
-        match self.window.layout_chan() {
-            Some(chan) => chan.send(Msg::RemoveStylesheet(s.clone())).unwrap(),
-            None => return warn!("Layout channel unavailable"),
-        }
+    pub fn remove_stylesheet(&self, owner: &Element, stylesheet: &Arc<Stylesheet>) {
+        let cloned_stylesheet = stylesheet.clone();
+        let _ = self
+            .window
+            .with_layout(|layout| layout.process(Msg::RemoveStylesheet(cloned_stylesheet)));
 
         DocumentOrShadowRoot::remove_stylesheet(
             owner,
-            s,
+            stylesheet,
             StylesheetSetRef::Document(&mut *self.stylesheets.borrow_mut()),
         )
     }

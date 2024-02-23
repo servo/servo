@@ -323,7 +323,6 @@ impl WindowProxy {
                 new_pipeline_id: new_pipeline_id,
             };
 
-            let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
             let new_layout_info = NewLayoutInfo {
                 parent_info: None,
                 new_pipeline_id: new_pipeline_id,
@@ -331,10 +330,9 @@ impl WindowProxy {
                 top_level_browsing_context_id: new_top_level_browsing_context_id,
                 opener: Some(self.browsing_context_id),
                 load_data: load_data,
-                pipeline_port: pipeline_receiver,
                 window_size: window.window_size(),
             };
-            let constellation_msg = ScriptMsg::ScriptNewAuxiliary(load_info, pipeline_sender);
+            let constellation_msg = ScriptMsg::ScriptNewAuxiliary(load_info);
             window.send_to_constellation(constellation_msg);
             ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
             let msg = EmbedderMsg::WebViewOpened(new_top_level_browsing_context_id);

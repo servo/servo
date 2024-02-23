@@ -112,7 +112,7 @@ pub(crate) struct DisplayListBuilder<'a> {
     pub display_list: &'a mut DisplayList,
 
     /// A recording of the sizes of iframes encountered when building this
-    /// display list. This information is forwarded to the layout thread for the
+    /// display list. This information is forwarded to layout for the
     /// iframe so that its layout knows how large the initial containing block /
     /// viewport is.
     iframe_sizes: FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>,

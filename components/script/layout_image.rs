@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Infrastructure to initiate network requests for images needed by the layout
-//! thread. The script thread needs to be responsible for them because there's
-//! no guarantee that the responsible nodes will still exist in the future if the
-//! layout thread holds on to them during asynchronous operations.
+//! Infrastructure to initiate network requests for images needed by layout. The script thread needs
+//! to be responsible for them because there's no guarantee that the responsible nodes will still
+//! exist in the future if layout holds on to them during asynchronous operations.
 
 use std::sync::{Arc, Mutex};
 

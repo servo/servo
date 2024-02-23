@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Utilities for querying the layout, as needed by the layout thread.
+//! Utilities for querying the layout, as needed by layout.
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 

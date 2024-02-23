@@ -37,9 +37,9 @@ use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_traits::compositor::{HitTestInfo, ScrollTree};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{
-    AnimationState, AnimationTickType, CompositorHitTestResult, LayoutControlMsg, MouseButton,
-    MouseEventType, ScrollState, TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
-    WindowSizeData, WindowSizeType,
+    AnimationState, AnimationTickType, CompositorHitTestResult, ConstellationControlMsg,
+    LayoutControlMsg, MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId,
+    UntrustedNodeAddress, WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
@@ -207,11 +207,11 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Some XR devices want to run on the main thread.
     pub webxr_main_thread: webxr::MainThreadRegistry,
 
-    /// Map of the pending paint metrics per layout thread.
-    /// The layout thread for each specific pipeline expects the compositor to
+    /// Map of the pending paint metrics per Layout.
+    /// The Layout for each specific pipeline expects the compositor to
     /// paint frames with specific given IDs (epoch). Once the compositor paints
     /// these frames, it records the paint time for each of them and sends the
-    /// metric to the corresponding layout thread.
+    /// metric to the corresponding Layout.
     pending_paint_metrics: HashMap<PipelineId, Epoch>,
 
     /// The coordinates of the native window, its view and the screen.
@@ -1606,9 +1606,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         });
 
         if let Some(pipeline) = details.pipeline.as_ref() {
-            let _ = pipeline
-                .layout_chan
-                .send(LayoutControlMsg::SetScrollStates(scroll_states));
+            let message = ConstellationControlMsg::ForLayoutFromConstellation(
+                LayoutControlMsg::SetScrollStates(scroll_states),
+                *pipeline_id,
+            );
+            let _ = pipeline.script_chan.send(message);
         }
     }
 
@@ -1792,10 +1794,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
         );
 
-        // If there are pending paint metrics, we check if any of the painted epochs is
-        // one of the ones that the paint metrics recorder is expecting . In that case,
-        // we get the current time, inform the layout thread about it and remove the
-        // pending metric from the list.
+        // If there are pending paint metrics, we check if any of the painted epochs is one of the
+        // ones that the paint metrics recorder is expecting. In that case, we get the current
+        // time, inform layout about it and remove the pending metric from the list.
         if !self.pending_paint_metrics.is_empty() {
             let paint_time = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -1809,7 +1810,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .webrender
                     .current_epoch(self.webrender_document, id.to_webrender())
                 {
-                    // and check if it is the one the layout thread is expecting,
+                    // and check if it is the one layout is expecting,
                     let epoch = Epoch(epoch);
                     if *pending_epoch != epoch {
                         continue;
@@ -1817,9 +1818,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     // in which case, we remove it from the list of pending metrics,
                     to_remove.push(id.clone());
                     if let Some(pipeline) = self.pipeline(*id) {
-                        // and inform the layout thread with the measured paint time.
-                        let msg = LayoutControlMsg::PaintMetric(epoch, paint_time);
-                        if let Err(e) = pipeline.layout_chan.send(msg) {
+                        // and inform layout with the measured paint time.
+                        let message = LayoutControlMsg::PaintMetric(epoch, paint_time);
+                        let message =
+                            ConstellationControlMsg::ForLayoutFromConstellation(message, *id);
+                        if let Err(e) = pipeline.script_chan.send(message) {
                             warn!("Sending PaintMetric message to layout failed ({:?}).", e);
                         }
                     }

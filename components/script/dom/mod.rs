@@ -197,7 +197,7 @@
 //! Layout code can access the DOM through the
 //! [`LayoutDom`](bindings/root/struct.LayoutDom.html) smart pointer. This does not
 //! keep the DOM object alive; we ensure that no DOM code (Garbage Collection
-//! in particular) runs while the layout thread is accessing the DOM.
+//! in particular) runs while layout is accessing the DOM.
 //!
 //! Methods accessible to layout are implemented on `LayoutDom<Foo>` using
 //! `LayoutFooHelpers` traits.
