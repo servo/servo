@@ -5410,6 +5410,7 @@ dependencies = [
  "servo_config_plugins",
  "servo_geometry",
  "servo_url",
+ "style_config",
  "url",
 ]
 
@@ -5795,12 +5796,12 @@ dependencies = [
  "serde",
  "servo_arc",
  "servo_atoms",
- "servo_config",
  "smallbitvec",
  "smallvec",
  "static_assertions",
  "static_prefs",
  "string_cache",
+ "style_config",
  "style_derive",
  "style_traits",
  "thin-vec",
@@ -5814,6 +5815,13 @@ dependencies = [
  "url",
  "void",
  "walkdir",
+]
+
+[[package]]
+name = "style_config"
+version = "0.0.1"
+dependencies = [
+ "lazy_static",
 ]
 
 [[package]]
@@ -5841,7 +5849,6 @@ dependencies = [
  "serde_json",
  "servo_arc",
  "servo_atoms",
- "servo_config",
  "style",
  "style_traits",
  "url",
