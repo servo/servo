@@ -410,6 +410,7 @@ impl FlexContainer {
         IndependentLayout {
             fragments,
             content_block_size: content_block_size.into(),
+            content_inline_size_for_table: None,
             baselines: Baselines::default(),
         }
     }

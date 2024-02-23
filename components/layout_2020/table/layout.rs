@@ -536,10 +536,16 @@ impl<'a> TableLayout<'a> {
                 result + measure.content_sizes
             });
         let border_spacing = self.table.border_spacing();
-        let inline_border_spacing = border_spacing.inline * (self.table.size.width as i32 + 1);
+        let inline_border_spacing = if self.table.size.width > 0 {
+            border_spacing.inline * (self.table.size.width as i32 + 1)
+        } else {
+            Au::zero()
+        };
         grid_min_and_max.min_content += inline_border_spacing;
         grid_min_and_max.max_content += inline_border_spacing;
 
+        // TODO: `containing_block` is the containing block for the contents of the table,
+        // it shouldn't be used to resolve percentages on the table itself!
         self.pbm = self.table.style.padding_border_margin(containing_block);
         let content_box_size = self
             .table
@@ -565,9 +571,9 @@ impl<'a> TableLayout<'a> {
         // > * If the table-root has 'width: auto', the used width is the greater of min(GRIDMAX,
         // >   the table’s containing block width), the used min-width of the table.
         let used_width_of_table = match content_box_size.inline {
-            LengthPercentage(length_percentage) => {
-                Au::from(length_percentage).max(used_min_width_of_table)
-            },
+            LengthPercentage(_) => grid_min_and_max
+                .min_content
+                .max(containing_block.inline_size),
             Auto => grid_min_and_max
                 .max_content
                 .min(containing_block.inline_size)
@@ -1013,6 +1019,7 @@ impl<'a> TableLayout<'a> {
             return IndependentLayout {
                 fragments,
                 content_block_size: Au::zero(),
+                content_inline_size_for_table: Some(self.assignable_width),
                 baselines,
             };
         }
@@ -1121,6 +1128,7 @@ impl<'a> TableLayout<'a> {
         IndependentLayout {
             fragments,
             content_block_size: dimensions.table_rect.max_block_position(),
+            content_inline_size_for_table: Some(dimensions.table_rect.max_inline_position()),
             baselines,
         }
     }

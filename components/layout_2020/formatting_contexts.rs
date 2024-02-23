@@ -73,6 +73,11 @@ pub(crate) struct IndependentLayout {
     /// <https://drafts.csswg.org/css2/visudet.html#root-height>
     pub content_block_size: Au,
 
+    /// The contents of a table may force it to become wider than what we would expect
+    /// from 'width' and 'min-width'. This is the resulting inline content size,
+    /// or None for non-table layouts.
+    pub content_inline_size_for_table: Option<Au>,
+
     /// The offset of the last inflow baseline of this layout in the content area, if
     /// there was one. This is used to propagate baselines to the ancestors of `display:
     /// inline-block`.

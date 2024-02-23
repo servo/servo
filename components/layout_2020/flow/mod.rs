@@ -243,6 +243,7 @@ impl BlockFormattingContext {
                 flow_layout.collapsible_margins_in_children.end.solve() +
                 clearance.unwrap_or_else(Au::zero).into())
             .into(),
+            content_inline_size_for_table: None,
             baselines: flow_layout.baselines,
         }
     }
@@ -859,6 +860,10 @@ impl NonReplacedFormattingContext {
             )
         });
 
+        let inline_size = layout
+            .content_inline_size_for_table
+            .unwrap_or(containing_block_for_children.inline_size);
+
         let content_rect = LogicalRect {
             start_corner: LogicalVec2 {
                 block: pbm.padding.block_start + pbm.border.block_start,
@@ -868,7 +873,7 @@ impl NonReplacedFormattingContext {
             },
             size: LogicalVec2 {
                 block: block_size,
-                inline: containing_block_for_children.inline_size,
+                inline: inline_size,
             },
         };
 
@@ -943,15 +948,13 @@ impl NonReplacedFormattingContext {
             );
 
             content_size = LogicalVec2 {
-                inline: inline_size,
+                inline: layout
+                    .content_inline_size_for_table
+                    .map(Length::from)
+                    .unwrap_or(inline_size),
                 block: block_size.auto_is(|| {
-                    layout
-                        .content_block_size
-                        .clamp_between_extremums(
-                            min_box_size.block.into(),
-                            max_box_size.block.map(|t| t.into()),
-                        )
-                        .into()
+                    Length::from(layout.content_block_size)
+                        .clamp_between_extremums(min_box_size.block, max_box_size.block)
                 }),
             };
 
@@ -1014,8 +1017,22 @@ impl NonReplacedFormattingContext {
                         style: &self.style,
                     },
                 );
+
+                let inline_size = match layout.content_inline_size_for_table {
+                    Some(inline_size) => {
+                        placement
+                            .set_inline_size(inline_size + pbm.padding_border_sums.inline, &pbm);
+                        if inline_size > proposed_inline_size.into() {
+                            positioning_context.truncate(&positioning_context_length);
+                            continue;
+                        }
+                        Length::from(inline_size)
+                    },
+                    None => proposed_inline_size,
+                };
+
                 content_size = LogicalVec2 {
-                    inline: proposed_inline_size,
+                    inline: inline_size,
                     block: block_size.auto_is(|| {
                         layout
                             .content_block_size
