@@ -15,9 +15,7 @@ use webgpu::identity::WebGPUOpResult;
 use webgpu::wgpu::device::HostMap;
 use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
-use super::bindings::buffer_source::{
-    create_new_external_array_buffer, HeapBufferSource,
-};
+use super::bindings::buffer_source::{create_new_external_array_buffer, HeapBufferSource};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUBufferMethods, GPUMapModeConstants, GPUSize64,

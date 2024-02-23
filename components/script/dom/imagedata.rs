@@ -14,8 +14,7 @@ use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
 
 use super::bindings::buffer_source::{
-    new_initialized_heap_buffer_source_types, BufferSource, HeapBufferSource,
-    HeapTypedArrayInit,
+    new_initialized_heap_buffer_source_types, BufferSource, HeapBufferSource, HeapTypedArrayInit,
 };
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
