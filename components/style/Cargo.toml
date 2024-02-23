@@ -22,6 +22,7 @@ servo = [
     "serde",
     "style_traits/servo",
     "servo_atoms",
+    "servo_config",
     "html5ever",
     "cssparser/serde",
     "encoding_rs",
@@ -67,12 +68,12 @@ selectors = { path = "../selectors" }
 serde = { version = "1.0", optional = true, features = ["derive"] }
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms", optional = true }
+servo_config = { path = "../config", optional = true }
 smallbitvec = "2.3.0"
 smallvec = "1.0"
 static_assertions = "1.1"
 static_prefs = { path = "../style_static_prefs" }
 string_cache = { version = "0.8", optional = true }
-style_config = { path = "../style_config" }
 style_derive = { path = "../style_derive" }
 style_traits = { path = "../style_traits" }
 time = "0.1"
