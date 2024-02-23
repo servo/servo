@@ -9,7 +9,7 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 
-use crate::dom::bindings::buffer_source_types::create_buffer_source_types;
+use crate::dom::bindings::buffer_source::create_buffer_source_types;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::FileReaderSyncMethods;
 use crate::dom::bindings::error::{Error, Fallible};

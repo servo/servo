@@ -15,8 +15,8 @@ use webgpu::identity::WebGPUOpResult;
 use webgpu::wgpu::device::HostMap;
 use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
-use super::bindings::buffer_source_types::{
-    create_new_external_array_buffer, HeapBufferSourceTypes,
+use super::bindings::buffer_source::{
+    create_new_external_array_buffer, HeapBufferSource,
 };
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -56,7 +56,7 @@ pub struct GPUBufferMapInfo {
     pub mapping_range: Range<u64>,
     pub mapped_ranges: Vec<Range<u64>>,
     #[ignore_malloc_size_of = "defined in mozjs"]
-    pub js_buffers: Vec<HeapBufferSourceTypes<ArrayBufferU8>>,
+    pub js_buffers: Vec<HeapBufferSource<ArrayBufferU8>>,
     pub map_mode: Option<u32>,
 }
 

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::typedarray::{Float32, Float32Array};
 
-use super::bindings::buffer_source_types::HeapBufferSourceTypes;
+use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadPoseBinding::GamepadPoseMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -16,17 +16,17 @@ use crate::script_runtime::JSContext;
 pub struct GamepadPose {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "mozjs"]
-    position: HeapBufferSourceTypes<Float32>,
+    position: HeapBufferSource<Float32>,
     #[ignore_malloc_size_of = "mozjs"]
-    orientation: HeapBufferSourceTypes<Float32>,
+    orientation: HeapBufferSource<Float32>,
     #[ignore_malloc_size_of = "mozjs"]
-    linear_vel: HeapBufferSourceTypes<Float32>,
+    linear_vel: HeapBufferSource<Float32>,
     #[ignore_malloc_size_of = "mozjs"]
-    angular_vel: HeapBufferSourceTypes<Float32>,
+    angular_vel: HeapBufferSource<Float32>,
     #[ignore_malloc_size_of = "mozjs"]
-    linear_acc: HeapBufferSourceTypes<Float32>,
+    linear_acc: HeapBufferSource<Float32>,
     #[ignore_malloc_size_of = "mozjs"]
-    angular_acc: HeapBufferSourceTypes<Float32>,
+    angular_acc: HeapBufferSource<Float32>,
 }
 
 // TODO: support gamepad discovery
@@ -35,12 +35,12 @@ impl GamepadPose {
     fn new_inherited() -> GamepadPose {
         GamepadPose {
             reflector_: Reflector::new(),
-            position: HeapBufferSourceTypes::default(),
-            orientation: HeapBufferSourceTypes::default(),
-            linear_vel: HeapBufferSourceTypes::default(),
-            angular_vel: HeapBufferSourceTypes::default(),
-            linear_acc: HeapBufferSourceTypes::default(),
-            angular_acc: HeapBufferSourceTypes::default(),
+            position: HeapBufferSource::default(),
+            orientation: HeapBufferSource::default(),
+            linear_vel: HeapBufferSource::default(),
+            angular_vel: HeapBufferSource::default(),
+            linear_acc: HeapBufferSource::default(),
+            angular_acc: HeapBufferSource::default(),
         }
     }
 

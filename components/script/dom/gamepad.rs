@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::typedarray::{Float64, Float64Array};
 
-use super::bindings::buffer_source_types::HeapBufferSourceTypes;
+use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
 use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -37,7 +37,7 @@ pub struct Gamepad {
     timestamp: Cell<f64>,
     mapping_type: String,
     #[ignore_malloc_size_of = "mozjs"]
-    axes: HeapBufferSourceTypes<Float64>,
+    axes: HeapBufferSource<Float64>,
     buttons: Dom<GamepadButtonList>,
     pose: Option<Dom<GamepadPose>>,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
@@ -68,7 +68,7 @@ impl Gamepad {
             connected: Cell::new(connected),
             timestamp: Cell::new(timestamp),
             mapping_type: mapping_type,
-            axes: HeapBufferSourceTypes::default(),
+            axes: HeapBufferSource::default(),
             buttons: Dom::from_ref(buttons),
             pose: pose.map(Dom::from_ref),
             hand: hand,

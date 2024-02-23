@@ -13,8 +13,8 @@ use js::jsapi::{Heap, JSObject};
 use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
 
-use super::bindings::buffer_source_types::{
-    new_initialized_heap_buffer_source_types, BufferSource, HeapBufferSourceTypes,
+use super::bindings::buffer_source::{
+    new_initialized_heap_buffer_source_types, BufferSource, HeapBufferSource,
     HeapTypedArrayInit,
 };
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
@@ -30,7 +30,7 @@ pub struct ImageData {
     width: u32,
     height: u32,
     #[ignore_malloc_size_of = "mozjs"]
-    data: HeapBufferSourceTypes<ClampedU8>,
+    data: HeapBufferSource<ClampedU8>,
 }
 
 impl ImageData {

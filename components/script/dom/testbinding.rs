@@ -17,7 +17,7 @@ use script_traits::serializable::BlobImpl;
 use script_traits::MsDuration;
 use servo_config::prefs;
 
-use crate::dom::bindings::buffer_source_types::create_buffer_source_types;
+use crate::dom::bindings::buffer_source::create_buffer_source_types;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;

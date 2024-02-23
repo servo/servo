@@ -15,7 +15,7 @@ use js::typedarray::{Float32Array, Float64Array};
 use style::parser::ParserContext;
 use url::Url;
 
-use crate::dom::bindings::buffer_source_types::create_buffer_source_types;
+use crate::dom::bindings::buffer_source::create_buffer_source_types;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;

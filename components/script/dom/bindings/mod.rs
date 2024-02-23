@@ -134,7 +134,7 @@
 #![deny(missing_docs)]
 #![deny(non_snake_case)]
 
-pub mod buffer_source_types;
+pub mod buffer_source;
 pub mod callback;
 pub mod cell;
 pub mod constant;

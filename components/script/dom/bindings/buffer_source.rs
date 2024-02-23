@@ -38,12 +38,12 @@ pub enum BufferSource {
     Default(Box<Heap<*mut JSObject>>),
 }
 
-pub struct HeapBufferSourceTypes<T> {
+pub struct HeapBufferSource<T> {
     buffer_source: BufferSource,
     phantom: PhantomData<T>,
 }
 
-unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSourceTypes<T> {
+unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> {
     #[inline]
     unsafe fn trace(&self, tracer: *mut js::jsapi::JSTracer) {
         match &self.buffer_source {
@@ -69,13 +69,13 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSourceType
 
 pub fn new_initialized_heap_buffer_source_types<T>(
     init: HeapTypedArrayInit,
-) -> Result<HeapBufferSourceTypes<T>, ()>
+) -> Result<HeapBufferSource<T>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
     let heap_buffer_source_types = match init {
-        HeapTypedArrayInit::Buffer(buffer_source) => HeapBufferSourceTypes {
+        HeapTypedArrayInit::Buffer(buffer_source) => HeapBufferSource {
             buffer_source: buffer_source,
             phantom: PhantomData::default(),
         },
@@ -86,7 +86,7 @@ where
             if typed_array_result.is_err() {
                 return Err(());
             }
-            let heap_buffer_source_types = HeapBufferSourceTypes::<T>::default();
+            let heap_buffer_source_types = HeapBufferSource::<T>::default();
 
             match &heap_buffer_source_types.buffer_source {
                 BufferSource::Int8Array(buffer) |
@@ -117,13 +117,13 @@ pub enum HeapTypedArrayInit {
     Info { len: u32, cx: JSContext },
 }
 
-impl<T> HeapBufferSourceTypes<T>
+impl<T> HeapBufferSource<T>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
-    pub fn default() -> HeapBufferSourceTypes<T> {
-        HeapBufferSourceTypes {
+    pub fn default() -> HeapBufferSource<T> {
+        HeapBufferSource {
             buffer_source: BufferSource::Default(Box::new(Heap::default())),
             phantom: PhantomData::default(),
         }
@@ -407,7 +407,7 @@ pub fn create_new_external_array_buffer<T>(
     offset: usize,
     range_size: usize,
     m_end: usize,
-) -> HeapBufferSourceTypes<T>
+) -> HeapBufferSource<T>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
@@ -433,7 +433,7 @@ where
             Arc::into_raw(mapping) as _,
         ));
 
-        HeapBufferSourceTypes {
+        HeapBufferSource {
             buffer_source: BufferSource::ArrayBuffer(Heap::boxed(*array_buffer)),
             phantom: PhantomData::default(),
         }

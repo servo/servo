@@ -7,7 +7,7 @@ use euclid::RigidTransform3D;
 use js::typedarray::{Float32, Float32Array};
 use webxr_api::{ApiSpace, View};
 
-use super::bindings::buffer_source_types::HeapBufferSourceTypes;
+use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -23,7 +23,7 @@ pub struct XRView {
     eye: XREye,
     viewport_index: usize,
     #[ignore_malloc_size_of = "mozjs"]
-    proj: HeapBufferSourceTypes<Float32>,
+    proj: HeapBufferSource<Float32>,
     #[ignore_malloc_size_of = "defined in rust-webxr"]
     #[no_trace]
     view: View<ApiSpace>,
@@ -43,7 +43,7 @@ impl XRView {
             session: Dom::from_ref(session),
             eye,
             viewport_index,
-            proj: HeapBufferSourceTypes::default(),
+            proj: HeapBufferSource::default(),
             view,
             transform: Dom::from_ref(transform),
         }
