@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Publish as latest (success)
-        if: success()
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
         run: |
           gh api \
             --method PATCH \
@@ -55,7 +55,7 @@ jobs:
             /repos/${NIGHTLY_REPO}/releases/${RELEASE_ID} \
             -F draft=false
       - name: Publish as latest (failure)
-        if: failure()
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         run: |
           gh api \
             --method PATCH \
