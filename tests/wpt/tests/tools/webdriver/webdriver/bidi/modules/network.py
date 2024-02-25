@@ -208,19 +208,29 @@ class Network(BidiModule):
     def provide_response(
             self,
             request: str,
+            body: Optional[NetworkBytesValue] = None,
+            cookies: Optional[List[SetCookieHeader]] = None,
+            headers: Optional[List[Header]] = None,
             reason_phrase: Optional[str] = None,
             status_code: Optional[int] = None) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {
             "request": request,
         }
 
+        if body is not None:
+            params["body"] = body
+
+        if cookies is not None:
+            params["cookies"] = cookies
+
+        if headers is not None:
+            params["headers"] = headers
+
         if reason_phrase is not None:
             params["reasonPhrase"] = reason_phrase
 
         if status_code is not None:
             params["statusCode"] = status_code
-
-        # TODO: Add support for missing parameters: body, cookies, headers
 
         return params
 

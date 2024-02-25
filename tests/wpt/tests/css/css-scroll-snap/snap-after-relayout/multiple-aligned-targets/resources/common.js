@@ -34,13 +34,16 @@ async function scrollToAlignedElementsInAxis(scroller, elements, axis) {
   }
   assert_not_equals(target_offset_x || target_offset_y, null);
 
-  const scrollend_promise = waitForScrollendEventNoTimeout(scroller);
-  await new test_driver.Actions().scroll(0, 0,
-    (target_offset_x || 0) - scroller.scrollLeft,
-    (target_offset_y || 0) - scroller.scrollTop,
-    { origin: scroller })
-    .send();
-  await scrollend_promise;
+  if ((target_offset_x != null && scroller.scrollLeft != target_offset_x) ||
+      (target_offset_y != null && scroller.scrollTop != target_offset_y)) {
+    const scrollend_promise = waitForScrollendEventNoTimeout(scroller);
+    await new test_driver.Actions().scroll(0, 0,
+      (target_offset_x || scroller.scrollLeft) - scroller.scrollLeft,
+      (target_offset_y || scroller.scrollTop) - scroller.scrollTop,
+      { origin: scroller })
+      .send();
+    await scrollend_promise;
+  }
   if (axis == "y") {
     assert_equals(scroller.scrollTop, target_offset_y, "vertical scroll done");
   } else {
@@ -89,13 +92,12 @@ async function runScrollSnapSelectionVerificationTest(t, scroller, aligned_eleme
   const initial_scroll_left = scroller.scrollLeft;
   const initial_scroll_top = scroller.scrollTop;
   await scrollToAlignedElementsInAxis(scroller, aligned_elements, axis);
-  verifySelectedSnapTarget(scroller, expected_target, axis);
-  // Restore initial scroll offsets.
-  const scrollend_promise = new Promise((resolve) => {
-    scroller.addEventListener("scrollend", resolve);
+  // Wrapping this in t.step prevents timeouts in the event of a failure.
+  t.step(async () => {
+    verifySelectedSnapTarget(scroller, expected_target, axis);
   });
-  scroller.scrollTo(initial_scroll_left, initial_scroll_top);
-  await scrollend_promise;
+  // Restore initial scroll offsets.
+  await waitForScrollReset(t, scroller, initial_scroll_left, initial_scroll_top);
 }
 
 // This is a utility function for tests verifying that a layout shift does not

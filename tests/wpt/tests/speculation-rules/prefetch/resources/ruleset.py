@@ -28,8 +28,7 @@ def main(request, response):
         "prefetch": [
           {{
             "source":"list",
-            "urls":["{url}?uuid={uuid}&page={page}&str={strparam}"],
-            "requires":["anonymous-client-ip-when-cross-origin"]
+            "urls":["{url}?uuid={uuid}&page={page}&str={strparam}"]
           }}
         ]
       }}

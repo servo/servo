@@ -272,4 +272,37 @@
     assert_equals(rtpParameters.codecs[0].name, firstCodec);
   }, `setCodecPreferences() modifies the order of video codecs in createOffer`);
 
+  // Tests the note removed as result of discussion in
+  // https://github.com/w3c/webrtc-pc/issues/2933
+  promise_test(async (t) => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const transceiver = pc1.addTransceiver('video');
+    const {codecs} = RTCRtpReceiver.getCapabilities('video');
+    const vp8 = codecs.find(codec => codec.mimeType === 'video/VP8');
+    const h264 = codecs.find(codec => codec.mimeType === 'video/H264');
+    const thirdCodec = codecs.find(codec => ['video/VP9', 'video/AV1'].includes(codec.mimeType));
+    assert_true(!!vp8);
+    assert_true(!!h264);
+    assert_true(!!thirdCodec);
+
+    transceiver.setCodecPreferences([vp8, thirdCodec]);
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    const transceiver2 = pc2.getTransceivers()[0];
+    transceiver2.setCodecPreferences([h264, thirdCodec, vp8]);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    const mediaSection = SDPUtils.getMediaSections(pc2.localDescription.sdp)[0];
+    const rtpParameters = SDPUtils.parseRtpParameters(mediaSection);
+    // Order is determined by pc2 but H264 is not present.
+    assert_equals(rtpParameters.codecs.length, 2);
+    assert_equals(rtpParameters.codecs[0].name, thirdCodec.mimeType.substring(6));
+    assert_equals(rtpParameters.codecs[1].name, 'VP8');
+
+  }, `setCodecPreferences() filters on receiver and prefers receiver order`);
+
  </script>

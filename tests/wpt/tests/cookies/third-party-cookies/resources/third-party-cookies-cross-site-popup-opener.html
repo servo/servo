@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Window that opens a popup in a cross-site context</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script src="/cookies/third-party-cookies/resources/test-helpers.js"></script>
+
+<body>
+  <script>
+
+    let origin;
+
+    // Test that parent window passed its origin in the URL parameters correctly.
+    test(() => {
+      assert_true(window.location.search.startsWith("?origin="));
+      origin = decodeURIComponent(window.location.search.slice(
+        window.location.search.indexOf("?origin=") + 8));
+    }, "Cross-site window opened correctly");
+
+    // Cookies set by the parent window in a 1P context.
+    const cookieNames = ["1P_http", "1P_dom"];
+    if (window.cookieStore) {
+      cookieNames.push("1P_cs");
+    }
+
+    // Verify whether third-party cookies are blocked by default.
+    promise_test(async () => {
+      const thirdPartyHttpCookie = "3P_http"
+      await credFetch(
+        `${origin}/cookies/resources/set.py?${thirdPartyHttpCookie}=foobar;` +
+        "Secure;Path=/;SameSite=None");
+      await assertOriginCanAccessCookies({
+        origin,
+        cookieNames: [thirdPartyHttpCookie],
+        expectsCookie: false,
+      });
+    }, "3P fetch: Cross site window setting HTTP cookies");
+
+    // Open the cookies' origin in a popup to activate the heuristic.
+    const popupUrl = new URL(
+      "/cookies/third-party-cookies/resources/" +
+      "third-party-cookies-cross-site-popup.html",
+      origin);
+    const popup = window.open(popupUrl);
+
+    fetch_tests_from_window(popup);
+
+  </script>
+</body>

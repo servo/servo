@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test that fenced frame notifyEvent() succeeds on click</title>
+
+<body>
+  <script>
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+      let notified = false;
+      fencedframe.element.addEventListener('fencedtreeclick', () => notified = true);
+
+      // Add a click handler to the fenced frame's content, which will
+      // trigger the fenced handler registered above on the fencedframe
+      // element.
+      await fencedframe.execute(() => {
+        document.addEventListener('click', (e) => {
+          window.fence.notifyEvent(e);
+        });
+      });
+
+      await multiClick(10, 10, fencedframe.element);
+
+      assert_true(notified);
+    }, "Test that fenced frame notifyEvent() succeeds on click");
+
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+      let notified = false;
+      fencedframe.element.onfencedtreeclick = () => notified = true;
+
+      // Add a click handler to the fenced frame's content, which will
+      // trigger the fenced handler registered above on the fencedframe
+      // element.
+      await fencedframe.execute(() => {
+        document.addEventListener('click', (e) => {
+          window.fence.notifyEvent(e);
+        });
+      });
+
+      await multiClick(10, 10, fencedframe.element);
+
+      assert_true(notified);
+    }, "Test that fenced frame notifyEvent() succeeds on click when using the 'onfencedtreeclick' attribute.");
+  </script>
+</body>

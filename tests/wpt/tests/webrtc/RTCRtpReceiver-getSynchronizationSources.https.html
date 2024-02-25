@@ -23,6 +23,14 @@ async function initiateSingleTrackCallAndReturnReceiver(t, kind) {
   exchangeIceCandidates(pc1, pc2);
   const trackEvent = await exchangeOfferAndListenToOntrack(t, pc1, pc2);
   await exchangeAnswer(pc1, pc2);
+
+  // Some browsers might need an audio element attached to the DOM.
+  const element = document.createElement(kind);
+  element.autoplay = true;
+  element.srcObject = trackEvent.streams[0];
+  document.body.appendChild(element);
+  t.add_cleanup(() => { document.body.removeChild(element) });
+
   return trackEvent.receiver;
 }
 

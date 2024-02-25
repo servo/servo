@@ -16,7 +16,7 @@ var aliases = {
   "MouseEvents": "MouseEvent",
   "StorageEvent": "StorageEvent",
   "SVGEvents": "Event",
-  "TextEvent": "CompositionEvent",
+  "TextEvent": "TextEvent",
   "UIEvent": "UIEvent",
   "UIEvents": "UIEvent",
 };

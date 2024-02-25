@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://drafts.csswg.org/css-transitions-2/#transition-behavior-property">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-animations/support/testcommon.js"></script>
+
+<div class=testcase id=discrete>Allow discrete</div>
+<div class=testcase id=normal>No discrete</div>
+
+<style>
+.testcase {
+  float: left;
+  width: 100px;
+  height: 100px;
+  transition: all 1s;
+}
+#discrete {
+  transition-behavior: allow-discrete;
+}
+.animated {
+  float: right;
+}
+</style>
+
+<script>
+promise_test(async () => {
+  await waitForAnimationFrames(2);
+  // Regression test for https://crbug.com/1518561
+  normal.classList.add('animated');
+  const normalAnims = normal.getAnimations();
+  assert_equals(normalAnims.length, 0,
+                "Should not start a discrete property transition");
+
+  discrete.classList.add('animated');
+  const anims = discrete.getAnimations();
+  assert_equals(anims.length, 1,
+                "Should start a discrete property transition");
+  assert_equals(anims[0].transitionProperty, 'float');
+}, 'transition-behavior:allow-discrete should animate discrete properties.');
+
+promise_test(async t => {
+  const div = addDiv(t, {
+    style: 'transition: all 1s normal, float 1s allow-discrete; float: left',
+  });
+  getComputedStyle(div).float;
+
+  div.style.float = 'right';
+  const anims = div.getAnimations();
+  assert_equals(anims.length, 1,
+                "Should start a discrete property transition");
+}, 'transition-behavior:allow-discrete overlaps the previous normal value.');
+
+promise_test(async t => {
+  const div = addDiv(t, {
+    style: 'transition: all 1s allow-discrete, float 1s normal; float: left',
+  });
+  getComputedStyle(div).float;
+
+  div.style.float = 'right';
+  const anims = div.getAnimations();
+  assert_equals(anims.length, 0,
+                "Should not start a discrete property transition");
+}, 'transition-behavior:normal overlaps the previous allow-discrete value.');
+
+promise_test(async t => {
+  const div = addDiv(t, {
+    style: 'transition: position 1s allow-discrete; position: relative',
+  });
+  getComputedStyle(div).position;
+
+  div.style.position = 'static';
+  assert_equals(div.getAnimations().length, 1,
+                "Should start a discrete property transition");
+
+  div.style.transitionBehavior = "normal";
+  div.style.position = 'absolute';
+  assert_equals(getComputedStyle(div).position, "absolute");
+  assert_equals(div.getAnimations().length, 0,
+                "The running transition should be cancelled");
+}, 'transition-behavior changed to normal should stop the running discrete ' +
+   'transitions.');
+
+promise_test(async t => {
+  const div = addDiv(t, {
+    style: 'transition: clip-path 5s normal; clip-path: circle(50px)',
+  });
+  getComputedStyle(div).transition;
+
+  div.style.clipPath = "circle(farthest-side)";
+  assert_equals(getComputedStyle(div).clipPath, "circle(farthest-side)");
+  assert_equals(div.getAnimations().length, 0,
+                "Should not start a transition of discrete animation values");
+
+  div.style.transitionBehavior = "allow-discrete";
+  div.style.clipPath = "circle(200px)";
+  assert_equals(getComputedStyle(div).clipPath, "circle(farthest-side)");
+  assert_equals(div.getAnimations().length, 1,
+                "Should start a transition for discrete animation values");
+}, 'transition-behavior:allow-discrete should animate for values fallback to ' +
+   'discrete animations.');
+
+promise_test(async t => {
+  const div = addDiv(t, {
+    style: 'transition: clip-path 5s allow-discrete; clip-path: circle(50px)',
+  });
+  getComputedStyle(div).transition;
+
+  div.style.clipPath = "circle(farthest-side)";
+  assert_equals(getComputedStyle(div).clipPath, "circle(50px)");
+  assert_equals(div.getAnimations().length, 1,
+                "Should start a transition for discrete animation values");
+
+  div.style.transitionBehavior = "normal";
+  div.style.clipPath = "ellipse()";
+  assert_equals(getComputedStyle(div).clipPath, "ellipse()");
+  assert_equals(div.getAnimations().length, 0,
+                "The running transition should be cancelled");
+}, 'transition-behavior:normal should cancel the running transitions whose ' +
+   'animation values are not interpolatable');
+
+</script>

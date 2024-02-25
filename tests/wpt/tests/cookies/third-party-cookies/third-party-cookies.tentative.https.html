@@ -61,7 +61,7 @@ document.body.onload = async () => {
   // Open a cross-site window which will embed the current origin in a
   // third-party context.
   const crossSiteUrl = new URL(
-      `./resources/third-party-cookies-cross-site-window.html?origin=${
+      `./resources/third-party-cookies-cross-site-embedder.html?origin=${
           encodeURIComponent(self.origin)}`,
       get_host_info().HTTPS_NOTSAMESITE_ORIGIN + self.location.pathname);
   const popup = window.open(crossSiteUrl);

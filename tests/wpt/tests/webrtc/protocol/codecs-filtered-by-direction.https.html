@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>RTCPeerConnection Codecs in offer get filtered by direction</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../third_party/sdp/sdp.js"></script>
+<script>
+'use strict';
+
+function codecEquals(c1, c2) {
+  return c1.mimeType === c2.mimeType &&
+          c1.sdpFmtpLine === c2.sdpFmtpLine &&
+          c1.clockRate === c2.clockRate &&
+          c1.channels === c2.channels;
+}
+
+function splitCodecs() {
+  const sendCodecs = RTCRtpSender.getCapabilities('video').codecs;
+  const receiveCodecs = RTCRtpReceiver.getCapabilities('video').codecs;
+  const codecs = {
+    sendrecv: [],
+    sendonly: [],
+    recvonly: [],
+  };
+  // Ignore RTX since it is present in capabilities once and has no apt.
+  for (const receiveCodec of receiveCodecs) {
+    if (receiveCodec.mimeType === 'video/rtx') continue;
+    if (sendCodecs.find(sendCodec => codecEquals(sendCodec, receiveCodec))) {
+      codecs.sendrecv.push(receiveCodec);
+    }
+  }
+
+  for (const sendCodec of sendCodecs) {
+    if (sendCodec.mimeType === 'video/rtx') continue;
+    if (!receiveCodecs.find(receiveCodec => codecEquals(sendCodec, receiveCodec))) {
+      codecs.sendonly.push(sendCodec);
+    }
+  }
+  for (const receiveCodec of receiveCodecs) {
+    if (receiveCodec.mimeType === 'video/rtx') continue;
+    if (!sendCodecs.find(sendCodec => codecEquals(sendCodec, receiveCodec))) {
+      codecs.recvonly.push(receiveCodec);
+    }
+  }
+  return codecs;
+}
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const allCodecs = splitCodecs();
+  const transceiver = pc.addTransceiver('video');
+
+  transceiver.direction = 'sendonly'
+  const offer = await pc.createOffer();
+  const mediaSection = SDPUtils.getMediaSections(offer.sdp)[0];
+  const rtpParameters = SDPUtils.parseRtpParameters(mediaSection);
+  const sendonlyCodecs = rtpParameters.codecs.filter(c => c.name !== 'rtx');
+  assert_equals(sendonlyCodecs.length, allCodecs.sendrecv.length + allCodecs.sendonly.length);
+}, 'Codecs get filtered by direction for sendonly');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+
+  const allCodecs = splitCodecs();
+  const transceiver = pc.addTransceiver('video');
+
+  transceiver.direction = 'recvonly'
+  const offer = await pc.createOffer();
+  const mediaSection = SDPUtils.getMediaSections(offer.sdp)[0];
+  const rtpParameters = SDPUtils.parseRtpParameters(mediaSection);
+  const recvonlyCodecs = rtpParameters.codecs.filter(c => c.name !== 'rtx');
+  assert_equals(recvonlyCodecs.length, allCodecs.sendrecv.length + allCodecs.recvonly.length);
+}, 'Codecs get filtered by direction for recvonly');
+
+</script>

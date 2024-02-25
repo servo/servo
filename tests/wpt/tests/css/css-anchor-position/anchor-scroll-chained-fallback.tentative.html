@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>Tests scroll adjustments of element anchored to another anchored element with fallback</title>
+<link rel="author" href="mailto:wangxianzhu@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
+<link rel="match" href="reference/anchor-scroll-chained-fallback.tentative-ref.html">
+<style>
+body {
+  margin: 0;
+}
+
+div {
+  width: 100px;
+  height: 100px;
+}
+
+#scroller {
+  overflow: scroll;
+  width: 300px;
+  height: 300px;
+}
+
+#anchor {
+  anchor-name: --a1;
+  background: orange;
+  margin: 250px 0;
+}
+
+#anchored1 {
+  position: absolute;
+  anchor-default: --a1;
+  background: green;
+  position-fallback: --fallback;
+  anchor-name: --a2;
+}
+
+#anchored2 {
+  position: absolute;
+  anchor-default: --a2;
+  left: anchor(--a2 left);
+  top: anchor(--a2 bottom);
+  background: lime;
+}
+
+@position-fallback --fallback {
+  @try {
+    left: anchor(--a1 left);
+    bottom: anchor(--a1 top);
+  }
+  @try {
+    left: anchor(--a1 right);
+    top: anchor(--a1 top);
+  }
+}
+
+</style>
+
+<div id="scroller">
+  <div id="anchor"></div>
+</div>
+<div id="anchored1"></div>
+<div id="anchored2"></div>
+
+<script>
+scroller.scrollTop = 200;
+</script>
