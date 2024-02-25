@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="timeout" content="long">
 <title>RTCPeerConnection.prototype.iceGatheringState</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -118,6 +119,67 @@
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
+    pc1.addTransceiver('audio', { direction: 'recvonly' });
+    await pc1.setLocalDescription();
+    await iceGatheringStateTransitions(pc1, 'gathering', 'complete');
+    assert_true(pc1.localDescription.sdp.includes('a=end-of-candidates'));
+  }, 'local description should have a=end-of-candidates when gathering completes');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const transceiver = pc1.addTransceiver('audio', { direction: 'recvonly' });
+    await pc1.setLocalDescription();
+    const iceTransport = transceiver.sender.transport.iceTransport;
+
+    // This test code assumes that https://github.com/w3c/webrtc-pc/pull/2894
+    // will be merged. The spec will say to dispatch two tasks; one that fires
+    // the empty candidate, and another that fires
+    // RTCIceTransport.gatheringstatechange, then
+    // RTCPeerConnection.icegatheringstatechange, then the global null
+    // candidate.
+    while (true) {
+      const {candidate} = await new Promise(r => pc1.onicecandidate = r);
+      assert_not_equals(candidate, null, 'Global null candidate event should not fire yet');
+      if (candidate.candidate == '') {
+        break;
+      }
+    }
+    assert_equals(iceTransport.gatheringState, 'gathering');
+    assert_equals(pc1.iceGatheringState, 'gathering');
+
+    // Now, we test the stuff that happens in the second queued task.
+    const events = [];
+    await new Promise(r => {
+      iceTransport.ongatheringstatechange = () => {
+        assert_equals(iceTransport.gatheringState, 'complete');
+        assert_equals(pc1.iceGatheringState, 'complete');
+        events.push('gatheringstatechange');
+      };
+      pc1.onicegatheringstatechange = () => {
+        assert_equals(iceTransport.gatheringState, 'complete');
+        assert_equals(pc1.iceGatheringState, 'complete');
+        events.push('icegatheringstatechange');
+      }
+      pc1.onicecandidate = e => {
+        assert_equals(e.candidate, null);
+        assert_equals(iceTransport.gatheringState, 'complete');
+        assert_equals(pc1.iceGatheringState, 'complete');
+        events.push('icecandidate');
+        r();
+      };
+    });
+
+    assert_array_equals(events, [
+      'gatheringstatechange',
+      'icegatheringstatechange',
+      'icecandidate'
+    ], 'events must be fired on the same task in this order');
+}, 'gathering state and candidate callbacks should fire in the correct order');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
     pc1.addTransceiver('audio', { direction: 'recvonly' });
@@ -125,7 +187,33 @@
         pc1, pc2);
     await pc1.setLocalDescription(await pc1.createOffer({iceRestart: true}));
     await iceGatheringStateTransitions(pc1, 'gathering', 'complete');
-  }, 'setLocalDescription(reoffer) with a new transport should cause iceGatheringState to go to "checking" and then "complete"');
+  }, 'setLocalDescription(reoffer) with a restarted transport should cause iceGatheringState to go to "gathering" and then "complete"');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.addTransceiver('audio', { direction: 'recvonly' });
+    pc1.addTransceiver('video', { direction: 'recvonly' });
+    exchangeIceCandidates(pc1, pc2);
+    await pc1.setLocalDescription();
+    const firstGather = Promise.all([
+      iceGatheringStateTransitions(pc1, 'gathering', 'complete'),
+      iceGatheringStateTransitions(pc2, 'gathering', 'complete')]);
+    const mungedOffer = {type: 'offer', sdp: pc1.localDescription.sdp.replace('BUNDLE', 'BUNGLE')};
+    await pc2.setRemoteDescription(mungedOffer);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+    // Let gathering finish, so we don't have two generations gathering at once
+    // This can cause errors depending on timing.
+    await firstGather;
+    await pc1.setLocalDescription(await pc1.createOffer({iceRestart: true}));
+    // We only do this so we don't get errors in addCandidate. We don't want
+    // to wait for it, because we might miss the gathering transitions.
+    pc2.setRemoteDescription(pc1.localDescription);
+    await iceGatheringStateTransitions(pc1, 'gathering', 'complete');
+  }, 'setLocalDescription(reoffer) with two restarted transports should cause iceGatheringState to go to "gathering" and then "complete"');
 
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();

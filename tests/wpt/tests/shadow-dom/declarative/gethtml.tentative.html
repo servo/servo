@@ -69,29 +69,28 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, d
       const emptyElement = `<${elementType}></${elementType}>`;
       if (isOpen) {
         if (expectedSerializable) {
-          assert_equals(wrapper.getHTML({includeShadowRoots: true}), correctHtml);
+          assert_equals(wrapper.getHTML({serializableShadowRoots: true}), correctHtml);
         } else {
-          assert_equals(wrapper.getHTML({includeShadowRoots: true}), emptyElement);
+          assert_equals(wrapper.getHTML({serializableShadowRoots: true}), emptyElement);
         }
       } else {
         // Closed shadow roots should not be returned unless shadowRoots specifically contains the shadow root:
-        assert_equals(wrapper.getHTML({includeShadowRoots: true}), emptyElement);
-        assert_equals(wrapper.getHTML({includeShadowRoots: true, shadowRoots: []}), emptyElement);
+        assert_equals(wrapper.getHTML({serializableShadowRoots: true}), emptyElement);
+        assert_equals(wrapper.getHTML({serializableShadowRoots: true, shadowRoots: []}), emptyElement);
       }
-      // If we provide the shadow root, serialize it, regardless of includeShadowRoots.
-      assert_equals(wrapper.getHTML({includeShadowRoots: true, shadowRoots: [shadowRoot]}),correctHtml);
+      // If we provide the shadow root, serialize it, regardless of serializableShadowRoots.
+      assert_equals(wrapper.getHTML({serializableShadowRoots: true, shadowRoots: [shadowRoot]}),correctHtml);
+      assert_equals(wrapper.getHTML({serializableShadowRoots: false, shadowRoots: [shadowRoot]}),correctHtml);
       assert_equals(wrapper.getHTML({shadowRoots: [shadowRoot]}),correctHtml);
-      // This should always throw - includeShadowRoots false, but we've provided roots.
-      assert_throws_dom("NotSupportedError",() => wrapper.getHTML({includeShadowRoots: false, shadowRoots: [shadowRoot]}));
     } else {
       // For non-shadow hosts, getHTML() should also match .innerHTML
-      assert_equals(wrapper.getHTML({includeShadowRoots: true}),wrapper.innerHTML);
+      assert_equals(wrapper.getHTML({serializableShadowRoots: true}),wrapper.innerHTML);
     }
 
-    // Either way, make sure getHTML({includeShadowRoots: false}) matches .innerHTML
-    assert_equals(wrapper.getHTML({includeShadowRoots: false}),wrapper.innerHTML,'getHTML() with includeShadowRoots false should return the same as .innerHTML');
-    // ...and that the default for includeShadowRoots is false.
-    assert_equals(wrapper.getHTML(),wrapper.innerHTML,'The default for includeShadowRoots should be false');
+    // Either way, make sure getHTML({serializableShadowRoots: false}) matches .innerHTML
+    assert_equals(wrapper.getHTML({serializableShadowRoots: false}),wrapper.innerHTML,'getHTML() with serializableShadowRoots false should return the same as .innerHTML');
+    // ...and that the default for serializableShadowRoots is false.
+    assert_equals(wrapper.getHTML(),wrapper.innerHTML,'The default for serializableShadowRoots should be false');
 
   }, `${runGetHTMLOnShadowRoot ? 'ShadowRoot' : 'Element'}.getHTML() on <${elementType}>${allowsShadowDom ? `, with ${declarativeShadowDom ? 'declarative' : 'imperative'} shadow, mode=${mode}, delegatesFocus=${delegatesFocus}, serializable=${serializable}, clonable=${clonable}.` : ''}`);
 }

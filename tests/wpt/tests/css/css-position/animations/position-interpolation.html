@@ -36,11 +36,40 @@
 </body>
 
 <script>
+// Use default transition-behavior: normal.
 test_no_interpolation({
   property: 'position',
   from: 'absolute',
   to: 'static',
 });
+
+test_interpolation({
+  property: 'position',
+  behavior: 'allow-discrete',
+  from: 'relative',
+  to: 'static',
+}, [
+  {at: -1, expect: 'relative'},
+  {at: 0, expect: 'relative'},
+  {at: 0.4, expect: 'relative'},
+  {at: 0.5, expect: 'static'},
+  {at: 1, expect: 'static'},
+  {at: 1.5, expect: 'static'},
+]);
+
+test_interpolation({
+  property: 'position',
+  behavior: 'allow-discrete',
+  from: 'sticky',
+  to: 'fixed',
+}, [
+  {at: -1, expect: 'sticky'},
+  {at: 0, expect: 'sticky'},
+  {at: 0.4, expect: 'sticky'},
+  {at: 0.5, expect: 'fixed'},
+  {at: 1, expect: 'fixed'},
+  {at: 1.5, expect: 'fixed'},
+]);
 
 // This is still discrete interpolation; this test ensures that the neutral
 // keyframe is defined correctly for position.

@@ -651,3 +651,19 @@ function setupCSP(csp, second_csp=null) {
     document.head.appendChild(second_meta);
   }
 }
+
+// Clicking in WPT tends to be flaky (https://crbug.com/1066891), so you may
+// need to click multiple times to have an effect. This function clicks at
+// coordinates `{x, y}` relative to `click_origin`, by default 3 times. Should
+// not be used for tests where multiple clicks have distinct impact on the state
+// of the page, but rather to bruteforce through flakes that rely on only one
+// click.
+async function multiClick(x, y, click_origin, times = 3) {
+  for (let i = 0; i < times; i++) {
+    let actions = new test_driver.Actions();
+    await actions.pointerMove(x, y, {origin: click_origin})
+        .pointerDown()
+        .pointerUp()
+        .send();
+  }
+}

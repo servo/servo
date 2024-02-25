@@ -2,6 +2,7 @@
 
 import json
 import os
+import pathlib
 from collections import defaultdict
 
 from urllib.parse import quote, unquote, urljoin
@@ -289,6 +290,10 @@ class PythonScriptHandler:
         """
         This loads the requested python file as an environ variable.
 
+        If the requested file is a directory, this instead loads the first
+        lexicographically sorted file found in that directory that matches
+        "default*.py".
+
         Once the environ is loaded, the passed `func` is run with this loaded environ.
 
         :param request: The request object
@@ -297,6 +302,14 @@ class PythonScriptHandler:
         :return: The return of func
         """
         path = filesystem_path(self.base_path, request, self.url_base)
+
+        # Find a default Python file if the specified path is a directory
+        if os.path.isdir(path):
+            default_py_files = sorted(list(filter(
+                pathlib.Path.is_file,
+                pathlib.Path(path).glob("default*.py"))))
+            if default_py_files:
+                path = str(default_py_files[0])
 
         try:
             environ = {"__file__": path}
@@ -416,6 +429,9 @@ class AsIsHandler:
 
     def __call__(self, request, response):
         path = filesystem_path(self.base_path, request, self.url_base)
+        if os.path.isdir(path):
+            raise HTTPException(
+                500, "AsIsHandler cannot process directory, %s" % path)
 
         try:
             with open(path, 'rb') as f:

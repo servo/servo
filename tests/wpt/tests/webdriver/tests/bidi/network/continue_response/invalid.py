@@ -184,7 +184,7 @@ async def test_params_cookies_cookie_value_max_age_invalid_value(
         )
 
 
-@pytest.mark.parametrize("value", [None, None, False, 42, {}, []])
+@pytest.mark.parametrize("value", [None, False, 42, {}, []])
 async def test_params_cookies_cookie_value_value_invalid_type(
     setup_blocked_request, bidi_session, value
 ):

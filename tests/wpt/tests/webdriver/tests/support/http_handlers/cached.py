@@ -8,7 +8,14 @@ def main(request, response):
         response.headers.set(b"Location", request.GET.first(b"location"))
 
     response.status = status
-    response.headers.set(b"Content-Type", "text/plain")
+
+
+    if b"contenttype" in request.GET:
+        content_type = request.GET.first(b"contenttype")
+        response.headers.set(b"Content-Type", content_type)
+    else:
+        response.headers.set(b"Content-Type", "text/plain")
+
     response.headers.set(b"Expires", "Thu, 01 Dec 2100 20:00:00 GMT")
     response.headers.set(b"Cache-Control", "max-age=3600")
     return "Cached HTTP Response"

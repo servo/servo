@@ -1,0 +1,31 @@
+<html>
+  <head>
+    <title>Inline async script without external deps onload blocking</title>
+    <link rel="help" href="https://svgwg.org/svg2-draft/interact.html#ScriptElement"/>
+    <meta name=timeout content=long>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <svg>
+      <script>
+        let loadFired = false;
+        let asyncRan = false
+        let test = async_test("Inline async script vs. onload");
+        window.addEventListener("load", test.step_func(function() {
+          loadFired = true;
+          assert_true(asyncRan, "Async should have run before the load event");
+          test.step_timeout(function() {
+            test.done();
+          }, 0);
+        }));
+      </script>
+      <script async>
+        asyncRan = true;
+        test.step_func(function() {
+          assert_false(loadFired, "onload should not have fired yet");
+        });
+      </script>
+    </svg>
+  </body>
+</html>

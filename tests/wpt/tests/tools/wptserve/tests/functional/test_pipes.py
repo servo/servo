@@ -232,6 +232,12 @@ class TestPipesWithVariousHandlers(TestUsingServer):
         resp = self.request("/document.txt", query="pipe=gzip")
         self.assertEqual(resp.getcode(), 200)
 
+    def test_sub_default_py(self):
+        route = ("GET", "/defaultsubpy", wptserve.handlers.python_script_handler)
+        self.server.router.register(*route)
+        resp = self.request("/defaultsubpy")
+        self.assertEqual(b"localhost", resp.read())
+
 
 if __name__ == '__main__':
     unittest.main()

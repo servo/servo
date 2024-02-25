@@ -1,10 +1,10 @@
 function testHttpCookies({desc, origin, cookieNames, expectsCookie}) {
   promise_test(async () => {
-    await assertOriginCanAccessCookies({origin, cookieNames, expectsCookie});
+    await assertHttpOriginCanAccessCookies({ origin, cookieNames, expectsCookie });
   }, getCookieTestName(expectsCookie, desc, "HTTP"));
 }
 
-async function assertOriginCanAccessCookies({
+async function assertHttpOriginCanAccessCookies({
   origin,
   cookieNames,
   expectsCookie,
@@ -16,6 +16,29 @@ async function assertOriginCanAccessCookies({
       cookies.hasOwnProperty(cookieName), expectsCookie,
       getCookieAssertDesc(expectsCookie, cookieName));
   }
+}
+
+async function assertThirdPartyHttpCookies({ desc, origin, cookieNames, expectsCookie }) {
+  // Test that these cookies are not available on cross-site subresource requests to the
+  // origin that set them.
+  testHttpCookies({
+    desc,
+    origin,
+    cookieNames,
+    expectsCookie,
+  });
+
+  promise_test(async () => {
+    const thirdPartyHttpCookie = "3P_http"
+    await credFetch(
+      `${origin}/cookies/resources/set.py?${thirdPartyHttpCookie}=foobar;` +
+      "Secure;Path=/;SameSite=None");
+    await assertHttpOriginCanAccessCookies({
+      origin,
+      cookieNames: [thirdPartyHttpCookie],
+      expectsCookie,
+    });
+  }, desc + ": Cross site window setting HTTP cookies");
 }
 
 function testDomCookies({desc, cookieNames, expectsCookie}) {
