@@ -15,6 +15,7 @@ use js::typedarray::{Float32Array, Float64Array};
 use style::parser::ParserContext;
 use url::Url;
 
+use crate::dom::bindings::buffer_source::create_buffer_source_types;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
 use crate::dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::DOMMatrixReadOnlyMethods;
@@ -25,7 +26,6 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::typedarrays::create_typed_array;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::globalscope::GlobalScope;
@@ -686,14 +686,14 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
             .map(|&x| x as f32)
             .collect();
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_typed_array(cx, &vec, array.handle_mut())
+        create_buffer_source_types(cx, &vec, array.handle_mut())
             .expect("Converting matrix to float32 array should never fail")
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat64array
     fn ToFloat64Array(&self, cx: JSContext) -> Float64Array {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_typed_array(cx, &self.matrix.borrow().to_array(), array.handle_mut())
+        create_buffer_source_types(cx, &self.matrix.borrow().to_array(), array.handle_mut())
             .expect("Converting matrix to float64 array should never fail")
     }
 }

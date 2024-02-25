@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::typedarray::{Float64, Float64Array};
 
-use super::bindings::typedarrays::HeapTypedArray;
+use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
 use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -37,7 +37,7 @@ pub struct Gamepad {
     timestamp: Cell<f64>,
     mapping_type: String,
     #[ignore_malloc_size_of = "mozjs"]
-    axes: HeapTypedArray<Float64>,
+    axes: HeapBufferSource<Float64>,
     buttons: Dom<GamepadButtonList>,
     pose: Option<Dom<GamepadPose>>,
     #[ignore_malloc_size_of = "Defined in rust-webvr"]
@@ -68,7 +68,7 @@ impl Gamepad {
             connected: Cell::new(connected),
             timestamp: Cell::new(timestamp),
             mapping_type: mapping_type,
-            axes: HeapTypedArray::default(),
+            axes: HeapBufferSource::default(),
             buttons: Dom::from_ref(buttons),
             pose: pose.map(Dom::from_ref),
             hand: hand,
@@ -150,9 +150,7 @@ impl GamepadMethods for Gamepad {
 
     // https://w3c.github.io/gamepad/#dom-gamepad-axes
     fn Axes(&self, _cx: JSContext) -> Float64Array {
-        self.axes
-            .get_internal()
-            .expect("Failed to get gamepad axes.")
+        self.axes.get_buffer().expect("Failed to get gamepad axes.")
     }
 
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
@@ -232,7 +230,7 @@ impl Gamepad {
             if normalized_value.is_finite() {
                 let mut axis_vec = self
                     .axes
-                    .internal_to_option()
+                    .buffer_to_option()
                     .expect("Axes have not been initialized!");
                 unsafe {
                     axis_vec.as_mut_slice()[axis_index] = normalized_value;

@@ -8,7 +8,7 @@ use js::rust::HandleObject;
 use js::typedarray::{Float32, Float32Array};
 use webxr_api::{ApiSpace, Ray};
 
-use super::bindings::typedarrays::HeapTypedArray;
+use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRayBinding::{XRRayDirectionInit, XRRayMethods};
 use crate::dom::bindings::error::{Error, Fallible};
@@ -27,7 +27,7 @@ pub struct XRRay {
     #[no_trace]
     ray: Ray<ApiSpace>,
     #[ignore_malloc_size_of = "defined in mozjs"]
-    matrix: HeapTypedArray<Float32>,
+    matrix: HeapBufferSource<Float32>,
 }
 
 impl XRRay {
@@ -35,7 +35,7 @@ impl XRRay {
         XRRay {
             reflector_: Reflector::new(),
             ray,
-            matrix: HeapTypedArray::default(),
+            matrix: HeapBufferSource::default(),
         }
     }
 
@@ -163,7 +163,7 @@ impl XRRayMethods for XRRay {
         }
 
         self.matrix
-            .get_internal()
+            .get_buffer()
             .expect("Failed to get matrix from XRRay.")
     }
 }
