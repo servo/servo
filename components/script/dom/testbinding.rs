@@ -17,7 +17,7 @@ use script_traits::serializable::BlobImpl;
 use script_traits::MsDuration;
 use servo_config::prefs;
 
-use crate::dom::bindings::buffer_source::create_buffer_source_types;
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -214,7 +214,7 @@ impl TestBindingMethods for TestBinding {
         let data: [u8; 16] = [0; 16];
 
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        create_buffer_source_types(cx, &data, array.handle_mut())
+        create_buffer_source(cx, &data, array.handle_mut())
             .expect("Creating ClampedU8 array should never fail")
     }
     fn AnyAttribute(&self, _: SafeJSContext) -> JSVal {

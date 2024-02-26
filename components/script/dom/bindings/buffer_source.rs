@@ -67,14 +67,14 @@ unsafe impl<T> crate::dom::bindings::trace::JSTraceable for HeapBufferSource<T> 
     }
 }
 
-pub fn new_initialized_heap_buffer_source_types<T>(
+pub fn new_initialized_heap_buffer_source<T>(
     init: HeapTypedArrayInit,
 ) -> Result<HeapBufferSource<T>, ()>
 where
     T: TypedArrayElement + TypedArrayElementCreator,
     T::Element: Clone + Copy,
 {
-    let heap_buffer_source_types = match init {
+    let heap_buffer_source = match init {
         HeapTypedArrayInit::Buffer(buffer_source) => HeapBufferSource {
             buffer_source: buffer_source,
             phantom: PhantomData::default(),
@@ -82,13 +82,13 @@ where
         HeapTypedArrayInit::Info { len, cx } => {
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
             let typed_array_result =
-                create_buffer_source_types_with_length::<T>(cx, len as usize, array.handle_mut());
+                create_buffer_source_with_length::<T>(cx, len as usize, array.handle_mut());
             if typed_array_result.is_err() {
                 return Err(());
             }
-            let heap_buffer_source_types = HeapBufferSource::<T>::default();
+            let heap_buffer_source = HeapBufferSource::<T>::default();
 
-            match &heap_buffer_source_types.buffer_source {
+            match &heap_buffer_source.buffer_source {
                 BufferSource::Int8Array(buffer) |
                 BufferSource::Int16Array(buffer) |
                 BufferSource::Int32Array(buffer) |
@@ -106,10 +106,10 @@ where
                     buffer.set(*array);
                 },
             }
-            heap_buffer_source_types
+            heap_buffer_source
         },
     };
-    Ok(heap_buffer_source_types)
+    Ok(heap_buffer_source)
 }
 
 pub enum HeapTypedArrayInit {
@@ -132,7 +132,7 @@ where
     pub fn set_data(&self, cx: JSContext, data: &[T::Element]) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
         let _: TypedArray<T, *mut JSObject> =
-            create_buffer_source_types(cx, data, array.handle_mut())?;
+            create_buffer_source(cx, data, array.handle_mut())?;
 
         match &self.buffer_source {
             BufferSource::Int8Array(buffer) |
@@ -367,7 +367,7 @@ where
 }
 
 /// <https://webidl.spec.whatwg.org/#arraybufferview-create>
-pub fn create_buffer_source_types<T>(
+pub fn create_buffer_source<T>(
     cx: JSContext,
     data: &[T::Element],
     dest: MutableHandleObject,
@@ -384,7 +384,7 @@ where
     }
 }
 
-fn create_buffer_source_types_with_length<T>(
+fn create_buffer_source_with_length<T>(
     cx: JSContext,
     len: usize,
     dest: MutableHandleObject,
