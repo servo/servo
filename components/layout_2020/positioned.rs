@@ -814,7 +814,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
                                 margin_end = margins;
                             } else {
                                 margin_start = margins / 2;
-                                margin_end = margins / 2;
+                                margin_end = margins - margin_start;
                             }
                         },
                         (AuOrAuto::Auto, AuOrAuto::LengthPercentage(end)) => {
