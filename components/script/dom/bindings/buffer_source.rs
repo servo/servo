@@ -131,8 +131,7 @@ where
 
     pub fn set_data(&self, cx: JSContext, data: &[T::Element]) -> Result<(), ()> {
         rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
-        let _: TypedArray<T, *mut JSObject> =
-            create_buffer_source(cx, data, array.handle_mut())?;
+        let _: TypedArray<T, *mut JSObject> = create_buffer_source(cx, data, array.handle_mut())?;
 
         match &self.buffer_source {
             BufferSource::Int8Array(buffer) |
