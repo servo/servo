@@ -67,6 +67,7 @@ struct TableLayout<'a> {
     row_sizes: Vec<Au>,
     row_baselines: Vec<Au>,
     cells_laid_out: Vec<Vec<Option<CellLayout>>>,
+    basis_for_cell_padding_percentage: Au,
 }
 
 #[derive(Clone, Debug)]
@@ -98,6 +99,7 @@ impl<'a> TableLayout<'a> {
             row_sizes: Vec::new(),
             row_baselines: Vec::new(),
             cells_laid_out: Vec::new(),
+            basis_for_cell_padding_percentage: Au::zero(),
         }
     }
 
@@ -167,9 +169,15 @@ impl<'a> TableLayout<'a> {
                         .max(max_size.inline.min(size.inline))
                 };
 
-                let pbm = cell.style.padding_border_margin(containing_block);
-                outer_min_content_width += pbm.padding_border_sums.inline;
-                outer_max_content_width += pbm.padding_border_sums.inline;
+                let inline_padding_border_sum = Au::from(
+                    cell.style
+                        .padding(writing_mode)
+                        .percentages_relative_to(Length::zero())
+                        .inline_sum() +
+                        cell.style.border_width(writing_mode).inline_sum(),
+                );
+                outer_min_content_width += inline_padding_border_sum;
+                outer_max_content_width += inline_padding_border_sum;
 
                 row_measures[column_index] = CellOrColumnMeasure {
                     content_sizes: ContentSizes {
@@ -578,6 +586,10 @@ impl<'a> TableLayout<'a> {
         // > border spacing (if any). This is the width that we will be able to allocate to the
         // > columns.
         self.assignable_width = used_width_of_table - inline_border_spacing;
+
+        // This is the amount that we will use to resolve percentages in the padding of cells.
+        // It matches what Gecko and Blink do, though they disagree when there is a big caption.
+        self.basis_for_cell_padding_percentage = used_width_of_table - border_spacing.inline * 2;
     }
 
     /// Distribute width to columns, performing step 2.4 of table layout from
@@ -897,7 +909,7 @@ impl<'a> TableLayout<'a> {
                 let padding = cell
                     .style
                     .padding(containing_block.style.writing_mode)
-                    .percentages_relative_to(Length::zero());
+                    .percentages_relative_to(self.basis_for_cell_padding_percentage.into());
                 let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
                 let mut total_width: CSSPixelLength =
                     Length::from(total_width) - inline_border_padding_sum;
