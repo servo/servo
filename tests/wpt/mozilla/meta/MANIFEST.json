@@ -5402,6 +5402,19 @@
       {}
      ]
     ],
+    "quirks-mode-br-line-height.html": [
+     "ecb49833f809e72cd57772e7a98085e787cb8baa",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/quirks-mode-br-line-height-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "quotes_none_a.html": [
      "c37ff23e9084d7d198b3c97e14d2e00ab417dd6c",
      [
@@ -9671,6 +9684,10 @@
     ],
     "pseudo_inherit_ref.html": [
      "0195f154cf3c4303e5aaf4fc9e7cfa358b8386d7",
+     []
+    ],
+    "quirks-mode-br-line-height-ref.html": [
+     "2108a4ae5e1f823cf2a3923070d54c42487fd8c6",
      []
     ],
     "quotes_none_ref.html": [
