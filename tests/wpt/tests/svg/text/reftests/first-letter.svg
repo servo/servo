@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:title>first-letter should apply to SVG text</h:title>
+    <h:link rel="help" href="https://www.w3.org/TR/SVG2/text.html#TextProperties"/>
+    <h:link rel="match" href="first-letter-ref.svg"/>
+    <h:link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+  </metadata>
+  <style>
+    text {
+      font-family: Ahem;
+      font-size: 50px;
+    }
+    text::first-letter {
+      fill: green;
+    }
+  </style>
+  <text x="100" y="100">
+    <tspan>XXXX</tspan>
+  </text>
+</svg>

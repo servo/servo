@@ -5,7 +5,6 @@
 use cssparser::SourceLocation;
 use rayon;
 use servo_arc::Arc;
-use servo_url::ServoUrl;
 use style::applicable_declarations::CascadePriority;
 use style::context::QuirksMode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
@@ -14,13 +13,19 @@ use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDecl
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
 use style::stylesheets::layer_rule::LayerOrder;
-use style::stylesheets::{AllowImportRules, CssRule, Origin, Stylesheet};
+use style::stylesheets::{AllowImportRules, CssRule, Origin, Stylesheet, UrlExtraData};
 use style::thread_state::{self, ThreadState};
 use test::{self, Bencher};
+use url::Url;
 
 struct ErrorringErrorReporter;
 impl ParseErrorReporter for ErrorringErrorReporter {
-    fn report_error(&self, url: &ServoUrl, location: SourceLocation, error: ContextualParseError) {
+    fn report_error(
+        &self,
+        url: &UrlExtraData,
+        location: SourceLocation,
+        error: ContextualParseError,
+    ) {
         panic!(
             "CSS error: {}\t\n{}:{} {}",
             url.as_str(),
@@ -59,9 +64,10 @@ impl<'a> Drop for AutoGCRuleTree<'a> {
 fn parse_rules(lock: &SharedRwLock, css: &str) -> Vec<(StyleSource, CascadeLevel)> {
     let media = Arc::new(lock.wrap(MediaList::empty()));
 
+    let url_data = Url::parse("http://localhost").unwrap().into();
     let s = Stylesheet::from_str(
         css,
-        ServoUrl::parse("http://localhost").unwrap(),
+        url_data,
         Origin::Author,
         media,
         lock.clone(),

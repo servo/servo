@@ -18,14 +18,13 @@ pub mod webdriver_msg;
 use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use bitflags::bitflags;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use compositor::ScrollTreeNodeId;
-use crossbeam_channel::{Receiver, RecvTimeoutError, Sender};
+use crossbeam_channel::{RecvTimeoutError, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{CompositorEventVariant, Cursor};
 use euclid::default::Point2D;
@@ -110,19 +109,14 @@ impl UntrustedNodeAddress {
     }
 }
 
-/// Messages sent to the layout thread from the constellation and/or compositor.
+/// Messages sent to layout from the constellation and/or compositor.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum LayoutControlMsg {
-    /// Requests that this layout thread exit.
+    /// Requests that this layout clean up before exit.
     ExitNow,
-    /// Requests the current epoch (layout counter) from this layout.
-    GetCurrentEpoch(IpcSender<Epoch>),
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
     SetScrollStates(Vec<ScrollState>),
-    /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
-    /// and `false` is returned if all fonts have loaded.
-    GetWebFontLoadState(IpcSender<bool>),
-    /// Send the paint time for a specific epoch to the layout thread.
+    /// Send the paint time for a specific epoch to layout.
     PaintMetric(Epoch, u64),
 }
 
@@ -233,8 +227,6 @@ pub struct NewLayoutInfo {
     pub load_data: LoadData,
     /// Information about the initial window size.
     pub window_size: WindowSizeData,
-    /// A port on which layout can receive messages from the pipeline.
-    pub pipeline_port: IpcReceiver<LayoutControlMsg>,
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
@@ -293,7 +285,7 @@ pub enum ConstellationControlMsg {
     /// Sends the final response to script thread for fetching after all redirections
     /// have been resolved
     NavigationResponse(PipelineId, FetchResponseMsg),
-    /// Gives a channel and ID to a layout thread, as well as the ID of that layout's parent
+    /// Gives a channel and ID to a layout, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
     Resize(PipelineId, WindowSizeData, WindowSizeType),
@@ -401,6 +393,10 @@ pub enum ConstellationControlMsg {
     MediaSessionAction(PipelineId, MediaSessionActionType),
     /// Notifies script thread that WebGPU server has started
     SetWebGPUPort(IpcReceiver<WebGPUMsg>),
+    /// A mesage for a layout from the constellation.
+    ForLayoutFromConstellation(LayoutControlMsg, PipelineId),
+    /// A message for a layout from the font cache.
+    ForLayoutFromFontCache(PipelineId),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -439,6 +435,8 @@ impl fmt::Debug for ConstellationControlMsg {
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
             SetWebGPUPort(..) => "SetWebGPUPort",
+            ForLayoutFromConstellation(..) => "ForLayoutFromConstellation",
+            ForLayoutFromFontCache(..) => "ForLayoutFromFontCache",
         };
         write!(formatter, "ConstellationControlMsg::{}", variant)
     }
@@ -569,6 +567,8 @@ pub enum CompositorEvent {
     CompositionEvent(CompositionEvent),
     /// Virtual keyboard was dismissed
     IMEDismissedEvent,
+    /// Connected gamepad state updated
+    GamepadEvent(GamepadEvent),
 }
 
 impl From<&CompositorEvent> for CompositorEventVariant {
@@ -582,6 +582,7 @@ impl From<&CompositorEvent> for CompositorEventVariant {
             CompositorEvent::KeyboardEvent(..) => CompositorEventVariant::KeyboardEvent,
             CompositorEvent::CompositionEvent(..) => CompositorEventVariant::CompositionEvent,
             CompositorEvent::IMEDismissedEvent => CompositorEventVariant::IMEDismissedEvent,
+            CompositorEvent::GamepadEvent(..) => CompositorEventVariant::GamepadEvent,
         }
     }
 }
@@ -661,7 +662,7 @@ pub struct InitialScriptState {
     pub script_to_constellation_chan: ScriptToConstellationChan,
     /// A handle to register script-(and associated layout-)threads for hang monitoring.
     pub background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
-    /// A sender for the layout thread to communicate to the constellation.
+    /// A sender layout to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerSchedulerMsg>,
@@ -691,23 +692,8 @@ pub struct InitialScriptState {
     pub webrender_document: DocumentId,
     /// FIXME(victor): The Webrender API sender in this constellation's pipeline
     pub webrender_api_sender: WebrenderIpcSender,
-    /// Flag to indicate if the layout thread is busy handling a request.
-    pub layout_is_busy: Arc<AtomicBool>,
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
-}
-
-/// This trait allows creating a `ScriptThread` without depending on the `script`
-/// crate.
-pub trait ScriptThreadFactory {
-    /// Type of message sent from script to layout.
-    type Message;
-    /// Create a `ScriptThread`.
-    fn create(
-        state: InitialScriptState,
-        load_data: LoadData,
-        user_agent: Cow<'static, str>,
-    ) -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
 /// This trait allows creating a `ServiceWorkerManager` without depending on the `script`
@@ -1326,4 +1312,44 @@ impl SerializedImageData {
             SerializedImageData::External(image) => Ok(ImageData::External(image.clone())),
         }
     }
+}
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+/// Index of gamepad in list of system's connected gamepads
+pub struct GamepadIndex(pub usize);
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The minimum and maximum values that can be reported for axis or button input from this gamepad
+pub struct GamepadInputBounds {
+    /// Minimum and maximum axis values
+    pub axis_bounds: (f64, f64),
+    /// Minimum and maximum button values
+    pub button_bounds: (f64, f64),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The type of Gamepad event
+pub enum GamepadEvent {
+    /// A new gamepad has been connected
+    /// <https://www.w3.org/TR/gamepad/#event-gamepadconnected>
+    Connected(GamepadIndex, String, GamepadInputBounds),
+    /// An existing gamepad has been disconnected
+    /// <https://www.w3.org/TR/gamepad/#event-gamepaddisconnected>
+    Disconnected(GamepadIndex),
+    /// An existing gamepad has been updated
+    /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
+    Updated(GamepadIndex, GamepadUpdateType),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+/// The type of Gamepad input being updated
+pub enum GamepadUpdateType {
+    /// Axis index and input value
+    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
+    Axis(usize, f64),
+    /// Button index and input value
+    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button
+    Button(usize, f64),
 }

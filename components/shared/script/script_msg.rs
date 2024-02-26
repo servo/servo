@@ -29,8 +29,8 @@ use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
 use crate::{
     AnimationState, AuxiliaryBrowsingContextLoadInfo, BroadcastMsg, DocumentState,
-    IFrameLoadInfoWithData, LayoutControlMsg, LoadData, MessagePortMsg, PortMessageTask,
-    StructuredSerializedData, WindowSizeType, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
+    IFrameLoadInfoWithData, LoadData, MessagePortMsg, PortMessageTask, StructuredSerializedData,
+    WindowSizeType, WorkerGlobalScopeInit, WorkerScriptLoadOrigin,
 };
 
 /// An iframe sizing operation.
@@ -220,16 +220,15 @@ pub enum ScriptMsg {
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfoWithData),
     /// A load of the initial `about:blank` has been completed in an IFrame.
-    ScriptNewIFrame(IFrameLoadInfoWithData, IpcSender<LayoutControlMsg>),
+    ScriptNewIFrame(IFrameLoadInfoWithData),
     /// Script has opened a new auxiliary browsing context.
-    ScriptNewAuxiliary(
-        AuxiliaryBrowsingContextLoadInfo,
-        IpcSender<LayoutControlMsg>,
-    ),
+    ScriptNewAuxiliary(AuxiliaryBrowsingContextLoadInfo),
     /// Mark a new document as active
     ActivateDocument,
     /// Set the document state for a pipeline (used by screenshot / reftests)
     SetDocumentState(DocumentState),
+    /// Update the layout epoch in the constellation (used by screenshot / reftests).
+    SetLayoutEpoch(Epoch, IpcSender<bool>),
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(ServoUrl),
     /// Script has handled a touch event, and either prevented or allowed default actions.
@@ -311,6 +310,7 @@ impl fmt::Debug for ScriptMsg {
             ScriptNewAuxiliary(..) => "ScriptNewAuxiliary",
             ActivateDocument => "ActivateDocument",
             SetDocumentState(..) => "SetDocumentState",
+            SetLayoutEpoch(..) => "SetLayoutEpoch",
             SetFinalUrl(..) => "SetFinalUrl",
             TouchEventProcessed(..) => "TouchEventProcessed",
             LogEntry(..) => "LogEntry",

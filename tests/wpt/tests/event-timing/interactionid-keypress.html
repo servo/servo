@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<meta name="timeout" content="long">
+<title>Event Timing: interactionId-keypress.</title>
+<textarea id='test'></textarea>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=resources/event-timing-test-utils.js></script>
+
+<script>
+  let observedEntries = [];
+  let map = new Map();
+          const events = ['keydown','keypress','keyup'];
+
+  async_test(function (t) {
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+
+    new PerformanceObserver(t.step_func(entryList => {
+      observedEntries = observedEntries.concat(entryList.getEntries().filter(filterAndAddToMap(events, map)));
+      if (observedEntries.length < 3)
+        return;
+      assert_greater_than(map.get('keypress'), 0, 'Should have a non-trivial interactionId');
+      assert_equals(map.get('keydown'), map.get('keypress'), 'The keydown and the keypress should have the same interactionId');
+      assert_equals(map.get('keyup'), map.get('keypress'), 'The keyup and the keypress should have the same interactionId');
+      assert_equals('t', document.getElementById('test').value);
+      t.done();
+    })).observe({ type: "event" });
+
+    addListenersAndPress(document.getElementById('test'), 't', events);
+  }, "Event Timing: compare event timing interactionId for keypress.");
+
+
+</script>
+
+</html>

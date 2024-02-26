@@ -21,38 +21,11 @@ use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 fn trig_enabled() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.trig.enabled");
-    #[cfg(feature = "servo")]
-    return false;
+    static_prefs::pref!("layout.css.trig.enabled")
 }
 
 fn nan_inf_enabled() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.nan-inf.enabled");
-    #[cfg(feature = "servo")]
-    return false;
-}
-
-fn round_enabled() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.round.enabled");
-    #[cfg(feature = "servo")]
-    return false;
-}
-
-fn mod_rem_enabled() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.mod-rem.enabled");
-    #[cfg(feature = "servo")]
-    return false;
-}
-
-fn exp_enabled() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.exp.enabled");
-    #[cfg(feature = "servo")]
-    return false;
+    static_prefs::pref!("layout.css.nan-inf.enabled")
 }
 
 /// The name of the mathematical function that we're parsing.
@@ -929,11 +902,11 @@ impl CalcNode {
         } else if matches!(function, Sin | Cos | Tan | Asin | Acos | Atan | Atan2) {
             trig_enabled()
         } else if matches!(function, Round) {
-            round_enabled()
+            static_prefs::pref!("layout.css.round.enabled")
         } else if matches!(function, Mod | Rem) {
-            mod_rem_enabled()
+            static_prefs::pref!("layout.css.mod-rem.enabled")
         } else if matches!(function, Pow | Sqrt | Hypot | Log | Exp) {
-            exp_enabled()
+            static_prefs::pref!("layout.css.exp.enabled")
         } else {
             true
         };

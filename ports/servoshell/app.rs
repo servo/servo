@@ -438,6 +438,9 @@ impl App {
 
         // Catch some keyboard events, and push the rest onto the WebViewManager event queue.
         webviews.handle_window_events(embedder_events);
+        if webviews.webview_id().is_some() {
+            webviews.handle_gamepad_events();
+        }
 
         // Take any new embedder messages from Servo itself.
         let mut embedder_messages = self.servo.as_mut().unwrap().get_events();

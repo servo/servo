@@ -69,3 +69,22 @@ async def test_params_user_context_invalid_type(bidi_session, value):
 async def test_params_user_context_invalid_value(bidi_session, value):
     with pytest.raises(error.NoSuchUserContextException):
         await bidi_session.browsing_context.create(type_hint="tab", user_context=value)
+
+
+async def test_params_user_context_invalid_value_with_ref_context(bidi_session):
+    reference_context = await bidi_session.browsing_context.create(type_hint="tab")
+
+    with pytest.raises(error.NoSuchUserContextException):
+        await bidi_session.browsing_context.create(
+            reference_context=reference_context["context"],
+            type_hint="tab",
+            user_context="invalid",
+        )
+
+
+async def test_params_user_context_removed_context(bidi_session, create_user_context):
+    user_context = await create_user_context()
+    await bidi_session.browser.remove_user_context(user_context=user_context)
+
+    with pytest.raises(error.NoSuchUserContextException):
+        await bidi_session.browsing_context.create(type_hint="tab", user_context=user_context)

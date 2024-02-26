@@ -410,6 +410,17 @@ class Input(BidiModule):
         params: MutableMapping[str, Any] = {"context": context}
         return params
 
+    @command
+    def set_files(
+        self, context: str, element: Any, files: List[str]
+    ) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "context": context,
+            "element": element,
+            "files": files,
+        }
+        return params
+
 
 def get_element_origin(element: Any) -> Mapping[str, Any]:
     return {"type": "element", "element": {"sharedId": element["sharedId"]}}

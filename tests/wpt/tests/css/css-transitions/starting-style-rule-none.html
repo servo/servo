@@ -20,6 +20,10 @@
   }
 </style>
 <script>
+  setup(() => {
+    assert_true(supportsStartingStyle(), "Prerequisite: @starting-style parses");
+  });
+
   promise_test(async t => {
     await waitForAnimationFrames(2);
     assert_equals(getComputedStyle(target).backgroundColor, "rgb(0, 128, 0)",

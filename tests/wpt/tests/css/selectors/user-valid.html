@@ -28,6 +28,7 @@
 <form id="form">
   <input placeholder="Optional field" id="optional-input"><br>
   <textarea placeholder="Optional field" id="optional-textarea"></textarea><br>
+  <input type="checkbox" id="optional-checkbox"><br>
   <input required placeholder="Required field"> <!-- Prevent the form from navigating with this invalid input -->
   <input type="submit" id="submit-button">
   <input type="reset" id="reset-button">
@@ -75,17 +76,22 @@ promise_test(async () => {
   const form = document.querySelector("#form");
   const optionalInput = document.querySelector("#optional-input");
   const optionalTextarea = document.querySelector("#optional-textarea");
+  const optionalCheckbox = document.querySelector("#optional-checkbox");
   const submitButton = document.querySelector("#submit-button");
   const resetButton = document.querySelector("#reset-button");
 
   assert_true(optionalInput.validity.valid);
   assert_true(optionalTextarea.validity.valid);
+  assert_true(optionalCheckbox.validity.valid);
   // The selector can't match because no interaction has happened.
   assert_false(optionalInput.matches(":user-valid"), "Initially does not match :user-valid");
   assert_false(optionalInput.matches(":user-invalid"), "Initially does not match :user-invalid");
 
   assert_false(optionalTextarea.matches(":user-valid"), "Initially does not match :user-valid");
   assert_false(optionalTextarea.matches(":user-invalid"), "Initially does not match :user-invalid");
+
+  assert_false(optionalCheckbox.matches(":user-valid"), "Initially does not match :user-valid");
+  assert_false(optionalCheckbox.matches(":user-invalid"), "Initially does not match :user-invalid");
 
   submitButton.click();
 
@@ -95,6 +101,9 @@ promise_test(async () => {
   assert_true(optionalTextarea.matches(":user-valid"), "Submitted the form, textarea is validated");
   assert_false(optionalTextarea.matches(":user-invalid"), "Submitted the form, textarea is validated");
 
+  assert_true(optionalCheckbox.matches(":user-valid"), "Submitted the form, checkbox is validated");
+  assert_false(optionalCheckbox.matches(":user-invalid"), "Submitted the form, checkbox is validated");
+
   resetButton.click();
 
   assert_false(optionalInput.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
@@ -102,6 +111,9 @@ promise_test(async () => {
 
   assert_false(optionalTextarea.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
   assert_false(optionalTextarea.matches(":user-invalid"), "Reset the form, user-interacted flag is reset");
+
+  assert_false(optionalCheckbox.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
+  assert_false(optionalCheckbox.matches(":user-invalid"), "Reset the form, user-interacted flag is reset");
 
   // Test programmatic form submission with constraint validation.
   form.requestSubmit();
@@ -111,5 +123,32 @@ promise_test(async () => {
 
   assert_true(optionalTextarea.matches(":user-valid"), "Called form.requestSubmit(), textarea is validated");
   assert_false(optionalTextarea.matches(":user-invalid"), "Called form.requestSubmit(), textarea is validated");
+
+  assert_true(optionalCheckbox.matches(":user-valid"), "Called form.requestSubmit(), checkbox is validated");
+  assert_false(optionalCheckbox.matches(":user-invalid"), "Called form.requestSubmit(), checkbox is validated");
 }, ":user-valid selector properly interacts with submit & reset buttons");
+
+promise_test(async () => {
+  const checkbox = document.getElementById('optional-checkbox');
+
+  const resetButton = document.getElementById('reset-button');
+  resetButton.click();
+  assert_false(checkbox.matches(':user-valid'),
+    'Checkbox should not match :user-valid at the start of the test.');
+  assert_false(checkbox.checked,
+    'Checkbox should not be checked at the start of the test.');
+
+  checkbox.checked = true;
+  assert_false(checkbox.matches(':user-valid'),
+    'Checkbox should not match :user-valid after programatically changing value.');
+  checkbox.checked = false;
+  assert_false(checkbox.matches(':user-valid'),
+    'Checkbox should not match :user-valid after programatically changing value.');
+
+  await test_driver.click(checkbox);
+  assert_true(checkbox.checked, 'Checkbox should be checked after clicking once.');
+
+  assert_true(checkbox.matches(':user-valid'),
+    'Checkbox should match :user-valid after clicking once.');
+}, 'Checkboxes should match :user-valid after the user clicks on it.');
 </script>

@@ -23,15 +23,6 @@ pub type OffsetPath = generics::GenericOffsetPath<RayFunction>;
 /// The specified value of `offset-position`.
 pub type OffsetPosition = generics::GenericOffsetPosition<HorizontalPosition, VerticalPosition>;
 
-#[cfg(feature = "gecko")]
-fn is_ray_enabled() -> bool {
-    static_prefs::pref!("layout.css.motion-path-ray.enabled")
-}
-#[cfg(feature = "servo")]
-fn is_ray_enabled() -> bool {
-    false
-}
-
 impl Parse for RayFunction {
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -39,7 +30,7 @@ impl Parse for RayFunction {
     ) -> Result<Self, ParseError<'i>> {
         use crate::values::specified::PositionOrAuto;
 
-        if !is_ray_enabled() {
+        if !static_prefs::pref!("layout.css.motion-path-ray.enabled") {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 

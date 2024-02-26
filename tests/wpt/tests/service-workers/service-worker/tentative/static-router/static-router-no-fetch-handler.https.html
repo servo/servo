@@ -25,7 +25,14 @@ promise_test(async t => {
   const {contentWindow} = await createIframe(t, `resources/${CACHED_FILE}`);
   assert_equals(contentWindow.document.body.innerText, "From cache");
 
-  // TODO: Matched with the subreosurce load.
+  // Matched with the subreosurce load.
+  const response = await contentWindow.fetch(CACHED_FILE);
+  assert_equals(response.status, 200);
+  assert_equals(await response.text(), "From cache");
+
+  // Both requests are served from cache.
+  const {requests} = await get_info_from_worker(worker);
+  assert_equals(requests.length, 0);
 }, 'The router rule is evaluated without fetch handlers in service worker');
 
 promise_test(async t => {

@@ -42,6 +42,7 @@ servo_url = { path = "../url" }
 style = { path = "../style", features = ["servo"] }
 style_traits = { workspace = true }
 unicode-script = { workspace = true }
+unicode-segmentation = { workspace = true }
 webrender_api = { workspace = true }
 xi-unicode = { workspace = true }
 

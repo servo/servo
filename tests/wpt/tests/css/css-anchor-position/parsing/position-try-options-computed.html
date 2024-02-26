@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Test: Computed position-try-options</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-try-options">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  test_computed_value("position-try-options", "none");
+  test_computed_value("position-try-options", "flip-block");
+  test_computed_value("position-try-options", "flip-inline");
+  test_computed_value("position-try-options", "flip-start");
+  test_computed_value("position-try-options", "flip-block, flip-inline");
+  test_computed_value("position-try-options", "--foo, --bar");
+  test_computed_value("position-try-options", "flip-start flip-inline flip-block", "flip-block flip-inline flip-start");
+
+  assert_not_inherited("position-try-options", "none", "flip-inline");
+</script>

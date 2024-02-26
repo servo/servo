@@ -22,6 +22,10 @@ def main(request, response):
         expected_password = request.GET.first(b"password")
 
     if username == expected_username and password == expected_password:
+        if b"contenttype" in request.GET:
+            content_type = request.GET.first(b"contenttype")
+            response.headers.set(b"Content-Type", content_type)
+
         return b"Authentication done"
 
     realm = b"test"

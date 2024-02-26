@@ -70,6 +70,7 @@ def read_script_metadata(f: BinaryIO, regexp: Pattern[bytes]) -> Iterable[Tuple[
 
 _any_variants: Dict[Text, Dict[Text, Any]] = {
     "window": {"suffix": ".any.html"},
+    "window-module": {},
     "serviceworker": {"force_https": True},
     "serviceworker-module": {"force_https": True},
     "sharedworker": {},

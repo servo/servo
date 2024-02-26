@@ -61,5 +61,31 @@ promise_test(async t => {
   const {requests}  = await get_info_from_worker(worker);
   assert_equals(requests.length, 2);
 }, 'Subresource load matched the rule with race-network-and-fetch-handler source, and the server reseponse is faster than the fetch handler');
+
+promise_test(async t => {
+  const rnd = randomString();
+  const worker = await registerAndActivate(t, ROUTER_KEY, SW_SRC);
+  const iframe = await createIframe(t, FRAME_SRC);
+  // Expect the response from the network request.
+  const response = await iframe.contentWindow.fetch(`?nonce=${rnd}&sw_slow&server_no_content`);
+  assert_equals(response.status, 204);
+  // Ensure the fetch handler is also executed.
+  const {requests}  = await get_info_from_worker(worker);
+  assert_equals(requests.length, 2);
+}, 'Subresource load matched the rule with race-network-and-fetch-handler source, and the server reseponse with 204 response is faster than the fetch handler');
+
+
+promise_test(async t => {
+  const rnd = randomString();
+  const worker = await registerAndActivate(t, ROUTER_KEY, SW_SRC);
+  const iframe = await createIframe(t, FRAME_SRC);
+  const response = await iframe.contentWindow.fetch(`?nonce=${rnd}&sw_slow&server_not_found`);
+  // Expect the response from the network request was faster, but the result was 404.
+  // So, the fetch handler result will be used instead.
+  assert_equals(response.status, 200);
+  assert_equals(await response.text(), rnd);
+  const {requests}  = await get_info_from_worker(worker);
+  assert_equals(requests.length, 2);
+}, 'Subresource load matched the rule with race-network-and-fetch-handler source, and the server reseponse is faster than the fetch handler, but not found');
 </script>
 </body>

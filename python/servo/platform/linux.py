@@ -27,7 +27,6 @@ APT_PKGS = [
     'build-essential', 'ccache', 'clang', 'cmake', 'curl', 'g++', 'git',
     'gperf', 'libdbus-1-dev', 'libfreetype6-dev', 'libgl1-mesa-dri',
     'libgles2-mesa-dev', 'libglib2.0-dev',
-    'libgstreamer-plugins-base1.0-dev',
     'gstreamer1.0-plugins-good', 'libgstreamer-plugins-good1.0-dev',
     'gstreamer1.0-plugins-bad', 'libgstreamer-plugins-bad1.0-dev',
     'gstreamer1.0-plugins-ugly',
@@ -36,7 +35,7 @@ APT_PKGS = [
     'libgstrtspserver-1.0-dev',
     'gstreamer1.0-tools',
     'libges-1.0-dev',
-    'libharfbuzz-dev', 'liblzma-dev', 'libunwind-dev', 'libunwind-dev',
+    'libharfbuzz-dev', 'liblzma-dev', 'libudev-dev', 'libunwind-dev',
     'libvulkan1', 'libx11-dev', 'libxcb-render0-dev', 'libxcb-shape0-dev',
     'libxcb-xfixes0-dev', 'libxmu-dev', 'libxmu6', 'libegl1-mesa-dev',
     'llvm-dev', 'm4', 'xorg-dev',
@@ -155,8 +154,16 @@ class Linux(Base):
         install = False
         pkgs = []
         if self.distro in ['Ubuntu', 'Debian GNU/Linux', 'Raspbian GNU/Linux']:
-            command = ['apt-get', 'install']
+            command = ['apt-get', 'install', "-m"]
             pkgs = APT_PKGS
+
+            # Try to filter out unknown packages from the list. This is important for Debian
+            # as it does not ship all of the packages we want.
+            installable = subprocess.check_output(['apt-cache', '--generate', 'pkgnames'])
+            if installable:
+                installable = installable.decode("ascii").splitlines()
+                pkgs = list(filter(lambda pkg: pkg in installable, pkgs))
+
             if subprocess.call(['dpkg', '-s'] + pkgs, shell=True,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
                 install = True

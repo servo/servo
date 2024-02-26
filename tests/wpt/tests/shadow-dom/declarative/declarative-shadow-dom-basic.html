@@ -55,6 +55,49 @@ test(() => {
 }, 'Shadowrootmode reflection, setter');
 
 test(() => {
+  const t = document.createElement('template');
+  t.setAttribute('shadowrootdelegatesfocus','');
+  assert_equals(t.shadowRootDelegatesFocus,true,'The shadowRootDelegatesFocus IDL should reflect the content attribute');
+  t.setAttribute('shadowrootdelegatesfocus','foobar');
+  assert_equals(t.shadowRootDelegatesFocus,true,'The value doesn\'t matter');
+  t.removeAttribute('shadowrootdelegatesfocus');
+  assert_equals(t.shadowRootDelegatesFocus,false,'No shadowRootDelegatesFocus attribute maps to false');
+}, 'Shadowrootdelegatesfocus reflection');
+
+test(() => {
+  const t = document.createElement('template');
+  assert_equals(t.getAttribute('shadowrootdelegatesfocus'), null);
+  t.shadowRootDelegatesFocus = true;
+  assert_equals(t.getAttribute('shadowrootdelegatesfocus'), '');
+  assert_equals(t.shadowRootDelegatesFocus, true);
+  t.shadowRootDelegatesFocus = false;
+  assert_equals(t.getAttribute('shadowrootdelegatesfocus'), null);
+  assert_equals(t.shadowRootDelegatesFocus, false);
+}, 'Shadowrootdelegatesfocus reflection, setter');
+
+
+test(() => {
+  const t = document.createElement('template');
+  t.setAttribute('shadowrootclonable','');
+  assert_equals(t.shadowRootClonable,true,'The shadowRootClonable IDL should reflect the content attribute');
+  t.setAttribute('shadowrootclonable','foobar');
+  assert_equals(t.shadowRootClonable,true,'The value doesn\'t matter');
+  t.removeAttribute('shadowrootclonable');
+  assert_equals(t.shadowRootClonable,false,'No shadowRootClonable attribute maps to false');
+}, 'Shadowrootclonable reflection');
+
+test(() => {
+  const t = document.createElement('template');
+  assert_equals(t.getAttribute('shadowrootclonable'), null);
+  t.shadowRootClonable = true;
+  assert_equals(t.getAttribute('shadowrootclonable'), '');
+  assert_equals(t.shadowRootClonable, true);
+  t.shadowRootClonable = false;
+  assert_equals(t.getAttribute('shadowrootclonable'), null);
+  assert_equals(t.shadowRootClonable, false);
+}, 'Shadowrootclonable reflection, setter');
+
+test(() => {
   const div = document.createElement('div');
   div.setHTMLUnsafe(`
     <div id="host">
@@ -141,6 +184,28 @@ test(() => {
   assert_true(!!host.shadowRoot,"No shadow root found");
   assert_false(host.shadowRoot.delegatesFocus,"delegatesFocus should be false without the shadowrootdelegatesfocus attribute");
 }, 'Declarative Shadow DOM: delegates focus attribute');
+
+test(() => {
+  const div = document.createElement('div');
+  div.setHTMLUnsafe(`
+    <div id="host">
+      <template shadowrootmode="open" shadowrootclonable>
+      </template>
+    </div>
+    `);
+  var host = div.querySelector('#host');
+  assert_true(!!host.shadowRoot,"No shadow root found");
+  assert_true(host.shadowRoot.clonable,"clonable should be true");
+  div.setHTMLUnsafe(`
+    <div id="host">
+      <template shadowrootmode="open">
+      </template>
+    </div>
+    `);
+  host = div.querySelector('#host');
+  assert_true(!!host.shadowRoot,"No shadow root found");
+  assert_false(host.shadowRoot.clonable,"clonable should be false without the shadowrootclonable attribute");
+}, 'Declarative Shadow DOM: clonable attribute');
 </script>
 
 <div id="multi-host" style="display:none">
@@ -168,7 +233,7 @@ test(() => {
 
 <template id="template-containing-shadow">
   <div class="innerdiv">
-    <template shadowrootmode=open>Content</template>
+    <template shadowrootmode=open shadowrootclonable>Content</template>
   </div>
 </template>
 <script>
@@ -205,13 +270,13 @@ test(() => {
   assert_equals(innerDiv.querySelector('template'), null, "No leftover template node");
   assert_not_equals(shadowRoot1,shadowRoot3,'Should not get back the same shadow root');
 
-}, 'Declarative Shadow DOM: template containing declarative shadow root');
+}, 'Declarative Shadow DOM: template containing declarative shadow root (with shadowrootclonable)');
 </script>
 
 <template id="template-containing-deep-shadow">
   <div><div><div><div><div>
     <div class="innerdiv">
-      <template shadowrootmode=open>Content</template>
+      <template shadowrootmode=open shadowrootclonable>Content</template>
     </div>
   </div></div></div></div></div>
 </template>
@@ -230,7 +295,7 @@ test(() => {
   <div>
     <template id="inner-template">
       <div class="innerdiv">
-        <template shadowrootmode=open>Content</template>
+        <template shadowrootmode=open shadowrootclonable>Content</template>
       </div>
     </template>
   </div>
@@ -249,7 +314,7 @@ test(() => {
 
 <template id="template-containing-ua-shadow">
   <div class="innerdiv">
-    <template shadowrootmode=open>
+    <template shadowrootmode=open shadowrootclonable>
       <video></video> <!--Assumed to have UA shadow root-->
     </template>
   </div>

@@ -89,27 +89,29 @@ impl FontInfo {
         use std::collections::HashMap;
         use std::io::Cursor;
 
-        use truetype::naming_table::{NameID, NamingTable};
-        use truetype::{Value, WindowsMetrics};
+        use truetype::tables::names::{NameID, Names};
+        use truetype::tables::WindowsMetrics;
+        use truetype::value::Read;
 
-        let name_table_bytes = face.get_font_table(make_tag(b"name"));
-        let os2_table_bytes = face.get_font_table(make_tag(b"OS/2"));
-        if name_table_bytes.is_none() || os2_table_bytes.is_none() {
+        let names_bytes = face.get_font_table(make_tag(b"name"));
+        let windows_metrics_bytes = face.get_font_table(make_tag(b"OS/2"));
+        if names_bytes.is_none() || windows_metrics_bytes.is_none() {
             return Err(());
         }
 
-        let mut name_table_cursor = Cursor::new(name_table_bytes.as_ref().unwrap());
-        let names = try_lossy!(NamingTable::read(&mut name_table_cursor));
-        let mut names: HashMap<_, _> = names
+        let mut cursor = Cursor::new(names_bytes.as_ref().unwrap());
+        let table = try_lossy!(Names::read(&mut cursor));
+        let language_tags = table.language_tags().collect::<Vec<_>>();
+        let mut names = table
             .iter()
-            .filter(|((_, language_tag), value)| {
+            .filter(|((_, _, language_id, _), value)| {
                 value.is_some() &&
-                    language_tag
-                        .as_deref()
-                        .map_or(false, |language_tag| language_tag.starts_with("en"))
+                    language_id
+                        .tag(&language_tags)
+                        .map_or(false, |tag| tag.starts_with("en"))
             })
-            .map(|((name_id, _), value)| (name_id, value.unwrap()))
-            .collect();
+            .map(|((_, _, _, name_id), value)| (name_id, value.unwrap()))
+            .collect::<HashMap<_, _>>();
         let family = match names.remove(&NameID::FontFamilyName) {
             Some(family) => family,
             _ => return Err(()),
@@ -119,9 +121,9 @@ impl FontInfo {
             _ => return Err(()),
         };
 
-        let mut os2_table_cursor = Cursor::new(os2_table_bytes.as_ref().unwrap());
-        let metrics = try_lossy!(WindowsMetrics::read(&mut os2_table_cursor));
-        let (weight_val, width_val, italic_bool) = match metrics {
+        let mut cursor = Cursor::new(windows_metrics_bytes.as_ref().unwrap());
+        let table = try_lossy!(WindowsMetrics::read(&mut cursor));
+        let (weight_val, width_val, italic_bool) = match table {
             WindowsMetrics::Version0(ref m) => {
                 (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
             },

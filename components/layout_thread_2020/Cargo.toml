@@ -21,7 +21,6 @@ gfx = { path = "../gfx" }
 gfx_traits = { workspace = true }
 ipc-channel = { workspace = true }
 layout = { path = "../layout_2020", package = "layout_2020" }
-layout_traits = { workspace = true }
 lazy_static = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { path = "../malloc_size_of" }
@@ -40,4 +39,5 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 style = { path = "../style" }
 style_traits = { workspace = true }
+url = { workspace = true }
 webrender_api = { workspace = true }

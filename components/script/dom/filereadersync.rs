@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ptr;
-use std::ptr::NonNull;
 
 use dom_struct::dom_struct;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
-use js::typedarray::{ArrayBuffer, CreateWith};
+use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 
+use crate::dom::bindings::buffer_source::create_buffer_source_types;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderSyncBinding::FileReaderSyncMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -51,7 +51,7 @@ impl FileReaderSync {
 }
 
 impl FileReaderSyncMethods for FileReaderSync {
-    // https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection
+    /// <https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection>
     fn ReadAsBinaryString(&self, blob: &Blob) -> Fallible<DOMString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
@@ -60,7 +60,7 @@ impl FileReaderSyncMethods for FileReaderSync {
         Ok(DOMString::from(String::from_utf8_lossy(&blob_contents)))
     }
 
-    // https://w3c.github.io/FileAPI/#readAsTextSync
+    /// <https://w3c.github.io/FileAPI/#readAsTextSync>
     fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>) -> Fallible<DOMString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
@@ -75,7 +75,7 @@ impl FileReaderSyncMethods for FileReaderSync {
         Ok(output)
     }
 
-    // https://w3c.github.io/FileAPI/#readAsDataURLSync-section
+    /// <https://w3c.github.io/FileAPI/#readAsDataURLSync-section>
     fn ReadAsDataURL(&self, blob: &Blob) -> Fallible<DOMString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
@@ -87,23 +87,15 @@ impl FileReaderSyncMethods for FileReaderSync {
         Ok(output)
     }
 
-    #[allow(unsafe_code)]
-    // https://w3c.github.io/FileAPI/#readAsArrayBufferSyncSection
-    fn ReadAsArrayBuffer(&self, cx: JSContext, blob: &Blob) -> Fallible<NonNull<JSObject>> {
+    /// <https://w3c.github.io/FileAPI/#readAsArrayBufferSyncSection>
+    fn ReadAsArrayBuffer(&self, cx: JSContext, blob: &Blob) -> Fallible<ArrayBuffer> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
         // step 2
-        unsafe {
-            rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-            assert!(ArrayBuffer::create(
-                *cx,
-                CreateWith::Slice(&blob_contents),
-                array_buffer.handle_mut()
-            )
-            .is_ok());
+        rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
 
-            Ok(NonNull::new_unchecked(array_buffer.get()))
-        }
+        create_buffer_source_types::<ArrayBufferU8>(cx, &blob_contents, array_buffer.handle_mut())
+            .map_err(|_| Error::JSFailed)
     }
 }

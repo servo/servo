@@ -25,22 +25,6 @@ use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
 /// A specified color-mix().
 pub type ColorMix = GenericColorMix<Color, Percentage>;
 
-#[inline]
-fn allow_color_mix() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.color-mix.enabled");
-    #[cfg(feature = "servo")]
-    return true;
-}
-
-#[inline]
-fn allow_more_color_4() -> bool {
-    #[cfg(feature = "gecko")]
-    return static_prefs::pref!("layout.css.more_color_4.enabled");
-    #[cfg(feature = "servo")]
-    return true;
-}
-
 impl ColorMix {
     fn parse<'i, 't>(
         context: &ParserContext,
@@ -48,7 +32,7 @@ impl ColorMix {
         preserve_authored: PreserveAuthored,
     ) -> Result<Self, ParseError<'i>> {
         let enabled =
-            context.chrome_rules_enabled() || allow_color_mix();
+            context.chrome_rules_enabled() || static_prefs::pref!("layout.css.color-mix.enabled");
 
         if !enabled {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -639,7 +623,7 @@ impl Color {
                         );
                         let is_color_function =
                             absolute.color.flags.contains(ColorFlags::AS_COLOR_FUNCTION);
-                        let pref_enabled = allow_more_color_4();
+                        let pref_enabled = static_prefs::pref!("layout.css.more_color_4.enabled");
 
                         (is_legacy_color && !is_color_function) || pref_enabled
                     };
@@ -971,10 +955,10 @@ impl SpecifiedValueInfo for Color {
             "currentColor",
             "transparent",
         ]);
-        if allow_color_mix() {
+        if static_prefs::pref!("layout.css.color-mix.enabled") {
             f(&["color-mix"]);
         }
-        if allow_more_color_4() {
+        if static_prefs::pref!("layout.css.more_color_4.enabled") {
             f(&["color", "lab", "lch", "oklab", "oklch"]);
         }
     }

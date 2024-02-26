@@ -23,31 +23,37 @@ if (window.location.origin != get_host_info().HTTP_ORIGIN) {
     assert_false('ondeviceorientationabsolute' in window);
   }, 'Event interfaces and event handlers are not exposed on `window`.');
 
-  sensor_test(async (t, sensorProvider) => {
-    const FAKE_ACCELERATION_DATA = [1, 2, 3];
-    const FAKE_LINEAR_ACCELERATION_DATA = [4, 5, 6];
-    const FAKE_GYROSCOPE_DATA = [7, 8, 9];
+  promise_test(async (t) => {
+    const helper = new SensorTestHelper(t, 'devicemotion');
+    await helper.initializeSensors();
+    const motionData = generateMotionData(1, 2, 3,
+                                          4, 5, 6,
+                                          7, 8, 9);
+    await helper.setData(motionData);
 
     window.ondevicemotion = t.unreached_func("devicemotion event should not be fired.");
-    setMockSensorDataForType(sensorProvider, 'Accelerometer', FAKE_ACCELERATION_DATA);
-    setMockSensorDataForType(sensorProvider, 'LinearAccelerationSensor', FAKE_LINEAR_ACCELERATION_DATA);
-    setMockSensorDataForType(sensorProvider, 'Gyroscope', FAKE_GYROSCOPE_DATA);
 
     await new Promise(r => t.step_timeout(r, 1000));
   }, 'addEventListener() for `devicemotion` does not crash but the handler never fires.');
 
-  sensor_test(async (t, sensorProvider) => {
-    const FAKE_ORIENTATION_DATA = [1.1, 2.2, 3.3];
+  promise_test(async (t) => {
+    const helper = new SensorTestHelper(t, 'deviceorientation');
+    await helper.initializeSensors();
+    const orientationData = generateOrientationData(1.1, 2.2, 3.3, false);
+    await helper.setData(orientationData);
+
     window.ondeviceorientation = t.unreached_func("deviceorientation event should not be fired.");
-    setMockSensorDataForType(sensorProvider, 'RelativeOrientationEulerAngles', FAKE_ORIENTATION_DATA);
 
     await new Promise(r => t.step_timeout(r, 1000));
   }, 'addEventListener() for `deviceorientation` does not crash but the handler never fires.');
 
-  sensor_test(async (t, sensorProvider) => {
-    const FAKE_ORIENTATION_DATA = [1.1, 2.2, 3.3];
+  promise_test(async (t) => {
+    const helper = new SensorTestHelper(t, 'deviceorientationabsolute');
+    await helper.initializeSensors();
+    const orientationData = generateOrientationData(1.1, 2.2, 3.3, true);
+    await helper.setData(orientationData);
+
     window.ondeviceorientationabsolute = t.unreached_func("deviceorientationabsolute event should not be fired.");
-    setMockSensorDataForType(sensorProvider, 'AbsoluteOrientationEulerAngles', FAKE_ORIENTATION_DATA);
 
     await new Promise(r => t.step_timeout(r, 1000));
   }, 'addEventListener() for `deviceorientationabsolute` does not crash but the handler never fires.');

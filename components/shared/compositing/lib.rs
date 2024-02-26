@@ -20,8 +20,8 @@ use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use net_traits::NetToCompositorMsg;
 use script_traits::{
-    AnimationState, ConstellationControlMsg, EventResult, LayoutControlMsg, MouseButton,
-    MouseEventType, ScriptToCompositorMsg,
+    AnimationState, ConstellationControlMsg, EventResult, MouseButton, MouseEventType,
+    ScriptToCompositorMsg,
 };
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
@@ -132,7 +132,7 @@ pub enum CompositorMsg {
     /// Required to allow WGL GLContext sharing in Windows.
     Dispatch(Box<dyn Fn() + Send>),
     /// Indicates to the compositor that it needs to record the time when the frame with
-    /// the given ID (epoch) is painted and report it to the layout thread of the given
+    /// the given ID (epoch) is painted and report it to the layout of the given
     /// pipeline ID.
     PendingPaintMetric(PipelineId, Epoch),
     /// The load of a page has completed
@@ -165,7 +165,6 @@ pub struct CompositionPipeline {
     pub id: PipelineId,
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
     pub script_chan: IpcSender<ConstellationControlMsg>,
-    pub layout_chan: IpcSender<LayoutControlMsg>,
 }
 
 pub enum FontToCompositorMsg {

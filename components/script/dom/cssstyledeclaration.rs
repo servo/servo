@@ -13,7 +13,7 @@ use style::properties::{
 };
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
-use style::stylesheets::{CssRuleType, Origin};
+use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::ParsingMode;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
@@ -160,12 +160,15 @@ impl CSSStyleOwner {
     fn base_url(&self) -> ServoUrl {
         match *self {
             CSSStyleOwner::Element(ref el) => window_from_node(&**el).Document().base_url(),
-            CSSStyleOwner::CSSRule(ref rule, _) => (*rule
-                .parent_stylesheet()
-                .style_stylesheet()
-                .contents
-                .url_data
-                .read())
+            CSSStyleOwner::CSSRule(ref rule, _) => ServoUrl::from(
+                rule.parent_stylesheet()
+                    .style_stylesheet()
+                    .contents
+                    .url_data
+                    .read()
+                    .0
+                    .clone(),
+            )
             .clone(),
         }
     }
@@ -307,7 +310,7 @@ impl CSSStyleDeclaration {
                 id,
                 &value,
                 Origin::Author,
-                &self.owner.base_url(),
+                &UrlExtraData(self.owner.base_url().get_arc()),
                 window.css_error_reporter(),
                 ParsingMode::DEFAULT,
                 quirks_mode,
@@ -431,13 +434,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
         self.owner.with_block(|pdb| {
             let declaration = pdb.declarations().get(index as usize)?;
-            let important = pdb.declarations_importance().get(index as usize)?;
-            let mut css = String::new();
-            declaration.to_css(&mut css).unwrap();
-            if important {
-                css += " !important";
-            }
-            Some(DOMString::from(css))
+            Some(DOMString::from(declaration.id().name()))
         })
     }
 
@@ -464,7 +461,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             // Step 3
             *pdb = parse_style_attribute(
                 &value,
-                &self.owner.base_url(),
+                &UrlExtraData(self.owner.base_url().get_arc()),
                 window.css_error_reporter(),
                 quirks_mode,
                 CssRuleType::Style,

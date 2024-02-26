@@ -9,7 +9,7 @@ use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 
-use super::bindings::typedarrays::HeapTypedArray;
+use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::audionode::MAX_CHANNEL_COUNT;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::AudioBufferBinding::{
@@ -42,7 +42,7 @@ pub struct AudioBuffer {
     reflector_: Reflector,
     /// Float32Arrays returned by calls to GetChannelData.
     #[ignore_malloc_size_of = "mozjs"]
-    js_channels: DomRefCell<Vec<HeapTypedArray<Float32>>>,
+    js_channels: DomRefCell<Vec<HeapBufferSource<Float32>>>,
     /// Aggregates the data from js_channels.
     /// This is Some<T> iff the buffers in js_channels are detached.
     #[ignore_malloc_size_of = "servo_media"]
@@ -60,10 +60,9 @@ pub struct AudioBuffer {
 
 impl AudioBuffer {
     #[allow(crown::unrooted_must_root)]
-    #[allow(unsafe_code)]
     pub fn new_inherited(number_of_channels: u32, length: u32, sample_rate: f32) -> AudioBuffer {
         let vec = (0..number_of_channels)
-            .map(|_| HeapTypedArray::default())
+            .map(|_| HeapBufferSource::default())
             .collect();
         AudioBuffer {
             reflector_: Reflector::new(),
@@ -238,7 +237,7 @@ impl AudioBufferMethods for AudioBuffer {
         }
 
         self.js_channels.borrow()[channel as usize]
-            .get_internal()
+            .get_buffer()
             .map_err(|_| Error::JSFailed)
     }
 

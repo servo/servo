@@ -4,11 +4,11 @@
 
 use std::{panic, process};
 
-use {libc, mach};
+use {libc, mach2};
 
 use crate::sampler::{Address, NativeStack, Registers, Sampler};
 
-type MonitoredThreadId = mach::mach_types::thread_act_t;
+type MonitoredThreadId = mach2::mach_types::thread_act_t;
 
 pub struct MacOsSampler {
     thread_id: MonitoredThreadId,
@@ -17,7 +17,7 @@ pub struct MacOsSampler {
 impl MacOsSampler {
     #[allow(unsafe_code)]
     pub fn new() -> Box<dyn Sampler> {
-        let thread_id = unsafe { mach::mach_init::mach_thread_self() };
+        let thread_id = unsafe { mach2::mach_init::mach_thread_self() };
         Box::new(MacOsSampler { thread_id })
     }
 }
@@ -55,8 +55,8 @@ impl Sampler for MacOsSampler {
     }
 }
 
-fn check_kern_return(kret: mach::kern_return::kern_return_t) -> Result<(), ()> {
-    if kret != mach::kern_return::KERN_SUCCESS {
+fn check_kern_return(kret: mach2::kern_return::kern_return_t) -> Result<(), ()> {
+    if kret != mach2::kern_return::KERN_SUCCESS {
         return Err(());
     }
     Ok(())
@@ -64,30 +64,49 @@ fn check_kern_return(kret: mach::kern_return::kern_return_t) -> Result<(), ()> {
 
 #[allow(unsafe_code)]
 unsafe fn suspend_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
-    check_kern_return(mach::thread_act::thread_suspend(thread_id))
+    check_kern_return(mach2::thread_act::thread_suspend(thread_id))
 }
 
 #[allow(unsafe_code)]
 unsafe fn get_registers(thread_id: MonitoredThreadId) -> Result<Registers, ()> {
-    let mut state = mach::structs::x86_thread_state64_t::new();
-    let mut state_count = mach::structs::x86_thread_state64_t::count();
-    let kret = mach::thread_act::thread_get_state(
-        thread_id,
-        mach::thread_status::x86_THREAD_STATE64,
-        (&mut state) as *mut _ as *mut _,
-        &mut state_count,
-    );
-    check_kern_return(kret)?;
-    Ok(Registers {
-        instruction_ptr: state.__rip as Address,
-        stack_ptr: state.__rsp as Address,
-        frame_ptr: state.__rbp as Address,
-    })
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    {
+        let mut state = mach2::structs::x86_thread_state64_t::new();
+        let mut state_count = mach2::structs::x86_thread_state64_t::count();
+        let kret = mach2::thread_act::thread_get_state(
+            thread_id,
+            mach2::thread_status::x86_THREAD_STATE64,
+            (&mut state) as *mut _ as *mut _,
+            &mut state_count,
+        );
+        check_kern_return(kret)?;
+        Ok(Registers {
+            instruction_ptr: state.__rip as Address,
+            stack_ptr: state.__rsp as Address,
+            frame_ptr: state.__rbp as Address,
+        })
+    }
+    #[cfg(target_arch = "aarch64")]
+    {
+        let mut state = mach2::structs::arm_thread_state64_t::new();
+        let mut state_count = mach2::structs::arm_thread_state64_t::count();
+        let kret = mach2::thread_act::thread_get_state(
+            thread_id,
+            mach2::thread_status::ARM_THREAD_STATE64,
+            (&mut state) as *mut _ as *mut _,
+            &mut state_count,
+        );
+        check_kern_return(kret)?;
+        Ok(Registers {
+            instruction_ptr: state.__pc as Address,
+            stack_ptr: state.__sp as Address,
+            frame_ptr: state.__fp as Address,
+        })
+    }
 }
-
 #[allow(unsafe_code)]
 unsafe fn resume_thread(thread_id: MonitoredThreadId) -> Result<(), ()> {
-    check_kern_return(mach::thread_act::thread_resume(thread_id))
+    check_kern_return(mach2::thread_act::thread_resume(thread_id))
 }
 
 #[allow(unsafe_code)]

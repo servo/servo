@@ -276,7 +276,7 @@ impl FontCache {
 
                 // FIXME:
                 // This shouldn't use NoReferrer, but the current documents url
-                let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+                let request = RequestBuilder::new(url.clone().into(), Referrer::NoReferrer)
                     .destination(Destination::Font);
 
                 let channel_to_self = self.channel_to_self.clone();
@@ -334,7 +334,7 @@ impl FontCache {
                             };
                             let command = Command::AddDownloadedWebFont(
                                 family_name.clone(),
-                                url.clone(),
+                                url.clone().into(),
                                 bytes,
                                 sender.clone(),
                             );

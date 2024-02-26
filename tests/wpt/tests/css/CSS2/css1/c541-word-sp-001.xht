@@ -14,8 +14,7 @@
    div { font: 25px/1 Ahem; width: 12em; background: yellow; color: aqua; margin: 0 0 0 2em; }
    .eight {word-spacing: 25px;}
    .nine {word-spacing: normal;}
-   .ten {word-spacing: 300%;}
-   .eleven {word-spacing: -1em;}
+   .ten {word-spacing: -1em;}
    .fill { color: yellow; }
   ]]></style>
   <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" title="16.4 Letter and word spacing: the 'letter-spacing' and 'word-spacing' properties"/>
@@ -26,7 +25,6 @@
   <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;xx&#xA0;xx</div>
   <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;xx&#xA0;xx</div>
   <div class="eight"> x x <span class="nine">xx xx</span> </div>
-  <div class="ten"> x&#xA0; x &#xA0;xx xx </div>
-  <div class="eleven"> x&#xA0; &#xA0;<span class="nine"> &#xA0;</span>x&#xA0;&#xA0;<span class="fill">xx</span> xx&#xA0; <span class="fill">x</span>xx </div>
+  <div class="ten"> x&#xA0; &#xA0;<span class="nine"> &#xA0;</span>x&#xA0;&#xA0;<span class="fill">xx</span> xx&#xA0; <span class="fill">x</span>xx </div>
  </body>
 </html>

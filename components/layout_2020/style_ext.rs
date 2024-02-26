@@ -34,7 +34,7 @@ pub(crate) enum Display {
     GeneratingBox(DisplayGeneratingBox),
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum DisplayGeneratingBox {
     OutsideInside {
         outside: DisplayOutside,
@@ -72,13 +72,13 @@ impl DisplayGeneratingBox {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum DisplayOutside {
     Block,
     Inline,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum DisplayInside {
     // “list-items are limited to the Flow Layout display types”
     // <https://drafts.csswg.org/css-display/#list-items>
@@ -116,12 +116,12 @@ impl DisplayLayoutInternal {
 /// Percentages resolved but not `auto` margins
 #[derive(Clone)]
 pub(crate) struct PaddingBorderMargin {
-    pub padding: LogicalSides<Length>,
-    pub border: LogicalSides<Length>,
+    pub padding: LogicalSides<Au>,
+    pub border: LogicalSides<Au>,
     pub margin: LogicalSides<LengthOrAuto>,
 
     /// Pre-computed sums in each axis
-    pub padding_border_sums: LogicalVec2<Length>,
+    pub padding_border_sums: LogicalVec2<Au>,
 }
 
 impl PaddingBorderMargin {
@@ -288,8 +288,12 @@ impl ComputedValuesExt for ComputedValues {
             BoxSizing::BorderBox => LogicalVec2 {
                 // These may be negative, but will later be clamped by `min-width`/`min-height`
                 // which is clamped to zero.
-                inline: box_size.inline.map(|i| i - pbm.padding_border_sums.inline),
-                block: box_size.block.map(|b| b - pbm.padding_border_sums.block),
+                inline: box_size
+                    .inline
+                    .map(|i| i - pbm.padding_border_sums.inline.into()),
+                block: box_size
+                    .block
+                    .map(|b| b - pbm.padding_border_sums.block.into()),
             },
         }
     }
@@ -308,10 +312,10 @@ impl ComputedValuesExt for ComputedValues {
                 // Clamp to zero to make sure the used size components are non-negative
                 inline: min_box_size
                     .inline
-                    .map(|i| (i - pbm.padding_border_sums.inline).max(Length::zero())),
+                    .map(|i| (i - pbm.padding_border_sums.inline.into()).max(Length::zero())),
                 block: min_box_size
                     .block
-                    .map(|b| (b - pbm.padding_border_sums.block).max(Length::zero())),
+                    .map(|b| (b - pbm.padding_border_sums.block.into()).max(Length::zero())),
             },
         }
     }
@@ -332,10 +336,10 @@ impl ComputedValuesExt for ComputedValues {
                 LogicalVec2 {
                     inline: max_box_size
                         .inline
-                        .map(|i| i - pbm.padding_border_sums.inline),
+                        .map(|i| i - pbm.padding_border_sums.inline.into()),
                     block: max_box_size
                         .block
-                        .map(|b| b - pbm.padding_border_sums.block),
+                        .map(|b| b - pbm.padding_border_sums.block.into()),
                 }
             },
         }
@@ -345,18 +349,18 @@ impl ComputedValuesExt for ComputedValues {
         let cbis = containing_block.inline_size;
         let padding = self
             .padding(containing_block.style.writing_mode)
-            .percentages_relative_to(cbis);
+            .percentages_relative_to(cbis.into());
         let border = self.border_width(containing_block.style.writing_mode);
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {
-                inline: padding.inline_sum() + border.inline_sum(),
-                block: padding.block_sum() + border.block_sum(),
+                inline: (padding.inline_sum() + border.inline_sum()).into(),
+                block: (padding.block_sum() + border.block_sum()).into(),
             },
-            padding,
-            border,
+            padding: padding.into(),
+            border: border.into(),
             margin: self
                 .margin(containing_block.style.writing_mode)
-                .percentages_relative_to(cbis),
+                .percentages_relative_to(cbis.into()),
         }
     }
 

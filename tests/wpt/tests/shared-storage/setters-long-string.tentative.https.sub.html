@@ -1,0 +1,44 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async t => {
+  try {
+    await sharedStorage.set('a'.repeat(2621441), 'b');
+  } catch (e) {
+    assert_equals(e.name, 'DataError');
+    return;
+  }
+  assert_unreached("did not reject");
+}, 'sharedStorage.set with key length too big');
+
+promise_test(async t => {
+  try {
+    await sharedStorage.set('a', 'b'.repeat(2621441));
+  } catch (e) {
+    assert_equals(e.name, 'DataError');
+    return;
+  }
+  assert_unreached("did not reject");
+}, 'sharedStorage.set with value length too big');
+
+promise_test(() => {
+  return sharedStorage.set('a'.repeat(2621440), '').then(() => {
+    // Clean up.
+    sharedStorage.delete('a'.repeat(2621440));
+  });
+}, 'sharedStorage.set with max allowed key length');
+
+promise_test(() => {
+  return sharedStorage.set('a', 'b'.repeat(2621439)).then(() => {
+    // Clean up.
+    sharedStorage.delete('a');
+  });
+}, 'sharedStorage.set with max allowed value length');
+
+</script>
+</body>

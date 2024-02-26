@@ -32,6 +32,7 @@ use style::values::computed::font::FontStyle;
 use style::values::specified::color::Color;
 use style_traits::values::ToCss;
 use style_traits::ParsingMode;
+use url::Url;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
@@ -1681,7 +1682,7 @@ impl CanvasState {
 pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<RGBA, ()> {
     let mut input = ParserInput::new(string);
     let mut parser = Parser::new(&mut input);
-    let url = ServoUrl::parse("about:blank").unwrap();
+    let url = Url::parse("about:blank").unwrap().into();
     let context = ParserContext::new(
         Origin::Author,
         &url,

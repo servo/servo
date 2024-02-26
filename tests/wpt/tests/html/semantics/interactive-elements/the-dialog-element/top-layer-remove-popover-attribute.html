@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<meta name="assert" content="Removing the popover attribute of a hidden popover should not remove the dialog from the top layer.">
+<head>
+  <title>Shown modal dialog where the popover attribute is removed</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html#hide-popover-algorithm">
+  <link rel="match" href="top-layer-remove-popover-attribute-ref.html">
+</head>
+<body>
+  <dialog popover style="padding: 2em"></dialog>
+  <script>
+    const d = document.querySelector("dialog");
+    d.showModal();
+    d.popover = null;
+  </script>
+</body>
+<html>

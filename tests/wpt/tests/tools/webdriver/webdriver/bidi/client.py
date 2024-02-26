@@ -205,7 +205,7 @@ class BidiSession:
             if not listeners:
                 listeners = self.event_listeners.get(None, [])
             for listener in listeners:
-                await listener(data["method"], data["params"])
+                asyncio.create_task(listener(data["method"], data["params"]))
         else:
             raise ValueError(f"Unexpected message: {data!r}")
 

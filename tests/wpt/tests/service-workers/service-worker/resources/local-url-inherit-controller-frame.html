@@ -42,7 +42,33 @@ const workerFetchText =
   self.postMessage(text);
 }).catch(e => {
   self.postMessage(e.message);
-});`
+});`;
+
+const sharedWorkerControllerText =
+`const ports = [];
+self.onconnect = evt => {
+  const port = evt.ports[0];
+  ports.push(port);
+  const t = navigator.serviceWorker.controller
+        ? navigator.serviceWorker.controller.scriptURL
+        : null;
+  port.postMessage(t);
+};
+self.onerror = msg => {
+  ports.forEach(port => {port.postMessage(msg);});
+};`;
+
+const sharedWorkerFetchText =
+`self.onconnect = evt => {
+  const port = evt.ports[0];
+  fetch('${fetchURL}', { mode: 'no-cors' }).then(response => {
+    return response.text();
+  }).then(text => {
+    port.postMessage(text);
+  }).catch(e => {
+    port.postMessage(e.message);
+  });
+};`;
 
 function getChildText(opts) {
   if (opts.child === 'iframe') {
@@ -64,6 +90,18 @@ function getChildText(opts) {
 
     if (opts.check === 'fetch') {
       return workerFetchText;
+    }
+
+    throw('unexpected feature to check: ' + opts.check);
+  }
+
+  if (opts.child === 'sharedworker') {
+    if (opts.check === 'controller') {
+      return sharedWorkerControllerText;
+    }
+
+    if (opts.check === 'fetch') {
+      return sharedWorkerFetchText;
     }
 
     throw('unexpected feature to check: ' + opts.check);
@@ -98,6 +136,22 @@ function testWorkerChild(url) {
   });
 }
 
+function testSharedWorkerChild(url) {
+  let w = new SharedWorker(url);
+  return new Promise((resolve, reject) => {
+    w.port.onmessage = m => {
+      if (m.data.includes("Error")) {
+        reject(m.data);
+        return;
+      }
+      resolve(m);
+    }
+    w.onerror = evt => {
+      reject(evt.message);
+    }
+  });
+}
+
 function testIframeChild(url) {
   let frame = document.createElement('iframe');
   frame.src = url;
@@ -113,6 +167,10 @@ function testIframeChild(url) {
 function testURL(opts, url) {
   if (opts.child === 'worker') {
     return testWorkerChild(url);
+  }
+
+  if (opts.child === 'sharedworker') {
+    return testSharedWorkerChild(url);
   }
 
   if (opts.child === 'iframe') {

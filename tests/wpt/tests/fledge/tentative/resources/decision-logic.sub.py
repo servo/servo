@@ -43,8 +43,8 @@ def main(request, response):
               // Don't bid on interest group with the wrong uuid. This is to prevent
               // left over interest groups from other tests from affecting auction
               // results.
-              if (!browserSignals.renderUrl.endsWith('uuid={{GET[uuid]}}') &&
-                  !browserSignals.renderUrl.includes('uuid={{GET[uuid]}}&')) {
+              if (!browserSignals.renderURL.endsWith('uuid={{GET[uuid]}}') &&
+                  !browserSignals.renderURL.includes('uuid={{GET[uuid]}}&')) {
                 return 0;
               }
 

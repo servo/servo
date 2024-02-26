@@ -113,14 +113,14 @@
             #[cfg(feature = "gecko")]
             let position_is_initial = self.list_style_position == &ListStylePosition::Outside;
             #[cfg(feature = "servo")]
-            let position_is_initial = self.list_style_position == Some(&ListStylePosition::Outside);
+            let position_is_initial = matches!(self.list_style_position, None | Some(&ListStylePosition::Outside));
             if !position_is_initial {
                 self.list_style_position.to_css(dest)?;
                 have_one_non_initial_value = true;
             }
             if self.list_style_image != &ListStyleImage::None {
                 if have_one_non_initial_value {
-                   dest.write_char(' ')?;
+                    dest.write_char(' ')?;
                 }
                 self.list_style_image.to_css(dest)?;
                 have_one_non_initial_value = true;
@@ -137,7 +137,14 @@
                 have_one_non_initial_value = true;
             }
             if !have_one_non_initial_value {
+                #[cfg(feature = "gecko")]
                 self.list_style_position.to_css(dest)?;
+                #[cfg(feature = "servo")]
+                if let Some(position) = self.list_style_position {
+                    position.to_css(dest)?;
+                } else {
+                    self.list_style_type.to_css(dest)?;
+                }
             }
             Ok(())
         }

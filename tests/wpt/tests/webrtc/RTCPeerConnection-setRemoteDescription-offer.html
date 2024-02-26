@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
+<script src="/webrtc/third_party/sdp/sdp.js"></script>
 <script>
   'use strict';
 
@@ -303,8 +304,20 @@
     t.add_cleanup(() => pc1.close());
     t.add_cleanup(() => pc2.close());
     await pc1.setLocalDescription(await pc1.createOffer());
+    const statePromise = new Promise(r => pc1.onsignalingstatechange = r);
+    // SRD with invalid SDP causes rollback.
     const p = pc1.setRemoteDescription({type: 'offer', sdp: 'Invalid SDP'});
-    await new Promise(r => pc1.onsignalingstatechange = r);
+    // Ensure that p is eventually awaited for
+    t.add_cleanup(async () => Promise.allSettled([p]));
+    // Ensure that the test will fail rather than timing out if state
+    // does not change.
+    const timeoutPromise = new Promise(
+    (resolve, reject) => t.step_timeout(reject, 1000));
+    try {
+      await Promise.any(statePromise, timeoutPromise);
+    } catch (error) {
+      assert_unreached('State should have changed');
+    }
     assert_equals(pc1.signalingState, 'stable');
     assert_equals(pc1.pendingLocalDescription, null);
     assert_equals(pc1.pendingRemoteDescription, null);
@@ -352,5 +365,20 @@
     await srdPromise;
     assert_equals(pc2.getTransceivers().length, 1);
   }, 'Transceivers added by sRD(offer) should not show up until sRD resolves');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    pc1.addTransceiver('video');
+    const description = await pc1.createOffer();
+    const sections = SDPUtils.splitSections(description.sdp);
+    // Compose SDP with a duplicated media section (equal MSID lines)
+    // This is not permitted according to RFC 8830 section 2.
+    const sdp = sections[0] + sections[1] + sections[1].replace('a=mid:', 'a=mid:unique');
+    const p = pc2.setRemoteDescription({type: 'offer', sdp: sdp});
+    await promise_rejects_dom(t, 'OperationError', p);
+  }, 'setRemoteDescription(section with duplicate msid) rejects');
 
 </script>

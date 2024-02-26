@@ -117,10 +117,12 @@ function test_tone_change_events(testFunc, toneChanges, desc) {
         assert_equals(dtmfSender.toneBuffer, expectedToneBuffer,
           `Expect dtmfSender.toneBuffer to be updated to ${expectedToneBuffer}`);
 
-        // We check that the cumulative delay is at least the expected one, but
-        // system load may cause random delays, so we do not put any
-        // realistic upper bound on the timing of the events.
-        assert_between_inclusive(Date.now() - start, expectedTime,
+        // We check that the cumulative delay is at least the expected one.
+        // Note that as a UA optimization events can fire a bit (<1ms) early,
+        // and system load may cause random delays. We therefore allow events
+        // to be 1ms early and do not put any realistic expectation on the upper
+        // bound of their timing.
+        assert_between_inclusive(Date.now() - start, Math.max(0, expectedTime - 1),
                                  expectedTime + 4000,
           `Expect tonechange event for "${tone}" to be fired approximately after ${expectedTime} milliseconds`);
         if (cumulativeToneChanges.length === 0) {

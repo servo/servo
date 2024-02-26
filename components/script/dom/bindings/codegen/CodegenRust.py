@@ -128,6 +128,9 @@ builtinNames = {
     IDLType.Tags.uint32array: 'Uint32Array',
     IDLType.Tags.float32array: 'Float32Array',
     IDLType.Tags.float64array: 'Float64Array',
+    IDLType.Tags.arrayBuffer: 'ArrayBuffer',
+    IDLType.Tags.arrayBufferView: 'ArrayBufferView',
+    IDLType.Tags.uint8clampedarray: 'Uint8ClampedArray',
 }
 
 numericTags = [
@@ -1481,7 +1484,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         return CGGeneric("()")
     if returnType.isPrimitive() and returnType.tag() in builtinNames:
         return builtin_return_type(returnType)
-    if returnType.isTypedArray() and returnType.tag() in builtinNames:
+    if is_typed_array(returnType) and returnType.tag() in builtinNames:
         return builtin_return_type(returnType)
     if returnType.isDOMString():
         result = CGGeneric("DOMString")
@@ -6516,6 +6519,9 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::typedarray::Uint32Array',
         'js::typedarray::Float32Array',
         'js::typedarray::Float64Array',
+        'js::typedarray::ArrayBuffer',
+        'js::typedarray::ArrayBufferView',
+        'js::typedarray::Uint8ClampedArray',
         'crate::dom',
         'crate::dom::bindings',
         'crate::dom::bindings::codegen::InterfaceObjectMap',

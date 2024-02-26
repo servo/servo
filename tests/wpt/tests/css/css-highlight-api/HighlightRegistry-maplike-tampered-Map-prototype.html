@@ -29,33 +29,33 @@ test(() => {
   tamperMapPrototype();
 
   const highlight = new Highlight(new StaticRange({startContainer: document.body, endContainer: document.body, startOffset: 0, endOffset: 0}));
-  const highlightRegister = new HighlightRegister();
+  const highlightRegistry = new HighlightRegistry();
 
-  assert_equals(highlightRegister.size, 0);
-  highlightRegister.set("foo", highlight);
-  assert_equals(highlightRegister.size, 1);
+  assert_equals(highlightRegistry.size, 0);
+  highlightRegistry.set("foo", highlight);
+  assert_equals(highlightRegistry.size, 1);
 
-  assert_true(highlightRegister.has("foo"));
-  assert_equals([...highlightRegister.entries()][0][0], "foo");
+  assert_true(highlightRegistry.has("foo"));
+  assert_equals([...highlightRegistry.entries()][0][0], "foo");
 
-  highlightRegister.clear();
-  assert_equals(highlightRegister.size, 0);
-  assert_equals(highlightRegister.get("foo"), undefined);
+  highlightRegistry.clear();
+  assert_equals(highlightRegistry.size, 0);
+  assert_equals(highlightRegistry.get("foo"), undefined);
 
-  highlightRegister.set("bar", highlight);
-  assert_equals(highlightRegister.get("bar"), highlight);
-  assert_equals([...highlightRegister][0][1], highlight);
+  highlightRegistry.set("bar", highlight);
+  assert_equals(highlightRegistry.get("bar"), highlight);
+  assert_equals([...highlightRegistry][0][1], highlight);
 
-  highlightRegister.delete("bar");
-  assert_equals(highlightRegister.size, 0);
-  assert_false(highlightRegister.has("bar"));
+  highlightRegistry.delete("bar");
+  assert_equals(highlightRegistry.size, 0);
+  assert_false(highlightRegistry.has("bar"));
 
-  highlightRegister.set("baz", highlight);
-  assert_equals([...highlightRegister.keys()][0], "baz");
-  assert_equals([...highlightRegister.values()][0], highlight);
+  highlightRegistry.set("baz", highlight);
+  assert_equals([...highlightRegistry.keys()][0], "baz");
+  assert_equals([...highlightRegistry.values()][0], highlight);
 
   let callbackCalled = false;
-  highlightRegister.forEach(() => { callbackCalled = true; });
+  highlightRegistry.forEach(() => { callbackCalled = true; });
   assert_true(callbackCalled);
 }, "HighlightRegistry is a maplike interface that works as expected even if Map.prototype is tampered.");
 </script>

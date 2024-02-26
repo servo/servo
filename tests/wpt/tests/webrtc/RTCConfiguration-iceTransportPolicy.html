@@ -128,7 +128,12 @@
     t.add_cleanup(() => offerer.close());
 
     offerer.addEventListener('icecandidate',
-        e => assert_equals(e.candidate, null, 'Should get no ICE candidates'));
+        e => {
+          if (e.candidate) {
+            assert_equals(e.candidate.candidate, '', 'Should get no ICE candidates')
+          }
+        }
+    );
 
     offerer.addTransceiver('audio');
     await offerer.setLocalDescription();
@@ -142,8 +147,13 @@
     t.add_cleanup(() => offerer.close());
     t.add_cleanup(() => answerer.close());
 
-    answerer.addEventListener('icecandidate',
-        e => assert_equals(e.candidate, null, 'Should get no ICE candidates'));
+    offerer.addEventListener('icecandidate',
+        e => {
+          if (e.candidate) {
+            assert_equals(e.candidate.candidate, '', 'Should get no ICE candidates')
+          }
+        }
+    );
 
     offerer.addTransceiver('audio');
     const offer = await offerer.createOffer();
@@ -175,9 +185,14 @@
     offerer.setConfiguration({iceTransportPolicy: 'relay'});
 
     offerer.addEventListener('icecandidate',
-        e => assert_equals(e.candidate, null, 'Should get no ICE candidates'));
+        e => {
+          if (e.candidate) {
+            assert_equals(e.candidate.candidate, '', 'Should get no ICE candidates')
+          }
+        }
+    );
 
-    await Promise.all([
+     await Promise.all([
       exchangeOfferAnswer(offerer, answerer),
       waitForIceStateChange(offerer, ['failed']),
       waitForIceStateChange(answerer, ['failed']),
@@ -201,9 +216,13 @@
     exchangeIceCandidates(offerer, answerer);
 
     const checkNoCandidate =
-        e => assert_equals(e.candidate, null, 'Should get no ICE candidates');
+        e => {
+          if (e.candidate) {
+            assert_equals(e.candidate.candidate, '', 'Should get no ICE candidates')
+          }
+        };
 
-    offerer.addEventListener('icecandidate', checkNoCandidate);
+     offerer.addEventListener('icecandidate', checkNoCandidate);
 
     await Promise.all([
       exchangeOfferAnswer(offerer, answerer),

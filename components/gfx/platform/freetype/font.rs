@@ -111,7 +111,7 @@ fn create_face(
                 &mut face,
             )
         } else {
-            // This will trigger a synchronous file read in the layout thread, which we may want to
+            // This will trigger a synchronous file read during layout, which we may want to
             // revisit at some point. See discussion here:
             //
             // https://github.com/servo/servo/pull/20506#issuecomment-378838800

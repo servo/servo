@@ -37,7 +37,9 @@
 
     // close event is async, give it a chance to be fired
     t.step_timeout(function() {
-      t.done();
+      requestAnimationFrame(() => {
+        t.done();
+      });
     }, 0);
   }, "On setting it to false, the close event should not be fired");
 </script>

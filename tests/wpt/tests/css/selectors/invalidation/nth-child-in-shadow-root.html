@@ -4,7 +4,6 @@
 <link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1480746">
 <link rel="author" title="Zach Hoffman" href="mailto:zach@zrhoffman.net">
 <link rel="match" href="nth-child-in-shadow-root-ref.html">
-<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 <div id="host">
     <template shadowrootmode="open">
         <div id="firstChild">Should be red</div>
@@ -19,7 +18,6 @@
     </template>
 </div>
 <script>
-polyfill_declarative_shadow_dom(host);
 host.offsetTop;
 let div = document.createElement("div");
 div.appendChild(document.createTextNode("Should be green"));

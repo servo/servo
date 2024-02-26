@@ -148,6 +148,35 @@ async function waitForObservedRequests(uuid, expectedRequests) {
   }
 }
 
+
+// Similar to waitForObservedRequests, but ignore forDebuggingOnly reports.
+async function waitForObservedRequestsIgnoreDebugOnlyReports(
+  uuid, expectedRequests) {
+  // Sort array for easier comparison, as observed request order does not
+  // matter, and replace UUID to print consistent errors on failure.
+  expectedRequests =
+      expectedRequests.sort().map((url) => url.replace(uuid, '<uuid>'));
+
+  while (true) {
+    let numTrackedRequest = 0;
+    let trackedData = await fetchTrackedData(uuid);
+
+    // Clean up "trackedRequests" in same manner as "expectedRequests".
+    let trackedRequests = trackedData.trackedRequests.sort().map(
+        (url) => url.replace(uuid, '<uuid>'));
+
+    for (const trackedRequest of trackedRequests) {
+      // Ignore forDebuggingOnly reports, since their appearance is random.
+      if (!trackedRequest.includes('forDebuggingOnly')) {
+        assert_in_array(trackedRequest, expectedRequests);
+        numTrackedRequest++;
+      }
+    }
+
+    if (numTrackedRequest == expectedRequests.length) break;
+  }
+}
+
 // Creates a bidding script with the provided code in the method bodies. The
 // bidding script's generateBid() method will return a bid of 9 for the first
 // ad, after the passed in code in the "generateBid" input argument has been
@@ -504,7 +533,7 @@ async function runInFrame(test, child_window, script, param) {
 // iframe or closes the window.
 async function createFrame(test, origin, is_iframe = true, permissions = null) {
   const frameUuid = generateUuid(test);
-  const frameUrl =
+  const frameURL =
       `${origin}${RESOURCE_PATH}subordinate-frame.sub.html?uuid=${frameUuid}`;
   let promise = new Promise(function(resolve, reject) {
     function WaitForMessage(event) {
@@ -523,7 +552,7 @@ async function createFrame(test, origin, is_iframe = true, permissions = null) {
     let iframe = document.createElement('iframe');
     if (permissions)
       iframe.allow = permissions;
-    iframe.src = frameUrl;
+    iframe.src = frameURL;
     document.body.appendChild(iframe);
 
     test.add_cleanup(async () => {
@@ -535,7 +564,7 @@ async function createFrame(test, origin, is_iframe = true, permissions = null) {
     return iframe.contentWindow;
   }
 
-  let child_window = window.open(frameUrl);
+  let child_window = window.open(frameURL);
   test.add_cleanup(async () => {
     await runInFrame(test, child_window, "await test_instance.do_cleanup();");
     child_window.close();
@@ -576,9 +605,21 @@ async function joinInterestGroupInTopLevelWindow(
   let interestGroup = JSON.stringify(
       createInterestGroupForOrigin(uuid, origin, interestGroupOverrides));
 
-  let topLeveWindow = await createTopLevelWindow(test, origin);
-  await runInFrame(test, topLeveWindow,
+  let topLevelWindow = await createTopLevelWindow(test, origin);
+  await runInFrame(test, topLevelWindow,
                    `await joinInterestGroup(test_instance, "${uuid}", ${interestGroup})`);
+}
+
+// Opens a top-level window and calls joinCrossOriginInterestGroup() in it.
+async function joinCrossOriginInterestGroupInTopLevelWindow(
+    test, uuid, windowOrigin, interestGroupOrigin, interestGroupOverrides = {}) {
+  let interestGroup = JSON.stringify(
+      createInterestGroupForOrigin(uuid, interestGroupOrigin, interestGroupOverrides));
+
+  let topLevelWindow = await createTopLevelWindow(test, windowOrigin);
+  await runInFrame(test, topLevelWindow,
+                  `await joinCrossOriginInterestGroup(
+                        test_instance, "${uuid}", "${interestGroupOrigin}", ${interestGroup})`);
 }
 
 // Fetch directFromSellerSignals from seller and check header

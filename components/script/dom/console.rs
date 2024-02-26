@@ -2,27 +2,41 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::convert::TryFrom;
 use std::io;
 
 use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
-use js::rust::describe_scripted_caller;
+use js::jsapi::{self, ESClass, PropertyDescriptor};
+use js::jsval::UndefinedValue;
+use js::rust::wrappers::{
+    GetBuiltinClass, GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
+    JS_IdToValue, JS_ValueToSource,
+};
+use js::rust::{describe_scripted_caller, HandleValue, IdVector};
 
+use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::script_runtime::JSContext;
+
+/// The maximum object depth logged by console methods.
+const MAX_LOG_DEPTH: usize = 10;
+/// The maximum elements in an object logged by console methods.
+const MAX_LOG_CHILDREN: usize = 15;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 pub struct Console(());
 
 impl Console {
     #[allow(unsafe_code)]
-    fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString) {
+    fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: String) {
         if let Some(chan) = global.devtools_chan() {
             let caller =
                 unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
             let console_message = ConsoleMessage {
-                message: String::from(message),
+                message,
                 logLevel: level,
                 filename: caller.filename,
                 lineNumber: caller.line as usize,
@@ -55,14 +69,148 @@ where
     f()
 }
 
-fn console_messages(global: &GlobalScope, messages: &[DOMString], level: LogLevel) {
-    console_message(global, DOMString::from(messages.join(" ")), level)
+#[allow(unsafe_code)]
+unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) -> DOMString {
+    rooted!(in(cx) let mut js_string = std::ptr::null_mut::<jsapi::JSString>());
+    js_string.set(JS_ValueToSource(cx, value));
+    return jsstring_to_str(cx, *js_string);
+}
+
+#[allow(unsafe_code)]
+fn stringify_handle_value(message: HandleValue) -> DOMString {
+    let cx = *GlobalScope::get_cx();
+    unsafe {
+        if message.is_string() {
+            return jsstring_to_str(cx, message.to_string());
+        }
+        unsafe fn stringify_object_from_handle_value(
+            cx: *mut jsapi::JSContext,
+            value: HandleValue,
+            parents: Vec<u64>,
+        ) -> DOMString {
+            rooted!(in(cx) let mut obj = value.to_object());
+            let mut object_class = ESClass::Other;
+            if !GetBuiltinClass(cx, obj.handle().into(), &mut object_class as *mut _) {
+                return DOMString::from("/* invalid */");
+            }
+            let mut ids = IdVector::new(cx);
+            if !GetPropertyKeys(
+                cx,
+                obj.handle().into(),
+                jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
+                ids.handle_mut(),
+            ) {
+                return DOMString::from("/* invalid */");
+            }
+            let truncate = ids.len() > MAX_LOG_CHILDREN;
+            if object_class != ESClass::Array && object_class != ESClass::Object {
+                if truncate {
+                    return DOMString::from("…");
+                } else {
+                    return handle_value_to_string(cx, value);
+                }
+            }
+
+            let mut explicit_keys = object_class == ESClass::Object;
+            let mut props = Vec::with_capacity(ids.len());
+            for id in ids.iter().take(MAX_LOG_CHILDREN) {
+                rooted!(in(cx) let id = *id);
+                rooted!(in(cx) let mut desc = PropertyDescriptor::default());
+
+                let mut is_none = false;
+                if !JS_GetOwnPropertyDescriptorById(
+                    cx,
+                    obj.handle().into(),
+                    id.handle().into(),
+                    desc.handle_mut().into(),
+                    &mut is_none,
+                ) {
+                    return DOMString::from("/* invalid */");
+                }
+
+                rooted!(in(cx) let mut property = UndefinedValue());
+                if !JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) {
+                    return DOMString::from("/* invalid */");
+                }
+
+                if !explicit_keys {
+                    if id.is_int() {
+                        if let Ok(id_int) = usize::try_from(id.to_int()) {
+                            explicit_keys = props.len() != id_int;
+                        } else {
+                            explicit_keys = false;
+                        }
+                    } else {
+                        explicit_keys = false;
+                    }
+                }
+                let value_string = stringify_inner(cx, property.handle(), parents.clone());
+                if explicit_keys {
+                    let key = if id.is_string() || id.is_symbol() || id.is_int() {
+                        rooted!(in(cx) let mut key_value = UndefinedValue());
+                        let raw_id: jsapi::HandleId = id.handle().into();
+                        if !JS_IdToValue(cx, *raw_id.ptr, key_value.handle_mut()) {
+                            return DOMString::from("/* invalid */");
+                        }
+                        handle_value_to_string(cx, key_value.handle())
+                    } else {
+                        return DOMString::from("/* invalid */");
+                    };
+                    props.push(format!("{}: {}", key, value_string,));
+                } else {
+                    props.push(value_string.to_string());
+                }
+            }
+            if truncate {
+                props.push("…".to_string());
+            }
+            if object_class == ESClass::Array {
+                DOMString::from(format!("[{}]", itertools::join(props, ", ")))
+            } else {
+                DOMString::from(format!("{{{}}}", itertools::join(props, ", ")))
+            }
+        }
+        unsafe fn stringify_inner(
+            cx: *mut jsapi::JSContext,
+            value: HandleValue,
+            mut parents: Vec<u64>,
+        ) -> DOMString {
+            if parents.len() >= MAX_LOG_DEPTH {
+                return DOMString::from("...");
+            }
+            let value_bits = value.asBits_;
+            if parents.contains(&value_bits) {
+                return DOMString::from("[circular]");
+            }
+            if value.is_undefined() {
+                // This produces a better value than "(void 0)" from JS_ValueToSource.
+                return DOMString::from("undefined");
+            } else if !value.is_object() {
+                return handle_value_to_string(cx, value);
+            }
+            parents.push(value_bits);
+            stringify_object_from_handle_value(cx, value, parents)
+        }
+        stringify_inner(cx, message.into(), Vec::new())
+    }
+}
+
+fn stringify_handle_values(messages: Vec<HandleValue>) -> DOMString {
+    DOMString::from(itertools::join(
+        messages.into_iter().map(stringify_handle_value),
+        " ",
+    ))
+}
+
+fn console_messages(global: &GlobalScope, messages: Vec<HandleValue>, level: LogLevel) {
+    let message = stringify_handle_values(messages);
+    console_message(global, message, level)
 }
 
 fn console_message(global: &GlobalScope, message: DOMString, level: LogLevel) {
     with_stderr_lock(move || {
         let prefix = global.current_group_label().unwrap_or_default();
-        let message = DOMString::from(format!("{}{}", prefix, message));
+        let message = format!("{}{}", prefix, message);
         println!("{}", message);
         Console::send_to_devtools(global, level, message);
     })
@@ -71,40 +219,48 @@ fn console_message(global: &GlobalScope, message: DOMString, level: LogLevel) {
 #[allow(non_snake_case)]
 impl Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
-    pub fn Log(global: &GlobalScope, messages: Vec<DOMString>) {
-        console_messages(global, &messages, LogLevel::Log)
+    pub fn Log(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+        console_messages(global, messages, LogLevel::Log)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/clear
     pub fn Clear(global: &GlobalScope) {
-        let message: Vec<DOMString> = Vec::new();
-        console_messages(global, &message, LogLevel::Clear)
+        let message: Vec<HandleValue> = Vec::new();
+        console_messages(global, message, LogLevel::Clear)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
-    pub fn Debug(global: &GlobalScope, messages: Vec<DOMString>) {
-        console_messages(global, &messages, LogLevel::Debug)
+    pub fn Debug(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+        console_messages(global, messages, LogLevel::Debug)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
-    pub fn Info(global: &GlobalScope, messages: Vec<DOMString>) {
-        console_messages(global, &messages, LogLevel::Info)
+    pub fn Info(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+        console_messages(global, messages, LogLevel::Info)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
-    pub fn Warn(global: &GlobalScope, messages: Vec<DOMString>) {
-        console_messages(global, &messages, LogLevel::Warn)
+    pub fn Warn(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+        console_messages(global, messages, LogLevel::Warn)
+    }
+    // Directly logs a DOMString, without processing the message
+    pub fn internal_warn(global: &GlobalScope, message: DOMString) {
+        console_message(global, message, LogLevel::Warn)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
-    pub fn Error(global: &GlobalScope, messages: Vec<DOMString>) {
-        console_messages(global, &messages, LogLevel::Error)
+    pub fn Error(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+        console_messages(global, messages, LogLevel::Error)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
-    pub fn Assert(global: &GlobalScope, condition: bool, message: Option<DOMString>) {
+    pub fn Assert(_cx: JSContext, global: &GlobalScope, condition: bool, message: HandleValue) {
         if !condition {
-            let message = message.unwrap_or_else(|| DOMString::from("no message"));
+            let message = if message.is_undefined() {
+                DOMString::from("no message")
+            } else {
+                stringify_handle_value(message)
+            };
             let message = DOMString::from(format!("Assertion failed: {}", message));
             console_message(global, message, LogLevel::Error)
         };
@@ -127,13 +283,13 @@ impl Console {
     }
 
     // https://console.spec.whatwg.org/#group
-    pub fn Group(global: &GlobalScope, messages: Vec<DOMString>) {
-        global.push_console_group(DOMString::from(messages.join(" ")));
+    pub fn Group(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+        global.push_console_group(stringify_handle_values(messages));
     }
 
     // https://console.spec.whatwg.org/#groupcollapsed
-    pub fn GroupCollapsed(global: &GlobalScope, messages: Vec<DOMString>) {
-        global.push_console_group(DOMString::from(messages.join(" ")));
+    pub fn GroupCollapsed(_cx: JSContext, global: &GlobalScope, messages: Vec<HandleValue>) {
+        global.push_console_group(stringify_handle_values(messages));
     }
 
     // https://console.spec.whatwg.org/#groupend

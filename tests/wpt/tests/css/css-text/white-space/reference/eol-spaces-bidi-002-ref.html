@@ -4,8 +4,13 @@
 <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
 
 <style>
+@font-face {
+    font-family: "Hasubi Mono";
+    src: url("/fonts/hasubi-mono/HasubiMono-Regular.woff2");
+}
+
 div {
-    font-family: monospace;
+    font-family: "Hasubi Mono", monospace;
     border: solid blue;
     font-size: 1.5em;
     white-space: pre;
@@ -13,10 +18,10 @@ div {
 .ref {
     border-color: orange;
 }
-.w6 { width: 6ch; }
-.w7 { width: 7ch; }
-.w8 { width: 8ch; }
-.w9 { width: 9ch; }
+.w6 { width: 6.01ch; }
+.w7 { width: 7.01ch; }
+.w8 { width: 8.01ch; }
+.w9 { width: 9.01ch; }
 
 .blue { background: #aaaaff; }
 .red { background: #ffaaaa; }
@@ -45,4 +50,3 @@ div {
 
 <div class="w9"><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>
 <div class="w9 ref"><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>
-

@@ -93,6 +93,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
     fn as_image(self) -> Option<(Option<Arc<NetImage>>, PhysicalSize<f64>)>;
     fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
     fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)>;
+    fn as_video(self) -> Option<(webrender_api::ImageKey, PhysicalSize<f64>)>;
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
 
     fn get_style_and_layout_data(self) -> Option<StyleAndLayoutData<'dom>>;
@@ -123,6 +124,13 @@ where
             height /= density;
         }
         Some((resource, PhysicalSize::new(width, height)))
+    }
+
+    fn as_video(self) -> Option<(webrender_api::ImageKey, PhysicalSize<f64>)> {
+        let node = self.to_threadsafe();
+        let frame_data = node.media_data()?.current_frame?;
+        let (width, height) = (frame_data.1 as f64, frame_data.2 as f64);
+        Some((frame_data.0, PhysicalSize::new(width, height)))
     }
 
     fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)> {

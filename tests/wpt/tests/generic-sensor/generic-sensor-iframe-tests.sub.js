@@ -147,24 +147,21 @@ function run_generic_sensor_iframe_tests(sensorData, readingData) {
     sensor.stop();
     await send_message_to_iframe(iframe, {command: 'stop_sensor'});
 
+    // The sensors are stopped; queue the same reading. The virtual sensor
+    // would send it anyway, but this update changes its timestamp.
+    await test_driver.update_virtual_sensor(testDriverName, reading);
+
     // Now focus the cross-origin iframe. The situation should be the opposite:
     // the sensor in the main frame should not fire any "reading" events or
     // provide access to updated readings, but the sensor in the iframe should.
     iframe.contentWindow.focus();
 
-    // Start both sensors. They should both have the same state: active, but no
-    // readings have been provided to them yet.
-    await send_message_to_iframe(iframe, {command: 'start_sensor'});
+    // Start both sensors. Only the iframe sensor should receive a reading
+    // event and contain readings.
     sensor.start();
     await sensorWatcher.wait_for('activate');
-    assert_false(
-        await send_message_to_iframe(iframe, {command: 'has_reading'}));
-    assert_false(sensor.hasReading);
-
-    const [serializedIframeSensor] = await Promise.all([
-      iframeSensorWatcher.wait_for_reading(),
-      test_driver.update_virtual_sensor(testDriverName, reading),
-    ]);
+    await send_message_to_iframe(iframe, {command: 'start_sensor'});
+    const serializedIframeSensor = await iframeSensorWatcher.wait_for_reading();
     assert_true(await send_message_to_iframe(iframe, {command: 'has_reading'}));
     assert_false(sensor.hasReading);
 
@@ -225,25 +222,17 @@ function run_generic_sensor_iframe_tests(sensorData, readingData) {
     // Focus a different same-origin window each time and check that everything
     // works the same.
     for (const windowObject of [window, iframe.contentWindow]) {
+      await test_driver.update_virtual_sensor(
+          testDriverName, readings.next().value);
+
       windowObject.focus();
 
       iframeSensor.start();
       sensor.start();
-      await Promise.all([
-        iframeSensorWatcher.wait_for('activate'),
-        sensorWatcher.wait_for('activate')
-      ]);
 
-      assert_false(sensor.hasReading);
-      assert_false(iframeSensor.hasReading);
-
-      // We store `reading` here because we want to make sure the very same
-      // value is accepted later.
-      const reading = readings.next().value;
       await Promise.all([
-        test_driver.update_virtual_sensor(testDriverName, reading),
-        iframeSensorWatcher.wait_for('reading'),
-        sensorWatcher.wait_for('reading')
+        iframeSensorWatcher.wait_for(['activate', 'reading']),
+        sensorWatcher.wait_for(['activate', 'reading'])
       ]);
 
       assert_greater_than(

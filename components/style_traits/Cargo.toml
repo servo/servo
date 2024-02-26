@@ -3,7 +3,6 @@ name = "style_traits"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
-edition = "2018"
 publish = false
 
 [lib]
@@ -11,7 +10,7 @@ name = "style_traits"
 path = "lib.rs"
 
 [features]
-servo = ["servo_atoms", "cssparser/serde", "webrender_api", "servo_url", "euclid/serde"]
+servo = ["servo_atoms", "cssparser/serde", "webrender_api", "url", "euclid/serde"]
 gecko = []
 
 [dependencies]
@@ -22,12 +21,12 @@ euclid = "0.22"
 lazy_static = "1"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = "0.1"
-selectors = { path = "../selectors", features = ["shmem"] }
+selectors = { path = "../selectors" }
 serde = "1.0"
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms", optional = true }
-servo_url = { path = "../url", optional = true }
 size_of_test = { path = "../size_of_test" }
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
+url = { workspace = true, optional = true }
 webrender_api = { workspace = true, optional = true }

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#the-autofocus-attribute">
+<link rel='author' href='mailto:sefeng@mozilla.com'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<map name="mymap">
+  <area id="myarea" shape="circle" coords="100,100,80" href="#" autofocus>
+</map>
+<img style="width:200px; height: 200px"
+     usemap="#mymap"
+     src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR42mP4%2F58BAAT%2FAf9jgNErAAAAAElFTkSuQmCC">
+<script>
+promise_test(async t => {
+  await waitForLoad(window);
+  await waitUntilStableAutofocusState(window);
+  const area = document.querySelector("area");
+  assert_equals(document.activeElement, area);
+}, 'autofocus works on area element');
+</script>

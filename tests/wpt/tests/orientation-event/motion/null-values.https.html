@@ -7,7 +7,10 @@
 <script>
 'use strict';
 
-sensor_test(async (t, sensorProvider) => {
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'devicemotion');
+  await helper.grantSensorsPermissions();
+
   const motionData1 = generateMotionData(1, 2, 3,
                                          null, null, null,
                                          null, null, null);
@@ -24,16 +27,27 @@ sensor_test(async (t, sensorProvider) => {
                                          null, null, null,
                                          null, null, null);
 
-  setMockMotionData(sensorProvider, motionData1);
+  await helper.initializeSensors({disabledSensors: ['accelerometer','gyroscope']});
+  await helper.setData(motionData1);
   await waitForEvent(getExpectedMotionEvent(motionData1));
+  // If test needs to change virtual sensor state from connected to not
+  // connected or vise versa, reset needs to be called. It removes created
+  // virtual sensors and creating them with different connection state is then
+  // possible.
+  await helper.reset();
 
-  setMockMotionData(sensorProvider, motionData2);
+  await helper.initializeSensors({disabledSensors: ['linear-acceleration','gyroscope']});
+  await helper.setData(motionData2);
   await waitForEvent(getExpectedMotionEvent(motionData2));
+  await helper.reset();
 
-  setMockMotionData(sensorProvider, motionData3);
+  await helper.initializeSensors({disabledSensors: ['accelerometer','linear-acceleration']});
+  await helper.setData(motionData3);
   await waitForEvent(getExpectedMotionEvent(motionData3));
+  await helper.reset();
 
-  setMockMotionData(sensorProvider, motionData4);
+  await helper.initializeSensors({disabledSensors: ['accelerometer','linear-acceleration','gyroscope']});
+  await helper.setData(motionData4);
   await waitForEvent(getExpectedMotionEvent(motionData4));
 }, 'Tests using null values for some or all of the event properties.');
 </script>

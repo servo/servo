@@ -13,7 +13,16 @@ for (const resolve_to_config of [true, false]) {
           "test-url-selection-operation",
           [{url: "/shared-storage/resources/frame0.html"}],
           {resolveToConfig: resolve_to_config, keepAlive: true}));
-  }, 'selectURL() without addModule, ' +
+  }, 'sharedStorage.selectURL() without addModule, ' +
+     'selectURL() resolves to ' + (resolve_to_config ? 'config' : 'urn:uuid'));
+
+  promise_test(async t => {
+    return promise_rejects_dom(t, "OperationError",
+      sharedStorage.worklet.selectURL(
+          "test-url-selection-operation",
+          [{url: "/shared-storage/resources/frame0.html"}],
+          {resolveToConfig: resolve_to_config, keepAlive: true}));
+  }, 'sharedStorage.worklet.selectURL() without addModule, ' +
      'selectURL() resolves to ' + (resolve_to_config ? 'config' : 'urn:uuid'));
 }
 

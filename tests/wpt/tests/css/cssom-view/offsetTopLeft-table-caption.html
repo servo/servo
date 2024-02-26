@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent">
+<title>offset* APIs on tables with captions.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<table style="border-spacing: 0px">
+ <caption>I'm a <br>reasonably<br>tall caption.</caption>
+ <tr><td><span>I'm a cell.</span>
+</table>
+<script>
+  let td = document.querySelector("td");
+  let span = document.querySelector("span");
+  let caption = document.querySelector("caption");
+  let table = document.querySelector("table");
+  test(function() {
+    assert_equals(span.offsetParent, td, "<td> should be an offset parent");
+    assert_equals(td.offsetParent, table, "<table> should be an offset parent for <td>");
+    assert_equals(caption.offsetParent, table, "<table> should be an offset parent for <caption>");
+    assert_equals(caption.offsetTop, 0, "<caption> is at the top of its offsetParent");
+    assert_equals(td.offsetTop, caption.offsetHeight, "<td> is under the caption");
+  });
+</script>

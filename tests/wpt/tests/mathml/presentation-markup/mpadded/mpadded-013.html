@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test mpadded height depth</title>
+    <link rel="help" href="https://w3c.github.io/mathml-core/#inner-box-and-requested-parameters">
+    <meta name="assert" content="Verify basic rendering of mpadded.">
+    <link rel="match" href="mpadded-013-ref.html">
+  </head>
+  <body>
+    <math>
+      <mpadded mathbackground="blue" width="100px" height="50px" depth="0px"
+               lspace="0px" voffset="10px">
+        <mpadded mathbackground="red" width="20px" height="10px"
+                 depth="10px">
+        </mpadded>
+      </mpadded>
+    </math>
+  </body>
+</html>

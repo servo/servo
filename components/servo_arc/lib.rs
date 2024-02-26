@@ -25,23 +25,30 @@
 // duplicate those here.
 #![allow(missing_docs)]
 
+#[cfg(feature = "servo")]
+extern crate serde;
+extern crate stable_deref_trait;
+
+#[cfg(feature = "servo")]
+use serde::{Deserialize, Serialize};
+use stable_deref_trait::{CloneStableDeref, StableDeref};
 use std::alloc::{self, Layout};
+use std::borrow;
 use std::cmp::Ordering;
 use std::convert::From;
+use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::iter::{ExactSizeIterator, Iterator};
 use std::marker::PhantomData;
 use std::mem::{self, align_of, size_of};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
+use std::process;
+use std::ptr;
+use std::slice;
 use std::sync::atomic;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
-use std::{borrow, fmt, isize, process, ptr, slice, usize};
-
-use nodrop::NoDrop;
-#[cfg(feature = "servo")]
-use serde::{Deserialize, Serialize};
-use stable_deref_trait::{CloneStableDeref, StableDeref};
+use std::{isize, usize};
 
 /// A soft limit on the amount of references that may be made to an `Arc`.
 ///
@@ -811,6 +818,7 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
 
     /// Creates an Arc for a HeaderSlice using the given header struct and
     /// iterator to generate the slice. The resulting Arc will be fat.
+    #[inline]
     pub fn from_header_and_iter<I>(header: H, items: I) -> Self
     where
         I: Iterator<Item = T> + ExactSizeIterator,
@@ -904,7 +912,7 @@ impl<H, T> ThinArc<H, T> {
     {
         // Synthesize transient Arc, which never touches the refcount of the ArcInner.
         let transient = unsafe {
-            NoDrop::new(Arc {
+            mem::ManuallyDrop::new(Arc {
                 p: ptr::NonNull::new_unchecked(thin_to_thick(self.ptr.as_ptr())),
                 phantom: PhantomData,
             })
@@ -912,11 +920,6 @@ impl<H, T> ThinArc<H, T> {
 
         // Expose the transient Arc to the callback, which may clone it if it wants.
         let result = f(&transient);
-
-        // Forget the transient Arc to leave the refcount untouched.
-        // XXXManishearth this can be removed when unions stabilize,
-        // since then NoDrop becomes zero overhead
-        mem::forget(transient);
 
         // Forward the result.
         result
@@ -1129,7 +1132,7 @@ impl<'a, T> ArcBorrow<'a, T> {
     /// Compare two `ArcBorrow`s via pointer equality. Will only return
     /// true if they come from the same allocation
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
-        std::ptr::eq(this.0, other.0)
+        this.0 as *const T == other.0 as *const T
     }
 
     /// Temporarily converts |self| into a bonafide Arc and exposes it to the
@@ -1141,15 +1144,10 @@ impl<'a, T> ArcBorrow<'a, T> {
         T: 'static,
     {
         // Synthesize transient Arc, which never touches the refcount.
-        let transient = unsafe { NoDrop::new(Arc::from_raw(self.0)) };
+        let transient = unsafe { mem::ManuallyDrop::new(Arc::from_raw(self.0)) };
 
         // Expose the transient Arc to the callback, which may clone it if it wants.
         let result = f(&transient);
-
-        // Forget the transient Arc to leave the refcount untouched.
-        // XXXManishearth this can be removed when unions stabilize,
-        // since then NoDrop becomes zero overhead
-        mem::forget(transient);
 
         // Forward the result.
         result
@@ -1309,12 +1307,11 @@ impl<A: fmt::Debug, B: fmt::Debug> fmt::Debug for ArcUnion<A, B> {
 
 #[cfg(test)]
 mod tests {
+    use super::{Arc, HeaderWithLength, ThinArc};
     use std::clone::Clone;
     use std::ops::Drop;
     use std::sync::atomic;
     use std::sync::atomic::Ordering::{Acquire, SeqCst};
-
-    use super::{Arc, HeaderWithLength, ThinArc};
 
     #[derive(PartialEq)]
     struct Canary(*mut atomic::AtomicUsize);

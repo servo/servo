@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>textInput: smiley (manual)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+[contenteditable] { border: thin inset silver; }
+</style>
+<p>Type "🙂" into each text field below.</p>
+<input class=test-el>
+<textarea class=test-el></textarea>
+<div contenteditable=true class=test-el></div>
+<script>
+setup({ explicit_timeout: true });
+</script>
+<script src="support/common.js"></script>
+<script src="support/basic.sub.js?key=🙂&selectionStart=0&selectionEnd=0&expectedValue=🙂"></script>

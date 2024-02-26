@@ -9,7 +9,11 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
-
+<style>
+body {
+  padding: 5px;
+}
+</style>
 <div id="wrapper" style="width: min-content">
   <iframe id="iframe" inert></iframe>
 </div>
@@ -39,6 +43,10 @@ promise_setup(async () => {
 });
 
 async function mouseDownAndGetEvents(test) {
+  await new test_driver.Actions()
+    .pointerMove(1, 1, { origin: document.body })
+    .send();
+
   const receivedEvents = {
     target: [],
     wrapper: [],

@@ -34,16 +34,17 @@ var expected = {
         ownerDocument: document,
         parentNode: document.body,
         parentElement: document.body,
-        "childNodes.length": 6,
+        "childNodes.length": 7,
         "childNodes[0]": paras[0],
         "childNodes[1]": paras[1],
         "childNodes[2]": paras[2],
         "childNodes[3]": paras[3],
         "childNodes[4]": paras[4],
-        "childNodes[5]": comment,
+        "childNodes[5]": paras[5],
+        "childNodes[6]": comment,
         previousSibling: null,
         nextSibling: document.getElementById("log"),
-        textContent: "A\u0308b\u0308c\u0308d\u0308e\u0308f\u0308g\u0308h\u0308\nIjklmnop\nQrstuvwxYzabcdefGhijklmn",
+        textContent: "A\u0308b\u0308c\u0308d\u0308e\u0308f\u0308g\u0308h\u0308\nIjklmnop\nQrstuvwxYzabcdefGhijklmn123456789012",
 
         // Element
         namespaceURI: "http://www.w3.org/1999/xhtml",
@@ -56,10 +57,11 @@ var expected = {
         "children[2]": paras[2],
         "children[3]": paras[3],
         "children[4]": paras[4],
+        "children[5]": paras[5],
         previousElementSibling: null,
         // nextSibling isn't explicitly set
         //nextElementSibling: ,
-        childElementCount: 5,
+        childElementCount: 6,
     },
     detachedDiv: {
         // Node
@@ -351,7 +353,7 @@ var expected = {
         ownerDocument: document,
         parentNode: testDiv,
         parentElement: testDiv,
-        previousSibling: paras[4],
+        previousSibling: paras[5],
         nextSibling: null,
         nodeValue: "Alphabet soup?",
     },
@@ -557,7 +559,7 @@ var expected = {
         parentElement: testDiv,
         "childNodes.length": 1,
         previousSibling: paras[3],
-        nextSibling: comment,
+        nextSibling: paras[5],
         textContent: "Ghijklmn",
 
         // Element
@@ -567,9 +569,29 @@ var expected = {
         tagName: "P",
         id: "e",
         previousElementSibling: paras[3],
-        nextElementSibling: null,
+        nextElementSibling: paras[5],
         childElementCount: 0,
     },
+    "paras[5]": {
+        // Node
+        nodeType: Node.ELEMENT_NODE,
+        ownerDocument: document,
+        parentNode: testDiv,
+        parentElement: testDiv,
+        "childNodes.length": 3,
+        previousSibling: paras[4],
+        nextSibling: comment,
+        textContent: "123456789012",
+
+        // Element
+        namespaceURI: "http://www.w3.org/1999/xhtml",
+        prefix: null,
+        localName: "p",
+        tagName: "P",
+        previousElementSibling: paras[4],
+        nextElementSibling: null,
+        childElementCount: 0,
+    }
 };
 
 for (var node in expected) {

@@ -191,11 +191,9 @@ impl PerformanceObserverMethods for PerformanceObserver {
 
             // Step 6.3
             if entry_types.is_empty() {
-                Console::Warn(
+                Console::internal_warn(
                     &*self.global(),
-                    vec![DOMString::from(
-                        "No valid entry type provided to observe().",
-                    )],
+                    DOMString::from("No valid entry type provided to observe()."),
                 );
                 return Ok(());
             }
@@ -210,11 +208,9 @@ impl PerformanceObserverMethods for PerformanceObserver {
         } else if let Some(entry_type) = &options.type_ {
             // Step 7.2
             if !VALID_ENTRY_TYPES.contains(&entry_type.as_ref()) {
-                Console::Warn(
+                Console::internal_warn(
                     &*self.global(),
-                    vec![DOMString::from(
-                        "No valid entry type provided to observe().",
-                    )],
+                    DOMString::from("No valid entry type provided to observe()."),
                 );
                 return Ok(());
             }

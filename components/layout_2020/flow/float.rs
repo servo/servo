@@ -900,7 +900,7 @@ impl FloatBox {
                 // or non-replaced.
                 let pbm = style.padding_border_margin(containing_block);
                 let margin = pbm.margin.auto_is(Length::zero);
-                let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
+                let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone().into();
 
                 let (content_size, children);
                 match self.contents {
@@ -921,7 +921,7 @@ impl FloatBox {
                                 containing_block.inline_size - pbm_sums.inline_sum();
                             non_replaced
                                 .inline_content_sizes(layout_context)
-                                .shrink_to_fit(available_size.into())
+                                .shrink_to_fit(available_size)
                                 .into()
                         });
                         let inline_size = tentative_inline_size
@@ -931,8 +931,8 @@ impl FloatBox {
                         // https://drafts.csswg.org/css2/#block-root-margin
                         // FIXME(pcwalton): Is a tree rank of zero correct here?
                         let containing_block_for_children = ContainingBlock {
-                            inline_size,
-                            block_size: box_size.block,
+                            inline_size: inline_size.into(),
+                            block_size: box_size.block.map(|t| t.into()),
                             style: &non_replaced.style,
                         };
                         let independent_layout = non_replaced.layout(
@@ -976,13 +976,12 @@ impl FloatBox {
                     style.clone(),
                     children,
                     content_rect,
-                    pbm.padding,
-                    pbm.border,
+                    pbm.padding.into(),
+                    pbm.border.into(),
                     margin,
                     // Clearance is handled internally by the float placement logic, so there's no need
                     // to store it explicitly in the fragment.
                     None, // clearance
-                    None, // last_inflow_baseline_offset
                     CollapsedBlockMargins::zero(),
                 )
             },

@@ -21,6 +21,7 @@ async def test_cached(
     )
     events = network_events[RESPONSE_STARTED_EVENT]
 
+    # `nocache` is not used in cached.py, it is here to avoid the browser cache.
     cached_url = url(
         f"/webdriver/tests/support/http_handlers/cached.py?status=200&nocache={random.random()}"
     )
@@ -78,6 +79,7 @@ async def test_cached_redirect(
     events = network_events[RESPONSE_STARTED_EVENT]
 
     text_url = url(PAGE_EMPTY_TEXT)
+    # `nocache` is not used in cached.py, it is here to avoid the browser cache.
     cached_url = url(
         f"/webdriver/tests/support/http_handlers/cached.py?status=301&location={text_url}&nocache={random.random()}"
     )
@@ -156,6 +158,7 @@ async def test_cached_revalidate(
     )
     events = network_events[RESPONSE_STARTED_EVENT]
 
+    # `nocache` is not used in cached.py, it is here to avoid the browser cache.
     revalidate_url = url(
         f"/webdriver/tests/support/http_handlers/must-revalidate.py?nocache={random.random()}"
     )
@@ -196,4 +199,75 @@ async def test_cached_revalidate(
         events[1],
         expected_request=expected_request,
         expected_response=expected_response,
+    )
+
+
+@pytest.mark.asyncio
+async def test_page_with_cached_resource(
+    bidi_session,
+    url,
+    inline,
+    setup_network_test,
+    top_context,
+):
+    network_events = await setup_network_test(
+        events=[
+            RESPONSE_STARTED_EVENT,
+        ]
+    )
+    events = network_events[RESPONSE_STARTED_EVENT]
+
+    # Build a page with a stylesheet resource which will be read from http cache
+    # on the next reload.
+    # `nocache` is not used in cached.py, it is here to avoid the browser cache.
+    cached_css_url = url(
+        f"/webdriver/tests/support/http_handlers/cached.py?status=200&contenttype=text/css&nocache={random.random()}"
+    )
+    page_with_cached_css = inline(
+        f"""
+        <head><link rel="stylesheet" type="text/css" href="{cached_css_url}"></head>
+        <body>test page with cached stylesheet</body>
+        """,
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=page_with_cached_css,
+        wait="complete",
+    )
+
+    # Expect two events, one for the page, one for the stylesheet.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 2)
+    assert len(events) == 2
+
+    assert_response_event(
+        events[0],
+        expected_request={"method": "GET", "url": page_with_cached_css},
+        expected_response={"url": page_with_cached_css, "fromCache": False},
+    )
+    assert_response_event(
+        events[1],
+        expected_request={"method": "GET", "url": cached_css_url},
+        expected_response={"url": cached_css_url, "fromCache": False},
+    )
+
+    # Reload the page.
+    await bidi_session.browsing_context.reload(context=top_context["context"])
+
+    # Expect two additional events after reload, for the page and the stylesheet.
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 4)
+    assert len(events) == 4
+
+    assert_response_event(
+        events[2],
+        expected_request={"method": "GET", "url": page_with_cached_css},
+        expected_response={"url": page_with_cached_css, "fromCache": False},
+    )
+
+    assert_response_event(
+        events[3],
+        expected_request={"method": "GET", "url": cached_css_url},
+        expected_response={"url": cached_css_url, "fromCache": True},
     )

@@ -503,6 +503,9 @@ class Chrome(BrowserSetup):
                 kwargs["webdriver_binary"] = webdriver_binary
             else:
                 raise WptrunError("Unable to locate or install matching ChromeDriver binary")
+        if kwargs["headless"] is None and not kwargs["debug_test"]:
+            kwargs["headless"] = True
+            logger.info("Running in headless mode, pass --no-headless to disable")
         if browser_channel in self.experimental_channels:
             # HACK(Hexcles): work around https://github.com/web-platform-tests/wpt/issues/16448
             kwargs["webdriver_args"].append("--disable-build-check")
@@ -726,53 +729,6 @@ class EdgeChromium(BrowserSetup):
             kwargs["binary_args"].append("--no-sandbox")
 
 
-class Edge(BrowserSetup):
-    name = "edge"
-    browser_cls = browser.Edge
-
-    def install(self, channel=None):
-        raise NotImplementedError
-
-    def setup_kwargs(self, kwargs):
-        if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver()
-
-            if webdriver_binary is None:
-                raise WptrunError("""Unable to find WebDriver and we aren't yet clever enough to work out which
-version to download. Please go to the following URL and install the correct
-version for your Edge/Windows release somewhere on the %PATH%:
-
-https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/
-""")
-            kwargs["webdriver_binary"] = webdriver_binary
-
-
-class EdgeWebDriver(Edge):
-    name = "edge_webdriver"
-    browser_cls = browser.EdgeWebDriver
-
-
-class InternetExplorer(BrowserSetup):
-    name = "ie"
-    browser_cls = browser.InternetExplorer
-
-    def install(self, channel=None):
-        raise NotImplementedError
-
-    def setup_kwargs(self, kwargs):
-        if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver()
-
-            if webdriver_binary is None:
-                raise WptrunError("""Unable to find WebDriver and we aren't yet clever enough to work out which
-version to download. Please go to the following URL and install the driver for Internet Explorer
-somewhere on the %PATH%:
-
-https://selenium-release.storage.googleapis.com/index.html
-""")
-            kwargs["webdriver_binary"] = webdriver_binary
-
-
 class Safari(BrowserSetup):
     name = "safari"
     browser_cls = browser.Safari
@@ -924,9 +880,6 @@ product_setup = {
     "chromium": Chromium,
     "content_shell": ContentShell,
     "edgechromium": EdgeChromium,
-    "edge": Edge,
-    "edge_webdriver": EdgeWebDriver,
-    "ie": InternetExplorer,
     "safari": Safari,
     "servo": Servo,
     "servodriver": ServoWebDriver,

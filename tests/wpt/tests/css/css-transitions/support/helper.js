@@ -317,4 +317,10 @@ root.frameTimeout = (promiseToWaitOn, framesToWait, message) => {
   return Promise.race([timeoutPromise, wrappedPromiseToWaitOn]);
 };
 
+root.supportsStartingStyle = () => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync("@starting-style{}");
+  return sheet.cssRules.length == 1;
+};
+
 })(window);

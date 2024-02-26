@@ -7,13 +7,17 @@
 <script>
 'use strict';
 
-sensor_test(async (t, sensorProvider) => {
-  const orientationData = generateOrientationData(1.1, 2.2, 3.3, true);
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'deviceorientation');
+  await helper.grantSensorsPermissions();
 
   // Make the relative orientation sensor unavailable and set mock data for
   // the absolute one.
-  sensorProvider.setGetSensorShouldFail('RelativeOrientationEulerAngles', true);
-  setMockOrientationData(sensorProvider, orientationData);
-  return waitForEvent(getExpectedAbsoluteOrientationEvent(orientationData));
+  await helper.initializeSensors({enabledSensors: ['absolute-orientation'], disabledSensors: ['relative-orientation']});
+  const orientationData = generateOrientationData(1.1, 2.2, 3.3, true);
+
+  // Check sensor values when fallback is activated.
+  await helper.setData(orientationData);
+  await waitForEvent(getExpectedOrientationEvent(orientationData));
 }, 'Tests that deviceorientation falls back to using absolute orientation data if relative is unavailable.');
 </script>

@@ -3,7 +3,6 @@
 <link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-styles">
 <link rel="help" href="https://drafts.csswg.org/selectors-4/#link">
 <link rel="match" href="scope-visited-ref.html">
-<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 
 <!-- Sub-tests use ShadowDOM to stay isolated from eachother. -->
 
@@ -205,8 +204,6 @@
 
 <script>
   window.onload = () => {
-    polyfill_declarative_shadow_dom(document);
-
     // Insert the inner :visited link with JS, since the parser
     // can't produce this.
     let outer_a = visited_in_visited.shadowRoot.querySelector('main > a');

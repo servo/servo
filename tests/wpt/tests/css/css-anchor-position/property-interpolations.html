@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Test: Interpolation of anchor related properties</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+<body>
+<script>
+  test_no_interpolation({
+    property: 'anchor-name',
+    from: 'none',
+    to: '--foo',
+  });
+  test_no_interpolation({
+    property: 'anchor-name',
+    from: '--foo',
+    to: '--bar',
+  });
+
+  test_no_interpolation({
+    property: 'anchor-default',
+    from: 'implicit',
+    to: '--foo',
+  });
+  test_no_interpolation({
+    property: 'anchor-default',
+    from: '--foo',
+    to: '--bar',
+  });
+
+  test_no_interpolation({
+    property: 'inset-area',
+    from: 'none',
+    to: 'center',
+  });
+  test_no_interpolation({
+    property: 'inset-area',
+    from: 'left',
+    to: 'right',
+  });
+
+  test_no_interpolation({
+    property: 'position-try-options',
+    from: 'none',
+    to: '--foo',
+  });
+  test_no_interpolation({
+    property: 'position-try-options',
+    from: 'none',
+    to: 'flip-block',
+  });
+  test_no_interpolation({
+    property: 'position-try-options',
+    from: 'flip-inline',
+    to: 'flip-block',
+  });
+  test_no_interpolation({
+    property: 'position-try-options',
+    from: '--foo',
+    to: '--bar',
+  });
+  test_no_interpolation({
+    property: 'position-try-options',
+    from: '--foo',
+    to: 'flip-block',
+  });
+
+  test_no_interpolation({
+    property: 'position-try-order',
+    from: 'normal',
+    to: 'most-width',
+  });
+  test_no_interpolation({
+    property: 'position-try-order',
+    from: 'most-width',
+    to: 'most-height',
+  });
+
+  test_no_interpolation({
+    property: 'position-fallback-bounds',
+    from: 'normal',
+    to: '--foo',
+  });
+  test_no_interpolation({
+    property: 'position-fallback-bounds',
+    from: '--foo',
+    to: '--bar',
+  });
+</script>

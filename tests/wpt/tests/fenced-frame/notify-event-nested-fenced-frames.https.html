@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test that notifyEvent() in a nested fenced frame only notifies the immediate parent.</title>
+
+<body>
+  <script>
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext();
+      let topmost_notified = false;
+      fencedframe.element.addEventListener('fencedtreeclick', () => topmost_notified = true);
+
+      await fencedframe.execute(async () => {
+        const innerframe = await attachFencedFrameContext();
+        window.parent_notified = false;
+        innerframe.element.addEventListener('fencedtreeclick', () => window.parent_notified = true);
+
+        await innerframe.execute(() => {
+          document.addEventListener('click', (e) => {
+            window.fence.notifyEvent(e);
+          });
+        });
+      });
+
+      await multiClick(10, 10, fencedframe.element);
+
+      await fencedframe.execute(() => {
+        assert_true(window.parent_notified);
+      });
+
+      assert_false(topmost_notified);
+    }, "Test that notifyEvent() in a nested fenced frame only notifies the immediate parent.");
+  </script>
+</body>

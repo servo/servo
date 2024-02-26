@@ -16,6 +16,7 @@ atomic_refcell = { workspace = true }
 canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
+gfx = { path = "../../gfx" }
 gfx_traits = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
@@ -28,7 +29,7 @@ net_traits = { workspace = true }
 profile_traits = { workspace = true }
 range = { path = "../../range" }
 script_traits = { workspace = true }
-selectors = { path = "../../selectors", features = ["shmem"] }
+selectors = { path = "../../selectors" }
 servo_arc = { path = "../../servo_arc" }
 servo_atoms = { path = "../../atoms" }
 servo_url = { path = "../../url" }

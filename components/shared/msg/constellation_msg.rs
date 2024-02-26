@@ -459,7 +459,6 @@ pub enum LayoutHangAnnotation {
     Reflow,
     GetRPC,
     CollectReports,
-    PrepareToExit,
     ExitNow,
     GetCurrentEpoch,
     GetWebFontLoadState,
@@ -468,7 +467,6 @@ pub enum LayoutHangAnnotation {
     SetScrollStates,
     UpdateScrollStateFromScript,
     RegisterPaint,
-    SetNavigationStart,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -611,7 +609,6 @@ impl fmt::Debug for HangProfile {
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum MonitoredComponentType {
-    Layout,
     Script,
 }
 

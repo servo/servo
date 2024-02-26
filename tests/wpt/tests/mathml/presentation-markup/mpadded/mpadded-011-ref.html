@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test mpadded</title>
+    <style type="text/css">
+      div#bigsquare {
+          position: absolute;
+          width: 100px;
+          height: 100px;
+          background: blue;
+      }
+
+      div#smallsquare {
+          position:absolute;
+          width: 20px;
+          height: 20px;
+          left: 20px;
+          top: 60px;
+          background: red;
+      }
+      /*left = lspace = 20px;
+        top = heightBig - voffset - heightSmall;
+            = 50 + 20 - 10
+            = 60px */
+    </style>
+  </head>
+  <body>
+    <div id="bigsquare">
+      <div id="smallsquare">
+      </div>
+    </div>
+  </body>
+<html>

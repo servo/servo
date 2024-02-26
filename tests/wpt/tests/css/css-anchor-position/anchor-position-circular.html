@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Tests circular anchor relasionship</title>
+<link rel="author" href="mailto:wangxianzhu@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-1/">
+<link rel="match" href="reference/anchor-position-circular-ref.html">
+<style>
+body {
+  margin: 0;
+}
+
+div {
+  width: 100px;
+  height: 100px;
+}
+
+#anchored1 {
+  position: absolute;
+  anchor-default: --a1;
+  left: anchor(--a1 left);
+  top: anchor(--a1 bottom);
+  background: orange;
+  anchor-name: --a2;
+}
+
+#anchored2 {
+  position: absolute;
+  anchor-default: --a2;
+  left: anchor(--a2 left);
+  top: anchor(--a2 bottom);
+  background: green;
+  anchor-name: --a1;
+}
+
+</style>
+
+<div id="anchored1"></div>
+<div id="anchored2"></div>

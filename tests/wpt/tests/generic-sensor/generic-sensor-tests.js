@@ -429,16 +429,16 @@ function runGenericSensorTests(sensorData, readingData) {
     assert_false(sensor.hasReading);
     assert_false(sensor.activated);
 
+    readings.reset();
+    await test_driver.update_virtual_sensor(
+        testDriverName, readings.next().value);
+
     sensor.start();
 
+    // Starting |sensor| again will cause the backing virtual sensor to report
+    // the previous reading automatically.
     await sensorWatcher.wait_for('activate');
-    assert_false(sensor.hasReading);
-    readings.reset();
-    await Promise.all([
-      test_driver.update_virtual_sensor(testDriverName, readings.next().value),
-      sensorWatcher.wait_for('reading')
-    ]);
-    assert_true(sensor.hasReading);
+    await sensorWatcher.wait_for('reading');
 
     assert_sensor_reading_equals(sensor, expected);
     // Make sure that 'timestamp' is already initialized.
@@ -607,7 +607,8 @@ function runGenericSensorTests(sensorData, readingData) {
       const eventWatcher = new EventWatcher(t, sensor1, ['activate']);
       sensor1.start();
       await eventWatcher.wait_for('activate');
-      test_driver.update_virtual_sensor(testDriverName, readings.next().value);
+      await test_driver.update_virtual_sensor(
+          testDriverName, readings.next().value);
     });
   }, `${sensorName}: Readings delivered by shared platform sensor are\
  immediately accessible to all sensors.`);

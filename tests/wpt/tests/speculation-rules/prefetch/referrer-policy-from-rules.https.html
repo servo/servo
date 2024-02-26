@@ -15,7 +15,8 @@
 <meta name="variant" content="?4-4">
 <meta name="variant" content="?5-5">
 <meta name="variant" content="?6-6">
-<meta name="variant" content="?7-last">
+<meta name="variant" content="?7-7">
+<meta name="variant" content="?8-last">
 
 <script>
 "use strict";
@@ -58,8 +59,7 @@ subsetTest(promise_test, async t => {
   await agent.setReferrerPolicy("unsafe-url");
 
   const nextURL = agent.getExecutorURL({ hostname: PREFETCH_PROXY_BYPASS_HOST, page: 2 });
-  await agent.forceSinglePrefetch(
-      nextURL, { referrer_policy: "no-referrer", requires: ["anonymous-client-ip-when-cross-origin"] });
+  await agent.forceSinglePrefetch(nextURL, { referrer_policy: "no-referrer" });
   await agent.navigate(nextURL);
 
   // This referring page's referrer policy would not be eligible for
@@ -84,6 +84,25 @@ subsetTest(promise_test, async t => {
 
 subsetTest(promise_test, async t => {
   const agent = await spawnWindow(t);
+  await agent.setReferrerPolicy("strict-origin");
+  const expectedReferrer = agent.getExecutorURL().origin + "/";
+
+  const nextURL = agent.getExecutorURL({ page: 2 });
+  await agent.execute_script((url) => {
+    const a = addLink(url);
+    a.referrerPolicy = 'no-referrrrrrrer';
+    insertDocumentRule();
+  }, [nextURL]);
+  await new Promise(resolve => t.step_timeout(resolve, 2000));
+  await agent.navigate(nextURL);
+
+  const headers = await agent.getRequestHeaders();
+  assert_prefetched(headers, "must be prefetched");
+  assert_equals(headers.referer, expectedReferrer, "must send the origin as the referrer");
+}, 'unrecognized policies in link referrerpolicy attribute are ignored');
+
+subsetTest(promise_test, async t => {
+  const agent = await spawnWindow(t);
   await agent.setReferrerPolicy("strict-origin-when-cross-origin");
 
   const nextURL = agent.getExecutorURL({ page: 2 });
@@ -100,8 +119,7 @@ subsetTest(promise_test, async t => {
   const expectedReferrer = agent.getExecutorURL().origin + "/";
 
   const nextURL = agent.getExecutorURL({ hostname: PREFETCH_PROXY_BYPASS_HOST, page: 2 });
-  await agent.forceSinglePrefetch(
-      nextURL, { referrer_policy: "unsafe-url", requires: ["anonymous-client-ip-when-cross-origin"] });
+  await agent.forceSinglePrefetch(nextURL, { referrer_policy: "unsafe-url" });
   await agent.navigate(nextURL);
 
   // This referring page's referrer policy would normally make it eligible for

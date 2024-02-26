@@ -9,7 +9,6 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 <script src="resources/popover-utils.js"></script>
 
 <button id=b1t popovertarget='p1'>Popover 1</button>
@@ -333,7 +332,6 @@
   </template>
 </my-element>
 <script>
-  polyfill_declarative_shadow_dom(document.querySelector('#myElement'));
   const button7 = document.querySelector('#myElement').shadowRoot.querySelector('#b7');
   const popover7 = document.querySelector('#myElement').shadowRoot.querySelector('#p7');
   const inside7 = document.querySelector('#myElement').shadowRoot.querySelector('#inside7');

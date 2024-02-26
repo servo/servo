@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test mpadded height depth</title>
+    <style type="text/css">
+      div#bigsquare1 {
+          position: absolute;
+          width: 100px;
+          height: 50px;
+          background: blue;
+      }
+
+      div#smallsquare1 {
+          position:absolute;
+          width: 20px;
+          height: 20px;
+          left: 0px;
+          top: 30px;
+          background: red;
+      }
+      /* left = lspace = 0;
+         top = heightBig - heightSmall - voffset;
+             = 50 - 10 - 10*/
+    </style>
+  </head>
+  <body>
+    <div id="bigsquare1">
+      <div id="smallsquare1">
+      </div>
+    </div>
+
+    <div id="bigsquare2">
+      <div id="smallsquare2">
+      </div>
+    </div>
+  </body>
+<html>

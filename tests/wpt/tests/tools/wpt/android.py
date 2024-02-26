@@ -17,9 +17,9 @@ here = os.path.abspath(os.path.dirname(__file__))
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
 
-NDK_VERSION = "r25c"
-CMDLINE_TOOLS_VERSION_STRING = "11.0"
-CMDLINE_TOOLS_VERSION = "9644228"
+NDK_VERSION = "r26c"
+CMDLINE_TOOLS_VERSION_STRING = "12.0"
+CMDLINE_TOOLS_VERSION = "11076708"
 
 AVD_MANIFEST_X86_64 = {
     "emulator_package": "system-images;android-24;default;x86_64",

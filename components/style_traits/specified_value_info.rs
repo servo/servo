@@ -4,13 +4,11 @@
 
 //! Value information for devtools.
 
-use std::ops::Range;
-use std::sync::Arc as StdArc;
-
-use servo_arc::Arc;
-
 use crate::arc_slice::ArcSlice;
 use crate::owned_slice::OwnedSlice;
+use servo_arc::Arc;
+use std::ops::Range;
+use std::sync::Arc as StdArc;
 
 /// Type of value that a property supports. This is used by Gecko's
 /// devtools to make sense about value it parses, and types listed
@@ -92,7 +90,7 @@ impl SpecifiedValueInfo for crate::owned_str::OwnedStr {}
 #[cfg(feature = "servo")]
 impl SpecifiedValueInfo for ::servo_atoms::Atom {}
 #[cfg(feature = "servo")]
-impl SpecifiedValueInfo for ::servo_url::ServoUrl {}
+impl SpecifiedValueInfo for ::url::Url {}
 
 impl<T: SpecifiedValueInfo + ?Sized> SpecifiedValueInfo for Box<T> {
     const SUPPORTED_TYPES: u8 = T::SUPPORTED_TYPES;

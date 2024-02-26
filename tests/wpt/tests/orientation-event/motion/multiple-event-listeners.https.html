@@ -7,11 +7,15 @@
 <script>
 'use strict';
 
-sensor_test(async (t, sensorProvider) => {
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'devicemotion');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
   const motionData1 = generateMotionData(1, 2, 3,
                                          4, 5, 6,
                                          7, 8, 9);
-  setMockMotionData(sensorProvider, motionData1);
+  await helper.setData(motionData1);
   await Promise.all([
     waitForEvent(getExpectedMotionEvent(motionData1)),
     waitForEvent(getExpectedMotionEvent(motionData1))
@@ -20,7 +24,7 @@ sensor_test(async (t, sensorProvider) => {
   const motionData2 = generateMotionData(11, 12, 13,
                                          14, 15, 16,
                                          17, 18, 19);
-  setMockMotionData(sensorProvider, motionData2);
+  await helper.setData(motionData2);
   await waitForEvent(getExpectedMotionEvent(motionData2));
 }, 'Tests using multiple event handlers for the Device Motion API.');
 </script>

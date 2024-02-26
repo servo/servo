@@ -89,6 +89,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub(super) enum Contents {
     /// Refers to a DOM subtree, plus `::before` and `::after` pseudo-elements.
     OfElement,
@@ -107,6 +108,7 @@ pub(super) enum NonReplacedContents {
     OfPseudoElement(Vec<PseudoElementContentItem>),
 }
 
+#[derive(Debug)]
 pub(super) enum PseudoElementContentItem {
     Text(String),
     Replaced(ReplacedContent),

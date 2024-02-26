@@ -46,6 +46,12 @@ test_valid_value("color", "hsl(120 30 none)", "rgb(0, 0, 0)");
 test_valid_value("color", "hsl(120 30 none / 0.5)", "rgba(0, 0, 0, 0.5)");
 test_valid_value("color", "hsl(120 30 50 / none)", "rgba(89, 166, 89, 0)");
 
+// Test parse-time clamp of negative saturation to zero
+test_valid_value("color", "hsl(0 -50% 40%)", "rgb(102, 102, 102)");
+test_valid_value("color", "hsl(30 -50% 60)", "rgb(153, 153, 153)");
+test_valid_value("color", "hsl(0 -50 40%)", "rgb(102, 102, 102)");
+test_valid_value("color", "hsl(30 -50 60)", "rgb(153, 153, 153)");
+
 // Test non-finite values. calc(infinity) goes to upper bound while calc(-infinity) and NaN go to the lower bound.
 // See: https://github.com/w3c/csswg-drafts/issues/8629
 test_valid_value("color", "hsl(calc(infinity) 100% 50%)", "rgb(255, 0, 0)"); // hsl(360 100% 50%)

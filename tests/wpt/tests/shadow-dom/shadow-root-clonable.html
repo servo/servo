@@ -47,14 +47,26 @@ test(() => {
   div.setHTMLUnsafe('<div><template shadowrootmode=open><input></template></div>');
   const root = div.firstElementChild.shadowRoot;
   assert_true(!!root);
-  assert_true(root.clonable, "clonable is automatically true for declarative shadow root");
+  assert_false(root.clonable, "clonable is *not* automatically true for declarative shadow root");
+
+  const clone = div.cloneNode(true);
+  const clonedRoot = clone.firstElementChild.shadowRoot;
+  assert_true(!clonedRoot,'no shadow root gets cloned');
+}, "declarative shadow roots do *not* get clonable: true automatically");
+
+test(() => {
+  const div = document.createElement("div");
+  div.setHTMLUnsafe('<div><template shadowrootmode=open shadowrootclonable><input></template></div>');
+  const root = div.firstElementChild.shadowRoot;
+  assert_true(!!root);
+  assert_true(root.clonable, "clonable gets added when shadowrootclonable is present");
 
   const clone = div.cloneNode(true);
   const clonedRoot = clone.firstElementChild.shadowRoot;
   assert_true(!!clonedRoot);
   assert_equals(clonedRoot.children.length, 1, "children count");
   assert_equals(clonedRoot.children[0].localName, "input", "children content");
-}, "declarative shadow roots get clonable: true automatically");
+}, "declarative shadow roots can opt in to clonable with shadowrootclonable");
 </script>
 
 <template id="test">
@@ -70,8 +82,6 @@ test(() => {
   assert_true(!!root);
   const clone = template.content.cloneNode(true);
   const clonedRoot = clone.querySelector('#host').shadowRoot;
-  assert_true(!!clonedRoot);
-  assert_equals(clonedRoot.children.length, 1, "children count");
-  assert_equals(clonedRoot.children[0].localName, "input", "children content");
-}, "declarative shadow roots inside templates also get cloned automatically");
+  assert_true(!clonedRoot,'no shadow root gets cloned');
+}, "declarative shadow roots inside templates do *not* get cloned automatically");
 </script>

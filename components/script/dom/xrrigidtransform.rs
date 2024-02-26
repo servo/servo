@@ -7,7 +7,7 @@ use euclid::{RigidTransform3D, Rotation3D, Vector3D};
 use js::rust::HandleObject;
 use js::typedarray::{Float32, Float32Array};
 
-use super::bindings::typedarrays::HeapTypedArray;
+use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRigidTransformBinding::XRRigidTransformMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -29,7 +29,7 @@ pub struct XRRigidTransform {
     transform: ApiRigidTransform,
     inverse: MutNullableDom<XRRigidTransform>,
     #[ignore_malloc_size_of = "defined in mozjs"]
-    matrix: HeapTypedArray<Float32>,
+    matrix: HeapBufferSource<Float32>,
 }
 
 impl XRRigidTransform {
@@ -40,7 +40,7 @@ impl XRRigidTransform {
             orientation: MutNullableDom::default(),
             transform,
             inverse: MutNullableDom::default(),
-            matrix: HeapTypedArray::default(),
+            matrix: HeapBufferSource::default(),
         }
     }
 
@@ -140,7 +140,7 @@ impl XRRigidTransformMethods for XRRigidTransform {
         }
 
         self.matrix
-            .get_internal()
+            .get_buffer()
             .expect("Failed to get transform's internal matrix.")
     }
 }

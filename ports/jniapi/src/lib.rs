@@ -7,6 +7,7 @@
 mod gl_glue;
 mod simpleservo;
 
+use std::collections::HashMap;
 use std::os::raw::{c_char, c_int, c_void};
 use std::sync::Arc;
 use std::thread;
@@ -845,13 +846,20 @@ fn get_options(
     };
 
     let native_window = unsafe { ANativeWindow_fromSurface(env.get_native_interface(), surface) };
+
+    // FIXME: enable JIT compilation on Android after the startup crash issue (#31134) is fixed.
+    let mut prefs = HashMap::new();
+    prefs.insert("js.baseline_interpreter.enabled".to_string(), false.into());
+    prefs.insert("js.baseline_jit.enabled".to_string(), false.into());
+    prefs.insert("js.ion.enabled".to_string(), false.into());
+
     let opts = InitOptions {
         args: args.unwrap_or(vec![]),
         coordinates,
         density,
         xr_discovery: None,
         surfman_integration: simpleservo::SurfmanIntegration::Widget(native_window),
-        prefs: None,
+        prefs: Some(prefs),
     };
     Ok((opts, log, log_str, gst_debug_str))
 }

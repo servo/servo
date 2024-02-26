@@ -18,8 +18,6 @@ pub struct GamepadList {
     list: DomRefCell<Vec<Dom<Gamepad>>>,
 }
 
-// TODO: support gamepad discovery
-#[allow(dead_code)]
 impl GamepadList {
     fn new_inherited(list: &[&Gamepad]) -> GamepadList {
         GamepadList {
@@ -45,6 +43,10 @@ impl GamepadList {
                 gamepad.update_index(self.list.borrow().len() as i32 - 1);
             }
         }
+    }
+
+    pub fn remove_gamepad(&self, index: usize) {
+        self.list.borrow_mut().remove(index);
     }
 }
 

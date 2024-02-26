@@ -309,22 +309,4 @@
       }] }));
   }, 'with url field should throw TypeError');
 
-  /*
-    4.3.2.  To set a configuration
-      11.5. If scheme name is turn or turns,
-            and server.credential is not a DOMString, then throw an InvalidAccessError
-            and abort these steps.
-   */
-  config_test(makePc => {
-    assert_throws_dom('InvalidAccessError', () =>
-      makePc({ iceServers: [{
-        urls: 'turns:turn.example.org',
-        username: 'user',
-        credential: {
-          macKey: '',
-          accessToken: ''
-        }
-      }] }));
-  }, 'with turns server, and object credential should throw InvalidAccessError');
-
 </script>

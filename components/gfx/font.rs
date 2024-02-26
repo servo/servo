@@ -106,7 +106,7 @@ pub trait FontTableMethods {
     fn buffer(&self) -> &[u8];
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FontMetrics {
     pub underline_size: Au,
     pub underline_offset: Au,

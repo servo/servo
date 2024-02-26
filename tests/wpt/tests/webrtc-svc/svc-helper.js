@@ -36,7 +36,9 @@ function createScalabilityTest(mimeType, scalabilityModes) {
       const transceiver = pc1.addTransceiver(track1, {
         sendEncodings: [{ scalabilityMode: scalabilityMode }],
       });
-      transceiver.setCodecPreferences(RTCRtpSender.getCapabilities('video').codecs.filter(c => c.mimeType == mimeType));
+      pc2.addEventListener('track', e => {
+        e.transceiver.setCodecPreferences(RTCRtpReceiver.getCapabilities('video').codecs.filter(c => c.mimeType == mimeType));
+      });
       const haveTrackEvent = new Promise(r => pc2.ontrack = r);
       exchangeIceCandidates(pc1, pc2);
       await exchangeOfferAnswer(pc1, pc2);

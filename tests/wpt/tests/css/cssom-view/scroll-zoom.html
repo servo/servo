@@ -58,6 +58,29 @@
           assert_equals(noZoom.scrollWidth*2, scrollerWithZoomContent.scrollWidth, 'scroll width for zoomed content');
           assert_equals(noZoom.scrollHeight, scrollerInZoomedElement.scrollHeight, 'scroll height for scroller in zoomed element');
           assert_equals(noZoom.scrollWidth, scrollerInZoomedElement.scrollWidth, 'scroll width for scroller in zoomed element');
-        });
+        }, `scroll{Width, Height}`);
+
+        test(function() {
+          assert_equals(noZoom.scrollTop, 0, 'scrollTop should be 0');
+          assert_equals(noZoom.scrollLeft, 0, 'scrollLeft should be 0');
+
+          assert_equals(noZoom.scrollTop, withZoom.scrollTop, 'scrollTop');
+          assert_equals(noZoom.scrollLeft, withZoom.scrollLeft, 'scrollLeft');
+
+          noZoom.scrollTo(noZoom.scrollWidth / 2, noZoom.scrollHeight / 2);
+          withZoom.scrollTo(withZoom.scrollWidth / 2, withZoom.scrollHeight / 2);
+
+          assert_not_equals(noZoom.scrollTop, 0, 'scrollTop should not be 0');
+          assert_not_equals(noZoom.scrollLeft, 0, 'scrollLeft should not be 0');
+
+          assert_equals(noZoom.scrollTop, withZoom.scrollTop, 'scrollTop after scrollTo');
+          assert_equals(noZoom.scrollLeft, withZoom.scrollLeft, 'scrollLeft after scrollTo');
+
+          noZoom.scrollBy(2, 2);
+          withZoom.scrollBy(2, 2);
+
+          assert_equals(noZoom.scrollTop, withZoom.scrollTop, 'scrollTop after scrollBy');
+          assert_equals(noZoom.scrollLeft, withZoom.scrollLeft, 'scrollLeft after scrollBy');
+        }, `scroll{Top, Left}`);
       </script>
   </body>

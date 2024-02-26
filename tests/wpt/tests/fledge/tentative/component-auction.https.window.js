@@ -671,7 +671,7 @@ subsetTest(promise_test, async test => {
                    browserSignals.prevWinsMs[0][1].renderURL === "${renderURL1}") {
                  return {bid: 1, allowComponentAuction: true, render: "${renderURL2}"};
                }
-               throw "Unexpected biddingSignals: " + JSON.stringify(browserSignals);`,
+               throw "Unexpected browserSignals: " + JSON.stringify(browserSignals);`,
             reportWin:
               `if (browserSignals.renderURL === "${renderURL1}")
                  sendReportTo("${bidderReportURL1}");

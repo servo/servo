@@ -53,8 +53,14 @@ let
       ];
   };
   androidSdk = androidComposition.androidsdk;
+  # Required by ./mach build --android
+  androidEnvironment = lib.optionalAttrs buildAndroid rec {
+    ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
+    ANDROID_NDK_ROOT = "${ANDROID_SDK_ROOT}/ndk-bundle";
+    GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${ANDROID_SDK_ROOT}/build-tools/${buildToolsVersion}/aapt2";
+  };
 in
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (androidEnvironment // rec {
   name = "servo-env";
 
   buildInputs = [
@@ -70,6 +76,8 @@ stdenv.mkDerivation rec {
     rustup
     taplo
     llvmPackages.bintools # provides lld
+
+    udev # Needed by libudev-sys for GamePad API.
 
     # Build utilities
     cmake dbus gcc git pkg-config which llvm perl yasm m4
@@ -214,9 +222,4 @@ stdenv.mkDerivation rec {
       export RUSTUP_HOME=$repo_root/.rustup
     fi
   '';
-} // lib.optionalAttrs buildAndroid {
-  # Required by ./mach build --android
-  ANDROID_SDK_ROOT = "${androidSdk}/libexec/android-sdk";
-  ANDROID_NDK_ROOT = "${ANDROID_SDK_ROOT}/ndk-bundle";
-  GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${ANDROID_SDK_ROOT}/build-tools/${buildToolsVersion}/aapt2";
-}
+})

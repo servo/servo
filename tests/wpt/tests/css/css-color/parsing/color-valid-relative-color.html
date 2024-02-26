@@ -120,6 +120,9 @@
     // Testing with 'currentColor'
     fuzzy_test_valid_color(`rgb(from currentColor r g b)`, `rgb(from currentColor r g b)`);
 
+    // color-mix
+    fuzzy_test_valid_color(`rgb(from color-mix(in srgb, red, red) r g b / alpha)`, `color(srgb 1 0 0)`);
+
     // hsl(from ...)
 
     // Testing no modifications.
@@ -198,6 +201,9 @@
     // Testing with 'currentColor'
     fuzzy_test_valid_color(`hsl(from currentColor h s l)`, `hsl(from currentColor h s l)`);
 
+    // color-mix
+    fuzzy_test_valid_color(`hsl(from color-mix(in srgb, red, red) h s l / alpha)`, `color(srgb 1 0 0)`);
+
     // hwb(from ...)
 
     // Testing no modifications.
@@ -271,6 +277,9 @@
     // Testing with 'currentColor'
     fuzzy_test_valid_color(`hwb(from currentColor h w b)`, `hwb(from currentColor h w b)`);
 
+    // color-mix
+    fuzzy_test_valid_color(`hwb(from color-mix(in srgb, red, red) h w b / alpha)`, `color(srgb 1 0 0)`);
+
     // lab()
 
     // Testing no modifications.
@@ -339,6 +348,9 @@
     // Testing with 'currentColor'
     fuzzy_test_valid_color(`lab(from currentColor l a b)`, `lab(from currentColor l a b)`);
 
+  // color-mix
+    fuzzy_test_valid_color(`lab(from color-mix(in lab, lab(25 20 50), lab(25 20 50)) l a b / alpha)`, `lab(25 20 50)`);
+
     // oklab()
 
     // Testing no modifications.
@@ -406,6 +418,9 @@
 
     // Testing with 'currentColor'
     fuzzy_test_valid_color(`oklab(from currentColor l a b)`, `oklab(from currentColor l a b)`);
+
+    // color-mix
+    fuzzy_test_valid_color(`oklab(from color-mix(in oklab, oklab(0.25 0.2 0.5), oklab(0.25 0.2 0.5)) l a b / alpha)`, `oklab(0.25 0.2 0.5)`);
 
     // lch()
 
@@ -484,6 +499,9 @@
     // Testing with 'currentColor'
     fuzzy_test_valid_color(`lch(from currentColor) l c h)`, `lch(from currentColor) l c h)`);
 
+    // color-mix
+    fuzzy_test_valid_color(`lch(from color-mix(in lch, lch(70 45 30), lch(70 45 30)) l c h / alpha)`, `lch(70 45 30)`);
+
     // oklch()
 
     // Testing no modifications.
@@ -558,6 +576,9 @@
     fuzzy_test_valid_color(`oklch(from oklch(none none none / none) l c h / alpha)`,                        `oklch(0 0 0 / 0)`);
     fuzzy_test_valid_color(`oklch(from oklch(0.7 none 30) l c h)`,                                          `oklch(0.7 0 30)`);
     fuzzy_test_valid_color(`oklch(from oklch(0.7 0.45 30 / none) l c h / alpha)`,                             `oklch(0.7 0.45 30 / 0)`);
+
+    // color-mix
+    fuzzy_test_valid_color(`oklch(from color-mix(in oklch, oklch(0.7 0.45 30), oklch(0.7 0.45 30)) l c h / alpha)`, `oklch(0.7 0.45 30)`);
 
     // Testing with 'currentColor'
     fuzzy_test_valid_color(`oklch(from currentColor l c h)`, `oklch(from currentColor l c h)`);
@@ -651,6 +672,8 @@
         // Testing with 'currentColor'
         fuzzy_test_valid_color(`color(from currentColor ${colorSpace} r g b)`,                                                  `color(from currentColor ${colorSpace} r g b)`);
 
+        // color-mix
+        fuzzy_test_valid_color(`color(from color-mix(in xyz, color(${colorSpace} 0.7 0.5 0.3), color(${colorSpace} 0.7 0.5 0.3)) ${colorSpace} r g b / alpha)`, `color(${colorSpace} 0.7 0.5 0.3)`);
     }
 
     for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
@@ -714,6 +737,9 @@
 
         // Testing with 'currentColor'
         fuzzy_test_valid_color(`color(from currentColor ${colorSpace} x y z)`,                                                  `color(from currentColor ${colorSpace} x y z)`);
+
+        // color-mix
+        fuzzy_test_valid_color(`color(from color-mix(in xyz, color(${colorSpace} 0.7 0.5 0.3), color(${colorSpace} 0.7 0.5 0.3)) ${colorSpace} r g b / alpha)`, `color(${resultColorSpace} 0.7 0.5 0.3)`);
     }
 
     // Spec Examples: https://www.w3.org/TR/css-color-5/#relative-colors

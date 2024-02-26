@@ -71,17 +71,17 @@ jobs:
     # runners which still use 20.04.
     runs-on: ubuntu-${{ inputs.upload && '20.04' || '22.04' }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
         with:
-          fetch-depth: 2
+          fetch-depth: 2 # This is necessary for `test-tidy`.
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: github.event_name == 'pull_request_target'
         with:
           ref: refs/pull/${{ github.event.number }}/head
-          fetch-depth: 2
+          fetch-depth: 2 # This is necessary for `test-tidy`.
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
@@ -105,7 +105,9 @@ jobs:
       - name: Tidy
         run: python3 ./mach test-tidy --no-progress --all
       - name: Build (${{ inputs.profile }})
-        run: python3 ./mach build --${{ inputs.profile }}
+        run: |
+          python3 ./mach build --${{ inputs.profile }}
+          cp -r target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
         run: xvfb-run python3 ./mach smoketest --${{ inputs.profile  }}
       - name: Script tests
@@ -117,12 +119,10 @@ jobs:
           timeout_minutes: 20
           max_attempts: 2 # https://github.com/servo/servo/issues/30683
           command: python ./mach test-unit --${{ inputs.profile }}
-      - name: Rename build timing
-        run: cp -r target/cargo-timings target/cargo-timings-linux
       - name: Archive build timing
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: cargo-timings
+          name: cargo-timings-linux
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Lockfile check
@@ -130,7 +130,7 @@ jobs:
       - name: Build mach package
         run: python3 ./mach package --${{ inputs.profile }}
       - name: Upload artifact for mach package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: linux
           path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
@@ -147,14 +147,14 @@ jobs:
       - name: Build package for target
         run: tar -czf target.tar.gz target/${{ inputs.profile }}/servo resources
       - name: Upload artifact for target
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: release-binary
+          name: ${{ inputs.profile }}-binary-linux
           path: target.tar.gz
 
   wpt-2020:
     if: ${{ inputs.wpt-layout == '2020' || inputs.wpt-layout == 'all' }}
-    name: Linux WPT Tests 2020
+    name: Linux WPT
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:
@@ -166,7 +166,7 @@ jobs:
 
   wpt-2013:
     if: ${{ inputs.wpt-layout == '2013' || inputs.wpt-layout == 'all' }}
-    name: Linux WPT Tests 2013
+    name: Linux WPT (Legacy)
     needs: ["build"]
     uses: ./.github/workflows/linux-wpt.yml
     with:

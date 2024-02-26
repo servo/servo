@@ -12,7 +12,7 @@ use net_traits::ReferrerPolicy;
 use servo_arc::Arc;
 use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
-use style::stylesheets::{AllowImportRules, CssRuleType, Origin, Stylesheet};
+use style::stylesheets::{AllowImportRules, CssRuleType, Origin, Stylesheet, UrlExtraData};
 use style_traits::ParsingMode;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -100,11 +100,11 @@ impl HTMLStyleElement {
         let data = node
             .GetTextContent()
             .expect("Element.textContent must be a string");
-        let url = window.get_url();
+        let url_data = UrlExtraData(window.get_url().get_arc());
         let css_error_reporter = window.css_error_reporter();
         let context = CssParserContext::new(
             Origin::Author,
-            &url,
+            &url_data,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             doc.quirks_mode(),
@@ -119,7 +119,7 @@ impl HTMLStyleElement {
         let loader = StylesheetLoader::for_element(self.upcast());
         let sheet = Stylesheet::from_str(
             &data,
-            window.get_url(),
+            UrlExtraData(window.get_url().get_arc()),
             Origin::Author,
             mq,
             shared_lock,

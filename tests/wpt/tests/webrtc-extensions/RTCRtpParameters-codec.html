@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>RTCRtpEncodingParameters codec property</title>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../webrtc/RTCPeerConnection-helper.js"></script>
@@ -24,11 +25,11 @@
   }
 
   function findFirstCodec(name) {
-    return RTCRtpSender.getCapabilities(name.split('/')[0]).codecs.filter(c => c.mimeType.localeCompare(name, undefined, { sensitivity: 'base' }) === 0)[0];
+    return RTCRtpReceiver.getCapabilities(name.split('/')[0]).codecs.filter(c => c.mimeType.localeCompare(name, undefined, { sensitivity: 'base' }) === 0)[0];
   }
 
   function codecsNotMatching(mimeType) {
-    return RTCRtpSender.getCapabilities(mimeType.split('/')[0]).codecs.filter(c => c.mimeType.localeCompare(mimeType, undefined, {sensitivity: 'base'}) !== 0);
+    return RTCRtpReceiver.getCapabilities(mimeType.split('/')[0]).codecs.filter(c => c.mimeType.localeCompare(mimeType, undefined, {sensitivity: 'base'}) !== 0);
   }
 
   function assertCodecEquals(a, b) {
@@ -284,17 +285,22 @@
   }, `Setting a non-existing codec on a video sender with setParameters should throw InvalidModificationError`);
 
   promise_test(async t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
 
     const opus = findFirstCodec('audio/opus');
     const nonOpus = codecsNotMatching(opus.mimeType);
+    pc2.ontrack = e => {
+      e.transceiver.setCodecPreferences(nonOpus);
+    };
 
-    const transceiver = pc.addTransceiver('audio');
+    const transceiver = pc1.addTransceiver('audio');
+    exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+
     const sender = transceiver.sender;
-
-    transceiver.setCodecPreferences(nonOpus);
-
     let param = sender.getParameters();
     let encoding = param.encodings[0];
 
@@ -303,17 +309,22 @@
   }, `Setting a non-preferred codec on an audio sender with setParameters should throw InvalidModificationError`);
 
   promise_test(async t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
 
     const vp8 = findFirstCodec('video/VP8');
     const nonVP8 = codecsNotMatching(vp8.mimeType);
+    pc2.ontrack = e => {
+      e.transceiver.setCodecPreferences(nonVP8);
+    };
 
-    const transceiver = pc.addTransceiver('video');
+    const transceiver = pc1.addTransceiver('video');
+    exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+
     const sender = transceiver.sender;
-
-    transceiver.setCodecPreferences(nonVP8);
-
     let param = sender.getParameters();
     let encoding = param.encodings[0];
 
@@ -329,15 +340,16 @@
 
     const opus = findFirstCodec('audio/opus');
     const nonOpus = codecsNotMatching(opus.mimeType);
+    pc2.ontrack = e => {
+      e.transceiver.setCodecPreferences(nonOpus);
+    };
 
     const transceiver = pc1.addTransceiver('audio');
-    const sender = transceiver.sender;
-
-    transceiver.setCodecPreferences(nonOpus);
 
     exchangeIceCandidates(pc1, pc2);
     await exchangeOfferAnswer(pc1, pc2);
 
+    const sender = transceiver.sender;
     let param = sender.getParameters();
     let encoding = param.encodings[0];
 
@@ -353,15 +365,15 @@
 
     const vp8 = findFirstCodec('video/VP8');
     const nonVP8 = codecsNotMatching(vp8.mimeType);
+    pc2.ontrack = e => {
+      e.transceiver.setCodecPreferences(nonVP8);
+    };
 
     const transceiver = pc1.addTransceiver('video');
-    const sender = transceiver.sender;
-
-    transceiver.setCodecPreferences(nonVP8);
-
     exchangeIceCandidates(pc1, pc2);
     await exchangeOfferAnswer(pc1, pc2);
 
+    const sender = transceiver.sender;
     let param = sender.getParameters();
     let encoding = param.encodings[0];
 
@@ -391,7 +403,7 @@
 
     assertCodecEquals(opus, encoding.codec);
 
-    transceiver.setCodecPreferences(nonOpus);
+    pc2.getTransceivers()[0].setCodecPreferences(nonOpus);
     await exchangeOfferAnswer(pc1, pc2);
 
     param = sender.getParameters();
@@ -399,7 +411,6 @@
 
     assert_equals(encoding.codec, undefined);
   }, `Codec should be undefined after negotiating away the currently set codec on an audio sender`);
-
   promise_test(async (t) => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
@@ -422,7 +433,7 @@
 
     assertCodecEquals(vp8, encoding.codec);
 
-    transceiver.setCodecPreferences(nonVP8);
+    pc2.getTransceivers()[0].setCodecPreferences(nonVP8);
     await exchangeOfferAnswer(pc1, pc2);
 
     param = sender.getParameters();
@@ -441,11 +452,12 @@
 
     const opus = findFirstCodec('audio/opus');
     const nonOpus = codecsNotMatching(opus.mimeType);
+    pc2.ontrack = e => {
+      e.transceiver.setCodecPreferences(nonOpus.concat([opus]));
+    };
 
     const transceiver = pc1.addTransceiver(stream.getTracks()[0]);
     const sender = transceiver.sender;
-
-    transceiver.setCodecPreferences(nonOpus.concat([opus]));
 
     exchangeIceCandidates(pc1, pc2);
     await exchangeOfferAnswer(pc1, pc2);
@@ -478,11 +490,12 @@
 
     const vp8 = findFirstCodec('video/VP8');
     const nonVP8 = codecsNotMatching(vp8.mimeType);
+    pc2.ontrack = e => {
+      e.transceiver.setCodecPreferences(nonVP8.concat([vp8]));
+    };
 
     const transceiver = pc1.addTransceiver(stream.getTracks()[0]);
     const sender = transceiver.sender;
-
-    transceiver.setCodecPreferences(nonVP8.concat([vp8]));
 
     exchangeIceCandidates(pc1, pc2);
     await exchangeOfferAnswer(pc1, pc2);
@@ -514,14 +527,14 @@
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
 
     const vp8 = findFirstCodec('video/VP8');
-    const nonVP8 = codecsNotMatching(vp8.mimeType);
-
+    const h264 = findFirstCodec('video/H264');
+    pc2.ontrack = e => {
+      e.transceiver.setCodecPreferences([h264, vp8]);
+    };
     const transceiver = pc1.addTransceiver(stream.getTracks()[0], {
       sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}],
     });
     const sender = transceiver.sender;
-
-    transceiver.setCodecPreferences(nonVP8.concat([vp8]));
 
     exchangeIceCandidates(pc1, pc2);
     await doOfferToSendSimulcastAndAnswer(pc1, pc2, ['0', '1', '2']);
@@ -559,14 +572,15 @@
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
 
     const vp8 = findFirstCodec('video/VP8');
-    const nonVP8 = codecsNotMatching(vp8.mimeType);
+    const h264 = findFirstCodec('video/H264');
+    pc2.ontrack = e => {
+      e.transceiver.setCodecPreferences([h264, vp8]);
+    };
 
     const transceiver = pc1.addTransceiver(stream.getTracks()[0], {
       sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}],
     });
     const sender = transceiver.sender;
-
-    transceiver.setCodecPreferences(nonVP8.concat([vp8]));
 
     exchangeIceCandidates(pc1, pc2);
     await doOfferToSendSimulcastAndAnswer(pc1, pc2, ['0', '1', '2']);

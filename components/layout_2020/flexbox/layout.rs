@@ -25,7 +25,7 @@ use super::geom::{
 use super::{FlexContainer, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
+use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{AuOrAuto, LengthOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
@@ -243,8 +243,8 @@ impl FlexContainer {
             ),
             // https://drafts.csswg.org/css-flexbox/#definite-sizes
             container_definite_inner_size: flex_axis.vec2_to_flex_relative(LogicalVec2 {
-                inline: Some(containing_block.inline_size),
-                block: containing_block.block_size.non_auto(),
+                inline: Some(containing_block.inline_size.into()),
+                block: containing_block.block_size.non_auto().map(|t| t.into()),
             }),
         };
 
@@ -273,9 +273,9 @@ impl FlexContainer {
         // https://drafts.csswg.org/css-flexbox/#algo-flex
         let flex_lines = collect_flex_lines(
             &mut flex_context,
-            container_main_size,
+            container_main_size.into(),
             &mut flex_items,
-            |flex_context, mut line| line.layout(flex_context, container_main_size),
+            |flex_context, mut line| line.layout(flex_context, container_main_size.into()),
         );
 
         let content_cross_size = flex_lines
@@ -343,7 +343,7 @@ impl FlexContainer {
                 // And we’ll need to change the signature of `IndependentFormattingContext::layout`
                 // to allow the inner formatting context to “negotiate” a used inline-size
                 // with the outer one somehow.
-                container_main_size
+                container_main_size.into()
             },
         };
 
@@ -410,7 +410,7 @@ impl FlexContainer {
         IndependentLayout {
             fragments,
             content_block_size: content_block_size.into(),
-            last_inflow_baseline_offset: None,
+            baselines: Baselines::default(),
         }
     }
 }
@@ -517,7 +517,10 @@ impl<'a> FlexItem<'a> {
         let padding = flex_context.sides_to_flex_relative(pbm.padding);
         let border = flex_context.sides_to_flex_relative(pbm.border);
         let padding_border = padding.sum_by_axis() + border.sum_by_axis();
-        let pbm_auto_is_zero = padding_border + margin_auto_is_zero.sum_by_axis();
+        let pbm_auto_is_zero = FlexRelativeVec2 {
+            main: padding_border.main.into(),
+            cross: padding_border.cross.into(),
+        } + margin_auto_is_zero.sum_by_axis();
 
         let align_self = flex_context.align_for(&box_.style().clone_align_self());
 
@@ -540,8 +543,8 @@ impl<'a> FlexItem<'a> {
             content_box_size,
             content_min_size,
             content_max_size,
-            padding: padding.map(|t| (*t).into()),
-            border: border.map(|t| (*t).into()),
+            padding,
+            border,
             margin,
             pbm_auto_is_zero,
             flex_base_size,
@@ -557,7 +560,7 @@ fn flex_base_size(
     flex_item: &mut IndependentFormattingContext,
     cross_axis_is_item_block_axis: bool,
     content_box_size: FlexRelativeVec2<LengthOrAuto>,
-    padding_border_sums: FlexRelativeVec2<Length>,
+    padding_border_sums: FlexRelativeVec2<Au>,
 ) -> Length {
     let used_flex_basis = match &flex_item.style().get_position().flex_basis {
         FlexBasis::Content => FlexBasis::Content,
@@ -568,7 +571,7 @@ fn flex_base_size(
                     BoxSizing::BorderBox => {
                         // This may make `length` negative,
                         // but it will be clamped in the hypothetical main size
-                        length - padding_border_sums.main
+                        length - padding_border_sums.main.into()
                     },
                 }
             };
@@ -848,6 +851,7 @@ impl FlexLine<'_> {
                 let margin = flex_context.sides_to_flow_relative(*margin);
                 let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
                 (
+                    // TODO: We should likely propagate baselines from `display: flex`.
                     BoxFragment::new(
                         item.box_.base_fragment_info(),
                         item.box_.style().clone(),
@@ -857,8 +861,6 @@ impl FlexLine<'_> {
                         flex_context.sides_to_flow_relative(item.border.map(|t| (*t).into())),
                         margin,
                         None, /* clearance */
-                        // TODO: We should likely propagate baselines from `display: flex`.
-                        None, /* last_inflow_baseline_offset */
                         collapsed_margin,
                     ),
                     item_result.positioning_context,
@@ -1089,12 +1091,12 @@ impl<'a> FlexItem<'a> {
                     },
                     IndependentFormattingContext::NonReplaced(non_replaced) => {
                         let block_size = match used_cross_size_override {
-                            Some(s) => LengthOrAuto::LengthPercentage(s),
-                            None => self.content_box_size.cross,
+                            Some(s) => AuOrAuto::LengthPercentage(s.into()),
+                            None => self.content_box_size.cross.map(|t| t.into()),
                         };
 
                         let item_as_containing_block = ContainingBlock {
-                            inline_size: used_main_size,
+                            inline_size: used_main_size.into(),
                             block_size,
                             style: &non_replaced.style,
                         };

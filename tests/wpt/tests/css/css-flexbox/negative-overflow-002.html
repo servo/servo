@@ -17,6 +17,16 @@
   min-width: 110px; min-height: 110px;
   background: cyan;
 }
+
+.container:hover::before {
+  position: fixed;
+  top: 0; left: 0;
+  font-size: 10px;
+  content: attr(style);
+  background: yellow;
+  direction: ltr;
+  writing-mode: horizontal-tb;
+}
 </style>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>

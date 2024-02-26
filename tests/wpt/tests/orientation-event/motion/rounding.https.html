@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+function check_properties_for_coarsening(obj, properties) {
+  assert_not_equals(obj, null, 'Expected event object');
+  for (const prop of properties) {
+    assertValueIsCoarsened(obj[prop]);
+  }
+}
+
+promise_test(async (t) => {
+  const helper = new SensorTestHelper(t, 'devicemotion');
+  await helper.grantSensorsPermissions();
+  await helper.initializeSensors();
+
+  const value = 1.23456789;
+  const motionData = generateMotionData(value, value, value,
+                                        value, value, value,
+                                        value, value, value);
+  await helper.setData(motionData);
+
+  const event = await new Promise(resolve => {
+    window.addEventListener('devicemotion', t.step_func(ev => {
+      resolve(ev);
+    }, { once: true }));
+  });
+
+  check_properties_for_coarsening(event.acceleration, ['x', 'y', 'z']);
+  check_properties_for_coarsening(event.accelerationIncludingGravity, ['x', 'y', 'z']);
+  check_properties_for_coarsening(event.rotationRate, ['alpha', 'beta', 'gamma']);
+}, 'Tests that devicemotion values are correctly rounded.');
+</script>

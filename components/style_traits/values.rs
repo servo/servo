@@ -4,13 +4,11 @@
 
 //! Helper types and traits for the handling of CSS values.
 
-use std::fmt::{self, Write};
-
 use app_units::Au;
-use cssparser::{
-    serialize_string, ParseError, Parser, ToCss as CssparserToCss, Token, UnicodeRange,
-};
+use cssparser::ToCss as CssparserToCss;
+use cssparser::{serialize_string, ParseError, Parser, Token, UnicodeRange};
 use servo_arc::Arc;
+use std::fmt::{self, Write};
 
 /// Serialises a value according to its CSS representation.
 ///
@@ -380,7 +378,7 @@ impl Separator for Space {
         let mut results = vec![parse_one(input)?];
         loop {
             input.skip_whitespace(); // Unnecessary for correctness, but may help try() rewind less.
-            if let Ok(item) = input.r#try(&mut parse_one) {
+            if let Ok(item) = input.try(&mut parse_one) {
                 results.push(item);
             } else {
                 return Ok(results);
@@ -406,9 +404,9 @@ impl Separator for CommaWithSpace {
         loop {
             input.skip_whitespace(); // Unnecessary for correctness, but may help try() rewind less.
             let comma_location = input.current_source_location();
-            let comma = input.r#try(|i| i.expect_comma()).is_ok();
+            let comma = input.try(|i| i.expect_comma()).is_ok();
             input.skip_whitespace(); // Unnecessary for correctness, but may help try() rewind less.
-            if let Ok(item) = input.r#try(&mut parse_one) {
+            if let Ok(item) = input.try(&mut parse_one) {
                 results.push(item);
             } else if comma {
                 return Err(comma_location.new_unexpected_token_error(Token::Comma));
@@ -506,9 +504,6 @@ impl_to_css_for_predefined_type!(::cssparser::UnicodeRange);
 
 /// Helper types for the handling of specified values.
 pub mod specified {
-    use malloc_size_of_derive::MallocSizeOf;
-    use serde::{Deserialize, Serialize};
-
     use crate::ParsingMode;
 
     /// Whether to allow negative lengths or not.

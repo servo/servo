@@ -1,138 +1,156 @@
-<!doctype html>
+<!DOCTYPE HTML>
+<title>Target of click-like events with pointer capture</title>
+<link rel="help" href="https://w3c.github.io/pointerevents/#event-dispatch" />
+<meta name="variant" content="?mouse-click">
+<meta name="variant" content="?mouse-auxclick">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="pointerevent_support.js"></script>
+
+<style>
+  div {
+    padding: 10px;
+  }
+  #parent {
+    background: grey;
+  }
+  #child1 {
+    background: green;
+  }
+  #child2 {
+    background: blue;
+  }
+</style>
+
+<div id="parent">
+  <div id="child1"></div>
+  <div id="child2"></div>
+</div>
+<div id="done"></div>
+
+<script>
+  'use strict';
+
+  const [pointer_type, event_to_test] = location.search.substring(1).split("-");
+  assert_true(["click", "auxclick"].includes(event_to_test));
+  assert_equals(pointer_type, "mouse");
+  // Other pointer types can generate click/auxclick and should be tested here.
+
+  const test_pointer = pointer_type + 'TestPointer';
+
+  let event_log = [];
+
+  function logEvent(event) {
+    if (event.eventPhase == event.AT_TARGET) {
+      event_log.push(event.type + '@' + event.target.id);
+    }
+  }
+
+  const parent = document.getElementById('parent');
+  const child2 = document.getElementById('child2');
+  const child1 = document.getElementById('child1');
+  const done = document.getElementById('done');
+
+  let logged_events = [
+    'gotpointercapture', 'lostpointercapture',
+    'pointerdown', 'pointerup', event_to_test
+  ];
+  logged_events.forEach(ename => {
+    [parent, child2, child1].forEach(target => {
+      target.addEventListener(ename, logEvent);
+    });
+  });
+
+  function dragBetweenChildrenAndClickOnDone(from_child, to_child, test) {
+    let actions_promise = new test_driver.Actions();
+
+    const button_type = (event_to_test === "click")
+        ? actions_promise.ButtonType.LEFT
+        : actions_promise.ButtonType.MIDDLE;
+
+    actions_promise.addPointer(test_pointer, pointer_type)
+      .pointerMove(0, 0, {origin:from_child})
+      .pointerDown({button:button_type})
+      .pointerMove(0, 0, {origin:to_child})
+      .pointerUp({button:button_type})
+      .pointerMove(0, 0, {origin:done})
+      .pointerDown()
+      .pointerUp();
+
+    let done_click_promise = getEvent('click', done, test);
+
+    return actions_promise.send().then(done_click_promise);
+  }
+
+  promise_test(async test => {
+    event_log = [];
+
+    await dragBetweenChildrenAndClickOnDone(child1, child1, test);
+
+    assert_equals(event_log.join(','),
+      `pointerdown@child1,pointerup@child1,${event_to_test}@child1`);
+  }, 'pointerdown/up at child1, no capture');
+
+  promise_test(async test => {
+    event_log = [];
+
+    getEvent('pointerdown', child1, test)
+      .then(event => child1.setPointerCapture(event.pointerId));
+    await dragBetweenChildrenAndClickOnDone(child1, child1, test);
+
+    assert_equals(event_log.join(','),
+      'pointerdown@child1,gotpointercapture@child1,' +
+      `pointerup@child1,lostpointercapture@child1,${event_to_test}@child1`);
+  }, 'pointerdown/up at child1, capture at child1');
+
+  promise_test(async test => {
+    event_log = [];
+
+    getEvent('pointerdown', child1, test)
+      .then(event => child2.setPointerCapture(event.pointerId));
+    await dragBetweenChildrenAndClickOnDone(child1, child1, test);
+
+    assert_equals(event_log.join(','),
+      'pointerdown@child1,gotpointercapture@child2,' +
+      `pointerup@child2,lostpointercapture@child2,${event_to_test}@child2`);
+  }, 'pointerdown/up at child1, capture at child2');
+
+  promise_test(async test => {
+    event_log = [];
+
+    await dragBetweenChildrenAndClickOnDone(child1, child2, test);
+
+    assert_equals(event_log.join(','),
+      `pointerdown@child1,pointerup@child2,${event_to_test}@parent`);
+  }, 'pointerdown at child1, pointerup at child2, no capture');
+
+  promise_test(async test => {
+    event_log = [];
+
+    getEvent('pointerdown', child1, test)
+      .then(event => child1.setPointerCapture(event.pointerId));
+    await dragBetweenChildrenAndClickOnDone(child1, child2, test);
+
+    assert_equals(event_log.join(','),
+      'pointerdown@child1,gotpointercapture@child1,' +
+      `pointerup@child1,lostpointercapture@child1,${event_to_test}@child1`);
+  }, 'pointerdown at child1, pointerup at child2, capture at child1');
+
+  promise_test(async test => {
+    event_log = [];
+
+    getEvent('pointerdown', child1, test)
+      .then(event => child2.setPointerCapture(event.pointerId));
+    await dragBetweenChildrenAndClickOnDone(child1, child2, test);
+
+    assert_equals(event_log.join(','),
+      'pointerdown@child1,gotpointercapture@child2,' +
+      `pointerup@child2,lostpointercapture@child2,${event_to_test}@child2`);
+  }, 'pointerdown at child1, pointerup at child2, capture at child2');
+</script>
 <html>
-    <head>
-        <title>click event target during capture</title>
-        <meta name="viewport" content="width=device-width">
-        <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
-        <script src="/resources/testharness.js"></script>
-        <script src="/resources/testharnessreport.js"></script>
-        <script src="pointerevent_support.js"></script>
-        <script src="/resources/testdriver.js"></script>
-        <script src="/resources/testdriver-actions.js"></script>
-        <script src="/resources/testdriver-vendor.js"></script>
-        <style>
-        .box {
-          margin: 10px;
-        }
-        #grey {
-          background: grey;
-        }
-        #blue {
-          background: blue;
-        }
-        #green {
-          background: green;
-        }
-        </style>
-        <script type="text/javascript">
-            PhaseEnum = {
-              Phase1:               "phase1",
-              Phase2:               "phase2",
-              Phase1WithCapturing:  "phase1withcapturing",
-              Phase2WithCapturing:  "phase2withcapturing",
-            }
-            var phase;
-            var receivedEvents;
-
-            function resetTestState() {
-              phase = PhaseEnum.Phase1;
-              receivedEvents = [];
-            }
-
-            function run() {
-                var test_pointerEvent = setup_pointerevent_test("click target during capture", ['mouse']);
-                var grey = document.getElementById('grey');
-                var blue = document.getElementById('blue');
-                var green = document.getElementById('green');
-                var actions_promise;
-
-                ['gotpointercapture', 'lostpointercapture', 'pointerdown', 'pointerup', 'click'].forEach(function(eventName) {
-                  [grey, blue, green].forEach(function(target) {
-                    target.addEventListener(eventName, function(event) {
-                      if (event.eventPhase == event.AT_TARGET) {
-                        receivedEvents.push(event.type + '@' + target.id);
-                        if (phase == PhaseEnum.Phase1 && target == green && event.type == 'click') {
-                            test(function() {
-                              assert_equals(receivedEvents.join(','), 'pointerdown@green,pointerup@green,click@green', 'An element should only receive click when it is the first common ancestor of pointerdown and pointerup targets');
-                            }, "Click target when pointerup/down targeted at the same element with no capture");
-                            phase = PhaseEnum.Phase2;
-                            receivedEvents = [];
-                        }
-                        if (phase == PhaseEnum.Phase2 && target == grey && event.type == 'click') {
-                            test(function() {
-                              assert_equals(receivedEvents.join(','), 'pointerdown@blue,pointerup@green,click@grey', 'An element should only receive click when it is the first common ancestor of pointerdown and pointerup targets');
-                            }, "Click target when pointerup/down targeted at different elements with no capture");
-                            phase = PhaseEnum.Phase1WithCapturing;
-                            receivedEvents = [];
-                        }
-                        if (target == blue && event.type == 'lostpointercapture') {
-                          if (phase == PhaseEnum.Phase1WithCapturing) {
-                            test_pointerEvent.step(function() {
-                              assert_equals(receivedEvents.join(','), 'pointerdown@green,gotpointercapture@blue,pointerup@blue,click@blue,lostpointercapture@blue', 'An element should only receive click when it is the first common ancestor of pointerdown and pointerup targets');
-                            });
-                            phase = PhaseEnum.Phase2WithCapturing;
-                            receivedEvents = [];
-                          } else if (phase == PhaseEnum.Phase2WithCapturing) {
-                            test_pointerEvent.step(function() {
-                              assert_equals(receivedEvents.join(','), 'pointerdown@blue,gotpointercapture@blue,pointerup@blue,click@blue,lostpointercapture@blue', 'An element should only receive click when it is the first common ancestor of pointerdown and pointerup targets');
-                            });
-                            // Make sure the test finishes after all the input actions are completed.
-                            actions_promise.then( () => {
-                              test_pointerEvent.done();
-                            });
-                          }
-                        }
-                        if (event.type == 'pointerdown' && (target == blue || target == green)) {
-                          if (phase == PhaseEnum.Phase1WithCapturing || phase == PhaseEnum.Phase2WithCapturing)
-                            blue.setPointerCapture(event.pointerId);
-                        }
-                      }
-                    });
-                  });
-                });
-
-                // Inject mouse inputs.
-                //
-                // TODO(mustaq@chromium.org): It is no longer testable manually.
-                // Switch it to a promise_test to simplify the code, and remove
-                // the instructions on HTML.
-                var actions_promise = new test_driver.Actions()
-                    .pointerMove(0, 0, {origin: green})
-                    .pointerDown()
-                    .pointerUp()
-                    .pointerMove(0, 0, {origin: blue})
-                    .pointerDown()
-                    .pointerMove(0, 0, {origin: green})
-                    .pointerUp()
-                    .pointerMove(0, 0, {origin: green})
-                    .pointerDown()
-                    .pointerUp()
-                    .pointerMove(0, 0, {origin: blue})
-                    .pointerDown()
-                    .pointerMove(0, 0, {origin: green})
-                    .pointerUp()
-                    .send();
-
-            }
-        </script>
-    </head>
-    <body onload="run()">
-        <h1>Pointer Event: click event during capture</h1>
-        <h2 id="pointerTypeDescription"></h2>
-        <h4>Test Description:
-            Click event should be sent to the first common ancestor of the pointerdown and pointerup targets.
-            <ol>
-                 <li>Click on the green box with the left button of mouse.</li>
-                 <li>Press down the left button on the blue box and drag to the green box and release the button.</li>
-                 <li>Repeat the two steps above once again.</li>
-            </ol>
-        </h4>
-        <br>
-        <div>
-          <div id="grey" class="box">
-            <div id="green" class="box"></div>
-            <div id="blue" class="box"></div>
-          </div>
-        </div>
-    </body>
 </html>

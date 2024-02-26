@@ -43,3 +43,24 @@ async def test_reference_context(bidi_session, value):
 
     await bidi_session.browsing_context.close(context=reference_context["context"])
     await bidi_session.browsing_context.close(context=new_context["context"])
+
+
+@pytest.mark.parametrize("value", ["tab", "window"])
+async def test_reference_context_with_no_user_context_set(
+    bidi_session, value, create_user_context
+):
+    user_context = await create_user_context()
+
+    reference_context = await bidi_session.browsing_context.create(
+        type_hint="tab", user_context=user_context
+    )
+    contexts = await bidi_session.browsing_context.get_tree(max_depth=0)
+
+    new_context = await bidi_session.browsing_context.create(
+        reference_context=reference_context["context"], type_hint=value
+    )
+    new_context_info = await bidi_session.browsing_context.get_tree(
+        max_depth=0, root=new_context["context"]
+    )
+
+    assert new_context_info[0]["userContext"] == user_context

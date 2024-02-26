@@ -118,10 +118,16 @@ pub(crate) struct IFrameInfo {
 }
 
 #[derive(Debug, Serialize)]
+pub(crate) struct VideoInfo {
+    pub image_key: webrender_api::ImageKey,
+}
+
+#[derive(Debug, Serialize)]
 pub(crate) enum ReplacedContentKind {
     Image(Option<Arc<Image>>),
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
+    Video(VideoInfo),
 }
 
 impl ReplacedContent {
@@ -144,6 +150,11 @@ impl ReplacedContent {
                         browsing_context_id,
                     }),
                     None,
+                )
+            } else if let Some((image_key, intrinsic_size_in_dots)) = element.as_video() {
+                (
+                    ReplacedContentKind::Video(VideoInfo { image_key }),
+                    Some(intrinsic_size_in_dots),
                 )
             } else {
                 return None;
@@ -177,7 +188,7 @@ impl ReplacedContent {
         if let ComputedUrl::Valid(image_url) = image_url {
             let (image, width, height) = match context.get_or_request_image_or_meta(
                 element.opaque(),
-                image_url.clone(),
+                image_url.clone().into(),
                 UsePlaceholder::No,
             ) {
                 Some(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {
@@ -263,6 +274,15 @@ impl ReplacedContent {
                 })
                 .into_iter()
                 .collect(),
+            ReplacedContentKind::Video(video) => vec![Fragment::Image(ImageFragment {
+                base: self.base_fragment_info.into(),
+                style: style.clone(),
+                rect: LogicalRect {
+                    start_corner: LogicalVec2::zero(),
+                    size: size.into(),
+                },
+                image_key: video.image_key,
+            })],
             ReplacedContentKind::IFrame(iframe) => {
                 vec![Fragment::IFrame(IFrameFragment {
                     base: self.base_fragment_info.into(),

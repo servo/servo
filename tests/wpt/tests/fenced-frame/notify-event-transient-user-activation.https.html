@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test that fenced frame notifyEvent() requires transient activation</title>
+
+<body>
+  <script>
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+      let notified = false;
+      fencedframe.element.addEventListener('fencedtreeclick', () => notified = true);
+
+      await fencedframe.execute(() => {
+        window.retained_activation = false;
+        document.addEventListener('click', async (e) => {
+          // Opening a new window consumes transient activation here, but that
+          // is *not explicitly stated in the spec.* However, we can't rely
+          // on other APIs to consume activation for us, since most of them are
+          // gated by permissions policies that fenced frames will not inherit.
+          // This call will just open a blank page, which is sufficient for
+          // this test.
+          window.open();
+          await new Promise((resolve) => t.step_timeout(
+            () => resolve(), 1000));
+          if (navigator.userActivation.isActive) {
+            window.retained_activation = true;
+          }
+          window.fence.notifyEvent(e);
+        });
+      });
+
+      await multiClick(10, 10, fencedframe.element);
+
+      // Wait 3s to let any event handling code settle.
+      await new Promise((resolve) => t.step_timeout(
+          () => resolve(), 3000));
+
+      await fencedframe.execute(() => {
+        assert_false(window.retained_activation);
+      });
+
+      assert_false(notified);
+    }, "Test that fenced frame notifyEvent() requires transient activation");
+  </script>
+</body>

@@ -10,14 +10,16 @@ use gfx_traits::print_tree::PrintTree;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
-use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
 
-use super::{BaseFragment, BoxFragment, ContainingBlockManager, HoistedSharedFragment, Tag};
+use super::{
+    BaseFragment, BoxFragment, ContainingBlockManager, HoistedSharedFragment, PositioningFragment,
+    Tag,
+};
 use crate::cell::ArcRefCell;
 use crate::geom::{LogicalRect, LogicalSides, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
@@ -31,7 +33,7 @@ pub(crate) enum Fragment {
     /// the [SequentialLayoutState] of their float containing block formatting
     /// context.
     Float(BoxFragment),
-    Anonymous(AnonymousFragment),
+    Positioning(PositioningFragment),
     /// Absolute and fixed position fragments are hoisted up so that they
     /// are children of the BoxFragment that establishes their containing
     /// blocks, so that they can be laid out properly. When this happens
@@ -61,18 +63,6 @@ pub(crate) struct CollapsedBlockMargins {
 pub(crate) struct CollapsedMargin {
     max_positive: Length,
     min_negative: Length,
-}
-
-/// Can contain child fragments with relative coordinates, but does not contribute to painting itself.
-#[derive(Serialize)]
-pub(crate) struct AnonymousFragment {
-    pub base: BaseFragment,
-    pub rect: LogicalRect<Length>,
-    pub children: Vec<ArcRefCell<Fragment>>,
-    pub mode: WritingMode,
-
-    /// The scrollable overflow of this anonymous fragment's children.
-    pub scrollable_overflow: PhysicalRect<Length>,
 }
 
 #[derive(Serialize)]
@@ -119,7 +109,7 @@ impl Fragment {
             Fragment::Box(fragment) => &fragment.base,
             Fragment::Text(fragment) => &fragment.base,
             Fragment::AbsoluteOrFixedPositioned(_) => return None,
-            Fragment::Anonymous(fragment) => &fragment.base,
+            Fragment::Positioning(fragment) => &fragment.base,
             Fragment::Image(fragment) => &fragment.base,
             Fragment::IFrame(fragment) => &fragment.base,
             Fragment::Float(fragment) => &fragment.base,
@@ -141,7 +131,7 @@ impl Fragment {
             Fragment::AbsoluteOrFixedPositioned(_) => {
                 tree.add_item("AbsoluteOrFixedPositioned".to_string());
             },
-            Fragment::Anonymous(fragment) => fragment.print(tree),
+            Fragment::Positioning(fragment) => fragment.print(tree),
             Fragment::Text(fragment) => fragment.print(tree),
             Fragment::Image(fragment) => fragment.print(tree),
             Fragment::IFrame(fragment) => fragment.print(tree),
@@ -166,7 +156,7 @@ impl Fragment {
                 fragment.scrollable_overflow_for_parent(containing_block)
             },
             Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
-            Fragment::Anonymous(fragment) => fragment.scrollable_overflow,
+            Fragment::Positioning(fragment) => fragment.scrollable_overflow,
             Fragment::Text(fragment) => fragment
                 .rect
                 .to_physical(fragment.parent_style.writing_mode, containing_block),
@@ -219,10 +209,10 @@ impl Fragment {
                     .iter()
                     .find_map(|child| child.borrow().find(&new_manager, level + 1, process_func))
             },
-            Fragment::Anonymous(fragment) => {
+            Fragment::Positioning(fragment) => {
                 let content_rect = fragment
                     .rect
-                    .to_physical(fragment.mode, containing_block)
+                    .to_physical(fragment.writing_mode, containing_block)
                     .translate(containing_block.origin.to_vector());
                 let new_manager = manager.new_for_non_absolute_descendants(&content_rect);
                 fragment
@@ -232,43 +222,6 @@ impl Fragment {
             },
             _ => None,
         }
-    }
-}
-
-impl AnonymousFragment {
-    pub fn new(rect: LogicalRect<Length>, children: Vec<Fragment>, mode: WritingMode) -> Self {
-        // FIXME(mrobinson, bug 25564): We should be using the containing block
-        // here to properly convert scrollable overflow to physical geometry.
-        let containing_block = PhysicalRect::zero();
-        let content_origin = rect.start_corner.to_physical(mode);
-        let scrollable_overflow = children.iter().fold(PhysicalRect::zero(), |acc, child| {
-            acc.union(
-                &child
-                    .scrollable_overflow(&containing_block)
-                    .translate(content_origin.to_vector()),
-            )
-        });
-        AnonymousFragment {
-            base: BaseFragment::anonymous(),
-            rect,
-            children: children.into_iter().map(ArcRefCell::new).collect(),
-            mode,
-            scrollable_overflow,
-        }
-    }
-
-    pub fn print(&self, tree: &mut PrintTree) {
-        tree.new_level(format!(
-            "Anonymous\
-                \nrect={:?}\
-                \nscrollable_overflow={:?}",
-            self.rect, self.scrollable_overflow
-        ));
-
-        for child in &self.children {
-            child.borrow().print(tree);
-        }
-        tree.end_level();
     }
 }
 

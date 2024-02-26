@@ -13,6 +13,7 @@ use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage};
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
 use style::values::generics::text::LineHeight;
+use style::values::specified::box_::DisplayOutside;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::FontInstanceKey;
@@ -27,9 +28,7 @@ use crate::geom::{LogicalRect, LogicalVec2};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
-use crate::style_ext::{
-    ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside, PaddingBorderMargin,
-};
+use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
 
 pub(super) struct LineMetrics {
@@ -40,7 +39,7 @@ pub(super) struct LineMetrics {
     pub block_size: Length,
 
     /// The block offset of this line's baseline from [`Self:block_offset`].
-    pub baseline_block_offset: Length,
+    pub baseline_block_offset: Au,
 }
 
 /// State used when laying out the [`LineItem`]s collected for the line currently being
@@ -54,7 +53,7 @@ pub(super) struct LineItemLayoutState<'a> {
     /// The block offset of the parent's baseline relative to the block start of the line. This
     /// is often the same as [`Self::block_offset_of_parent`], but can be different for the root
     /// element.
-    pub baseline_offset: Length,
+    pub baseline_offset: Au,
 
     pub ifc_containing_block: &'a ContainingBlock<'a>,
     pub positioning_context: &'a mut PositioningContext,
@@ -117,15 +116,9 @@ pub(super) enum LineItem {
 }
 
 impl LineItem {
-    pub(super) fn trim_whitespace_at_end(
-        &mut self,
-        whitespace_trimmed: &mut Length,
-        word_seperators_trimmed: &mut usize,
-    ) -> bool {
+    pub(super) fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Length) -> bool {
         match self {
-            LineItem::TextRun(ref mut item) => {
-                item.trim_whitespace_at_end(whitespace_trimmed, word_seperators_trimmed)
-            },
+            LineItem::TextRun(ref mut item) => item.trim_whitespace_at_end(whitespace_trimmed),
             LineItem::StartInlineBox(_) => true,
             LineItem::EndInlineBox => true,
             LineItem::Atomic(_) => false,
@@ -134,15 +127,9 @@ impl LineItem {
         }
     }
 
-    pub(super) fn trim_whitespace_at_start(
-        &mut self,
-        whitespace_trimmed: &mut Length,
-        word_separators_trimmed: &mut usize,
-    ) -> bool {
+    pub(super) fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Length) -> bool {
         match self {
-            LineItem::TextRun(ref mut item) => {
-                item.trim_whitespace_at_start(whitespace_trimmed, word_separators_trimmed)
-            },
+            LineItem::TextRun(ref mut item) => item.trim_whitespace_at_start(whitespace_trimmed),
             LineItem::StartInlineBox(_) => true,
             LineItem::EndInlineBox => true,
             LineItem::Atomic(_) => false,
@@ -162,11 +149,7 @@ pub(super) struct TextRunLineItem {
 }
 
 impl TextRunLineItem {
-    fn trim_whitespace_at_end(
-        &mut self,
-        whitespace_trimmed: &mut Length,
-        word_seperators_trimmed: &mut usize,
-    ) -> bool {
+    fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Length) -> bool {
         if self
             .parent_style
             .get_inherited_text()
@@ -187,21 +170,14 @@ impl TextRunLineItem {
         *whitespace_trimmed += self
             .text
             .drain(first_whitespace_index..)
-            .map(|glyph| {
-                *word_seperators_trimmed += glyph.total_word_separators();
-                Length::from(glyph.total_advance())
-            })
+            .map(|glyph| Length::from(glyph.total_advance()))
             .sum();
 
         // Only keep going if we only encountered whitespace.
         index_of_last_non_whitespace.is_none()
     }
 
-    fn trim_whitespace_at_start(
-        &mut self,
-        whitespace_trimmed: &mut Length,
-        word_separators_trimmed: &mut usize,
-    ) -> bool {
+    fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Length) -> bool {
         if self
             .parent_style
             .get_inherited_text()
@@ -220,10 +196,7 @@ impl TextRunLineItem {
         *whitespace_trimmed += self
             .text
             .drain(0..index_of_first_non_whitespace)
-            .map(|glyph| {
-                *word_separators_trimmed += glyph.total_word_separators();
-                Length::from(glyph.total_advance())
-            })
+            .map(|glyph| Length::from(glyph.total_advance()))
             .sum();
 
         // Only keep going if we only encountered whitespace.
@@ -255,7 +228,7 @@ impl TextRunLineItem {
         // fallback fonts that use baseline relatve alignment, it might be different.
         let mut start_corner = &LogicalVec2 {
             inline: state.inline_position,
-            block: state.baseline_offset - self.font_metrics.ascent.into(),
+            block: (state.baseline_offset - self.font_metrics.ascent).into(),
         } - &state.parent_offset;
         if !is_baseline_relative(
             self.parent_style
@@ -324,17 +297,17 @@ impl InlineBoxLineItem {
         let mut margin = self.pbm.margin.auto_is(Length::zero);
 
         if !self.is_first_fragment {
-            padding.inline_start = Length::zero();
-            border.inline_start = Length::zero();
+            padding.inline_start = Au::zero();
+            border.inline_start = Au::zero();
             margin.inline_start = Length::zero();
         }
         if !self.is_last_fragment_of_ib_split {
-            padding.inline_end = Length::zero();
-            border.inline_end = Length::zero();
+            padding.inline_end = Au::zero();
+            border.inline_end = Au::zero();
             margin.inline_end = Length::zero();
         }
-        let pbm_sums = &(&padding + &border) + &margin;
-        state.inline_position += pbm_sums.inline_start;
+        let pbm_sums = &(&padding + &border) + &margin.map(|t| (*t).into());
+        state.inline_position += pbm_sums.inline_start.into();
 
         let space_above_baseline = self.calculate_space_above_baseline();
         let block_start_offset = self.calculate_block_start(state, space_above_baseline);
@@ -350,7 +323,7 @@ impl InlineBoxLineItem {
             inline_position: state.inline_position,
             parent_offset: LogicalVec2 {
                 inline: state.inline_position,
-                block: block_start_offset,
+                block: block_start_offset.into(),
             },
             ifc_containing_block: state.ifc_containing_block,
             positioning_context: nested_positioning_context,
@@ -367,14 +340,14 @@ impl InlineBoxLineItem {
         // potential block-in-inline split and this line included the actual end of this
         // fragment (it doesn't continue on the next line).
         if !self.is_last_fragment_of_ib_split || !saw_end {
-            padding.inline_end = Length::zero();
-            border.inline_end = Length::zero();
+            padding.inline_end = Au::zero();
+            border.inline_end = Au::zero();
             margin.inline_end = Length::zero();
         }
-        let pbm_sums = &(&padding + &border) + &margin;
+        let pbm_sums = &(&padding + &border) + &margin.clone().into();
 
         // If the inline box didn't have any content at all, don't add a Fragment for it.
-        let box_has_padding_border_or_margin = pbm_sums.inline_sum() > Length::zero();
+        let box_has_padding_border_or_margin = pbm_sums.inline_sum() > Au::zero();
         let box_had_absolutes =
             original_nested_positioning_context_length != nested_state.positioning_context.len();
         if !self.is_first_fragment &&
@@ -388,7 +361,7 @@ impl InlineBoxLineItem {
         let mut content_rect = LogicalRect {
             start_corner: LogicalVec2 {
                 inline: state.inline_position,
-                block: block_start_offset,
+                block: block_start_offset.into(),
             },
             size: LogicalVec2 {
                 inline: nested_state.inline_position - state.inline_position,
@@ -410,18 +383,14 @@ impl InlineBoxLineItem {
             self.style.clone(),
             fragments,
             content_rect,
-            padding,
-            border,
+            padding.into(),
+            border.into(),
             margin,
             None, /* clearance */
-            // There is no need to set a baseline offset for this BoxFragment, because
-            // the last baseline of this InlineFormattingContext is what will propagate
-            // to `display: inline-block` ancestors.
-            None, /* last_inflow_baseline_offset */
             CollapsedBlockMargins::zero(),
         );
 
-        state.inline_position = nested_state.inline_position + pbm_sums.inline_end;
+        state.inline_position = nested_state.inline_position + pbm_sums.inline_end.into();
 
         if let Some(mut positioning_context) = positioning_context.take() {
             assert!(original_nested_positioning_context_length == PositioningContextLength::zero());
@@ -446,23 +415,19 @@ impl InlineBoxLineItem {
     /// Given our font metrics, calculate the space above the baseline we need for our content.
     /// Note that this space does not include space for any content in child inline boxes, as
     /// they are not included in our content rect.
-    fn calculate_space_above_baseline(&self) -> Length {
+    fn calculate_space_above_baseline(&self) -> Au {
         let (ascent, descent, line_gap) = (
             self.font_metrics.ascent,
             self.font_metrics.descent,
             self.font_metrics.line_gap,
         );
         let leading = line_gap - (ascent + descent);
-        (leading.scale_by(0.5) + ascent).into()
+        leading.scale_by(0.5) + ascent
     }
 
     /// Given the state for a line item layout and the space above the baseline for this inline
     /// box, find the block start position relative to the line block start position.
-    fn calculate_block_start(
-        &self,
-        state: &LineItemLayoutState,
-        space_above_baseline: Length,
-    ) -> Length {
+    fn calculate_block_start(&self, state: &LineItemLayoutState, space_above_baseline: Au) -> Au {
         let vertical_align = self.style.effective_vertical_align_for_inline_layout();
         let line_gap = self.font_metrics.line_gap;
 
@@ -470,16 +435,16 @@ impl InlineBoxLineItem {
         // baseline, so we need to make it relative to the line block start.
         match vertical_align {
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => {
-                let line_height = line_height(&self.style, &self.font_metrics);
-                (line_height - line_gap.into()).scale_by(0.5)
+                let line_height: Au = line_height(&self.style, &self.font_metrics).into();
+                (line_height - line_gap).scale_by(0.5)
             },
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
-                let line_height = line_height(&self.style, &self.font_metrics);
-                let half_leading = (line_height - line_gap.into()).scale_by(0.5);
-                state.line_metrics.block_size - line_height + half_leading
+                let line_height: Au = line_height(&self.style, &self.font_metrics).into();
+                let half_leading = (line_height - line_gap).scale_by(0.5);
+                Au::from(state.line_metrics.block_size) - line_height + half_leading
             },
             _ => {
-                state.line_metrics.baseline_block_offset + Length::from(self.baseline_offset) -
+                state.line_metrics.baseline_block_offset + self.baseline_offset -
                     space_above_baseline
             },
         }
@@ -542,9 +507,8 @@ impl AtomicLineItem {
 
             // This covers all baseline-relative vertical alignment.
             _ => {
-                let baseline = line_metrics.baseline_block_offset +
-                    Length::from(self.baseline_offset_in_parent);
-                baseline - Length::from(self.baseline_offset_in_item)
+                let baseline = line_metrics.baseline_block_offset + self.baseline_offset_in_parent;
+                Length::from(baseline - self.baseline_offset_in_item)
             },
         }
     }
@@ -558,31 +522,34 @@ impl AbsolutelyPositionedLineItem {
     fn layout(self, state: &mut LineItemLayoutState) -> ArcRefCell<HoistedSharedFragment> {
         let box_ = self.absolutely_positioned_box;
         let style = AtomicRef::map(box_.borrow(), |box_| box_.context.style());
-        let initial_start_corner = match Display::from(style.get_box().original_display) {
-            Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { outside, inside: _ }) => {
+
+        // From https://drafts.csswg.org/css2/#abs-non-replaced-width
+        // > The static-position containing block is the containing block of a
+        // > hypothetical box that would have been the first box of the element if its
+        // > specified position value had been static and its specified float had been
+        // > none. (Note that due to the rules in section 9.7 this hypothetical
+        // > calculation might require also assuming a different computed value for
+        // > display.)
+        //
+        // This box is different based on the original `display` value of the
+        // absolutely positioned element. If it's `inline` it would be placed inline
+        // at the top of the line, but if it's block it would be placed in a new
+        // block position after the linebox established by this line.
+        let initial_start_corner =
+            if style.get_box().original_display.outside() == DisplayOutside::Inline {
+                // Top of the line at the current inline position.
                 LogicalVec2 {
-                    inline: match outside {
-                        DisplayOutside::Inline => {
-                            state.inline_position - state.parent_offset.inline
-                        },
-                        DisplayOutside::Block => Length::zero(),
-                    },
-                    // The blocks start position of the absolute should be at the top of the line.
+                    inline: state.inline_position - state.parent_offset.inline,
                     block: -state.parent_offset.block,
                 }
-            },
-            Display::GeneratingBox(DisplayGeneratingBox::LayoutInternal(_)) => {
-                unreachable!(
-                    "The result of blockification should never be a layout-internal value."
-                );
-            },
-            Display::Contents => {
-                panic!("display:contents does not generate an abspos box")
-            },
-            Display::None => {
-                panic!("display:none does not generate an abspos box")
-            },
-        };
+            } else {
+                // After the bottom of the line at the start of the inline formatting context.
+                LogicalVec2 {
+                    inline: Length::zero(),
+                    block: state.line_metrics.block_size - state.parent_offset.block,
+                }
+            };
+
         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
             box_.clone(),
             initial_start_corner,

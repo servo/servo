@@ -3,7 +3,6 @@
 <link rel=help href="https://github.com/whatwg/html/issues/8904">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 
 <button id=b1>button 1</button>
 <button id=b2>button 2</button>
@@ -33,8 +32,6 @@
 <dialog id=mydialog2>hello world</dialog>
 
 <script>
-polyfill_declarative_shadow_dom(document);
-
 test(() => {
   b1.focus();
   mydialog.show();

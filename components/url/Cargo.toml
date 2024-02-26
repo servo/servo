@@ -14,6 +14,7 @@ path = "lib.rs"
 malloc_size_of = { path = "../malloc_size_of", features = ["servo"] }
 malloc_size_of_derive = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+servo_arc = { path = "../servo_arc" }
 servo_rand = { path = "../rand" }
 to_shmem = { path = "../to_shmem" }
 url = { workspace = true, features = ["serde"] }

@@ -15,14 +15,16 @@
   </main>
   <script>
     const link = document.getElementById("link");
-    testSoftNavigation({
-      addContent: async () => {
+    testSoftNavigationNotDetected({
+      link: link,
+      eventTarget: link,
+      eventName: "click",
+      eventHandler: async e => {
+        const url = URL + "?" + counter;
+        history.replaceState({}, '', url);
         await addImageToMain();
       },
-      link: link,
-      pushState: (url)=>{history.replaceState({}, '', url);},
-      test: "Detect soft navigation with replaceState"});
+      testName: "Should not detect soft navigation with just replaceState"});
   </script>
 </body>
 </html>
-

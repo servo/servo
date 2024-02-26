@@ -7,9 +7,24 @@
 
 <body>
 <script>
+// Use default transition-behavior: normal.
 test_no_interpolation({
   property: 'float',
   from: 'initial',
   to: 'right'
 });
+
+test_interpolation({
+  property: 'float',
+  behavior: 'allow-discrete',
+  from: 'left',
+  to: 'right',
+}, [
+  {at: -1, expect: 'left'},
+  {at: 0, expect: 'left'},
+  {at: 0.4, expect: 'left'},
+  {at: 0.5, expect: 'right'},
+  {at: 1, expect: 'right'},
+  {at: 1.5, expect: 'right'},
+]);
 </script>

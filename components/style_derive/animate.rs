@@ -3,14 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use darling::util::PathList;
-use darling::FromDeriveInput;
-use darling::FromField;
-use darling::FromVariant;
 use derive_common::cg;
 use proc_macro2::TokenStream;
-use quote::quote;
 use quote::TokenStreamExt;
-use syn::{parse_quote, DeriveInput, WhereClause};
+use syn::{DeriveInput, WhereClause};
 use synstructure::{Structure, VariantInfo};
 
 pub fn derive(mut input: DeriveInput) -> TokenStream {

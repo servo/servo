@@ -274,8 +274,8 @@ impl BoxTree {
         );
         let initial_containing_block = DefiniteContainingBlock {
             size: LogicalVec2 {
-                inline: physical_containing_block.size.width,
-                block: physical_containing_block.size.height,
+                inline: physical_containing_block.size.width.into(),
+                block: physical_containing_block.size.height.into(),
             },
             style,
         };

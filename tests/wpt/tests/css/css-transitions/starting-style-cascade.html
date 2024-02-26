@@ -53,6 +53,10 @@
   <div class="color-transition"></div>
 </div>
 <script>
+  setup(() => {
+    assert_true(supportsStartingStyle(), "Prerequisite: @starting-style parses");
+  });
+
   promise_test(async t => {
     await waitForAnimationFrames(2);
     t1.removeAttribute("hidden");

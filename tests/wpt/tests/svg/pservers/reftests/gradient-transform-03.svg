@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" class="reftest-wait">
+  <title>Gradient with 'transform' property added dynamically</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#pservers-LinearGradientElementGradientTransformAttribute"/>
+  <h:link rel="help" href="https://drafts.csswg.org/css-transforms/#transform-attribute-specificity"/>
+  <h:link rel="match" href="reference/green-100x100.svg"/>
+  <h:script src="/common/reftest-wait.js"/>
+  <h:script src="/common/rendering-utils.js"/>
+
+  <linearGradient id="lg">
+    <stop offset="0" stop-color="green"/>
+    <stop offset="0.5" stop-color="green"/>
+    <stop offset="1" stop-color="red"/>
+  </linearGradient>
+  <rect width="100" height="100" fill="url(#lg)"/>
+  <script>
+    waitForAtLeastOneFrame().then(() => {
+      const gradient = document.getElementById('lg');
+      gradient.style.transform = 'scale(2)';
+      takeScreenshot();
+    });
+  </script>
+</svg>

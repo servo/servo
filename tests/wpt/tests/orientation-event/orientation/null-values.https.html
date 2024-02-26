@@ -7,24 +7,32 @@
 <script>
 'use strict';
 
-sensor_test(async (t, sensorProvider) => {
-  const orientationData1 = generateOrientationData(1.1, null, null, false);
-  const orientationData2 = generateOrientationData(null, 2.2, null, false);
-  const orientationData3 = generateOrientationData(null, null, 3.3, false);
-  // The all null event is last because DeviceSingleWindowEventController
-  // will stop updating the sensor when it sees a null event.
-  const orientationData4 = generateOrientationData(null, null, null, false);
+function test_null_orientation_data(eventType) {
+  promise_test(async t => {
+    const helper = new SensorTestHelper(t, eventType);
+    await helper.grantSensorsPermissions();
+    await helper.initializeSensors(
+        {disabledSensors : [ 'absolute-orientation', 'relative-orientation' ]});
 
-  setMockOrientationData(sensorProvider, orientationData1);
-  await waitForEvent(getExpectedOrientationEvent(orientationData1));
+    const inputData = generateOrientationData(1.1, 2.2, 3.3, false);
+    // Currently it is not possible to set individual values to null because
+    // the parsing algorithms used by
+    // https://w3c.github.io/sensors/#update-virtual-sensor-reading-command
+    // always expect numbers.
+    const expectedData = generateOrientationData(
+        null, null, null,
+        /*absolute=*/ eventType === 'deviceorientationabsolute');
+    const expectedEvent = eventType === 'deviceorientationabsolute'
+                              ? getExpectedAbsoluteOrientationEvent
+                              : getExpectedOrientationEvent;
 
-  setMockOrientationData(sensorProvider, orientationData2);
-  await waitForEvent(getExpectedOrientationEvent(orientationData2));
+    // An example how setting the orientation sensors as disabled will always
+    // output null values.
+    await helper.setData(inputData);
+    await waitForEvent(expectedEvent(expectedData));
+  }, `${eventType}: Missing values are set to null or true/false accordingly`);
+}
 
-  setMockOrientationData(sensorProvider, orientationData3);
-  await waitForEvent(getExpectedOrientationEvent(orientationData3));
-
-  setMockOrientationData(sensorProvider, orientationData4);
-  await waitForEvent(getExpectedOrientationEvent(orientationData4));
-}, 'Tests using null values for some of the event properties.');
+test_null_orientation_data('deviceorientation');
+test_null_orientation_data('deviceorientationabsolute');
 </script>

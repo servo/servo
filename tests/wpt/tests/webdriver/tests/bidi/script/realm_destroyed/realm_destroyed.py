@@ -1,6 +1,7 @@
 import pytest
 from tests.support.sync import AsyncPoll
 from webdriver.error import TimeoutException
+from ..realm_created.realm_created import REALM_CREATED_EVENT
 
 from .. import create_sandbox
 
@@ -236,3 +237,106 @@ async def test_subscribe_to_one_context(
     assert result[0]["realm"] in destroyed_realm_ids
 
     remove_listener()
+
+
+async def test_dedicated_worker(
+    wait_for_future_safe,
+    bidi_session,
+    subscribe_events,
+    top_context,
+    inline,
+    event_loop,
+):
+    await subscribe_events(events=[REALM_CREATED_EVENT, REALM_DESTROYED_EVENT])
+
+    found = event_loop.create_future()
+    worker_realm = event_loop.create_future()
+
+    async def on_realm_created_event(method, data):
+        if data["type"] == "dedicated-worker":
+            if worker_realm.done():
+                raise "More than one dedicated worker"
+            else:
+                worker_realm.set_result(data)
+
+    async def on_realm_destroyed_event(method, data):
+        if worker_realm.done() and data["realm"] == worker_realm.result()["realm"]:
+            found.set_result(True)
+
+    remove_realm_created_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_realm_created_event
+    )
+    remove_realm_destroyed_listener = bidi_session.add_event_listener(
+        REALM_DESTROYED_EVENT, on_realm_destroyed_event
+    )
+
+    worker_url = inline("while(true){}", doctype="js")
+    url = inline(
+        f"""<script>
+        const worker = new Worker('{worker_url}');
+        setTimeout(() => {{
+            worker.terminate();
+        }}, 100);
+    </script>"""
+    )
+    await bidi_session.browsing_context.navigate(
+        url=url, context=top_context["context"], wait="complete"
+    )
+
+    assert await wait_for_future_safe(found)
+    remove_realm_created_listener()
+    remove_realm_destroyed_listener()
+
+
+async def test_shared_worker(
+    wait_for_future_safe,
+    bidi_session,
+    subscribe_events,
+    top_context,
+    inline,
+    event_loop,
+):
+    await subscribe_events(events=[REALM_CREATED_EVENT, REALM_DESTROYED_EVENT])
+
+    found = event_loop.create_future()
+    worker_realm = event_loop.create_future()
+
+    async def on_realm_created_event(method, data):
+        if data["type"] == "shared-worker":
+            if worker_realm.done():
+                raise "More than one dedicated worker"
+            else:
+                worker_realm.set_result(data)
+
+    async def on_realm_destroyed_event(method, data):
+        if worker_realm.done() and data["realm"] == worker_realm.result()["realm"]:
+            found.set_result(True)
+
+    remove_realm_created_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_realm_created_event
+    )
+    remove_realm_destroyed_listener = bidi_session.add_event_listener(
+        REALM_DESTROYED_EVENT, on_realm_destroyed_event
+    )
+
+    worker_url = inline("while(true){}", doctype="js")
+    url = inline(
+        f"""<script>
+        const worker = new SharedWorker('{worker_url}');
+    </script>"""
+    )
+    await bidi_session.browsing_context.navigate(
+        url=url, context=top_context["context"], wait="complete"
+    )
+    # Wait for the worker realm before navigating to ensure we aren't navigating
+    # too early.
+    assert await wait_for_future_safe(worker_realm)
+
+    url = inline("")
+    await bidi_session.browsing_context.navigate(
+        url=url, context=top_context["context"], wait="complete"
+    )
+    assert await wait_for_future_safe(found)
+
+    remove_realm_created_listener()
+    remove_realm_destroyed_listener()

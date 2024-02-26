@@ -35,7 +35,9 @@ promise_setup(async () => {
    { kinds: { video }, mimeType: "video/webm;codecs=vp8" },
    { kinds: { video, audio }, mimeType: "video/webm;codecs=vp8,opus" },
    { kinds: { video }, mimeType: "video/webm;codecs=vp9" },
-   { kinds: { video, audio }, mimeType: "video/webm;codecs=vp9,opus" }
+   { kinds: { video, audio }, mimeType: "video/webm;codecs=vp9,opus" },
+   { kinds: { audio }, mimeType: "audio/mp4;codecs=mp4a.40.2" },
+   { kinds: { video, audio }, mimeType: "video/mp4;codecs=avc1,mp4a.40.2" }
   ]) {
     const tag = `${JSON.stringify(kinds)} mimeType "${mimeType}"`;
     const stream = new MediaStream([kinds.audio, kinds.video].filter(n => n));

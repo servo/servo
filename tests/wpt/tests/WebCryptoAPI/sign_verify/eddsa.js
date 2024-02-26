@@ -366,6 +366,28 @@ function run_test() {
       }, "Sign and verify using generated " + vector.algorithmName + " keys.");
   });
 
+  // When verifying an Ed25519 or Ed448 signature, if the public key or the first half of the signature (R) is
+  // an invalid or small-order element, return false.
+  Object.keys(kSmallOrderTestCases).forEach(function (algorithmName) {
+      var algorithm = {name: algorithmName};
+      kSmallOrderTestCases[algorithmName].forEach(function(test) {
+          // Test low-order public keys
+          promise_test(async() => {
+              let isVerified = true;
+              let publicKey;
+              try {
+                  publicKey = await subtle.importKey("raw", test.keyData,
+                                                 algorithm,
+                                                 false, ["verify"])
+                  isVerified = await subtle.verify(algorithmName, publicKey, test.signature, test.message);
+              } catch (err) {
+                  assert_equals(isVerified, test.verified, "Signature verification result.");
+                  assert_unreached("The operation shouldn't fail, but it thown this error: " + err.name + ": " + err.message + ".");
+              }
+              assert_false(isVerified, "Signature verification result.");
+          }, algorithmName + " Verification checks with small-order key of order - Test " + test.id);
+      });
+  });
 
   // A test vector has all needed fields for signing and verifying, EXCEPT that the
   // key field may be null. This function replaces that null with the Correct

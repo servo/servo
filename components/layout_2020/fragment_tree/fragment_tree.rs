@@ -106,13 +106,15 @@ impl FragmentTree {
                 Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
                     .border_rect()
                     .to_physical(fragment.style.writing_mode, containing_block),
+                Fragment::Positioning(fragment) => fragment
+                    .rect
+                    .to_physical(fragment.writing_mode, containing_block),
                 Fragment::Text(fragment) => fragment
                     .rect
                     .to_physical(fragment.parent_style.writing_mode, containing_block),
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
-                Fragment::IFrame(_) |
-                Fragment::Anonymous(_) => return None,
+                Fragment::IFrame(_) => return None,
             };
 
             found_any_nodes = true;
@@ -145,37 +147,41 @@ impl FragmentTree {
                 return None;
             }
 
-            let (style, padding_rect) = match fragment {
-                Fragment::Box(fragment) => (&fragment.style, fragment.padding_rect()),
+            let rect = match fragment {
+                Fragment::Box(fragment) => {
+                    // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
+                    // " If the element has no associated CSS layout box or if the
+                    //   CSS layout box is inline, return zero." For this check we
+                    // also explicitly ignore the list item portion of the display
+                    // style.
+                    if fragment.style.get_box().display.is_inline_flow() {
+                        return Some(Rect::zero());
+                    }
+
+                    let border = fragment.style.get_border();
+                    let padding_rect = fragment
+                        .padding_rect()
+                        .to_physical(fragment.style.writing_mode, containing_block);
+                    Rect::new(
+                        Point2D::new(
+                            border.border_left_width.into(),
+                            border.border_top_width.into(),
+                        ),
+                        Size2D::new(padding_rect.size.width, padding_rect.size.height),
+                    )
+                },
+                Fragment::Positioning(fragment) => fragment
+                    .rect
+                    .to_physical(fragment.writing_mode, containing_block)
+                    .cast_unit(),
                 _ => return None,
             };
 
-            // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
-            // " If the element has no associated CSS layout box or if the
-            //   CSS layout box is inline, return zero." For this check we
-            // also explicitly ignore the list item portion of the display
-            // style.
-            let display = &style.get_box().display;
-            if display.inside() == style::values::specified::box_::DisplayInside::Flow &&
-                display.outside() == style::values::specified::box_::DisplayOutside::Inline
-            {
-                return Some(Rect::zero());
-            }
-
-            let border = style.get_border();
-            let padding_rect = padding_rect.to_physical(style.writing_mode, containing_block);
-            Some(
-                Rect::new(
-                    Point2D::new(
-                        border.border_left_width.to_f32_px(),
-                        border.border_top_width.to_f32_px(),
-                    ),
-                    Size2D::new(padding_rect.size.width.px(), padding_rect.size.height.px()),
-                )
-                .round()
-                .to_i32()
-                .to_untyped(),
-            )
+            let rect = Rect::new(
+                Point2D::new(rect.origin.x.px(), rect.origin.y.px()),
+                Size2D::new(rect.size.width.px(), rect.size.height.px()),
+            );
+            Some(rect.round().to_i32().to_untyped())
         })
         .unwrap_or_else(Rect::zero)
     }

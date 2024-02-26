@@ -21,6 +21,7 @@ on:
 jobs:
   win:
     if: ${{ inputs.workflow == 'windows' }}
+    name: Windows
     uses: ./.github/workflows/windows.yml
     secrets: inherit
     with:
@@ -29,6 +30,7 @@ jobs:
 
   macos:
     if: ${{ inputs.workflow == 'macos' }}
+    name: MacOS
     uses: ./.github/workflows/mac.yml
     secrets: inherit
     with:
@@ -39,6 +41,7 @@ jobs:
 
   linux:
     if: ${{ inputs.workflow == 'linux' }}
+    name: Linux
     uses: ./.github/workflows/linux.yml
     secrets: inherit
     with:
@@ -49,6 +52,7 @@ jobs:
 
   android:
     if: ${{ inputs.workflow == 'android' }}
+    name: Android
     uses: ./.github/workflows/android.yml
     secrets: inherit
     with:

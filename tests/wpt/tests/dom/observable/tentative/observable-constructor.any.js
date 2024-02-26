@@ -235,14 +235,18 @@ test(t => {
 
   source.subscribe({
     complete: () => {
-      activeDuringComplete = innerSubscriber.active
-      abortedDuringComplete = innerSubscriber.active
+      activeDuringComplete = innerSubscriber.active;
+      abortedDuringComplete = innerSubscriber.signal.aborted;
     }
   });
   assert_true(activeBeforeComplete, "Subscription is active before complete");
   assert_false(abortedBeforeComplete, "Subscription is not aborted before complete");
-  assert_false(activeDuringComplete, "Subscription is not active during complete");
-  assert_false(abortedDuringComplete, "Subscription is not aborted during complete");
+  assert_false(activeDuringComplete,
+      "Subscription becomes inactive during Subscriber#complete(), just " +
+      "before Observer#complete() callback is invoked");
+  assert_true(abortedDuringComplete,
+      "Subscription's signal is aborted during Subscriber#complete(), just " +
+      "before Observer#complete() callback is invoked");
   assert_false(activeAfterComplete, "Subscription is not active after complete");
   assert_true(abortedAfterComplete, "Subscription is aborted after complete");
 }, "Subscription is inactive after complete()");
@@ -269,13 +273,18 @@ test(t => {
 
   source.subscribe({
     error: () => {
-      activeDuringError = innerSubscriber.active
+      activeDuringError = innerSubscriber.active;
+      abortedDuringError = innerSubscriber.signal.aborted;
     }
   });
   assert_true(activeBeforeError, "Subscription is active before error");
   assert_false(abortedBeforeError, "Subscription is not aborted before error");
-  assert_false(activeDuringError, "Subscription is not active during error");
-  assert_false(abortedDuringError, "Subscription is not aborted during error");
+  assert_false(activeDuringError,
+      "Subscription becomes inactive during Subscriber#error(), just " +
+      "before Observer#error() callback is invoked");
+  assert_true(abortedDuringError,
+      "Subscription's signal is aborted during Subscriber#error(), just " +
+      "before Observer#error() callback is invoked");
   assert_false(activeAfterError, "Subscription is not active after error");
   assert_true(abortedAfterError, "Subscription is not aborted after error");
 }, "Subscription is inactive after error()");
@@ -689,6 +698,18 @@ test(() => {
   assert_true(abortedDuringTeardown1, 'should be aborted during teardown callback 1');
   assert_true(abortedDuringTeardown2, 'should be aborted during teardown callback 2');
 }, "Unsubscription lifecycle");
+
+test(t => {
+  let innerSubscriber = null;
+  const source = new Observable(subscriber => {
+    innerSubscriber = subscriber;
+    subscriber.error('calling error()');
+  });
+
+  source.subscribe();
+  assert_equals(innerSubscriber.signal.reason, "calling error()",
+      "Reason is set correctly");
+}, "Subscriber#error() value is stored as Subscriber's AbortSignal's reason");
 
 test(t => {
   const source = new Observable((subscriber) => {

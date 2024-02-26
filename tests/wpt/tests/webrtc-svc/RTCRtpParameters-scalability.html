@@ -78,13 +78,17 @@
     const param = transceiver.sender.getParameters();
     const encoding = param.encodings[0];
     assert_true('scalabilityMode' in encoding);
+
     // If L3T3 is not supported at all, abort test.
     assert_implements_optional(encoding.scalabilityMode === 'L3T3');
-    // Pick a codec known to not have L3T3 support
-    const capabilities = RTCRtpSender.getCapabilities('video');
-    const codec = capabilities.codecs.find(c => c.mimeType === 'video/VP8');
-    assert_true(codec !== undefined);
-    transceiver.setCodecPreferences([codec]);
+
+    pc2.ontrack = e => {
+      // Pick a codec known to not have L3T3 support.
+      const capabilities = RTCRtpReceiver.getCapabilities('video');
+      const codec = capabilities.codecs.find(c => c.mimeType === 'video/VP8');
+      assert_true(codec !== undefined);
+      e.transceiver.setCodecPreferences([codec]);
+    }
     exchangeIceCandidates(pc1, pc2);
     await exchangeOfferAnswer(pc1, pc2);
     const sendParams = pc1.getSenders()[0].getParameters();

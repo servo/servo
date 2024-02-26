@@ -11,6 +11,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::gpu::GPU;
+use crate::dom::navigator::hardware_concurrency;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -109,5 +110,10 @@ impl WorkerNavigatorMethods for WorkerNavigator {
     // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
     fn Gpu(&self) -> DomRoot<GPU> {
         self.gpu.or_init(|| GPU::new(&self.global()))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>
+    fn HardwareConcurrency(&self) -> u64 {
+        hardware_concurrency()
     }
 }

@@ -43,7 +43,6 @@ use std::fmt;
 #[cfg(feature = "gecko")]
 use std::mem::{self, ManuallyDrop};
 use style_traits::ParsingMode;
-#[cfg(feature = "gecko")]
 use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 
 pub use self::container_rule::ContainerRule;
@@ -102,8 +101,36 @@ pub enum CorsMode {
 pub struct UrlExtraData(usize);
 
 /// Extra data that the backend may need to resolve url values.
+#[cfg(feature = "servo")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UrlExtraData(pub Arc<::url::Url>);
+
+#[cfg(feature = "servo")]
+impl UrlExtraData {
+    /// True if this URL scheme is chrome.
+    pub fn chrome_rules_enabled(&self) -> bool {
+        self.0.scheme() == "chrome"
+    }
+
+    /// Get the interior Url as a string.
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+#[cfg(feature = "servo")]
+impl From<::url::Url> for UrlExtraData {
+    fn from(url: ::url::Url) -> Self {
+        Self(Arc::new(url))
+    }
+}
+
 #[cfg(not(feature = "gecko"))]
-pub type UrlExtraData = ::servo_url::ServoUrl;
+impl ToShmem for UrlExtraData {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
+        unimplemented!("If servo wants to share stylesheets across processes, ToShmem for Url must be implemented");
+    }
+}
 
 #[cfg(feature = "gecko")]
 impl Clone for UrlExtraData {

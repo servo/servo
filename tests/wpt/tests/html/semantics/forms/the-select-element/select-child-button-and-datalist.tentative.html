@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<link rel=match href="select-child-button-and-datalist-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<select>
+  <button type=popover>button</button>
+  <datalist>
+    <option>one</option>
+    <option>two</option>
+  </datalist>
+</select>
+
+<script>
+document.querySelector('button').click();
+</script>

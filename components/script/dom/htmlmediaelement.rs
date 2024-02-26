@@ -1998,8 +1998,6 @@ impl Drop for HTMLMediaElement {
                 warn!("GLPlayer disappeared!: {:?}", err);
             }
         }
-
-        self.remove_controls();
     }
 }
 
@@ -2453,6 +2451,8 @@ impl VirtualMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#playing-the-media-resource:remove-an-element-from-a-document
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
+
+        self.remove_controls();
 
         if context.tree_connected {
             let task = MediaElementMicrotask::PauseIfNotInDocumentTask {

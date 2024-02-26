@@ -411,4 +411,18 @@ promise_test(async t => {
   assert_true(pc1.iceStates.length >= 2);
   assert_equals(pc1.iceStates[1], 'checking');
 }, 'iceConnectionState can go to checking without explictly calling addIceCandidate');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  exchangeIceCandidates(pc1, pc2);
+  const transceiver = pc1.addTransceiver('audio', { direction: 'recvonly' });
+  await exchangeOfferAnswer(pc1, pc2);
+  await listenToIceConnected(pc1);
+  expectNoMoreIceConnectionStateChanges(t, pc1);
+  pc1.restartIce();
+  await exchangeOfferAnswer(pc1, pc2);
+  await new Promise(r => t.step_timeout(r, 1000));
+}, 'ICE restart does not result in a transition back to checking');
+
 </script>

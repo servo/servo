@@ -4,7 +4,6 @@
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9025">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 
 <div id=host_plain>
   <template shadowrootmode=open>
@@ -21,7 +20,6 @@
 </div>
 <script>
   test(() => {
-    polyfill_declarative_shadow_dom(host_plain);
     let a = host_plain.shadowRoot.querySelector('.a');
     assert_equals(getComputedStyle(a).zIndex, '1');
   }, '@scope can match :host');
@@ -48,7 +46,6 @@
 </div>
 <script>
   test(() => {
-    polyfill_declarative_shadow_dom(host_functional);
     let a = host_functional.shadowRoot.querySelector('.a');
     assert_equals(getComputedStyle(a).zIndex, '1');
   }, '@scope can match :host(...)');
@@ -69,7 +66,6 @@
 </div>
 <script>
   test(() => {
-    polyfill_declarative_shadow_dom(host_scope_subject);
     assert_equals(getComputedStyle(host_scope_subject).zIndex, '1');
   }, ':scope matches host via the scoping root');
 </script>
@@ -98,7 +94,6 @@
 </div>
 <script>
   test(() => {
-    polyfill_declarative_shadow_dom(host_scope_subject_is);
     let host = host_scope_subject_is.querySelector('.host');
     assert_equals(getComputedStyle(host).zIndex, '1');
     let a = host.shadowRoot.querySelector('.a');
@@ -131,7 +126,6 @@
 </div>
 <script>
   test(() => {
-    polyfill_declarative_shadow_dom(implicit_scope_shadow_parent);
     let host = implicit_scope_shadow_parent.querySelector('.host');
     let a = host.shadowRoot.querySelector('.a');
     assert_equals(getComputedStyle(host).zIndex, '1');
@@ -150,7 +144,6 @@
 </div>
 <script>
   test(() => {
-    polyfill_declarative_shadow_dom(implicit_scope_constructed);
     let host = implicit_scope_constructed.querySelector('.host');
     let sheet = new CSSStyleSheet();
     sheet.replaceSync(`

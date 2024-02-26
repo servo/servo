@@ -213,14 +213,14 @@ def _convert_exception(test, exception, errors):
     """Converts our TimeoutError and CrashError exceptions into test results.
     """
     if isinstance(exception, TimeoutError):
-        return (test.result_cls("EXTERNAL-TIMEOUT", errors), [])
+        return (test.make_result("EXTERNAL-TIMEOUT", errors), [])
     if isinstance(exception, CrashError):
-        return (test.result_cls("CRASH", errors), [])
+        return (test.make_result("CRASH", errors), [])
     if isinstance(exception, LeakError):
         # TODO: the internal error is to force a restart, but it doesn't correctly
         # describe what the issue is. Need to find a way to return a "FAIL",
         # and restart the content_shell after the test run.
-        return (test.result_cls("INTERNAL-ERROR", errors), [])
+        return (test.make_result("INTERNAL-ERROR", errors), [])
     raise exception
 
 
@@ -312,7 +312,7 @@ class ContentShellTestharnessExecutor(TestharnessExecutor, _SanitizerMixin):  # 
                                                                timeout_for_test(self, test))
             errors = self.protocol.content_shell_errors.read_errors()
             if not text:
-                return (test.result_cls("ERROR", errors), [])
+                return (test.make_result("ERROR", errors), [])
 
             result_url, status, message, stack, subtest_results = json.loads(text)
             if result_url != test.url:

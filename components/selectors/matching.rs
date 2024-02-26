@@ -15,8 +15,6 @@ use crate::parser::{
 };
 use crate::tree::Element;
 use bitflags::bitflags;
-use debug_unreachable::debug_unreachable;
-use log::debug;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
 use std::iter;

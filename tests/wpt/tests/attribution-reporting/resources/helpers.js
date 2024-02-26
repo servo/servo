@@ -94,7 +94,6 @@ const getFetchParams = (origin, cookie) => {
   // https://fetch.spec.whatwg.org/#http-cors-protocol
 
   const allowOriginHeader = 'Access-Control-Allow-Origin';
-  const allowHeadersHeader = 'Access-Control-Allow-Headers';
 
   if (cookie) {
     credentials = 'include';
@@ -111,10 +110,6 @@ const getFetchParams = (origin, cookie) => {
       name: allowOriginHeader,
       value: '*',
     });
-    headers.push({
-      name: allowHeadersHeader,
-      value: '*',
-    })
   }
   return {credentials, headers};
 };

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
 use serde::Serialize;
@@ -19,7 +20,9 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{
     AbsoluteBoxOffsets, BoxFragment, CollapsedBlockMargins, Fragment, HoistedSharedFragment,
 };
-use crate::geom::{LengthOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2};
+use crate::geom::{
+    AuOrAuto, LengthOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2,
+};
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 
@@ -173,7 +176,7 @@ impl PositioningContext {
         let start_offset = match &parent_fragment {
             Fragment::Box(b) | Fragment::Float(b) => &b.content_rect.start_corner,
             Fragment::AbsoluteOrFixedPositioned(_) => return,
-            Fragment::Anonymous(a) => &a.rect.start_corner,
+            Fragment::Positioning(a) => &a.rect.start_corner,
             _ => unreachable!(),
         };
         self.adjust_static_position_of_hoisted_fragments_with_offset(start_offset, index);
@@ -253,7 +256,7 @@ impl PositioningContext {
         }
         .inflate(&new_fragment.padding);
         let containing_block = DefiniteContainingBlock {
-            size: padding_rect.size.clone(),
+            size: padding_rect.size.clone().into(),
             style: &new_fragment.style,
         };
 
@@ -499,8 +502,8 @@ impl HoistedAbsolutelyPositionedBox {
 
         let shared_fragment = self.fragment.borrow();
         let inline_axis_solver = AbsoluteAxisSolver {
-            containing_size: cbis,
-            padding_border_sum: pbm.padding_border_sums.inline,
+            containing_size: cbis.into(),
+            padding_border_sum: pbm.padding_border_sums.inline.into(),
             computed_margin_start: pbm.margin.inline_start,
             computed_margin_end: pbm.margin.inline_end,
             avoid_negative_margin_start: true,
@@ -508,8 +511,8 @@ impl HoistedAbsolutelyPositionedBox {
         };
 
         let block_axis_solver = AbsoluteAxisSolver {
-            containing_size: cbbs,
-            padding_border_sum: pbm.padding_border_sums.block,
+            containing_size: cbbs.into(),
+            padding_border_sum: pbm.padding_border_sums.block.into(),
             computed_margin_start: pbm.margin.block_start,
             computed_margin_end: pbm.margin.block_end,
             avoid_negative_margin_start: false,
@@ -557,11 +560,13 @@ impl HoistedAbsolutelyPositionedBox {
                             Anchor::End(end) => end,
                         };
                         let margin_sum = inline_axis.margin_start + inline_axis.margin_end;
-                        let available_size =
-                            cbis - anchor - pbm.padding_border_sums.inline - margin_sum;
+                        let available_size = cbis -
+                            anchor.into() -
+                            pbm.padding_border_sums.inline -
+                            margin_sum.into();
                         non_replaced
                             .inline_content_sizes(layout_context)
-                            .shrink_to_fit(available_size.into())
+                            .shrink_to_fit(available_size)
                             .into()
                     });
 
@@ -599,7 +604,7 @@ impl HoistedAbsolutelyPositionedBox {
                     // percentages may be resolved incorrectly.
                     let mut try_layout = |size| {
                         let containing_block_for_children = ContainingBlock {
-                            inline_size,
+                            inline_size: inline_size.into(),
                             block_size: size,
                             style: &non_replaced.style,
                         };
@@ -621,18 +626,17 @@ impl HoistedAbsolutelyPositionedBox {
                             &mut positioning_context,
                             &containing_block_for_children,
                         );
-                        let block_size =
-                            size.auto_is(|| independent_layout.content_block_size.into());
+                        let block_size = size.auto_is(|| independent_layout.content_block_size);
                         Result {
                             content_size: LogicalVec2 {
                                 inline: inline_size,
-                                block: block_size,
+                                block: block_size.into(),
                             },
                             fragments: independent_layout.fragments,
                         }
                     };
 
-                    let mut result = try_layout(block_axis.size);
+                    let mut result = try_layout(block_axis.size.map(|t| t.into()));
 
                     // If the tentative used block size is greater than ‘max-block-size’,
                     // recalculate the block size and margins with ‘max-block-size’ as the
@@ -643,7 +647,7 @@ impl HoistedAbsolutelyPositionedBox {
                         if result.content_size.block > max {
                             block_axis = block_axis_solver
                                 .solve_for_size(LengthOrAuto::LengthPercentage(max));
-                            result = try_layout(LengthOrAuto::LengthPercentage(max));
+                            result = try_layout(AuOrAuto::LengthPercentage(max.into()));
                         }
                     }
 
@@ -655,7 +659,7 @@ impl HoistedAbsolutelyPositionedBox {
                     if result.content_size.block < min_size.block {
                         block_axis = block_axis_solver
                             .solve_for_size(LengthOrAuto::LengthPercentage(min_size.block));
-                        result = try_layout(LengthOrAuto::LengthPercentage(min_size.block));
+                        result = try_layout(AuOrAuto::LengthPercentage(min_size.block.into()));
                     }
 
                     content_size = result.content_size;
@@ -672,16 +676,22 @@ impl HoistedAbsolutelyPositionedBox {
 
             let pb = &pbm.padding + &pbm.border;
             let inline_start = match inline_axis.anchor {
-                Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
-                Anchor::End(end) => {
-                    cbis - end - pb.inline_end - margin.inline_end - content_size.inline
-                },
+                Anchor::Start(start) => start + pb.inline_start.into() + margin.inline_start,
+                Anchor::End(end) => Length::from(
+                    cbis - end.into() -
+                        pb.inline_end -
+                        margin.inline_end.into() -
+                        content_size.inline.into(),
+                ),
             };
             let block_start = match block_axis.anchor {
-                Anchor::Start(start) => start + pb.block_start + margin.block_start,
-                Anchor::End(end) => {
-                    cbbs - end - pb.block_end - margin.block_end - content_size.block
-                },
+                Anchor::Start(start) => start + pb.block_start.into() + margin.block_start,
+                Anchor::End(end) => Length::from(
+                    cbbs - end.into() -
+                        pb.block_end -
+                        margin.block_end.into() -
+                        content_size.block.into(),
+                ),
             };
 
             let content_rect = LogicalRect {
@@ -700,13 +710,12 @@ impl HoistedAbsolutelyPositionedBox {
                 absolutely_positioned_box.context.style().clone(),
                 fragments,
                 content_rect,
-                pbm.padding,
-                pbm.border,
+                pbm.padding.into(),
+                pbm.border.into(),
                 margin,
                 None, /* clearance */
                 // We do not set the baseline offset, because absolutely positioned
                 // elements are not inflow.
-                None, /* last_inflow_baseline_offset */
                 CollapsedBlockMargins::zero(),
                 physical_overconstrained,
             )
@@ -868,12 +877,12 @@ pub(crate) fn relative_adjustement(
     // positioned, the value computes to 'auto'.""
     // https://www.w3.org/TR/CSS2/visudet.html#the-height-property
     let cbis = containing_block.inline_size;
-    let cbbs = containing_block.block_size.auto_is(Length::zero);
+    let cbbs = containing_block.block_size.auto_is(Au::zero);
     let box_offsets = style
         .box_offsets(containing_block)
         .map_inline_and_block_axes(
-            |v| v.percentage_relative_to(cbis),
-            |v| v.percentage_relative_to(cbbs),
+            |v| v.percentage_relative_to(cbis.into()),
+            |v| v.percentage_relative_to(cbbs.into()),
         );
     fn adjust(start: LengthOrAuto, end: LengthOrAuto) -> Length {
         match (start, end) {

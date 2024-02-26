@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+// In order to enable `requestStorageAccess` in a third-party context for some
+// origin we must first act in a window where that same origin is the top-frame
+// due to the following requirements:
+// (1) The origin must be `bless`ed when it's in the top-frame
+// (2) `set_permission` always operates on the top-frame origin
+test_driver.set_test_context(window.opener.top);
+test_driver.bless("fake interaction", () => {}, window);
+test_driver.set_permission({ name: 'storage-access' }, 'granted');
+window.opener.postMessage("blessed", "*");
+</script>
+</body>

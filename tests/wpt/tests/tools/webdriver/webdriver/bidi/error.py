@@ -95,6 +95,10 @@ class UnableToSetCookieException(BidiException):
     error_code = "unable to set cookie"
 
 
+class UnableToSetFileInputException(BidiException):
+    error_code = "unable to set file input"
+
+
 class UnderspecifiedStoragePartitionException(BidiException):
     error_code = "underspecified storage partition"
 

@@ -153,10 +153,7 @@ impl<T> SelectorMap<T> {
             namespace_hash: HashMap::default(),
             rare_pseudo_classes: SmallVec::new(),
             other: SmallVec::new(),
-            #[cfg(feature = "gecko")]
             bucket_attributes: static_prefs::pref!("layout.css.bucket-attribute-names.enabled"),
-            #[cfg(feature = "servo")]
-            bucket_attributes: false,
             count: 0,
         }
     }

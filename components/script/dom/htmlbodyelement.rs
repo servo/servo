@@ -87,8 +87,10 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     fn SetBackground(&self, input: DOMString) {
-        let value =
-            AttrValue::from_resolved_url(&document_from_node(self).base_url(), input.into());
+        let value = AttrValue::from_resolved_url(
+            &document_from_node(self).base_url().get_arc(),
+            input.into(),
+        );
         self.upcast::<Element>()
             .set_attribute(&local_name!("background"), value);
     }
@@ -123,6 +125,7 @@ impl HTMLBodyElementLayoutHelpers for LayoutDom<'_, HTMLBodyElement> {
             .get_attr_for_layout(&ns!(), &local_name!("background"))
             .and_then(AttrValue::as_resolved_url)
             .cloned()
+            .map(Into::into)
     }
 }
 
@@ -164,9 +167,10 @@ impl VirtualMethods for HTMLBodyElement {
             local_name!("bgcolor") | local_name!("text") => {
                 AttrValue::from_legacy_color(value.into())
             },
-            local_name!("background") => {
-                AttrValue::from_resolved_url(&document_from_node(self).base_url(), value.into())
-            },
+            local_name!("background") => AttrValue::from_resolved_url(
+                &document_from_node(self).base_url().get_arc(),
+                value.into(),
+            ),
             _ => self
                 .super_type()
                 .unwrap()

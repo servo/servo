@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <style>
+      .scroller {
+        overflow: scroll;
+        width: 350px;
+        height: 350px;
+        border: solid 1px black;
+        scroll-snap-type: y mandatory;
+        position: relative;
+        resize: both;
+      }
+      .large-space {
+        height: 300vh;
+        width: 300vw;
+        position: absolute;
+      }
+      .snap {
+        scroll-snap-align: start;
+      }
+      .box {
+        width: 100px;
+        height: 100px;
+        background-color: green;
+        display: inline-block;
+        position: relative;
+      }
+      .grid {
+        position: absolute;
+        width: 350px;
+        height: 350px;
+      }
+      .snap:target {
+        background-color: blue;
+      }
+    </style>
+    <div class="scroller" id="scroller">
+      <div class="large-space"></div>
+      <div class="grid" id="grid">
+        <div id="box1" class="snap box">Box 1</div>
+        <div id="box2" class="snap box">Box 2</div>
+        <div id="box3" class="snap box">Box 3</div>
+        <div id="box4" class="snap box">Box 4</div>
+        <div id="box5" class="snap box">Box 5</div>
+        <div id="box6" class="snap box">Box 6</div>
+        <div id="box7" class="snap box">Box 7</div>
+        <div id="box8" class="snap box">Box 8</div>
+        <div id="box9" class="snap box">Box 9</div>
+      </div>
+    </div>
+  </body>
+</html>

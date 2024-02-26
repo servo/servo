@@ -12,9 +12,7 @@ jobs:
     name: Upload docs to GitHub Pages
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
+      - uses: actions/checkout@v4
       - name: Bootstrap
         run: |
           python3 -m pip install --upgrade pip

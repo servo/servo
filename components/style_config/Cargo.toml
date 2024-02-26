@@ -1,0 +1,14 @@
+[package]
+name = "style_config"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "style_config"
+path = "lib.rs"
+
+[dependencies]
+lazy_static = { workspace = true }

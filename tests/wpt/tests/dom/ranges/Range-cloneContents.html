@@ -48,7 +48,7 @@ function myCloneContents(range) {
   // "If original start node and original end node are the same, and they are
   // a Text, ProcessingInstruction, or Comment node:"
   if (range.startContainer == range.endContainer
-  && (range.startContainer.nodeType == Node.TEXT_NODE
+  && (isText(range.startContainer)
   || range.startContainer.nodeType == Node.COMMENT_NODE
   || range.startContainer.nodeType == Node.PROCESSING_INSTRUCTION_NODE)) {
     // "Let clone be the result of calling cloneNode(false) on original
@@ -133,7 +133,7 @@ function myCloneContents(range) {
 
   // "If first partially contained child is a Text, ProcessingInstruction, or Comment node:"
   if (firstPartiallyContainedChild
-  && (firstPartiallyContainedChild.nodeType == Node.TEXT_NODE
+  && (isText(firstPartiallyContainedChild)
   || firstPartiallyContainedChild.nodeType == Node.COMMENT_NODE
   || firstPartiallyContainedChild.nodeType == Node.PROCESSING_INSTRUCTION_NODE)) {
     // "Let clone be the result of calling cloneNode(false) on original
@@ -189,7 +189,7 @@ function myCloneContents(range) {
 
   // "If last partially contained child is a Text, ProcessingInstruction, or Comment node:"
   if (lastPartiallyContainedChild
-  && (lastPartiallyContainedChild.nodeType == Node.TEXT_NODE
+  && (isText(lastPartiallyContainedChild)
   || lastPartiallyContainedChild.nodeType == Node.COMMENT_NODE
   || lastPartiallyContainedChild.nodeType == Node.PROCESSING_INSTRUCTION_NODE)) {
     // "Let clone be the result of calling cloneNode(false) on original

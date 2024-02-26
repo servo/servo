@@ -259,6 +259,6 @@ interface ImageData {
 
   readonly attribute unsigned long width;
   readonly attribute unsigned long height;
-  readonly attribute Uint8ClampedArray data;
+  [Throws] readonly attribute Uint8ClampedArray data;
   //readonly attribute PredefinedColorSpace colorSpace;
 };

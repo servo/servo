@@ -515,6 +515,8 @@ macro_rules! window_event_handlers(
         event_handler!(unhandledrejection, GetOnunhandledrejection,
                        SetOnunhandledrejection);
         event_handler!(unload, GetOnunload, SetOnunload);
+        event_handler!(gamepadconnected, GetOngamepadconnected, SetOngamepadconnected);
+        event_handler!(gamepaddisconnected, GetOngamepaddisconnected, SetOngamepaddisconnected);
     );
     (ForwardToWindow) => (
         window_owned_event_handler!(afterprint, GetOnafterprint,
@@ -541,6 +543,8 @@ macro_rules! window_event_handlers(
         window_owned_event_handler!(unhandledrejection, GetOnunhandledrejection,
                                     SetOnunhandledrejection);
         window_owned_event_handler!(unload, GetOnunload, SetOnunload);
+        window_owned_event_handler!(gamepadconnected, GetOngamepadconnected, SetOngamepadconnected);
+        window_owned_event_handler!(gamepaddisconnected, GetOngamepaddisconnected, SetOngamepaddisconnected);
     );
 );
 

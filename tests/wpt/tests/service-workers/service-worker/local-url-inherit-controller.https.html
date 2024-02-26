@@ -81,6 +81,24 @@ promise_test(function(t) {
 
 promise_test(function(t) {
   return doAsyncTest(t, {
+    scheme: 'blob',
+    child: 'sharedworker',
+    check: 'controller',
+    expect: 'inherit',
+  });
+}, 'Same-origin blob URL sharedworker should inherit service worker controller.');
+
+promise_test(function(t) {
+  return doAsyncTest(t, {
+    scheme: 'blob',
+    child: 'sharedworker',
+    check: 'fetch',
+    expect: 'intercept',
+  });
+}, 'Same-origin blob URL sharedworker should intercept fetch().');
+
+promise_test(function(t) {
+  return doAsyncTest(t, {
     scheme: 'data',
     child: 'iframe',
     check: 'fetch',

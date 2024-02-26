@@ -5,7 +5,6 @@
 <link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
 <link rel="match" href="nth-last-child-of-in-shadow-root-ref.html">
 <link rel="help" href="https://drafts.csswg.org/selectors-4/#child-index">
-<script src="/resources/declarative-shadow-dom-polyfill.js"></script>
 <div id="host">
   <template shadowrootmode="open">
     <style>
@@ -19,7 +18,6 @@
   </template>
 </div>
 <script>
-  polyfill_declarative_shadow_dom(host);
   host.offsetTop;
   host.shadowRoot.getElementById("toggler").classList.toggle("foo");
 </script>

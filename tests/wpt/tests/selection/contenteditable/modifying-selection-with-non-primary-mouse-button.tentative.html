@@ -128,6 +128,11 @@ promise_test(async () => {
   resetEditor();
   editor.focus();
   selection.collapse(span1.firstChild, 2);
+  let contextmenuFired = false;
+  function onContextMenu() {
+    contextmenuFired = true;
+  }
+  document.addEventListener("contextmenu", onContextMenu, {capture: true});
   let actions = new test_driver.Actions();
   await actions
     .pointerMove(0, 0)
@@ -137,13 +142,26 @@ promise_test(async () => {
     .pointerUp({button: getButtonType(actions)})
     .keyUp("\uE008")
     .send();
+  document.removeEventListener("contextmenu", onContextMenu, {capture: true});
 
-  assert_equals(selection.anchorNode, span1.firstChild,
-    "Selection#anchorNode should keep in the first <span> element");
-  assert_equals(selection.anchorOffset, 2,
-    "Selection#anchorNode should keep at 2 of the first <span> element");
-  assert_equals(selection.focusNode, span2.firstChild,
-    `Selection#focusNode should be in the second <span> element which was clicked by ${button} button`);
+  if (button != "secondary" || contextmenuFired) {
+    assert_equals(selection.anchorNode, span1.firstChild,
+      "Selection#anchorNode should keep in the first <span> element");
+    assert_equals(selection.anchorOffset, 2,
+      "Selection#anchorNode should keep at 2 of the first <span> element");
+    assert_equals(selection.focusNode, span2.firstChild,
+      `Selection#focusNode should be in the second <span> element which was clicked by ${button} button`);
+  } else {
+    // Special case for Firefox.  Firefox users can forcibly open context menu
+    // with pressing shift key.  In this case, users may want the secondary
+    // button click to work as without Shift key press.
+    assert_true(selection.isCollapsed,
+      `Selection should be collapsed after ${button} button click because contextmenu was not opened with Shift key`);
+    assert_equals(selection.focusNode, span2.firstChild,
+      `Selection should be collapsed in the second <span> element which was clicked by ${
+        button
+      } button because contextmenu was not opened with Shift key`);
+  }
 }, `Shift + ${button} click should extend the selection`);
 
 promise_test(async () => {

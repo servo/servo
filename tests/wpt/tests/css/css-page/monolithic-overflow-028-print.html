@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/41496759">
+<link rel="match" href="monolithic-overflow-028-print-ref.html">
+<style>
+  body {
+    color: white;
+    margin: 0;
+  }
+</style>
+<div style="position:absolute; overflow-y:clip; width:100%; contain:size; height:8in; background:red;">
+  <div style="height:23in; background:green;">
+    There should be four green pages.
+  </div>
+</div>
