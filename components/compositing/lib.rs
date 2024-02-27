@@ -18,6 +18,7 @@ pub use crate::compositor::{CompositeTarget, IOCompositor, ShutdownState};
 mod compositor;
 mod gl;
 mod touch;
+mod webview;
 pub mod windowing;
 
 /// Data used to construct a compositor.

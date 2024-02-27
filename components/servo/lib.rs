@@ -226,6 +226,21 @@ pub struct InitializedServo<Window: WindowMethods + 'static + ?Sized> {
     pub browser_id: TopLevelBrowsingContextId,
 }
 
+/// Utility to help forward embedder event to constellation.
+macro_rules! forward_to_constellation {
+    ($self:ident, $variant:ident $(($($rest:tt),*))?) => {
+        {
+            let msg = ConstellationMsg::$variant$(($($rest),*))?;
+            if let Err(e) = $self.constellation_chan.send(msg) {
+                warn!(
+                    "Sending {} message to constellation failed ({:?}).",
+                    stringify!($variant), e,
+                );
+            }
+        }
+    };
+}
+
 impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
@@ -599,7 +614,7 @@ where
                 self.compositor.composite();
             },
 
-            EmbedderEvent::Resize => {
+            EmbedderEvent::WindowResize => {
                 return self.compositor.on_resize_window_event();
             },
             EmbedderEvent::InvalidateNativeSurface => {
@@ -762,6 +777,21 @@ where
                 }
             },
 
+            EmbedderEvent::MoveResizeWebView(top_level_browsing_context_id, rect) => {
+                self.compositor
+                    .move_resize_webview(top_level_browsing_context_id, rect);
+            },
+            EmbedderEvent::ShowWebView(top_level_browsing_context_id) => {
+                forward_to_constellation!(self, ShowWebView(top_level_browsing_context_id))
+            },
+            EmbedderEvent::HideWebView(top_level_browsing_context_id) => {
+                forward_to_constellation!(self, HideWebView(top_level_browsing_context_id))
+            },
+            EmbedderEvent::RaiseWebViewToTop(top_level_browsing_context_id) => {
+                forward_to_constellation!(self, RaiseWebViewToTop(top_level_browsing_context_id))
+            },
+            EmbedderEvent::BlurWebView => forward_to_constellation!(self, BlurWebView),
+
             EmbedderEvent::SendError(top_level_browsing_context_id, e) => {
                 let msg = ConstellationMsg::SendError(top_level_browsing_context_id, e);
                 if let Err(e) = self.constellation_chan.send(msg) {
@@ -883,13 +913,9 @@ where
         self.compositor.present();
     }
 
-    pub fn recomposite(&mut self) {
-        self.compositor.composite();
-    }
-
     /// Return the OpenGL framebuffer name of the most-recently-completed frame when compositing to
     /// [`CompositeTarget::Fbo`], or None otherwise.
-    pub fn offscreen_framebuffer_id(&self) -> Option<u32> {
+    pub fn output_framebuffer_id(&self) -> Option<gl::GLuint> {
         self.compositor.offscreen_framebuffer_id()
     }
 }

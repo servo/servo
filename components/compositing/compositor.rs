@@ -46,7 +46,7 @@ use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use webrender;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutRect, LayoutSize,
+    DeviceIntPoint, DeviceIntSize, DevicePoint, DeviceRect, LayoutPoint, LayoutRect, LayoutSize,
     LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
@@ -58,6 +58,7 @@ use webrender_api::{
 
 use crate::gl::RenderTargetInfo;
 use crate::touch::{TouchAction, TouchHandler};
+use crate::webview::WebViewManager;
 use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
 };
@@ -133,7 +134,11 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// The root content pipeline ie the pipeline which contains the main frame
     /// to display. In the WebRender scene, this will be the only child of another
     /// pipeline which applies a pinch zoom transformation.
+    #[deprecated]
     root_content_pipeline: RootPipeline,
+
+    /// Our top-level browsing contexts.
+    webviews: WebViewManager<WebView>,
 
     /// Tracks details about each active pipeline that the compositor knows about.
     pipeline_details: HashMap<PipelineId, PipelineDetails>,
@@ -289,6 +294,9 @@ struct PipelineDetails {
     /// The pipeline associated with this PipelineDetails object.
     pipeline: Option<CompositionPipeline>,
 
+    /// The id of the parent pipeline, if any.
+    parent_pipeline_id: Option<PipelineId>,
+
     /// The epoch of the most recent display list for this pipeline. Note that this display
     /// list might not be displayed, as WebRender processes display lists asynchronously.
     most_recent_display_list_epoch: Option<WebRenderEpoch>,
@@ -315,6 +323,7 @@ impl PipelineDetails {
     fn new() -> PipelineDetails {
         PipelineDetails {
             pipeline: None,
+            parent_pipeline_id: None,
             most_recent_display_list_epoch: None,
             animations_running: false,
             animation_callbacks_running: false,
@@ -364,6 +373,12 @@ pub enum CompositeTarget {
     PngFile(Rc<String>),
 }
 
+#[derive(Debug)]
+pub struct WebView {
+    pub pipeline_id: Option<PipelineId>,
+    pub rect: DeviceRect,
+}
+
 impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn new(
         window: Rc<Window>,
@@ -374,6 +389,17 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         convert_mouse_to_touch: bool,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) -> Self {
+        let embedder_coordinates = window.get_coordinates();
+        let mut webviews = WebViewManager::default();
+        webviews.add(
+            top_level_browsing_context_id,
+            WebView {
+                pipeline_id: None,
+                rect: embedder_coordinates.get_viewport().to_f32(),
+            },
+        );
+        webviews.show(top_level_browsing_context_id);
+
         IOCompositor {
             embedder_coordinates: window.get_coordinates(),
             window,
@@ -382,6 +408,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 top_level_browsing_context_id,
                 id: None,
             },
+            webviews,
             pipeline_details: HashMap::new(),
             scale: Scale::new(1.0),
             composition_request: CompositionRequest::NoCompositingNecessary,
@@ -547,9 +574,71 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.change_running_animations_state(pipeline_id, animation_state);
             },
 
-            (CompositorMsg::SetFrameTree(frame_tree), ShutdownState::NotShuttingDown) => {
-                self.set_frame_tree(&frame_tree);
+            (CompositorMsg::UpdateWebView(frame_tree), ShutdownState::NotShuttingDown) => {
+                self.update_browser(&frame_tree);
                 self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
+            },
+
+            (
+                CompositorMsg::RemoveWebView(top_level_browsing_context_id),
+                ShutdownState::NotShuttingDown,
+            ) => {
+                self.remove_webview(top_level_browsing_context_id);
+
+                let painting_order = self.webviews.painting_order().map(|(&id, _)| id).collect();
+                let msg = ConstellationMsg::WebViewPaintingOrder(painting_order);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({:?}).", e);
+                }
+            },
+
+            (
+                CompositorMsg::MoveResizeWebView(top_level_browsing_context_id, rect),
+                ShutdownState::NotShuttingDown,
+            ) => {
+                self.move_resize_webview(top_level_browsing_context_id, rect);
+            },
+
+            (
+                CompositorMsg::ShowWebView(top_level_browsing_context_id),
+                ShutdownState::NotShuttingDown,
+            ) => {
+                self.webviews.show(top_level_browsing_context_id);
+                self.update_root_pipeline();
+
+                let painting_order = self.webviews.painting_order().map(|(&id, _)| id).collect();
+                let msg = ConstellationMsg::WebViewPaintingOrder(painting_order);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({:?}).", e);
+                }
+            },
+
+            (
+                CompositorMsg::HideWebView(top_level_browsing_context_id),
+                ShutdownState::NotShuttingDown,
+            ) => {
+                self.webviews.hide(top_level_browsing_context_id);
+                self.update_root_pipeline();
+
+                let painting_order = self.webviews.painting_order().map(|(&id, _)| id).collect();
+                let msg = ConstellationMsg::WebViewPaintingOrder(painting_order);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({:?}).", e);
+                }
+            },
+
+            (
+                CompositorMsg::RaiseWebViewToTop(top_level_browsing_context_id),
+                ShutdownState::NotShuttingDown,
+            ) => {
+                self.webviews.raise_to_top(top_level_browsing_context_id);
+                self.update_root_pipeline();
+
+                let painting_order = self.webviews.painting_order().map(|(&id, _)| id).collect();
+                let msg = ConstellationMsg::WebViewPaintingOrder(painting_order);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending event to constellation failed ({:?}).", e);
+                }
             },
 
             (CompositorMsg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
@@ -935,20 +1024,34 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    /// Set the root pipeline for our WebRender scene. If there is no pinch zoom applied,
-    /// the root pipeline is the root content pipeline. If there is pinch zoom, the root
-    /// content pipeline is wrapped in a display list that applies a pinch zoom
-    /// transformation to it.
-    fn set_root_content_pipeline_handling_pinch_zoom(&self, transaction: &mut Transaction) {
-        let root_content_pipeline = match self.root_content_pipeline.id {
-            Some(id) => id.to_webrender(),
-            None => return,
-        };
+    /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
+    /// for each visible top-level browsing context, applying the pinch zoom transformation if any.
+    fn update_root_pipeline(&mut self) {
+        let mut txn = Transaction::new();
+        self.update_root_pipeline_with_txn(&mut txn);
+        txn.generate_frame(0);
+        self.webrender_api
+            .send_transaction(self.webrender_document, txn);
+    }
 
+    /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
+    /// for each visible top-level browsing context, applying the pinch zoom transformation if any.
+    fn update_root_pipeline_with_txn(&self, transaction: &mut Transaction) {
         let zoom_factor = self.pinch_zoom_level();
-        if zoom_factor == 1.0 {
-            transaction.set_root_pipeline(root_content_pipeline);
-            return;
+
+        if !cfg!(feature = "multiview") {
+            if self.root_content_pipeline.id.is_none() {
+                return;
+            }
+            if zoom_factor == 1.0 {
+                let root_content_pipeline = self
+                    .root_content_pipeline
+                    .id
+                    .expect("checked above")
+                    .to_webrender();
+                transaction.set_root_pipeline(root_content_pipeline);
+                return;
+            }
         }
 
         // Every display list needs a pipeline, but we'd like to choose one that is unlikely
@@ -958,11 +1061,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         transaction.set_root_pipeline(root_pipeline);
 
         let mut builder = webrender_api::DisplayListBuilder::new(root_pipeline);
-        let viewport_size = LayoutSize::new(
-            self.embedder_coordinates.get_viewport().width() as f32,
-            self.embedder_coordinates.get_viewport().height() as f32,
-        );
-        let viewport_rect = LayoutRect::new(LayoutPoint::zero(), viewport_size);
         let zoom_reference_frame = builder.push_reference_frame(
             LayoutPoint::zero(),
             SpatialId::root_reference_frame(root_pipeline),
@@ -974,51 +1072,163 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
         );
 
-        builder.push_iframe(
-            viewport_rect,
-            viewport_rect,
-            &SpaceAndClipInfo {
-                spatial_id: zoom_reference_frame,
-                clip_id: ClipId::root(root_pipeline),
-            },
-            root_content_pipeline,
-            true,
-        );
+        let viewport_size = if cfg!(feature = "multiview") {
+            let dppx = self.page_zoom * self.hidpi_factor();
+            let viewport_size = self.embedder_coordinates.get_viewport().size.to_f32() / dppx;
+            let viewport_size = LayoutSize::from_untyped(viewport_size.to_untyped());
+            for (_, browser) in self.webviews.painting_order() {
+                if let Some(pipeline_id) = browser.pipeline_id {
+                    let rect = browser.rect / dppx;
+                    builder.push_iframe(
+                        LayoutRect::from_untyped(&rect.to_untyped()),
+                        LayoutRect::from_untyped(&rect.to_untyped()),
+                        &SpaceAndClipInfo {
+                            spatial_id: zoom_reference_frame,
+                            clip_id: ClipId::root(pipeline_id.to_webrender()),
+                        },
+                        pipeline_id.to_webrender(),
+                        true,
+                    );
+                }
+            }
+            viewport_size
+        } else {
+            let root_content_pipeline = self
+                .root_content_pipeline
+                .id
+                .expect("checked above")
+                .to_webrender();
+            let viewport_size = LayoutSize::new(
+                self.embedder_coordinates.get_viewport().width() as f32,
+                self.embedder_coordinates.get_viewport().height() as f32,
+            );
+            let viewport_rect = LayoutRect::new(LayoutPoint::zero(), viewport_size);
+            builder.push_iframe(
+                viewport_rect,
+                viewport_rect,
+                &SpaceAndClipInfo {
+                    spatial_id: zoom_reference_frame,
+                    clip_id: ClipId::root(root_pipeline),
+                },
+                root_content_pipeline,
+                true,
+            );
+            viewport_size
+        };
+
         let built_display_list = builder.finalize();
 
         // NB: We are always passing 0 as the epoch here, but this doesn't seem to
         // be an issue. WebRender will still update the scene and generate a new
         // frame even though the epoch hasn't changed.
+        let viewport_size = LayoutSize::from_untyped(viewport_size.to_untyped());
         transaction.set_display_list(
             WebRenderEpoch(0),
             None,
-            viewport_rect.size,
+            viewport_size,
             built_display_list,
             false,
         );
     }
 
-    fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
-        debug!(
-            "Setting the frame tree for pipeline {:?}",
-            frame_tree.pipeline.id
-        );
+    fn update_browser(&mut self, frame_tree: &SendableFrameTree) {
+        debug!("{}: Updating browser", frame_tree.pipeline.id);
 
-        self.root_content_pipeline = RootPipeline {
-            top_level_browsing_context_id: frame_tree.pipeline.top_level_browsing_context_id,
-            id: Some(frame_tree.pipeline.id),
-        };
+        if !cfg!(feature = "multiview") {
+            self.root_content_pipeline = RootPipeline {
+                top_level_browsing_context_id: frame_tree.pipeline.top_level_browsing_context_id,
+                id: Some(frame_tree.pipeline.id),
+            };
+        }
 
-        let mut txn = Transaction::new();
-        self.set_root_content_pipeline_handling_pinch_zoom(&mut txn);
-        txn.generate_frame(0);
-        self.webrender_api
-            .send_transaction(self.webrender_document, txn);
+        let top_level_browsing_context_id = frame_tree.pipeline.top_level_browsing_context_id;
+        if let Some(browser) = self.webviews.get_mut(top_level_browsing_context_id) {
+            let new_pipeline_id = Some(frame_tree.pipeline.id);
+            if new_pipeline_id != browser.pipeline_id {
+                debug!(
+                    "{:?}: Updating browser from pipeline {:?} to {:?}",
+                    top_level_browsing_context_id, browser.pipeline_id, new_pipeline_id
+                );
+            }
+            browser.pipeline_id = new_pipeline_id;
+        } else {
+            let top_level_browsing_context_id = frame_tree.pipeline.top_level_browsing_context_id;
+            let pipeline_id = Some(frame_tree.pipeline.id);
+            debug!(
+                "{:?}: Creating new browser with pipeline {:?}",
+                top_level_browsing_context_id, pipeline_id
+            );
+            self.webviews.add(
+                top_level_browsing_context_id,
+                WebView {
+                    pipeline_id,
+                    rect: self.embedder_coordinates.get_viewport().to_f32(),
+                },
+            );
+        }
 
-        self.create_pipeline_details_for_frame_tree(&frame_tree);
+        if !cfg!(feature = "multiview") {
+            let browser_ids = self
+                .webviews
+                .painting_order()
+                .map(|(&id, _)| id)
+                .collect::<Vec<_>>();
+            for browser_id in browser_ids {
+                if browser_id != top_level_browsing_context_id {
+                    self.webviews.hide(browser_id);
+                }
+            }
+            self.webviews.raise_to_top(top_level_browsing_context_id);
+        }
+
+        self.update_root_pipeline();
+        self.update_pipeline_details_tree(&frame_tree, None);
         self.reset_scroll_tree_for_unattached_pipelines(&frame_tree);
 
         self.frame_tree_id.next();
+    }
+
+    fn remove_webview(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+        debug!("{}: Removing", top_level_browsing_context_id);
+        let Some(browser) = self.webviews.remove(top_level_browsing_context_id)
+            else { return };
+
+        self.update_root_pipeline();
+        if let Some(pipeline_id) = browser.pipeline_id {
+            self.remove_pipeline_details_tree(pipeline_id);
+        }
+
+        self.frame_tree_id.next();
+    }
+
+    pub fn move_resize_webview(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        rect: DeviceRect,
+    ) {
+        let dppx = self.page_zoom * self.hidpi_factor();
+        if let Some(webview) = self.webviews.get_mut(top_level_browsing_context_id) {
+            let initial_viewport = rect.size.to_f32() / dppx;
+            let data = WindowSizeData {
+                device_pixel_ratio: dppx,
+                initial_viewport,
+            };
+            if rect.size != webview.rect.size {
+                let size_type = WindowSizeType::Resize; // FIXME always this value in practice
+                let msg =
+                    ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending window resize to constellation failed ({:?}).", e);
+                }
+            }
+            webview.rect = rect;
+            self.update_root_pipeline();
+        } else {
+            warn!(
+                "{}: MoveResizeBrowser on unknown top-level browsing context",
+                top_level_browsing_context_id
+            );
+        }
     }
 
     fn reset_scroll_tree_for_unattached_pipelines(&mut self, frame_tree: &SendableFrameTree) {
@@ -1048,11 +1258,35 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             })
     }
 
-    fn create_pipeline_details_for_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
-        self.pipeline_details(frame_tree.pipeline.id).pipeline = Some(frame_tree.pipeline.clone());
+    fn update_pipeline_details_tree(
+        &mut self,
+        frame_tree: &SendableFrameTree,
+        parent_pipeline_id: Option<PipelineId>,
+    ) {
+        let pipeline_id = frame_tree.pipeline.id;
+        let pipeline_details = self.pipeline_details(pipeline_id);
+        pipeline_details.pipeline = Some(frame_tree.pipeline.clone());
+        pipeline_details.parent_pipeline_id = parent_pipeline_id;
 
         for kid in &frame_tree.children {
-            self.create_pipeline_details_for_frame_tree(kid);
+            self.update_pipeline_details_tree(kid, Some(pipeline_id));
+        }
+    }
+
+    fn remove_pipeline_details_tree(&mut self, pipeline_id: PipelineId) {
+        self.pipeline_details.remove(&pipeline_id);
+
+        let children = self
+            .pipeline_details
+            .iter()
+            .filter(|(_, pipeline_details)| {
+                pipeline_details.parent_pipeline_id == Some(pipeline_id)
+            })
+            .map(|(&pipeline_id, _)| pipeline_id)
+            .collect::<Vec<_>>();
+
+        for kid in children {
+            self.remove_pipeline_details_tree(kid);
         }
     }
 
@@ -1060,16 +1294,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.pipeline_details.remove(&pipeline_id);
     }
 
+    #[deprecated]
     fn send_window_size(&mut self, size_type: WindowSizeType) {
-        let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
+        self.update_webrender_document_view();
 
-        let mut transaction = Transaction::new();
-        transaction.set_document_view(
-            self.embedder_coordinates.get_viewport(),
-            self.embedder_coordinates.hidpi_factor.get(),
-        );
-        self.webrender_api
-            .send_transaction(self.webrender_document, transaction);
+        let dppx = self.page_zoom * self.embedder_coordinates.hidpi_factor;
 
         let initial_viewport = self.embedder_coordinates.viewport.size.to_f32() / dppx;
 
@@ -1086,6 +1315,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending window resize to constellation failed ({:?}).", e);
         }
+    }
+
+    fn update_webrender_document_view(&mut self) {
+        let mut transaction = Transaction::new();
+        transaction.set_document_view(
+            self.embedder_coordinates.get_viewport(),
+            self.embedder_coordinates.hidpi_factor.get(),
+        );
+        self.webrender_api
+            .send_transaction(self.webrender_document, transaction);
     }
 
     pub fn on_resize_window_event(&mut self) -> bool {
@@ -1110,7 +1349,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             return false;
         }
 
-        self.send_window_size(WindowSizeType::Resize);
+        if cfg!(feature = "multiview") {
+            self.update_webrender_document_view();
+        } else {
+            self.send_window_size(WindowSizeType::Resize);
+        }
         self.composite_if_necessary(CompositingReason::Resize);
         return true;
     }
@@ -1135,9 +1378,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             MouseWindowEvent::MouseUp(_, p) => p,
         };
 
-        let result = match self.hit_test_at_device_point(point) {
-            Some(result) => result,
-            None => return,
+        let Some(result) = self.hit_test_at_device_point(point) else {
+            // TODO notify embedder?
+            // let msg = ConstellationMsg::UnconsumedEvent(...);
+            return;
         };
 
         let (button, event_type) = match mouse_window_event {
@@ -1181,12 +1425,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         flags: HitTestFlags,
         pipeline_id: Option<WebRenderPipelineId>,
     ) -> Vec<CompositorHitTestResult> {
-        let root_pipeline_id = match self.root_content_pipeline.id {
-            Some(root_pipeline_id) => root_pipeline_id,
-            None => return vec![],
-        };
-        if self.pipeline(root_pipeline_id).is_none() {
-            return vec![];
+        if !cfg!(feature = "multiview") {
+            let root_pipeline_id = match self.root_content_pipeline.id {
+                Some(root_pipeline_id) => root_pipeline_id,
+                None => return vec![],
+            };
+            if self.pipeline(root_pipeline_id).is_none() {
+                return vec![];
+            }
         }
         let results =
             self.webrender_api
@@ -1442,7 +1688,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         let mut transaction = Transaction::new();
         if zoom_changed {
-            self.set_root_content_pipeline_handling_pinch_zoom(&mut transaction);
+            self.update_root_pipeline_with_txn(&mut transaction);
         }
 
         if let Some((pipeline_id, external_id, offset)) = scroll_result {
@@ -1555,7 +1801,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     pub fn on_zoom_reset_window_event(&mut self) {
         self.page_zoom = Scale::new(1.0);
         self.update_zoom_transform();
-        self.send_window_size(WindowSizeType::Resize);
+        if cfg!(feature = "multiview") {
+            self.update_webrender_document_view();
+        } else {
+            self.send_window_size(WindowSizeType::Resize);
+        }
         self.update_page_zoom_for_webrender();
     }
 
@@ -1566,7 +1816,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 .min(MAX_ZOOM),
         );
         self.update_zoom_transform();
-        self.send_window_size(WindowSizeType::Resize);
+        if cfg!(feature = "multiview") {
+            self.update_webrender_document_view();
+        } else {
+            self.send_window_size(WindowSizeType::Resize);
+        }
         self.update_page_zoom_for_webrender();
     }
 
@@ -1715,7 +1969,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
         if self.waiting_on_present {
-            debug!("tried to composite while waiting on present");
+            trace!("tried to composite while waiting on present");
             return Err(UnableToComposite::NotReadyToPaintImage(
                 NotReadyToPaint::WaitingOnConstellation,
             ));
@@ -1813,6 +2067,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     // and check if it is the one layout is expecting,
                     let epoch = Epoch(epoch);
                     if *pending_epoch != epoch {
+                        warn!(
+                            "{}: paint metrics: pending {:?} should be {:?}",
+                            id, pending_epoch, epoch
+                        );
                         continue;
                     }
                     // in which case, we remove it from the list of pending metrics,
@@ -1917,14 +2175,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
         };
 
-        // Nottify embedder that servo is ready to present.
+        // Notify embedder that servo is ready to present.
         // Embedder should call `present` to tell compositor to continue rendering.
         self.waiting_on_present = true;
-        let msg = ConstellationMsg::ReadyToPresent(
-            self.root_content_pipeline.top_level_browsing_context_id,
-        );
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending event to constellation failed ({:?}).", e);
+        for (&top_level_browsing_context_id, _) in self.webviews.painting_order() {
+            let msg = ConstellationMsg::ReadyToPresent(top_level_browsing_context_id);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending event to constellation failed ({:?}).", e);
+            }
         }
 
         self.composition_request = CompositionRequest::NoCompositingNecessary;
@@ -1969,14 +2227,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.assert_gl_framebuffer_complete();
 
         // Set the viewport background based on prefs.
-        let viewport = self.embedder_coordinates.get_flipped_viewport();
-        gl.scissor(
-            viewport.origin.x,
-            viewport.origin.y,
-            viewport.size.width,
-            viewport.size.height,
-        );
-
         let color = servo_config::pref!(shell.background_color.rgba);
         gl.clear_color(
             color[0] as f32,
@@ -1984,9 +2234,23 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             color[2] as f32,
             color[3] as f32,
         );
-        gl.enable(gleam::gl::SCISSOR_TEST);
-        gl.clear(gleam::gl::COLOR_BUFFER_BIT);
-        gl.disable(gleam::gl::SCISSOR_TEST);
+
+        // Clear the viewport rect of each top-level browsing context.
+        for (_, webview) in self.webviews.painting_order() {
+            let rect = self
+                .embedder_coordinates
+                .flipped_rect(&webview.rect.to_i32());
+            gl.scissor(
+                rect.origin.x,
+                rect.origin.y,
+                rect.size.width,
+                rect.size.height,
+            );
+            gl.enable(gleam::gl::SCISSOR_TEST);
+            gl.clear(gleam::gl::COLOR_BUFFER_BIT);
+            gl.disable(gleam::gl::SCISSOR_TEST);
+        }
+
         self.assert_gl_framebuffer_complete();
     }
 

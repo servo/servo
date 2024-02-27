@@ -26,6 +26,7 @@ use servo::script_traits::{
 };
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
+use servo::webrender_api::units::DeviceRect;
 use servo::webrender_api::ScrollLocation;
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
@@ -45,6 +46,10 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     /// The order in which the webviews were created.
     creation_order: Vec<WebViewId>,
 
+    /// The order to paint the browsers in.
+    /// Modified by EmbedderMsg::BrowserPaintingOrder.
+    painting_order: Vec<WebViewId>,
+
     /// The webview that is currently focused.
     /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
     focused_webview_id: Option<WebViewId>,
@@ -59,7 +64,9 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
 }
 
 #[derive(Debug)]
-pub struct WebView {}
+pub struct WebView {
+    pub rect: DeviceRect,
+}
 
 pub struct ServoEventResponse {
     pub need_present: bool,
@@ -77,6 +84,7 @@ where
             current_url_string: None,
             webviews: HashMap::default(),
             creation_order: vec![],
+            painting_order: vec![],
             focused_webview_id: None,
             window,
             clipboard: match Clipboard::new() {
@@ -100,6 +108,20 @@ where
 
     pub fn webview_id(&self) -> Option<WebViewId> {
         self.focused_webview_id
+    }
+
+    pub fn get_mut(&mut self, webview_id: WebViewId) -> Option<&mut WebView> {
+        self.webviews.get_mut(&webview_id)
+    }
+
+    pub fn focused_webview_id(&self) -> Option<WebViewId> {
+        self.focused_webview_id.clone()
+    }
+
+    pub fn painting_order(&self) -> impl Iterator<Item = (&WebViewId, &WebView)> {
+        self.painting_order
+            .iter()
+            .flat_map(move |webview_id| self.webviews.get(webview_id).map(|b| (webview_id, b)))
     }
 
     pub fn current_url_string(&self) -> Option<&str> {
@@ -542,14 +564,28 @@ where
                     };
                 },
                 EmbedderMsg::WebViewOpened(new_webview_id) => {
-                    self.webviews.insert(new_webview_id, WebView {});
+                    let scale = self.window.hidpi_factor().get();
+                    let toolbar = self.window.toolbar_height().get();
+
+                    // Adjust for our toolbar height.
+                    // TODO adjust for egui window decorations if we end up using those
+                    let mut rect = self.window.get_coordinates().get_viewport().to_f32();
+                    rect.origin.y += toolbar * scale;
+                    rect.size.height -= toolbar * scale;
+
+                    self.webviews.insert(new_webview_id, WebView { rect });
                     self.creation_order.push(new_webview_id);
                     self.event_queue
                         .push(EmbedderEvent::FocusWebView(new_webview_id));
+                    self.event_queue
+                        .push(EmbedderEvent::MoveResizeWebView(new_webview_id, rect));
+                    self.event_queue
+                        .push(EmbedderEvent::RaiseWebViewToTop(new_webview_id));
                 },
                 EmbedderMsg::WebViewClosed(webview_id) => {
                     self.webviews.retain(|&id, _| id != webview_id);
                     self.creation_order.retain(|&id| id != webview_id);
+                    self.painting_order.retain(|&id| id != webview_id);
                     self.focused_webview_id = None;
                     if let Some(&newest_webview_id) = self.creation_order.last() {
                         self.event_queue
@@ -563,6 +599,31 @@ where
                 },
                 EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;
+                },
+                EmbedderMsg::WebViewPaintingOrder(webview_ids) => {
+                    self.painting_order = webview_ids;
+
+                    if let Some(&newest_webview_id) = self.creation_order.last() {
+                        let mut newest_webview_is_visible = false;
+
+                        // Hide any visible browsers other than the most recently created.
+                        // TODO stop doing this once we have full multiple browser support
+                        for &webview_id in self.painting_order.iter() {
+                            if webview_id != newest_webview_id {
+                                self.event_queue
+                                    .push(EmbedderEvent::HideWebView(webview_id));
+                            } else {
+                                newest_webview_is_visible = true;
+                            }
+                        }
+
+                        // If the most recently created browser is not visible, show it.
+                        // TODO stop doing this once we have full multiple browser support
+                        if !newest_webview_is_visible {
+                            self.event_queue
+                                .push(EmbedderEvent::ShowWebView(newest_webview_id));
+                        }
+                    }
                 },
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(webview_id, key_event);
@@ -670,8 +731,11 @@ where
                 },
                 EmbedderMsg::EventDelivered(event) => match (webview_id, event) {
                     (Some(webview_id), CompositorEventVariant::MouseButtonEvent) => {
-                        // TODO Focus webview and/or raise to top if needed.
                         trace!("{}: Got a mouse button event", webview_id);
+                        self.event_queue
+                            .push(EmbedderEvent::RaiseWebViewToTop(webview_id));
+                        self.event_queue
+                            .push(EmbedderEvent::FocusWebView(webview_id));
                     },
                     (_, _) => {},
                 },

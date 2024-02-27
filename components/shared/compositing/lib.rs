@@ -24,7 +24,7 @@ use script_traits::{
     ScriptToCompositorMsg,
 };
 use style_traits::CSSPixel;
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DeviceRect};
 use webrender_api::{self, FontInstanceKey, FontKey, ImageKey};
 
 /// Why we performed a composite. This is used for debugging.
@@ -106,8 +106,18 @@ pub enum CompositorMsg {
     ShutdownComplete,
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Replaces the current frame tree, typically called during main frame navigation.
-    SetFrameTree(SendableFrameTree),
+    /// Add or update a web view, given its frame tree.
+    UpdateWebView(SendableFrameTree),
+    /// Remove a web view.
+    RemoveWebView(TopLevelBrowsingContextId),
+    /// Make a web view visible.
+    MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
+    /// Make a web view visible.
+    ShowWebView(TopLevelBrowsingContextId),
+    /// Make a web view invisible.
+    HideWebView(TopLevelBrowsingContextId),
+    /// Make a web view visible and paint on top of all others.
+    RaiseWebViewToTop(TopLevelBrowsingContextId),
     /// Composite.
     Recomposite(CompositingReason),
     /// Script has handled a touch event, and either prevented or allowed default actions.
@@ -192,7 +202,12 @@ impl Debug for CompositorMsg {
             CompositorMsg::ChangeRunningAnimationsState(_, state) => {
                 write!(f, "ChangeRunningAnimationsState({:?})", state)
             },
-            CompositorMsg::SetFrameTree(..) => write!(f, "SetFrameTree"),
+            CompositorMsg::UpdateWebView(..) => write!(f, "UpdateWebView"),
+            CompositorMsg::RemoveWebView(..) => write!(f, "RemoveWebView"),
+            CompositorMsg::MoveResizeWebView(..) => write!(f, "MoveResizeWebView"),
+            CompositorMsg::ShowWebView(..) => write!(f, "ShowWebView"),
+            CompositorMsg::HideWebView(..) => write!(f, "HideWebView"),
+            CompositorMsg::RaiseWebViewToTop(..) => write!(f, "RaiseWebViewToTop"),
             CompositorMsg::Recomposite(..) => write!(f, "Recomposite"),
             CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),

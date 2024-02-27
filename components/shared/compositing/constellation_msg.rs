@@ -18,6 +18,7 @@ use script_traits::{
     WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use servo_url::ServoUrl;
+use webrender_api::units::DeviceRect;
 
 /// Messages to the constellation.
 pub enum ConstellationMsg {
@@ -60,6 +61,14 @@ pub enum ConstellationMsg {
     CloseWebView(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
+    /// Make a top-level browsing context visible.
+    MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
+    /// Make a top-level browsing context visible.
+    ShowWebView(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context invisible.
+    HideWebView(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context visible and paint on top of all others.
+    RaiseWebViewToTop(TopLevelBrowsingContextId),
     /// Make a top-level browsing context focused.
     FocusWebView(TopLevelBrowsingContextId),
     /// Make none of the top-level browsing contexts focused.
@@ -80,10 +89,12 @@ pub enum ConstellationMsg {
     WebViewVisibilityChanged(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
-    /// Compositing done, but external code needs to present.
+    /// Notify the embedder that it needs to present a new frame.
     ReadyToPresent(TopLevelBrowsingContextId),
     /// Gamepad state has changed
     Gamepad(GamepadEvent),
+    /// Notify the embedder of an updated browser painting order.
+    WebViewPaintingOrder(Vec<TopLevelBrowsingContextId>),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -106,6 +117,10 @@ impl fmt::Debug for ConstellationMsg {
             LogEntry(..) => "LogEntry",
             NewWebView(..) => "NewWebView",
             CloseWebView(..) => "CloseWebView",
+            MoveResizeWebView(..) => "MoveResizeWebView",
+            ShowWebView(..) => "ShowWebView",
+            HideWebView(..) => "HideWebView",
+            RaiseWebViewToTop(..) => "RaiseWebViewToTop",
             FocusWebView(..) => "FocusWebView",
             BlurWebView => "BlurWebView",
             SendError(..) => "SendError",
@@ -120,6 +135,7 @@ impl fmt::Debug for ConstellationMsg {
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",
             Gamepad(..) => "Gamepad",
+            WebViewPaintingOrder(..) => "WebViewPaintingOrder",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

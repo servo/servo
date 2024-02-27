@@ -8,6 +8,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::RwLock;
 
+use euclid::num::Zero;
 use euclid::{Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use log::warn;
 use servo::compositing::windowing::{
@@ -92,7 +93,7 @@ impl WindowPortsMethods for Window {
             Ok(()) => {
                 self.inner_size.set(new_size);
                 if let Ok(ref mut queue) = self.event_queue.write() {
-                    queue.push(EmbedderEvent::Resize);
+                    queue.push(EmbedderEvent::WindowResize);
                 }
             },
             Err(error) => warn!("Could not resize window: {error:?}"),
@@ -145,6 +146,10 @@ impl WindowPortsMethods for Window {
 
     fn winit_window(&self) -> Option<&winit::window::Window> {
         None
+    }
+
+    fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
+        Length::zero()
     }
 
     fn set_toolbar_height(&self, _height: Length<f32, DeviceIndependentPixel>) {

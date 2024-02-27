@@ -19,7 +19,7 @@ use script_traits::{
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::DevicePixel;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint};
+use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, DeviceRect};
 use webrender_api::ScrollLocation;
 
 #[derive(Clone)]
@@ -51,7 +51,7 @@ pub enum EmbedderEvent {
     /// message, the window must make the same GL context as in `PrepareRenderingEvent` current.
     Refresh,
     /// Sent when the window is resized.
-    Resize,
+    WindowResize,
     /// Sent when a navigation request from script is allowed/refused.
     AllowNavigationResponse(PipelineId, bool),
     /// Sent when a new URL is to be loaded.
@@ -89,9 +89,19 @@ pub enum EmbedderEvent {
     CloseWebView(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
+    /// Make a top-level browsing context visible.
+    MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
+    /// Make a top-level browsing context visible.
+    ShowWebView(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context invisible.
+    HideWebView(TopLevelBrowsingContextId),
+    /// Make a top-level browsing context visible and paint on top of all others.
+    RaiseWebViewToTop(TopLevelBrowsingContextId),
     /// Make a top level browsing context visible, hiding the previous
     /// visible one.
     FocusWebView(TopLevelBrowsingContextId),
+    /// Make none of the top-level browsing contexts focused.
+    BlurWebView,
     /// Toggles a debug flag in WebRender
     ToggleWebRenderDebug(WebRenderDebugOption),
     /// Capture current WebRender
@@ -124,7 +134,7 @@ impl Debug for EmbedderEvent {
         match *self {
             EmbedderEvent::Idle => write!(f, "Idle"),
             EmbedderEvent::Refresh => write!(f, "Refresh"),
-            EmbedderEvent::Resize => write!(f, "Resize"),
+            EmbedderEvent::WindowResize => write!(f, "Resize"),
             EmbedderEvent::Keyboard(..) => write!(f, "Keyboard"),
             EmbedderEvent::AllowNavigationResponse(..) => write!(f, "AllowNavigationResponse"),
             EmbedderEvent::LoadUrl(..) => write!(f, "LoadUrl"),
@@ -142,7 +152,12 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::NewWebView(..) => write!(f, "NewWebView"),
             EmbedderEvent::SendError(..) => write!(f, "SendError"),
             EmbedderEvent::CloseWebView(..) => write!(f, "CloseWebView"),
+            EmbedderEvent::MoveResizeWebView(..) => write!(f, "MoveResizeWebView"),
+            EmbedderEvent::ShowWebView(..) => write!(f, "ShowWebView"),
+            EmbedderEvent::HideWebView(..) => write!(f, "HideWebView"),
+            EmbedderEvent::RaiseWebViewToTop(..) => write!(f, "RaiseWebViewToTop"),
             EmbedderEvent::FocusWebView(..) => write!(f, "FocusWebView"),
+            EmbedderEvent::BlurWebView => write!(f, "BlurWebView"),
             EmbedderEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
             EmbedderEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
             EmbedderEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
@@ -211,15 +226,21 @@ pub struct EmbedderCoordinates {
 impl EmbedderCoordinates {
     /// Get the unflipped viewport rectangle for use with the WebRender API.
     pub fn get_viewport(&self) -> DeviceIntRect {
-        DeviceIntRect::from_untyped(&self.viewport.to_untyped())
+        self.viewport.clone()
     }
 
-    /// Get the flipped viewport rectangle. This should be used when drawing directly
-    /// to the framebuffer with OpenGL commands.
-    pub fn get_flipped_viewport(&self) -> DeviceIntRect {
+    /// Flip the given rect.
+    /// This should be used when drawing directly to the framebuffer with OpenGL commands.
+    pub fn flipped_rect(&self, rect: &DeviceIntRect) -> DeviceIntRect {
         let fb_height = self.framebuffer.height;
-        let mut view = self.viewport.clone();
-        view.origin.y = fb_height - view.origin.y - view.size.height;
-        DeviceIntRect::from_untyped(&view.to_untyped())
+        let mut result = rect.clone();
+        result.origin.y = fb_height - result.origin.y - result.size.height;
+        result
+    }
+
+    /// Get the flipped viewport rectangle.
+    /// This should be used when drawing directly to the framebuffer with OpenGL commands.
+    pub fn get_flipped_viewport(&self) -> DeviceIntRect {
+        self.flipped_rect(&self.get_viewport())
     }
 }

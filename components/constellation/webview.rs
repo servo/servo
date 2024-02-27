@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use msg::constellation_msg::TopLevelBrowsingContextId;
 
@@ -17,6 +17,12 @@ pub struct WebViewManager<WebView> {
 
     /// Whether the latest webview in focus order is currently focused.
     is_focused: bool,
+
+    /// The web view that would be visible in a containing native window.
+    visible_webviews: HashSet<TopLevelBrowsingContextId>,
+
+    /// Whether our native window is visible, or true if there is no such window.
+    native_window_is_visible: bool,
 }
 
 impl<WebView> Default for WebViewManager<WebView> {
@@ -25,6 +31,8 @@ impl<WebView> Default for WebViewManager<WebView> {
             webviews: HashMap::default(),
             focus_order: Vec::default(),
             is_focused: false,
+            visible_webviews: HashSet::default(),
+            native_window_is_visible: true,
         }
     }
 }
@@ -92,6 +100,38 @@ impl<WebView> WebViewManager<WebView> {
 
     pub fn unfocus(&mut self) {
         self.is_focused = false;
+    }
+
+    pub fn set_webview_visibility(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        visible: bool,
+    ) {
+        debug_assert!(self.webviews.contains_key(&top_level_browsing_context_id));
+        if visible {
+            self.visible_webviews.insert(top_level_browsing_context_id);
+        } else {
+            self.visible_webviews.remove(&top_level_browsing_context_id);
+        }
+    }
+
+    pub fn set_native_window_visibility(&mut self, visible: bool) {
+        self.native_window_is_visible = visible;
+    }
+
+    /// Returns true iff the browser is visible and the native window is visible.
+    pub fn is_effectively_visible(
+        &self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+    ) -> bool {
+        debug_assert!(self.webviews.contains_key(&top_level_browsing_context_id));
+        self.native_window_is_visible &&
+            self.visible_webviews
+                .contains(&top_level_browsing_context_id)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&TopLevelBrowsingContextId, &WebView)> {
+        self.webviews.iter()
     }
 }
 
@@ -184,6 +224,26 @@ mod test {
             vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]
         );
         assert_eq!(webviews.is_focused, true);
+
+        // is_effectively_visible() checks that the given browser is visible.
+        webviews.set_webview_visibility(top_level_id(0, 1), true);
+        webviews.set_webview_visibility(top_level_id(0, 3), true);
+        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 1)), true);
+        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 2)), false);
+        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 3)), true);
+
+        // is_effectively_visible() checks that the native window is visible.
+        webviews.set_native_window_visibility(false);
+        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 1)), false);
+        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 2)), false);
+        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 3)), false);
+
+        // set_native_window_visibility() does not destroy or prevent changes to browser visibility state.
+        webviews.set_webview_visibility(top_level_id(0, 1), false);
+        webviews.set_native_window_visibility(true);
+        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 1)), false);
+        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 2)), false);
+        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 3)), true);
 
         // remove() clears the “is focused” flag iff the given webview was focused.
         webviews.remove(top_level_id(0, 2));

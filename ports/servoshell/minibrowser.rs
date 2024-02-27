@@ -7,10 +7,12 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{CentralPanel, Frame, InnerResponse, Key, Modifiers, PaintCallback, TopBottomPanel};
+use egui::{
+    CentralPanel, Frame, InnerResponse, Key, Modifiers, PaintCallback, Pos2, TopBottomPanel, Vec2,
+};
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
-use euclid::{Length, Point2D, Scale};
+use euclid::{Length, Point2D, Rect, Scale, Size2D};
 use gleam::gl;
 use glow::NativeFramebuffer;
 use log::{trace, warn};
@@ -19,6 +21,7 @@ use servo::msg::constellation_msg::TraversalDirection;
 use servo::rendering_context::RenderingContext;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
+use servo::style_traits::DevicePixel;
 
 use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
@@ -121,6 +124,7 @@ impl Minibrowser {
     pub fn update(
         &mut self,
         window: &winit::window::Window,
+        webviews: &mut WebViewManager<dyn WindowPortsMethods>,
         servo_framebuffer_id: Option<gl::GLuint>,
         reason: &'static str,
     ) {
@@ -190,9 +194,24 @@ impl Minibrowser {
                 });
             *toolbar_height = Length::new(height);
 
+            let scale =
+                Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
+            let Some(focused_webview_id) = webviews.focused_webview_id() else { return };
+            let Some(webview) = webviews.get_mut(focused_webview_id) else { return };
+            let mut embedder_events = vec![];
             CentralPanel::default()
                 .frame(Frame::none())
                 .show(ctx, |ui| {
+                    let Pos2 { x, y } = ui.cursor().min;
+                    let origin = Point2D::new(x, y);
+                    let Vec2 { x, y } = ui.available_size();
+                    let size = Size2D::new(x, y);
+                    let rect = Rect::new(origin, size) * scale;
+                    if rect != webview.rect {
+                        webview.rect = rect;
+                        embedder_events
+                            .push(EmbedderEvent::MoveResizeWebView(focused_webview_id, rect));
+                    }
                     let min = ui.cursor().min;
                     let size = ui.available_size();
                     let rect = egui::Rect::from_min_size(min, size);
@@ -239,6 +258,10 @@ impl Minibrowser {
                         })),
                     });
                 });
+
+            if !embedder_events.is_empty() {
+                webviews.handle_window_events(embedder_events);
+            }
 
             *last_update = now;
         });
