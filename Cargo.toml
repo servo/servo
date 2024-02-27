@@ -147,7 +147,22 @@ debug-assertions = false
 #
 #     <crate> = { path = "/path/to/local/checkout" }
 #
-# Or for a git dependency:
+# Or for Stylo:
+#
+#     [patch."https://github.com/servo/stylo.git"]
+#     derive_common = { path = "../stylo/derive_common" }
+#     malloc_size_of = { path = "../stylo/malloc_size_of" }
+#     selectors = { path = "../stylo/selectors" }
+#     servo_arc = { path = "../stylo/servo_arc" }
+#     servo_atoms = { path = "../stylo/atoms" }
+#     size_of_test = { path = "../stylo/size_of_test" }
+#     static_prefs = { path = "../stylo/style_static_prefs" }
+#     style_config = { path = "../stylo/style_config" }
+#     style_derive = { path = "../stylo/style_derive" }
+#     style = { path = "../stylo/style" }
+#     style_traits = { path = "../stylo/style_traits" }
+#
+# Or for another git dependency:
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
