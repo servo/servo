@@ -46,8 +46,8 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     /// The order in which the webviews were created.
     creation_order: Vec<WebViewId>,
 
-    /// The order to paint the browsers in.
-    /// Modified by EmbedderMsg::BrowserPaintingOrder.
+    /// The order to paint the webviews in.
+    /// Modified by EmbedderMsg::WebViewPaintingOrder.
     painting_order: Vec<WebViewId>,
 
     /// The webview that is currently focused.

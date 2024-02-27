@@ -1627,9 +1627,9 @@ where
             FromCompositorMsg::Gamepad(gamepad_event) => {
                 self.handle_gamepad_msg(gamepad_event);
             },
-            FromCompositorMsg::WebViewPaintingOrder(browser_ids) => {
+            FromCompositorMsg::WebViewPaintingOrder(webview_ids) => {
                 self.embedder_proxy
-                    .send((None, EmbedderMsg::WebViewPaintingOrder(browser_ids)));
+                    .send((None, EmbedderMsg::WebViewPaintingOrder(webview_ids)));
             },
         }
     }
@@ -5474,8 +5474,8 @@ where
     /// Send the frame tree for the given web view to the compositor.
     fn update_webview(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         if !cfg!(feature = "multiview") {
-            if let Some(focused_browser_id) = self.webviews.focused_webview().map(|(id, _)| id) {
-                if top_level_browsing_context_id != focused_browser_id {
+            if let Some(focused_webview_id) = self.webviews.focused_webview().map(|(id, _)| id) {
+                if top_level_browsing_context_id != focused_webview_id {
                     return;
                 }
             } else {

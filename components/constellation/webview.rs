@@ -119,7 +119,7 @@ impl<WebView> WebViewManager<WebView> {
         self.native_window_is_visible = visible;
     }
 
-    /// Returns true iff the browser is visible and the native window is visible.
+    /// Returns true iff the web view is visible and the native window is visible.
     pub fn is_effectively_visible(
         &self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -225,7 +225,7 @@ mod test {
         );
         assert_eq!(webviews.is_focused, true);
 
-        // is_effectively_visible() checks that the given browser is visible.
+        // is_effectively_visible() checks that the given web view is visible.
         webviews.set_webview_visibility(top_level_id(0, 1), true);
         webviews.set_webview_visibility(top_level_id(0, 3), true);
         assert_eq!(webviews.is_effectively_visible(top_level_id(0, 1)), true);
@@ -238,7 +238,7 @@ mod test {
         assert_eq!(webviews.is_effectively_visible(top_level_id(0, 2)), false);
         assert_eq!(webviews.is_effectively_visible(top_level_id(0, 3)), false);
 
-        // set_native_window_visibility() does not destroy or prevent changes to browser visibility state.
+        // set_native_window_visibility() does not destroy or prevent changes to web view visibility state.
         webviews.set_webview_visibility(top_level_id(0, 1), false);
         webviews.set_native_window_visibility(true);
         assert_eq!(webviews.is_effectively_visible(top_level_id(0, 1)), false);

@@ -575,7 +575,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (CompositorMsg::UpdateWebView(frame_tree), ShutdownState::NotShuttingDown) => {
-                self.update_browser(&frame_tree);
+                self.update_webview(&frame_tree);
                 self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
             },
 
@@ -1076,9 +1076,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             let dppx = self.page_zoom * self.hidpi_factor();
             let viewport_size = self.embedder_coordinates.get_viewport().size.to_f32() / dppx;
             let viewport_size = LayoutSize::from_untyped(viewport_size.to_untyped());
-            for (_, browser) in self.webviews.painting_order() {
-                if let Some(pipeline_id) = browser.pipeline_id {
-                    let rect = browser.rect / dppx;
+            for (_, webview) in self.webviews.painting_order() {
+                if let Some(pipeline_id) = webview.pipeline_id {
+                    let rect = webview.rect / dppx;
                     builder.push_iframe(
                         LayoutRect::from_untyped(&rect.to_untyped()),
                         LayoutRect::from_untyped(&rect.to_untyped()),
@@ -1131,8 +1131,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         );
     }
 
-    fn update_browser(&mut self, frame_tree: &SendableFrameTree) {
-        debug!("{}: Updating browser", frame_tree.pipeline.id);
+    fn update_webview(&mut self, frame_tree: &SendableFrameTree) {
+        debug!("{}: Updating web view", frame_tree.pipeline.id);
 
         if !cfg!(feature = "multiview") {
             self.root_content_pipeline = RootPipeline {
@@ -1142,20 +1142,20 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         let top_level_browsing_context_id = frame_tree.pipeline.top_level_browsing_context_id;
-        if let Some(browser) = self.webviews.get_mut(top_level_browsing_context_id) {
+        if let Some(webview) = self.webviews.get_mut(top_level_browsing_context_id) {
             let new_pipeline_id = Some(frame_tree.pipeline.id);
-            if new_pipeline_id != browser.pipeline_id {
+            if new_pipeline_id != webview.pipeline_id {
                 debug!(
-                    "{:?}: Updating browser from pipeline {:?} to {:?}",
-                    top_level_browsing_context_id, browser.pipeline_id, new_pipeline_id
+                    "{:?}: Updating web view from pipeline {:?} to {:?}",
+                    top_level_browsing_context_id, webview.pipeline_id, new_pipeline_id
                 );
             }
-            browser.pipeline_id = new_pipeline_id;
+            webview.pipeline_id = new_pipeline_id;
         } else {
             let top_level_browsing_context_id = frame_tree.pipeline.top_level_browsing_context_id;
             let pipeline_id = Some(frame_tree.pipeline.id);
             debug!(
-                "{:?}: Creating new browser with pipeline {:?}",
+                "{:?}: Creating new web view with pipeline {:?}",
                 top_level_browsing_context_id, pipeline_id
             );
             self.webviews.add(
@@ -1168,14 +1168,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         if !cfg!(feature = "multiview") {
-            let browser_ids = self
+            let webview_ids = self
                 .webviews
                 .painting_order()
                 .map(|(&id, _)| id)
                 .collect::<Vec<_>>();
-            for browser_id in browser_ids {
-                if browser_id != top_level_browsing_context_id {
-                    self.webviews.hide(browser_id);
+            for webview_id in webview_ids {
+                if webview_id != top_level_browsing_context_id {
+                    self.webviews.hide(webview_id);
                 }
             }
             self.webviews.raise_to_top(top_level_browsing_context_id);
@@ -1190,11 +1190,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     fn remove_webview(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         debug!("{}: Removing", top_level_browsing_context_id);
-        let Some(browser) = self.webviews.remove(top_level_browsing_context_id)
+        let Some(webview) = self.webviews.remove(top_level_browsing_context_id)
             else { return };
 
         self.update_root_pipeline();
-        if let Some(pipeline_id) = browser.pipeline_id {
+        if let Some(pipeline_id) = webview.pipeline_id {
             self.remove_pipeline_details_tree(pipeline_id);
         }
 
@@ -1225,7 +1225,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             self.update_root_pipeline();
         } else {
             warn!(
-                "{}: MoveResizeBrowser on unknown top-level browsing context",
+                "{}: MoveResizeWebView on unknown top-level browsing context",
                 top_level_browsing_context_id
             );
         }

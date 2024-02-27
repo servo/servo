@@ -79,7 +79,7 @@ impl<WebView> WebViewManager<WebView> {
     pub fn painting_order(&self) -> impl Iterator<Item = (&TopLevelBrowsingContextId, &WebView)> {
         self.painting_order
             .iter()
-            .flat_map(move |browser_id| self.webviews.get(browser_id).map(|b| (browser_id, b)))
+            .flat_map(move |webview_id| self.webviews.get(webview_id).map(|b| (webview_id, b)))
     }
 }
 
@@ -114,56 +114,56 @@ mod test {
     #[test]
     fn test() {
         PipelineNamespace::install(PipelineNamespaceId(0));
-        let mut browsers = WebViewManager::default();
+        let mut webviews = WebViewManager::default();
 
-        // add() adds the browser to the map, but not the painting order.
-        browsers.add(TopLevelBrowsingContextId::new(), 'a');
-        browsers.add(TopLevelBrowsingContextId::new(), 'b');
-        browsers.add(TopLevelBrowsingContextId::new(), 'c');
+        // add() adds the webview to the map, but not the painting order.
+        webviews.add(TopLevelBrowsingContextId::new(), 'a');
+        webviews.add(TopLevelBrowsingContextId::new(), 'b');
+        webviews.add(TopLevelBrowsingContextId::new(), 'c');
         assert_eq!(
-            webviews_sorted(&browsers),
+            webviews_sorted(&webviews),
             vec![
                 (top_level_id(0, 1), 'a'),
                 (top_level_id(0, 2), 'b'),
                 (top_level_id(0, 3), 'c'),
             ]
         );
-        assert!(browsers.painting_order.is_empty());
+        assert!(webviews.painting_order.is_empty());
 
-        // For browsers not yet visible, both show() and raise_to_top() add the given browser on top.
-        browsers.show(top_level_id(0, 2));
-        assert_eq!(browsers.painting_order, vec![top_level_id(0, 2)]);
-        browsers.raise_to_top(top_level_id(0, 1));
+        // For webviews not yet visible, both show() and raise_to_top() add the given webview on top.
+        webviews.show(top_level_id(0, 2));
+        assert_eq!(webviews.painting_order, vec![top_level_id(0, 2)]);
+        webviews.raise_to_top(top_level_id(0, 1));
         assert_eq!(
-            browsers.painting_order,
+            webviews.painting_order,
             vec![top_level_id(0, 2), top_level_id(0, 1)]
         );
-        browsers.show(top_level_id(0, 3));
+        webviews.show(top_level_id(0, 3));
         assert_eq!(
-            browsers.painting_order,
+            webviews.painting_order,
             vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]
         );
 
-        // For browsers already visible, show() does nothing, while raise_to_top() makes it on top.
-        browsers.show(top_level_id(0, 1));
+        // For webviews already visible, show() does nothing, while raise_to_top() makes it on top.
+        webviews.show(top_level_id(0, 1));
         assert_eq!(
-            browsers.painting_order,
+            webviews.painting_order,
             vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]
         );
-        browsers.raise_to_top(top_level_id(0, 1));
+        webviews.raise_to_top(top_level_id(0, 1));
         assert_eq!(
-            browsers.painting_order,
+            webviews.painting_order,
             vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]
         );
 
-        // hide() removes the browser from the painting order, but not the map.
-        browsers.hide(top_level_id(0, 3));
+        // hide() removes the webview from the painting order, but not the map.
+        webviews.hide(top_level_id(0, 3));
         assert_eq!(
-            browsers.painting_order,
+            webviews.painting_order,
             vec![top_level_id(0, 2), top_level_id(0, 1)]
         );
         assert_eq!(
-            webviews_sorted(&browsers),
+            webviews_sorted(&webviews),
             vec![
                 (top_level_id(0, 1), 'a'),
                 (top_level_id(0, 2), 'b'),
@@ -171,18 +171,18 @@ mod test {
             ]
         );
 
-        // painting_order() returns only the visible browsers, in painting order.
-        let mut painting_order = browsers.painting_order();
+        // painting_order() returns only the visible webviews, in painting order.
+        let mut painting_order = webviews.painting_order();
         assert_eq!(painting_order.next(), Some((&top_level_id(0, 2), &'b')));
         assert_eq!(painting_order.next(), Some((&top_level_id(0, 1), &'a')));
         assert_eq!(painting_order.next(), None);
         drop(painting_order);
 
-        // remove() removes the given browser from both the map and the painting order.
-        browsers.remove(top_level_id(0, 1));
-        browsers.remove(top_level_id(0, 2));
-        browsers.remove(top_level_id(0, 3));
-        assert!(webviews_sorted(&browsers).is_empty());
-        assert!(browsers.painting_order.is_empty());
+        // remove() removes the given webview from both the map and the painting order.
+        webviews.remove(top_level_id(0, 1));
+        webviews.remove(top_level_id(0, 2));
+        webviews.remove(top_level_id(0, 3));
+        assert!(webviews_sorted(&webviews).is_empty());
+        assert!(webviews.painting_order.is_empty());
     }
 }
