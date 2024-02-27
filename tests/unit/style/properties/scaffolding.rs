@@ -17,7 +17,7 @@ fn properties_list_json() {
     let json = top
         .join("target")
         .join("doc")
-        .join("servo")
+        .join("stylo")
         .join("css-properties.json");
 
     let properties: Value = serde_json::from_reader(File::open(json).unwrap()).unwrap();
