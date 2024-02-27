@@ -3439,15 +3439,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c41e0c4fef86961ac6d6f8a82609f55f31b05e4fce149ac5710e439df7619ba4"
 
 [[package]]
-name = "mach"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b823e83b2affd8f40a9ee8c29dbc56404c1e34cd2710921f2801e2cf29527afa"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "mach2"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5870,9 +5861,9 @@ dependencies = [
 
 [[package]]
 name = "surfman"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29362235cba051e9e6eb5a136b32c1ab6933d2545e4fffd0ba22ac904498d0e2"
+checksum = "2a10a79c436583753fa108971470dd42f2111ce068f1b6fdebd981a96f920bdf"
 dependencies = [
  "bitflags 1.3.2",
  "cfg_aliases",
@@ -5887,7 +5878,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "mach",
+ "mach2",
  "metal 0.24.0",
  "objc",
  "raw-window-handle",
