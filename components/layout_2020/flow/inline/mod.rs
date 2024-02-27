@@ -932,16 +932,16 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
         let text_align = match text_align_keyword {
             TextAlignKeyword::Start => TextAlign::Start,
-            TextAlignKeyword::Center | TextAlignKeyword::ServoCenter => TextAlign::Center,
+            TextAlignKeyword::Center | TextAlignKeyword::MozCenter => TextAlign::Center,
             TextAlignKeyword::End => TextAlign::End,
-            TextAlignKeyword::Left | TextAlignKeyword::ServoLeft => {
+            TextAlignKeyword::Left | TextAlignKeyword::MozLeft => {
                 if style.writing_mode.line_left_is_inline_start() {
                     TextAlign::Start
                 } else {
                     TextAlign::End
                 }
             },
-            TextAlignKeyword::Right | TextAlignKeyword::ServoRight => {
+            TextAlignKeyword::Right | TextAlignKeyword::MozRight => {
                 if style.writing_mode.line_left_is_inline_start() {
                     TextAlign::End
                 } else {
