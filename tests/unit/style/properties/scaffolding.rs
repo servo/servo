@@ -10,14 +10,17 @@ use serde_json::{self, Value};
 
 #[test]
 fn properties_list_json() {
-    let top = Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap())
+    // Four dotdots: /path/to/target(4)/debug(3)/build(2)/style_tests-*(1)/out
+    // Do not ascend above the target dir, because it may not be called target
+    // or even have a parent (see CARGO_TARGET_DIR).
+    let target_dir = Path::new(env!("OUT_DIR"))
+        .join("..")
         .join("..")
         .join("..")
         .join("..");
-    let json = top
-        .join("target")
+    let json = target_dir
         .join("doc")
-        .join("servo")
+        .join("stylo")
         .join("css-properties.json");
 
     let properties: Value = serde_json::from_reader(File::open(json).unwrap()).unwrap();

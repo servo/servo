@@ -65,6 +65,7 @@ layout_traits = { path = "components/shared/layout" }
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
+malloc_size_of = { git = "https://github.com/servo/stylo.git", branch = "2023-06-14", features = ["servo"] }
 malloc_size_of_derive = "0.1"
 mime = "0.3.13"
 mime_guess = "2.0.3"
@@ -87,22 +88,28 @@ rustls = { version = "0.21.10", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
+selectors = { git = "https://github.com/servo/stylo.git", branch = "2023-06-14" }
 serde = "1.0.197"
 serde_bytes = "0.11"
 serde_json = "1.0"
+servo_arc = { git = "https://github.com/servo/stylo.git", branch = "2023-06-14" }
+servo_atoms = { git = "https://github.com/servo/stylo.git", branch = "2023-06-14" }
+size_of_test = { git = "https://github.com/servo/stylo.git", branch = "2023-06-14" }
 smallbitvec = "2.3.0"
 smallvec = "1.13"
 sparkle = "0.1.26"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
-style_config = { path = "components/style_config" }
-style_traits = { path = "components/style_traits", features = ["servo"] }
+style = { git = "https://github.com/servo/stylo.git", branch = "2023-06-14", features = ["servo"] }
+style_config = { git = "https://github.com/servo/stylo.git", branch = "2023-06-14" }
+style_traits = { git = "https://github.com/servo/stylo.git", branch = "2023-06-14", features = ["servo"] }
 # NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
 surfman = { version = "0.9", features = ["chains", "sm-angle", "sm-angle-default"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
 time = "0.1.41"
+to_shmem = { git = "https://github.com/servo/stylo.git", branch = "2023-06-14" }
 tokio = "1"
 tokio-rustls = "0.24"
 tungstenite = "0.20"
@@ -140,7 +147,22 @@ debug-assertions = false
 #
 #     <crate> = { path = "/path/to/local/checkout" }
 #
-# Or for a git dependency:
+# Or for Stylo:
+#
+#     [patch."https://github.com/servo/stylo.git"]
+#     derive_common = { path = "../stylo/derive_common" }
+#     malloc_size_of = { path = "../stylo/malloc_size_of" }
+#     selectors = { path = "../stylo/selectors" }
+#     servo_arc = { path = "../stylo/servo_arc" }
+#     servo_atoms = { path = "../stylo/atoms" }
+#     size_of_test = { path = "../stylo/size_of_test" }
+#     static_prefs = { path = "../stylo/style_static_prefs" }
+#     style_config = { path = "../stylo/style_config" }
+#     style_derive = { path = "../stylo/style_derive" }
+#     style = { path = "../stylo/style" }
+#     style_traits = { path = "../stylo/style_traits" }
+#
+# Or for another git dependency:
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }

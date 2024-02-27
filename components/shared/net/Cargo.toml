@@ -24,7 +24,7 @@ image = { workspace = true }
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 log = { workspace = true }
-malloc_size_of = { path = "../../malloc_size_of" }
+malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 mime = { workspace = true }
 msg = { workspace = true }
@@ -33,7 +33,7 @@ percent-encoding = { workspace = true }
 pixels = { path = "../../pixels" }
 rustls = { workspace = true }
 serde = { workspace = true }
-servo_arc = { path = "../../servo_arc" }
+servo_arc = { workspace = true }
 servo_rand = { path = "../../rand" }
 servo_url = { path = "../../url" }
 url = { workspace = true }
