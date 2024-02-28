@@ -3362,6 +3362,7 @@ dependencies = [
  "servo-media",
  "servo-media-dummy",
  "servo-media-gstreamer",
+ "servo_allocator",
  "servo_config",
  "servo_geometry",
  "servo_url",

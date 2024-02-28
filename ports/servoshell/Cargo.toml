@@ -34,6 +34,7 @@ OriginalFilename = "servo.exe"
 ProductName = "Servo"
 
 [features]
+use-system-allocator = ["libservo/use-system-allocator"]
 debugmozjs = ["libservo/debugmozjs"]
 default = ["max_log_level", "native-bluetooth", "webdriver"]
 jitspew = ["libservo/jitspew"]
