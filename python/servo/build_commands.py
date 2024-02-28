@@ -29,6 +29,7 @@ from mach.decorators import (
     Command,
 )
 from mach.registrar import Registrar
+from python.servo.platform.base import NIGHTLY_RUST
 
 import servo.platform
 import servo.util
@@ -36,6 +37,9 @@ import servo.visual_studio
 
 from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.gstreamer import windows_dlls, windows_plugins, macos_plugins
+
+SUPPORTED_ASAN_TARGETS = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu",
+                          "x86_64-apple-darwin", "x86_64-unknown-linux-gnu"]
 
 
 @CommandProvider
@@ -53,11 +57,12 @@ class MachCommands(CommandBase):
     @CommandArgument('--very-verbose', '-vv',
                      action='store_true',
                      help='Print very verbose output')
+    @CommandArgument('--with-asan', action='store_true', help="Enable AddressSanitizer")
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
     def build(self, build_type: BuildType, jobs=None, params=None, no_package=False,
-              verbose=False, very_verbose=False, **kwargs):
+              verbose=False, very_verbose=False, with_asan=False, **kwargs):
         opts = params or []
 
         if build_type.is_release():
@@ -78,10 +83,37 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         self.ensure_clobbered()
 
-        build_start = time()
-
         host = servo.platform.host_triple()
         target_triple = self.cross_compile_target or servo.platform.host_triple()
+
+        if with_asan:
+            if target_triple not in SUPPORTED_ASAN_TARGETS:
+                print("AddressSanitizer is currently not supported on this platform\n",
+                      "See https://doc.rust-lang.org/beta/unstable-book/compiler-flags/sanitizer.html")
+                sys.exit(1)
+
+            # Make sure we have nightly rust installed
+            servo.platform.get().install_nightly_rust()
+            kwargs["toolchain"] = f"+{NIGHTLY_RUST}"
+            # do not use crown (clashes with different rust version)
+            env["RUSTC"] = "rustc"
+
+            # Enable asan
+            env["RUSTFLAGS"] = env.get("RUSTFLAGS", "") + " -Zsanitizer=address"
+            opts += ["-Zbuild-std"]
+            kwargs["target_override"] = target_triple
+            # TODO: Investigate sanitizers in C/C++ code:
+            # env.setdefault("CFLAGS", "")
+            # env.setdefault("CXXFLAGS", "")
+            # env["CFLAGS"] += " -fsanitize=address"
+            # env["CXXFLAGS"] += " -fsanitize=address"
+
+            # asan replaces system allocator with asan allocator
+            # we need to make sure that we do not replace it with jemalloc
+            self.features.append("servo_allocator/use-system-allocator")
+
+        build_start = time()
+
         if host != target_triple and 'windows' in target_triple:
             if os.environ.get('VisualStudioVersion') or os.environ.get('VCINSTALLDIR'):
                 print("Can't cross-compile for Windows inside of a Visual Studio shell.\n"
@@ -104,9 +136,17 @@ class MachCommands(CommandBase):
         if status == 0:
             built_binary = self.get_binary_path(
                 build_type,
-                target=self.cross_compile_target,
+                target=target_triple if with_asan else self.cross_compile_target,
                 android=self.is_android_build,
             )
+
+            if with_asan:
+                shutil.copy(built_binary, self.get_binary_path(
+                    build_type,
+                    target=self.cross_compile_target,
+                    android=self.is_android_build,
+                    exists=False
+                ))
 
             if self.is_android_build and not no_package:
                 flavor = None
