@@ -20,18 +20,22 @@ use script_layout_interface::wrapper_traits::{
 };
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc as ServoArc;
+use servo_url::ServoUrl;
 use style::computed_values::position::T as Position;
-use style::context::{StyleContext, ThreadLocalStyleContext};
+use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use style::dom::{OpaqueNode, TElement};
 use style::properties::style_structs::Font;
 use style::properties::{
-    Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId, PropertyId,
+    parse_one_declaration_into, ComputedValues, Importance, LonghandId, PropertyDeclarationBlock,
+    PropertyDeclarationId, PropertyId, SourcePropertyDeclaration,
 };
 use style::selector_parser::PseudoElement;
+use style::shared_lock::SharedRwLock;
+use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
 use style::values::generics::text::LineHeight;
-use style_traits::{CSSPixel, ToCss};
+use style_traits::{CSSPixel, ParsingMode, ToCss};
 use webrender_api::units::LayoutPixel;
 use webrender_api::{DisplayListBuilder, ExternalScrollId};
 
@@ -645,10 +649,107 @@ pub fn process_text_index_request(_node: OpaqueNode, _point: Point2D<Au>) -> Tex
     TextIndexResponse(None)
 }
 
-pub fn process_resolved_font_style_query<'dom>(
-    _node: impl LayoutNode<'dom>,
-    _property: &PropertyId,
-    _value: &str,
-) -> Option<ServoArc<Font>> {
-    None
+pub fn process_resolved_font_style_query<'dom, E>(
+    context: &LayoutContext,
+    node: E,
+    property: &PropertyId,
+    value: &str,
+    url_data: ServoUrl,
+    shared_lock: &SharedRwLock,
+) -> Option<ServoArc<Font>>
+where
+    E: LayoutNode<'dom>,
+{
+    fn create_font_declaration(
+        value: &str,
+        property: &PropertyId,
+        url_data: &ServoUrl,
+        quirks_mode: QuirksMode,
+    ) -> Option<PropertyDeclarationBlock> {
+        let mut declarations = SourcePropertyDeclaration::default();
+        let result = parse_one_declaration_into(
+            &mut declarations,
+            property.clone(),
+            value,
+            Origin::Author,
+            &UrlExtraData(url_data.get_arc()),
+            None,
+            ParsingMode::DEFAULT,
+            quirks_mode,
+            CssRuleType::Style,
+        );
+        let declarations = match result {
+            Ok(()) => {
+                let mut block = PropertyDeclarationBlock::new();
+                block.extend(declarations.drain(), Importance::Normal);
+                block
+            },
+            Err(_) => return None,
+        };
+        // TODO: Force to set line-height property to 'normal' font property.
+        Some(declarations)
+    }
+    fn resolve_for_declarations<'dom, E>(
+        context: &SharedStyleContext,
+        parent_style: Option<&ComputedValues>,
+        declarations: PropertyDeclarationBlock,
+        shared_lock: &SharedRwLock,
+    ) -> ServoArc<ComputedValues>
+    where
+        E: LayoutNode<'dom>,
+    {
+        let parent_style = match parent_style {
+            Some(parent) => parent,
+            None => context.stylist.device().default_computed_values(),
+        };
+        context
+            .stylist
+            .compute_for_declarations::<E::ConcreteElement>(
+                &context.guards,
+                parent_style,
+                ServoArc::new(shared_lock.wrap(declarations)),
+            )
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    // 1. Parse the given font property value
+    let quirks_mode = context.style_context.quirks_mode();
+    let declarations = create_font_declaration(value, property, &url_data, quirks_mode)?;
+
+    // TODO: Reject 'inherit' and 'initial' values for the font property.
+
+    // 2. Get resolved styles for the parent element
+    let element = node.as_element().unwrap();
+    let parent_style = if node.is_connected() {
+        if element.has_data() {
+            node.to_threadsafe().as_element().unwrap().resolved_style()
+        } else {
+            let mut tlc = ThreadLocalStyleContext::new();
+            let mut context = StyleContext {
+                shared: &context.style_context,
+                thread_local: &mut tlc,
+            };
+            let styles = resolve_style(&mut context, element, RuleInclusion::All, None, None);
+            styles.primary().clone()
+        }
+    } else {
+        let default_declarations =
+            create_font_declaration("10px sans-serif", property, &url_data, quirks_mode).unwrap();
+        resolve_for_declarations::<E>(
+            &context.style_context,
+            None,
+            default_declarations,
+            shared_lock,
+        )
+    };
+
+    // 3. Resolve the parsed value with resolved styles of the parent element
+    let computed_values = resolve_for_declarations::<E>(
+        &context.style_context,
+        Some(&*parent_style),
+        declarations,
+        shared_lock,
+    );
+
+    Some(computed_values.clone_font())
 }
