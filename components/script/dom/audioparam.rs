@@ -7,7 +7,7 @@ use std::sync::mpsc;
 
 use dom_struct::dom_struct;
 use servo_media::audio::graph::NodeId;
-use servo_media::audio::node::AudioNodeMessage;
+use servo_media::audio::node::{AudioNodeMessage, AudioNodeType};
 use servo_media::audio::param::{ParamRate, ParamType, RampKind, UserAutomationEvent};
 
 use crate::dom::baseaudiocontext::BaseAudioContext;
@@ -29,6 +29,9 @@ pub struct AudioParam {
     node: NodeId,
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
+    node_type: AudioNodeType,
+    #[ignore_malloc_size_of = "servo_media"]
+    #[no_trace]
     param: ParamType,
     automation_rate: Cell<AutomationRate>,
     default_value: f32,
@@ -40,6 +43,7 @@ impl AudioParam {
     pub fn new_inherited(
         context: &BaseAudioContext,
         node: NodeId,
+        node_type: AudioNodeType,
         param: ParamType,
         automation_rate: AutomationRate,
         default_value: f32,
@@ -50,6 +54,7 @@ impl AudioParam {
             reflector_: Reflector::new(),
             context: Dom::from_ref(context),
             node,
+            node_type,
             param,
             automation_rate: Cell::new(automation_rate),
             default_value,
@@ -63,6 +68,7 @@ impl AudioParam {
         window: &Window,
         context: &BaseAudioContext,
         node: NodeId,
+        node_type: AudioNodeType,
         param: ParamType,
         automation_rate: AutomationRate,
         default_value: f32,
@@ -72,6 +78,7 @@ impl AudioParam {
         let audio_param = AudioParam::new_inherited(
             context,
             node,
+            node_type,
             param,
             automation_rate,
             default_value,
@@ -109,12 +116,24 @@ impl AudioParamMethods for AudioParam {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-automationrate
-    fn SetAutomationRate(&self, automation_rate: AutomationRate) {
+    fn SetAutomationRate(&self, automation_rate: AutomationRate) -> Fallible<()> {
+        // > AudioBufferSourceNode
+        // > The AudioParams playbackRate and detune MUST be "k-rate". An InvalidStateError must be
+        // > thrown if the rate is changed to "a-rate".
+        if automation_rate == AutomationRate::A_rate &&
+            self.node_type == AudioNodeType::AudioBufferSourceNode &&
+            (self.param == ParamType::Detune || self.param == ParamType::PlaybackRate)
+        {
+            return Err(Error::InvalidState);
+        }
+
         self.automation_rate.set(automation_rate);
         self.message_node(AudioNodeMessage::SetParamRate(
             self.param,
             automation_rate.into(),
         ));
+
+        Ok(())
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioparam-value

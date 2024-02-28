@@ -7,7 +7,7 @@ use std::f32;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use servo_media::audio::constant_source_node::ConstantSourceNodeOptions as ServoMediaConstantSourceOptions;
-use servo_media::audio::node::AudioNodeInit;
+use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
 use crate::dom::audioparam::AudioParam;
@@ -48,6 +48,7 @@ impl ConstantSourceNode {
             window,
             context,
             node_id,
+            AudioNodeType::ConstantSourceNode,
             ParamType::Offset,
             AutomationRate::A_rate,
             *options.offset,
