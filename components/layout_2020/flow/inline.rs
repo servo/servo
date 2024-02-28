@@ -70,7 +70,7 @@ pub(crate) struct InlineFormattingContext {
 #[derive(Debug, Serialize)]
 pub(crate) struct FontKeyAndMetrics {
     pub key: FontInstanceKey,
-    pub actual_pt_size: Au,
+    pub pt_size: Au,
     pub metrics: FontMetrics,
 }
 

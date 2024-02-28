@@ -146,7 +146,7 @@ impl Shaper {
             let hb_font: *mut hb_font_t = hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
-            let pt_size = (*font).actual_pt_size.to_f64_px();
+            let pt_size = (*font).descriptor.pt_size.to_f64_px();
             hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
             // Set scaling. Note that this takes 16.16 fixed point.

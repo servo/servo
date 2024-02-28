@@ -122,7 +122,7 @@ impl TextRunSegment {
         let current_font_key_and_metrics = &fonts[self.font_index];
         let new_font = font.borrow();
         if new_font.font_key != current_font_key_and_metrics.key ||
-            new_font.actual_pt_size != current_font_key_and_metrics.actual_pt_size
+            new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size
         {
             return false;
         }
@@ -489,15 +489,14 @@ fn char_does_not_change_font(character: char) -> bool {
 pub(super) fn add_or_get_font(font: &FontRef, ifc_fonts: &mut Vec<FontKeyAndMetrics>) -> usize {
     let font = font.borrow();
     for (index, ifc_font_info) in ifc_fonts.iter().enumerate() {
-        if ifc_font_info.key == font.font_key && ifc_font_info.actual_pt_size == font.actual_pt_size
-        {
+        if ifc_font_info.key == font.font_key && ifc_font_info.pt_size == font.descriptor.pt_size {
             return index;
         }
     }
     ifc_fonts.push(FontKeyAndMetrics {
         metrics: font.metrics.clone(),
         key: font.font_key,
-        actual_pt_size: font.actual_pt_size,
+        pt_size: font.descriptor.pt_size,
     });
     ifc_fonts.len() - 1
 }
