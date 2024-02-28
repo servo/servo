@@ -12,6 +12,9 @@ import shutil
 import subprocess
 from typing import Optional
 
+# Nightly version that corresponds to stable specified in rust-toolchain.toml
+NIGHTLY_RUST = "nightly-2023-09-29"
+
 
 class Base:
     def __init__(self, triple: str):
@@ -75,6 +78,18 @@ class Base:
         print(" * Installing crown (the Servo linter)...")
         if subprocess.call(["cargo", "install", "--path", "support/crown"]) != 0:
             raise EnvironmentError("Installation of crown failed.")
+
+        return True
+
+    def install_nightly_rust(self, force: bool = False) -> bool:
+        if not force and subprocess.call(["rustc", f"+{NIGHTLY_RUST}"]):
+            print(f"{NIGHTLY_RUST} is already installed")
+        else:
+            print(" * Installing respective nightly rust version...")
+            status = subprocess.call(["rustup", "install", NIGHTLY_RUST, "--profile", "minimal"])
+            status += subprocess.call(["rustup", "component", "add", "rust-src", "--toolchain", NIGHTLY_RUST])
+            if status != 0:
+                raise EnvironmentError(f"Installation of rust-{NIGHTLY_RUST}")
 
         return True
 

@@ -65,6 +65,15 @@ class MachCommands(CommandBase):
             return 1
         return 0
 
+    @Command('bootstrap-nightly-rust',
+             description='Installs nightly that corresponds to stable rust used by servo',
+             category='bootstrap')
+    @CommandArgument('--force', '-f',
+                     action='store_true',
+                     help='Boostrap without confirmation')
+    def bootstrap_nightly_rust(self, force=False):
+        return servo.platform.get().install_nightly_rust(force)
+
     @Command('update-hsts-preload',
              description='Download the HSTS preload list',
              category='bootstrap')
