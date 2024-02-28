@@ -161,6 +161,7 @@ debug-assertions = false
 #     style_derive = { path = "../stylo/style_derive" }
 #     style = { path = "../stylo/style" }
 #     style_traits = { path = "../stylo/style_traits" }
+#     to_shmem = { path = "../stylo/to_shmem" }
 #
 # Or for another git dependency:
 #
