@@ -331,7 +331,7 @@ class CommandBase(object):
         apk_name = "servoapp.apk"
         return path.join(base_path, build_type.directory_name(), apk_name)
 
-    def get_binary_path(self, build_type: BuildType, target=None, android=False):
+    def get_binary_path(self, build_type: BuildType, target=None, android=False, exists=True):
         base_path = util.get_target_dir()
         if android:
             base_path = path.join(base_path, self.config["android"]["target"])
@@ -342,7 +342,7 @@ class CommandBase(object):
         binary_name = f"servo{servo.platform.get().executable_suffix()}"
         binary_path = path.join(base_path, build_type.directory_name(), binary_name)
 
-        if not path.exists(binary_path):
+        if exists and not path.exists(binary_path):
             raise BuildNotFound('No Servo binary found. Perhaps you forgot to run `./mach build`?')
         return binary_path
 
@@ -815,9 +815,10 @@ class CommandBase(object):
 
     def run_cargo_build_like_command(
         self, command: str, cargo_args: List[str],
-        env=None, verbose=False,
+        env=None, verbose=False, toolchain: Optional[str] = None,
         debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, without_wgl=False,
+        target_override: Optional[str] = None,
         **_kwargs
     ):
         env = env or self.build_env()
@@ -843,7 +844,9 @@ class CommandBase(object):
                 "--manifest-path",
                 path.join(self.context.topdir, "ports", port, "Cargo.toml"),
             ]
-        if self.cross_compile_target:
+        if target_override:
+            args += ["--target", target_override]
+        elif self.cross_compile_target:
             args += ["--target", self.cross_compile_target]
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
@@ -867,7 +870,10 @@ class CommandBase(object):
         if with_debug_assertions or self.config["build"]["debug-assertions"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
-        return call(["cargo", command] + args + cargo_args, env=env, verbose=verbose)
+        args.insert(0, command)
+        if toolchain:
+            args.insert(0, toolchain)
+        return call(["cargo"] + args + cargo_args, env=env, verbose=verbose)
 
     def android_adb_path(self, env):
         if "ANDROID_SDK_ROOT" in env:
