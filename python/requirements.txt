@@ -38,4 +38,4 @@ requests
 types-requests
 
 # For mach package on macOS.
-Mako == 1.1.2
+Mako == 1.2.2
