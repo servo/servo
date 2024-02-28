@@ -61,7 +61,6 @@ itertools = "0.12"
 jemallocator = "0.5.4"
 jemalloc-sys = "0.5.4"
 keyboard-types = "0.6"
-layout_traits = { path = "components/shared/layout" }
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
