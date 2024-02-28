@@ -27,7 +27,7 @@ fn main() {
         } else {
             println!(
                 "Cannot start /ports/servoshell/ on Android. \
-                Use /support/android/apk/ + /ports/libsimpleservo/ instead"
+                Use /support/android/apk/ + /ports/jniapi/ instead"
             );
         }
     }
