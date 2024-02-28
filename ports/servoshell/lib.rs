@@ -2,6 +2,44 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+// For Android, see /support/android/apk/ + /ports/jniapi/.
+#![cfg(not(target_os = "android"))]
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+#[macro_use]
+extern crate sig;
+
+#[cfg(test)]
+mod test;
+
+mod app;
+mod backtrace;
+mod crash_handler;
+mod egui_glue;
+mod embedder;
+mod events_loop;
+mod geometry;
+mod headed_window;
+mod headless_window;
+mod keyutils;
+mod minibrowser;
+mod parser;
+mod prefs;
+mod resources;
+mod webview;
+mod window_trait;
+
+pub mod platform {
+    #[cfg(target_os = "macos")]
+    pub use crate::platform::macos::deinit;
+
+    #[cfg(target_os = "macos")]
+    pub mod macos;
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn deinit(_clean_shutdown: bool) {}
+}
+
 use std::io::Write;
 use std::{env, panic, process, thread};
 
