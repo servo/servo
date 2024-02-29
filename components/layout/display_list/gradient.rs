@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use euclid::default::{Point2D, Size2D, Vector2D};
+use style::color::mix::ColorInterpolationMethod;
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::computed::{Angle, Color, LengthPercentage, Percentage, Position};
@@ -240,6 +241,7 @@ pub fn linear(
     size: Size2D<Au>,
     stops: &[GradientItem<Color, LengthPercentage>],
     direction: LineDirection,
+    _color_interpolation_method: &ColorInterpolationMethod,
     repeating: bool,
 ) -> (Gradient, Vec<GradientStop>) {
     use style::values::specified::position::HorizontalPositionKeyword::*;
@@ -307,6 +309,7 @@ pub fn radial(
     stops: &[GradientItem<Color, LengthPercentage>],
     shape: &EndingShape,
     center: &Position,
+    _color_interpolation_method: &ColorInterpolationMethod,
     repeating: bool,
 ) -> (RadialGradient, Vec<GradientStop>) {
     let center = Point2D::new(

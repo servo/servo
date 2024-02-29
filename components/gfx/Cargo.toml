@@ -25,16 +25,16 @@ ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
-malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of = { workspace = true }
 net_traits = { workspace = true }
 range = { path = "../range" }
 serde = { workspace = true }
-servo_arc = { path = "../servo_arc" }
-servo_atoms = { path = "../atoms" }
+servo_arc = { workspace = true }
+servo_atoms = { workspace = true }
 servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
 surfman = { workspace = true }
-style = { path = "../style", features = ["servo"] }
+style = { workspace = true }
 ucd = "0.1.1"
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-script = { workspace = true }

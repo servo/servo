@@ -664,11 +664,14 @@ impl RunInfo {
     }
 
     fn has_font(&self, font: &Option<FontRef>) -> bool {
-        fn identifier(font: &Option<FontRef>) -> Option<Atom> {
-            font.as_ref().map(|f| f.borrow().identifier())
+        fn identifier_and_pt_size(font: &Option<FontRef>) -> Option<(Atom, Au)> {
+            font.as_ref().map(|font| {
+                let font = font.borrow();
+                (font.identifier(), font.descriptor.pt_size)
+            })
         }
 
-        identifier(&self.font) == identifier(font)
+        identifier_and_pt_size(&self.font) == identifier_and_pt_size(font)
     }
 }
 

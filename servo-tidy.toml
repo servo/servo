@@ -62,15 +62,16 @@ packages = [
     # quickcheck (required by layout_2020 for tests) is
     # stuck on 0.8.4 with no new releases.
     "env_logger",
+
+    # Stylo uses phf 0.11, while script and other dependencies use 0.10.
+    "phf",
+    "phf_codegen",
+    "phf_generator",
+    "phf_shared",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
     "./components/net/tests/parsable_mime/text",
-    # Ignore selectors and style files to avoid diverging too much from upstream Gecko
-    "./components/selectors/",
-    "./components/style/",
-    "./components/style_derive/parse.rs",
-    "./components/to_shmem/lib.rs",
     "./resources/hsts_preload.json",
     "./tests/wpt/meta/MANIFEST.json",
     "./tests/wpt/meta-legacy-layout/MANIFEST.json",
@@ -90,8 +91,6 @@ files = [
     "./tests/wpt/mozilla/tests/css/fonts",
     "./tests/wpt/mozilla/tests/css/pre_with_tab.html",
     "./tests/wpt/mozilla/tests/mozilla/textarea_placeholder.html",
-    # Python 3 syntax causes "E901 SyntaxError" when flake8 runs in Python 2
-    "./components/style/properties/build.py",
     # The tidy tests currently don't pass tidy.
     "./python/tidy/test.py",
 ]

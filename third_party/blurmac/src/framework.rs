@@ -485,6 +485,8 @@ pub mod cb {
     // CBCentralManagerScanOption...Key
 
     // CBAdvertisementData...Key
-    pub use self::link::CBAdvertisementDataServiceUUIDsKey as ADVERTISEMENTDATASERVICEUUIDSKEY;
-    pub use self::link::CBCentralManagerScanOptionAllowDuplicatesKey as CENTRALMANAGERSCANOPTIONALLOWDUPLICATESKEY;
+    pub use self::link::{
+        CBAdvertisementDataServiceUUIDsKey as ADVERTISEMENTDATASERVICEUUIDSKEY,
+        CBCentralManagerScanOptionAllowDuplicatesKey as CENTRALMANAGERSCANOPTIONALLOWDUPLICATESKEY,
+    };
 }

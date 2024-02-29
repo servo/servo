@@ -193,7 +193,6 @@ Run Servo with the command:
 * `libXi`
 * `libxkbcommon`
 * `vulkan-loader`
-* `libegl1-mesa-dev`
 
 ## Developing
 

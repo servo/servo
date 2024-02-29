@@ -70,8 +70,8 @@ class CheckTidiness(unittest.TestCase):
 
     def test_whatwg_link(self):
         errors = tidy.collect_errors_for_files(iterFile('whatwg_link.rs'), [], [tidy.check_by_line], print_text=False)
-        self.assertTrue('link to WHATWG may break in the future, use this format instead:' in next(errors)[2])
-        self.assertTrue('links to WHATWG single-page url, change to multi page:' in next(errors)[2])
+        self.assertEqual('link to WHATWG may break in the future, use this format instead: https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata', next(errors)[2])
+        self.assertEqual('links to WHATWG single-page url, change to multi page: https://html.spec.whatwg.org/multipage/#typographic-conventions', next(errors)[2])
         self.assertNoMoreErrors(errors)
 
     def test_license(self):

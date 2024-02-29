@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use style::color::mix::ColorInterpolationMethod;
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, Gradient, LineDirection};
 use style::values::computed::{Color, Length, LengthPercentage, Position};
@@ -18,12 +19,14 @@ pub(super) fn build(
         Gradient::Linear {
             ref items,
             ref direction,
+            ref color_interpolation_method,
             ref repeating,
             compat_mode: _,
         } => build_linear(
             style,
             items,
             direction,
+            color_interpolation_method,
             if *repeating {
                 wr::ExtendMode::Repeat
             } else {
@@ -35,6 +38,7 @@ pub(super) fn build(
         Gradient::Radial {
             ref shape,
             ref position,
+            ref color_interpolation_method,
             ref items,
             ref repeating,
             compat_mode: _,
@@ -43,6 +47,7 @@ pub(super) fn build(
             items,
             shape,
             position,
+            color_interpolation_method,
             if *repeating {
                 wr::ExtendMode::Repeat
             } else {
@@ -60,6 +65,7 @@ pub(super) fn build_linear(
     style: &ComputedValues,
     items: &[GradientItem<Color, LengthPercentage>],
     line_direction: &LineDirection,
+    _color_interpolation_method: &ColorInterpolationMethod,
     extend_mode: wr::ExtendMode,
     layer: &super::background::BackgroundLayer,
     builder: &mut super::DisplayListBuilder,
@@ -161,6 +167,7 @@ pub(super) fn build_radial(
     items: &[GradientItem<Color, LengthPercentage>],
     shape: &EndingShape,
     center: &Position,
+    _color_interpolation_method: &ColorInterpolationMethod,
     extend_mode: wr::ExtendMode,
     layer: &super::background::BackgroundLayer,
     builder: &mut super::DisplayListBuilder,

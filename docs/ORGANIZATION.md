@@ -24,8 +24,6 @@
     * Converts page content into positioned, styled boxes and passes the result to the renderer.
   * layout_thread
     * Runs the threads for layout, communicates with the script thread, and calls into the layout crate to do the layout.
-  * layout_traits
-    * APIs to the layout crate for crates that don't want to depend on the layout crate for build speed reasons.
   * msg
     * Shared APIs for communicating between specific threads and crates.
   * net

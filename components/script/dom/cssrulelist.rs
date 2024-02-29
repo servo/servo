@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::Locked;
 use style::stylesheets::{
-    AllowImportRules, CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError,
+    AllowImportRules, CssRuleTypes, CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError,
     StylesheetLoader as StyleStylesheetLoader,
 };
 
@@ -92,7 +92,12 @@ impl CSSRuleList {
 
     /// Should only be called for CssRules-backed rules. Use append_lazy_rule
     /// for keyframes-backed rules.
-    pub fn insert_rule(&self, rule: &str, idx: u32, nested: bool) -> Fallible<u32> {
+    pub fn insert_rule(
+        &self,
+        rule: &str,
+        idx: u32,
+        containing_rule_types: CssRuleTypes,
+    ) -> Fallible<u32> {
         let css_rules = if let RulesSource::Rules(ref rules) = self.rules {
             rules
         } else {
@@ -117,7 +122,7 @@ impl CSSRuleList {
             rule,
             &parent_stylesheet.contents,
             index,
-            nested,
+            containing_rule_types,
             loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
             AllowImportRules::Yes,
         )?;

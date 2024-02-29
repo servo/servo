@@ -22,7 +22,7 @@ serde_json = { workspace = true }
 servo_config_plugins = { path = "../config_plugins" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
-style_config = { path = "../style_config" }
+style_config = { workspace = true }
 url = { workspace = true }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]

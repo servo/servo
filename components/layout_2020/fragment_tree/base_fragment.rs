@@ -77,8 +77,10 @@ bitflags! {
     /// Flags used to track various information about a DOM node during layout.
     #[derive(Clone, Copy, Debug, Serialize)]
     pub(crate) struct FragmentFlags: u8 {
-        /// Whether or not this node is a body element on an HTML document.
+        /// Whether or not the node that created this fragment is a `<body>` element on an HTML document.
         const IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT = 0b00000001;
+        /// Whether or not the node that created this Fragment is a `<br>` element.
+        const IS_BR_ELEMENT = 0b00000010;
     }
 }
 

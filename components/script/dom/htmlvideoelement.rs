@@ -302,8 +302,8 @@ impl ImageCacheListener for HTMLVideoElement {
                 LoadBlocker::terminate(&mut *self.load_blocker.borrow_mut());
             },
             ImageResponse::MetadataLoaded(..) => {},
-            ImageResponse::PlaceholderLoaded(..) => unreachable!(),
-            ImageResponse::None => {
+            // The image cache may have loaded a placeholder for an invalid poster url
+            ImageResponse::PlaceholderLoaded(..) | ImageResponse::None => {
                 // A failed load should unblock the document load.
                 LoadBlocker::terminate(&mut *self.load_blocker.borrow_mut());
             },

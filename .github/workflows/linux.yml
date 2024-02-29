@@ -83,7 +83,7 @@ jobs:
           ref: refs/pull/${{ github.event.number }}/head
           fetch-depth: 2 # This is necessary for `test-tidy`.
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.3
+        uses: mozilla-actions/sccache-action@v0.0.4
       - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
         if: ${{ !inputs.upload  }} # not needed on ubuntu 20.04 used for nightly
         run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
@@ -91,11 +91,10 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install taplo
-        uses: baptiste0928/cargo-install@v2
+        uses: baptiste0928/cargo-install@v3
         with:
           crate: taplo-cli
           locked: true
-          cache-key: ${{ inputs.upload && '20.04' || '22.04' }}
       - name: Bootstrap Python
         run: python3 -m pip install --upgrade pip
       - name: Bootstrap dependencies
@@ -114,7 +113,7 @@ jobs:
         run: ./mach test-scripts
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 20
           max_attempts: 2 # https://github.com/servo/servo/issues/30683

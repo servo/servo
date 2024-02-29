@@ -14,7 +14,7 @@ use js::rust::HandleObject;
 use js::typedarray::{ClampedU8, CreateWith, Uint8ClampedArray};
 
 use super::bindings::buffer_source::{
-    new_initialized_heap_buffer_source_types, BufferSource, HeapBufferSource, HeapTypedArrayInit,
+    new_initialized_heap_buffer_source, BufferSource, HeapBufferSource, HeapTypedArrayInit,
 };
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::ImageDataMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -63,7 +63,7 @@ impl ImageData {
         opt_height: Option<u32>,
         jsobject: *mut JSObject,
     ) -> Fallible<DomRoot<ImageData>> {
-        let heap_typed_array = match new_initialized_heap_buffer_source_types::<ClampedU8>(
+        let heap_typed_array = match new_initialized_heap_buffer_source::<ClampedU8>(
             HeapTypedArrayInit::Buffer(BufferSource::Uint8ClampedArray(Heap::boxed(jsobject))),
         ) {
             Ok(heap_typed_array) => heap_typed_array,
@@ -117,7 +117,7 @@ impl ImageData {
         let len = width * height * 4;
 
         let heap_typed_array =
-            match new_initialized_heap_buffer_source_types::<ClampedU8>(HeapTypedArrayInit::Info {
+            match new_initialized_heap_buffer_source::<ClampedU8>(HeapTypedArrayInit::Info {
                 len,
                 cx,
             }) {

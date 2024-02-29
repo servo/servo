@@ -198,7 +198,9 @@ impl Minibrowser {
                     let rect = egui::Rect::from_min_size(min, size);
                     ui.allocate_space(size);
 
-                    let Some(servo_fbo) = servo_framebuffer_id else { return };
+                    let Some(servo_fbo) = servo_framebuffer_id else {
+                        return;
+                    };
                     ui.painter().add(PaintCallback {
                         rect,
                         callback: Arc::new(CallbackFn::new(move |info, painter| {

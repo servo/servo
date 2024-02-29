@@ -41,9 +41,9 @@ jobs:
           ref: refs/pull/${{ github.event.issue.number || github.event.number }}/head
           fetch-depth: 2
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.3
+        uses: mozilla-actions/sccache-action@v0.0.4
       - name: Install taplo
-        uses: baptiste0928/cargo-install@v2
+        uses: baptiste0928/cargo-install@v3
         with:
           crate: taplo-cli
           locked: true
@@ -52,7 +52,7 @@ jobs:
       - name: Bootstrap dependencies
         run: sudo apt update && python3 ./mach bootstrap
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'

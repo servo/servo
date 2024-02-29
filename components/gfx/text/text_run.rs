@@ -31,7 +31,7 @@ pub struct TextRun {
     /// The UTF-8 string represented by this text run.
     pub text: Arc<String>,
     pub font_template: Arc<FontTemplateData>,
-    pub actual_pt_size: Au,
+    pub pt_size: Au,
     pub font_metrics: FontMetrics,
     pub font_key: FontInstanceKey,
     /// The glyph runs that make up this text run.
@@ -195,7 +195,7 @@ impl<'a> TextRun {
                 font_metrics: font.metrics.clone(),
                 font_template: font.handle.template(),
                 font_key: font.font_key,
-                actual_pt_size: font.actual_pt_size,
+                pt_size: font.descriptor.pt_size,
                 glyphs: Arc::new(glyphs),
                 bidi_level: bidi_level,
                 extra_word_spacing: Au(0),

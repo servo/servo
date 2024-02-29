@@ -747,6 +747,10 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ThreadSafeLayoutElement<'dom>
         self.element
     }
 
+    fn get_local_name(&self) -> &LocalName {
+        self.element.local_name()
+    }
+
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue> {
         self.element.get_attr_enum(namespace, name)
     }

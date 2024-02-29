@@ -70,6 +70,13 @@ impl<T: Clone> LogicalVec2<T> {
             block: b.clone(),
         }
     }
+
+    pub fn map<U>(&self, f: impl Fn(&T) -> U) -> LogicalVec2<U> {
+        LogicalVec2 {
+            inline: f(&self.inline),
+            block: f(&self.block),
+        }
+    }
 }
 
 impl<T> Add<&'_ LogicalVec2<T>> for &'_ LogicalVec2<T>
@@ -121,10 +128,7 @@ impl<T: Zero> LogicalVec2<T> {
 
 impl LogicalVec2<LengthOrAuto> {
     pub fn auto_is(&self, f: impl Fn() -> Length) -> LogicalVec2<Length> {
-        LogicalVec2 {
-            inline: self.inline.auto_is(&f),
-            block: self.block.auto_is(&f),
-        }
+        self.map(|t| t.auto_is(&f))
     }
 }
 
@@ -479,14 +483,8 @@ impl From<LogicalVec2<Au>> for LogicalVec2<CSSPixelLength> {
 impl From<LogicalRect<Au>> for LogicalRect<CSSPixelLength> {
     fn from(value: LogicalRect<Au>) -> Self {
         LogicalRect {
-            start_corner: LogicalVec2 {
-                inline: value.start_corner.inline.into(),
-                block: value.start_corner.block.into(),
-            },
-            size: LogicalVec2 {
-                inline: value.size.inline.into(),
-                block: value.size.block.into(),
-            },
+            start_corner: value.start_corner.into(),
+            size: value.size.into(),
         }
     }
 }
@@ -494,14 +492,8 @@ impl From<LogicalRect<Au>> for LogicalRect<CSSPixelLength> {
 impl From<LogicalRect<CSSPixelLength>> for LogicalRect<Au> {
     fn from(value: LogicalRect<CSSPixelLength>) -> Self {
         LogicalRect {
-            start_corner: LogicalVec2 {
-                inline: value.start_corner.inline.into(),
-                block: value.start_corner.block.into(),
-            },
-            size: LogicalVec2 {
-                inline: value.size.inline.into(),
-                block: value.size.block.into(),
-            },
+            start_corner: value.start_corner.into(),
+            size: value.size.into(),
         }
     }
 }

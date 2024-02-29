@@ -18,7 +18,7 @@ keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
 log = { workspace = true }
 msg = { workspace = true }
-num-derive = "0.3"
+num-derive = "0.4"
 num-traits = { workspace = true }
 serde = { workspace = true }
 servo_url = { path = "../../url" }

@@ -31,7 +31,8 @@ use script_layout_interface::{
 };
 use script_traits::{DocumentActivity, UntrustedNodeAddress};
 use selectors::matching::{
-    matches_selector_list, MatchingContext, MatchingMode, NeedsSelectorFlags,
+    matches_selector_list, IgnoreNthChildForInvalidation, MatchingContext, MatchingMode,
+    NeedsSelectorFlags,
 };
 use selectors::parser::SelectorList;
 use servo_arc::Arc;
@@ -480,6 +481,7 @@ impl<'a> Iterator for QuerySelectorIterator {
                     &mut nth_index_cache,
                     node.owner_doc().quirks_mode(),
                     NeedsSelectorFlags::No,
+                    IgnoreNthChildForInvalidation::No,
                 );
                 if let Some(element) = DomRoot::downcast(node) {
                     if matches_selector_list(selectors, &element, &mut ctx) {
@@ -976,6 +978,7 @@ impl Node {
                     &mut nth_index_cache,
                     doc.quirks_mode(),
                     NeedsSelectorFlags::No,
+                    IgnoreNthChildForInvalidation::No,
                 );
                 Ok(self
                     .traverse_preorder(ShadowIncluding::No)

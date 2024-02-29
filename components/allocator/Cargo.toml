@@ -9,9 +9,13 @@ publish = false
 [lib]
 path = "lib.rs"
 
+[features]
+use-system-allocator = ["libc"]
+
 [target.'cfg(not(any(windows, target_os = "android")))'.dependencies]
 jemallocator = { workspace = true }
 jemalloc-sys = { workspace = true }
+libc = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { workspace = true, features = ["heapapi"] }

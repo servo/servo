@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, ParserInput, ToCss};
-use selectors::parser::SelectorList;
+use selectors::parser::{ParseRelative, SelectorList};
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Namespaces, Origin};
 use style_traits::ParseError;
@@ -22,7 +22,7 @@ fn parse_selector<'i, 't>(
         url_data: &dummy_url_data,
         for_supports_rule: false,
     };
-    SelectorList::parse(&parser, input)
+    SelectorList::parse(&parser, input, ParseRelative::No)
 }
 
 #[test]

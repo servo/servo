@@ -7,7 +7,7 @@ use std::f32;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
+use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::oscillator_node::{
     OscillatorNodeMessage, OscillatorNodeOptions as ServoMediaOscillatorOptions,
     OscillatorType as ServoMediaOscillatorType,
@@ -60,6 +60,7 @@ impl OscillatorNode {
             window,
             context,
             node_id,
+            AudioNodeType::OscillatorNode,
             ParamType::Frequency,
             AutomationRate::A_rate,
             440.,
@@ -70,6 +71,7 @@ impl OscillatorNode {
             window,
             context,
             node_id,
+            AudioNodeType::OscillatorNode,
             ParamType::Detune,
             AutomationRate::A_rate,
             0.,

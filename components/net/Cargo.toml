@@ -38,7 +38,7 @@ ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 libflate = "0.1"
 log = { workspace = true }
-malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 mime = { workspace = true }
 mime_guess = { workspace = true }
@@ -53,7 +53,7 @@ rustls-pemfile = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_allocator = { path = "../allocator" }
-servo_arc = { path = "../servo_arc" }
+servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 sha2 = "0.10"

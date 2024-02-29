@@ -145,8 +145,6 @@ pub struct XMLHttpRequest {
     #[ignore_malloc_size_of = "Defined in hyper"]
     #[no_trace]
     override_mime_type: DomRefCell<Option<Mime>>,
-    #[no_trace]
-    override_charset: DomRefCell<Option<&'static Encoding>>,
 
     // Associated concepts
     #[ignore_malloc_size_of = "Defined in hyper"]
@@ -201,7 +199,6 @@ impl XMLHttpRequest {
             response_json: Heap::default(),
             response_headers: DomRefCell::new(HeaderMap::new()),
             override_mime_type: DomRefCell::new(None),
-            override_charset: DomRefCell::new(None),
 
             request_method: DomRefCell::new(Method::GET),
             request_url: DomRefCell::new(None),
@@ -892,31 +889,28 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         ByteString::new(v)
     }
 
-    // https://xhr.spec.whatwg.org/#the-overridemimetype()-method
+    /// <https://xhr.spec.whatwg.org/#the-overridemimetype()-method>
     fn OverrideMimeType(&self, mime: DOMString) -> ErrorResult {
-        // Step 1
+        // 1. If this’s state is loading or done, then throw an "InvalidStateError"
+        //   DOMException.
         match self.ready_state.get() {
             XMLHttpRequestState::Loading | XMLHttpRequestState::Done => {
                 return Err(Error::InvalidState);
             },
             _ => {},
         }
-        // Step 2
-        let override_mime = mime.parse::<Mime>().map_err(|_| Error::Syntax)?;
-        // Step 3
-        let mime_str = override_mime.as_ref();
-        let mime_parts: Vec<&str> = mime_str.split(";").collect();
-        let mime_no_params = if mime_parts.len() > 1 {
-            mime_parts[0].parse().unwrap()
-        } else {
-            override_mime.clone()
+
+        // 2. Set this’s override MIME type to the result of parsing mime.
+        // 3. If this’s override MIME type is failure, then set this’s override MIME type
+        //    to application/octet-stream.
+        let override_mime = match mime.parse::<Mime>() {
+            Ok(mime) => mime,
+            Err(_) => "application/octet-stream"
+                .parse::<Mime>()
+                .map_err(|_| Error::Syntax)?,
         };
 
-        *self.override_mime_type.borrow_mut() = Some(mime_no_params);
-        // Step 4
-        let value = override_mime.get_param(mime::CHARSET);
-        *self.override_charset.borrow_mut() =
-            value.and_then(|value| Encoding::for_label(value.as_ref().as_bytes()));
+        *self.override_mime_type.borrow_mut() = Some(override_mime);
         Ok(())
     }
 
@@ -1604,19 +1598,29 @@ impl XMLHttpRequest {
         Ok(())
     }
 
+    /// <https://xhr.spec.whatwg.org/#final-charset>
     fn final_charset(&self) -> Option<&'static Encoding> {
-        if self.override_charset.borrow().is_some() {
-            self.override_charset.borrow().clone()
-        } else {
-            match self.response_headers.borrow().typed_get::<ContentType>() {
-                Some(ct) => {
-                    let mime: Mime = ct.into();
-                    let value = mime.get_param(mime::CHARSET);
-                    value.and_then(|value| Encoding::for_label(value.as_ref().as_bytes()))
-                },
-                None => None,
-            }
-        }
+        // 1. Let label be null.
+        // 2. Let responseMIME be the result of get a response MIME type for xhr.
+        // 3. If responseMIME’s parameters["charset"] exists, then set label to it.
+        let response_charset = self
+            .response_mime_type()
+            .and_then(|mime| mime.get_param(mime::CHARSET).map(|c| c.to_string()));
+
+        // 4. If xhr’s override MIME type’s parameters["charset"] exists, then set label to it.
+        let override_charset = self
+            .override_mime_type
+            .borrow()
+            .as_ref()
+            .and_then(|mime| mime.get_param(mime::CHARSET).map(|c| c.to_string()));
+
+        // 5. If label is null, then return null.
+        // 6. Let encoding be the result of getting an encoding from label.
+        // 7. If encoding is failure, then return null.
+        // 8. Return encoding.
+        override_charset
+            .or(response_charset)
+            .and_then(|charset| Encoding::for_label(&charset.as_bytes()))
     }
 
     /// <https://xhr.spec.whatwg.org/#response-mime-type>

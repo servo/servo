@@ -245,8 +245,8 @@ fn test_font_template_is_cached() {
     let font2 = context.font(&font_descriptor, &family_descriptor).unwrap();
 
     assert_ne!(
-        font1.borrow().actual_pt_size,
-        font2.borrow().actual_pt_size,
+        font1.borrow().descriptor.pt_size,
+        font2.borrow().descriptor.pt_size,
         "the same font should not have been returned"
     );
 

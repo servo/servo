@@ -39,10 +39,6 @@ from servo.build_commands import copy_dependencies
 from servo.gstreamer import macos_gst_root
 from servo.util import delete, get_target_dir
 
-# Note: mako cannot be imported at the top level because it breaks mach bootstrap
-sys.path.append(path.join(path.dirname(__file__), "..", "..",
-                          "components", "style", "properties", "Mako-1.1.2-py2.py3-none-any.whl"))
-
 PACKAGES = {
     'android': [
         'android/armv7-linux-androideabi/production/servoapp.apk',

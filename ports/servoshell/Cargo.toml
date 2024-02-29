@@ -8,6 +8,11 @@ edition = "2021"
 build = "build.rs"
 publish = false
 
+[lib]
+name = "servoshell"
+path = "lib.rs"
+bench = false
+
 [[bin]]
 name = "servo"
 path = "main.rs"
@@ -42,6 +47,10 @@ refcell_backtrace = ["libservo/refcell_backtrace"]
 webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 xr-profile = ["libservo/xr-profile"]
+
+[dependencies]
+# For optional feature servo_allocator/use-system-allocator
+servo_allocator = { path = "../../components/allocator" }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 arboard = "3"

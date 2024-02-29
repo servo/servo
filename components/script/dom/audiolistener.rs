@@ -5,6 +5,7 @@
 use std::f32;
 
 use dom_struct::dom_struct;
+use servo_media::audio::node::AudioNodeType;
 use servo_media::audio::param::{ParamDir, ParamType};
 
 use crate::dom::audioparam::AudioParam;
@@ -41,6 +42,7 @@ impl AudioListener {
             window,
             context,
             node,
+            AudioNodeType::AudioListenerNode,
             ParamType::Position(ParamDir::X),
             AutomationRate::A_rate,
             0.,       // default value
@@ -51,6 +53,7 @@ impl AudioListener {
             window,
             context,
             node,
+            AudioNodeType::AudioListenerNode,
             ParamType::Position(ParamDir::Y),
             AutomationRate::A_rate,
             0.,       // default value
@@ -61,6 +64,7 @@ impl AudioListener {
             window,
             context,
             node,
+            AudioNodeType::AudioListenerNode,
             ParamType::Position(ParamDir::Z),
             AutomationRate::A_rate,
             0.,       // default value
@@ -71,6 +75,7 @@ impl AudioListener {
             window,
             context,
             node,
+            AudioNodeType::AudioListenerNode,
             ParamType::Forward(ParamDir::X),
             AutomationRate::A_rate,
             0.,       // default value
@@ -81,6 +86,7 @@ impl AudioListener {
             window,
             context,
             node,
+            AudioNodeType::AudioListenerNode,
             ParamType::Forward(ParamDir::Y),
             AutomationRate::A_rate,
             0.,       // default value
@@ -91,6 +97,7 @@ impl AudioListener {
             window,
             context,
             node,
+            AudioNodeType::AudioListenerNode,
             ParamType::Forward(ParamDir::Z),
             AutomationRate::A_rate,
             -1.,      // default value
@@ -101,6 +108,7 @@ impl AudioListener {
             window,
             context,
             node,
+            AudioNodeType::AudioListenerNode,
             ParamType::Up(ParamDir::X),
             AutomationRate::A_rate,
             0.,       // default value
@@ -111,6 +119,7 @@ impl AudioListener {
             window,
             context,
             node,
+            AudioNodeType::AudioListenerNode,
             ParamType::Up(ParamDir::Y),
             AutomationRate::A_rate,
             1.,       // default value
@@ -121,6 +130,7 @@ impl AudioListener {
             window,
             context,
             node,
+            AudioNodeType::AudioListenerNode,
             ParamType::Up(ParamDir::Z),
             AutomationRate::A_rate,
             0.,       // default value
