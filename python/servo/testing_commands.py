@@ -48,6 +48,18 @@ UNSTABLE_RUSTFMT_ARGUMENTS = [
     "--config", "group_imports=StdExternalCrate",
 ]
 
+# Listing these globs manually is a work-around for very slow `taplo` invocation
+# on MacOS machines. If `taplo` runs fast without the globs on MacOS, this
+# can be removed.
+TOML_GLOBS = [
+    "*.toml",
+    ".cargo/*.toml",
+    "components/*/*.toml",
+    "components/shared/*.toml",
+    "ports/*/*.toml",
+    "support/*/*.toml",
+]
+
 
 def format_toml_files_with_taplo(check_only: bool = True) -> int:
     taplo = shutil.which("taplo")
@@ -56,9 +68,9 @@ def format_toml_files_with_taplo(check_only: bool = True) -> int:
         return 1
 
     if check_only:
-        return call([taplo, "fmt", "--check"], env={'RUST_LOG': 'error'})
+        return call([taplo, "fmt", "--check", *TOML_GLOBS], env={'RUST_LOG': 'error'})
     else:
-        return call([taplo, "fmt"], env={'RUST_LOG': 'error'})
+        return call([taplo, "fmt", *TOML_GLOBS], env={'RUST_LOG': 'error'})
 
 
 @CommandProvider
