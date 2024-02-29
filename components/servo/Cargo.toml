@@ -12,8 +12,6 @@ path = "lib.rs"
 crate-type = ["rlib"]
 
 [features]
-# Force use of system allocator
-use-system-allocator = ["servo_allocator/use-system-allocator"]
 debugmozjs = ["script/debugmozjs"]
 googlevr = ["webxr/googlevr"]
 jitspew = ["script/jitspew"]
@@ -34,7 +32,6 @@ webgl_backtrace = [
 xr-profile = ["canvas/xr-profile", "canvas_traits/xr-profile", "script/xr-profile", "webxr/profile"]
 
 [dependencies]
-servo_allocator = { path = "../allocator" }
 background_hang_monitor = { path = "../background_hang_monitor" }
 bluetooth = { path = "../bluetooth" }
 bluetooth_traits = { workspace = true }
