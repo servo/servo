@@ -91,11 +91,10 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install taplo
-        uses: baptiste0928/cargo-install@v2
+        uses: baptiste0928/cargo-install@v3
         with:
           crate: taplo-cli
           locked: true
-          cache-key: ${{ inputs.upload && '20.04' || '22.04' }}
       - name: Bootstrap Python
         run: python3 -m pip install --upgrade pip
       - name: Bootstrap dependencies
