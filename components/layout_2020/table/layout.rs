@@ -411,7 +411,7 @@ impl<'a> TableLayout<'a> {
             let final_intrinsic_percentage_width = column_measure
                 .percentage
                 .0
-                .min(100. - total_intrinsic_percentage_width);
+                .min(1. - total_intrinsic_percentage_width);
             total_intrinsic_percentage_width += final_intrinsic_percentage_width;
             column_measure.percentage = Percentage(final_intrinsic_percentage_width);
         }
@@ -1148,7 +1148,7 @@ impl<'a> TableLayout<'a> {
                 });
             }
 
-            self.rows[row_index].percent = Percentage(percentage.min(100. - total_percentage));
+            self.rows[row_index].percent = Percentage(percentage.min(1. - total_percentage));
             total_percentage += self.rows[row_index].percent.0;
         }
 
@@ -1218,7 +1218,7 @@ impl<'a> TableLayout<'a> {
         if let Some(percentage_resolution_size) = percentage_resolution_size {
             let get_percent_block_size_deficit = |row_index: usize, track_size: Au| {
                 let size_needed_for_percent =
-                    percentage_resolution_size.scale_by(self.rows[row_index].percent.0 / 100.);
+                    percentage_resolution_size.scale_by(self.rows[row_index].percent.0);
                 (size_needed_for_percent - track_size).max(Au::zero())
             };
             let percent_block_size_deficit: Au = track_range
