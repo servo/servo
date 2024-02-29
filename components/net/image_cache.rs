@@ -41,7 +41,6 @@ use crate::resource_thread::CoreResourceThreadPool;
 // ======================================================================
 
 fn decode_bytes_sync(key: LoadKey, bytes: &[u8], cors: CorsStatus) -> DecoderMsg {
-    // decode
     let image = load_from_memory(bytes, cors);
     DecoderMsg { key, image }
 }
@@ -569,6 +568,25 @@ impl ImageCache for ImageCacheImpl {
         }
 
         cache_result
+    }
+
+    fn decode(
+        &self,
+        url: ServoUrl,
+        origin: ImmutableOrigin,
+        cors_setting: Option<CorsSettings>,
+    ) -> Option<Image> {
+        let mut store: std::sync::MutexGuard<'_, ImageCacheStore> = self.store.lock().unwrap();
+
+        let result = store
+            .pending_loads
+            .get_cached(url.clone(), origin.clone(), cors_setting);
+        match result {
+            CacheResult::Hit(key, pl) => {
+                return decode_bytes_sync(key, &pl.bytes.as_slice(), pl.cors_status).image
+            },
+            CacheResult::Miss(_) => return None,
+        }
     }
 
     /// Add a new listener for the given pending image id. If the image is already present,

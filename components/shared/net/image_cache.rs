@@ -119,6 +119,13 @@ pub trait ImageCache: Sync + Send {
         use_placeholder: UsePlaceholder,
     ) -> ImageCacheResult;
 
+    fn decode(
+        &self,
+        url: ServoUrl,
+        origin: ImmutableOrigin,
+        cors_setting: Option<CorsSettings>,
+    ) -> Option<Image>;
+
     /// Add a listener for the provided pending image id, eventually called by
     /// ImageCacheStore::complete_load.
     /// If only metadata is available, Available(ImageOrMetadataAvailable) will

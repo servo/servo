@@ -920,6 +920,53 @@ impl HTMLImageElement {
         }
     }
 
+    /// Step 2-2.2 of https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-decode
+    fn decode_image_data_sync(&self, promise: &Rc<Promise>) {
+        let document = document_from_node(self);
+        let window = document.window();
+        let elem = self.upcast::<Element>();
+        let src = elem.get_url_attribute(&local_name!("src"));
+        let base_url = document.base_url();
+
+        let image_cache = window.image_cache();
+
+        if let Ok(img_url) = base_url.join(&src) {
+            // Step 2.1
+            let available = match self.current_request.borrow().state {
+                State::Unavailable => false,
+                State::PartiallyAvailable => false,
+                State::CompletelyAvailable => true,
+                State::Broken => false,
+            };
+
+            // Step 2.2
+            if document.is_fully_active() || !available {
+                let decode_result: Option<Image> = image_cache.decode(
+                    img_url.clone(),
+                    window.origin().immutable().clone(),
+                    cors_setting_for_element(self.upcast()),
+                );
+
+                match decode_result {
+                    Some(_) => {
+                        promise.resolve_native(&());
+                    },
+                    None => {
+                        promise.reject_native(&DOMException::new(
+                            &self.global(),
+                            DOMErrorName::EncodingError,
+                        ));
+                    },
+                }
+            } else {
+                promise.reject_native(&DOMException::new(
+                    &self.global(),
+                    DOMErrorName::EncodingError,
+                ));
+            }
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
     pub fn update_the_image_data(&self) {
         let document = document_from_node(self);
@@ -1349,6 +1396,11 @@ pub enum ImageElementMicrotask {
         elem: DomRoot<HTMLImageElement>,
         generation: u32,
     },
+    DecodeTask {
+        elem: DomRoot<HTMLImageElement>,
+        #[ignore_malloc_size_of = "promises are hard"]
+        promise: Rc<Promise>,
+    },
 }
 
 impl MicrotaskRunnable for ImageElementMicrotask {
@@ -1370,13 +1422,20 @@ impl MicrotaskRunnable for ImageElementMicrotask {
             } => {
                 elem.react_to_environment_changes_sync_steps(*generation);
             },
+            &ImageElementMicrotask::DecodeTask {
+                ref elem,
+                ref promise,
+            } => {
+                elem.decode_image_data_sync(promise);
+            },
         }
     }
 
     fn enter_realm(&self) -> JSAutoRealm {
         match self {
             &ImageElementMicrotask::StableStateUpdateImageDataTask { ref elem, .. } |
-            &ImageElementMicrotask::EnvironmentChangesTask { ref elem, .. } => enter_realm(&**elem),
+            &ImageElementMicrotask::EnvironmentChangesTask { ref elem, .. } |
+            &ImageElementMicrotask::DecodeTask { ref elem, .. } => enter_realm(&**elem),
         }
     }
 }
@@ -1615,22 +1674,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let promise = Promise::new(&self.global());
 
         // Step 2
-        let document = document_from_node(self);
-        let ready = match self.current_request.borrow().state {
-            State::Unavailable => false,
-            State::PartiallyAvailable => false,
-            State::CompletelyAvailable => true,
-            State::Broken => false,
+        let task = ImageElementMicrotask::DecodeTask {
+            elem: DomRoot::from_ref(self),
+            promise: promise.clone(),
         };
-
-        if document.is_fully_active() && ready && self.current_request.borrow().image.is_some() {
-            promise.reject_native(&DOMException::new(
-                &self.global(),
-                DOMErrorName::EncodingError,
-            ));
-        } else {
-            promise.resolve_native(&());
-        }
+        ScriptThread::await_stable_state(Microtask::ImageElement(task));
 
         // Step 3
         promise
