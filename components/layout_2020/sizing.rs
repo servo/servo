@@ -24,13 +24,6 @@ pub(crate) struct ContentSizes {
 
 /// <https://drafts.csswg.org/css-sizing/#intrinsic-sizes>
 impl ContentSizes {
-    pub fn zero() -> Self {
-        Self {
-            min_content: Au::zero(),
-            max_content: Au::zero(),
-        }
-    }
-
     pub fn map(&self, f: impl Fn(Au) -> Au) -> Self {
         Self {
             min_content: f(self.min_content),
@@ -54,6 +47,19 @@ impl ContentSizes {
             min_content: self.min_content.max(other.min_content),
             max_content: self.max_content + other.max_content,
         }
+    }
+}
+
+impl Zero for ContentSizes {
+    fn zero() -> Self {
+        Self {
+            min_content: Au::zero(),
+            max_content: Au::zero(),
+        }
+    }
+
+    fn is_zero(&self) -> bool {
+        self.min_content.is_zero() && self.max_content.is_zero()
     }
 }
 
