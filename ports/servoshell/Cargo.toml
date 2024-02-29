@@ -70,7 +70,7 @@ libc = { workspace = true }
 libservo = { path = "../../components/servo" }
 log = { workspace = true }
 raw-window-handle = "0.5"
-servo-media = { git = "https://github.com/servo/media" }
+servo-media = { workspace = true }
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle"] }
 tinyfiledialogs = "3.0"

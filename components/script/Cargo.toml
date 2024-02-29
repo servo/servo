@@ -91,7 +91,7 @@ script_traits = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_bytes = { workspace = true }
-servo-media = { git = "https://github.com/servo/media" }
+servo-media = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_arc = { workspace = true }
 servo_atoms = { workspace = true }
