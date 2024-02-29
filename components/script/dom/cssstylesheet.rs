@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::Stylesheet as StyleStyleSheet;
+use style::stylesheets::{CssRuleTypes, Stylesheet as StyleStyleSheet};
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -129,7 +129,7 @@ impl CSSStyleSheetMethods for CSSStyleSheet {
             return Err(Error::Security);
         }
         self.rulelist()
-            .insert_rule(&rule, index, /* nested */ false)
+            .insert_rule(&rule, index, CssRuleTypes::default())
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule

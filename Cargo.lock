@@ -1086,7 +1086,7 @@ dependencies = [
  "cssparser-macros",
  "dtoa-short",
  "itoa",
- "phf",
+ "phf 0.10.1",
  "serde",
  "smallvec",
 ]
@@ -1208,7 +1208,7 @@ dependencies = [
 [[package]]
 name = "derive_common"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -3460,7 +3460,7 @@ dependencies = [
 [[package]]
 name = "malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "accountable-refcell",
  "app_units",
@@ -3514,8 +3514,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a2629bb1404f3d34c2e921f21fd34ba00b206124c81f65c50b43b6aaefeb016"
 dependencies = [
  "log",
- "phf",
- "phf_codegen",
+ "phf 0.10.1",
+ "phf_codegen 0.10.0",
  "string_cache",
  "string_cache_codegen",
  "tendril",
@@ -3974,13 +3974,13 @@ checksum = "51d515d32fb182ee37cda2ccdcb92950d6a3c2893aa280e540671c2cd0f3b1d9"
 
 [[package]]
 name = "num-derive"
-version = "0.3.3"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "876a53fff98e03a936a674b29568b0e605f06b29372c2489ff4de23f1949743d"
+checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.50",
 ]
 
 [[package]]
@@ -4267,8 +4267,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fabbf1ead8a5bcbc20f5f8b939ee3f5b0f6f281b6ad3468b84656b658b455259"
 dependencies = [
  "phf_macros",
- "phf_shared",
+ "phf_shared 0.10.0",
  "proc-macro-hack",
+]
+
+[[package]]
+name = "phf"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ade2d8b8f33c7333b51bcf0428d37e217e9f32192ae4772156f65063b8ce03dc"
+dependencies = [
+ "phf_shared 0.11.2",
 ]
 
 [[package]]
@@ -4277,8 +4286,18 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fb1c3a8bc4dd4e5cfce29b44ffc14bedd2ee294559a294e2a4d4c9e9a6a13cd"
 dependencies = [
- "phf_generator",
- "phf_shared",
+ "phf_generator 0.10.0",
+ "phf_shared 0.10.0",
+]
+
+[[package]]
+name = "phf_codegen"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8d39688d359e6b34654d328e262234662d16cc0f60ec8dcbe5e718709342a5a"
+dependencies = [
+ "phf_generator 0.11.2",
+ "phf_shared 0.11.2",
 ]
 
 [[package]]
@@ -4287,7 +4306,17 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d5285893bb5eb82e6aaf5d59ee909a06a16737a8970984dd7746ba9283498d6"
 dependencies = [
- "phf_shared",
+ "phf_shared 0.10.0",
+ "rand",
+]
+
+[[package]]
+name = "phf_generator"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48e4cc64c2ad9ebe670cb8fd69dd50ae301650392e81c05f9bfcb2d5bdbc24b0"
+dependencies = [
+ "phf_shared 0.11.2",
  "rand",
 ]
 
@@ -4297,8 +4326,8 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58fdf3184dd560f160dd73922bea2d5cd6e8f064bf4b13110abd81b03697b4e0"
 dependencies = [
- "phf_generator",
- "phf_shared",
+ "phf_generator 0.10.0",
+ "phf_shared 0.10.0",
  "proc-macro-hack",
  "proc-macro2",
  "quote",
@@ -4310,6 +4339,15 @@ name = "phf_shared"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6796ad771acdc0123d2a88dc428b5e38ef24456743ddb1744ed628f9815c096"
+dependencies = [
+ "siphasher",
+]
+
+[[package]]
+name = "phf_shared"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90fcb95eef784c2ac79119d1dd819e162b5da872ce6f3c3abe1e8ca1c082f72b"
 dependencies = [
  "siphasher",
 ]
@@ -4924,9 +4962,9 @@ dependencies = [
  "num_cpus",
  "parking_lot",
  "percent-encoding",
- "phf",
- "phf_codegen",
- "phf_shared",
+ "phf 0.10.1",
+ "phf_codegen 0.10.0",
+ "phf_shared 0.10.0",
  "pixels",
  "profile_traits",
  "range",
@@ -5072,7 +5110,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.24.0"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "bitflags 1.3.2",
  "cssparser",
@@ -5080,8 +5118,8 @@ dependencies = [
  "fxhash",
  "log",
  "new_debug_unreachable",
- "phf",
- "phf_codegen",
+ "phf 0.11.2",
+ "phf_codegen 0.11.2",
  "precomputed-hash",
  "servo_arc",
  "size_of_test",
@@ -5360,7 +5398,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "nodrop",
  "serde",
@@ -5370,7 +5408,7 @@ dependencies = [
 [[package]]
 name = "servo_atoms"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -5576,7 +5614,7 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 [[package]]
 name = "size_of_test"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "static_assertions",
 ]
@@ -5702,7 +5740,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 
 [[package]]
 name = "str-buf"
@@ -5725,7 +5763,7 @@ dependencies = [
  "new_debug_unreachable",
  "once_cell",
  "parking_lot",
- "phf_shared",
+ "phf_shared 0.10.0",
  "precomputed-hash",
  "serde",
 ]
@@ -5736,8 +5774,8 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bb30289b722be4ff74a408c3cc27edeaad656e06cb1fe8fa9231fa59c728988"
 dependencies = [
- "phf_generator",
- "phf_shared",
+ "phf_generator 0.10.0",
+ "phf_shared 0.10.0",
  "proc-macro2",
  "quote",
 ]
@@ -5745,7 +5783,7 @@ dependencies = [
 [[package]]
 name = "style"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -5765,6 +5803,7 @@ dependencies = [
  "log",
  "malloc_size_of",
  "malloc_size_of_derive",
+ "matches",
  "mime",
  "new_debug_unreachable",
  "num-derive",
@@ -5802,7 +5841,7 @@ dependencies = [
 [[package]]
 name = "style_config"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "lazy_static",
 ]
@@ -5810,7 +5849,7 @@ dependencies = [
 [[package]]
 name = "style_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "darling",
  "derive_common",
@@ -5841,7 +5880,7 @@ dependencies = [
 [[package]]
 name = "style_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "app_units",
  "bitflags 1.3.2",
@@ -6184,7 +6223,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -6197,7 +6236,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo.git?branch=2023-06-14#a11671a8886bd535001335b6f2a1746262d02478"
+source = "git+https://github.com/servo/stylo.git?branch=2023-07-23#e2a483443afc5d3e6dd71dfb19ed45e1c8d8a2dc"
 dependencies = [
  "darling",
  "derive_common",

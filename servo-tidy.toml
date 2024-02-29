@@ -62,6 +62,12 @@ packages = [
     # quickcheck (required by layout_2020 for tests) is
     # stuck on 0.8.4 with no new releases.
     "env_logger",
+
+    # Stylo uses phf 0.11, while script and other dependencies use 0.10.
+    "phf",
+    "phf_codegen",
+    "phf_generator",
+    "phf_shared",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
