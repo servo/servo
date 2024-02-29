@@ -920,7 +920,7 @@ impl HTMLImageElement {
         }
     }
 
-    /// Step 2-2.2 of https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-decode
+    /// Step 2-2.2 of <https://html.spec.whatwg.org/multipage/#dom-img-decode>
     fn decode_image_data_sync(&self, promise: &Rc<Promise>) {
         let document = document_from_node(self);
         let window = document.window();
