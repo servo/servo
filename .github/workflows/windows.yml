@@ -88,7 +88,7 @@ jobs:
         run: python mach smoketest --angle --${{ inputs.profile }}
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3 # https://github.com/servo/servo/issues/30683
