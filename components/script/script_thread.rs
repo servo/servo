@@ -1705,6 +1705,28 @@ impl ScriptThread {
             docs.clear();
         }
 
+        // Run the resize observation steps.
+        for (_, document) in self.documents.borrow().iter() {
+            if !document.is_fully_active() {
+                continue;
+            }
+
+            let _realm = enter_realm(&*document);
+
+            let mut depth = Default::default();
+            loop {
+                if !document.gather_active_resize_observations_at_depth(&depth) {
+                    break;
+                }
+                // Note: this will reflow the doc.
+                depth = document.broadcast_active_resize_observations();
+            }
+
+            if document.has_skipped_resize_observations() {
+                document.deliver_resize_loop_error_notification();
+            }
+        }
+
         // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7.12
 
         // Issue batched reflows on any pages that require it (e.g. if images loaded)
