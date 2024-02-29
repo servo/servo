@@ -38,6 +38,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }
+servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 style = { workspace = true }
 style_traits = { workspace = true }

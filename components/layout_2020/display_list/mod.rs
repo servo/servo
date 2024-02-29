@@ -13,6 +13,7 @@ use gfx_traits::WebRenderEpochToU16;
 use msg::constellation_msg::BrowsingContextId;
 use net_traits::image_cache::UsePlaceholder;
 use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId};
+use servo_geometry::MaxRect;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
@@ -23,6 +24,8 @@ use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
 use style_traits::CSSPixel;
 use webrender_api::{self as wr, units, ClipChainId, ClipId, CommonItemProperties};
+use wr::units::LayoutVector2D;
+use wr::BoxShadowClipMode;
 
 use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
@@ -552,6 +555,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         } else {
             self.build_hit_test(builder);
             self.build_background(builder);
+            self.build_box_shadow(builder);
             self.build_border(builder);
         }
     }
@@ -807,6 +811,42 @@ impl<'a> BuilderForBoxFragment<'a> {
         builder
             .wr()
             .push_border(&common, outline_rect, widths, details)
+    }
+
+    fn build_box_shadow(&self, builder: &mut DisplayListBuilder<'_>) {
+        let box_shadows = &self.fragment.style.get_effects().box_shadow.0;
+        if box_shadows.is_empty() {
+            return;
+        }
+
+        // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
+        let border_rect = self.border_rect;
+        let common = builder.common_properties(MaxRect::max_rect(), &self.fragment.style);
+        for box_shadow in box_shadows.iter().rev() {
+            let clip_mode = if box_shadow.inset {
+                BoxShadowClipMode::Inset
+            } else {
+                BoxShadowClipMode::Outset
+            };
+
+            builder.wr().push_box_shadow(
+                &common,
+                border_rect,
+                LayoutVector2D::new(
+                    box_shadow.base.horizontal.px(),
+                    box_shadow.base.vertical.px(),
+                ),
+                rgba(
+                    self.fragment
+                        .style
+                        .resolve_color(box_shadow.base.color.clone()),
+                ),
+                box_shadow.base.blur.px(),
+                box_shadow.spread.px(),
+                self.border_radius,
+                clip_mode,
+            );
+        }
     }
 }
 
