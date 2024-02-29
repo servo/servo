@@ -82,7 +82,8 @@ class Base:
         return True
 
     def install_nightly_rust(self, force: bool = False) -> bool:
-        if not force and subprocess.call(["rustc", f"+{NIGHTLY_RUST}"]):
+        if not force and subprocess.call(["rustc", f"+{NIGHTLY_RUST}", "-vV"],
+                                         stdout=subprocess.DEVNULL) == 0:
             print(f"{NIGHTLY_RUST} is already installed")
         else:
             print(" * Installing respective nightly rust version...")
