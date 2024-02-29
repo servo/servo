@@ -5475,6 +5475,7 @@ dependencies = [
  "log",
  "raw-window-handle",
  "servo-media",
+ "servo_allocator",
  "shellwords",
  "sig",
  "surfman",
