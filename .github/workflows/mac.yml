@@ -77,7 +77,7 @@ jobs:
         with:
           ref: refs/pull/${{ github.event.number }}/head
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.3
+        uses: mozilla-actions/sccache-action@v0.0.4
       - name: Install taplo
         uses: baptiste0928/cargo-install@v2
         with:

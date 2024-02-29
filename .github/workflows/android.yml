@@ -41,7 +41,7 @@ jobs:
           ref: refs/pull/${{ github.event.issue.number || github.event.number }}/head
           fetch-depth: 2
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.3
+        uses: mozilla-actions/sccache-action@v0.0.4
       - name: Install taplo
         uses: baptiste0928/cargo-install@v2
         with:
