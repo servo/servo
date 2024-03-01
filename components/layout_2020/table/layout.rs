@@ -133,13 +133,13 @@ impl<'a> TableLayout<'a> {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block_for_children: &ContainingBlock,
-        containing_block: &ContainingBlock,
+        containing_block_for_table: &ContainingBlock,
     ) {
         let writing_mode = containing_block_for_children.style.writing_mode;
         self.compute_track_constrainedness_and_has_originating_cells(writing_mode);
         self.compute_cell_measures(layout_context, containing_block_for_children);
         self.compute_column_measures(writing_mode);
-        self.compute_table_width(containing_block_for_children, containing_block);
+        self.compute_table_width(containing_block_for_children, containing_block_for_table);
         self.distributed_column_widths = self.distribute_width_to_columns();
 
         self.layout_cells_in_row(
@@ -151,7 +151,7 @@ impl<'a> TableLayout<'a> {
         self.compute_table_height_and_final_row_heights(
             first_layout_row_heights,
             containing_block_for_children,
-            containing_block,
+            containing_block_for_table,
         );
     }
 
@@ -160,12 +160,12 @@ impl<'a> TableLayout<'a> {
     pub(crate) fn compute_cell_measures(
         &mut self,
         layout_context: &LayoutContext,
-        containing_block: &ContainingBlock,
+        containing_block_for_table: &ContainingBlock,
     ) {
         let row_measures = vec![LogicalVec2::zero(); self.table.size.width];
         self.cell_measures = vec![row_measures; self.table.size.height];
 
-        let writing_mode = containing_block.style.writing_mode;
+        let writing_mode = containing_block_for_table.style.writing_mode;
         for row_index in 0..self.table.size.height {
             for column_index in 0..self.table.size.width {
                 let cell = match self.table.slots[row_index][column_index] {
@@ -637,7 +637,7 @@ impl<'a> TableLayout<'a> {
     fn compute_table_width(
         &mut self,
         containing_block_for_children: &ContainingBlock,
-        containing_block: &ContainingBlock,
+        containing_block_for_table: &ContainingBlock,
     ) {
         // https://drafts.csswg.org/css-tables/#gridmin:
         // > The row/column-grid width minimum (GRIDMIN) width is the sum of the min-content width of
@@ -668,7 +668,7 @@ impl<'a> TableLayout<'a> {
         gridmax += inline_border_spacing;
 
         let style = &self.table.style;
-        self.pbm = style.padding_border_margin(containing_block);
+        self.pbm = style.padding_border_margin(containing_block_for_table);
 
         // https://drafts.csswg.org/css-tables/#resolved-table-width
         // * If inline-size computes to 'auto', this is the stretch-fit size
@@ -685,11 +685,14 @@ impl<'a> TableLayout<'a> {
         //   but at least as big as min-inline-size.
         // This diverges a little from the specification, but should be equivalent
         // (other than using the stretch-fit size instead of the containing block width).
-        let used_width_of_table = match style.content_box_size(containing_block, &self.pbm).inline {
+        let used_width_of_table = match style
+            .content_box_size(containing_block_for_table, &self.pbm)
+            .inline
+        {
             LengthPercentage(_) => resolved_table_width.max(gridmin),
             Auto => {
                 let min_width: Au = style
-                    .content_min_box_size(containing_block, &self.pbm)
+                    .content_min_box_size(containing_block_for_table, &self.pbm)
                     .inline
                     .auto_is(Length::zero)
                     .into();
@@ -997,7 +1000,7 @@ impl<'a> TableLayout<'a> {
     fn layout_cells_in_row(
         &mut self,
         layout_context: &LayoutContext,
-        containing_block: &ContainingBlock,
+        containing_block_for_table: &ContainingBlock,
         parent_positioning_context: &mut PositioningContext,
     ) {
         for row_index in 0..self.table.slots.len() {
@@ -1017,10 +1020,12 @@ impl<'a> TableLayout<'a> {
                     total_width += self.distributed_column_widths[width_index];
                 }
 
-                let border = cell.style.border_width(containing_block.style.writing_mode);
+                let border = cell
+                    .style
+                    .border_width(containing_block_for_table.style.writing_mode);
                 let padding = cell
                     .style
-                    .padding(containing_block.style.writing_mode)
+                    .padding(containing_block_for_table.style.writing_mode)
                     .percentages_relative_to(self.basis_for_cell_padding_percentage.into());
                 let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
                 let mut total_width: CSSPixelLength =
@@ -1349,22 +1354,24 @@ impl<'a> TableLayout<'a> {
         &mut self,
         mut row_sizes: Vec<Au>,
         containing_block_for_children: &ContainingBlock,
-        containing_block: &ContainingBlock,
+        containing_block_for_table: &ContainingBlock,
     ) {
         // The table content height is the maximum of the computed table height from style and the
         // sum of computed row heights from row layout plus size from borders and spacing.
         // When block-size doesn't compute to auto, `containing_block_for children` will have
         // the resulting length, properly clamped between min-block-size and max-block-size.
         let style = &self.table.style;
-        let table_height_from_style =
-            match style.content_box_size(containing_block, &self.pbm).block {
-                LengthPercentage(_) => containing_block_for_children.block_size,
-                Auto => style
-                    .content_min_box_size(containing_block, &self.pbm)
-                    .block
-                    .map(Au::from),
-            }
-            .auto_is(Au::zero);
+        let table_height_from_style = match style
+            .content_box_size(containing_block_for_table, &self.pbm)
+            .block
+        {
+            LengthPercentage(_) => containing_block_for_children.block_size,
+            Auto => style
+                .content_min_box_size(containing_block_for_table, &self.pbm)
+                .block
+                .map(Au::from),
+        }
+        .auto_is(Au::zero);
 
         let block_border_spacing = if self.table.size.height > 0 {
             self.table.border_spacing().block * (self.table.size.height as i32 + 1)
@@ -1812,14 +1819,14 @@ impl Table {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block_for_children: &ContainingBlock,
-        containing_block: &ContainingBlock,
+        containing_block_for_table: &ContainingBlock,
     ) -> IndependentLayout {
         let mut table_layout = TableLayout::new(self);
         table_layout.compute_measures(
             layout_context,
             positioning_context,
             containing_block_for_children,
-            containing_block,
+            containing_block_for_table,
         );
         table_layout.layout(positioning_context)
     }
