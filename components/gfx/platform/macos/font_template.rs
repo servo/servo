@@ -125,8 +125,14 @@ impl FontTemplateData {
 
     /// Returns the native font that underlies this font template, if applicable.
     pub fn native_font(&self) -> Option<NativeFontHandle> {
-        self.ctfont(0.0)
-            .map(|ctfont| NativeFontHandle(ctfont.copy_to_CGFont()))
+        let local_identifier = match &self.identifier {
+            FontIdentifier::Local(local_identifier) => local_identifier,
+            FontIdentifier::Web(_) => return None,
+        };
+        Some(NativeFontHandle {
+            name: local_identifier.postscript_name.to_string(),
+            path: local_identifier.path.to_string(),
+        })
     }
 }
 

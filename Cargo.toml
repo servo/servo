@@ -123,8 +123,8 @@ uuid = { version = "1.7.0", features = ["v4"] }
 webdriver = "0.49.0"
 webpki = "0.22"
 webpki-roots = "0.25"
-webrender = { git = "https://github.com/servo/webrender", rev = "f91b68a61", features = ["capture"] }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "f91b68a61" }
+webrender = { git = "https://github.com/servo/webrender", branch = "0.64", features = ["capture"] }
+webrender_api = { git = "https://github.com/servo/webrender", branch = "0.64" }
 webrender_traits = { path = "components/shared/webrender" }
 wgpu-core = "0.18"
 wgpu-types = "0.18"

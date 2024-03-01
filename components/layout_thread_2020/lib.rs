@@ -916,7 +916,7 @@ impl LayoutThread {
                     // particular pipeline, so we need to tell WebRender about that.
                     flags.insert(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-                    let client_point = units::WorldPoint::from_untyped(client_point);
+                    let client_point = units::DevicePoint::from_untyped(client_point);
                     let results = self.webrender_api.hit_test(
                         Some(self.id.to_webrender()),
                         client_point,
@@ -949,8 +949,11 @@ impl LayoutThread {
             .insert(state.scroll_id, state.scroll_offset);
 
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-        self.webrender_api
-            .send_scroll_node(units::LayoutPoint::from_untyped(point), state.scroll_id);
+        self.webrender_api.send_scroll_node(
+            self.id.to_webrender(),
+            units::LayoutPoint::from_untyped(point),
+            state.scroll_id,
+        );
     }
 
     fn set_scroll_states<'a, 'b>(
@@ -1028,6 +1031,7 @@ impl LayoutThread {
             epoch.into(),
             fragment_tree.root_scroll_sensitivity,
         );
+        display_list.wr.begin();
 
         // `dump_serialized_display_list` doesn't actually print anything. It sets up
         // the display list for printing the serialized version when `finalize()` is called.
@@ -1063,7 +1067,7 @@ impl LayoutThread {
 
         if reflow_goal.needs_display() {
             self.webrender_api
-                .send_display_list(display_list.compositor_info, display_list.wr.finalize().1);
+                .send_display_list(display_list.compositor_info, display_list.wr.end().1);
         }
 
         self.update_iframe_sizes(iframe_sizes);
