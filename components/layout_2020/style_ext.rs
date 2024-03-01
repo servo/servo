@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use servo_config::pref;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
@@ -580,13 +579,12 @@ impl From<stylo::Display> for Display {
         let outside = match outside {
             stylo::DisplayOutside::Block => DisplayOutside::Block,
             stylo::DisplayOutside::Inline => DisplayOutside::Inline,
-            stylo::DisplayOutside::TableCaption if pref!(layout.tables.enabled) => {
+            stylo::DisplayOutside::TableCaption => {
                 return Display::GeneratingBox(DisplayGeneratingBox::LayoutInternal(
                     DisplayLayoutInternal::TableCaption,
                 ));
             },
-            stylo::DisplayOutside::TableCaption => DisplayOutside::Block,
-            stylo::DisplayOutside::InternalTable if pref!(layout.tables.enabled) => {
+            stylo::DisplayOutside::InternalTable => {
                 let internal = match inside {
                     stylo::DisplayInside::TableRowGroup => DisplayLayoutInternal::TableRowGroup,
                     stylo::DisplayInside::TableColumn => DisplayLayoutInternal::TableColumn,
@@ -605,7 +603,6 @@ impl From<stylo::Display> for Display {
                 };
                 return Display::GeneratingBox(DisplayGeneratingBox::LayoutInternal(internal));
             },
-            stylo::DisplayOutside::InternalTable => DisplayOutside::Block,
             // This should not be a value of DisplayInside, but oh well
             // special-case display: contents because we still want it to work despite the early return
             stylo::DisplayOutside::None if inside == stylo::DisplayInside::Contents => {
@@ -627,17 +624,14 @@ impl From<stylo::Display> for Display {
             stylo::DisplayInside::None => return Display::None,
             stylo::DisplayInside::Contents => return Display::Contents,
 
-            stylo::DisplayInside::Table if pref!(layout.tables.enabled) => DisplayInside::Table,
-            stylo::DisplayInside::Table |
+            stylo::DisplayInside::Table => DisplayInside::Table,
             stylo::DisplayInside::TableRowGroup |
             stylo::DisplayInside::TableColumn |
             stylo::DisplayInside::TableColumnGroup |
             stylo::DisplayInside::TableHeaderGroup |
             stylo::DisplayInside::TableFooterGroup |
             stylo::DisplayInside::TableRow |
-            stylo::DisplayInside::TableCell => DisplayInside::Flow {
-                is_list_item: packed.is_list_item(),
-            },
+            stylo::DisplayInside::TableCell => unreachable!("Internal DisplayInside found"),
         };
         Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { outside, inside })
     }
