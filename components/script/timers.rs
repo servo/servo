@@ -28,6 +28,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::FakeRequestAnimationFrameCallback;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlmetaelement::RefreshRedirectDue;
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;
@@ -89,6 +90,7 @@ pub enum OneshotTimerCallback {
     JsTimer(JsTimerTask),
     TestBindingCallback(TestBindingCallback),
     FakeRequestAnimationFrame(FakeRequestAnimationFrameCallback),
+    RefreshRedirectDue(RefreshRedirectDue),
 }
 
 impl OneshotTimerCallback {
@@ -99,6 +101,7 @@ impl OneshotTimerCallback {
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers),
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
             OneshotTimerCallback::FakeRequestAnimationFrame(callback) => callback.invoke(),
+            OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(),
         }
     }
 }

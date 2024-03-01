@@ -19,7 +19,7 @@ use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
 
 #[derive(PartialEq)]
-enum NavigationType {
+pub enum NavigationType {
     /// The "[`Location`-object navigate][1]" steps.
     ///
     /// [1]: https://html.spec.whatwg.org/multipage/#location-object-navigate
@@ -35,6 +35,11 @@ enum NavigationType {
     ///
     /// [1]: https://html.spec.whatwg.org/multipage/#dom-location-reload
     ReloadByConstellation,
+
+    /// Reload triggered by a [declarative refresh][1].
+    ///
+    /// [1]: https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
+    DeclarativeRefresh,
 }
 
 #[dom_struct]
@@ -56,7 +61,7 @@ impl Location {
     }
 
     /// Navigate the relevant `Document`'s browsing context.
-    fn navigate(
+    pub fn navigate(
         &self,
         url: ServoUrl,
         replacement_flag: HistoryEntryReplacement,
@@ -70,7 +75,9 @@ impl Location {
         // The active document of the source browsing context used for
         // navigation determines the request's referrer and referrer policy.
         let source_window = match navigation_type {
-            NavigationType::ReloadByScript | NavigationType::ReloadByConstellation => {
+            NavigationType::ReloadByScript |
+            NavigationType::ReloadByConstellation |
+            NavigationType::DeclarativeRefresh => {
                 // > Navigate the browsing context [...] the source browsing context
                 // > set to the browsing context being navigated.
                 DomRoot::from_ref(&*self.window)
@@ -92,7 +99,9 @@ impl Location {
         // > node document of the element that initiated the navigation.
         let navigation_origin_window = match navigation_type {
             NavigationType::Normal | NavigationType::ReloadByScript => incumbent_window(),
-            NavigationType::ReloadByConstellation => DomRoot::from_ref(&*self.window),
+            NavigationType::ReloadByConstellation | NavigationType::DeclarativeRefresh => {
+                DomRoot::from_ref(&*self.window)
+            },
         };
         let (load_origin, creator_pipeline_id) = (
             navigation_origin_window.origin().immutable().clone(),
@@ -102,7 +111,7 @@ impl Location {
         // Is `historyHandling` `reload`?
         let reload_triggered = match navigation_type {
             NavigationType::ReloadByScript | NavigationType::ReloadByConstellation => true,
-            NavigationType::Normal => false,
+            NavigationType::Normal | NavigationType::DeclarativeRefresh => false,
         };
 
         // Initiate navigation
