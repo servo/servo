@@ -39,14 +39,14 @@ fxhash = "0.2"
 getopts = "0.2.11"
 gfx_traits = { path = "components/shared/gfx" }
 gleam = "0.15"
-glib = "0.18"
-gstreamer = { version = "0.21", features = ["v1_18"] }
-gstreamer-base = "0.21"
-gstreamer-gl = "0.21"
-gstreamer-gl-sys = { version = "0.21" }
-gstreamer-gl-wayland = { version = "0.21" }
-gstreamer-sys = "0.21"
-gstreamer-video = "0.21"
+glib = "0.19"
+gstreamer = { version = "0.22", features = ["v1_18"] }
+gstreamer-base = "0.22"
+gstreamer-gl = "0.22"
+gstreamer-gl-sys = { version = "0.22" }
+gstreamer-gl-wayland = { version = "0.22" }
+gstreamer-sys = "0.22"
+gstreamer-video = "0.22"
 headers = "0.3"
 html5ever = "0.26"
 http = "0.2"
@@ -91,6 +91,9 @@ selectors = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23" 
 serde = "1.0.197"
 serde_bytes = "0.11"
 serde_json = "1.0"
+servo-media = { git = "https://github.com/servo/media" }
+servo-media-dummy = { git = "https://github.com/servo/media" }
+servo-media-gstreamer = { git = "https://github.com/servo/media" }
 servo_arc = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23" }
 servo_atoms = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23" }
 size_of_test = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23" }

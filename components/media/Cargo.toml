@@ -17,7 +17,7 @@ ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true }
-servo-media = { git = "https://github.com/servo/media" }
+servo-media = { workspace = true }
 servo_config = { path = "../config" }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }

@@ -9,4 +9,4 @@ license = "MPL-2.0"
 
 [dependencies]
 serde = { version = "1.0.194", features = ["derive"] }
-toml = { version = "0.8.8", features = ["preserve_order"] }
+toml = { version = "0.8.9", features = ["preserve_order"] }
