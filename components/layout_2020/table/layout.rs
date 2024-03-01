@@ -645,56 +645,56 @@ impl<'a> TableLayout<'a> {
         // https://drafts.csswg.org/css-tables/#gridmax:
         // > The row/column-grid width maximum (GRIDMAX) width is the sum of the max-content width of
         // > all the columns plus cell spacing or borders.
-
-        let mut grid_min_and_max = self
+        let ContentSizes {
+            min_content: mut gridmin,
+            max_content: mut gridmax,
+        } = self
             .column_measures
             .iter()
             .fold(ContentSizes::zero(), |result, measure| {
                 result + measure.content_sizes
             });
+
+        // TODO: GRIDMAX should never be smaller than GRIDMIN!
+        gridmax = gridmax.max(gridmin);
+
         let border_spacing = self.table.border_spacing();
         let inline_border_spacing = if self.table.size.width > 0 {
             border_spacing.inline * (self.table.size.width as i32 + 1)
         } else {
             Au::zero()
         };
-        grid_min_and_max.min_content += inline_border_spacing;
-        grid_min_and_max.max_content += inline_border_spacing;
+        gridmin += inline_border_spacing;
+        gridmax += inline_border_spacing;
 
-        // TODO: `containing_block` is the containing block for the contents of the table,
-        // it shouldn't be used to resolve percentages on the table itself!
-        self.pbm = self.table.style.padding_border_margin(containing_block);
-        let content_box_size = self
-            .table
-            .style
-            .content_box_size(containing_block, &self.pbm);
-        let min_content_sizes = self
-            .table
-            .style
-            .content_min_box_size(containing_block, &self.pbm)
-            .auto_is(Length::zero);
+        let style = &self.table.style;
+        self.pbm = style.padding_border_margin(containing_block);
 
-        // https://drafts.csswg.org/css-tables/#used-min-width-of-table
-        // > The used min-width of a table is the greater of the resolved min-width, CAPMIN, and GRIDMIN.
-        let used_min_width_of_table = grid_min_and_max
-            .min_content
-            .max(min_content_sizes.inline.into());
+        // https://drafts.csswg.org/css-tables/#resolved-table-width
+        // * If inline-size computes to 'auto', this is the stretch-fit size
+        //   (https://drafts.csswg.org/css-sizing-3/#stretch-fit-size).
+        // * Otherwise, it's the resulting length (with percentages resolved).
+        // In both cases, it's clamped between min-inline-size and max-inline-size.
+        // This diverges a little from the specification.
+        let resolved_table_width = containing_block_for_children.inline_size;
 
         // https://drafts.csswg.org/css-tables/#used-width-of-table
-        // > The used width of a table depends on the columns and captions widths as follows:
-        // > * If the table-root’s width property has a computed value (resolving to
-        // >   resolved-table-width) other than auto, the used width is the greater of
-        // >   resolved-table-width, and the used min-width of the table.
-        // > * If the table-root has 'width: auto', the used width is the greater of min(GRIDMAX,
-        // >   the table’s containing block width), the used min-width of the table.
-        let used_width_of_table = match content_box_size.inline {
-            LengthPercentage(_) => grid_min_and_max
-                .min_content
-                .max(containing_block_for_children.inline_size),
-            Auto => grid_min_and_max
-                .max_content
-                .min(containing_block_for_children.inline_size)
-                .max(used_min_width_of_table),
+        // * If table-root has a computed value for inline-size different than auto:
+        //   use the maximum of the resolved table width and GRIDMIN.
+        // * If auto: use the resolved_table_width, clamped between GRIDMIN and GRIDMAX,
+        //   but at least as big as min-inline-size.
+        // This diverges a little from the specification, but should be equivalent
+        // (other than using the stretch-fit size instead of the containing block width).
+        let used_width_of_table = match style.content_box_size(containing_block, &self.pbm).inline {
+            LengthPercentage(_) => resolved_table_width.max(gridmin),
+            Auto => {
+                let min_width: Au = style
+                    .content_min_box_size(containing_block, &self.pbm)
+                    .inline
+                    .auto_is(Length::zero)
+                    .into();
+                resolved_table_width.clamp(gridmin, gridmax).max(min_width)
+            },
         };
 
         // > The assignable table width is the used width of the table minus the total horizontal
@@ -1353,6 +1353,8 @@ impl<'a> TableLayout<'a> {
     ) {
         // The table content height is the maximum of the computed table height from style and the
         // sum of computed row heights from row layout plus size from borders and spacing.
+        // When block-size doesn't compute to auto, `containing_block_for children` will have
+        // the resulting length, properly clamped between min-block-size and max-block-size.
         let style = &self.table.style;
         let table_height_from_style =
             match style.content_box_size(containing_block, &self.pbm).block {

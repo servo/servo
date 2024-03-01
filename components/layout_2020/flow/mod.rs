@@ -1038,6 +1038,13 @@ impl NonReplacedFormattingContext {
                 );
 
                 if let Some(inline_size) = layout.content_inline_size_for_table {
+                    // If this is a table, it's impossible to know the inline size it will take
+                    // up until after trying to place it. If the table doesn't fit into this
+                    // positioning rectangle due to incompatibility in the inline axis,
+                    // then retry at another location.
+                    // Even if it would fit in the inline axis, we may end up having to retry
+                    // at another location due to incompatibility in the block axis. Therefore,
+                    // always update the size in the PlacementAmongFloats as an optimization.
                     let outer_inline_size = inline_size + pbm.padding_border_sums.inline;
                     placement.set_inline_size(outer_inline_size, &pbm);
                     if outer_inline_size > placement_rect.size.inline {
@@ -1052,13 +1059,8 @@ impl NonReplacedFormattingContext {
                 } else {
                     content_size = LogicalVec2 {
                         block: block_size.auto_is(|| {
-                            layout
-                                .content_block_size
-                                .clamp_between_extremums(
-                                    min_box_size.block.into(),
-                                    max_box_size.block.map(|t| t.into()),
-                                )
-                                .into()
+                            Length::from(layout.content_block_size)
+                                .clamp_between_extremums(min_box_size.block, max_box_size.block)
                         }),
                         inline: proposed_inline_size,
                     };
@@ -1281,7 +1283,7 @@ struct ResolvedMargins {
     effective_margin_inline_start: Length,
 }
 
-/// Given the style for in in-flow box and its containing block, determine the containing
+/// Given the style for an in-flow box and its containing block, determine the containing
 /// block for its children.
 /// Note that in the presence of floats, this shouldn't be used for a block-level box
 /// that establishes an independent formatting context (or is replaced), since the
