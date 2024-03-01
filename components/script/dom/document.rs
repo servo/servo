@@ -140,6 +140,7 @@ use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmlinputelement::HTMLInputElement;
+use crate::dom::htmlmetaelement::RefreshRedirectDue;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmltitleelement::HTMLTitleElement;
@@ -231,6 +232,17 @@ enum FocusTransaction {
     /// A focus operation is in effect.
     /// Contains the element that has most recently requested focus for itself.
     InTransaction(Option<Dom<Element>>),
+}
+
+/// Information about a declarative refresh
+#[derive(JSTraceable, MallocSizeOf)]
+pub enum DeclarativeRefresh {
+    PendingLoad {
+        #[no_trace]
+        url: ServoUrl,
+        time: u64,
+    },
+    CreatedAfterLoad,
 }
 
 /// <https://dom.spec.whatwg.org/#document>
@@ -435,6 +447,8 @@ pub struct Document {
     animations: DomRefCell<Animations>,
     /// The nearest inclusive ancestors to all the nodes that require a restyle.
     dirty_root: MutNullableDom<Element>,
+    /// <https://html.spec.whatwg.org/multipage/#will-declaratively-refresh>
+    declarative_refresh: DomRefCell<Option<DeclarativeRefresh>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2399,6 +2413,19 @@ impl Document {
                     task!(completely_loaded: move || {
                         let document = document.root();
                         document.completely_loaded.set(true);
+                        if let Some(DeclarativeRefresh::PendingLoad {
+                            url,
+                            time
+                        }) = &*document.declarative_refresh.borrow() {
+                            // https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps
+                            document.window.upcast::<GlobalScope>().schedule_callback(
+                                OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
+                                    window: window_from_node(&*document),
+                                    url: url.clone(),
+                                }),
+                                MsDuration::new(time.saturating_mul(1000)),
+                            );
+                        }
                         // Note: this will, among others, result in the "iframe-load-event-steps" being run.
                         // https://html.spec.whatwg.org/multipage/#iframe-load-event-steps
                         document.notify_constellation_load();
@@ -2407,6 +2434,10 @@ impl Document {
                 )
                 .unwrap();
         }
+    }
+
+    pub fn completely_loaded(&self) -> bool {
+        self.completely_loaded.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
@@ -3195,6 +3226,7 @@ impl Document {
             },
             animations: DomRefCell::new(Animations::new()),
             dirty_root: Default::default(),
+            declarative_refresh: Default::default(),
         }
     }
 
@@ -3939,6 +3971,13 @@ impl Document {
 
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
         self.animations.borrow().cancel_animations_for_node(node);
+    }
+
+    pub(crate) fn will_declaratively_refresh(&self) -> bool {
+        self.declarative_refresh.borrow().is_some()
+    }
+    pub(crate) fn set_declarative_refresh(&self, refresh: DeclarativeRefresh) {
+        *self.declarative_refresh.borrow_mut() = Some(refresh);
     }
 }
 
