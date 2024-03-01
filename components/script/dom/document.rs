@@ -239,7 +239,7 @@ enum FocusTransaction {
 pub enum DeclarativeRefresh {
     PendingLoad {
         #[no_trace]
-        url: DomRefCell<ServoUrl>,
+        url: ServoUrl,
         time: u64,
     },
     CreatedAfterLoad,
@@ -2421,7 +2421,7 @@ impl Document {
                             document.window.upcast::<GlobalScope>().schedule_callback(
                                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
                                     window: window_from_node(&*document),
-                                    url: DomRefCell::new(url.borrow().clone()),
+                                    url: url.clone(),
                                 }),
                                 MsDuration::new(time.saturating_mul(1000)),
                             );

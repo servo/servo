@@ -39,14 +39,14 @@ pub struct HTMLMetaElement {
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct RefreshRedirectDue {
     #[no_trace]
-    pub url: DomRefCell<ServoUrl>,
+    pub url: ServoUrl,
     #[ignore_malloc_size_of = "non-owning"]
     pub window: DomRoot<Window>,
 }
 impl RefreshRedirectDue {
     pub fn invoke(self) {
         self.window.Location().navigate(
-            self.url.borrow().clone(),
+            self.url.clone(),
             HistoryEntryReplacement::Enabled,
             NavigationType::DeclarativeRefresh,
         );
@@ -168,11 +168,10 @@ impl HTMLMetaElement {
         } else {
             0
         };
-        let captured_url = captures.name("url1").or_else(|| {
-            captures
-                .name("url2")
-                .or_else(|| captures.name("url3").or_else(|| captures.name("url4")))
-        });
+        let captured_url = captures.name("url1").or(captures
+            .name("url2")
+            .or(captures.name("url3").or(captures.name("url4"))));
+
         if let Some(url_match) = captured_url {
             url_record = if let Ok(url) = ServoUrl::parse_with_base(
                 Some(&url_record),
@@ -190,14 +189,14 @@ impl HTMLMetaElement {
             window.upcast::<GlobalScope>().schedule_callback(
                 OneshotTimerCallback::RefreshRedirectDue(RefreshRedirectDue {
                     window: window.clone(),
-                    url: DomRefCell::new(url_record),
+                    url: url_record,
                 }),
-                MsDuration::new(dbg!(time.saturating_mul(1000))),
+                MsDuration::new(time.saturating_mul(1000)),
             );
             document.set_declarative_refresh(DeclarativeRefresh::CreatedAfterLoad);
         } else {
             document.set_declarative_refresh(DeclarativeRefresh::PendingLoad {
-                url: DomRefCell::new(url_record),
+                url: url_record,
                 time,
             });
         }
