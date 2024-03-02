@@ -1778,9 +1778,12 @@ impl Table {
             content_sizes: ContentSizes {
                 // > The outer min-content width of a table-column or table-column-group is
                 // > max(min-width, width).
-                min_content: min_size.inline.max(size.inline),
+                // But that's clearly wrong, since it would be equal to or greater than
+                // the outer max-content width. So we match other browsers instead.
+                min_content: min_size.inline,
                 // > The outer max-content width of a table-column or table-column-group is
                 // > max(min-width, min(max-width, width)).
+                // This matches Gecko, but Blink and WebKit ignore max_size.
                 max_content: min_size.inline.max(max_size.inline.min(size.inline)),
             },
             percentage: percentage_contribution.inline,
@@ -1797,18 +1800,23 @@ impl Table {
             None => return CellOrTrackMeasure::zero(),
         };
 
-        let (size, min_size, max_size) = get_sizes_from_style(&row.style, writing_mode);
+        // In the block axis, the min-content and max-content sizes are the same
+        // (except for new layout boxes like grid and flex containers). Note that
+        // other browsers don't seem to use the min and max sizing properties here.
+        let size = row
+            .style
+            .box_size(writing_mode)
+            .block
+            .non_auto()
+            .and_then(|size| size.to_length())
+            .map_or_else(Au::zero, Au::from);
         let percentage_contribution =
             get_size_percentage_contribution_from_style(&row.style, writing_mode);
 
         CellOrTrackMeasure {
             content_sizes: ContentSizes {
-                // > The outer min-content width of a table-column or table-column-group is
-                // > max(min-width, width).
-                min_content: min_size.inline.max(size.block),
-                // > The outer max-content width of a table-column or table-column-group is
-                // > max(min-width, min(max-width, width)).
-                max_content: min_size.inline.max(max_size.block.min(size.block)),
+                min_content: size,
+                max_content: size,
             },
             percentage: percentage_contribution.block,
         }
@@ -1972,10 +1980,8 @@ fn get_sizes_from_style(
     writing_mode: WritingMode,
 ) -> (LogicalVec2<Au>, LogicalVec2<Au>, LogicalVec2<Au>) {
     let get_max_size_for_axis = |size: Option<&ComputedLengthPercentage>| {
-        size.map_or_else(
-            || MAX_AU,
-            |length_percentage| length_percentage.resolve(Length::zero()).into(),
-        )
+        size.and_then(|length_percentage| length_percentage.to_length())
+            .map_or(MAX_AU, Au::from)
     };
 
     let max_size = style.max_box_size(writing_mode);
@@ -1985,9 +1991,9 @@ fn get_sizes_from_style(
     };
 
     let get_size_for_axis = |size: LengthPercentageOrAuto<'_>| {
-        size.percentage_relative_to(Length::zero())
-            .map(|value| value.into())
-            .auto_is(Au::zero)
+        size.non_auto()
+            .and_then(|size| size.to_length())
+            .map_or_else(Au::zero, Au::from)
     };
 
     let min_size = style.min_box_size(writing_mode);
