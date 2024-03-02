@@ -625,6 +625,7 @@ impl HoistedAbsolutelyPositionedBox {
                             layout_context,
                             &mut positioning_context,
                             &containing_block_for_children,
+                            &containing_block.into(),
                         );
                         let block_size = size.auto_is(|| independent_layout.content_block_size);
                         Result {
