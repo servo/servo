@@ -263,6 +263,8 @@ pub mod cssgroupingrule;
 pub mod cssimportrule;
 pub mod csskeyframerule;
 pub mod csskeyframesrule;
+pub mod csslayerblockrule;
+pub mod csslayerstatementrule;
 pub mod cssmediarule;
 pub mod cssnamespacerule;
 pub mod cssrule;

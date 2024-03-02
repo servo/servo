@@ -8,4 +8,5 @@ interface CSSImportRule : CSSRule {
   // readonly attribute DOMString href;
   // [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
   // [SameObject] readonly attribute CSSStyleSheet styleSheet;
+  readonly attribute DOMString? layerName;
 };
