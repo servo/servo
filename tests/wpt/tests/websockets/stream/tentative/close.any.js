@@ -1,6 +1,7 @@
 // META: script=../../constants.sub.js
 // META: script=resources/url-constants.js
 // META: global=window,worker
+// META: variant=?default
 // META: variant=?wss
 // META: variant=?wpt_flags=h2
 
@@ -107,6 +108,15 @@ promise_test(async () => {
   assert_greater_than_equal(elapsed, 1000 - jitterAllowance,
                             'one second should have elapsed');
 }, 'writer close() promise should not resolve until handshake completes');
+
+promise_test(async t => {
+  const wss = new WebSocketStream(`${BASEURL}/passive-close-abort`);
+  await wss.opened;
+  wss.close({closeCode: 4000, reason: 'because'});
+  const error = await wss.closed.then(t.unreached_func('closed should reject'), e => e);
+  assert_equals(error.constructor, WebSocketError, 'error should be WebSocketError');
+  assert_equals(error.closeCode, 1006, 'close code should be Abnormal Closure');
+}, 'incomplete closing handshake should be considered unclean close');
 
 const abortOrCancel = [
   {

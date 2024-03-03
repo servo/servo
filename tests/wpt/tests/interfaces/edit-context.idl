@@ -59,7 +59,7 @@ interface TextUpdateEvent : Event {
     readonly attribute unsigned long selectionEnd;
 };
 
-enum UnderlineStyle { "none", "solid", "double", "dotted", "dashed", "wavy" };
+enum UnderlineStyle { "none", "solid", "dotted", "dashed", "wavy" };
 enum UnderlineThickness { "none", "thin", "thick" };
 
 dictionary TextFormatInit {

@@ -1,0 +1,118 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Node.appendChild: inserting a script and a style where the script modifies the style</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script>
+// <script> & <style> element tests.
+test(() => {
+  window.happened = [];
+  window.style = document.createElement("style");
+  let styleSheet = null;
+
+  style.appendChild(new Text("body {}"));
+  const script = document.createElement("script");
+  script.textContent = `
+    styleSheet = style.sheet;
+    happened.push(style.sheet ? "sheet" : null);
+    style.appendChild(new Text("body {}"));
+    happened.push(style.sheet?.cssRules.length);
+  `;
+
+  const div = document.createElement("div");
+  div.appendChild(script);
+  div.appendChild(style);
+
+  assert_array_equals(happened, []);
+  document.body.appendChild(div);
+  assert_array_equals(happened, ["sheet", 2]);
+  assert_not_equals(style.sheet, styleSheet, "style sheet was created only once");
+}, "An earlier-inserted <script> synchronously observes a later-inserted " +
+   "<style> (via a div) being applied");
+
+test(() => {
+  window.happened = [];
+  window.style = document.createElement("style");
+  let styleSheet = null;
+
+  style.appendChild(new Text("body {}"));
+  const script = document.createElement("script");
+  script.textContent = `
+    styleSheet = style.sheet;
+    happened.push(style.sheet ? "sheet" : null);
+    style.appendChild(new Text("body {}"));
+    happened.push(style.sheet?.cssRules.length);
+`;
+
+  const df = document.createDocumentFragment();
+  df.appendChild(script);
+  df.appendChild(style);
+
+  assert_array_equals(happened, []);
+  document.body.appendChild(df);
+  assert_array_equals(happened, ["sheet", 2]);
+  assert_not_equals(style.sheet, styleSheet, "style sheet was created only once");
+}, "An earlier-inserted <script> synchronously observes a later-inserted " +
+   "<style> (via a DocumentFragment) being applied");
+
+// <script> & <link rel=stylesheet> element tests.
+test(() => {
+  window.happened = [];
+  window.link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "data:text/css,";
+
+  const script = document.createElement("script");
+  script.textContent = `
+    happened.push(link.sheet ? "sheet" : null);
+  `;
+
+  const df = document.createDocumentFragment();
+  df.appendChild(script);
+  df.appendChild(link);
+
+  assert_array_equals(happened, []);
+  document.body.appendChild(df);
+  assert_array_equals(happened, ["sheet"]);
+}, "Earlier-inserted <script> (via a DocumentFragment) synchronously " +
+   "observes a later-inserted <link rel=stylesheet>'s CSSStyleSheet creation");
+
+test(() => {
+  window.happened = [];
+  window.link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "data:text/css,";
+
+  const script = document.createElement("script");
+  script.textContent = `
+    happened.push(link.sheet ? "sheet" : null);
+`;
+
+  const div = document.createElement("div");
+  div.appendChild(script);
+  div.appendChild(link);
+
+  assert_array_equals(happened, []);
+  document.body.appendChild(div);
+  assert_array_equals(happened, ["sheet"]);
+}, "Earlier-inserted <script> (via a div) synchronously observes a " +
+   "later-inserted <link rel=stylesheet>'s CSSStyleSheet creation");
+
+test(() => {
+  window.happened = [];
+  window.link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "data:text/css,";
+
+  const script = document.createElement("script");
+  script.textContent = `
+    happened.push(link.sheet ? "sheet" : null);
+`;
+
+  assert_array_equals(happened, []);
+  document.body.append(script, link);
+  assert_array_equals(happened, ["sheet"]);
+}, "Earlier-inserted <script> (via a append()) synchronously observes a " +
+   "later-inserted <link rel=stylesheet>'s CSSStyleSheet creation");
+</script>

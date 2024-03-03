@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!--The permission element should not allow setting negative margins or outline-offset
+-->
+<style>
+  #id1 {
+    outline-offset: -50px;
+    margin-top: -50px;
+    margin-left: -50px;
+    margin-bottom: -50px;
+    margin-right: -50px;
+  }
+  #id2 {
+    outline-offset: 50px;
+    margin-top: 50px;
+    margin-left: 50px;
+    margin-bottom: 50px;
+    margin-right: 50px;
+  }
+</style>
+
+
+<permission id="id1" type="geolocation">
+<permission id="id2" type="geolocation">
+
+<script>
+  test(function(){
+    var el_with_negatives = document.getElementById("id1");
+    assert_equals(getComputedStyle(el_with_negatives).outlineOffset, "0px", "outline-offset");
+    assert_equals(getComputedStyle(el_with_negatives).marginLeft, "0px", "margin-left");
+    assert_equals(getComputedStyle(el_with_negatives).marginRight, "0px", "margin-right");
+    assert_equals(getComputedStyle(el_with_negatives).marginTop, "0px", "margin-top");
+    assert_equals(getComputedStyle(el_with_negatives).marginBottom, "0px", "margin-bottom");
+  }, "Negative margins/offset should be changed to 0px");
+
+  test(function(){
+    var el_with_positives = document.getElementById("id2");
+    assert_equals(getComputedStyle(el_with_positives).outlineOffset, "50px", "outline-offset");
+    assert_equals(getComputedStyle(el_with_positives).marginLeft, "50px", "margin-left");
+    assert_equals(getComputedStyle(el_with_positives).marginRight, "50px", "margin-right");
+    assert_equals(getComputedStyle(el_with_positives).marginTop, "50px", "margin-top");
+    assert_equals(getComputedStyle(el_with_positives).marginBottom, "50px", "margin-bottom");
+  }, "Positive margins/offset are unaffected");
+</script>
+</body>

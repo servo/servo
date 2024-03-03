@@ -17,11 +17,12 @@ async def add_intercept(bidi_session):
 
     intercepts = []
 
-    async def add_intercept(phases, url_patterns):
+    async def add_intercept(phases, url_patterns, contexts = None):
         nonlocal intercepts
         intercept = await bidi_session.network.add_intercept(
             phases=phases,
             url_patterns=url_patterns,
+            contexts=contexts,
         )
         intercepts.append(intercept)
 

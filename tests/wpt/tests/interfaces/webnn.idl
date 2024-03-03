@@ -29,46 +29,16 @@ dictionary MLContextOptions {
 interface ML {
   Promise<MLContext> createContext(optional MLContextOptions options = {});
   Promise<MLContext> createContext(GPUDevice gpuDevice);
-
-  [Exposed=(DedicatedWorker)]
-  MLContext createContextSync(optional MLContextOptions options = {});
-  [Exposed=(DedicatedWorker)]
-  MLContext createContextSync(GPUDevice gpuDevice);
 };
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface MLActivation {
 };
 
-typedef (GPUBuffer or GPUTexture) MLGPUResource;
-
-typedef record<DOMString, MLGPUResource> MLNamedGPUResources;
-
-[SecureContext, Exposed=(Window, DedicatedWorker)]
-interface MLCommandEncoder {};
-
-partial interface MLCommandEncoder {
-  undefined initializeGraph(MLGraph graph);
-};
-
-partial interface MLCommandEncoder {
-  undefined dispatch(MLGraph graph, MLNamedGPUResources inputs, MLNamedGPUResources outputs);
-};
-
-partial interface MLCommandEncoder {
-  GPUCommandBuffer finish(optional GPUCommandBufferDescriptor descriptor = {});
-};
-
 typedef record<DOMString, ArrayBufferView> MLNamedArrayBufferViews;
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface MLContext {};
-
-partial interface MLContext {
-  [Exposed=(DedicatedWorker)]
-  undefined computeSync(
-      MLGraph graph, MLNamedArrayBufferViews inputs, MLNamedArrayBufferViews outputs);
-};
 
 dictionary MLComputeResult {
   MLNamedArrayBufferViews inputs;
@@ -80,22 +50,10 @@ partial interface MLContext {
       MLGraph graph, MLNamedArrayBufferViews inputs, MLNamedArrayBufferViews outputs);
 };
 
-partial interface MLContext {
-  MLCommandEncoder createCommandEncoder();
-};
-
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface MLGraph {};
 
 typedef record<DOMString, MLOperand> MLNamedOperands;
-
-dictionary MLBufferResourceView {
-  required GPUBuffer resource;
-  unsigned long long offset = 0;
-  unsigned long long size;
-};
-
-typedef (ArrayBufferView or MLBufferResourceView) MLBufferView;
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface MLGraphBuilder {
@@ -106,21 +64,17 @@ interface MLGraphBuilder {
   MLOperand input(DOMString name, MLOperandDescriptor descriptor);
 
   // Create an operand for a graph constant.
-  MLOperand constant(MLOperandDescriptor descriptor, MLBufferView bufferView);
+  MLOperand constant(MLOperandDescriptor descriptor, ArrayBufferView bufferView);
 
   // Create a single-value operand from the specified number of the specified type.
   MLOperand constant(double value, optional MLOperandDataType type = "float32");
 
   // Compile the graph up to the specified output operands asynchronously.
   Promise<MLGraph> build(MLNamedOperands outputs);
-
-  // Compile the graph up to the specified output operands synchronously.
-  [Exposed=(DedicatedWorker)]
-  MLGraph buildSync(MLNamedOperands outputs);
 };
 
 dictionary MLArgMinMaxOptions {
-  sequence<unsigned long> axes = null;
+  sequence<unsigned long> axes;
   boolean keepDimensions = false;
   boolean selectLastIndex = false;
 };
@@ -469,7 +423,7 @@ partial interface MLGraphBuilder {
 };
 
 dictionary MLReduceOptions {
-  sequence<unsigned long> axes = null;
+  sequence<unsigned long> axes;
   boolean keepDimensions = false;
 };
 
@@ -607,5 +561,5 @@ dictionary MLOperandDescriptor {
   required MLOperandDataType dataType;
 
   // The dimensions field is only required for tensor operands.
-  sequence<unsigned long> dimensions;
+  sequence<unsigned long> dimensions = [];
 };

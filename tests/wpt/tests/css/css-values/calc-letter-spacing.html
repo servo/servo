@@ -39,7 +39,7 @@ https://chromium.googlesource.com/chromium/src/+/c825d655f6aaf73484f9d56e9012793
       elemTarget.style.setProperty(property_name, initial_value);
 
       /*
-      In exactly 5 out of the 6 sub-tests, the initial_value will
+      In exactly 4 out of the 6 sub-tests, the initial_value will
       act as a fallback value because the calc() function in the
       specified value generates an invalid value. Since we are
       running 6 consecutive tests on the same element, then
@@ -60,7 +60,7 @@ https://chromium.googlesource.com/chromium/src/+/c825d655f6aaf73484f9d56e9012793
 
     verifyComputedStyle("letter-spacing", "20px", "calc(1 + 100%)", "20px", "testing letter-spacing: calc(1 + 100%)");
 
-    verifyComputedStyle("letter-spacing", "20px", "calc(100%)", "20px", "testing letter-spacing: calc(100%)");
+    verifyComputedStyle("letter-spacing", "20px", "calc(100%)", "100%", "testing letter-spacing: calc(100%)");
 
     verifyComputedStyle("letter-spacing", "20px", "calc(10px) bla", "20px", "testing letter-spacing: calc(10px) bla");
 

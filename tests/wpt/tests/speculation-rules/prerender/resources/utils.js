@@ -15,6 +15,7 @@ function startPrerendering(url, rule_extras = {}) {
   script.text = JSON.stringify(
       {prerender: [{source: 'list', urls: [url], ...rule_extras}]});
   document.head.appendChild(script);
+  return script;
 }
 
 class PrerenderChannel extends EventTarget {

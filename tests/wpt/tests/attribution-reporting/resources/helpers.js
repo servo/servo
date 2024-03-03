@@ -170,6 +170,7 @@ const registerAttributionSrc = async ({
   method = 'img',
   extraQueryParams = {},
   reportingOrigin,
+  extraHeaders = [],
 }) => {
   const searchParams = new URLSearchParams(location.search);
 
@@ -207,6 +208,8 @@ const registerAttributionSrc = async ({
     credentials = params.credentials;
     headers = headers.concat(params.headers);
   }
+
+  headers = headers.concat(extraHeaders);
 
   const url = blankURLWithHeaders(headers, reportingOrigin);
 

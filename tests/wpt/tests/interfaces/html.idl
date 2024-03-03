@@ -1243,6 +1243,7 @@ interface HTMLTemplateElement : HTMLElement {
   readonly attribute DocumentFragment content;
   [CEReactions] attribute DOMString shadowRootMode;
   [CEReactions] attribute boolean shadowRootDelegatesFocus;
+  [CEReactions] attribute boolean shadowRootClonable;
 };
 
 [Exposed=Window]
@@ -2084,6 +2085,23 @@ dictionary PageTransitionEventInit : EventInit {
 [Exposed=Window]
 interface BeforeUnloadEvent : Event {
   attribute DOMString returnValue;
+};
+
+[Exposed=Window]
+interface NotRestoredReasonDetails {
+  readonly attribute DOMString reason;
+  [Default] object toJSON();
+};
+
+[Exposed=Window]
+interface NotRestoredReasons {
+  readonly attribute DOMString? src;
+  readonly attribute DOMString? id;
+  readonly attribute DOMString? name;
+  readonly attribute DOMString? url;
+  readonly attribute FrozenArray<NotRestoredReasonDetails>? reasons;
+  readonly attribute FrozenArray<NotRestoredReasons>? children;
+  [Default] object toJSON();
 };
 
 [Exposed=*]

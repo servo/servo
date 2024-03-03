@@ -1,0 +1,280 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mouse events for compatibility after a tap</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+#parent, #child {
+  width: 300px;
+  height: 64px;
+  padding: 16px;
+}
+#parent {
+  background-color: black;
+}
+#child {
+  background-color: gray;
+}
+</style>
+<script>
+"use strict";
+
+addEventListener("load", t => {
+  let events = [];
+  for (const type of ["mousemove",
+                      "mousedown",
+                      "mouseup",
+                      "click",
+                      "dblclick",
+                      "contextmenu",
+                      "touchend"]) {
+    if (type == "touchend") {
+      addEventListener(type, event => {
+        events.push({type: type, target: event.target});
+      }, {capture: true});
+    } else {
+      addEventListener(type, event => {
+        events.push({
+          type: event.type,
+          target: event.target,
+          detail: event.detail,
+          button: event.button,
+          buttons: event.buttons,
+        });
+      }, {capture: true});
+    }
+  }
+
+  function stringifyEvents(arrayOfEvents) {
+    if (!arrayOfEvents.length) {
+      return "[]";
+    }
+    function stringifyEvent(event) {
+      return `{ type: ${event.type}, target: ${
+        event.target.id || event.target.nodeName
+      }${
+        event.detail !== undefined ? `, detail: ${event.detail}` : ""
+      }${
+        event.button !== undefined ? `, button: ${event.button}` : ""
+      }${
+        event.buttons !== undefined ? `, buttons: ${event.buttons}` : ""
+      } }`;
+    }
+    let ret = "";
+    for (const event of arrayOfEvents) {
+      if (ret === "") {
+        ret = "[ ";
+      } else {
+        ret += ", ";
+      }
+      ret += stringifyEvent(event);
+    }
+    return ret + " ]";
+  }
+  const child = document.getElementById("child");
+  const parent = child.parentNode;
+
+  function promiseInitPointer() {
+    return new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(0, 0, {origin: document.body})
+      .send();
+  }
+  promise_test(async () => {
+    await promiseInitPointer();
+    events = [];
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(5, 5, {origin: child})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        { type: "touchend", target: child },
+        { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
+        { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
+        { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
+        { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
+      ])
+    );
+  }, "Single tap should cause a click");
+
+  promise_test(async () => {
+    await promiseInitPointer();
+    events = [];
+    child.addEventListener("touchstart", event => {
+      event.preventDefault();
+    }, {once: true});
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(105, 5, {origin: child})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        { type: "touchend", target: child },
+      ])
+    );
+  }, "Single tap whose touchstart is consumed should not cause a click");
+
+  promise_test(async () => {
+    await promiseInitPointer();
+    events = [];
+    child.addEventListener("touchend", event => {
+      event.preventDefault();
+    }, {once: true});
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(105, 5, {origin: child})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        { type: "touchend", target: child },
+      ])
+    );
+  }, "Single tap whose touchend is consumed should not cause a click");
+
+  promise_test(async () => {
+    await promiseInitPointer();
+    events = [];
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(5, 5, {origin: child})
+      .pointerDown()
+      .pointerUp()
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_in_array(
+      stringifyEvents(events),
+      [
+        // Currently, WebDriver does not have a strict way to synthesize a
+        // double click, therefore, it's fine either single click twice or
+        // a set of a double-click.
+        stringifyEvents([
+          { type: "touchend", target: child },
+          { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
+          { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
+          { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
+          { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
+          { type: "touchend", target: child },
+          { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
+          { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
+          { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
+          { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
+        ]),
+        stringifyEvents([
+          { type: "touchend", target: child },
+          { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
+          { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
+          { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
+          { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
+          { type: "touchend", target: child },
+          { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
+          { type: "mousedown", target: child, detail: 2, button: 0, buttons: 1 },
+          { type: "mouseup", target: child, detail: 2, button: 0, buttons: 0 },
+          { type: "click", target: child, detail: 2, button: 0, buttons: 0 },
+          { type: "dblclick", target: child, detail: 2, button: 0, buttons: 0 },
+        ]),
+      ],
+    );
+  }, "Double tap should cause single-click twice or a double-click");
+
+  promise_test(async () => {
+    await promiseInitPointer();
+    events = [];
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(105, 5, {origin: child})
+      .pointerDown()
+      .pointerUp()
+      .pause(1000)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        { type: "touchend", target: child },
+        { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
+        { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
+        { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
+        { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
+        { type: "touchend", target: child },
+        { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
+        { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
+        { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
+        { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
+      ])
+    );
+  }, "Tapping twice slowly should not cause a dblclick");
+
+  promise_test(async () => {
+    await promiseInitPointer();
+    events = [];
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(5, 5, {origin: child})
+      .pointerDown()
+      .pointerUp()
+      .pointerMove(100, 5, {origin: child})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        { type: "touchend", target: child },
+        { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
+        { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
+        { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
+        { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
+        { type: "touchend", target: child },
+        { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
+        { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
+        { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
+        { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
+      ])
+    );
+  }, "Tapping too far points should not cause a dblclick");
+
+  promise_test(async () => {
+    await promiseInitPointer();
+    events = [];
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .addPointer("touchPointer2", "touch")
+      .pointerMove(5, 5, {origin: child, sourceName: "touchPointer"})
+      .pointerMove(25, 25, {origin: child, sourceName: "touchPointer2"})
+      .pointerDown({sourceName: "touchPointer"})
+      .pointerDown({sourceName: "touchPointer2"})
+      .pointerUp({sourceName: "touchPointer"})
+      .pointerUp({sourceName: "touchPointer2"})
+      .send();
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents([
+        { type: "touchend", target: child },
+        { type: "touchend", target: child },
+      ])
+    );
+  }, "Multi tap should not cause mouse events");
+}, {once: true});
+</script>
+</head>
+<body><div id="parent"><div id="child"></div></div></body>
+</html>

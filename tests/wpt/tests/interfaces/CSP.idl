@@ -41,16 +41,16 @@ interface SecurityPolicyViolationEvent : Event {
 };
 
 dictionary SecurityPolicyViolationEventInit : EventInit {
-    required USVString      documentURI;
-             USVString      referrer = "";
-             USVString      blockedURI = "";
-    required DOMString      violatedDirective;
-    required DOMString      effectiveDirective;
-    required DOMString      originalPolicy;
-             USVString      sourceFile = "";
-             DOMString      sample = "";
-    required SecurityPolicyViolationEventDisposition disposition;
-    required unsigned short statusCode;
-             unsigned long  lineNumber = 0;
-             unsigned long  columnNumber = 0;
+    USVString      documentURI = "";
+    USVString      referrer = "";
+    USVString      blockedURI = "";
+    DOMString      violatedDirective = "";
+    DOMString      effectiveDirective = "";
+    DOMString      originalPolicy = "";
+    USVString      sourceFile = "";
+    DOMString      sample = "";
+    SecurityPolicyViolationEventDisposition disposition = "enforce";
+    unsigned short statusCode = 0;
+    unsigned long  lineNumber = 0;
+    unsigned long  columnNumber = 0;
 };

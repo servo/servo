@@ -263,3 +263,22 @@ async def test_new_user_context(
     )
 
     remove_listener()
+
+
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+async def test_existing_context(bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, type_hint):
+    # See https://w3c.github.io/webdriver-bidi/#ref-for-remote-end-subscribe-steps%E2%91%A1.
+    top_level_context = await bidi_session.browsing_context.create(type_hint=type_hint)
+
+    on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
+    await subscribe_events([CONTEXT_CREATED_EVENT], contexts=[top_level_context["context"]])
+    context_info = await wait_for_future_safe(on_entry)
+
+    assert_browsing_context(
+        context_info,
+        top_level_context["context"],
+        children=None,
+        url="about:blank",
+        parent=None,
+        user_context="default"
+    )

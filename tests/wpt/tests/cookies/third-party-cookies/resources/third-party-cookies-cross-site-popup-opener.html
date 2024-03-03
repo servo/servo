@@ -31,7 +31,7 @@
       await credFetch(
         `${origin}/cookies/resources/set.py?${thirdPartyHttpCookie}=foobar;` +
         "Secure;Path=/;SameSite=None");
-      await assertOriginCanAccessCookies({
+      await assertHttpOriginCanAccessCookies({
         origin,
         cookieNames: [thirdPartyHttpCookie],
         expectsCookie: false,

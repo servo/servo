@@ -93,8 +93,9 @@ dictionary WebTransportConnectionStats {
 };
 
 dictionary WebTransportDatagramStats {
-  unsigned long long expiredOutgoing;
   unsigned long long droppedIncoming;
+  unsigned long long expiredIncoming;
+  unsigned long long expiredOutgoing;
   unsigned long long lostOutgoing;
 };
 
@@ -103,6 +104,7 @@ interface WebTransportSendStream : WritableStream {
   attribute WebTransportSendGroup? sendGroup;
   attribute long long sendOrder;
   Promise<WebTransportSendStreamStats> getStats();
+  WebTransportWriter getWriter();
 };
 
 dictionary WebTransportSendStreamStats {
@@ -130,6 +132,11 @@ dictionary WebTransportReceiveStreamStats {
 interface WebTransportBidirectionalStream {
   readonly attribute WebTransportReceiveStream readable;
   readonly attribute WebTransportSendStream writable;
+};
+
+[Exposed=*, SecureContext]
+interface WebTransportWriter : WritableStreamDefaultWriter {
+  Promise<undefined> atomicWrite(optional any chunk);
 };
 
 [Exposed=(Window,Worker), Serializable, SecureContext]

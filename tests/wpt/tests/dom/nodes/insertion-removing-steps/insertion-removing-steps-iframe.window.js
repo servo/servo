@@ -109,6 +109,15 @@ function runRemovalTest(removal_method) {
     t.add_cleanup(() => removalObserver.disconnect());
 
     let iframe1UnloadFired = false, iframe2UnloadFired = false;
+    let iframe1PagehideFired = false, iframe2PagehideFired = false;
+    iframe1.contentWindow.addEventListener('pagehide', e => {
+      assert_false(iframe1UnloadFired, "iframe1 pagehide fires before unload");
+      iframe1PagehideFired = true;
+    });
+    iframe2.contentWindow.addEventListener('pagehide', e => {
+      assert_false(iframe2UnloadFired, "iframe2 pagehide fires before unload");
+      iframe2PagehideFired = true;
+    });
     iframe1.contentWindow.addEventListener('unload', e => iframe1UnloadFired = true);
     iframe2.contentWindow.addEventListener('unload', e => iframe2UnloadFired = true);
 
@@ -126,6 +135,8 @@ function runRemovalTest(removal_method) {
       div.innerHTML = '';
     }
 
+    assert_false(iframe1PagehideFired, "iframe1 pagehide did not fire");
+    assert_false(iframe2PagehideFired, "iframe2 pagehide did not fire");
     assert_false(iframe1UnloadFired, "iframe1 unload did not fire");
     assert_false(iframe2UnloadFired, "iframe2 unload did not fire");
 

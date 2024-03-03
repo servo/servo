@@ -707,6 +707,19 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     await createDataChannelPair(t, options, pc1);
   }, `addTrack, then creating ${mode}, should negotiate properly when max-bundle is used`);
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    const stream = await getNoiseStream({audio: true, video: true});
+    stream.getTracks().forEach((track) => pc1.addTrack(track, stream));
+    await createDataChannelPair(t, options, pc1, pc2);
+
+    await pc1.setLocalDescription();
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription();
+    await pc1.setRemoteDescription(pc2.localDescription);
+  }, `Renegotiation with audio/video and ${mode} should work properly`);
+
 /*
 This test is disabled until https://github.com/w3c/webrtc-pc/issues/2562
 has been resolved; it presupposes that stopping the first transceiver

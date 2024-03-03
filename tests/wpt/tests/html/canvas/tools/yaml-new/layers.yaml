@@ -44,7 +44,7 @@
   variants: &global-state-variants
     no-global-states:
       render_states: // No global states.
-    alpha:
+    alpha: &global-state-alpha
       render_states: ctx.globalAlpha = 0.6;
     blending:
       render_states: ctx.globalCompositeOperation = 'multiply';
@@ -56,15 +56,15 @@
         ctx.shadowOffsetY = 10;
         ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
         ctx.shadowBlur = 3;
-    alpha.blending:
+    alpha.blending: &global-state-alpha-blending
       render_states: |-
         ctx.globalAlpha = 0.6;
         ctx.globalCompositeOperation = 'multiply';
-    alpha.composite:
+    alpha.composite: &global-state-alpha-composite
       render_states: |-
         ctx.globalAlpha = 0.6;
         ctx.globalCompositeOperation = 'source-in';
-    alpha.shadow:
+    alpha.shadow: &global-state-alpha-shadow
       render_states: |-
         ctx.globalAlpha = 0.5;
         ctx.shadowOffsetX = -10;
@@ -167,7 +167,20 @@
       ctx.drawImage(img, 0, 0);
     };
     img.src = 'data:image/svg+xml;base64,' + btoa(svg);
-  variants: *global-state-variants
+  variants:
+    <<: *global-state-variants
+    alpha:
+      <<: *global-state-alpha
+      fuzzy: maxDifference=0-2; totalPixels=0-6766
+    alpha.blending:
+      <<: *global-state-alpha-blending
+      fuzzy: maxDifference=0-1; totalPixels=0-2440
+    alpha.composite:
+      <<: *global-state-alpha-composite
+      fuzzy: maxDifference=0-1; totalPixels=0-5204
+    alpha.shadow:
+      <<: *global-state-alpha-shadow
+      fuzzy: maxDifference=0-2; totalPixels=0-6311
 
 - name: 2d.layer.global-filter
   desc: Tests that layers ignore the global context filter.
@@ -333,6 +346,144 @@
     ctx.clip();
 
     ctx.drawImage(canvas2, 0, 0);
+
+- name: 2d.layer.ctm.filter
+  desc: Checks that parent transforms affect layer filters.
+  size: [200, 200]
+  code: |
+    // Transforms inside the layer should not apply to the layer's filter.
+    ctx.beginLayer({filter: 'drop-shadow(5px 5px 0px grey)'});
+    ctx.translate(30, 90);
+    ctx.scale(2, 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillRect(-30, -5, 60, 10);
+    ctx.endLayer();
+
+    // Transforms in the layer's parent should apply to the layer's filter.
+    ctx.translate(80, 90);
+    ctx.scale(2, 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.beginLayer({filter: 'drop-shadow(5px 5px 0px grey)'});
+    ctx.fillRect(-30, -5, 60, 10);
+    ctx.endLayer();
+  html_reference: |
+    <svg xmlns="http://www.w3.org/2000/svg"
+          width="{{ size[0] }}" height="{{ size[1] }}"
+          color-interpolation-filters="sRGB">
+      <filter id="filter" x="-100%" y="-100%" width="300%" height="300%">
+        <feDropShadow dx="5" dy="5" stdDeviation="0" flood-color="grey" />
+      </filter>
+
+      <g filter="url(#filter)">
+        <g transform="translate(30, 90) scale(2) rotate(90)">
+          <rect x="-30" y="-5" width=60 height=10></rect>
+        </g>
+      </g>
+
+      <g transform="translate(80, 90) scale(2) rotate(90)">
+        <g filter="url(#filter)">
+          <rect x="-30" y="-5" width=60 height=10></rect>
+        </g>
+      </g>
+    </svg>
+
+- name: 2d.layer.ctm.shadow-in-transformed-layer
+  desc: Check shadows inside of a transformed layer.
+  size: [200, 200]
+  code: |
+    ctx.translate(80, 90);
+    ctx.scale(2, 2);
+    ctx.rotate(Math.PI / 2);
+
+    ctx.beginLayer();
+    ctx.shadowOffsetX = 10;
+    ctx.shadowOffsetY = 10;
+    ctx.shadowColor = 'grey';
+    ctx.fillRect(-30, -5, 60, 10);
+
+    const canvas2 = new OffscreenCanvas(100, 100);
+    const ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = 'blue';
+    ctx2.fillRect(0, 0, 40, 10);
+    ctx.drawImage(canvas2, -30, -30);
+
+    ctx.endLayer();
+  reference: |
+    ctx.translate(80, 90);
+    ctx.scale(2, 2);
+    ctx.rotate(Math.PI / 2);
+
+    ctx.shadowOffsetX = 10;
+    ctx.shadowOffsetY = 10;
+    ctx.shadowColor = 'grey';
+    ctx.fillRect(-30, -5, 60, 10);
+
+    const canvas2 = new OffscreenCanvas(100, 100);
+    const ctx2 = canvas2.getContext('2d');
+    ctx2.fillStyle = 'blue';
+    ctx2.fillRect(0, 0, 40, 10);
+    ctx.drawImage(canvas2, -30, -30);
+
+- name: 2d.layer.ctm.getTransform
+  desc: Tests getTransform inside layers.
+  code: |
+    ctx.translate(10, 20);
+    ctx.beginLayer();
+    ctx.scale(2, 3);
+    const m = ctx.getTransform();
+    assert_array_equals([m.a, m.b, m.c, m.d, m.e, m.f], [2, 0, 0, 3, 10, 20]);
+    ctx.endLayer();
+
+- name: 2d.layer.ctm.setTransform
+  desc: Tests setTransform inside layers.
+  code: |
+    ctx.translate(80, 0);
+
+    ctx.beginLayer();
+    ctx.rotate(2);
+    ctx.beginLayer();
+    ctx.scale(5, 6);
+    ctx.setTransform(4, 0, 0, 2, 20, 10);
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(0, 0, 10, 10);
+    ctx.endLayer();
+    ctx.endLayer();
+
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, 20, 20);
+  reference: |
+    ctx.translate(80, 0);
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, 20, 20);
+
+    ctx.setTransform(4, 0, 0, 2, 20, 10);
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(0, 0, 10, 10);
+
+- name: 2d.layer.ctm.resetTransform
+  desc: Tests resetTransform inside layers.
+  code: |
+    ctx.translate(40, 0);
+
+    ctx.beginLayer();
+    ctx.rotate(2);
+    ctx.beginLayer();
+    ctx.scale(5, 6);
+    ctx.resetTransform();
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(0, 0, 20, 20);
+    ctx.endLayer();
+    ctx.endLayer();
+
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, 20, 20);
+  reference: |
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(0, 0, 20, 20);
+
+    ctx.translate(40, 0);
+    ctx.fillStyle = 'green';
+    ctx.fillRect(0, 0, 20, 20);
 
 - name: 2d.layer.clip-inside
   desc: Check clipping set inside the layer

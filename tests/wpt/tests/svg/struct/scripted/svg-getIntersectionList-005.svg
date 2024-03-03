@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>getIntersectionList() on element with intersecting bounding box</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#__svg__SVGSVGElement__getIntersectionList"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+
+  <rect id="e0" x="110" y="100" width="100" height="100" fill="red"/>
+  <rect id="e1" x="160" y="130" width="40" height="40" fill="green"/>
+  <path id="e2" stroke="blue" fill="none" stroke-width="2" d="M100 200 120 110 220 100"/>
+
+  <script>
+test(t => {
+  const svg = document.documentElement;
+  const queryRect = document.getElementById('e1').getBBox();
+
+  const list = svg.getIntersectionList(queryRect, null);
+  const result = Array.from(list).map(e => e.id).sort();
+  assert_array_equals(result, ['e0', 'e1']);
+});
+  </script>
+</svg>

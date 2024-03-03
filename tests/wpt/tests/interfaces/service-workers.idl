@@ -92,7 +92,7 @@ dictionary NavigationPreloadState {
   ByteString headerValue;
 };
 
-[Global=(Worker,ServiceWorker), Exposed=ServiceWorker]
+[Global=(Worker,ServiceWorker), Exposed=ServiceWorker, SecureContext]
 interface ServiceWorkerGlobalScope : WorkerGlobalScope {
   [SameObject] readonly attribute Clients clients;
   [SameObject] readonly attribute ServiceWorkerRegistration registration;
@@ -163,6 +163,40 @@ interface ExtendableEvent : Event {
 
 dictionary ExtendableEventInit : EventInit {
   // Defined for the forward compatibility across the derived events
+};
+
+[Exposed=ServiceWorker]
+interface InstallEvent : ExtendableEvent {
+  Promise<undefined> addRoutes((RouterRule or sequence<RouterRule>) rules);
+};
+
+dictionary RouterRule {
+  required RouterCondition condition;
+  required RouterSource source;
+};
+
+dictionary RouterCondition {
+  URLPatternCompatible urlPattern;
+  ByteString requestMethod;
+  RequestMode requestMode;
+  RequestDestination requestDestination;
+  RunningStatus runningStatus;
+
+  sequence<RouterCondition> _or;
+};
+
+typedef (RouterSourceDict or RouterSourceEnum) RouterSource;
+
+dictionary RouterSourceDict {
+  DOMString cacheName;
+};
+
+enum RunningStatus { "running", "not-running" };
+enum RouterSourceEnum {
+  "cache",
+  "fetch-event",
+  "network",
+  "race-network-and-fetch-handler"
 };
 
 [Exposed=ServiceWorker]

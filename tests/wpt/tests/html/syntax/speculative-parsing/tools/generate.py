@@ -680,7 +680,7 @@ def generate_tests(testcase, tentative):
 
     html_testcase_markup = template_testcase_markup.format(url_wptserve_sub)
     html_nonspeculative_testcase_markup = template_nonspeculative_testcase_markup.format(url_wptserve_sub)
-    js_testcase_markup = template_testcase_markup.format(url_js_sub).replace(u"</script>", u"<\/script>").replace(u"<meta charset", u"<meta\ charset")
+    js_testcase_markup = template_testcase_markup.format(url_js_sub).replace(u"</script>", u"<\\/script>").replace(u"<meta charset", u"<meta\\ charset")
 
     if test_nonspeculative == u'true':
         nonspeculative = template_nonspeculative.format(preamble=preamble, encoding_decl=encoding_decl, title=title, nonspeculative_testcase_markup=html_nonspeculative_testcase_markup, delay=delay)

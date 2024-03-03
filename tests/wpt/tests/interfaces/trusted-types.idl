@@ -7,21 +7,18 @@
 interface TrustedHTML {
   stringifier;
   DOMString toJSON();
-  static TrustedHTML fromLiteral(object templateStringsArray);
 };
 
 [Exposed=(Window,Worker)]
 interface TrustedScript {
   stringifier;
   DOMString toJSON();
-  static TrustedScript fromLiteral(object templateStringsArray);
 };
 
 [Exposed=(Window,Worker)]
 interface TrustedScriptURL {
   stringifier;
   USVString toJSON();
-  static TrustedScriptURL fromLiteral(object templateStringsArray);
 };
 
 [Exposed=(Window,Worker)] interface TrustedTypePolicyFactory {

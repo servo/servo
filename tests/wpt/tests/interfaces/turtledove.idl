@@ -31,6 +31,7 @@ dictionary GenerateBidInterestGroup {
   USVString updateURL;
   USVString trustedBiddingSignalsURL;
   sequence<USVString> trustedBiddingSignalsKeys;
+  DOMString trustedBiddingSignalsSlotSizeMode = "none";
   any userBiddingSignals;
   sequence<AuctionAd> ads;
   sequence<AuctionAd> adComponents;
@@ -70,6 +71,7 @@ dictionary AuctionAdConfig {
   sequence<USVString> interestGroupBuyers;
   Promise<any> auctionSignals;
   record<DOMString, DOMString> requestedSize;
+  sequence<record<DOMString, DOMString>> allSlotsRequestedSizes;
   Promise<any> sellerSignals;
   Promise<DOMString> directFromSellerSignalsHeaderAdSlot;
   unsigned long long sellerTimeout;
@@ -98,11 +100,24 @@ partial interface Navigator {
 interface InterestGroupScriptRunnerGlobalScope {
 };
 
+[Exposed=InterestGroupBiddingAndScoringScriptRunnerGlobalScope]
+interface ForDebuggingOnly {
+  undefined reportAdAuctionWin(USVString url);
+  undefined reportAdAuctionLoss(USVString url);
+};
+
+[Exposed=InterestGroupBiddingAndScoringScriptRunnerGlobalScope,
+ Global=InterestGroupBiddingAndScoringScriptRunnerGlobalScope]
+interface InterestGroupBiddingAndScoringScriptRunnerGlobalScope : InterestGroupScriptRunnerGlobalScope {
+
+  readonly attribute ForDebuggingOnly forDebuggingOnly;
+};
+
 [Exposed=InterestGroupBiddingScriptRunnerGlobalScope,
  Global=(InterestGroupScriptRunnerGlobalScope,
          InterestGroupBiddingScriptRunnerGlobalScope)]
 interface InterestGroupBiddingScriptRunnerGlobalScope
-        : InterestGroupScriptRunnerGlobalScope {
+        : InterestGroupBiddingAndScoringScriptRunnerGlobalScope {
   boolean setBid(optional GenerateBidOutput generateBidOutput = {});
   undefined setPriority(double priority);
   undefined setPrioritySignalsOverride(DOMString key, optional double? priority);
@@ -129,7 +144,7 @@ dictionary GenerateBidOutput {
  Global=(InterestGroupScriptRunnerGlobalScope,
          InterestGroupScoringScriptRunnerGlobalScope)]
 interface InterestGroupScoringScriptRunnerGlobalScope
-        : InterestGroupScriptRunnerGlobalScope {
+        : InterestGroupBiddingAndScoringScriptRunnerGlobalScope {
 };
 
 [Exposed=InterestGroupReportingScriptRunnerGlobalScope,
@@ -145,6 +160,16 @@ interface InterestGroupReportingScriptRunnerGlobalScope
 [SecureContext]
 partial interface Navigator {
   undefined updateAdInterestGroups();
+};
+
+[SecureContext]
+partial interface Navigator {
+  [SameObject] readonly attribute ProtectedAudience protectedAudience;
+};
+
+[SecureContext, Exposed=Window]
+interface ProtectedAudience {
+  any queryFeatureSupport(DOMString feature);
 };
 
 partial dictionary RequestInit {
@@ -166,11 +191,13 @@ dictionary BiddingBrowserSignals {
   required long joinCount;
   required long bidCount;
   required long recency;
+  required long adComponentsLimit;
 
   USVString topLevelSeller;
   sequence<PreviousWin> prevWinsMs;
   object wasmHelper;
   unsigned long dataVersion;
+  boolean forDebuggingOnlyInCooldownOrLockout = false;
 };
 
 dictionary ScoringBrowserSignals {
@@ -182,6 +209,7 @@ dictionary ScoringBrowserSignals {
 
   unsigned long dataVersion;
   sequence<USVString> adComponents;
+  boolean forDebuggingOnlyInCooldownOrLockout = false;
 };
 
 dictionary ReportingBrowserSignals {
