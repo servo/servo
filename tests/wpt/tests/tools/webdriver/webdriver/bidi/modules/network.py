@@ -106,7 +106,7 @@ URLPattern = Union[URLPatternPattern, URLPatternString]
 class Network(BidiModule):
     @command
     def add_intercept(
-        self, phases: List[str], url_patterns: Optional[List[URLPattern]] = None
+        self, phases: List[str], url_patterns: Optional[List[URLPattern]] = None, contexts: Optional[List[str]] = None
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {
             "phases": phases,
@@ -114,6 +114,9 @@ class Network(BidiModule):
 
         if url_patterns is not None:
             params["urlPatterns"] = url_patterns
+
+        if contexts is not None:
+            params["contexts"] = contexts
 
         return params
 

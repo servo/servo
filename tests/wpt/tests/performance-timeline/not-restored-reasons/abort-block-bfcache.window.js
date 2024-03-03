@@ -1,4 +1,5 @@
 // META: title=Aborting a parser should block bfcache
+// META: script=./test-helper.js
 // META: timeout=long
 
 
@@ -14,8 +15,7 @@ async_test(t => {
     window.stop();
   } else {
     const nrr = performance.getEntriesByType('navigation')[0].notRestoredReasons;
-    assert_equals(nrr.reasons[0].reason, "parser-aborted");
-    assert_equals(nrr.reasons.length, 1);
+    assert_true(ReasonsInclude(nrr.reasons, "parser-aborted"));
     t.done();
   }
 }, "aborting a parser should block bfcache.");

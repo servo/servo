@@ -37,7 +37,7 @@ dictionary ContactsSelectOptions {
     boolean multiple = false;
 };
 
-[Exposed=Window,SecureContext]
+[Exposed=Window, SecureContext]
 interface ContactsManager {
     Promise<sequence<ContactProperty>> getProperties();
     Promise<sequence<ContactInfo>> select(sequence<ContactProperty> properties, optional ContactsSelectOptions options = {});

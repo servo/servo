@@ -179,6 +179,18 @@ promise_test(async t => {
   ]);
   const stats = await getAllStats(t, pc1);
 
+  // The focus of this test is that there are no dangling references,
+  // i.e. keys ending with `Id` as described in
+  // https://w3c.github.io/webrtc-stats/#guidelines-for-design-of-stats-objects
+  test(t => {
+    for (const stat of stats.values()) {
+      Object.keys(stat).forEach(key => {
+        if (!key.endsWith('Id')) return;
+        assert_true(stats.has(stat[key]), `${stat.type}.${key} can be resolved`);
+      });
+    }
+  }, 'All references resolve');
+
   // The focus of this test is not API correctness, but rather to provide an
   // accessible metric of implementation progress by dictionary member. We count
   // whether we've seen each dictionary's members in getStats().

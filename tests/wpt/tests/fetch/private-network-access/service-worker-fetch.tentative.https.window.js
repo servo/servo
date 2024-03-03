@@ -16,84 +16,25 @@ const TestResult = {
   FAILURE: { error: "TypeError" },
 };
 
-async function makeTest(t, { source, target, expected }) {
-  const bridgeUrl = resolveUrl(
-      "resources/service-worker-bridge.html",
-      sourceResolveOptions({ server: source.server }));
-
-  const scriptUrl =
-      resolveUrl("resources/service-worker.js", sourceResolveOptions(source));
-
-  const realTargetUrl = preflightUrl(target);
-
-  // Fetch a URL within the service worker's scope, but tell it which URL to
-  // really fetch.
-  const targetUrl = new URL("service-worker-proxy", scriptUrl);
-  targetUrl.searchParams.append("proxied-url", realTargetUrl.href);
-
-  const iframe = await appendIframe(t, document, bridgeUrl);
-
-  const request = (message) => {
-    const reply = futureMessage();
-    iframe.contentWindow.postMessage(message, "*");
-    return reply;
-  };
-
-  {
-    const { error, loaded } = await request({
-      action: "register",
-      url: scriptUrl.href,
-    });
-
-    assert_equals(error, undefined, "register error");
-    assert_true(loaded, "response loaded");
-  }
-
-  try {
-    const { controlled, numControllerChanges } = await request({
-      action: "wait",
-      numControllerChanges: 1,
-    });
-
-    assert_equals(numControllerChanges, 1, "controller change");
-    assert_true(controlled, "bridge script is controlled");
-
-    const { error, ok, body } = await request({
-      action: "fetch",
-      url: targetUrl.href,
-    });
-
-    assert_equals(error, expected.error, "fetch error");
-    assert_equals(ok, expected.ok, "response ok");
-    assert_equals(body, expected.body, "response body");
-  } finally {
-    // Always unregister the service worker.
-    const { error, unregistered } = await request({
-      action: "unregister",
-      scope: new URL("./", scriptUrl).href,
-    });
-
-    assert_equals(error, undefined, "unregister error");
-    assert_true(unregistered, "unregistered");
-  }
-}
-
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: { server: Server.HTTPS_LOCAL },
   target: { server: Server.HTTPS_LOCAL },
   expected: TestResult.SUCCESS,
 }), "local to local: success.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: { server: Server.HTTPS_PRIVATE },
   target: {
     server: Server.HTTPS_LOCAL,
-    behavior: { response: ResponseBehavior.allowCrossOrigin() },
+    behavior: {
+      preflight: PreflightBehavior.failure(),
+      response: ResponseBehavior.allowCrossOrigin()
+    },
   },
   expected: TestResult.FAILURE,
 }), "private to local: failed preflight.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: { server: Server.HTTPS_PRIVATE },
   target: {
     server: Server.HTTPS_LOCAL,
@@ -105,22 +46,25 @@ subsetTest(promise_test, t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "private to local: success.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: { server: Server.HTTPS_PRIVATE },
   target: { server: Server.HTTPS_PRIVATE },
   expected: TestResult.SUCCESS,
 }), "private to private: success.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
     server: Server.HTTPS_LOCAL,
-    behavior: { response: ResponseBehavior.allowCrossOrigin() },
+    behavior: {
+      preflight: PreflightBehavior.failure(),
+      response: ResponseBehavior.allowCrossOrigin()
+    },
   },
   expected: TestResult.FAILURE,
 }), "public to local: failed preflight.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
     server: Server.HTTPS_LOCAL,
@@ -132,16 +76,19 @@ subsetTest(promise_test, t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "public to local: success.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
     server: Server.HTTPS_PRIVATE,
-    behavior: { response: ResponseBehavior.allowCrossOrigin() },
+    behavior: {
+      preflight: PreflightBehavior.failure(),
+      response: ResponseBehavior.allowCrossOrigin()
+    },
   },
   expected: TestResult.FAILURE,
 }), "public to private: failed preflight.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: {
     server: Server.HTTPS_PRIVATE,
@@ -153,25 +100,28 @@ subsetTest(promise_test, t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "public to private: success.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: { server: Server.HTTPS_PUBLIC },
   target: { server: Server.HTTPS_PUBLIC },
   expected: TestResult.SUCCESS,
 }), "public to public: success.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
   },
   target: {
     server: Server.OTHER_HTTPS_LOCAL,
-    behavior: { response: ResponseBehavior.allowCrossOrigin() },
+    behavior: {
+      preflight: PreflightBehavior.failure(),
+      response: ResponseBehavior.allowCrossOrigin()
+    },
   },
   expected: TestResult.FAILURE,
 }), "treat-as-public to local: failed preflight.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
@@ -186,7 +136,7 @@ subsetTest(promise_test, t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "treat-as-public to local: success.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
@@ -195,19 +145,22 @@ subsetTest(promise_test, t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "treat-as-public to local (same-origin): no preflight required.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
   },
   target: {
     server: Server.HTTPS_PRIVATE,
-    behavior: { response: ResponseBehavior.allowCrossOrigin() },
+    behavior: {
+      preflight: PreflightBehavior.failure(),
+      response: ResponseBehavior.allowCrossOrigin()
+    },
   },
   expected: TestResult.FAILURE,
 }), "treat-as-public to private: failed preflight.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,
@@ -222,7 +175,7 @@ subsetTest(promise_test, t => makeTest(t, {
   expected: TestResult.SUCCESS,
 }), "treat-as-public to private: success.");
 
-subsetTest(promise_test, t => makeTest(t, {
+subsetTest(promise_test, t => makeServiceWorkerTest(t, {
   source: {
     server: Server.HTTPS_LOCAL,
     treatAsPublic: true,

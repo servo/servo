@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>&lt;a name&gt; should only unblock when finished parsing children</title>
+
+<link rel=expect href="#fold" blocking="render">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementsByName("second")));
+    t.step(() => assert_false(!!document.getElementById("last")), "the second element should already unblock rendering");
+    t.done();
+  });
+}, "blocking defers frames until full parsing");
+</script>
+</head>
+<body>
+  <div id="first"></div>
+  <script>
+          generateParserDelay();
+  </script>
+  <a name="fold">
+    <script>
+      generateParserDelay();
+    </script>
+    <div id="second"></div>
+  </a>
+  <script>
+          generateParserDelay();
+  </script>
+  <div id="last"></div>
+</body>

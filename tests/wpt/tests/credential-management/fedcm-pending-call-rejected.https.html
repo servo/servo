@@ -19,7 +19,7 @@ fedcm_test(async t => {
   // We have to call promise_rejects_dom here, because if we call it after
   // the promise gets rejected, the unhandled rejection event handler is called
   // and fails the test even if we handle the rejection later.
-  const rej = promise_rejects_dom(t, 'AbortError', second);
+  const rej = promise_rejects_dom(t, 'NotAllowedError', second);
 
   const first_cred = await first;
   assert_equals(first_cred.token, "token");

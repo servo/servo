@@ -95,6 +95,20 @@ class Storage(BidiModule):
         return params
 
     @command
+    def delete_cookies(
+        self,
+        filter: Optional[CookieFilter] = None,
+        partition: Optional[PartitionDescriptor] = None,
+    ) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {}
+
+        if filter is not None:
+            params["filter"] = filter
+        if partition is not None:
+            params["partition"] = partition
+        return params
+
+    @command
     def set_cookie(
             self,
             cookie: PartialCookie,

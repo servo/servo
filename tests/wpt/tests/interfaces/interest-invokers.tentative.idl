@@ -1,0 +1,7 @@
+interface mixin InterestInvokerElement {
+  [CEReactions,Reflect=interesttarget] attribute Element? interestTargetElement;
+};
+
+HTMLInputElement includes InterestInvokerElement;
+HTMLButtonElement includes InterestInvokerElement;
+HTMLAnchorElement includes InterestInvokerElement;

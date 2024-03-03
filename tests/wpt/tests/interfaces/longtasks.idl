@@ -70,7 +70,9 @@ interface PerformanceScriptTiming : PerformanceEntry {
     readonly attribute ScriptInvokerType invokerType;
     readonly attribute DOMString invoker;
     readonly attribute DOMHighResTimeStamp executionStart;
-    readonly attribute DOMString sourceLocation;
+    readonly attribute DOMString sourceURL;
+    readonly attribute DOMString sourceFunctionName;
+    readonly attribute long long sourceCharPosition;
     readonly attribute DOMHighResTimeStamp pauseDuration;
     readonly attribute DOMHighResTimeStamp forcedStyleAndLayoutDuration;
     readonly attribute Window? window;

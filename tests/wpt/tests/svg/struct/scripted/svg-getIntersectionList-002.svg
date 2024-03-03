@@ -10,7 +10,7 @@
       r.x = 0;
       r.y = 0;
       r.width = 100;
-      r.height = 100;
+      r.height = 99.9;
 
       assert_equals(testSVG.getIntersectionList(r, testSVG).length, 1);
     });

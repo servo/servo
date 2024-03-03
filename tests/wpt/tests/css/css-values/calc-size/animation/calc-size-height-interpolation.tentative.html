@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>height: calc-size() animations</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#calc-size">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../../support/interpolation-testcommon.js"></script>
+
+<style>
+.target {
+  display: block;
+}
+.target::before {
+  display: block;
+  content: "";
+  width: 23px;
+  height: 100px;
+}
+</style>
+
+<body>
+
+<script>
+  test_interpolation({
+    property: 'height',
+    from: neutralKeyframe,
+    to: 'calc-size(auto, size * 2)',
+  }, [
+    { at: -0.25, expect: '75px' },
+    { at: 0, expect: '100px' },
+    { at: 0.25, expect: '125px' },
+    { at: 0.5, expect: '150px' },
+    { at: 0.75, expect: '175px' },
+    { at: 1, expect: '200px' },
+    { at: 1.25, expect: '225px' },
+  ]);
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(min-content, 0 * size)',
+    to: 'calc-size(min-content, size)',
+  }, [
+    { at: -0.25, expect: '0' },
+    { at: 0, expect: '0' },
+    { at: 0.25, expect: '25px' },
+    { at: 0.5, expect: '50px' },
+    { at: 0.75, expect: '75px' },
+    { at: 1, expect: '100px' },
+    { at: 1.25, expect: '125px' },
+  ]);
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(min-content, 0px)',
+    to: 'calc-size(min-content, size)',
+  }, [
+    { at: -0.25, expect: '0' },
+    { at: 0, expect: '0' },
+    { at: 0.25, expect: '25px' },
+    { at: 0.5, expect: '50px' },
+    { at: 0.75, expect: '75px' },
+    { at: 1, expect: '100px' },
+    { at: 1.25, expect: '125px' },
+  ]);
+
+  test_interpolation({
+    property: 'height',
+    from: '0',
+    to: 'calc-size(max-content, size)',
+  }, [
+    { at: -0.25, expect: '0' },
+    { at: 0, expect: '0' },
+    { at: 0.25, expect: '25px' },
+    { at: 0.5, expect: '50px' },
+    { at: 0.75, expect: '75px' },
+    { at: 1, expect: '100px' },
+    { at: 1.25, expect: '125px' },
+  ]);
+
+</script>

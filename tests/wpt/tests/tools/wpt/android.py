@@ -100,6 +100,8 @@ def install_fixed_emulator_version(logger, paths):
 
     emulator_path = os.path.join(paths["sdk"], "emulator")
     latest_emulator_path = os.path.join(paths["sdk"], "emulator_latest")
+    if os.path.exists(latest_emulator_path):
+        shutil.rmtree(latest_emulator_path)
     os.rename(emulator_path, latest_emulator_path)
 
     download_and_extract(url, paths["sdk"])

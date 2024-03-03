@@ -27,7 +27,7 @@ for (let [name, obj] of Object.entries(objects)) {
 promise_test(async t => {
     let remoteValue = RemoteObject.from(document.head);
     let result = await remote.call(inputValue => {
-        if (!inputValue instanceof RemoteObject) {
+        if (!(inputValue instanceof RemoteObject)) {
             throw new AssertionError(`Expected RemoteObject`);
         }
         return inputValue;

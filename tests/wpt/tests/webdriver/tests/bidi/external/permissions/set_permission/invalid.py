@@ -34,7 +34,7 @@ async def test_params_state_invalid_type(bidi_session, state):
       )
 
 
-@pytest.mark.parametrize("state", ["UNKOWN", "Granted"])
+@pytest.mark.parametrize("state", ["UNKNOWN", "Granted"])
 async def test_params_state_invalid_value(bidi_session, state):
     with pytest.raises(error.InvalidArgumentException):
       await bidi_session.permissions.set_permission(

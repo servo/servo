@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Inheritance of CSS Text properties</title>
-<link rel="help" href="https://drafts.csswg.org/css-text/#property-index">
+<link rel="help" href="https://www.w3.org/TR/css-text/#property-index">
 <meta name="assert" content="Properties inherit according to the spec.">
 <meta name="assert" content="Properties have initial values according to the spec.">
 <script src="/resources/testharness.js"></script>
@@ -17,7 +17,7 @@
 <script>
 assert_inherited('hanging-punctuation', 'none', 'first last');
 assert_inherited('hyphens', 'manual', 'none');
-assert_inherited('letter-spacing', 'normal', '10px');
+assert_inherited('letter-spacing', 'normal', '10px', '10%');
 assert_inherited('line-break', 'auto', 'strict');
 assert_inherited('overflow-wrap', 'normal', 'break-word');
 assert_inherited('tab-size', '8', '10px');
@@ -33,7 +33,7 @@ assert_inherited('text-wrap-style', 'auto', 'balance');
 assert_inherited('white-space', 'normal', 'pre-wrap');
 assert_inherited('white-space-collapse', 'collapse', 'preserve');
 assert_inherited('word-break', 'normal', 'break-all');
-assert_inherited('word-spacing', '0px', '10px');
+assert_inherited('word-spacing', '0px', '10px', '10%');
 assert_inherited('word-wrap', 'normal', 'break-word');
 </script>
 </body>

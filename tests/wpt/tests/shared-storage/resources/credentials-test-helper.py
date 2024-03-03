@@ -13,6 +13,12 @@ def main(request, response):
     response.status = 200
     response.headers.append(b"Content-Type", b"text/javascript")
 
+    if b"access_control_allow_credentials_header" in request.GET:
+      response.headers.append(b"Access-Control-Allow-Credentials", request.GET[b"access_control_allow_credentials_header"])
+
+    if b"access_control_allow_origin_header" in request.GET:
+      response.headers.append(b"Access-Control-Allow-Origin", request.GET[b"access_control_allow_origin_header"])
+
     if action == b"store-cookie":
       cookie = request.headers.get(b"Cookie", b"NO_COOKIE_HEADER")
       request.server.stash.put(token, cookie)

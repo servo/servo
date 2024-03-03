@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>getIntersectionList() with &lt;use></title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#__svg__SVGSVGElement__getIntersectionList"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+
+  <defs>
+    <g id="conn">
+      <circle cx="0" cy="0" r="20"/>
+    </g>
+  </defs>
+  <circle cx="65" cy="50" r="20" fill="blue"/>
+  <use href="#conn" x="50" y="50" fill="red"/>
+
+  <script>
+    function getMatchingLocalNames(x, y) {
+      const svg = document.documentElement;
+      const rect = Object.assign(svg.createSVGRect(), {x, y, width: 1, height: 1});
+      const elems = svg.getIntersectionList(rect, null);
+      return Array.from(elems).map(e => e.localName).sort();
+    }
+
+    test(t => {
+      assert_array_equals(getMatchingLocalNames(50, 60), ['circle', 'use']);
+      assert_array_equals(getMatchingLocalNames(0, 0), []);
+    });
+  </script>
+</svg>

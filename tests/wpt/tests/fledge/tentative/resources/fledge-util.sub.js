@@ -33,7 +33,7 @@ const OTHER_ORIGIN7 = 'https://{{hosts[alt][www]}}:{{ports[https][1]}}';
 //     on behavior of the script; it only serves to make the URL unique.
 // `id` will always be the last query parameter.
 function createTrackerURL(origin, uuid, dispatch, id = null) {
-  let url = new URL(`${origin}${BASE_PATH}resources/request-tracker.py`);
+  let url = new URL(`${origin}${RESOURCE_PATH}request-tracker.py`);
   let search = `uuid=${uuid}&dispatch=${dispatch}`;
   if (id)
     search += `&id=${id}`;
@@ -59,6 +59,10 @@ function createSellerReportURL(uuid, id = '1', origin = window.location.origin) 
   return createTrackerURL(origin, uuid, `track_get`, `seller_report_${id}`);
 }
 
+function createHighestScoringOtherBidReportURL(uuid, highestScoringOtherBid) {
+  return createSellerReportURL(uuid) + '&highestScoringOtherBid=' + Math.round(highestScoringOtherBid);
+}
+
 // Much like above ReportURL methods, except designed for beacons, which
 // are expected to be POSTs.
 function createBidderBeaconURL(uuid, id = '1', origin = window.location.origin) {
@@ -69,7 +73,7 @@ function createSellerBeaconURL(uuid, id = '1', origin = window.location.origin) 
 }
 
 function createDirectFromSellerSignalsURL(origin = window.location.origin) {
-  let url = new URL(`${origin}${BASE_PATH}resources/direct-from-seller-signals.py`);
+  let url = new URL(`${origin}${RESOURCE_PATH}direct-from-seller-signals.py`);
   return url.toString();
 }
 
@@ -80,7 +84,7 @@ function generateUuid(test) {
   let uuid = token();
   test.add_cleanup(async () => {
     let response = await fetch(createCleanupURL(uuid),
-                               {credentials: 'omit', mode: 'cors'});
+                               { credentials: 'omit', mode: 'cors' });
     assert_equals(await response.text(), 'cleanup complete',
                   `Sever state cleanup failed`);
   });
@@ -94,7 +98,7 @@ async function fetchTrackedData(uuid) {
   let trackedRequestsURL = createTrackerURL(window.location.origin, uuid,
                                             'tracked_data');
   let response = await fetch(trackedRequestsURL,
-                             {credentials: 'omit', mode: 'cors'});
+                             { credentials: 'omit', mode: 'cors' });
   let trackedData = await response.json();
 
   // Fail on fetch error.
@@ -118,23 +122,29 @@ async function fetchTrackedData(uuid) {
 // Elements of `expectedRequests` should either be URLs, in the case of GET
 // requests, or "<URL>, body: <body>" in the case of POST requests.
 //
+// `filter` will be applied to the array of tracked requests.
+//
 // If any other strings are received from the tracking script, or the tracker
 // script reports an error, fails the test.
-async function waitForObservedRequests(uuid, expectedRequests) {
+async function waitForObservedRequests(uuid, expectedRequests, filter) {
   // Sort array for easier comparison, as observed request order does not
   // matter, and replace UUID to print consistent errors on failure.
-  expectedRequests = expectedRequests.sort().map((url) => url.replace(uuid, '<uuid>'));
+  expectedRequests = expectedRequests.map((url) => url.replace(uuid, '<uuid>')).sort();
 
   while (true) {
     let trackedData = await fetchTrackedData(uuid);
 
     // Clean up "trackedRequests" in same manner as "expectedRequests".
-    let trackedRequests = trackedData.trackedRequests.sort().map(
-                              (url) => url.replace(uuid, '<uuid>'));
+    let trackedRequests = trackedData.trackedRequests.map(
+                              (url) => url.replace(uuid, '<uuid>')).sort();
+
+    if (filter) {
+      trackedRequests = trackedRequests.filter(filter);
+    }
 
     // If expected number of requests have been observed, compare with list of
     // all expected requests and exit.
-    if (trackedRequests.length == expectedRequests.length) {
+    if (trackedRequests.length >= expectedRequests.length) {
       assert_array_equals(trackedRequests, expectedRequests);
       break;
     }
@@ -151,30 +161,11 @@ async function waitForObservedRequests(uuid, expectedRequests) {
 
 // Similar to waitForObservedRequests, but ignore forDebuggingOnly reports.
 async function waitForObservedRequestsIgnoreDebugOnlyReports(
-  uuid, expectedRequests) {
-  // Sort array for easier comparison, as observed request order does not
-  // matter, and replace UUID to print consistent errors on failure.
-  expectedRequests =
-      expectedRequests.sort().map((url) => url.replace(uuid, '<uuid>'));
-
-  while (true) {
-    let numTrackedRequest = 0;
-    let trackedData = await fetchTrackedData(uuid);
-
-    // Clean up "trackedRequests" in same manner as "expectedRequests".
-    let trackedRequests = trackedData.trackedRequests.sort().map(
-        (url) => url.replace(uuid, '<uuid>'));
-
-    for (const trackedRequest of trackedRequests) {
-      // Ignore forDebuggingOnly reports, since their appearance is random.
-      if (!trackedRequest.includes('forDebuggingOnly')) {
-        assert_in_array(trackedRequest, expectedRequests);
-        numTrackedRequest++;
-      }
-    }
-
-    if (numTrackedRequest == expectedRequests.length) break;
-  }
+    uuid, expectedRequests) {
+  return waitForObservedRequests(
+      uuid,
+      expectedRequests,
+      request => !request.includes('forDebuggingOnly'));
 }
 
 // Creates a bidding script with the provided code in the method bodies. The
@@ -192,6 +183,8 @@ function createBiddingScriptURL(params = {}) {
     url.searchParams.append('generateBid', params.generateBid);
   if (params.reportWin != null)
     url.searchParams.append('reportWin', params.reportWin);
+  if (params.reportAdditionalBidWin != null)
+    url.searchParams.append('reportAdditionalBidWin', params.reportAdditionalBidWin);
   if (params.error != null)
     url.searchParams.append('error', params.error);
   if (params.bid != null)
@@ -283,7 +276,7 @@ async function joinInterestGroup(test, uuid, interestGroupOverrides = {},
 
   await navigator.joinAdInterestGroup(interestGroup, durationSeconds);
   test.add_cleanup(
-      async () => {await navigator.leaveAdInterestGroup(interestGroup)});
+    async () => { await navigator.leaveAdInterestGroup(interestGroup) });
 }
 
 // Similar to joinInterestGroup, but leaves the interest group instead.
@@ -494,6 +487,24 @@ async function runReportTest(test, uuid, codeToInsert, expectedReportURLs,
   await waitForObservedRequests(uuid, expectedReportURLs);
 }
 
+async function runAdditionalBidTest(test, uuid, buyers, auctionNonce,
+                                    additionalBidsPromise,
+                                    highestScoringOtherBid,
+                                    winningAdditionalBidId) {
+  await runBasicFledgeAuctionAndNavigate(
+      test, uuid,
+      { interestGroupBuyers: buyers,
+        auctionNonce: auctionNonce,
+        additionalBids: additionalBidsPromise,
+        decisionLogicURL: createDecisionScriptURL(
+            uuid,
+            { reportResult: `sendReportTo("${createSellerReportURL(uuid)}&highestScoringOtherBid=" + Math.round(browserSignals.highestScoringOtherBid));` })});
+
+  await waitForObservedRequests(
+      uuid, [createHighestScoringOtherBidReportURL(uuid, highestScoringOtherBid),
+             createBidderReportURL(uuid, winningAdditionalBidId)]);
+}
+
 // Runs "script" in "child_window" via an eval call. The "child_window" must
 // have been created by calling "createFrame()" below. "param" is passed to the
 // context "script" is run in, so can be used to pass objects that
@@ -683,4 +694,47 @@ function directFromSellerSignalsValidatorCode(uuid, expectedSellerSignals,
     reportWin:
       `sendReportTo("${createBidderReportURL(uuid)}");`,
   };
+}
+
+// Creates an additional bid with the given parameters. This additional bid
+// specifies a biddingLogicURL that provides an implementation of
+// reportAdditionalBidWin that triggers a sendReportTo() to the bidder report
+// URL of the winning additional bid. Additional bids are described in more
+// detail at
+// https://github.com/WICG/turtledove/blob/main/FLEDGE.md#6-additional-bids.
+function createAdditionalBid(uuid, auctionNonce, seller, buyer, interestGroupName, bidAmount,
+                             additionalBidOverrides = {}) {
+  return {
+    interestGroup: {
+      name: interestGroupName,
+      biddingLogicURL: createBiddingScriptURL(
+        {
+          origin: buyer,
+          reportAdditionalBidWin: `sendReportTo("${createBidderReportURL(uuid, interestGroupName)}");`
+        }),
+      owner: buyer
+    },
+    bid: {
+      ad: ['metadata'],
+      bid: bidAmount,
+      render: createRenderURL(uuid)
+    },
+    auctionNonce: auctionNonce,
+    seller: seller,
+    ...additionalBidOverrides
+  }
+}
+
+// Fetch some number of additional bid from a seller and verify that the
+// 'Ad-Auction-Additional-Bid' header is not visible in this JavaScript context.
+// The `additionalBids` parameter is a list of additional bids.
+async function fetchAdditionalBids(seller, additionalBids) {
+  const url = new URL(`${seller}${RESOURCE_PATH}additional-bids.py`);
+  url.searchParams.append('additionalBids', JSON.stringify(additionalBids));
+  const response = await fetch(url.href, {adAuctionHeaders: true});
+
+  assert_equals(response.status, 200, 'Failed to fetch additional bid: ' + await response.text());
+  assert_false(
+      response.headers.has('Ad-Auction-Additional-Bid'),
+      'Header "Ad-Auction-Additional-Bid" should not be available in JavaScript context.');
 }

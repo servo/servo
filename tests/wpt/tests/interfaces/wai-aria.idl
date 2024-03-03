@@ -57,5 +57,4 @@ interface mixin ARIAMixin {
   [CEReactions] attribute DOMString? ariaValueNow;
   [CEReactions] attribute DOMString? ariaValueText;
 };
-
 Element includes ARIAMixin;

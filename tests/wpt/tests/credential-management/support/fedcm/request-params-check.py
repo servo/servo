@@ -80,6 +80,8 @@ def tokenCheck(request):
     return (544, [], "Missing 'account_id' POST parameter")
   if not request.POST.get(b"disclosure_text_shown"):
     return (545, [], "Missing 'disclosure_text_shown' POST parameter")
+  if not request.headers.get(b"Origin"):
+    return (540, [], "Missing Origin")
 
 def revokeCheck(request):
   common_error = commonCheck(request, b"cors")

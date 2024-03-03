@@ -351,16 +351,19 @@
         _assertPixelApprox(canvas, 5, 5, outputColor[0],outputColor[1],outputColor[2],255, 2);
     }
 
-- name: 2d.filter.canvasFilterObject.gaussianBlur.tentative
+- name: >-
+    2d.filter.{{ variant_names[0] }}.gaussianBlur.{{ variant_names[1] }}{{
+    tentative }}
   desc: Test CanvasFilter() with gaussianBlur.
   size: [100, 100]
   code: |
     ctx.fillStyle = 'teal';
-    ctx.filter = new CanvasFilter({
+    {{ filter_declaration | replace("param", "{
         name: 'gaussianBlur',
         stdDeviation: [{{ blur_x }}, {{blur_y}}],
-    });
+    }") }}
     ctx.fillRect(25, 25, 50, 50);
+    {{ close_layer }}
   html_reference: |
     <svg xmlns="http://www.w3.org/2000/svg"
          width="{{ size[0] }}" height="{{ size[1] }}"
@@ -371,22 +374,31 @@
       <rect x="25" y="25" width="50" height="50"
             fill="teal" filter="url(#blur)" />
     </svg>
-  variants:
-    x-only:
-      blur_x: 4
-      blur_y: 0
-    mostly-x:
-      blur_x: 4
-      blur_y: 1
-    isotropic:
-      blur_x: 4
-      blur_y: 4
-    mostly-y:
-      blur_x: 1
-      blur_y: 4
-    y-only:
-      blur_x: 0
-      blur_y: 4
+  append_variants_to_name: false
+  variant_matrix:
+    - layers:
+        filter_declaration: |-
+          ctx.beginLayer({filter: param});
+        close_layer: ctx.endLayer();
+      canvasFilterObject:
+        filter_declaration: |-
+          ctx.filter = new CanvasFilter(param);
+        tentative: .tentative
+    - x-only:
+        blur_x: 4
+        blur_y: 0
+      mostly-x:
+        blur_x: 4
+        blur_y: 1
+      isotropic:
+        blur_x: 4
+        blur_y: 4
+      mostly-y:
+        blur_x: 1
+        blur_y: 4
+      y-only:
+        blur_x: 0
+        blur_y: 4
 
 - name: 2d.filter.canvasFilterObject.dropShadow.tentative
   desc: Test CanvasFilter() dropShadow object.
