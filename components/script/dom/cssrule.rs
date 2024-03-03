@@ -17,6 +17,8 @@ use crate::dom::cssfontfacerule::CSSFontFaceRule;
 use crate::dom::cssimportrule::CSSImportRule;
 use crate::dom::csskeyframerule::CSSKeyframeRule;
 use crate::dom::csskeyframesrule::CSSKeyframesRule;
+use crate::dom::csslayerblockrule::CSSLayerBlockRule;
+use crate::dom::csslayerstatementrule::CSSLayerStatementRule;
 use crate::dom::cssmediarule::CSSMediaRule;
 use crate::dom::cssnamespacerule::CSSNamespaceRule;
 use crate::dom::cssstylerule::CSSStyleRule;
@@ -62,6 +64,10 @@ impl CSSRule {
             rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSSupportsRule>() {
             rule as &dyn SpecificCSSRule
+        } else if let Some(rule) = self.downcast::<CSSLayerBlockRule>() {
+            rule as &dyn SpecificCSSRule
+        } else if let Some(rule) = self.downcast::<CSSLayerStatementRule>() {
+            rule as &dyn SpecificCSSRule
         } else {
             unreachable!()
         }
@@ -102,10 +108,14 @@ impl CSSRule {
             StyleCssRule::Page(_) => unreachable!(),
             StyleCssRule::Container(_) => unimplemented!(), // TODO
             StyleCssRule::Document(_) => unimplemented!(),  // TODO
-            StyleCssRule::LayerBlock(_) => unimplemented!(), // TODO
-            StyleCssRule::LayerStatement(_) => unimplemented!(), // TODO
+            StyleCssRule::LayerBlock(s) => {
+                DomRoot::upcast(CSSLayerBlockRule::new(window, parent_stylesheet, s))
+            },
+            StyleCssRule::LayerStatement(s) => {
+                DomRoot::upcast(CSSLayerStatementRule::new(window, parent_stylesheet, s))
+            },
             StyleCssRule::FontPaletteValues(_) => unimplemented!(), // TODO
-            StyleCssRule::Property(_) => unimplemented!(),  // TODO
+            StyleCssRule::Property(_) => unimplemented!(),          // TODO
         }
     }
 
