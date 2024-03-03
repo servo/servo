@@ -268,10 +268,12 @@ impl Gamepad {
         }
     }
 
+    /// <https://www.w3.org/TR/gamepad/#dfn-exposed>
     pub fn exposed(&self) -> bool {
         self.exposed.get()
     }
 
+    /// <https://www.w3.org/TR/gamepad/#dfn-exposed>
     pub fn set_exposed(&self, exposed: bool) {
         self.exposed.set(exposed);
     }
