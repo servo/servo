@@ -67,7 +67,6 @@ use crate::dom::bindings::codegen::Bindings::GamepadListBinding::GamepadList_Bin
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
-use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
@@ -3169,7 +3168,7 @@ impl GlobalScope {
                 task!(gamepad_disconnected: move || {
                     let global = this.root();
                     if let Some(window) = global.downcast::<Window>() {
-                        let gamepad_list = window.Navigator().GetGamepads();
+                        let gamepad_list = window.Navigator().gamepads();
                         if let Some(gamepad) = gamepad_list.Item(index as u32) {
                             if window.Document().is_fully_active() {
                                 gamepad.update_connected(false, gamepad.exposed());

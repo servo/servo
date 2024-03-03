@@ -16,6 +16,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::bluetooth::Bluetooth;
+use crate::dom::gamepad::Gamepad;
 use crate::dom::gamepadlist::GamepadList;
 use crate::dom::gpu::GPU;
 use crate::dom::mediadevices::MediaDevices;
@@ -189,18 +190,18 @@ impl NavigatorMethods for Navigator {
     }
 
     // https://www.w3.org/TR/gamepad/#navigator-interface-extension
-    fn GetGamepads(&self) -> DomRoot<GamepadList> {
+    fn GetGamepads(&self) -> Vec<Option<DomRoot<Gamepad>>> {
         let global = self.global();
         let window = global.as_window();
         let doc = window.Document();
 
         if !doc.is_fully_active() || !self.has_gamepad_gesture.get() {
-            return GamepadList::new(&global, &[]);
+            return Vec::new();
         }
 
         let root = self.gamepads.or_init(|| GamepadList::new(&global, &[]));
 
-        root
+        root.list()
     }
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {
