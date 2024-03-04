@@ -18,12 +18,8 @@ fn interpolate_color(from: AbsoluteColor, to: AbsoluteColor, progress: f64) -> A
 #[test]
 fn test_rgba_color_interepolation_preserves_transparent() {
     assert_eq!(
-        interpolate_color(
-            AbsoluteColor::transparent(),
-            AbsoluteColor::transparent(),
-            0.5
-        ),
-        AbsoluteColor::transparent()
+        interpolate_color(AbsoluteColor::TRANSPARENT, AbsoluteColor::TRANSPARENT, 0.5),
+        AbsoluteColor::TRANSPARENT
     );
 }
 

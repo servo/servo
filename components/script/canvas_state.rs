@@ -1704,14 +1704,14 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<R
                 // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
                 // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
                 // it is treated as opaque black.
-                None => AbsoluteColor::black(),
+                None => AbsoluteColor::BLACK,
                 Some(ref canvas) => {
                     let canvas_element = canvas.upcast::<Element>();
                     match canvas_element.style() {
                         Some(ref s) if canvas_element.has_css_layout_box() => {
                             s.get_inherited_text().color
                         },
-                        _ => AbsoluteColor::black(),
+                        _ => AbsoluteColor::BLACK,
                     }
                 },
             };
