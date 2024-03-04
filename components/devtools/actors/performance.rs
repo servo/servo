@@ -98,7 +98,7 @@ impl Actor for PerformanceActor {
 
 impl PerformanceActor {
     pub fn new(name: String) -> PerformanceActor {
-        PerformanceActor { name: name }
+        PerformanceActor { name }
     }
 
     pub fn description() -> ActorDescription {

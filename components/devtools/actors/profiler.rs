@@ -32,6 +32,6 @@ impl Actor for ProfilerActor {
 
 impl ProfilerActor {
     pub fn new(name: String) -> ProfilerActor {
-        ProfilerActor { name: name }
+        ProfilerActor { name }
     }
 }

@@ -31,7 +31,7 @@ impl Actor for ObjectActor {
 }
 
 impl ObjectActor {
-    pub fn new(registry: &ActorRegistry, uuid: String) -> String {
+    pub fn register(registry: &ActorRegistry, uuid: String) -> String {
         if !registry.script_actor_registered(uuid.clone()) {
             let name = registry.new_name("object");
             let actor = ObjectActor {

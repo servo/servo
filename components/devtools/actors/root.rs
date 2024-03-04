@@ -189,7 +189,7 @@ impl Actor for RootActor {
                         .map(|target| {
                             registry
                                 .find::<TabDescriptorActor>(target)
-                                .encodable(&registry)
+                                .encodable(registry)
                         })
                         .collect(),
                 };
@@ -223,7 +223,7 @@ impl Actor for RootActor {
                 let tab = registry.find::<TabDescriptorActor>(&self.tabs[0]);
                 let reply = GetTabReply {
                     from: self.name(),
-                    tab: tab.encodable(&registry),
+                    tab: tab.encodable(registry),
                 };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed

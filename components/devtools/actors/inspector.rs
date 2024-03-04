@@ -207,8 +207,8 @@ impl NodeInfoToProtocol for NodeInfo {
             let name = actors.new_name("node");
             let node_actor = NodeActor {
                 name: name.clone(),
-                script_chan: script_chan,
-                pipeline: pipeline.clone(),
+                script_chan,
+                pipeline,
             };
             actors.register_script_actor(self.uniqueId, name.clone());
             actors.register_later(Box::new(node_actor));
@@ -315,7 +315,7 @@ impl Actor for WalkerActor {
 
                 let msg = DocumentElementReply {
                     from: self.name(),
-                    node: node,
+                    node,
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -538,16 +538,16 @@ impl Actor for PageStyleActor {
 
                 let auto_margins = msg
                     .get("autoMargins")
-                    .and_then(&Value::as_bool)
+                    .and_then(Value::as_bool)
                     .unwrap_or(false);
 
                 // http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
                 let msg = GetLayoutReply {
                     from: self.name(),
-                    display: display,
-                    position: position,
-                    zIndex: zIndex,
-                    boxSizing: boxSizing,
+                    display,
+                    position,
+                    zIndex,
+                    boxSizing,
                     autoMargins: if auto_margins {
                         let mut m = Map::new();
                         let auto = serde_json::value::Value::String("auto".to_owned());
@@ -567,20 +567,20 @@ impl Actor for PageStyleActor {
                     } else {
                         serde_json::value::Value::Null
                     },
-                    marginTop: marginTop,
-                    marginRight: marginRight,
-                    marginBottom: marginBottom,
-                    marginLeft: marginLeft,
-                    borderTopWidth: borderTopWidth,
-                    borderRightWidth: borderRightWidth,
-                    borderBottomWidth: borderBottomWidth,
-                    borderLeftWidth: borderLeftWidth,
-                    paddingTop: paddingTop,
-                    paddingRight: paddingRight,
-                    paddingBottom: paddingBottom,
-                    paddingLeft: paddingLeft,
-                    width: width,
-                    height: height,
+                    marginTop,
+                    marginRight,
+                    marginBottom,
+                    marginLeft,
+                    borderTopWidth,
+                    borderRightWidth,
+                    borderBottomWidth,
+                    borderLeftWidth,
+                    paddingTop,
+                    paddingRight,
+                    paddingBottom,
+                    paddingLeft,
+                    width,
+                    height,
                 };
                 let msg = serde_json::to_string(&msg).unwrap();
                 let msg = serde_json::from_str::<Value>(&msg).unwrap();
@@ -614,7 +614,7 @@ impl Actor for InspectorActor {
                     let walker = WalkerActor {
                         name: registry.new_name("walker"),
                         script_chan: self.script_chan.clone(),
-                        pipeline: pipeline,
+                        pipeline,
                     };
                     let mut walker_name = self.walker.borrow_mut();
                     *walker_name = Some(walker.name());
@@ -643,7 +643,7 @@ impl Actor for InspectorActor {
                     let style = PageStyleActor {
                         name: registry.new_name("pageStyle"),
                         script_chan: self.script_chan.clone(),
-                        pipeline: pipeline,
+                        pipeline,
                     };
                     let mut pageStyle = self.pageStyle.borrow_mut();
                     *pageStyle = Some(style.name());

@@ -73,7 +73,7 @@ pub struct ThreadActor {
 
 impl ThreadActor {
     pub fn new(name: String) -> ThreadActor {
-        ThreadActor { name: name }
+        ThreadActor { name }
     }
 }
 
