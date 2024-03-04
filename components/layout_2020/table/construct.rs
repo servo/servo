@@ -63,8 +63,9 @@ impl Table {
         contents: NonReplacedContents,
         propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
-        let mut traversal =
-            TableBuilderTraversal::new(context, info, propagated_text_decoration_line);
+        let text_decoration_line =
+            propagated_text_decoration_line | info.style.clone_text_decoration_line();
+        let mut traversal = TableBuilderTraversal::new(context, info, text_decoration_line);
         contents.traverse(context, info, &mut traversal);
         traversal.finish()
     }
@@ -589,9 +590,9 @@ pub(crate) struct TableBuilderTraversal<'style, 'dom, Node> {
     context: &'style LayoutContext<'style>,
     info: &'style NodeAndStyleInfo<Node>,
 
-    /// Propagated value for text-decoration-line, used to construct the block
-    /// contents of table cells.
-    propagated_text_decoration_line: TextDecorationLine,
+    /// The value of the [`TextDecorationLine`] to use, either for the row group
+    /// if processing one or for the table itself if outside a row group.
+    current_text_decoration_line: TextDecorationLine,
 
     /// The [`TableBuilder`] for this [`TableBuilderTraversal`]. This is separated
     /// into another struct so that we can write unit tests against the builder.
@@ -610,12 +611,12 @@ where
     pub(crate) fn new(
         context: &'style LayoutContext<'style>,
         info: &'style NodeAndStyleInfo<Node>,
-        propagated_text_decoration_line: TextDecorationLine,
+        text_decoration_line: TextDecorationLine,
     ) -> Self {
         TableBuilderTraversal {
             context,
             info,
-            propagated_text_decoration_line,
+            current_text_decoration_line: text_decoration_line,
             builder: TableBuilder::new(info.style.clone()),
             current_anonymous_row_content: Vec::new(),
             current_row_group_index: None,
@@ -644,7 +645,8 @@ where
                 &self.info.style,
             );
         let anonymous_info = self.info.new_replacing_style(anonymous_style);
-        let mut row_builder = TableRowBuilder::new(self, &anonymous_info);
+        let mut row_builder =
+            TableRowBuilder::new(self, &anonymous_info, self.current_text_decoration_line);
 
         for cell_content in row_content {
             match cell_content {
@@ -703,8 +705,13 @@ where
                         track_range: next_row_index..next_row_index,
                     });
 
+                    let previous_text_decoration_line = self.current_text_decoration_line;
+                    self.current_text_decoration_line =
+                        self.current_text_decoration_line | info.style.clone_text_decoration_line();
+
                     let new_row_group_index = self.builder.table.row_groups.len() - 1;
                     self.current_row_group_index = Some(new_row_group_index);
+
                     NonReplacedContents::try_from(contents).unwrap().traverse(
                         self.context,
                         info,
@@ -712,6 +719,7 @@ where
                     );
 
                     self.current_row_group_index = None;
+                    self.current_text_decoration_line = previous_text_decoration_line;
                     self.builder.incoming_rowspans.clear();
 
                     // We are doing this until we have actually set a Box for this `BoxSlot`.
@@ -722,7 +730,8 @@ where
 
                     let context = self.context;
 
-                    let mut row_builder = TableRowBuilder::new(self, info);
+                    let mut row_builder =
+                        TableRowBuilder::new(self, info, self.current_text_decoration_line);
                     NonReplacedContents::try_from(contents).unwrap().traverse(
                         context,
                         info,
@@ -842,6 +851,9 @@ struct TableRowBuilder<'style, 'builder, 'dom, 'a, Node> {
     info: &'a NodeAndStyleInfo<Node>,
 
     current_anonymous_cell_content: Vec<AnonymousTableContent<'dom, Node>>,
+
+    /// The [`TextDecorationLine`] to use for all children of this row.
+    text_decoration_line: TextDecorationLine,
 }
 
 impl<'style, 'builder, 'dom, 'a, Node: 'dom> TableRowBuilder<'style, 'builder, 'dom, 'a, Node>
@@ -851,13 +863,17 @@ where
     fn new(
         table_traversal: &'builder mut TableBuilderTraversal<'style, 'dom, Node>,
         info: &'a NodeAndStyleInfo<Node>,
+        propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
         table_traversal.builder.start_row();
 
+        let text_decoration_line =
+            propagated_text_decoration_line | info.style.clone_text_decoration_line();
         TableRowBuilder {
             table_traversal,
             info,
             current_anonymous_cell_content: Vec::new(),
+            text_decoration_line,
         }
     }
 
@@ -881,11 +897,8 @@ where
                 &self.info.style,
             );
         let anonymous_info = self.info.new_replacing_style(anonymous_style);
-        let mut builder = BlockContainerBuilder::new(
-            context,
-            &anonymous_info,
-            self.table_traversal.propagated_text_decoration_line,
-        );
+        let mut builder =
+            BlockContainerBuilder::new(context, &anonymous_info, self.text_decoration_line);
 
         for cell_content in self.current_anonymous_cell_content.drain(..) {
             match cell_content {
@@ -964,7 +977,7 @@ where
                                 self.table_traversal.context,
                                 info,
                                 non_replaced_contents,
-                                self.table_traversal.propagated_text_decoration_line,
+                                self.text_decoration_line,
                                 false, /* is_list_item */
                             )
                         },
