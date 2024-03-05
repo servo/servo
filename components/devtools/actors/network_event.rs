@@ -200,7 +200,7 @@ impl Actor for NetworkEventActor {
                 }
                 let msg = GetRequestHeadersReply {
                     from: self.name(),
-                    headers: headers,
+                    headers,
                     headerSize: headersSize,
                     rawHeaders: rawHeadersString,
                 };
@@ -218,7 +218,7 @@ impl Actor for NetworkEventActor {
 
                 let msg = GetRequestCookiesReply {
                     from: self.name(),
-                    cookies: cookies,
+                    cookies,
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -244,13 +244,13 @@ impl Actor for NetworkEventActor {
                         });
                         headersSize += name.as_str().len() + value.len();
                         rawHeadersString.push_str(name.as_str());
-                        rawHeadersString.push_str(":");
+                        rawHeadersString.push(':');
                         rawHeadersString.push_str(value.to_str().unwrap());
                         rawHeadersString.push_str("\r\n");
                     }
                     let msg = GetResponseHeadersReply {
                         from: self.name(),
-                        headers: headers,
+                        headers,
                         headerSize: headersSize,
                         rawHeaders: rawHeadersString,
                     };
@@ -269,7 +269,7 @@ impl Actor for NetworkEventActor {
 
                 let msg = GetResponseCookiesReply {
                     from: self.name(),
-                    cookies: cookies,
+                    cookies,
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -322,7 +322,7 @@ impl Actor for NetworkEventActor {
 impl NetworkEventActor {
     pub fn new(name: String) -> NetworkEventActor {
         NetworkEventActor {
-            name: name,
+            name,
             request: HttpRequest {
                 url: String::new(),
                 method: Method::GET,
@@ -378,8 +378,8 @@ impl NetworkEventActor {
                 .as_millis() as i64,
         ) {
             LocalResult::None => "".to_owned(),
-            LocalResult::Single(dateTime) => format!("{}", dateTime.to_rfc3339()),
-            LocalResult::Ambiguous(dateTime, _) => format!("{}", dateTime.to_rfc3339()),
+            LocalResult::Single(dateTime) => dateTime.to_rfc3339().to_string(),
+            LocalResult::Ambiguous(dateTime, _) => dateTime.to_rfc3339().to_string(),
         };
 
         EventActor {

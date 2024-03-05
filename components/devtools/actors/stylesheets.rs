@@ -50,6 +50,6 @@ impl Actor for StyleSheetsActor {
 
 impl StyleSheetsActor {
     pub fn new(name: String) -> StyleSheetsActor {
-        StyleSheetsActor { name: name }
+        StyleSheetsActor { name }
     }
 }

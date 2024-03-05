@@ -79,7 +79,7 @@ impl TabDescriptorActor {
         let root = actors.find_mut::<RootActor>("root");
         root.tabs.push(name.clone());
         TabDescriptorActor {
-            name: name,
+            name,
             browsing_context_actor,
         }
     }
