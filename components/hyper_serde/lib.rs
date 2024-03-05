@@ -138,7 +138,7 @@ impl<T> De<T> {
     /// Returns a new `De` wrapper
     #[inline(always)]
     pub fn new(v: T) -> Self {
-        De { v: v }
+        De { v }
     }
 }
 
@@ -366,7 +366,7 @@ impl<'de> Deserialize<'de> for De<HeaderMap> {
                     for v in values.0.iter() {
                         headers.append(
                             HeaderName::from_str(&k).map_err(V::Error::custom)?,
-                            HeaderValue::from_bytes(&v).map_err(V::Error::custom)?,
+                            HeaderValue::from_bytes(v).map_err(V::Error::custom)?,
                         );
                     }
                 }
@@ -453,7 +453,7 @@ impl<'a> Serialize for Ser<'a, HeaderMap> {
                 &Value(
                     &values
                         .iter()
-                        .map(|v| v.as_bytes().iter().cloned().collect())
+                        .map(|v| v.as_bytes().to_vec())
                         .collect::<Vec<Vec<u8>>>(),
                     self.pretty,
                 ),
@@ -531,7 +531,7 @@ impl<'a> Serialize for Ser<'a, Mime> {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.v.to_string())
+        serializer.serialize_str(&self.v.as_ref())
     }
 }
 
