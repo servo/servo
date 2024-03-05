@@ -145,6 +145,12 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         }
 
         for msg in incoming {
+            // Always run "update the rendering" tasks,
+            // TODO: fix "fully active" concept for iframes.
+            if let Some(TaskSourceName::Rendering) = msg.task_source_name() {
+                let _ = self.msg_queue.borrow_mut().push_back(msg);
+                continue;
+            }
             if let Some(pipeline_id) = msg.pipeline_id() {
                 if !fully_active.contains(&pipeline_id) {
                     self.store_task_for_inactive_pipeline(msg, &pipeline_id);
@@ -183,6 +189,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
     /// Take a message from the front of the queue, without waiting if empty.
     pub fn recv(&self) -> Result<T, ()> {
+        self.take_tasks(T::wake_up_msg());
         self.msg_queue.borrow_mut().pop_front().ok_or(())
     }
 

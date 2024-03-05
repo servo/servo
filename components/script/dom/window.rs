@@ -5,14 +5,14 @@
 use std::borrow::{Cow, ToOwned};
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::io::{stderr, stdout, Write};
 use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use std::{cmp, env};
+use std::{cmp, env, mem};
 
 use app_units::Au;
 use backtrace::Backtrace;
@@ -222,7 +222,7 @@ pub struct Window {
 
     /// Pending resize event, if any.
     #[no_trace]
-    resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
+    resize_event: DomRefCell<VecDeque<(WindowSizeData, WindowSizeType)>>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -2328,14 +2328,14 @@ impl Window {
             .set(self.pending_reflow_count.get() + 1);
     }
 
-    pub fn set_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
-        self.resize_event.set(Some((event, event_type)));
+    pub fn add_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
+        self.resize_event
+            .borrow_mut()
+            .push_back((event, event_type));
     }
 
-    pub fn steal_resize_event(&self) -> Option<(WindowSizeData, WindowSizeType)> {
-        let event = self.resize_event.get();
-        self.resize_event.set(None);
-        event
+    pub fn steal_resize_events(&self) -> VecDeque<(WindowSizeData, WindowSizeType)> {
+        mem::take(&mut self.resize_event.borrow_mut())
     }
 
     pub fn set_page_clip_rect_with_new_viewport(&self, viewport: UntypedRect<f32>) -> bool {
@@ -2459,7 +2459,6 @@ impl Window {
             );
             event.upcast::<Event>().fire(mql.upcast::<EventTarget>());
         }
-        self.Document().react_to_environment_changes();
     }
 
     /// Set whether to use less resources by running timers at a heavily limited rate.

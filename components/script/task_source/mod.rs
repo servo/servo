@@ -11,6 +11,7 @@ pub mod networking;
 pub mod performance_timeline;
 pub mod port_message;
 pub mod remote_event;
+pub mod rendering;
 pub mod timer;
 pub mod user_interaction;
 pub mod websocket;
@@ -36,6 +37,8 @@ pub enum TaskSourceName {
     PortMessage,
     UserInteraction,
     RemoteEvent,
+    /// <https://html.spec.whatwg.org/multipage/#rendering-task-source>
+    Rendering,
     MediaElement,
     Websocket,
     Timer,

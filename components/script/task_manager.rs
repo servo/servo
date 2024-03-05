@@ -17,6 +17,7 @@ use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
 use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
+use crate::task_source::rendering::RenderingTaskSource;
 use crate::task_source::timer::TimerTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
@@ -59,6 +60,8 @@ pub struct TaskManager {
     #[ignore_malloc_size_of = "task sources are hard"]
     remote_event_task_source: RemoteEventTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
+    rendering_task_source: RenderingTaskSource,
+    #[ignore_malloc_size_of = "task sources are hard"]
     timer_task_source: TimerTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     websocket_task_source: WebsocketTaskSource,
@@ -77,6 +80,7 @@ impl TaskManager {
         port_message_queue: PortMessageQueue,
         user_interaction_task_source: UserInteractionTaskSource,
         remote_event_task_source: RemoteEventTaskSource,
+        rendering_task_source: RenderingTaskSource,
         timer_task_source: TimerTaskSource,
         websocket_task_source: WebsocketTaskSource,
     ) -> Self {
@@ -91,6 +95,7 @@ impl TaskManager {
             port_message_queue,
             user_interaction_task_source,
             remote_event_task_source,
+            rendering_task_source,
             timer_task_source,
             websocket_task_source,
             task_cancellers: Default::default(),
@@ -175,6 +180,14 @@ impl TaskManager {
         remote_event_task_source,
         RemoteEventTaskSource,
         RemoteEvent
+    );
+
+    task_source_functions!(
+        self,
+        rendering_task_source_with_canceller,
+        rendering_task_source,
+        RenderingTaskSource,
+        Rendering
     );
 
     task_source_functions!(
