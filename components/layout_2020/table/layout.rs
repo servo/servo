@@ -126,46 +126,16 @@ impl<'a> TableLayout<'a> {
         }
     }
 
-    /// Do the preparatory steps to table layout, measuring cells and distributing sizes
-    /// to all columns and rows.
-    fn compute_measures(
-        &mut self,
-        layout_context: &LayoutContext,
-        positioning_context: &mut PositioningContext,
-        containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
-    ) {
-        let writing_mode = containing_block_for_children.style.writing_mode;
-        self.compute_track_constrainedness_and_has_originating_cells(writing_mode);
-        self.compute_cell_measures(layout_context, containing_block_for_children);
-        self.compute_column_measures(writing_mode);
-        self.compute_table_width(containing_block_for_children, containing_block_for_table);
-        self.distributed_column_widths = self.distribute_width_to_columns();
-
-        self.layout_cells_in_row(
-            layout_context,
-            containing_block_for_children,
-            positioning_context,
-        );
-        let first_layout_row_heights = self.do_first_row_layout(writing_mode);
-        self.compute_table_height_and_final_row_heights(
-            first_layout_row_heights,
-            containing_block_for_children,
-            containing_block_for_table,
-        );
-    }
-
     /// This is an implementation of *Computing Cell Measures* from
     /// <https://drafts.csswg.org/css-tables/#computing-cell-measures>.
     pub(crate) fn compute_cell_measures(
         &mut self,
         layout_context: &LayoutContext,
-        containing_block_for_table: &ContainingBlock,
+        writing_mode: WritingMode,
     ) {
         let row_measures = vec![LogicalVec2::zero(); self.table.size.width];
         self.cell_measures = vec![row_measures; self.table.size.height];
 
-        let writing_mode = containing_block_for_table.style.writing_mode;
         for row_index in 0..self.table.size.height {
             for column_index in 0..self.table.size.width {
                 let cell = match self.table.slots[row_index][column_index] {
@@ -634,21 +604,23 @@ impl<'a> TableLayout<'a> {
         (next_span_n, new_content_sizes_for_columns)
     }
 
-    fn compute_table_width(
+    /// Compute the GRIDMIN and GRIDMAX.
+    fn compute_grid_min_max(
         &mut self,
-        containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
-    ) {
+        layout_context: &LayoutContext,
+        writing_mode: WritingMode,
+    ) -> ContentSizes {
+        self.compute_track_constrainedness_and_has_originating_cells(writing_mode);
+        self.compute_cell_measures(layout_context, writing_mode);
+        self.compute_column_measures(writing_mode);
+
         // https://drafts.csswg.org/css-tables/#gridmin:
         // > The row/column-grid width minimum (GRIDMIN) width is the sum of the min-content width of
         // > all the columns plus cell spacing or borders.
         // https://drafts.csswg.org/css-tables/#gridmax:
         // > The row/column-grid width maximum (GRIDMAX) width is the sum of the max-content width of
         // > all the columns plus cell spacing or borders.
-        let ContentSizes {
-            min_content: mut gridmin,
-            max_content: mut gridmax,
-        } = self
+        let mut grid_min_max = self
             .column_measures
             .iter()
             .fold(ContentSizes::zero(), |result, measure| {
@@ -656,7 +628,7 @@ impl<'a> TableLayout<'a> {
             });
 
         // TODO: GRIDMAX should never be smaller than GRIDMIN!
-        gridmax = gridmax.max(gridmin);
+        grid_min_max.max_content = grid_min_max.max_content.max(grid_min_max.min_content);
 
         let border_spacing = self.table.border_spacing();
         let inline_border_spacing = if self.table.size.width > 0 {
@@ -664,9 +636,17 @@ impl<'a> TableLayout<'a> {
         } else {
             Au::zero()
         };
-        gridmin += inline_border_spacing;
-        gridmax += inline_border_spacing;
+        grid_min_max.min_content += inline_border_spacing;
+        grid_min_max.max_content += inline_border_spacing;
+        grid_min_max
+    }
 
+    fn compute_table_width(
+        &mut self,
+        containing_block_for_children: &ContainingBlock,
+        containing_block_for_table: &ContainingBlock,
+        grid_min_max: ContentSizes,
+    ) {
         let style = &self.table.style;
         self.pbm = style.padding_border_margin(containing_block_for_table);
 
@@ -689,15 +669,24 @@ impl<'a> TableLayout<'a> {
             .content_box_size(containing_block_for_table, &self.pbm)
             .inline
         {
-            LengthPercentage(_) => resolved_table_width.max(gridmin),
+            LengthPercentage(_) => resolved_table_width.max(grid_min_max.min_content),
             Auto => {
                 let min_width: Au = style
                     .content_min_box_size(containing_block_for_table, &self.pbm)
                     .inline
                     .auto_is(Length::zero)
                     .into();
-                resolved_table_width.clamp(gridmin, gridmax).max(min_width)
+                resolved_table_width
+                    .clamp(grid_min_max.min_content, grid_min_max.max_content)
+                    .max(min_width)
             },
+        };
+
+        let border_spacing = self.table.border_spacing();
+        let inline_border_spacing = if self.table.size.width > 0 {
+            border_spacing.inline * (self.table.size.width as i32 + 1)
+        } else {
+            Au::zero()
         };
 
         // > The assignable table width is the used width of the table minus the total horizontal
@@ -1404,7 +1393,34 @@ impl<'a> TableLayout<'a> {
 
     /// Lay out the table of this [`TableLayout`] into fragments. This should only be be called
     /// after calling [`TableLayout.compute_measures`].
-    fn layout(mut self, positioning_context: &mut PositioningContext) -> IndependentLayout {
+    fn layout(
+        mut self,
+        layout_context: &LayoutContext,
+        positioning_context: &mut PositioningContext,
+        containing_block_for_children: &ContainingBlock,
+        containing_block_for_table: &ContainingBlock,
+    ) -> IndependentLayout {
+        let writing_mode = containing_block_for_children.style.writing_mode;
+        let grid_min_max = self.compute_grid_min_max(layout_context, writing_mode);
+        self.compute_table_width(
+            containing_block_for_children,
+            containing_block_for_table,
+            grid_min_max,
+        );
+        self.distributed_column_widths = self.distribute_width_to_columns();
+
+        self.layout_cells_in_row(
+            layout_context,
+            containing_block_for_children,
+            positioning_context,
+        );
+        let first_layout_row_heights = self.do_first_row_layout(writing_mode);
+        self.compute_table_height_and_final_row_heights(
+            first_layout_row_heights,
+            containing_block_for_children,
+            containing_block_for_table,
+        );
+
         assert_eq!(self.table.size.height, self.row_sizes.len());
         assert_eq!(self.table.size.width, self.distributed_column_widths.len());
 
@@ -1706,58 +1722,12 @@ impl Table {
         }
     }
 
-    fn inline_content_sizes_for_cell_at(
-        &self,
-        coords: TableSlotCoordinates,
-        layout_context: &LayoutContext,
-        writing_mode: WritingMode,
-    ) -> ContentSizes {
-        let cell = match self.resolve_first_cell(coords) {
-            Some(cell) => cell,
-            None => return ContentSizes::zero(),
-        };
-
-        let sizes = cell.inline_content_sizes(layout_context, writing_mode);
-        sizes.map(|size| size.scale_by(1.0 / cell.colspan as f32))
-    }
-
-    pub(crate) fn compute_inline_content_sizes(
-        &self,
-        layout_context: &LayoutContext,
-        writing_mode: WritingMode,
-    ) -> (ContentSizes, Vec<Vec<ContentSizes>>) {
-        let mut total_size = ContentSizes::zero();
-        let mut inline_content_sizes = Vec::new();
-        for column_index in 0..self.size.width {
-            let mut row_inline_content_sizes = Vec::new();
-            let mut max_content_sizes_in_column = ContentSizes::zero();
-
-            for row_index in 0..self.size.width {
-                // TODO: Take into account padding and border here.
-                let coords = TableSlotCoordinates::new(column_index, row_index);
-
-                let content_sizes =
-                    self.inline_content_sizes_for_cell_at(coords, layout_context, writing_mode);
-                max_content_sizes_in_column.max_assign(content_sizes);
-                row_inline_content_sizes.push(content_sizes);
-            }
-
-            inline_content_sizes.push(row_inline_content_sizes);
-            total_size += max_content_sizes_in_column;
-        }
-        let gutters = self.border_spacing().inline * (self.size.width as i32 + 1);
-        total_size.min_content += gutters;
-        total_size.max_content += gutters;
-        (total_size, inline_content_sizes)
-    }
-
     pub(crate) fn inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
         writing_mode: WritingMode,
     ) -> ContentSizes {
-        self.compute_inline_content_sizes(layout_context, writing_mode)
-            .0
+        TableLayout::new(self).compute_grid_min_max(layout_context, writing_mode)
     }
 
     fn get_column_measure_for_column_at_index(
@@ -1829,43 +1799,16 @@ impl Table {
         containing_block_for_children: &ContainingBlock,
         containing_block_for_table: &ContainingBlock,
     ) -> IndependentLayout {
-        let mut table_layout = TableLayout::new(self);
-        table_layout.compute_measures(
+        TableLayout::new(self).layout(
             layout_context,
             positioning_context,
             containing_block_for_children,
             containing_block_for_table,
-        );
-        table_layout.layout(positioning_context)
+        )
     }
 }
 
 impl TableSlotCell {
-    pub(crate) fn inline_content_sizes(
-        &self,
-        layout_context: &LayoutContext,
-        writing_mode: WritingMode,
-    ) -> ContentSizes {
-        let border = self.style.border_width(writing_mode);
-        let padding = self.style.padding(writing_mode);
-
-        // For padding, a cyclic percentage is resolved against zero for determining intrinsic size
-        // contributions.
-        // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
-        let zero = Length::zero();
-        let border_padding_sum = border.inline_sum() +
-            padding.inline_start.resolve(zero) +
-            padding.inline_end.resolve(zero);
-
-        let mut sizes = self
-            .contents
-            .contents
-            .inline_content_sizes(layout_context, writing_mode);
-        sizes.min_content += border_padding_sum.into();
-        sizes.max_content += border_padding_sum.into();
-        sizes
-    }
-
     fn effective_vertical_align(&self) -> VerticalAlignKeyword {
         match self.style.clone_vertical_align() {
             VerticalAlign::Keyword(VerticalAlignKeyword::Top) => VerticalAlignKeyword::Top,
