@@ -4,8 +4,8 @@
 
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
+use std::mem;
 use std::sync::{Arc, Mutex};
-use std::{mem, thread};
 
 use embedder_traits::resources::{self, Resource};
 use imsz::imsz_from_reader;
@@ -24,6 +24,8 @@ use pixels::PixelFormat;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use webrender_api::units::DeviceIntSize;
 use webrender_api::{ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat};
+
+use crate::resource_thread::CoreResourceThreadPool;
 
 ///
 /// TODO(gw): Remaining work on image cache:
@@ -415,6 +417,9 @@ impl ImageCacheStore {
 
 pub struct ImageCacheImpl {
     store: Arc<Mutex<ImageCacheStore>>,
+
+    // Thread pool for image decoding
+    thread_pool: CoreResourceThreadPool,
 }
 
 impl ImageCache for ImageCacheImpl {
@@ -431,6 +436,7 @@ impl ImageCache for ImageCacheImpl {
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 webrender_api: webrender_api,
             })),
+            thread_pool: CoreResourceThreadPool::new(16),
         }
     }
 
@@ -634,7 +640,7 @@ impl ImageCache for ImageCacheImpl {
                         };
 
                         let local_store = self.store.clone();
-                        thread::spawn(move || {
+                        self.thread_pool.spawn(move || {
                             let msg = decode_bytes_sync(key, &*bytes, cors_status);
                             debug!("Image decoded");
                             local_store.lock().unwrap().handle_decoder(msg);
