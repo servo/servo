@@ -28,7 +28,7 @@ pub struct GlyphEntry {
 
 impl GlyphEntry {
     fn new(value: u32) -> GlyphEntry {
-        GlyphEntry { value: value }
+        GlyphEntry { value }
     }
 
     fn initial() -> GlyphEntry {
@@ -157,9 +157,9 @@ struct DetailedGlyph {
 impl DetailedGlyph {
     fn new(id: GlyphId, advance: Au, offset: Point2D<Au>) -> DetailedGlyph {
         DetailedGlyph {
-            id: id,
-            advance: advance,
-            offset: offset,
+            id,
+            advance,
+            offset,
         }
     }
 }
@@ -210,7 +210,7 @@ impl<'a> DetailedGlyphStore {
 
     fn add_detailed_glyphs_for_entry(&mut self, entry_offset: ByteIndex, glyphs: &[DetailedGlyph]) {
         let entry = DetailedGlyphRecord {
-            entry_offset: entry_offset,
+            entry_offset,
             detail_offset: self.detail_buffer.len(),
         };
 
@@ -245,7 +245,7 @@ impl<'a> DetailedGlyphStore {
         assert!(self.lookup_is_sorted);
 
         let key = DetailedGlyphRecord {
-            entry_offset: entry_offset,
+            entry_offset,
             detail_offset: 0, // unused
         };
 
@@ -268,7 +268,7 @@ impl<'a> DetailedGlyphStore {
         assert!(self.lookup_is_sorted);
 
         let key = DetailedGlyphRecord {
-            entry_offset: entry_offset,
+            entry_offset,
             detail_offset: 0, // unused
         };
 
@@ -329,11 +329,11 @@ impl GlyphData {
         ligature_start: bool,
     ) -> GlyphData {
         GlyphData {
-            id: id,
-            advance: advance,
+            id,
+            advance,
             offset: offset.unwrap_or(Point2D::zero()),
-            cluster_start: cluster_start,
-            ligature_start: ligature_start,
+            cluster_start,
+            ligature_start,
         }
     }
 }
@@ -455,8 +455,8 @@ impl<'a> GlyphStore {
             total_advance: Au(0),
             total_word_separators: 0,
             has_detailed_glyphs: false,
-            is_whitespace: is_whitespace,
-            is_rtl: is_rtl,
+            is_whitespace,
+            is_rtl,
         }
     }
 

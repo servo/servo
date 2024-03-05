@@ -210,6 +210,10 @@ impl RequestBody {
     pub fn len(&self) -> Option<usize> {
         self.total_bytes
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.total_bytes == Some(0)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -567,19 +571,19 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#subresource-request>
     pub fn is_subresource_request(&self) -> bool {
-        match self.destination {
+        matches!(
+            self.destination,
             Destination::Audio |
-            Destination::Font |
-            Destination::Image |
-            Destination::Manifest |
-            Destination::Script |
-            Destination::Style |
-            Destination::Track |
-            Destination::Video |
-            Destination::Xslt |
-            Destination::None => true,
-            _ => false,
-        }
+                Destination::Font |
+                Destination::Image |
+                Destination::Manifest |
+                Destination::Script |
+                Destination::Style |
+                Destination::Track |
+                Destination::Video |
+                Destination::Xslt |
+                Destination::None
+        )
     }
 
     pub fn timing_type(&self) -> ResourceTimingType {
@@ -605,25 +609,25 @@ impl Referrer {
 // TODO: values in the control-code range are being quietly stripped out by
 // HeaderMap and never reach this function to be loudly rejected!
 fn is_cors_unsafe_request_header_byte(value: &u8) -> bool {
-    match value {
-        0x00..=0x08 |
-        0x10..=0x19 |
-        0x22 |
-        0x28 |
-        0x29 |
-        0x3A |
-        0x3C |
-        0x3E |
-        0x3F |
-        0x40 |
-        0x5B |
-        0x5C |
-        0x5D |
-        0x7B |
-        0x7D |
-        0x7F => true,
-        _ => false,
-    }
+    matches!(
+        value,
+        0x00..=0x08
+        | 0x10..=0x19
+        | 0x22
+        | 0x28
+        | 0x29
+        | 0x3A
+        | 0x3C
+        | 0x3E
+        | 0x3F
+        | 0x40
+        | 0x5B
+        | 0x5C
+        | 0x5D
+        | 0x7B
+        | 0x7D
+        | 0x7F
+    )
 }
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-request-header
@@ -635,18 +639,20 @@ fn is_cors_safelisted_request_accept(value: &[u8]) -> bool {
 // https://fetch.spec.whatwg.org/#cors-safelisted-request-header
 // subclauses `accept-language`, `content-language`
 fn is_cors_safelisted_language(value: &[u8]) -> bool {
-    value.iter().all(|&x| match x {
-        0x30..=0x39 |
-        0x41..=0x5A |
-        0x61..=0x7A |
-        0x20 |
-        0x2A |
-        0x2C |
-        0x2D |
-        0x2E |
-        0x3B |
-        0x3D => true,
-        _ => false,
+    value.iter().all(|&x| {
+        matches!(
+            x,
+            0x30..=0x39
+            | 0x41..=0x5A
+            | 0x61..=0x7A
+            | 0x20
+            | 0x2A
+            | 0x2C
+            | 0x2D
+            | 0x2E
+            | 0x3B
+            | 0x3D
+        )
     })
 }
 
@@ -697,10 +703,7 @@ pub fn is_cors_safelisted_request_header<N: AsRef<str>, V: AsRef<[u8]>>(
 
 /// <https://fetch.spec.whatwg.org/#cors-safelisted-method>
 pub fn is_cors_safelisted_method(m: &Method) -> bool {
-    match *m {
-        Method::GET | Method::HEAD | Method::POST => true,
-        _ => false,
-    }
+    matches!(*m, Method::GET | Method::HEAD | Method::POST)
 }
 
 /// <https://fetch.spec.whatwg.org/#cors-non-wildcard-request-header-name>

@@ -197,7 +197,7 @@ impl<'a> TextRun {
                 font_key: font.font_key,
                 pt_size: font.descriptor.pt_size,
                 glyphs: Arc::new(glyphs),
-                bidi_level: bidi_level,
+                bidi_level,
                 extra_word_spacing: Au(0),
             },
             break_at_zero,
@@ -396,7 +396,7 @@ impl<'a> TextRun {
         };
         NaturalWordSliceIterator {
             glyphs: &self.glyphs[..],
-            index: index,
+            index,
             range: *range,
             reverse: false,
         }
@@ -424,9 +424,9 @@ impl<'a> TextRun {
         };
         NaturalWordSliceIterator {
             glyphs: &self.glyphs[..],
-            index: index,
+            index,
             range: *range,
-            reverse: reverse,
+            reverse,
         }
     }
 
@@ -445,7 +445,7 @@ impl<'a> TextRun {
         CharacterSliceIterator {
             text: &self.text,
             glyph_run: first_glyph_run,
-            glyph_run_iter: glyph_run_iter,
+            glyph_run_iter,
             range: *range,
         }
     }

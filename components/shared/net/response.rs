@@ -189,10 +189,7 @@ impl Response {
     }
 
     pub fn is_network_error(&self) -> bool {
-        match self.response_type {
-            ResponseType::Error(..) => true,
-            _ => false,
-        }
+        matches!(self.response_type, ResponseType::Error(..))
     }
 
     pub fn get_network_error(&self) -> Option<&NetworkError> {
@@ -258,10 +255,7 @@ impl Response {
 
             ResponseType::Basic => {
                 let headers = old_headers.iter().filter(|(name, _)| {
-                    match &*name.as_str().to_ascii_lowercase() {
-                        "set-cookie" | "set-cookie2" => false,
-                        _ => true
-                    }
+                    !matches!(&*name.as_str().to_ascii_lowercase(), "set-cookie" | "set-cookie2")
                 }).map(|(n, v)| (n.clone(), v.clone())).collect();
                 response.headers = headers;
             },

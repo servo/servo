@@ -84,11 +84,9 @@ impl App {
 
         // Handle browser state.
         let webviews = WebViewManager::new(window.clone());
-        let initial_url = get_default_url(
-            url.as_deref(),
-            env::current_dir().unwrap(),
-            |path| fs::metadata(path).is_ok(),
-        );
+        let initial_url = get_default_url(url.as_deref(), env::current_dir().unwrap(), |path| {
+            fs::metadata(path).is_ok()
+        });
 
         let mut app = App {
             event_queue: RefCell::new(vec![]),

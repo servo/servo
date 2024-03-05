@@ -4,7 +4,6 @@
 
 use std::ptr;
 
-
 use msg::constellation_msg::{HangProfile, HangProfileSymbol};
 
 const MAX_NATIVE_FRAMES: usize = 1024;

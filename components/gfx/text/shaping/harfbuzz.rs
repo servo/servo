@@ -59,8 +59,8 @@ impl ShapedGlyphData {
 
             ShapedGlyphData {
                 count: glyph_count as usize,
-                glyph_infos: glyph_infos,
-                pos_infos: pos_infos,
+                glyph_infos,
+                pos_infos,
             }
         }
     }
@@ -110,7 +110,7 @@ impl ShapedGlyphData {
             ShapedGlyphEntry {
                 codepoint: (*glyph_info_i).codepoint as GlyphId,
                 advance: x_advance,
-                offset: offset,
+                offset,
             }
         }
     }
@@ -165,9 +165,9 @@ impl Shaper {
             );
 
             Shaper {
-                hb_face: hb_face,
-                hb_font: hb_font,
-                font: font,
+                hb_face,
+                hb_font,
+                font,
             }
         }
     }

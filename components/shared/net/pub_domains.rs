@@ -39,10 +39,10 @@ impl<'a> FromIterator<&'a str> for PubDomainRules {
     {
         let mut result = PubDomainRules::new();
         for item in iter {
-            if item.starts_with('!') {
-                result.exceptions.insert(String::from(&item[1..]));
-            } else if item.starts_with("*.") {
-                result.wildcards.insert(String::from(&item[2..]));
+            if let Some(stripped) = item.strip_prefix('!') {
+                result.exceptions.insert(String::from(stripped));
+            } else if let Some(stripped) = item.strip_prefix("*.") {
+                result.wildcards.insert(String::from(stripped));
             } else {
                 result.rules.insert(String::from(item));
             }
@@ -81,14 +81,12 @@ impl PubDomainRules {
             let next_suffix = &domain[index + 1..];
             if self.exceptions.contains(suffix) {
                 return (next_suffix, suffix);
-            } else if self.wildcards.contains(next_suffix) {
-                return (suffix, prev_suffix);
-            } else if self.rules.contains(suffix) {
-                return (suffix, prev_suffix);
-            } else {
-                prev_suffix = suffix;
-                suffix = next_suffix;
             }
+            if self.wildcards.contains(next_suffix) || self.rules.contains(suffix) {
+                return (suffix, prev_suffix);
+            }
+            prev_suffix = suffix;
+            suffix = next_suffix;
         }
         (suffix, prev_suffix)
     }

@@ -6,8 +6,7 @@
 
 use std::cell::UnsafeCell;
 use std::sync::atomic::{AtomicPtr, Ordering};
-use std::{io, mem, process, ptr, thread};
-
+use std::{cmp, io, mem, process, ptr, thread};
 
 use nix::sys::signal::{sigaction, SaFlags, SigAction, SigHandler, SigSet, Signal};
 use unwind_sys::{
@@ -181,12 +180,10 @@ fn step(cursor: *mut unw_cursor_t) -> Result<bool, i32> {
         }
 
         let ret = unw_step(cursor);
-        if ret > 0 {
-            Ok(true)
-        } else if ret == 0 {
-            Ok(false)
-        } else {
-            Err(ret)
+        match ret.cmp(&0) {
+            cmp::Ordering::Less => Err(ret),
+            cmp::Ordering::Greater => Ok(true),
+            cmp::Ordering::Equal => Ok(false),
         }
     }
 }

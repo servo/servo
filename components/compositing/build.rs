@@ -42,7 +42,7 @@ fn main() {
                     let revision = if parsed.len() > 1 { parsed[1] } else { source };
 
                     let mut revision_module_file = File::create(revision_file_path).unwrap();
-                    write!(&mut revision_module_file, "{}", format!("\"{}\"", revision)).unwrap();
+                    write!(&mut revision_module_file, "\"{}\"", revision).unwrap();
                 },
                 _ => panic!("Cannot find package definitions in lockfile"),
             }

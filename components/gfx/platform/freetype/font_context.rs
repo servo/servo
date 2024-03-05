@@ -134,3 +134,9 @@ impl FontContextHandle {
         }
     }
 }
+
+impl Default for FontContextHandle {
+    fn default() -> Self {
+        Self::new()
+    }
+}

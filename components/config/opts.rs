@@ -7,7 +7,7 @@
 
 use std::default::Default;
 use std::fs::{self, File};
-use std::io::{self, Read, Write};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{RwLock, RwLockReadGuard};
@@ -385,7 +385,7 @@ pub enum OutputOptions {
 }
 
 fn args_fail(msg: &str) -> ! {
-    writeln!(io::stderr(), "{}", msg).unwrap();
+    eprintln!("{}", msg);
     process::exit(1)
 }
 
@@ -793,7 +793,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         set_pref!(layout.threads, layout_threads as i64);
     }
 
-    return ArgumentParsingResult::ChromeProcess(opt_match);
+    ArgumentParsingResult::ChromeProcess(opt_match)
 }
 
 pub enum ArgumentParsingResult {

@@ -13,9 +13,7 @@ pub use crate::platform::*;
 mod platform {
     use std::os::raw::c_void;
 
-    use jemallocator;
-
-    pub use self::jemallocator::Jemalloc as Allocator;
+    pub use jemallocator::Jemalloc as Allocator;
 
     /// Get the size of a heap block.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {

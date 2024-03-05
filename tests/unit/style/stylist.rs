@@ -74,7 +74,8 @@ fn parse_selectors(selectors: &[&str]) -> Vec<Selector<SelectorImpl>> {
             SelectorParser::parse_author_origin_no_namespace(x, &dummy_url_data)
                 .unwrap()
                 .0
-                .into_iter().next()
+                .into_iter()
+                .next()
                 .unwrap()
         })
         .collect()

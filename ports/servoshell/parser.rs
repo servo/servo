@@ -28,16 +28,14 @@ pub fn get_default_url(
     // If the url is not provided, we fallback to the homepage in prefs,
     // or a blank page in case the homepage is not set either.
     let mut new_url = None;
-    let cmdline_url = url_opt
-        .map(|s| s.to_string())
-        .and_then(|url_string| {
-            parse_url_or_filename(cwd.as_ref(), &url_string)
-                .map_err(|error| {
-                    warn!("URL parsing failed ({:?}).", error);
-                    error
-                })
-                .ok()
-        });
+    let cmdline_url = url_opt.map(|s| s.to_string()).and_then(|url_string| {
+        parse_url_or_filename(cwd.as_ref(), &url_string)
+            .map_err(|error| {
+                warn!("URL parsing failed ({:?}).", error);
+                error
+            })
+            .ok()
+    });
 
     if let Some(url) = cmdline_url.clone() {
         // Check if the URL path corresponds to a file
