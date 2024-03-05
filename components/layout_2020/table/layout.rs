@@ -144,36 +144,38 @@ impl<'a> TableLayout<'a> {
                 };
 
                 let (size, min_size, max_size) = get_sizes_from_style(&cell.style, writing_mode);
-                let inline_content_sizes = cell
+                let mut inline_content_sizes = cell
                     .contents
                     .contents
                     .inline_content_sizes(layout_context, writing_mode);
+
+                // TODO: the max-content size should never be smaller than the min-content size!
+                inline_content_sizes.max_content = inline_content_sizes
+                    .max_content
+                    .max(inline_content_sizes.min_content);
+
                 let percentage_contribution =
                     get_size_percentage_contribution_from_style(&cell.style, writing_mode);
 
-                // > The outer min-content width of a table-cell is max(min-width, min-content width)
-                // > adjusted by the cell intrinsic offsets.
-                let mut outer_min_content_width =
-                    inline_content_sizes.min_content.max(min_size.inline);
-                let mut outer_max_content_width = if !self.columns[column_index].constrained {
-                    // > The outer max-content width of a table-cell in a non-constrained column is
-                    // > max(min-width, width, min-content width, min(max-width, max-content width))
-                    // > adjusted by the cell intrinsic offsets.
-                    min_size
-                        .inline
+                // These formulas differ from the spec, but seem to match Gecko and Blink.
+                let mut outer_min_content_width = inline_content_sizes
+                    .min_content
+                    .min(max_size.inline)
+                    .max(min_size.inline);
+                let mut outer_max_content_width = if self.columns[column_index].constrained {
+                    inline_content_sizes
+                        .min_content
                         .max(size.inline)
-                        .max(inline_content_sizes.min_content)
-                        .max(max_size.inline.min(inline_content_sizes.max_content))
+                        .min(max_size.inline)
+                        .max(min_size.inline)
                 } else {
-                    // > The outer max-content width of a table-cell in a constrained column is
-                    // > max(min-width, width, min-content width, min(max-width, width)) adjusted by the
-                    // > cell intrinsic offsets.
-                    min_size
-                        .inline
+                    inline_content_sizes
+                        .max_content
                         .max(size.inline)
-                        .max(inline_content_sizes.min_content)
-                        .max(max_size.inline.min(size.inline))
+                        .min(max_size.inline)
+                        .max(min_size.inline)
                 };
+                assert!(outer_min_content_width <= outer_max_content_width);
 
                 let padding = cell
                     .style
@@ -286,8 +288,8 @@ impl<'a> TableLayout<'a> {
                         .box_size(writing_mode)
                         .inline
                         .non_auto()
-                        .map(|length_percentage| length_percentage.to_length().is_some())
-                        .unwrap_or(false),
+                        .and_then(|length_percentage| length_percentage.to_length())
+                        .is_some(),
                     _ => false,
                 };
 
