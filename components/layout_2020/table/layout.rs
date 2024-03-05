@@ -630,12 +630,7 @@ impl<'a> TableLayout<'a> {
         // TODO: GRIDMAX should never be smaller than GRIDMIN!
         grid_min_max.max_content = grid_min_max.max_content.max(grid_min_max.min_content);
 
-        let border_spacing = self.table.border_spacing();
-        let inline_border_spacing = if self.table.size.width > 0 {
-            border_spacing.inline * (self.table.size.width as i32 + 1)
-        } else {
-            Au::zero()
-        };
+        let inline_border_spacing = self.table.total_border_spacing().inline;
         grid_min_max.min_content += inline_border_spacing;
         grid_min_max.max_content += inline_border_spacing;
         grid_min_max
@@ -682,21 +677,15 @@ impl<'a> TableLayout<'a> {
             },
         };
 
-        let border_spacing = self.table.border_spacing();
-        let inline_border_spacing = if self.table.size.width > 0 {
-            border_spacing.inline * (self.table.size.width as i32 + 1)
-        } else {
-            Au::zero()
-        };
-
         // > The assignable table width is the used width of the table minus the total horizontal
         // > border spacing (if any). This is the width that we will be able to allocate to the
         // > columns.
-        self.assignable_width = used_width_of_table - inline_border_spacing;
+        self.assignable_width = used_width_of_table - self.table.total_border_spacing().inline;
 
         // This is the amount that we will use to resolve percentages in the padding of cells.
         // It matches what Gecko and Blink do, though they disagree when there is a big caption.
-        self.basis_for_cell_padding_percentage = used_width_of_table - border_spacing.inline * 2;
+        self.basis_for_cell_padding_percentage =
+            used_width_of_table - self.table.border_spacing().inline * 2;
     }
 
     /// Distribute width to columns, performing step 2.4 of table layout from
@@ -1362,11 +1351,7 @@ impl<'a> TableLayout<'a> {
         }
         .auto_is(Au::zero);
 
-        let block_border_spacing = if self.table.size.height > 0 {
-            self.table.border_spacing().block * (self.table.size.height as i32 + 1)
-        } else {
-            Au::zero()
-        };
+        let block_border_spacing = self.table.total_border_spacing().block;
         let table_height_from_rows = row_sizes.iter().sum::<Au>() + block_border_spacing;
         self.final_table_height = table_height_from_rows.max(table_height_from_style);
 
@@ -1719,6 +1704,22 @@ impl Table {
                 inline: border_spacing.horizontal(),
                 block: border_spacing.vertical(),
             }
+        }
+    }
+
+    fn total_border_spacing(&self) -> LogicalVec2<Au> {
+        let border_spacing = self.border_spacing();
+        LogicalVec2 {
+            inline: if self.size.width > 0 {
+                border_spacing.inline * (self.size.width as i32 + 1)
+            } else {
+                Au::zero()
+            },
+            block: if self.size.height > 0 {
+                border_spacing.block * (self.size.height as i32 + 1)
+            } else {
+                Au::zero()
+            },
         }
     }
 
