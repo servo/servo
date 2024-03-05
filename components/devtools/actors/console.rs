@@ -133,7 +133,7 @@ impl ConsoleActor {
         }
     }
 
-    fn streams_mut<'a>(&self, registry: &'a ActorRegistry, cb: impl Fn(&mut TcpStream)) {
+    fn streams_mut(&self, registry: &ActorRegistry, cb: impl Fn(&mut TcpStream)) {
         match &self.root {
             Root::BrowsingContext(bc) => registry
                 .find::<BrowsingContextActor>(bc)
@@ -221,7 +221,7 @@ impl ConsoleActor {
             ActorValue { class, uuid } => {
                 //TODO: make initial ActorValue message include these properties?
                 let mut m = Map::new();
-                let actor = ObjectActor::new(registry, uuid);
+                let actor = ObjectActor::register(registry, uuid);
 
                 m.insert("type".to_owned(), Value::String("object".to_owned()));
                 m.insert("class".to_owned(), Value::String(class));
@@ -236,8 +236,8 @@ impl ConsoleActor {
         //TODO: catch and return exception values from JS evaluation
         let reply = EvaluateJSReply {
             from: self.name(),
-            input: input,
-            result: result,
+            input,
+            result,
             timestamp: 0,
             exception: Value::Null,
             exceptionMessage: Value::Null,
@@ -255,7 +255,7 @@ impl ConsoleActor {
         self.cached_events
             .borrow_mut()
             .entry(id.clone())
-            .or_insert(vec![])
+            .or_default()
             .push(CachedConsoleMessage::PageError(page_error.clone()));
         if id == self.current_unique_id(registry) {
             let msg = PageErrorMsg {
@@ -287,7 +287,7 @@ impl ConsoleActor {
         self.cached_events
             .borrow_mut()
             .entry(id.clone())
-            .or_insert(vec![])
+            .or_default()
             .push(CachedConsoleMessage::ConsoleAPI(ConsoleAPI {
                 type_: "ConsoleAPI".to_owned(),
                 level: level.clone(),
@@ -306,7 +306,7 @@ impl ConsoleActor {
                 from: self.name(),
                 type_: "consoleAPICall".to_owned(),
                 message: ConsoleMsg {
-                    level: level,
+                    level,
                     timeStamp: SystemTime::now()
                         .duration_since(UNIX_EPOCH)
                         .unwrap_or_default()
@@ -351,7 +351,7 @@ impl Actor for ConsoleActor {
                     .unwrap()
                     .as_array()
                     .unwrap()
-                    .into_iter()
+                    .iter()
                     .map(|json_type| json_type.as_str().unwrap());
                 let mut message_types = CachedConsoleMessageTypes::empty();
                 for str_type in str_types {
@@ -393,7 +393,7 @@ impl Actor for ConsoleActor {
 
                 let msg = GetCachedMessagesReply {
                     from: self.name(),
-                    messages: messages,
+                    messages,
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -445,7 +445,7 @@ impl Actor for ConsoleActor {
             },
 
             "evaluateJS" => {
-                let msg = self.evaluateJS(&registry, &msg);
+                let msg = self.evaluateJS(registry, msg);
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
@@ -468,14 +468,14 @@ impl Actor for ConsoleActor {
                     return Ok(ActorMessageStatus::Processed);
                 }
 
-                let reply = self.evaluateJS(&registry, &msg).unwrap();
+                let reply = self.evaluateJS(registry, msg).unwrap();
                 let msg = EvaluateJSEvent {
                     from: self.name(),
                     r#type: "evaluationResult".to_owned(),
                     input: reply.input,
                     result: reply.result,
                     timestamp: reply.timestamp,
-                    resultID: resultID,
+                    resultID,
                     exception: reply.exception,
                     exceptionMessage: reply.exceptionMessage,
                     helperResult: reply.helperResult,

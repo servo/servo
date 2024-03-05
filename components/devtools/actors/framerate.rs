@@ -51,7 +51,7 @@ impl FramerateActor {
         let mut actor = FramerateActor {
             name: actor_name.clone(),
             pipeline: pipeline_id,
-            script_sender: script_sender,
+            script_sender,
             is_recording: false,
             ticks: Vec::new(),
         };
@@ -71,7 +71,7 @@ impl FramerateActor {
     }
 
     pub fn take_pending_ticks(&mut self) -> Vec<HighResolutionStamp> {
-        mem::replace(&mut self.ticks, Vec::new())
+        mem::take(&mut self.ticks)
     }
 
     fn start_recording(&mut self) {

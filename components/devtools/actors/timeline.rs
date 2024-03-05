@@ -107,7 +107,7 @@ pub struct HighResolutionStamp(f64);
 impl HighResolutionStamp {
     pub fn new(start_stamp: PreciseTime, time: PreciseTime) -> HighResolutionStamp {
         let duration = start_stamp.to(time).as_micros();
-        HighResolutionStamp(duration as f64 / 1000 as f64)
+        HighResolutionStamp(duration as f64 / 1000_f64)
     }
 
     pub fn wrap(time: f64) -> HighResolutionStamp {
@@ -132,10 +132,10 @@ impl TimelineActor {
         let marker_types = vec![TimelineMarkerType::Reflow, TimelineMarkerType::DOMEvent];
 
         TimelineActor {
-            name: name,
-            pipeline: pipeline,
-            marker_types: marker_types,
-            script_sender: script_sender,
+            name,
+            pipeline,
+            marker_types,
+            script_sender,
             is_recording: Arc::new(Mutex::new(false)),
             stream: RefCell::new(None),
 
@@ -217,7 +217,7 @@ impl Actor for TimelineActor {
                     if let Some(true) = with_ticks.as_bool() {
                         let framerate_actor = Some(FramerateActor::create(
                             registry,
-                            self.pipeline.clone(),
+                            self.pipeline,
                             self.script_sender.clone(),
                         ));
                         *self.framerate_actor.borrow_mut() = framerate_actor;
@@ -274,7 +274,7 @@ impl Actor for TimelineActor {
             "isRecording" => {
                 let msg = IsRecordingReply {
                     from: self.name(),
-                    value: self.is_recording.lock().unwrap().clone(),
+                    value: *self.is_recording.lock().unwrap(),
                 };
 
                 let _ = stream.write_json_packet(&msg);
@@ -297,9 +297,9 @@ impl Emitter {
     ) -> Emitter {
         Emitter {
             from: name,
-            stream: stream,
-            registry: registry,
-            start_stamp: start_stamp,
+            stream,
+            registry,
+            start_stamp,
 
             framerate_actor: framerate_actor_name,
             memory_actor: memory_actor_name,
@@ -320,7 +320,7 @@ impl Emitter {
         let end_time = PreciseTime::now();
         let reply = MarkersEmitterReply {
             type_: "markers".to_owned(),
-            markers: markers,
+            markers,
             from: self.from.clone(),
             endTime: HighResolutionStamp::new(self.start_stamp, end_time),
         };
