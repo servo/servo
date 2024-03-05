@@ -9,8 +9,8 @@ use style::stylesheets::{Namespaces, Origin};
 use style_traits::ParseError;
 use url::Url;
 
-fn parse_selector<'i, 't>(
-    input: &mut Parser<'i, 't>,
+fn parse_selector<'i>(
+    input: &mut Parser<'i, '_>,
 ) -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
     let mut ns = Namespaces::default();
     ns.prefixes

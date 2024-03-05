@@ -36,7 +36,7 @@ impl ThreadId {
         ThreadId(NonZeroUsize::new(number).unwrap())
     }
     pub fn current() -> ThreadId {
-        THREAD_ID.with(|tls| tls.clone())
+        THREAD_ID.with(|tls| *tls)
     }
 }
 
@@ -45,6 +45,12 @@ thread_local! { static THREAD_ID: ThreadId = ThreadId::new() }
 /// A type for atomic storage of thread ids.
 #[derive(Debug)]
 pub struct AtomicOptThreadId(AtomicUsize);
+
+impl Default for AtomicOptThreadId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl AtomicOptThreadId {
     pub fn new() -> AtomicOptThreadId {
@@ -73,6 +79,12 @@ pub struct HandOverHandMutex {
     mutex: Mutex<()>,
     owner: AtomicOptThreadId,
     guard: UnsafeCell<Option<MutexGuard<'static, ()>>>,
+}
+
+impl Default for HandOverHandMutex {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl HandOverHandMutex {
@@ -107,7 +119,7 @@ impl HandOverHandMutex {
         assert_eq!(old_owner, Some(ThreadId::current()));
     }
     #[allow(unsafe_code)]
-    pub fn lock<'a>(&'a self) -> LockResult<()> {
+    pub fn lock(&self) -> LockResult<()> {
         let (guard, result) = match self.mutex.lock() {
             Ok(guard) => (guard, Ok(())),
             Err(err) => (err.into_inner(), Err(PoisonError::new(()))),
@@ -165,7 +177,7 @@ impl<T> ReentrantMutex<T> {
         ReentrantMutex {
             mutex: HandOverHandMutex::new(),
             count: Cell::new(0),
-            data: data,
+            data,
         }
     }
 
@@ -173,7 +185,7 @@ impl<T> ReentrantMutex<T> {
         trace!("{:?} Locking.", ThreadId::current());
         if self.mutex.owner() != Some(ThreadId::current()) {
             trace!("{:?} Becoming owner.", ThreadId::current());
-            if let Err(_) = self.mutex.lock() {
+            if self.mutex.lock().is_err() {
                 trace!("{:?} Poison!", ThreadId::current());
                 return Err(PoisonError::new(self.mk_guard()));
             }

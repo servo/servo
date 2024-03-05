@@ -80,14 +80,20 @@ pub struct PipelineNamespaceInstaller {
     namespace_receiver: IpcReceiver<PipelineNamespaceId>,
 }
 
+impl Default for PipelineNamespaceInstaller {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PipelineNamespaceInstaller {
     pub fn new() -> Self {
         let (namespace_sender, namespace_receiver) =
             ipc::channel().expect("PipelineNamespaceInstaller ipc channel failure");
         PipelineNamespaceInstaller {
             request_sender: None,
-            namespace_sender: namespace_sender,
-            namespace_receiver: namespace_receiver,
+            namespace_sender,
+            namespace_receiver,
         }
     }
 
@@ -209,6 +215,12 @@ namespace_id! {PipelineId, PipelineIndex, "Pipeline"}
 size_of_test!(PipelineId, 8);
 size_of_test!(Option<PipelineId>, 8);
 
+impl Default for PipelineId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PipelineId {
     pub fn new() -> PipelineId {
         PIPELINE_NAMESPACE.with(|tls| {
@@ -245,6 +257,12 @@ namespace_id! {BrowsingContextId, BrowsingContextIndex, "BrowsingContext"}
 
 size_of_test!(BrowsingContextId, 8);
 size_of_test!(Option<BrowsingContextId>, 8);
+
+impl Default for BrowsingContextId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl BrowsingContextId {
     pub fn new() -> BrowsingContextId {
@@ -288,6 +306,12 @@ impl fmt::Display for TopLevelBrowsingContextId {
     }
 }
 
+impl Default for TopLevelBrowsingContextId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TopLevelBrowsingContextId {
     pub fn new() -> TopLevelBrowsingContextId {
         TopLevelBrowsingContextId(BrowsingContextId::new())
@@ -323,6 +347,12 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
 
 namespace_id! {MessagePortId, MessagePortIndex, "MessagePort"}
 
+impl Default for MessagePortId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MessagePortId {
     pub fn new() -> MessagePortId {
         PIPELINE_NAMESPACE.with(|tls| {
@@ -335,6 +365,12 @@ impl MessagePortId {
 }
 
 namespace_id! {MessagePortRouterId, MessagePortRouterIndex, "MessagePortRouter"}
+
+impl Default for MessagePortRouterId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl MessagePortRouterId {
     pub fn new() -> MessagePortRouterId {
@@ -349,6 +385,12 @@ impl MessagePortRouterId {
 
 namespace_id! {BroadcastChannelRouterId, BroadcastChannelRouterIndex, "BroadcastChannelRouter"}
 
+impl Default for BroadcastChannelRouterId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BroadcastChannelRouterId {
     pub fn new() -> BroadcastChannelRouterId {
         PIPELINE_NAMESPACE.with(|tls| {
@@ -362,6 +404,12 @@ impl BroadcastChannelRouterId {
 
 namespace_id! {ServiceWorkerId, ServiceWorkerIndex, "ServiceWorker"}
 
+impl Default for ServiceWorkerId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ServiceWorkerId {
     pub fn new() -> ServiceWorkerId {
         PIPELINE_NAMESPACE.with(|tls| {
@@ -374,6 +422,12 @@ impl ServiceWorkerId {
 }
 
 namespace_id! {ServiceWorkerRegistrationId, ServiceWorkerRegistrationIndex, "ServiceWorkerRegistration"}
+
+impl Default for ServiceWorkerRegistrationId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl ServiceWorkerRegistrationId {
     pub fn new() -> ServiceWorkerRegistrationId {
@@ -389,6 +443,12 @@ impl ServiceWorkerRegistrationId {
 
 namespace_id! {BlobId, BlobIndex, "Blob"}
 
+impl Default for BlobId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BlobId {
     pub fn new() -> BlobId {
         PIPELINE_NAMESPACE.with(|tls| {
@@ -401,6 +461,12 @@ impl BlobId {
 }
 
 namespace_id! {HistoryStateId, HistoryStateIndex, "HistoryState"}
+
+impl Default for HistoryStateId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl HistoryStateId {
     pub fn new() -> HistoryStateId {
@@ -544,7 +610,7 @@ impl fmt::Debug for HangAlert {
                     "\n The following component is experiencing a transient hang: \n {:?}",
                     component_id
                 )?;
-                (annotation.clone(), None)
+                (*annotation, None)
             },
             HangAlert::Permanent(component_id, annotation, profile) => {
                 write!(
@@ -552,7 +618,7 @@ impl fmt::Debug for HangAlert {
                     "\n The following component is experiencing a permanent hang: \n {:?}",
                     component_id
                 )?;
-                (annotation.clone(), profile.clone())
+                (*annotation, profile.clone())
             },
         };
 

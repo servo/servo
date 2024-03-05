@@ -46,6 +46,12 @@ pub struct WebrenderExternalImageRegistry {
     next_image_id: u64,
 }
 
+impl Default for WebrenderExternalImageRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WebrenderExternalImageRegistry {
     pub fn new() -> Self {
         Self {

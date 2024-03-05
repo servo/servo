@@ -31,16 +31,16 @@ fn main() {
     println!("Binding generation completed in {:?}", start.elapsed());
 
     let json = out_dir.join("InterfaceObjectMapData.json");
-    let json: Value = serde_json::from_reader(File::open(&json).unwrap()).unwrap();
+    let json: Value = serde_json::from_reader(File::open(json).unwrap()).unwrap();
     let mut map = phf_codegen::Map::new();
     for (key, value) in json.as_object().unwrap() {
         map.entry(Bytes(key), value.as_str().unwrap());
     }
     let phf = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("InterfaceObjectMapPhf.rs");
-    let mut phf = File::create(&phf).unwrap();
-    write!(
+    let mut phf = File::create(phf).unwrap();
+    writeln!(
         &mut phf,
-        "pub static MAP: phf::Map<&'static [u8], fn(JSContext, HandleObject)> = {};\n",
+        "pub static MAP: phf::Map<&'static [u8], fn(JSContext, HandleObject)> = {};",
         map.build(),
     )
     .unwrap();

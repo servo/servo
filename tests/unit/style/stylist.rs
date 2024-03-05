@@ -35,7 +35,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                         .unwrap();
 
                 let locked = Arc::new(shared_lock.wrap(StyleRule {
-                    selectors: selectors,
+                    selectors,
                     block: Arc::new(shared_lock.wrap(PropertyDeclarationBlock::with_one(
                         PropertyDeclaration::Display(longhands::display::SpecifiedValue::Block),
                         Importance::Normal,
@@ -74,8 +74,7 @@ fn parse_selectors(selectors: &[&str]) -> Vec<Selector<SelectorImpl>> {
             SelectorParser::parse_author_origin_no_namespace(x, &dummy_url_data)
                 .unwrap()
                 .0
-                .into_iter()
-                .nth(0)
+                .into_iter().next()
                 .unwrap()
         })
         .collect()
@@ -130,7 +129,7 @@ fn test_revalidation_selectors() {
         "p:first-child span",
     ])
     .into_iter()
-    .filter(|s| needs_revalidation_for_testing(&s))
+    .filter(needs_revalidation_for_testing)
     .collect::<Vec<_>>();
 
     let reference = parse_selectors(&[

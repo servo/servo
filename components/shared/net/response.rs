@@ -204,7 +204,7 @@ impl Response {
 
     pub fn actual_response(&self) -> &Response {
         if self.return_internal && self.internal_response.is_some() {
-            &**self.internal_response.as_ref().unwrap()
+            self.internal_response.as_ref().unwrap()
         } else {
             self
         }
@@ -212,7 +212,7 @@ impl Response {
 
     pub fn actual_response_mut(&mut self) -> &mut Response {
         if self.return_internal && self.internal_response.is_some() {
-            &mut **self.internal_response.as_mut().unwrap()
+            self.internal_response.as_mut().unwrap()
         } else {
             self
         }
@@ -315,7 +315,7 @@ impl Response {
             metadata.status = response.raw_status.clone();
             metadata.https_state = response.https_state;
             metadata.referrer = response.referrer.clone();
-            metadata.referrer_policy = response.referrer_policy.clone();
+            metadata.referrer_policy = response.referrer_policy;
             metadata.redirected = response.actual_response().url_list.len() > 1;
             metadata
         }

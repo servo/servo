@@ -8,7 +8,7 @@ use std::cell::UnsafeCell;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::{io, mem, process, ptr, thread};
 
-use libc;
+
 use nix::sys::signal::{sigaction, SaFlags, SigAction, SigHandler, SigSet, Signal};
 use unwind_sys::{
     unw_cursor_t, unw_get_reg, unw_init_local, unw_step, UNW_ESUCCESS, UNW_REG_IP, UNW_REG_SP,

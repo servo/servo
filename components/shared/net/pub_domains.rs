@@ -39,7 +39,7 @@ impl<'a> FromIterator<&'a str> for PubDomainRules {
     {
         let mut result = PubDomainRules::new();
         for item in iter {
-            if item.starts_with("!") {
+            if item.starts_with('!') {
                 result.exceptions.insert(String::from(&item[1..]));
             } else if item.starts_with("*.") {
                 result.wildcards.insert(String::from(&item[2..]));
@@ -48,6 +48,12 @@ impl<'a> FromIterator<&'a str> for PubDomainRules {
             }
         }
         result
+    }
+}
+
+impl Default for PubDomainRules {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -68,10 +74,10 @@ impl PubDomainRules {
             .collect()
     }
     fn suffix_pair<'a>(&self, domain: &'a str) -> (&'a str, &'a str) {
-        let domain = domain.trim_start_matches(".");
+        let domain = domain.trim_start_matches('.');
         let mut suffix = domain;
         let mut prev_suffix = domain;
-        for (index, _) in domain.match_indices(".") {
+        for (index, _) in domain.match_indices('.') {
             let next_suffix = &domain[index + 1..];
             if self.exceptions.contains(suffix) {
                 return (next_suffix, suffix);
@@ -84,7 +90,7 @@ impl PubDomainRules {
                 suffix = next_suffix;
             }
         }
-        return (suffix, prev_suffix);
+        (suffix, prev_suffix)
     }
     pub fn public_suffix<'a>(&self, domain: &'a str) -> &'a str {
         let (public, _) = self.suffix_pair(domain);
@@ -98,8 +104,8 @@ impl PubDomainRules {
         // Speeded-up version of
         // domain != "" &&
         // self.public_suffix(domain) == domain.
-        let domain = domain.trim_start_matches(".");
-        match domain.find(".") {
+        let domain = domain.trim_start_matches('.');
+        match domain.find('.') {
             None => !domain.is_empty(),
             Some(index) => {
                 !self.exceptions.contains(domain) && self.wildcards.contains(&domain[index + 1..]) ||
@@ -111,8 +117,8 @@ impl PubDomainRules {
         // Speeded-up version of
         // self.public_suffix(domain) != domain &&
         // self.registrable_suffix(domain) == domain.
-        let domain = domain.trim_start_matches(".");
-        match domain.find(".") {
+        let domain = domain.trim_start_matches('.');
+        match domain.find('.') {
             None => false,
             Some(index) => {
                 self.exceptions.contains(domain) ||
@@ -151,7 +157,7 @@ pub fn is_reg_domain(domain: &str) -> bool {
 pub fn reg_host(url: &ServoUrl) -> Option<Host> {
     match url.origin() {
         ImmutableOrigin::Tuple(_, Host::Domain(domain), _) => {
-            Some(Host::Domain(String::from(reg_suffix(&*domain))))
+            Some(Host::Domain(String::from(reg_suffix(&domain))))
         },
         ImmutableOrigin::Tuple(_, ip, _) => Some(ip),
         ImmutableOrigin::Opaque(_) => None,

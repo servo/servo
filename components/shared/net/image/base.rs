@@ -59,12 +59,12 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image>
         Ok(_) => match image::load_from_memory(buffer) {
             Ok(image) => {
                 let mut rgba = image.into_rgba8();
-                pixels::rgba8_byte_swap_colors_inplace(&mut *rgba);
+                pixels::rgba8_byte_swap_colors_inplace(&mut rgba);
                 Some(Image {
                     width: rgba.width(),
                     height: rgba.height(),
                     format: PixelFormat::BGRA8,
-                    bytes: IpcSharedMemory::from_bytes(&*rgba),
+                    bytes: IpcSharedMemory::from_bytes(&rgba),
                     id: None,
                     cors_status,
                 })

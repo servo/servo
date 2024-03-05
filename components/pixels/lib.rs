@@ -49,9 +49,7 @@ pub fn rgba8_get_rect(pixels: &[u8], size: Size2D<u64>, rect: Rect<u64>) -> Cow<
 pub fn rgba8_byte_swap_colors_inplace(pixels: &mut [u8]) {
     assert!(pixels.len() % 4 == 0);
     for rgba in pixels.chunks_mut(4) {
-        let b = rgba[0];
-        rgba[0] = rgba[2];
-        rgba[2] = b;
+        rgba.swap(0, 2);
     }
 }
 
@@ -79,7 +77,7 @@ pub fn rgba8_premultiply_inplace(pixels: &mut [u8]) -> bool {
 }
 
 pub fn multiply_u8_color(a: u8, b: u8) -> u8 {
-    return (a as u32 * b as u32 / 255) as u8;
+    (a as u32 * b as u32 / 255) as u8
 }
 
 pub fn clip(

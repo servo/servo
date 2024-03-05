@@ -29,7 +29,6 @@ pub fn get_default_url(
     // or a blank page in case the homepage is not set either.
     let mut new_url = None;
     let cmdline_url = url_opt
-        .clone()
         .map(|s| s.to_string())
         .and_then(|url_string| {
             parse_url_or_filename(cwd.as_ref(), &url_string)
@@ -50,7 +49,7 @@ pub fn get_default_url(
         }
     }
 
-    if new_url.is_none() && !url_opt.is_none() {
+    if new_url.is_none() && url_opt.is_some() {
         new_url = location_bar_input_to_url(url_opt.unwrap());
     }
 

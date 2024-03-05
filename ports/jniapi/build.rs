@@ -28,7 +28,7 @@ fn main() {
 
     // Generate GL bindings. For now, we only support EGL.
     if target.contains("android") {
-        let mut file = File::create(&dest.join("egl_bindings.rs")).unwrap();
+        let mut file = File::create(dest.join("egl_bindings.rs")).unwrap();
         Registry::new(Api::Egl, (1, 5), Profile::Core, Fallbacks::All, [])
             .write_bindings(gl_generator::StaticStructGenerator, &mut file)
             .unwrap();
@@ -38,6 +38,6 @@ fn main() {
     let mut default_prefs = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     default_prefs.push("../../resources/prefs.json");
     let prefs: Value = serde_json::from_reader(File::open(&default_prefs).unwrap()).unwrap();
-    let file = File::create(&dest.join("prefs.json")).unwrap();
+    let file = File::create(dest.join("prefs.json")).unwrap();
     serde_json::to_writer(file, &prefs).unwrap();
 }

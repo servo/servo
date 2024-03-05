@@ -85,7 +85,7 @@ impl App {
         // Handle browser state.
         let webviews = WebViewManager::new(window.clone());
         let initial_url = get_default_url(
-            url.as_ref().map(String::as_str),
+            url.as_deref(),
             env::current_dir().unwrap(),
             |path| fs::metadata(path).is_ok(),
         );
@@ -142,19 +142,7 @@ impl App {
         let ev_waker = events_loop.create_event_loop_waker();
         events_loop.run_forever(move |event, w, control_flow| {
             let now = Instant::now();
-            match event {
-                // Uncomment to filter out logging of common events, which can be very noisy.
-                // winit::event::Event::DeviceEvent { .. } => {},
-                // winit::event::Event::WindowEvent {
-                //     event: WindowEvent::CursorMoved { .. },
-                //     ..
-                // } => {},
-                // winit::event::Event::MainEventsCleared => {},
-                // winit::event::Event::RedrawEventsCleared => {},
-                // winit::event::Event::UserEvent(..) => {},
-                // winit::event::Event::NewEvents(..) => {},
-                _ => trace!("@{:?} (+{:?}) {:?}", now - t_start, now - t, event),
-            }
+            trace!("@{:?} (+{:?}) {:?}", now - t_start, now - t, event);
             t = now;
             match event {
                 winit::event::Event::NewEvents(winit::event::StartCause::Init) => {
@@ -270,7 +258,7 @@ impl App {
                         window.winit_window().unwrap().request_redraw();
                     },
                     winit::event::Event::WindowEvent { ref event, .. } => {
-                        let response = minibrowser.on_event(&event);
+                        let response = minibrowser.on_event(event);
                         if response.repaint {
                             // Request a winit redraw event, so we can recomposite, update and paint
                             // the minibrowser, and present the new frame.

@@ -208,7 +208,7 @@ impl RequestBody {
     }
 
     pub fn len(&self) -> Option<usize> {
-        self.total_bytes.clone()
+        self.total_bytes
     }
 }
 
@@ -264,7 +264,7 @@ impl RequestBuilder {
     pub fn new(url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
             method: Method::GET,
-            url: url,
+            url,
             headers: HeaderMap::new(),
             unsafe_request: false,
             body: None,
@@ -277,7 +277,7 @@ impl RequestBuilder {
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
-            referrer: referrer,
+            referrer,
             referrer_policy: None,
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
@@ -524,9 +524,9 @@ impl Request {
             initiator: Initiator::None,
             destination: Destination::None,
             origin: origin.unwrap_or(Origin::Client),
-            referrer: referrer,
+            referrer,
             referrer_policy: None,
-            pipeline_id: pipeline_id,
+            pipeline_id,
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,
@@ -540,7 +540,7 @@ impl Request {
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
             csp_list: None,
-            https_state: https_state,
+            https_state,
             crash: None,
         }
     }
@@ -733,7 +733,7 @@ pub fn get_cors_unsafe_header_names(headers: &HeaderMap) -> Vec<HeaderName> {
     }
 
     // Step 6
-    return convert_header_names_to_sorted_lowercase_set(unsafe_names);
+    convert_header_names_to_sorted_lowercase_set(unsafe_names)
 }
 
 /// <https://fetch.spec.whatwg.org/#ref-for-convert-header-names-to-a-sorted-lowercase-set>
@@ -745,5 +745,5 @@ pub fn convert_header_names_to_sorted_lowercase_set(
     let mut ordered_set = header_names.to_vec();
     ordered_set.sort_by(|a, b| a.as_str().partial_cmp(b.as_str()).unwrap());
     ordered_set.dedup();
-    return ordered_set.into_iter().cloned().collect();
+    ordered_set.into_iter().cloned().collect()
 }

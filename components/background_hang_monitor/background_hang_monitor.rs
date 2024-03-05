@@ -208,7 +208,7 @@ impl BackgroundHangMonitorChan {
         BackgroundHangMonitorChan {
             sender,
             _tether: tether,
-            component_id: component_id,
+            component_id,
             disconnected: Default::default(),
             monitoring_enabled,
         }
@@ -360,7 +360,7 @@ impl BackgroundHangMonitorWorker {
             let profile = stack.to_hangprofile();
             let name = match self.component_names.get(&id) {
                 Some(ref s) => format!("\"{}\"", s),
-                None => format!("null"),
+                None => "null".to_string(),
             };
             let json = format!(
                 "{}{{ \"name\": {}, \"namespace\": {}, \"index\": {}, \"type\": \"{:?}\", \
@@ -389,12 +389,10 @@ impl BackgroundHangMonitorWorker {
                 .checked_sub(Instant::now() - self.last_sample)
                 .unwrap_or_else(|| Duration::from_millis(0));
             after(duration)
+        } else if self.monitoring_enabled {
+            after(Duration::from_millis(100))
         } else {
-            if self.monitoring_enabled {
-                after(Duration::from_millis(100))
-            } else {
-                never()
-            }
+            never()
         };
 
         let received = select! {
