@@ -96,7 +96,7 @@ stdenv.mkDerivation (androidEnvironment // rec {
     (let
       vendorTarball = rustPlatform.fetchCargoTarball {
         src = ../support/filterlock;
-        hash = "sha256-/kJNDtmv2uI7Qlmpi3DMWSw88rzEJSbroO0/QrgQrSc=";
+        hash = "sha256-EBrL0/cEJfGIXUYqFiufRYFBAk5LSf0Cd/19+9m9JZI=";
       };
       vendorConfig = builtins.toFile "toml" ''
         [source.crates-io]
