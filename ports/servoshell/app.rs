@@ -228,7 +228,7 @@ impl App {
                     minibrowser.update(
                         window.winit_window().unwrap(),
                         &mut app.webviews.borrow_mut(),
-                        app.servo.as_ref().unwrap().output_framebuffer_id(),
+                        app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                         "RedrawRequested",
                     );
                     minibrowser.paint(window.winit_window().unwrap());
@@ -319,7 +319,7 @@ impl App {
                                 minibrowser.update(
                                     window.winit_window().unwrap(),
                                     webviews,
-                                    app.servo.as_ref().unwrap().output_framebuffer_id(),
+                                    app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                                     "update_location_in_toolbar",
                                 );
                             }
@@ -337,7 +337,7 @@ impl App {
                                 minibrowser.update(
                                     window.winit_window().unwrap(),
                                     &mut app.webviews.borrow_mut(),
-                                    app.servo.as_ref().unwrap().output_framebuffer_id(),
+                                    app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                                     "PumpResult::Present::Immediate",
                                 );
                                 minibrowser.paint(window.winit_window().unwrap());

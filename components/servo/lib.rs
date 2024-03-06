@@ -915,7 +915,7 @@ where
 
     /// Return the OpenGL framebuffer name of the most-recently-completed frame when compositing to
     /// [`CompositeTarget::Fbo`], or None otherwise.
-    pub fn output_framebuffer_id(&self) -> Option<gl::GLuint> {
+    pub fn offscreen_framebuffer_id(&self) -> Option<u32> {
         self.compositor.offscreen_framebuffer_id()
     }
 }
