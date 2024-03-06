@@ -347,18 +347,18 @@ impl CSSStyleDeclaration {
 
 lazy_static! {
     static ref ENABLED_LONGHAND_PROPERTIES: Vec<LonghandId> = {
-        // The 'all' shorthand contains all the enabled longhands, with 2 exceptions:
-        // 'direction' and 'unicode-bidi'
-        let mut v: Vec<LonghandId> = ShorthandId::All.longhands().collect();
+        // The 'all' shorthand contains all the enabled longhands with 2 exceptions:
+        // 'direction' and 'unicode-bidi', so these must be added afterward.
+        let mut enabled_longhands: Vec<LonghandId> = ShorthandId::All.longhands().collect();
         if PropertyId::Longhand(LonghandId::Direction).enabled_for_all_content() {
-            v.push(LonghandId::Direction);
+            enabled_longhands.push(LonghandId::Direction);
         }
         if PropertyId::Longhand(LonghandId::UnicodeBidi).enabled_for_all_content() {
-            v.push(LonghandId::UnicodeBidi);
+            enabled_longhands.push(LonghandId::UnicodeBidi);
         }
 
         // Sort lexicographically, but with vendor-prefixed properties after standard ones.
-        v.sort_unstable_by(|a, b| {
+        enabled_longhands.sort_unstable_by(|a, b| {
             let a = a.name();
             let b = b.name();
             let is_a_vendor_prefixed = a.starts_with("-");
@@ -371,7 +371,7 @@ lazy_static! {
                 Ordering::Greater
             }
         });
-        v
+        enabled_longhands
     };
 }
 
