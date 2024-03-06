@@ -1132,7 +1132,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn update_webview(&mut self, frame_tree: &SendableFrameTree) {
-        debug!("{}: Updating web view", frame_tree.pipeline.id);
+        debug!("{}: Updating webview", frame_tree.pipeline.id);
 
         if !cfg!(feature = "multiview") {
             self.root_content_pipeline = RootPipeline {
@@ -1146,7 +1146,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             let new_pipeline_id = Some(frame_tree.pipeline.id);
             if new_pipeline_id != webview.pipeline_id {
                 debug!(
-                    "{:?}: Updating web view from pipeline {:?} to {:?}",
+                    "{:?}: Updating webview from pipeline {:?} to {:?}",
                     top_level_browsing_context_id, webview.pipeline_id, new_pipeline_id
                 );
             }
@@ -1155,7 +1155,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             let top_level_browsing_context_id = frame_tree.pipeline.top_level_browsing_context_id;
             let pipeline_id = Some(frame_tree.pipeline.id);
             debug!(
-                "{:?}: Creating new web view with pipeline {:?}",
+                "{:?}: Creating new webview with pipeline {:?}",
                 top_level_browsing_context_id, pipeline_id
             );
             self.webviews.add(
