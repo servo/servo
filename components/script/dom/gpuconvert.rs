@@ -112,128 +112,11 @@ pub fn convert_texture_size_to_wgt(size: &GPUExtent3DDict) -> wgt::Extent3d {
     }
 }
 
-pub fn convert_label(parent: &GPUObjectDescriptorBase) -> Option<Cow<'static, str>> {
-    parent.label.as_ref().map(|s| Cow::Owned(s.to_string()))
-}
-
-pub fn convert_blend_component(blend_component: &GPUBlendComponent) -> wgt::BlendComponent {
-    wgt::BlendComponent {
-        src_factor: convert_blend_factor(&blend_component.srcFactor),
-        dst_factor: convert_blend_factor(&blend_component.dstFactor),
-        operation: match blend_component.operation {
-            GPUBlendOperation::Add => wgt::BlendOperation::Add,
-            GPUBlendOperation::Subtract => wgt::BlendOperation::Subtract,
-            GPUBlendOperation::Reverse_subtract => wgt::BlendOperation::ReverseSubtract,
-            GPUBlendOperation::Min => wgt::BlendOperation::Min,
-            GPUBlendOperation::Max => wgt::BlendOperation::Max,
-        },
-    }
-}
-
-pub fn convert_primitive_state(primitive_state: &GPUPrimitiveState) -> wgt::PrimitiveState {
-    wgt::PrimitiveState {
-        topology: convert_primitive_topology(&primitive_state.topology),
-        strip_index_format: primitive_state.stripIndexFormat.map(
-            |index_format| match index_format {
-                GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
-                GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
-            },
-        ),
-        front_face: match primitive_state.frontFace {
-            GPUFrontFace::Ccw => wgt::FrontFace::Ccw,
-            GPUFrontFace::Cw => wgt::FrontFace::Cw,
-        },
-        cull_mode: match primitive_state.cullMode {
-            GPUCullMode::None => None,
-            GPUCullMode::Front => Some(wgt::Face::Front),
-            GPUCullMode::Back => Some(wgt::Face::Back),
-        },
-        unclipped_depth: primitive_state.clampDepth,
-        ..Default::default()
-    }
-}
-
-pub fn convert_primitive_topology(
-    primitive_topology: &GPUPrimitiveTopology,
-) -> wgt::PrimitiveTopology {
-    match primitive_topology {
-        GPUPrimitiveTopology::Point_list => wgt::PrimitiveTopology::PointList,
-        GPUPrimitiveTopology::Line_list => wgt::PrimitiveTopology::LineList,
-        GPUPrimitiveTopology::Line_strip => wgt::PrimitiveTopology::LineStrip,
-        GPUPrimitiveTopology::Triangle_list => wgt::PrimitiveTopology::TriangleList,
-        GPUPrimitiveTopology::Triangle_strip => wgt::PrimitiveTopology::TriangleStrip,
-    }
-}
-
-pub fn convert_view_dimension(
-    view_dimension: GPUTextureViewDimension,
-) -> wgt::TextureViewDimension {
-    match view_dimension {
-        GPUTextureViewDimension::_1d => wgt::TextureViewDimension::D1,
-        GPUTextureViewDimension::_2d => wgt::TextureViewDimension::D2,
-        GPUTextureViewDimension::_2d_array => wgt::TextureViewDimension::D2Array,
-        GPUTextureViewDimension::Cube => wgt::TextureViewDimension::Cube,
-        GPUTextureViewDimension::Cube_array => wgt::TextureViewDimension::CubeArray,
-        GPUTextureViewDimension::_3d => wgt::TextureViewDimension::D3,
-    }
-}
-
-pub fn convert_address_mode(address_mode: GPUAddressMode) -> wgt::AddressMode {
-    match address_mode {
-        GPUAddressMode::Clamp_to_edge => wgt::AddressMode::ClampToEdge,
-        GPUAddressMode::Repeat => wgt::AddressMode::Repeat,
-        GPUAddressMode::Mirror_repeat => wgt::AddressMode::MirrorRepeat,
-    }
-}
-
-pub fn convert_filter_mode(filter_mode: GPUFilterMode) -> wgt::FilterMode {
-    match filter_mode {
-        GPUFilterMode::Nearest => wgt::FilterMode::Nearest,
-        GPUFilterMode::Linear => wgt::FilterMode::Linear,
-    }
-}
-
-pub fn convert_compare_function(compare: GPUCompareFunction) -> wgt::CompareFunction {
-    match compare {
-        GPUCompareFunction::Never => wgt::CompareFunction::Never,
-        GPUCompareFunction::Less => wgt::CompareFunction::Less,
-        GPUCompareFunction::Equal => wgt::CompareFunction::Equal,
-        GPUCompareFunction::Less_equal => wgt::CompareFunction::LessEqual,
-        GPUCompareFunction::Greater => wgt::CompareFunction::Greater,
-        GPUCompareFunction::Not_equal => wgt::CompareFunction::NotEqual,
-        GPUCompareFunction::Greater_equal => wgt::CompareFunction::GreaterEqual,
-        GPUCompareFunction::Always => wgt::CompareFunction::Always,
-    }
-}
-
-pub fn convert_blend_factor(factor: &GPUBlendFactor) -> wgt::BlendFactor {
-    match factor {
-        GPUBlendFactor::Zero => wgt::BlendFactor::Zero,
-        GPUBlendFactor::One => wgt::BlendFactor::One,
-        GPUBlendFactor::Src => wgt::BlendFactor::Src,
-        GPUBlendFactor::One_minus_src => wgt::BlendFactor::OneMinusSrc,
-        GPUBlendFactor::Src_alpha => wgt::BlendFactor::SrcAlpha,
-        GPUBlendFactor::One_minus_src_alpha => wgt::BlendFactor::OneMinusSrcAlpha,
-        GPUBlendFactor::Dst => wgt::BlendFactor::Dst,
-        GPUBlendFactor::One_minus_dst => wgt::BlendFactor::OneMinusDst,
-        GPUBlendFactor::Dst_alpha => wgt::BlendFactor::DstAlpha,
-        GPUBlendFactor::One_minus_dst_alpha => wgt::BlendFactor::OneMinusDstAlpha,
-        GPUBlendFactor::Src_alpha_saturated => wgt::BlendFactor::SrcAlphaSaturated,
-        GPUBlendFactor::Constant => wgt::BlendFactor::Constant,
-        GPUBlendFactor::One_minus_constant => wgt::BlendFactor::OneMinusConstant,
-    }
-}
-
-pub fn convert_stencil_op(operation: GPUStencilOperation) -> wgt::StencilOperation {
-    match operation {
-        GPUStencilOperation::Keep => wgt::StencilOperation::Keep,
-        GPUStencilOperation::Zero => wgt::StencilOperation::Zero,
-        GPUStencilOperation::Replace => wgt::StencilOperation::Replace,
-        GPUStencilOperation::Invert => wgt::StencilOperation::Invert,
-        GPUStencilOperation::Increment_clamp => wgt::StencilOperation::IncrementClamp,
-        GPUStencilOperation::Decrement_clamp => wgt::StencilOperation::DecrementClamp,
-        GPUStencilOperation::Increment_wrap => wgt::StencilOperation::IncrementWrap,
-        GPUStencilOperation::Decrement_wrap => wgt::StencilOperation::DecrementWrap,
+pub fn convert_image_data_layout(data_layout: &GPUImageDataLayout) -> wgt::ImageDataLayout {
+    wgt::ImageDataLayout {
+        offset: data_layout.offset as wgt::BufferAddress,
+        bytes_per_row: data_layout.bytesPerRow,
+        rows_per_image: data_layout.rowsPerImage,
     }
 }
 
@@ -272,6 +155,114 @@ pub fn convert_vertex_format(format: GPUVertexFormat) -> wgt::VertexFormat {
     }
 }
 
+pub fn convert_primitive_state(primitive_state: &GPUPrimitiveState) -> wgt::PrimitiveState {
+    wgt::PrimitiveState {
+        topology: convert_primitive_topology(&primitive_state.topology),
+        strip_index_format: primitive_state.stripIndexFormat.map(
+            |index_format| match index_format {
+                GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
+                GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
+            },
+        ),
+        front_face: match primitive_state.frontFace {
+            GPUFrontFace::Ccw => wgt::FrontFace::Ccw,
+            GPUFrontFace::Cw => wgt::FrontFace::Cw,
+        },
+        cull_mode: match primitive_state.cullMode {
+            GPUCullMode::None => None,
+            GPUCullMode::Front => Some(wgt::Face::Front),
+            GPUCullMode::Back => Some(wgt::Face::Back),
+        },
+        unclipped_depth: primitive_state.clampDepth,
+        ..Default::default()
+    }
+}
+
+pub fn convert_primitive_topology(
+    primitive_topology: &GPUPrimitiveTopology,
+) -> wgt::PrimitiveTopology {
+    match primitive_topology {
+        GPUPrimitiveTopology::Point_list => wgt::PrimitiveTopology::PointList,
+        GPUPrimitiveTopology::Line_list => wgt::PrimitiveTopology::LineList,
+        GPUPrimitiveTopology::Line_strip => wgt::PrimitiveTopology::LineStrip,
+        GPUPrimitiveTopology::Triangle_list => wgt::PrimitiveTopology::TriangleList,
+        GPUPrimitiveTopology::Triangle_strip => wgt::PrimitiveTopology::TriangleStrip,
+    }
+}
+
+pub fn convert_address_mode(address_mode: GPUAddressMode) -> wgt::AddressMode {
+    match address_mode {
+        GPUAddressMode::Clamp_to_edge => wgt::AddressMode::ClampToEdge,
+        GPUAddressMode::Repeat => wgt::AddressMode::Repeat,
+        GPUAddressMode::Mirror_repeat => wgt::AddressMode::MirrorRepeat,
+    }
+}
+
+pub fn convert_filter_mode(filter_mode: GPUFilterMode) -> wgt::FilterMode {
+    match filter_mode {
+        GPUFilterMode::Nearest => wgt::FilterMode::Nearest,
+        GPUFilterMode::Linear => wgt::FilterMode::Linear,
+    }
+}
+
+pub fn convert_view_dimension(
+    view_dimension: GPUTextureViewDimension,
+) -> wgt::TextureViewDimension {
+    match view_dimension {
+        GPUTextureViewDimension::_1d => wgt::TextureViewDimension::D1,
+        GPUTextureViewDimension::_2d => wgt::TextureViewDimension::D2,
+        GPUTextureViewDimension::_2d_array => wgt::TextureViewDimension::D2Array,
+        GPUTextureViewDimension::Cube => wgt::TextureViewDimension::Cube,
+        GPUTextureViewDimension::Cube_array => wgt::TextureViewDimension::CubeArray,
+        GPUTextureViewDimension::_3d => wgt::TextureViewDimension::D3,
+    }
+}
+
+pub fn convert_compare_function(compare: GPUCompareFunction) -> wgt::CompareFunction {
+    match compare {
+        GPUCompareFunction::Never => wgt::CompareFunction::Never,
+        GPUCompareFunction::Less => wgt::CompareFunction::Less,
+        GPUCompareFunction::Equal => wgt::CompareFunction::Equal,
+        GPUCompareFunction::Less_equal => wgt::CompareFunction::LessEqual,
+        GPUCompareFunction::Greater => wgt::CompareFunction::Greater,
+        GPUCompareFunction::Not_equal => wgt::CompareFunction::NotEqual,
+        GPUCompareFunction::Greater_equal => wgt::CompareFunction::GreaterEqual,
+        GPUCompareFunction::Always => wgt::CompareFunction::Always,
+    }
+}
+
+pub fn convert_blend_factor(factor: &GPUBlendFactor) -> wgt::BlendFactor {
+    match factor {
+        GPUBlendFactor::Zero => wgt::BlendFactor::Zero,
+        GPUBlendFactor::One => wgt::BlendFactor::One,
+        GPUBlendFactor::Src => wgt::BlendFactor::Src,
+        GPUBlendFactor::One_minus_src => wgt::BlendFactor::OneMinusSrc,
+        GPUBlendFactor::Src_alpha => wgt::BlendFactor::SrcAlpha,
+        GPUBlendFactor::One_minus_src_alpha => wgt::BlendFactor::OneMinusSrcAlpha,
+        GPUBlendFactor::Dst => wgt::BlendFactor::Dst,
+        GPUBlendFactor::One_minus_dst => wgt::BlendFactor::OneMinusDst,
+        GPUBlendFactor::Dst_alpha => wgt::BlendFactor::DstAlpha,
+        GPUBlendFactor::One_minus_dst_alpha => wgt::BlendFactor::OneMinusDstAlpha,
+        GPUBlendFactor::Src_alpha_saturated => wgt::BlendFactor::SrcAlphaSaturated,
+        GPUBlendFactor::Constant => wgt::BlendFactor::Constant,
+        GPUBlendFactor::One_minus_constant => wgt::BlendFactor::OneMinusConstant,
+    }
+}
+
+pub fn convert_blend_component(blend_component: &GPUBlendComponent) -> wgt::BlendComponent {
+    wgt::BlendComponent {
+        src_factor: convert_blend_factor(&blend_component.srcFactor),
+        dst_factor: convert_blend_factor(&blend_component.dstFactor),
+        operation: match blend_component.operation {
+            GPUBlendOperation::Add => wgt::BlendOperation::Add,
+            GPUBlendOperation::Subtract => wgt::BlendOperation::Subtract,
+            GPUBlendOperation::Reverse_subtract => wgt::BlendOperation::ReverseSubtract,
+            GPUBlendOperation::Min => wgt::BlendOperation::Min,
+            GPUBlendOperation::Max => wgt::BlendOperation::Max,
+        },
+    }
+}
+
 pub fn convert_load_op(op: Option<GPULoadOp>) -> wgpu_com::LoadOp {
     match op {
         Some(GPULoadOp::Load) => wgpu_com::LoadOp::Load,
@@ -285,6 +276,19 @@ pub fn convert_store_op(op: Option<GPUStoreOp>) -> wgpu_com::StoreOp {
         Some(GPUStoreOp::Store) => wgpu_com::StoreOp::Store,
         Some(GPUStoreOp::Discard) => wgpu_com::StoreOp::Discard,
         None => wgpu_com::StoreOp::Discard,
+    }
+}
+
+pub fn convert_stencil_op(operation: GPUStencilOperation) -> wgt::StencilOperation {
+    match operation {
+        GPUStencilOperation::Keep => wgt::StencilOperation::Keep,
+        GPUStencilOperation::Zero => wgt::StencilOperation::Zero,
+        GPUStencilOperation::Replace => wgt::StencilOperation::Replace,
+        GPUStencilOperation::Invert => wgt::StencilOperation::Invert,
+        GPUStencilOperation::Increment_clamp => wgt::StencilOperation::IncrementClamp,
+        GPUStencilOperation::Decrement_clamp => wgt::StencilOperation::DecrementClamp,
+        GPUStencilOperation::Increment_wrap => wgt::StencilOperation::IncrementWrap,
+        GPUStencilOperation::Decrement_wrap => wgt::StencilOperation::DecrementWrap,
     }
 }
 
@@ -324,10 +328,6 @@ pub fn convert_ic_texture(ic_texture: &GPUImageCopyTexture) -> wgpu_com::ImageCo
     }
 }
 
-pub fn convert_image_data_layout(data_layout: &GPUImageDataLayout) -> wgt::ImageDataLayout {
-    wgt::ImageDataLayout {
-        offset: data_layout.offset as wgt::BufferAddress,
-        bytes_per_row: data_layout.bytesPerRow,
-        rows_per_image: data_layout.rowsPerImage,
-    }
+pub fn convert_label(parent: &GPUObjectDescriptorBase) -> Option<Cow<'static, str>> {
+    parent.label.as_ref().map(|s| Cow::Owned(s.to_string()))
 }
