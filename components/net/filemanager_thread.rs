@@ -373,7 +373,7 @@ impl FileManager {
             FileImpl::Sliced(parent_id, inner_rel_pos) => {
                 // Next time we don't need to check validity since
                 // we have already done that for requesting URL if necessary.
-                return self.fetch_blob_buf(
+                self.fetch_blob_buf(
                     done_sender,
                     cancellation_listener,
                     &parent_id,
@@ -383,7 +383,7 @@ impl FileManager {
                         RelativePos::full_range().slice_inner(&inner_rel_pos),
                     ),
                     response,
-                );
+                )
             },
         }
     }
@@ -585,7 +585,6 @@ impl FileManagerStore {
             },
             None => {
                 let _ = sender.send(Err(FileManagerThreadError::UserCancelled));
-                return;
             },
         }
     }
@@ -631,7 +630,6 @@ impl FileManagerStore {
             },
             None => {
                 let _ = sender.send(Err(FileManagerThreadError::UserCancelled));
-                return;
             },
         }
     }
@@ -672,7 +670,7 @@ impl FileManagerStore {
             id,
             FileStoreEntry {
                 origin: origin.to_string(),
-                file_impl: file_impl,
+                file_impl,
                 refs: AtomicUsize::new(1),
                 // Invalid here since create_entry is called by file selection
                 is_valid_url: AtomicBool::new(false),
@@ -687,11 +685,11 @@ impl FileManagerStore {
         };
 
         Ok(SelectedFile {
-            id: id,
+            id,
             filename: filename_path.to_path_buf(),
             modified: modified_epoch,
             size: file_size,
-            type_string: type_string,
+            type_string,
         })
     }
 
@@ -913,7 +911,7 @@ fn read_file_in_chunks(
             buf.truncate(n);
             let blob_buf = BlobBuf {
                 filename: opt_filename,
-                type_string: type_string,
+                type_string,
                 size: size as u64,
                 bytes: buf,
             };

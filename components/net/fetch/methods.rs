@@ -84,7 +84,7 @@ pub struct CancellationListener {
 impl CancellationListener {
     pub fn new(cancel_chan: Option<IpcReceiver<()>>) -> Self {
         Self {
-            cancel_chan: cancel_chan,
+            cancel_chan,
             cancelled: false,
         }
     }
@@ -209,15 +209,15 @@ pub async fn main_fetch(
     }
 
     // Step 2.
-    if request.local_urls_only {
-        if !matches!(
+    if request.local_urls_only &&
+        !matches!(
             request.current_url().scheme(),
             "about" | "blob" | "data" | "filesystem"
-        ) {
-            response = Some(Response::network_error(NetworkError::Internal(
-                "Non-local scheme".into(),
-            )));
-        }
+        )
+    {
+        response = Some(Response::network_error(NetworkError::Internal(
+            "Non-local scheme".into(),
+        )));
     }
 
     // Step 2.2.

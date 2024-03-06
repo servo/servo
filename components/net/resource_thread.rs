@@ -531,7 +531,7 @@ impl CoreResourceThreadPool {
             .build()
             .unwrap();
         let state = Arc::new(Mutex::new(ThreadPoolState::new()));
-        CoreResourceThreadPool { pool: pool, state }
+        CoreResourceThreadPool { pool, state }
     }
 
     /// Spawn work on the thread-pool, if still active.
@@ -613,7 +613,7 @@ impl CoreResourceManager {
         let pool = CoreResourceThreadPool::new(16);
         let pool_handle = Arc::new(pool);
         CoreResourceManager {
-            user_agent: user_agent,
+            user_agent,
             devtools_sender,
             sw_managers: Default::default(),
             filemanager: FileManager::new(embedder_proxy, Arc::downgrade(&pool_handle)),

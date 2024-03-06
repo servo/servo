@@ -43,10 +43,7 @@ use crate::resource_thread::CoreResourceThreadPool;
 
 fn decode_bytes_sync(key: LoadKey, bytes: &[u8], cors: CorsStatus) -> DecoderMsg {
     let image = load_from_memory(bytes, cors);
-    DecoderMsg {
-        key: key,
-        image: image,
-    }
+    DecoderMsg { key, image }
 }
 
 fn get_placeholder_image(webrender_api: &WebrenderIpcSender, data: &[u8]) -> Arc<Image> {
@@ -191,10 +188,7 @@ struct CompletedLoad {
 
 impl CompletedLoad {
     fn new(image_response: ImageResponse, id: PendingImageId) -> CompletedLoad {
-        CompletedLoad {
-            image_response: image_response,
-            id: id,
-        }
+        CompletedLoad { image_response, id }
     }
 }
 
@@ -306,7 +300,7 @@ impl PendingLoad {
             metadata: None,
             result: None,
             listeners: vec![],
-            url: url,
+            url,
             load_origin,
             final_url: None,
             cors_setting,
@@ -434,7 +428,7 @@ impl ImageCache for ImageCacheImpl {
                 completed_loads: HashMap::new(),
                 placeholder_image: get_placeholder_image(&webrender_api, &rippy_data),
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
-                webrender_api: webrender_api,
+                webrender_api,
             })),
             thread_pool: CoreResourceThreadPool::new(16),
         }

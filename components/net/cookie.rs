@@ -205,11 +205,9 @@ impl Cookie {
             if self.cookie.domain() != domain {
                 return false;
             }
-        } else {
-            if let (Some(domain), &Some(ref cookie_domain)) = (domain, &self.cookie.domain()) {
-                if !Cookie::domain_match(domain, cookie_domain) {
-                    return false;
-                }
+        } else if let (Some(domain), &Some(ref cookie_domain)) = (domain, &self.cookie.domain()) {
+            if !Cookie::domain_match(domain, cookie_domain) {
+                return false;
             }
         }
 

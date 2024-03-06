@@ -47,10 +47,10 @@ impl StorageManager {
             resource_thread::read_json_from_file(&mut local_data, config_dir, "local_data.json");
         }
         StorageManager {
-            port: port,
+            port,
             session_data: HashMap::new(),
-            local_data: local_data,
-            config_dir: config_dir,
+            local_data,
+            config_dir,
         }
     }
 }

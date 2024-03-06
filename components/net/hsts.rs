@@ -33,9 +33,9 @@ impl HstsEntry {
             None
         } else {
             Some(HstsEntry {
-                host: host,
+                host,
                 include_subdomains: (subdomains == IncludeSubdomains::Included),
-                max_age: max_age,
+                max_age,
                 timestamp: Some(time::get_time().sec as u64),
             })
         }
@@ -88,7 +88,7 @@ impl HstsList {
                 hsts_list.push(hsts_entry);
             }
 
-            return Some(hsts_list);
+            Some(hsts_list)
         })
     }
 

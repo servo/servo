@@ -193,7 +193,7 @@ fn no_referrer_when_downgrade(referrer_url: ServoUrl, current_url: ServoUrl) -> 
         return None;
     }
     // Step 2
-    return strip_url_for_use_as_referrer(referrer_url, false);
+    strip_url_for_use_as_referrer(referrer_url, false)
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin>
@@ -363,16 +363,16 @@ fn prepare_devtools_request(
     is_xhr: bool,
 ) -> ChromeToDevtoolsControlMsg {
     let request = DevtoolsHttpRequest {
-        url: url,
-        method: method,
-        headers: headers,
-        body: body,
-        pipeline_id: pipeline_id,
+        url,
+        method,
+        headers,
+        body,
+        pipeline_id,
         startedDateTime: now,
         timeStamp: now.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64,
-        connect_time: connect_time,
-        send_time: send_time,
-        is_xhr: is_xhr,
+        connect_time,
+        send_time,
+        is_xhr,
     };
     let net_event = NetworkEvent::HttpRequest(request);
 
@@ -396,10 +396,10 @@ fn send_response_to_devtools(
     pipeline_id: PipelineId,
 ) {
     let response = DevtoolsHttpResponse {
-        headers: headers,
-        status: status,
+        headers,
+        status,
         body: None,
-        pipeline_id: pipeline_id,
+        pipeline_id,
     };
     let net_event_response = NetworkEvent::HttpResponse(response);
 
@@ -1257,13 +1257,14 @@ async fn http_network_or_cache_fetch(
             }
 
             // Substep 5
-            if authentication_fetch_flag && authorization_value.is_none() {
-                if has_credentials(&current_url) {
-                    authorization_value = Some(Authorization::basic(
-                        current_url.username(),
-                        current_url.password().unwrap_or(""),
-                    ));
-                }
+            if authentication_fetch_flag &&
+                authorization_value.is_none() &&
+                has_credentials(&current_url)
+            {
+                authorization_value = Some(Authorization::basic(
+                    current_url.username(),
+                    current_url.password().unwrap_or(""),
+                ));
             }
 
             // Substep 6
@@ -1852,7 +1853,6 @@ async fn http_network_fetch(
         res.into_body()
             .map_err(|e| {
                 warn!("Error streaming response body: {:?}", e);
-                ()
             })
             .try_fold(res_body, move |res_body, chunk| {
                 if cancellation_listener.lock().unwrap().cancelled() {

@@ -11,8 +11,8 @@ use generic_array::ArrayLength;
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
-const SUPPORTED_ALGORITHM: &'static [&'static str] = &["sha256", "sha384", "sha512"];
-pub type StaticCharVec = &'static [char];
+const SUPPORTED_ALGORITHM: &[&'static str] = &["sha256", "sha384", "sha512"];
+pub type StaticCharVec = &[char];
 /// A "space character" according to:
 ///
 /// <https://html.spec.whatwg.org/multipage/#space-character>
@@ -33,7 +33,7 @@ impl SriEntry {
         SriEntry {
             alg: alg.to_owned(),
             val: val.to_owned(),
-            opt: opt,
+            opt,
         }
     }
 }

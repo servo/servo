@@ -60,11 +60,11 @@ impl CorsCacheEntry {
         header_or_method: HeaderOrMethod,
     ) -> CorsCacheEntry {
         CorsCacheEntry {
-            origin: origin,
-            url: url,
-            max_age: max_age,
-            credentials: credentials,
-            header_or_method: header_or_method,
+            origin,
+            url,
+            max_age,
+            credentials,
+            header_or_method,
             created: time::now().to_timespec(),
         }
     }
