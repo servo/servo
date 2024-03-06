@@ -19,7 +19,7 @@ lazy_static! {
 fn create_host_table() -> Option<HashMap<String, IpAddr>> {
     let path = env::var_os("HOST_FILE")?;
 
-    let file = File::open(&path).ok()?;
+    let file = File::open(path).ok()?;
     let mut reader = BufReader::new(file);
 
     let mut lines = String::new();

@@ -5,7 +5,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
-use std::mem;
 use std::ops::Index;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
@@ -103,13 +102,12 @@ impl FileManager {
         let store = self.store.clone();
         self.thread_pool
             .upgrade()
-            .and_then(|pool| {
+            .map(|pool| {
                 pool.spawn(move || {
                     if let Err(e) = store.try_read_file(&sender, id, origin) {
                         let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
                     }
                 });
-                Some(())
             })
             .unwrap_or_else(|| {
                 warn!("FileManager tried to read a file after CoreResourceManager has exited.");
@@ -160,11 +158,10 @@ impl FileManager {
                 let embedder = self.embedder_proxy.clone();
                 self.thread_pool
                     .upgrade()
-                    .and_then(|pool| {
+                    .map(|pool| {
                         pool.spawn(move || {
                             store.select_file(filter, sender, origin, opt_test_path, embedder);
                         });
-                        Some(())
                     })
                     .unwrap_or_else(|| {
                         warn!(
@@ -177,11 +174,10 @@ impl FileManager {
                 let embedder = self.embedder_proxy.clone();
                 self.thread_pool
                     .upgrade()
-                    .and_then(|pool| {
+                    .map(|pool| {
                         pool.spawn(move || {
                             store.select_files(filter, sender, origin, opt_test_paths, embedder);
                         });
-                        Some(())
                     })
                     .unwrap_or_else(|| {
                         warn!(
@@ -221,7 +217,7 @@ impl FileManager {
         let done_sender = done_sender.clone();
         self.thread_pool
             .upgrade()
-            .and_then(|pool| {
+            .map(|pool| {
                 pool.spawn(move || {
                     loop {
                         if cancellation_listener.lock().unwrap().cancelled() {
@@ -266,7 +262,7 @@ impl FileManager {
                         if length == 0 {
                             let mut body = res_body.lock().unwrap();
                             let completed_body = match *body {
-                                ResponseBody::Receiving(ref mut body) => mem::replace(body, vec![]),
+                                ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                                 _ => vec![],
                             };
                             *body = ResponseBody::Done(completed_body);
@@ -276,7 +272,6 @@ impl FileManager {
                         reader.consume(length);
                     }
                 });
-                Some(())
             })
             .unwrap_or_else(|| {
                 warn!("FileManager tried to fetch a file in chunks after CoreResourceManager has exited.");
@@ -411,7 +406,7 @@ impl FileManagerStore {
         origin_in: &FileOrigin,
     ) -> Result<FileImpl, BlobURLStoreError> {
         match self.entries.read().unwrap().get(id) {
-            Some(ref entry) => {
+            Some(entry) => {
                 if *origin_in != *entry.origin {
                     Err(BlobURLStoreError::InvalidOrigin)
                 } else {
@@ -441,7 +436,7 @@ impl FileManagerStore {
                 let zero_refs = entry.refs.load(Ordering::Acquire) == 0;
 
                 // Check if no other fetch has acquired a token for this file.
-                let no_outstanding_tokens = entry.outstanding_tokens.len() == 0;
+                let no_outstanding_tokens = entry.outstanding_tokens.is_empty();
 
                 // Check if there is still a blob URL outstanding.
                 let valid = entry.is_valid_url.load(Ordering::Acquire);
@@ -450,7 +445,7 @@ impl FileManagerStore {
                 let do_remove = zero_refs && no_outstanding_tokens && !valid;
 
                 if do_remove {
-                    entries.remove(&file_id);
+                    entries.remove(file_id);
                 }
             }
         }
@@ -461,7 +456,7 @@ impl FileManagerStore {
         let parent_id = match entries.get(file_id) {
             Some(entry) => {
                 if let FileImpl::Sliced(ref parent_id, _) = entry.file_impl {
-                    Some(parent_id.clone())
+                    Some(*parent_id)
                 } else {
                     None
                 }
@@ -477,7 +472,7 @@ impl FileManagerStore {
                 return FileTokenCheck::ShouldFail;
             }
             let token = Uuid::new_v4();
-            entry.outstanding_tokens.insert(token.clone());
+            entry.outstanding_tokens.insert(token);
             return FileTokenCheck::Required(token);
         }
         FileTokenCheck::ShouldFail
@@ -796,13 +791,13 @@ impl FileManagerStore {
                         let is_valid = entry.is_valid_url.load(Ordering::Acquire);
 
                         // Check if no fetch has acquired a token for this file.
-                        let no_outstanding_tokens = entry.outstanding_tokens.len() == 0;
+                        let no_outstanding_tokens = entry.outstanding_tokens.is_empty();
 
                         // Can we remove this file?
                         let do_remove = !is_valid && no_outstanding_tokens;
 
                         if let FileImpl::Sliced(ref parent_id, _) = entry.file_impl {
-                            (do_remove, Some(parent_id.clone()))
+                            (do_remove, Some(*parent_id))
                         } else {
                             (do_remove, None)
                         }
@@ -865,13 +860,13 @@ impl FileManagerStore {
                         let zero_refs = entry.refs.load(Ordering::Acquire) == 0;
 
                         // Check if no fetch has acquired a token for this file.
-                        let no_outstanding_tokens = entry.outstanding_tokens.len() == 0;
+                        let no_outstanding_tokens = entry.outstanding_tokens.is_empty();
 
                         // Can we remove this file?
                         let do_remove = zero_refs && no_outstanding_tokens;
 
                         if let FileImpl::Sliced(ref parent_id, _) = entry.file_impl {
-                            (do_remove, Some(parent_id.clone()), Ok(()))
+                            (do_remove, Some(*parent_id), Ok(()))
                         } else {
                             (do_remove, None, Ok(()))
                         }

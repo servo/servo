@@ -418,10 +418,10 @@ impl<R: Read> Read for Peeked<R> {
                     return Ok(len);
                 },
                 PeekedState::NotReady => {
-                    let mut buf = &mut self.peeked_buf[self.pos..];
+                    let buf = &mut self.peeked_buf[self.pos..];
                     let stream = self.inner.clone();
                     let mut reader = stream.lock().unwrap();
-                    let read = reader.read(&mut buf);
+                    let read = reader.read(buf);
 
                     match read {
                         Ok(0) => self.ready(),

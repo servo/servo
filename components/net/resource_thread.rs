@@ -9,7 +9,6 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, BufReader};
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
@@ -213,7 +212,7 @@ impl ResourceChannelManager {
         memory_reporter: IpcReceiver<ReportsChan>,
     ) {
         let (public_http_state, private_http_state) = create_http_states(
-            self.config_dir.as_ref().map(Deref::deref),
+            self.config_dir.as_deref(),
             self.ca_certificates.clone(),
             self.ignore_certificate_errors,
         );
@@ -426,11 +425,10 @@ pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
 where
     T: Serialize,
 {
-    let json_encoded: String;
-    match serde_json::to_string_pretty(&data) {
-        Ok(d) => json_encoded = d,
+    let json_encoded: String = match serde_json::to_string_pretty(&data) {
+        Ok(d) => d,
         Err(_) => return,
-    }
+    };
     let path = config_dir.join(filename);
     let display = path.display();
 
@@ -449,6 +447,12 @@ where
 pub struct AuthCacheEntry {
     pub user_name: String,
     pub password: String,
+}
+
+impl Default for AuthCache {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AuthCache {

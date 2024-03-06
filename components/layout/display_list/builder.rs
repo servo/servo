@@ -80,7 +80,7 @@ static THREAD_TINT_COLORS: [ColorF; 8] = [
         a: 0.7,
     },
     ColorF {
-        r: 255.0 / 255.0,
+        r: 1.0,
         g: 212.0 / 255.0,
         b: 83.0 / 255.0,
         a: 0.7,
@@ -110,7 +110,7 @@ static THREAD_TINT_COLORS: [ColorF; 8] = [
         a: 0.7,
     },
     ColorF {
-        r: 255.0 / 255.0,
+        r: 1.0,
         g: 249.0 / 255.0,
         b: 201.0 / 255.0,
         a: 0.7,

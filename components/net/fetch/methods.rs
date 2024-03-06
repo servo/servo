@@ -161,7 +161,7 @@ pub async fn fetch_with_cors_cache(
     }
 
     // Step 8.
-    main_fetch(request, cache, false, false, target, &mut None, &context).await;
+    main_fetch(request, cache, false, false, target, &mut None, context).await;
 }
 
 /// <https://www.w3.org/TR/CSP/#should-block-request>
@@ -267,7 +267,7 @@ pub async fn main_fetch(
             )
         },
     };
-    request.referrer = referrer_url.map_or(Referrer::NoReferrer, |url| Referrer::ReferrerUrl(url));
+    request.referrer = referrer_url.map_or(Referrer::NoReferrer, Referrer::ReferrerUrl);
 
     // Step 9.
     // TODO: handle FTP URLs.
@@ -451,7 +451,7 @@ pub async fn main_fetch(
             *body = ResponseBody::Empty;
         }
 
-        internal_response.get_network_error().map(|e| e.clone())
+        internal_response.get_network_error().cloned()
     };
 
     // Execute deferred rebinding of response.
@@ -469,7 +469,7 @@ pub async fn main_fetch(
         response_loaded = true;
 
         // Step 19.2.
-        let ref integrity_metadata = &request.integrity_metadata;
+        let integrity_metadata = &request.integrity_metadata;
         if response.termination_reason.is_none() &&
             !is_response_integrity_valid(integrity_metadata, &response)
         {
@@ -502,8 +502,8 @@ pub async fn main_fetch(
         // in http_network_fetch. However, we can't yet follow the request
         // upload progress, so I'm keeping it here for now and pretending
         // the body got sent in one chunk
-        target.process_request_body(&request);
-        target.process_request_eof(&request);
+        target.process_request_body(request);
+        target.process_request_eof(request);
     }
 
     // Step 22.
@@ -518,7 +518,7 @@ pub async fn main_fetch(
     target.process_response_eof(&response);
 
     if let Ok(http_cache) = context.state.http_cache.write() {
-        http_cache.update_awaiting_consumers(&request, &response);
+        http_cache.update_awaiting_consumers(request, &response);
     }
 
     // Steps 25-27.

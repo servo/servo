@@ -49,6 +49,12 @@ pub enum NoSniffFlag {
     Off,
 }
 
+impl Default for MimeClassifier {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MimeClassifier {
     //Performs MIME Type Sniffing Algorithm (sections 7 and 8)
     pub fn classify<'a>(
@@ -240,13 +246,13 @@ impl MimeClassifier {
     }
 
     fn get_media_type(mime: &Mime) -> Option<MediaType> {
-        if MimeClassifier::is_xml(&mime) {
+        if MimeClassifier::is_xml(mime) {
             Some(MediaType::Xml)
-        } else if MimeClassifier::is_html(&mime) {
+        } else if MimeClassifier::is_html(mime) {
             Some(MediaType::Html)
-        } else if MimeClassifier::is_image(&mime) {
+        } else if MimeClassifier::is_image(mime) {
             Some(MediaType::Image)
-        } else if MimeClassifier::is_audio_video(&mime) {
+        } else if MimeClassifier::is_audio_video(mime) {
             Some(MediaType::AudioVideo)
         } else {
             None
@@ -256,7 +262,7 @@ impl MimeClassifier {
     fn maybe_get_media_type(supplied_type: &Option<Mime>) -> Option<MediaType> {
         supplied_type
             .as_ref()
-            .and_then(|ref mime| MimeClassifier::get_media_type(mime))
+            .and_then(MimeClassifier::get_media_type)
     }
 }
 
@@ -338,7 +344,7 @@ impl MIMEChecker for ByteMatcher {
     }
 
     fn validate(&self) -> Result<(), String> {
-        if self.pattern.len() == 0 {
+        if self.pattern.is_empty() {
             return Err(format!("Zero length pattern for {:?}", self.content_type));
         }
         if self.pattern.len() != self.mask.len() {
@@ -436,8 +442,8 @@ impl BinaryOrPlaintextClassifier {
         } else if data.iter().any(|&x| {
             x <= 0x08u8 ||
                 x == 0x0Bu8 ||
-                (x >= 0x0Eu8 && x <= 0x1Au8) ||
-                (x >= 0x1Cu8 && x <= 0x1Fu8)
+                (0x0Eu8..=0x1Au8).contains(&x) ||
+                (0x1Cu8..=0x1Fu8).contains(&x)
         }) {
             mime::APPLICATION_OCTET_STREAM
         } else {
@@ -618,7 +624,7 @@ impl FeedsClassifier {
         // TODO: need max_bytes to prevent inadvertently examining html document
         //       eg. an html page with a feed example
         loop {
-            if matcher.find(|&x| *x == b'<').is_none() {
+            if !matcher.any(|x| *x == b'<') {
                 return None;
             }
 
