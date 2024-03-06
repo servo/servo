@@ -17,7 +17,8 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubuffer::GPUBuffer;
-use crate::dom::gpudevice::{convert_label, GPUDevice};
+use crate::dom::gpuconvert::convert_label;
+use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
 
