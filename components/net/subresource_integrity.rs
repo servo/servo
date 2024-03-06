@@ -12,7 +12,7 @@ use net_traits::response::{Response, ResponseBody, ResponseType};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 const SUPPORTED_ALGORITHM: &[&'static str] = &["sha256", "sha384", "sha512"];
-pub type StaticCharVec = &[char];
+pub type StaticCharVec = &'static [char];
 /// A "space character" according to:
 ///
 /// <https://html.spec.whatwg.org/multipage/#space-character>
@@ -68,7 +68,7 @@ pub fn parsed_metadata(integrity_metadata: &str) -> Vec<SriEntry> {
         }
     }
 
-    return result;
+    result
 }
 
 /// <https://w3c.github.io/webappsec-subresource-integrity/#getprioritizedhashfunction>

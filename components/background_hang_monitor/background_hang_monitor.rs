@@ -401,10 +401,8 @@ impl BackgroundHangMonitorWorker {
                 // gets disconnected.
                 Some(event.unwrap())
             },
-            recv(self.tether_port) -> event => {
+            recv(self.tether_port) -> _ => {
                 // This arm can only reached by a tether disconnection
-                if let Ok(x) = event { match x {} }
-
                 // All associated `HangMonitorRegister` and
                 // `BackgroundHangMonitorChan` have been dropped. Suppress
                 // `signal_to_exit` and exit the BHM.

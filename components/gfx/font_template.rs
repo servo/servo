@@ -111,9 +111,7 @@ impl FontTemplate {
 
         let maybe_strong_ref = maybe_data.map(Arc::new);
 
-        let maybe_weak_ref = maybe_strong_ref
-            .as_ref()
-            .map(|strong_ref| Arc::downgrade(strong_ref));
+        let maybe_weak_ref = maybe_strong_ref.as_ref().map(Arc::downgrade);
 
         Ok(FontTemplate {
             identifier,

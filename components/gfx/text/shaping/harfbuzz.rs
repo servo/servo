@@ -47,21 +47,19 @@ pub struct ShapedGlyphEntry {
 }
 
 impl ShapedGlyphData {
-    pub fn new(buffer: *mut hb_buffer_t) -> ShapedGlyphData {
-        unsafe {
-            let mut glyph_count = 0;
-            let glyph_infos = hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
-            assert!(!glyph_infos.is_null());
-            let mut pos_count = 0;
-            let pos_infos = hb_buffer_get_glyph_positions(buffer, &mut pos_count);
-            assert!(!pos_infos.is_null());
-            assert_eq!(glyph_count, pos_count);
+    pub unsafe fn new(buffer: *mut hb_buffer_t) -> ShapedGlyphData {
+        let mut glyph_count = 0;
+        let glyph_infos = hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
+        assert!(!glyph_infos.is_null());
+        let mut pos_count = 0;
+        let pos_infos = hb_buffer_get_glyph_positions(buffer, &mut pos_count);
+        assert!(!pos_infos.is_null());
+        assert_eq!(glyph_count, pos_count);
 
-            ShapedGlyphData {
-                count: glyph_count as usize,
-                glyph_infos,
-                pos_infos,
-            }
+        ShapedGlyphData {
+            count: glyph_count as usize,
+            glyph_infos,
+            pos_infos,
         }
     }
 
@@ -70,7 +68,7 @@ impl ShapedGlyphData {
         assert!(i < self.count);
 
         unsafe {
-            let glyph_info_i = self.glyph_infos.offset(i as isize);
+            let glyph_info_i = self.glyph_infos.add(i);
             (*glyph_info_i).cluster
         }
     }
@@ -79,13 +77,17 @@ impl ShapedGlyphData {
         self.count
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
+
     /// Returns shaped glyph data for one glyph, and updates the y-position of the pen.
     pub fn entry_for_glyph(&self, i: usize, y_pos: &mut Au) -> ShapedGlyphEntry {
         assert!(i < self.count);
 
         unsafe {
-            let glyph_info_i = self.glyph_infos.offset(i as isize);
-            let pos_info_i = self.pos_infos.offset(i as isize);
+            let glyph_info_i = self.glyph_infos.add(i);
+            let pos_info_i = self.pos_infos.add(i);
             let x_offset = Shaper::fixed_to_float((*pos_info_i).x_offset);
             let y_offset = Shaper::fixed_to_float((*pos_info_i).y_offset);
             let x_advance = Shaper::fixed_to_float((*pos_info_i).x_advance);
@@ -101,7 +103,7 @@ impl ShapedGlyphData {
             } else {
                 // adjust the pen..
                 if y_advance > Au(0) {
-                    *y_pos = *y_pos - y_advance;
+                    *y_pos -= y_advance;
                 }
 
                 Some(Point2D::new(x_offset, *y_pos - y_offset))
@@ -136,6 +138,7 @@ impl Drop for Shaper {
 }
 
 impl Shaper {
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn new(font: *const Font) -> Shaper {
         unsafe {
             let hb_face: *mut hb_face_t = hb_face_create_for_tables(
@@ -415,7 +418,7 @@ impl Shaper {
         glyphs: &mut GlyphStore,
         buffer: *mut hb_buffer_t,
     ) {
-        let glyph_data = ShapedGlyphData::new(buffer);
+        let glyph_data = unsafe { ShapedGlyphData::new(buffer) };
         let glyph_count = glyph_data.len();
         let byte_max = text.len();
 

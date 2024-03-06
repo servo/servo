@@ -40,7 +40,7 @@ impl GlyphEntry {
         assert!(is_simple_glyph_id(id));
         assert!(is_simple_advance(advance));
 
-        let id_mask = id as u32;
+        let id_mask = id;
         let Au(advance) = advance;
         let advance_mask = (advance as u32) << GLYPH_ADVANCE_SHIFT;
 
@@ -89,7 +89,7 @@ const GLYPH_ID_MASK: u32 = 0x0000FFFF;
 const GLYPH_COUNT_MASK: u32 = 0x0000FFFF;
 
 fn is_simple_glyph_id(id: GlyphId) -> bool {
-    ((id as u32) & GLYPH_ID_MASK) == id
+    (id & GLYPH_ID_MASK) == id
 }
 
 fn is_simple_advance(advance: Au) -> bool {
@@ -174,7 +174,7 @@ struct DetailedGlyphRecord {
 
 impl PartialOrd for DetailedGlyphRecord {
     fn partial_cmp(&self, other: &DetailedGlyphRecord) -> Option<Ordering> {
-        self.entry_offset.partial_cmp(&other.entry_offset)
+        Some(self.cmp(other))
     }
 }
 
@@ -490,7 +490,7 @@ impl<'a> GlyphStore {
         let mut total_advance = Au(0);
         let mut total_word_separators = 0;
         for glyph in self.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), self.len())) {
-            total_advance = total_advance + glyph.advance();
+            total_advance += glyph.advance();
             if glyph.char_is_word_separator() {
                 total_word_separators += 1;
             }
@@ -539,7 +539,7 @@ impl<'a> GlyphStore {
 
     pub fn add_glyphs_for_byte_index(&mut self, i: ByteIndex, data_for_glyphs: &[GlyphData]) {
         assert!(i < self.len());
-        assert!(data_for_glyphs.len() > 0);
+        assert!(!data_for_glyphs.is_empty());
 
         let glyph_count = data_for_glyphs.len();
 
@@ -623,8 +623,6 @@ impl<'a> GlyphStore {
     pub fn advance_for_byte_range(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
         if range.begin() == ByteIndex(0) && range.end() == self.len() {
             self.total_advance + extra_word_spacing * (self.total_word_separators as i32)
-        } else if !self.has_detailed_glyphs {
-            self.advance_for_byte_range_simple_glyphs(range, extra_word_spacing)
         } else {
             self.advance_for_byte_range_simple_glyphs(range, extra_word_spacing)
         }
@@ -664,13 +662,13 @@ impl<'a> GlyphStore {
 
 impl fmt::Debug for GlyphStore {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "GlyphStore:\n")?;
+        writeln!(formatter, "GlyphStore:")?;
         let mut detailed_buffer = self.detail_store.detail_buffer.iter();
         for entry in self.entry_buffer.iter() {
             if entry.is_simple() {
-                write!(
+                writeln!(
                     formatter,
-                    "  simple id={:?} advance={:?}\n",
+                    "  simple id={:?} advance={:?}",
                     entry.id(),
                     entry.advance()
                 )?;
@@ -683,9 +681,9 @@ impl fmt::Debug for GlyphStore {
             if detailed_buffer.next().is_none() {
                 continue;
             }
-            write!(
+            writeln!(
                 formatter,
-                "  detailed id={:?} advance={:?}\n",
+                "  detailed id={:?} advance={:?}",
                 entry.id(),
                 entry.advance()
             )?;

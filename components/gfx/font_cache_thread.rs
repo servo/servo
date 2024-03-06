@@ -371,9 +371,7 @@ impl FontCache {
         self.local_families.clear();
         for_each_available_family(|family_name| {
             let family_name = LowercaseString::new(&family_name);
-            self.local_families
-                .entry(family_name)
-                .or_insert_with(|| FontTemplates::new());
+            self.local_families.entry(family_name).or_default();
         });
     }
 

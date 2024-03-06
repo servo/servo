@@ -759,7 +759,7 @@ impl HttpCache {
         assert_eq!(response.status.map(|s| s.0), Some(StatusCode::NOT_MODIFIED));
         let entry_key = CacheKey::new(&request);
         if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
-            for cached_resource in cached_resources.iter_mut() {
+            if let Some(cached_resource) = cached_resources.iter_mut().next() {
                 // done_chan will have been set to Some(..) by http_network_fetch.
                 // If the body is not receiving data, set the done_chan back to None.
                 // Otherwise, create a new dedicated channel to update the consumer.

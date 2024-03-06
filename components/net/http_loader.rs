@@ -21,8 +21,8 @@ use headers::authorization::Basic;
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
     AccessControlAllowOrigin, AccessControlMaxAge, AccessControlRequestHeaders,
-    AccessControlRequestMethod, Authorization, CacheControl, ContentEncoding, ContentLength,
-    HeaderMapExt, IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent,
+    AccessControlRequestMethod, Authorization, CacheControl, ContentLength, HeaderMapExt,
+    IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent,
 };
 use http::header::{
     self, HeaderValue, ACCEPT, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE,
@@ -1917,11 +1917,11 @@ async fn http_network_fetch(
     // TODO when https://bugzilla.mozilla.org/show_bug.cgi?id=1030660
     // is resolved, this step will become uneccesary
     // TODO this step
-    if let Some(encoding) = response.headers.typed_get::<ContentEncoding>() {
-        if encoding.contains("gzip") {
-        } else if encoding.contains("compress") {
-        }
-    };
+    // if let Some(encoding) = response.headers.typed_get::<ContentEncoding>() {
+    //     if encoding.contains("gzip") {
+    //     } else if encoding.contains("compress") {
+    //     }
+    // };
 
     // Step 13
     // TODO this step isn't possible yet (CSP)
