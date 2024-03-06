@@ -514,6 +514,10 @@ unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(crown::unrooted_must_root)]
 pub struct ScriptThread {
+    /// <https://html.spec.whatwg.org/multipage/#last-render-opportunity-time>
+    last_render_opportunity_time: DomRefCell<u64>,
+    /// Used to batch rendering opportunities
+    has_queued_update_the_rendering_task: DomRefCell<bool>,
     /// The documents for pipelines managed by this thread
     documents: DomRefCell<Documents>,
     /// The window proxies known by this thread
@@ -1343,6 +1347,8 @@ impl ScriptThread {
         let control_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(state.control_port);
 
         ScriptThread {
+            last_render_opportunity_time: Default::default(),
+            has_queued_update_the_rendering_task: Default::default(),
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMapTracedValues::new()),
             incomplete_loads: DomRefCell::new(vec![]),
@@ -1469,6 +1475,71 @@ impl ScriptThread {
             debug!("Running script thread.");
         }
         debug!("Stopped script thread.");
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
+    fn update_the_rendering(&self) {
+        // reset batching.
+        *self.has_queued_update_the_rendering_task.borrow_mut() = false;
+
+        if self.can_continue_running_inner() {
+            // TODO: ordering by parent and shadow root.
+            for doc in self
+                .documents
+                .borrow()
+                .iter()
+                .filter_map(|(_id, document)| {
+                    if !document.is_fully_active() {
+                        None
+                    } else {
+                        Some(DomRoot::from_ref(&*document))
+                    }
+                })
+            {}
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:rendering-opportunity>
+    fn rendering_opportunity(&self, pipeline_id: PipelineId) {
+        *self.last_render_opportunity_time.borrow_mut() = time::precise_time_ns();
+
+        // Note: the pipeline should be a navigable with a rendering opportunity,
+        // and we should use this opportunity to queue one task for each navigable with
+        // an opportunity in this script-thread.
+        let document = match self.documents.borrow().find_document(pipeline_id) {
+            Some(document) => document,
+            None => {
+                return warn!(
+                    "Trying to update the rendering for closed pipeline {}.",
+                    pipeline_id
+                )
+            },
+        };
+        let window = document.window();
+        let task_manager = window.task_manager();
+        let rendering_task_source = task_manager.rendering_task_source();
+        let canceller = task_manager.task_canceller(TaskSourceName::Rendering);
+        let trusted_document = Trusted::new(&*document);
+
+        // Batch rendering ops.
+        if !*self.has_queued_update_the_rendering_task.borrow() {
+            *self.has_queued_update_the_rendering_task.borrow_mut() = true;
+            // Queues a task to update the rendering.
+            // <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:queue-a-global-task>
+            let _ = rendering_task_source.queue_with_canceller(
+                task!(update_the_rendering: move || {
+                    // Note: spec says to queue a task using the navigable's active window,
+                    // but then updates the rendering for all docs in the same event-loop.
+                    SCRIPT_THREAD_ROOT.with(|root| {
+                        if let Some(script_thread) = root.get() {
+                            let script_thread = unsafe {&*script_thread};
+                            script_thread.update_the_rendering();
+                        }
+                    })
+                }),
+                &canceller,
+            );
+        }
     }
 
     /// Handle incoming control messages.
