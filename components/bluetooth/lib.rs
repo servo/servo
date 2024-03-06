@@ -120,7 +120,7 @@ fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) -> boo
     if !filter.get_services().is_empty() {
         if let Ok(device_uuids) = device.get_uuids() {
             for service in filter.get_services() {
-                if device_uuids.iter().any(|x| &x == &service) {
+                if !device_uuids.iter().any(|x| x == service) {
                     return false;
                 }
             }
