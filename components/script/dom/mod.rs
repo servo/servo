@@ -336,6 +336,7 @@ pub mod gpucompilationinfo;
 pub mod gpucompilationmessage;
 pub mod gpucomputepassencoder;
 pub mod gpucomputepipeline;
+pub mod gpuconvert;
 pub mod gpudevice;
 pub mod gpudevicelostinfo;
 pub mod gpumapmode;
