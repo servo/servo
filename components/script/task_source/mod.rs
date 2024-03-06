@@ -37,7 +37,7 @@ pub enum TaskSourceName {
     PortMessage,
     UserInteraction,
     RemoteEvent,
-    /// https://html.spec.whatwg.org/multipage/#rendering-task-source
+    /// <https://html.spec.whatwg.org/multipage/#rendering-task-source>
     Rendering,
     MediaElement,
     Websocket,

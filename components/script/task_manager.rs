@@ -62,7 +62,6 @@ pub struct TaskManager {
     #[ignore_malloc_size_of = "task sources are hard"]
     rendering_task_source: RenderingTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
-    #[ignore_malloc_size_of = "task sources are hard"]
     timer_task_source: TimerTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     websocket_task_source: WebsocketTaskSource,
