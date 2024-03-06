@@ -2,6 +2,72 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! # Inline Formatting Context Layout
+//!
+//! Inline layout is divided into three phases:
+//!
+//! 1. Box Tree Construction
+//! 2. Box to Line Layout
+//! 3. Line to Fragment Layout
+//!
+//! The first phase happens during normal box tree constrution, while the second two phases happen
+//! during fragment tree construction (sometimes called just "layout").
+//!
+//! ## Box Tree Construction
+//!
+//! During box tree construction, DOM elements are transformed into a box tree. This phase collects
+//! all of the inline boxes, text, atomic inline elements (boxes with `display: inline-block` or
+//! `display: inline-table` as well as things like images and canvas), absolutely positioned blocks,
+//! and floated blocks.
+//!
+//! During the last part of this phase, whitespace is collapsed and text is segmented into
+//! [`TextRun`]s based on script, chosen font, and line breaking opportunities. In addition, default
+//! fonts are selected for every inline box. Each segment of text is shaped using HarfBuzz and
+//! turned into a series of glyphs, which all have a size and a position relative to the origin of
+//! the [`TextRun`] (calculated in later phases).
+//!
+//! The code for this phase is mainly in `construct.rs`, but text handling can also be found in
+//! `text_runs.rs.`
+//!
+//! ## Box to Line Layout
+//!
+//! During the first phase of fragment tree construction, box tree items are laid out into
+//! [`LineItem`]s and fragmented based on line boundaries. This is where line breaking happens. This
+//! part of layout fragments boxes and their contents across multiple lines while positioning floats
+//! and making sure non-floated contents flow around them. In addition, all atomic elements are laid
+//! out, which may descend into their respective trees and create fragments. Finally, absolutely
+//! positioned content is collected in order to later hoist it to the containing block for
+//! absolutes.
+//!
+//! Note that during this phase, layout does not know the final block position of content. Only
+//! during line to fragment layout, are the final block positions calculated based on the line's
+//! final content and its vertical alignment. Instead, positions and line heights are calculated
+//! relative to the line's final baseline which will be determined in the final phase.
+//!
+//! [`LineItem`]s represent a particular set of content on a line. Currently this is represented by
+//! a linear series of items that describe the line's hierarchy of inline boxes and content. The
+//! item types are:
+//!
+//!  - [`LineItem::TextRun`]
+//!  - [`LineItem::StartInlineBox`]
+//!  - [`LineItem::EndInlineBox`]
+//!  - [`LineItem::Atomic`]
+//!  - [`LineItem::AbsolutelyPositioned`]
+//!  - [`LineItem::Float`]
+//!
+//! The code for this can be found by looking for methods of the form `layout_into_line_item()`.
+//!
+//! ## Line to Fragment Layout
+//!
+//! During the second phase of fragment tree construction, the final block position of [`LineItem`]s
+//! is calculated and they are converted into [`Fragment`]s. After layout, the [`LineItem`]s are
+//! discarded and the new fragments are incorporated into the fragment tree. The final static
+//! position of absolutely positioned content is calculated and it is hoisted to its containing
+//! block via [`PositioningContext`].
+//!
+//! The code for this phase, can mainly be found in `line.rs`.
+//!
+
 use std::cell::OnceCell;
 use std::mem;
 
