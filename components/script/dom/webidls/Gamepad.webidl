@@ -12,6 +12,7 @@ interface Gamepad {
     readonly attribute DOMString mapping;
     readonly attribute Float64Array axes;
     [SameObject] readonly attribute GamepadButtonList buttons;
+    [SameObject] readonly attribute GamepadHapticActuator vibrationActuator;
 };
 
 // https://w3c.github.io/gamepad/extensions.html#partial-gamepad-interface
