@@ -418,7 +418,7 @@ impl ImageCacheStore {
 pub struct ImageCacheImpl {
     store: Arc<Mutex<ImageCacheStore>>,
 
-    // Thread pool for image decoding
+    /// Thread pool for image decoding
     thread_pool: CoreResourceThreadPool,
 }
 
