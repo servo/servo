@@ -20,6 +20,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepadbuttonlist::GamepadButtonList;
 use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
+use crate::dom::gamepadhapticactuator::GamepadHapticActuator;
 use crate::dom::gamepadpose::GamepadPose;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
@@ -49,6 +50,7 @@ pub struct Gamepad {
     axis_bounds: (f64, f64),
     button_bounds: (f64, f64),
     exposed: Cell<bool>,
+    vibration_actuator: Dom<GamepadHapticActuator>,
 }
 
 impl Gamepad {
@@ -65,6 +67,7 @@ impl Gamepad {
         hand: GamepadHand,
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
+        vibration_actuator: &GamepadHapticActuator,
     ) -> Gamepad {
         Self {
             reflector_: Reflector::new(),
@@ -81,6 +84,7 @@ impl Gamepad {
             axis_bounds,
             button_bounds,
             exposed: Cell::new(false),
+            vibration_actuator: Dom::from_ref(vibration_actuator),
         }
     }
 
@@ -107,6 +111,7 @@ impl Gamepad {
         button_bounds: (f64, f64),
     ) -> DomRoot<Gamepad> {
         let button_list = GamepadButtonList::init_buttons(global);
+        let vibration_actuator = GamepadHapticActuator::new(global);
         let gamepad = reflect_dom_object_with_proto(
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
@@ -120,6 +125,7 @@ impl Gamepad {
                 GamepadHand::_empty,
                 axis_bounds,
                 button_bounds,
+                &vibration_actuator,
             )),
             global,
             None,
@@ -163,6 +169,10 @@ impl GamepadMethods for Gamepad {
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
     fn Buttons(&self) -> DomRoot<GamepadButtonList> {
         DomRoot::from_ref(&*self.buttons)
+    }
+
+    fn VibrationActuator(&self) -> DomRoot<GamepadHapticActuator> {
+        DomRoot::from_ref(&*self.vibration_actuator)
     }
 
     // https://w3c.github.io/gamepad/extensions.html#gamepadhand-enum
