@@ -72,7 +72,7 @@ struct ColumnLayout {
 /// A helper struct that performs the layout of the box tree version
 /// of a table into the fragment tree version. This implements
 /// <https://drafts.csswg.org/css-tables/#table-layout-algorithm>
-struct TableLayout<'a> {
+pub(crate) struct TableLayout<'a> {
     table: &'a Table,
     pbm: PaddingBorderMargin,
     rows: Vec<RowLayout>,
