@@ -1,3 +1,5 @@
+# NOTE: The hash for the `vendorTarball` in etc/shell.nix should be
+# regenerated when this file is changed.
 [workspace]
 
 [package]
