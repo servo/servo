@@ -10,6 +10,13 @@ for help getting started.
 
 Visit the [Servo Project page](https://servo.org/) for news and guides.
 
+## Getting Servo
+``` sh
+git clone https://github.com/servo/servo
+cd servo
+```
+Your CARGO_HOME needs to point to (or be in) the same drive as your Servo repository (See [#28530](https://github.com/servo/servo/issues/28530)).
+
 ## Build Setup
 
 * [macOS](#macos)
@@ -81,13 +88,6 @@ See also [Windows Troubleshooting Tips][windows-tips].
   ```
 For information about building and running the Android build, see
 the [Android documentation][android-docs].
-
-### Cloning the Repo
-Your CARGO_HOME needs to point to (or be in) the same drive as your Servo repository (See [#28530](https://github.com/servo/servo/issues/28530)).
-``` sh
-git clone https://github.com/servo/servo
-cd servo
-```
 
 ## Building
 
