@@ -251,6 +251,7 @@ mod test {
         assert_eq!(webviews.is_effectively_visible(top_level_id(0, 3)), false);
 
         webviews.mark_webview_not_invisible(top_level_id(0, 1));
+        webviews.mark_webview_not_invisible(top_level_id(0, 3));
         webviews.mark_webview_not_shown(top_level_id(0, 1));
         assert_eq!(webviews.is_effectively_visible(top_level_id(0, 1)), false);
         assert_eq!(webviews.is_effectively_visible(top_level_id(0, 2)), false);
