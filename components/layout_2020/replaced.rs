@@ -137,7 +137,7 @@ pub(crate) enum ReplacedContentKind {
     Image(Option<Arc<Image>>),
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
-    Video(VideoInfo),
+    Video(Option<VideoInfo>),
 }
 
 impl ReplacedContent {
@@ -173,7 +173,7 @@ impl ReplacedContent {
                 )
             } else if let Some((image_key, natural_size_in_dots)) = element.as_video() {
                 (
-                    ReplacedContentKind::Video(VideoInfo { image_key }),
+                    ReplacedContentKind::Video(image_key.map(|key| VideoInfo { image_key: key })),
                     Some(natural_size_in_dots),
                 )
             } else {
@@ -348,7 +348,7 @@ impl ReplacedContent {
                         style: style.clone(),
                         rect,
                         clip,
-                        image_key,
+                        image_key: Some(image_key),
                     })
                 })
                 .into_iter()
@@ -358,7 +358,7 @@ impl ReplacedContent {
                 style: style.clone(),
                 rect,
                 clip,
-                image_key: video.image_key,
+                image_key: video.as_ref().map(|video| video.image_key),
             })],
             ReplacedContentKind::IFrame(iframe) => {
                 vec![Fragment::IFrame(IFrameFragment {
@@ -397,7 +397,7 @@ impl ReplacedContent {
                     style: style.clone(),
                     rect,
                     clip,
-                    image_key,
+                    image_key: Some(image_key),
                 })]
             },
         }

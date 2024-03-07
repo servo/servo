@@ -20,6 +20,7 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
     NetworkError, ResourceFetchTiming, ResourceTimingType,
 };
+use script_layout_interface::HTMLMediaData;
 use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
 
@@ -30,7 +31,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding::HTMLVideoE
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
@@ -413,6 +414,27 @@ impl PosterFrameFetchContext {
             cancelled: false,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
+        }
+    }
+}
+
+pub trait LayoutHTMLVideoElementHelpers {
+    fn data(self) -> HTMLMediaData;
+}
+
+impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
+    #[allow(unsafe_code)]
+    fn data(self) -> HTMLMediaData {
+        let video = unsafe { &*self.unsafe_get() };
+        let current_frame = video.htmlmediaelement.get_current_frame_data();
+        let current_frame = current_frame.as_ref();
+        let width = video.get_video_width() as i32;
+        let height = video.get_video_height() as i32;
+
+        HTMLMediaData {
+            current_frame: current_frame.map(|frame| frame.0),
+            width: current_frame.map_or(width, |frame| frame.1),
+            height: current_frame.map_or(height, |frame| frame.2),
         }
     }
 }

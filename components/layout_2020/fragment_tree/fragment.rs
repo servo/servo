@@ -85,7 +85,7 @@ pub(crate) struct ImageFragment {
     pub rect: PhysicalRect<Au>,
     pub clip: PhysicalRect<Au>,
     #[serde(skip_serializing)]
-    pub image_key: ImageKey,
+    pub image_key: Option<ImageKey>,
 }
 
 #[derive(Serialize)]
