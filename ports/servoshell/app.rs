@@ -84,11 +84,9 @@ impl App {
 
         // Handle browser state.
         let webviews = WebViewManager::new(window.clone());
-        let initial_url = get_default_url(
-            url.as_ref().map(String::as_str),
-            env::current_dir().unwrap(),
-            |path| fs::metadata(path).is_ok(),
-        );
+        let initial_url = get_default_url(url.as_deref(), env::current_dir().unwrap(), |path| {
+            fs::metadata(path).is_ok()
+        });
 
         let mut app = App {
             event_queue: RefCell::new(vec![]),
@@ -270,7 +268,7 @@ impl App {
                         window.winit_window().unwrap().request_redraw();
                     },
                     winit::event::Event::WindowEvent { ref event, .. } => {
-                        let response = minibrowser.on_event(&event);
+                        let response = minibrowser.on_event(event);
                         if response.repaint {
                             // Request a winit redraw event, so we can recomposite, update and paint
                             // the minibrowser, and present the new frame.
