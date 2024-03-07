@@ -93,7 +93,7 @@ pub enum ConstellationMsg {
     ReadyToPresent(TopLevelBrowsingContextId),
     /// Gamepad state has changed
     Gamepad(GamepadEvent),
-    /// Notify the embedder of an updated web view painting order.
+    /// Notify the embedder of an updated webview painting order.
     WebViewPaintingOrder(Vec<TopLevelBrowsingContextId>),
 }
 

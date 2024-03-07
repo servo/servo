@@ -106,17 +106,17 @@ pub enum CompositorMsg {
     ShutdownComplete,
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Add or update a web view, given its frame tree.
+    /// Add or update a webview, given its frame tree.
     UpdateWebView(SendableFrameTree),
-    /// Remove a web view.
+    /// Remove a webview.
     RemoveWebView(TopLevelBrowsingContextId),
-    /// Make a web view visible.
+    /// Make a webview visible.
     MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
-    /// Make a web view visible.
+    /// Make a webview visible.
     ShowWebView(TopLevelBrowsingContextId),
-    /// Make a web view invisible.
+    /// Make a webview invisible.
     HideWebView(TopLevelBrowsingContextId),
-    /// Make a web view visible and paint on top of all others.
+    /// Make a webview visible and paint on top of all others.
     RaiseWebViewToTop(TopLevelBrowsingContextId),
     /// Composite.
     Recomposite(CompositingReason),

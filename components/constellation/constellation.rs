@@ -5471,7 +5471,7 @@ where
             })
     }
 
-    /// Send the frame tree for the given web view to the compositor.
+    /// Send the frame tree for the given webview to the compositor.
     fn update_webview(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         if !cfg!(feature = "multiview") {
             if let Some(focused_webview_id) = self.webviews.focused_webview().map(|(id, _)| id) {

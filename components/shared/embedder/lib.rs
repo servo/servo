@@ -156,15 +156,15 @@ pub enum EmbedderMsg {
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningWebView(IpcSender<bool>),
-    /// A web view was created
+    /// A webview was created
     WebViewOpened(TopLevelBrowsingContextId),
-    /// A web view was destroyed
+    /// A webview was destroyed
     WebViewClosed(TopLevelBrowsingContextId),
-    /// A web view gained focus for keyboard events
+    /// A webview gained focus for keyboard events
     WebViewFocused(TopLevelBrowsingContextId),
-    /// All web views lost focus for keyboard events
+    /// All webviews lost focus for keyboard events
     WebViewBlurred,
-    /// The order to paint the web views
+    /// The order to paint the webviews
     WebViewPaintingOrder(Vec<TopLevelBrowsingContextId>),
     /// Wether or not to unload a document
     AllowUnload(IpcSender<bool>),
