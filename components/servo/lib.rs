@@ -812,11 +812,11 @@ where
                 }
             },
 
-            EmbedderEvent::WebViewVisibilityChanged(webview_id, visible) => {
-                let msg = ConstellationMsg::WebViewVisibilityChanged(webview_id, visible);
+            EmbedderEvent::MarkWebViewInvisible(webview_id, visible) => {
+                let msg = ConstellationMsg::MarkWebViewInvisible(webview_id, invisible);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
-                        "Sending WebViewVisibilityChanged to constellation failed ({:?}).",
+                        "Sending MarkWebViewInvisible to constellation failed ({:?}).",
                         e
                     );
                 }
