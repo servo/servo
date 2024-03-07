@@ -525,7 +525,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// and the system creates a new native surface that needs to bound to the current
     /// context.
     #[allow(unsafe_code)]
-    #[allow(clippy::not_unsafe_ptr_arg_deref)]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)] // It has an unsafe block inside
     pub fn replace_native_surface(&mut self, native_widget: *mut c_void, coords: DeviceIntSize) {
         debug!("Replacing native surface in compositor: {native_widget:?}");
         let connection = self.rendering_context.connection();

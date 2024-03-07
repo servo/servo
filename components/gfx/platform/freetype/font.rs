@@ -392,7 +392,7 @@ impl<'a> FontHandle {
         }
     }
 
-    #[allow(clippy::mut_from_ref)]
+    #[allow(clippy::mut_from_ref)] // Intended for this function
     fn face_rec_mut(&'a self) -> &'a mut FT_FaceRec {
         unsafe { &mut (*self.face) }
     }

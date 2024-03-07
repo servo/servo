@@ -138,7 +138,7 @@ impl Drop for Shaper {
 }
 
 impl Shaper {
-    #[allow(clippy::not_unsafe_ptr_arg_deref)]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)] // Has an unsafe block inside
     pub fn new(font: *const Font) -> Shaper {
         unsafe {
             let hb_face: *mut hb_face_t = hb_face_create_for_tables(
