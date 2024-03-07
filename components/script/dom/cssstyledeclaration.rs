@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp::Ordering;
+
 use dom_struct::dom_struct;
 use html5ever::local_name;
+use lazy_static::lazy_static;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -342,9 +345,44 @@ impl CSSStyleDeclaration {
     }
 }
 
+lazy_static! {
+    static ref ENABLED_LONGHAND_PROPERTIES: Vec<LonghandId> = {
+        // The 'all' shorthand contains all the enabled longhands with 2 exceptions:
+        // 'direction' and 'unicode-bidi', so these must be added afterward.
+        let mut enabled_longhands: Vec<LonghandId> = ShorthandId::All.longhands().collect();
+        if PropertyId::Longhand(LonghandId::Direction).enabled_for_all_content() {
+            enabled_longhands.push(LonghandId::Direction);
+        }
+        if PropertyId::Longhand(LonghandId::UnicodeBidi).enabled_for_all_content() {
+            enabled_longhands.push(LonghandId::UnicodeBidi);
+        }
+
+        // Sort lexicographically, but with vendor-prefixed properties after standard ones.
+        enabled_longhands.sort_unstable_by(|a, b| {
+            let a = a.name();
+            let b = b.name();
+            let is_a_vendor_prefixed = a.starts_with("-");
+            let is_b_vendor_prefixed = b.starts_with("-");
+            if is_a_vendor_prefixed == is_b_vendor_prefixed {
+                a.partial_cmp(b).unwrap()
+            } else if is_b_vendor_prefixed {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        });
+        enabled_longhands
+    };
+}
+
 impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
+        if self.readonly {
+            // Readonly style declarations are used for getComputedStyle.
+            // TODO: include custom properties whose computed value is not the guaranteed-invalid value.
+            return ENABLED_LONGHAND_PROPERTIES.len() as u32;
+        }
         self.owner.with_block(|pdb| pdb.declarations().len() as u32)
     }
 
@@ -364,6 +402,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
     fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
+        if self.readonly {
+            // Readonly style declarations are used for getComputedStyle.
+            return DOMString::new();
+        }
         let id = match PropertyId::parse_enabled_for_all_content(&property) {
             Ok(id) => id,
             Err(..) => return DOMString::new(),
@@ -432,6 +474,12 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
+        if self.readonly {
+            // Readonly style declarations are used for getComputedStyle.
+            // TODO: include custom properties whose computed value is not the guaranteed-invalid value.
+            let longhand = ENABLED_LONGHAND_PROPERTIES.get(index as usize)?;
+            return Some(DOMString::from(longhand.name()));
+        }
         self.owner.with_block(|pdb| {
             let declaration = pdb.declarations().get(index as usize)?;
             Some(DOMString::from(declaration.id().name()))
@@ -440,6 +488,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
     fn CssText(&self) -> DOMString {
+        if self.readonly {
+            // Readonly style declarations are used for getComputedStyle.
+            return DOMString::new();
+        }
         self.owner.with_block(|pdb| {
             let mut serialization = String::new();
             pdb.to_css(&mut serialization).unwrap();
