@@ -51,7 +51,16 @@ pub enum NoSniffFlag {
 
 impl Default for MimeClassifier {
     fn default() -> Self {
-        Self::new()
+        Self {
+            image_classifier: GroupedClassifier::image_classifer(),
+            audio_video_classifier: GroupedClassifier::audio_video_classifier(),
+            scriptable_classifier: GroupedClassifier::scriptable_classifier(),
+            plaintext_classifier: GroupedClassifier::plaintext_classifier(),
+            archive_classifier: GroupedClassifier::archive_classifier(),
+            binary_or_plaintext: BinaryOrPlaintextClassifier,
+            feeds_classifier: FeedsClassifier,
+            font_classifier: GroupedClassifier::font_classifier(),
+        }
     }
 }
 
@@ -167,19 +176,6 @@ impl MimeClassifier {
                 // of this implementation.
                 "text/cache-manifest".parse().unwrap()
             },
-        }
-    }
-
-    pub fn new() -> MimeClassifier {
-        MimeClassifier {
-            image_classifier: GroupedClassifier::image_classifer(),
-            audio_video_classifier: GroupedClassifier::audio_video_classifier(),
-            scriptable_classifier: GroupedClassifier::scriptable_classifier(),
-            plaintext_classifier: GroupedClassifier::plaintext_classifier(),
-            archive_classifier: GroupedClassifier::archive_classifier(),
-            binary_or_plaintext: BinaryOrPlaintextClassifier,
-            feeds_classifier: FeedsClassifier,
-            font_classifier: GroupedClassifier::font_classifier(),
         }
     }
 

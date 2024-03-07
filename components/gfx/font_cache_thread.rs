@@ -31,6 +31,7 @@ use crate::platform::font_list::{
 use crate::platform::font_template::FontTemplateData;
 
 /// A list of font templates that make up a given font family.
+#[derive(Default)]
 pub struct FontTemplates {
     templates: Vec<FontTemplate>,
 }
@@ -61,10 +62,6 @@ impl SerializedFontTemplate {
 }
 
 impl FontTemplates {
-    pub fn new() -> FontTemplates {
-        FontTemplates { templates: vec![] }
-    }
-
     /// Find a font in this family that matches a given descriptor.
     pub fn find_font_for_style(
         &mut self,
@@ -121,12 +118,6 @@ impl FontTemplates {
         if let Ok(template) = FontTemplate::new(identifier, maybe_data) {
             self.templates.push(template);
         }
-    }
-}
-
-impl Default for FontTemplates {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -268,7 +259,7 @@ impl FontCache {
         };
 
         if !self.web_families.contains_key(&family_name) {
-            let templates = FontTemplates::new();
+            let templates = FontTemplates::default();
             self.web_families.insert(family_name.clone(), templates);
         }
 
@@ -497,7 +488,7 @@ impl FontCacheThread {
                     generic_fonts,
                     local_families: HashMap::new(),
                     web_families: HashMap::new(),
-                    font_context: FontContextHandle::new(),
+                    font_context: FontContextHandle::default(),
                     core_resource_thread,
                     webrender_api,
                     webrender_fonts: HashMap::new(),

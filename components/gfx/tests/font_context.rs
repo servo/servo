@@ -34,13 +34,13 @@ struct TestFontSource {
 
 impl TestFontSource {
     fn new() -> TestFontSource {
-        let mut csstest_ascii = FontTemplates::new();
+        let mut csstest_ascii = FontTemplates::default();
         Self::add_face(&mut csstest_ascii, "csstest-ascii", None);
 
-        let mut csstest_basic = FontTemplates::new();
+        let mut csstest_basic = FontTemplates::default();
         Self::add_face(&mut csstest_basic, "csstest-basic-regular", None);
 
-        let mut fallback = FontTemplates::new();
+        let mut fallback = FontTemplates::default();
         Self::add_face(&mut fallback, "csstest-basic-regular", Some("fallback"));
 
         let mut families = HashMap::new();
@@ -49,7 +49,7 @@ impl TestFontSource {
         families.insert(fallback_font_families(None)[0].to_owned(), fallback);
 
         TestFontSource {
-            handle: FontContextHandle::new(),
+            handle: FontContextHandle::default(),
             families,
             find_font_count: Rc::new(Cell::new(0)),
         }

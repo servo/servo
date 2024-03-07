@@ -39,6 +39,7 @@ pub enum WebrenderImageHandlerType {
 /// List of Webrender external images to be shared among all external image
 /// consumers (WebGL, Media, WebGPU).
 /// It ensures that external image identifiers are unique.
+#[derive(Default)]
 pub struct WebrenderExternalImageRegistry {
     /// Map of all generated external images.
     external_images: HashMap<ExternalImageId, WebrenderImageHandlerType>,
@@ -46,20 +47,7 @@ pub struct WebrenderExternalImageRegistry {
     next_image_id: u64,
 }
 
-impl Default for WebrenderExternalImageRegistry {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl WebrenderExternalImageRegistry {
-    pub fn new() -> Self {
-        Self {
-            external_images: HashMap::new(),
-            next_image_id: 0,
-        }
-    }
-
     pub fn next_id(&mut self, handler_type: WebrenderImageHandlerType) -> ExternalImageId {
         self.next_image_id += 1;
         let key = ExternalImageId(self.next_image_id);
@@ -90,7 +78,7 @@ pub struct WebrenderExternalImageHandlers {
 
 impl WebrenderExternalImageHandlers {
     pub fn new() -> (Self, Arc<Mutex<WebrenderExternalImageRegistry>>) {
-        let external_images = Arc::new(Mutex::new(WebrenderExternalImageRegistry::new()));
+        let external_images = Arc::new(Mutex::new(WebrenderExternalImageRegistry::default()));
         (
             Self {
                 webgl_handler: None,

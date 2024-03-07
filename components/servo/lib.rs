@@ -283,7 +283,7 @@ where
 
         // Reserving a namespace to create TopLevelBrowsingContextId.
         PipelineNamespace::install(PipelineNamespaceId(0));
-        let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
+        let top_level_browsing_context_id = TopLevelBrowsingContextId::default();
 
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
@@ -387,7 +387,7 @@ where
             embedder.register_webxr(&mut webxr_main_thread, embedder_proxy.clone());
         }
 
-        let wgpu_image_handler = webgpu::WGPUExternalImages::new();
+        let wgpu_image_handler = webgpu::WGPUExternalImages::default();
         let wgpu_image_map = wgpu_image_handler.images.clone();
         external_image_handlers.set_handler(
             Box::new(wgpu_image_handler),

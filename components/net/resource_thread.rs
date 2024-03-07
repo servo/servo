@@ -159,7 +159,7 @@ fn create_http_states(
     ignore_certificate_errors: bool,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::from_servo_preload();
-    let mut auth_cache = AuthCache::new();
+    let mut auth_cache = AuthCache::default();
     let http_cache = HttpCache::new();
     let mut cookie_jar = CookieStorage::new(150);
     if let Some(config_dir) = config_dir {
@@ -188,7 +188,7 @@ fn create_http_states(
     let private_http_state = HttpState {
         hsts_list: RwLock::new(HstsList::from_servo_preload()),
         cookie_jar: RwLock::new(CookieStorage::new(150)),
-        auth_cache: RwLock::new(AuthCache::new()),
+        auth_cache: RwLock::new(AuthCache::default()),
         history_states: RwLock::new(HashMap::new()),
         http_cache: RwLock::new(HttpCache::new()),
         http_cache_state: Mutex::new(HashMap::new()),
@@ -451,13 +451,7 @@ pub struct AuthCacheEntry {
 
 impl Default for AuthCache {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl AuthCache {
-    pub fn new() -> AuthCache {
-        AuthCache {
+        Self {
             version: 1,
             entries: HashMap::new(),
         }
@@ -712,7 +706,7 @@ impl CoreResourceManager {
                     let response = Response::from_init(res_init, timing_type);
                     http_redirect_fetch(
                         &mut request,
-                        &mut CorsCache::new(),
+                        &mut CorsCache::default(),
                         response,
                         true,
                         &mut sender,

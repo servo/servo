@@ -4,9 +4,7 @@
 
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
-use std::mem;
 use std::sync::{Arc, Mutex};
-use std::thread;
 
 use embedder_traits::resources::{self, Resource};
 use imsz::imsz_from_reader;
@@ -635,13 +633,8 @@ impl ImageCache for ImageCacheImpl {
                         };
 
                         let local_store = self.store.clone();
-<<<<<<< HEAD
                         self.thread_pool.spawn(move || {
-                            let msg = decode_bytes_sync(key, &*bytes, cors_status);
-=======
-                        thread::spawn(move || {
                             let msg = decode_bytes_sync(key, &bytes, cors_status);
->>>>>>> 86264db0c7 (clippy: get rid of many of net warnings)
                             debug!("Image decoded");
                             local_store.lock().unwrap().handle_decoder(msg);
                         });

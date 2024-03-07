@@ -109,9 +109,9 @@ impl HttpState {
     pub fn new() -> HttpState {
         let override_manager = CertificateErrorOverrideManager::new();
         HttpState {
-            hsts_list: RwLock::new(HstsList::new()),
+            hsts_list: RwLock::new(HstsList::default()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
-            auth_cache: RwLock::new(AuthCache::new()),
+            auth_cache: RwLock::new(AuthCache::default()),
             history_states: RwLock::new(HashMap::new()),
             http_cache: RwLock::new(HttpCache::new()),
             http_cache_state: Mutex::new(HashMap::new()),

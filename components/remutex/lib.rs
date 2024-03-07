@@ -48,14 +48,11 @@ pub struct AtomicOptThreadId(AtomicUsize);
 
 impl Default for AtomicOptThreadId {
     fn default() -> Self {
-        Self::new()
+        AtomicOptThreadId(AtomicUsize::new(0))
     }
 }
 
 impl AtomicOptThreadId {
-    pub fn new() -> AtomicOptThreadId {
-        AtomicOptThreadId(AtomicUsize::new(0))
-    }
     pub fn store(&self, value: Option<ThreadId>, ordering: Ordering) {
         let number = value.map(|id| id.0.get()).unwrap_or(0);
         self.0.store(number, ordering);
@@ -83,18 +80,15 @@ pub struct HandOverHandMutex {
 
 impl Default for HandOverHandMutex {
     fn default() -> Self {
-        Self::new()
+        Self {
+            mutex: Mutex::new(()),
+            owner: AtomicOptThreadId::default(),
+            guard: UnsafeCell::new(None),
+        }
     }
 }
 
 impl HandOverHandMutex {
-    pub fn new() -> HandOverHandMutex {
-        HandOverHandMutex {
-            mutex: Mutex::new(()),
-            owner: AtomicOptThreadId::new(),
-            guard: UnsafeCell::new(None),
-        }
-    }
     #[allow(unsafe_code)]
     unsafe fn set_guard_and_owner<'a>(&'a self, guard: MutexGuard<'a, ()>) {
         // The following two lines allow us to unsafely store
@@ -175,7 +169,7 @@ impl<T> ReentrantMutex<T> {
     pub fn new(data: T) -> ReentrantMutex<T> {
         trace!("{:?} Creating new lock.", ThreadId::current());
         ReentrantMutex {
-            mutex: HandOverHandMutex::new(),
+            mutex: HandOverHandMutex::default(),
             count: Cell::new(0),
             data,
         }

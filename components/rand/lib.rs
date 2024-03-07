@@ -95,12 +95,6 @@ impl ServoRng {
     }
 }
 
-impl Default for ServoRng {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl ServoRng {
     /// Create an auto-reseeding instance of `ServoRng`.
     ///

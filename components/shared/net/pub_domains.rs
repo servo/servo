@@ -21,7 +21,7 @@ use embedder_traits::resources::{self, Resource};
 use lazy_static::lazy_static;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct PubDomainRules {
     rules: HashSet<String>,
     wildcards: HashSet<String>,
@@ -37,7 +37,7 @@ impl<'a> FromIterator<&'a str> for PubDomainRules {
     where
         T: IntoIterator<Item = &'a str>,
     {
-        let mut result = PubDomainRules::new();
+        let mut result = PubDomainRules::default();
         for item in iter {
             if let Some(stripped) = item.strip_prefix('!') {
                 result.exceptions.insert(String::from(stripped));
@@ -51,20 +51,7 @@ impl<'a> FromIterator<&'a str> for PubDomainRules {
     }
 }
 
-impl Default for PubDomainRules {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl PubDomainRules {
-    pub fn new() -> PubDomainRules {
-        PubDomainRules {
-            rules: HashSet::new(),
-            wildcards: HashSet::new(),
-            exceptions: HashSet::new(),
-        }
-    }
     pub fn parse(content: &str) -> PubDomainRules {
         content
             .lines()

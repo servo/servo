@@ -385,7 +385,7 @@ fn test_cors_preflight_cache_fetch() {
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
     let counter = state.clone();
-    let mut cache = CorsCache::new();
+    let mut cache = CorsCache::default();
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0
         {

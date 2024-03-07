@@ -77,20 +77,10 @@ fn match_headers(cors_cache: &CorsCacheEntry, cors_req: &Request) -> bool {
 }
 
 /// A simple, vector-based CORS Cache
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CorsCache(Vec<CorsCacheEntry>);
 
-impl Default for CorsCache {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl CorsCache {
-    pub fn new() -> CorsCache {
-        CorsCache(vec![])
-    }
-
     fn find_entry_by_header<'a>(
         &'a mut self,
         request: &Request,

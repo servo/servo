@@ -121,7 +121,7 @@ pub async fn fetch(request: &mut Request, target: Target<'_>, context: &FetchCon
         .unwrap()
         .set_attribute(ResourceAttribute::StartTime(ResourceTimeValue::FetchStart));
 
-    fetch_with_cors_cache(request, &mut CorsCache::new(), target, context).await;
+    fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await;
 }
 
 pub async fn fetch_with_cors_cache(
