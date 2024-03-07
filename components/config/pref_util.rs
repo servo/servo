@@ -55,10 +55,7 @@ impl PrefValue {
     }
 
     pub fn is_missing(&self) -> bool {
-        match self {
-            PrefValue::Missing => true,
-            _ => false,
-        }
+        matches!(self, PrefValue::Missing)
     }
 
     pub fn from_json_value(value: &Value) -> Option<Self> {
@@ -164,7 +161,7 @@ impl From<PrefValue> for [f64; 4] {
                 let mut f = values.into_iter().map(|v| v.try_into());
                 if f.all(|v| v.is_ok()) {
                     let f = f.flatten().collect::<Vec<f64>>();
-                    return [f[0], f[1], f[2], f[3]];
+                    [f[0], f[1], f[2], f[3]]
                 } else {
                     panic!(
                         "Cannot convert PrefValue to {:?}",
@@ -191,7 +188,7 @@ pub enum PrefError {
 impl fmt::Display for PrefError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            PrefError::NoSuchPref(s) | PrefError::InvalidValue(s) => f.write_str(&s),
+            PrefError::NoSuchPref(s) | PrefError::InvalidValue(s) => f.write_str(s),
             PrefError::JsonParseErr(e) => e.fmt(f),
         }
     }
@@ -201,6 +198,7 @@ impl std::error::Error for PrefError {}
 
 pub struct Accessor<P, V> {
     pub getter: Box<dyn Fn(&P) -> V + Sync>,
+    #[allow(clippy::type_complexity)]
     pub setter: Box<dyn Fn(&mut P, V) + Sync>,
 }
 
@@ -261,7 +259,7 @@ impl<'m, P: Clone> Preferences<'m, P> {
     }
 
     /// Creates an iterator over all keys and values
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item = (String, PrefValue)> + 'a {
+    pub fn iter(&self) -> impl Iterator<Item = (String, PrefValue)> + '_ {
         let prefs = self.user_prefs.read().unwrap();
         self.accessors
             .iter()
@@ -269,16 +267,17 @@ impl<'m, P: Clone> Preferences<'m, P> {
     }
 
     /// Creates an iterator over all keys
-    pub fn keys<'a>(&'a self) -> impl Iterator<Item = &'a str> + 'a {
+    pub fn keys(&self) -> impl Iterator<Item = &'_ str> {
         self.accessors.keys().map(String::as_str)
     }
 
-    fn set_inner<V>(&self, key: &str, mut prefs: &mut P, val: V) -> Result<(), PrefError>
+    fn set_inner<V>(&self, key: &str, prefs: &mut P, val: V) -> Result<(), PrefError>
     where
         V: Into<PrefValue>,
     {
         if let Some(accessor) = self.accessors.get(key) {
-            Ok((accessor.setter)(&mut prefs, val.into()))
+            (accessor.setter)(prefs, val.into());
+            Ok(())
         } else {
             Err(PrefError::NoSuchPref(String::from(key)))
         }
