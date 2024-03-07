@@ -53,7 +53,7 @@ impl MessagePort {
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
     pub fn new(owner: &GlobalScope) -> DomRoot<MessagePort> {
-        let port_id = MessagePortId::new();
+        let port_id = MessagePortId::default();
         reflect_dom_object(Box::new(MessagePort::new_inherited(port_id)), owner)
     }
 

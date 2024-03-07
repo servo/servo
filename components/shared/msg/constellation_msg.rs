@@ -80,17 +80,19 @@ pub struct PipelineNamespaceInstaller {
     namespace_receiver: IpcReceiver<PipelineNamespaceId>,
 }
 
-impl PipelineNamespaceInstaller {
-    pub fn new() -> Self {
+impl Default for PipelineNamespaceInstaller {
+    fn default() -> Self {
         let (namespace_sender, namespace_receiver) =
             ipc::channel().expect("PipelineNamespaceInstaller ipc channel failure");
-        PipelineNamespaceInstaller {
+        Self {
             request_sender: None,
-            namespace_sender: namespace_sender,
-            namespace_receiver: namespace_receiver,
+            namespace_sender,
+            namespace_receiver,
         }
     }
+}
 
+impl PipelineNamespaceInstaller {
     /// Provide a request sender to send requests to the constellation.
     pub fn set_sender(&mut self, sender: IpcSender<PipelineNamespaceRequest>) {
         self.request_sender = Some(sender);
@@ -121,7 +123,7 @@ lazy_static! {
     ///
     /// Use PipelineNamespace::fetch_install to install a unique pipeline-namespace from the calling thread.
     static ref PIPELINE_NAMESPACE_INSTALLER: Arc<Mutex<PipelineNamespaceInstaller>> =
-        Arc::new(Mutex::new(PipelineNamespaceInstaller::new()));
+        Arc::new(Mutex::new(PipelineNamespaceInstaller::default()));
 }
 
 /// Each pipeline ID needs to be unique. However, it also needs to be possible to
@@ -209,8 +211,8 @@ namespace_id! {PipelineId, PipelineIndex, "Pipeline"}
 size_of_test!(PipelineId, 8);
 size_of_test!(Option<PipelineId>, 8);
 
-impl PipelineId {
-    pub fn new() -> PipelineId {
+impl Default for PipelineId {
+    fn default() -> Self {
         PIPELINE_NAMESPACE.with(|tls| {
             let mut namespace = tls.get().expect("No namespace set for this thread!");
             let new_pipeline_id = namespace.next_pipeline_id();
@@ -218,7 +220,9 @@ impl PipelineId {
             new_pipeline_id
         })
     }
+}
 
+impl PipelineId {
     pub fn to_webrender(&self) -> WebRenderPipelineId {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let PipelineIndex(index) = self.index;
@@ -246,8 +250,8 @@ namespace_id! {BrowsingContextId, BrowsingContextIndex, "BrowsingContext"}
 size_of_test!(BrowsingContextId, 8);
 size_of_test!(Option<BrowsingContextId>, 8);
 
-impl BrowsingContextId {
-    pub fn new() -> BrowsingContextId {
+impl Default for BrowsingContextId {
+    fn default() -> Self {
         PIPELINE_NAMESPACE.with(|tls| {
             let mut namespace = tls.get().expect("No namespace set for this thread!");
             let new_browsing_context_id = namespace.next_browsing_context_id();
@@ -268,7 +272,7 @@ impl fmt::Display for BrowsingContextGroupId {
 thread_local!(pub static TOP_LEVEL_BROWSING_CONTEXT_ID: Cell<Option<TopLevelBrowsingContextId>> = Cell::new(None));
 
 #[derive(
-    Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+    Clone, Copy, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize, Default,
 )]
 pub struct TopLevelBrowsingContextId(pub BrowsingContextId);
 pub type WebViewId = TopLevelBrowsingContextId;
@@ -289,9 +293,6 @@ impl fmt::Display for TopLevelBrowsingContextId {
 }
 
 impl TopLevelBrowsingContextId {
-    pub fn new() -> TopLevelBrowsingContextId {
-        TopLevelBrowsingContextId(BrowsingContextId::new())
-    }
     /// Each script and layout thread should have the top-level browsing context id installed,
     /// since it is used by crash reporting.
     pub fn install(id: TopLevelBrowsingContextId) {
@@ -323,8 +324,8 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
 
 namespace_id! {MessagePortId, MessagePortIndex, "MessagePort"}
 
-impl MessagePortId {
-    pub fn new() -> MessagePortId {
+impl Default for MessagePortId {
+    fn default() -> Self {
         PIPELINE_NAMESPACE.with(|tls| {
             let mut namespace = tls.get().expect("No namespace set for this thread!");
             let next_message_port_id = namespace.next_message_port_id();
@@ -336,8 +337,8 @@ impl MessagePortId {
 
 namespace_id! {MessagePortRouterId, MessagePortRouterIndex, "MessagePortRouter"}
 
-impl MessagePortRouterId {
-    pub fn new() -> MessagePortRouterId {
+impl Default for MessagePortRouterId {
+    fn default() -> Self {
         PIPELINE_NAMESPACE.with(|tls| {
             let mut namespace = tls.get().expect("No namespace set for this thread!");
             let next_message_port_router_id = namespace.next_message_port_router_id();
@@ -349,8 +350,8 @@ impl MessagePortRouterId {
 
 namespace_id! {BroadcastChannelRouterId, BroadcastChannelRouterIndex, "BroadcastChannelRouter"}
 
-impl BroadcastChannelRouterId {
-    pub fn new() -> BroadcastChannelRouterId {
+impl Default for BroadcastChannelRouterId {
+    fn default() -> Self {
         PIPELINE_NAMESPACE.with(|tls| {
             let mut namespace = tls.get().expect("No namespace set for this thread!");
             let next_broadcast_channel_router_id = namespace.next_broadcast_channel_router_id();
@@ -362,8 +363,8 @@ impl BroadcastChannelRouterId {
 
 namespace_id! {ServiceWorkerId, ServiceWorkerIndex, "ServiceWorker"}
 
-impl ServiceWorkerId {
-    pub fn new() -> ServiceWorkerId {
+impl Default for ServiceWorkerId {
+    fn default() -> Self {
         PIPELINE_NAMESPACE.with(|tls| {
             let mut namespace = tls.get().expect("No namespace set for this thread!");
             let next_service_worker_id = namespace.next_service_worker_id();
@@ -375,8 +376,8 @@ impl ServiceWorkerId {
 
 namespace_id! {ServiceWorkerRegistrationId, ServiceWorkerRegistrationIndex, "ServiceWorkerRegistration"}
 
-impl ServiceWorkerRegistrationId {
-    pub fn new() -> ServiceWorkerRegistrationId {
+impl Default for ServiceWorkerRegistrationId {
+    fn default() -> Self {
         PIPELINE_NAMESPACE.with(|tls| {
             let mut namespace = tls.get().expect("No namespace set for this thread!");
             let next_service_worker_registration_id =
@@ -389,8 +390,8 @@ impl ServiceWorkerRegistrationId {
 
 namespace_id! {BlobId, BlobIndex, "Blob"}
 
-impl BlobId {
-    pub fn new() -> BlobId {
+impl Default for BlobId {
+    fn default() -> Self {
         PIPELINE_NAMESPACE.with(|tls| {
             let mut namespace = tls.get().expect("No namespace set for this thread!");
             let next_blob_id = namespace.next_blob_id();
@@ -402,8 +403,8 @@ impl BlobId {
 
 namespace_id! {HistoryStateId, HistoryStateIndex, "HistoryState"}
 
-impl HistoryStateId {
-    pub fn new() -> HistoryStateId {
+impl Default for HistoryStateId {
+    fn default() -> Self {
         PIPELINE_NAMESPACE.with(|tls| {
             let mut namespace = tls.get().expect("No namespace set for this thread!");
             let next_history_state_id = namespace.next_history_state_id();
@@ -544,7 +545,7 @@ impl fmt::Debug for HangAlert {
                     "\n The following component is experiencing a transient hang: \n {:?}",
                     component_id
                 )?;
-                (annotation.clone(), None)
+                (*annotation, None)
             },
             HangAlert::Permanent(component_id, annotation, profile) => {
                 write!(
@@ -552,7 +553,7 @@ impl fmt::Debug for HangAlert {
                     "\n The following component is experiencing a permanent hang: \n {:?}",
                     component_id
                 )?;
-                (annotation.clone(), profile.clone())
+                (*annotation, profile.clone())
             },
         };
 

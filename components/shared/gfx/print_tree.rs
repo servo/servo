@@ -28,17 +28,17 @@ impl PrintTree {
 
         self.print_level_prefix();
 
-        let items: Vec<&str> = queued_title.split("\n").collect();
+        let items: Vec<&str> = queued_title.split('\n').collect();
         println!("\u{251C}\u{2500} {}", items[0]);
         for i in 1..items.len() {
             self.print_level_child_indentation();
             print!("{}", items[i]);
             if i < items.len() {
-                print!("\n");
+                println!();
             }
         }
 
-        self.level = self.level + 1;
+        self.level += 1;
     }
 
     /// Ascend one level in the tree.
@@ -69,13 +69,13 @@ impl PrintTree {
     fn flush_queued_item(&mut self, prefix: &str) {
         if let Some(queued_item) = self.queued_item.take() {
             self.print_level_prefix();
-            let items: Vec<&str> = queued_item.split("\n").collect();
+            let items: Vec<&str> = queued_item.split('\n').collect();
             println!("{} {}", prefix, items[0]);
             for i in 1..items.len() {
                 self.print_level_child_indentation();
                 print!("{}", items[i]);
                 if i < items.len() {
-                    print!("\n");
+                    println!();
                 }
             }
         }

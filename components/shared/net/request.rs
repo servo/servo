@@ -264,7 +264,7 @@ impl RequestBuilder {
     pub fn new(url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
             method: Method::GET,
-            url: url,
+            url,
             headers: HeaderMap::new(),
             unsafe_request: false,
             body: None,
@@ -277,7 +277,7 @@ impl RequestBuilder {
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
-            referrer: referrer,
+            referrer,
             referrer_policy: None,
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
@@ -524,9 +524,9 @@ impl Request {
             initiator: Initiator::None,
             destination: Destination::None,
             origin: origin.unwrap_or(Origin::Client),
-            referrer: referrer,
+            referrer,
             referrer_policy: None,
-            pipeline_id: pipeline_id,
+            pipeline_id,
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,
@@ -540,7 +540,7 @@ impl Request {
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
             csp_list: None,
-            https_state: https_state,
+            https_state,
             crash: None,
         }
     }

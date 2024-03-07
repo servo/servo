@@ -94,9 +94,9 @@ impl CustomResponse {
         body: Vec<u8>,
     ) -> CustomResponse {
         CustomResponse {
-            headers: headers,
-            raw_status: raw_status,
-            body: body,
+            headers,
+            raw_status,
+            body,
         }
     }
 }
@@ -567,7 +567,7 @@ pub enum ResourceTimingType {
 impl ResourceFetchTiming {
     pub fn new(timing_type: ResourceTimingType) -> ResourceFetchTiming {
         ResourceFetchTiming {
-            timing_type: timing_type,
+            timing_type,
             timing_check_passed: true,
             domain_lookup_start: 0,
             redirect_count: 0,
@@ -587,12 +587,12 @@ impl ResourceFetchTiming {
     // TODO currently this is being set with precise time ns when it should be time since
     // time origin (as described in Performance::now)
     pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
-        let should_attribute_always_be_updated = match attribute {
+        let should_attribute_always_be_updated = matches!(
+            attribute,
             ResourceAttribute::FetchStart |
-            ResourceAttribute::ResponseEnd |
-            ResourceAttribute::StartTime(_) => true,
-            _ => false,
-        };
+                ResourceAttribute::ResponseEnd |
+                ResourceAttribute::StartTime(_)
+        );
         if !self.timing_check_passed && !should_attribute_always_be_updated {
             return;
         }
@@ -782,7 +782,7 @@ impl NetworkError {
 /// Normalize `slice`, as defined by
 /// [the Fetch Spec](https://fetch.spec.whatwg.org/#concept-header-value-normalize).
 pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
-    const HTTP_WS_BYTES: &'static [u8] = b"\x09\x0A\x0D\x20";
+    const HTTP_WS_BYTES: &[u8] = b"\x09\x0A\x0D\x20";
 
     loop {
         match slice.split_first() {

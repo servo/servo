@@ -189,10 +189,7 @@ impl Response {
     }
 
     pub fn is_network_error(&self) -> bool {
-        match self.response_type {
-            ResponseType::Error(..) => true,
-            _ => false,
-        }
+        matches!(self.response_type, ResponseType::Error(..))
     }
 
     pub fn get_network_error(&self) -> Option<&NetworkError> {
@@ -204,7 +201,7 @@ impl Response {
 
     pub fn actual_response(&self) -> &Response {
         if self.return_internal && self.internal_response.is_some() {
-            &**self.internal_response.as_ref().unwrap()
+            self.internal_response.as_ref().unwrap()
         } else {
             self
         }
@@ -212,7 +209,7 @@ impl Response {
 
     pub fn actual_response_mut(&mut self) -> &mut Response {
         if self.return_internal && self.internal_response.is_some() {
-            &mut **self.internal_response.as_mut().unwrap()
+            self.internal_response.as_mut().unwrap()
         } else {
             self
         }
@@ -258,10 +255,7 @@ impl Response {
 
             ResponseType::Basic => {
                 let headers = old_headers.iter().filter(|(name, _)| {
-                    match &*name.as_str().to_ascii_lowercase() {
-                        "set-cookie" | "set-cookie2" => false,
-                        _ => true
-                    }
+                    !matches!(&*name.as_str().to_ascii_lowercase(), "set-cookie" | "set-cookie2")
                 }).map(|(n, v)| (n.clone(), v.clone())).collect();
                 response.headers = headers;
             },
@@ -315,7 +309,7 @@ impl Response {
             metadata.status = response.raw_status.clone();
             metadata.https_state = response.https_state;
             metadata.referrer = response.referrer.clone();
-            metadata.referrer_policy = response.referrer_policy.clone();
+            metadata.referrer_policy = response.referrer_policy;
             metadata.redirected = response.actual_response().url_list.len() > 1;
             metadata
         }

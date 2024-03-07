@@ -42,10 +42,7 @@ pub struct ImageResponder {
 
 impl ImageResponder {
     pub fn new(sender: IpcSender<PendingImageResponse>, id: PendingImageId) -> ImageResponder {
-        ImageResponder {
-            sender: sender,
-            id: id,
-        }
+        ImageResponder { sender, id }
     }
 
     pub fn respond(&self, response: ImageResponse) {
@@ -54,7 +51,7 @@ impl ImageResponder {
         // That's not a case that's worth warning about.
         // TODO(#15501): are there cases in which we should perform cleanup?
         let _ = self.sender.send(PendingImageResponse {
-            response: response,
+            response,
             id: self.id,
         });
     }

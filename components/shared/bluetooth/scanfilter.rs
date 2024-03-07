@@ -49,7 +49,7 @@ impl BluetoothScanfilter {
             name,
             name_prefix,
             services: ServiceUUIDSequence::new(services),
-            manufacturer_data: manufacturer_data,
+            manufacturer_data,
             service_data,
         }
     }
@@ -124,7 +124,7 @@ impl RequestDeviceoptions {
         services: ServiceUUIDSequence,
     ) -> RequestDeviceoptions {
         RequestDeviceoptions {
-            filters: filters,
+            filters,
             optional_services: services,
         }
     }
