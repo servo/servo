@@ -78,6 +78,11 @@ jobs:
           python mach fetch
           python mach bootstrap-gstreamer
           cargo install --path support/crown
+      # For some reason WiX isn't currently on the GitHub runner path. This is a
+      # temporary workaround until that is fixed.
+      - name: Add WiX to Path
+        run: |
+          "$env:WIX\bin" >> $env:GITHUB_PATH
       - name: Build (${{ inputs.profile }})
         run: |
           python mach build --${{ inputs.profile }}
