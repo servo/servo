@@ -172,15 +172,15 @@ struct DetailedGlyphRecord {
     detail_offset: usize,
 }
 
-impl PartialOrd for DetailedGlyphRecord {
-    fn partial_cmp(&self, other: &DetailedGlyphRecord) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 impl Ord for DetailedGlyphRecord {
     fn cmp(&self, other: &DetailedGlyphRecord) -> Ordering {
         self.entry_offset.cmp(&other.entry_offset)
+    }
+}
+
+impl PartialOrd for DetailedGlyphRecord {
+    fn partial_cmp(&self, other: &DetailedGlyphRecord) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
