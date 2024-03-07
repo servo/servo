@@ -86,7 +86,9 @@ pub enum ConstellationMsg {
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
     /// Mark webview to be invisible, regardless of whether it is being shown
-    MarkWebViewInvisible(TopLevelBrowsingContextId, bool),
+    MarkWebViewInvisible(TopLevelBrowsingContextId),
+    /// Unmark webview to be invisible, it might not be visible if it's not shown
+    UnmarkWebViewInvisible(TopLevelBrowsingContextId),
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Notify the embedder that it needs to present a new frame.
@@ -131,6 +133,7 @@ impl fmt::Debug for ConstellationMsg {
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
             MarkWebViewInvisible(..) => "MarkWebViewInvisible",
+            UnmarkWebViewInvisible(..) => "UnmarkWebViewInvisible",
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",

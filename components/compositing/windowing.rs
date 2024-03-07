@@ -114,7 +114,9 @@ pub enum EmbedderEvent {
     /// (play, pause, seek, etc.).
     MediaSessionAction(MediaSessionActionType),
     /// Mark webview to be invisible, regardless of whether it is being shown
-    MarkWebViewInvisible(TopLevelBrowsingContextId, bool),
+    MarkWebViewInvisible(TopLevelBrowsingContextId),
+    /// Unmark webview to be invisible, it might not be visible if it's not shown
+    UnmarkWebViewInvisible(TopLevelBrowsingContextId),
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Sent on platforms like Android where the native widget surface can be
@@ -164,6 +166,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
             EmbedderEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
             EmbedderEvent::MarkWebViewInvisible(..) => write!(f, "MarkWebViewInvisible"),
+            EmbedderEvent::UnmarkWebViewInvisible(..) => write!(f, "UnmarkWebViewInvisible"),
             EmbedderEvent::IMEDismissed => write!(f, "IMEDismissed"),
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
             EmbedderEvent::InvalidateNativeSurface => write!(f, "InvalidateNativeSurface"),

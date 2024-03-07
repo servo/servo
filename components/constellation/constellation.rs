@@ -1606,12 +1606,13 @@ where
             FromCompositorMsg::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
             },
-            FromCompositorMsg::MarkWebViewInvisible(webview_id, invisible) => {
-                if invisible {
-                    self.webviews.mark_webview_invisible(webview_id);
-                } else {
-                    self.webviews.mark_webview_not_invisible(webview_id);
-                }
+            FromCompositorMsg::MarkWebViewInvisible(webview_id) => {
+                self.webviews.mark_webview_invisible(webview_id);
+                let visible = self.webviews.is_effectively_visible(webview_id);
+                self.notify_webview_visibility(webview_id, visible);
+            },
+            FromCompositorMsg::UnmarkWebViewInvisible(webview_id) => {
+                self.webviews.mark_webview_not_invisible(webview_id);
                 let visible = self.webviews.is_effectively_visible(webview_id);
                 self.notify_webview_visibility(webview_id, visible);
             },

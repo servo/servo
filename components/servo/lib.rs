@@ -812,11 +812,21 @@ where
                 }
             },
 
-            EmbedderEvent::MarkWebViewInvisible(webview_id, visible) => {
-                let msg = ConstellationMsg::MarkWebViewInvisible(webview_id, invisible);
+            EmbedderEvent::MarkWebViewInvisible(webview_id) => {
+                let msg = ConstellationMsg::MarkWebViewInvisible(webview_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
                         "Sending MarkWebViewInvisible to constellation failed ({:?}).",
+                        e
+                    );
+                }
+            },
+
+            EmbedderEvent::UnmarkWebViewInvisible(webview_id) => {
+                let msg = ConstellationMsg::UnmarkWebViewInvisible(webview_id);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!(
+                        "Sending UnmarkWebViewInvisible to constellation failed ({:?}).",
                         e
                     );
                 }
