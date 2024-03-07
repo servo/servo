@@ -5029,7 +5029,9 @@ where
         // If there is no focus browsing context yet, the initial page has
         // not loaded, so there is nothing to save yet.
         let Some(top_level_browsing_context_id) = self.webviews.focused_webview().map(|(id, _)| id)
-            else { return ReadyToSave::NoTopLevelBrowsingContext };
+        else {
+            return ReadyToSave::NoTopLevelBrowsingContext;
+        };
 
         // If there are pending loads, wait for those to complete.
         if !self.pending_changes.is_empty() {

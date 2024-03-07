@@ -196,8 +196,12 @@ impl Minibrowser {
 
             let scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
-            let Some(focused_webview_id) = webviews.focused_webview_id() else { return };
-            let Some(webview) = webviews.get_mut(focused_webview_id) else { return };
+            let Some(focused_webview_id) = webviews.focused_webview_id() else {
+                return;
+            };
+            let Some(webview) = webviews.get_mut(focused_webview_id) else {
+                return;
+            };
             let mut embedder_events = vec![];
             CentralPanel::default()
                 .frame(Frame::none())
@@ -217,7 +221,9 @@ impl Minibrowser {
                     let rect = egui::Rect::from_min_size(min, size);
                     ui.allocate_space(size);
 
-                    let Some(servo_fbo) = servo_framebuffer_id else { return };
+                    let Some(servo_fbo) = servo_framebuffer_id else {
+                        return;
+                    };
                     ui.painter().add(PaintCallback {
                         rect,
                         callback: Arc::new(CallbackFn::new(move |info, painter| {

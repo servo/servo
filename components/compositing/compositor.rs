@@ -1190,8 +1190,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     fn remove_webview(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         debug!("{}: Removing", top_level_browsing_context_id);
-        let Some(webview) = self.webviews.remove(top_level_browsing_context_id)
-            else { return };
+        let Some(webview) = self.webviews.remove(top_level_browsing_context_id) else {
+            return;
+        };
 
         self.update_root_pipeline();
         if let Some(pipeline_id) = webview.pipeline_id {
