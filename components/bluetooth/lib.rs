@@ -361,6 +361,7 @@ impl BluetoothManager {
         let devices = adapter.get_devices().unwrap_or_default();
         for device in &devices {
             if let Ok(address) = device.get_address() {
+                #[allow(clippy::map_entry)] // False positive, the fix creates a borrowing error
                 if !self.address_to_id.contains_key(&address) {
                     let generated_id = self.generate_device_id();
                     self.address_to_id.insert(address, generated_id.clone());
@@ -370,7 +371,7 @@ impl BluetoothManager {
                 }
             }
         }
-        self.cached_devices.iter().map(|(_, d)| d.clone()).collect()
+        self.cached_devices.values().cloned().collect()
     }
 
     fn get_device(
@@ -451,7 +452,7 @@ impl BluetoothManager {
     ) -> BluetoothResult<bool> {
         let mut adapter = self.get_adapter()?;
         match self.get_device(&mut adapter, device_id) {
-            Some(ref device) => Ok(matches_filters(device, filters)),
+            Some(device) => Ok(matches_filters(device, filters)),
             None => Ok(false),
         }
     }
@@ -464,14 +465,14 @@ impl BluetoothManager {
         device_id: &str,
     ) -> Vec<BluetoothGATTService> {
         let mut services = match self.get_device(adapter, device_id) {
-            Some(d) => d.get_gatt_services().unwrap_or(vec![]),
+            Some(d) => d.get_gatt_services().unwrap_or_default(),
             None => vec![],
         };
 
         services.retain(|s| {
-            !uuid_is_blocklisted(&s.get_uuid().unwrap_or(String::new()), Blocklist::All) &&
+            !uuid_is_blocklisted(&s.get_uuid().unwrap_or_default(), Blocklist::All) &&
                 self.allowed_services.get(device_id).map_or(false, |uuids| {
-                    uuids.contains(&s.get_uuid().unwrap_or(String::new()))
+                    uuids.contains(&s.get_uuid().unwrap_or_default())
                 })
         });
         for service in &services {
@@ -508,13 +509,12 @@ impl BluetoothManager {
         service_id: &str,
     ) -> Vec<BluetoothGATTCharacteristic> {
         let mut characteristics = match self.get_gatt_service(adapter, service_id) {
-            Some(s) => s.get_gatt_characteristics().unwrap_or(vec![]),
+            Some(s) => s.get_gatt_characteristics().unwrap_or_default(),
             None => vec![],
         };
 
-        characteristics.retain(|c| {
-            !uuid_is_blocklisted(&c.get_uuid().unwrap_or(String::new()), Blocklist::All)
-        });
+        characteristics
+            .retain(|c| !uuid_is_blocklisted(&c.get_uuid().unwrap_or_default(), Blocklist::All));
         for characteristic in &characteristics {
             self.cached_characteristics
                 .insert(characteristic.get_id(), characteristic.clone());
@@ -541,7 +541,7 @@ impl BluetoothManager {
 
     fn get_characteristic_properties(&self, characteristic: &BluetoothGATTCharacteristic) -> Flags {
         let mut props: Flags = Flags::empty();
-        let flags = characteristic.get_flags().unwrap_or(vec![]);
+        let flags = characteristic.get_flags().unwrap_or_default();
         for flag in flags {
             match flag.as_ref() {
                 "broadcast" => props.insert(Flags::BROADCAST),
@@ -573,13 +573,12 @@ impl BluetoothManager {
         characteristic_id: &str,
     ) -> Vec<BluetoothGATTDescriptor> {
         let mut descriptors = match self.get_gatt_characteristic(adapter, characteristic_id) {
-            Some(c) => c.get_gatt_descriptors().unwrap_or(vec![]),
+            Some(c) => c.get_gatt_descriptors().unwrap_or_default(),
             None => vec![],
         };
 
-        descriptors.retain(|d| {
-            !uuid_is_blocklisted(&d.get_uuid().unwrap_or(String::new()), Blocklist::All)
-        });
+        descriptors
+            .retain(|d| !uuid_is_blocklisted(&d.get_uuid().unwrap_or_default(), Blocklist::All));
         for descriptor in &descriptors {
             self.cached_descriptors
                 .insert(descriptor.get_id(), descriptor.clone());
@@ -648,7 +647,7 @@ impl BluetoothManager {
             }
         }
         // Step 10.
-        return Err(BluetoothError::NotFound);
+        Err(BluetoothError::NotFound)
         // Step 12: Missing, because it is optional.
     }
 
