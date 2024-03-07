@@ -43,8 +43,8 @@ pub struct ImageResponder {
 impl ImageResponder {
     pub fn new(sender: IpcSender<PendingImageResponse>, id: PendingImageId) -> ImageResponder {
         ImageResponder {
-            sender: sender,
-            id: id,
+            sender,
+            id,
         }
     }
 
