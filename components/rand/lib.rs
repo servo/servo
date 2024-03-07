@@ -96,17 +96,11 @@ impl ServoRng {
 }
 
 impl Default for ServoRng {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ServoRng {
     /// Create an auto-reseeding instance of `ServoRng`.
     ///
     /// This uses the shared `OsRng`, so avoids consuming
     /// a file descriptor.
-    pub fn new() -> ServoRng {
+    fn default() -> Self {
         trace!("Creating new ServoRng.");
         let mut os_rng = OS_RNG.lock().expect("Poisoned lock.");
         let isaac_rng = IsaacCore::from_rng(&mut *os_rng).unwrap();

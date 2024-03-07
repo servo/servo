@@ -862,5 +862,5 @@ impl WebrenderIpcSender {
 }
 
 lazy_static! {
-    pub static ref PRIVILEGED_SECRET: u32 = servo_rand::ServoRng::new().next_u32();
+    pub static ref PRIVILEGED_SECRET: u32 = servo_rand::ServoRng::default().next_u32();
 }
