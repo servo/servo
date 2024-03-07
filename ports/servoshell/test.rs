@@ -7,7 +7,7 @@ use std::path::Path;
 use crate::parser::{get_default_url, location_bar_input_to_url, parse_url_or_filename};
 
 #[cfg(not(target_os = "windows"))]
-const FAKE_CWD: &'static str = "/fake/cwd";
+const FAKE_CWD: &str = "/fake/cwd";
 
 #[cfg(target_os = "windows")]
 const FAKE_CWD: &'static str = "C:/fake/cwd";

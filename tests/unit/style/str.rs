@@ -17,7 +17,7 @@ pub fn split_html_space_chars_whitespace() {
 #[test]
 pub fn test_str_join_empty() {
     let slice: [&str; 0] = [];
-    let actual = str_join(&slice, "-");
+    let actual = str_join(slice, "-");
     let expected = "";
     assert_eq!(actual, expected);
 }
@@ -25,7 +25,7 @@ pub fn test_str_join_empty() {
 #[test]
 pub fn test_str_join_one() {
     let slice = ["alpha"];
-    let actual = str_join(&slice, "-");
+    let actual = str_join(slice, "-");
     let expected = "alpha";
     assert_eq!(actual, expected);
 }
@@ -33,7 +33,7 @@ pub fn test_str_join_one() {
 #[test]
 pub fn test_str_join_many() {
     let slice = ["", "alpha", "", "beta", "gamma", ""];
-    let actual = str_join(&slice, "-");
+    let actual = str_join(slice, "-");
     let expected = "-alpha--beta-gamma-";
     assert_eq!(actual, expected);
 }
