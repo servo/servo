@@ -99,7 +99,7 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
             target_os = "linux",
             not(any(target_arch = "arm", target_arch = "aarch64"))
         ))]
-        let sampler = crate::sampler_linux::LinuxSampler::new();
+        let sampler = crate::sampler_linux::LinuxSampler::new_boxed();
         #[cfg(any(
             target_os = "android",
             all(target_os = "linux", any(target_arch = "arm", target_arch = "aarch64"))
@@ -312,14 +312,14 @@ struct BackgroundHangMonitorWorker {
     monitoring_enabled: bool,
 }
 
+type PortSender = Arc<Sender<(MonitoredComponentId, MonitoredComponentMsg)>>;
+type Port = Receiver<(MonitoredComponentId, MonitoredComponentMsg)>;
+
 impl BackgroundHangMonitorWorker {
     fn new(
         constellation_chan: IpcSender<HangMonitorAlert>,
         control_port: IpcReceiver<BackgroundHangMonitorControlMsg>,
-        (port_sender, port): (
-            Arc<Sender<(MonitoredComponentId, MonitoredComponentMsg)>>,
-            Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
-        ),
+        (port_sender, port): (PortSender, Port),
         tether_port: Receiver<Never>,
         monitoring_enabled: bool,
     ) -> Self {

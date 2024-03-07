@@ -488,7 +488,7 @@ impl Shaper {
                 }
 
                 // if no glyphs were found yet, extend the char byte range more.
-                if glyph_span.len() == 0 {
+                if glyph_span.is_empty() {
                     continue;
                 }
 
@@ -511,8 +511,8 @@ impl Shaper {
                 // span or reach the end of the text.
             }
 
-            assert!(byte_range.len() > 0);
-            assert!(glyph_span.len() > 0);
+            assert!(!byte_range.is_empty());
+            assert!(!glyph_span.is_empty());
 
             // Now byte_range is the ligature clump formed by the glyphs in glyph_span.
             // We will save these glyphs to the glyph store at the index of the first byte.
@@ -583,7 +583,7 @@ impl Shaper {
         options: &ShapingOptions,
     ) -> Au {
         if let Some(letter_spacing) = options.letter_spacing {
-            advance = advance + letter_spacing;
+            advance += letter_spacing;
         };
 
         // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
@@ -657,13 +657,10 @@ extern "C" fn glyph_h_advance_func(
 
 fn glyph_space_advance(font: *const Font) -> (hb_codepoint_t, f64) {
     let space_unicode = ' ';
-    let space_glyph: hb_codepoint_t;
-    match unsafe { (*font).glyph_index(space_unicode) } {
-        Some(g) => {
-            space_glyph = g as hb_codepoint_t;
-        },
+    let space_glyph: hb_codepoint_t = match unsafe { (*font).glyph_index(space_unicode) } {
+        Some(g) => g as hb_codepoint_t,
         None => panic!("No space info"),
-    }
+    };
     let space_advance = unsafe { (*font).glyph_h_advance(space_glyph as GlyphId) };
     (space_glyph, space_advance)
 }

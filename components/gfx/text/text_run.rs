@@ -129,7 +129,7 @@ impl<'a> Iterator for NaturalWordSliceIterator<'a> {
 
         if !byte_range.is_empty() {
             Some(TextRunSlice {
-                glyphs: &*slice_glyphs.glyph_store,
+                glyphs: &slice_glyphs.glyph_store,
                 offset: slice_range_begin,
                 range: byte_range,
             })
@@ -172,7 +172,7 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
 
         let index_within_glyph_run = byte_start - glyph_run.range.begin();
         Some(TextRunSlice {
-            glyphs: &*glyph_run.glyph_store,
+            glyphs: &glyph_run.glyph_store,
             offset: glyph_run.range.begin(),
             range: Range::new(index_within_glyph_run, byte_len),
         })
@@ -217,7 +217,7 @@ impl<'a> TextRun {
         let mut break_at_zero = false;
 
         if breaker.is_none() {
-            if text.len() == 0 {
+            if text.is_empty() {
                 return (glyphs, true);
             }
             *breaker = Some(LineBreakLeafIter::new(text, 0));
@@ -253,7 +253,7 @@ impl<'a> TextRun {
                 // keep-all, try increasing the slice.
                 continue;
             }
-            if slice.len() > 0 {
+            if !slice.is_empty() {
                 glyphs.push(GlyphRun {
                     glyph_store: font.shape_text(&text[slice.clone()], options),
                     range: Range::new(
@@ -262,8 +262,8 @@ impl<'a> TextRun {
                     ),
                 });
             }
-            if whitespace.len() > 0 {
-                let mut options = options.clone();
+            if !whitespace.is_empty() {
+                let mut options = *options;
                 options
                     .flags
                     .insert(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG);
@@ -348,7 +348,9 @@ impl<'a> TextRun {
                 }
             }
 
-            if let Ok(result) = (&**self.glyphs).binary_search_by(|current| current.compare(&index))
+            if let Ok(result) = self
+                .glyphs
+                .binary_search_by(|current| current.compare(&index))
             {
                 index_of_first_glyph_run_cache.set(Some((self_ptr, index, result)));
                 Some(result)

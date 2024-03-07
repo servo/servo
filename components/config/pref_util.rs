@@ -198,6 +198,7 @@ impl std::error::Error for PrefError {}
 
 pub struct Accessor<P, V> {
     pub getter: Box<dyn Fn(&P) -> V + Sync>,
+    #[allow(clippy::type_complexity)]
     pub setter: Box<dyn Fn(&mut P, V) + Sync>,
 }
 

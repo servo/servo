@@ -17,7 +17,7 @@ pub struct DummySampler;
 
 impl DummySampler {
     #[allow(dead_code)]
-    pub fn new() -> Box<dyn Sampler> {
+    pub fn new_boxed() -> Box<dyn Sampler> {
         Box::new(DummySampler)
     }
 }

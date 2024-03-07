@@ -137,7 +137,7 @@ pub struct LinuxSampler {
 
 impl LinuxSampler {
     #[allow(unsafe_code, dead_code)]
-    pub fn new() -> Box<dyn Sampler> {
+    pub fn new_boxed() -> Box<dyn Sampler> {
         let thread_id = unsafe { libc::syscall(libc::SYS_gettid) as libc::pid_t };
         let handler = SigHandler::SigAction(sigprof_handler);
         let action = SigAction::new(
@@ -219,6 +219,7 @@ impl Sampler for LinuxSampler {
             let ret = unsafe { unw_init_local(cursor.as_mut_ptr(), context) };
             result = if ret == UNW_ESUCCESS {
                 let mut native_stack = NativeStack::new();
+                #[allow(clippy::while_let_loop)] // False positive
                 loop {
                     let ip = match get_register(cursor.as_mut_ptr(), RegNum::Ip) {
                         Ok(ip) => ip,

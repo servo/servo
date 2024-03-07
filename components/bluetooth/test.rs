@@ -57,12 +57,12 @@ const EMPTY_DEVICE_NAME: &str = "";
 const GLUCOSE_DEVICE_NAME: &str = "Glucose Device";
 // https://webbluetoothcg.github.io/web-bluetooth/tests.html#heartratedevice
 const HEART_RATE_DEVICE_NAME: &str = "Heart Rate Device";
-const UNICODE_DEVICE_NAME: &'static str = "❤❤❤❤❤❤❤❤❤";
+const UNICODE_DEVICE_NAME: &str = "❤❤❤❤❤❤❤❤❤";
 
 // Device addresses
-const CONNECTABLE_DEVICE_ADDRESS: &'static str = "00:00:00:00:00:04";
+const CONNECTABLE_DEVICE_ADDRESS: &str = "00:00:00:00:00:04";
 // https://webbluetoothcg.github.io/web-bluetooth/tests.html#glucosedevice
-const GLUCOSE_DEVICE_ADDRESS: &'static str = "00:00:00:00:00:02";
+const GLUCOSE_DEVICE_ADDRESS: &str = "00:00:00:00:00:02";
 // https://webbluetoothcg.github.io/web-bluetooth/tests.html#heartratedevice
 const HEART_RATE_DEVICE_ADDRESS: &str = "00:00:00:00:00:03";
 const UNICODE_DEVICE_ADDRESS: &str = "00:00:00:00:00:01";

@@ -192,9 +192,8 @@ impl BluetoothDevice {
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_id(&self, id: String) {
-        match self {
-            BluetoothDevice::Mock(fake_adapter) => fake_adapter.set_id(id),
-            _ => (),
+        if let BluetoothDevice::Mock(fake_adapter) = self {
+            fake_adapter.set_id(id)
         }
     }
 
