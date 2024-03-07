@@ -23,9 +23,12 @@ use crate::dom::gamepadpose::GamepadPose;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
+// This value is for determining when to consider a gamepad as having a user gesture
+// from an axis tilt. This matches the threshold in Chromium.
+pub const AXIS_TILT_THRESHOLD: f64 = 0.5;
 // This value is for determining when to consider a non-digital button "pressed".
 // Like Gecko and Chromium it derives from the XInput trigger threshold.
-const BUTTON_PRESS_THRESHOLD: f64 = 30.0 / 255.0;
+pub const BUTTON_PRESS_THRESHOLD: f64 = 30.0 / 255.0;
 
 #[dom_struct]
 pub struct Gamepad {
