@@ -46,6 +46,10 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     /// The order in which the webviews were created.
     creation_order: Vec<WebViewId>,
 
+    /// The order in which the webviews were focused.
+    /// Modified by EmbedderMsg::WebViewFocused.
+    focus_order: Vec<WebViewId>,
+
     /// The webview that is currently focused.
     /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
     focused_webview_id: Option<WebViewId>,
@@ -88,6 +92,7 @@ where
             current_url_string: None,
             webviews: HashMap::default(),
             creation_order: vec![],
+            focus_order: vec![],
             focused_webview_id: None,
             window,
             clipboard: match Clipboard::new() {
@@ -606,15 +611,21 @@ where
                 EmbedderMsg::WebViewClosed(webview_id) => {
                     self.webviews.retain(|&id, _| id != webview_id);
                     self.creation_order.retain(|&id| id != webview_id);
-                    self.focused_webview_id = None;
-                    if let Some(&newest_webview_id) = self.creation_order.last() {
-                        self.event_queue
-                            .push(EmbedderEvent::FocusWebView(newest_webview_id));
-                    } else {
+                    self.focus_order.retain(|&id| id != webview_id);
+                    if self.focused_webview_id == Some(webview_id) {
+                        self.focused_webview_id = None;
+                        if let Some(&last_focused_webview_id) = self.focus_order.last() {
+                            self.event_queue
+                                .push(EmbedderEvent::FocusWebView(last_focused_webview_id));
+                        }
+                    }
+                    if self.webviews.is_empty() {
                         self.event_queue.push(EmbedderEvent::Quit);
                     }
                 },
                 EmbedderMsg::WebViewFocused(webview_id) => {
+                    self.focus_order.retain(|&id| id != webview_id);
+                    self.focus_order.push(webview_id);
                     self.focused_webview_id = Some(webview_id);
                     // Show the most recently created webview and hide all others.
                     // TODO: Stop doing this once we have full multiple webviews support
