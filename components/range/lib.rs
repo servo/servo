@@ -204,10 +204,7 @@ impl<I: RangeIndex> Range<I> {
     /// ~~~
     #[inline]
     pub fn new(begin: I, length: I) -> Range<I> {
-        Range {
-            begin: begin,
-            length: length,
-        }
+        Range { begin, length }
     }
 
     #[inline]

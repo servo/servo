@@ -30,8 +30,8 @@ pub struct Profiler {
     created: Instant,
 }
 
-const JEMALLOC_HEAP_ALLOCATED_STR: &'static str = "jemalloc-heap-allocated";
-const SYSTEM_HEAP_ALLOCATED_STR: &'static str = "system-heap-allocated";
+const JEMALLOC_HEAP_ALLOCATED_STR: &str = "jemalloc-heap-allocated";
+const SYSTEM_HEAP_ALLOCATED_STR: &str = "system-heap-allocated";
 
 impl Profiler {
     pub fn create(period: Option<f64>) -> ProfilerChan {
@@ -84,7 +84,7 @@ impl Profiler {
 
     pub fn new(port: IpcReceiver<ProfilerMsg>) -> Profiler {
         Profiler {
-            port: port,
+            port,
             reporters: HashMap::new(),
             created: Instant::now(),
         }
@@ -212,7 +212,7 @@ impl Profiler {
 
         println!("|");
         println!("End memory reports");
-        println!("");
+        println!();
     }
 }
 
@@ -239,7 +239,7 @@ impl ReportsTree {
         ReportsTree {
             size: 0,
             count: 0,
-            path_seg: path_seg,
+            path_seg,
             children: vec![],
         }
     }
@@ -259,7 +259,7 @@ impl ReportsTree {
     fn insert(&mut self, path: &[String], size: usize) {
         let mut t: &mut ReportsTree = self;
         for path_seg in path {
-            let i = match t.find_child(&path_seg) {
+            let i = match t.find_child(path_seg) {
                 Some(i) => i,
                 None => {
                     let new_t = ReportsTree::new(path_seg.clone());
@@ -352,7 +352,7 @@ impl ReportsForest {
 
     fn print(&mut self) {
         // Fill in sizes of interior nodes, and recursively sort the sub-trees.
-        for (_, tree) in &mut self.trees {
+        for tree in self.trees.values_mut() {
             tree.compute_interior_node_sizes_and_sort();
         }
 
@@ -360,7 +360,7 @@ impl ReportsForest {
         // single node) come after non-degenerate trees. Secondary sort: alphabetical order of the
         // root node's path_seg.
         let mut v = vec![];
-        for (_, tree) in &self.trees {
+        for tree in self.trees.values() {
             v.push(tree);
         }
         v.sort_by(|a, b| {
@@ -412,9 +412,9 @@ mod system_reporter {
             let mut report = |path, size| {
                 if let Some(size) = size {
                     reports.push(Report {
-                        path: path,
+                        path,
                         kind: ReportKind::NonExplicitSize,
-                        size: size,
+                        size,
                     });
                 }
             };
@@ -663,7 +663,7 @@ mod system_reporter {
 
                 // Construct the segment name from its pathname and permissions.
                 curr_seg_name.clear();
-                if pathname == "" || pathname.starts_with("[stack:") {
+                if pathname.is_empty() || pathname.starts_with("[stack:") {
                     // Anonymous memory. Entries marked with "[stack:nnn]"
                     // look like thread stacks but they may include other
                     // anonymous mappings, so we can't trust them and just
@@ -674,7 +674,7 @@ mod system_reporter {
                 }
                 curr_seg_name.push_str(" (");
                 curr_seg_name.push_str(perms);
-                curr_seg_name.push_str(")");
+                curr_seg_name.push(')');
 
                 looking_for = LookingFor::Rss;
             } else {

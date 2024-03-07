@@ -99,7 +99,7 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
             target_os = "linux",
             not(any(target_arch = "arm", target_arch = "aarch64"))
         ))]
-        let sampler = crate::sampler_linux::LinuxSampler::new();
+        let sampler = crate::sampler_linux::LinuxSampler::new_boxed();
         #[cfg(any(
             target_os = "android",
             all(target_os = "linux", any(target_arch = "arm", target_arch = "aarch64"))
@@ -208,7 +208,7 @@ impl BackgroundHangMonitorChan {
         BackgroundHangMonitorChan {
             sender,
             _tether: tether,
-            component_id: component_id,
+            component_id,
             disconnected: Default::default(),
             monitoring_enabled,
         }
@@ -312,14 +312,14 @@ struct BackgroundHangMonitorWorker {
     monitoring_enabled: bool,
 }
 
+type MonitoredComponentSender = Sender<(MonitoredComponentId, MonitoredComponentMsg)>;
+type MonitoredComponentReceiver = Receiver<(MonitoredComponentId, MonitoredComponentMsg)>;
+
 impl BackgroundHangMonitorWorker {
     fn new(
         constellation_chan: IpcSender<HangMonitorAlert>,
         control_port: IpcReceiver<BackgroundHangMonitorControlMsg>,
-        (port_sender, port): (
-            Arc<Sender<(MonitoredComponentId, MonitoredComponentMsg)>>,
-            Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
-        ),
+        (port_sender, port): (Arc<MonitoredComponentSender>, MonitoredComponentReceiver),
         tether_port: Receiver<Never>,
         monitoring_enabled: bool,
     ) -> Self {
@@ -360,7 +360,7 @@ impl BackgroundHangMonitorWorker {
             let profile = stack.to_hangprofile();
             let name = match self.component_names.get(&id) {
                 Some(ref s) => format!("\"{}\"", s),
-                None => format!("null"),
+                None => "null".to_string(),
             };
             let json = format!(
                 "{}{{ \"name\": {}, \"namespace\": {}, \"index\": {}, \"type\": \"{:?}\", \
@@ -389,12 +389,10 @@ impl BackgroundHangMonitorWorker {
                 .checked_sub(Instant::now() - self.last_sample)
                 .unwrap_or_else(|| Duration::from_millis(0));
             after(duration)
+        } else if self.monitoring_enabled {
+            after(Duration::from_millis(100))
         } else {
-            if self.monitoring_enabled {
-                after(Duration::from_millis(100))
-            } else {
-                never()
-            }
+            never()
         };
 
         let received = select! {
@@ -403,13 +401,8 @@ impl BackgroundHangMonitorWorker {
                 // gets disconnected.
                 Some(event.unwrap())
             },
-            recv(self.tether_port) -> event => {
+            recv(self.tether_port) -> _ => {
                 // This arm can only reached by a tether disconnection
-                match event {
-                    Ok(x) => match x {}
-                    Err(_) => {}
-                }
-
                 // All associated `HangMonitorRegister` and
                 // `BackgroundHangMonitorChan` have been dropped. Suppress
                 // `signal_to_exit` and exit the BHM.

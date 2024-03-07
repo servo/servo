@@ -6,9 +6,8 @@
 
 use std::cell::UnsafeCell;
 use std::sync::atomic::{AtomicPtr, Ordering};
-use std::{io, mem, process, ptr, thread};
+use std::{cmp, io, mem, process, ptr, thread};
 
-use libc;
 use nix::sys::signal::{sigaction, SaFlags, SigAction, SigHandler, SigSet, Signal};
 use unwind_sys::{
     unw_cursor_t, unw_get_reg, unw_init_local, unw_step, UNW_ESUCCESS, UNW_REG_IP, UNW_REG_SP,
@@ -138,7 +137,7 @@ pub struct LinuxSampler {
 
 impl LinuxSampler {
     #[allow(unsafe_code, dead_code)]
-    pub fn new() -> Box<dyn Sampler> {
+    pub fn new_boxed() -> Box<dyn Sampler> {
         let thread_id = unsafe { libc::syscall(libc::SYS_gettid) as libc::pid_t };
         let handler = SigHandler::SigAction(sigprof_handler);
         let action = SigAction::new(
@@ -181,12 +180,10 @@ fn step(cursor: *mut unw_cursor_t) -> Result<bool, i32> {
         }
 
         let ret = unw_step(cursor);
-        if ret > 0 {
-            Ok(true)
-        } else if ret == 0 {
-            Ok(false)
-        } else {
-            Err(ret)
+        match ret.cmp(&0) {
+            cmp::Ordering::Less => Err(ret),
+            cmp::Ordering::Greater => Ok(true),
+            cmp::Ordering::Equal => Ok(false),
         }
     }
 }
@@ -222,6 +219,7 @@ impl Sampler for LinuxSampler {
             let ret = unsafe { unw_init_local(cursor.as_mut_ptr(), context) };
             result = if ret == UNW_ESUCCESS {
                 let mut native_stack = NativeStack::new();
+                #[allow(clippy::while_let_loop)] // False positive
                 loop {
                     let ip = match get_register(cursor.as_mut_ptr(), RegNum::Ip) {
                         Ok(ip) => ip,

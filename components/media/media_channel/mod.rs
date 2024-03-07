@@ -74,6 +74,7 @@ where
         }
     }
 
+    #[allow(clippy::wrong_self_convention)] // It is an alias to the underlying module
     pub fn to_opaque(self) -> ipc_channel::ipc::OpaqueIpcReceiver {
         match self {
             GLPlayerReceiver::Ipc(receiver) => receiver.to_opaque(),

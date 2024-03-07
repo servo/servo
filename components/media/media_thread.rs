@@ -79,14 +79,14 @@ impl GLPlayerThread {
                 }
             },
             GLPlayerMsg::Lock(id, handler_sender) => {
-                self.players.get(&id).map(|sender| {
+                if let Some(sender) = self.players.get(&id) {
                     sender.send(GLPlayerMsgForward::Lock(handler_sender)).ok();
-                });
+                }
             },
             GLPlayerMsg::Unlock(id) => {
-                self.players.get(&id).map(|sender| {
+                if let Some(sender) = self.players.get(&id) {
                     sender.send(GLPlayerMsgForward::Unlock()).ok();
-                });
+                }
             },
             GLPlayerMsg::Exit => return true,
         }

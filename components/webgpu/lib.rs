@@ -919,8 +919,8 @@ impl<'a> WGPU<'a> {
                         pipeline_id,
                     } => {
                         let desc = DeviceDescriptor {
-                            label: descriptor.label.as_ref().map(|l| crate::Cow::from(l)),
-                            features: descriptor.features.clone(),
+                            label: descriptor.label.as_ref().map(crate::Cow::from),
+                            features: descriptor.features,
                             limits: descriptor.limits.clone(),
                         };
                         let global = &self.global;
@@ -1336,18 +1336,10 @@ webgpu_resource!(WebGPUSurface, id::SurfaceId);
 webgpu_resource!(WebGPUTexture, id::TextureId);
 webgpu_resource!(WebGPUTextureView, id::TextureViewId);
 
+#[derive(Default)]
 pub struct WGPUExternalImages {
     pub images: Arc<Mutex<HashMap<u64, PresentationData>>>,
     pub locked_ids: HashMap<u64, Vec<u8>>,
-}
-
-impl WGPUExternalImages {
-    pub fn new() -> Self {
-        Self {
-            images: Arc::new(Mutex::new(HashMap::new())),
-            locked_ids: HashMap::new(),
-        }
-    }
 }
 
 impl WebrenderExternalImageApi for WGPUExternalImages {
