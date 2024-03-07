@@ -54,7 +54,7 @@ impl Service<Destination> for ServoHttpConnector {
             let authority = if let Some(port) = auth.port() {
                 format!("{}:{}", host, port.as_str())
             } else {
-                format!("{}", &*host)
+                (*host).to_string()
             };
 
             if let Ok(authority) = Authority::from_maybe_shared(authority) {

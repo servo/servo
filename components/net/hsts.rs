@@ -33,9 +33,9 @@ impl HstsEntry {
             None
         } else {
             Some(HstsEntry {
-                host: host,
+                host,
                 include_subdomains: (subdomains == IncludeSubdomains::Included),
-                max_age: max_age,
+                max_age,
                 timestamp: Some(time::get_time().sec as u64),
             })
         }
@@ -60,18 +60,12 @@ impl HstsEntry {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct HstsList {
     pub entries_map: HashMap<String, Vec<HstsEntry>>,
 }
 
 impl HstsList {
-    pub fn new() -> HstsList {
-        HstsList {
-            entries_map: HashMap::new(),
-        }
-    }
-
     /// Create an `HstsList` from the bytes of a JSON preload file.
     pub fn from_preload(preload_content: &str) -> Option<HstsList> {
         #[derive(Deserialize)]
@@ -81,14 +75,14 @@ impl HstsList {
 
         let hsts_entries: Option<HstsEntries> = serde_json::from_str(preload_content).ok();
 
-        hsts_entries.map_or(None, |hsts_entries| {
-            let mut hsts_list: HstsList = HstsList::new();
+        hsts_entries.map(|hsts_entries| {
+            let mut hsts_list: HstsList = HstsList::default();
 
             for hsts_entry in hsts_entries.entries {
                 hsts_list.push(hsts_entry);
             }
 
-            return Some(hsts_list);
+            hsts_list
         })
     }
 
@@ -112,7 +106,7 @@ impl HstsList {
 
     fn has_domain(&self, host: &str, base_domain: &str) -> bool {
         self.entries_map.get(base_domain).map_or(false, |entries| {
-            entries.iter().any(|e| e.matches_domain(&host))
+            entries.iter().any(|e| e.matches_domain(host))
         })
     }
 
@@ -128,10 +122,7 @@ impl HstsList {
         let have_domain = self.has_domain(&entry.host, base_domain);
         let have_subdomain = self.has_subdomain(&entry.host, base_domain);
 
-        let entries = self
-            .entries_map
-            .entry(base_domain.to_owned())
-            .or_insert(vec![]);
+        let entries = self.entries_map.entry(base_domain.to_owned()).or_default();
         if !have_domain && !have_subdomain {
             entries.push(entry);
         } else if !have_subdomain {

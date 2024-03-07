@@ -53,7 +53,7 @@ fn test_sniff_mp4_matcher_long() {
 
 #[test]
 fn test_validate_classifier() {
-    let classifier = MimeClassifier::new();
+    let classifier = MimeClassifier::default();
     classifier.validate().expect("Validation error")
 }
 
@@ -74,7 +74,7 @@ fn test_sniff_with_flags(
     let mut filename = PathBuf::from("tests/parsable_mime/");
     filename.push(filename_orig);
 
-    let classifier = MimeClassifier::new();
+    let classifier = MimeClassifier::default();
 
     let read_result = read_file(&filename);
 
