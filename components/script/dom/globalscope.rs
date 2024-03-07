@@ -3136,7 +3136,7 @@ impl GlobalScope {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
         let this = Trusted::new(&*self);
-        self.gamepad_task_source().queue(
+        self.gamepad_task_source().queue_with_canceller(
             task!(gamepad_connected: move || {
                 let global = this.root();
                 let gamepad = Gamepad::new(&global, index as u32, name, axis_bounds, button_bounds);
@@ -3154,16 +3154,16 @@ impl GlobalScope {
                     gamepad_list.add_if_not_exists(&gamepad_arr);
                 }
             }),
-            &self,
+            &self.task_canceller(TaskSourceName::Gamepad)
         )
-        .unwrap();
+        .expect("Failed to queue gamepad connected task.");
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
     pub fn handle_gamepad_disconnect(&self, index: usize) {
         let this = Trusted::new(&*self);
         self.gamepad_task_source()
-            .queue(
+            .queue_with_canceller(
                 task!(gamepad_disconnected: move || {
                     let global = this.root();
                     if let Some(window) = global.downcast::<Window>() {
@@ -3183,9 +3183,9 @@ impl GlobalScope {
                         }
                     }
                 }),
-                &self,
+                &self.task_canceller(TaskSourceName::Gamepad),
             )
-            .unwrap();
+            .expect("Failed to queue gamepad disconnected task.");
     }
 
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
@@ -3194,7 +3194,7 @@ impl GlobalScope {
 
         // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
         self.gamepad_task_source()
-            .queue(
+            .queue_with_canceller(
                 task!(update_gamepad_state: move || {
                     let global = this.root();
                     if let Some(window) = global.downcast::<Window>() {
@@ -3220,14 +3220,14 @@ impl GlobalScope {
                                         gamepad.update_timestamp(*current_time);
                                         let new_gamepad = Trusted::new(&*gamepad);
                                         if window.Document().is_fully_active() {
-                                            window.task_manager().gamepad_task_source().queue(
+                                            window.task_manager().gamepad_task_source().queue_with_canceller(
                                                 task!(update_gamepad_connect: move || {
                                                     let gamepad = new_gamepad.root();
                                                     gamepad.notify_event(GamepadEventType::Connected);
                                                 }),
-                                                window.upcast(),
+                                                &window.upcast::<GlobalScope>().task_canceller(TaskSourceName::Gamepad),
                                             )
-                                            .unwrap();
+                                            .expect("Failed to queue update gamepad connect task.");
                                         }
                                     }
                                 }
@@ -3235,9 +3235,9 @@ impl GlobalScope {
                         }
                     }
                 }),
-                &self,
+                &self.task_canceller(TaskSourceName::Gamepad),
             )
-            .unwrap();
+            .expect("Failed to queue update gamepad state task.");
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {
