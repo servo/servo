@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::refcounted::TrustedPromise;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -140,7 +140,7 @@ impl GamepadHapticActuator {
     /// <https://www.w3.org/TR/gamepad/#handling-visibility-change>
     #[allow(dead_code)]
     pub fn handle_visibility_change(&self) {
-        if self.playing_effect_promise.is_none() {
+        if self.playing_effect_promise.borrow().is_none() {
             return;
         }
 
@@ -159,7 +159,7 @@ impl GamepadHapticActuator {
                 let actuator = this.root();
                 let message = DOMString::from("preempted");
                 promise.resolve_native(&message);
-                actuator.playing_effect_promise.borrow_mut() = None;
+                *actuator.playing_effect_promise.borrow_mut() = None;
             }),
             &self.global(),
         );
