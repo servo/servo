@@ -1499,7 +1499,7 @@ where
                 self.compositor_proxy
                     .send(CompositorMsg::ShowWebView(top_level_browsing_context_id));
                 self.webviews
-                    .set_webview_visibility(top_level_browsing_context_id, true);
+                    .mark_webview_shown(top_level_browsing_context_id);
                 self.notify_webview_visibility(
                     top_level_browsing_context_id,
                     self.webviews
@@ -1516,7 +1516,7 @@ where
                 self.compositor_proxy
                     .send(CompositorMsg::HideWebView(top_level_browsing_context_id));
                 self.webviews
-                    .set_webview_visibility(top_level_browsing_context_id, false);
+                    .mark_webview_invisible(top_level_browsing_context_id);
                 self.notify_webview_visibility(
                     top_level_browsing_context_id,
                     self.webviews
@@ -1534,7 +1534,7 @@ where
                     top_level_browsing_context_id,
                 ));
                 self.webviews
-                    .set_webview_visibility(top_level_browsing_context_id, true);
+                    .mark_webview_shown(top_level_browsing_context_id);
                 self.notify_webview_visibility(
                     top_level_browsing_context_id,
                     self.webviews
@@ -1607,16 +1607,15 @@ where
                 self.handle_media_session_action_msg(action);
             },
             FromCompositorMsg::WebViewVisibilityChanged(webview_id, visible) => {
-                // TODO is this correct?
-                self.webviews.set_native_window_visibility(visible);
-                self.notify_webview_visibility(webview_id, visible);
-                let webviews = self.webviews.iter().map(|(&id, _)| id).collect::<Vec<_>>();
-                for top_level_browsing_context_id in webviews {
-                    let visible = self
-                        .webviews
-                        .is_effectively_visible(top_level_browsing_context_id);
-                    self.notify_webview_visibility(top_level_browsing_context_id, visible);
+                if visible {
+                    self.webviews.mark_webview_shown(webview_id);
+                    self.webviews.mark_webview_not_invisible(webview_id);
+                } else {
+                    self.webviews.mark_webview_not_shown(webview_id);
+                    self.webviews.mark_webview_invisible(webview_id);
                 }
+                let visible = self.webviews.is_effectively_visible(webview_id);
+                self.notify_webview_visibility(webview_id, visible);
             },
             FromCompositorMsg::ReadyToPresent(top_level_browsing_context_id) => {
                 self.embedder_proxy.send((
