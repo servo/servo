@@ -9,7 +9,7 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use canvas::canvas_paint_thread::ImageUpdate;
 use compositing_traits::{
@@ -245,6 +245,10 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// Waiting for external code to call present.
     waiting_on_present: bool,
+
+    /// The [`Instant`] of the last animation tick, used to avoid flooding the Constellation and
+    /// ScriptThread with a deluge of animation ticks.
+    last_animation_tick: Instant,
 }
 
 #[derive(Clone, Copy)]
@@ -427,6 +431,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             convert_mouse_to_touch,
             pending_frames: 0,
             waiting_on_present: false,
+            last_animation_tick: Instant::now(),
         }
     }
 
@@ -605,7 +610,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 ShutdownState::NotShuttingDown,
             ) => {
                 self.pipeline_details(pipeline_id).visible = visible;
-                self.process_animations();
+                self.process_animations(true);
             },
 
             (CompositorMsg::PipelineExited(pipeline_id, sender), _) => {
@@ -1504,7 +1509,18 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     /// If there are any animations running, dispatches appropriate messages to the constellation.
-    fn process_animations(&mut self) {
+    fn process_animations(&mut self, force: bool) {
+        // When running animations in order to dump a screenshot (not after a full composite), don't send
+        // animation ticks faster than about 60Hz.
+        //
+        // TODO: This should be based on the refresh rate of the screen and also apply to all
+        // animation ticks, not just ones sent while waiting to dump screenshots. This requires
+        // something like a refresh driver concept though.
+        if !force && (Instant::now() - self.last_animation_tick) < Duration::from_millis(16) {
+            return;
+        }
+        self.last_animation_tick = Instant::now();
+
         let mut pipeline_ids = vec![];
         for (pipeline_id, pipeline_details) in &self.pipeline_details {
             if (pipeline_details.animations_running || pipeline_details.animation_callbacks_running) &&
@@ -1762,7 +1778,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             // tick those instead and continue waiting for the image output to be stable AND
             // all active animations to complete.
             if self.animations_active() {
-                self.process_animations();
+                self.process_animations(false);
                 return Err(UnableToComposite::NotReadyToPaintImage(
                     NotReadyToPaint::AnimationsActive,
                 ));
@@ -1947,7 +1963,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         self.composition_request = CompositionRequest::NoCompositingNecessary;
 
-        self.process_animations();
+        self.process_animations(true);
 
         Ok(rv)
     }
