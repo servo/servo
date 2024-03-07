@@ -197,6 +197,7 @@ impl BluetoothAdapter {
     pub fn create_discovery_session(&self) -> Result<BluetoothDiscoverySession, Box<dyn Error>> {
         let discovery_session = match self {
             #[cfg(all(target_os = "linux", feature = "native-bluetooth"))]
+            #[allow(clippy::arc_with_non_send_sync)] // Problem with underlying library
             BluetoothAdapter::Bluez(inner) => BluetoothDiscoverySession::Bluez(Arc::new(
                 BluetoothDiscoverySessionBluez::create_session(inner.get_id())?,
             )),
@@ -292,7 +293,10 @@ impl BluetoothAdapter {
     pub fn set_id(&self, id: String) -> Result<(), Box<dyn Error>> {
         match self {
             #[cfg(feature = "bluetooth-test")]
-            BluetoothAdapter::Mock(inner) => Ok(inner.set_id(id)),
+            BluetoothAdapter::Mock(inner) => {
+                inner.set_id(id);
+                Ok(())
+            },
             _ => Err(Box::from(
                 "Error! Test functions are not supported on real devices!",
             )),

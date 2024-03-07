@@ -83,8 +83,7 @@ use super::macros::get_inner_and_call;
 use super::macros::get_inner_and_call_test_func;
 
 #[cfg(feature = "bluetooth-test")]
-const NOT_SUPPORTED_ON_MOCK_ERROR: &'static str =
-    "Error! The first parameter must be a mock structure!";
+const NOT_SUPPORTED_ON_MOCK_ERROR: &str = "Error! The first parameter must be a mock structure!";
 
 #[derive(Debug)]
 pub enum BluetoothDiscoverySession {
@@ -193,9 +192,8 @@ impl BluetoothDevice {
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_id(&self, id: String) {
-        match self {
-            &BluetoothDevice::Mock(ref fake_adapter) => fake_adapter.set_id(id),
-            _ => (),
+        if let BluetoothDevice::Mock(fake_adapter) = self {
+            fake_adapter.set_id(id)
         }
     }
 
@@ -473,9 +471,8 @@ impl BluetoothGATTService {
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_id(&self, id: String) {
-        match self {
-            &BluetoothGATTService::Mock(ref fake_service) => fake_service.set_id(id),
-            _ => (),
+        if let BluetoothGATTService::Mock(fake_service) = self {
+            fake_service.set_id(id)
         }
     }
 
@@ -578,11 +575,8 @@ impl BluetoothGATTCharacteristic {
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_id(&self, id: String) {
-        match self {
-            &BluetoothGATTCharacteristic::Mock(ref fake_characteristic) => {
-                fake_characteristic.set_id(id)
-            },
-            _ => (),
+        if let BluetoothGATTCharacteristic::Mock(fake_characteristic) = self {
+            fake_characteristic.set_id(id)
         }
     }
 
@@ -710,9 +704,8 @@ impl BluetoothGATTDescriptor {
 
     #[cfg(feature = "bluetooth-test")]
     pub fn set_id(&self, id: String) {
-        match self {
-            &BluetoothGATTDescriptor::Mock(ref fake_descriptor) => fake_descriptor.set_id(id),
-            _ => (),
+        if let BluetoothGATTDescriptor::Mock(fake_descriptor) = self {
+            fake_descriptor.set_id(id)
         }
     }
 
