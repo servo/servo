@@ -3145,14 +3145,13 @@ impl GlobalScope {
                     let has_gesture = window.Navigator().has_gamepad_gesture();
                     if has_gesture {
                         gamepad.set_exposed(true);
+                        if window.Document().is_fully_active() {
+                            gamepad.update_connected(true, has_gesture);
+                        }
                     }
                     let gamepad_list = window.Navigator().gamepads();
                     let gamepad_arr: [DomRoot<Gamepad>; 1] = [gamepad.clone()];
                     gamepad_list.add_if_not_exists(&gamepad_arr);
-
-                    if window.Document().is_fully_active() {
-                        gamepad.update_connected(true, has_gesture);
-                    }
                 }
             }),
             &self,

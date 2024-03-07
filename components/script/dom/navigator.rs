@@ -46,10 +46,12 @@ pub struct Navigator {
     service_worker: MutNullableDom<ServiceWorkerContainer>,
     xr: MutNullableDom<XRSystem>,
     mediadevices: MutNullableDom<MediaDevices>,
+    /// <https://www.w3.org/TR/gamepad/#dfn-gamepads>
     gamepads: MutNullableDom<GamepadList>,
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
     gpu: MutNullableDom<GPU>,
+    /// <https://www.w3.org/TR/gamepad/#dfn-hasgamepadgesture>
     has_gamepad_gesture: Cell<bool>,
 }
 
@@ -189,12 +191,13 @@ impl NavigatorMethods for Navigator {
         true
     }
 
-    // https://www.w3.org/TR/gamepad/#navigator-interface-extension
+    /// <https://www.w3.org/TR/gamepad/#dom-navigator-getgamepads>
     fn GetGamepads(&self) -> Vec<Option<DomRoot<Gamepad>>> {
         let global = self.global();
         let window = global.as_window();
         let doc = window.Document();
 
+        // TODO: Handle permissions policy once implemented
         if !doc.is_fully_active() || !self.has_gamepad_gesture.get() {
             return Vec::new();
         }

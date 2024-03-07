@@ -177,7 +177,7 @@ impl Gamepad {
         self.gamepad_id
     }
 
-    pub fn update_connected(&self, connected: bool, should_notify: bool) {
+    pub fn update_connected(&self, connected: bool, has_gesture: bool) {
         if self.connected.get() == connected {
             return;
         }
@@ -189,7 +189,7 @@ impl Gamepad {
             GamepadEventType::Disconnected
         };
 
-        if should_notify {
+        if has_gesture {
             self.notify_event(event_type);
         }
     }

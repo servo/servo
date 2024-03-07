@@ -52,9 +52,8 @@ impl GamepadList {
     pub fn list(&self) -> Vec<Option<DomRoot<Gamepad>>> {
         self.list
             .borrow()
-            .clone()
-            .into_iter()
-            .map(|gamepad| Some(DomRoot::from_ref(&*gamepad)))
+            .iter()
+            .map(|gamepad| Some(DomRoot::from_ref(&**gamepad)))
             .collect()
     }
 }
