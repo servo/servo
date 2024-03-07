@@ -2236,16 +2236,29 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             color[3] as f32,
         );
 
-        // Clear the viewport rect of each top-level browsing context.
-        for (_, webview) in self.webviews.painting_order() {
-            let rect = self
-                .embedder_coordinates
-                .flipped_rect(&webview.rect.to_i32());
+        if cfg!(feature = "multiview") {
+            // Clear the viewport rect of each top-level browsing context.
+            for (_, webview) in self.webviews.painting_order() {
+                let rect = self
+                    .embedder_coordinates
+                    .flipped_rect(&webview.rect.to_i32());
+                gl.scissor(
+                    rect.origin.x,
+                    rect.origin.y,
+                    rect.size.width,
+                    rect.size.height,
+                );
+                gl.enable(gleam::gl::SCISSOR_TEST);
+                gl.clear(gleam::gl::COLOR_BUFFER_BIT);
+                gl.disable(gleam::gl::SCISSOR_TEST);
+            }
+        } else {
+            let viewport = self.embedder_coordinates.get_flipped_viewport();
             gl.scissor(
-                rect.origin.x,
-                rect.origin.y,
-                rect.size.width,
-                rect.size.height,
+                viewport.origin.x,
+                viewport.origin.y,
+                viewport.size.width,
+                viewport.size.height,
             );
             gl.enable(gleam::gl::SCISSOR_TEST);
             gl.clear(gleam::gl::COLOR_BUFFER_BIT);
