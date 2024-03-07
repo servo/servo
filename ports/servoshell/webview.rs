@@ -122,6 +122,12 @@ where
         self.focused_webview_id.clone()
     }
 
+    pub fn creation_order(&self) -> impl Iterator<Item = (&WebViewId, &WebView)> {
+        self.creation_order
+            .iter()
+            .flat_map(move |webview_id| self.webviews.get(webview_id).map(|b| (webview_id, b)))
+    }
+
     pub fn current_url_string(&self) -> Option<&str> {
         self.current_url_string.as_deref()
     }
