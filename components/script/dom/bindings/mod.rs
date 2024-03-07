@@ -139,6 +139,7 @@ pub mod cell;
 pub mod constant;
 pub mod conversions;
 pub mod error;
+pub mod finalize;
 pub mod guard;
 pub mod htmlconstructor;
 pub mod inheritance;
