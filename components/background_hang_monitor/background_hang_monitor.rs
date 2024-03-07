@@ -312,14 +312,14 @@ struct BackgroundHangMonitorWorker {
     monitoring_enabled: bool,
 }
 
-type PortSender = Arc<Sender<(MonitoredComponentId, MonitoredComponentMsg)>>;
-type Port = Receiver<(MonitoredComponentId, MonitoredComponentMsg)>;
+type MonitoredComponentSender = Sender<(MonitoredComponentId, MonitoredComponentMsg)>;
+type MonitoredComponentReceiver = Receiver<(MonitoredComponentId, MonitoredComponentMsg)>;
 
 impl BackgroundHangMonitorWorker {
     fn new(
         constellation_chan: IpcSender<HangMonitorAlert>,
         control_port: IpcReceiver<BackgroundHangMonitorControlMsg>,
-        (port_sender, port): (PortSender, Port),
+        (port_sender, port): (Arc<MonitoredComponentSender>, MonitoredComponentReceiver),
         tether_port: Receiver<Never>,
         monitoring_enabled: bool,
     ) -> Self {

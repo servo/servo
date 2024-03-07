@@ -212,7 +212,7 @@ impl RequestBody {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.total_bytes == Some(0)
+        self.total_bytes.is_none() || self.total_bytes == Some(0)
     }
 }
 

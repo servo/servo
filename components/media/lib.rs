@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
+#![allow(clippy::type_complexity)]
 
 mod media_channel;
 mod media_thread;
@@ -20,14 +21,12 @@ pub use crate::media_channel::glplayer_channel;
 use crate::media_channel::{GLPlayerChan, GLPlayerPipeline, GLPlayerReceiver, GLPlayerSender};
 use crate::media_thread::GLPlayerThread;
 
-type GLPlayerSenderType = GLPlayerSender<(u32, Size2D<i32>, usize)>;
-
 /// These are the messages that the GLPlayer thread will forward to
 /// the video player which lives in htmlmediaelement
 #[derive(Debug, Deserialize, Serialize)]
 pub enum GLPlayerMsgForward {
     PlayerId(u64),
-    Lock(GLPlayerSenderType),
+    Lock(GLPlayerSender<(u32, Size2D<i32>, usize)>),
     Unlock(),
 }
 
@@ -54,7 +53,7 @@ pub enum GLPlayerMsg {
     ///
     /// Currently OpenGL Sync Objects are used to implement the
     /// synchronization mechanism.
-    Lock(u64, GLPlayerSenderType),
+    Lock(u64, GLPlayerSender<(u32, Size2D<i32>, usize)>),
     /// Unlocks a specific texture from a player. Unlock messages are
     /// used for a correct synchronization with WebRender external
     /// image API.

@@ -257,6 +257,7 @@ fn get_response_expiry(response: &Response) -> Duration {
             // Status codes that are cacheable by default can use heuristics to determine freshness.
             return heuristic_freshness;
         }
+        // Other status codes can only use heuristic freshness if the public cache directive is present.
         if let Some(ref directives) = response.headers.typed_get::<CacheControl>() {
             if directives.public() {
                 return heuristic_freshness;
