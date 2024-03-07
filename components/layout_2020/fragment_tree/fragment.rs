@@ -90,7 +90,7 @@ pub(crate) struct ImageFragment {
     pub style: ServoArc<ComputedValues>,
     pub rect: LogicalRect<Length>,
     #[serde(skip_serializing)]
-    pub image_key: ImageKey,
+    pub image_key: Option<ImageKey>,
 }
 
 #[derive(Serialize)]
