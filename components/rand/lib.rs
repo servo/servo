@@ -106,7 +106,7 @@ impl ServoRng {
     ///
     /// This uses the shared `OsRng`, so avoids consuming
     /// a file descriptor.
-    pub fn default() -> ServoRng {
+    pub fn new() -> ServoRng {
         trace!("Creating new ServoRng.");
         let mut os_rng = OS_RNG.lock().expect("Poisoned lock.");
         let isaac_rng = IsaacCore::from_rng(&mut *os_rng).unwrap();
