@@ -148,14 +148,28 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::Navigation(..) => write!(f, "Navigation"),
             EmbedderEvent::Quit => write!(f, "Quit"),
             EmbedderEvent::Reload(..) => write!(f, "Reload"),
-            EmbedderEvent::NewWebView(..) => write!(f, "NewWebView"),
+            EmbedderEvent::NewWebView(_, TopLevelBrowsingContextId(webview_id)) => {
+                write!(f, "NewWebView({webview_id:?})")
+            },
             EmbedderEvent::SendError(..) => write!(f, "SendError"),
-            EmbedderEvent::CloseWebView(..) => write!(f, "CloseWebView"),
-            EmbedderEvent::MoveResizeWebView(..) => write!(f, "MoveResizeWebView"),
-            EmbedderEvent::ShowWebView(..) => write!(f, "ShowWebView"),
-            EmbedderEvent::HideWebView(..) => write!(f, "HideWebView"),
-            EmbedderEvent::RaiseWebViewToTop(..) => write!(f, "RaiseWebViewToTop"),
-            EmbedderEvent::FocusWebView(..) => write!(f, "FocusWebView"),
+            EmbedderEvent::CloseWebView(TopLevelBrowsingContextId(webview_id)) => {
+                write!(f, "CloseWebView({webview_id:?})")
+            },
+            EmbedderEvent::MoveResizeWebView(webview_id, _) => {
+                write!(f, "MoveResizeWebView({webview_id:?})")
+            },
+            EmbedderEvent::ShowWebView(TopLevelBrowsingContextId(webview_id)) => {
+                write!(f, "ShowWebView({webview_id:?})")
+            },
+            EmbedderEvent::HideWebView(TopLevelBrowsingContextId(webview_id)) => {
+                write!(f, "HideWebView({webview_id:?})")
+            },
+            EmbedderEvent::RaiseWebViewToTop(TopLevelBrowsingContextId(webview_id)) => {
+                write!(f, "RaiseWebViewToTop({webview_id:?})")
+            },
+            EmbedderEvent::FocusWebView(TopLevelBrowsingContextId(webview_id)) => {
+                write!(f, "FocusWebView({webview_id:?})")
+            },
             EmbedderEvent::BlurWebView => write!(f, "BlurWebView"),
             EmbedderEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
             EmbedderEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
