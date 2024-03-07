@@ -150,6 +150,51 @@ impl Minibrowser {
         } = self;
         let widget_fbo = *widget_surface_fbo;
         let _duration = context.run(window, |ctx| {
+            let mut embedder_events = vec![];
+            let focused_webview_id = webviews.focused_webview_id();
+            let mut selected_tab = focused_webview_id;
+            TopBottomPanel::top("tab bar").show(ctx, |ui| {
+                ui.allocate_ui_with_layout(
+                    ui.available_size(),
+                    egui::Layout::left_to_right(egui::Align::Center),
+                    |ui| {
+                        if ui.button("❌").clicked() {
+                            if let Some(webview_id) = focused_webview_id {
+                                embedder_events.push(EmbedderEvent::CloseWebView(webview_id));
+                            }
+                        }
+
+                        let mut clicked_tab_webview_id = None;
+                        let mut middle_clicked_tab_webview_id = None;
+                        for (&webview_id, _) in webviews.creation_order() {
+                            let text = format!("{:?}", webview_id.0);
+                            let tab =
+                                ui.selectable_value(&mut selected_tab, Some(webview_id), text);
+                            if tab.clicked() {
+                                info!("Clicked tab {webview_id}");
+                                clicked_tab_webview_id = Some(webview_id);
+                            }
+                            if tab.clicked_by(egui::PointerButton::Middle) {
+                                info!("Middle-clicked tab {webview_id}");
+                                middle_clicked_tab_webview_id = Some(webview_id);
+                            }
+                        }
+                        if let Some(clicked_tab_webview_id) = clicked_tab_webview_id {
+                            embedder_events.push(EmbedderEvent::BlurWebView);
+                            embedder_events.push(EmbedderEvent::RaiseWebViewToTop(
+                                clicked_tab_webview_id,
+                                true,
+                            ));
+                            embedder_events
+                                .push(EmbedderEvent::FocusWebView(clicked_tab_webview_id));
+                        }
+                        if let Some(webview_id) = middle_clicked_tab_webview_id {
+                            embedder_events.push(EmbedderEvent::CloseWebView(webview_id));
+                        }
+                    },
+                );
+            });
+
             TopBottomPanel::top("toolbar").show(ctx, |ui| {
                 ui.allocate_ui_with_layout(
                     ui.available_size(),
@@ -199,51 +244,6 @@ impl Minibrowser {
                                 }
                             },
                         );
-                    },
-                );
-            });
-
-            let mut embedder_events = vec![];
-            let focused_webview_id = webviews.focused_webview_id();
-            let mut selected_tab = focused_webview_id;
-            TopBottomPanel::top("tab bar").show(ctx, |ui| {
-                ui.allocate_ui_with_layout(
-                    ui.available_size(),
-                    egui::Layout::left_to_right(egui::Align::Center),
-                    |ui| {
-                        if ui.button("❌").clicked() {
-                            if let Some(webview_id) = focused_webview_id {
-                                embedder_events.push(EmbedderEvent::CloseWebView(webview_id));
-                            }
-                        }
-
-                        let mut clicked_tab_webview_id = None;
-                        let mut middle_clicked_tab_webview_id = None;
-                        for (&webview_id, _) in webviews.creation_order() {
-                            let text = format!("{:?}", webview_id.0);
-                            let tab =
-                                ui.selectable_value(&mut selected_tab, Some(webview_id), text);
-                            if tab.clicked() {
-                                info!("Clicked tab {webview_id}");
-                                clicked_tab_webview_id = Some(webview_id);
-                            }
-                            if tab.clicked_by(egui::PointerButton::Middle) {
-                                info!("Middle-clicked tab {webview_id}");
-                                middle_clicked_tab_webview_id = Some(webview_id);
-                            }
-                        }
-                        if let Some(clicked_tab_webview_id) = clicked_tab_webview_id {
-                            embedder_events.push(EmbedderEvent::BlurWebView);
-                            embedder_events.push(EmbedderEvent::RaiseWebViewToTop(
-                                clicked_tab_webview_id,
-                                true,
-                            ));
-                            embedder_events
-                                .push(EmbedderEvent::FocusWebView(clicked_tab_webview_id));
-                        }
-                        if let Some(webview_id) = middle_clicked_tab_webview_id {
-                            embedder_events.push(EmbedderEvent::CloseWebView(webview_id));
-                        }
                     },
                 );
             });
