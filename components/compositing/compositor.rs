@@ -13,9 +13,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use canvas::canvas_paint_thread::ImageUpdate;
 use compositing_traits::{
-    CanvasToCompositorMsg, CompositingReason, CompositionPipeline, CompositorMsg,
-    CompositorReceiver, ConstellationMsg, FontToCompositorMsg, ForwardedToCompositorMsg,
-    SendableFrameTree,
+    CanvasToCompositorMsg, CompositionPipeline, CompositorMsg, CompositorReceiver,
+    ConstellationMsg, FontToCompositorMsg, ForwardedToCompositorMsg, SendableFrameTree,
 };
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
@@ -182,9 +181,6 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Pending scroll/zoom events.
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
 
-    /// Whether we're waiting on a recomposite after dispatching a scroll.
-    waiting_for_results_of_scroll: bool,
-
     /// Used by the logic that determines when it is safe to output an
     /// image for the reftest framework.
     ready_to_save_state: ReadyState,
@@ -244,10 +240,8 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// True to translate mouse input into touch events.
     convert_mouse_to_touch: bool,
 
-    /// True if a WR frame render has been requested. Screenshots
-    /// taken before the render is complete will not reflect the
-    /// most up to date rendering.
-    waiting_on_pending_frame: bool,
+    /// The number of frames pending to receive from WebRender.
+    pending_frames: usize,
 
     /// Waiting for external code to call present.
     waiting_on_present: bool,
@@ -270,6 +264,23 @@ enum ScrollZoomEvent {
     /// A scroll event that scrolls the scroll node at the given location by the
     /// given amount.
     Scroll(ScrollEvent),
+}
+
+/// Why we performed a composite. This is used for debugging.
+///
+/// TODO: It would be good to have a bit more precision here about why a composite
+/// was originally triggered, but that would require tracking the reason when a
+/// frame is queued in WebRender and then remembering when the frame is ready.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum CompositingReason {
+    /// We're performing the single composite in headless mode.
+    Headless,
+    /// We're performing a composite to run an animation.
+    Animation,
+    /// A new WebRender frame has arrived.
+    NewWebRenderFrame,
+    /// The window has been resized and will need to be synchronously repainted.
+    Resize,
 }
 
 #[derive(Debug, PartialEq)]
@@ -387,7 +398,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
-            waiting_for_results_of_scroll: false,
             composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
             page_zoom: Scale::new(1.0),
@@ -415,7 +425,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
-            waiting_on_pending_frame: false,
+            pending_frames: 0,
             waiting_on_present: false,
         }
     }
@@ -529,6 +539,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn handle_browser_message(&mut self, msg: CompositorMsg) -> bool {
+        if matches!(msg, CompositorMsg::NewWebRenderFrameReady(..)) {
+            self.pending_frames -= 1;
+        }
+
         match (msg, self.shutdown_state) {
             (_, ShutdownState::FinishedShuttingDown) => {
                 error!("compositor shouldn't be handling messages after shutting down");
@@ -552,11 +566,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
             },
 
-            (CompositorMsg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
-                self.waiting_on_pending_frame = false;
-                self.composition_request = CompositionRequest::CompositeNow(reason)
-            },
-
             (CompositorMsg::TouchEventProcessed(result), ShutdownState::NotShuttingDown) => {
                 self.touch_handler.on_event_processed(result);
             },
@@ -577,8 +586,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     self.ready_to_save_state,
                     ReadyState::WaitingForConstellationReply
                 );
-                if is_ready && !self.waiting_on_pending_frame && !self.waiting_for_results_of_scroll
-                {
+                if is_ready && self.pending_frames == 0 {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
                     if self.is_running_problem_test {
                         println!("ready to save image!");
@@ -607,17 +615,19 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (
-                CompositorMsg::NewScrollFrameReady(recomposite_needed),
+                CompositorMsg::NewWebRenderFrameReady(recomposite_needed),
                 ShutdownState::NotShuttingDown,
             ) => {
-                self.waiting_for_results_of_scroll = false;
-                if let Some(result) = self.hit_test_at_device_point(self.cursor_pos) {
-                    self.update_cursor(result);
-                }
                 if recomposite_needed {
-                    self.composition_request = CompositionRequest::CompositeNow(
-                        CompositingReason::NewWebRenderScrollFrame,
-                    );
+                    if let Some(result) = self.hit_test_at_device_point(self.cursor_pos) {
+                        self.update_cursor(result);
+                    }
+                    self.composition_request =
+                        CompositionRequest::CompositeNow(CompositingReason::NewWebRenderFrame);
+                }
+
+                if recomposite_needed || self.animation_callbacks_active() {
+                    self.composite_if_necessary(CompositingReason::NewWebRenderFrame)
                 }
             },
 
@@ -700,7 +710,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             ForwardedToCompositorMsg::Layout(
                 script_traits::ScriptToCompositorMsg::SendInitialTransaction(pipeline),
             ) => {
-                self.waiting_on_pending_frame = true;
                 let mut txn = Transaction::new();
                 txn.set_display_list(
                     WebRenderEpoch(0),
@@ -710,6 +719,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     false,
                 );
 
+                self.generate_frame(&mut txn);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
@@ -717,11 +727,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             ForwardedToCompositorMsg::Layout(
                 script_traits::ScriptToCompositorMsg::SendScrollNode(point, scroll_id),
             ) => {
-                self.waiting_for_results_of_scroll = true;
-
                 let mut txn = Transaction::new();
                 txn.scroll_node_with_id(point, scroll_id, ScrollClamping::NoClamping);
-                txn.generate_frame(0);
+                self.generate_frame(&mut txn);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
@@ -737,8 +745,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     Ok(display_list_data) => display_list_data,
                     _ => return warn!("Could not recieve WebRender display list."),
                 };
-
-                self.waiting_on_pending_frame = true;
 
                 let pipeline_id = display_list_info.pipeline_id;
                 let details = self.pipeline_details(PipelineId::from_webrender(pipeline_id));
@@ -757,7 +763,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     ),
                     true,
                 );
-                txn.generate_frame(0);
+                self.generate_frame(&mut txn);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
@@ -877,6 +883,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
         }
+    }
+
+    /// Queue a new frame in the transaction and increase the pending frames count.
+    fn generate_frame(&mut self, transaction: &mut Transaction) {
+        self.pending_frames += 1;
+        transaction.generate_frame(0);
     }
 
     /// Sets or unsets the animations-running flag for the given pipeline, and schedules a
@@ -1011,7 +1023,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         let mut txn = Transaction::new();
         self.set_root_content_pipeline_handling_pinch_zoom(&mut txn);
-        txn.generate_frame(0);
+        self.generate_frame(&mut txn);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
 
@@ -1449,10 +1461,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             let scroll_origin = LayoutPoint::new(-offset.x, -offset.y);
             transaction.scroll_node_with_id(scroll_origin, external_id, ScrollClamping::NoClamping);
             self.send_scroll_positions_to_layout_for_pipeline(&pipeline_id);
-            self.waiting_for_results_of_scroll = true
         }
 
-        transaction.generate_frame(0);
+        self.generate_frame(&mut transaction);
         self.webrender_api
             .send_transaction(self.webrender_document, transaction);
     }
@@ -1628,6 +1639,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         false
+    }
+
+    /// Returns true if any animation callbacks (ie `requestAnimationFrame`) are waiting for a response.
+    fn animation_callbacks_active(&self) -> bool {
+        self.pipeline_details
+            .values()
+            .any(|details| details.animation_callbacks_running)
     }
 
     /// Query the constellation to see if the current compositor
@@ -1930,7 +1948,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.composition_request = CompositionRequest::NoCompositingNecessary;
 
         self.process_animations();
-        self.waiting_for_results_of_scroll = false;
 
         Ok(rv)
     }
@@ -2013,8 +2030,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let mut found_recomposite_msg = false;
         while let Some(msg) = self.port.try_recv_compositor_msg() {
             match msg {
-                CompositorMsg::Recomposite(_) if found_recomposite_msg => {},
-                CompositorMsg::Recomposite(_) => {
+                CompositorMsg::NewWebRenderFrameReady(_) if found_recomposite_msg => {
+                    // Only take one of duplicate NewWebRendeFrameReady messages, but do subtract
+                    // one frame from the pending frames.
+                    self.pending_frames -= 1;
+                },
+                CompositorMsg::NewWebRenderFrameReady(_) => {
                     found_recomposite_msg = true;
                     compositor_messages.push(msg)
                 },
@@ -2054,7 +2075,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // The WebXR thread may make a different context current
         let _ = self.rendering_context.make_gl_context_current();
 
-        if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {
+        if !self.pending_scroll_zoom_events.is_empty() {
             self.process_pending_scroll_events()
         }
         self.shutdown_state != ShutdownState::FinishedShuttingDown
@@ -2068,7 +2089,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         while self.shutdown_state != ShutdownState::ShuttingDown {
             let msg = self.port.recv_compositor_msg();
             let need_recomposite = match msg {
-                CompositorMsg::Recomposite(_) => true,
+                CompositorMsg::NewWebRenderFrameReady(_) => true,
                 _ => false,
             };
             let keep_going = self.handle_browser_message(msg);
@@ -2113,7 +2134,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender.set_debug_flags(flags);
 
         let mut txn = Transaction::new();
-        txn.generate_frame(0);
+        self.generate_frame(&mut txn);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
     }

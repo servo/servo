@@ -27,33 +27,6 @@ use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 use webrender_api::{self, FontInstanceKey, FontKey, ImageKey};
 
-/// Why we performed a composite. This is used for debugging.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum CompositingReason {
-    /// We hit the delayed composition timeout. (See `delayed_composition.rs`.)
-    DelayedCompositeTimeout,
-    /// The window has been scrolled and we're starting the first recomposite.
-    Scroll,
-    /// A scroll has continued and we need to recomposite again.
-    ContinueScroll,
-    /// We're performing the single composite in headless mode.
-    Headless,
-    /// We're performing a composite to run an animation.
-    Animation,
-    /// A new frame tree has been loaded.
-    NewFrameTree,
-    /// New painted buffers have been received.
-    NewPaintedBuffers,
-    /// The window has been zoomed.
-    Zoom,
-    /// A new WebRender frame has arrived.
-    NewWebRenderFrame,
-    /// WebRender has processed a scroll event and has generated a new frame.
-    NewWebRenderScrollFrame,
-    /// The window has been resized and will need to be synchronously repainted.
-    Resize,
-}
-
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
     pub sender: Sender<CompositorMsg>,
@@ -92,12 +65,6 @@ impl CompositorReceiver {
     }
 }
 
-impl CompositorProxy {
-    pub fn recomposite(&self, reason: CompositingReason) {
-        self.send(CompositorMsg::Recomposite(reason));
-    }
-}
-
 /// Messages from (or via) the constellation thread to the compositor.
 pub enum CompositorMsg {
     /// Informs the compositor that the constellation has completed shutdown.
@@ -108,8 +75,6 @@ pub enum CompositorMsg {
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
     SetFrameTree(SendableFrameTree),
-    /// Composite.
-    Recomposite(CompositingReason),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
@@ -118,9 +83,9 @@ pub enum CompositorMsg {
     IsReadyToSaveImageReply(bool),
     /// Pipeline visibility changed
     PipelineVisibilityChanged(PipelineId, bool),
-    /// WebRender has successfully processed a scroll. The boolean specifies whether a composite is
-    /// needed.
-    NewScrollFrameReady(bool),
+    /// WebRender has produced a new frame. This message informs the compositor that
+    /// the frame is ready, so that it may trigger a recomposite.
+    NewWebRenderFrameReady(bool /* composite_needed */),
     /// A pipeline was shut down.
     // This message acts as a synchronization point between the constellation,
     // when it shuts down a pipeline, to the compositor; when the compositor
@@ -193,13 +158,12 @@ impl Debug for CompositorMsg {
                 write!(f, "ChangeRunningAnimationsState({:?})", state)
             },
             CompositorMsg::SetFrameTree(..) => write!(f, "SetFrameTree"),
-            CompositorMsg::Recomposite(..) => write!(f, "Recomposite"),
             CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),
             CompositorMsg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
             CompositorMsg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
             CompositorMsg::PipelineExited(..) => write!(f, "PipelineExited"),
-            CompositorMsg::NewScrollFrameReady(..) => write!(f, "NewScrollFrameReady"),
+            CompositorMsg::NewWebRenderFrameReady(..) => write!(f, "NewWebRenderFrameReady"),
             CompositorMsg::Dispatch(..) => write!(f, "Dispatch"),
             CompositorMsg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
             CompositorMsg::LoadComplete(..) => write!(f, "LoadComplete"),
