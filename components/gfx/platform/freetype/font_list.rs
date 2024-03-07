@@ -17,10 +17,10 @@ use log::debug;
 use super::c_str_to_string;
 use crate::text::util::is_cjk;
 
-static FC_FAMILY: &'static [u8] = b"family\0";
-static FC_FILE: &'static [u8] = b"file\0";
-static FC_INDEX: &'static [u8] = b"index\0";
-static FC_FONTFORMAT: &'static [u8] = b"fontformat\0";
+static FC_FAMILY: &[u8] = b"family\0";
+static FC_FILE: &[u8] = b"file\0";
+static FC_INDEX: &[u8] = b"index\0";
+static FC_FONTFORMAT: &[u8] = b"fontformat\0";
 
 pub fn for_each_available_family<F>(mut callback: F)
 where
@@ -150,7 +150,7 @@ pub fn system_default_family(generic_name: &str) -> Option<String> {
     }
 }
 
-pub static SANS_SERIF_FONT_FAMILY: &'static str = "DejaVu Sans";
+pub static SANS_SERIF_FONT_FAMILY: &str = "DejaVu Sans";
 
 // Based on gfxPlatformGtk::GetCommonFallbackFonts() in Gecko
 pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {

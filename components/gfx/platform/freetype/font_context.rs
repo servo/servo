@@ -109,8 +109,8 @@ impl MallocSizeOf for FontContextHandle {
     }
 }
 
-impl FontContextHandle {
-    pub fn new() -> FontContextHandle {
+impl Default for FontContextHandle {
+    fn default() -> Self {
         let user = Box::into_raw(Box::new(User { size: 0 }));
         let mem = Box::into_raw(Box::new(FT_MemoryRec_ {
             user: user as *mut c_void,

@@ -109,18 +109,12 @@ impl FontTemplate {
             None => None,
         };
 
-        let maybe_strong_ref = match maybe_data {
-            Some(data) => Some(Arc::new(data)),
-            None => None,
-        };
+        let maybe_strong_ref = maybe_data.map(Arc::new);
 
-        let maybe_weak_ref = match maybe_strong_ref {
-            Some(ref strong_ref) => Some(Arc::downgrade(strong_ref)),
-            None => None,
-        };
+        let maybe_weak_ref = maybe_strong_ref.as_ref().map(Arc::downgrade);
 
         Ok(FontTemplate {
-            identifier: identifier,
+            identifier,
             descriptor: None,
             weak_ref: maybe_weak_ref,
             strong_ref: maybe_strong_ref,
@@ -161,7 +155,7 @@ impl FontTemplate {
         fctx: &FontContextHandle,
         requested_desc: &FontTemplateDescriptor,
     ) -> Option<Arc<FontTemplateData>> {
-        self.descriptor(&fctx).and_then(|descriptor| {
+        self.descriptor(fctx).and_then(|descriptor| {
             if *requested_desc == descriptor {
                 self.data().ok()
             } else {
@@ -177,7 +171,7 @@ impl FontTemplate {
         font_context: &FontContextHandle,
         requested_descriptor: &FontTemplateDescriptor,
     ) -> Option<(Arc<FontTemplateData>, f32)> {
-        self.descriptor(&font_context).and_then(|descriptor| {
+        self.descriptor(font_context).and_then(|descriptor| {
             self.data()
                 .ok()
                 .map(|data| (data, descriptor.distance_from(requested_descriptor)))

@@ -65,7 +65,7 @@ pub struct FontContext<S: FontSource> {
 
 impl<S: FontSource> FontContext<S> {
     pub fn new(font_source: S) -> FontContext<S> {
-        let handle = FontContextHandle::new();
+        let handle = FontContextHandle::default();
         FontContext {
             platform_handle: handle,
             font_source,
@@ -99,8 +99,8 @@ impl<S: FontSource> FontContext<S> {
             style,
         };
 
-        if let Some(ref font_group) = self.font_group_cache.get(&cache_key) {
-            return (*font_group).clone();
+        if let Some(font_group) = self.font_group_cache.get(&cache_key) {
+            return font_group.clone();
         }
 
         let font_group = Rc::new(RefCell::new(FontGroup::new(&cache_key.style)));
@@ -150,30 +150,27 @@ impl<S: FontSource> FontContext<S> {
             family_descriptor: family_descriptor.clone(),
         };
 
-        self.font_cache
-            .get(&cache_key)
-            .map(|v| v.clone())
-            .unwrap_or_else(|| {
-                debug!(
-                    "FontContext::font cache miss for font_descriptor={:?} family_descriptor={:?}",
-                    font_descriptor, family_descriptor
-                );
+        self.font_cache.get(&cache_key).cloned().unwrap_or_else(|| {
+            debug!(
+                "FontContext::font cache miss for font_descriptor={:?} family_descriptor={:?}",
+                font_descriptor, family_descriptor
+            );
 
-                let font = self
-                    .font_template(&font_descriptor.template_descriptor, family_descriptor)
-                    .and_then(|template_info| {
-                        self.create_font(
-                            template_info,
-                            font_descriptor.to_owned(),
-                            synthesized_small_caps_font,
-                        )
-                        .ok()
-                    })
-                    .map(|font| Rc::new(RefCell::new(font)));
+            let font = self
+                .font_template(&font_descriptor.template_descriptor, family_descriptor)
+                .and_then(|template_info| {
+                    self.create_font(
+                        template_info,
+                        font_descriptor.to_owned(),
+                        synthesized_small_caps_font,
+                    )
+                    .ok()
+                })
+                .map(|font| Rc::new(RefCell::new(font)));
 
-                self.font_cache.insert(cache_key, font.clone());
-                font
-            })
+            self.font_cache.insert(cache_key, font.clone());
+            font
+        })
     }
 
     fn font_template(
@@ -182,11 +179,11 @@ impl<S: FontSource> FontContext<S> {
         family_descriptor: &FontFamilyDescriptor,
     ) -> Option<FontTemplateInfo> {
         let cache_key = FontTemplateCacheKey {
-            template_descriptor: template_descriptor.clone(),
+            template_descriptor: *template_descriptor,
             family_descriptor: family_descriptor.clone(),
         };
 
-        self.font_template_cache.get(&cache_key).map(|v| v.clone()).unwrap_or_else(|| {
+        self.font_template_cache.get(&cache_key).cloned().unwrap_or_else(|| {
             debug!(
                 "FontContext::font_template cache miss for template_descriptor={:?} family_descriptor={:?}",
                 template_descriptor,
@@ -194,7 +191,7 @@ impl<S: FontSource> FontContext<S> {
             );
 
             let template_info = self.font_source.font_template(
-                template_descriptor.clone(),
+                *template_descriptor,
                 family_descriptor.clone(),
             );
 

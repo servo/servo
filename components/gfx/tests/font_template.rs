@@ -35,7 +35,7 @@ fn test_font_template_descriptor() {
         )
         .unwrap();
 
-        let context = FontContextHandle::new();
+        let context = FontContextHandle::default();
 
         template.descriptor(&context).unwrap()
     }
