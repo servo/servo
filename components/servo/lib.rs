@@ -207,7 +207,6 @@ impl webrender_api::RenderNotifier for RenderNotifier {
         composite_needed: bool,
         _render_time_ns: Option<u64>,
     ) {
-        println!("FRAME READY");
         self.compositor_proxy
             .send(CompositorMsg::NewWebRenderFrameReady(composite_needed));
     }
