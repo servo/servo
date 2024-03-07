@@ -18,10 +18,10 @@ pub struct WebViewManager<WebView> {
     /// Whether the latest webview in focus order is currently focused.
     is_focused: bool,
 
-    /// The webview that would be shown in a containing native window.
+    /// Webviews that are being shown by the embedder, regardless of whether they are actually visible
     shown_webviews: HashSet<TopLevelBrowsingContextId>,
 
-    /// The webview that would be invisible in a containing native window.
+    /// Webviews that are known to be invisible, regardless of whether they are being shown
     invisible_webviews: HashSet<TopLevelBrowsingContextId>,
 }
 

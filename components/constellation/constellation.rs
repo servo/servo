@@ -1516,7 +1516,7 @@ where
                 self.compositor_proxy
                     .send(CompositorMsg::HideWebView(top_level_browsing_context_id));
                 self.webviews
-                    .mark_webview_invisible(top_level_browsing_context_id);
+                    .mark_webview_not_shown(top_level_browsing_context_id);
                 self.notify_webview_visibility(
                     top_level_browsing_context_id,
                     self.webviews
@@ -1608,10 +1608,8 @@ where
             },
             FromCompositorMsg::WebViewVisibilityChanged(webview_id, visible) => {
                 if visible {
-                    self.webviews.mark_webview_shown(webview_id);
                     self.webviews.mark_webview_not_invisible(webview_id);
                 } else {
-                    self.webviews.mark_webview_not_shown(webview_id);
                     self.webviews.mark_webview_invisible(webview_id);
                 }
                 let visible = self.webviews.is_effectively_visible(webview_id);
