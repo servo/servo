@@ -134,7 +134,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// The root content pipeline ie the pipeline which contains the main frame
     /// to display. In the WebRender scene, this will be the only child of another
     /// pipeline which applies a pinch zoom transformation.
-    #[deprecated]
+    #[cfg_attr(feature = "multiview", deprecated)]
     root_content_pipeline: RootPipeline,
 
     /// Our top-level browsing contexts.
@@ -1295,7 +1295,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.pipeline_details.remove(&pipeline_id);
     }
 
-    #[deprecated]
+    #[cfg_attr(feature = "multiview", deprecated)]
     fn send_window_size(&mut self, size_type: WindowSizeType) {
         self.update_webrender_document_view();
 
