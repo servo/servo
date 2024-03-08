@@ -27,8 +27,6 @@ use crate::{pref, set_pref};
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Opts {
-    pub is_running_problem_test: bool,
-
     /// Whether or not the legacy layout system is enabled.
     pub legacy_layout: bool,
 
@@ -398,7 +396,6 @@ pub fn multiprocess() -> bool {
 
 pub fn default_opts() -> Opts {
     Opts {
-        is_running_problem_test: false,
         legacy_layout: false,
         tile_size: 512,
         time_profiling: None,
@@ -598,18 +595,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         DebugOptions::print_usage(app_name)
     }
 
-    let cwd = env::current_dir().unwrap();
-    let url_opt = if !opt_match.free.is_empty() {
-        Some(&opt_match.free[0][..])
-    } else {
-        None
-    };
-    let is_running_problem_test = url_opt.as_ref().map_or(false, |url| {
-        url.starts_with("http://web-platform.test:8000/2dcontext/drawing-images-to-the-canvas/") ||
-            url.starts_with("http://web-platform.test:8000/_mozilla/mozilla/canvas/") ||
-            url.starts_with("http://web-platform.test:8000/_mozilla/css/canvas_over_area.html")
-    });
-
     let tile_size: usize = match opt_match.opt_str("s") {
         Some(tile_size_str) => tile_size_str
             .parse()
@@ -733,6 +718,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         .opt_strs("user-stylesheet")
         .iter()
         .map(|filename| {
+            let cwd = env::current_dir().unwrap();
             let path = cwd.join(filename);
             let url = ServoUrl::from_url(Url::from_file_path(&path).unwrap());
             let mut contents = Vec::new();
@@ -754,7 +740,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
 
     let opts = Opts {
         debug: debug_options.clone(),
-        is_running_problem_test,
         legacy_layout,
         tile_size,
         time_profiling,
