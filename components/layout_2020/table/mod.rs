@@ -198,7 +198,7 @@ impl TableSlotCell {
 
     /// Get the node id of this cell's [`BaseFragmentInfo`]. This is used for unit tests.
     pub fn node_id(&self) -> usize {
-        self.base_fragment_info.tag.node.0
+        self.base_fragment_info.tag.map_or(0, |tag| tag.node.0)
     }
 }
 

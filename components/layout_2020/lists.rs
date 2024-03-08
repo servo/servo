@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use log::warn;
 use style::properties::longhands::list_style_type::computed_value::T as ListStyleType;
 use style::properties::style_structs;
 use style::values::computed::Image;
@@ -20,12 +21,19 @@ where
     Node: NodeExt<'dom>,
 {
     let style = info.style.get_list();
+    let node = match info.node {
+        Some(node) => node,
+        None => {
+            warn!("Tried to make a marker for an anonymous node!");
+            return None;
+        },
+    };
 
     // https://drafts.csswg.org/css-lists/#marker-image
     let marker_image = || match &style.list_style_image {
         Image::Url(url) => Some(vec![
             PseudoElementContentItem::Replaced(ReplacedContent::from_image_url(
-                info.node, context, url,
+                node, context, url,
             )?),
             PseudoElementContentItem::Text(" ".into()),
         ]),

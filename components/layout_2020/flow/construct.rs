@@ -317,7 +317,7 @@ where
             self.current_inline_level_boxes()
                 .push(ArcRefCell::new(InlineLevelBox::Atomic(ifc)));
         } else {
-            let anonymous_info = self.info.new_replacing_style(ifc.style().clone());
+            let anonymous_info = self.info.new_anonymous(ifc.style().clone());
             let table_block = ArcRefCell::new(BlockLevelBox::Independent(ifc));
             self.block_level_boxes.push(BlockLevelJob {
                 info: anonymous_info,
@@ -690,7 +690,7 @@ where
         );
         std::mem::swap(&mut self.ongoing_inline_formatting_context, &mut ifc);
 
-        let info = self.info.new_replacing_style(anonymous_style.clone());
+        let info = self.info.new_anonymous(anonymous_style.clone());
         self.block_level_boxes.push(BlockLevelJob {
             info,
             // FIXME(nox): We should be storing this somewhere.
