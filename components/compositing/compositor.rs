@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::{create_dir_all, File};
 use std::io::Write;
+use std::iter::once;
 use std::num::NonZeroU32;
 use std::rc::Rc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -571,16 +572,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.move_resize_webview(webview_id, rect);
             },
 
-            CompositorMsg::ShowWebView(webview_id) => {
-                self.show_webview(webview_id);
+            CompositorMsg::ShowWebView(webview_id, hide_others) => {
+                self.show_webview(webview_id, hide_others);
             },
 
             CompositorMsg::HideWebView(webview_id) => {
                 self.hide_webview(webview_id);
             },
 
-            CompositorMsg::RaiseWebViewToTop(webview_id) => {
-                self.raise_webview_to_top(webview_id);
+            CompositorMsg::RaiseWebViewToTop(webview_id, hide_others) => {
+                self.raise_webview_to_top(webview_id, hide_others);
             },
 
             CompositorMsg::TouchEventProcessed(result) => {
@@ -1210,8 +1211,20 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.update_root_pipeline();
     }
 
-    pub fn show_webview(&mut self, webview_id: WebViewId) {
-        if self.webviews.show(webview_id) {
+    pub fn show_webview(&mut self, webview_id: WebViewId, hide_others: bool) {
+        let painting_order_changed = if hide_others {
+            let result = self
+                .webviews
+                .painting_order()
+                .map(|(&id, _)| id)
+                .ne(once(webview_id));
+            self.webviews.hide_all();
+            self.webviews.show(webview_id);
+            result
+        } else {
+            self.webviews.show(webview_id)
+        };
+        if painting_order_changed {
             self.update_root_pipeline();
             self.send_webview_painting_order();
         }
@@ -1224,8 +1237,20 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    pub fn raise_webview_to_top(&mut self, webview_id: WebViewId) {
-        if self.webviews.raise_to_top(webview_id) {
+    pub fn raise_webview_to_top(&mut self, webview_id: WebViewId, hide_others: bool) {
+        let painting_order_changed = if hide_others {
+            let result = self
+                .webviews
+                .painting_order()
+                .map(|(&id, _)| id)
+                .ne(once(webview_id));
+            self.webviews.hide_all();
+            self.webviews.raise_to_top(webview_id);
+            result
+        } else {
+            self.webviews.raise_to_top(webview_id)
+        };
+        if painting_order_changed {
             self.update_root_pipeline();
             self.send_webview_painting_order();
         }

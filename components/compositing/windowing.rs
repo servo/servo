@@ -91,12 +91,12 @@ pub enum EmbedderEvent {
     SendError(Option<TopLevelBrowsingContextId>, String),
     /// Move and/or resize a webview to the given rect.
     MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
-    /// Start painting a webview.
-    ShowWebView(TopLevelBrowsingContextId),
+    /// Start painting a webview, and optionally stop painting all others.
+    ShowWebView(TopLevelBrowsingContextId, bool),
     /// Stop painting a webview.
     HideWebView(TopLevelBrowsingContextId),
-    /// Start painting a webview on top of all others.
-    RaiseWebViewToTop(TopLevelBrowsingContextId),
+    /// Start painting a webview on top of all others, and optionally stop painting all others.
+    RaiseWebViewToTop(TopLevelBrowsingContextId, bool),
     /// Make a webview focused.
     FocusWebView(TopLevelBrowsingContextId),
     /// Make none of the webviews focused.
@@ -158,14 +158,17 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::MoveResizeWebView(webview_id, _) => {
                 write!(f, "MoveResizeWebView({webview_id:?})")
             },
-            EmbedderEvent::ShowWebView(TopLevelBrowsingContextId(webview_id)) => {
-                write!(f, "ShowWebView({webview_id:?})")
+            EmbedderEvent::ShowWebView(TopLevelBrowsingContextId(webview_id), hide_others) => {
+                write!(f, "ShowWebView({webview_id:?}, {hide_others})")
             },
             EmbedderEvent::HideWebView(TopLevelBrowsingContextId(webview_id)) => {
                 write!(f, "HideWebView({webview_id:?})")
             },
-            EmbedderEvent::RaiseWebViewToTop(TopLevelBrowsingContextId(webview_id)) => {
-                write!(f, "RaiseWebViewToTop({webview_id:?})")
+            EmbedderEvent::RaiseWebViewToTop(
+                TopLevelBrowsingContextId(webview_id),
+                hide_others,
+            ) => {
+                write!(f, "RaiseWebViewToTop({webview_id:?}, {hide_others})")
             },
             EmbedderEvent::FocusWebView(TopLevelBrowsingContextId(webview_id)) => {
                 write!(f, "FocusWebView({webview_id:?})")

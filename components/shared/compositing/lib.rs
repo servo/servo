@@ -79,12 +79,12 @@ pub enum CompositorMsg {
     RemoveWebView(TopLevelBrowsingContextId),
     /// Move and/or resize a webview to the given rect.
     MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
-    /// Start painting a webview.
-    ShowWebView(TopLevelBrowsingContextId),
+    /// Start painting a webview, and optionally stop painting all others.
+    ShowWebView(TopLevelBrowsingContextId, bool),
     /// Stop painting a webview.
     HideWebView(TopLevelBrowsingContextId),
-    /// Start painting a webview on top of all others.
-    RaiseWebViewToTop(TopLevelBrowsingContextId),
+    /// Start painting a webview on top of all others, and optionally stop painting all others.
+    RaiseWebViewToTop(TopLevelBrowsingContextId, bool),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// Composite to a PNG file and return the Image over a passed channel.

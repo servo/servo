@@ -587,7 +587,7 @@ where
                     self.event_queue
                         .push(EmbedderEvent::MoveResizeWebView(new_webview_id, rect));
                     self.event_queue
-                        .push(EmbedderEvent::RaiseWebViewToTop(new_webview_id));
+                        .push(EmbedderEvent::RaiseWebViewToTop(new_webview_id, true));
                 },
                 EmbedderMsg::WebViewClosed(webview_id) => {
                     self.webviews.retain(|&id, _| id != webview_id);
@@ -611,25 +611,10 @@ where
                     self.painting_order = webview_ids;
 
                     if let Some(&newest_webview_id) = self.creation_order.last() {
-                        let mut newest_webview_is_visible = false;
-
-                        // Hide any visible browsers other than the most recently created.
+                        // Show the most recently created webview and hide all others.
                         // TODO: Stop doing this once we have full multiple browser support
-                        for &webview_id in self.painting_order.iter() {
-                            if webview_id != newest_webview_id {
-                                self.event_queue
-                                    .push(EmbedderEvent::HideWebView(webview_id));
-                            } else {
-                                newest_webview_is_visible = true;
-                            }
-                        }
-
-                        // If the most recently created browser is not visible, show it.
-                        // TODO: Stop doing this once we have full multiple browser support
-                        if !newest_webview_is_visible {
-                            self.event_queue
-                                .push(EmbedderEvent::ShowWebView(newest_webview_id));
-                        }
+                        self.event_queue
+                            .push(EmbedderEvent::ShowWebView(newest_webview_id, true));
                     }
                 },
                 EmbedderMsg::Keyboard(key_event) => {
@@ -740,7 +725,7 @@ where
                     (Some(webview_id), CompositorEventVariant::MouseButtonEvent) => {
                         trace!("{}: Got a mouse button event", webview_id);
                         self.event_queue
-                            .push(EmbedderEvent::RaiseWebViewToTop(webview_id));
+                            .push(EmbedderEvent::RaiseWebViewToTop(webview_id, true));
                         self.event_queue
                             .push(EmbedderEvent::FocusWebView(webview_id));
                     },

@@ -63,12 +63,12 @@ pub enum ConstellationMsg {
     SendError(Option<TopLevelBrowsingContextId>, String),
     /// Move and/or resize a webview to the given rect.
     MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
-    /// Start painting a webview.
-    ShowWebView(TopLevelBrowsingContextId),
+    /// Start painting a webview, and optionally stop painting all others.
+    ShowWebView(TopLevelBrowsingContextId, bool),
     /// Stop painting a webview.
     HideWebView(TopLevelBrowsingContextId),
-    /// Start painting a webview on top of all others.
-    RaiseWebViewToTop(TopLevelBrowsingContextId),
+    /// Start painting a webview on top of all others, and optionally stop painting all others.
+    RaiseWebViewToTop(TopLevelBrowsingContextId, bool),
     /// Make a webview focused.
     FocusWebView(TopLevelBrowsingContextId),
     /// Make none of the webviews focused.

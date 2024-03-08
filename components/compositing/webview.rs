@@ -77,6 +77,15 @@ impl<WebView> WebViewManager<WebView> {
     }
 
     /// Returns true iff the painting order actually changed.
+    pub fn hide_all(&mut self) -> bool {
+        if !self.painting_order.is_empty() {
+            self.painting_order.clear();
+            return true;
+        }
+        false
+    }
+
+    /// Returns true iff the painting order actually changed.
     pub fn raise_to_top(&mut self, webview_id: WebViewId) -> bool {
         if self.painting_order.last() != Some(&webview_id) {
             self.hide(webview_id);

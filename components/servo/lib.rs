@@ -766,14 +766,15 @@ where
             EmbedderEvent::MoveResizeWebView(webview_id, rect) => {
                 self.compositor.move_resize_webview(webview_id, rect);
             },
-            EmbedderEvent::ShowWebView(webview_id) => {
-                self.compositor.show_webview(webview_id);
+            EmbedderEvent::ShowWebView(webview_id, hide_others) => {
+                self.compositor.show_webview(webview_id, hide_others);
             },
             EmbedderEvent::HideWebView(webview_id) => {
                 self.compositor.hide_webview(webview_id);
             },
-            EmbedderEvent::RaiseWebViewToTop(webview_id) => {
-                self.compositor.raise_webview_to_top(webview_id);
+            EmbedderEvent::RaiseWebViewToTop(webview_id, hide_others) => {
+                self.compositor
+                    .raise_webview_to_top(webview_id, hide_others);
             },
             EmbedderEvent::BlurWebView => {
                 self.send_to_constellation(ConstellationMsg::BlurWebView);
