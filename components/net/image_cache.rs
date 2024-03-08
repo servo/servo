@@ -4,8 +4,9 @@
 
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
-use std::mem;
+use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
+use std::{mem, thread};
 
 use embedder_traits::resources::{self, Resource};
 use imsz::imsz_from_reader;
@@ -427,6 +428,12 @@ impl ImageCache for ImageCacheImpl {
         debug!("New image cache");
 
         let rippy_data = resources::read_bytes(Resource::RippyPNG);
+        // Uses an estimate of the system cpus to decode images
+        // See https://doc.rust-lang.org/stable/std/thread/fn.available_parallelism.html
+        // If no information can be obtained about the system, uses 4 threads as a default
+        let thread_count = thread::available_parallelism()
+            .unwrap_or(NonZeroUsize::new(4).unwrap())
+            .get();
 
         ImageCacheImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
@@ -436,7 +443,7 @@ impl ImageCache for ImageCacheImpl {
                 placeholder_url: ServoUrl::parse("chrome://resources/rippy.png").unwrap(),
                 webrender_api: webrender_api,
             })),
-            thread_pool: CoreResourceThreadPool::new(16),
+            thread_pool: CoreResourceThreadPool::new(thread_count),
         }
     }
 
