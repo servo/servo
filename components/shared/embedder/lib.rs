@@ -176,7 +176,7 @@ pub enum EmbedderMsg {
     SetCursor(Cursor),
     /// A favicon was detected
     NewFavicon(ServoUrl),
-    /// <head> tag finished parsing
+    /// `<head>` tag finished parsing
     HeadParsed,
     /// The history state has changed.
     HistoryChanged(Vec<ServoUrl>, usize),
