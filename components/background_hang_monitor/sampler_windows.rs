@@ -13,7 +13,7 @@ pub struct WindowsSampler {
 
 impl WindowsSampler {
     #[allow(unsafe_code, dead_code)]
-    pub fn new() -> Box<dyn Sampler> {
+    pub fn new_boxed() -> Box<dyn Sampler> {
         let thread_id = 0; // TODO: use winapi::um::processthreadsapi::GetThreadId
         Box::new(WindowsSampler { thread_id })
     }

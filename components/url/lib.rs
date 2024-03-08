@@ -176,7 +176,7 @@ impl ServoUrl {
                 // Strip `scheme://`, which is hardly useful for identifying websites
                 let mut st = self.as_str();
                 st = st.strip_prefix(self.scheme()).unwrap_or(st);
-                st = st.strip_prefix(":").unwrap_or(st);
+                st = st.strip_prefix(':').unwrap_or(st);
                 st = st.trim_start_matches('/');
 
                 // Don't want to return an empty string

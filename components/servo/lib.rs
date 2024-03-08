@@ -387,7 +387,7 @@ where
             embedder.register_webxr(&mut webxr_main_thread, embedder_proxy.clone());
         }
 
-        let wgpu_image_handler = webgpu::WGPUExternalImages::new();
+        let wgpu_image_handler = webgpu::WGPUExternalImages::default();
         let wgpu_image_map = wgpu_image_handler.images.clone();
         external_image_handlers.set_handler(
             Box::new(wgpu_image_handler),

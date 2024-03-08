@@ -20,13 +20,13 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
     // Work around https://github.com/rust-lang/rust/issues/46489
     let attributes: TokenStream = attributes.to_string().parse().unwrap();
 
-    let output: TokenStream = attributes.into_iter().chain(input.into_iter()).collect();
+    let output: TokenStream = attributes.into_iter().chain(input).collect();
 
     let item: Item = syn::parse(output).unwrap();
 
     if let Item::Struct(s) = item {
         let s2 = s.clone();
-        if s.generics.params.len() > 0 {
+        if !s.generics.params.is_empty() {
             return quote!(#s2).into();
         }
         if let Fields::Named(ref f) = s.fields {

@@ -4,7 +4,6 @@
 
 use std::ptr;
 
-use backtrace;
 use msg::constellation_msg::{HangProfile, HangProfileSymbol};
 
 const MAX_NATIVE_FRAMES: usize = 1024;
@@ -18,7 +17,7 @@ pub struct DummySampler;
 
 impl DummySampler {
     #[allow(dead_code)]
-    pub fn new() -> Box<dyn Sampler> {
+    pub fn new_boxed() -> Box<dyn Sampler> {
         Box::new(DummySampler)
     }
 }
@@ -64,12 +63,12 @@ impl NativeStack {
         instruction_ptr: *mut std::ffi::c_void,
         stack_ptr: *mut std::ffi::c_void,
     ) -> Result<(), ()> {
-        if !(self.count < MAX_NATIVE_FRAMES) {
+        if self.count >= MAX_NATIVE_FRAMES {
             return Err(());
         }
         self.instruction_ptrs[self.count] = instruction_ptr;
         self.stack_ptrs[self.count] = stack_ptr;
-        self.count = self.count + 1;
+        self.count += 1;
         Ok(())
     }
 
@@ -85,7 +84,7 @@ impl NativeStack {
                 // TODO: use the demangled or C++ demangled symbols if available.
                 let name = symbol
                     .name()
-                    .map(|n| String::from_utf8_lossy(&n.as_bytes()).to_string());
+                    .map(|n| String::from_utf8_lossy(n.as_bytes()).to_string());
                 let filename = symbol.filename().map(|n| n.to_string_lossy().to_string());
                 let lineno = symbol.lineno();
                 profile.backtrace.push(HangProfileSymbol {
