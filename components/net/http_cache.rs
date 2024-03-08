@@ -126,7 +126,7 @@ pub struct CachedResponse {
 }
 
 /// A memory cache.
-#[derive(MallocSizeOf, Default)]
+#[derive(Default, MallocSizeOf)]
 pub struct HttpCache {
     /// cached responses.
     entries: HashMap<CacheKey, Vec<CachedResource>>,
