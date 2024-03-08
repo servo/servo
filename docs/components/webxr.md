@@ -13,11 +13,11 @@ Additionally, there are a number of WebXR-specific concepts:
 * The [layer manager](https://doc.servo.org/webxr_api/layer/trait.LayerManagerAPI.html) (manages WebXR layers for a given session and frame operations on those layers)
 * The [layer grand manager](https://doc.servo.org/webxr_api/layer/trait.LayerGrandManagerAPI.html) (manages all layer managers for WebXR sessions)
 
-Furthermore, there are graphics-specific concepts that are important for the low-level details of rendering with WebXR:
-* [Surfman](https://github.com/servo/webxr/blob/main/webxr/glwindow/mod.rs#L448-L452) is a crate that abstracts away platform-specific details of OpenGL hardware-accelerated rendering
-* [Surface](https://doc.servo.org/surfman/platform/unix/default/surface/type.Surface.html) is a hardware buffer that are tied to a specific OpenGL context
-* [Surface texture](https://doc.servo.org/surfman/platform/unix/default/surface/type.SurfaceTexture.html) is an OpenGL texture that wraps a surface. Surface textures can be shared between OpenGL contexts.
-* a[Surfman context](https://doc.servo.org/surfman/platform/unix/default/context/type.Context.html) represents a particular OpenGL context, and is backed by platform-specific implementations (such as EGL on Unix-based platforms)
+Finally, there are graphics-specific concepts that are important for the low-level details of rendering with WebXR:
+* [surfman](https://github.com/servo/webxr/blob/main/webxr/glwindow/mod.rs#L448-L452) is a crate that abstracts away platform-specific details of OpenGL hardware-accelerated rendering
+* [surface](https://doc.servo.org/surfman/platform/unix/default/surface/type.Surface.html) is a hardware buffer that are tied to a specific OpenGL context
+* [surface texture](https://doc.servo.org/surfman/platform/unix/default/surface/type.SurfaceTexture.html) is an OpenGL texture that wraps a surface. Surface textures can be shared between OpenGL contexts.
+* [surfman context](https://doc.servo.org/surfman/platform/unix/default/context/type.Context.html) represents a particular OpenGL context, and is backed by platform-specific implementations (such as EGL on Unix-based platforms)
 * [ANGLE](https://github.com/servo/mozangle/) is an OpenGL implementation on top of Direct3D which is used in Servo to provide a consistent OpenGL backend on Windows-based platforms
 
 ## How Servo's compositor starts
