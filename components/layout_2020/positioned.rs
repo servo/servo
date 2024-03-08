@@ -182,7 +182,7 @@ impl PositioningContext {
         self.adjust_static_position_of_hoisted_fragments_with_offset(start_offset, index);
     }
 
-    /// See documentation for [adjust_static_position_of_hoisted_fragments].
+    /// See documentation for [PositioningContext::adjust_static_position_of_hoisted_fragments].
     pub(crate) fn adjust_static_position_of_hoisted_fragments_with_offset(
         &mut self,
         start_offset: &LogicalVec2<CSSPixelLength>,
