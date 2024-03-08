@@ -124,7 +124,7 @@ impl PositioningContext {
         }
     }
 
-    /// Create a [PositioninContext] to use for laying out a subtree. The idea is that
+    /// Create a [PositioningContext] to use for laying out a subtree. The idea is that
     /// when subtree layout is finished, the newly hoisted boxes can be processed
     /// (normally adjusting their static insets) and then appended to the parent
     /// [PositioningContext].
