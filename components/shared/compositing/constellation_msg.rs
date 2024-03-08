@@ -69,9 +69,9 @@ pub enum ConstellationMsg {
     HideWebView(TopLevelBrowsingContextId),
     /// Start painting a webview on top of all others.
     RaiseWebViewToTop(TopLevelBrowsingContextId),
-    /// Make a top-level browsing context focused.
+    /// Make a webview focused.
     FocusWebView(TopLevelBrowsingContextId),
-    /// Make none of the top-level browsing contexts focused.
+    /// Make none of the webviews focused.
     BlurWebView,
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),

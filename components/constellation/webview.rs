@@ -18,10 +18,10 @@ pub struct WebViewManager<WebView> {
     /// Whether the latest webview in focus order is currently focused.
     is_focused: bool,
 
-    /// Webviews that are being shown by the embedder, regardless of whether they are actually visible
+    /// Webviews that are being shown by the embedder, regardless of whether they are actually visible.
     shown_webviews: HashSet<TopLevelBrowsingContextId>,
 
-    /// Webviews that are known to be invisible, regardless of whether they are being shown
+    /// Webviews that are known to be invisible, regardless of whether they are being shown.
     invisible_webviews: HashSet<TopLevelBrowsingContextId>,
 }
 
@@ -133,7 +133,7 @@ impl<WebView> WebViewManager<WebView> {
             .remove(&top_level_browsing_context_id);
     }
 
-    /// Returns true iff the webview is visible and the native window is visible.
+    /// Returns true iff the webview is marked as shown and not marked as invisible.
     pub fn is_effectively_visible(
         &self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,

@@ -83,24 +83,23 @@ pub enum EmbedderEvent {
     Keyboard(KeyboardEvent),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload(TopLevelBrowsingContextId),
-    /// Create a new top level browsing context
+    /// Create a new top-level browsing context.
     NewWebView(ServoUrl, TopLevelBrowsingContextId),
-    /// Close a top level browsing context
+    /// Close a top-level browsing context.
     CloseWebView(TopLevelBrowsingContextId),
-    /// Panic a top level browsing context.
+    /// Panic a top-level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
-    /// Make a top-level browsing context visible.
+    /// Move and/or resize a webview to the given rect.
     MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
-    /// Make a top-level browsing context visible.
+    /// Start painting a webview.
     ShowWebView(TopLevelBrowsingContextId),
-    /// Make a top-level browsing context invisible.
+    /// Stop painting a webview.
     HideWebView(TopLevelBrowsingContextId),
-    /// Make a top-level browsing context visible and paint on top of all others.
+    /// Start painting a webview on top of all others.
     RaiseWebViewToTop(TopLevelBrowsingContextId),
-    /// Make a top level browsing context visible, hiding the previous
-    /// visible one.
+    /// Make a webview focused.
     FocusWebView(TopLevelBrowsingContextId),
-    /// Make none of the top-level browsing contexts focused.
+    /// Make none of the webviews focused.
     BlurWebView,
     /// Toggles a debug flag in WebRender
     ToggleWebRenderDebug(WebRenderDebugOption),
@@ -113,9 +112,9 @@ pub enum EmbedderEvent {
     /// Sent when the user triggers a media action through the UA exposed media UI
     /// (play, pause, seek, etc.).
     MediaSessionAction(MediaSessionActionType),
-    /// Mark webview to be invisible, regardless of whether it is being shown
+    /// Mark webview as invisible due to external factors, regardless of whether it is being painted.
     MarkWebViewInvisible(TopLevelBrowsingContextId),
-    /// Unmark webview to be invisible, it might not be visible if it's not shown
+    /// Unmark webview as invisible due to external factors. The webview may remain invisible if it's not being painted.
     UnmarkWebViewInvisible(TopLevelBrowsingContextId),
     /// Virtual keyboard was dismissed
     IMEDismissed,

@@ -156,15 +156,15 @@ pub enum EmbedderMsg {
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningWebView(IpcSender<bool>),
-    /// A webview was created
+    /// A webview was created.
     WebViewOpened(TopLevelBrowsingContextId),
-    /// A webview was destroyed
+    /// A webview was destroyed.
     WebViewClosed(TopLevelBrowsingContextId),
-    /// A webview gained focus for keyboard events
+    /// A webview gained focus for keyboard events.
     WebViewFocused(TopLevelBrowsingContextId),
-    /// All webviews lost focus for keyboard events
+    /// All webviews lost focus for keyboard events.
     WebViewBlurred,
-    /// The order to paint the webviews
+    /// Notify the embedder of an updated webview painting order.
     WebViewPaintingOrder(Vec<TopLevelBrowsingContextId>),
     /// Wether or not to unload a document
     AllowUnload(IpcSender<bool>),
@@ -212,7 +212,7 @@ pub enum EmbedderMsg {
     MediaSessionEvent(MediaSessionEvent),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
-    /// Compositing done, but external code needs to present.
+    /// Notify the embedder that it needs to present a new frame.
     ReadyToPresent,
     /// The given event was delivered to a pipeline in the given browser.
     EventDelivered(CompositorEventVariant),
