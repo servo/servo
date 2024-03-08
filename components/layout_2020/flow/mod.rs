@@ -1372,7 +1372,7 @@ fn solve_block_margins_for_in_flow_block_level(pbm: &PaddingBorderMargin) -> (Le
 }
 
 /// This is supposed to handle 'justify-self', but no browser supports it on block boxes.
-/// Instead, <center> and <div align> are implemented via internal 'text-align' values.
+/// Instead, <center/> and <div align/> are implemented via internal 'text-align' values.
 /// The provided free space should already take margins into account. In particular,
 /// it should be zero if there is an auto margin.
 /// <https://drafts.csswg.org/css-align/#justify-block>
