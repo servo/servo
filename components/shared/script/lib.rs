@@ -1350,6 +1350,6 @@ pub enum GamepadUpdateType {
     /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
     Axis(usize, f64),
     /// Button index and input value
-    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button
+    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
     Button(usize, f64),
 }
