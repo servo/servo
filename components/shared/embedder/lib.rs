@@ -263,7 +263,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::WebViewOpened(..) => write!(f, "WebViewOpened"),
             EmbedderMsg::WebViewClosed(..) => write!(f, "WebViewClosed"),
             EmbedderMsg::WebViewFocused(..) => write!(f, "WebViewFocused"),
-            EmbedderMsg::WebViewBlurred => write!(f, "WebViewUnfocused"),
+            EmbedderMsg::WebViewBlurred => write!(f, "WebViewBlurred"),
             EmbedderMsg::WebViewPaintingOrder(..) => write!(f, "WebViewPaintingOrder"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),

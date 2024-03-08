@@ -110,13 +110,13 @@ pub enum CompositorMsg {
     UpdateWebView(SendableFrameTree),
     /// Remove a webview.
     RemoveWebView(TopLevelBrowsingContextId),
-    /// Make a webview visible.
+    /// Move and/or resize a webview to the given rect.
     MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
-    /// Make a webview visible.
+    /// Start painting a webview.
     ShowWebView(TopLevelBrowsingContextId),
-    /// Make a webview invisible.
+    /// Stop painting a webview.
     HideWebView(TopLevelBrowsingContextId),
-    /// Make a webview visible and paint on top of all others.
+    /// Start painting a webview on top of all others.
     RaiseWebViewToTop(TopLevelBrowsingContextId),
     /// Composite.
     Recomposite(CompositingReason),

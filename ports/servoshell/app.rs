@@ -277,8 +277,7 @@ impl App {
                     _ => {},
                 }
             }
-            // TODO decide how to prioritise events between egui and servo
-            if true || !consumed {
+            if !consumed {
                 app.queue_embedder_events_for_winit_event(event);
             }
 

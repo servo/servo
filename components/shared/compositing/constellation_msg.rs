@@ -61,13 +61,13 @@ pub enum ConstellationMsg {
     CloseWebView(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
-    /// Make a top-level browsing context visible.
+    /// Move and/or resize a webview to the given rect.
     MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
-    /// Make a top-level browsing context visible.
+    /// Start painting a webview.
     ShowWebView(TopLevelBrowsingContextId),
-    /// Make a top-level browsing context invisible.
+    /// Stop painting a webview.
     HideWebView(TopLevelBrowsingContextId),
-    /// Make a top-level browsing context visible and paint on top of all others.
+    /// Start painting a webview on top of all others.
     RaiseWebViewToTop(TopLevelBrowsingContextId),
     /// Make a top-level browsing context focused.
     FocusWebView(TopLevelBrowsingContextId),
@@ -85,9 +85,9 @@ pub enum ConstellationMsg {
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
-    /// Mark webview to be invisible, regardless of whether it is being shown
+    /// Mark webview as invisible due to external factors, regardless of whether it is being painted.
     MarkWebViewInvisible(TopLevelBrowsingContextId),
-    /// Unmark webview to be invisible, it might not be visible if it's not shown
+    /// Unmark webview as invisible due to external factors. The webview may remain invisible if it's not being painted.
     UnmarkWebViewInvisible(TopLevelBrowsingContextId),
     /// Virtual keyboard was dismissed
     IMEDismissed,

@@ -269,9 +269,8 @@ where
                 buffer.get()
             },
         });
-        let Ok(array) =
-            array as Result<CustomAutoRooterGuard<'_, TypedArray<T, *mut JSObject>>, &mut ()>
-        else {
+        let Ok(array) = array as Result<CustomAutoRooterGuard<'_, TypedArray<T, *mut JSObject>>, &mut ()> else
+        {
             return Err(());
         };
         unsafe {
@@ -307,9 +306,8 @@ where
                 buffer.get()
             },
         });
-        let Ok(mut array) =
-            array as Result<CustomAutoRooterGuard<'_, TypedArray<T, *mut JSObject>>, &mut ()>
-        else {
+        let Ok(mut array) = array as Result<CustomAutoRooterGuard<'_, TypedArray<T, *mut JSObject>>, &mut ()> else
+        {
             return Err(());
         };
         unsafe {
