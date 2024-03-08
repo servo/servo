@@ -36,7 +36,7 @@ const XI_LINE_BREAKING_CLASS_ZW: u8 = 28;
 const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
 const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 40;
 
-/// https://www.w3.org/TR/css-display-3/#css-text-run
+/// <https://www.w3.org/TR/css-display-3/#css-text-run>
 #[derive(Debug, Serialize)]
 pub(crate) struct TextRun {
     pub base_fragment_info: BaseFragmentInfo,
@@ -450,7 +450,7 @@ impl TextRun {
 /// Whether or not this character will rpevent a soft wrap opportunity when it
 /// comes before or after an atomic inline element.
 ///
-/// From https://www.w3.org/TR/css-text-3/#line-break-details:
+/// From <https://www.w3.org/TR/css-text-3/#line-break-details>:
 ///
 /// > For Web-compatibility there is a soft wrap opportunity before and after each
 /// > replaced element or other atomic inline, even when adjacent to a character that
