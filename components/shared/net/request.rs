@@ -186,7 +186,7 @@ impl RequestBody {
         }
     }
 
-    /// Step 12 of https://fetch.spec.whatwg.org/#concept-http-redirect-fetch
+    /// Step 12 of <https://fetch.spec.whatwg.org/#concept-http-redirect-fetch>
     pub fn extract_source(&mut self) {
         match self.source {
             BodySource::Null => panic!("Null sources should never be re-directed."),
