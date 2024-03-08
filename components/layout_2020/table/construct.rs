@@ -84,9 +84,7 @@ impl Table {
             .stylist
             .style_for_anonymous::<Node::ConcreteElement>(
                 &context.shared_context().guards,
-                // TODO: This should be updated for Layout 2020 once we've determined
-                // which styles should be inherited for tables.
-                &PseudoElement::ServoLegacyAnonymousTable,
+                &PseudoElement::ServoAnonymousTable,
                 &parent_info.style,
             );
         let anonymous_info = parent_info.new_replacing_style(anonymous_style.clone());
