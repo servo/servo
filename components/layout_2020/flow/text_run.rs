@@ -76,7 +76,7 @@ enum SegmentStartSoftWrapPolicy {
 
 #[derive(Debug, Serialize)]
 pub(crate) struct TextRunSegment {
-    /// The index of this font in the parent [`InlineFormattingContext`]'s collection of font
+    /// The index of this font in the parent [`super::InlineFormattingContext`]'s collection of font
     /// information.
     pub font_index: usize,
 
@@ -524,7 +524,7 @@ pub struct WhitespaceCollapse<InputIterator> {
     white_space: WhiteSpace,
 
     /// Whether or not we should collapse white space completely at the start of the string.
-    /// This is true when the last character handled in our owning [`InlineFormattingContext`]
+    /// This is true when the last character handled in our owning [`super::InlineFormattingContext`]
     /// was collapsible white space.
     remove_collapsible_white_space_at_start: bool,
 
