@@ -44,9 +44,9 @@ interface MediaSession {
 
   undefined setPositionState(optional MediaPositionState state = {});
 
-  undefined setMicrophoneActive(boolean active);
+  Promise<undefined> setMicrophoneActive(boolean active);
 
-  undefined setCameraActive(boolean active);
+  Promise<undefined> setCameraActive(boolean active);
 };
 
 [Exposed=Window]
@@ -79,7 +79,17 @@ dictionary MediaPositionState {
 
 dictionary MediaSessionActionDetails {
   required MediaSessionAction action;
+};
+
+dictionary MediaSessionSeekActionDetails : MediaSessionActionDetails {
   double seekOffset;
-  double seekTime;
+};
+
+dictionary MediaSessionSeekToActionDetails : MediaSessionActionDetails {
+  required double seekTime;
   boolean fastSeek;
+};
+
+dictionary MediaSessionCaptureActionDetails : MediaSessionActionDetails {
+  boolean isActivating;
 };

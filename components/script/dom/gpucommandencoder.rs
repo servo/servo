@@ -10,16 +10,12 @@ use dom_struct::dom_struct;
 use webgpu::wgpu::command as wgpu_com;
 use webgpu::{self, wgt, WebGPU, WebGPURequest};
 
-use super::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUCommandBufferDescriptor, GPUImageCopyBuffer, GPUImageCopyTexture, GPUImageDataLayout,
-    GPULoadOp, GPUTextureAspect,
-};
-use super::bindings::codegen::UnionTypes::DoubleSequenceOrGPUColorDict;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUCommandEncoderMethods, GPUComputePassDescriptor, GPUExtent3D, GPUOrigin3D,
-    GPURenderPassDescriptor, GPUSize64, GPUStoreOp,
+    GPUCommandBufferDescriptor, GPUCommandEncoderMethods, GPUComputePassDescriptor, GPUExtent3D,
+    GPUImageCopyBuffer, GPUImageCopyTexture, GPURenderPassDescriptor, GPUSize64,
 };
+use crate::dom::bindings::codegen::UnionTypes::DoubleSequenceOrGPUColorDict;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -28,7 +24,11 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
-use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt, GPUDevice};
+use crate::dom::gpuconvert::{
+    convert_ic_buffer, convert_ic_texture, convert_load_op, convert_store_op,
+    convert_texture_size_to_dict, convert_texture_size_to_wgt,
+};
+use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
 
 // TODO(sagudev): this is different now
@@ -401,65 +401,5 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.buffers.borrow_mut().drain().collect(),
             descriptor.parent.label.clone().unwrap_or_default(),
         )
-    }
-}
-
-fn convert_load_op(op: Option<GPULoadOp>) -> wgpu_com::LoadOp {
-    match op {
-        Some(GPULoadOp::Load) => wgpu_com::LoadOp::Load,
-        Some(GPULoadOp::Clear) => wgpu_com::LoadOp::Clear,
-        None => wgpu_com::LoadOp::Clear,
-    }
-}
-
-fn convert_store_op(op: Option<GPUStoreOp>) -> wgpu_com::StoreOp {
-    match op {
-        Some(GPUStoreOp::Store) => wgpu_com::StoreOp::Store,
-        Some(GPUStoreOp::Discard) => wgpu_com::StoreOp::Discard,
-        None => wgpu_com::StoreOp::Discard,
-    }
-}
-
-fn convert_ic_buffer(ic_buffer: &GPUImageCopyBuffer) -> wgpu_com::ImageCopyBuffer {
-    wgpu_com::ImageCopyBuffer {
-        buffer: ic_buffer.buffer.id().0,
-        layout: convert_image_data_layout(&ic_buffer.parent),
-    }
-}
-
-pub fn convert_ic_texture(ic_texture: &GPUImageCopyTexture) -> wgpu_com::ImageCopyTexture {
-    wgpu_com::ImageCopyTexture {
-        texture: ic_texture.texture.id().0,
-        mip_level: ic_texture.mipLevel,
-        origin: match ic_texture.origin {
-            Some(GPUOrigin3D::RangeEnforcedUnsignedLongSequence(ref v)) => {
-                let mut w = v.clone();
-                w.resize(3, 0);
-                wgt::Origin3d {
-                    x: w[0],
-                    y: w[1],
-                    z: w[2],
-                }
-            },
-            Some(GPUOrigin3D::GPUOrigin3DDict(ref d)) => wgt::Origin3d {
-                x: d.x,
-                y: d.y,
-                z: d.z,
-            },
-            None => wgt::Origin3d::default(),
-        },
-        aspect: match ic_texture.aspect {
-            GPUTextureAspect::All => wgt::TextureAspect::All,
-            GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
-            GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
-        },
-    }
-}
-
-pub fn convert_image_data_layout(data_layout: &GPUImageDataLayout) -> wgt::ImageDataLayout {
-    wgt::ImageDataLayout {
-        offset: data_layout.offset as wgt::BufferAddress,
-        bytes_per_row: data_layout.bytesPerRow,
-        rows_per_image: data_layout.rowsPerImage,
     }
 }

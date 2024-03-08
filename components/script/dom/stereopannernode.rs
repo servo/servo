@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_media::audio::node::AudioNodeInit;
+use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
 use servo_media::audio::stereo_panner::StereoPannerOptions as ServoMediaStereoPannerOptions;
 
@@ -59,6 +59,7 @@ impl StereoPannerNode {
             window,
             context,
             node_id,
+            AudioNodeType::StereoPannerNode,
             ParamType::Pan,
             AutomationRate::A_rate,
             *options.pan,

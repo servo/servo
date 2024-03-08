@@ -10,7 +10,7 @@ use js::rust::HandleObject;
 use servo_media::audio::buffer_source_node::{
     AudioBufferSourceNodeMessage, AudioBufferSourceNodeOptions,
 };
-use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
+use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
 use crate::dom::audiobuffer::AudioBuffer;
@@ -61,6 +61,7 @@ impl AudioBufferSourceNode {
             &window,
             context,
             node_id,
+            AudioNodeType::AudioBufferSourceNode,
             ParamType::PlaybackRate,
             AutomationRate::K_rate,
             *options.playbackRate,
@@ -71,6 +72,7 @@ impl AudioBufferSourceNode {
             &window,
             context,
             node_id,
+            AudioNodeType::AudioBufferSourceNode,
             ParamType::Detune,
             AutomationRate::K_rate,
             *options.detune,

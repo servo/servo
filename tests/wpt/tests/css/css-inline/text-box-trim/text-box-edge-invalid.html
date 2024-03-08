@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Tests parsing of the text-box-edge property</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-edges">
+<meta name="assert" content="text-box-edge supports the full grammar leading | [ text | cap | ex | ideographic | ideographic-ink ] [ text | alphabetic | ideographic | ideographic-ink ]">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+// invalid keyword
+test_invalid_value('text-box-edge', 'auto');
+test_invalid_value('text-box-edge', 'auto leading');
+test_invalid_value('text-box-edge', 'leading auto');
+
+// invalid grammar
+test_invalid_value('text-box-edge', 'alphabetic');
+test_invalid_value('text-box-edge', 'alphabetic text');
+test_invalid_value('text-box-edge', 'text cap');
+test_invalid_value('text-box-edge', 'text ex');
+test_invalid_value('text-box-edge', 'leading leading');
+test_invalid_value('text-box-edge', 'leading text');
+test_invalid_value('text-box-edge', 'text leading');
+test_invalid_value('text-box-edge', 'text text text');
+
+</script>

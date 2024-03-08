@@ -730,6 +730,7 @@ SET TIMEOUT: editing/crashtests/make-editable-div-inline-and-set-contenteditable
 SET TIMEOUT: editing/crashtests/outdent-across-svg-boundary.html
 SET TIMEOUT: editing/crashtests/textarea-will-be-blurred-by-focus-event-listener.html
 SET TIMEOUT: mathml/crashtests/mozilla/*
+SET TIMEOUT: selection/crashtests/selection-modify-line-boundary-around-empty-details.html
 PARSE-FAILED: mathml/crashtests/mozilla/289180-1.xml
 
 # Invalid HTML syntax /> on non-void elements

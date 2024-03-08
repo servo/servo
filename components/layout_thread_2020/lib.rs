@@ -870,6 +870,7 @@ impl LayoutThread {
             &mut *rw_data,
             &mut layout_context,
             data.result.borrow_mut().as_mut().unwrap(),
+            document_shared_lock,
         );
     }
 
@@ -879,6 +880,7 @@ impl LayoutThread {
         rw_data: &mut LayoutThreadData,
         context: &mut LayoutContext,
         reflow_result: &mut ReflowComplete,
+        shared_lock: &SharedRwLock,
     ) {
         reflow_result.pending_images =
             std::mem::replace(&mut *context.pending_images.lock().unwrap(), vec![]);
@@ -925,8 +927,14 @@ impl LayoutThread {
                 },
                 &QueryMsg::ResolvedFontStyleQuery(node, ref property, ref value) => {
                     let node = unsafe { ServoLayoutNode::<DOMLayoutData>::new(&node) };
-                    rw_data.resolved_font_style_response =
-                        process_resolved_font_style_query(node, property, value);
+                    rw_data.resolved_font_style_response = process_resolved_font_style_query(
+                        context,
+                        node,
+                        property,
+                        value,
+                        self.url.clone(),
+                        shared_lock,
+                    );
                 },
                 &QueryMsg::OffsetParentQuery(node) => {
                     rw_data.offset_parent_response =

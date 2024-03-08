@@ -14,7 +14,7 @@ enum AutomationRate {
 [Exposed=Window]
 interface AudioParam {
              attribute float value;
-             attribute AutomationRate automationRate;
+             [SetterThrows] attribute AutomationRate automationRate;
     readonly attribute float defaultValue;
     readonly attribute float minValue;
     readonly attribute float maxValue;

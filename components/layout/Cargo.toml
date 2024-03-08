@@ -26,7 +26,7 @@ html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 log = { workspace = true }
-malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of = { workspace = true }
 msg = { workspace = true }
 net_traits = { workspace = true }
 parking_lot = { workspace = true }
@@ -37,14 +37,14 @@ script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-servo_arc = { path = "../servo_arc" }
-servo_atoms = { path = "../atoms" }
+servo_arc = { workspace = true }
+servo_atoms = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
-size_of_test = { path = "../size_of_test" }
+size_of_test = { workspace = true }
 smallvec = { workspace = true, features = ["union"] }
-style = { path = "../style", features = ["servo"] }
+style = { workspace = true }
 style_traits = { workspace = true }
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-script = { workspace = true }

@@ -9,7 +9,7 @@ static ALLOC: Allocator = Allocator;
 
 pub use crate::platform::*;
 
-#[cfg(not(any(windows, target_os = "android")))]
+#[cfg(not(any(windows, target_os = "android", feature = "use-system-allocator")))]
 mod platform {
     use std::os::raw::c_void;
 
@@ -28,14 +28,21 @@ mod platform {
     }
 }
 
-#[cfg(target_os = "android")]
+#[cfg(all(
+    not(windows),
+    any(target_os = "android", feature = "use-system-allocator")
+))]
 mod platform {
     pub use std::alloc::System as Allocator;
     use std::os::raw::c_void;
 
     /// Get the size of a heap block.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
-        libc::malloc_usable_size(ptr)
+        #[cfg(target_os = "linux")]
+        return libc::malloc_usable_size(ptr as *mut _);
+
+        #[cfg(not(target_os = "linux"))]
+        return libc::malloc_usable_size(ptr);
     }
 
     pub mod libc_compat {

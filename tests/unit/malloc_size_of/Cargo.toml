@@ -10,5 +10,5 @@ path = "lib.rs"
 test = false
 
 [dependencies]
-malloc_size_of = {path = "../../../components/malloc_size_of"}
-servo_arc = {path = "../../../components/servo_arc"}
+malloc_size_of = { workspace = true }
+servo_arc = { workspace = true }

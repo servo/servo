@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>`link rel=expect` supports dynamically changed &lt;a name&gt;</title>
+
+<link rel=expect href="#second" blocking="render">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementsByName("second")));
+    t.step(() => assert_false(!!document.getElementById("last")), "the second element should already unblock rendering");
+    t.done();
+  });
+}, "blocking defers frames until full parsing");
+</script>
+</head>
+<body>
+  <div id="first"></div>
+  <script>
+          generateParserDelay();
+  </script>
+  <a id="fold"></a>
+  <script>
+          document.getElementById("fold").setAttribute("name", "second");
+  </script>
+  <script>
+          generateParserDelay();
+  </script>
+  <div id="last"></div>
+</body>

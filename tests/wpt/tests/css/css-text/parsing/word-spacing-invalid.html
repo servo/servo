@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Text Module Test: parsing word-spacing with invalid values</title>
 <link rel="help" href="https://www.w3.org/TR/css-text-3/#propdef-word-spacing">
-<meta name="assert" content="word-spacing supports only the grammar 'normal | <length>'.">
+<meta name="assert" content="word-spacing supports only the grammar 'normal | <length-percentage>'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -12,9 +12,9 @@
 <body>
 <script>
 test_invalid_value("word-spacing", "auto");
-test_invalid_value("word-spacing", "20%");
 
 test_invalid_value("word-spacing", "normal 10px");
+test_invalid_value("word-spacing", "10% 10px");
 </script>
 </body>
 </html>

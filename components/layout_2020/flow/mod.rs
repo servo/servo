@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+#![allow(rustdoc::private_intra_doc_links)]
 
 //! Flow layout, also known as block-and-inline layout.
 
@@ -243,6 +244,7 @@ impl BlockFormattingContext {
                 flow_layout.collapsible_margins_in_children.end.solve() +
                 clearance.unwrap_or_else(Au::zero).into())
             .into(),
+            content_inline_size_for_table: None,
             baselines: flow_layout.baselines,
         }
     }
@@ -621,14 +623,20 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     mut sequential_layout_state: Option<&mut SequentialLayoutState>,
     collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
 ) -> BoxFragment {
-    let ContainingBlockPaddingBorderAndMargin {
+    let ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
         min_box_size,
         max_box_size,
+    } = solve_containing_block_padding_and_border_for_in_flow_box(containing_block, style);
+    let ResolvedMargins {
         margin,
         effective_margin_inline_start,
-    } = solve_containing_block_padding_border_and_margin_for_in_flow_box(containing_block, style);
+    } = solve_margins(
+        containing_block,
+        &pbm,
+        containing_block_for_children.inline_size.into(),
+    );
 
     let computed_block_size = style.content_block_size();
     let start_margin_can_collapse_with_children =
@@ -834,14 +842,12 @@ impl NonReplacedFormattingContext {
             );
         }
 
-        let ContainingBlockPaddingBorderAndMargin {
+        let ContainingBlockPaddingAndBorder {
             containing_block: containing_block_for_children,
             pbm,
             min_box_size,
             max_box_size,
-            margin,
-            effective_margin_inline_start,
-        } = solve_containing_block_padding_border_and_margin_for_in_flow_box(
+        } = solve_containing_block_padding_and_border_for_in_flow_box(
             containing_block,
             &self.style,
         );
@@ -850,14 +856,26 @@ impl NonReplacedFormattingContext {
             layout_context,
             positioning_context,
             &containing_block_for_children,
+            &containing_block,
         );
 
-        let block_size = containing_block_for_children.block_size.auto_is(|| {
-            layout.content_block_size.clamp_between_extremums(
-                min_box_size.block.into(),
-                max_box_size.block.map(|t| t.into()),
-            )
-        });
+        let (block_size, inline_size) = match layout.content_inline_size_for_table {
+            Some(inline_size) => (layout.content_block_size, inline_size),
+            None => (
+                containing_block_for_children.block_size.auto_is(|| {
+                    layout.content_block_size.clamp_between_extremums(
+                        min_box_size.block.into(),
+                        max_box_size.block.map(|t| t.into()),
+                    )
+                }),
+                containing_block_for_children.inline_size,
+            ),
+        };
+
+        let ResolvedMargins {
+            margin,
+            effective_margin_inline_start,
+        } = solve_margins(containing_block, &pbm, inline_size.into());
 
         let content_rect = LogicalRect {
             start_corner: LogicalVec2 {
@@ -868,7 +886,7 @@ impl NonReplacedFormattingContext {
             },
             size: LogicalVec2 {
                 block: block_size,
-                inline: containing_block_for_children.inline_size,
+                inline: inline_size,
             },
         };
 
@@ -940,20 +958,24 @@ impl NonReplacedFormattingContext {
                     block_size: block_size.map(|t| t.into()),
                     style: &self.style,
                 },
+                containing_block,
             );
 
-            content_size = LogicalVec2 {
-                inline: inline_size,
-                block: block_size.auto_is(|| {
-                    layout
-                        .content_block_size
-                        .clamp_between_extremums(
-                            min_box_size.block.into(),
-                            max_box_size.block.map(|t| t.into()),
-                        )
-                        .into()
-                }),
-            };
+            if let Some(inline_size) = layout.content_inline_size_for_table {
+                content_size = LogicalVec2 {
+                    block: layout.content_block_size,
+                    inline: inline_size,
+                }
+                .into();
+            } else {
+                content_size = LogicalVec2 {
+                    block: block_size.auto_is(|| {
+                        Length::from(layout.content_block_size)
+                            .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                    }),
+                    inline: inline_size,
+                };
+            }
 
             (
                 clearance,
@@ -1013,19 +1035,37 @@ impl NonReplacedFormattingContext {
                         block_size: block_size.map(|t| t.into()),
                         style: &self.style,
                     },
+                    containing_block,
                 );
-                content_size = LogicalVec2 {
-                    inline: proposed_inline_size,
-                    block: block_size.auto_is(|| {
-                        layout
-                            .content_block_size
-                            .clamp_between_extremums(
-                                min_box_size.block.into(),
-                                max_box_size.block.map(|t| t.into()),
-                            )
-                            .into()
-                    }),
-                };
+
+                if let Some(inline_size) = layout.content_inline_size_for_table {
+                    // If this is a table, it's impossible to know the inline size it will take
+                    // up until after trying to place it. If the table doesn't fit into this
+                    // positioning rectangle due to incompatibility in the inline axis,
+                    // then retry at another location.
+                    // Even if it would fit in the inline axis, we may end up having to retry
+                    // at another location due to incompatibility in the block axis. Therefore,
+                    // always update the size in the PlacementAmongFloats as an optimization.
+                    let outer_inline_size = inline_size + pbm.padding_border_sums.inline;
+                    placement.set_inline_size(outer_inline_size, &pbm);
+                    if outer_inline_size > placement_rect.size.inline {
+                        positioning_context.truncate(&positioning_context_length);
+                        continue;
+                    }
+                    content_size = LogicalVec2 {
+                        block: layout.content_block_size,
+                        inline: inline_size,
+                    }
+                    .into();
+                } else {
+                    content_size = LogicalVec2 {
+                        block: block_size.auto_is(|| {
+                            Length::from(layout.content_block_size)
+                                .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                        }),
+                        inline: proposed_inline_size,
+                    };
+                }
 
                 // Now we know the block size of this attempted layout of a box with block
                 // size of auto. Try to fit it into our precalculated placement among the
@@ -1224,11 +1264,15 @@ fn layout_in_flow_replaced_block_level<'a>(
     )
 }
 
-struct ContainingBlockPaddingBorderAndMargin<'a> {
+struct ContainingBlockPaddingAndBorder<'a> {
     containing_block: ContainingBlock<'a>,
     pbm: PaddingBorderMargin,
     min_box_size: LogicalVec2<Length>,
     max_box_size: LogicalVec2<Option<Length>>,
+}
+
+struct ResolvedMargins {
+    /// Used value for the margin properties, as exposed in getComputedStyle().
     margin: LogicalSides<Length>,
 
     /// Distance between the border box and the containing block on the inline-start side.
@@ -1240,15 +1284,15 @@ struct ContainingBlockPaddingBorderAndMargin<'a> {
     effective_margin_inline_start: Length,
 }
 
-/// Given the style for in in flow box and its containing block, determine the containing
-/// block for its children and the margin it should use.
+/// Given the style for an in-flow box and its containing block, determine the containing
+/// block for its children.
 /// Note that in the presence of floats, this shouldn't be used for a block-level box
-/// that establishes an independent formatting context (or is replaced), since the margins
-/// and inline size could then be incorrect.
-fn solve_containing_block_padding_border_and_margin_for_in_flow_box<'a>(
+/// that establishes an independent formatting context (or is replaced), since the
+/// inline size could then be incorrect.
+fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     containing_block: &ContainingBlock<'_>,
     style: &'a Arc<ComputedValues>,
-) -> ContainingBlockPaddingBorderAndMargin<'a> {
+) -> ContainingBlockPaddingAndBorder<'a> {
     let pbm = style.padding_border_margin(containing_block);
     let box_size = style.content_box_size(containing_block, &pbm);
     let max_box_size = style.content_max_box_size(containing_block, &pbm);
@@ -1269,16 +1313,6 @@ fn solve_containing_block_padding_border_and_margin_for_in_flow_box<'a>(
         })
         .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
 
-    let (inline_margins, effective_margin_inline_start) =
-        solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size);
-    let block_margins = solve_block_margins_for_in_flow_block_level(&pbm);
-    let margin = LogicalSides {
-        inline_start: inline_margins.0,
-        inline_end: inline_margins.1,
-        block_start: block_margins.0,
-        block_end: block_margins.1,
-    };
-
     // https://drafts.csswg.org/css2/#the-height-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-heights
     let mut block_size = box_size.block;
@@ -1296,12 +1330,33 @@ fn solve_containing_block_padding_border_and_margin_for_in_flow_box<'a>(
         containing_block.style.writing_mode, containing_block_for_children.style.writing_mode,
         "Mixed writing modes are not supported yet"
     );
-    ContainingBlockPaddingBorderAndMargin {
+    ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
         min_box_size,
         max_box_size,
-        margin,
+    }
+}
+
+/// Given the containing block and size of an in-flow box, determine the margins.
+/// Note that in the presence of floats, this shouldn't be used for a block-level box
+/// that establishes an independent formatting context (or is replaced), since the
+/// margins could then be incorrect.
+fn solve_margins(
+    containing_block: &ContainingBlock<'_>,
+    pbm: &PaddingBorderMargin,
+    inline_size: Length,
+) -> ResolvedMargins {
+    let (inline_margins, effective_margin_inline_start) =
+        solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size);
+    let block_margins = solve_block_margins_for_in_flow_block_level(&pbm);
+    ResolvedMargins {
+        margin: LogicalSides {
+            inline_start: inline_margins.0,
+            inline_end: inline_margins.1,
+            block_start: block_margins.0,
+            block_end: block_margins.1,
+        },
         effective_margin_inline_start,
     }
 }
@@ -1347,7 +1402,7 @@ fn justify_self_alignment(containing_block: &ContainingBlock, free_space: Length
 /// that establishes an independent formatting context (or is replaced).
 ///
 /// In addition to the used margins, it also returns the effective margin-inline-start
-/// (see ContainingBlockPaddingBorderAndMargin).
+/// (see ContainingBlockPaddingAndBorder).
 fn solve_inline_margins_for_in_flow_block_level(
     containing_block: &ContainingBlock,
     pbm: &PaddingBorderMargin,
@@ -1384,7 +1439,7 @@ fn solve_inline_margins_for_in_flow_block_level(
 /// they align within the provided rect (instead of the containing block),
 /// to avoid overlapping floats.
 /// In addition to the used margins, it also returns the effective
-/// margin-inline-start (see ContainingBlockPaddingBorderAndMargin).
+/// margin-inline-start (see ContainingBlockPaddingAndBorder).
 /// It may differ from the used inline-start margin if the computed value
 /// wasn't 'auto' and there are floats to avoid or the box is justified.
 /// See <https://github.com/w3c/csswg-drafts/issues/9174>

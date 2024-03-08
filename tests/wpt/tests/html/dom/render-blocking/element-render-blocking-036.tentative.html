@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>link rel=expect: base URL mismatch causes link to not block</title>
+
+<base href="dummy.html">
+<link rel=expect href="#second" blocking="render">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementById("first")));
+    t.step(() => assert_false(!!document.getElementById("second")), "the first element should already unblock rendering");
+    t.done();
+  });
+}, "link URLs are relative to base URL, not to document URL");
+</script>
+</head>
+<body>
+  <div id="first"></div>
+  <script>
+          generateParserDelay();
+  </script>
+  <div id="second">
+  </div>
+  <script>
+          generateParserDelay();
+  </script>
+  <div id="last"></div>
+</body>

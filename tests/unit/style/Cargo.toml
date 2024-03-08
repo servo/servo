@@ -16,9 +16,9 @@ euclid = { workspace = true }
 html5ever = { workspace = true }
 rayon = { workspace = true }
 serde_json = { workspace = true }
-selectors = {path = "../../../components/selectors" }
-servo_arc = {path = "../../../components/servo_arc"}
-servo_atoms = {path = "../../../components/atoms"}
-style = {path = "../../../components/style", features = ["servo"]}
-style_traits = {path = "../../../components/style_traits"}
+selectors = { workspace = true }
+servo_arc = { workspace = true }
+servo_atoms = { workspace = true }
+style = { workspace = true }
+style_traits = { workspace = true }
 url = { workspace = true }

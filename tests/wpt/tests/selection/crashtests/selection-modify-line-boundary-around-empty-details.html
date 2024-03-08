@@ -1,0 +1,29 @@
+<!doctype html>
+<html class="test-wait">
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  let i = 0;
+  const details = document.querySelector("details");
+  const id = setInterval(() => {
+    getSelection().modify("move", "forward", "lineboundary");
+    if (details.isConnected) {
+      details.outerHTML = undefined;
+    }
+    if (++i == 5) {
+      document.documentElement.removeAttribute("class");
+      clearInterval(id);
+    }
+  }, 0);
+  document.execCommand("selectAll");
+}, {once: true});
+</script>
+</head>
+<body>
+<details>a</details>
+<span contenteditable></span>
+</body>
+</html>

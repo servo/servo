@@ -548,7 +548,9 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
             return
 
         script = """
-            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://remote/content/marionette/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.importESModule(
+                "chrome://remote/content/marionette/PerTestCoverageUtils.sys.mjs"
+            );
             return PerTestCoverageUtils.enabled;
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
@@ -558,7 +560,9 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
         script = """
             var callback = arguments[arguments.length - 1];
 
-            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://remote/content/marionette/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.importESModule(
+                "chrome://remote/content/marionette/PerTestCoverageUtils.sys.mjs"
+            );
             PerTestCoverageUtils.beforeTest().then(callback, callback);
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
@@ -578,7 +582,9 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
         script = """
             var callback = arguments[arguments.length - 1];
 
-            const {PerTestCoverageUtils} = ChromeUtils.import("chrome://remote/content/marionette/PerTestCoverageUtils.jsm");
+            const {PerTestCoverageUtils} = ChromeUtils.importESModule(
+                "chrome://remote/content/marionette/PerTestCoverageUtils.sys.mjs"
+            );
             PerTestCoverageUtils.afterTest().then(callback, callback);
             """
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
@@ -695,11 +701,9 @@ class MarionetteDebugProtocolPart(DebugProtocolPart):
 
     def load_devtools(self):
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
-            # Once ESR is 107 is released, we can replace the ChromeUtils.import(DevToolsShim.jsm)
-            # with ChromeUtils.importESModule(DevToolsShim.sys.mjs) in this snippet:
             self.parent.base.execute_script("""
-const { DevToolsShim } = ChromeUtils.import(
-  "chrome://devtools-startup/content/DevToolsShim.jsm"
+const { DevToolsShim } = ChromeUtils.importESModule(
+  "chrome://devtools-startup/content/DevToolsShim.sys.mjs"
 );
 
 const callback = arguments[arguments.length - 1];

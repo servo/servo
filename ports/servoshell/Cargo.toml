@@ -8,6 +8,11 @@ edition = "2021"
 build = "build.rs"
 publish = false
 
+[lib]
+name = "servoshell"
+path = "lib.rs"
+bench = false
+
 [[bin]]
 name = "servo"
 path = "main.rs"
@@ -44,6 +49,10 @@ webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 xr-profile = ["libservo/xr-profile"]
 
+[dependencies]
+# For optional feature servo_allocator/use-system-allocator
+servo_allocator = { path = "../../components/allocator" }
+
 [target.'cfg(not(target_os = "android"))'.dependencies]
 arboard = "3"
 backtrace = { workspace = true }
@@ -62,7 +71,7 @@ libc = { workspace = true }
 libservo = { path = "../../components/servo" }
 log = { workspace = true }
 raw-window-handle = "0.5"
-servo-media = { git = "https://github.com/servo/media" }
+servo-media = { workspace = true }
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle"] }
 tinyfiledialogs = "3.0"

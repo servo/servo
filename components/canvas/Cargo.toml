@@ -33,9 +33,9 @@ num-traits = { workspace = true }
 pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
 raqote = "0.8.2"
-servo_arc = { path = "../servo_arc" }
+servo_arc = { workspace = true }
 sparkle = { workspace = true }
-style = { path = "../style" }
+style = { workspace = true }
 style_traits = { workspace = true }
 surfman = { workspace = true }
 time = { workspace = true, optional = true }

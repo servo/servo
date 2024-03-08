@@ -68,7 +68,7 @@ keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
-malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 media = { path = "../media" }
 metrics = { path = "../metrics" }
@@ -88,20 +88,20 @@ ref_filter_map = "1.0.1"
 regex = { workspace = true }
 script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
-selectors = { path = "../selectors" }
+selectors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_bytes = { workspace = true }
-servo-media = { git = "https://github.com/servo/media" }
+servo-media = { workspace = true }
 servo_allocator = { path = "../allocator" }
-servo_arc = { path = "../servo_arc" }
-servo_atoms = { path = "../atoms" }
+servo_arc = { workspace = true }
+servo_atoms = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
 sparkle = { workspace = true }
-style = { path = "../style", features = ["servo"] }
+style = { workspace = true }
 style_traits = { workspace = true }
 swapper = "0.1"
 tempfile = "3"

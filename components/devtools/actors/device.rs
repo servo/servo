@@ -59,7 +59,7 @@ impl Actor for DeviceActor {
 
 impl DeviceActor {
     pub fn new(name: String) -> DeviceActor {
-        DeviceActor { name: name }
+        DeviceActor { name }
     }
 
     pub fn description() -> ActorDescription {

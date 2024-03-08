@@ -45,20 +45,3 @@ window.prepareNavigation = function(callback) {
     {once: true});
   executor.suspend(callback);
 }
-
-// Try to disable BFCache by acquiring and never releasing a Web Lock.
-// This requires HTTPS.
-// Note: This is a workaround depending on non-specified WebLock+BFCache
-// behavior, and doesn't work on Safari. We might want to introduce a
-// test-only BFCache-disabling API instead in the future.
-// https://github.com/web-platform-tests/wpt/issues/16359#issuecomment-795004780
-// https://crbug.com/1298336
-window.disableBFCache = () => {
-  return new Promise(resolve => {
-    // Use page's UUID as a unique lock name.
-    navigator.locks.request(uuid, () => {
-      resolve();
-      return new Promise(() => {});
-    });
-  });
-};

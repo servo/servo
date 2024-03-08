@@ -39,6 +39,27 @@ PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
 
+# Servo depends on several `rustfmt` options that are unstable. These are still
+# supported by stable `rustfmt` if they are passed as these command-line arguments.
+UNSTABLE_RUSTFMT_ARGUMENTS = [
+    "--config", "unstable_features=true",
+    "--config", "binop_separator=Back",
+    "--config", "imports_granularity=Module",
+    "--config", "group_imports=StdExternalCrate",
+]
+
+# Listing these globs manually is a work-around for very slow `taplo` invocation
+# on MacOS machines. If `taplo` runs fast without the globs on MacOS, this
+# can be removed.
+TOML_GLOBS = [
+    "*.toml",
+    ".cargo/*.toml",
+    "components/*/*.toml",
+    "components/shared/*.toml",
+    "ports/*/*.toml",
+    "support/*/*.toml",
+]
+
 
 def format_toml_files_with_taplo(check_only: bool = True) -> int:
     taplo = shutil.which("taplo")
@@ -47,9 +68,9 @@ def format_toml_files_with_taplo(check_only: bool = True) -> int:
         return 1
 
     if check_only:
-        return call([taplo, "fmt", "--check"], env={'RUST_LOG': 'error'})
+        return call([taplo, "fmt", "--check", *TOML_GLOBS], env={'RUST_LOG': 'error'})
     else:
-        return call([taplo, "fmt"], env={'RUST_LOG': 'error'})
+        return call([taplo, "fmt", *TOML_GLOBS], env={'RUST_LOG': 'error'})
 
 
 @CommandProvider
@@ -207,12 +228,12 @@ class MachCommands(CommandBase):
     def test_tidy(self, all_files, no_progress):
         tidy_failed = tidy.scan(not all_files, not no_progress)
 
-        call(["rustup", "install", "nightly-2023-03-18"])
-        call(["rustup", "component", "add", "rustfmt", "--toolchain", "nightly-2023-03-18"])
-        rustfmt_failed = call(["cargo", "+nightly-2023-03-18", "fmt", "--", "--check"])
+        print("\r ➤  Checking formatting of rust files...")
+        rustfmt_failed = call(["cargo", "fmt", "--", *UNSTABLE_RUSTFMT_ARGUMENTS, "--check"])
         if rustfmt_failed:
             print("Run `./mach fmt` to fix the formatting")
 
+        print("\r ➤  Checking formatting of toml files...")
         taplo_failed = format_toml_files_with_taplo()
 
         tidy_failed = tidy_failed or rustfmt_failed or taplo_failed
@@ -324,9 +345,7 @@ class MachCommands(CommandBase):
         if result != 0:
             return result
 
-        call(["rustup", "install", "nightly-2023-03-18"])
-        call(["rustup", "component", "add", "rustfmt", "--toolchain", "nightly-2023-03-18"])
-        return call(["cargo", "+nightly-2023-03-18", "fmt"])
+        return call(["cargo", "fmt", "--", *UNSTABLE_RUSTFMT_ARGUMENTS])
 
     @Command('update-wpt',
              description='Update the web platform tests',

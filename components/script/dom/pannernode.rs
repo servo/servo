@@ -7,7 +7,7 @@ use std::f32;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
+use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::panner_node::{
     DistanceModel, PannerNodeMessage, PannerNodeOptions, PanningModel,
 };
@@ -98,6 +98,7 @@ impl PannerNode {
             window,
             context,
             id,
+            AudioNodeType::PannerNode,
             ParamType::Position(ParamDir::X),
             AutomationRate::A_rate,
             options.position_x, // default value
@@ -108,6 +109,7 @@ impl PannerNode {
             window,
             context,
             id,
+            AudioNodeType::PannerNode,
             ParamType::Position(ParamDir::Y),
             AutomationRate::A_rate,
             options.position_y, // default value
@@ -118,6 +120,7 @@ impl PannerNode {
             window,
             context,
             id,
+            AudioNodeType::PannerNode,
             ParamType::Position(ParamDir::Z),
             AutomationRate::A_rate,
             options.position_z, // default value
@@ -128,6 +131,7 @@ impl PannerNode {
             window,
             context,
             id,
+            AudioNodeType::PannerNode,
             ParamType::Orientation(ParamDir::X),
             AutomationRate::A_rate,
             options.orientation_x, // default value
@@ -138,6 +142,7 @@ impl PannerNode {
             window,
             context,
             id,
+            AudioNodeType::PannerNode,
             ParamType::Orientation(ParamDir::Y),
             AutomationRate::A_rate,
             options.orientation_y, // default value
@@ -148,6 +153,7 @@ impl PannerNode {
             window,
             context,
             id,
+            AudioNodeType::PannerNode,
             ParamType::Orientation(ParamDir::Z),
             AutomationRate::A_rate,
             options.orientation_z, // default value

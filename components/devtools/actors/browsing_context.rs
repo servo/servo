@@ -284,11 +284,11 @@ impl BrowsingContextActor {
         let tabdesc = TabDescriptorActor::new(actors, name.clone());
 
         let target = BrowsingContextActor {
-            name: name,
+            name,
             script_chan: script_sender,
-            title: RefCell::new(String::from(title)),
+            title: RefCell::new(title),
             url: RefCell::new(url.into_string()),
-            console: console,
+            console,
             _emulation: emulation.name(),
             _inspector: inspector.name(),
             _timeline: timeline.name(),
@@ -355,7 +355,7 @@ impl BrowsingContextActor {
             from: self.name(),
             type_: "tabNavigated".to_owned(),
             url: url.as_str().to_owned(),
-            title: title,
+            title,
             nativeConsoleAPI: true,
             state: state.to_owned(),
             isFrameSwitching: false,

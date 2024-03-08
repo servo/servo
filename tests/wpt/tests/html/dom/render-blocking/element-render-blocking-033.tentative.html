@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>link rel=expect should support percent encoding</title>
+
+<link rel=expect href="#se%F0%9F%98%8Fcond" blocking="render">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementById("se😏cond")));
+    t.step(() => assert_false(!!document.getElementById("last")), "the second element should already unblock rendering");
+    t.done();
+  });
+}, "blocking defers frames until full parsing");
+</script>
+</head>
+<body>
+  <div id="first"></div>
+  <script>
+          generateParserDelay();
+  </script>
+  <div id="se😏cond"></div>
+  <script>
+          generateParserDelay();
+  </script>
+  <div id="last"></div>
+</body>

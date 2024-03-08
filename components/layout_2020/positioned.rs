@@ -625,6 +625,7 @@ impl HoistedAbsolutelyPositionedBox {
                             layout_context,
                             &mut positioning_context,
                             &containing_block_for_children,
+                            &containing_block.into(),
                         );
                         let block_size = size.auto_is(|| independent_layout.content_block_size);
                         Result {
@@ -874,17 +875,22 @@ pub(crate) fn relative_adjustement(
     style: &ComputedValues,
     containing_block: &ContainingBlock,
 ) -> LogicalVec2<Length> {
-    // "If the height of the containing block is not specified explicitly (i.e.,
-    // it depends on content height), and this element is not absolutely
-    // positioned, the value computes to 'auto'.""
-    // https://www.w3.org/TR/CSS2/visudet.html#the-height-property
+    // It's not completely clear what to do with indefinite percentages
+    // (https://github.com/w3c/csswg-drafts/issues/9353), so we match
+    // other browsers and treat them as 'auto' offsets.
     let cbis = containing_block.inline_size;
-    let cbbs = containing_block.block_size.auto_is(Au::zero);
+    let cbbs = containing_block.block_size;
     let box_offsets = style
         .box_offsets(containing_block)
         .map_inline_and_block_axes(
             |v| v.percentage_relative_to(cbis.into()),
-            |v| v.percentage_relative_to(cbbs.into()),
+            |v| match cbbs.non_auto() {
+                Some(cbbs) => v.percentage_relative_to(cbbs.into()),
+                None => match v.non_auto().and_then(|v| v.to_length()) {
+                    Some(v) => LengthOrAuto::LengthPercentage(v),
+                    None => LengthOrAuto::Auto,
+                },
+            },
         );
     fn adjust(start: LengthOrAuto, end: LengthOrAuto) -> Length {
         match (start, end) {

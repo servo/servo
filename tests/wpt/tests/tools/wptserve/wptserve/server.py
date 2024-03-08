@@ -130,7 +130,9 @@ class RequestRewriter:
 
 class WebTestServer(http.server.ThreadingHTTPServer):
     allow_reuse_address = True
-    acceptable_errors = (errno.EPIPE, errno.ECONNABORTED)
+    # Older versions of Python might throw `OSError: [Errno 0] Error`
+    # instead of `SSLEOFError`.
+    acceptable_errors = (errno.EPIPE, errno.ECONNABORTED, 0)
     request_queue_size = 2000
 
     # Ensure that we don't hang on shutdown waiting for requests
@@ -237,10 +239,10 @@ class WebTestServer(http.server.ThreadingHTTPServer):
              error.args[0] in self.acceptable_errors) or
             (isinstance(error, IOError) and
              error.errno in self.acceptable_errors) or
-            # `SSLEOFError` may occur when a client (e.g., wptrunner's
-            # `TestEnvironment`) tests for connectivity but doesn't perform the
-            # handshake.
-            isinstance(error, ssl.SSLEOFError)):
+            # `SSLEOFError` and `SSLError` may occur when a client
+            # (e.g., wptrunner's `TestEnvironment`) tests for connectivity
+            # but doesn't perform the handshake.
+            isinstance(error, ssl.SSLEOFError) or isinstance(error, ssl.SSLError)):
             pass  # remote hang up before the result is sent
         else:
             msg = traceback.format_exc()

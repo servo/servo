@@ -61,7 +61,7 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
       - name: Install taplo
-        uses: baptiste0928/cargo-install@v2
+        uses: baptiste0928/cargo-install@v3
         with:
           crate: taplo-cli
           locked: true
@@ -78,6 +78,11 @@ jobs:
           python mach fetch
           python mach bootstrap-gstreamer
           cargo install --path support/crown
+      # For some reason WiX isn't currently on the GitHub runner path. This is a
+      # temporary workaround until that is fixed.
+      - name: Add WiX to Path
+        run: |
+          "$env:WIX\bin" >> $env:GITHUB_PATH
       - name: Build (${{ inputs.profile }})
         run: |
           python mach build --${{ inputs.profile }}
@@ -88,7 +93,7 @@ jobs:
         run: python mach smoketest --angle --${{ inputs.profile }}
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
-        uses: nick-fields/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3 # https://github.com/servo/servo/issues/30683

@@ -20,52 +20,14 @@
 // mode is turned on.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-cfg_if::cfg_if! {
-    if #[cfg(not(target_os = "android"))] {
-        #[cfg(any(target_os = "macos", target_os = "linux"))]
-        #[macro_use]
-        extern crate sig;
-
-        #[cfg(test)]
-        mod test;
-
-        mod app;
-        mod backtrace;
-        mod crash_handler;
-        mod egui_glue;
-        mod embedder;
-        mod events_loop;
-        mod geometry;
-        mod headed_window;
-        mod headless_window;
-        mod keyutils;
-        mod main2;
-        mod minibrowser;
-        mod parser;
-        mod prefs;
-        mod resources;
-        mod webview;
-        mod window_trait;
-
-        pub mod platform {
-            #[cfg(target_os = "macos")]
-            pub use crate::platform::macos::deinit;
-
-            #[cfg(target_os = "macos")]
-            pub mod macos;
-
-            #[cfg(not(target_os = "macos"))]
-            pub fn deinit(_clean_shutdown: bool) {}
-        }
-
-        pub fn main() {
-            main2::main()
-        }
-    } else {
-        pub fn main() {
+fn main() {
+    cfg_if::cfg_if! {
+        if #[cfg(not(target_os = "android"))] {
+            servoshell::main()
+        } else {
             println!(
-                "Cannot start /ports/servo/ on Android. \
-                 Use /support/android/apk/ + /ports/libsimpleservo/ instead"
+                "Cannot start /ports/servoshell/ on Android. \
+                Use /support/android/apk/ + /ports/jniapi/ instead"
             );
         }
     }

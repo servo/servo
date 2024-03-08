@@ -11,9 +11,8 @@ use app_units::Au;
 use euclid::default::Point2D;
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, HarfBuzz is a hard dependency.
-use harfbuzz_sys::hb_blob_t;
 use harfbuzz_sys::{
-    hb_blob_create, hb_bool_t, hb_buffer_add_utf8, hb_buffer_create, hb_buffer_destroy,
+    hb_blob_create, hb_blob_t, hb_bool_t, hb_buffer_add_utf8, hb_buffer_create, hb_buffer_destroy,
     hb_buffer_get_glyph_infos, hb_buffer_get_glyph_positions, hb_buffer_get_length,
     hb_buffer_set_direction, hb_buffer_set_script, hb_buffer_t, hb_codepoint_t,
     hb_face_create_for_tables, hb_face_destroy, hb_face_t, hb_feature_t, hb_font_create,
@@ -147,7 +146,7 @@ impl Shaper {
             let hb_font: *mut hb_font_t = hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
-            let pt_size = (*font).actual_pt_size.to_f64_px();
+            let pt_size = (*font).descriptor.pt_size.to_f64_px();
             hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
             // Set scaling. Note that this takes 16.16 fixed point.

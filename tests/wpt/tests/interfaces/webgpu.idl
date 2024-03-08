@@ -11,7 +11,7 @@ dictionary GPUObjectDescriptorBase {
     USVString label = "";
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUSupportedLimits {
     readonly attribute unsigned long maxTextureDimension1D;
     readonly attribute unsigned long maxTextureDimension2D;
@@ -47,17 +47,17 @@ interface GPUSupportedLimits {
     readonly attribute unsigned long maxComputeWorkgroupsPerDimension;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUSupportedFeatures {
     readonly setlike<DOMString>;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface WGSLLanguageFeatures {
     readonly setlike<DOMString>;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUAdapterInfo {
     readonly attribute DOMString vendor;
     readonly attribute DOMString architecture;
@@ -71,7 +71,7 @@ interface mixin NavigatorGPU {
 Navigator includes NavigatorGPU;
 WorkerNavigator includes NavigatorGPU;
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPU {
     Promise<GPUAdapter?> requestAdapter(optional GPURequestAdapterOptions options = {});
     GPUTextureFormat getPreferredCanvasFormat();
@@ -88,7 +88,7 @@ enum GPUPowerPreference {
     "high-performance",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUAdapter {
     [SameObject] readonly attribute GPUSupportedFeatures features;
     [SameObject] readonly attribute GPUSupportedLimits limits;
@@ -119,7 +119,7 @@ enum GPUFeatureName {
     "float32-filterable",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUDevice : EventTarget {
     [SameObject] readonly attribute GPUSupportedFeatures features;
     [SameObject] readonly attribute GPUSupportedLimits limits;
@@ -150,7 +150,7 @@ interface GPUDevice : EventTarget {
 };
 GPUDevice includes GPUObjectBase;
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUBuffer {
     readonly attribute GPUSize64Out size;
     readonly attribute GPUFlagsConstant usage;
@@ -179,7 +179,7 @@ dictionary GPUBufferDescriptor
 };
 
 typedef [EnforceRange] unsigned long GPUBufferUsageFlags;
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 namespace GPUBufferUsage {
     const GPUFlagsConstant MAP_READ      = 0x0001;
     const GPUFlagsConstant MAP_WRITE     = 0x0002;
@@ -194,13 +194,13 @@ namespace GPUBufferUsage {
 };
 
 typedef [EnforceRange] unsigned long GPUMapModeFlags;
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 namespace GPUMapMode {
     const GPUFlagsConstant READ  = 0x0001;
     const GPUFlagsConstant WRITE = 0x0002;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUTexture {
     GPUTextureView createView(optional GPUTextureViewDescriptor descriptor = {});
 
@@ -235,7 +235,7 @@ enum GPUTextureDimension {
 };
 
 typedef [EnforceRange] unsigned long GPUTextureUsageFlags;
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 namespace GPUTextureUsage {
     const GPUFlagsConstant COPY_SRC          = 0x01;
     const GPUFlagsConstant COPY_DST          = 0x02;
@@ -244,7 +244,7 @@ namespace GPUTextureUsage {
     const GPUFlagsConstant RENDER_ATTACHMENT = 0x10;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUTextureView {
 };
 GPUTextureView includes GPUObjectBase;
@@ -396,7 +396,7 @@ enum GPUTextureFormat {
     "astc-12x12-unorm-srgb",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUExternalTexture {
 };
 GPUExternalTexture includes GPUObjectBase;
@@ -407,7 +407,7 @@ dictionary GPUExternalTextureDescriptor
     PredefinedColorSpace colorSpace = "srgb";
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUSampler {
 };
 GPUSampler includes GPUObjectBase;
@@ -453,7 +453,7 @@ enum GPUCompareFunction {
     "always",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUBindGroupLayout {
 };
 GPUBindGroupLayout includes GPUObjectBase;
@@ -475,7 +475,7 @@ dictionary GPUBindGroupLayoutEntry {
 };
 
 typedef [EnforceRange] unsigned long GPUShaderStageFlags;
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 namespace GPUShaderStage {
     const GPUFlagsConstant VERTEX   = 0x1;
     const GPUFlagsConstant FRAGMENT = 0x2;
@@ -533,7 +533,7 @@ dictionary GPUStorageTextureBindingLayout {
 dictionary GPUExternalTextureBindingLayout {
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUBindGroup {
 };
 GPUBindGroup includes GPUObjectBase;
@@ -557,7 +557,7 @@ dictionary GPUBufferBinding {
     GPUSize64 size;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUPipelineLayout {
 };
 GPUPipelineLayout includes GPUObjectBase;
@@ -567,7 +567,7 @@ dictionary GPUPipelineLayoutDescriptor
     required sequence<GPUBindGroupLayout> bindGroupLayouts;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUShaderModule {
     Promise<GPUCompilationInfo> getCompilationInfo();
 };
@@ -591,7 +591,7 @@ enum GPUCompilationMessageType {
     "info",
 };
 
-[Exposed=(Window, DedicatedWorker), Serializable, SecureContext]
+[Exposed=(Window, Worker), Serializable, SecureContext]
 interface GPUCompilationMessage {
     readonly attribute DOMString message;
     readonly attribute GPUCompilationMessageType type;
@@ -601,12 +601,12 @@ interface GPUCompilationMessage {
     readonly attribute unsigned long long length;
 };
 
-[Exposed=(Window, DedicatedWorker), Serializable, SecureContext]
+[Exposed=(Window, Worker), Serializable, SecureContext]
 interface GPUCompilationInfo {
     readonly attribute FrozenArray<GPUCompilationMessage> messages;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext, Serializable]
+[Exposed=(Window, Worker), SecureContext, Serializable]
 interface GPUPipelineError : DOMException {
     constructor(optional DOMString message = "", GPUPipelineErrorInit options);
     readonly attribute GPUPipelineErrorReason reason;
@@ -642,7 +642,7 @@ dictionary GPUProgrammableStage {
 
 typedef double GPUPipelineConstantValue; // May represent WGSL's bool, f32, i32, u32, and f16 if enabled.
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUComputePipeline {
 };
 GPUComputePipeline includes GPUObjectBase;
@@ -653,7 +653,7 @@ dictionary GPUComputePipelineDescriptor
     required GPUProgrammableStage compute;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPURenderPipeline {
 };
 GPURenderPipeline includes GPUObjectBase;
@@ -721,7 +721,7 @@ dictionary GPUBlendState {
 };
 
 typedef [EnforceRange] unsigned long GPUColorWriteFlags;
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 namespace GPUColorWrite {
     const GPUFlagsConstant RED   = 0x1;
     const GPUFlagsConstant GREEN = 0x2;
@@ -895,7 +895,7 @@ dictionary GPUImageCopyExternalImage {
     boolean flipY = false;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUCommandBuffer {
 };
 GPUCommandBuffer includes GPUObjectBase;
@@ -907,7 +907,7 @@ dictionary GPUCommandBufferDescriptor
 interface mixin GPUCommandsMixin {
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUCommandEncoder {
     GPURenderPassEncoder beginRenderPass(GPURenderPassDescriptor descriptor);
     GPUComputePassEncoder beginComputePass(optional GPUComputePassDescriptor descriptor = {});
@@ -972,7 +972,7 @@ interface mixin GPUDebugCommandsMixin {
     undefined insertDebugMarker(USVString markerLabel);
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUComputePassEncoder {
     undefined setPipeline(GPUComputePipeline pipeline);
     undefined dispatchWorkgroups(GPUSize32 workgroupCountX, optional GPUSize32 workgroupCountY = 1, optional GPUSize32 workgroupCountZ = 1);
@@ -996,7 +996,7 @@ dictionary GPUComputePassDescriptor
     GPUComputePassTimestampWrites timestampWrites;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPURenderPassEncoder {
     undefined setViewport(float x, float y,
         float width, float height,
@@ -1093,7 +1093,7 @@ interface mixin GPURenderCommandsMixin {
     undefined drawIndexedIndirect(GPUBuffer indirectBuffer, GPUSize64 indirectOffset);
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPURenderBundle {
 };
 GPURenderBundle includes GPUObjectBase;
@@ -1102,7 +1102,7 @@ dictionary GPURenderBundleDescriptor
          : GPUObjectDescriptorBase {
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPURenderBundleEncoder {
     GPURenderBundle finish(optional GPURenderBundleDescriptor descriptor = {});
 };
@@ -1122,7 +1122,7 @@ dictionary GPUQueueDescriptor
          : GPUObjectDescriptorBase {
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUQueue {
     undefined submit(sequence<GPUCommandBuffer> commandBuffers);
 
@@ -1148,7 +1148,7 @@ interface GPUQueue {
 };
 GPUQueue includes GPUObjectBase;
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUQuerySet {
     undefined destroy();
 
@@ -1168,7 +1168,7 @@ enum GPUQueryType {
     "timestamp",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUCanvasContext {
     readonly attribute (HTMLCanvasElement or OffscreenCanvas) canvas;
 
@@ -1197,7 +1197,7 @@ enum GPUDeviceLostReason {
     "destroyed",
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUDeviceLostInfo {
     readonly attribute GPUDeviceLostReason reason;
     readonly attribute DOMString message;
@@ -1207,24 +1207,24 @@ partial interface GPUDevice {
     readonly attribute Promise<GPUDeviceLostInfo> lost;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUError {
     readonly attribute DOMString message;
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUValidationError
         : GPUError {
     constructor(DOMString message);
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUOutOfMemoryError
         : GPUError {
     constructor(DOMString message);
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUInternalError
         : GPUError {
     constructor(DOMString message);
@@ -1241,7 +1241,7 @@ partial interface GPUDevice {
     Promise<GPUError?> popErrorScope();
 };
 
-[Exposed=(Window, DedicatedWorker), SecureContext]
+[Exposed=(Window, Worker), SecureContext]
 interface GPUUncapturedErrorEvent : Event {
     constructor(
         DOMString type,
@@ -1255,7 +1255,7 @@ dictionary GPUUncapturedErrorEventInit : EventInit {
 };
 
 partial interface GPUDevice {
-    [Exposed=(Window, DedicatedWorker)]
+    [Exposed=(Window, Worker)]
     attribute EventHandler onuncapturederror;
 };
 

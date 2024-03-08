@@ -20,8 +20,11 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
-use crate::dom::gpucommandencoder::{convert_ic_texture, convert_image_data_layout};
-use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt, GPUDevice};
+use crate::dom::gpuconvert::{
+    convert_ic_texture, convert_image_data_layout, convert_texture_size_to_dict,
+    convert_texture_size_to_wgt,
+};
+use crate::dom::gpudevice::GPUDevice;
 
 #[dom_struct]
 pub struct GPUQueue {

@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+// NOTE: The hash for the `vendorTarball` in etc/shell.nix should be
+// regenerated when this file is changed.
+
 //! Filter the given lockfile to only the given package and its dependencies.
 //!
 //! Usage: `filterlock <path/to/Cargo.lock> <package>`

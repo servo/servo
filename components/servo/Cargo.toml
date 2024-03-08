@@ -66,14 +66,14 @@ profile_traits = { workspace = true }
 script = { path = "../script" }
 script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
-servo-media = { git = "https://github.com/servo/media" }
-servo-media-dummy = { git = "https://github.com/servo/media" }
-servo-media-gstreamer = { git = "https://github.com/servo/media", optional = true }
+servo-media = { workspace = true }
+servo-media-dummy = { workspace = true }
+servo-media-gstreamer = { workspace = true, optional = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_url = { path = "../url" }
 sparkle = { workspace = true }
-style = { path = "../style", features = ["servo"] }
+style = { workspace = true }
 style_traits = { workspace = true }
 surfman = { workspace = true }
 webdriver_server = { path = "../webdriver_server", optional = true }

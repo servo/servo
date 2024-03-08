@@ -23,7 +23,7 @@ libloading = "0.8"
 libservo = { path = "../../components/servo" }
 log = { workspace = true }
 serde_json = { workspace = true }
-servo-media = { git = "https://github.com/servo/media" }
+servo-media = { workspace = true }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 webxr = { git = "https://github.com/servo/webxr" }
 

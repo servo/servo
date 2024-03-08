@@ -33,8 +33,8 @@ use canvas_traits::webgl::WebGLThreads;
 use compositing::windowing::{EmbedderEvent, EmbedderMethods, WindowMethods};
 use compositing::{CompositeTarget, IOCompositor, InitialCompositorState, ShutdownState};
 use compositing_traits::{
-    CanvasToCompositorMsg, CompositingReason, CompositorMsg, CompositorProxy, CompositorReceiver,
-    ConstellationMsg, FontToCompositorMsg, ForwardedToCompositorMsg,
+    CanvasToCompositorMsg, CompositorMsg, CompositorProxy, CompositorReceiver, ConstellationMsg,
+    FontToCompositorMsg, ForwardedToCompositorMsg,
 };
 #[cfg(all(
     not(target_os = "windows"),
@@ -198,26 +198,17 @@ impl webrender_api::RenderNotifier for RenderNotifier {
         Box::new(RenderNotifier::new(self.compositor_proxy.clone()))
     }
 
-    fn wake_up(&self, composite_needed: bool) {
-        if composite_needed {
-            self.compositor_proxy
-                .recomposite(CompositingReason::NewWebRenderFrame);
-        }
-    }
+    fn wake_up(&self, _composite_needed: bool) {}
 
     fn new_frame_ready(
         &self,
         _document_id: DocumentId,
-        scrolled: bool,
+        _scrolled: bool,
         composite_needed: bool,
         _render_time_ns: Option<u64>,
     ) {
-        if scrolled {
-            self.compositor_proxy
-                .send(CompositorMsg::NewScrollFrameReady(composite_needed));
-        } else {
-            self.wake_up(true);
-        }
+        self.compositor_proxy
+            .send(CompositorMsg::NewWebRenderFrameReady(composite_needed));
     }
 }
 

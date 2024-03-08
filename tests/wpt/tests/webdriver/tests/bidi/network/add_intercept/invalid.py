@@ -185,3 +185,32 @@ async def test_params_url_patterns_pattern_search_invalid_value(bidi_session, va
             phases=["beforeRequestSent"],
             url_patterns=[{"type": "pattern", "search": value}],
         )
+
+
+@pytest.mark.parametrize("value", [False, 42, {}, ""])
+async def test_params_contexts_invalid_type(bidi_session, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.add_intercept(phases=[value])
+
+
+@pytest.mark.parametrize("value", [[], ["does not exist"]])
+async def test_params_contexts_invalid_value(bidi_session, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.add_intercept(phases=["beforeRequestSent"], contexts=value)
+
+
+async def test_params_contexts_context_non_top_level(bidi_session, new_tab, test_page_same_origin_frame):
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=test_page_same_origin_frame,
+        wait="complete",
+    )
+
+    contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
+
+    assert len(contexts) == 1
+    assert len(contexts[0]["children"]) == 1
+    child_info = contexts[0]["children"][0]
+
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.add_intercept(phases=["beforeRequestSent"], contexts=[child_info['context']])

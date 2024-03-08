@@ -80,7 +80,7 @@ impl JsonPacketStream for TcpStream {
                         Ok(packet_len) => packet_len,
                         Err(_) => return Err("nonvalid UTF8 in packet length".to_owned()),
                     };
-                    let packet_len = match u64::from_str_radix(&packet_len_str, 10) {
+                    let packet_len = match packet_len_str.parse::<u64>() {
                         Ok(packet_len) => packet_len,
                         Err(_) => return Err("packet length missing / not parsable".to_owned()),
                     };

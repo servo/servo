@@ -48,7 +48,7 @@ jobs:
            } >> $GITHUB_OUTPUT
       - name: Configuration
         id: configuration
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             // When triggered via a push try the `try` branch, search the last commit for a configuration object.

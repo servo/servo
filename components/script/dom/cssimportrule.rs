@@ -5,8 +5,11 @@
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
+use style::stylesheets::import_rule::ImportLayer;
 use style::stylesheets::ImportRule;
+use style_traits::ToCss;
 
+use crate::dom::bindings::codegen::Bindings::CSSImportRuleBinding::CSSImportRuleMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -58,5 +61,17 @@ impl SpecificCSSRule for CSSImportRule {
             .read_with(&guard)
             .to_css_string(&guard)
             .into()
+    }
+}
+
+impl CSSImportRuleMethods for CSSImportRule {
+    /// <https://drafts.csswg.org/cssom-1/#dom-cssimportrule-layername>
+    fn GetLayerName(&self) -> Option<DOMString> {
+        let guard = self.cssrule.shared_lock().read();
+        match &self.import_rule.read_with(&guard).layer {
+            ImportLayer::None => None,
+            ImportLayer::Anonymous => Some(DOMString::new()),
+            ImportLayer::Named(name) => Some(DOMString::from_string(name.to_css_string())),
+        }
     }
 }

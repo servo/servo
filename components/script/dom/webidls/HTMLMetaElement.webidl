@@ -9,8 +9,8 @@ interface HTMLMetaElement : HTMLElement {
 
   [CEReactions]
              attribute DOMString name;
-  // [CEReactions]
-  //         attribute DOMString httpEquiv;
+  [CEReactions]
+          attribute DOMString httpEquiv;
   [CEReactions]
              attribute DOMString content;
 

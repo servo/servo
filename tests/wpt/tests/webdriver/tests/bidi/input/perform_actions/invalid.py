@@ -531,7 +531,7 @@ async def test_params_pointer_action_up_down_button_invalid_value(
 
 
 @pytest.mark.parametrize("pointer_action",
-                         ["pointerDown", "pointerMove", "pointerUp"])
+                         ["pointerDown", "pointerMove"])
 @pytest.mark.parametrize("dimension", ["width", "height"])
 @pytest.mark.parametrize("value", [None, "foo", True, 0.1, [], {}])
 async def test_params_pointer_action_common_properties_dimensions_invalid_type(
@@ -554,7 +554,7 @@ async def test_params_pointer_action_common_properties_dimensions_invalid_type(
 
 @pytest.mark.parametrize("dimension", ["width", "height"])
 @pytest.mark.parametrize("pointer_action",
-                         ["pointerDown", "pointerMove", "pointerUp"])
+                         ["pointerDown", "pointerMove"])
 @pytest.mark.parametrize("value", [-1, MAX_INT + 1])
 async def test_params_pointer_action_common_properties_dimensions_invalid_value(
         perform_actions, dimension, pointer_action, value):
@@ -575,7 +575,7 @@ async def test_params_pointer_action_common_properties_dimensions_invalid_value(
 
 
 @pytest.mark.parametrize("pointer_action",
-                         ["pointerDown", "pointerMove", "pointerUp"])
+                         ["pointerDown", "pointerMove"])
 @pytest.mark.parametrize("pressure", ["pressure", "tangentialPressure"])
 @pytest.mark.parametrize("value", [None, "foo", True, [], {}])
 async def test_params_pointer_action_common_properties_pressure_invalid_type(
@@ -599,7 +599,7 @@ async def test_params_pointer_action_common_properties_pressure_invalid_type(
 
 
 @pytest.mark.parametrize("pointer_action",
-                         ["pointerDown", "pointerMove", "pointerUp"])
+                         ["pointerDown", "pointerMove"])
 @pytest.mark.parametrize("value", [None, "foo", True, 0.1, [], {}])
 async def test_params_pointer_action_common_properties_twist_invalid_type(
         perform_actions, pointer_action, value):
@@ -614,7 +614,7 @@ async def test_params_pointer_action_common_properties_twist_invalid_type(
 
 
 @pytest.mark.parametrize("pointer_action",
-                         ["pointerDown", "pointerMove", "pointerUp"])
+                         ["pointerDown", "pointerMove"])
 @pytest.mark.parametrize("value", [-1, 360])
 async def test_params_pointer_action_common_properties_twist_invalid_value(
         perform_actions, pointer_action, value):
@@ -629,7 +629,7 @@ async def test_params_pointer_action_common_properties_twist_invalid_value(
 
 
 @pytest.mark.parametrize("pointer_action",
-                         ["pointerDown", "pointerMove", "pointerUp"])
+                         ["pointerDown", "pointerMove"])
 @pytest.mark.parametrize("angle", ["altitudeAngle", "azimuthAngle"])
 @pytest.mark.parametrize("value", [None, "foo", True, [], {}])
 async def test_params_pointer_action_common_properties_angle_invalid_type(

@@ -34,6 +34,15 @@ function assertReasonsStructEquals(
   }
 }
 
+function ReasonsInclude(reasons, targetReason) {
+  for (const reason of reasons) {
+    if (reason.reason == targetReason) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Requires:
 // - /websockets/constants.sub.js in the test file and pass the domainPort
 // constant here.

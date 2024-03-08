@@ -34,7 +34,7 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const transceiver = pc.addTransceiver('audio');
-    const capabilities = RTCRtpSender.getCapabilities('audio');
+    const capabilities = RTCRtpReceiver.getCapabilities('audio');
     const { codecs } = capabilities;
 
     if(codecs.length >= 2) {

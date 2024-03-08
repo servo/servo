@@ -17,49 +17,6 @@ from .. import (
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("phase", ["beforeRequestSent", "responseStarted"])
-async def test_other_context(
-    bidi_session,
-    url,
-    top_context,
-    add_intercept,
-    fetch,
-    setup_network_test,
-    phase,
-):
-    # Subscribe to network events only in top_context
-    await setup_network_test(
-        events=[
-            BEFORE_REQUEST_SENT_EVENT,
-            RESPONSE_STARTED_EVENT,
-            RESPONSE_COMPLETED_EVENT,
-        ],
-        contexts=[top_context["context"]],
-    )
-
-    # Create another tab, where network events are not monitored.
-    other_context = await bidi_session.browsing_context.create(type_hint="tab")
-    await bidi_session.browsing_context.navigate(
-        context=other_context["context"], url=url(PAGE_EMPTY_HTML), wait="complete"
-    )
-
-    # Add an intercept.
-    text_url = url(PAGE_EMPTY_TEXT)
-    await add_intercept(
-        phases=[phase],
-        url_patterns=[{"type": "string", "pattern": text_url}],
-    )
-
-    # Request to top_context should be blocked and throw a ScriptEvaluateResultException
-    # from the AbortController.
-    with pytest.raises(ScriptEvaluateResultException):
-        await fetch(text_url, context=top_context)
-
-    # Request to other_context should not be blocked.
-    await fetch(text_url, context=other_context)
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("phase", ["beforeRequestSent", "responseStarted"])
 async def test_other_url(
     url,
     add_intercept,

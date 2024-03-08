@@ -19,9 +19,10 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpudevice::{
-    convert_label, convert_texture_format, convert_texture_view_dimension, GPUDevice,
+use crate::dom::gpuconvert::{
+    convert_label, convert_texture_format, convert_texture_view_dimension,
 };
+use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gputextureview::GPUTextureView;
 
 #[dom_struct]

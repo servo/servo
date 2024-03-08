@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, ParserInput, ToCss};
-use selectors::parser::SelectorList;
+use selectors::parser::{ParseRelative, SelectorList};
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::{Namespaces, Origin};
 use style_traits::ParseError;
 use url::Url;
 
-fn parse_selector<'i, 't>(
-    input: &mut Parser<'i, 't>,
+fn parse_selector<'i>(
+    input: &mut Parser<'i, '_>,
 ) -> Result<SelectorList<SelectorImpl>, ParseError<'i>> {
     let mut ns = Namespaces::default();
     ns.prefixes
@@ -22,7 +22,7 @@ fn parse_selector<'i, 't>(
         url_data: &dummy_url_data,
         for_supports_rule: false,
     };
-    SelectorList::parse(&parser, input)
+    SelectorList::parse(&parser, input, ParseRelative::No)
 }
 
 #[test]

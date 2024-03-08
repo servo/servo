@@ -10,6 +10,7 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 #![allow(non_snake_case)]
+#![allow(clippy::too_many_arguments)]
 #![deny(unsafe_code)]
 
 use std::borrow::ToOwned;
@@ -135,7 +136,7 @@ fn run_server(
     port: u16,
     embedder: EmbedderProxy,
 ) {
-    let bound = TcpListener::bind(&("0.0.0.0", port)).ok().and_then(|l| {
+    let bound = TcpListener::bind(("0.0.0.0", port)).ok().and_then(|l| {
         l.local_addr()
             .map(|addr| addr.port())
             .ok()
@@ -143,7 +144,7 @@ fn run_server(
     });
 
     // A token shared with the embedder to bypass permission prompt.
-    let token = format!("{:X}", servo_rand::ServoRng::new().next_u32());
+    let token = format!("{:X}", servo_rand::ServoRng::default().next_u32());
 
     let port = bound.as_ref().map(|(_, port)| *port).ok_or(());
     embedder.send((None, EmbedderMsg::OnDevtoolsStarted(port, token.clone())));
@@ -259,7 +260,7 @@ fn run_server(
             Some(bc) => bc,
             None => return,
         };
-        let name = match browsing_contexts.get(&bc) {
+        let name = match browsing_contexts.get(bc) {
             Some(name) => name,
             None => return,
         };
@@ -299,7 +300,7 @@ fn run_server(
                 name: worker_name.clone(),
                 console: console_name.clone(),
                 thread: thread_name,
-                id: id,
+                id,
                 url: page_info.url.clone(),
                 type_: WorkerType::Dedicated,
                 script_chan: script_sender,
@@ -324,7 +325,7 @@ fn run_server(
                         page_info,
                         pipeline,
                         script_sender,
-                        &mut *actors,
+                        &mut actors,
                     );
                     let name = browsing_context_actor.name();
                     browsing_contexts.insert(browsing_context, name.clone());
@@ -366,7 +367,7 @@ fn run_server(
         let actors = actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(id), UniqueId::Worker);
-        console_actor.handle_page_error(page_error, id, &*actors);
+        console_actor.handle_page_error(page_error, id, &actors);
     }
 
     fn handle_console_message(
@@ -392,7 +393,7 @@ fn run_server(
         let actors = actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(id), UniqueId::Worker);
-        console_actor.handle_console_api(console_message, id, &*actors);
+        console_actor.handle_console_api(console_message, id, &actors);
     }
 
     fn find_console_actor(

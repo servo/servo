@@ -29,7 +29,7 @@ impl Crypto {
     fn new_inherited() -> Crypto {
         Crypto {
             reflector_: Reflector::new(),
-            rng: DomRefCell::new(ServoRng::new()),
+            rng: DomRefCell::new(ServoRng::default()),
         }
     }
 

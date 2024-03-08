@@ -103,7 +103,7 @@ async def test_partition_context(
 
     # `partitionKey` here might contain `sourceOrigin` for certain browser implementation,
     # so use `recursive_compare` to allow additional fields to be present.
-    recursive_compare({"partitionKey": {}}, cookies)
+    recursive_compare({"partitionKey": {"userContext": "default"}}, cookies)
 
     assert len(cookies["cookies"]) == 1
     recursive_compare(
@@ -127,7 +127,7 @@ async def test_partition_context(
 
     # `partitionKey` here might contain `sourceOrigin` for certain browser implementation,
     # so use `recursive_compare` to allow additional fields to be present.
-    recursive_compare({"partitionKey": {}}, cookies)
+    recursive_compare({"partitionKey": {"userContext": user_context}}, cookies)
     assert len(cookies["cookies"]) == 0
 
 
@@ -174,7 +174,7 @@ async def test_partition_context_iframe(
                     "value": {"type": "string", "value": cookie_value},
                 }
             ],
-            "partitionKey": {},
+            "partitionKey": {"userContext": "default"},
         },
         cookies,
     )
@@ -255,4 +255,120 @@ async def test_partition_source_origin(
             "partitionKey": {"sourceOrigin": source_origin_2},
         },
         cookies,
+    )
+
+
+async def test_partition_default_user_context(
+    bidi_session,
+    test_page,
+    domain_value,
+    add_cookie,
+):
+    new_context = await bidi_session.browsing_context.create(type_hint="tab")
+    await bidi_session.browsing_context.navigate(
+        context=new_context["context"], url=test_page, wait="complete"
+    )
+
+    cookie_name = "foo"
+    cookie_value = "bar"
+    await add_cookie(new_context["context"], cookie_name, cookie_value)
+
+    # Check that added cookies are present on the right user context.
+    result = await bidi_session.storage.get_cookies(
+        partition=StorageKeyPartitionDescriptor(user_context="default")
+    )
+    expected_cookies = [
+        {
+            "domain": domain_value(),
+            "httpOnly": False,
+            "name": cookie_name,
+            "path": "/webdriver/tests/support",
+            "sameSite": "none",
+            "secure": False,
+            "size": 6,
+            "value": {"type": "string", "value": cookie_value},
+        }
+    ]
+    recursive_compare(
+        {
+            "cookies": expected_cookies,
+            "partitionKey": {"userContext": "default"},
+        },
+        result,
+    )
+
+
+async def test_partition_user_context(
+    bidi_session,
+    test_page,
+    domain_value,
+    create_user_context,
+    test_page_cross_origin,
+    add_cookie,
+):
+    user_context_1 = await create_user_context()
+    new_context_1 = await bidi_session.browsing_context.create(
+        user_context=user_context_1, type_hint="tab"
+    )
+    await bidi_session.browsing_context.navigate(
+        context=new_context_1["context"], url=test_page, wait="complete"
+    )
+
+    user_context_2 = await create_user_context()
+    new_context_2 = await bidi_session.browsing_context.create(
+        user_context=user_context_2, type_hint="tab"
+    )
+    await bidi_session.browsing_context.navigate(
+        context=new_context_2["context"], url=test_page_cross_origin, wait="complete"
+    )
+
+    cookie_name = "foo_1"
+    cookie_value = "bar_1"
+    await add_cookie(new_context_1["context"], cookie_name, cookie_value)
+
+    # Check that added cookies are present on the right user context.
+    result = await bidi_session.storage.get_cookies(
+        partition=StorageKeyPartitionDescriptor(user_context=user_context_1)
+    )
+    expected_cookies = [
+        {
+            "domain": domain_value(),
+            "httpOnly": False,
+            "name": cookie_name,
+            "path": "/webdriver/tests/support",
+            "sameSite": "none",
+            "secure": False,
+            "size": 10,
+            "value": {"type": "string", "value": cookie_value},
+        }
+    ]
+    recursive_compare(
+        {
+            "cookies": expected_cookies,
+            "partitionKey": {"userContext": user_context_1},
+        },
+        result,
+    )
+
+    # Check that added cookies are not present on the other user context.
+    result = await bidi_session.storage.get_cookies(
+        partition=StorageKeyPartitionDescriptor(user_context=user_context_2)
+    )
+
+    recursive_compare(
+        {
+            "cookies": [],
+            "partitionKey": {"userContext": user_context_2},
+        },
+        result,
+    )
+
+    # Check that added cookies will also be returned when partition is not specified.
+    result = await bidi_session.storage.get_cookies()
+    recursive_compare(
+        {
+            "cookies": expected_cookies,
+            "partitionKey": {},
+        },
+        result,
     )

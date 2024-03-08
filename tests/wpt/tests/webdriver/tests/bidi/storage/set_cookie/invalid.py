@@ -122,5 +122,9 @@ async def test_partition_storage_key_user_context_invalid_type(set_cookie, test_
     with pytest.raises(error.InvalidArgumentException):
         await set_cookie(cookie=create_cookie(domain=domain_value()), partition=partition)
 
-# TODO: test `test_partition_storage_key_user_context_unknown`.
-# TODO: test `test_partition_storage_key_user_context_invalid_type`.
+
+async def test_partition_storage_key_user_context_invalid_value(set_cookie, domain_value):
+    partition = StorageKeyPartitionDescriptor(user_context="foo")
+
+    with pytest.raises(error.NoSuchUserContextException):
+        await set_cookie(cookie=create_cookie(domain=domain_value()), partition=partition)

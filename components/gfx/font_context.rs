@@ -115,6 +115,36 @@ impl<S: FontSource> FontContext<S> {
         font_descriptor: &FontDescriptor,
         family_descriptor: &FontFamilyDescriptor,
     ) -> Option<FontRef> {
+        self.get_font_maybe_synthesizing_small_caps(
+            font_descriptor,
+            family_descriptor,
+            true, /* synthesize_small_caps */
+        )
+    }
+
+    fn get_font_maybe_synthesizing_small_caps(
+        &mut self,
+        font_descriptor: &FontDescriptor,
+        family_descriptor: &FontFamilyDescriptor,
+        synthesize_small_caps: bool,
+    ) -> Option<FontRef> {
+        // TODO: (Bug #3463): Currently we only support fake small-caps
+        // painting. We should also support true small-caps (where the
+        // font supports it) in the future.
+        let synthesized_small_caps_font =
+            if font_descriptor.variant == FontVariantCaps::SmallCaps && synthesize_small_caps {
+                let mut small_caps_descriptor = font_descriptor.clone();
+                small_caps_descriptor.pt_size =
+                    font_descriptor.pt_size.scale_by(SMALL_CAPS_SCALE_FACTOR);
+                self.get_font_maybe_synthesizing_small_caps(
+                    &small_caps_descriptor,
+                    family_descriptor,
+                    false, /* synthesize_small_caps */
+                )
+            } else {
+                None
+            };
+
         let cache_key = FontCacheKey {
             font_descriptor: font_descriptor.clone(),
             family_descriptor: family_descriptor.clone(),
@@ -132,8 +162,12 @@ impl<S: FontSource> FontContext<S> {
                 let font = self
                     .font_template(&font_descriptor.template_descriptor, family_descriptor)
                     .and_then(|template_info| {
-                        self.create_font(template_info, font_descriptor.to_owned())
-                            .ok()
+                        self.create_font(
+                            template_info,
+                            font_descriptor.to_owned(),
+                            synthesized_small_caps_font,
+                        )
+                        .ok()
                     })
                     .map(|font| Rc::new(RefCell::new(font)));
 
@@ -175,29 +209,22 @@ impl<S: FontSource> FontContext<S> {
         &mut self,
         info: FontTemplateInfo,
         descriptor: FontDescriptor,
+        synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, ()> {
-        // TODO: (Bug #3463): Currently we only support fake small-caps
-        // painting. We should also support true small-caps (where the
-        // font supports it) in the future.
-        let actual_pt_size = match descriptor.variant {
-            FontVariantCaps::SmallCaps => descriptor.pt_size.scale_by(SMALL_CAPS_SCALE_FACTOR),
-            FontVariantCaps::Normal => descriptor.pt_size,
-        };
-
         let handle = FontHandle::new_from_template(
             &self.platform_handle,
             info.font_template,
-            Some(actual_pt_size),
+            Some(descriptor.pt_size),
         )?;
 
         let font_instance_key = self
             .font_source
-            .get_font_instance(info.font_key, actual_pt_size);
+            .get_font_instance(info.font_key, descriptor.pt_size);
         Ok(Font::new(
             handle,
             descriptor,
-            actual_pt_size,
             font_instance_key,
+            synthesized_small_caps,
         ))
     }
 }
