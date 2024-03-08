@@ -22,8 +22,8 @@ refcell_backtrace = ["accountable-refcell"]
 xr-profile = ["webxr-api/profile"]
 
 [build-dependencies]
-phf_codegen = "0.10"
-phf_shared = "0.10"
+phf_codegen = "0.11"
+phf_shared = "0.11"
 serde_json = { workspace = true }
 
 [dependencies]
