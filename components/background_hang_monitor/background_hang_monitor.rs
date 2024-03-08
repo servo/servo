@@ -104,7 +104,7 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
             target_os = "android",
             all(target_os = "linux", any(target_arch = "arm", target_arch = "aarch64"))
         ))]
-        let sampler = crate::sampler::DummySampler::new();
+        let sampler = crate::sampler::DummySampler::default();
 
         // When a component is registered, and there's an exit request that
         // reached BHM, we want an exit signal to be delivered to the
