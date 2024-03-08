@@ -210,14 +210,6 @@ impl RequestBody {
     pub fn len(&self) -> Option<usize> {
         self.total_bytes
     }
-
-    pub fn is_empty(&self) -> bool {
-        if let Some(v) = self.len() {
-            v == 0
-        } else {
-            false
-        }
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
