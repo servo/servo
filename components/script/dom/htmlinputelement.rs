@@ -1327,7 +1327,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
         self.convert_string_to_naive_datetime(self.Value())
             .map(|dt| unsafe {
                 let time = ClippedTime {
-                    t: dt.timestamp_millis() as f64,
+                    t: dt.and_utc().timestamp_millis() as f64,
                 };
                 NonNull::new_unchecked(NewDateObject(*cx, time))
             })
@@ -2145,7 +2145,7 @@ impl HTMLInputElement {
                 .ok()
                 .and_then(|(year, month, day)| NaiveDate::from_ymd_opt(year, month, day))
                 .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .map(|time| Ok(time.timestamp_millis() as f64))
+                .map(|time| Ok(time.and_utc().timestamp_millis() as f64))
                 .unwrap_or(Err(())),
             InputType::Month => match value.parse_month_string() {
                 // This one returns number of months, not milliseconds
@@ -2160,7 +2160,7 @@ impl HTMLInputElement {
                 .ok()
                 .and_then(|(year, weeknum)| NaiveDate::from_isoywd_opt(year, weeknum, Weekday::Mon))
                 .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .map(|time| Ok(time.timestamp_millis() as f64))
+                .map(|time| Ok(time.and_utc().timestamp_millis() as f64))
                 .unwrap_or(Err(())),
             InputType::Time => match value.parse_time_string() {
                 Ok((hours, minutes, seconds)) => {
@@ -2178,7 +2178,7 @@ impl HTMLInputElement {
                             (seconds + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0;
                         NaiveDate::from_ymd_opt(year, month, day)
                             .and_then(|date| date.and_hms_opt(0, 0, 0))
-                            .map(|time| Ok(time.timestamp_millis() as f64 + hms_millis))
+                            .map(|time| Ok(time.and_utc().timestamp_millis() as f64 + hms_millis))
                     })
                     .unwrap_or(Err(()))
             },
