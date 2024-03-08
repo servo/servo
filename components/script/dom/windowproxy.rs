@@ -296,10 +296,10 @@ impl WindowProxy {
         let msg = EmbedderMsg::AllowOpeningWebView(chan);
         window.send_to_embedder(msg);
         if port.recv().unwrap() {
-            let new_top_level_browsing_context_id = TopLevelBrowsingContextId::default();
+            let new_top_level_browsing_context_id = TopLevelBrowsingContextId::new();
             let new_browsing_context_id =
                 BrowsingContextId::from(new_top_level_browsing_context_id);
-            let new_pipeline_id = PipelineId::default();
+            let new_pipeline_id = PipelineId::new();
             let document = self
                 .currently_active
                 .get()

@@ -138,9 +138,9 @@ mod test {
         let mut webviews = WebViewManager::default();
 
         // add() adds the webview to the map, but does not focus it.
-        webviews.add(TopLevelBrowsingContextId::default(), 'a');
-        webviews.add(TopLevelBrowsingContextId::default(), 'b');
-        webviews.add(TopLevelBrowsingContextId::default(), 'c');
+        webviews.add(TopLevelBrowsingContextId::new(), 'a');
+        webviews.add(TopLevelBrowsingContextId::new(), 'b');
+        webviews.add(TopLevelBrowsingContextId::new(), 'c');
         assert_eq!(
             webviews_sorted(&webviews),
             vec![

@@ -2832,7 +2832,7 @@ where
 
         warn!("creating replacement pipeline for crash page");
 
-        let new_pipeline_id = PipelineId::default();
+        let new_pipeline_id = PipelineId::new();
         let new_load_data = LoadData {
             crash: Some(
                 backtrace
@@ -2953,7 +2953,7 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
         let window_size = self.window_size.initial_viewport;
-        let pipeline_id = PipelineId::default();
+        let pipeline_id = PipelineId::new();
         let msg = (
             Some(top_level_browsing_context_id),
             EmbedderMsg::WebViewOpened(top_level_browsing_context_id),
@@ -3558,7 +3558,7 @@ where
                     HistoryEntryReplacement::Disabled => None,
                 };
 
-                let new_pipeline_id = PipelineId::default();
+                let new_pipeline_id = PipelineId::new();
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 self.new_pipeline(
                     new_pipeline_id,
@@ -3860,7 +3860,7 @@ where
                     Some(pipeline) => pipeline.opener,
                     None => None,
                 };
-                let new_pipeline_id = PipelineId::default();
+                let new_pipeline_id = PipelineId::new();
                 self.new_pipeline(
                     new_pipeline_id,
                     browsing_context_id,

@@ -228,7 +228,7 @@ impl History {
         // Step 8
         let state_id = match push_or_replace {
             PushOrReplace::Push => {
-                let state_id = HistoryStateId::default();
+                let state_id = HistoryStateId::new();
                 self.state_id.set(Some(state_id));
                 let msg = ScriptMsg::PushHistoryState(state_id, new_url.clone());
                 let _ = self
@@ -242,7 +242,7 @@ impl History {
                 let state_id = match self.state_id.get() {
                     Some(state_id) => state_id,
                     None => {
-                        let state_id = HistoryStateId::default();
+                        let state_id = HistoryStateId::new();
                         self.state_id.set(Some(state_id));
                         state_id
                     },

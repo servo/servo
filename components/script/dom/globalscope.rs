@@ -1435,7 +1435,7 @@ impl GlobalScope {
                     }
                 }),
             );
-            let router_id = BroadcastChannelRouterId::default();
+            let router_id = BroadcastChannelRouterId::new();
             *current_state = BroadcastChannelState::Managed(router_id.clone(), HashMap::new());
             let _ = self
                 .script_to_constellation_chan()
@@ -1491,7 +1491,7 @@ impl GlobalScope {
                     }
                 }),
             );
-            let router_id = MessagePortRouterId::default();
+            let router_id = MessagePortRouterId::new();
             *current_state =
                 MessagePortState::Managed(router_id.clone(), HashMapTracedValues::new());
             let _ = self

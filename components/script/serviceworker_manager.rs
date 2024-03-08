@@ -142,7 +142,7 @@ struct ServiceWorkerRegistration {
 impl ServiceWorkerRegistration {
     pub fn new() -> ServiceWorkerRegistration {
         ServiceWorkerRegistration {
-            id: ServiceWorkerRegistrationId::default(),
+            id: ServiceWorkerRegistrationId::new(),
             active_worker: None,
             waiting_worker: None,
             installing_worker: None,
@@ -453,7 +453,7 @@ fn update_serviceworker(
 ) {
     let (sender, receiver) = unbounded();
     let (_devtools_sender, devtools_receiver) = ipc::channel().unwrap();
-    let worker_id = ServiceWorkerId::default();
+    let worker_id = ServiceWorkerId::new();
 
     let (control_sender, control_receiver) = unbounded();
     let (context_sender, context_receiver) = unbounded();

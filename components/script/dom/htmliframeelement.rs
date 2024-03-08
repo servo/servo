@@ -176,7 +176,7 @@ impl HTMLIFrameElement {
 
         let window = window_from_node(self);
         let old_pipeline_id = self.pipeline_id();
-        let new_pipeline_id = PipelineId::default();
+        let new_pipeline_id = PipelineId::new();
         self.pending_pipeline_id.set(Some(new_pipeline_id));
 
         let global_scope = window.upcast::<GlobalScope>();
@@ -380,7 +380,7 @@ impl HTMLIFrameElement {
             document.get_referrer_policy(),
             Some(window.upcast::<GlobalScope>().is_secure_context()),
         );
-        let browsing_context_id = BrowsingContextId::default();
+        let browsing_context_id = BrowsingContextId::new();
         let top_level_browsing_context_id = window.window_proxy().top_level_browsing_context_id();
         self.pipeline_id.set(None);
         self.pending_pipeline_id.set(None);

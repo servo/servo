@@ -90,7 +90,7 @@ pub enum BlobData {
 impl BlobImpl {
     /// Construct memory-backed BlobImpl
     pub fn new_from_bytes(bytes: Vec<u8>, type_string: String) -> BlobImpl {
-        let blob_id = BlobId::default();
+        let blob_id = BlobId::new();
         let blob_data = BlobData::Memory(bytes);
         BlobImpl {
             blob_id,
@@ -102,7 +102,7 @@ impl BlobImpl {
 
     /// Construct file-backed BlobImpl from File ID
     pub fn new_from_file(file_id: Uuid, name: PathBuf, size: u64, type_string: String) -> BlobImpl {
-        let blob_id = BlobId::default();
+        let blob_id = BlobId::new();
         let blob_data = BlobData::File(FileBlob {
             id: file_id,
             name: Some(name),
@@ -119,7 +119,7 @@ impl BlobImpl {
 
     /// Construct a BlobImpl from a slice of a parent.
     pub fn new_sliced(rel_pos: RelativePos, parent: BlobId, type_string: String) -> BlobImpl {
-        let blob_id = BlobId::default();
+        let blob_id = BlobId::new();
         let blob_data = BlobData::Sliced(parent, rel_pos);
         BlobImpl {
             blob_id,
