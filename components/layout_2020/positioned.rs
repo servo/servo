@@ -124,7 +124,7 @@ impl PositioningContext {
         }
     }
 
-    /// Create a [PositioninContext] to use for laying out a subtree. The idea is that
+    /// Create a [PositioningContext] to use for laying out a subtree. The idea is that
     /// when subtree layout is finished, the newly hoisted boxes can be processed
     /// (normally adjusting their static insets) and then appended to the parent
     /// [PositioningContext].
@@ -182,7 +182,7 @@ impl PositioningContext {
         self.adjust_static_position_of_hoisted_fragments_with_offset(start_offset, index);
     }
 
-    /// See documentation for [adjust_static_position_of_hoisted_fragments].
+    /// See documentation for [PositioningContext::adjust_static_position_of_hoisted_fragments].
     pub(crate) fn adjust_static_position_of_hoisted_fragments_with_offset(
         &mut self,
         start_offset: &LogicalVec2<CSSPixelLength>,
@@ -388,7 +388,7 @@ impl PositioningContext {
 
     /// Truncate this [PositioningContext] to the given [PositioningContextLength].  This
     /// is useful for "unhoisting" boxes in this context and returning it to the state at
-    /// the time that [`len()`] was called.
+    /// the time that [`PositioningContext::len()`] was called.
     pub(crate) fn truncate(&mut self, length: &PositioningContextLength) {
         if let Some(vec) = self.for_nearest_positioned_ancestor.as_mut() {
             vec.truncate(length.for_nearest_positioned_ancestor);
