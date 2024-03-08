@@ -1477,6 +1477,15 @@ impl ScriptThread {
         debug!("Stopped script thread.");
     }
 
+    /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
+    fn run_the_resize_steps(&self, id: PipelineId, document: &Document) {
+        if let Some((size, size_type)) = document.window().steal_resize_event() {
+            self.profile_event(ScriptThreadEventCategory::Resize, Some(id), || {
+                self.handle_resize_event(id, size, size_type);
+            })
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
     fn update_the_rendering(&self) {
         // reset batching.
@@ -1484,18 +1493,21 @@ impl ScriptThread {
 
         if self.can_continue_running_inner() {
             // TODO: ordering by parent and shadow root.
-            for doc in self
-                .documents
-                .borrow()
-                .iter()
-                .filter_map(|(_id, document)| {
-                    if !document.is_fully_active() {
-                        None
-                    } else {
-                        Some(DomRoot::from_ref(&*document))
-                    }
-                })
-            {}
+            // TODO: Filter non-renderable documents.
+            // TODO: Unnecessary rendering.
+            for (id, document) in self.documents.borrow().iter().filter_map(|(id, document)| {
+                if !document.is_fully_active() {
+                    None
+                } else {
+                    Some((id, DomRoot::from_ref(&*document)))
+                }
+            }) {
+                // TODO: reveal the document(#31581).
+
+                // TODO: focusing steps(implemented but needs refactor).
+
+                self.run_the_resize_steps(id, &*document);
+            }
         }
     }
 
@@ -1519,7 +1531,6 @@ impl ScriptThread {
         let task_manager = window.task_manager();
         let rendering_task_source = task_manager.rendering_task_source();
         let canceller = task_manager.task_canceller(TaskSourceName::Rendering);
-        let trusted_document = Trusted::new(&*document);
 
         // Batch rendering ops.
         if !*self.has_queued_update_the_rendering_task.borrow() {
@@ -1547,21 +1558,6 @@ impl ScriptThread {
         use self::MixedMessage::{
             FromConstellation, FromDevtools, FromImageCache, FromScript, FromWebGPUServer,
         };
-
-        // Handle pending resize events.
-        // Gather them first to avoid a double mut borrow on self.
-        let mut resizes = vec![];
-
-        for (id, document) in self.documents.borrow().iter() {
-            // Only process a resize if layout is idle.
-            if let Some((size, size_type)) = document.window().steal_resize_event() {
-                resizes.push((id, size, size_type));
-            }
-        }
-
-        for (id, size, size_type) in resizes {
-            self.handle_event(id, ResizeEvent(size, size_type));
-        }
 
         // Store new resizes, and gather all other events.
         let mut sequential = vec![];
@@ -1641,10 +1637,7 @@ impl ScriptThread {
                     )
                 },
                 FromConstellation(ConstellationControlMsg::Resize(id, size, size_type)) => {
-                    // step 7.7
-                    self.profile_event(ScriptThreadEventCategory::Resize, Some(id), || {
-                        self.handle_resize(id, size, size_type);
-                    })
+                    self.handle_resize_msg(id, size, size_type);
                 },
                 FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => self
                     .profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
@@ -2521,9 +2514,13 @@ impl ScriptThread {
         }
     }
 
-    fn handle_resize(&self, id: PipelineId, size: WindowSizeData, size_type: WindowSizeType) {
+    /// Batch windo resize operations into a single "update the rendering" task,
+    /// or, if a load is in progress,
+    /// set the window size directly.
+    fn handle_resize_msg(&self, id: PipelineId, size: WindowSizeData, size_type: WindowSizeType) {
         let window = self.documents.borrow().find_window(id);
         if let Some(ref window) = window {
+            self.rendering_opportunity(id);
             window.set_resize_event(size, size_type);
             return;
         }
@@ -3574,7 +3571,7 @@ impl ScriptThread {
         ScriptThread::set_user_interacting(true);
         match event {
             ResizeEvent(new_size, size_type) => {
-                self.handle_resize_event(pipeline_id, new_size, size_type);
+                self.handle_resize_msg(pipeline_id, new_size, size_type);
             },
 
             MouseButtonEvent(
