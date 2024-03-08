@@ -94,7 +94,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::gamepad::{Gamepad, AXIS_TILT_THRESHOLD, BUTTON_PRESS_THRESHOLD};
+use crate::dom::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
@@ -3212,7 +3212,7 @@ impl GlobalScope {
                                 }
                             };
 
-                            if !window.Navigator().has_gamepad_gesture() && global.contains_user_gesture(update_type) {
+                            if !window.Navigator().has_gamepad_gesture() && contains_user_gesture(update_type) {
                                 window.Navigator().set_has_gamepad_gesture(true);
                                 for i in 0..gamepad_list.Length() {
                                     if let Some(gamepad) = gamepad_list.Item(i as u32) {
@@ -3238,18 +3238,6 @@ impl GlobalScope {
                 &self.task_canceller(TaskSourceName::Gamepad),
             )
             .expect("Failed to queue update gamepad state task.");
-    }
-
-    /// <https://www.w3.org/TR/gamepad/#dfn-gamepad-user-gesture>
-    pub fn contains_user_gesture(&self, update_type: GamepadUpdateType) -> bool {
-        match update_type {
-            GamepadUpdateType::Axis(index, value) => {
-                return value.abs() > AXIS_TILT_THRESHOLD;
-            },
-            GamepadUpdateType::Button(index, value) => {
-                return value > BUTTON_PRESS_THRESHOLD;
-            },
-        };
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {

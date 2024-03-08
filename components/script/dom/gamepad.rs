@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::typedarray::{Float64, Float64Array};
+use script_traits::GamepadUpdateType;
 
 use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
@@ -280,4 +281,16 @@ impl Gamepad {
     pub fn set_exposed(&self, exposed: bool) {
         self.exposed.set(exposed);
     }
+}
+
+/// <https://www.w3.org/TR/gamepad/#dfn-gamepad-user-gesture>
+pub fn contains_user_gesture(update_type: GamepadUpdateType) -> bool {
+    match update_type {
+        GamepadUpdateType::Axis(_, value) => {
+            return value.abs() > AXIS_TILT_THRESHOLD;
+        },
+        GamepadUpdateType::Button(_, value) => {
+            return value > BUTTON_PRESS_THRESHOLD;
+        },
+    };
 }
