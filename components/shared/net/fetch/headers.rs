@@ -14,5 +14,5 @@ pub fn get_value_from_header_list(name: &str, headers: &HeaderMap) -> Option<Vec
     }
 
     // Step 2
-    return Some(values.collect::<Vec<&[u8]>>().join(&[0x2C, 0x20][..]));
+    Some(values.collect::<Vec<&[u8]>>().join(&[0x2C, 0x20][..]))
 }
