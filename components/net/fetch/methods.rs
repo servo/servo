@@ -820,7 +820,7 @@ async fn scheme_fetch(
 
             let (id, origin) = match parse_blob_url(&url) {
                 Ok((id, origin)) => (id, origin),
-                Err(()) => {
+                Err(_) => {
                     return Response::network_error(NetworkError::Internal(
                         "Invalid blob url".into(),
                     ));

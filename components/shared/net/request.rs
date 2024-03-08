@@ -623,6 +623,7 @@ fn is_cors_unsafe_request_header_byte(value: &u8) -> bool {
         0x7D |
         0x7F
     )
+}
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-request-header
 // subclause `accept`
