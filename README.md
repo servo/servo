@@ -204,4 +204,4 @@ The generated documentation can be found on https://doc.servo.org/servo/index.ht
 
 [manual-build]: https://github.com/servo/servo/wiki/Building#manual-build-setup
 [windows-tips]: https://github.com/servo/servo/wiki/Building#troubleshooting-the-windows-build
-[android-docs]: https://github.com/servo/servo/wiki/Android
+[android-docs]: https://github.com/servo/servo/wiki/Building-for-Android
