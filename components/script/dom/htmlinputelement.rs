@@ -9,7 +9,7 @@ use std::ptr::NonNull;
 use std::{f64, ptr};
 
 use chrono::naive::{NaiveDate, NaiveDateTime};
-use chrono::{Datelike, Weekday};
+use chrono::{DateTime, Datelike, Weekday};
 use dom_struct::dom_struct;
 use embedder_traits::FilterPattern;
 use encoding_rs::Encoding;
@@ -2916,7 +2916,10 @@ fn milliseconds_to_datetime(value: f64) -> Result<NaiveDateTime, ()> {
     let seconds = (value / 1000.0).floor();
     let milliseconds = value - (seconds * 1000.0);
     let nanoseconds = milliseconds * 1e6;
-    NaiveDateTime::from_timestamp_opt(seconds as i64, nanoseconds as u32).ok_or(())
+    match DateTime::from_timestamp(seconds as i64, nanoseconds as u32) {
+        Some(datetime) => Ok(datetime.naive_utc()),
+        None => Err(()),
+    }
 }
 
 // This is used to compile JS-compatible regex provided in pattern attribute
