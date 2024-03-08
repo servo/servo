@@ -92,9 +92,9 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
             target_os = "windows",
             any(target_arch = "x86_64", target_arch = "x86")
         ))]
-        let sampler = crate::sampler_windows::WindowsSampler::new();
+        let sampler = crate::sampler_windows::WindowsSampler::new_boxed();
         #[cfg(target_os = "macos")]
-        let sampler = crate::sampler_mac::MacOsSampler::new();
+        let sampler = crate::sampler_mac::MacOsSampler::new_boxed();
         #[cfg(all(
             target_os = "linux",
             not(any(target_arch = "arm", target_arch = "aarch64"))
@@ -104,7 +104,7 @@ impl BackgroundHangMonitorRegister for HangMonitorRegister {
             target_os = "android",
             all(target_os = "linux", any(target_arch = "arm", target_arch = "aarch64"))
         ))]
-        let sampler = crate::sampler::DummySampler::default();
+        let sampler = crate::sampler::DummySampler::new_boxed();
 
         // When a component is registered, and there's an exit request that
         // reached BHM, we want an exit signal to be delivered to the
