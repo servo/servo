@@ -38,11 +38,11 @@ fn main() {
                         .and_then(|pkg| pkg.get("source").and_then(|source| source.as_str()))
                         .unwrap_or("unknown");
 
-                    let parsed: Vec<&str> = source.split("#").collect();
+                    let parsed: Vec<&str> = source.split('#').collect();
                     let revision = if parsed.len() > 1 { parsed[1] } else { source };
 
-                    let mut revision_module_file = File::create(&revision_file_path).unwrap();
-                    write!(&mut revision_module_file, "{}", format!("\"{}\"", revision)).unwrap();
+                    let mut revision_module_file = File::create(revision_file_path).unwrap();
+                    write!(&mut revision_module_file, "\"{}\"", revision).unwrap();
                 },
                 _ => panic!("Cannot find package definitions in lockfile"),
             }
