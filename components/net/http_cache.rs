@@ -126,7 +126,7 @@ pub struct CachedResponse {
 }
 
 /// A memory cache.
-#[derive(MallocSizeOf)]
+#[derive(MallocSizeOf, Default)]
 pub struct HttpCache {
     /// cached responses.
     entries: HashMap<CacheKey, Vec<CachedResource>>,
@@ -582,20 +582,7 @@ fn handle_range_request(
     None
 }
 
-impl Default for HttpCache {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl HttpCache {
-    /// Create a new memory cache instance.
-    pub fn new() -> HttpCache {
-        HttpCache {
-            entries: HashMap::new(),
-        }
-    }
-
     /// Constructing Responses from Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-4>
     pub fn construct_response(

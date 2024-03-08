@@ -101,19 +101,13 @@ pub struct HttpState {
 
 impl Default for HttpState {
     fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl HttpState {
-    pub fn new() -> HttpState {
         let override_manager = CertificateErrorOverrideManager::new();
-        HttpState {
+        Self {
             hsts_list: RwLock::new(HstsList::default()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
             auth_cache: RwLock::new(AuthCache::default()),
             history_states: RwLock::new(HashMap::new()),
-            http_cache: RwLock::new(HttpCache::new()),
+            http_cache: RwLock::new(HttpCache::default()),
             http_cache_state: Mutex::new(HashMap::new()),
             client: create_http_client(create_tls_config(
                 CACertificates::Default,
@@ -1916,16 +1910,6 @@ async fn http_network_fetch(
 
     // Step 6-11
     // (needs stream bodies)
-
-    // Step 12
-    // TODO when https://bugzilla.mozilla.org/show_bug.cgi?id=1030660
-    // is resolved, this step will become uneccesary
-    // TODO this step
-    // if let Some(encoding) = response.headers.typed_get::<ContentEncoding>() {
-    //     if encoding.contains("gzip") {
-    //     } else if encoding.contains("compress") {
-    //     }
-    // };
 
     // Step 13
     // TODO this step isn't possible yet (CSP)
