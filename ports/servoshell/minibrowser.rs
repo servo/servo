@@ -190,11 +190,12 @@ impl Minibrowser {
                 );
             });
 
-            let mut location_dirty = None;
+            let mut location_dirty = false;
             let mut location = location.borrow_mut();
-            if let Some(webview_location) = webviews.focused_webview_mut().map(|w| &w.location) {
-                if webview_location != &*location {
-                    *location = webview_location.clone();
+            if let Some(webview) = webviews.focused_webview_mut() {
+                location_dirty = webview.location_dirty;
+                if webview.location != *location {
+                    *location = webview.location.clone();
                 }
             }
 
@@ -215,7 +216,7 @@ impl Minibrowser {
                             |ui| {
                                 if ui.button("go").clicked() {
                                     event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                    location_dirty = Some(false);
+                                    location_dirty = false;
                                 }
 
                                 match self.load_status {
@@ -228,13 +229,13 @@ impl Minibrowser {
                                     LoadStatus::LoadComplete => { /* No Spinner */ },
                                 }
 
-                                let location_field = ui.add_sized(
-                                    ui.available_size(),
-                                    egui::TextEdit::singleline(&mut *location),
-                                );
+                                let location_field = egui::TextEdit::singleline(&mut *location)
+                                    .text_color_opt(location_dirty.then_some(Color32::YELLOW));
+                                let location_field =
+                                    ui.add_sized(ui.available_size(), location_field);
 
                                 if location_field.changed() {
-                                    location_dirty = Some(true);
+                                    location_dirty = true;
                                 }
                                 if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
                                     location_field.request_focus();
@@ -243,7 +244,7 @@ impl Minibrowser {
                                     ui.input(|i| i.clone().key_pressed(Key::Enter))
                                 {
                                     event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                    location_dirty = Some(false);
+                                    location_dirty = false;
                                 }
                             },
                         );
@@ -257,9 +258,7 @@ impl Minibrowser {
             *toolbar_height = Length::new(ctx.available_rect().min.y);
 
             if let Some(webview) = webviews.focused_webview_mut() {
-                if let Some(location_dirty) = location_dirty {
-                    webview.location_dirty = location_dirty;
-                }
+                webview.location_dirty = location_dirty;
                 if *location != webview.location {
                     webview.location = location.clone();
                 }
