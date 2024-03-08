@@ -36,10 +36,7 @@ impl fmt::Debug for FontTemplateData {
 
 impl FontTemplateData {
     pub fn new(identifier: Atom, bytes: Option<Vec<u8>>) -> Result<FontTemplateData, Error> {
-        Ok(FontTemplateData {
-            bytes: bytes,
-            identifier: identifier,
-        })
+        Ok(FontTemplateData { bytes, identifier })
     }
 
     /// Returns a clone of the data in this font. This may be a hugely expensive

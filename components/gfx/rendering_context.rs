@@ -30,8 +30,8 @@ struct RenderingContextData {
 
 impl Drop for RenderingContextData {
     fn drop(&mut self) {
-        let ref mut device = self.device.borrow_mut();
-        let ref mut context = self.context.borrow_mut();
+        let device = &mut self.device.borrow_mut();
+        let context = &mut self.context.borrow_mut();
         if let Some(ref swap_chain) = self.swap_chain {
             let _ = swap_chain.destroy(device, context);
         }
@@ -45,7 +45,7 @@ impl RenderingContext {
         adapter: &Adapter,
         surface_type: SurfaceType<NativeWidget>,
     ) -> Result<Self, Error> {
-        let mut device = connection.create_device(&adapter)?;
+        let mut device = connection.create_device(adapter)?;
         let flags = ContextAttributeFlags::ALPHA |
             ContextAttributeFlags::DEPTH |
             ContextAttributeFlags::STENCIL;
@@ -94,8 +94,8 @@ impl RenderingContext {
         &self,
         surface: Surface,
     ) -> Result<SurfaceTexture, (Error, Surface)> {
-        let ref device = self.0.device.borrow();
-        let ref mut context = self.0.context.borrow_mut();
+        let device = &self.0.device.borrow();
+        let context = &mut self.0.context.borrow_mut();
         device.create_surface_texture(context, surface)
     }
 
@@ -103,14 +103,14 @@ impl RenderingContext {
         &self,
         surface_texture: SurfaceTexture,
     ) -> Result<Surface, (Error, SurfaceTexture)> {
-        let ref device = self.0.device.borrow();
-        let ref mut context = self.0.context.borrow_mut();
+        let device = &self.0.device.borrow();
+        let context = &mut self.0.context.borrow_mut();
         device.destroy_surface_texture(context, surface_texture)
     }
 
     pub fn make_gl_context_current(&self) -> Result<(), Error> {
-        let ref device = self.0.device.borrow();
-        let ref context = self.0.context.borrow();
+        let device = &self.0.device.borrow();
+        let context = &self.0.context.borrow();
         device.make_context_current(context)
     }
 
@@ -119,8 +119,8 @@ impl RenderingContext {
     }
 
     pub fn resize(&self, size: Size2D<i32>) -> Result<(), Error> {
-        let ref mut device = self.0.device.borrow_mut();
-        let ref mut context = self.0.context.borrow_mut();
+        let device = &mut self.0.device.borrow_mut();
+        let context = &mut self.0.context.borrow_mut();
         if let Some(swap_chain) = self.0.swap_chain.as_ref() {
             return swap_chain.resize(device, context, size);
         }
@@ -135,8 +135,8 @@ impl RenderingContext {
     }
 
     pub fn present(&self) -> Result<(), Error> {
-        let ref mut device = self.0.device.borrow_mut();
-        let ref mut context = self.0.context.borrow_mut();
+        let device = &mut self.0.device.borrow_mut();
+        let context = &mut self.0.context.borrow_mut();
         if let Some(ref swap_chain) = self.0.swap_chain {
             return swap_chain.swap_buffers(device, context, PreserveBuffer::No);
         }
@@ -153,8 +153,8 @@ impl RenderingContext {
     /// Invoke a closure with the surface associated with the current front buffer.
     /// This can be used to create a surfman::SurfaceTexture to blit elsewhere.
     pub fn with_front_buffer<F: FnMut(&Device, Surface) -> Surface>(&self, mut f: F) {
-        let ref mut device = self.0.device.borrow_mut();
-        let ref mut context = self.0.context.borrow_mut();
+        let device = &mut self.0.device.borrow_mut();
+        let context = &mut self.0.context.borrow_mut();
         let surface = device
             .unbind_surface_from_context(context)
             .unwrap()
@@ -168,52 +168,52 @@ impl RenderingContext {
     }
 
     pub fn connection(&self) -> Connection {
-        let ref device = self.0.device.borrow();
+        let device = &self.0.device.borrow();
         device.connection()
     }
 
     pub fn adapter(&self) -> Adapter {
-        let ref device = self.0.device.borrow();
+        let device = &self.0.device.borrow();
         device.adapter()
     }
 
     pub fn native_context(&self) -> NativeContext {
-        let ref device = self.0.device.borrow();
-        let ref context = self.0.context.borrow();
+        let device = &self.0.device.borrow();
+        let context = &self.0.context.borrow();
         device.native_context(context)
     }
 
     pub fn native_device(&self) -> NativeDevice {
-        let ref device = self.0.device.borrow();
+        let device = &self.0.device.borrow();
         device.native_device()
     }
 
     pub fn context_attributes(&self) -> ContextAttributes {
-        let ref device = self.0.device.borrow();
-        let ref context = self.0.context.borrow();
-        let ref descriptor = device.context_descriptor(context);
+        let device = &self.0.device.borrow();
+        let context = &self.0.context.borrow();
+        let descriptor = &device.context_descriptor(context);
         device.context_descriptor_attributes(descriptor)
     }
 
     pub fn context_surface_info(&self) -> Result<Option<SurfaceInfo>, Error> {
-        let ref device = self.0.device.borrow();
-        let ref context = self.0.context.borrow();
+        let device = &self.0.device.borrow();
+        let context = &self.0.context.borrow();
         device.context_surface_info(context)
     }
 
     pub fn surface_info(&self, surface: &Surface) -> SurfaceInfo {
-        let ref device = self.0.device.borrow();
+        let device = &self.0.device.borrow();
         device.surface_info(surface)
     }
 
     pub fn surface_texture_object(&self, surface: &SurfaceTexture) -> u32 {
-        let ref device = self.0.device.borrow();
+        let device = &self.0.device.borrow();
         device.surface_texture_object(surface)
     }
 
     pub fn get_proc_address(&self, name: &str) -> *const c_void {
-        let ref device = self.0.device.borrow();
-        let ref context = self.0.context.borrow();
+        let device = &self.0.device.borrow();
+        let context = &self.0.context.borrow();
         device.get_proc_address(context, name)
     }
 
@@ -221,7 +221,7 @@ impl RenderingContext {
         let device = self.0.device.borrow_mut();
         let mut context = self.0.context.borrow_mut();
         let mut surface = device.unbind_surface_from_context(&mut context)?.unwrap();
-        let _ = device.destroy_surface(&mut context, &mut surface)?;
+        device.destroy_surface(&mut context, &mut surface)?;
         Ok(())
     }
 

@@ -147,7 +147,7 @@ impl FontHandleMethods for FontHandle {
         let face = create_face(ft_ctx, &template, pt_size)?;
 
         let mut handle = FontHandle {
-            face: face,
+            face,
             font_data: template,
             context_handle: fctx.clone(),
             can_do_fast_shaping: false,
@@ -264,7 +264,7 @@ impl FontHandleMethods for FontHandle {
             let res = FT_Load_Glyph(self.face, glyph as FT_UInt, GLYPH_LOAD_FLAGS);
             if succeeded(res) {
                 let void_glyph = (*self.face).glyph;
-                let slot: FT_GlyphSlot = mem::transmute(void_glyph);
+                let slot: FT_GlyphSlot = void_glyph;
                 assert!(!slot.is_null());
                 let advance = (*slot).metrics.horiAdvance;
                 debug!("h_advance for {} is {}", glyph, advance);
@@ -313,17 +313,17 @@ impl FontHandleMethods for FontHandle {
             .map_or(max_advance, |advance| self.font_units_to_au(advance));
 
         let metrics = FontMetrics {
-            underline_size: underline_size,
-            underline_offset: underline_offset,
-            strikeout_size: strikeout_size,
-            strikeout_offset: strikeout_offset,
-            leading: leading,
-            x_height: x_height,
-            em_size: em_size,
-            ascent: ascent,
+            underline_size,
+            underline_offset,
+            strikeout_size,
+            strikeout_offset,
+            leading,
+            x_height,
+            em_size,
+            ascent,
             descent: -descent, // linux font's seem to use the opposite sign from mac
-            max_advance: max_advance,
-            average_advance: average_advance,
+            max_advance,
+            average_advance,
             line_gap: height,
         };
 
@@ -392,6 +392,7 @@ impl<'a> FontHandle {
         }
     }
 
+    #[allow(clippy::mut_from_ref)] // Intended for this function
     fn face_rec_mut(&'a self) -> &'a mut FT_FaceRec {
         unsafe { &mut (*self.face) }
     }
@@ -402,10 +403,10 @@ impl<'a> FontHandle {
         // face.size is a *c_void in the bindings, presumably to avoid
         // recursive structural types
         let size: &FT_SizeRec = unsafe { mem::transmute(&(*face.size)) };
-        let metrics: &FT_Size_Metrics = &(*size).metrics;
+        let metrics: &FT_Size_Metrics = &(size).metrics;
 
         let em_size = face.units_per_EM as f64;
-        let x_scale = (metrics.x_ppem as f64) / em_size as f64;
+        let x_scale = (metrics.x_ppem as f64) / em_size;
 
         // If this isn't true then we're scaling one of the axes wrong
         assert_eq!(metrics.x_ppem, metrics.y_ppem);
