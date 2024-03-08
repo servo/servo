@@ -35,9 +35,6 @@ use crate::parser::location_bar_input_to_url;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
 pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
-    current_url: Option<ServoUrl>,
-    current_url_string: Option<String>,
-
     /// List of top-level browsing contexts.
     /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
     /// and we exit if it ever becomes empty.
@@ -67,6 +64,12 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
 #[derive(Debug)]
 pub struct WebView {
     pub rect: DeviceRect,
+    pub current_url: Option<ServoUrl>,
+    pub current_url_string: Option<String>,
+    pub location: String,
+
+    /// Whether the location has been edited by the user without clicking Go.
+    pub location_dirty: bool,
 }
 
 pub struct ServoEventResponse {
@@ -88,8 +91,6 @@ where
     pub fn new(window: Rc<Window>) -> WebViewManager<Window> {
         WebViewManager {
             title: None,
-            current_url: None,
-            current_url_string: None,
             webviews: HashMap::default(),
             creation_order: vec![],
             focus_order: vec![],
@@ -119,6 +120,10 @@ where
         self.focused_webview_id
     }
 
+    pub fn get(&self, webview_id: WebViewId) -> Option<&WebView> {
+        self.webviews.get(&webview_id)
+    }
+
     pub fn get_mut(&mut self, webview_id: WebViewId) -> Option<&mut WebView> {
         self.webviews.get_mut(&webview_id)
     }
@@ -127,14 +132,20 @@ where
         self.focused_webview_id.clone()
     }
 
+    pub fn focused_webview(&self) -> Option<&WebView> {
+        self.focused_webview_id
+            .and_then(|id| self.webviews.get(&id))
+    }
+
+    pub fn focused_webview_mut(&mut self) -> Option<&mut WebView> {
+        self.focused_webview_id
+            .and_then(|id| self.webviews.get_mut(&id))
+    }
+
     pub fn creation_order(&self) -> impl Iterator<Item = (&WebViewId, &WebView)> {
         self.creation_order
             .iter()
             .flat_map(move |webview_id| self.webviews.get(webview_id).map(|b| (webview_id, b)))
-    }
-
-    pub fn current_url_string(&self) -> Option<&str> {
-        self.current_url_string.as_deref()
     }
 
     pub fn load_status(&self) -> LoadStatus {
@@ -276,7 +287,9 @@ where
             })
             .shortcut(CMD_OR_CONTROL, 'L', || {
                 if !opts::get().minibrowser {
-                    let url: String = if let Some(ref current_url) = self.current_url {
+                    let webview = self.focused_webview();
+                    let current_url = webview.and_then(|w| w.current_url.as_ref());
+                    let url: String = if let Some(ref current_url) = current_url {
                         current_url.to_string()
                     } else {
                         String::from("")
@@ -461,9 +474,6 @@ where
                 EmbedderMsg::WebViewBlurred => {
                     info!("Got event: {msg:?}");
                 },
-                EmbedderMsg::WebViewPaintingOrder(ref webview_ids) => {
-                    info!("Got event: {msg:?} {webview_ids:?}");
-                },
                 _ => {},
             }
             match msg {
@@ -473,7 +483,9 @@ where
                 EmbedderMsg::ChangePageTitle(title) => {
                     self.title = title;
 
-                    let fallback_title: String = if let Some(ref current_url) = self.current_url {
+                    let webview = self.get(webview_id.expect("Guaranteed for this variant"));
+                    let current_url = webview.and_then(|w| w.current_url.as_ref());
+                    let fallback_title: String = if let Some(current_url) = current_url {
                         current_url.to_string()
                     } else {
                         String::from("Untitled")
@@ -605,15 +617,7 @@ where
                     };
                 },
                 EmbedderMsg::WebViewOpened(new_webview_id) => {
-                    let scale = self.window.hidpi_factor().get();
-                    let toolbar = self.window.toolbar_height().get();
-
-                    // Adjust for our toolbar height.
-                    // TODO: Adjust for egui window decorations if we end up using those
-                    let mut rect = self.window.get_coordinates().get_viewport().to_f32();
-                    rect.min.y += toolbar * scale;
-
-                    self.webviews.insert(new_webview_id, WebView { rect });
+                    let rect = self.get_or_insert(new_webview_id).rect;
                     self.creation_order.push(new_webview_id);
                     self.event_queue
                         .push(EmbedderEvent::FocusWebView(new_webview_id));
@@ -645,9 +649,11 @@ where
                     // TODO: Stop doing this once we have full multiple webviews support
                     self.event_queue
                         .push(EmbedderEvent::ShowWebView(webview_id, true));
+                    need_update = true;
                 },
                 EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;
+                    need_update = true;
                 },
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(webview_id, key_event);
@@ -683,8 +689,10 @@ where
                     need_update = true;
                 },
                 EmbedderMsg::HistoryChanged(urls, current) => {
-                    self.current_url = Some(urls[current].clone());
-                    self.current_url_string = Some(urls[current].clone().into_string());
+                    let webview =
+                        self.get_or_insert(webview_id.expect("Guaranteed for this variant"));
+                    webview.current_url = Some(urls[current].clone());
+                    webview.current_url_string = Some(urls[current].clone().into_string());
                     need_update = true;
                 },
                 EmbedderMsg::SetFullscreenState(state) => {
@@ -775,6 +783,32 @@ where
             need_present,
             need_update,
         }
+    }
+
+    // Sometimes we get a HistoryChange event before the initial WebViewOpened,
+    // so we need to be able to insert a new WebView from either event site.
+    fn get_or_insert(&mut self, webview_id: WebViewId) -> &mut WebView {
+        if !self.webviews.contains_key(&webview_id) {
+            // Adjust for our toolbar height.
+            // TODO adjust for egui window decorations if we end up using those
+            let scale = self.window.hidpi_factor().get();
+            let toolbar = self.window.toolbar_height().get();
+            let mut rect = self.window.get_coordinates().get_viewport().to_f32();
+            rect.min.y += toolbar * scale;
+
+            self.webviews.insert(
+                webview_id,
+                WebView {
+                    rect,
+                    current_url: None,
+                    current_url_string: None,
+                    location: "".to_owned(),
+                    location_dirty: false,
+                },
+            );
+        }
+
+        self.get_mut(webview_id).expect("Guaranteed by insert")
     }
 }
 
