@@ -388,7 +388,7 @@ impl PositioningContext {
 
     /// Truncate this [PositioningContext] to the given [PositioningContextLength].  This
     /// is useful for "unhoisting" boxes in this context and returning it to the state at
-    /// the time that [`len()`] was called.
+    /// the time that [`PositioningContext::len()`] was called.
     pub(crate) fn truncate(&mut self, length: &PositioningContextLength) {
         if let Some(vec) = self.for_nearest_positioned_ancestor.as_mut() {
             vec.truncate(length.for_nearest_positioned_ancestor);
