@@ -76,7 +76,7 @@ See also [Windows Troubleshooting Tips][windows-tips].
 - Install the latest version of the [Android command-line
   tools](https://developer.android.com/studio#command-tools) to
   `$ANDROID_SDK_ROOT/cmdline-tools/latest`.
-- Run the following command to install the necessary components and the path t
+- Run the following command to install the necessary components and the path :
   ```shell
   sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --install
    "build-tools;33.0.2" \
