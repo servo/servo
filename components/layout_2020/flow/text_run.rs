@@ -450,7 +450,7 @@ impl TextRun {
 /// Whether or not this character will rpevent a soft wrap opportunity when it
 /// comes before or after an atomic inline element.
 ///
-/// From <https://www.w3.org/TR/css-text-3/#line-break-details:>
+/// From <https://www.w3.org/TR/css-text-3/#line-break-details>:
 ///
 /// > For Web-compatibility there is a soft wrap opportunity before and after each
 /// > replaced element or other atomic inline, even when adjacent to a character that
