@@ -199,27 +199,13 @@ impl<'a> TableLayout<'a> {
                     percentage: percentage_contribution.inline,
                 };
 
-                // These calculations do not take into account the `min-content` and `max-content`
-                // sizes. These sizes are incorporated after the first row layout pass, when the
-                // block size of the layout is known.
-                //
-                // TODO: Is it correct to use the block size as the minimum of the `outer min
-                // content height` here? The specification doesn't mention this, but it does cause
-                // a test to pass.
-                let outer_min_content_height = min_size.block.max(size.block);
-                let outer_max_content_height = if !self.rows[row_index].constrained {
-                    min_size.block.max(size.block)
-                } else {
-                    min_size
-                        .block
-                        .max(size.block)
-                        .max(max_size.block.min(size.block))
-                };
-
+                // This measure doesn't take into account the `min-content` and `max-content` sizes.
+                // These sizes are incorporated after the first row layout pass, when the block size
+                // of the layout is known.
                 let block_measure = CellOrTrackMeasure {
                     content_sizes: ContentSizes {
-                        min_content: outer_min_content_height,
-                        max_content: outer_max_content_height,
+                        min_content: size.block,
+                        max_content: size.block,
                     },
                     percentage: percentage_contribution.block,
                 };
