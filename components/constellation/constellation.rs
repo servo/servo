@@ -475,8 +475,6 @@ pub struct Constellation<STF, SWF> {
     /// currently being pressed.
     pressed_mouse_buttons: u16,
 
-    is_running_problem_test: bool,
-
     /// If True, exits on thread failure instead of displaying about:failure
     hard_fail: bool,
 
@@ -621,7 +619,6 @@ where
         initial_window_size: WindowSizeData,
         random_pipeline_closure_probability: Option<f32>,
         random_pipeline_closure_seed: Option<usize>,
-        is_running_problem_test: bool,
         hard_fail: bool,
         enable_canvas_antialiasing: bool,
         canvas_create_sender: Sender<ConstellationCanvasMsg>,
@@ -807,7 +804,6 @@ where
                     canvas_ipc_sender,
                     pending_approval_navigations: HashMap::new(),
                     pressed_mouse_buttons: 0,
-                    is_running_problem_test,
                     hard_fail,
                     enable_canvas_antialiasing,
                     glplayer_threads: state.glplayer_threads,
@@ -1450,15 +1446,10 @@ where
             FromCompositorMsg::IsReadyToSaveImage(pipeline_states) => {
                 let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
                 debug!("Ready to save image {:?}.", is_ready);
-                if self.is_running_problem_test {
-                    println!("got ready to save image query, result is {:?}", is_ready);
-                }
-                let is_ready = is_ready == ReadyToSave::Ready;
                 self.compositor_proxy
-                    .send(CompositorMsg::IsReadyToSaveImageReply(is_ready));
-                if self.is_running_problem_test {
-                    println!("sent response");
-                }
+                    .send(CompositorMsg::IsReadyToSaveImageReply(
+                        is_ready == ReadyToSave::Ready,
+                    ));
             },
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.

@@ -232,8 +232,6 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Whether to invalidate `prev_offscreen_framebuffer` at the end of the next frame.
     invalidate_prev_offscreen_framebuffer: bool,
 
-    is_running_problem_test: bool,
-
     /// True to exit after page load ('-x').
     exit_after_load: bool,
 
@@ -384,7 +382,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         window: Rc<Window>,
         state: InitialCompositorState,
         composite_target: CompositeTarget,
-        is_running_problem_test: bool,
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -426,7 +423,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             next_offscreen_framebuffer: OnceCell::new(),
             prev_offscreen_framebuffer: None,
             invalidate_prev_offscreen_framebuffer: false,
-            is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
             pending_frames: 0,
@@ -439,7 +435,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         window: Rc<Window>,
         state: InitialCompositorState,
         composite_target: CompositeTarget,
-        is_running_problem_test: bool,
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -448,7 +443,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             window,
             state,
             composite_target,
-            is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
             top_level_browsing_context_id,
@@ -594,14 +588,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 );
                 if is_ready && self.pending_frames == 0 {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
-                    if self.is_running_problem_test {
-                        println!("ready to save image!");
-                    }
                 } else {
                     self.ready_to_save_state = ReadyState::Unknown;
-                    if self.is_running_problem_test {
-                        println!("resetting ready_to_save_state!");
-                    }
                 }
                 self.composite_if_necessary(CompositingReason::Headless);
             },
@@ -1709,9 +1697,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 // for saving.
                 // Reset the flag so that we check again in the future
                 // TODO: only reset this if we load a new document?
-                if self.is_running_problem_test {
-                    println!("was ready to save, resetting ready_to_save_state");
-                }
                 self.ready_to_save_state = ReadyState::Unknown;
                 Ok(())
             },
@@ -1728,14 +1713,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     self.start_shutting_down();
                 }
             },
-            Err(e) => {
-                if self.is_running_problem_test {
-                    if e != UnableToComposite::NotReadyToPaintImage(
-                        NotReadyToPaint::WaitingOnConstellation,
-                    ) {
-                        println!("not ready to composite: {:?}", e);
-                    }
-                }
+            Err(error) => {
+                trace!("Unable to composite: {error:?}");
             },
         }
     }
@@ -1985,17 +1964,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {
-        if self.composition_request == CompositionRequest::NoCompositingNecessary {
-            if self.is_running_problem_test {
-                println!("updating composition_request ({:?})", reason);
-            }
-            self.composition_request = CompositionRequest::CompositeNow(reason)
-        } else if self.is_running_problem_test {
-            println!(
-                "composition_request is already {:?}",
-                self.composition_request
-            );
-        }
+        trace!(
+            "Will schedule a composite {reason:?}. Previously was {:?}",
+            self.composition_request
+        );
+        self.composition_request = CompositionRequest::CompositeNow(reason)
     }
 
     fn clear_background(&self) {
