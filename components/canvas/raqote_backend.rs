@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::*;
-use cssparser::RGBA;
+use cssparser::RgbaLegacy;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::Angle;
 use font_kit::font::Font;
@@ -29,7 +29,7 @@ impl Backend for RaqoteBackend {
         color.as_raqote().a != 0
     }
 
-    fn set_shadow_color(&mut self, color: RGBA, state: &mut CanvasPaintState<'_>) {
+    fn set_shadow_color(&mut self, color: RgbaLegacy, state: &mut CanvasPaintState<'_>) {
         state.shadow_color = Color::Raqote(color.to_raqote_style());
     }
 
@@ -880,10 +880,10 @@ pub fn clamp_floor_256_f32(val: f32) -> u8 {
 impl ToRaqoteGradientStop for CanvasGradientStop {
     fn to_raqote(self) -> raqote::GradientStop {
         let color = raqote::Color::new(
-            self.color.alpha.map(clamp_unit_f32).unwrap_or(0),
-            self.color.red.unwrap_or(0),
-            self.color.green.unwrap_or(0),
-            self.color.blue.unwrap_or(0),
+            clamp_unit_f32(self.color.alpha),
+            self.color.red,
+            self.color.green,
+            self.color.blue,
         );
         let position = self.offset as f32;
         raqote::GradientStop { position, color }
@@ -897,10 +897,10 @@ impl ToRaqotePattern<'_> for FillOrStrokeStyle {
 
         match self {
             Color(color) => Some(Pattern::Color(
-                color.alpha.map(clamp_unit_f32).unwrap_or(0),
-                color.red.unwrap_or(0),
-                color.green.unwrap_or(0),
-                color.blue.unwrap_or(0),
+                clamp_unit_f32(color.alpha),
+                color.red,
+                color.green,
+                color.blue,
             )),
             LinearGradient(style) => {
                 let start = Point2D::new(style.x0 as f32, style.y0 as f32);
@@ -951,15 +951,15 @@ impl Color {
     }
 }
 
-impl ToRaqoteStyle for RGBA {
+impl ToRaqoteStyle for RgbaLegacy {
     type Target = raqote::SolidSource;
 
     fn to_raqote_style(self) -> Self::Target {
         raqote::SolidSource::from_unpremultiplied_argb(
-            self.alpha.map(clamp_unit_f32).unwrap_or(0),
-            self.red.unwrap_or(0),
-            self.green.unwrap_or(0),
-            self.blue.unwrap_or(0),
+            clamp_unit_f32(self.alpha),
+            self.red,
+            self.green,
+            self.blue,
         )
     }
 }
