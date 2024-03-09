@@ -126,7 +126,6 @@ impl HTMLStyleElement {
             Some(&loader),
             css_error_reporter,
             doc.quirks_mode(),
-            self.line_number as u32,
             AllowImportRules::Yes,
         );
 
