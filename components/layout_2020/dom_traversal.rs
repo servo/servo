@@ -7,6 +7,7 @@ use std::borrow::Cow;
 use html5ever::{local_name, LocalName};
 use log::warn;
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
@@ -163,6 +164,15 @@ fn traverse_children_of<'dom, Node>(
         } else if child.is_element() {
             traverse_element(child, context, handler);
         }
+    }
+
+    if matches!(
+        parent_element.type_id(),
+        LayoutNodeType::Element(LayoutElementType::HTMLInputElement) |
+            LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement)
+    ) {
+        let info = NodeAndStyleInfo::new(parent_element, parent_element.style(context));
+        handler.handle_text(&info, parent_element.to_threadsafe().node_text_content());
     }
 
     traverse_pseudo_element(WhichPseudoElement::After, parent_element, context, handler);
