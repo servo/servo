@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use html5ever::{local_name, LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::rust::HandleObject;
@@ -23,6 +23,7 @@ use net_traits::{
 use script_layout_interface::HTMLMediaData;
 use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
+use style::attr::{parse_length, LengthOrPercentageOrAuto};
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
@@ -34,7 +35,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlmediaelement::{HTMLMediaElement, ReadyState};
 use crate::dom::node::{document_from_node, window_from_node, Node};
@@ -428,8 +429,47 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
         let video = unsafe { &*self.unsafe_get() };
         let current_frame = video.htmlmediaelement.get_current_frame_data();
         let current_frame = current_frame.as_ref();
+
+        // Default size is 300x150
         let width = video.get_video_width() as i32;
         let height = video.get_video_height() as i32;
+
+        // TODO: Move somewhere it makes sense, look into htmlimagelement.rs
+        let elem = self.upcast::<Element>();
+        let named_width = match elem.get_attr_for_layout(&ns!(), &local_name!("width")) {
+            Some(x) => match parse_length(&x) {
+                LengthOrPercentageOrAuto::Length(x) => Some(x.to_px()),
+                _ => None,
+            },
+            None => None,
+        };
+        let named_height = match elem.get_attr_for_layout(&ns!(), &local_name!("height")) {
+            Some(x) => match parse_length(&x) {
+                LengthOrPercentageOrAuto::Length(x) => Some(x.to_px()),
+                _ => None,
+            },
+            None => None,
+        };
+
+        // Default height is half the width
+        let height = if let Some(x) = named_height {
+            x
+        } else if let Some(x) = named_width {
+            x / 2
+        } else {
+            height
+        };
+
+        // Default width is twice the height
+        let width = if let Some(x) = named_width {
+            x
+        } else if let Some(x) = named_height {
+            x * 2
+        } else {
+            width
+        };
+
+        println!("wh: {} {}", width, height);
 
         HTMLMediaData {
             current_frame: current_frame.map(|frame| frame.0),
