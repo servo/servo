@@ -273,42 +273,6 @@ impl<'a, 'b: 'a> RwData<'a, 'b> {
     }
 }
 
-fn add_font_face_rules(
-    stylesheet: &Stylesheet,
-    guard: &SharedRwLockReadGuard,
-    device: &Device,
-    font_cache_thread: &FontCacheThread,
-    font_cache_sender: &IpcSender<()>,
-    outstanding_web_fonts_counter: &Arc<AtomicUsize>,
-    load_webfonts_synchronously: bool,
-) {
-    if load_webfonts_synchronously {
-        let (sender, receiver) = ipc::channel().unwrap();
-        stylesheet.effective_font_face_rules(&device, guard, |rule| {
-            if let Some(font_face) = rule.font_face() {
-                let effective_sources = font_face.effective_sources();
-                font_cache_thread.add_web_font(
-                    font_face.family().clone(),
-                    effective_sources,
-                    sender.clone(),
-                );
-                receiver.recv().unwrap();
-            }
-        })
-    } else {
-        stylesheet.effective_font_face_rules(&device, guard, |rule| {
-            if let Some(font_face) = rule.font_face() {
-                let effective_sources = font_face.effective_sources();
-                outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
-                font_cache_thread.add_web_font(
-                    font_face.family().clone(),
-                    effective_sources,
-                    (*font_cache_sender).clone(),
-                );
-            }
-        })
-    }
-}
 impl Layout for LayoutThread {
     fn process(&mut self, msg: script_layout_interface::message::Msg) {
         self.handle_request(Request::FromScript(msg));
@@ -578,15 +542,16 @@ impl LayoutThread {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
         if stylesheet.is_effective_for_device(self.stylist.device(), &guard) {
-            add_font_face_rules(
-                &*stylesheet,
-                &guard,
-                self.stylist.device(),
-                &self.font_cache_thread,
-                &self.font_cache_sender,
-                &self.outstanding_web_fonts,
-                self.debug.load_webfonts_synchronously,
-            );
+            let newly_loading_font_count =
+                self.font_cache_thread.add_all_web_fonts_from_stylesheet(
+                    &*stylesheet,
+                    &guard,
+                    self.stylist.device(),
+                    &self.font_cache_sender,
+                    self.debug.load_webfonts_synchronously,
+                );
+            self.outstanding_web_fonts
+                .fetch_add(newly_loading_font_count, Ordering::SeqCst);
         }
     }
 

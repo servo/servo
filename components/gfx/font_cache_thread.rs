@@ -17,8 +17,10 @@ use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg};
 use serde::{Deserialize, Serialize};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
-use style::font_face::{EffectiveSources, Source};
-use style::values::computed::font::FamilyName;
+use style::font_face::{FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source};
+use style::media_queries::Device;
+use style::shared_lock::SharedRwLockReadGuard;
+use style::stylesheets::{Stylesheet, StylesheetInDocument};
 use webrender_api::{FontInstanceKey, FontKey};
 
 use crate::font::{FontFamilyDescriptor, FontFamilyName, FontSearchScope};
@@ -130,7 +132,7 @@ pub enum Command {
         IpcSender<Reply>,
     ),
     GetFontInstance(FontKey, Au, IpcSender<FontInstanceKey>),
-    AddWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
+    AddWebFont(LowercaseString, Vec<Source>, IpcSender<()>),
     AddDownloadedWebFont(LowercaseString, ServoUrl, Vec<u8>, IpcSender<()>),
     Exit(IpcSender<()>),
     Ping,
@@ -248,10 +250,10 @@ impl FontCache {
     fn handle_add_web_font(
         &mut self,
         family_name: LowercaseString,
-        mut sources: EffectiveSources,
+        mut sources: Vec<Source>,
         sender: IpcSender<()>,
     ) {
-        let src = if let Some(src) = sources.next() {
+        let src = if let Some(src) = sources.pop() {
             src
         } else {
             sender.send(()).unwrap();
@@ -503,19 +505,58 @@ impl FontCacheThread {
         FontCacheThread { chan }
     }
 
-    pub fn add_web_font(
+    pub fn add_all_web_fonts_from_stylesheet(
         &self,
-        family: FamilyName,
-        sources: EffectiveSources,
-        sender: IpcSender<()>,
-    ) {
-        self.chan
-            .send(Command::AddWebFont(
-                LowercaseString::new(&family.name),
-                sources,
-                sender,
-            ))
-            .unwrap();
+        stylesheet: &Stylesheet,
+        guard: &SharedRwLockReadGuard,
+        device: &Device,
+        font_cache_sender: &IpcSender<()>,
+        synchronous: bool,
+    ) -> usize {
+        let (sender, receiver) = if synchronous {
+            let (sender, receiver) = ipc::channel().unwrap();
+            (Some(sender), Some(receiver))
+        } else {
+            (None, None)
+        };
+
+        let mut number_loading = 0;
+        stylesheet.effective_font_face_rules(&device, guard, |rule| {
+            let font_face = match rule.font_face() {
+                Some(font_face) => font_face,
+                None => return,
+            };
+
+            let sources: Vec<Source> = font_face
+                .sources()
+                .0
+                .iter()
+                .rev()
+                .filter(is_supported_web_font_source)
+                .cloned()
+                .collect();
+            if sources.is_empty() {
+                return;
+            }
+
+            let sender = sender.as_ref().unwrap_or(font_cache_sender).clone();
+            self.chan
+                .send(Command::AddWebFont(
+                    LowercaseString::new(&font_face.family().name),
+                    sources,
+                    sender,
+                ))
+                .unwrap();
+
+            // Either increment the count of loading web fonts, or wait for a synchronous load.
+            if let Some(ref receiver) = receiver {
+                receiver.recv().unwrap();
+            } else {
+                number_loading += 1;
+            }
+        });
+
+        number_loading
     }
 
     pub fn exit(&self) {
@@ -623,4 +664,32 @@ impl fmt::Display for LowercaseString {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.inner.fmt(f)
     }
+}
+
+fn is_supported_web_font_source(source: &&Source) -> bool {
+    let url_source = match source {
+        Source::Url(ref url_source) => url_source,
+        Source::Local(_) => return true,
+    };
+    let format_hint = match url_source.format_hint {
+        Some(ref format_hint) => format_hint,
+        None => return true,
+    };
+
+    if matches!(
+        format_hint,
+        FontFaceSourceFormat::Keyword(
+            FontFaceSourceFormatKeyword::Truetype |
+                FontFaceSourceFormatKeyword::Opentype |
+                FontFaceSourceFormatKeyword::Woff
+        )
+    ) {
+        return true;
+    }
+
+    if let FontFaceSourceFormat::String(string) = format_hint {
+        return string == "truetype" || string == "opentype" || string == "woff";
+    }
+
+    false
 }
