@@ -9,7 +9,6 @@ use malloc_size_of_derive::MallocSizeOf;
 use msg::constellation_msg::BrowsingContextId;
 use profile_traits::mem::ReportsChan;
 use script_traits::{Painter, ScrollState, WindowSizeData};
-use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_url::ImmutableOrigin;
 use style::animation::DocumentAnimationSet;
@@ -18,21 +17,12 @@ use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::PropertyId;
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
-use style::stylesheets::Stylesheet;
 
 use crate::rpc::LayoutRPC;
 use crate::{PendingImage, TrustedNodeAddress};
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
-    /// Adds the given stylesheet to the document. The second stylesheet is the
-    /// insertion point (if it exists, the sheet needs to be inserted before
-    /// it).
-    AddStylesheet(ServoArc<Stylesheet>, Option<ServoArc<Stylesheet>>),
-
-    /// Removes a stylesheet from the document.
-    RemoveStylesheet(ServoArc<Stylesheet>),
-
     /// Change the quirks mode.
     SetQuirksMode(QuirksMode),
 

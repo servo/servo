@@ -559,9 +559,8 @@ impl FontCacheThread {
             // Either increment the count of loading web fonts, or wait for a synchronous load.
             if let Some(ref receiver) = receiver {
                 receiver.recv().unwrap();
-            } else {
-                number_loading += 1;
             }
+            number_loading += 1;
         });
 
         number_loading
@@ -689,14 +688,18 @@ fn is_supported_web_font_source(source: &&Source) -> bool {
         FontFaceSourceFormat::Keyword(
             FontFaceSourceFormatKeyword::Truetype |
                 FontFaceSourceFormatKeyword::Opentype |
-                FontFaceSourceFormatKeyword::Woff
+                FontFaceSourceFormatKeyword::Woff |
+                FontFaceSourceFormatKeyword::Woff2
         )
     ) {
         return true;
     }
 
     if let FontFaceSourceFormat::String(string) = format_hint {
-        return string == "truetype" || string == "opentype" || string == "woff";
+        return string == "truetype" ||
+            string == "opentype" ||
+            string == "woff" ||
+            string == "woff2";
     }
 
     false
