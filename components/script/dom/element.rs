@@ -30,6 +30,7 @@ use net_traits::request::CorsSettings;
 use net_traits::ReferrerPolicy;
 use script_layout_interface::message::ReflowGoal;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
+use selectors::bloom::{BloomFilter, BLOOM_HASH_MASK};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::sink::Push;
 use selectors::Element as SelectorsElement;
@@ -3392,6 +3393,34 @@ impl<'a> SelectorsElement for DomRoot<Element> {
                 }
             }
         }
+    }
+
+    fn add_element_unique_hashes(&self, filter: &mut BloomFilter) -> bool {
+        let mut f = |hash| filter.insert_hash(hash & BLOOM_HASH_MASK);
+
+        // We can't use style::bloom::each_relevant_element_hash(*self, f)
+        // since DomRoot<Element> doesn't have the TElement trait.
+        f(Element::local_name(self).get_hash());
+        f(Element::namespace(self).get_hash());
+
+        if let Some(ref id) = *self.id_attribute.borrow() {
+            f(id.get_hash());
+        }
+
+        if let Some(attr) = self.get_attribute(&ns!(), &local_name!("class")) {
+            for class in attr.value().as_tokens() {
+                f(AtomIdent::cast(class).get_hash());
+            }
+        }
+
+        for attr in self.attrs.borrow().iter() {
+            let name = style::values::GenericAtomIdent::cast(attr.local_name());
+            if !style::bloom::is_attr_name_excluded_from_filter(name) {
+                f(name.get_hash());
+            }
+        }
+
+        true
     }
 }
 
