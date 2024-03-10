@@ -36,6 +36,7 @@ _DEBUGGER_INFO = {
     "cgdb": {"interactive": True, "args": ["-q", "--args"]},
     "rust-gdb": {"interactive": True, "args": ["-q", "--args"]},
     "lldb": {"interactive": True, "args": ["--"], "requiresEscapedArgs": True},
+    "rust-lldb": {"interactive": True, "args": ["--"], "requiresEscapedArgs": True},
     # Visual Studio Debugger Support.
     "devenv.exe": {"interactive": True, "args": ["-debugexe"]},
     # Visual C++ Express Debugger Support.
