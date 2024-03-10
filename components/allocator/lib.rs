@@ -39,7 +39,10 @@ mod platform {
         #[cfg(target_os = "linux")]
         return libc::malloc_usable_size(ptr as *mut _);
 
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(target_vendor = "apple")]
+        return libc::malloc_size(ptr);
+
+        #[cfg(not(any(target_os = "linux", target_vendor = "apple")))]
         return libc::malloc_usable_size(ptr);
     }
 
