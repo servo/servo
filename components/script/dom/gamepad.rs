@@ -296,6 +296,10 @@ impl Gamepad {
     pub fn set_exposed(&self, exposed: bool) {
         self.exposed.set(exposed);
     }
+
+    pub fn vibration_actuator(&self) -> &GamepadHapticActuator {
+        &*self.vibration_actuator
+    }
 }
 
 /// <https://www.w3.org/TR/gamepad/#dfn-gamepad-user-gesture>

@@ -214,6 +214,8 @@ pub enum EmbedderMsg {
     ReadyToPresent(Vec<WebViewId>),
     /// The given event was delivered to a pipeline in the given browser.
     EventDelivered(CompositorEventVariant),
+    /// Request to play a haptic effect on a connected gamepad.
+    GamepadHapticEffect(usize, GamepadHapticEffectType),
 }
 
 /// The variant of CompositorEvent that was delivered to a pipeline.
@@ -268,6 +270,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
             EmbedderMsg::ReadyToPresent(..) => write!(f, "ReadyToPresent"),
             EmbedderMsg::EventDelivered(..) => write!(f, "HitTestedEvent"),
+            EmbedderMsg::GamepadHapticEffect(..) => write!(f, "GamepadHapticEffect"),
         }
     }
 }
@@ -387,4 +390,17 @@ pub enum InputMethodType {
     Time,
     Url,
     Week,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct DualRumbleEffectParams {
+    pub duration: f64,
+    pub start_delay: f64,
+    pub strong_magnitude: f64,
+    pub weak_magnitude: f64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum GamepadHapticEffectType {
+    DualRumble(DualRumbleEffectParams),
 }
