@@ -12,14 +12,16 @@ use std::{env, thread};
 
 use arboard::Clipboard;
 use euclid::{Point2D, Vector2D};
+use gilrs::ff::{BaseEffect, BaseEffectType, EffectBuilder, Repeat, Replay, Ticks};
 use gilrs::{EventType, Gilrs};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{debug, error, info, trace, warn};
 use servo::base::id::TopLevelBrowsingContextId as WebViewId;
 use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
 use servo::embedder_traits::{
-    CompositorEventVariant, ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt,
-    PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
+    CompositorEventVariant, ContextMenuResult, DualRumbleEffectParams, EmbedderMsg, FilterPattern,
+    GamepadHapticEffectType, PermissionPrompt, PermissionRequest, PromptDefinition, PromptOrigin,
+    PromptResult,
 };
 use servo::script_traits::{
     GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadUpdateType, TouchEventType,
@@ -255,6 +257,44 @@ where
             gilrs::Button::DPadRight => 15,
             gilrs::Button::Mode => 16,
             _ => 17, // Other buttons do not map to "standard" gamepad mapping and are ignored
+        }
+    }
+
+    fn play_haptic_effect(&mut self, index: usize, params: DualRumbleEffectParams) {
+        if let Some(ref mut gilrs) = self.gamepad {
+            if let Some(connected_gamepad) = gilrs
+                .gamepads()
+                .find(|gamepad| usize::from(gamepad.0) == index)
+            {
+                let gamepad = connected_gamepad.1;
+                let duration = Ticks::from_ms(params.duration as u32);
+                let scheduling = Replay {
+                    after: Ticks::from_ms(params.start_delay as u32),
+                    play_for: duration,
+                    with_delay: Ticks::from_ms(0),
+                };
+                let effect = EffectBuilder::new()
+                    .add_effect(BaseEffect {
+                        kind: BaseEffectType::Strong { magnitude: params.strong_magnitude as u16 },
+                        scheduling,
+                        envelope: Default::default(),
+                    })
+                    .add_effect(BaseEffect {
+                        kind: BaseEffectType::Weak { magnitude: params.weak_magnitude as u16 },
+                        scheduling,
+                        envelope: Default::default(),
+                    })
+                    .repeat(Repeat::For(duration))
+                    .add_gamepad(&gamepad)
+                    .finish(gilrs)
+                    .expect("Failed to create haptic effect, gamepad is either disconnected or doesn't support force feedback.");
+                effect.play().expect("Failed to play haptic effect.");
+
+                // Until we have a way to poll for effect completion or get an event for it,
+                // just send the completed event immediately.
+                let event = GamepadEvent::HapticEffectCompleted(GamepadIndex(index));
+                self.event_queue.push(EmbedderEvent::Gamepad(event));
+            }
         }
     }
 
@@ -743,6 +783,11 @@ where
                         self.event_queue
                             .push(EmbedderEvent::FocusWebView(webview_id));
                     }
+                },
+                EmbedderMsg::GamepadHapticEffect(index, effect) => match effect {
+                    GamepadHapticEffectType::DualRumble(params) => {
+                        self.play_haptic_effect(index, params)
+                    },
                 },
             }
         }
