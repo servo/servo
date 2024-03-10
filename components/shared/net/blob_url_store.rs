@@ -41,20 +41,24 @@ pub struct BlobBuf {
 /// Parse URL as Blob URL scheme's definition
 ///
 /// <https://w3c.github.io/FileAPI/#DefinitionOfScheme>
-pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin), ()> {
-    let url_inner = Url::parse(url.path()).map_err(|_| ())?;
+pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin), &'static str> {
+    let url_inner = Url::parse(url.path()).map_err(|_| "Failed to parse URL path")?;
     let segs = url_inner
         .path_segments()
         .map(|c| c.collect::<Vec<_>>())
-        .ok_or(())?;
+        .ok_or("URL has no path segments")?;
 
-    if url.query().is_some() || segs.len() > 1 {
-        return Err(());
+    if url.query().is_some() {
+        return Err("URL should not contain a query");
+    }
+
+    if segs.len() > 1 {
+        return Err("URL should not have more than one path segment");
     }
 
     let id = {
-        let id = segs.first().ok_or(())?;
-        Uuid::from_str(id).map_err(|_| ())?
+        let id = segs.first().ok_or("URL has no path segments")?;
+        Uuid::from_str(id).map_err(|_| "Failed to parse UUID from path segment")?
     };
     Ok((id, get_blob_origin(&ServoUrl::from_url(url_inner))))
 }
