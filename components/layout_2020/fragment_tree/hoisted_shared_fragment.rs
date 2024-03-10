@@ -56,16 +56,12 @@ pub(crate) enum AbsoluteBoxOffsets {
 
 impl AbsoluteBoxOffsets {
     pub(crate) fn both_specified(&self) -> bool {
-        match self {
-            AbsoluteBoxOffsets::Both { .. } => true,
-            _ => false,
-        }
+        matches!(self, AbsoluteBoxOffsets::Both { .. })
     }
 
     pub(crate) fn adjust_offset(&mut self, new_offset: Length) {
-        match *self {
-            AbsoluteBoxOffsets::StaticStart { ref mut start } => *start = new_offset,
-            _ => (),
+        if let AbsoluteBoxOffsets::StaticStart { ref mut start } = *self {
+            *start = new_offset
         }
     }
 }

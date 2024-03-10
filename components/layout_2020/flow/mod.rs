@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 #![allow(rustdoc::private_intra_doc_links)]
+#![allow(clippy::too_many_arguments)]
 
 //! Flow layout, also known as block-and-inline layout.
 
@@ -856,7 +857,7 @@ impl NonReplacedFormattingContext {
             layout_context,
             positioning_context,
             &containing_block_for_children,
-            &containing_block,
+            containing_block,
         );
 
         let (block_size, inline_size) = match layout.content_inline_size_for_table {
@@ -1162,7 +1163,7 @@ impl NonReplacedFormattingContext {
 /// <https://drafts.csswg.org/css2/visudet.html#block-replaced-width>
 /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
 /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-height>
-fn layout_in_flow_replaced_block_level<'a>(
+fn layout_in_flow_replaced_block_level(
     containing_block: &ContainingBlock,
     base_fragment_info: BaseFragmentInfo,
     style: &Arc<ComputedValues>,
@@ -1348,8 +1349,8 @@ fn solve_margins(
     inline_size: Length,
 ) -> ResolvedMargins {
     let (inline_margins, effective_margin_inline_start) =
-        solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size);
-    let block_margins = solve_block_margins_for_in_flow_block_level(&pbm);
+        solve_inline_margins_for_in_flow_block_level(containing_block, pbm, inline_size);
+    let block_margins = solve_block_margins_for_in_flow_block_level(pbm);
     ResolvedMargins {
         margin: LogicalSides {
             inline_start: inline_margins.0,

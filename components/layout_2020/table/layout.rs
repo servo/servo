@@ -374,8 +374,7 @@ impl<'a> TableLayout<'a> {
         // >   * 100% minus the sum of the intrinsic percentage width of all prior columns in
         // >     the table (further left when direction is "ltr" (right for "rtl"))
         let mut total_intrinsic_percentage_width = 0.;
-        for column_index in 0..self.table.size.width {
-            let column_measure = &mut column_measures[column_index];
+        for column_measure in column_measures.iter_mut().take(self.table.size.width) {
             let final_intrinsic_percentage_width = column_measure
                 .percentage
                 .0
@@ -822,7 +821,7 @@ impl<'a> TableLayout<'a> {
 
     /// This is an implementation of *Distributing excess width to columns* from
     /// <https://drafts.csswg.org/css-tables/#distributing-width-to-columns>.
-    fn distribute_extra_width_to_columns(&self, column_sizes: &mut Vec<Au>, column_sizes_sum: Au) {
+    fn distribute_extra_width_to_columns(&self, column_sizes: &mut [Au], column_sizes_sum: Au) {
         let all_columns = 0..self.table.size.width;
         let extra_inline_size = self.assignable_width - column_sizes_sum;
 
@@ -971,8 +970,8 @@ impl<'a> TableLayout<'a> {
         for row_index in 0..self.table.slots.len() {
             let row = &self.table.slots[row_index];
             let mut cells_laid_out_row = Vec::new();
-            for column_index in 0..row.len() {
-                let cell = match &row[column_index] {
+            for (column_index, column_value) in row.iter().enumerate() {
+                let cell = match column_value {
                     TableSlot::Cell(cell) => cell,
                     _ => {
                         cells_laid_out_row.push(None);
@@ -1088,6 +1087,7 @@ impl<'a> TableLayout<'a> {
         row_sizes
     }
 
+    #[allow(clippy::ptr_arg)] // Needs to be a vec because of the function above
     /// After doing layout of table rows, calculate final row size and distribute space across
     /// rowspanned cells. This follows the implementation of LayoutNG and the priority
     /// agorithm described at <https://github.com/w3c/csswg-drafts/issues/4418>.
@@ -1098,6 +1098,7 @@ impl<'a> TableLayout<'a> {
     ) {
         let mut cells_to_distribute = Vec::new();
         let mut total_percentage = 0.;
+        #[allow(clippy::needless_range_loop)] // It makes sense to use it here
         for row_index in 0..self.table.size.height {
             let row_measure = self
                 .table
@@ -1186,7 +1187,7 @@ impl<'a> TableLayout<'a> {
         &self,
         mut excess_size: Au,
         track_range: Range<usize>,
-        track_sizes: &mut Vec<Au>,
+        track_sizes: &mut [Au],
         percentage_resolution_size: Option<Au>,
         rowspan_distribution: bool,
     ) {

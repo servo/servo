@@ -83,6 +83,7 @@ impl BoxTree {
     where
         Node: 'dom + Copy + LayoutNode<'dom> + Send + Sync,
     {
+        #[allow(clippy::enum_variant_names)]
         enum UpdatePoint {
             AbsolutelyPositionedBlockLevelBox(ArcRefCell<BlockLevelBox>),
             AbsolutelyPositionedInlineLevelBox(ArcRefCell<InlineLevelBox>),

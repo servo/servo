@@ -587,11 +587,11 @@ impl FloatLineItem {
 }
 
 fn is_baseline_relative(vertical_align: GenericVerticalAlign<LengthPercentage>) -> bool {
-    match vertical_align {
+    !matches!(
+        vertical_align,
         GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-        GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => false,
-        _ => true,
-    }
+            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
+    )
 }
 
 fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Length {

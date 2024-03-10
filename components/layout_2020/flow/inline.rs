@@ -1384,14 +1384,11 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // Place all floats in this unbreakable segment.
         let mut segment_items = mem::take(&mut self.current_line_segment.line_items);
         for item in segment_items.iter_mut() {
-            match item {
-                LineItem::Float(float_item) => {
-                    self.place_float_line_item_for_commit_to_line(
-                        float_item,
-                        line_inline_size_without_trailing_whitespace,
-                    );
-                },
-                _ => {},
+            if let LineItem::Float(float_item) = item {
+                self.place_float_line_item_for_commit_to_line(
+                    float_item,
+                    line_inline_size_without_trailing_whitespace,
+                );
             }
         }
 
@@ -1450,7 +1447,7 @@ impl InlineFormattingContext {
         }
     }
 
-    fn foreach<'a>(&self, mut func: impl FnMut(InlineFormattingContextIterItem)) {
+    fn foreach(&self, mut func: impl FnMut(InlineFormattingContextIterItem)) {
         // TODO(mrobinson): Using OwnedRef here we could maybe avoid the second borrow when
         // iterating through members of each inline box.
         struct InlineFormattingContextChildBoxIter {
@@ -2006,7 +2003,7 @@ impl IndependentFormattingContext {
                     layout_context,
                     child_positioning_context.as_mut().unwrap(),
                     &containing_block_for_children,
-                    &ifc.containing_block,
+                    ifc.containing_block,
                 );
                 let (inline_size, block_size) =
                     match independent_layout.content_inline_size_for_table {
@@ -2134,15 +2131,12 @@ impl FloatBox {
     }
 }
 
-fn place_pending_floats(ifc: &mut InlineFormattingContextState, line_items: &mut Vec<LineItem>) {
+fn place_pending_floats(ifc: &mut InlineFormattingContextState, line_items: &mut [LineItem]) {
     for item in line_items.iter_mut() {
-        match item {
-            LineItem::Float(float_line_item) => {
-                if float_line_item.needs_placement {
-                    ifc.place_float_fragment(&mut float_line_item.fragment);
-                }
-            },
-            _ => {},
+        if let LineItem::Float(float_line_item) = item {
+            if float_line_item.needs_placement {
+                ifc.place_float_fragment(&mut float_line_item.fragment);
+            }
         }
     }
 }
@@ -2157,11 +2151,11 @@ fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Len
 }
 
 fn is_baseline_relative(vertical_align: GenericVerticalAlign<LengthPercentage>) -> bool {
-    match vertical_align {
+    !matches!(
+        vertical_align,
         GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-        GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => false,
-        _ => true,
-    }
+            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
+    )
 }
 
 /// Whether or not a strut should be created for an inline container. Normally

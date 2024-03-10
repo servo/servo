@@ -951,7 +951,7 @@ impl FloatBox {
                             layout_context,
                             positioning_context,
                             &containing_block_for_children,
-                            &containing_block,
+                            containing_block,
                         );
                         content_size = LogicalVec2 {
                             inline: inline_size,

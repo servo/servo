@@ -117,7 +117,7 @@ impl Tag {
         self.pseudo.is_some()
     }
 
-    pub(crate) fn to_display_list_fragment_id(&self) -> u64 {
+    pub(crate) fn to_display_list_fragment_id(self) -> u64 {
         let fragment_type = match self.pseudo {
             Some(PseudoElement::Before) => FragmentType::BeforePseudoContent,
             Some(PseudoElement::After) => FragmentType::AfterPseudoContent,

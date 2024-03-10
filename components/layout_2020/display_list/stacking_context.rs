@@ -430,11 +430,11 @@ impl StackingContext {
         debug_assert!(self
             .real_stacking_contexts_and_positioned_stacking_containers
             .iter()
-            .all(|c| match c.context_type {
+            .all(|c| matches!(
+                c.context_type,
                 StackingContextType::RealStackingContext |
-                StackingContextType::PositionedStackingContainer => true,
-                _ => false,
-            }));
+                    StackingContextType::PositionedStackingContainer
+            )));
         debug_assert!(self
             .float_stacking_containers
             .iter()
