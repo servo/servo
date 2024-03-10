@@ -385,7 +385,7 @@ fn test_cors_preflight_cache_fetch() {
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
     let counter = state.clone();
-    let mut cache = CorsCache::new();
+    let mut cache = CorsCache::default();
     let handler = move |request: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
         if request.method() == Method::OPTIONS && state.clone().fetch_add(1, Ordering::SeqCst) == 0
         {
@@ -757,7 +757,7 @@ fn test_fetch_with_hsts() {
     let (server, url) = make_ssl_server(handler);
 
     let mut context = FetchContext {
-        state: Arc::new(HttpState::new()),
+        state: Arc::new(HttpState::default()),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(
@@ -816,7 +816,7 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
     url.as_mut_url().set_scheme("https").unwrap();
 
     let mut context = FetchContext {
-        state: Arc::new(HttpState::new()),
+        state: Arc::new(HttpState::default()),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(
@@ -873,7 +873,7 @@ fn test_fetch_self_signed() {
     url.as_mut_url().set_scheme("https").unwrap();
 
     let mut context = FetchContext {
-        state: Arc::new(HttpState::new()),
+        state: Arc::new(HttpState::default()),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: Arc::new(Mutex::new(FileManager::new(

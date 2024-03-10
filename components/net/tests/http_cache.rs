@@ -33,7 +33,7 @@ fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
     response
         .headers
         .insert(EXPIRES, HeaderValue::from_str("-10").unwrap());
-    let mut cache = HttpCache::new();
+    let mut cache = HttpCache::default();
     response_bodies.iter().for_each(|body| {
         *response.body.lock().unwrap() = body.clone();
         // First, store the 'normal' response.

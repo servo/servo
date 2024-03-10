@@ -17,14 +17,14 @@ pub fn determine_nosniff(headers: &HeaderMap) -> bool {
 
     match values {
         None => false,
-        Some(values) => !values.is_empty() && (&values[0]).eq_ignore_ascii_case("nosniff"),
+        Some(values) => !values.is_empty() && values[0].eq_ignore_ascii_case("nosniff"),
     }
 }
 
 /// <https://fetch.spec.whatwg.org/#concept-header-list-get-decode-split>
 fn get_header_value_as_list(name: &str, headers: &HeaderMap) -> Option<Vec<String>> {
     fn char_is_not_quote_or_comma(c: char) -> bool {
-        return c != '\u{0022}' && c != '\u{002C}';
+        c != '\u{0022}' && c != '\u{002C}'
     }
 
     // Step 1
@@ -33,7 +33,7 @@ fn get_header_value_as_list(name: &str, headers: &HeaderMap) -> Option<Vec<Strin
     if let Some(input) = initial_value {
         // https://fetch.spec.whatwg.org/#header-value-get-decode-and-split
         // Step 1
-        let input = input.into_iter().map(|u| char::from(u)).collect::<String>();
+        let input = input.into_iter().map(char::from).collect::<String>();
 
         // Step 2
         let mut position = input.chars().peekable();
@@ -81,7 +81,7 @@ fn get_header_value_as_list(name: &str, headers: &HeaderMap) -> Option<Vec<Strin
     }
 
     // Step 2
-    return None;
+    None
 }
 
 /// <https://infra.spec.whatwg.org/#collect-a-sequence-of-code-points>
@@ -102,13 +102,13 @@ where
     }
 
     // Step 3
-    return result;
+    result
 }
 
 /// <https://fetch.spec.whatwg.org/#collect-an-http-quoted-string>
 fn collect_http_quoted_string(position: &mut Peekable<Chars>, extract_value: bool) -> String {
     fn char_is_not_quote_or_backslash(c: char) -> bool {
-        return c != '\u{0022}' && c != '\u{005C}';
+        c != '\u{0022}' && c != '\u{005C}'
     }
 
     // Step 2
@@ -159,5 +159,5 @@ fn collect_http_quoted_string(position: &mut Peekable<Chars>, extract_value: boo
     }
 
     // Step 6, 7
-    return value;
+    value
 }
