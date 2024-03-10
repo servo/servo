@@ -2,12 +2,67 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! HTML Tables (╯°□°)╯︵ ┻━┻.
+//! # HTML Tables (╯°□°)╯︵ ┻━┻
 //!
-//! See <https://html.spec.whatwg.org/multipage/table-processing-model> and
-//! <https://drafts.csswg.org/css-tables>.  This is heavily based on the latter specification, but
-//! note that it is still an Editor's Draft, so there is no guarantee that what is implemented here
-//! matches other browsers or the current specification.
+//! This implementation is based on the [table section of the HTML 5 Specification][1],
+//! the draft [CSS Table Module Level! 3][2] and the [LayoutNG implementation of tables][3] in Blink.
+//! In general, the draft specification differs greatly from what other browsers do, so we
+//! generally follow LayoutNG when in question.
+//!
+//! [1]: https://html.spec.whatwg.org/multipage/#tables
+//! [2]: https://drafts.csswg.org/css-tables
+//! [3]: https://source.chromium.org/chromium/chromium/src/third_party/+/main:blink/renderer/core/layout/table
+//!
+//! Table layout is divided into two phases:
+//!
+//! 1. Box Tree Construction
+//! 2. Fragment Tree Construction
+//!
+//! ## Box Tree Construction
+//!
+//! During box tree construction, table layout (`construct.rs`) will traverse the DOM and construct
+//! the basic box tree representation of a table, using the structs defined in this file ([`Table`],
+//! [`TableTrackGroup`], [`TableTrack`], etc). When processing the DOM, elements are handled
+//! differently depending on their `display` value. For instance, an element with `display:
+//! table-cell` is treated as a table cell. HTML table elements like `<table>` and `<td>` are
+//! assigned the corresponding display value from the user agent stylesheet.
+//!
+//! Every [`Table`] holds an array of [`TableSlot`]. A [`TableSlot`] represents either a cell, a cell
+//! location occupied by a cell originating from another place in the table, or is empty. In
+//! addition, when there are table model errors, a slot may spanned by more than one cell.
+//!
+//! During processing, the box tree construction agorithm will also fix up table structure, for
+//! instance, creating anonymous rows for lone table cells and putting non-table content into
+//! anonymous cells. In addition, flow layout will collect table elements outside of tables and create
+//! anonymous tables for them.
+//!
+//! After processing, box tree construction does a fix up pass on tables, converting rowspan=0 into
+//! definite rowspan values and making sure that rowspan and celspan values are not larger than the
+//! table itself. Finally, row groups may be reordered to enforce the fact that the first `<thead>`
+//! comes before `<tbody>` which comes before the first `<tfoot>`.
+//!
+//! ## Fragment Tree Construction
+//!
+//! Fragment tree construction involves calculating the size and positioning of all table elements,
+//! given their style, content, and cell and row spans. This happens both during intrinsic inline
+//! size computation as well as layout into Fragments. In both of these cases, measurement and
+//! layout is done by [`layout::TableLayout`], though for intrinsic size computation only a partial
+//! layout is done.
+//!
+//! In general, we follow the following steps when laying out table content:
+//!
+//! 1. Compute track constrainedness and has originating cells
+//! 2. Compute cell measures
+//! 3. Compute column measures
+//! 4. Compute intrinsic inline sizes for columns and the table
+//! 5. Compute the final table inline size
+//! 6. Distribute size to columns
+//! 7. Do first pass cell layout
+//! 8. Do row layout
+//! 9. Compute table height and final row sizes
+//! 10. Create fragments for table elements (columns, column groups, rows, row groups, cells)
+//!
+//! For intrinsic size computation this process stops at step 4.
 
 mod construct;
 mod layout;
@@ -143,7 +198,7 @@ impl TableSlotCell {
 
     /// Get the node id of this cell's [`BaseFragmentInfo`]. This is used for unit tests.
     pub fn node_id(&self) -> usize {
-        self.base_fragment_info.tag.node.0
+        self.base_fragment_info.tag.map_or(0, |tag| tag.node.0)
     }
 }
 

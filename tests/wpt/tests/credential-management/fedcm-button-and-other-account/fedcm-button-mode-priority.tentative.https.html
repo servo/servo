@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API Button Mode priority tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script type="module">
+import {request_options_with_mediation_required,
+        fedcm_test,
+        fedcm_get_and_select_first_account} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  let widget_test_options = request_options_with_mediation_required();
+  let button_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+  button_test_options.identity.mode = "button";
+
+  return test_driver.bless('initiate FedCM request', async function() {
+      let first_cred = await fedcm_get_and_select_first_account(t, button_test_options);
+      assert_equals(first_cred.token, "mode=button");
+      let second_cred = await fedcm_get_and_select_first_account(t, widget_test_options);
+      assert_equals(second_cred.token, "token");
+  });
+}, "Test that the widget mode can succeed after the button mode.");
+
+fedcm_test(async t => {
+   let widget_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+   let button_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+   button_test_options.identity.mode = "button";
+
+   let first_cred = navigator.credentials.get(widget_test_options);
+   let rej = promise_rejects_dom(t, 'NetworkError', first_cred);
+
+   return test_driver.bless('initiate FedCM request', async function() {
+       let second_cred = await fedcm_get_and_select_first_account(t, button_test_options);
+       assert_equals(second_cred.token, "mode=button");
+       await rej;
+   });
+ }, "Test that the button mode can replace widget mode.");
+
+fedcm_test(async t => {
+  let button_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+  button_test_options.identity.mode = "button";
+
+  return test_driver.bless('initiate FedCM request', async function() {
+      let first_cred = fedcm_get_and_select_first_account(t, button_test_options);
+      let second_cred = navigator.credentials.get(button_test_options);
+      let rej = promise_rejects_dom(t, 'NotAllowedError', second_cred);
+
+      let cred = await first_cred;
+      assert_equals(cred.token, "mode=button");
+      await rej;
+  });
+}, "Test that the button mode cannot replace button mode.");
+
+fedcm_test(async t => {
+  let widget_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+  let button_test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+  button_test_options.identity.mode = "button";
+
+  return test_driver.bless('initiate FedCM request', async function() {
+      let first_cred = fedcm_get_and_select_first_account(t, button_test_options);
+      let second_cred = navigator.credentials.get(widget_test_options);
+      let rej = promise_rejects_dom(t, 'NotAllowedError', second_cred);
+
+      let cred = await first_cred;
+      assert_equals(cred.token, "mode=button");
+      await rej;
+  });
+}, "Test that the widget mode cannot replace button mode.");
+
+</script>

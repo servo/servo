@@ -160,9 +160,7 @@ where
                         self.context,
                         self.text_decoration_line,
                     );
-                    let info = &self
-                        .info
-                        .new_replacing_style(anonymous_style.clone().unwrap());
+                    let info = &self.info.new_anonymous(anonymous_style.clone().unwrap());
                     IndependentFormattingContext::NonReplaced(NonReplacedFormattingContext {
                         base_fragment_info: info.into(),
                         style: info.style.clone(),

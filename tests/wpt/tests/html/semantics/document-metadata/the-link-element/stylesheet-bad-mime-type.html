@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>stylesheets served with bad MIME types</title>
+<link rel="author" title="Michael[tm] Smith" href="mailto:mike@w3.org">
+<link rel="help" href="https://html.spec.whatwg.org/#link-type-stylesheet:process-the-linked-resource">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test((t) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "resources/stylesheet-bad-mime-type.css";
+    link.onload = t.unreached_func();
+    link.onerror = t.step_func_done();
+    document.head.append(link);
+  }, "'load' event does not fire at link@rel=stylesheet having non-empty resource with bad MIME type");
+  async_test((t) => {
+    t.step_timeout(() => {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "resources/stylesheet-bad-mime-type-empty.css";
+      link.onload = t.unreached_func();
+      link.onerror = t.step_func_done();
+      document.head.append(link);
+    }, 2000);
+  }, "'load' event does not fire at link@rel=stylesheet having empty resource with bad MIME type");
+</script>

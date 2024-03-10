@@ -9,6 +9,7 @@ use log::warn;
 use servo_arc::Arc;
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::logical_geometry::WritingMode;
+use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;
 use style::values::computed::{
     CSSPixelLength, Length, LengthPercentage as ComputedLengthPercentage, Percentage,
@@ -72,7 +73,7 @@ struct ColumnLayout {
 /// A helper struct that performs the layout of the box tree version
 /// of a table into the fragment tree version. This implements
 /// <https://drafts.csswg.org/css-tables/#table-layout-algorithm>
-struct TableLayout<'a> {
+pub(crate) struct TableLayout<'a> {
     table: &'a Table,
     pbm: PaddingBorderMargin,
     rows: Vec<RowLayout>,
@@ -143,11 +144,24 @@ impl<'a> TableLayout<'a> {
                     _ => continue,
                 };
 
-                let (size, min_size, max_size) = get_sizes_from_style(&cell.style, writing_mode);
+                let padding = cell
+                    .style
+                    .padding(writing_mode)
+                    .percentages_relative_to(Length::zero());
+                let border = cell.style.border_width(writing_mode);
+                let padding_border_sums = LogicalVec2 {
+                    inline: (padding.inline_sum() + border.inline_sum()).into(),
+                    block: (padding.block_sum() + border.block_sum()).into(),
+                };
+
+                let (size, min_size, max_size) =
+                    get_outer_sizes_from_style(&cell.style, writing_mode, &padding_border_sums);
                 let mut inline_content_sizes = cell
                     .contents
                     .contents
                     .inline_content_sizes(layout_context, writing_mode);
+                inline_content_sizes.min_content += padding_border_sums.inline;
+                inline_content_sizes.max_content += padding_border_sums.inline;
 
                 // TODO: the max-content size should never be smaller than the min-content size!
                 inline_content_sizes.max_content = inline_content_sizes
@@ -158,11 +172,11 @@ impl<'a> TableLayout<'a> {
                     get_size_percentage_contribution_from_style(&cell.style, writing_mode);
 
                 // These formulas differ from the spec, but seem to match Gecko and Blink.
-                let mut outer_min_content_width = inline_content_sizes
+                let outer_min_content_width = inline_content_sizes
                     .min_content
                     .min(max_size.inline)
                     .max(min_size.inline);
-                let mut outer_max_content_width = if self.columns[column_index].constrained {
+                let outer_max_content_width = if self.columns[column_index].constrained {
                     inline_content_sizes
                         .min_content
                         .max(size.inline)
@@ -177,17 +191,6 @@ impl<'a> TableLayout<'a> {
                 };
                 assert!(outer_min_content_width <= outer_max_content_width);
 
-                let padding = cell
-                    .style
-                    .padding(writing_mode)
-                    .percentages_relative_to(Length::zero());
-                let border = cell.style.border_width(writing_mode);
-
-                let inline_padding_border_sum =
-                    Au::from(padding.inline_sum() + border.inline_sum());
-                outer_min_content_width += inline_padding_border_sum;
-                outer_max_content_width += inline_padding_border_sum;
-
                 let inline_measure = CellOrTrackMeasure {
                     content_sizes: ContentSizes {
                         min_content: outer_min_content_width,
@@ -196,31 +199,13 @@ impl<'a> TableLayout<'a> {
                     percentage: percentage_contribution.inline,
                 };
 
-                // These calculations do not take into account the `min-content` and `max-content`
-                // sizes. These sizes are incorporated after the first row layout pass, when the
-                // block size of the layout is known.
-                //
-                // TODO: Is it correct to use the block size as the minimum of the `outer min
-                // content height` here? The specification doesn't mention this, but it does cause
-                // a test to pass.
-                let mut outer_min_content_height = min_size.block.max(size.block);
-                let mut outer_max_content_height = if !self.rows[row_index].constrained {
-                    min_size.block.max(size.block)
-                } else {
-                    min_size
-                        .block
-                        .max(size.block)
-                        .max(max_size.block.min(size.block))
-                };
-
-                let block_padding_border_sum = Au::from(padding.block_sum() + border.block_sum());
-                outer_min_content_height += block_padding_border_sum;
-                outer_max_content_height += block_padding_border_sum;
-
+                // This measure doesn't take into account the `min-content` and `max-content` sizes.
+                // These sizes are incorporated after the first row layout pass, when the block size
+                // of the layout is known.
                 let block_measure = CellOrTrackMeasure {
                     content_sizes: ContentSizes {
-                        min_content: outer_min_content_height,
-                        max_content: outer_max_content_height,
+                        min_content: size.block,
+                        max_content: size.block,
                     },
                     percentage: percentage_contribution.block,
                 };
@@ -1743,7 +1728,8 @@ impl Table {
             None => return CellOrTrackMeasure::zero(),
         };
 
-        let (size, min_size, max_size) = get_sizes_from_style(&column.style, writing_mode);
+        let (size, min_size, max_size) =
+            get_outer_sizes_from_style(&column.style, writing_mode, &LogicalVec2::zero());
         let percentage_contribution =
             get_size_percentage_contribution_from_style(&column.style, writing_mode);
 
@@ -1921,40 +1907,34 @@ fn get_size_percentage_contribution_from_style(
     }
 }
 
-fn get_sizes_from_style(
+fn get_outer_sizes_from_style(
     style: &Arc<ComputedValues>,
     writing_mode: WritingMode,
+    padding_border_sums: &LogicalVec2<Au>,
 ) -> (LogicalVec2<Au>, LogicalVec2<Au>, LogicalVec2<Au>) {
-    let get_max_size_for_axis = |size: Option<&ComputedLengthPercentage>| {
-        size.and_then(|length_percentage| length_percentage.to_length())
-            .map_or(MAX_AU, Au::from)
+    let box_sizing = style.get_position().box_sizing;
+    let outer_size = |size: LogicalVec2<Au>| match box_sizing {
+        BoxSizing::ContentBox => &size + padding_border_sums,
+        BoxSizing::BorderBox => LogicalVec2 {
+            inline: size.inline.max(padding_border_sums.inline),
+            block: size.block.max(padding_border_sums.block),
+        },
     };
-
-    let max_size = style.max_box_size(writing_mode);
-    let max_size = LogicalVec2 {
-        inline: get_max_size_for_axis(max_size.inline),
-        block: get_max_size_for_axis(max_size.block),
-    };
-
-    let get_size_for_axis = |size: LengthPercentageOrAuto<'_>| {
+    let get_size_for_axis = |size: &LengthPercentageOrAuto<'_>| {
         size.non_auto()
             .and_then(|size| size.to_length())
             .map_or_else(Au::zero, Au::from)
     };
-
-    let min_size = style.min_box_size(writing_mode);
-    let min_size = LogicalVec2 {
-        inline: get_size_for_axis(min_size.inline),
-        block: get_size_for_axis(min_size.block),
+    let get_max_size_for_axis = |size: &Option<&ComputedLengthPercentage>| {
+        size.and_then(|length_percentage| length_percentage.to_length())
+            .map_or(MAX_AU, Au::from)
     };
 
-    let size = style.box_size(writing_mode);
-    let size = LogicalVec2 {
-        inline: get_size_for_axis(size.inline),
-        block: get_size_for_axis(size.block),
-    };
-
-    (size, min_size, max_size)
+    (
+        outer_size(style.box_size(writing_mode).map(get_size_for_axis)),
+        outer_size(style.min_box_size(writing_mode).map(get_size_for_axis)),
+        outer_size(style.max_box_size(writing_mode).map(get_max_size_for_axis)),
+    )
 }
 
 struct RowspanToDistribute<'a> {

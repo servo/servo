@@ -2,16 +2,9 @@
 
 import os
 
-from .. import metadata, products
+from .. import metadata
 
 from .base import Step, StepRunner
-
-
-class GetUpdatePropertyList(Step):
-    provides = ["update_properties"]
-
-    def create(self, state):
-        state.update_properties = products.load_product_update(state.config, state.product.name)
 
 
 class UpdateExpected(Step):
@@ -20,7 +13,7 @@ class UpdateExpected(Step):
     def create(self, state):
         metadata.update_expected(state.paths,
                                  state.run_log,
-                                 update_properties=state.update_properties,
+                                 update_properties=state.product.update_properties,
                                  full_update=state.full_update,
                                  disable_intermittent=state.disable_intermittent,
                                  update_intermittent=state.update_intermittent,
@@ -57,6 +50,5 @@ class CreateMetadataPatch(Step):
 
 class MetadataUpdateRunner(StepRunner):
     """(Sub)Runner for updating metadata"""
-    steps = [GetUpdatePropertyList,
-             UpdateExpected,
+    steps = [UpdateExpected,
              CreateMetadataPatch]

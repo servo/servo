@@ -39,26 +39,25 @@ body {
   background-color: lime;
   anchor-default: --a;
   position-fallback-bounds: --bounds;
-  position-fallback: --corners;
+  position-try-options: --corner1, --corner2, --corner3;
+  bottom: anchor(top);
+  right: anchor(left);
 }
 
-@position-fallback --corners {
-  @try {
-    bottom: anchor(top);
-    right: anchor(left);
-  }
-  @try {
-    top: anchor(bottom);
-    right: anchor(left);
-  }
-  @try {
-    bottom: anchor(top);
-    left: anchor(right);
-  }
-  @try {
-    top: anchor(bottom);
-    left: anchor(right);
-  }
+@position-try --corner1 {
+  inset: auto;
+  top: anchor(bottom);
+  right: anchor(left);
+}
+@position-try --corner2 {
+  inset: auto;
+  bottom: anchor(top);
+  left: anchor(right);
+}
+@position-try --corner3 {
+  inset: auto;
+  top: anchor(bottom);
+  left: anchor(right);
 }
 </style>
 

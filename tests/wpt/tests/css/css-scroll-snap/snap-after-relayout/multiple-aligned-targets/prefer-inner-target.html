@@ -115,13 +115,23 @@
           await waitForCompositorCommit();
 
           await runScrollSnapSelectionVerificationTest(t, scroller,
-            [inner1, inner2, inner3, inner4,  outer], inner4, "y");
+            /*aligned_elements_x=*/[],
+            /*aligned_elements_y=*/[inner1, inner2, inner3, inner4,  outer],
+            /*axis=*/"y",
+            /*expected_target_x*/null,
+            /*expected_target_y*/inner4);
 
           // Push inner4 outside the snapport. It should no longer be considered
           // the snap target; inner3 is next in line.
           inner4.style.left = "500px";
           await runScrollSnapSelectionVerificationTest(t, scroller,
-            [inner1, inner2, inner3, inner4,  outer], inner3, "y");
+            /*aligned_elements_x=*/[],
+            /*aligned_elements_y=*/[inner1, inner2, inner3, inner4,  outer],
+            /*axis=*/"y",
+            /*expected_target_x*/null,
+            /*expected_target_y*/inner3);
+
+          // Reset inner4's style.
           inner4.style.left = "100px";
         }, "snap container selects innermost area as snap target");
 

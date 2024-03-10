@@ -387,7 +387,7 @@ where
             embedder.register_webxr(&mut webxr_main_thread, embedder_proxy.clone());
         }
 
-        let wgpu_image_handler = webgpu::WGPUExternalImages::new();
+        let wgpu_image_handler = webgpu::WGPUExternalImages::default();
         let wgpu_image_map = wgpu_image_handler.images.clone();
         external_image_handlers.set_handler(
             Box::new(wgpu_image_handler),
@@ -460,7 +460,6 @@ where
                 webxr_main_thread,
             },
             composite_target,
-            opts.is_running_problem_test,
             opts.exit_after_load,
             opts.debug.convert_mouse_to_touch,
             top_level_browsing_context_id,
@@ -992,7 +991,6 @@ fn create_constellation(
         initial_window_size,
         opts.random_pipeline_closure_probability,
         opts.random_pipeline_closure_seed,
-        opts.is_running_problem_test,
         opts.hard_fail,
         !opts.debug.disable_canvas_antialiasing,
         canvas_create_sender,

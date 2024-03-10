@@ -1,0 +1,19 @@
+<!doctype html>
+<title>Mutating the 'repeatCount' attribute after the element has been inserted</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg height="0">
+  <rect width="10" height="100" fill="blue">
+    <animate id="anim" attributeName="width" from="10" to="100" dur="10ms"
+             repeatCount="indefinite"/>
+  </rect>
+</svg>
+<script>
+  promise_test(t => {
+    const anim = document.getElementById("anim");
+    anim.removeAttribute('repeatCount');
+
+    const watcher = new EventWatcher(t, anim, ['endEvent', 'repeatEvent']);
+    return watcher.wait_for('endEvent');
+  });
+</script>

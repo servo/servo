@@ -144,7 +144,7 @@ fn run_server(
     });
 
     // A token shared with the embedder to bypass permission prompt.
-    let token = format!("{:X}", servo_rand::ServoRng::new().next_u32());
+    let token = format!("{:X}", servo_rand::ServoRng::default().next_u32());
 
     let port = bound.as_ref().map(|(_, port)| *port).ok_or(());
     embedder.send((None, EmbedderMsg::OnDevtoolsStarted(port, token.clone())));

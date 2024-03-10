@@ -110,4 +110,6 @@ def simple_response(request, response, status_code, status_message, body,
                     content_type=b"text/plain"):
     response.status = (status_code, status_message)
     response.headers.set(b"Content-Type", content_type)
+    # Force refetch on reuse, so multiple requests to tracked URLs are all visible.
+    response.headers.set(b"Cache-control", b"no-store")
     return body

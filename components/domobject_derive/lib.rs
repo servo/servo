@@ -4,7 +4,6 @@
 
 #![recursion_limit = "128"]
 
-use proc_macro2;
 use quote::{quote, TokenStreamExt};
 use syn::parse_quote;
 

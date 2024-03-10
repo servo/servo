@@ -39,6 +39,19 @@ const routerRules = {
     condition: {requestMethod: String.fromCodePoint(0x3042)},
     source: 'network'
   }],
+  'condition-invalid-or-condition-depth': (() => {
+    const max = 10;
+    const addOrCondition = (obj, depth) => {
+      if (depth > max) {
+        return obj;
+      }
+      return {
+        urlPattern: `/foo-${depth}`,
+        or: [addOrCondition(obj, depth + 1)]
+      };
+    };
+    return {condition: addOrCondition({}, 0), source: 'network'};
+  })(),
   'condition-request-destination-script-network':
       [{condition: {requestDestination: 'script'}, source: 'network'}],
   'condition-or-source-network': [{

@@ -15,11 +15,7 @@
 
 for (const prefix of ['top', 'left', 'right', 'bottom']) {
   runPropertyTests(`border-${prefix}-color`, [
-    {
-      syntax: 'currentcolor',
-      // computes to a <color>, which is not supported in level 1
-      computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
-    }
+    { syntax: 'currentcolor' }
   ]);
 
   // <color>s are not supported in level 1

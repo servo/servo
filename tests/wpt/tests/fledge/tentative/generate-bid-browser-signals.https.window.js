@@ -7,7 +7,10 @@
 // META: variant=?5-8
 // META: variant=?9-12
 // META: variant=?13-16
-// META: variant=?17-last
+// META: variant=?17-20
+// META: variant=?21-24
+// META: variant=?25-28
+// META: variant=?29-last
 
 "use strict;"
 
@@ -257,7 +260,7 @@ subsetTest(promise_test, async test => {
 
   // Run two auctions at once, without any navigations.
   // "bidCount" should be 0 for both auctions.
-  fencedFrameConfigs =
+  let fencedFrameConfigs =
       await Promise.all([runBasicFledgeTestExpectingWinner(test, uuid),
                          runBasicFledgeTestExpectingWinner(test, uuid)]);
 
@@ -277,6 +280,218 @@ subsetTest(promise_test, async test => {
         biddingLogicURL: createBidCountBiddingScriptURL(2) });
   await runBasicFledgeTestExpectingWinner(test, uuid);
 }, 'browserSignals.bidCount two auctions at once.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  // Use a tracker URL for the ad. It won't be successfully loaded, due to missing
+  // the fenced frame header, but it should be fetched twice.
+  let trackedRenderURL =
+      createTrackerURL(window.location.origin, uuid, 'track_get', /*id=*/'ad');
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBidCountBiddingScriptURL(0),
+        ads: [{ renderURL: trackedRenderURL }]
+      });
+
+  let fencedFrameConfig = await runBasicFledgeTestExpectingWinner(test, uuid);
+
+  // Start navigating two frames to the winning ad.
+  createAndNavigateFencedFrame(test, fencedFrameConfig);
+  createAndNavigateFencedFrame(test, fencedFrameConfig);
+
+  // Wait for both navigations to have requested ads (and thus to have updated
+  // bid counts).
+  await waitForObservedRequests(uuid, [createSellerReportURL(uuid),
+                                       trackedRenderURL,
+                                       trackedRenderURL]);
+
+  // Check that "bidCount" has increased by only 1.
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBidCountBiddingScriptURL(1) });
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.bidCount incremented once when winning ad used twice.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  let bidderReportURL = createBidderReportURL(uuid, /*id=*/'winner');
+
+  // Join an interest group named "uuid", which will bid 0.1, losing the first auction.
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBiddingScriptURL(
+          { bid: 0.1, reportWin: `sendReportTo('${createBidderReportURL(uuid, /*id=*/'loser')}')` })
+      });
+
+  // Join an interest group with the default name, which will bid 1 and win the first
+  // auction, sending a bidder report.
+  await joinInterestGroup(
+      test, uuid,
+      { biddingLogicURL: createBiddingScriptURL(
+          { bid: 1, reportWin: `sendReportTo('${bidderReportURL}')` })
+      });
+
+  // Run an auction that both bidders participate in. Despite the first interest group
+  // losing, its "bidCount" should be incremented.
+  await runBasicFledgeAuctionAndNavigate(test, uuid);
+  // Make sure the right bidder won.
+  await waitForObservedRequests(uuid, [bidderReportURL, createSellerReportURL(uuid)]);
+
+  // Leave the second interest group (which has the default name).
+  await leaveInterestGroup();
+
+  // Re-join the first interest group, with a bidding script that checks its "bidCount".
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBidCountBiddingScriptURL(1)
+      });
+
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.bidCount incremented when another interest group wins.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  // Use default interest group, other than using a unique name. It will make a bid.
+  await joinInterestGroup(test, uuid, { name: uuid });
+  // Run auction with seller that rejects all bids.
+  await runBasicFledgeTestExpectingNoWinner(
+      test, uuid,
+      { decisionLogicURL: createDecisionScriptURL(uuid, {scoreAd: `return 0;`})});
+
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBidCountBiddingScriptURL(1)
+      });
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.bidCount incremented when seller rejects bid.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  // Use default interest group, other than using a unique name. It will make a bid.
+  await joinInterestGroup(test, uuid, { name: uuid });
+  // Run auction with seller that always throws.
+  await runBasicFledgeTestExpectingNoWinner(
+      test, uuid,
+      { decisionLogicURL: createDecisionScriptURL(uuid, {scoreAd: `throw "a fit";`})});
+
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBidCountBiddingScriptURL(1)
+      });
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.bidCount incremented when seller throws.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  // Interest group that does not bid.
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBiddingScriptURL(
+          { generateBid: 'return;' })
+      });
+  await runBasicFledgeTestExpectingNoWinner(test, uuid);
+
+  // Check that "bidCount" was not incremented.
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBidCountBiddingScriptURL(0)
+      });
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.bidCount not incremented when no bid.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  let bidderReportURL = createBidderReportURL(uuid, /*id=*/'winner');
+
+  // Interest group that does not bid.
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBiddingScriptURL(
+          { generateBid: 'return;' })
+      });
+
+  // Join an interest group with the default name, which will bid 1 and win the first
+  // auction, sending a bidder report.
+  await joinInterestGroup(
+      test, uuid,
+      { biddingLogicURL: createBiddingScriptURL(
+          { bid: 1, reportWin: `sendReportTo('${bidderReportURL}')` })
+      });
+
+  // Run an auction that both bidders participate in, and make sure the right bidder won.
+  await runBasicFledgeAuctionAndNavigate(test, uuid);
+  await waitForObservedRequests(uuid, [bidderReportURL, createSellerReportURL(uuid)]);
+
+  // Leave the second interest group (which has the default name).
+  await leaveInterestGroup();
+
+  // Re-join the first interest group, with a bidding script that checks its "bidCount".
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBidCountBiddingScriptURL(0)
+      });
+
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.bidCount not incremented when no bid and another interest group wins.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  let bidderReportURL = createBidderReportURL(uuid, /*id=*/'winner');
+
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBiddingScriptURL(
+          { bid: 42, reportWin: `sendReportTo('${createBidderReportURL(uuid, /*id=*/'loser')}')` })
+      });
+
+  // Join an interest group with the default name, which will bid 1 and win the first
+  // auction, sending a bidder report.
+  await joinInterestGroup(
+      test, uuid,
+      { biddingLogicURL: createBiddingScriptURL(
+          { bid: 1, reportWin: `sendReportTo('${bidderReportURL}')` })
+      });
+
+  // Run an auction that both bidders participate in. The scoreAd script rejects the
+  // first interest group's bid.
+  await runBasicFledgeAuctionAndNavigate(
+      test, uuid,
+      { decisionLogicURL: createDecisionScriptURL(
+          uuid,
+          { scoreAd: `if (bid === 42) return -1;`})});
+  // Make sure the second interest group won.
+  await waitForObservedRequests(uuid, [bidderReportURL]);
+
+  // Leave the second interest group (which has the default name).
+  await leaveInterestGroup();
+
+  // Re-join the first interest group, with a bidding script that checks its "bidCount".
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBidCountBiddingScriptURL(1)
+      });
+
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.bidCount incremented when makes largest bid, but seller rejects the bid.');
 
 // Creates a bidding script URL that expects "prevWinsMs" to be
 // "expectedPrevWinsMs". All times in "expectedPrevWinsMs" must be 0.
@@ -491,6 +706,216 @@ subsetTest(promise_test, async test => {
         biddingLogicURL: createPrevWinsMsBiddingScriptURL([])});
   await runBasicFledgeTestExpectingWinner(test, uuid);
 }, 'browserSignals.prevWinsMs leave and rejoin.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createPrevWinsMsBiddingScriptURL([])
+      });
+
+  // Run two auctions at once, without any navigations.
+  // "prevWinsMs" should be empty for both auctions.
+  let fencedFrameConfigs =
+      await Promise.all([runBasicFledgeTestExpectingWinner(test, uuid),
+                         runBasicFledgeTestExpectingWinner(test, uuid)]);
+
+  // Start navigating to both auction winners.
+  createAndNavigateFencedFrame(test, fencedFrameConfigs[0]);
+  createAndNavigateFencedFrame(test, fencedFrameConfigs[1]);
+
+  // Wait for navigations to have sent reports (and thus to have updated
+  // "prevWinsMs").
+  await waitForObservedRequests(uuid, [createSellerReportURL(uuid),
+                                       createSellerReportURL(uuid)]);
+
+  // Check that "prevWinsMs" has two URLs.
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createPrevWinsMsBiddingScriptURL(
+          [[0, {renderURL: createRenderURL(uuid)}],
+           [0, {renderURL: createRenderURL(uuid)}]])
+      });
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.prevWinsMs two auctions at once.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  // Use a tracker URL for the ad. It won't be successfully loaded, due to missing
+  // the fenced frame header, but it should be fetched twice.
+  let trackedRenderURL =
+      createTrackerURL(window.location.origin, uuid, 'track_get', /*id=*/'ad');
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createPrevWinsMsBiddingScriptURL([]),
+        ads: [{ renderURL: trackedRenderURL }]
+      });
+
+  let fencedFrameConfig = await runBasicFledgeTestExpectingWinner(test, uuid);
+
+  // Start navigating two frames to the winning ad.
+  createAndNavigateFencedFrame(test, fencedFrameConfig);
+  createAndNavigateFencedFrame(test, fencedFrameConfig);
+
+  // Wait for both navigations to have requested ads (and thus to have updated
+  // "prevWinsMs").
+  await waitForObservedRequests(uuid, [createSellerReportURL(uuid),
+                                       trackedRenderURL,
+                                       trackedRenderURL]);
+
+  // Check that "prevWins" has only a single win.
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createPrevWinsMsBiddingScriptURL(
+          [[0, {renderURL: trackedRenderURL}]]) });
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.prevWinsMs has only one win when winning ad used twice.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  let bidderReportURL = createBidderReportURL(uuid, /*id=*/'winner');
+
+  // Join an interest group named "uuid", which will bid 0.1, losing the first auction.
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBiddingScriptURL(
+          { bid: 0.1, reportWin: `sendReportTo('${createBidderReportURL(uuid, /*id=*/'loser')}')` })
+      });
+
+  // Join an interest group with the default name, which will bid 1 and win the first
+  // auction, sending a bidder report.
+  await joinInterestGroup(
+      test, uuid,
+      { biddingLogicURL: createBiddingScriptURL(
+          { bid: 1, reportWin: `sendReportTo('${bidderReportURL}')` })
+      });
+
+  // Run an auction that both bidders participate in, and make sure the right bidder won.
+  await runBasicFledgeAuctionAndNavigate(test, uuid);
+  await waitForObservedRequests(uuid, [bidderReportURL, createSellerReportURL(uuid)]);
+
+  // Leave the second interest group (which has the default name).
+  await leaveInterestGroup();
+
+  // Re-join the first interest group, with a bidding script that expects prevWinsMs to
+  // be empty.
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createPrevWinsMsBiddingScriptURL([])
+      });
+
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.prevWinsMs not updated when another interest group wins.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  // Use default interest group, other than using a unique name. It will make a bid.
+  await joinInterestGroup(test, uuid, { name: uuid });
+  // Run auction with seller that rejects all bids.
+  await runBasicFledgeTestExpectingNoWinner(
+      test, uuid,
+      { decisionLogicURL: createDecisionScriptURL(uuid, {scoreAd: `return 0;`})});
+
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createPrevWinsMsBiddingScriptURL([])
+      });
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.prevWinsMs not updated when seller rejects bid.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  // Use default interest group, other than using a unique name. It will make a bid.
+  await joinInterestGroup(test, uuid, { name: uuid });
+  // Run auction with seller that always throws.
+  await runBasicFledgeTestExpectingNoWinner(
+      test, uuid,
+      { decisionLogicURL: createDecisionScriptURL(uuid, {scoreAd: `throw "a fit";`})});
+
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createPrevWinsMsBiddingScriptURL([])
+      });
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.prevWinsMs not updated when seller throws.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  // Interest group that does not bid.
+  await joinInterestGroup(
+    test, uuid,
+    { name: uuid,
+      biddingLogicURL: createBiddingScriptURL(
+        { generateBid: 'return;' })
+    });
+  await runBasicFledgeTestExpectingNoWinner(test, uuid);
+
+  // Check that "prevWinsMs" was not modified.
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createPrevWinsMsBiddingScriptURL([])
+      });
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.prevWinsMs not updated when no bid.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+
+  let bidderReportURL = createBidderReportURL(uuid, /*id=*/'winner');
+
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createBiddingScriptURL(
+          { bid: 42, reportWin: `sendReportTo('${createBidderReportURL(uuid, /*id=*/'loser')}')` })
+      });
+
+  // Join an interest group with the default name, which will bid 1 and win the first
+  // auction, sending a bidder report.
+  await joinInterestGroup(
+      test, uuid,
+      { biddingLogicURL: createBiddingScriptURL(
+          { bid: 1, reportWin: `sendReportTo('${bidderReportURL}')` })
+      });
+
+  // Run an auction that both bidders participate in. The scoreAd script returns a low
+  // score for the first interest group's bid.
+  await runBasicFledgeAuctionAndNavigate(
+      test, uuid,
+      { decisionLogicURL: createDecisionScriptURL(
+          uuid,
+          { scoreAd: `if (bid === 42) return 0.1;`})});
+  // Make sure the second interest group won.
+  await waitForObservedRequests(uuid, [bidderReportURL]);
+
+  // Leave the second interest group (which has the default name).
+  await leaveInterestGroup();
+
+  // Re-join the first interest group, with a bidding script that expects prevWinsMs to
+  // be empty.
+  await joinInterestGroup(
+      test, uuid,
+      { name: uuid,
+        biddingLogicURL: createPrevWinsMsBiddingScriptURL([])
+      });
+
+  await runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'browserSignals.prevWinsMs not updated when makes largest bid, but another interest group wins.');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);

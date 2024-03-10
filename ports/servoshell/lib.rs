@@ -96,9 +96,6 @@ pub fn main() {
         ArgumentParsingResult::ContentProcess(matches, token) => {
             opts_matches = matches;
             content_process_token = Some(token);
-            if opts::get().is_running_problem_test && env::var("RUST_LOG").is_err() {
-                env::set_var("RUST_LOG", "compositing::constellation");
-            }
         },
         ArgumentParsingResult::ChromeProcess(matches) => {
             opts_matches = matches;

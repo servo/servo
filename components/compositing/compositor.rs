@@ -9,7 +9,7 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use canvas::canvas_paint_thread::ImageUpdate;
 use compositing_traits::{
@@ -232,8 +232,6 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Whether to invalidate `prev_offscreen_framebuffer` at the end of the next frame.
     invalidate_prev_offscreen_framebuffer: bool,
 
-    is_running_problem_test: bool,
-
     /// True to exit after page load ('-x').
     exit_after_load: bool,
 
@@ -245,6 +243,10 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// Waiting for external code to call present.
     waiting_on_present: bool,
+
+    /// The [`Instant`] of the last animation tick, used to avoid flooding the Constellation and
+    /// ScriptThread with a deluge of animation ticks.
+    last_animation_tick: Instant,
 }
 
 #[derive(Clone, Copy)]
@@ -380,7 +382,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         window: Rc<Window>,
         state: InitialCompositorState,
         composite_target: CompositeTarget,
-        is_running_problem_test: bool,
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -422,11 +423,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             next_offscreen_framebuffer: OnceCell::new(),
             prev_offscreen_framebuffer: None,
             invalidate_prev_offscreen_framebuffer: false,
-            is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
             pending_frames: 0,
             waiting_on_present: false,
+            last_animation_tick: Instant::now(),
         }
     }
 
@@ -434,7 +435,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         window: Rc<Window>,
         state: InitialCompositorState,
         composite_target: CompositeTarget,
-        is_running_problem_test: bool,
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -443,7 +443,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             window,
             state,
             composite_target,
-            is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
             top_level_browsing_context_id,
@@ -525,6 +524,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// and the system creates a new native surface that needs to bound to the current
     /// context.
     #[allow(unsafe_code)]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)] // It has an unsafe block inside
     pub fn replace_native_surface(&mut self, native_widget: *mut c_void, coords: DeviceIntSize) {
         debug!("Replacing native surface in compositor: {native_widget:?}");
         let connection = self.rendering_context.connection();
@@ -588,14 +588,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 );
                 if is_ready && self.pending_frames == 0 {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
-                    if self.is_running_problem_test {
-                        println!("ready to save image!");
-                    }
                 } else {
                     self.ready_to_save_state = ReadyState::Unknown;
-                    if self.is_running_problem_test {
-                        println!("resetting ready_to_save_state!");
-                    }
                 }
                 self.composite_if_necessary(CompositingReason::Headless);
             },
@@ -605,7 +599,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 ShutdownState::NotShuttingDown,
             ) => {
                 self.pipeline_details(pipeline_id).visible = visible;
-                self.process_animations();
+                self.process_animations(true);
             },
 
             (CompositorMsg::PipelineExited(pipeline_id, sender), _) => {
@@ -1504,7 +1498,18 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     /// If there are any animations running, dispatches appropriate messages to the constellation.
-    fn process_animations(&mut self) {
+    fn process_animations(&mut self, force: bool) {
+        // When running animations in order to dump a screenshot (not after a full composite), don't send
+        // animation ticks faster than about 60Hz.
+        //
+        // TODO: This should be based on the refresh rate of the screen and also apply to all
+        // animation ticks, not just ones sent while waiting to dump screenshots. This requires
+        // something like a refresh driver concept though.
+        if !force && (Instant::now() - self.last_animation_tick) < Duration::from_millis(16) {
+            return;
+        }
+        self.last_animation_tick = Instant::now();
+
         let mut pipeline_ids = vec![];
         for (pipeline_id, pipeline_details) in &self.pipeline_details {
             if (pipeline_details.animations_running || pipeline_details.animation_callbacks_running) &&
@@ -1692,9 +1697,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 // for saving.
                 // Reset the flag so that we check again in the future
                 // TODO: only reset this if we load a new document?
-                if self.is_running_problem_test {
-                    println!("was ready to save, resetting ready_to_save_state");
-                }
                 self.ready_to_save_state = ReadyState::Unknown;
                 Ok(())
             },
@@ -1711,14 +1713,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     self.start_shutting_down();
                 }
             },
-            Err(e) => {
-                if self.is_running_problem_test {
-                    if e != UnableToComposite::NotReadyToPaintImage(
-                        NotReadyToPaint::WaitingOnConstellation,
-                    ) {
-                        println!("not ready to composite: {:?}", e);
-                    }
-                }
+            Err(error) => {
+                trace!("Unable to composite: {error:?}");
             },
         }
     }
@@ -1762,7 +1758,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             // tick those instead and continue waiting for the image output to be stable AND
             // all active animations to complete.
             if self.animations_active() {
-                self.process_animations();
+                self.process_animations(false);
                 return Err(UnableToComposite::NotReadyToPaintImage(
                     NotReadyToPaint::AnimationsActive,
                 ));
@@ -1947,7 +1943,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         self.composition_request = CompositionRequest::NoCompositingNecessary;
 
-        self.process_animations();
+        self.process_animations(true);
 
         Ok(rv)
     }
@@ -1968,17 +1964,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {
-        if self.composition_request == CompositionRequest::NoCompositingNecessary {
-            if self.is_running_problem_test {
-                println!("updating composition_request ({:?})", reason);
-            }
-            self.composition_request = CompositionRequest::CompositeNow(reason)
-        } else if self.is_running_problem_test {
-            println!(
-                "composition_request is already {:?}",
-                self.composition_request
-            );
-        }
+        trace!(
+            "Will schedule a composite {reason:?}. Previously was {:?}",
+            self.composition_request
+        );
+        self.composition_request = CompositionRequest::CompositeNow(reason)
     }
 
     fn clear_background(&self) {

@@ -125,7 +125,7 @@ function assert_element_accepts_non_trusted_type_explicit_set(tag, attribute, va
   assert_equals(elem.getAttribute(attribute), expected);
 }
 
-let namespace = 'http://www.w3.org/1999/xhtml';
+let namespace = null;
 function assert_element_accepts_trusted_html_set_ns(win, c, t, tag, attribute, expected) {
   let p = createHTML_policy(win, c);
   let html = p.createHTML(INPUTS.HTML);
@@ -158,9 +158,10 @@ function assert_throws_no_trusted_type_set_ns(tag, attribute, value) {
   });
 }
 
-function assert_element_accepts_non_trusted_type_set_ns(tag, attribute, value, expected) {
-  let elem = document.createElement(tag);
-  elem.setAttributeNS(namespace, attribute, value);
-  let attr_node = elem.getAttributeNodeNS(namespace, attribute);
+function assert_element_accepts_non_trusted_type_set_ns(tag, attribute, value, expected,
+                                                        elementNamespace, attributeNamespace) {
+  let elem = document.createElementNS(elementNamespace, tag);
+  elem.setAttributeNS(attributeNamespace, attribute, value);
+  let attr_node = elem.getAttributeNodeNS(attributeNamespace, attribute);
   assert_equals(attr_node.value + "", expected);
 }

@@ -5,10 +5,10 @@ automated linters. This document has guidelines that are less easy to lint for.
 
 ## Shell scripts
 
-Shell scripts are OK for small tasks or wrappers, but prefer to use Python for
+Shell scripts are suitable for small tasks or wrappers, but it's preferable to use Python for
 anything with a hint of complexity or in general.
 
-Shell scripts should be written against bash, starting with this shebang:
+Shell scripts should be written using bash, starting with this shebang:
 ```
 #!/usr/bin/env bash
 ```
@@ -23,7 +23,7 @@ set -o nounset
 set -o pipefail
 ```
 
-Quote all variables, using the full form: `"${SOME_VARIABLE}"`.
+Rememeber to quote all variables, using the full form: `"${SOME_VARIABLE}"`.
 
 Use `"$(some-command)"` instead of backticks for command substitution. Note
 that these should be quoted as well.

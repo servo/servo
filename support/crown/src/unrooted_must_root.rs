@@ -86,7 +86,7 @@ fn is_unrooted_ty<'tcx>(
         let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
                 let has_attr =
-                    |did, name| has_lint_attr(sym, &cx.tcx.get_attrs_unchecked(did), name);
+                    |did, name| has_lint_attr(sym, cx.tcx.get_attrs_unchecked(did), name);
                 if has_attr(did.did(), sym.must_root) {
                     ret = true;
                     false
@@ -96,11 +96,7 @@ fn is_unrooted_ty<'tcx>(
                     // Rc<Promise> is okay
                     let inner = substs.type_at(0);
                     if let ty::Adt(did, _) = inner.kind() {
-                        if has_attr(did.did(), sym.allow_unrooted_in_rc) {
-                            false
-                        } else {
-                            true
-                        }
+                        !has_attr(did.did(), sym.allow_unrooted_in_rc)
                     } else {
                         true
                     }
@@ -185,11 +181,11 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     /// must be #[crown::unrooted_must_root_lint::must_root] themselves
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item) {
         let attrs = cx.tcx.hir().attrs(item.hir_id());
-        if has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
+        if has_lint_attr(&self.symbols, attrs, self.symbols.must_root) {
             return;
         }
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
-            for ref field in def.fields() {
+            for field in def.fields() {
                 let field_type = cx.tcx.type_of(field.def_id);
                 if is_unrooted_ty(&self.symbols, cx, field_type.skip_binder(), false) {
                     cx.lint(
@@ -206,10 +202,10 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     /// All enums containing #[crown::unrooted_must_root_lint::must_root] types
     /// must be #[crown::unrooted_must_root_lint::must_root] themselves
     fn check_variant(&mut self, cx: &LateContext, var: &hir::Variant) {
-        let ref map = cx.tcx.hir();
+        let map = &cx.tcx.hir();
         let parent_item = map.expect_item(map.get_parent_item(var.hir_id).def_id);
         let attrs = cx.tcx.hir().attrs(parent_item.hir_id());
-        if !has_lint_attr(&self.symbols, &attrs, self.symbols.must_root) {
+        if !has_lint_attr(&self.symbols, attrs, self.symbols.must_root) {
             match var.data {
                 hir::VariantData::Tuple(fields, ..) => {
                     for field in fields {
@@ -241,7 +237,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     ) {
         let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _) | visit::FnKind::Method(n, _) => {
-                &*n.as_str() == "new" || n.as_str().starts_with("new_")
+                n.as_str() == "new" || n.as_str().starts_with("new_")
             },
             visit::FnKind::Closure => return,
         };
@@ -271,7 +267,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             cx,
             in_new_function,
         };
-        visit::walk_expr(&mut visitor, &body.value);
+        visit::walk_expr(&mut visitor, body.value);
     }
 }
 
@@ -288,8 +284,8 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
         let cx = self.cx;
 
         let require_rooted = |cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr| {
-            let ty = cx.typeck_results().expr_ty(&subexpr);
-            if is_unrooted_ty(&self.symbols, cx, ty, in_new_function) {
+            let ty = cx.typeck_results().expr_ty(subexpr);
+            if is_unrooted_ty(self.symbols, cx, ty, in_new_function) {
                 cx.lint(
                     UNROOTED_MUST_ROOT,
                     format!("Expression of type {:?} must be rooted", ty),
@@ -300,7 +296,7 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
 
         match expr.kind {
             // Trait casts from #[crown::unrooted_must_root_lint::must_root] types are not allowed
-            ExprKind::Cast(subexpr, _) => require_rooted(cx, self.in_new_function, &subexpr),
+            ExprKind::Cast(subexpr, _) => require_rooted(cx, self.in_new_function, subexpr),
             // This catches assignments... the main point of this would be to catch mutable
             // references to `JS<T>`.
             // FIXME: Enable this? Triggers on certain kinds of uses of DomRefCell.

@@ -18,110 +18,103 @@ use crate::BluetoothManager;
 
 thread_local!(pub static CACHED_IDS: RefCell<HashSet<Uuid>> = RefCell::new(HashSet::new()));
 
-const ADAPTER_ERROR: &'static str = "No adapter found";
-const WRONG_DATA_SET_ERROR: &'static str = "Wrong data set name was provided";
-const READ_FLAG: &'static str = "read";
-const WRITE_FLAG: &'static str = "write";
-const NOTIFY_FLAG: &'static str = "notify";
+const ADAPTER_ERROR: &str = "No adapter found";
+const WRONG_DATA_SET_ERROR: &str = "Wrong data set name was provided";
+const READ_FLAG: &str = "read";
+const WRITE_FLAG: &str = "write";
+const NOTIFY_FLAG: &str = "notify";
 
 // Adapter names
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=65
-const NOT_PRESENT_ADAPTER: &'static str = "NotPresentAdapter";
+const NOT_PRESENT_ADAPTER: &str = "NotPresentAdapter";
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=83
-const NOT_POWERED_ADAPTER: &'static str = "NotPoweredAdapter";
+const NOT_POWERED_ADAPTER: &str = "NotPoweredAdapter";
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=118
-const EMPTY_ADAPTER: &'static str = "EmptyAdapter";
+const EMPTY_ADAPTER: &str = "EmptyAdapter";
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=126
-const GLUCOSE_HEART_RATE_ADAPTER: &'static str = "GlucoseHeartRateAdapter";
+const GLUCOSE_HEART_RATE_ADAPTER: &str = "GlucoseHeartRateAdapter";
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=135
-const UNICODE_DEVICE_ADAPTER: &'static str = "UnicodeDeviceAdapter";
+const UNICODE_DEVICE_ADAPTER: &str = "UnicodeDeviceAdapter";
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=205
-const MISSING_SERVICE_HEART_RATE_ADAPTER: &'static str = "MissingServiceHeartRateAdapter";
+const MISSING_SERVICE_HEART_RATE_ADAPTER: &str = "MissingServiceHeartRateAdapter";
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=219
-const MISSING_CHARACTERISTIC_HEART_RATE_ADAPTER: &'static str =
-    "MissingCharacteristicHeartRateAdapter";
-const MISSING_DESCRIPTOR_HEART_RATE_ADAPTER: &'static str = "MissingDescriptorHeartRateAdapter";
+const MISSING_CHARACTERISTIC_HEART_RATE_ADAPTER: &str = "MissingCharacteristicHeartRateAdapter";
+const MISSING_DESCRIPTOR_HEART_RATE_ADAPTER: &str = "MissingDescriptorHeartRateAdapter";
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=234
-const HEART_RATE_ADAPTER: &'static str = "HeartRateAdapter";
+const HEART_RATE_ADAPTER: &str = "HeartRateAdapter";
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=250
-const EMPTY_NAME_HEART_RATE_ADAPTER: &'static str = "EmptyNameHeartRateAdapter";
+const EMPTY_NAME_HEART_RATE_ADAPTER: &str = "EmptyNameHeartRateAdapter";
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=267
-const NO_NAME_HEART_RATE_ADAPTER: &'static str = "NoNameHeartRateAdapter";
+const NO_NAME_HEART_RATE_ADAPTER: &str = "NoNameHeartRateAdapter";
 // https://cs.chromium.org/chromium/src/content/shell/browser/layout_test/layout_test_bluetooth_adapter_provider.h?l=284
-const TWO_HEART_RATE_SERVICES_ADAPTER: &'static str = "TwoHeartRateServicesAdapter";
-const BLOCKLIST_TEST_ADAPTER: &'static str = "BlocklistTestAdapter";
+const TWO_HEART_RATE_SERVICES_ADAPTER: &str = "TwoHeartRateServicesAdapter";
+const BLOCKLIST_TEST_ADAPTER: &str = "BlocklistTestAdapter";
 
 // Device names
-const CONNECTABLE_DEVICE_NAME: &'static str = "Connectable Device";
-const EMPTY_DEVICE_NAME: &'static str = "";
+const CONNECTABLE_DEVICE_NAME: &str = "Connectable Device";
+const EMPTY_DEVICE_NAME: &str = "";
 // https://webbluetoothcg.github.io/web-bluetooth/tests.html#glucosedevice
-const GLUCOSE_DEVICE_NAME: &'static str = "Glucose Device";
+const GLUCOSE_DEVICE_NAME: &str = "Glucose Device";
 // https://webbluetoothcg.github.io/web-bluetooth/tests.html#heartratedevice
-const HEART_RATE_DEVICE_NAME: &'static str = "Heart Rate Device";
-const UNICODE_DEVICE_NAME: &'static str = "❤❤❤❤❤❤❤❤❤";
+const HEART_RATE_DEVICE_NAME: &str = "Heart Rate Device";
+const UNICODE_DEVICE_NAME: &str = "❤❤❤❤❤❤❤❤❤";
 
 // Device addresses
-const CONNECTABLE_DEVICE_ADDRESS: &'static str = "00:00:00:00:00:04";
+const CONNECTABLE_DEVICE_ADDRESS: &str = "00:00:00:00:00:04";
 // https://webbluetoothcg.github.io/web-bluetooth/tests.html#glucosedevice
-const GLUCOSE_DEVICE_ADDRESS: &'static str = "00:00:00:00:00:02";
+const GLUCOSE_DEVICE_ADDRESS: &str = "00:00:00:00:00:02";
 // https://webbluetoothcg.github.io/web-bluetooth/tests.html#heartratedevice
-const HEART_RATE_DEVICE_ADDRESS: &'static str = "00:00:00:00:00:03";
-const UNICODE_DEVICE_ADDRESS: &'static str = "00:00:00:00:00:01";
+const HEART_RATE_DEVICE_ADDRESS: &str = "00:00:00:00:00:03";
+const UNICODE_DEVICE_ADDRESS: &str = "00:00:00:00:00:01";
 
 // Service UUIDs
-const BLOCKLIST_TEST_SERVICE_UUID: &'static str = "611c954a-263b-4f4a-aab6-01ddb953f985";
+const BLOCKLIST_TEST_SERVICE_UUID: &str = "611c954a-263b-4f4a-aab6-01ddb953f985";
 // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.device_information.xml
-const DEVICE_INFORMATION_UUID: &'static str = "0000180a-0000-1000-8000-00805f9b34fb";
+const DEVICE_INFORMATION_UUID: &str = "0000180a-0000-1000-8000-00805f9b34fb";
 // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.generic_access.xml
-const GENERIC_ACCESS_SERVICE_UUID: &'static str = "00001800-0000-1000-8000-00805f9b34fb";
+const GENERIC_ACCESS_SERVICE_UUID: &str = "00001800-0000-1000-8000-00805f9b34fb";
 // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.glucose.xml
-const GLUCOSE_SERVICE_UUID: &'static str = "00001808-0000-1000-8000-00805f9b34fb";
+const GLUCOSE_SERVICE_UUID: &str = "00001808-0000-1000-8000-00805f9b34fb";
 // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.heart_rate.xml
-const HEART_RATE_SERVICE_UUID: &'static str = "0000180d-0000-1000-8000-00805f9b34fb";
+const HEART_RATE_SERVICE_UUID: &str = "0000180d-0000-1000-8000-00805f9b34fb";
 // https://www.bluetooth.com/specifications/gatt/
 // viewer?attributeXmlFile=org.bluetooth.service.human_interface_device.xml
-const HUMAN_INTERFACE_DEVICE_SERVICE_UUID: &'static str = "00001812-0000-1000-8000-00805f9b34fb";
+const HUMAN_INTERFACE_DEVICE_SERVICE_UUID: &str = "00001812-0000-1000-8000-00805f9b34fb";
 // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.service.tx_power.xml
-const TX_POWER_SERVICE_UUID: &'static str = "00001804-0000-1000-8000-00805f9b34fb";
+const TX_POWER_SERVICE_UUID: &str = "00001804-0000-1000-8000-00805f9b34fb";
 
 // Characteristic UUIDs
-const BLOCKLIST_EXCLUDE_READS_CHARACTERISTIC_UUID: &'static str =
-    "bad1c9a2-9a5b-4015-8b60-1579bbbf2135";
+const BLOCKLIST_EXCLUDE_READS_CHARACTERISTIC_UUID: &str = "bad1c9a2-9a5b-4015-8b60-1579bbbf2135";
 // https://www.bluetooth.com/specifications/gatt/
 // viewer?attributeXmlFile=org.bluetooth.characteristic.body_sensor_location.xml
-const BODY_SENSOR_LOCATION_CHARACTERISTIC_UUID: &'static str =
-    "00002a38-0000-1000-8000-00805f9b34fb";
+const BODY_SENSOR_LOCATION_CHARACTERISTIC_UUID: &str = "00002a38-0000-1000-8000-00805f9b34fb";
 // https://www.bluetooth.com/specifications/gatt/
 // viewer?attributeXmlFile=org.bluetooth.characteristic.gap.device_name.xml
-const DEVICE_NAME_CHARACTERISTIC_UUID: &'static str = "00002a00-0000-1000-8000-00805f9b34fb";
+const DEVICE_NAME_CHARACTERISTIC_UUID: &str = "00002a00-0000-1000-8000-00805f9b34fb";
 // https://www.bluetooth.com/specifications/gatt/
 // viewer?attributeXmlFile=org.bluetooth.characteristic.heart_rate_measurement.xml
-const HEART_RATE_MEASUREMENT_CHARACTERISTIC_UUID: &'static str =
-    "00002a37-0000-1000-8000-00805f9b34fb";
+const HEART_RATE_MEASUREMENT_CHARACTERISTIC_UUID: &str = "00002a37-0000-1000-8000-00805f9b34fb";
 // https://www.bluetooth.com/specifications/gatt/
 // viewer?attributeXmlFile=org.bluetooth.characteristic.gap.peripheral_privacy_flag.xml
-const PERIPHERAL_PRIVACY_FLAG_CHARACTERISTIC_UUID: &'static str =
-    "00002a02-0000-1000-8000-00805f9b34fb";
+const PERIPHERAL_PRIVACY_FLAG_CHARACTERISTIC_UUID: &str = "00002a02-0000-1000-8000-00805f9b34fb";
 // https://www.bluetooth.com/specifications/gatt/
 // viewer?attributeXmlFile=org.bluetooth.characteristic.serial_number_string.xml
-const SERIAL_NUMBER_STRING_UUID: &'static str = "00002a25-0000-1000-8000-00805f9b34fb";
+const SERIAL_NUMBER_STRING_UUID: &str = "00002a25-0000-1000-8000-00805f9b34fb";
 
 // Descriptor UUIDs
-const BLOCKLIST_EXCLUDE_READS_DESCRIPTOR_UUID: &'static str =
-    "aaaaaaaa-aaaa-1181-0510-810819516110";
-const BLOCKLIST_DESCRIPTOR_UUID: &'static str = "07711111-6104-0970-7011-1107105110aa";
+const BLOCKLIST_EXCLUDE_READS_DESCRIPTOR_UUID: &str = "aaaaaaaa-aaaa-1181-0510-810819516110";
+const BLOCKLIST_DESCRIPTOR_UUID: &str = "07711111-6104-0970-7011-1107105110aa";
 // https://www.bluetooth.com/specifications/gatt/
 // viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.characteristic_user_description.xml
-const CHARACTERISTIC_USER_DESCRIPTION_UUID: &'static str = "00002901-0000-1000-8000-00805f9b34fb";
+const CHARACTERISTIC_USER_DESCRIPTION_UUID: &str = "00002901-0000-1000-8000-00805f9b34fb";
 // https://www.bluetooth.com/specifications/gatt/
 // viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
-const CLIENT_CHARACTERISTIC_CONFIGURATION_UUID: &'static str =
-    "00002902-0000-1000-8000-00805f9b34fb";
+const CLIENT_CHARACTERISTIC_CONFIGURATION_UUID: &str = "00002902-0000-1000-8000-00805f9b34fb";
 // https://www.bluetooth.com/specifications/gatt/
 // viewer?attributeXmlFile=org.bluetooth.descriptor.number_of_digitals.xml
-const NUMBER_OF_DIGITALS_UUID: &'static str = "00002909-0000-1000-8000-00805f9b34fb";
+const NUMBER_OF_DIGITALS_UUID: &str = "00002909-0000-1000-8000-00805f9b34fb";
 
-const HEART_RATE_DEVICE_NAME_DESCRIPTION: &'static str = "The name of this device.";
+const HEART_RATE_DEVICE_NAME_DESCRIPTION: &str = "The name of this device.";
 
 fn generate_id() -> Uuid {
     let mut id = Uuid::nil();
@@ -130,7 +123,7 @@ fn generate_id() -> Uuid {
         id = Uuid::new_v4();
         CACHED_IDS.with(|cache| {
             if !cache.borrow().contains(&id) {
-                cache.borrow_mut().insert(id.clone());
+                cache.borrow_mut().insert(id);
                 generated = true;
             }
         });
@@ -539,7 +532,7 @@ pub fn test(manager: &mut BluetoothManager, data_set_name: String) -> Result<(),
         },
         GLUCOSE_HEART_RATE_ADAPTER => {
             set_adapter(adapter, GLUCOSE_HEART_RATE_ADAPTER.to_owned())?;
-            let _ = create_glucose_heart_rate_devices(adapter)?;
+            create_glucose_heart_rate_devices(adapter)?;
         },
         UNICODE_DEVICE_ADAPTER => {
             set_adapter(adapter, UNICODE_DEVICE_ADAPTER.to_owned())?;
@@ -561,12 +554,12 @@ pub fn test(manager: &mut BluetoothManager, data_set_name: String) -> Result<(),
                 MISSING_CHARACTERISTIC_HEART_RATE_ADAPTER.to_owned(),
             )?;
 
-            let _ = create_missing_characterisitc_heart_rate_device(adapter)?;
+            create_missing_characterisitc_heart_rate_device(adapter)?;
         },
         MISSING_DESCRIPTOR_HEART_RATE_ADAPTER => {
             set_adapter(adapter, MISSING_DESCRIPTOR_HEART_RATE_ADAPTER.to_owned())?;
 
-            let _ = create_missing_descriptor_heart_rate_device(adapter)?;
+            create_missing_descriptor_heart_rate_device(adapter)?;
         },
         HEART_RATE_ADAPTER => {
             set_adapter(adapter, HEART_RATE_ADAPTER.to_owned())?;
@@ -588,14 +581,14 @@ pub fn test(manager: &mut BluetoothManager, data_set_name: String) -> Result<(),
         TWO_HEART_RATE_SERVICES_ADAPTER => {
             set_adapter(adapter, TWO_HEART_RATE_SERVICES_ADAPTER.to_owned())?;
 
-            let _ = create_two_heart_rate_services_device(adapter)?;
+            create_two_heart_rate_services_device(adapter)?;
         },
         BLOCKLIST_TEST_ADAPTER => {
             set_adapter(adapter, BLOCKLIST_TEST_ADAPTER.to_owned())?;
 
-            let _ = create_blocklisted_device(adapter)?;
+            create_blocklisted_device(adapter)?;
         },
         _ => return Err(Box::from(WRONG_DATA_SET_ERROR.to_string())),
     }
-    return Ok(());
+    Ok(())
 }

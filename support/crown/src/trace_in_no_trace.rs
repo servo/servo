@@ -127,7 +127,7 @@ fn incorrect_no_trace<'tcx, I: Into<MultiSpan> + Copy>(
         let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
                 if let Some(pos) =
-                    get_must_not_have_traceable(sym, &cx.tcx.get_attrs_unchecked(did.did()))
+                    get_must_not_have_traceable(sym, cx.tcx.get_attrs_unchecked(did.did()))
                 {
                     let inner = substs.type_at(pos);
                     if inner.is_primitive_ty() {
@@ -169,7 +169,7 @@ impl<'tcx> LateLintPass<'tcx> for NotracePass {
             return;
         }*/
         if let hir::ItemKind::Struct(def, ..) = &item.kind {
-            for ref field in def.fields() {
+            for field in def.fields() {
                 let field_type = cx.tcx.type_of(field.def_id);
                 incorrect_no_trace(&self.symbols, cx, field_type.skip_binder(), field.span);
             }

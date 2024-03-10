@@ -31,6 +31,7 @@ use crate::platform::font_list::{
 use crate::platform::font_template::FontTemplateData;
 
 /// A list of font templates that make up a given font family.
+#[derive(Default)]
 pub struct FontTemplates {
     templates: Vec<FontTemplate>,
 }
@@ -61,10 +62,6 @@ impl SerializedFontTemplate {
 }
 
 impl FontTemplates {
-    pub fn new() -> FontTemplates {
-        FontTemplates { templates: vec![] }
-    }
-
     /// Find a font in this family that matches a given descriptor.
     pub fn find_font_for_style(
         &mut self,
@@ -214,7 +211,7 @@ impl FontCache {
                                     font_key: font_template_info.font_key,
                                 },
                             )));
-                            let _ = bytes_sender.send(&*font_template_info.font_template.bytes());
+                            let _ = bytes_sender.send(&font_template_info.font_template.bytes());
                         },
                     };
                 },
@@ -262,7 +259,7 @@ impl FontCache {
         };
 
         if !self.web_families.contains_key(&family_name) {
-            let templates = FontTemplates::new();
+            let templates = FontTemplates::default();
             self.web_families.insert(family_name.clone(), templates);
         }
 
@@ -298,7 +295,7 @@ impl FontCache {
                         FetchResponseMsg::ProcessResponseChunk(new_bytes) => {
                             trace!("@font-face {} chunk={:?}", family_name, new_bytes);
                             if *response_valid.lock().unwrap() {
-                                bytes.lock().unwrap().extend(new_bytes.into_iter())
+                                bytes.lock().unwrap().extend(new_bytes)
                             }
                         },
                         FetchResponseMsg::ProcessResponseEOF(response) => {
@@ -312,7 +309,7 @@ impl FontCache {
                                 channel_to_self.send(msg).unwrap();
                                 return;
                             }
-                            let bytes = mem::replace(&mut *bytes.lock().unwrap(), vec![]);
+                            let bytes = mem::take(&mut *bytes.lock().unwrap());
                             trace!("@font-face {} data={:?}", family_name, bytes);
                             let bytes = match fontsan::process(&bytes) {
                                 Ok(san) => san,
@@ -365,10 +362,7 @@ impl FontCache {
         self.local_families.clear();
         for_each_available_family(|family_name| {
             let family_name = LowercaseString::new(&family_name);
-            if !self.local_families.contains_key(&family_name) {
-                let templates = FontTemplates::new();
-                self.local_families.insert(family_name, templates);
-            }
+            self.local_families.entry(family_name).or_default();
         });
     }
 
@@ -443,7 +437,7 @@ impl FontCache {
 
         FontTemplateInfo {
             font_template: template,
-            font_key: font_key,
+            font_key,
         }
     }
 
@@ -454,13 +448,13 @@ impl FontCache {
     ) -> Option<FontTemplateInfo> {
         match family_descriptor.scope {
             FontSearchScope::Any => self
-                .find_font_in_web_family(&template_descriptor, &family_descriptor.name)
+                .find_font_in_web_family(template_descriptor, &family_descriptor.name)
                 .or_else(|| {
-                    self.find_font_in_local_family(&template_descriptor, &family_descriptor.name)
+                    self.find_font_in_local_family(template_descriptor, &family_descriptor.name)
                 }),
 
             FontSearchScope::Local => {
-                self.find_font_in_local_family(&template_descriptor, &family_descriptor.name)
+                self.find_font_in_local_family(template_descriptor, &family_descriptor.name)
             },
         }
         .map(|t| self.get_font_template_info(t))
@@ -489,12 +483,12 @@ impl FontCacheThread {
                 let generic_fonts = populate_generic_fonts();
 
                 let mut cache = FontCache {
-                    port: port,
+                    port,
                     channel_to_self,
                     generic_fonts,
                     local_families: HashMap::new(),
                     web_families: HashMap::new(),
-                    font_context: FontContextHandle::new(),
+                    font_context: FontContextHandle::default(),
                     core_resource_thread,
                     webrender_api,
                     webrender_fonts: HashMap::new(),
@@ -506,7 +500,7 @@ impl FontCacheThread {
             })
             .expect("Thread spawning failed");
 
-        FontCacheThread { chan: chan }
+        FontCacheThread { chan }
     }
 
     pub fn add_web_font(
@@ -621,7 +615,7 @@ impl Deref for LowercaseString {
 
     #[inline]
     fn deref(&self) -> &str {
-        &*self.inner
+        &self.inner
     }
 }
 

@@ -14,11 +14,7 @@
 'use strict';
 
 runPropertyTests('accent-color', [
-  {
-    syntax: 'currentcolor',
-    // computes to a <color>, which is not supported in level 1
-    computed: (_, result) => assert_class_string(result, 'CSSStyleValue')
-  },
+  { syntax: 'currentcolor' },
   {
     syntax: 'auto',
     // computes to a <color>, which is not supported in level 1

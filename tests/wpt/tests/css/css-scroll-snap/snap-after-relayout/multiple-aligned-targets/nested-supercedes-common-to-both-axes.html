@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="resources/common.js" ></script>
+  </head>
+  <body>
+    <style>
+      .scroller {
+        overflow: scroll;
+        width: 450px;
+        height: 450px;
+        border: solid 1px black;
+        scroll-snap-type: both mandatory;
+        position: relative;
+        resize: both;
+      }
+      .large-space {
+        height: 300vh;
+        width: 300vw;
+        position: absolute;
+      }
+      .snap {
+        scroll-snap-align: start;
+      }
+      .box {
+        width: 200px;
+        height: 200px;
+        background-color: green;
+        position: absolute;
+      }
+      .inner {
+        width: 50px;
+        height: 50px;
+        background-color: yellow;
+      }
+      #box2 {
+        top: 0px;
+        left: 100px;
+      }
+      #box3 {
+        top: 100px;
+        left: 0px;
+      }
+    </style>
+    <div class="scroller" id="scroller">
+      <div class="large-space"><div>
+      <div id="box1" class="snap box">Box 1</div>
+      <div id="box2" class="inner snap box">Box 2</div>
+      <div id="box3" class="inner snap box">Box 3</div>
+    </div>
+    <script>
+    window.onload = () => {
+      const scroller = document.getElementById("scroller");
+      const boxes = document.querySelectorAll(".snap.box");
+      function box(n) {
+        return boxes[n - 1];
+      }
+
+      promise_test(async (t) => {
+        await waitForCompositorCommit();
+
+        // Box 2 should be selected as the target in the y axis despite Box 1's
+        // being a common target in both axes because Box 2 is nested within
+        // Box 1.
+        await runScrollSnapSelectionVerificationTest(t, scroller,
+                              /*aligned_elements_x=*/[],
+                              /*aligned_elements_y=*/[box(1), box(2)],
+                              /*axis=*/ "y",
+                              /*expected_target_x=*/null,
+                              /*expected_target_y=*/box(2));
+
+        // Box 3 should be selected as the target in the x axis despite Box 1's
+        // being a common target in both axes because Box 3 is nested within
+        // Box 1.
+        await runScrollSnapSelectionVerificationTest(t, scroller,
+                              /*aligned_elements_x=*/[box(1), box(3)],
+                              /*aligned_elements_y=*/[],
+                              /*axis=*/"x",
+                              /*expected_target_x=*/box(3));
+      }, "scroller prefers nested area over area aligned in both axes.");
+    }
+  </script>
+  </body>
+</html>

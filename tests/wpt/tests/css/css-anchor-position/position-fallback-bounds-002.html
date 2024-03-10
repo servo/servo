@@ -49,23 +49,25 @@ body {
 
 #target1 {
   anchor-default: --a1;
-  position-fallback: --top-then-bottom;
+  bottom: anchor(top);
+  position-try: --bottom;
   writing-mode: vertical-rl;
 }
 #target2 {
   anchor-default: --a2;
-  position-fallback: --bottom-then-top;
+  top: anchor(bottom);
+  position-try: --top;
   writing-mode: vertical-lr;
   direction: rtl;
 }
 
-@position-fallback --top-then-bottom {
-  @try { bottom: anchor(top); }
-  @try { top: anchor(bottom); }
+@position-try --bottom {
+  bottom: auto;
+  top: anchor(bottom);
 }
-@position-fallback --bottom-then-top {
-  @try { top: anchor(bottom); }
-  @try { bottom: anchor(top); }
+@position-try --top {
+  top: auto;
+  bottom: anchor(top);
 }
 </style>
 

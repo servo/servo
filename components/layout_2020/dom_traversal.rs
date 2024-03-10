@@ -5,6 +5,7 @@
 use std::borrow::Cow;
 
 use html5ever::{local_name, LocalName};
+use log::warn;
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
@@ -27,7 +28,7 @@ pub(crate) enum WhichPseudoElement {
 /// avoid having to repeat the same arguments in argument lists.
 #[derive(Clone)]
 pub(crate) struct NodeAndStyleInfo<Node> {
-    pub node: Node,
+    pub node: Option<Node>,
     pub pseudo_element_type: Option<WhichPseudoElement>,
     pub style: ServoArc<ComputedValues>,
 }
@@ -39,7 +40,7 @@ impl<Node> NodeAndStyleInfo<Node> {
         style: ServoArc<ComputedValues>,
     ) -> Self {
         Self {
-            node,
+            node: Some(node),
             pseudo_element_type: Some(pseudo_element_type),
             style,
         }
@@ -47,7 +48,7 @@ impl<Node> NodeAndStyleInfo<Node> {
 
     pub(crate) fn new(node: Node, style: ServoArc<ComputedValues>) -> Self {
         Self {
-            node,
+            node: Some(node),
             pseudo_element_type: None,
             style,
         }
@@ -55,6 +56,14 @@ impl<Node> NodeAndStyleInfo<Node> {
 }
 
 impl<Node: Clone> NodeAndStyleInfo<Node> {
+    pub(crate) fn new_anonymous(&self, style: ServoArc<ComputedValues>) -> Self {
+        Self {
+            node: None,
+            pseudo_element_type: self.pseudo_element_type,
+            style,
+        }
+    }
+
     pub(crate) fn new_replacing_style(&self, style: ServoArc<ComputedValues>) -> Self {
         Self {
             node: self.node.clone(),
@@ -69,12 +78,17 @@ where
     Node: NodeExt<'dom>,
 {
     fn from(info: &NodeAndStyleInfo<Node>) -> Self {
+        let node = match info.node {
+            Some(node) => node,
+            None => return Self::anonymous(),
+        };
+
         let pseudo = info.pseudo_element_type.map(|pseudo| match pseudo {
             WhichPseudoElement::Before => PseudoElement::Before,
             WhichPseudoElement::After => PseudoElement::After,
         });
 
-        let threadsafe_node = info.node.to_threadsafe();
+        let threadsafe_node = node.to_threadsafe();
         let flags = match threadsafe_node.as_element() {
             Some(element) if element.is_body_element_of_html_element_root() => {
                 FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT
@@ -86,7 +100,7 @@ where
         };
 
         Self {
-            tag: Tag::new_pseudo(threadsafe_node.opaque(), pseudo),
+            tag: Some(Tag::new_pseudo(threadsafe_node.opaque(), pseudo)),
             flags,
         }
     }
@@ -302,8 +316,15 @@ impl NonReplacedContents {
     ) where
         Node: NodeExt<'dom>,
     {
+        let node = match info.node {
+            Some(node) => node,
+            None => {
+                warn!("Tried to traverse an anonymous node!");
+                return;
+            },
+        };
         match self {
-            NonReplacedContents::OfElement => traverse_children_of(info.node, context, handler),
+            NonReplacedContents::OfElement => traverse_children_of(node, context, handler),
             NonReplacedContents::OfPseudoElement(items) => {
                 traverse_pseudo_element_contents(info, context, handler, items)
             },

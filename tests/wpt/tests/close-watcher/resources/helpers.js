@@ -38,6 +38,14 @@ window.createBlessedRecordingCloseWatcher = async (t, events, name, type, parent
   return createRecordingCloseWatcher(t, events, name, type, parentWatcher);
 };
 
+window.destroyCloseWatcher = (watcher) => {
+  if (watcher instanceof HTMLElement) {
+    watcher.remove();
+  } else {
+    watcher.destroy();
+  }
+};
+
 window.sendEscKey = () => {
   // Esc is \uE00C, *not* \uu001B; see https://w3c.github.io/webdriver/#keyboard-actions.
   //
@@ -58,4 +66,10 @@ window.maybeTopLayerBless = (watcher) => {
     return blessTopLayer(watcher);
   }
   return test_driver.bless();
+};
+
+window.waitForPotentialCloseEvent = () => {
+  // CloseWatchers fire close events synchronously, but dialog elements wait
+  // for a rAF before firing them.
+  return new Promise(requestAnimationFrame);
 };

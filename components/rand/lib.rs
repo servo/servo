@@ -95,12 +95,12 @@ impl ServoRng {
     }
 }
 
-impl ServoRng {
+impl Default for ServoRng {
     /// Create an auto-reseeding instance of `ServoRng`.
     ///
     /// This uses the shared `OsRng`, so avoids consuming
     /// a file descriptor.
-    pub fn new() -> ServoRng {
+    fn default() -> Self {
         trace!("Creating new ServoRng.");
         let mut os_rng = OS_RNG.lock().expect("Poisoned lock.");
         let isaac_rng = IsaacCore::from_rng(&mut *os_rng).unwrap();
@@ -156,7 +156,7 @@ pub fn thread_rng() -> ServoThreadRng {
 }
 
 thread_local! {
-    static SERVO_THREAD_RNG: ServoThreadRng = ServoThreadRng { rng: Rc::new(RefCell::new(ServoRng::new())) };
+    static SERVO_THREAD_RNG: ServoThreadRng = ServoThreadRng { rng: Rc::new(RefCell::new(ServoRng::default())) };
 }
 
 impl RngCore for ServoThreadRng {

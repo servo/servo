@@ -230,6 +230,10 @@ svg > * {
     overflow: visible;
 }
 
+*|*::-servo-anonymous-table {
+    display: table;
+}
+
 *|*::-servo-anonymous-table-row {
     display: table-row;
     position: static;

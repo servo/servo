@@ -29,14 +29,14 @@ impl Backend for RaqoteBackend {
         color.as_raqote().a != 0
     }
 
-    fn set_shadow_color<'a>(&mut self, color: RGBA, state: &mut CanvasPaintState<'a>) {
+    fn set_shadow_color(&mut self, color: RGBA, state: &mut CanvasPaintState<'_>) {
         state.shadow_color = Color::Raqote(color.to_raqote_style());
     }
 
-    fn set_fill_style<'a>(
+    fn set_fill_style(
         &mut self,
         style: FillOrStrokeStyle,
-        state: &mut CanvasPaintState<'a>,
+        state: &mut CanvasPaintState<'_>,
         _drawtarget: &dyn GenericDrawTarget,
     ) {
         if let Some(pattern) = style.to_raqote_pattern() {
@@ -44,10 +44,10 @@ impl Backend for RaqoteBackend {
         }
     }
 
-    fn set_stroke_style<'a>(
+    fn set_stroke_style(
         &mut self,
         style: FillOrStrokeStyle,
-        state: &mut CanvasPaintState<'a>,
+        state: &mut CanvasPaintState<'_>,
         _drawtarget: &dyn GenericDrawTarget,
     ) {
         if let Some(pattern) = style.to_raqote_pattern() {
@@ -55,10 +55,10 @@ impl Backend for RaqoteBackend {
         }
     }
 
-    fn set_global_composition<'a>(
+    fn set_global_composition(
         &mut self,
         op: CompositionOrBlending,
-        state: &mut CanvasPaintState<'a>,
+        state: &mut CanvasPaintState<'_>,
     ) {
         state.draw_options.as_raqote_mut().blend_mode = op.to_raqote_style();
     }
@@ -125,9 +125,9 @@ pub struct LinearGradientPattern {
 impl LinearGradientPattern {
     fn new(start: Point2D<f32>, end: Point2D<f32>, stops: Vec<raqote::GradientStop>) -> Self {
         LinearGradientPattern {
-            gradient: raqote::Gradient { stops: stops },
-            start: start,
-            end: end,
+            gradient: raqote::Gradient { stops },
+            start,
+            end,
         }
     }
 }
@@ -150,11 +150,11 @@ impl RadialGradientPattern {
         stops: Vec<raqote::GradientStop>,
     ) -> Self {
         RadialGradientPattern {
-            gradient: raqote::Gradient { stops: stops },
-            center1: center1,
-            radius1: radius1,
-            center2: center2,
-            radius2: radius2,
+            gradient: raqote::Gradient { stops },
+            center1,
+            radius1,
+            center2,
+            radius2,
         }
     }
 }
@@ -177,10 +177,10 @@ impl<'a> SurfacePattern<'a> {
             },
         };
         SurfacePattern {
-            image: image,
-            filter: filter,
-            extend: extend,
-            repeat: repeat,
+            image,
+            filter,
+            extend,
+            repeat,
             transform: Transform2D::identity(),
         }
     }
@@ -389,7 +389,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
     fn create_gradient_stops(&self, gradient_stops: Vec<GradientStop>) -> GradientStops {
         let mut stops = gradient_stops
             .into_iter()
-            .map(|item| item.as_raqote().clone())
+            .map(|item| *item.as_raqote())
             .collect::<Vec<raqote::GradientStop>>();
         // https://www.w3.org/html/test/results/2dcontext/annotated-spec/canvas.html#testrefs.2d.gradient.interpolate.overlap
         stops.sort_by(|a, b| a.position.partial_cmp(&b.position).unwrap());
@@ -492,7 +492,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
             raqote::BlendMode::SrcOut |
             raqote::BlendMode::DstIn |
             raqote::BlendMode::DstAtop => {
-                let mut options = draw_options.as_raqote().clone();
+                let mut options = *draw_options.as_raqote();
                 self.push_layer_with_blend(1., options.blend_mode);
                 options.blend_mode = raqote::BlendMode::SrcOver;
                 self.fill(path.as_raqote(), &pattern.source(), &options);
@@ -654,22 +654,17 @@ impl GenericDrawTarget for raqote::DrawTarget {
     #[allow(unsafe_code)]
     fn snapshot_data(&self, f: &dyn Fn(&[u8]) -> Vec<u8>) -> Vec<u8> {
         let v = self.get_data();
-        f(unsafe {
-            std::slice::from_raw_parts(
-                v.as_ptr() as *const u8,
-                v.len() * std::mem::size_of::<u32>(),
-            )
-        })
+        f(
+            unsafe {
+                std::slice::from_raw_parts(v.as_ptr() as *const u8, std::mem::size_of_val(v))
+            },
+        )
     }
     #[allow(unsafe_code)]
     fn snapshot_data_owned(&self) -> Vec<u8> {
         let v = self.get_data();
         unsafe {
-            std::slice::from_raw_parts(
-                v.as_ptr() as *const u8,
-                v.len() * std::mem::size_of::<u32>(),
-            )
-            .into()
+            std::slice::from_raw_parts(v.as_ptr() as *const u8, std::mem::size_of_val(v)).into()
         }
     }
 }

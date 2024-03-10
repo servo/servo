@@ -36,7 +36,7 @@ const XI_LINE_BREAKING_CLASS_ZW: u8 = 28;
 const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
 const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 40;
 
-/// https://www.w3.org/TR/css-display-3/#css-text-run
+/// <https://www.w3.org/TR/css-display-3/#css-text-run>
 #[derive(Debug, Serialize)]
 pub(crate) struct TextRun {
     pub base_fragment_info: BaseFragmentInfo,
@@ -76,7 +76,7 @@ enum SegmentStartSoftWrapPolicy {
 
 #[derive(Debug, Serialize)]
 pub(crate) struct TextRunSegment {
-    /// The index of this font in the parent [`InlineFormattingContext`]'s collection of font
+    /// The index of this font in the parent [`super::InlineFormattingContext`]'s collection of font
     /// information.
     pub font_index: usize,
 
@@ -450,7 +450,7 @@ impl TextRun {
 /// Whether or not this character will rpevent a soft wrap opportunity when it
 /// comes before or after an atomic inline element.
 ///
-/// From https://www.w3.org/TR/css-text-3/#line-break-details:
+/// From <https://www.w3.org/TR/css-text-3/#line-break-details>:
 ///
 /// > For Web-compatibility there is a soft wrap opportunity before and after each
 /// > replaced element or other atomic inline, even when adjacent to a character that
@@ -524,7 +524,7 @@ pub struct WhitespaceCollapse<InputIterator> {
     white_space: WhiteSpace,
 
     /// Whether or not we should collapse white space completely at the start of the string.
-    /// This is true when the last character handled in our owning [`InlineFormattingContext`]
+    /// This is true when the last character handled in our owning [`super::InlineFormattingContext`]
     /// was collapsible white space.
     remove_collapsible_white_space_at_start: bool,
 

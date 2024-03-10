@@ -59,8 +59,13 @@
             let scroller = iframe.contentDocument.getElementById("scroller");
             assert_equals(boxes.length, 9);
             await runScrollSnapSelectionVerificationTest(t, scroller,
-              [box(box_number), box(other_box_1), box(other_box_2)],
-              box(box_number), "y");
+                /*aligned_elements_x=*/[],
+                /*aligned_elements_y=*/[box(box_number),
+                                        box(other_box_1),
+                                        box(other_box_2)],
+                /*axis=*/"y",
+                /*expected_target_x*/null,
+                /*expected_target_y*/box(box_number));
 
             // Let scroller no longer be a scroll container.
             scroller.style.overflow = "visible";
@@ -71,8 +76,13 @@
 
             // Run the test again.
             await runScrollSnapSelectionVerificationTest(t, scroller,
-              [box(box_number), box(other_box_1), box(other_box_2)],
-              box(box_number), "y");
+                /*aligned_elements_x=*/[],
+                /*aligned_elements_y=*/[box(box_number),
+                                        box(other_box_1),
+                                        box(other_box_2)],
+                /*axis=*/"y",
+                /*expected_target_x*/null,
+                /*expected_target_y*/box(box_number));
 
             finish();
           };

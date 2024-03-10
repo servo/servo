@@ -36,8 +36,11 @@
             // There are 5 aligned boxes in positioned-target-iframe.html.
             assert_equals(boxes.length, 5);
             await runScrollSnapSelectionVerificationTest(t, scroller,
-              [box(1), box(2), box(3), box(4), box(5)],
-              box(target_number), "y");
+              /*aligned_elements_x=*/[],
+              /*aligned_elements_y=*/[box(1), box(2), box(3), box(4), box(5)],
+              /*axis=*/"y",
+              /*expected_target_x*/null,
+              /*expected_target_x*/box(target_number));
 
             // Let scroller no longer be a scroll container.
             scroller.style.overflow = "visible";
@@ -48,8 +51,11 @@
 
             // Run the test again.
             await runScrollSnapSelectionVerificationTest(t, scroller,
-              [box(1), box(2), box(3), box(4), box(5)],
-              box(target_number), "y");
+              /*aligned_elements_x=*/[],
+              /*aligned_elements_y=*/[box(1), box(2), box(3), box(4), box(5)],
+              /*axis=*/"y",
+              /*expected_target_x*/null,
+              /*expected_target_x*/box(target_number));
             finish();
           };
           iframe.src = `positioned-target-iframe.html#target${target_number}`;

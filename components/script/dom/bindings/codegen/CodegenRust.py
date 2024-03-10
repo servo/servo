@@ -6101,38 +6101,12 @@ let this = native_from_object_static::<%s>(obj).unwrap();
 
 
 def finalizeHook(descriptor, hookName, context):
-    release = ""
     if descriptor.isGlobal():
-        release += """\
-finalize_global(obj);
-"""
+        release = "finalize_global(obj, this);"
     elif descriptor.weakReferenceable:
-        release += """\
-let mut slot = UndefinedValue();
-JS_GetReservedSlot(obj, DOM_WEAK_SLOT, &mut slot);
-let weak_box_ptr = slot.to_private() as *mut WeakBox<%s>;
-if !weak_box_ptr.is_null() {
-    let count = {
-        let weak_box = &*weak_box_ptr;
-        assert!(weak_box.value.get().is_some());
-        assert!(weak_box.count.get() > 0);
-        weak_box.value.set(None);
-        let count = weak_box.count.get() - 1;
-        weak_box.count.set(count);
-        count
-    };
-    if count == 0 {
-        mem::drop(Box::from_raw(weak_box_ptr));
-    }
-}
-""" % descriptor.concreteType
-    release += """\
-if !this.is_null() {
-    // The pointer can be null if the object is the unforgeable holder of that interface.
-    let _ = Box::from_raw(this as *mut %s);
-}
-debug!("%s finalize: {:p}", this);\
-""" % (descriptor.concreteType, descriptor.concreteType)
+        release = "finalize_weak_referenceable(obj, this);"
+    else:
+        release = "finalize_common(this);"
     return release
 
 
@@ -6569,7 +6543,9 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::utils::ProtoOrIfaceArray',
         'crate::dom::bindings::utils::callargs_is_constructing',
         'crate::dom::bindings::utils::enumerate_global',
-        'crate::dom::bindings::utils::finalize_global',
+        'crate::dom::bindings::finalize::finalize_common',
+        'crate::dom::bindings::finalize::finalize_global',
+        'crate::dom::bindings::finalize::finalize_weak_referenceable',
         'crate::dom::bindings::utils::generic_getter',
         'crate::dom::bindings::utils::generic_lenient_getter',
         'crate::dom::bindings::utils::generic_lenient_setter',
