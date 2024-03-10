@@ -189,12 +189,20 @@ let inputAIndex = 0;
 let inputBIndex = 0;
 let context, builder;
 
+test(() => assert_not_equals(navigator.ml, undefined, "ml property is defined on navigator"));
+
 promise_setup(async () => {
+  if (navigator.ml === undefined) {
+    return;
+  }
   context = await navigator.ml.createContext();
   builder = new MLGraphBuilder(context);
 }, {explicit_timeout: true});
 
 function validateTwoInputsBroadcastable(operationName) {
+  if (navigator.ml === undefined) {
+    return;
+  }
   promise_test(async t => {
     for (let dataType of allWebNNOperandDataTypes) {
       for (let dimensions of allWebNNDimensionsArray) {
@@ -213,6 +221,9 @@ function validateTwoInputsBroadcastable(operationName) {
 }
 
 function validateTwoInputsOfSameDataType(operationName) {
+  if (navigator.ml === undefined) {
+    return;
+  }
   let operationNameArray;
   if (typeof operationName === 'string') {
     operationNameArray = [operationName];
@@ -245,6 +256,9 @@ function validateTwoInputsOfSameDataType(operationName) {
  * @param {Number} [inputRank]
  */
 function validateOptionsAxes(operationName, inputRank) {
+  if (navigator.ml === undefined) {
+    return;
+  }
   let operationNameArray;
   if (typeof operationName === 'string') {
     operationNameArray = [operationName];

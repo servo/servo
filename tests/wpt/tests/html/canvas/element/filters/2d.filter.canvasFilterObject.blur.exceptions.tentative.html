@@ -8,7 +8,7 @@
 <body class="show_output">
 
 <h1>2d.filter.canvasFilterObject.blur.exceptions.tentative</h1>
-<p class="desc">Test exceptions on CanvasFilter() blur.object</p>
+<p class="desc">Test exceptions on gaussianBlur filter</p>
 
 
 <p class="output">Actual output:</p>
@@ -16,15 +16,21 @@
 
 <ul id="d"></ul>
 <script>
-var t = async_test("Test exceptions on CanvasFilter() blur.object");
+var t = async_test("Test exceptions on gaussianBlur filter");
 _addTest(function(canvas, ctx) {
 
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur'}); });
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: undefined}); });
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: 'foo'}); });
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: [1,2,3]}); });
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: NaN}); });
-  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter({name: 'gaussianBlur', stdDeviation: {}}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter(
+    {name: 'gaussianBlur'}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter(
+    {name: 'gaussianBlur', stdDeviation: undefined}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter(
+    {name: 'gaussianBlur', stdDeviation: 'foo'}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter(
+    {name: 'gaussianBlur', stdDeviation: [1,2,3]}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter(
+    {name: 'gaussianBlur', stdDeviation: NaN}); });
+  assert_throws_js(TypeError, function() { ctx.filter = new CanvasFilter(
+    {name: 'gaussianBlur', stdDeviation: {}}); });
 
 });
 </script>

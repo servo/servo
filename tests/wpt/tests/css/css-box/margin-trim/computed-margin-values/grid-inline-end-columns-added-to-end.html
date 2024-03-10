@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-grid">
+<meta name="assert" content="spanning grid item adds columns to implicit grid and should be trimmed">
+<style>
+grid {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    outline: 1px solid black;
+    margin-trim: inline-end;
+}
+item {
+    display: block;
+    height: 50px;
+}
+.span-three {
+    grid-column: span 3;
+}
+.locked-position {
+    grid-row: 1;
+    grid-column: 2;
+}
+item:nth-child(1) {
+    background-color: aqua;
+    margin-inline-end: 10px;
+}
+item:nth-child(2) {
+    background-color: blueviolet;
+    margin-inline-end: 30%;
+}
+item:nth-child(3) {
+    background-color: blue;
+    margin-inline-end: -30px;
+}
+item:nth-child(4) {
+    background-color: coral;
+    margin-inline-end: 10px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('grid > item')">
+    <div id="target">
+        <grid>
+            <item class="locked-position" data-expected-margin-right="10"></item>
+            <item class="span-three"></item>
+        </grid>
+    </div>
+</body>
+</html>

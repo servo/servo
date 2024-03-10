@@ -53,14 +53,14 @@
 
   test(function () {
     assert_false(invoker.hasAttribute("invokeaction"));
-    assert_equals(invoker.invokeAction, "auto");
-  }, "invokeAction reflects 'auto' when attribute not present");
+    assert_equals(invoker.invokeAction, "");
+  }, "invokeAction reflects '' when attribute not present");
 
   test(function () {
     invoker.setAttribute("invokeaction", "");
     assert_equals(invoker.getAttribute("invokeaction"), "");
-    assert_equals(invoker.invokeAction, "auto");
-  }, "invokeAction reflects 'auto' when attribute empty");
+    assert_equals(invoker.invokeAction, "");
+  }, "invokeAction reflects '' when attribute empty, setAttribute version");
 
   test(function () {
     invoker.invokeAction = "fooBarBaz";
@@ -71,8 +71,8 @@
   test(function () {
     invoker.invokeAction = "";
     assert_equals(invoker.getAttribute("invokeaction"), "");
-    assert_equals(invoker.invokeAction, "auto");
-  }, "invokeAction reflects 'auto' when attribute empty 2");
+    assert_equals(invoker.invokeAction, "");
+  }, "invokeAction reflects '' when attribute empty, IDL version");
 
   test(function () {
     invoker.invokeAction = [1, 2, 3];
@@ -83,8 +83,8 @@
   test(function () {
     invoker.invokeAction = [];
     assert_equals(invoker.getAttribute("invokeaction"), "");
-    assert_equals(invoker.invokeAction, "auto");
-  }, "invokeAction reflects 'auto' when attribute set to []");
+    assert_equals(invoker.invokeAction, "");
+  }, "invokeAction reflects '' when attribute set to []");
 
   test(function () {
     invoker.invokeAction = {};

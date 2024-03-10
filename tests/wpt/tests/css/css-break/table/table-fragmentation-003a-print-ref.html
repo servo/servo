@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1863421">
+
+<style>
+@page { size: 5in 3in; margin: 0.5in; }
+body { margin: 0; }
+
+.table {
+  inline-size: 3in;
+  box-sizing: border-box;
+  border: 0.25in solid black;
+  padding: 0.25in;
+}
+.thead {
+  block-size: 0.25in;
+  background: blue;
+}
+.tbody {
+  border: 0 solid orange;
+  margin-block: 0.125in;
+  background: gold;
+}
+.tfoot {
+  block-size: 0.25in;
+  background: purple;
+}
+</style>
+
+<div class="table">
+  <!-- Page 1 -->
+  <div class="thead"></div>
+  <div class="tbody" style="border-block-start-width: 0.25in; block-size: 0.5in;"></div>
+  <div class="tfoot"></div>
+
+  <!-- Page 2 -->
+  <div class="thead"></div>
+  <div class="tbody" style="block-size: 1.25in;"></div>
+  <div class="tfoot"></div>
+
+  <!-- Page 3 -->
+  <div class="thead"></div>
+  <div class="tbody" style="border-block-end-width: 0.25in; block-size: 0.25in;"></div>
+  <div class="tfoot"></div>
+</div>

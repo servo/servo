@@ -184,3 +184,26 @@ promise_test(async (t) => {
   await promise_rejects_js(t, TypeError, fetch(url, { method, body, duplex }));
 }, "Streaming upload should fail on a 401 response");
 
+promise_test(async (t) => {
+  const abortMessage = 'foo abort';
+  let streamCancelPromise = new Promise(async res => {
+    var stream = new ReadableStream({
+      cancel: function(reason) {
+        res(reason);
+      }
+    });
+    let abortController = new AbortController();
+    let fetchPromise = promise_rejects_exactly(t, abortMessage, fetch('', {
+                                                 method: 'POST',
+                                                 body: stream,
+                                                 duplex: 'half',
+                                                 signal: abortController.signal
+                                               }));
+    abortController.abort(abortMessage);
+    await fetchPromise;
+  });
+
+  let cancelReason = await streamCancelPromise;
+  assert_equals(
+      cancelReason, abortMessage, 'ReadableStream.cancel should be called.');
+}, 'ReadbleStream should be closed on signal.abort');

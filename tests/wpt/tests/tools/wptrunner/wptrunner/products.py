@@ -39,22 +39,11 @@ class Product:
             cls = getattr(module, cls_name)
             self.executor_classes[test_type] = cls
 
+        self.update_properties = (getattr(module, data["update_properties"])()
+                                  if "update_properties" in data else (["product"], {}))
+
+
     def get_browser_cls(self, test_type):
         if test_type in self._browser_cls:
             return self._browser_cls[test_type]
         return self._browser_cls[None]
-
-
-def load_product_update(config, product):
-    """Return tuple of (property_order, boolean_properties) indicating the
-    run_info properties to use when constructing the expectation data for
-    this product. None for either key indicates that the default keys
-    appropriate for distinguishing based on platform will be used."""
-
-    module = product_module(config, product)
-    data = module.__wptrunner__
-
-    update_properties = (getattr(module, data["update_properties"])()
-                         if "update_properties" in data else (["product"], {}))
-
-    return update_properties

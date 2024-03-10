@@ -8,23 +8,11 @@ function checkBodyText(test, request) {
   });
 }
 
-function checkBodyBlob(test, request) {
-  return request.blob().then(function(bodyAsBlob) {
-    var promise = new Promise(function(resolve, reject) {
-      var reader = new FileReader();
-      reader.onload = function(evt) {
-        resolve(reader.result)
-      };
-      reader.onerror = function() {
-        reject("Blob's reader failed");
-      };
-      reader.readAsText(bodyAsBlob);
-    });
-    return promise.then(function(body) {
-      assert_equals(body, "", "Resolved value should be empty");
-      assert_false(request.bodyUsed);
-    });
-  });
+async function checkBodyBlob(test, request) {
+  const bodyAsBlob = await request.blob();
+  const body = await bodyAsBlob.text();
+  assert_equals(body, "", "Resolved value should be empty");
+  assert_false(request.bodyUsed);
 }
 
 function checkBodyArrayBuffer(test, request) {

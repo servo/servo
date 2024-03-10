@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<title>link rel=expect: only connected elements are eligible</title>
+
+<link rel=expect href="#second" blocking="render">
+<script>
+async_test((t) => {
+  requestAnimationFrame(() => {
+    t.step(() => assert_true(!!document.getElementById("second"), "The second element should be there"));
+    t.step(() => assert_false(!!document.getElementById("last"), "The last element should not be there yet, even though it's created (in a shadow root)"));
+    t.done();
+  });
+}, "");
+</script>
+</head>
+<body>
+  <div id="first"></div>
+  <script>
+          generateParserDelay();
+  </script>
+  <div id="second">
+    <custom-element>
+      <template shadowrootmode="open">
+        <div id="last"></div>
+      </template>
+    </custom-element>
+  </div>
+  <script>
+          generateParserDelay();
+  </script>
+  <div id="last"></div>
+</body>

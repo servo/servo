@@ -7,7 +7,6 @@ from tests.support.sync import AsyncPoll
 from .. import (
     assert_response_event,
     AUTH_REQUIRED_EVENT,
-    PAGE_EMPTY_TEXT,
     RESPONSE_COMPLETED_EVENT,
 )
 
@@ -15,7 +14,7 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_cancel(
-    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, url
+    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, wait_for_future_safe
 ):
     request = await setup_blocked_request("authRequired")
     await subscribe_events(events=[RESPONSE_COMPLETED_EVENT])
@@ -24,7 +23,7 @@ async def test_cancel(
     await bidi_session.network.continue_with_auth(request=request, action="cancel")
     await on_response_completed
 
-    response_event = await on_response_completed
+    response_event = await wait_for_future_safe(on_response_completed)
     assert_response_event(
         response_event,
         expected_response={
@@ -35,7 +34,7 @@ async def test_cancel(
 
 
 async def test_default(
-    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, url
+    setup_blocked_request, subscribe_events, bidi_session
 ):
     request = await setup_blocked_request("authRequired")
 
@@ -64,7 +63,7 @@ async def test_default(
 
 
 async def test_provideCredentials(
-    setup_blocked_request, subscribe_events, bidi_session, url
+    setup_blocked_request, subscribe_events, bidi_session
 ):
     # Setup unique username / password because browsers cache credentials.
     username = "test_provideCredentials"
@@ -101,7 +100,7 @@ async def test_provideCredentials(
 
 
 async def test_provideCredentials_wrong_credentials(
-    setup_blocked_request, subscribe_events, bidi_session, wait_for_event, url
+    setup_blocked_request, subscribe_events, bidi_session, wait_for_event, wait_for_future_safe
 ):
     # Setup unique username / password because browsers cache credentials.
     username = "test_provideCredentials_wrong_credentials"
@@ -129,7 +128,7 @@ async def test_provideCredentials_wrong_credentials(
     )
 
     # We expect to get another authRequired event after providing wrong credentials
-    await on_auth_required
+    await wait_for_future_safe(on_auth_required)
 
     # Continue with the correct credentials
     correct_credentials = AuthCredentials(username=username, password=password)

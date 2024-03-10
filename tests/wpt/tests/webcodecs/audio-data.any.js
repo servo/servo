@@ -2,19 +2,20 @@
 // META: script=/common/media.js
 // META: script=/webcodecs/utils.js
 
-var defaultInit =
-    {
-      timestamp: 1234,
-      channels: 2,
-      sampleRate: 8000,
-      frames: 100,
-    }
+var defaultInit = {
+  timestamp: 1234,
+  channels: 2,
+  sampleRate: 8000,
+  frames: 100,
+};
 
-function
-createDefaultAudioData() {
+function createDefaultAudioData() {
   return make_audio_data(
-      defaultInit.timestamp, defaultInit.channels, defaultInit.sampleRate,
-      defaultInit.frames);
+    defaultInit.timestamp,
+    defaultInit.channels,
+    defaultInit.sampleRate,
+    defaultInit.frames
+  );
 }
 
 test(t => {
@@ -128,230 +129,302 @@ test(t => {
   data.close();
 }, 'Test we can construct AudioData with a negative timestamp.');
 
-
-// Each test vector represents two channels of data in the following arbitrary
-// layout: <min, zero, max, min, max / 2, min / 2, zero, max, zero, zero>.
-const testVectorFrames = 5;
-const testVectorChannels = 2;
-const testVectorInterleavedResult =
-    [[-1.0, 1.0, 0.5, 0.0, 0.0], [0.0, -1.0, -0.5, 1.0, 0.0]];
-const testVectorPlanarResult =
-    [[-1.0, 0.0, 1.0, -1.0, 0.5], [-0.5, 0.0, 1.0, 0.0, 0.0]];
-
 test(t => {
-  const INT8_MIN = (-0x7f - 1);
-  const INT8_MAX = 0x7f;
-  const UINT8_MAX = 0xff;
+  let audio_data_init = {
+    timestamp: 0,
+    data: new Float32Array([1,2,3,4,5,6,7,8]),
+    numberOfFrames: 4,
+    numberOfChannels: 2,
+    sampleRate: 44100,
+    format: 'f32',
+  };
+  let audioData = new AudioData(audio_data_init);
+  let dest = new Float32Array(8);
+  assert_throws_js(
+      RangeError, () => audioData.copyTo(dest, {planeIndex: 1}),
+      'copyTo from interleaved data with non-zero planeIndex throws');
+  audioData.close();
+}, 'Test that copyTo throws if copying from interleaved with a non-zero planeIndex');
 
-  const testVectorUint8 = [
-    0, -INT8_MIN, UINT8_MAX, 0, INT8_MAX / 2 + 128, INT8_MIN / 2 + 128,
-    -INT8_MIN, UINT8_MAX, -INT8_MIN, -INT8_MIN
-  ];
+// Indices to pick a particular specific value in a specific sample-format
+const MIN = 0; // Minimum sample value, max amplitude
+const MAX = 1; // Maximum sample value, max amplitude
+const HALF = 2; // Half the maximum sample value, positive
+const NEGATIVE_HALF = 3; // Half the maximum sample value, negative
+const BIAS = 4; // Center of the range, silence
+const DISCRETE_STEPS = 5; // Number of different value for a type.
 
-  let data = new AudioData({
-    timestamp: defaultInit.timestamp,
-    data: new Uint8Array(testVectorUint8),
-    numberOfFrames: testVectorFrames,
-    numberOfChannels: testVectorChannels,
-    sampleRate: defaultInit.sampleRate,
-    format: 'u8'
+function pow2(p) {
+  return 2 ** p;
+}
+// Rounding operations for conversion, currently always floor (round towards
+// zero).
+let r = Math.floor.bind(this);
+
+const TEST_VALUES = {
+  u8: [0, 255, 191, 64, 128, 256],
+  s16: [
+    -pow2(15),
+    pow2(15) - 1,
+    r((pow2(15) - 1) / 2),
+    r(-pow2(15) / 2),
+    0,
+    pow2(16),
+  ],
+  s32: [
+    -pow2(31),
+    pow2(31) - 1,
+    r((pow2(31) - 1) / 2),
+    r(-pow2(31) / 2),
+    0,
+    pow2(32),
+  ],
+  f32: [-1.0, 1.0, 0.5, -0.5, 0, pow2(24)],
+};
+
+const TEST_TEMPLATE = {
+  channels: 2,
+  frames: 5,
+  // Each test is run with an element of the cartesian product of a pair of
+  // elements of the set of type in [u8, s16, s32, f32]
+  // For each test, this template is copied and the values replaced with the
+  // appropriate values for this particular type.
+  // For each test, copy this template and replace the number by the appropriate
+  // number for this type
+  testInput: [MIN, BIAS, MAX, MIN, HALF, NEGATIVE_HALF, BIAS, MAX, BIAS, BIAS],
+  testVectorInterleavedResult: [
+    [MIN, MAX, HALF, BIAS, BIAS],
+    [BIAS, MIN, NEGATIVE_HALF, MAX, BIAS],
+  ],
+  testVectorPlanarResult: [
+    [MIN, BIAS, MAX, MIN, HALF],
+    [NEGATIVE_HALF, BIAS, MAX, BIAS, BIAS],
+  ],
+};
+
+function isInteger(type) {
+  switch (type) {
+    case "u8":
+    case "s16":
+    case "s32":
+      return true;
+    case "f32":
+      return false;
+    default:
+      throw "invalid type";
+  }
+}
+
+// This is the complex part: carefully select an acceptable error value
+// depending on various factors: expected destination value, source type,
+// destination type. This is designed to be strict but reachable with simple
+// sample format transformation (no dithering or complex transformation).
+function epsilon(expectedDestValue, sourceType, destType) {
+  // Strict comparison if not converting
+  if (sourceType == destType) {
+    return 0.0;
+  }
+  // There are three cases in which the maximum value cannot be reached, when
+  // converting from a smaller integer sample type to a wider integer sample
+  // type:
+  // - u8 to s16
+  // - u8 to s32
+  // - s16 to u32
+  if (expectedDestValue == TEST_VALUES[destType][MAX]) {
+    if (sourceType == "u8" && destType == "s16") {
+      return expectedDestValue - 32511; // INT16_MAX - 2 << 7 + 1
+    } else if (sourceType == "u8" && destType == "s32") {
+      return expectedDestValue - 2130706432; // INT32_MAX - (2 << 23) + 1
+    } else if (sourceType == "s16" && destType == "s32") {
+      return expectedDestValue - 2147418112; // INT32_MAX - UINT16_MAX
+    }
+  }
+  // Min and bias value are correctly mapped for all integer sample-types
+  if (isInteger(sourceType) && isInteger(destType)) {
+    if (expectedDestValue == TEST_VALUES[destType][MIN] ||
+        expectedDestValue == TEST_VALUES[destType][BIAS]) {
+      return 0.0;
+    }
+  }
+  // If converting from float32 to u8 or s16, allow choosing the rounding
+  // direction. s32 has higher resolution than f32 in [-1.0,1.0] (24 bits of
+  // mantissa)
+  if (!isInteger(sourceType) && isInteger(destType) && destType != "s32") {
+    return 1.0;
+  }
+  // In all other cases, expect an accuracy that depends on the source type and
+  // the destination type.
+  // The resolution of the source type.
+  var sourceResolution = TEST_VALUES[sourceType][DISCRETE_STEPS];
+  // The resolution of the destination type.
+  var destResolution = TEST_VALUES[destType][DISCRETE_STEPS];
+  // Computations should be exact if going from high resolution to low resolution.
+  if (sourceResolution > destResolution) {
+    return 0.0;
+  } else {
+    // Something that approaches the precision imbalance
+    return destResolution / sourceResolution;
+  }
+}
+
+// Fill the template above with the values for a particular type
+function get_type_values(type) {
+  let cloned = structuredClone(TEST_TEMPLATE);
+  cloned.testInput = Array.from(
+    cloned.testInput,
+    idx => TEST_VALUES[type][idx]
+  );
+  cloned.testVectorInterleavedResult = Array.from(
+    cloned.testVectorInterleavedResult,
+    c => {
+      return Array.from(c, idx => {
+        return TEST_VALUES[type][idx];
+      });
+    }
+  );
+  cloned.testVectorPlanarResult = Array.from(
+    cloned.testVectorPlanarResult,
+    c => {
+      return Array.from(c, idx => {
+        return TEST_VALUES[type][idx];
+      });
+    }
+  );
+  return cloned;
+}
+
+function typeToArrayType(type) {
+  switch (type) {
+    case "u8":
+      return Uint8Array;
+    case "s16":
+      return Int16Array;
+    case "s32":
+      return Int32Array;
+    case "f32":
+      return Float32Array;
+    default:
+      throw "Unexpected";
+  }
+}
+
+function arrayTypeToType(array) {
+  switch (array.constructor) {
+    case Uint8Array:
+      return "u8";
+    case Int16Array:
+      return "s16";
+    case Int32Array:
+      return "s32";
+    case Float32Array:
+      return "f32";
+    default:
+      throw "Unexpected";
+  }
+}
+
+function check_array_equality(values, expected, sourceType, message, assert_func) {
+  if (values.length != expected.length) {
+    throw "Array not of the same length";
+  }
+  for (var i = 0; i < values.length; i++) {
+    var eps = epsilon(expected[i], sourceType, arrayTypeToType(values));
+    assert_func(
+      Math.abs(expected[i] - values[i]) <= eps,
+      `Got ${values[i]} but expected result ${
+        expected[i]
+      } at index ${i} when converting from ${sourceType} to ${arrayTypeToType(
+        values
+      )}, epsilon ${eps}`
+    );
+  }
+  assert_func(
+    true,
+    `${values} is equal to ${expected} when converting from ${sourceType} to ${arrayTypeToType(
+      values
+    )}`
+  );
+}
+
+function conversionTest(sourceType, destinationType) {
+  test(function (t) {
+    var test = get_type_values(sourceType);
+    var result = get_type_values(destinationType);
+
+    var sourceArrayCtor = typeToArrayType(sourceType);
+    var destArrayCtor = typeToArrayType(destinationType);
+
+    let data = new AudioData({
+      timestamp: defaultInit.timestamp,
+      data: new sourceArrayCtor(test.testInput),
+      numberOfFrames: test.frames,
+      numberOfChannels: test.channels,
+      sampleRate: defaultInit.sampleRate,
+      format: sourceType,
+    });
+
+    // All conversions can be supported, but conversion of any type to f32-planar
+    // MUST be supported.
+    var assert_func = destinationType == "f32" ? assert_true : assert_implements_optional;
+    let dest = new destArrayCtor(data.numberOfFrames);
+    data.copyTo(dest, { planeIndex: 0, format: destinationType + "-planar" });
+    check_array_equality(
+      dest,
+      result.testVectorInterleavedResult[0],
+      sourceType,
+      "interleaved channel 0",
+      assert_func
+    );
+    data.copyTo(dest, { planeIndex: 1, format: destinationType + "-planar" });
+    check_array_equality(
+      dest,
+      result.testVectorInterleavedResult[1],
+      sourceType,
+      "interleaved channel 0",
+      assert_func
+    );
+    let destInterleaved = new destArrayCtor(data.numberOfFrames * data.numberOfChannels);
+    data.copyTo(destInterleaved, { planeIndex: 0, format: destinationType });
+    check_array_equality(
+      destInterleaved,
+      result.testInput,
+      sourceType,
+      "copyTo from interleaved to interleaved (conversion only)",
+      assert_implements_optional
+    );
+
+    data = new AudioData({
+      timestamp: defaultInit.timestamp,
+      data: new sourceArrayCtor(test.testInput),
+      numberOfFrames: test.frames,
+      numberOfChannels: test.channels,
+      sampleRate: defaultInit.sampleRate,
+      format: sourceType + "-planar",
+    });
+
+    data.copyTo(dest, { planeIndex: 0, format: destinationType + "-planar" });
+    check_array_equality(
+      dest,
+      result.testVectorPlanarResult[0],
+      sourceType,
+      "planar channel 0",
+      assert_func,
+    );
+    data.copyTo(dest, { planeIndex: 1, format: destinationType + "-planar" });
+    check_array_equality(
+      dest,
+      result.testVectorPlanarResult[1],
+      sourceType,
+      "planar channel 1",
+      assert_func
+    );
+    // Planar to interleaved isn't supported
+  }, `Test conversion of ${sourceType} to ${destinationType}`);
+}
+
+const TYPES = ["u8", "s16", "s32", "f32"];
+ TYPES.forEach(sourceType => {
+   TYPES.forEach(destinationType => {
+    conversionTest(sourceType, destinationType);
   });
-
-  const epsilon = 1.0 / (UINT8_MAX - 1);
-
-  let dest = new Float32Array(data.numberOfFrames);
-  data.copyTo(dest, {planeIndex: 0, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorInterleavedResult[0], epsilon, 'interleaved channel 0');
-  data.copyTo(dest, {planeIndex: 1, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorInterleavedResult[1], epsilon, 'interleaved channel 1');
-
-  data = new AudioData({
-    timestamp: defaultInit.timestamp,
-    data: new Uint8Array(testVectorUint8),
-    numberOfFrames: testVectorFrames,
-    numberOfChannels: testVectorChannels,
-    sampleRate: defaultInit.sampleRate,
-    format: 'u8-planar'
-  });
-
-  data.copyTo(dest, {planeIndex: 0, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorPlanarResult[0], epsilon, 'planar channel 0');
-  data.copyTo(dest, {planeIndex: 1, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorPlanarResult[1], epsilon, 'planar channel 1');
-}, 'Test conversion of uint8 data to float32');
-
-test(t => {
-  const INT16_MIN = (-0x7fff - 1);
-  const INT16_MAX = 0x7fff;
-  const testVectorInt16 = [
-    INT16_MIN, 0, INT16_MAX, INT16_MIN, INT16_MAX / 2, INT16_MIN / 2, 0,
-    INT16_MAX, 0, 0
-  ];
-
-  let data = new AudioData({
-    timestamp: defaultInit.timestamp,
-    data: new Int16Array(testVectorInt16),
-    numberOfFrames: testVectorFrames,
-    numberOfChannels: testVectorChannels,
-    sampleRate: defaultInit.sampleRate,
-    format: 's16'
-  });
-
-  const epsilon = 1.0 / (INT16_MAX + 1);
-
-  let dest = new Float32Array(data.numberOfFrames);
-  data.copyTo(dest, {planeIndex: 0, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorInterleavedResult[0], epsilon, 'interleaved channel 0');
-  data.copyTo(dest, {planeIndex: 1, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorInterleavedResult[1], epsilon, 'interleaved channel 1');
-
-  data = new AudioData({
-    timestamp: defaultInit.timestamp,
-    data: new Int16Array(testVectorInt16),
-    numberOfFrames: testVectorFrames,
-    numberOfChannels: testVectorChannels,
-    sampleRate: defaultInit.sampleRate,
-    format: 's16-planar'
-  });
-
-  data.copyTo(dest, {planeIndex: 0, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorPlanarResult[0], epsilon, 'planar channel 0');
-  data.copyTo(dest, {planeIndex: 1, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorPlanarResult[1], epsilon, 'planar channel 1');
-}, 'Test conversion of int16 data to float32');
-
-test(t => {
-  const INT32_MIN = (-0x7fffffff - 1);
-  const INT32_MAX = 0x7fffffff;
-  const testVectorInt32 = [
-    INT32_MIN, 0, INT32_MAX, INT32_MIN, INT32_MAX / 2, INT32_MIN / 2, 0,
-    INT32_MAX, 0, 0
-  ];
-
-  let data = new AudioData({
-    timestamp: defaultInit.timestamp,
-    data: new Int32Array(testVectorInt32),
-    numberOfFrames: testVectorFrames,
-    numberOfChannels: testVectorChannels,
-    sampleRate: defaultInit.sampleRate,
-    format: 's32'
-  });
-
-  const epsilon = 1.0 / INT32_MAX;
-
-  let dest = new Float32Array(data.numberOfFrames);
-  data.copyTo(dest, {planeIndex: 0, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorInterleavedResult[0], epsilon, 'interleaved channel 0');
-  data.copyTo(dest, {planeIndex: 1, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorInterleavedResult[1], epsilon, 'interleaved channel 1');
-
-  data = new AudioData({
-    timestamp: defaultInit.timestamp,
-    data: new Int32Array(testVectorInt32),
-    numberOfFrames: testVectorFrames,
-    numberOfChannels: testVectorChannels,
-    sampleRate: defaultInit.sampleRate,
-    format: 's32-planar'
-  });
-
-  data.copyTo(dest, {planeIndex: 0, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorPlanarResult[0], epsilon, 'planar channel 0');
-  data.copyTo(dest, {planeIndex: 1, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorPlanarResult[1], epsilon, 'planar channel 1');
-}, 'Test conversion of int32 data to float32');
-
-test(t => {
-  const testVectorFloat32 =
-      [-1.0, 0.0, 1.0, -1.0, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0];
-
-  let data = new AudioData({
-    timestamp: defaultInit.timestamp,
-    data: new Float32Array(testVectorFloat32),
-    numberOfFrames: testVectorFrames,
-    numberOfChannels: testVectorChannels,
-    sampleRate: defaultInit.sampleRate,
-    format: 'f32'
-  });
-
-  const epsilon = 0;
-
-  let dest = new Float32Array(data.numberOfFrames);
-  data.copyTo(dest, {planeIndex: 0, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorInterleavedResult[0], epsilon, 'interleaved channel 0');
-  data.copyTo(dest, {planeIndex: 1, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorInterleavedResult[1], epsilon, 'interleaved channel 1');
-
-  data = new AudioData({
-    timestamp: defaultInit.timestamp,
-    data: new Float32Array(testVectorFloat32),
-    numberOfFrames: testVectorFrames,
-    numberOfChannels: testVectorChannels,
-    sampleRate: defaultInit.sampleRate,
-    format: 'f32-planar'
-  });
-
-  data.copyTo(dest, {planeIndex: 0, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorPlanarResult[0], epsilon, 'planar channel 0');
-  data.copyTo(dest, {planeIndex: 1, format: 'f32-planar'});
-  assert_array_approx_equals(
-      dest, testVectorPlanarResult[1], epsilon, 'planar channel 1');
-}, 'Test conversion of float32 data to float32');
-
-test(t => {
-  const testVectorFloat32 =
-      [-1.0, 0.0, 1.0, -1.0, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0];
-
-  let data = new AudioData({
-    timestamp: defaultInit.timestamp,
-    data: new Float32Array(testVectorFloat32),
-    numberOfFrames: testVectorFrames,
-    numberOfChannels: testVectorChannels,
-    sampleRate: defaultInit.sampleRate,
-    format: 'f32'
-  });
-
-  const epsilon = 0;
-
-  // Call copyTo() without specifying a format, for interleaved data.
-  let dest = new Float32Array(data.numberOfFrames * testVectorChannels);
-  data.copyTo(dest, {planeIndex: 0});
-  assert_array_approx_equals(
-      dest, testVectorFloat32, epsilon, 'interleaved data');
-
-  assert_throws_js(RangeError, () => {
-    data.copyTo(dest, {planeIndex: 1});
-  }, 'Interleaved AudioData cannot copy out planeIndex > 0');
-
-  data = new AudioData({
-    timestamp: defaultInit.timestamp,
-    data: new Float32Array(testVectorFloat32),
-    numberOfFrames: testVectorFrames,
-    numberOfChannels: testVectorChannels,
-    sampleRate: defaultInit.sampleRate,
-    format: 'f32-planar'
-  });
-
-  // Call copyTo() without specifying a format, for planar data.
-  dest = new Float32Array(data.numberOfFrames);
-  data.copyTo(dest, {planeIndex: 0});
-  assert_array_approx_equals(
-      dest, testVectorPlanarResult[0], epsilon, 'planar channel 0');
-  data.copyTo(dest, {planeIndex: 1});
-  assert_array_approx_equals(
-      dest, testVectorPlanarResult[1], epsilon, 'planar channel 1');
-}, 'Test copying out planar and interleaved data');
+});

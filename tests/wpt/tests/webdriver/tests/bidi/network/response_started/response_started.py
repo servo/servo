@@ -245,6 +245,11 @@ async def test_response_mime_type_file(
 async def test_www_authenticate(
     bidi_session, url, fetch, new_tab, wait_for_event, wait_for_future_safe, setup_network_test
 ):
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=url(PAGE_EMPTY_HTML),
+        wait="complete",
+    )
     auth_url = url(
         "/webdriver/tests/support/http_handlers/authentication.py?realm=testrealm"
     )
@@ -253,11 +258,8 @@ async def test_www_authenticate(
     events = network_events[RESPONSE_STARTED_EVENT]
 
     on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
-    await bidi_session.browsing_context.navigate(
-        context=new_tab["context"],
-        url=auth_url,
-        wait="none",
-    )
+
+    asyncio.ensure_future(fetch(url=auth_url, context=new_tab))
 
     await wait_for_future_safe(on_response_started)
 

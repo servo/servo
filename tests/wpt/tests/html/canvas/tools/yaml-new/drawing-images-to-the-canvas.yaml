@@ -638,3 +638,11 @@
     @nonfinite ctx.drawImage(<bitmap>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <100 Infinity -Infinity NaN>, <50 Infinity -Infinity NaN>);
     @assert pixel 50,25 == 0,255,0,255;
   expected: green
+
+- name: 2d.drawImage.detachedcanvas
+  desc: drawImage with detached OffscreenCanvas as the source should throw exception
+  canvasType: ['HTMLCanvas']
+  code: |
+    var canvas2 = new OffscreenCanvas(80, 80);
+    (new MessageChannel()).port1.postMessage(canvas2, [canvas2]);
+    @assert throws INVALID_STATE_ERR ctx.drawImage(canvas2, 0, 0);

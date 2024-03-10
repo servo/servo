@@ -42,14 +42,15 @@
   height: 100px;
   background: lime;
   left: anchor(left);
+  bottom: anchor(top);
   anchor-default: --a;
-  position-fallback: --top-then-bottom;
+  position-try-options: --bottom;
   position-fallback-bounds: --bounds1;
 }
 
-@position-fallback --top-then-bottom {
-  @try { bottom: anchor(top); }
-  @try { top: anchor(bottom); }
+@position-try --bottom {
+  bottom: auto;
+  top: anchor(bottom);
 }
 </style>
 

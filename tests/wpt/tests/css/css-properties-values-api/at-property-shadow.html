@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#at-property-rule">
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#shadow-dom">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="./resources/utils.js"></script>
@@ -16,7 +16,7 @@
 </style>
 <template id=template>
   <style>
-    /* This rule should have no effect */
+    /* This rule should be globally registered */
     @property --y {
       syntax: "<length>";
       inherits: false;
@@ -38,9 +38,9 @@ test(() => {
   root.append(template.content.cloneNode(true));
   let inside = root.querySelector('#inside');
   assert_equals(getComputedStyle(outside).getPropertyValue('--x'), '2px');
-  assert_equals(getComputedStyle(outside).getPropertyValue('--y'), 'calc(1px + 1px)');
+  assert_equals(getComputedStyle(outside).getPropertyValue('--y'), '2px');
   assert_equals(getComputedStyle(inside).getPropertyValue('--x'), '2px');
-  assert_equals(getComputedStyle(inside).getPropertyValue('--y'), 'calc(1px + 1px)');
-}, '@property rules in shadow trees should have no effect');
+  assert_equals(getComputedStyle(inside).getPropertyValue('--y'), '2px');
+}, '@property rules in shadow trees should be globally registered');
 
 </script>

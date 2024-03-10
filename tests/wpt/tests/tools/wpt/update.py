@@ -43,7 +43,6 @@ def update_expectations(_, **kwargs):
 
     update_properties = metadata.get_properties(properties_file=kwargs["properties_file"],
                                                 extra_properties=kwargs["extra_property"],
-                                                config=kwargs["config"],
                                                 product=kwargs["product"])
 
     manifest_update(kwargs["test_paths"])

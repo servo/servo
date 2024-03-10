@@ -184,6 +184,10 @@ def _remove_extra_newlines(text: str) -> str:
     return text
 
 def _expand_test_code(code: str) -> str:
+    code = re.sub(r' @moz-todo', '', code)
+
+    code = re.sub(r'@moz-UniversalBrowserRead;', '', code)
+
     code = _remove_extra_newlines(code)
 
     # Unroll expressions with a cross-product-style parameter expansion.
@@ -202,11 +206,13 @@ def _expand_test_code(code: str) -> str:
     code = re.sub(r'@assert pixel (\d+,\d+) ==~ (\d+,\d+,\d+,\d+) \+/- (\d+);',
                   r'_assertPixelApprox(canvas, \1, \2, \3);', code)
 
-    code = re.sub(r'@assert throws (\S+_ERR) (.*);',
-                  r'assert_throws_dom("\1", function() { \2; });', code)
+    code = re.sub(r'@assert throws (\S+_ERR) (.*?);$',
+                  r'assert_throws_dom("\1", function() { \2; });', code,
+                  flags=re.MULTILINE | re.DOTALL)
 
-    code = re.sub(r'@assert throws (\S+Error) (.*);',
-                  r'assert_throws_js(\1, function() { \2; });', code)
+    code = re.sub(r'@assert throws (\S+Error) (.*?);$',
+                  r'assert_throws_js(\1, function() { \2; });', code,
+                  flags=re.MULTILINE | re.DOTALL)
 
     code = re.sub(
         r'@assert (.*) === (.*);', lambda m: '_assertSame(%s, %s, "%s", "%s");'
@@ -225,10 +231,6 @@ def _expand_test_code(code: str) -> str:
     code = re.sub(
         r'@assert (.*);', lambda m: '_assert(%s, "%s");' % (m.group(
             1), _escapeJS(m.group(1))), code)
-
-    code = re.sub(r' @moz-todo', '', code)
-
-    code = re.sub(r'@moz-UniversalBrowserRead;', '', code)
 
     assert ('@' not in code)
 

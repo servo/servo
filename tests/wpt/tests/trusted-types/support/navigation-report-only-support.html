@@ -31,7 +31,7 @@
   // Navigate to the non-report-only version of the test. That has the same
   // event listening setup as this, but is a different target URI.
   const target_script = `location.href='${location.href.replace("-report-only", "") + "#continue"}';`;
-  const target = `javascript:"<script>${target_script}</scri${""}pt>"`;
+  const target = `javascript:${target_script}`;
 
   // Navigate the anchor, but only after the content is loaded (so that we
   // won't disturb delivery of that event to the opener.

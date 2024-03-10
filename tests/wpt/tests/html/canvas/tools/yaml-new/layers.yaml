@@ -174,7 +174,7 @@
       fuzzy: maxDifference=0-2; totalPixels=0-6766
     alpha.blending:
       <<: *global-state-alpha-blending
-      fuzzy: maxDifference=0-1; totalPixels=0-2440
+      fuzzy: maxDifference=0-1; totalPixels=0-2453
     alpha.composite:
       <<: *global-state-alpha-composite
       fuzzy: maxDifference=0-1; totalPixels=0-5204

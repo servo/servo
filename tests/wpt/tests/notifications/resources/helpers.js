@@ -12,9 +12,24 @@ async function getActiveServiceWorker(script) {
   return reg;
 }
 
-
 async function closeAllNotifications() {
   for (const n of await registration.getNotifications()) {
     n.close();
+  }
+}
+
+async function trySettingPermission(perm) {
+  try {
+    await test_driver.set_permission({ name: "notifications" }, perm);
+  } catch {
+    // Not all implementations support this yet, but the permission may already be set to be able to continue
+  }
+
+  // Using Notification.permission instead of permissions.query() as
+  // some implementation without set_permission support overrides
+  // Notification.permission.
+  const permission = Notification.permission === "default" ? "prompt" : Notification.permission;
+  if (permission !== perm) {
+    throw new Error(`Should have the permission ${perm} to continue`);
   }
 }

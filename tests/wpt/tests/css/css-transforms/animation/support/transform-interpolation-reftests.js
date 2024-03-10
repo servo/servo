@@ -127,6 +127,13 @@ const midpointOptions = {
   delay: -duration/2
 };
 
+// Constant-valued animation using the ending keyframe's value.
+const referenceOptions = {
+  easing: 'steps(1, jump-start)',
+  duration: duration,
+  delay: -duration/2
+}
+
 // Similar to midpointOptions, but to produce the interpolation result
 // at -1 instead of the interpolation result at 0.5.  This easing curve
 // has zero slope at its midpoint of -100% (though does have curvature).
@@ -169,9 +176,8 @@ async function createTests(tests) {
   takeScreenshot();
 }
 
-// Create references using an animation with identical keyframes for start
-// and end so as to avoid rounding and anti-aliasing differences between
-// animated and non-animated pathways.
+// Create references using a constant-valued animation  to avoid rounding and
+// anti-aliasing differences between animated and non-animated pathways.
 async function createRefs(tests) {
   styleBody();
   for (const obj of tests) {
@@ -181,8 +187,8 @@ async function createRefs(tests) {
     initialStyle(div);
     finalStyle(div);
     var anim = div.animate(
-        {transform: [test[midIndex], test[midIndex]]},
-        midpointOptions);
+        {transform: ['none', test[midIndex]]},
+        referenceOptions);
     await anim.ready;
   }
 

@@ -32,7 +32,7 @@
   // re-use the messageing mechanisms above. In order to not end up in a loop,
   // we'll only click if we don't find fragment in the current URL.
   const target_script = `location.href='${location.href}&continue';`;
-  const target = `javascript:"<script>${target_script}</scri${""}pt>"`;
+  const target = `javascript:${target_script}`;
 
   const anchor = document.getElementById("anchor");
   anchor.href = target;

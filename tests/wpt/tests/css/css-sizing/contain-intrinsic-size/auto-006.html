@@ -352,6 +352,46 @@ promise_test(async function() {
   checkSize(1, 2, "Size containment with no last remembered size");
 }, "Disconnected element ends up losing last remembered size");
 
+promise_test(async function () {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(100, 50, "Using last remembered size");
+
+  parent.innerHTML = "";
+  checkSize(0, 0, "No box");
+
+  await nextRendering();
+  parent.appendChild(target);
+  checkSize(1, 2, "Size containment with no last remembered size");
+}, "Disconnected element ends up losing last remembered size, parent removes all children");
+
+promise_test(async function () {
+  this.add_cleanup(cleanup);
+  target.classList.add("cis-auto");
+  contents.classList.add("size-100-50");
+  checkSize(100, 50, "Sizing normally");
+
+  await nextRendering();
+  target.classList.add("skip-contents");
+  contents.classList.remove("size-100-50");
+  contents.classList.add("size-75-25");
+  checkSize(100, 50, "Using last remembered size");
+
+  parent.remove();
+  checkSize(0, 0, "No box");
+
+  await nextRendering();
+  document.body.appendChild(parent);
+  checkSize(1, 2, "Size containment with no last remembered size");
+}, "Disconnected element ends up losing last remembered size, the parent node is removed");
+
 promise_test(async function() {
   this.add_cleanup(cleanup);
   target.classList.add("cis-auto");
