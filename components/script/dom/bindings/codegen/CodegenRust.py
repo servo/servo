@@ -6160,8 +6160,9 @@ let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
                 cx,
                 &args,
                 &*global,
-                GetProtoObject,
-            )""" % self.descriptor.name)
+                PrototypeList::ID::%s,
+                CreateInterfaceObjects,
+            )""" % (self.descriptor.name, MakeNativeName(self.descriptor.name)))
         else:
             ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
             preamble += """
