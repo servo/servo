@@ -54,7 +54,7 @@ impl NetworkListener {
             request_builder: self.request_builder.clone(),
             resource_threads: self.resource_threads.clone(),
             sender: self.sender.clone(),
-            pipeline_id: self.pipeline_id.clone(),
+            pipeline_id: self.pipeline_id,
             should_send: false,
         };
 
@@ -119,7 +119,7 @@ impl NetworkListener {
                         self.request_builder.referrer = metadata
                             .referrer
                             .clone()
-                            .map(|referrer_url| Referrer::ReferrerUrl(referrer_url))
+                            .map(Referrer::ReferrerUrl)
                             .unwrap_or(Referrer::NoReferrer);
                         self.request_builder.referrer_policy = metadata.referrer_policy;
 

@@ -31,7 +31,7 @@ impl EventLoop {
     /// Create a new event loop from the channel to its script thread.
     pub fn new(script_chan: IpcSender<ConstellationControlMsg>) -> Rc<EventLoop> {
         Rc::new(EventLoop {
-            script_chan: script_chan,
+            script_chan,
             dont_send_or_sync: PhantomData,
         })
     }
