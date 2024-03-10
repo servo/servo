@@ -218,7 +218,7 @@ impl ImageBytes {
                 ImageBytes::InProgress(ref mut bytes) => bytes,
                 ImageBytes::Complete(_) => panic!("attempted modification of complete image bytes"),
             };
-            std::mem::take(own_bytes)
+            mem::take(own_bytes)
         };
         let bytes = Arc::new(bytes);
         *self = ImageBytes::Complete(bytes.clone());
