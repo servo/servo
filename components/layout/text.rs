@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Text layout.
+#![allow(clippy::too_many_arguments)]
 
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
@@ -483,10 +484,9 @@ impl TextRunScanner {
                     SpecificFragmentInfo::ScannedText(new_text_fragment_info),
                 );
 
-                let is_last_mapping_of_this_old_fragment = match mappings.peek() {
-                    Some(mapping) if mapping.old_fragment_index == logical_offset => false,
-                    _ => true,
-                };
+                let is_last_mapping_of_this_old_fragment = !matches!(
+                mappings.peek(), Some(mapping) if mapping.old_fragment_index == logical_offset
+                );
 
                 if let Some(ref mut context) = new_fragment.inline_context {
                     for node in &mut context.nodes {

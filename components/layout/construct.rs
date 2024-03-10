@@ -199,7 +199,7 @@ impl InlineBlockSplit {
                 fragment_accumulator,
                 InlineFragmentsAccumulator::from_inline_node(node, style_context),
             )
-            .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(style_context),
+            .get_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(style_context),
             flow,
         };
 
@@ -305,7 +305,7 @@ impl InlineFragmentsAccumulator {
             .push_descendants(fragments.absolute_descendants);
     }
 
-    fn to_intermediate_inline_fragments<'dom, N>(
+    fn get_intermediate_inline_fragments<'dom, N>(
         self,
         context: &SharedStyleContext,
     ) -> IntermediateInlineFragments
@@ -482,7 +482,9 @@ where
         node: &ConcreteThreadSafeLayoutNode,
     ) {
         let mut fragments = fragment_accumulator
-            .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(self.style_context());
+            .get_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(
+                self.style_context(),
+            );
         if fragments.is_empty() {
             return;
         };
@@ -1079,7 +1081,7 @@ where
                 ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
                     splits: opt_inline_block_splits,
                     fragments: fragment_accumulator
-                        .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(
+                        .get_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(
                             self.style_context(),
                         ),
                 });
@@ -1196,7 +1198,7 @@ where
             ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
                 splits: LinkedList::new(),
                 fragments: fragment_accumulator
-                    .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(context),
+                    .get_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(context),
             });
         ConstructionResult::ConstructionItem(construction_item)
     }
@@ -1246,7 +1248,7 @@ where
             ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
                 splits: LinkedList::new(),
                 fragments: fragment_accumulator
-                    .to_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(
+                    .get_intermediate_inline_fragments::<ConcreteThreadSafeLayoutNode>(
                         style_context,
                     ),
             });

@@ -8,6 +8,8 @@
 //! list building, as the actual painting does not happen here—only deciding *what* we're going to
 //! paint.
 
+#![allow(clippy::too_many_arguments)]
+
 use std::default::Default;
 use std::sync::Arc;
 use std::{f32, mem};
@@ -443,7 +445,7 @@ impl<'a> DisplayListBuildState<'a> {
         let mut list = Vec::new();
         let root_context = mem::replace(&mut self.root_stacking_context, StackingContext::root());
 
-        self.to_display_list_for_stacking_context(&mut list, root_context);
+        self.move_to_display_list_for_stacking_context(&mut list, root_context);
 
         DisplayList {
             list,
@@ -451,7 +453,7 @@ impl<'a> DisplayListBuildState<'a> {
         }
     }
 
-    fn to_display_list_for_stacking_context(
+    fn move_to_display_list_for_stacking_context(
         &mut self,
         list: &mut Vec<DisplayItem>,
         stacking_context: StackingContext,
@@ -473,7 +475,7 @@ impl<'a> DisplayListBuildState<'a> {
                     .into_iter()
                     .map(|index| index.to_define_item()),
             );
-            self.to_display_list_for_items(list, child_items, info.children);
+            self.move_to_display_list_for_items(list, child_items, info.children);
         } else {
             let (push_item, pop_item) = stacking_context.to_display_list_items();
             list.push(push_item);
@@ -482,12 +484,12 @@ impl<'a> DisplayListBuildState<'a> {
                     .into_iter()
                     .map(|index| index.to_define_item()),
             );
-            self.to_display_list_for_items(list, child_items, info.children);
+            self.move_to_display_list_for_items(list, child_items, info.children);
             list.push(pop_item);
         }
     }
 
-    fn to_display_list_for_items(
+    fn move_to_display_list_for_items(
         &mut self,
         list: &mut Vec<DisplayItem>,
         mut child_items: Vec<DisplayItem>,
@@ -509,7 +511,7 @@ impl<'a> DisplayListBuildState<'a> {
             .map_or(false, |child| child.z_index < 0)
         {
             let context = child_stacking_contexts.next().unwrap();
-            self.to_display_list_for_stacking_context(list, context);
+            self.move_to_display_list_for_stacking_context(list, context);
         }
 
         // Step 4: Block backgrounds and borders.
@@ -524,7 +526,7 @@ impl<'a> DisplayListBuildState<'a> {
             child.context_type == StackingContextType::PseudoFloat
         }) {
             let context = child_stacking_contexts.next().unwrap();
-            self.to_display_list_for_stacking_context(list, context);
+            self.move_to_display_list_for_stacking_context(list, context);
         }
 
         // Step 6 & 7: Content and inlines that generate stacking contexts.
@@ -536,7 +538,7 @@ impl<'a> DisplayListBuildState<'a> {
 
         // Step 8 & 9: Positioned descendants with nonnegative, numeric z-indices.
         for child in child_stacking_contexts {
-            self.to_display_list_for_stacking_context(list, child);
+            self.move_to_display_list_for_stacking_context(list, child);
         }
 
         // Step 10: Outlines.
@@ -2642,10 +2644,10 @@ impl BlockFlow {
         // The margins control which edges have sticky behavior.
         let sticky_frame_data = StickyFrameData {
             margins: SideOffsets2D::new(
-                sticky_position.top.to_option().map(|v| v.to_f32_px()),
-                sticky_position.right.to_option().map(|v| v.to_f32_px()),
-                sticky_position.bottom.to_option().map(|v| v.to_f32_px()),
-                sticky_position.left.to_option().map(|v| v.to_f32_px()),
+                sticky_position.top.as_option().map(|v| v.to_f32_px()),
+                sticky_position.right.as_option().map(|v| v.to_f32_px()),
+                sticky_position.bottom.as_option().map(|v| v.to_f32_px()),
+                sticky_position.left.as_option().map(|v| v.to_f32_px()),
             ),
             vertical_offset_bounds,
             horizontal_offset_bounds,

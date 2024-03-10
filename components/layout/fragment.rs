@@ -1592,9 +1592,8 @@ impl Fragment {
     /// Returns true if and only if this fragment is a generated content fragment.
     pub fn is_unscanned_generated_content(&self) -> bool {
         match self.specific {
-            SpecificFragmentInfo::GeneratedContent(ref content) => match **content {
-                GeneratedContentInfo::Empty => false,
-                _ => true,
+            SpecificFragmentInfo::GeneratedContent(ref content) => {
+                !matches!(**content, GeneratedContentInfo::Empty)
             },
             _ => false,
         }
@@ -1602,10 +1601,7 @@ impl Fragment {
 
     /// Returns true if and only if this is a scanned text fragment.
     pub fn is_scanned_text_fragment(&self) -> bool {
-        match self.specific {
-            SpecificFragmentInfo::ScannedText(..) => true,
-            _ => false,
-        }
+        matches!(self.specific, SpecificFragmentInfo::ScannedText(..))
     }
 
     pub fn suppress_line_break_before(&self) -> bool {
@@ -1972,8 +1968,8 @@ impl Fragment {
             // see if we're going to overflow the line. If so, perform a best-effort split.
             let mut remaining_range = slice.text_run_range();
             let split_is_empty = inline_start_range.is_empty() &&
-                !(self.requires_line_break_afterward_if_wrapping_on_newlines() &&
-                    !self.white_space().allow_wrap());
+                (self.white_space().allow_wrap() ||
+                    !self.requires_line_break_afterward_if_wrapping_on_newlines());
             if split_is_empty {
                 // We're going to overflow the line.
                 overflowing = true;
@@ -2259,14 +2255,14 @@ impl Fragment {
 
     /// Returns true if this fragment is replaced content.
     pub fn is_replaced(&self) -> bool {
-        match self.specific {
+        matches!(
+            self.specific,
             SpecificFragmentInfo::Iframe(_) |
-            SpecificFragmentInfo::Canvas(_) |
-            SpecificFragmentInfo::Image(_) |
-            SpecificFragmentInfo::Media(_) |
-            SpecificFragmentInfo::Svg(_) => true,
-            _ => false,
-        }
+                SpecificFragmentInfo::Canvas(_) |
+                SpecificFragmentInfo::Image(_) |
+                SpecificFragmentInfo::Media(_) |
+                SpecificFragmentInfo::Svg(_)
+        )
     }
 
     /// Returns true if this fragment is replaced content or an inline-block or false otherwise.
@@ -2507,10 +2503,10 @@ impl Fragment {
 
     /// Returns true if this fragment is a hypothetical box. See CSS 2.1 § 10.3.7.
     pub fn is_hypothetical(&self) -> bool {
-        match self.specific {
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => true,
-            _ => false,
-        }
+        matches!(
+            self.specific,
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_)
+        )
     }
 
     /// Returns true if this fragment can merge with another immediately-following fragment or
@@ -3069,10 +3065,7 @@ impl Fragment {
     }
 
     pub fn is_inline_absolute(&self) -> bool {
-        match self.specific {
-            SpecificFragmentInfo::InlineAbsolute(..) => true,
-            _ => false,
-        }
+        matches!(self.specific, SpecificFragmentInfo::InlineAbsolute(..))
     }
 
     pub fn meld_with_next_inline_fragment(&mut self, next_fragment: &Fragment) {
@@ -3141,11 +3134,11 @@ impl Fragment {
     /// `vertical-align` set to `top` or `bottom`.
     pub fn is_vertically_aligned_to_top_or_bottom(&self) -> bool {
         fn is_top_or_bottom(v: &VerticalAlign) -> bool {
-            match *v {
+            matches!(
+                *v,
                 VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-                VerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => true,
-                _ => false,
-            }
+                    VerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
+            )
         }
 
         if is_top_or_bottom(&self.style.get_box().vertical_align) {
