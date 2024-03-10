@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<title>Digital Identity Credential tests.</title>
+<link rel="help" href="https://wicg.github.io/digital-identities/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script>
+// Builds valid digital identity request for navigator.credentials.get() API.
+function buildValidNavigatorCredentialsRequest() {
+  return {
+      identity: {
+        providers: [{
+          holder: {
+            selector: {
+              format: ['mdoc'],
+              doctype: 'org.iso.18013.5.1.mDL',
+              fields: [
+                'org.iso.18013.5.1.family_name',
+                'org.iso.18013.5.1.portrait',
+              ]
+            },
+            params: {
+              nonce: '1234',
+              readerPublicKey: 'test_reader_public_key',
+              extraParamAsNeededByDigitalCredentials: true,
+            },
+          },
+        }],
+      },
+  };
+}
+
+// Builds valid digital identity request for navigator.identity.get() API.
+function buildValidNavigatorIdentityRequest() {
+  return {
+      digital: {
+        providers: [{
+          selector: {
+            format: ['mdoc'],
+            doctype: 'org.iso.18013.5.1.mDL',
+            fields: [
+              'org.iso.18013.5.1.family_name',
+              'org.iso.18013.5.1.portrait',
+            ]
+          },
+          params: {
+            nonce: '1234',
+            readerPublicKey: 'test_reader_public_key',
+            extraParamAsNeededByDigitalCredentials: true,
+          },
+        }],
+      },
+  };
+}
+
+// Requires browser to have mode where OS-presented digital-identity-prompt is
+// bypassed in favour of returning "fake_test_token" directly.
+promise_test(async t => {
+  const {token} = await navigator.credentials.get(buildValidNavigatorCredentialsRequest());
+  assert_equals("fake_test_token", token);
+}, "navigator.credentials.get() API works in toplevel frame.");
+
+promise_test(async t => {
+  let request = buildValidNavigatorCredentialsRequest();
+  request.identity.providers = undefined;
+
+  await promise_rejects_js(t, TypeError, navigator.credentials.get(request));
+}, "navigator.credentials.get() API fails if IdentityCredentialRequestOptions::providers is not specified.");
+
+promise_test(async t => {
+  let request = buildValidNavigatorCredentialsRequest();
+  request.identity.providers = [];
+
+  await promise_rejects_js(t, TypeError, navigator.credentials.get(request));
+}, "navigator.credentials.get() API fails if there are no providers.");
+
+promise_test(async t => {
+  let request = buildValidNavigatorCredentialsRequest();
+  let providerCopy = structuredClone(request.identity.providers[0]);
+  request.identity.providers.push(providerCopy);
+  await promise_rejects_js(t, TypeError, navigator.credentials.get(request));
+}, "navigator.credentials.get() API fails if there is more than one provider.");
+
+promise_test(async t => {
+  let request = buildValidNavigatorCredentialsRequest();
+  request.identity.providers[0].holder = undefined;
+
+  await promise_rejects_js(t, TypeError, navigator.credentials.get(request));
+}, "navigator.credentials.get() API fails if IdentityProviderConfig::holder is not specified.");
+
+promise_test(async t => {
+  let request = buildValidNavigatorIdentityRequest();
+  let {token} = await navigator.identity.get(request);
+  assert_equals("fake_test_token", token);
+}, "navigator.identity.get() API works in toplevel frame.");
+
+promise_test(async t => {
+  let request = buildValidNavigatorIdentityRequest();
+  request.digital.providers = undefined;
+
+  await promise_rejects_js(t, TypeError, navigator.identity.get(request));
+}, "navigator.identity.get() API fails if DigitalCredentialRequestOptions::providers is not specified.");
+
+promise_test(async t => {
+  let request = buildValidNavigatorIdentityRequest();
+  let providerCopy = structuredClone(request.digital.providers[0]);
+  request.digital.providers.push(providerCopy);
+  await promise_rejects_js(t, TypeError, navigator.identity.get(request));
+}, "navigator.identity.get() API fails if there is more than one provider.");
+
+promise_test(async t=> {
+  let abortController = new AbortController();
+  let request = buildValidNavigatorIdentityRequest();
+  request.signal = abortController.signal;
+  let requestPromise = navigator.identity.get(request);
+  abortController.abort();
+  await promise_rejects_dom(t, "AbortError", requestPromise);
+}, "navigator.identity.get() promise is rejected when the page aborts the request.");
+</script>

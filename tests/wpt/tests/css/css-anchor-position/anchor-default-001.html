@@ -13,16 +13,15 @@
 .target {
   position: fixed;
   background: lime;
-  position-fallback: --pf;
+  position-try-options: --pf;
+  left: 999999px; /* force fallback */
 }
 
-@position-fallback --pf {
-  @try {
-    top: anchor(bottom, 0px);
-    left: anchor(left, 0px);
-    width: anchor-size(width, 0px);
-    height: anchor-size(height, 0px);
-  }
+@position-try --pf {
+  top: anchor(bottom, 0px);
+  left: anchor(left, 0px);
+  width: anchor-size(width, 0px);
+  height: anchor-size(height, 0px);
 }
 
 body {

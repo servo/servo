@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>semantics element and legacy rendering rules</title>
+<meta charset="utf-8"/>
+<link rel="help" href="https://developer.mozilla.org/en-US/docs/Web/MathML/Element/semantics">
+<link rel="help" href="https://w3c.github.io/mathml-core/#semantics-and-presentation">
+<link rel="match" href="semantics-002-ref.html">
+<meta name="assert" content="semantics element rendered as an mrow with only the first child displayed and does not rely on legacy rules to choose another child to display instead.">
+<p>Empty semantics: <math><semantics></semantics></math></p>
+<p>annotation: <math><semantics><annotation>annotation</annotation></semantics></math></p>
+<p>annotation-xml: <math><semantics><annotation-xml encoding="MathML-Presentation"><mtext>annotation-xml</mtext></annotation-xml></semantics></math></p>
+<p>presentation MathML (no annotations): <math><semantics><mtext>presentation MathML</mtext></semantics></math></p>
+<p>content MathML (no annotations): <math><semantics><csymbol>content MathML</csymbol></semantics></math></p>
+<p>presentation MathML ; annotation: <math><semantics><mtext>presentation MathML</mtext><annotation>annotation</annotation></semantics></math></p>
+<p>presentation MathML ; annotation-xml: <math><semantics><mtext>presentation MathML</mtext><annotation-xml encoding="application/mathml-presentation+xml"><mtext>annotation-xml</mtext></annotation-xml></semantics></math></p>
+<p>content MathML ; annotation: <math><semantics><csymbol>content MathML</csymbol><annotation>annotation</annotation></semantics></math></p>
+<p>content MathML ; annotation-xml: <math><semantics><csymbol>content MathML</csymbol><annotation-xml encoding="application/mathml-presentation+xml"><mtext>annotation-xml</mtext></annotation-xml></semantics></math></p>

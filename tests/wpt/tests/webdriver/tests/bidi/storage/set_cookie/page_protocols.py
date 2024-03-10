@@ -1,6 +1,6 @@
 import pytest
 from urllib.parse import urlparse
-from .. import assert_cookie_is_set, create_cookie
+from .. import assert_cookie_is_set, create_cookie, get_default_partition_key
 
 pytestmark = pytest.mark.asyncio
 
@@ -18,7 +18,7 @@ async def test_page_protocols(bidi_session, set_cookie, get_test_page, protocol)
     set_cookie_result = await set_cookie(cookie=create_cookie(domain=domain))
 
     assert set_cookie_result == {
-        'partitionKey': {},
+        'partitionKey': (await get_default_partition_key(bidi_session)),
     }
 
     # Assert the cookie is actually set.

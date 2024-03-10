@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<title>Tests pageswap dispatch on initial doc navigation</title>
+<link rel="author" title="Khushal Sagar"  href="mailto:khushalsagar@chromium.org">
+<link rel="help" href="https://html.spec.whatwg.org/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+setup({explicit_done: true});
+
+function runTest(frame) {
+  let frameWindow = frame.contentWindow;
+
+  let pageswapfired = false;
+  frameWindow.onpageswap = (e) => {
+      pageswapfired = true;
+  }
+
+  frameWindow.onpagehide = (e) => {
+      assert_true(pageswapfired, 'pageswap fired');
+      done();
+  }
+
+  frame.srcdoc = '<html></html>';
+}
+
+promise_test(async t => {
+  onload = () => {
+    let frame = document.createElement('iframe');
+    document.body.appendChild(frame);
+    runTest(frame);
+  };
+});
+</script>

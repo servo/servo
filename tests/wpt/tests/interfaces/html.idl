@@ -2062,6 +2062,18 @@ dictionary HashChangeEventInit : EventInit {
 };
 
 [Exposed=Window]
+interface PageSwapEvent : Event {
+  constructor(DOMString type, optional PageSwapEventInit eventInitDict = {});
+  readonly attribute NavigationActivation? activation;
+  readonly attribute ViewTransition? viewTransition;
+};
+
+dictionary PageSwapEventInit : EventInit {
+  NavigationActivation? activation = null;
+  ViewTransition? viewTransition = null;
+};
+
+[Exposed=Window]
 interface PageRevealEvent : Event {
   constructor(DOMString type, optional PageRevealEventInit eventInitDict = {});
   readonly attribute ViewTransition? viewTransition;
@@ -2239,6 +2251,7 @@ interface mixin WindowEventHandlers {
   attribute EventHandler onpagehide;
   attribute EventHandler onpagereveal;
   attribute EventHandler onpageshow;
+  attribute EventHandler onpageswap;
   attribute EventHandler onpopstate;
   attribute EventHandler onrejectionhandled;
   attribute EventHandler onstorage;

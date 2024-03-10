@@ -36,13 +36,14 @@ body {
   width: 100px;
   height: 100px;
   background: lime;
-  position-fallback: --top-then-bottom;
+  position-try-options: --bottom;
   position-fallback-bounds: --bounds;
+  bottom: anchor(--a top);
 }
 
-@position-fallback --top-then-bottom {
-  @try { bottom: anchor(--a top); }
-  @try { top: anchor(--a bottom); }
+@position-try --bottom {
+  top: anchor(--a bottom);
+  bottom: auto;
 }
 </style>
 

@@ -1,12 +1,20 @@
 import pytest
 
+import asyncio
+
 from .. import assert_response_event, AUTH_REQUIRED_EVENT, PAGE_EMPTY_HTML
 
 
 @pytest.mark.asyncio
 async def test_subscribe_status(
-    bidi_session, new_tab, subscribe_events, wait_for_event, wait_for_future_safe, url
+    bidi_session, new_tab, subscribe_events, wait_for_event, wait_for_future_safe, url, fetch
 ):
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=url(PAGE_EMPTY_HTML),
+        wait="complete",
+    )
+
     await subscribe_events(events=[AUTH_REQUIRED_EVENT])
 
     # Track all received network.authRequired events in the events array.
@@ -15,7 +23,8 @@ async def test_subscribe_status(
     async def on_event(method, data):
         events.append(data)
 
-    remove_listener = bidi_session.add_event_listener(AUTH_REQUIRED_EVENT, on_event)
+    remove_listener = bidi_session.add_event_listener(
+        AUTH_REQUIRED_EVENT, on_event)
 
     auth_url = url(
         "/webdriver/tests/support/http_handlers/authentication.py?realm=testrealm"
@@ -23,13 +32,7 @@ async def test_subscribe_status(
 
     on_auth_required = wait_for_event(AUTH_REQUIRED_EVENT)
 
-    # navigate using wait="none" as other wait conditions would hang because of
-    # the authentication prompt.
-    await bidi_session.browsing_context.navigate(
-        context=new_tab["context"],
-        url=auth_url,
-        wait="none",
-    )
+    asyncio.ensure_future(fetch(url=auth_url, context=new_tab))
 
     await wait_for_future_safe(on_auth_required)
 
@@ -63,7 +66,8 @@ async def test_no_authentication(
     async def on_event(method, data):
         events.append(data)
 
-    remove_listener = bidi_session.add_event_listener(AUTH_REQUIRED_EVENT, on_event)
+    remove_listener = bidi_session.add_event_listener(
+        AUTH_REQUIRED_EVENT, on_event)
 
     # Navigate to a page which should not trigger any authentication.
     await bidi_session.browsing_context.navigate(

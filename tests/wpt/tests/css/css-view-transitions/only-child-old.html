@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="reftest-wait foo">
 <title>View transitions: ensure :only-child is supported on view-transition-old</title>
-<link rel="help" href="https://github.com/WICG/view-transitions">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
 
 <script src="/resources/testharness.js"></script>
@@ -61,8 +61,7 @@ promise_test(() => {
     });
 
     transition.ready.then(() => {
-      let style = getComputedStyle(
-        document.documentElement, ":view-transition-old(root)");
+      let style = getComputedStyle(document.documentElement, "::view-transition-old(root)");
       if (style.backgroundColor == matchedColor && style.color == matchedColor)
         resolve();
       else
@@ -79,8 +78,7 @@ promise_test(() => {
     let transition = document.startViewTransition();
 
     transition.ready.then(() => {
-      let style = getComputedStyle(
-        document.documentElement, ":view-transition-old(root)");
+      let style = getComputedStyle(document.documentElement, "::view-transition-old(root)");
       if (style.backgroundColor == notMatchedColor && style.color == notMatchedColor)
         resolve();
       else
@@ -100,8 +98,7 @@ promise_test(() => {
     });
 
     transition.ready.then(() => {
-      let style = getComputedStyle(
-        document.documentElement, ":view-transition-old(root)");
+      let style = getComputedStyle(document.documentElement, "::view-transition-old(root)");
       if (style.backgroundColor == notMatchedColor && style.color == notMatchedColor)
         resolve();
       else
@@ -121,7 +118,7 @@ promise_test(() => {
 
     transition.ready.then(() => {
       let style = getComputedStyle(
-        document.documentElement, ":view-transition-old(target)");
+        document.documentElement, "::view-transition-old(target)");
       if (style.backgroundColor == matchedColor && style.color == matchedColor)
         resolve();
       else
@@ -141,8 +138,7 @@ promise_test(() => {
     });
 
     transition.ready.then(() => {
-      let style = getComputedStyle(
-        document.documentElement, ":view-transition-old(root)");
+      let style = getComputedStyle(document.documentElement, "::view-transition-old(root)");
       if (style.backgroundColor == notMatchedColor && style.color == notMatchedColor)
         resolve();
       else
@@ -159,8 +155,7 @@ promise_test(() => {
     let transition = document.startViewTransition();
 
     transition.ready.then(() => {
-      let style = getComputedStyle(
-        document.documentElement, ":view-transition-old(target)");
+      let style = getComputedStyle(document.documentElement, "::view-transition-old(target)");
       if (style.backgroundColor == notMatchedColor && style.color == notMatchedColor)
         resolve();
       else

@@ -1,0 +1,10 @@
+- name: 2d.webgpuaccess.getTextureFormat.rgba8.tentative.https
+  desc: getTextureFormat() returns RGBA8 or BGRA8 for a typical context
+  code: |
+    @assert ctx.getTextureFormat() =~ /^rgba8unorm|bgra8unorm$/;
+
+- name: 2d.webgpuaccess.getTextureFormat.rgba16f.tentative.https
+  desc: getTextureFormat() returns RGBA16F for a float16 context
+  attributes: '{colorSpace: "display-p3", pixelFormat: "float16"}'
+  code: |
+    @assert ctx.getTextureFormat() === "rgba16float";

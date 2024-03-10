@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>mmultiscript with mprescripts</title>
+    <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=208309">
+    <link rel="help" href="https://w3c.github.io/mathml-core/#base-with-prescripts-and-postscripts">
+    <link rel="match" href="mmultiscript-002-ref.html">
+    <meta name="assert" content="mmultiscript with no scripts and a mprescripts child renders the same as if it had two none pre-scripts">
+  </head>
+  <body>
+    <math>
+      <mmultiscripts>
+        <mtext>base</mtext>
+        <mprescripts/>
+      </mmultiscripts>
+    </math>
+  </body>
+</html>

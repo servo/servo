@@ -13,10 +13,10 @@
 
   // TrustedScriptURL Assignments
   const scriptURLTestCases = [
-    [ 'embed', 'src' ],
-    [ 'object', 'data' ],
-    [ 'object', 'codeBase' ],
-    [ 'script', 'src' ]
+    [ 'embed', 'src', INPUTS.SCRIPTURL, RESULTS.SCRIPTURL],
+    [ 'object', 'data', INPUTS.SCRIPTURL, RESULTS.SCRIPTURL ],
+    [ 'object', 'codeBase', INPUTS.SCRIPTURL, RESULTS.SCRIPTURL ],
+    [ 'script', 'src', INPUTS.SCRIPTURL, RESULTS.SCRIPTURL ]
   ];
 
   scriptURLTestCases.forEach(c => {
@@ -31,12 +31,12 @@
 
   // TrustedHTML Assignments
   const HTMLTestCases = [
-    [ 'iframe', 'srcdoc' ]
+    [ 'iframe', 'srcdoc' , INPUTS.HTML, RESULTS.HTML]
   ];
 
   HTMLTestCases.forEach(c => {
     test(t => {
-      assert_element_accepts_trusted_html_explicit_set(window, c[0] + "-" + c[1], t, c[0], c[1], RESULTS.HTML);
+      assert_element_accepts_trusted_html_explicit_set(window, c[0] + "-" + c[1], t, c[0], c[1], c[3]);
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], null);
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], nullPolicy.createScript('script'));
@@ -45,12 +45,12 @@
 
   // TrustedScript Assignments
   const ScriptTestCases = [
-    [ 'div', 'onclick' ]
+    [ 'div', 'onclick' , INPUTS.SCRIPT, RESULTS.SCRIPT]
   ];
 
   ScriptTestCases.forEach(c => {
     test(t => {
-      assert_element_accepts_trusted_script_explicit_set(window, c[0] + "-" + c[1], t, c[0], c[1], RESULTS.SCRIPT);
+      assert_element_accepts_trusted_script_explicit_set(window, c[0] + "-" + c[1], t, c[0], c[1], c[3]);
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], 'A string');
       assert_throws_no_trusted_type_explicit_set(c[0], c[1], null);
     }, c[0] + "." + c[1] + " accepts only TrustedScript");
@@ -70,21 +70,37 @@
   let p = window.trustedTypes.createPolicy("default", { createScriptURL: createScriptURLJS, createHTML: createHTMLJS, createScript: createScriptJS }, true);
   scriptURLTestCases.forEach(c => {
     test(t => {
-      assert_element_accepts_trusted_type(c[0], c[1], INPUTS.SCRIPTURL, RESULTS.SCRIPTURL);
+      assert_element_accepts_trusted_type(c[0], c[1], c[2], c[3]);
       assert_element_accepts_trusted_type(c[0], c[1], null, window.location.toString().replace(/[^\/]*$/, "null"));
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
   });
 
+  scriptURLTestCases.concat(HTMLTestCases).concat(ScriptTestCases).forEach(c => {
+    async_test(t => {
+      const testElement = document.createElement(c[0]);
+
+      const observer = new MutationObserver(t.step_func_done((aMutations, aObserver) => {
+        assert_equals(aMutations.length, 1);
+        const newValue = aMutations[0].target.getAttribute(c[1]);
+        assert_equals(newValue, c[3]);
+      }));
+
+      observer.observe(testElement, { attributes: true});
+
+      testElement.setAttribute(c[1], c[2]);
+    }, c[0] + "." + c[1] + "'s mutationobservers receive the default policy's value.");
+  });
+
   HTMLTestCases.forEach(c => {
     test(t => {
-      assert_element_accepts_trusted_type(c[0], c[1], INPUTS.HTML, RESULTS.HTML);
+      assert_element_accepts_trusted_type(c[0], c[1], c[2], c[3]);
       assert_element_accepts_trusted_type(c[0], c[1], null, "null");
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
   });
 
   ScriptTestCases.forEach(c => {
     test(t => {
-      assert_element_accepts_trusted_type_explicit_set(c[0], c[1], INPUTS.SCRIPT, RESULTS.SCRIPT);
+      assert_element_accepts_trusted_type_explicit_set(c[0], c[1], c[2], c[3]);
       assert_element_accepts_trusted_type_explicit_set(c[0], c[1], null, "null");
     }, c[0] + "." + c[1] + " accepts string and null after default policy was created.");
   });

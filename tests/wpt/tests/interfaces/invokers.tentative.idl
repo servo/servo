@@ -1,6 +1,6 @@
 interface mixin InvokerElement {
   [CEReactions,Reflect=invoketarget] attribute Element? invokeTargetElement;
-  [CEReactions,Reflect,ReflectMissing="auto",ReflectEmpty="auto"] attribute DOMString invokeAction;
+  [CEReactions,Reflect=invokeaction] attribute DOMString invokeAction;
 };
 
 interface InvokeEvent : Event {
@@ -11,5 +11,5 @@ interface InvokeEvent : Event {
 
 dictionary InvokeEventInit : EventInit {
     Element? invoker = null;
-    DOMString action = "auto";
+    DOMString action = "";
 };

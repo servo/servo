@@ -1,0 +1,40 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<!--
+  This test has different expectations for dialogs vs. CloseWatchers because
+  dialogs queue a task to fire their close event, and do not do so for their
+  cancel event. Thus, when you have two dialogs grouped together, you get the
+  somewhat-strange behavior of both cancels firing first, then both closes.
+  Whereas CloseWatchers do not have this issue; both fire synchronously.
+
+  Note that scheduling the cancel event for dialogs is not really possible since
+  it would then fire after the dialog has been closed in the DOM and visually.
+  So the only reasonable fix for this would be to stop scheduling the close
+  event for dialogs. That's risky from a compat standpoint, so for now, test the
+  strange behavior.
+-->
+
+<body>
+<script>
+const type = "dialog";
+
+promise_test(async t => {
+  const events = [];
+
+  createRecordingCloseWatcher(t, events, "watcher1", type);
+  const watcher2 = createRecordingCloseWatcher(t, events, "watcher2", type);
+
+  await maybeTopLayerBless(watcher2);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_array_equals(events, ["watcher2 cancel", "watcher1 cancel", "watcher2 close", "watcher1 close"]);
+}, "Create two dialogs without user activation; send user activation");
+</script>

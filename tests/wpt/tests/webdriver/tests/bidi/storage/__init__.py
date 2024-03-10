@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from webdriver.bidi.modules.network import NetworkBytesValue, NetworkStringValue
-from webdriver.bidi.modules.storage import PartialCookie, PartitionDescriptor
+from webdriver.bidi.modules.storage import PartialCookie, PartitionDescriptor, BrowsingContextPartitionDescriptor
 from .. import any_int, recursive_compare
 
 COOKIE_NAME = 'SOME_COOKIE_NAME'
@@ -88,3 +88,11 @@ def format_expiry_string(date):
     # same formatting as Date.toUTCString() in javascript
     utc_string_format = "%a, %d %b %Y %H:%M:%S GMT"
     return date.strftime(utc_string_format)
+
+
+async def get_default_partition_key(bidi_session, context=None):
+    if context is None:
+        result = await bidi_session.storage.get_cookies()
+    else:
+        result = await bidi_session.storage.get_cookies(partition=BrowsingContextPartitionDescriptor(context))
+    return result['partitionKey']

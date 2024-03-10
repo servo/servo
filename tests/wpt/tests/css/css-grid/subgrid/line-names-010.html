@@ -103,5 +103,12 @@
     <x style="grid-column: a">x</x>
   </div>
 </div>
+
+<div style="display:grid; grid-template-areas: 'a b c d'; grid-template-rows: 1fr 1fr;">
+  <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  <div style="display:grid; grid:subgrid/subgrid; grid-column: a / d; grid-row: 2;">
+    <x style="grid-column: c">x</x>
+  </div>
+</div>
 </body>
 </html>

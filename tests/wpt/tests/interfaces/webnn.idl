@@ -31,27 +31,55 @@ interface ML {
   Promise<MLContext> createContext(GPUDevice gpuDevice);
 };
 
-[SecureContext, Exposed=(Window, DedicatedWorker)]
-interface MLActivation {
-};
-
 typedef record<DOMString, ArrayBufferView> MLNamedArrayBufferViews;
-
-[SecureContext, Exposed=(Window, DedicatedWorker)]
-interface MLContext {};
 
 dictionary MLComputeResult {
   MLNamedArrayBufferViews inputs;
   MLNamedArrayBufferViews outputs;
 };
 
-partial interface MLContext {
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLContext {
   Promise<MLComputeResult> compute(
       MLGraph graph, MLNamedArrayBufferViews inputs, MLNamedArrayBufferViews outputs);
 };
 
 [SecureContext, Exposed=(Window, DedicatedWorker)]
 interface MLGraph {};
+
+enum MLInputOperandLayout {
+  "nchw",
+  "nhwc"
+};
+
+enum MLOperandDataType {
+  "float32",
+  "float16",
+  "int32",
+  "uint32",
+  "int64",
+  "uint64",
+  "int8",
+  "uint8"
+};
+
+dictionary MLOperandDescriptor {
+  // The operand type.
+  required MLOperandDataType dataType;
+
+  // The dimensions field is empty for scalar operands,
+  // and non-empty for tensor operands.
+  sequence<unsigned long> dimensions = [];
+};
+
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLOperand {
+  MLOperandDataType dataType();
+  sequence<unsigned long> shape();
+};
+
+[SecureContext, Exposed=(Window, DedicatedWorker)]
+interface MLActivation {};
 
 typedef record<DOMString, MLOperand> MLNamedOperands;
 
@@ -122,17 +150,10 @@ enum MLConv2dFilterOperandLayout {
   "ihwo"
 };
 
-enum MLAutoPad {
-  "explicit",
-  "same-upper",
-  "same-lower"
-};
-
 dictionary MLConv2dOptions {
   sequence<unsigned long> padding;
   sequence<unsigned long> strides;
   sequence<unsigned long> dilations;
-  MLAutoPad autoPad = "explicit";
   unsigned long groups = 1;
   MLInputOperandLayout inputLayout = "nchw";
   MLConv2dFilterOperandLayout filterLayout = "oihw";
@@ -156,7 +177,6 @@ dictionary MLConvTranspose2dOptions {
   sequence<unsigned long> dilations;
   sequence<unsigned long> outputPadding;
   sequence<unsigned long> outputSizes;
-  MLAutoPad autoPad = "explicit";
   unsigned long groups = 1;
   MLInputOperandLayout inputLayout = "nchw";
   MLConvTranspose2dFilterOperandLayout filterLayout = "iohw";
@@ -406,7 +426,6 @@ dictionary MLPool2dOptions {
   sequence<unsigned long> padding;
   sequence<unsigned long> strides;
   sequence<unsigned long> dilations;
-  MLAutoPad autoPad = "explicit";
   MLInputOperandLayout layout = "nchw";
   MLRoundingType roundingType = "floor";
   sequence<unsigned long> outputSizes;
@@ -527,39 +546,4 @@ partial interface MLGraphBuilder {
 
 partial interface MLGraphBuilder {
   MLOperand where(MLOperand condition, MLOperand input, MLOperand other);
-};
-
-[SecureContext, Exposed=(Window, DedicatedWorker)]
-interface MLOperand {};
-
-partial interface MLOperand {
-  MLOperandDataType dataType();
-};
-
-partial interface MLOperand {
-  sequence<unsigned long> shape();
-};
-
-enum MLInputOperandLayout {
-  "nchw",
-  "nhwc"
-};
-
-enum MLOperandDataType {
-  "float32",
-  "float16",
-  "int32",
-  "uint32",
-  "int64",
-  "uint64",
-  "int8",
-  "uint8"
-};
-
-dictionary MLOperandDescriptor {
-  // The operand type.
-  required MLOperandDataType dataType;
-
-  // The dimensions field is only required for tensor operands.
-  sequence<unsigned long> dimensions = [];
 };

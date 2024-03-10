@@ -20,3 +20,4 @@
 2d.voidreturn:                        "conformance-requirements"
 2d.canvas.host:                       "canvas-host"
 2d.canvas.context:                    "canvas-context"
+2d.webgpuaccess:                      "webgpu-access"
