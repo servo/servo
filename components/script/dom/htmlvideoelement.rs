@@ -421,60 +421,72 @@ impl PosterFrameFetchContext {
 
 pub trait LayoutHTMLVideoElementHelpers {
     fn data(self) -> HTMLMediaData;
+    fn get_width(self) -> Option<u32>;
+    fn get_height(self) -> Option<u32>;
 }
 
 impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
-    #[allow(unsafe_code)]
+    fn get_width(self) -> Option<u32> {
+        match self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+        {
+            Some(x) => match parse_length(&x) {
+                LengthOrPercentageOrAuto::Length(x) => Some(x.to_px() as u32),
+                _ => None,
+            },
+            None => None,
+        }
+    }
+
+    fn get_height(self) -> Option<u32> {
+        match self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+        {
+            Some(x) => match parse_length(&x) {
+                LengthOrPercentageOrAuto::Length(x) => Some(x.to_px() as u32),
+                _ => None,
+            },
+            None => None,
+        }
+    }
+
     fn data(self) -> HTMLMediaData {
+        #[allow(unsafe_code)]
         let video = unsafe { &*self.unsafe_get() };
         let current_frame = video.htmlmediaelement.get_current_frame_data();
         let current_frame = current_frame.as_ref();
 
         // Default size is 300x150
-        let width = video.get_video_width() as i32;
-        let height = video.get_video_height() as i32;
-
-        // TODO: Move somewhere it makes sense, look into htmlimagelement.rs
-        let elem = self.upcast::<Element>();
-        let named_width = match elem.get_attr_for_layout(&ns!(), &local_name!("width")) {
-            Some(x) => match parse_length(&x) {
-                LengthOrPercentageOrAuto::Length(x) => Some(x.to_px()),
-                _ => None,
-            },
-            None => None,
-        };
-        let named_height = match elem.get_attr_for_layout(&ns!(), &local_name!("height")) {
-            Some(x) => match parse_length(&x) {
-                LengthOrPercentageOrAuto::Length(x) => Some(x.to_px()),
-                _ => None,
-            },
-            None => None,
-        };
+        let named_width = self.get_width();
+        let named_height = self.get_height();
 
         // Default height is half the width
-        let height = if let Some(x) = named_height {
-            x
+        if let Some(x) = named_height {
+            video.set_video_height(x);
         } else if let Some(x) = named_width {
-            x / 2
-        } else {
-            height
+            video.set_video_height(x / 2);
         };
 
         // Default width is twice the height
-        let width = if let Some(x) = named_width {
-            x
+        if let Some(x) = named_width {
+            video.set_video_width(x);
         } else if let Some(x) = named_height {
-            x * 2
-        } else {
-            width
+            video.set_video_width(x * 2);
         };
 
-        println!("wh: {} {}", width, height);
+        println!(
+            "frame: {:?} wh: {} {}",
+            current_frame,
+            video.get_video_width(),
+            video.get_video_height()
+        );
 
         HTMLMediaData {
             current_frame: current_frame.map(|frame| frame.0),
-            width: current_frame.map_or(width, |frame| frame.1),
-            height: current_frame.map_or(height, |frame| frame.2),
+            width: current_frame.map_or(video.get_video_width() as i32, |frame| frame.1),
+            height: current_frame.map_or(video.get_video_height() as i32, |frame| frame.2),
         }
     }
 }
