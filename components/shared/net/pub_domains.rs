@@ -51,12 +51,6 @@ impl<'a> FromIterator<&'a str> for PubDomainRules {
     }
 }
 
-impl Default for PubDomainRules {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl PubDomainRules {
     pub fn parse(content: &str) -> PubDomainRules {
         content

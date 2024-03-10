@@ -41,42 +41,24 @@ pub struct BlobBuf {
 /// Parse URL as Blob URL scheme's definition
 ///
 /// <https://w3c.github.io/FileAPI/#DefinitionOfScheme>
-
-#[derive(Debug)]
-pub enum ParsedBlobURLError {
-    InvalidURL(String),
-    InvalidID(String),
-}
-
-pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin), ParsedBlobURLError> {
-    let url_inner = Url::parse(url.path())
-        .map_err(|_| ParsedBlobURLError::InvalidURL("Failed to parse URL path".to_string()))?;
+pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin), &'static str> {
+    let url_inner = Url::parse(url.path()).map_err(|_| "Failed to parse URL path")?;
     let segs = url_inner
         .path_segments()
         .map(|c| c.collect::<Vec<_>>())
-        .ok_or(ParsedBlobURLError::InvalidURL(
-            "URL has no path segments".to_string(),
-        ))?;
+        .ok_or("URL has no path segments")?;
 
     if url.query().is_some() {
-        return Err(ParsedBlobURLError::InvalidURL(
-            "URL should not contain a query".to_string(),
-        ));
+        return Err("URL should not contain a query");
     }
 
     if segs.len() > 1 {
-        return Err(ParsedBlobURLError::InvalidURL(
-            "URL should not have more than one path segment".to_string(),
-        ));
+        return Err("URL should not have more than one path segment");
     }
 
     let id = {
-        let id = segs.first().ok_or(ParsedBlobURLError::InvalidID(
-            "URL has no path segments".to_string(),
-        ))?;
-        Uuid::from_str(id).map_err(|_| {
-            ParsedBlobURLError::InvalidID("Failed to parse UUID from path segment".to_string())
-        })?
+        let id = segs.first().ok_or("URL has no path segments")?;
+        Uuid::from_str(id).map_err(|_| "Failed to parse UUID from path segment")?
     };
     Ok((id, get_blob_origin(&ServoUrl::from_url(url_inner))))
 }
