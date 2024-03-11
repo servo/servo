@@ -49,6 +49,7 @@ impl FlowRef {
     /// See <https://github.com/servo/servo/issues/6503>.
     /// Use Arc::get_mut instead when possible (e.g. on an Arc that was just created).
     #[allow(unsafe_code)]
+    #[allow(clippy::should_implement_trait)]
     pub fn deref_mut(this: &mut FlowRef) -> &mut dyn Flow {
         let ptr: *const dyn Flow = &*this.0;
         unsafe { &mut *(ptr as *mut dyn Flow) }

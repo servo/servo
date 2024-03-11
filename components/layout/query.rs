@@ -988,10 +988,10 @@ fn process_resolved_style_request_internal<'dom>(
         },
     };
 
-    let positioned = match style.get_box().position {
-        Position::Relative | Position::Sticky | Position::Fixed | Position::Absolute => true,
-        _ => false,
-    };
+    let positioned = matches!(
+        style.get_box().position,
+        Position::Relative | Position::Sticky | Position::Fixed | Position::Absolute
+    );
 
     //TODO: determine whether requested property applies to the element.
     //      eg. width does not apply to non-replaced inline elements.

@@ -12,6 +12,8 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
+#![allow(clippy::too_many_arguments)]
+
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::{f32, fmt};

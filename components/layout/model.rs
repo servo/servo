@@ -478,7 +478,7 @@ impl MaybeAuto {
     }
 
     #[inline]
-    pub fn to_option(&self) -> Option<Au> {
+    pub fn as_option(&self) -> Option<Au> {
         match *self {
             MaybeAuto::Specified(value) => Some(value),
             MaybeAuto::Auto => None,

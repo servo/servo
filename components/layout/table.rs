@@ -37,7 +37,7 @@ use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
 use crate::table_cell::TableCellFlow;
 use crate::table_row::{
-    self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance, TableRowFlow,
+    self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderFrom, TableRowFlow,
     TableRowSizeData,
 };
 use crate::table_wrapper::TableLayout;
@@ -339,11 +339,11 @@ impl Flow for TableFlow {
             Some(TableInlineCollapsedBorders {
                 start: CollapsedBorder::inline_start(
                     &self.block_flow.fragment.style,
-                    CollapsedBorderProvenance::FromTable,
+                    CollapsedBorderFrom::Table,
                 ),
                 end: CollapsedBorder::inline_end(
                     &self.block_flow.fragment.style,
-                    CollapsedBorderProvenance::FromTable,
+                    CollapsedBorderFrom::Table,
                 ),
             })
         } else {
@@ -354,7 +354,7 @@ impl Flow for TableFlow {
         let mut previous_collapsed_block_end_borders =
             PreviousBlockCollapsedBorders::FromTable(CollapsedBorder::block_start(
                 &self.block_flow.fragment.style,
-                CollapsedBorderProvenance::FromTable,
+                CollapsedBorderFrom::Table,
             ));
         let mut first_row = true;
         let (border_padding, _) = self.block_flow.fragment.surrounding_intrinsic_inline_size();
@@ -381,7 +381,7 @@ impl Flow for TableFlow {
                         ),
                         None => NextBlockCollapsedBorders::FromTable(CollapsedBorder::block_end(
                             &self.block_flow.fragment.style,
-                            CollapsedBorderProvenance::FromTable,
+                            CollapsedBorderFrom::Table,
                         )),
                     };
                     perform_border_collapse_for_row(

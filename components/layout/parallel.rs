@@ -35,8 +35,9 @@ pub struct UnsafeFlow(*const dyn Flow);
 unsafe impl Sync for UnsafeFlow {}
 unsafe impl Send for UnsafeFlow {}
 impl PartialEq for UnsafeFlow {
+    #[allow(clippy::ptr_eq)]
     fn eq(&self, other: &Self) -> bool {
-        // Compare the pointers explicitly to avoid clippy lint
+        // Compare the pointers explicitly to avoid a clippy error
         self.0 as *const u8 == other.0 as *const u8
     }
 }

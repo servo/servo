@@ -4,6 +4,8 @@
 
 //! CSS table formatting contexts.
 
+#![allow(clippy::too_many_arguments)]
+
 use std::cmp::max;
 use std::fmt;
 use std::iter::{Enumerate, Peekable};
@@ -123,7 +125,7 @@ impl TableRowFlow {
         fn include_sizes_from_previous_rows(
             col: &mut usize,
             incoming_rowspan: &[u32],
-            incoming_rowspan_data: &mut Vec<Au>,
+            incoming_rowspan_data: &mut [Au],
             max_block_size: &mut Au,
         ) {
             while let Some(span) = incoming_rowspan.get(*col) {
@@ -390,7 +392,7 @@ impl Flow for TableRowFlow {
         self.preliminary_collapsed_borders
             .reset(CollapsedBorder::inline_start(
                 row_style,
-                CollapsedBorderProvenance::FromTableRow,
+                CollapsedBorderFrom::TableRow,
             ));
 
         {
@@ -736,7 +738,7 @@ pub struct CollapsedBorder {
     /// The color of the border.
     pub color: Color,
     /// The type of item that this border comes from.
-    pub provenance: CollapsedBorderProvenance,
+    pub provenance: CollapsedBorderFrom,
 }
 
 impl Serialize for CollapsedBorder {
@@ -753,14 +755,14 @@ impl Serialize for CollapsedBorder {
 // FromTableColumnGroup are unused
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
-pub enum CollapsedBorderProvenance {
-    FromPreviousTableCell = 6,
-    FromNextTableCell = 5,
-    FromTableRow = 4,
-    FromTableRowGroup = 3,
-    FromTableColumn = 2,
-    FromTableColumnGroup = 1,
-    FromTable = 0,
+pub enum CollapsedBorderFrom {
+    PreviousTableCell = 6,
+    NextTableCell = 5,
+    TableRow = 4,
+    TableRowGroup = 3,
+    TableColumn = 2,
+    TableColumnGroup = 1,
+    Table = 0,
 }
 
 impl CollapsedBorder {
@@ -770,13 +772,13 @@ impl CollapsedBorder {
             style: BorderStyle::None,
             width: Au(0),
             color: Color::transparent(),
-            provenance: CollapsedBorderProvenance::FromTable,
+            provenance: CollapsedBorderFrom::Table,
         }
     }
 
     /// Creates a collapsed border from the block-start border described in the given CSS style
     /// object.
-    fn top(css_style: &ComputedValues, provenance: CollapsedBorderProvenance) -> CollapsedBorder {
+    fn top(css_style: &ComputedValues, provenance: CollapsedBorderFrom) -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_top_style,
             width: css_style.get_border().border_top_width,
@@ -787,7 +789,7 @@ impl CollapsedBorder {
 
     /// Creates a collapsed border style from the right border described in the given CSS style
     /// object.
-    fn right(css_style: &ComputedValues, provenance: CollapsedBorderProvenance) -> CollapsedBorder {
+    fn right(css_style: &ComputedValues, provenance: CollapsedBorderFrom) -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_right_style,
             width: css_style.get_border().border_right_width,
@@ -798,10 +800,7 @@ impl CollapsedBorder {
 
     /// Creates a collapsed border style from the bottom border described in the given CSS style
     /// object.
-    fn bottom(
-        css_style: &ComputedValues,
-        provenance: CollapsedBorderProvenance,
-    ) -> CollapsedBorder {
+    fn bottom(css_style: &ComputedValues, provenance: CollapsedBorderFrom) -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_bottom_style,
             width: css_style.get_border().border_bottom_width,
@@ -812,7 +811,7 @@ impl CollapsedBorder {
 
     /// Creates a collapsed border style from the left border described in the given CSS style
     /// object.
-    fn left(css_style: &ComputedValues, provenance: CollapsedBorderProvenance) -> CollapsedBorder {
+    fn left(css_style: &ComputedValues, provenance: CollapsedBorderFrom) -> CollapsedBorder {
         CollapsedBorder {
             style: css_style.get_border().border_left_style,
             width: css_style.get_border().border_left_width,
@@ -825,7 +824,7 @@ impl CollapsedBorder {
     fn from_side(
         side: PhysicalSide,
         css_style: &ComputedValues,
-        provenance: CollapsedBorderProvenance,
+        provenance: CollapsedBorderFrom,
     ) -> CollapsedBorder {
         match side {
             PhysicalSide::Top => CollapsedBorder::top(css_style, provenance),
@@ -839,7 +838,7 @@ impl CollapsedBorder {
     /// style object.
     pub fn inline_start(
         css_style: &ComputedValues,
-        provenance: CollapsedBorderProvenance,
+        provenance: CollapsedBorderFrom,
     ) -> CollapsedBorder {
         CollapsedBorder::from_side(
             css_style.writing_mode.inline_start_physical_side(),
@@ -852,7 +851,7 @@ impl CollapsedBorder {
     /// style object.
     pub fn inline_end(
         css_style: &ComputedValues,
-        provenance: CollapsedBorderProvenance,
+        provenance: CollapsedBorderFrom,
     ) -> CollapsedBorder {
         CollapsedBorder::from_side(
             css_style.writing_mode.inline_end_physical_side(),
@@ -865,7 +864,7 @@ impl CollapsedBorder {
     /// style object.
     pub fn block_start(
         css_style: &ComputedValues,
-        provenance: CollapsedBorderProvenance,
+        provenance: CollapsedBorderFrom,
     ) -> CollapsedBorder {
         CollapsedBorder::from_side(
             css_style.writing_mode.block_start_physical_side(),
@@ -878,7 +877,7 @@ impl CollapsedBorder {
     /// object.
     pub fn block_end(
         css_style: &ComputedValues,
-        provenance: CollapsedBorderProvenance,
+        provenance: CollapsedBorderFrom,
     ) -> CollapsedBorder {
         CollapsedBorder::from_side(
             css_style.writing_mode.block_end_physical_side(),
@@ -1120,7 +1119,7 @@ fn perform_inline_direction_border_collapse_for_row(
         let first_inline_border = &mut preliminary_collapsed_borders.inline[0];
         first_inline_border.combine(&CollapsedBorder::inline_start(
             &child_table_cell.block_flow.fragment.style,
-            CollapsedBorderProvenance::FromNextTableCell,
+            CollapsedBorderFrom::NextTableCell,
         ));
     }
 
@@ -1128,7 +1127,7 @@ fn perform_inline_direction_border_collapse_for_row(
         child_index + 1,
         CollapsedBorder::inline_end(
             &child_table_cell.block_flow.fragment.style,
-            CollapsedBorderProvenance::FromPreviousTableCell,
+            CollapsedBorderFrom::PreviousTableCell,
         ),
     );
 
@@ -1136,7 +1135,7 @@ fn perform_inline_direction_border_collapse_for_row(
         let next_child_flow = next_child_flow.as_block();
         inline_collapsed_border.combine(&CollapsedBorder::inline_start(
             &next_child_flow.fragment.style,
-            CollapsedBorderProvenance::FromNextTableCell,
+            CollapsedBorderFrom::NextTableCell,
         ))
     };
 
@@ -1145,28 +1144,28 @@ fn perform_inline_direction_border_collapse_for_row(
     if child_index + 1 == children_count {
         inline_collapsed_border.combine(&CollapsedBorder::inline_end(
             row_style,
-            CollapsedBorderProvenance::FromTableRow,
+            CollapsedBorderFrom::TableRow,
         ));
     }
 
     let mut block_start_border = CollapsedBorder::block_start(
         &child_table_cell.block_flow.fragment.style,
-        CollapsedBorderProvenance::FromNextTableCell,
+        CollapsedBorderFrom::NextTableCell,
     );
     block_start_border.combine(&CollapsedBorder::block_start(
         row_style,
-        CollapsedBorderProvenance::FromTableRow,
+        CollapsedBorderFrom::TableRow,
     ));
     preliminary_collapsed_borders
         .block_start
         .push_or_set(child_index, block_start_border);
     let mut block_end_border = CollapsedBorder::block_end(
         &child_table_cell.block_flow.fragment.style,
-        CollapsedBorderProvenance::FromPreviousTableCell,
+        CollapsedBorderFrom::PreviousTableCell,
     );
     block_end_border.combine(&CollapsedBorder::block_end(
         row_style,
-        CollapsedBorderProvenance::FromTableRow,
+        CollapsedBorderFrom::TableRow,
     ));
 
     preliminary_collapsed_borders
