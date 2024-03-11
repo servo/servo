@@ -101,12 +101,6 @@ jobs:
     if: ${{ always() }}
     needs: linux-wpt
     steps:
-      - name: Merge logs (filtered)
-        uses: actions/upload-artifact/merge@v4
-        with:
-          name: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}
-          pattern: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}-*
-          delete-merged: true
       - name: Merge logs (full)
         uses: actions/upload-artifact/merge@v4
         with:
@@ -118,6 +112,13 @@ jobs:
         with:
           name: wptreport-linux-${{ inputs.wpt-layout }}
           pattern: wptreport-linux-${{ inputs.wpt-layout }}-*
+          delete-merged: true
+      # These need to be last so we still merge others if filtered do not exists
+      - name: Merge logs (filtered)
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}
+          pattern: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}-*
           delete-merged: true
       - uses: actions/checkout@v4
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
