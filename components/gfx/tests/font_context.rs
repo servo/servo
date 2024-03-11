@@ -24,6 +24,7 @@ use style::values::computed::font::{
     FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSize, FontStretch, FontStyle,
     FontWeight, SingleFontFamily,
 };
+use style::values::computed::FontLanguageOverride;
 use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
 
 struct TestFontSource {
@@ -100,6 +101,7 @@ fn style() -> FontStyleStruct {
         font_size: FontSize::medium(),
         font_stretch: FontStretch::hundred(),
         hash: 0,
+        font_language_override: FontLanguageOverride::normal(),
     };
     style.compute_font_hash();
     style
