@@ -1828,11 +1828,12 @@ where
                 // Events coming from inactive media sessions are discarded.
                 if self.active_media_session.is_some() {
                     if let MediaSessionEvent::PlaybackStateChange(ref state) = event {
-                        match state {
-                            MediaSessionPlaybackState::Playing |
-                            MediaSessionPlaybackState::Paused => (),
-                            _ => return,
-                        };
+                        if !matches!(
+                            state,
+                            MediaSessionPlaybackState::Playing | MediaSessionPlaybackState::Paused
+                        ) {
+                            return;
+                        }
                     };
                 }
                 self.active_media_session = Some(pipeline_id);
