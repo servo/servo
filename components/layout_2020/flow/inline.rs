@@ -2215,7 +2215,7 @@ struct ContentSizesComputation<'a> {
     paragraph: ContentSizes,
     current_line: ContentSizes,
     /// Size for whitepsace pending to be added to this line.
-    pending_whitespace: Length,
+    pending_whitespace: Au,
     /// Whether or not this IFC has seen any non-whitespace content.
     had_non_whitespace_content_yet: bool,
     /// Stack of ending padding, margin, and border to add to the length
@@ -2270,14 +2270,13 @@ impl<'a> ContentSizesComputation<'a> {
                     }
 
                     for run in segment.runs.iter() {
-                        let advance = Length::from(run.glyph_store.total_advance());
+                        let advance = run.glyph_store.total_advance();
 
                         if !run.glyph_store.is_whitespace() {
                             self.had_non_whitespace_content_yet = true;
-                            self.current_line.min_content += advance.into();
-                            self.current_line.max_content +=
-                                (self.pending_whitespace + advance).into();
-                            self.pending_whitespace = Length::zero();
+                            self.current_line.min_content += advance;
+                            self.current_line.max_content += self.pending_whitespace + advance;
+                            self.pending_whitespace = Au::zero();
                         } else {
                             // If this run is a forced line break, we *must* break the line
                             // and start measuring from the inline origin once more.
@@ -2307,10 +2306,9 @@ impl<'a> ContentSizesComputation<'a> {
                     self.containing_block_writing_mode,
                 );
 
-                self.current_line.min_content +=
-                    (self.pending_whitespace + outer.min_content.into()).into();
-                self.current_line.max_content += outer.max_content;
-                self.pending_whitespace = Length::zero();
+                self.current_line.min_content += self.pending_whitespace + outer.min_content;
+                self.current_line.max_content += self.pending_whitespace + outer.max_content;
+                self.pending_whitespace = Au::zero();
                 self.had_non_whitespace_content_yet = true;
             },
             _ => {},
@@ -2349,7 +2347,7 @@ impl<'a> ContentSizesComputation<'a> {
             containing_block_writing_mode,
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
-            pending_whitespace: Length::zero(),
+            pending_whitespace: Au::zero(),
             had_non_whitespace_content_yet: false,
             ending_inline_pbm_stack: Vec::new(),
         }
