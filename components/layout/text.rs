@@ -485,7 +485,8 @@ impl TextRunScanner {
                 );
 
                 let is_last_mapping_of_this_old_fragment = !matches!(
-                mappings.peek(), Some(mapping) if mapping.old_fragment_index == logical_offset
+                    mappings.peek(),
+                    Some(mapping) if mapping.old_fragment_index == logical_offset
                 );
 
                 if let Some(ref mut context) = new_fragment.inline_context {
