@@ -18,10 +18,14 @@ pub struct WebViewManager<WebView> {
     /// Whether the latest webview in focus order is currently focused.
     is_focused: bool,
 
-    /// Webviews that are being shown by the embedder, regardless of whether they are actually visible.
+    /// Webviews that are being shown by the compositor, regardless of whether they have been marked as invisible due to
+    /// external factors. This set reflects the [compositing_traits::ConstellationMsg::ShowWebView] and
+    /// [compositing_traits::ConstellationMsg::HideWebView] messages.
     shown_webviews: HashSet<TopLevelBrowsingContextId>,
 
-    /// Webviews that are known to be invisible, regardless of whether they are being shown.
+    /// Webviews that have been marked as invisible due to external factors, regardless of whether they are being shown
+    /// by the compositor. This set reflects the [compositing_traits::ConstellationMsg::MarkWebViewInvisible] and
+    /// [compositing_traits::ConstellationMsg::UnmarkWebViewInvisible] messages.
     invisible_webviews: HashSet<TopLevelBrowsingContextId>,
 }
 
