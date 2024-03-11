@@ -504,8 +504,8 @@ impl HoistedAbsolutelyPositionedBox {
         let inline_axis_solver = AbsoluteAxisSolver {
             containing_size: cbis,
             padding_border_sum: pbm.padding_border_sums.inline,
-            computed_margin_start: pbm.margin.inline_start.map(|t| t.into()),
-            computed_margin_end: pbm.margin.inline_end.map(|t| t.into()),
+            computed_margin_start: pbm.margin.inline_start,
+            computed_margin_end: pbm.margin.inline_end,
             avoid_negative_margin_start: true,
             box_offsets: &shared_fragment.box_offsets.inline,
         };
@@ -513,8 +513,8 @@ impl HoistedAbsolutelyPositionedBox {
         let block_axis_solver = AbsoluteAxisSolver {
             containing_size: cbbs,
             padding_border_sum: pbm.padding_border_sums.block,
-            computed_margin_start: pbm.margin.block_start.map(|t| t.into()),
-            computed_margin_end: pbm.margin.block_end.map(|t| t.into()),
+            computed_margin_start: pbm.margin.block_start,
+            computed_margin_end: pbm.margin.block_end,
             avoid_negative_margin_start: false,
             box_offsets: &shared_fragment.box_offsets.block,
         };

@@ -294,19 +294,19 @@ impl InlineBoxLineItem {
         let style = self.style.clone();
         let mut padding = self.pbm.padding.clone();
         let mut border = self.pbm.border.clone();
-        let mut margin = self.pbm.margin.auto_is(Length::zero);
+        let mut margin = self.pbm.margin.map(|t| t.auto_is(Au::zero));
 
         if !self.is_first_fragment {
             padding.inline_start = Au::zero();
             border.inline_start = Au::zero();
-            margin.inline_start = Length::zero();
+            margin.inline_start = Au::zero();
         }
         if !self.is_last_fragment_of_ib_split {
             padding.inline_end = Au::zero();
             border.inline_end = Au::zero();
-            margin.inline_end = Length::zero();
+            margin.inline_end = Au::zero();
         }
-        let pbm_sums = &(&padding + &border) + &margin.map(|t| (*t).into());
+        let pbm_sums = &(&padding + &border) + &margin;
         state.inline_position += pbm_sums.inline_start.into();
 
         let space_above_baseline = self.calculate_space_above_baseline();
@@ -342,9 +342,9 @@ impl InlineBoxLineItem {
         if !self.is_last_fragment_of_ib_split || !saw_end {
             padding.inline_end = Au::zero();
             border.inline_end = Au::zero();
-            margin.inline_end = Length::zero();
+            margin.inline_end = Au::zero();
         }
-        let pbm_sums = &(&padding + &border) + &margin.clone().into();
+        let pbm_sums = &(&padding + &border) + &margin.clone();
 
         // If the inline box didn't have any content at all, don't add a Fragment for it.
         let box_has_padding_border_or_margin = pbm_sums.inline_sum() > Au::zero();
@@ -385,7 +385,7 @@ impl InlineBoxLineItem {
             content_rect,
             padding.into(),
             border.into(),
-            margin,
+            margin.into(),
             None, /* clearance */
             CollapsedBlockMargins::zero(),
         );

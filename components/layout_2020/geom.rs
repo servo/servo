@@ -132,6 +132,12 @@ impl LogicalVec2<LengthOrAuto> {
     }
 }
 
+impl LogicalVec2<AuOrAuto> {
+    pub fn auto_is(&self, f: impl Fn() -> Au) -> LogicalVec2<Au> {
+        self.map(|t| t.auto_is(&f))
+    }
+}
+
 impl LogicalVec2<LengthPercentageOrAuto<'_>> {
     pub fn percentages_relative_to(
         &self,
