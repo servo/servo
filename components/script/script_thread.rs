@@ -1496,10 +1496,20 @@ impl ScriptThread {
         } else {
             return;
         };
+        let document = match self.documents.borrow().find_document(pipeline_id) {
+            Some(document) => document,
+            None => {
+                return warn!(
+                    "Trying to process pending compositor events for closed pipeline {}.",
+                    pipeline_id
+                )
+            },
+        };
+        let window = document.window();
         for event in pending_for_pipeline {
             match event {
                 CompositorEvent::ResizeEvent(new_size, size_type) => {
-                    self.handle_resize_msg(pipeline_id, new_size, size_type);
+                    window.set_resize_event(new_size, size_type);
                 },
 
                 CompositorEvent::MouseButtonEvent(
@@ -1522,12 +1532,6 @@ impl ScriptThread {
                 },
 
                 CompositorEvent::MouseMoveEvent(point, node_address, pressed_mouse_buttons) => {
-                    let document = match self.documents.borrow().find_document(pipeline_id) {
-                        Some(document) => document,
-                        None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                    };
-                    let window = document.window();
-
                     // Get the previous target temporarily
                     let prev_mouse_over_target = self.topmost_mouse_over_target.get();
 
@@ -1616,34 +1620,18 @@ impl ScriptThread {
                 },
 
                 CompositorEvent::KeyboardEvent(key_event) => {
-                    let document = match self.documents.borrow().find_document(pipeline_id) {
-                        Some(document) => document,
-                        None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                    };
                     document.dispatch_key_event(key_event);
                 },
 
                 CompositorEvent::IMEDismissedEvent => {
-                    let document = match self.documents.borrow().find_document(pipeline_id) {
-                        Some(document) => document,
-                        None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                    };
                     document.ime_dismissed();
                 },
 
                 CompositorEvent::CompositionEvent(composition_event) => {
-                    let document = match self.documents.borrow().find_document(pipeline_id) {
-                        Some(document) => document,
-                        None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                    };
                     document.dispatch_composition_event(composition_event);
                 },
 
                 CompositorEvent::GamepadEvent(gamepad_event) => {
-                    let window = match self.documents.borrow().find_window(pipeline_id) {
-                        Some(window) => window,
-                        None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                    };
                     let global = window.upcast::<GlobalScope>();
                     global.handle_gamepad_event(gamepad_event);
                 },
