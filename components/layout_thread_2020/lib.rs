@@ -1026,6 +1026,7 @@ impl LayoutThread {
             fragment_tree.scrollable_overflow(),
             self.id.to_webrender(),
             epoch.into(),
+            fragment_tree.root_scroll_sensitivity,
         );
 
         // `dump_serialized_display_list` doesn't actually print anything. It sets up

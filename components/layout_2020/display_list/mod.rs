@@ -25,7 +25,7 @@ use style::values::specified::ui::CursorKind;
 use style_traits::CSSPixel;
 use webrender_api::{self as wr, units, ClipChainId, ClipId, CommonItemProperties};
 use wr::units::LayoutVector2D;
-use wr::BoxShadowClipMode;
+use wr::{BoxShadowClipMode, ScrollSensitivity};
 
 use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
@@ -77,6 +77,7 @@ impl DisplayList {
         content_size: units::LayoutSize,
         pipeline_id: wr::PipelineId,
         epoch: wr::Epoch,
+        root_scroll_sensitivity: ScrollSensitivity,
     ) -> Self {
         Self {
             wr: wr::DisplayListBuilder::new(pipeline_id),
@@ -85,6 +86,7 @@ impl DisplayList {
                 content_size,
                 pipeline_id,
                 epoch,
+                root_scroll_sensitivity,
             ),
         }
     }

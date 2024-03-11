@@ -32,7 +32,7 @@ use crate::cell::ArcRefCell;
 use crate::display_list::conversions::{FilterToWebRender, ToWebRender};
 use crate::display_list::DisplayListBuilder;
 use crate::fragment_tree::{
-    BoxFragment, ContainingBlockManager, Fragment, FragmentTree, PositioningFragment,
+    BoxFragment, ContainingBlockManager, Fragment, FragmentFlags, FragmentTree, PositioningFragment,
 };
 use crate::geom::{PhysicalRect, PhysicalSides};
 use crate::style_ext::ComputedValuesExt;
@@ -1244,6 +1244,24 @@ impl BoxFragment {
         let overflow_x = self.style.get_box().overflow_x;
         let overflow_y = self.style.get_box().overflow_y;
         if !self.style.establishes_scroll_container() {
+            return None;
+        }
+
+        // From https://drafts.csswg.org/css-overflow/#propdef-overflow:
+        // > UAs must apply the overflow-* values set on the root element to the viewport when the
+        // > root element’s display value is not none. However, when the root element is an [HTML]
+        // > html element (including XML syntax for HTML) whose overflow value is visible (in both
+        // > axes), and that element has as a child a body element whose display value is also not
+        // > none, user agents must instead apply the overflow-* values of the first such child
+        // > element to the viewport. The element from which the value is propagated must then have a
+        // > used overflow value of visible.
+        //
+        // TODO: This should only happen when the `display` value is actually propagated.
+        if self
+            .base
+            .flags
+            .contains(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT)
+        {
             return None;
         }
 
