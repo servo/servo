@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![allow(clippy::too_many_arguments)]
+
 use std::collections::{HashMap, HashSet};
 
 use euclid::Size2D;
@@ -198,7 +200,7 @@ impl<'a> Iterator for AllBrowsingContextsIterator<'a> {
             let child_browsing_context_ids = browsing_context
                 .pipelines
                 .iter()
-                .filter_map(|pipeline_id| pipelines.get(&pipeline_id))
+                .filter_map(|pipeline_id| pipelines.get(pipeline_id))
                 .flat_map(|pipeline| pipeline.children.iter());
             self.stack.extend(child_browsing_context_ids);
             return Some(browsing_context);
