@@ -6,13 +6,7 @@ use std::fmt;
 use std::result::Result;
 
 use msg::constellation_msg::PipelineId;
-use servo_atoms::Atom;
 
-use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
-use crate::dom::eventtarget::EventTarget;
-use crate::dom::window::Window;
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::task::{TaskCanceller, TaskOnce};
 use crate::task_source::{TaskSource, TaskSourceName};
