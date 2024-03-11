@@ -19,7 +19,8 @@
 
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
-use std::collections::{hash_map, HashMap, HashSet};
+use std::collections::vec_deque::Drain;
+use std::collections::{hash_map, HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::ops::Deref;
 use std::option::Option;
@@ -75,10 +76,6 @@ use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_layout_interface::message::{Msg, ReflowGoal};
 use script_layout_interface::{Layout, LayoutConfig, LayoutFactory, ScriptThreadFactory};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
-use script_traits::CompositorEvent::{
-    CompositionEvent, GamepadEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent,
-    MouseMoveEvent, ResizeEvent, TouchEvent, WheelEvent,
-};
 use script_traits::{
     AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
     DocumentActivity, EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult,
@@ -518,6 +515,9 @@ pub struct ScriptThread {
     last_render_opportunity_time: DomRefCell<u64>,
     /// Used to batch rendering opportunities
     has_queued_update_the_rendering_task: DomRefCell<bool>,
+    /// Pending composition events, to be handled at the next rendering opportunity.
+    #[no_trace]
+    pending_compositor_events: DomRefCell<HashMap<PipelineId, VecDeque<CompositorEvent>>>,
     /// The documents for pipelines managed by this thread
     documents: DomRefCell<Documents>,
     /// The window proxies known by this thread
@@ -1349,6 +1349,7 @@ impl ScriptThread {
         ScriptThread {
             last_render_opportunity_time: Default::default(),
             has_queued_update_the_rendering_task: Default::default(),
+            pending_compositor_events: Default::default(),
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMapTracedValues::new()),
             incomplete_loads: DomRefCell::new(vec![]),
@@ -1486,6 +1487,170 @@ impl ScriptThread {
         }
     }
 
+    /// Process compositor events as part of a "update the rendering task".
+    fn process_pending_compositor_events(&self, pipeline_id: PipelineId) {
+        let mut pending_events = self.pending_compositor_events.borrow_mut();
+        let pending_queue = pending_events.get_mut(&pipeline_id);
+        let pending_for_pipeline: Drain<'_, CompositorEvent> = if let Some(queue) = pending_queue {
+            queue.drain(..)
+        } else {
+            return;
+        };
+        for event in pending_for_pipeline {
+            match event {
+                CompositorEvent::ResizeEvent(new_size, size_type) => {
+                    self.handle_resize_msg(pipeline_id, new_size, size_type);
+                },
+
+                CompositorEvent::MouseButtonEvent(
+                    event_type,
+                    button,
+                    point,
+                    node_address,
+                    point_in_node,
+                    pressed_mouse_buttons,
+                ) => {
+                    self.handle_mouse_event(
+                        pipeline_id,
+                        event_type,
+                        button,
+                        point,
+                        node_address,
+                        point_in_node,
+                        pressed_mouse_buttons,
+                    );
+                },
+
+                CompositorEvent::MouseMoveEvent(point, node_address, pressed_mouse_buttons) => {
+                    let document = match self.documents.borrow().find_document(pipeline_id) {
+                        Some(document) => document,
+                        None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                    };
+                    let window = document.window();
+
+                    // Get the previous target temporarily
+                    let prev_mouse_over_target = self.topmost_mouse_over_target.get();
+
+                    unsafe {
+                        document.handle_mouse_move_event(
+                            point,
+                            &self.topmost_mouse_over_target,
+                            node_address,
+                            pressed_mouse_buttons,
+                        )
+                    }
+
+                    // Short-circuit if nothing changed
+                    if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
+                        return;
+                    }
+
+                    let mut state_already_changed = false;
+
+                    // Notify Constellation about the topmost anchor mouse over target.
+                    if let Some(target) = self.topmost_mouse_over_target.get() {
+                        if let Some(anchor) = target
+                            .upcast::<Node>()
+                            .inclusive_ancestors(ShadowIncluding::No)
+                            .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                            .next()
+                        {
+                            let status = anchor
+                                .upcast::<Element>()
+                                .get_attribute(&ns!(), &local_name!("href"))
+                                .and_then(|href| {
+                                    let value = href.value();
+                                    let url = document.url();
+                                    url.join(&value).map(|url| url.to_string()).ok()
+                                });
+                            let event = EmbedderMsg::Status(status);
+                            window.send_to_embedder(event);
+
+                            state_already_changed = true;
+                        }
+                    }
+
+                    // We might have to reset the anchor state
+                    if !state_already_changed {
+                        if let Some(target) = prev_mouse_over_target {
+                            if let Some(_) = target
+                                .upcast::<Node>()
+                                .inclusive_ancestors(ShadowIncluding::No)
+                                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                                .next()
+                            {
+                                let event = EmbedderMsg::Status(None);
+                                window.send_to_embedder(event);
+                            }
+                        }
+                    }
+                },
+
+                CompositorEvent::TouchEvent(event_type, identifier, point, node_address) => {
+                    let touch_result = self.handle_touch_event(
+                        pipeline_id,
+                        event_type,
+                        identifier,
+                        point,
+                        node_address,
+                    );
+                    match (event_type, touch_result) {
+                        (TouchEventType::Down, TouchEventResult::Processed(handled)) => {
+                            let result = if handled {
+                                // TODO: Wait to see if preventDefault is called on the first touchmove event.
+                                EventResult::DefaultAllowed
+                            } else {
+                                EventResult::DefaultPrevented
+                            };
+                            let message = ScriptMsg::TouchEventProcessed(result);
+                            self.script_sender.send((pipeline_id, message)).unwrap();
+                        },
+                        _ => {
+                            // TODO: Calling preventDefault on a touchup event should prevent clicks.
+                        },
+                    }
+                },
+
+                CompositorEvent::WheelEvent(delta, point, node_address) => {
+                    self.handle_wheel_event(pipeline_id, delta, point, node_address);
+                },
+
+                CompositorEvent::KeyboardEvent(key_event) => {
+                    let document = match self.documents.borrow().find_document(pipeline_id) {
+                        Some(document) => document,
+                        None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                    };
+                    document.dispatch_key_event(key_event);
+                },
+
+                CompositorEvent::IMEDismissedEvent => {
+                    let document = match self.documents.borrow().find_document(pipeline_id) {
+                        Some(document) => document,
+                        None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                    };
+                    document.ime_dismissed();
+                },
+
+                CompositorEvent::CompositionEvent(composition_event) => {
+                    let document = match self.documents.borrow().find_document(pipeline_id) {
+                        Some(document) => document,
+                        None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                    };
+                    document.dispatch_composition_event(composition_event);
+                },
+
+                CompositorEvent::GamepadEvent(gamepad_event) => {
+                    let window = match self.documents.borrow().find_window(pipeline_id) {
+                        Some(window) => window,
+                        None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                    };
+                    let global = window.upcast::<GlobalScope>();
+                    global.handle_gamepad_event(gamepad_event);
+                },
+            }
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
     fn update_the_rendering(&self) {
         // reset batching.
@@ -1495,18 +1660,36 @@ impl ScriptThread {
             // TODO: ordering by parent and shadow root.
             // TODO: Filter non-renderable documents.
             // TODO: Unnecessary rendering.
-            for (id, document) in self.documents.borrow().iter().filter_map(|(id, document)| {
-                if !document.is_fully_active() {
-                    None
-                } else {
-                    Some((id, DomRoot::from_ref(&*document)))
-                }
-            }) {
+            for (pipeline_id, document) in
+                self.documents.borrow().iter().filter_map(|(id, document)| {
+                    if !document.is_fully_active() {
+                        None
+                    } else {
+                        Some((id, DomRoot::from_ref(&*document)))
+                    }
+                })
+            {
                 // TODO: reveal the document(#31581).
 
-                // TODO: focusing steps(implemented but needs refactor).
+                // Do not handle events if the BC has been, or is being, discarded
+                if document.window().Closed() {
+                    return warn!(
+                        "Compositor event sent to a pipeline with a closed window {}.",
+                        pipeline_id
+                    );
+                }
 
-                self.run_the_resize_steps(id, &*document);
+                let _realm = enter_realm(document.window());
+
+                // Assuming all CompositionEvent are generated by user interactions.
+                ScriptThread::set_user_interacting(true);
+
+                // Focusing steps, plus other composition events.
+                self.process_pending_compositor_events(pipeline_id);
+
+                ScriptThread::set_user_interacting(false);
+
+                self.run_the_resize_steps(pipeline_id, &*document);
             }
         }
     }
@@ -1654,14 +1837,15 @@ impl ScriptThread {
                         sequential.push(event);
                     }
                 },
-                FromConstellation(ConstellationControlMsg::SendEvent(_, MouseMoveEvent(..))) => {
-                    match mouse_move_event_index {
-                        None => {
-                            mouse_move_event_index = Some(sequential.len());
-                            sequential.push(event);
-                        },
-                        Some(index) => sequential[index] = event,
-                    }
+                FromConstellation(ConstellationControlMsg::SendEvent(
+                    _,
+                    CompositorEvent::MouseMoveEvent(..),
+                )) => match mouse_move_event_index {
+                    None => {
+                        mouse_move_event_index = Some(sequential.len());
+                        sequential.push(event);
+                    },
+                    Some(index) => sequential[index] = event,
                 },
                 FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
@@ -3547,181 +3731,12 @@ impl ScriptThread {
     ///
     /// TODO: Actually perform DOM event dispatch.
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
-        // Do not handle events if the pipeline exited.
-        let window = match self.documents.borrow().find_window(pipeline_id) {
-            Some(win) => win,
-            None => {
-                return warn!(
-                    "Compositor event sent to a pipeline that already exited {}.",
-                    pipeline_id
-                )
-            },
-        };
-        // Do not handle events if the BC has been, or is being, discarded
-        if window.Closed() {
-            return warn!(
-                "Compositor event sent to a pipeline with a closed window {}.",
-                pipeline_id
-            );
-        }
-
-        let _realm = enter_realm(&*window);
-
-        // Assuming all CompositionEvent are generated by user interactions.
-        ScriptThread::set_user_interacting(true);
-        match event {
-            ResizeEvent(new_size, size_type) => {
-                self.handle_resize_msg(pipeline_id, new_size, size_type);
-            },
-
-            MouseButtonEvent(
-                event_type,
-                button,
-                point,
-                node_address,
-                point_in_node,
-                pressed_mouse_buttons,
-            ) => {
-                self.handle_mouse_event(
-                    pipeline_id,
-                    event_type,
-                    button,
-                    point,
-                    node_address,
-                    point_in_node,
-                    pressed_mouse_buttons,
-                );
-            },
-
-            MouseMoveEvent(point, node_address, pressed_mouse_buttons) => {
-                let document = match self.documents.borrow().find_document(pipeline_id) {
-                    Some(document) => document,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                let window = document.window();
-
-                // Get the previous target temporarily
-                let prev_mouse_over_target = self.topmost_mouse_over_target.get();
-
-                unsafe {
-                    document.handle_mouse_move_event(
-                        point,
-                        &self.topmost_mouse_over_target,
-                        node_address,
-                        pressed_mouse_buttons,
-                    )
-                }
-
-                // Short-circuit if nothing changed
-                if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
-                    return;
-                }
-
-                let mut state_already_changed = false;
-
-                // Notify Constellation about the topmost anchor mouse over target.
-                if let Some(target) = self.topmost_mouse_over_target.get() {
-                    if let Some(anchor) = target
-                        .upcast::<Node>()
-                        .inclusive_ancestors(ShadowIncluding::No)
-                        .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                        .next()
-                    {
-                        let status = anchor
-                            .upcast::<Element>()
-                            .get_attribute(&ns!(), &local_name!("href"))
-                            .and_then(|href| {
-                                let value = href.value();
-                                let url = document.url();
-                                url.join(&value).map(|url| url.to_string()).ok()
-                            });
-                        let event = EmbedderMsg::Status(status);
-                        window.send_to_embedder(event);
-
-                        state_already_changed = true;
-                    }
-                }
-
-                // We might have to reset the anchor state
-                if !state_already_changed {
-                    if let Some(target) = prev_mouse_over_target {
-                        if let Some(_) = target
-                            .upcast::<Node>()
-                            .inclusive_ancestors(ShadowIncluding::No)
-                            .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                            .next()
-                        {
-                            let event = EmbedderMsg::Status(None);
-                            window.send_to_embedder(event);
-                        }
-                    }
-                }
-            },
-
-            TouchEvent(event_type, identifier, point, node_address) => {
-                let touch_result = self.handle_touch_event(
-                    pipeline_id,
-                    event_type,
-                    identifier,
-                    point,
-                    node_address,
-                );
-                match (event_type, touch_result) {
-                    (TouchEventType::Down, TouchEventResult::Processed(handled)) => {
-                        let result = if handled {
-                            // TODO: Wait to see if preventDefault is called on the first touchmove event.
-                            EventResult::DefaultAllowed
-                        } else {
-                            EventResult::DefaultPrevented
-                        };
-                        let message = ScriptMsg::TouchEventProcessed(result);
-                        self.script_sender.send((pipeline_id, message)).unwrap();
-                    },
-                    _ => {
-                        // TODO: Calling preventDefault on a touchup event should prevent clicks.
-                    },
-                }
-            },
-
-            WheelEvent(delta, point, node_address) => {
-                self.handle_wheel_event(pipeline_id, delta, point, node_address);
-            },
-
-            KeyboardEvent(key_event) => {
-                let document = match self.documents.borrow().find_document(pipeline_id) {
-                    Some(document) => document,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                document.dispatch_key_event(key_event);
-            },
-
-            IMEDismissedEvent => {
-                let document = match self.documents.borrow().find_document(pipeline_id) {
-                    Some(document) => document,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                document.ime_dismissed();
-            },
-
-            CompositionEvent(composition_event) => {
-                let document = match self.documents.borrow().find_document(pipeline_id) {
-                    Some(document) => document,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                document.dispatch_composition_event(composition_event);
-            },
-
-            GamepadEvent(gamepad_event) => {
-                let window = match self.documents.borrow().find_window(pipeline_id) {
-                    Some(window) => window,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                let global = window.upcast::<GlobalScope>();
-                global.handle_gamepad_event(gamepad_event);
-            },
-        }
-
-        ScriptThread::set_user_interacting(false);
+        self.rendering_opportunity(pipeline_id);
+        self.pending_compositor_events
+            .borrow_mut()
+            .entry(pipeline_id)
+            .or_insert(Default::default())
+            .push_back(event);
     }
 
     fn handle_mouse_event(
