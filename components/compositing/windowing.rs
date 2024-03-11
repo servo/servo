@@ -233,7 +233,7 @@ impl EmbedderCoordinates {
 
     /// Flip the given rect.
     /// This should be used when drawing directly to the framebuffer with OpenGL commands.
-    pub fn flipped_rect(&self, rect: &DeviceIntRect) -> DeviceIntRect {
+    pub fn flip_rect(&self, rect: &DeviceIntRect) -> DeviceIntRect {
         let fb_height = self.framebuffer.height;
         let mut result = rect.clone();
         result.origin.y = fb_height - result.origin.y - result.size.height;
@@ -243,6 +243,6 @@ impl EmbedderCoordinates {
     /// Get the flipped viewport rectangle.
     /// This should be used when drawing directly to the framebuffer with OpenGL commands.
     pub fn get_flipped_viewport(&self) -> DeviceIntRect {
-        self.flipped_rect(&self.get_viewport())
+        self.flip_rect(&self.get_viewport())
     }
 }

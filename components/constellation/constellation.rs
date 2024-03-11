@@ -1551,7 +1551,7 @@ where
                     EmbedderMsg::WebViewFocused(top_level_browsing_context_id),
                 ));
                 if !cfg!(feature = "multiview") {
-                    self.update_webview(top_level_browsing_context_id);
+                    self.send_frame_tree_if_focused(top_level_browsing_context_id);
                 }
             },
             FromCompositorMsg::BlurWebView => {
@@ -3896,7 +3896,7 @@ where
         self.notify_history_changed(top_level_browsing_context_id);
 
         self.trim_history(top_level_browsing_context_id);
-        self.update_webview(top_level_browsing_context_id);
+        self.send_frame_tree_if_focused(top_level_browsing_context_id);
     }
 
     fn update_browsing_context(
@@ -4859,7 +4859,7 @@ where
         }
 
         self.notify_history_changed(change.top_level_browsing_context_id);
-        self.update_webview(change.top_level_browsing_context_id);
+        self.send_frame_tree_if_focused(change.top_level_browsing_context_id);
     }
 
     fn focused_browsing_context_is_descendant_of(
@@ -5472,7 +5472,10 @@ where
     }
 
     /// Send the frame tree for the given webview to the compositor.
-    fn update_webview(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
+    fn send_frame_tree_if_focused(
+        &mut self,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+    ) {
         if !cfg!(feature = "multiview") {
             if let Some(focused_webview_id) = self.webviews.focused_webview().map(|(id, _)| id) {
                 if top_level_browsing_context_id != focused_webview_id {

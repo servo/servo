@@ -57,7 +57,7 @@ use webrender_api::{
 
 use crate::gl::RenderTargetInfo;
 use crate::touch::{TouchAction, TouchHandler};
-use crate::webview::WebViewManager;
+use crate::webview::{WebView, WebViewManager};
 use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
 };
@@ -388,12 +388,6 @@ pub enum CompositeTarget {
     PngFile(Rc<String>),
 }
 
-#[derive(Debug)]
-pub struct WebView {
-    pub pipeline_id: Option<PipelineId>,
-    pub rect: DeviceRect,
-}
-
 impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn new(
         window: Rc<Window>,
@@ -594,7 +588,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (CompositorMsg::UpdateWebView(frame_tree), ShutdownState::NotShuttingDown) => {
-                self.update_webview(&frame_tree);
+                self.set_frame_tree_for_webview(&frame_tree);
                 self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
             },
 
@@ -1044,16 +1038,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
     /// for each visible top-level browsing context, applying the pinch zoom transformation if any.
     fn update_root_pipeline(&mut self) {
-        let mut txn = Transaction::new();
-        self.update_root_pipeline_with_txn(&mut txn);
-        self.generate_frame(&mut txn);
+        let mut transaction = Transaction::new();
+        self.update_root_pipeline_in_transaction(&mut transaction);
+        self.generate_frame(&mut transaction);
         self.webrender_api
-            .send_transaction(self.webrender_document, txn);
+            .send_transaction(self.webrender_document, transaction);
     }
 
     /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
     /// for each visible top-level browsing context, applying the pinch zoom transformation if any.
-    fn update_root_pipeline_with_txn(&self, transaction: &mut Transaction) {
+    fn update_root_pipeline_in_transaction(&self, transaction: &mut Transaction) {
         let zoom_factor = self.pinch_zoom_level();
 
         if !cfg!(feature = "multiview") {
@@ -1148,8 +1142,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         );
     }
 
-    fn update_webview(&mut self, frame_tree: &SendableFrameTree) {
-        debug!("{}: Updating webview", frame_tree.pipeline.id);
+    fn set_frame_tree_for_webview(&mut self, frame_tree: &SendableFrameTree) {
+        debug!("{}: Setting frame tree for webview", frame_tree.pipeline.id);
 
         if !cfg!(feature = "multiview") {
             self.root_content_pipeline = RootPipeline {
@@ -1706,7 +1700,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         let mut transaction = Transaction::new();
         if zoom_changed {
-            self.update_root_pipeline_with_txn(&mut transaction);
+            self.update_root_pipeline_in_transaction(&mut transaction);
         }
 
         if let Some((pipeline_id, external_id, offset)) = scroll_result {
@@ -2004,7 +1998,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
         if self.waiting_on_present {
-            trace!("tried to composite while waiting on present");
+            debug!("tried to composite while waiting on present");
             return Err(UnableToComposite::NotReadyToPaintImage(
                 NotReadyToPaint::WaitingOnConstellation,
             ));
@@ -2272,9 +2266,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         if cfg!(feature = "multiview") {
             // Clear the viewport rect of each top-level browsing context.
             for (_, webview) in self.webviews.painting_order() {
-                let rect = self
-                    .embedder_coordinates
-                    .flipped_rect(&webview.rect.to_i32());
+                let rect = self.embedder_coordinates.flip_rect(&webview.rect.to_i32());
                 gl.scissor(
                     rect.origin.x,
                     rect.origin.y,

@@ -4,9 +4,16 @@
 
 use std::collections::HashMap;
 
-use msg::constellation_msg::TopLevelBrowsingContextId;
+use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
+use webrender_api::units::DeviceRect;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
+pub struct WebView {
+    pub pipeline_id: Option<PipelineId>,
+    pub rect: DeviceRect,
+}
+
+#[derive(Debug, Default)]
 pub struct WebViewManager<WebView> {
     /// Our top-level browsing contexts. In the WebRender scene, their pipelines are the children of
     /// a single root pipeline that also applies any pinch zoom transformation.
@@ -14,15 +21,6 @@ pub struct WebViewManager<WebView> {
 
     /// The order to paint them in, topmost last.
     painting_order: Vec<TopLevelBrowsingContextId>,
-}
-
-impl<WebView> Default for WebViewManager<WebView> {
-    fn default() -> Self {
-        Self {
-            webviews: Default::default(),
-            painting_order: Default::default(),
-        }
-    }
 }
 
 impl<WebView> WebViewManager<WebView> {

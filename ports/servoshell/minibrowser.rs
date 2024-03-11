@@ -207,10 +207,11 @@ impl Minibrowser {
                 .frame(Frame::none())
                 .show(ctx, |ui| {
                     let Pos2 { x, y } = ui.cursor().min;
-                    let origin = Point2D::new(x, y);
-                    let Vec2 { x, y } = ui.available_size();
-                    let size = Size2D::new(x, y);
-                    let rect = Rect::new(origin, size) * scale;
+                    let Vec2 {
+                        x: width,
+                        y: height,
+                    } = ui.available_size();
+                    let rect = Rect::new(Point2D::new(x, y), Size2D::new(width, height)) * scale;
                     if rect != webview.rect {
                         webview.rect = rect;
                         embedder_events

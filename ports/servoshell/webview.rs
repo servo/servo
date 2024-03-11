@@ -568,7 +568,7 @@ where
                     let toolbar = self.window.toolbar_height().get();
 
                     // Adjust for our toolbar height.
-                    // TODO adjust for egui window decorations if we end up using those
+                    // TODO: Adjust for egui window decorations if we end up using those
                     let mut rect = self.window.get_coordinates().get_viewport().to_f32();
                     rect.origin.y += toolbar * scale;
                     rect.size.height -= toolbar * scale;
@@ -607,7 +607,7 @@ where
                         let mut newest_webview_is_visible = false;
 
                         // Hide any visible browsers other than the most recently created.
-                        // TODO stop doing this once we have full multiple browser support
+                        // TODO: Stop doing this once we have full multiple browser support
                         for &webview_id in self.painting_order.iter() {
                             if webview_id != newest_webview_id {
                                 self.event_queue
@@ -618,7 +618,7 @@ where
                         }
 
                         // If the most recently created browser is not visible, show it.
-                        // TODO stop doing this once we have full multiple browser support
+                        // TODO: Stop doing this once we have full multiple browser support
                         if !newest_webview_is_visible {
                             self.event_queue
                                 .push(EmbedderEvent::ShowWebView(newest_webview_id));
