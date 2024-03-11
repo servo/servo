@@ -58,7 +58,7 @@ manually, try the [manual build setup][manual-build].
     - **C++ MFC for latest v143 build tools (x86 & x64)** (`Microsoft.VisualStudio.Component.VC.ATLMFC`)
  - Install [chocolatey](https://chocolatey.org/)
  - Install [Python 3.11](https://www.python.org/downloads/windows/)
- - Run `mach bootstrap`
+ - Run `mach.bat bootstrap`
     + *This will install CMake, Git, and Ninja via choco in an
        Administrator console. Allow the scripts to run and once
        the operation finishes, close the new console.*
