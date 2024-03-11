@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(clippy::too_many_arguments)]
-
 use app_units::Au;
 use gfx_traits::print_tree::PrintTree;
 use serde::Serialize;
@@ -76,6 +74,7 @@ pub(crate) struct BoxFragment {
 }
 
 impl BoxFragment {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
@@ -110,6 +109,7 @@ impl BoxFragment {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new_with_overconstrained(
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,

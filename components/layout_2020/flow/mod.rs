@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 #![allow(rustdoc::private_intra_doc_links)]
-#![allow(clippy::too_many_arguments)]
 
 //! Flow layout, also known as block-and-inline layout.
 
@@ -614,6 +613,7 @@ impl BlockLevelBox {
 ///
 /// - <https://drafts.csswg.org/css2/visudet.html#blockwidth>
 /// - <https://drafts.csswg.org/css2/visudet.html#normal-block>
+#[allow(clippy::too_many_arguments)]
 fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,

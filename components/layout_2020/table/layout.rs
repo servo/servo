@@ -374,7 +374,7 @@ impl<'a> TableLayout<'a> {
         // >   * 100% minus the sum of the intrinsic percentage width of all prior columns in
         // >     the table (further left when direction is "ltr" (right for "rtl"))
         let mut total_intrinsic_percentage_width = 0.;
-        for column_measure in column_measures.iter_mut().take(self.table.size.width) {
+        for column_measure in column_measures.iter_mut() {
             let final_intrinsic_percentage_width = column_measure
                 .percentage
                 .0
@@ -970,8 +970,8 @@ impl<'a> TableLayout<'a> {
         for row_index in 0..self.table.slots.len() {
             let row = &self.table.slots[row_index];
             let mut cells_laid_out_row = Vec::new();
-            for (column_index, column_value) in row.iter().enumerate() {
-                let cell = match column_value {
+            for (column_index, slot) in row.iter().enumerate() {
+                let cell = match slot {
                     TableSlot::Cell(cell) => cell,
                     _ => {
                         cells_laid_out_row.push(None);
