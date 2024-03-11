@@ -135,7 +135,7 @@ pub trait DomObjectWrap: Sized + DomObject {
 /// A trait to provide a function pointer to wrap function for
 /// DOM iterator interfaces.
 pub trait DomObjectIteratorWrap: DomObjectWrap + JSTraceable + Iterable {
-    /// Function pointer to the wrap function for IterableIterator<T>
+    /// Function pointer to the wrap function for `IterableIterator<T>`
     const ITER_WRAP: unsafe fn(
         JSContext,
         &GlobalScope,

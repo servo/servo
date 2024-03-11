@@ -44,7 +44,7 @@ pub struct AudioBuffer {
     #[ignore_malloc_size_of = "mozjs"]
     js_channels: DomRefCell<Vec<HeapBufferSource<Float32>>>,
     /// Aggregates the data from js_channels.
-    /// This is Some<T> iff the buffers in js_channels are detached.
+    /// This is `Some<T>` iff the buffers in js_channels are detached.
     #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     shared_channels: DomRefCell<Option<ServoMediaAudioBuffer>>,
