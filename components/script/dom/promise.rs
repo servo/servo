@@ -53,7 +53,7 @@ pub struct Promise {
     permanent_js_root: Heap<JSVal>,
 }
 
-/// Private helper to enable adding new methods to Rc<Promise>.
+/// Private helper to enable adding new methods to `Rc<Promise>`.
 trait PromiseHelper {
     fn initialize(&self, cx: SafeJSContext);
 }
