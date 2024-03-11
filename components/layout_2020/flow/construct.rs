@@ -54,7 +54,7 @@ impl BlockFormattingContext {
         }
     }
 
-    pub fn construct_for_text_runs<'dom>(
+    pub fn construct_for_text_runs(
         runs: impl Iterator<Item = TextRun>,
         layout_context: &LayoutContext,
         text_decoration_line: TextDecorationLine,
@@ -409,15 +409,11 @@ where
         // collecting all Cow strings into a vector and passing them along to text breaking
         // and shaping during final InlineFormattingContext construction.
         let inlines = self.current_inline_level_boxes();
-        match inlines.last_mut().map(|last| last.borrow_mut()) {
-            Some(mut last_box) => match *last_box {
-                InlineLevelBox::TextRun(ref mut text_run) => {
-                    text_run.text.push_str(&input);
-                    return;
-                },
-                _ => {},
-            },
-            _ => {},
+        if let Some(mut last_box) = inlines.last_mut().map(|last| last.borrow_mut()) {
+            if let InlineLevelBox::TextRun(ref mut text_run) = *last_box {
+                text_run.text.push_str(&input);
+                return;
+            }
         }
 
         inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun::new(

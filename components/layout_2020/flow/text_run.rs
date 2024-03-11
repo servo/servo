@@ -709,7 +709,7 @@ pub struct TextTransformation<InputIterator> {
     pending_case_conversion_result: Option<PendingCaseConversionResult>,
 }
 
-impl<'a, InputIterator> TextTransformation<InputIterator> {
+impl<InputIterator> TextTransformation<InputIterator> {
     pub fn new(char_iterator: InputIterator, text_transform: TextTransform) -> Self {
         Self {
             char_iterator,

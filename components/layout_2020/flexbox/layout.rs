@@ -1109,7 +1109,7 @@ impl<'a> FlexItem<'a> {
                             flex_context.layout_context,
                             &mut positioning_context,
                             &item_as_containing_block,
-                            &flex_context.containing_block,
+                            flex_context.containing_block,
                         );
 
                         let hypothetical_cross_size = self

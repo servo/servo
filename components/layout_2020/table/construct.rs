@@ -704,8 +704,7 @@ where
                     });
 
                     let previous_text_decoration_line = self.current_text_decoration_line;
-                    self.current_text_decoration_line =
-                        self.current_text_decoration_line | info.style.clone_text_decoration_line();
+                    self.current_text_decoration_line |= info.style.clone_text_decoration_line();
 
                     let new_row_group_index = self.builder.table.row_groups.len() - 1;
                     self.current_row_group_index = Some(new_row_group_index);
@@ -953,6 +952,7 @@ where
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
+        #[allow(clippy::collapsible_match)] //// TODO: Remove once the other cases are handled
         match display {
             DisplayGeneratingBox::LayoutInternal(internal) => match internal {
                 DisplayLayoutInternal::TableCell => {

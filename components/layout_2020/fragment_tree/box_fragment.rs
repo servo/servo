@@ -74,6 +74,7 @@ pub(crate) struct BoxFragment {
 }
 
 impl BoxFragment {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
@@ -108,6 +109,7 @@ impl BoxFragment {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new_with_overconstrained(
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,

@@ -505,12 +505,9 @@ fn process_offset_parent_query_inner(
             // "If any of the following holds true return null and terminate
             // this algorithm: [...] The element’s computed value of the
             // `position` property is `fixed`."
-            let is_fixed = match fragment {
-                Fragment::Box(fragment) if fragment.style.get_box().position == Position::Fixed => {
-                    true
-                },
-                _ => false,
-            };
+            let is_fixed = matches!(
+                fragment, Fragment::Box(fragment) if fragment.style.get_box().position == Position::Fixed
+            );
 
             if is_body_element {
                 // "If the element is the HTML body element or [...] return zero
