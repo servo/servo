@@ -10,7 +10,7 @@ use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage};
+use style::values::computed::Length;
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
 use style::values::generics::text::LineHeight;
 use style::values::specified::box_::DisplayOutside;
@@ -226,16 +226,10 @@ impl TextRunLineItem {
         // The block start of the TextRun is often zero (meaning it has the same font metrics as the
         // inline box's strut), but for children of the inline formatting context root or for
         // fallback fonts that use baseline relatve alignment, it might be different.
-        let mut start_corner = &LogicalVec2 {
+        let start_corner = &LogicalVec2 {
             inline: state.inline_position,
             block: (state.baseline_offset - self.font_metrics.ascent).into(),
         } - &state.parent_offset;
-        if !is_baseline_relative(
-            self.parent_style
-                .effective_vertical_align_for_inline_layout(),
-        ) {
-            start_corner.block = Length::zero();
-        }
 
         let rect = LogicalRect {
             start_corner,
@@ -584,14 +578,6 @@ impl FloatLineItem {
             &self.fragment.content_rect.start_corner - &distance_from_parent_to_ifc;
         self.fragment
     }
-}
-
-fn is_baseline_relative(vertical_align: GenericVerticalAlign<LengthPercentage>) -> bool {
-    !matches!(
-        vertical_align,
-        GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
-    )
 }
 
 fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Length {

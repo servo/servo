@@ -76,13 +76,14 @@ use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use serde::Serialize;
 use servo_arc::Arc;
+use style::computed_values::line_height::T as LineHeight;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::context::QuirksMode;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage};
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
-use style::values::generics::text::LineHeight;
+use style::values::generics::NonNegative;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::values::specified::{TextAlignLast, TextJustify};
 use style::Zero;
@@ -1233,6 +1234,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         text_run: &TextRun,
         font_index: usize,
     ) {
+        let is_at_root = self.inline_box_state_stack.is_empty();
         let inline_advance = Length::from(glyph_store.total_advance());
         let preserve_spaces = text_run
             .parent_style
@@ -1246,27 +1248,35 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // If somehow the metrics match, the line size won't change.
         let ifc_font_info = &self.fonts[font_index];
         let font_metrics = ifc_font_info.metrics.clone();
-        let using_fallback_font =
-            self.current_inline_container_state().font_metrics != font_metrics;
+        let container_state = self.current_inline_container_state();
+        let using_fallback_font = container_state.font_metrics != font_metrics;
 
         let quirks_mode = self.layout_context.style_context.quirks_mode() != QuirksMode::NoQuirks;
-        let strut_size = if using_fallback_font {
+        let mut strut_size = if using_fallback_font || is_at_root {
             // TODO(mrobinson): This value should probably be cached somewhere.
-            let container_state = self.current_inline_container_state();
-            let mut block_size = container_state.get_block_size_contribution(&font_metrics);
+            let mut block_size = InlineContainerState::get_block_sizes_with_style(
+                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Baseline),
+                &container_state.style,
+                &font_metrics,
+                if quirks_mode && is_at_root {
+                    Some(LineHeight::Number(NonNegative(0.)))
+                } else {
+                    None
+                },
+            );
             block_size.adjust_for_baseline_offset(container_state.baseline_offset);
             block_size
-        } else if quirks_mode && !is_collapsible_whitespace {
+        } else {
+            LineBlockSizes::zero()
+        };
+        if quirks_mode && !is_collapsible_whitespace {
             // Normally, the strut is incorporated into the nested block size. In quirks mode though
             // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
             // TODO(mrobinson): This isn't quite right for situations where collapsible white space
             // ultimately does not collapse because it is between two other pieces of content.
-            self.current_inline_container_state()
-                .strut_block_sizes
-                .clone()
-        } else {
-            LineBlockSizes::zero()
-        };
+            strut_size.max_assign(&container_state.strut_block_sizes);
+        }
+
         self.update_unbreakable_segment_for_new_content(
             &strut_size,
             inline_advance,
@@ -1716,18 +1726,17 @@ impl InlineContainerState {
     ) -> Self {
         let text_decoration_line = parent_text_decoration_line | style.clone_text_decoration_line();
         let font_metrics = font_metrics.cloned().unwrap_or_else(FontMetrics::empty);
-        let line_height = line_height(&style, &font_metrics);
+        let vertical_align = style.effective_vertical_align_for_inline_layout();
 
         let mut baseline_offset = Au::zero();
         let mut strut_block_sizes =
-            Self::get_block_sizes_with_style(&style, &font_metrics, line_height);
+            Self::get_block_sizes_with_style(vertical_align.clone(), &style, &font_metrics, None);
+
         if let Some(parent_container) = parent_container {
             // The baseline offset from `vertical-align` might adjust where our block size contribution is
             // within the line.
-            baseline_offset = parent_container.get_cumulative_baseline_offset_for_child(
-                style.effective_vertical_align_for_inline_layout(),
-                &strut_block_sizes,
-            );
+            baseline_offset = parent_container
+                .get_cumulative_baseline_offset_for_child(vertical_align, &strut_block_sizes);
             strut_block_sizes.adjust_for_baseline_offset(baseline_offset);
         }
 
@@ -1750,11 +1759,19 @@ impl InlineContainerState {
     }
 
     fn get_block_sizes_with_style(
+        vertical_align: GenericVerticalAlign<LengthPercentage>,
         style: &ComputedValues,
         font_metrics: &FontMetrics,
-        line_height: Length,
+        computed_line_height_override: Option<LineHeight>,
     ) -> LineBlockSizes {
-        let vertical_align = style.effective_vertical_align_for_inline_layout();
+        let computed_line_height =
+            computed_line_height_override.unwrap_or_else(|| style.get_inherited_text().line_height);
+        let line_height = match computed_line_height {
+            LineHeight::Normal => Length::from(font_metrics.line_gap),
+            LineHeight::Number(number) => style.get_font().font_size.computed_size() * number.0,
+            LineHeight::Length(length) => length.0,
+        };
+
         if !is_baseline_relative(vertical_align) {
             return LineBlockSizes {
                 line_height,
@@ -1773,7 +1790,7 @@ impl InlineContainerState {
         // when `line-height` is normal.
         let mut ascent = font_metrics.ascent;
         let mut descent = font_metrics.descent;
-        if style.get_inherited_text().line_height == LineHeight::Normal {
+        if computed_line_height == LineHeight::Normal {
             let half_leading_from_line_gap =
                 (font_metrics.line_gap - descent - ascent).scale_by(0.5);
             ascent += half_leading_from_line_gap;
@@ -1800,9 +1817,9 @@ impl InlineContainerState {
         // zero in this case, the line may get some height when taking them into
         // considering with other zero line height boxes that converge on other block axis
         // locations when using the above formula.
-        if style.get_inherited_text().line_height != LineHeight::Normal {
-            let half_leading =
-                (Au::from_f32_px(line_height.px()) - (ascent + descent)).scale_by(0.5);
+        if computed_line_height != LineHeight::Normal {
+            let line_height = Au::from(line_height);
+            let half_leading = (line_height - (ascent + descent)).scale_by(0.5);
             ascent += half_leading;
             descent += half_leading;
         }
@@ -1814,20 +1831,17 @@ impl InlineContainerState {
         }
     }
 
-    fn get_block_size_contribution(&self, font_metrics: &FontMetrics) -> LineBlockSizes {
-        Self::get_block_sizes_with_style(
-            &self.style,
-            font_metrics,
-            line_height(&self.style, font_metrics),
-        )
-    }
-
     fn get_cumulative_baseline_offset_for_child(
         &self,
         child_vertical_align: GenericVerticalAlign<LengthPercentage>,
         child_block_size: &LineBlockSizes,
     ) -> Au {
-        let block_size = self.get_block_size_contribution(&self.font_metrics);
+        let block_size = Self::get_block_sizes_with_style(
+            child_vertical_align.clone(),
+            &self.style,
+            &self.font_metrics,
+            None,
+        );
         self.baseline_offset +
             match child_vertical_align {
                 // `top` and `bottom are not actually relative to the baseline, but this value is unused
@@ -2138,15 +2152,6 @@ fn place_pending_floats(ifc: &mut InlineFormattingContextState, line_items: &mut
                 ifc.place_float_fragment(&mut float_line_item.fragment);
             }
         }
-    }
-}
-
-fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Length {
-    let font_size = parent_style.get_font().font_size.computed_size();
-    match parent_style.get_inherited_text().line_height {
-        LineHeight::Normal => Length::from(font_metrics.line_gap),
-        LineHeight::Number(number) => font_size * number.0,
-        LineHeight::Length(length) => length.0,
     }
 }
 
