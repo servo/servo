@@ -107,7 +107,7 @@ jobs:
           name: wpt-full-logs-linux-${{ inputs.wpt-layout }}
           pattern: wpt-full-logs-linux-${{ inputs.wpt-layout }}-*
           delete-merged: true
-      - name: Merge logs (full)
+      - name: Merge logs (wptreport)
         uses: actions/upload-artifact/merge@v4
         with:
           name: wptreport-linux-${{ inputs.wpt-layout }}
