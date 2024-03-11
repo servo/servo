@@ -125,7 +125,7 @@ use msg::constellation_msg::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, BroadcastChannelRouterId,
     BrowsingContextGroupId, BrowsingContextId, HangMonitorAlert, HistoryStateId, MessagePortId,
     MessagePortRouterId, PipelineId, PipelineNamespace, PipelineNamespaceId,
-    PipelineNamespaceRequest, TopLevelBrowsingContextId, TraversalDirection,
+    PipelineNamespaceRequest, TopLevelBrowsingContextId, TraversalDirection, WebViewId,
 };
 use net_traits::pub_domains::reg_host;
 use net_traits::request::{Referrer, RequestBuilder};
@@ -1551,7 +1551,7 @@ where
                     EmbedderMsg::WebViewFocused(top_level_browsing_context_id),
                 ));
                 if !cfg!(feature = "multiview") {
-                    self.send_frame_tree_if_focused(top_level_browsing_context_id);
+                    self.update_webview_in_compositor(top_level_browsing_context_id);
                 }
             },
             FromCompositorMsg::BlurWebView => {
@@ -3896,7 +3896,7 @@ where
         self.notify_history_changed(top_level_browsing_context_id);
 
         self.trim_history(top_level_browsing_context_id);
-        self.send_frame_tree_if_focused(top_level_browsing_context_id);
+        self.update_webview_in_compositor(top_level_browsing_context_id);
     }
 
     fn update_browsing_context(
@@ -4859,7 +4859,7 @@ where
         }
 
         self.notify_history_changed(change.top_level_browsing_context_id);
-        self.send_frame_tree_if_focused(change.top_level_browsing_context_id);
+        self.update_webview_in_compositor(change.top_level_browsing_context_id);
     }
 
     fn focused_browsing_context_is_descendant_of(
@@ -5472,24 +5472,11 @@ where
     }
 
     /// Send the frame tree for the given webview to the compositor.
-    fn send_frame_tree_if_focused(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) {
-        if !cfg!(feature = "multiview") {
-            if let Some(focused_webview_id) = self.webviews.focused_webview().map(|(id, _)| id) {
-                if top_level_browsing_context_id != focused_webview_id {
-                    return;
-                }
-            } else {
-                self.webviews.focus(top_level_browsing_context_id);
-            }
-        }
-
+    fn update_webview_in_compositor(&mut self, webview_id: WebViewId) {
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
             debug!("{}: Sending frame tree", browsing_context_id);
             self.compositor_proxy
