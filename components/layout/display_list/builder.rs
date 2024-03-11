@@ -1019,7 +1019,7 @@ impl Fragment {
                     };
                     DisplayItem::RadialGradient(CommonDisplayItem::with_data(base, item, stops))
                 },
-                Gradient::Conic { .. } => unimplemented!(),
+                Gradient::Conic { .. } => return,
             };
             state.add_display_item(display_item);
         });
@@ -1273,7 +1273,7 @@ impl Fragment {
                     stops = radial_stops;
                     NinePatchBorderSource::RadialGradient(wr_gradient)
                 },
-                Gradient::Conic { .. } => unimplemented!(),
+                Gradient::Conic { .. } => return None,
             },
             _ => return None,
         };
