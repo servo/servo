@@ -587,7 +587,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.change_running_animations_state(pipeline_id, animation_state);
             },
 
-            (CompositorMsg::UpdateWebView(frame_tree), ShutdownState::NotShuttingDown) => {
+            (CompositorMsg::CreateOrUpdateWebView(frame_tree), ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree_for_webview(&frame_tree);
                 self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
             },

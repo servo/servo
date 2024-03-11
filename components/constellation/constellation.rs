@@ -5493,7 +5493,7 @@ where
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
             debug!("{}: Sending frame tree", browsing_context_id);
             self.compositor_proxy
-                .send(CompositorMsg::UpdateWebView(frame_tree));
+                .send(CompositorMsg::CreateOrUpdateWebView(frame_tree));
         }
     }
 

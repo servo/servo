@@ -73,8 +73,8 @@ pub enum CompositorMsg {
     ShutdownComplete,
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Add or update a webview, given its frame tree.
-    UpdateWebView(SendableFrameTree),
+    /// Create or update a webview, given its frame tree.
+    CreateOrUpdateWebView(SendableFrameTree),
     /// Remove a webview.
     RemoveWebView(TopLevelBrowsingContextId),
     /// Move and/or resize a webview to the given rect.
@@ -167,7 +167,7 @@ impl Debug for CompositorMsg {
             CompositorMsg::ChangeRunningAnimationsState(_, state) => {
                 write!(f, "ChangeRunningAnimationsState({:?})", state)
             },
-            CompositorMsg::UpdateWebView(..) => write!(f, "UpdateWebView"),
+            CompositorMsg::CreateOrUpdateWebView(..) => write!(f, "CreateOrUpdateWebView"),
             CompositorMsg::RemoveWebView(..) => write!(f, "RemoveWebView"),
             CompositorMsg::MoveResizeWebView(..) => write!(f, "MoveResizeWebView"),
             CompositorMsg::ShowWebView(..) => write!(f, "ShowWebView"),
