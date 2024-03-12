@@ -436,7 +436,7 @@ impl App {
 
         // Catch some keyboard events, and push the rest onto the WebViewManager event queue.
         webviews.handle_window_events(embedder_events);
-        if pref!(dom.gamepad.enabled) && webviews.webview_id().is_some() {
+        if webviews.webview_id().is_some() {
             webviews.handle_gamepad_events();
         }
 

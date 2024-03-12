@@ -69,7 +69,7 @@ partial interface Navigator {
 
 // https://w3c.github.io/gamepad/#navigator-interface-extension
 partial interface Navigator {
-  [Pref="dom.gamepad.enabled"] sequence<Gamepad?> getGamepads();
+    [Pref="dom.gamepad.enabled"] GamepadList getGamepads();
 };
 
 // https://html.spec.whatwg.org/multipage/#navigatorconcurrenthardware

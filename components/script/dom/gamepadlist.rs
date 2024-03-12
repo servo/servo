@@ -48,14 +48,6 @@ impl GamepadList {
     pub fn remove_gamepad(&self, index: usize) {
         self.list.borrow_mut().remove(index);
     }
-
-    pub fn list(&self) -> Vec<Option<DomRoot<Gamepad>>> {
-        self.list
-            .borrow()
-            .iter()
-            .map(|gamepad| Some(DomRoot::from_ref(&**gamepad)))
-            .collect()
-    }
 }
 
 impl GamepadListMethods for GamepadList {
