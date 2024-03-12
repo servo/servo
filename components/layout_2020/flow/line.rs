@@ -294,7 +294,7 @@ impl InlineBoxLineItem {
         let style = self.style.clone();
         let mut padding = self.pbm.padding.clone();
         let mut border = self.pbm.border.clone();
-        let mut margin = self.pbm.margin.map(|t| t.auto_is(Au::zero));
+        let mut margin = self.pbm.margin.auto_is(Au::zero);
 
         if !self.is_first_fragment {
             padding.inline_start = Au::zero();

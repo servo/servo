@@ -509,7 +509,7 @@ impl<'a> FlexItem<'a> {
             inline: min_size.inline.auto_is(automatic_min_size),
             block: min_size.block.auto_is(Length::zero),
         };
-        let margin_auto_is_zero = pbm.margin.map(|t| t.auto_is(Au::zero));
+        let margin_auto_is_zero = pbm.margin.auto_is(Au::zero);
 
         let content_box_size = flex_context.vec2_to_flex_relative(content_box_size);
         let content_max_size = flex_context.vec2_to_flex_relative(max_size);

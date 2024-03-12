@@ -1931,7 +1931,7 @@ impl IndependentFormattingContext {
     ) {
         let style = self.style();
         let pbm = style.padding_border_margin(ifc.containing_block);
-        let margin = pbm.margin.map(|t| t.auto_is(Au::zero));
+        let margin = pbm.margin.auto_is(Au::zero);
         let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone();
         let mut child_positioning_context = None;
 

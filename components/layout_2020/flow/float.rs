@@ -911,7 +911,7 @@ impl FloatBox {
                 // Margin is computed this way regardless of whether the element is replaced
                 // or non-replaced.
                 let pbm = style.padding_border_margin(containing_block);
-                let margin = pbm.margin.map(|t| t.auto_is(Au::zero));
+                let margin = pbm.margin.auto_is(Au::zero);
                 let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone();
 
                 let (content_size, children);
