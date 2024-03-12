@@ -85,6 +85,8 @@ pub enum HttpCacheEntryState {
     PendingStore(usize),
 }
 
+type HttpCacheState = Mutex<HashMap<CacheKey, Arc<(Mutex<HttpCacheEntryState>, Condvar)>>>;
+
 pub struct HttpState {
     pub hsts_list: RwLock<HstsList>,
     pub cookie_jar: RwLock<CookieStorage>,
@@ -92,7 +94,7 @@ pub struct HttpState {
     /// A map of cache key to entry state,
     /// reflecting whether the cache entry is ready to read from,
     /// or whether a concurrent pending store should be awaited.
-    pub http_cache_state: Mutex<HashMap<CacheKey, Arc<(Mutex<HttpCacheEntryState>, Condvar)>>>,
+    pub http_cache_state: HttpCacheState,
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, Body>,
@@ -348,6 +350,7 @@ fn set_cookies_from_headers(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn prepare_devtools_request(
     request_id: String,
     url: ServoUrl,
@@ -478,6 +481,7 @@ impl BodySink {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn obtain_response(
     client: &Client<Connector, Body>,
     url: &ServoUrl,
@@ -703,6 +707,7 @@ async fn obtain_response(
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
 #[async_recursion]
+#[allow(clippy::too_many_arguments)]
 pub async fn http_fetch(
     request: &mut Request,
     cache: &mut CorsCache,
@@ -2077,6 +2082,7 @@ async fn cors_preflight_fetch(
 
         // Substep 7
         let unsafe_names = get_cors_unsafe_header_names(&request.headers);
+        #[allow(clippy::mutable_key_type)] // We don't mutate the items in the set
         let header_names_set: HashSet<&HeaderName> = HashSet::from_iter(header_names.iter());
         let header_names_contains_star = header_names.iter().any(|hn| hn.as_str() == "*");
         for unsafe_name in unsafe_names.iter() {
@@ -2180,12 +2186,12 @@ fn is_no_store_cache(headers: &HeaderMap) -> bool {
 
 /// <https://fetch.spec.whatwg.org/#redirect-status>
 pub fn is_redirect_status(status: &(StatusCode, String)) -> bool {
-    match status.0 {
+    matches!(
+        status.0,
         StatusCode::MOVED_PERMANENTLY |
-        StatusCode::FOUND |
-        StatusCode::SEE_OTHER |
-        StatusCode::TEMPORARY_REDIRECT |
-        StatusCode::PERMANENT_REDIRECT => true,
-        _ => false,
-    }
+            StatusCode::FOUND |
+            StatusCode::SEE_OTHER |
+            StatusCode::TEMPORARY_REDIRECT |
+            StatusCode::PERMANENT_REDIRECT
+    )
 }

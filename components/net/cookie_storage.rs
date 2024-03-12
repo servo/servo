@@ -192,9 +192,9 @@ impl CookieStorage {
             (match acc.len() {
                 0 => acc,
                 _ => acc + "; ",
-            }) + &c.cookie.name() +
+            }) + c.cookie.name() +
                 "=" +
-                &c.cookie.value()
+                c.cookie.value()
         };
         let result = url_cookies.iter_mut().fold("".to_owned(), reducer);
 
@@ -253,7 +253,7 @@ fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> bool {
     true
 }
 
-fn get_oldest_accessed(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> Option<(usize, Tm)> {
+fn get_oldest_accessed(is_secure_cookie: bool, cookies: &mut [Cookie]) -> Option<(usize, Tm)> {
     let mut oldest_accessed: Option<(usize, Tm)> = None;
     for (i, c) in cookies.iter().enumerate() {
         if (c.cookie.secure().unwrap_or(false) == is_secure_cookie) &&

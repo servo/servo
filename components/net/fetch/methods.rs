@@ -440,10 +440,7 @@ pub async fn main_fetch(
         let not_network_error = !response_is_network_error && !internal_response.is_network_error();
         if not_network_error &&
             (is_null_body_status(&internal_response.status) ||
-                match request.method {
-                    Method::HEAD | Method::CONNECT => true,
-                    _ => false,
-                })
+                matches!(request.method, Method::HEAD | Method::CONNECT))
         {
             // when Fetch is used only asynchronously, we will need to make sure
             // that nothing tries to write to the body at this point
@@ -487,7 +484,7 @@ pub async fn main_fetch(
     if request.synchronous {
         // process_response is not supposed to be used
         // by sync fetch, but we overload it here for simplicity
-        target.process_response(&mut response);
+        target.process_response(&response);
         if !response_loaded {
             wait_for_response(&mut response, target, done_chan).await;
         }
@@ -873,13 +870,13 @@ async fn scheme_fetch(
 
 fn is_null_body_status(status: &Option<(StatusCode, String)>) -> bool {
     match *status {
-        Some((status, _)) => match status {
+        Some((status, _)) => matches!(
+            status,
             StatusCode::SWITCHING_PROTOCOLS |
-            StatusCode::NO_CONTENT |
-            StatusCode::RESET_CONTENT |
-            StatusCode::NOT_MODIFIED => true,
-            _ => false,
-        },
+                StatusCode::NO_CONTENT |
+                StatusCode::RESET_CONTENT |
+                StatusCode::NOT_MODIFIED
+        ),
         _ => false,
     }
 }
