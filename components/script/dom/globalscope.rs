@@ -67,7 +67,6 @@ use crate::dom::bindings::codegen::Bindings::GamepadListBinding::GamepadList_Bin
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
-use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::Performance_Binding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
@@ -95,7 +94,8 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::gamepad::Gamepad;
+use crate::dom::gamepad::{contains_user_gesture, Gamepad};
+use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::identityhub::Identities;
@@ -3136,42 +3136,43 @@ impl GlobalScope {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
         let this = Trusted::new(&*self);
-        self.gamepad_task_source().queue(
+        self.gamepad_task_source().queue_with_canceller(
             task!(gamepad_connected: move || {
                 let global = this.root();
                 let gamepad = Gamepad::new(&global, index as u32, name, axis_bounds, button_bounds);
 
                 if let Some(window) = global.downcast::<Window>() {
-                    let gamepad_list = window.Navigator().GetGamepads();
+                    let has_gesture = window.Navigator().has_gamepad_gesture();
+                    if has_gesture {
+                        gamepad.set_exposed(true);
+                        if window.Document().is_fully_active() {
+                            gamepad.update_connected(true, has_gesture);
+                        }
+                    }
+                    let gamepad_list = window.Navigator().gamepads();
                     let gamepad_arr: [DomRoot<Gamepad>; 1] = [gamepad.clone()];
                     gamepad_list.add_if_not_exists(&gamepad_arr);
-
-                    // TODO: 3.4 If navigator.[[hasGamepadGesture]] is true:
-                    // TODO: 3.4.1 Set gamepad.[[exposed]] to true.
-
-                    if window.Document().is_fully_active() {
-                        gamepad.update_connected(true);
-                    }
                 }
             }),
-            &self,
+            &self.task_canceller(TaskSourceName::Gamepad)
         )
-        .unwrap();
+        .expect("Failed to queue gamepad connected task.");
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
     pub fn handle_gamepad_disconnect(&self, index: usize) {
         let this = Trusted::new(&*self);
         self.gamepad_task_source()
-            .queue(
+            .queue_with_canceller(
                 task!(gamepad_disconnected: move || {
                     let global = this.root();
                     if let Some(window) = global.downcast::<Window>() {
-                        let gamepad_list = window.Navigator().GetGamepads();
+                        let gamepad_list = window.Navigator().gamepads();
                         if let Some(gamepad) = gamepad_list.Item(index as u32) {
-                            // TODO: If gamepad.[[exposed]]
-                            gamepad.update_connected(false);
-                            gamepad_list.remove_gamepad(index);
+                            if window.Document().is_fully_active() {
+                                gamepad.update_connected(false, gamepad.exposed());
+                                gamepad_list.remove_gamepad(index);
+                            }
                         }
                         for i in (0..gamepad_list.Length()).rev() {
                             if gamepad_list.Item(i as u32).is_none() {
@@ -3182,9 +3183,9 @@ impl GlobalScope {
                         }
                     }
                 }),
-                &self,
+                &self.task_canceller(TaskSourceName::Gamepad),
             )
-            .unwrap();
+            .expect("Failed to queue gamepad disconnected task.");
     }
 
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
@@ -3193,12 +3194,12 @@ impl GlobalScope {
 
         // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
         self.gamepad_task_source()
-            .queue(
+            .queue_with_canceller(
                 task!(update_gamepad_state: move || {
                     let global = this.root();
                     if let Some(window) = global.downcast::<Window>() {
-                        let gamepad_list = window.Navigator().GetGamepads();
-                        if let Some(gamepad) = gamepad_list.IndexedGetter(index as u32) {
+                        let gamepad_list = window.Navigator().gamepads();
+                        if let Some(gamepad) = gamepad_list.Item(index as u32) {
                             let current_time = global.performance().Now();
                             gamepad.update_timestamp(*current_time);
 
@@ -3211,14 +3212,32 @@ impl GlobalScope {
                                 }
                             };
 
-                            // TODO: 6. If navigator.[[hasGamepadGesture]] is false
-                            //          and gamepad contains a gamepad user gesture:
+                            if !window.Navigator().has_gamepad_gesture() && contains_user_gesture(update_type) {
+                                window.Navigator().set_has_gamepad_gesture(true);
+                                for i in 0..gamepad_list.Length() {
+                                    if let Some(gamepad) = gamepad_list.Item(i as u32) {
+                                        gamepad.set_exposed(true);
+                                        gamepad.update_timestamp(*current_time);
+                                        let new_gamepad = Trusted::new(&*gamepad);
+                                        if window.Document().is_fully_active() {
+                                            window.task_manager().gamepad_task_source().queue_with_canceller(
+                                                task!(update_gamepad_connect: move || {
+                                                    let gamepad = new_gamepad.root();
+                                                    gamepad.notify_event(GamepadEventType::Connected);
+                                                }),
+                                                &window.upcast::<GlobalScope>().task_canceller(TaskSourceName::Gamepad),
+                                            )
+                                            .expect("Failed to queue update gamepad connect task.");
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }),
-                &self,
+                &self.task_canceller(TaskSourceName::Gamepad),
             )
-            .unwrap();
+            .expect("Failed to queue update gamepad state task.");
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {
