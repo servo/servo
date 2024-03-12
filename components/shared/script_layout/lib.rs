@@ -86,7 +86,7 @@ impl StyleAndOpaqueLayoutData {
 }
 
 /// Information that we need stored in each DOM node.
-#[derive(MallocSizeOf, Default)]
+#[derive(Default, MallocSizeOf)]
 pub struct DomParallelInfo {
     /// The number of children remaining to process during bottom-up traversal.
     pub children_to_process: AtomicIsize,
