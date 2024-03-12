@@ -773,15 +773,23 @@ where
                     .move_resize_webview(top_level_browsing_context_id, rect);
             },
             EmbedderEvent::ShowWebView(top_level_browsing_context_id) => {
-                forward_to_constellation!(self, ShowWebView(top_level_browsing_context_id))
+                self.send_to_constellation(ConstellationMsg::ShowWebView(
+                    top_level_browsing_context_id,
+                ));
             },
             EmbedderEvent::HideWebView(top_level_browsing_context_id) => {
-                forward_to_constellation!(self, HideWebView(top_level_browsing_context_id))
+                self.send_to_constellation(ConstellationMsg::HideWebView(
+                    top_level_browsing_context_id,
+                ));
             },
             EmbedderEvent::RaiseWebViewToTop(top_level_browsing_context_id) => {
-                forward_to_constellation!(self, RaiseWebViewToTop(top_level_browsing_context_id))
+                self.send_to_constellation(ConstellationMsg::RaiseWebViewToTop(
+                    top_level_browsing_context_id,
+                ));
             },
-            EmbedderEvent::BlurWebView => forward_to_constellation!(self, BlurWebView),
+            EmbedderEvent::BlurWebView => {
+                self.send_to_constellation(ConstellationMsg::BlurWebView);
+            },
 
             EmbedderEvent::SendError(top_level_browsing_context_id, e) => {
                 let msg = ConstellationMsg::SendError(top_level_browsing_context_id, e);
@@ -825,6 +833,13 @@ where
             },
         }
         return false;
+    }
+
+    fn send_to_constellation(&self, msg: ConstellationMsg) {
+        let variant_name = msg.variant_name();
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending {variant_name} to constellation failed: {e:?}");
+        }
     }
 
     fn receive_messages(&mut self) {

@@ -101,8 +101,15 @@ pub enum ConstellationMsg {
 
 impl fmt::Debug for ConstellationMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "ConstellationMsg::{}", self.variant_name())
+    }
+}
+
+impl ConstellationMsg {
+    /// Return the variant name, for error logging that happens after the message is consumed.
+    pub fn variant_name(&self) -> &'static str {
         use self::ConstellationMsg::*;
-        let variant = match *self {
+        match *self {
             Exit => "Exit",
             GetBrowsingContext(..) => "GetBrowsingContext",
             GetPipeline(..) => "GetPipeline",
@@ -139,7 +146,6 @@ impl fmt::Debug for ConstellationMsg {
             ReadyToPresent(..) => "ReadyToPresent",
             Gamepad(..) => "Gamepad",
             WebViewPaintingOrder(..) => "WebViewPaintingOrder",
-        };
-        write!(formatter, "ConstellationMsg::{}", variant)
+        }
     }
 }
