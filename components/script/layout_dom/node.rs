@@ -211,7 +211,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> LayoutNode<'dom>
     unsafe fn initialize_data(&self) {
         if self.get_style_and_opaque_layout_data().is_none() {
             let opaque = StyleAndOpaqueLayoutData::new(
-                StyleData::new(),
+                StyleData::default(),
                 AtomicRefCell::new(LayoutDataType::default()),
             );
             self.init_style_and_opaque_layout_data(opaque);
