@@ -222,7 +222,7 @@ unsafe fn html_constructor(
 }
 
 /// Returns the constructor object for the element associated with the given local name.
-/// This list should only include elements marked with the [HTMLConstructor] extended attribute.
+/// This list should only include elements marked with the \[HTMLConstructor\] extended attribute.
 pub fn get_constructor_object_from_local_name(
     name: LocalName,
     cx: JSContext,
