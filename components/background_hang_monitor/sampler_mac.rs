@@ -4,8 +4,6 @@
 
 use std::{panic, process};
 
-use {libc, mach2};
-
 use crate::sampler::{Address, NativeStack, Registers, Sampler};
 
 type MonitoredThreadId = mach2::mach_types::thread_act_t;

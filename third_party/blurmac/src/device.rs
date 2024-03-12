@@ -36,7 +36,7 @@ impl BluetoothDevice {
 
         BluetoothDevice {
             adapter: adapter.clone(),
-            peripheral: peripheral,
+            peripheral,
         }
     }
 
@@ -58,7 +58,7 @@ impl BluetoothDevice {
 
     pub fn get_id(&self) -> String {
         trace!("BluetoothDevice::get_id -> get_address");
-        self.get_address().unwrap_or(String::new())
+        self.get_address().unwrap_or_default()
     }
 
     pub fn get_address(&self) -> Result<String, Box<dyn Error>> {

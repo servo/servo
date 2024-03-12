@@ -38,7 +38,7 @@ impl BluetoothGATTService {
 
         BluetoothGATTService {
             device: device.clone(),
-            service: service,
+            service,
         }
     }
 
@@ -59,7 +59,7 @@ impl BluetoothGATTService {
 
     pub fn get_id(&self) -> String {
         trace!("BluetoothGATTService::get_id");
-        self.get_uuid().unwrap_or(String::new())
+        self.get_uuid().unwrap_or_default()
     }
 
     pub fn get_uuid(&self) -> Result<String, Box<dyn Error>> {

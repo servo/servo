@@ -28,10 +28,7 @@ impl BluetoothAdapter {
         trace!("BluetoothAdapter::init");
         let delegate = bm::delegate();
         let manager = cb::centralmanager(delegate);
-        let adapter = BluetoothAdapter {
-            manager: manager,
-            delegate: delegate,
-        };
+        let adapter = BluetoothAdapter { manager, delegate };
 
         // NOTE: start discovery at once, servo leaves close to no time to do a proper discovery
         // in a BluetoothDiscoverySession
