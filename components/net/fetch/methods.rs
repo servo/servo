@@ -869,16 +869,13 @@ async fn scheme_fetch(
 }
 
 fn is_null_body_status(status: &Option<(StatusCode, String)>) -> bool {
-    match *status {
-        Some((status, _)) => matches!(
-            status,
-            StatusCode::SWITCHING_PROTOCOLS |
-                StatusCode::NO_CONTENT |
-                StatusCode::RESET_CONTENT |
-                StatusCode::NOT_MODIFIED
-        ),
-        _ => false,
-    }
+    matches!(
+        status,
+        Some((StatusCode::SWITCHING_PROTOCOLS, ..)) |
+            Some((StatusCode::NO_CONTENT, ..)) |
+            Some((StatusCode::RESET_CONTENT, ..)) |
+            Some((StatusCode::NOT_MODIFIED, ..))
+    )
 }
 
 /// <https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff?>

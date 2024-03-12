@@ -827,18 +827,19 @@ impl FileManagerStore {
 
     fn promote_memory(&self, id: Uuid, blob_buf: BlobBuf, set_valid: bool, origin: FileOrigin) {
         // parse to check sanity
-        if Url::parse(&origin).is_ok() {
-            self.insert(
-                id,
-                FileStoreEntry {
-                    origin,
-                    file_impl: FileImpl::Memory(blob_buf),
-                    refs: AtomicUsize::new(1),
-                    is_valid_url: AtomicBool::new(set_valid),
-                    outstanding_tokens: Default::default(),
-                },
-            );
+        if Url::parse(&origin).is_err() {
+            return;
         }
+        self.insert(
+            id,
+            FileStoreEntry {
+                origin,
+                file_impl: FileImpl::Memory(blob_buf),
+                refs: AtomicUsize::new(1),
+                is_valid_url: AtomicBool::new(set_valid),
+                outstanding_tokens: Default::default(),
+            },
+        );
     }
 
     fn set_blob_url_validity(
