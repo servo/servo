@@ -41,7 +41,7 @@ impl FileBlob {
 
     /// Get the size of the file.
     pub fn get_size(&self) -> u64 {
-        self.size.clone()
+        self.size
     }
 
     /// Get the cached file data, if any.
@@ -56,7 +56,7 @@ impl FileBlob {
 
     /// Get the file id.
     pub fn get_id(&self) -> Uuid {
-        self.id.clone()
+        self.id
     }
 }
 
@@ -107,7 +107,7 @@ impl BlobImpl {
             id: file_id,
             name: Some(name),
             cache: RefCell::new(None),
-            size: size,
+            size,
         });
         BlobImpl {
             blob_id,
@@ -131,7 +131,7 @@ impl BlobImpl {
 
     /// Get a clone of the blob-id
     pub fn blob_id(&self) -> BlobId {
-        self.blob_id.clone()
+        self.blob_id
     }
 
     /// Get a clone of the type-string

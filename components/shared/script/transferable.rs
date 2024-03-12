@@ -63,7 +63,7 @@ impl MessagePortImpl {
 
     /// Maybe get the Id of the entangled port.
     pub fn entangled_port_id(&self) -> Option<MessagePortId> {
-        self.entangled_port.clone()
+        self.entangled_port
     }
 
     /// Entanged this port with another.
@@ -73,10 +73,7 @@ impl MessagePortImpl {
 
     /// Is this port enabled?
     pub fn enabled(&self) -> bool {
-        match self.state {
-            MessagePortState::Enabled(_) => true,
-            _ => false,
-        }
+        matches!(self.state, MessagePortState::Enabled(_))
     }
 
     /// Mark this port as having been shipped.

@@ -194,14 +194,14 @@ impl LoadData {
     ) -> LoadData {
         LoadData {
             load_origin,
-            url: url,
-            creator_pipeline_id: creator_pipeline_id,
+            url,
+            creator_pipeline_id,
             method: Method::GET,
             headers: HeaderMap::new(),
             data: None,
             js_eval_result: None,
-            referrer: referrer,
-            referrer_policy: referrer_policy,
+            referrer,
+            referrer_policy,
             srcdoc: "".to_string(),
             inherited_secure_context,
             crash: None,
@@ -977,7 +977,7 @@ impl StructuredSerializedData {
                     // Note: we insert the blob at the original id,
                     // otherwise this will not match the storage key as serialized by SM in `serialized`.
                     // The clone has it's own new Id however.
-                    blob_clones.insert(original_id.clone(), blob_clone);
+                    blob_clones.insert(*original_id, blob_clone);
                 } else {
                     // Not panicking only because this is called from the constellation.
                     warn!("Serialized blob not in memory format(should never happen).");
@@ -1263,7 +1263,7 @@ impl WebrenderIpcSender {
         }
 
         senders.into_iter().for_each(|(tx, data)| {
-            if let Err(e) = tx.send(&*data) {
+            if let Err(e) = tx.send(&data) {
                 warn!("error sending image data: {}", e);
             }
         });
@@ -1308,8 +1308,8 @@ impl SerializedImageData {
     /// Convert to ``ImageData`.
     pub fn to_image_data(&self) -> Result<ImageData, ipc::IpcError> {
         match self {
-            SerializedImageData::Raw(rx) => rx.recv().map(|data| ImageData::new(data)),
-            SerializedImageData::External(image) => Ok(ImageData::External(image.clone())),
+            SerializedImageData::Raw(rx) => rx.recv().map(ImageData::new),
+            SerializedImageData::External(image) => Ok(ImageData::External(*image)),
         }
     }
 }

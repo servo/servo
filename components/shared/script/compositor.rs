@@ -131,7 +131,7 @@ impl ScrollTreeNode {
 
         let scrollable_width = info.scrollable_size.width;
         let scrollable_height = info.scrollable_size.height;
-        let original_layer_scroll_offset = info.offset.clone();
+        let original_layer_scroll_offset = info.offset;
 
         if scrollable_width > 0. {
             info.offset.x = (info.offset.x + delta.x).min(0.0).max(-scrollable_width);
@@ -172,10 +172,10 @@ impl ScrollTree {
             parent: parent.cloned(),
             scroll_info,
         });
-        return ScrollTreeNodeId {
+        ScrollTreeNodeId {
             index: self.nodes.len() - 1,
             spatial_id,
-        };
+        }
     }
 
     /// Get a mutable reference to the node with the given index.
@@ -198,7 +198,7 @@ impl ScrollTree {
         scroll_location: ScrollLocation,
     ) -> Option<(ExternalScrollId, LayoutVector2D)> {
         let parent = {
-            let ref mut node = self.get_node_mut(scroll_node_id);
+            let node = &mut self.get_node_mut(scroll_node_id);
             let result = node.scroll(scroll_location);
             if result.is_some() {
                 return result;

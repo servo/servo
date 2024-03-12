@@ -49,11 +49,11 @@ pub struct StyleData {
     pub parallel: DomParallelInfo,
 }
 
-impl StyleData {
-    pub fn new() -> Self {
+impl Default for StyleData {
+    fn default() -> Self {
         Self {
             element_data: AtomicRefCell::new(ElementData::default()),
-            parallel: DomParallelInfo::new(),
+            parallel: DomParallelInfo::default(),
         }
     }
 }
@@ -86,18 +86,10 @@ impl StyleAndOpaqueLayoutData {
 }
 
 /// Information that we need stored in each DOM node.
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 pub struct DomParallelInfo {
     /// The number of children remaining to process during bottom-up traversal.
     pub children_to_process: AtomicIsize,
-}
-
-impl DomParallelInfo {
-    pub fn new() -> DomParallelInfo {
-        DomParallelInfo {
-            children_to_process: AtomicIsize::new(0),
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
