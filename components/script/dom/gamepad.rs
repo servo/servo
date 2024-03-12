@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::typedarray::{Float64, Float64Array};
+use script_traits::GamepadUpdateType;
 
 use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
@@ -23,6 +24,9 @@ use crate::dom::gamepadpose::GamepadPose;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
+// This value is for determining when to consider a gamepad as having a user gesture
+// from an axis tilt. This matches the threshold in Chromium.
+const AXIS_TILT_THRESHOLD: f64 = 0.5;
 // This value is for determining when to consider a non-digital button "pressed".
 // Like Gecko and Chromium it derives from the XInput trigger threshold.
 const BUTTON_PRESS_THRESHOLD: f64 = 30.0 / 255.0;
@@ -44,6 +48,7 @@ pub struct Gamepad {
     hand: GamepadHand,
     axis_bounds: (f64, f64),
     button_bounds: (f64, f64),
+    exposed: Cell<bool>,
 }
 
 impl Gamepad {
@@ -74,6 +79,7 @@ impl Gamepad {
             hand: hand,
             axis_bounds: axis_bounds,
             button_bounds: button_bounds,
+            exposed: Cell::new(false),
         }
     }
 
@@ -105,7 +111,7 @@ impl Gamepad {
                 gamepad_id,
                 id,
                 0,
-                false,
+                true,
                 0.,
                 String::from("standard"),
                 &button_list,
@@ -175,7 +181,7 @@ impl Gamepad {
         self.gamepad_id
     }
 
-    pub fn update_connected(&self, connected: bool) {
+    pub fn update_connected(&self, connected: bool, has_gesture: bool) {
         if self.connected.get() == connected {
             return;
         }
@@ -187,7 +193,9 @@ impl Gamepad {
             GamepadEventType::Disconnected
         };
 
-        self.notify_event(event_type);
+        if has_gesture {
+            self.notify_event(event_type);
+        }
     }
 
     pub fn update_index(&self, index: i32) {
@@ -263,4 +271,26 @@ impl Gamepad {
             warn!("Button bounds difference is either 0 or non-finite!");
         }
     }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-exposed>
+    pub fn exposed(&self) -> bool {
+        self.exposed.get()
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-exposed>
+    pub fn set_exposed(&self, exposed: bool) {
+        self.exposed.set(exposed);
+    }
+}
+
+/// <https://www.w3.org/TR/gamepad/#dfn-gamepad-user-gesture>
+pub fn contains_user_gesture(update_type: GamepadUpdateType) -> bool {
+    match update_type {
+        GamepadUpdateType::Axis(_, value) => {
+            return value.abs() > AXIS_TILT_THRESHOLD;
+        },
+        GamepadUpdateType::Button(_, value) => {
+            return value > BUTTON_PRESS_THRESHOLD;
+        },
+    };
 }
