@@ -114,6 +114,7 @@ pub trait GenericPathBuilder {
         control_point3: &Point2D<f32>,
     );
     fn close(&mut self);
+    #[allow(clippy::too_many_arguments)]
     fn ellipse(
         &mut self,
         origin: Point2D<f32>,
@@ -195,6 +196,7 @@ impl<'a> PathBuilderRef<'a> {
             .arc(center, radius, start_angle, end_angle, ccw);
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn ellipse(
         &mut self,
         center: &Point2D<f32>,
@@ -978,6 +980,7 @@ impl<'a> CanvasData<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn ellipse(
         &mut self,
         center: &Point2D<f32>,

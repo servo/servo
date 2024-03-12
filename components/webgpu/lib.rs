@@ -54,6 +54,7 @@ const DEVICE_POLL_INTERVAL: u64 = 100;
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
 #[derive(Debug, Deserialize, Serialize)]
+#[allow(clippy::large_enum_variant)]
 pub enum WebGPUResponse {
     RequestAdapter {
         adapter_info: wgt::AdapterInfo,
@@ -330,6 +331,12 @@ impl WebGPU {
     }
 }
 
+type WGPUBufferMaps<'a> =
+    HashMap<id::BufferId, Rc<BufferMapInfo<'a, Option<WebGPUResponseResult>>>>;
+type WGPUPresentBufferMaps<'a> =
+    HashMap<id::BufferId, Rc<BufferMapInfo<'a, (Option<ErrorScopeId>, WebGPURequest)>>>;
+
+#[allow(clippy::upper_case_acronyms)] // Name of the library
 struct WGPU<'a> {
     receiver: IpcReceiver<(Option<ErrorScopeId>, WebGPURequest)>,
     sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
@@ -340,10 +347,9 @@ struct WGPU<'a> {
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
     // Buffers with pending mapping
-    buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, Option<WebGPUResponseResult>>>>,
+    buffer_maps: WGPUBufferMaps<'a>,
     // Presentation Buffers with pending mapping
-    present_buffer_maps:
-        HashMap<id::BufferId, Rc<BufferMapInfo<'a, (Option<ErrorScopeId>, WebGPURequest)>>>,
+    present_buffer_maps: WGPUPresentBufferMaps<'a>,
     //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
     error_command_encoders: RefCell<HashMap<id::CommandEncoderId, String>>,
     webrender_api: RenderApi,

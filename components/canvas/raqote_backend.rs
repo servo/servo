@@ -670,7 +670,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
 }
 
 impl Filter {
-    fn to_raqote(&self) -> raqote::FilterMode {
+    fn to_raqote(self) -> raqote::FilterMode {
         match self {
             Filter::Bilinear => raqote::FilterMode::Bilinear,
             Filter::Nearest => raqote::FilterMode::Nearest,
@@ -847,7 +847,7 @@ pub trait ToRaqotePattern<'a> {
 }
 
 pub trait ToRaqoteGradientStop {
-    fn to_raqote(&self) -> raqote::GradientStop;
+    fn to_raqote(self) -> raqote::GradientStop;
 }
 
 /// Clamp a 0..1 number to a 0..255 range to u8.
@@ -878,7 +878,7 @@ pub fn clamp_floor_256_f32(val: f32) -> u8 {
 }
 
 impl ToRaqoteGradientStop for CanvasGradientStop {
-    fn to_raqote(&self) -> raqote::GradientStop {
+    fn to_raqote(self) -> raqote::GradientStop {
         let color = raqote::Color::new(
             self.color.alpha.map(clamp_unit_f32).unwrap_or(0),
             self.color.red.unwrap_or(0),
@@ -890,7 +890,7 @@ impl ToRaqoteGradientStop for CanvasGradientStop {
     }
 }
 
-impl<'a> ToRaqotePattern<'_> for FillOrStrokeStyle {
+impl ToRaqotePattern<'_> for FillOrStrokeStyle {
     #[allow(unsafe_code)]
     fn to_raqote_pattern(self) -> Option<Pattern<'static>> {
         use canvas_traits::canvas::FillOrStrokeStyle::*;

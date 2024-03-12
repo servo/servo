@@ -66,24 +66,24 @@ use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
 use crate::actions::{InputSourceState, PointerInputState};
 
-fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
-    return vec![
+fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoutePrefs)> {
+    vec![
         (
             Method::POST,
             "/session/{sessionId}/servo/prefs/get",
-            ServoExtensionRoute::GetPrefs,
+            ServoExtensionRoutePrefs::Get,
         ),
         (
             Method::POST,
             "/session/{sessionId}/servo/prefs/set",
-            ServoExtensionRoute::SetPrefs,
+            ServoExtensionRoutePrefs::Set,
         ),
         (
             Method::POST,
             "/session/{sessionId}/servo/prefs/reset",
-            ServoExtensionRoute::ResetPrefs,
+            ServoExtensionRoutePrefs::Reset,
         ),
-    ];
+    ]
 }
 
 fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
@@ -157,8 +157,8 @@ impl WebDriverSession {
     ) -> WebDriverSession {
         WebDriverSession {
             id: Uuid::new_v4(),
-            browsing_context_id: browsing_context_id,
-            top_level_browsing_context_id: top_level_browsing_context_id,
+            browsing_context_id,
+            top_level_browsing_context_id,
 
             script_timeout: Some(30_000),
             load_timeout: 300_000,
@@ -189,32 +189,32 @@ struct Handler {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum ServoExtensionRoute {
-    GetPrefs,
-    SetPrefs,
-    ResetPrefs,
+enum ServoExtensionRoutePrefs {
+    Get,
+    Set,
+    Reset,
 }
 
-impl WebDriverExtensionRoute for ServoExtensionRoute {
-    type Command = ServoExtensionCommand;
+impl WebDriverExtensionRoute for ServoExtensionRoutePrefs {
+    type Command = ServoExtensionCommandPrefs;
 
     fn command(
         &self,
         _parameters: &Parameters,
         body_data: &Value,
-    ) -> WebDriverResult<WebDriverCommand<ServoExtensionCommand>> {
+    ) -> WebDriverResult<WebDriverCommand<ServoExtensionCommandPrefs>> {
         let command = match *self {
-            ServoExtensionRoute::GetPrefs => {
+            ServoExtensionRoutePrefs::Get => {
                 let parameters: GetPrefsParameters = serde_json::from_value(body_data.clone())?;
-                ServoExtensionCommand::GetPrefs(parameters)
+                ServoExtensionCommandPrefs::Get(parameters)
             },
-            ServoExtensionRoute::SetPrefs => {
+            ServoExtensionRoutePrefs::Set => {
                 let parameters: SetPrefsParameters = serde_json::from_value(body_data.clone())?;
-                ServoExtensionCommand::SetPrefs(parameters)
+                ServoExtensionCommandPrefs::Set(parameters)
             },
-            ServoExtensionRoute::ResetPrefs => {
+            ServoExtensionRoutePrefs::Reset => {
                 let parameters: GetPrefsParameters = serde_json::from_value(body_data.clone())?;
-                ServoExtensionCommand::ResetPrefs(parameters)
+                ServoExtensionCommandPrefs::Reset(parameters)
             },
         };
         Ok(WebDriverCommand::Extension(command))
@@ -222,18 +222,18 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-enum ServoExtensionCommand {
-    GetPrefs(GetPrefsParameters),
-    SetPrefs(SetPrefsParameters),
-    ResetPrefs(GetPrefsParameters),
+enum ServoExtensionCommandPrefs {
+    Get(GetPrefsParameters),
+    Set(SetPrefsParameters),
+    Reset(GetPrefsParameters),
 }
 
-impl WebDriverExtensionCommand for ServoExtensionCommand {
+impl WebDriverExtensionCommand for ServoExtensionCommandPrefs {
     fn parameters_json(&self) -> Option<Value> {
         match *self {
-            ServoExtensionCommand::GetPrefs(ref x) => serde_json::to_value(x).ok(),
-            ServoExtensionCommand::SetPrefs(ref x) => serde_json::to_value(x).ok(),
-            ServoExtensionCommand::ResetPrefs(ref x) => serde_json::to_value(x).ok(),
+            ServoExtensionCommandPrefs::Get(ref x) => serde_json::to_value(x).ok(),
+            ServoExtensionCommandPrefs::Set(ref x) => serde_json::to_value(x).ok(),
+            ServoExtensionCommandPrefs::Reset(ref x) => serde_json::to_value(x).ok(),
         }
     }
 }
@@ -251,7 +251,7 @@ impl Serialize for SendableWebDriverJSValue {
             WebDriverJSValue::Null => serializer.serialize_unit(),
             WebDriverJSValue::Boolean(x) => serializer.serialize_bool(x),
             WebDriverJSValue::Number(x) => serializer.serialize_f64(x),
-            WebDriverJSValue::String(ref x) => serializer.serialize_str(&x),
+            WebDriverJSValue::String(ref x) => serializer.serialize_str(x),
             WebDriverJSValue::Element(ref x) => x.serialize(serializer),
             WebDriverJSValue::Frame(ref x) => x.serialize(serializer),
             WebDriverJSValue::Window(ref x) => x.serialize(serializer),
@@ -279,7 +279,7 @@ impl Serialize for WebDriverPrefValue {
     {
         match self.0 {
             PrefValue::Bool(b) => serializer.serialize_bool(b),
-            PrefValue::Str(ref s) => serializer.serialize_str(&s),
+            PrefValue::Str(ref s) => serializer.serialize_str(s),
             PrefValue::Float(f) => serializer.serialize_f64(f),
             PrefValue::Int(i) => serializer.serialize_i64(i),
             PrefValue::Missing => serializer.serialize_unit(),
@@ -407,7 +407,7 @@ impl Handler {
             load_status_sender,
             load_status_receiver,
             session: None,
-            constellation_chan: constellation_chan,
+            constellation_chan,
             resize_timeout: 500,
         }
     }
@@ -713,14 +713,8 @@ impl Handler {
         params: &WindowRectParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let width = match params.width {
-            Some(v) => v,
-            None => 0,
-        };
-        let height = match params.height {
-            Some(v) => v,
-            None => 0,
-        };
+        let width = params.width.unwrap_or(0);
+        let height = params.height.unwrap_or(0);
         let size = Size2D::new(width as u32, height as u32);
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
         let cmd_msg = WebDriverCommandMsg::SetWindowSize(
@@ -1368,7 +1362,7 @@ impl Handler {
         let input_cancel_list = {
             let session = self.session_mut()?;
             session.input_cancel_list.reverse();
-            mem::replace(&mut session.input_cancel_list, Vec::new())
+            mem::take(&mut session.input_cancel_list)
         };
 
         if let Err(error) = self.dispatch_actions(&input_cancel_list) {
@@ -1471,7 +1465,7 @@ impl Handler {
         receiver
             .recv()
             .unwrap()
-            .or_else(|error| Err(WebDriverError::new(error, "")))?;
+            .map_err(|error| WebDriverError::new(error, ""))?;
 
         let input_events = send_keys(&keys.text);
 
@@ -1629,12 +1623,10 @@ impl Handler {
                     serde_json::to_value(encoded)?,
                 )))
             },
-            Err(_) => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::StaleElementReference,
-                    "Element not found",
-                ));
-            },
+            Err(_) => Err(WebDriverError::new(
+                ErrorStatus::StaleElementReference,
+                "Element not found",
+            )),
         }
     }
 
@@ -1662,7 +1654,7 @@ impl Handler {
         &self,
         parameters: &SetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        for &(ref key, ref value) in parameters.prefs.iter() {
+        for (key, value) in parameters.prefs.iter() {
             prefs::pref_map()
                 .set(key, value.0.clone())
                 .expect("Failed to set preference");
@@ -1674,7 +1666,7 @@ impl Handler {
         &self,
         parameters: &GetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let prefs = if parameters.prefs.len() == 0 {
+        let prefs = if parameters.prefs.is_empty() {
             prefs::pref_map().reset_all();
             BTreeMap::new()
         } else {
@@ -1698,11 +1690,11 @@ impl Handler {
     }
 }
 
-impl WebDriverHandler<ServoExtensionRoute> for Handler {
+impl WebDriverHandler<ServoExtensionRoutePrefs> for Handler {
     fn handle_command(
         &mut self,
         _session: &Option<Session>,
-        msg: WebDriverMessage<ServoExtensionRoute>,
+        msg: WebDriverMessage<ServoExtensionRoutePrefs>,
     ) -> WebDriverResult<WebDriverResponse> {
         info!("{:?}", msg.command);
 
@@ -1782,9 +1774,9 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
                 self.handle_take_element_screenshot(x)
             },
             WebDriverCommand::Extension(ref extension) => match *extension {
-                ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
-                ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
-                ServoExtensionCommand::ResetPrefs(ref x) => self.handle_reset_prefs(x),
+                ServoExtensionCommandPrefs::Get(ref x) => self.handle_get_prefs(x),
+                ServoExtensionCommandPrefs::Set(ref x) => self.handle_set_prefs(x),
+                ServoExtensionCommandPrefs::Reset(ref x) => self.handle_reset_prefs(x),
             },
             _ => Err(WebDriverError::new(
                 ErrorStatus::UnsupportedOperation,

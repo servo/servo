@@ -42,7 +42,6 @@ use script_traits::{
 };
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
-use webrender;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutPoint, LayoutRect, LayoutSize,
@@ -79,6 +78,7 @@ const MAX_ZOOM: f32 = 8.0;
 const MIN_ZOOM: f32 = 0.1;
 
 trait ConvertPipelineIdFromWebRender {
+    #[allow(clippy::wrong_self_convention)]
     fn from_webrender(&self) -> PipelineId;
 }
 
@@ -919,10 +919,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn pipeline_details(&mut self, pipeline_id: PipelineId) -> &mut PipelineDetails {
-        if !self.pipeline_details.contains_key(&pipeline_id) {
-            self.pipeline_details
-                .insert(pipeline_id, PipelineDetails::new());
-        }
+        self.pipeline_details
+            .entry(pipeline_id)
+            .or_insert_with(PipelineDetails::new);
         self.pipeline_details
             .get_mut(&pipeline_id)
             .expect("Insert then get failed!")
@@ -930,7 +929,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     pub fn pipeline(&self, pipeline_id: PipelineId) -> Option<&CompositionPipeline> {
         match self.pipeline_details.get(&pipeline_id) {
-            Some(ref details) => details.pipeline.as_ref(),
+            Some(details) => details.pipeline.as_ref(),
             None => {
                 warn!(
                     "Compositor layer has an unknown pipeline ({:?}).",
@@ -1021,8 +1020,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
 
-        self.create_pipeline_details_for_frame_tree(&frame_tree);
-        self.reset_scroll_tree_for_unattached_pipelines(&frame_tree);
+        self.create_pipeline_details_for_frame_tree(frame_tree);
+        self.reset_scroll_tree_for_unattached_pipelines(frame_tree);
 
         self.frame_tree_id.next();
     }
@@ -1081,7 +1080,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         let data = WindowSizeData {
             device_pixel_ratio: dppx,
-            initial_viewport: initial_viewport,
+            initial_viewport,
         };
 
         let top_level_browsing_context_id =
@@ -1118,7 +1117,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         self.send_window_size(WindowSizeType::Resize);
         self.composite_if_necessary(CompositingReason::Resize);
-        return true;
+        true
     }
 
     pub fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
@@ -1171,7 +1170,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let dppx = self.page_zoom * self.hidpi_factor();
         let scaled_point = (point / dppx).to_untyped();
         let world_point = WorldPoint::from_untyped(scaled_point);
-        return self.hit_test_at_point(world_point);
+        self.hit_test_at_point(world_point)
     }
 
     fn hit_test_at_point(&self, point: WorldPoint) -> Option<CompositorHitTestResult> {
@@ -1320,7 +1319,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
                             scroll_delta.to_untyped(),
                         )),
-                        cursor: cursor,
+                        cursor,
                         event_count: 1,
                     }));
             },
@@ -1378,7 +1377,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {
         self.pending_scroll_zoom_events
             .push(ScrollZoomEvent::Scroll(ScrollEvent {
-                scroll_location: scroll_location,
+                scroll_location,
                 cursor,
                 event_count: 1,
             }));
@@ -1603,21 +1602,18 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn send_scroll_positions_to_layout_for_pipeline(&self, pipeline_id: &PipelineId) {
-        let details = match self.pipeline_details.get(&pipeline_id) {
+        let details = match self.pipeline_details.get(pipeline_id) {
             Some(details) => details,
             None => return,
         };
 
         let mut scroll_states = Vec::new();
         details.scroll_tree.nodes.iter().for_each(|node| {
-            match (node.external_id(), node.offset()) {
-                (Some(scroll_id), Some(scroll_offset)) => {
-                    scroll_states.push(ScrollState {
-                        scroll_id,
-                        scroll_offset,
-                    });
-                },
-                _ => {},
+            if let (Some(scroll_id), Some(scroll_offset)) = (node.external_id(), node.offset()) {
+                scroll_states.push(ScrollState {
+                    scroll_id,
+                    scroll_offset,
+                });
             }
         });
 
@@ -1632,7 +1628,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     // Check if any pipelines currently have active animations or animation callbacks.
     fn animations_active(&self) -> bool {
-        for (_, details) in &self.pipeline_details {
+        for details in self.pipeline_details.values() {
             // If animations are currently running, then don't bother checking
             // with the constellation if the output image is stable.
             if details.animations_running {
@@ -1666,7 +1662,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 // This gets sent to the constellation for comparison with the current
                 // frame tree.
                 let mut pipeline_epochs = HashMap::new();
-                for (id, _) in &self.pipeline_details {
+                for id in self.pipeline_details.keys() {
                     let webrender_pipeline_id = id.to_webrender();
                     if let Some(WebRenderEpoch(epoch)) = self
                         .webrender
@@ -1830,7 +1826,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         continue;
                     }
                     // in which case, we remove it from the list of pending metrics,
-                    to_remove.push(id.clone());
+                    to_remove.push(*id);
                     if let Some(pipeline) = self.pipeline(*id) {
                         // and inform layout with the measured paint time.
                         let message = LayoutControlMsg::PaintMetric(epoch, paint_time);
@@ -1897,7 +1893,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     width: img.width(),
                     height: img.height(),
                     format: PixelFormat::RGB8,
-                    bytes: ipc::IpcSharedMemory::from_bytes(&*img),
+                    bytes: ipc::IpcSharedMemory::from_bytes(&img),
                     id: None,
                     cors_status: CorsStatus::Safe,
                 })
@@ -2078,10 +2074,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     pub fn repaint_synchronously(&mut self) {
         while self.shutdown_state != ShutdownState::ShuttingDown {
             let msg = self.port.recv_compositor_msg();
-            let need_recomposite = match msg {
-                CompositorMsg::NewWebRenderFrameReady(_) => true,
-                _ => false,
-            };
+            let need_recomposite = matches!(msg, CompositorMsg::NewWebRenderFrameReady(_));
             let keep_going = self.handle_browser_message(msg);
             if need_recomposite {
                 self.composite();
@@ -2142,7 +2135,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .map(|dir| dir.join("capture_webrender").join(&capture_id))
                     .ok()
             })
-            .find(|val| match create_dir_all(&val) {
+            .find(|val| match create_dir_all(val) {
                 Ok(_) => true,
                 Err(err) => {
                     eprintln!("Unable to create path '{:?}' for capture: {:?}", &val, err);
