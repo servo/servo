@@ -18,7 +18,7 @@ pub mod bm {
 
     // BlurMacDelegate : CBCentralManagerDelegate, CBPeripheralDelegate
 
-    const DELEGATE_PERIPHERALS_IVAR: &'static str = "_peripherals";
+    const DELEGATE_PERIPHERALS_IVAR: &str = "_peripherals";
 
     fn delegate_class() -> &'static Class {
         trace!("delegate_class");
@@ -181,13 +181,12 @@ pub mod bm {
             }
 
             // Notify BluetoothDevice::get_gatt_services that discovery was successful.
-            match bmx::peripheralevents(delegate, peripheral) {
-                Ok(events) => ns::mutabledictionary_setobject_forkey(
+            if let Ok(events) = bmx::peripheralevents(delegate, peripheral) {
+                ns::mutabledictionary_setobject_forkey(
                     events,
                     wait::now(),
                     nsx::string_from_str(PERIPHERALEVENT_SERVICESDISCOVEREDKEY),
-                ),
-                Err(_) => {},
+                );
             }
         }
     }
@@ -213,13 +212,12 @@ pub mod bm {
             }
 
             // Notify BluetoothGATTService::get_includes that discovery was successful.
-            match bmx::peripheralevents(delegate, peripheral) {
-                Ok(events) => ns::mutabledictionary_setobject_forkey(
+            if let Ok(events) = bmx::peripheralevents(delegate, peripheral) {
+                ns::mutabledictionary_setobject_forkey(
                     events,
                     wait::now(),
                     bmx::includedservicesdiscoveredkey(service),
-                ),
-                Err(_) => {},
+                );
             }
         }
     }
@@ -245,13 +243,12 @@ pub mod bm {
             }
 
             // Notify BluetoothGATTService::get_gatt_characteristics that discovery was successful.
-            match bmx::peripheralevents(delegate, peripheral) {
-                Ok(events) => ns::mutabledictionary_setobject_forkey(
+            if let Ok(events) = bmx::peripheralevents(delegate, peripheral) {
+                ns::mutabledictionary_setobject_forkey(
                     events,
                     wait::now(),
                     bmx::characteristicsdiscoveredkey(service),
-                ),
-                Err(_) => {},
+                );
             }
         }
     }
@@ -271,13 +268,12 @@ pub mod bm {
         );
         if error == nil {
             // Notify BluetoothGATTCharacteristic::read_value that read was successful.
-            match bmx::peripheralevents(delegate, peripheral) {
-                Ok(events) => ns::mutabledictionary_setobject_forkey(
+            if let Ok(events) = bmx::peripheralevents(delegate, peripheral) {
+                ns::mutabledictionary_setobject_forkey(
                     events,
                     wait::now(),
                     bmx::valueupdatedkey(characteristic),
-                ),
-                Err(_) => {},
+                );
             }
         }
     }
@@ -297,13 +293,12 @@ pub mod bm {
         );
         if error == nil {
             // Notify BluetoothGATTCharacteristic::write_value that write was successful.
-            match bmx::peripheralevents(delegate, peripheral) {
-                Ok(events) => ns::mutabledictionary_setobject_forkey(
+            if let Ok(events) = bmx::peripheralevents(delegate, peripheral) {
+                ns::mutabledictionary_setobject_forkey(
                     events,
                     wait::now(),
                     bmx::valuewrittenkey(characteristic),
-                ),
-                Err(_) => {},
+                );
             }
         }
     }
@@ -368,16 +363,16 @@ pub mod bm {
 
     // "BlurMacPeripheralData" = NSMutableDictionary<NSString*, id>
 
-    pub const PERIPHERALDATA_PERIPHERALKEY: &'static str = "peripheral";
-    pub const PERIPHERALDATA_RSSIKEY: &'static str = "rssi";
-    pub const PERIPHERALDATA_UUIDSKEY: &'static str = "uuids";
-    pub const PERIPHERALDATA_EVENTSKEY: &'static str = "events";
+    pub const PERIPHERALDATA_PERIPHERALKEY: &str = "peripheral";
+    pub const PERIPHERALDATA_RSSIKEY: &str = "rssi";
+    pub const PERIPHERALDATA_UUIDSKEY: &str = "uuids";
+    pub const PERIPHERALDATA_EVENTSKEY: &str = "events";
 
-    pub const PERIPHERALEVENT_SERVICESDISCOVEREDKEY: &'static str = "services";
-    pub const PERIPHERALEVENT_INCLUDEDSERVICESDISCOVEREDKEYSUFFIX: &'static str = ":includes";
-    pub const PERIPHERALEVENT_CHARACTERISTICSDISCOVEREDKEYSUFFIX: &'static str = ":characteristics";
-    pub const PERIPHERALEVENT_VALUEUPDATEDKEYSUFFIX: &'static str = ":updated";
-    pub const PERIPHERALEVENT_VALUEWRITTENKEYSUFFIX: &'static str = ":written";
+    pub const PERIPHERALEVENT_SERVICESDISCOVEREDKEY: &str = "services";
+    pub const PERIPHERALEVENT_INCLUDEDSERVICESDISCOVEREDKEYSUFFIX: &str = ":includes";
+    pub const PERIPHERALEVENT_CHARACTERISTICSDISCOVEREDKEYSUFFIX: &str = ":characteristics";
+    pub const PERIPHERALEVENT_VALUEUPDATEDKEYSUFFIX: &str = ":updated";
+    pub const PERIPHERALEVENT_VALUEWRITTENKEYSUFFIX: &str = ":written";
 }
 
 pub mod bmx {
