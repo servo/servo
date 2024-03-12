@@ -93,13 +93,13 @@ impl DisplayList {
 pub(crate) struct DisplayListBuilder<'a> {
     /// The current [ScrollTreeNodeId] for this [DisplayListBuilder]. This
     /// allows only passing the builder instead passing the containing
-    /// [stacking_context::StackingContextFragment] as an argument to display
+    /// [stacking_context::StackingContextContent::Fragment] as an argument to display
     /// list building functions.
     current_scroll_node_id: ScrollTreeNodeId,
 
     /// The current [wr::ClipId] for this [DisplayListBuilder]. This allows
     /// only passing the builder instead passing the containing
-    /// [stacking_context::StackingContextFragment] as an argument to display
+    /// [stacking_context::StackingContextContent::Fragment] as an argument to display
     /// list building functions.
     current_clip_chain_id: ClipChainId,
 
