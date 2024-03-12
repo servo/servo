@@ -217,21 +217,6 @@ pub struct InitializedServo<Window: WindowMethods + 'static + ?Sized> {
     pub browser_id: TopLevelBrowsingContextId,
 }
 
-/// Utility to help forward embedder event to constellation.
-macro_rules! forward_to_constellation {
-    ($self:ident, $variant:ident $(($($rest:tt),*))?) => {
-        {
-            let msg = ConstellationMsg::$variant$(($($rest),*))?;
-            if let Err(e) = $self.constellation_chan.send(msg) {
-                warn!(
-                    "Sending {} message to constellation failed ({:?}).",
-                    stringify!($variant), e,
-                );
-            }
-        }
-    };
-}
-
 impl<Window> Servo<Window>
 where
     Window: WindowMethods + 'static + ?Sized,
