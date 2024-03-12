@@ -3547,7 +3547,7 @@ impl Document {
         RefMut::map(map, |m| {
             &mut m
                 .entry(Dom::from_ref(el))
-                .or_insert_with(|| NoTrace(PendingRestyle::default()))
+                .or_insert_with(|| NoTrace(PendingRestyle::new()))
                 .0
         })
     }
