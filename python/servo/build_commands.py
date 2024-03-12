@@ -57,7 +57,6 @@ class MachCommands(CommandBase):
     @CommandArgument('--very-verbose', '-vv',
                      action='store_true',
                      help='Print very verbose output')
-    @CommandArgument('--with-asan', action='store_true', help="Enable AddressSanitizer")
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
@@ -136,17 +135,10 @@ class MachCommands(CommandBase):
         if status == 0:
             built_binary = self.get_binary_path(
                 build_type,
-                target=target_triple if with_asan else self.cross_compile_target,
+                target=self.cross_compile_target,
                 android=self.is_android_build,
+                asan=with_asan
             )
-
-            if with_asan:
-                shutil.copy(built_binary, self.get_binary_path(
-                    build_type,
-                    target=self.cross_compile_target,
-                    android=self.is_android_build,
-                    exists=False
-                ))
 
             if self.is_android_build and not no_package:
                 flavor = None
@@ -323,7 +315,7 @@ def change_link_name(binary, old, new):
 
 
 def is_system_library(lib):
-    return lib.startswith("/System/Library") or lib.startswith("/usr/lib")
+    return lib.startswith("/System/Library") or lib.startswith("/usr/lib") or ".asan." in lib
 
 
 def is_relocatable_library(lib):

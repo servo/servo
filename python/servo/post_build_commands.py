@@ -80,7 +80,7 @@ class PostBuildCommands(CommandBase):
         help="Command-line arguments to be passed through to Servo")
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
     def run(self, params, build_type: BuildType, android=None, debugger=False, debugger_cmd=None,
-            headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None):
+            headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None, with_asan=False):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
         if software:
@@ -133,7 +133,7 @@ class PostBuildCommands(CommandBase):
             shell.communicate(bytes("\n".join(script) + "\n", "utf8"))
             return shell.wait()
 
-        args = [bin or self.get_nightly_binary_path(nightly) or self.get_binary_path(build_type)]
+        args = [bin or self.get_nightly_binary_path(nightly) or self.get_binary_path(build_type, asan=with_asan)]
 
         if headless:
             args.append('-z')
@@ -205,12 +205,12 @@ class PostBuildCommands(CommandBase):
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def rr_record(self, build_type: BuildType, bin=None, nightly=None, params=[]):
+    def rr_record(self, build_type: BuildType, bin=None, nightly=None, with_asan=False, params=[]):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
         servo_cmd = [bin or self.get_nightly_binary_path(nightly)
-                     or self.get_binary_path(build_type)] + params
+                     or self.get_binary_path(build_type, asan=with_asan)] + params
         rr_cmd = ['rr', '--fatal-errors', 'record']
         try:
             check_call(rr_cmd + servo_cmd)
