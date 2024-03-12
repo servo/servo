@@ -70,7 +70,8 @@ jobs:
             ${{ inputs.wpt-tests-to-run }} \
             --${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
             --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
-            --log-raw wpt-full-logs/linux-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.log \
+            --log-raw wpt-full-logs/linux-${{ inputs.wpt-layout }}/raw/${{ matrix.chunk_id }}.log \
+            --log-wptreport wpt-full-logs/linux-${{ inputs.wpt-layout }}/wptreport/${{ matrix.chunk_id }}.json \
             --log-raw-unexpected wpt-filtered-logs/linux-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.log \
             --filter-intermittents wpt-filtered-logs/linux-${{ inputs.wpt-layout }}/${{ matrix.chunk_id }}.json
         env:
@@ -94,17 +95,18 @@ jobs:
     if: ${{ always() }}
     needs: linux-wpt
     steps:
-      - name: Merge logs (filtered)
-        uses: actions/upload-artifact/merge@v4
-        with:
-          name: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}
-          pattern: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}-*
-          delete-merged: true
       - name: Merge logs (full)
         uses: actions/upload-artifact/merge@v4
         with:
           name: wpt-full-logs-linux-${{ inputs.wpt-layout }}
           pattern: wpt-full-logs-linux-${{ inputs.wpt-layout }}-*
+          delete-merged: true
+      # This job needs to be last. If no filtered results were uploaded, it will fail, but we want to merge other archives in that case.
+      - name: Merge logs (filtered)
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}
+          pattern: wpt-filtered-logs-linux-${{ inputs.wpt-layout }}-*
           delete-merged: true
       - uses: actions/checkout@v4
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
