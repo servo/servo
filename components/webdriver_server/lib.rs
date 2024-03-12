@@ -66,22 +66,22 @@ use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
 use crate::actions::{InputSourceState, PointerInputState};
 
-fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoutePrefs)> {
+fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     vec![
         (
             Method::POST,
             "/session/{sessionId}/servo/prefs/get",
-            ServoExtensionRoutePrefs::Get,
+            ServoExtensionRoute::GetPrefs,
         ),
         (
             Method::POST,
             "/session/{sessionId}/servo/prefs/set",
-            ServoExtensionRoutePrefs::Set,
+            ServoExtensionRoute::SetPrefs,
         ),
         (
             Method::POST,
             "/session/{sessionId}/servo/prefs/reset",
-            ServoExtensionRoutePrefs::Reset,
+            ServoExtensionRoute::ResetPrefs,
         ),
     ]
 }
@@ -189,32 +189,33 @@ struct Handler {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum ServoExtensionRoutePrefs {
-    Get,
-    Set,
-    Reset,
+#[allow(clippy::enum_variant_names)]
+enum ServoExtensionRoute {
+    GetPrefs,
+    SetPrefs,
+    ResetPrefs,
 }
 
-impl WebDriverExtensionRoute for ServoExtensionRoutePrefs {
-    type Command = ServoExtensionCommandPrefs;
+impl WebDriverExtensionRoute for ServoExtensionRoute {
+    type Command = ServoExtensionCommand;
 
     fn command(
         &self,
         _parameters: &Parameters,
         body_data: &Value,
-    ) -> WebDriverResult<WebDriverCommand<ServoExtensionCommandPrefs>> {
+    ) -> WebDriverResult<WebDriverCommand<ServoExtensionCommand>> {
         let command = match *self {
-            ServoExtensionRoutePrefs::Get => {
+            ServoExtensionRoute::GetPrefs => {
                 let parameters: GetPrefsParameters = serde_json::from_value(body_data.clone())?;
-                ServoExtensionCommandPrefs::Get(parameters)
+                ServoExtensionCommand::GetPrefs(parameters)
             },
-            ServoExtensionRoutePrefs::Set => {
+            ServoExtensionRoute::SetPrefs => {
                 let parameters: SetPrefsParameters = serde_json::from_value(body_data.clone())?;
-                ServoExtensionCommandPrefs::Set(parameters)
+                ServoExtensionCommand::SetPrefs(parameters)
             },
-            ServoExtensionRoutePrefs::Reset => {
+            ServoExtensionRoute::ResetPrefs => {
                 let parameters: GetPrefsParameters = serde_json::from_value(body_data.clone())?;
-                ServoExtensionCommandPrefs::Reset(parameters)
+                ServoExtensionCommand::ResetPrefs(parameters)
             },
         };
         Ok(WebDriverCommand::Extension(command))
@@ -222,18 +223,19 @@ impl WebDriverExtensionRoute for ServoExtensionRoutePrefs {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-enum ServoExtensionCommandPrefs {
-    Get(GetPrefsParameters),
-    Set(SetPrefsParameters),
-    Reset(GetPrefsParameters),
+#[allow(clippy::enum_variant_names)]
+enum ServoExtensionCommand {
+    GetPrefs(GetPrefsParameters),
+    SetPrefs(SetPrefsParameters),
+    ResetPrefs(GetPrefsParameters),
 }
 
-impl WebDriverExtensionCommand for ServoExtensionCommandPrefs {
+impl WebDriverExtensionCommand for ServoExtensionCommand {
     fn parameters_json(&self) -> Option<Value> {
         match *self {
-            ServoExtensionCommandPrefs::Get(ref x) => serde_json::to_value(x).ok(),
-            ServoExtensionCommandPrefs::Set(ref x) => serde_json::to_value(x).ok(),
-            ServoExtensionCommandPrefs::Reset(ref x) => serde_json::to_value(x).ok(),
+            ServoExtensionCommand::GetPrefs(ref x) => serde_json::to_value(x).ok(),
+            ServoExtensionCommand::SetPrefs(ref x) => serde_json::to_value(x).ok(),
+            ServoExtensionCommand::ResetPrefs(ref x) => serde_json::to_value(x).ok(),
         }
     }
 }
@@ -1690,11 +1692,11 @@ impl Handler {
     }
 }
 
-impl WebDriverHandler<ServoExtensionRoutePrefs> for Handler {
+impl WebDriverHandler<ServoExtensionRoute> for Handler {
     fn handle_command(
         &mut self,
         _session: &Option<Session>,
-        msg: WebDriverMessage<ServoExtensionRoutePrefs>,
+        msg: WebDriverMessage<ServoExtensionRoute>,
     ) -> WebDriverResult<WebDriverResponse> {
         info!("{:?}", msg.command);
 
@@ -1774,9 +1776,9 @@ impl WebDriverHandler<ServoExtensionRoutePrefs> for Handler {
                 self.handle_take_element_screenshot(x)
             },
             WebDriverCommand::Extension(ref extension) => match *extension {
-                ServoExtensionCommandPrefs::Get(ref x) => self.handle_get_prefs(x),
-                ServoExtensionCommandPrefs::Set(ref x) => self.handle_set_prefs(x),
-                ServoExtensionCommandPrefs::Reset(ref x) => self.handle_reset_prefs(x),
+                ServoExtensionCommand::GetPrefs(ref x) => self.handle_get_prefs(x),
+                ServoExtensionCommand::SetPrefs(ref x) => self.handle_set_prefs(x),
+                ServoExtensionCommand::ResetPrefs(ref x) => self.handle_reset_prefs(x),
             },
             _ => Err(WebDriverError::new(
                 ErrorStatus::UnsupportedOperation,

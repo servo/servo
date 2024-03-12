@@ -331,9 +331,9 @@ impl WebGPU {
     }
 }
 
-type WGPUBufferMaps<'a> =
+type WebGPUBufferMaps<'a> =
     HashMap<id::BufferId, Rc<BufferMapInfo<'a, Option<WebGPUResponseResult>>>>;
-type WGPUPresentBufferMaps<'a> =
+type WebGPUPresentBufferMaps<'a> =
     HashMap<id::BufferId, Rc<BufferMapInfo<'a, (Option<ErrorScopeId>, WebGPURequest)>>>;
 
 #[allow(clippy::upper_case_acronyms)] // Name of the library
@@ -347,9 +347,9 @@ struct WGPU<'a> {
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
     // Buffers with pending mapping
-    buffer_maps: WGPUBufferMaps<'a>,
+    buffer_maps: WebGPUBufferMaps<'a>,
     // Presentation Buffers with pending mapping
-    present_buffer_maps: WGPUPresentBufferMaps<'a>,
+    present_buffer_maps: WebGPUPresentBufferMaps<'a>,
     //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
     error_command_encoders: RefCell<HashMap<id::CommandEncoderId, String>>,
     webrender_api: RenderApi,
