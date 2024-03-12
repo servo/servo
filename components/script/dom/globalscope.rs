@@ -329,6 +329,11 @@ pub struct GlobalScope {
     /// The stack of active group labels for the Console APIs.
     console_group_stack: DomRefCell<Vec<DOMString>>,
 
+    /// The count map for the Console APIs.
+    ///
+    /// <https://console.spec.whatwg.org/#count>
+    console_count_map: DomRefCell<HashMap<DOMString, usize>>,
+
     /// List of ongoing dynamic module imports.
     dynamic_modules: DomRefCell<DynamicModuleList>,
 
@@ -790,6 +795,7 @@ impl GlobalScope {
             frozen_supported_performance_entry_types: DomRefCell::new(Default::default()),
             https_state: Cell::new(HttpsState::None),
             console_group_stack: DomRefCell::new(Vec::new()),
+            console_count_map: Default::default(),
             dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
             inherited_secure_context,
         }
@@ -3253,6 +3259,25 @@ impl GlobalScope {
 
     pub(crate) fn pop_console_group(&self) {
         let _ = self.console_group_stack.borrow_mut().pop();
+    }
+
+    pub(crate) fn increment_console_count(&self, label: &DOMString) -> usize {
+        let mut map = self.console_count_map.borrow_mut();
+        if let Some(val) = map.get_mut(label) {
+            *val += 1;
+            return *val;
+        }
+        map.insert(label.clone(), 1);
+        1
+    }
+
+    pub(crate) fn reset_console_count(&self, label: &DOMString) -> Result<(), ()> {
+        let mut map = self.console_count_map.borrow_mut();
+        if let Some(val) = map.get_mut(label) {
+            *val = 0;
+            return Ok(());
+        }
+        return Err(());
     }
 
     pub(crate) fn dynamic_module_list(&self) -> RefMut<DynamicModuleList> {
