@@ -487,6 +487,8 @@ where
                 .unwrap()
                 .traverse(self.context, info, self);
 
+            self.finish_anonymous_table_if_needed();
+
             let mut inline_box = self
                 .ongoing_inline_boxes_stack
                 .pop()
