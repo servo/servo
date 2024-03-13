@@ -173,7 +173,7 @@ struct LineUnderConstruction {
     /// offset from `text-indent`.
     start_position: LogicalVec2<Length>,
 
-    /// The current inline position in the line being laid out into [`LineItems`] in this
+    /// The current inline position in the line being laid out into [`LineItem`]s in this
     /// [`InlineFormattingContext`] independent of the depth in the nesting level.
     inline_position: Length,
 
@@ -187,7 +187,7 @@ struct LineUnderConstruction {
     has_content: bool,
 
     /// Whether or not there are floats that did not fit on the current line. Before
-    /// the [`LineItems`] of this line are laid out, these floats will need to be
+    /// the [`LineItem`]s of this line are laid out, these floats will need to be
     /// placed directly below this line, but still as children of this line's Fragments.
     has_floats_waiting_to_be_placed: bool,
 
