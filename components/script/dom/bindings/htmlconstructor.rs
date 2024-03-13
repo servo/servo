@@ -221,8 +221,10 @@ unsafe fn html_constructor(
     Ok(())
 }
 
-/// Returns the constructor object for the element associated with the given local name.
-/// This list should only include elements marked with the [HTMLConstructor] extended attribute.
+/// Returns the constructor object for the element associated with the
+/// given local name. This list should only include elements marked with the
+/// [HTMLConstructor](https://html.spec.whatwg.org/multipage/#htmlconstructor)
+/// extended attribute.
 pub fn get_constructor_object_from_local_name(
     name: LocalName,
     cx: JSContext,
