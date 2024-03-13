@@ -546,6 +546,11 @@ macro_rules! define_resource_id {
         impl $name {
             #[allow(unsafe_code)]
             #[inline]
+            /// Create a new $name.
+            ///
+            /// # Safety
+            ///
+            /// Using an invalid OpenGL id may result in undefined behavior.
             pub unsafe fn new(id: $type) -> Self {
                 $name(<nonzero_type!($type)>::new_unchecked(id))
             }
