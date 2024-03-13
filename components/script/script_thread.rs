@@ -1670,13 +1670,12 @@ impl ScriptThread {
                 ScriptThread::set_user_interacting(true);
                 let _realm = enter_realm(document.window());
 
-
                 // Focusing steps, plus other composition events.
                 // TODO: break-up to match spec more closely.
                 self.process_pending_compositor_events(pipeline_id);
 
                 self.run_the_resize_steps(pipeline_id, &*document);
-                
+
                 ScriptThread::set_user_interacting(false);
             }
         }
