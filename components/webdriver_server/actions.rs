@@ -101,8 +101,8 @@ impl Handler {
         actions_by_tick: &[ActionSequence],
     ) -> Result<(), ErrorStatus> {
         for tick_actions in actions_by_tick.iter() {
-            let tick_duration = compute_tick_duration(&tick_actions);
-            self.dispatch_tick_actions(&tick_actions, tick_duration)?;
+            let tick_duration = compute_tick_duration(tick_actions);
+            self.dispatch_tick_actions(tick_actions, tick_duration)?;
         }
         Ok(())
     }
@@ -144,10 +144,10 @@ impl Handler {
                                 .or_insert(InputSourceState::Key(KeyInputState::new()));
                             match action {
                                 KeyAction::Down(action) => {
-                                    self.dispatch_keydown_action(&source_id, &action)
+                                    self.dispatch_keydown_action(source_id, action)
                                 },
                                 KeyAction::Up(action) => {
-                                    self.dispatch_keyup_action(&source_id, &action)
+                                    self.dispatch_keyup_action(source_id, action)
                                 },
                             };
                         },
@@ -174,15 +174,15 @@ impl Handler {
                             match action {
                                 PointerAction::Cancel => (),
                                 PointerAction::Down(action) => {
-                                    self.dispatch_pointerdown_action(&source_id, &action)
+                                    self.dispatch_pointerdown_action(source_id, action)
                                 },
                                 PointerAction::Move(action) => self.dispatch_pointermove_action(
-                                    &source_id,
-                                    &action,
+                                    source_id,
+                                    action,
                                     tick_duration,
                                 )?,
                                 PointerAction::Up(action) => {
-                                    self.dispatch_pointerup_action(&source_id, &action)
+                                    self.dispatch_pointerup_action(source_id, action)
                                 },
                             }
                         },
@@ -435,6 +435,7 @@ impl Handler {
     }
 
     // https://w3c.github.io/webdriver/#dfn-perform-a-pointer-move
+    #[allow(clippy::too_many_arguments)]
     fn perform_pointer_move(
         &mut self,
         source_id: &str,
@@ -470,11 +471,7 @@ impl Handler {
             };
 
             // Step 3
-            let last = if 1.0 - duration_ratio < 0.001 {
-                true
-            } else {
-                false
-            };
+            let last = 1.0 - duration_ratio < 0.001;
 
             // Step 4
             let (x, y) = if last {

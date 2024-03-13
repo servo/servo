@@ -2514,8 +2514,8 @@ fn to_name_in_compiled_shader(s: &str) -> String {
 
 fn from_name_in_compiled_shader(s: &str) -> String {
     map_dot_separated(s, |s, mapped| {
-        mapped.push_str(if s.starts_with(ANGLE_NAME_PREFIX) {
-            &s[ANGLE_NAME_PREFIX.len()..]
+        mapped.push_str(if let Some(stripped) = s.strip_prefix(ANGLE_NAME_PREFIX) {
+            stripped
         } else {
             s
         })
@@ -2533,6 +2533,7 @@ fn map_dot_separated<F: Fn(&str, &mut String)>(s: &str, f: F) -> String {
     mapped
 }
 
+#[allow(clippy::too_many_arguments)]
 fn prepare_pixels(
     internal_format: TexFormat,
     data_type: TexDataType,
@@ -3100,7 +3101,8 @@ impl WebXRBridge {
         contexts: &mut dyn WebXRContexts<WebXRSurfman>,
         context_id: WebXRContextId,
     ) {
-        for (_, manager) in &mut self.managers {
+        for manager in self.managers.values_mut() {
+            #[allow(clippy::unnecessary_to_owned)] // Needs mutable borrow later in destroy
             for (other_id, layer_id) in manager.layers().to_vec() {
                 if other_id == context_id {
                     manager.destroy_layer(device, contexts, context_id, layer_id);

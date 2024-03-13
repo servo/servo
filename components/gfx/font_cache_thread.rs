@@ -521,7 +521,7 @@ impl FontCacheThread {
         };
 
         let mut number_loading = 0;
-        stylesheet.effective_font_face_rules(&device, guard, |rule| {
+        stylesheet.effective_font_face_rules(device, guard, |rule| {
             let font_face = match rule.font_face() {
                 Some(font_face) => font_face,
                 None => return,

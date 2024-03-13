@@ -25,10 +25,7 @@ pub struct TouchPoint {
 
 impl TouchPoint {
     pub fn new(id: TouchId, point: Point2D<f32, DevicePixel>) -> Self {
-        TouchPoint {
-            id: id,
-            point: point,
-        }
+        TouchPoint { id, point }
     }
 }
 

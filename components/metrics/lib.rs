@@ -75,13 +75,7 @@ fn set_metric<U: ProgressiveWebMetric>(
     pwm.send_queued_constellation_msg(metric_type, time);
 
     // Send the metric to the time profiler.
-    send_profile_data(
-        category,
-        metadata,
-        &pwm.get_time_profiler_chan(),
-        time,
-        time,
-    );
+    send_profile_data(category, metadata, pwm.get_time_profiler_chan(), time, time);
 
     // Print the metric to console if the print-pwm option was given.
     if opts::get().print_pwm {
@@ -119,13 +113,15 @@ pub struct InteractiveWindow {
     start: SystemTime,
 }
 
-impl InteractiveWindow {
-    pub fn new() -> InteractiveWindow {
-        InteractiveWindow {
+impl Default for InteractiveWindow {
+    fn default() -> Self {
+        Self {
             start: SystemTime::now(),
         }
     }
+}
 
+impl InteractiveWindow {
     // We need to either start or restart the 10s window
     //   start: we've added a new document
     //   restart: there was a task > 50ms
@@ -163,7 +159,7 @@ impl InteractiveMetrics {
             dom_content_loaded: Cell::new(None),
             main_thread_available: Cell::new(None),
             time_to_interactive: Cell::new(None),
-            time_profiler_chan: time_profiler_chan,
+            time_profiler_chan,
             url,
         }
     }

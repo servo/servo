@@ -67,7 +67,7 @@ use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 use crate::actions::{InputSourceState, PointerInputState};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
-    return vec![
+    vec![
         (
             Method::POST,
             "/session/{sessionId}/servo/prefs/get",
@@ -83,7 +83,7 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
             "/session/{sessionId}/servo/prefs/reset",
             ServoExtensionRoute::ResetPrefs,
         ),
-    ];
+    ]
 }
 
 fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
@@ -157,8 +157,8 @@ impl WebDriverSession {
     ) -> WebDriverSession {
         WebDriverSession {
             id: Uuid::new_v4(),
-            browsing_context_id: browsing_context_id,
-            top_level_browsing_context_id: top_level_browsing_context_id,
+            browsing_context_id,
+            top_level_browsing_context_id,
 
             script_timeout: Some(30_000),
             load_timeout: 300_000,
@@ -189,6 +189,7 @@ struct Handler {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 enum ServoExtensionRoute {
     GetPrefs,
     SetPrefs,
@@ -222,6 +223,7 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 enum ServoExtensionCommand {
     GetPrefs(GetPrefsParameters),
     SetPrefs(SetPrefsParameters),
@@ -251,7 +253,7 @@ impl Serialize for SendableWebDriverJSValue {
             WebDriverJSValue::Null => serializer.serialize_unit(),
             WebDriverJSValue::Boolean(x) => serializer.serialize_bool(x),
             WebDriverJSValue::Number(x) => serializer.serialize_f64(x),
-            WebDriverJSValue::String(ref x) => serializer.serialize_str(&x),
+            WebDriverJSValue::String(ref x) => serializer.serialize_str(x),
             WebDriverJSValue::Element(ref x) => x.serialize(serializer),
             WebDriverJSValue::Frame(ref x) => x.serialize(serializer),
             WebDriverJSValue::Window(ref x) => x.serialize(serializer),
@@ -279,7 +281,7 @@ impl Serialize for WebDriverPrefValue {
     {
         match self.0 {
             PrefValue::Bool(b) => serializer.serialize_bool(b),
-            PrefValue::Str(ref s) => serializer.serialize_str(&s),
+            PrefValue::Str(ref s) => serializer.serialize_str(s),
             PrefValue::Float(f) => serializer.serialize_f64(f),
             PrefValue::Int(i) => serializer.serialize_i64(i),
             PrefValue::Missing => serializer.serialize_unit(),
@@ -407,7 +409,7 @@ impl Handler {
             load_status_sender,
             load_status_receiver,
             session: None,
-            constellation_chan: constellation_chan,
+            constellation_chan,
             resize_timeout: 500,
         }
     }
@@ -713,14 +715,8 @@ impl Handler {
         params: &WindowRectParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let width = match params.width {
-            Some(v) => v,
-            None => 0,
-        };
-        let height = match params.height {
-            Some(v) => v,
-            None => 0,
-        };
+        let width = params.width.unwrap_or(0);
+        let height = params.height.unwrap_or(0);
         let size = Size2D::new(width as u32, height as u32);
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
         let cmd_msg = WebDriverCommandMsg::SetWindowSize(
@@ -1368,7 +1364,7 @@ impl Handler {
         let input_cancel_list = {
             let session = self.session_mut()?;
             session.input_cancel_list.reverse();
-            mem::replace(&mut session.input_cancel_list, Vec::new())
+            mem::take(&mut session.input_cancel_list)
         };
 
         if let Err(error) = self.dispatch_actions(&input_cancel_list) {
@@ -1471,7 +1467,7 @@ impl Handler {
         receiver
             .recv()
             .unwrap()
-            .or_else(|error| Err(WebDriverError::new(error, "")))?;
+            .map_err(|error| WebDriverError::new(error, ""))?;
 
         let input_events = send_keys(&keys.text);
 
@@ -1629,12 +1625,10 @@ impl Handler {
                     serde_json::to_value(encoded)?,
                 )))
             },
-            Err(_) => {
-                return Err(WebDriverError::new(
-                    ErrorStatus::StaleElementReference,
-                    "Element not found",
-                ));
-            },
+            Err(_) => Err(WebDriverError::new(
+                ErrorStatus::StaleElementReference,
+                "Element not found",
+            )),
         }
     }
 
@@ -1662,7 +1656,7 @@ impl Handler {
         &self,
         parameters: &SetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        for &(ref key, ref value) in parameters.prefs.iter() {
+        for (key, value) in parameters.prefs.iter() {
             prefs::pref_map()
                 .set(key, value.0.clone())
                 .expect("Failed to set preference");
@@ -1674,7 +1668,7 @@ impl Handler {
         &self,
         parameters: &GetPrefsParameters,
     ) -> WebDriverResult<WebDriverResponse> {
-        let prefs = if parameters.prefs.len() == 0 {
+        let prefs = if parameters.prefs.is_empty() {
             prefs::pref_map().reset_all();
             BTreeMap::new()
         } else {

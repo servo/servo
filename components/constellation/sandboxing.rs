@@ -28,6 +28,7 @@ use crate::pipeline::UnprivilegedPipelineContent;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 
 #[derive(Deserialize, Serialize)]
+#[allow(clippy::large_enum_variant)]
 pub enum UnprivilegedContent {
     Pipeline(UnprivilegedPipelineContent),
     ServiceWorker(ServiceWorkerUnprivilegedContent),
