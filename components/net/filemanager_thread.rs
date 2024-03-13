@@ -125,6 +125,7 @@ impl FileManager {
     // Read a file for the Fetch implementation.
     // It gets the required headers synchronously and reads the actual content
     // in a separate thread.
+    #[allow(clippy::too_many_arguments)]
     pub fn fetch_file(
         &self,
         done_sender: &mut TokioSender<Data>,
@@ -278,6 +279,7 @@ impl FileManager {
             });
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn fetch_blob_buf(
         &self,
         done_sender: &mut TokioSender<Data>,
@@ -824,22 +826,20 @@ impl FileManagerStore {
     }
 
     fn promote_memory(&self, id: Uuid, blob_buf: BlobBuf, set_valid: bool, origin: FileOrigin) {
-        match Url::parse(&origin) {
-            // parse to check sanity
-            Ok(_) => {
-                self.insert(
-                    id,
-                    FileStoreEntry {
-                        origin,
-                        file_impl: FileImpl::Memory(blob_buf),
-                        refs: AtomicUsize::new(1),
-                        is_valid_url: AtomicBool::new(set_valid),
-                        outstanding_tokens: Default::default(),
-                    },
-                );
-            },
-            Err(_) => {},
+        // parse to check sanity
+        if Url::parse(&origin).is_err() {
+            return;
         }
+        self.insert(
+            id,
+            FileStoreEntry {
+                origin,
+                file_impl: FileImpl::Memory(blob_buf),
+                refs: AtomicUsize::new(1),
+                is_valid_url: AtomicBool::new(set_valid),
+                outstanding_tokens: Default::default(),
+            },
+        );
     }
 
     fn set_blob_url_validity(

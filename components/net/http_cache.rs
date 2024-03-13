@@ -134,10 +134,10 @@ pub struct HttpCache {
 
 /// Determine if a response is cacheable by default <https://tools.ietf.org/html/rfc7231#section-6.1>
 fn is_cacheable_by_default(status_code: u16) -> bool {
-    match status_code {
-        200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501 => true,
-        _ => false,
-    }
+    matches!(
+        status_code,
+        200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501
+    )
 }
 
 /// Determine if a given response is cacheable.

@@ -63,6 +63,7 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore
 }
 
 /// Returns a tuple of (public, private) senders to the new threads.
+#[allow(clippy::too_many_arguments)]
 pub fn new_resource_threads(
     user_agent: Cow<'static, str>,
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
@@ -102,6 +103,7 @@ pub fn new_resource_threads(
 }
 
 /// Create a CoreResourceThread
+#[allow(clippy::too_many_arguments)]
 pub fn new_core_resource_thread(
     user_agent: Cow<'static, str>,
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
@@ -225,9 +227,8 @@ impl ResourceChannelManager {
         loop {
             for receiver in rx_set.select().unwrap().into_iter() {
                 // Handles case where profiler thread shuts down before resource thread.
-                match receiver {
-                    ipc::IpcSelectionResult::ChannelClosed(..) => continue,
-                    _ => {},
+                if let ipc::IpcSelectionResult::ChannelClosed(..) = receiver {
+                    continue;
                 }
                 let (id, data) = receiver.unwrap();
                 // If message is memory report, get the size_of of public and private http caches

@@ -132,10 +132,10 @@ fn apply_algorithm_to_response<S: ArrayLength<u8>, D: Digest<OutputSize = S>>(
 
 /// <https://w3c.github.io/webappsec-subresource-integrity/#is-response-eligible>
 fn is_eligible_for_integrity_validation(response: &Response) -> bool {
-    match response.response_type {
-        ResponseType::Basic | ResponseType::Default | ResponseType::Cors => true,
-        _ => false,
-    }
+    matches!(
+        response.response_type,
+        ResponseType::Basic | ResponseType::Default | ResponseType::Cors
+    )
 }
 
 /// <https://w3c.github.io/webappsec-subresource-integrity/#does-response-match-metadatalist>
