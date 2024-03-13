@@ -22,7 +22,8 @@ use webrender_api as wr;
 
 use crate::dom_traversal::Contents;
 use crate::geom::{
-    LengthOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
+    AuOrAuto, LengthOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides,
+    PhysicalSize,
 };
 use crate::ContainingBlock;
 
@@ -118,7 +119,7 @@ impl DisplayLayoutInternal {
 pub(crate) struct PaddingBorderMargin {
     pub padding: LogicalSides<Au>,
     pub border: LogicalSides<Au>,
-    pub margin: LogicalSides<LengthOrAuto>,
+    pub margin: LogicalSides<AuOrAuto>,
 
     /// Pre-computed sums in each axis
     pub padding_border_sums: LogicalVec2<Au>,
@@ -351,6 +352,9 @@ impl ComputedValuesExt for ComputedValues {
             .padding(containing_block.style.writing_mode)
             .percentages_relative_to(cbis.into());
         let border = self.border_width(containing_block.style.writing_mode);
+        let margin = self
+            .margin(containing_block.style.writing_mode)
+            .percentages_relative_to(cbis.into());
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {
                 inline: (padding.inline_sum() + border.inline_sum()).into(),
@@ -358,9 +362,7 @@ impl ComputedValuesExt for ComputedValues {
             },
             padding: padding.into(),
             border: border.into(),
-            margin: self
-                .margin(containing_block.style.writing_mode)
-                .percentages_relative_to(cbis.into()),
+            margin: margin.map(|t| t.map(|m| m.into())),
         }
     }
 

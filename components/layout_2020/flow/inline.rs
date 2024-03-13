@@ -724,7 +724,8 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .pbm
                 .margin
                 .inline_start
-                .auto_is(Length::zero)
+                .auto_is(Au::zero)
+                .into()
         }
 
         let line_item = inline_box_state
@@ -758,7 +759,12 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         if inline_box_state.is_last_fragment {
             let pbm_end = Length::from(
                 inline_box_state.pbm.padding.inline_end + inline_box_state.pbm.border.inline_end,
-            ) + inline_box_state.pbm.margin.inline_end.auto_is(Length::zero);
+            ) + inline_box_state
+                .pbm
+                .margin
+                .inline_end
+                .auto_is(Au::zero)
+                .into();
             self.current_line_segment.inline_size += pbm_end;
         }
     }
@@ -1922,8 +1928,8 @@ impl IndependentFormattingContext {
     ) {
         let style = self.style();
         let pbm = style.padding_border_margin(ifc.containing_block);
-        let margin = pbm.margin.auto_is(Length::zero);
-        let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone().into();
+        let margin = pbm.margin.auto_is(Au::zero);
+        let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone();
         let mut child_positioning_context = None;
 
         // We need to know the inline size of the atomic before deciding whether to do the line break.
@@ -1950,7 +1956,7 @@ impl IndependentFormattingContext {
                     content_rect.into(),
                     pbm.padding.into(),
                     pbm.border.into(),
-                    margin,
+                    margin.into(),
                     None, /* clearance */
                     CollapsedBlockMargins::zero(),
                 )
@@ -2039,7 +2045,7 @@ impl IndependentFormattingContext {
                     content_rect.into(),
                     pbm.padding.into(),
                     pbm.border.into(),
-                    margin,
+                    margin.into(),
                     None,
                     CollapsedBlockMargins::zero(),
                 )

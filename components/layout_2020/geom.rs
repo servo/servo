@@ -126,8 +126,8 @@ impl<T: Zero> LogicalVec2<T> {
     }
 }
 
-impl LogicalVec2<LengthOrAuto> {
-    pub fn auto_is(&self, f: impl Fn() -> Length) -> LogicalVec2<Length> {
+impl<T: Clone> LogicalVec2<AutoOr<T>> {
+    pub fn auto_is(&self, f: impl Fn() -> T) -> LogicalVec2<T> {
         self.map(|t| t.auto_is(&f))
     }
 }
@@ -335,8 +335,8 @@ impl LogicalSides<LengthPercentageOrAuto<'_>> {
     }
 }
 
-impl LogicalSides<LengthOrAuto> {
-    pub fn auto_is(&self, f: impl Fn() -> Length) -> LogicalSides<Length> {
+impl<T: Clone> LogicalSides<AutoOr<T>> {
+    pub fn auto_is(&self, f: impl Fn() -> T) -> LogicalSides<T> {
         self.map(|s| s.auto_is(&f))
     }
 }
