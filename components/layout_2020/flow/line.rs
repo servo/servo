@@ -10,7 +10,7 @@ use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage};
+use style::values::computed::Length;
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
 use style::values::generics::text::LineHeight;
 use style::values::specified::box_::DisplayOutside;
@@ -28,7 +28,7 @@ use crate::geom::{LogicalRect, LogicalVec2};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
-use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
+use crate::style_ext::PaddingBorderMargin;
 use crate::ContainingBlock;
 
 pub(super) struct LineMetrics {
@@ -226,16 +226,10 @@ impl TextRunLineItem {
         // The block start of the TextRun is often zero (meaning it has the same font metrics as the
         // inline box's strut), but for children of the inline formatting context root or for
         // fallback fonts that use baseline relatve alignment, it might be different.
-        let mut start_corner = &LogicalVec2 {
+        let start_corner = &LogicalVec2 {
             inline: state.inline_position,
             block: (state.baseline_offset - self.font_metrics.ascent).into(),
         } - &state.parent_offset;
-        if !is_baseline_relative(
-            self.parent_style
-                .effective_vertical_align_for_inline_layout(),
-        ) {
-            start_corner.block = Length::zero();
-        }
 
         let rect = LogicalRect {
             start_corner,
@@ -428,12 +422,11 @@ impl InlineBoxLineItem {
     /// Given the state for a line item layout and the space above the baseline for this inline
     /// box, find the block start position relative to the line block start position.
     fn calculate_block_start(&self, state: &LineItemLayoutState, space_above_baseline: Au) -> Au {
-        let vertical_align = self.style.effective_vertical_align_for_inline_layout();
         let line_gap = self.font_metrics.line_gap;
 
         // The baseline offset that we have in `Self::baseline_offset` is relative to the line
         // baseline, so we need to make it relative to the line block start.
-        match vertical_align {
+        match self.style.clone_vertical_align() {
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => {
                 let line_height: Au = line_height(&self.style, &self.font_metrics).into();
                 (line_height - line_gap).scale_by(0.5)
@@ -584,14 +577,6 @@ impl FloatLineItem {
             &self.fragment.content_rect.start_corner - &distance_from_parent_to_ifc;
         self.fragment
     }
-}
-
-fn is_baseline_relative(vertical_align: GenericVerticalAlign<LengthPercentage>) -> bool {
-    !matches!(
-        vertical_align,
-        GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
-    )
 }
 
 fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Length {

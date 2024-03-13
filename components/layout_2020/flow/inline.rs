@@ -76,12 +76,13 @@ use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use serde::Serialize;
 use servo_arc::Arc;
+use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::context::QuirksMode;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage};
-use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
+use style::values::computed::Length;
+use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::text::LineHeight;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::values::specified::{TextAlignLast, TextJustify};
@@ -1259,7 +1260,12 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let strut_size = if using_fallback_font {
             // TODO(mrobinson): This value should probably be cached somewhere.
             let container_state = self.current_inline_container_state();
-            let mut block_size = container_state.get_block_size_contribution(&font_metrics);
+            let vertical_align = effective_vertical_align(
+                &container_state.style,
+                self.inline_box_state_stack.last().map(|c| &c.base),
+            );
+            let mut block_size =
+                container_state.get_block_size_contribution(vertical_align, &font_metrics);
             block_size.adjust_for_baseline_offset(container_state.baseline_offset);
             block_size
         } else if quirks_mode && !is_collapsible_whitespace {
@@ -1725,13 +1731,17 @@ impl InlineContainerState {
         let line_height = line_height(&style, &font_metrics);
 
         let mut baseline_offset = Au::zero();
-        let mut strut_block_sizes =
-            Self::get_block_sizes_with_style(&style, &font_metrics, line_height);
+        let mut strut_block_sizes = Self::get_block_sizes_with_style(
+            effective_vertical_align(&style, parent_container),
+            &style,
+            &font_metrics,
+            line_height,
+        );
         if let Some(parent_container) = parent_container {
             // The baseline offset from `vertical-align` might adjust where our block size contribution is
             // within the line.
             baseline_offset = parent_container.get_cumulative_baseline_offset_for_child(
-                style.effective_vertical_align_for_inline_layout(),
+                style.clone_vertical_align(),
                 &strut_block_sizes,
             );
             strut_block_sizes.adjust_for_baseline_offset(baseline_offset);
@@ -1756,11 +1766,11 @@ impl InlineContainerState {
     }
 
     fn get_block_sizes_with_style(
+        vertical_align: VerticalAlign,
         style: &ComputedValues,
         font_metrics: &FontMetrics,
         line_height: Length,
     ) -> LineBlockSizes {
-        let vertical_align = style.effective_vertical_align_for_inline_layout();
         if !is_baseline_relative(vertical_align) {
             return LineBlockSizes {
                 line_height,
@@ -1820,8 +1830,13 @@ impl InlineContainerState {
         }
     }
 
-    fn get_block_size_contribution(&self, font_metrics: &FontMetrics) -> LineBlockSizes {
+    fn get_block_size_contribution(
+        &self,
+        vertical_align: VerticalAlign,
+        font_metrics: &FontMetrics,
+    ) -> LineBlockSizes {
         Self::get_block_sizes_with_style(
+            vertical_align,
             &self.style,
             font_metrics,
             line_height(&self.style, font_metrics),
@@ -1830,35 +1845,36 @@ impl InlineContainerState {
 
     fn get_cumulative_baseline_offset_for_child(
         &self,
-        child_vertical_align: GenericVerticalAlign<LengthPercentage>,
+        child_vertical_align: VerticalAlign,
         child_block_size: &LineBlockSizes,
     ) -> Au {
-        let block_size = self.get_block_size_contribution(&self.font_metrics);
+        let block_size =
+            self.get_block_size_contribution(child_vertical_align.clone(), &self.font_metrics);
         self.baseline_offset +
             match child_vertical_align {
                 // `top` and `bottom are not actually relative to the baseline, but this value is unused
                 // in those cases.
                 // TODO: We should distinguish these from `baseline` in order to implement "aligned subtrees" properly.
                 // See https://drafts.csswg.org/css2/#aligned-subtree.
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Baseline) |
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => Au::zero(),
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Sub) => Au::from_f32_px(
+                VerticalAlign::Keyword(VerticalAlignKeyword::Baseline) |
+                VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
+                VerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => Au::zero(),
+                VerticalAlign::Keyword(VerticalAlignKeyword::Sub) => Au::from_f32_px(
                     block_size
                         .resolve()
                         .scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
                         .px(),
                 ),
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Super) => -Au::from_f32_px(
+                VerticalAlign::Keyword(VerticalAlignKeyword::Super) => -Au::from_f32_px(
                     block_size
                         .resolve()
                         .scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO)
                         .px(),
                 ),
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::TextTop) => {
+                VerticalAlign::Keyword(VerticalAlignKeyword::TextTop) => {
                     child_block_size.size_for_baseline_positioning.ascent - self.font_metrics.ascent
                 },
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Middle) => {
+                VerticalAlign::Keyword(VerticalAlignKeyword::Middle) => {
                     // "Align the vertical midpoint of the box with the baseline of the parent
                     // box plus half the x-height of the parent."
                     (child_block_size.size_for_baseline_positioning.ascent -
@@ -1866,11 +1882,11 @@ impl InlineContainerState {
                         self.font_metrics.x_height)
                         .scale_by(0.5)
                 },
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::TextBottom) => {
+                VerticalAlign::Keyword(VerticalAlignKeyword::TextBottom) => {
                     self.font_metrics.descent -
                         child_block_size.size_for_baseline_positioning.descent
                 },
-                GenericVerticalAlign::Length(length_percentage) => {
+                VerticalAlign::Length(length_percentage) => {
                     Au::from_f32_px(-length_percentage.resolve(child_block_size.line_height).px())
                 },
             }
@@ -2156,11 +2172,25 @@ fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Len
     }
 }
 
-fn is_baseline_relative(vertical_align: GenericVerticalAlign<LengthPercentage>) -> bool {
+fn effective_vertical_align(
+    style: &ComputedValues,
+    container: Option<&InlineContainerState>,
+) -> VerticalAlign {
+    if container.is_none() {
+        // If we are at the root of the inline formatting context, we shouldn't use the
+        // computed `vertical-align`, since it has no effect on the contents of this IFC
+        // (it can just affect how the block container is aligned within the parent IFC).
+        VerticalAlign::Keyword(VerticalAlignKeyword::Baseline)
+    } else {
+        style.clone_vertical_align()
+    }
+}
+
+fn is_baseline_relative(vertical_align: VerticalAlign) -> bool {
     !matches!(
         vertical_align,
-        GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
+        VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
+            VerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
     )
 }
 
