@@ -10,7 +10,7 @@ use serde::Serialize;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use style::values::computed::Length;
-use webrender_api::units;
+use webrender_api::{units, ScrollSensitivity};
 
 use super::{ContainingBlockManager, Fragment, Tag};
 use crate::cell::ArcRefCell;
@@ -40,6 +40,9 @@ pub struct FragmentTree {
     /// <https://drafts.csswg.org/css-backgrounds/#special-backgrounds>
     #[serde(skip)]
     pub(crate) canvas_background: CanvasBackground,
+
+    /// Whether or not the root element is sensitive to scroll input events.
+    pub root_scroll_sensitivity: ScrollSensitivity,
 }
 
 impl FragmentTree {

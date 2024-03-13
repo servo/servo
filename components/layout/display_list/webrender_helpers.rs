@@ -121,7 +121,13 @@ impl DisplayList {
         let content_size = self.bounds().size;
         let mut state = ClipScrollState::new(
             &mut self.clip_scroll_nodes,
-            CompositorDisplayListInfo::new(viewport_size, content_size, webrender_pipeline, epoch),
+            CompositorDisplayListInfo::new(
+                viewport_size,
+                content_size,
+                webrender_pipeline,
+                epoch,
+                webrender_api::ScrollSensitivity::ScriptAndInputEvents,
+            ),
             &mut builder,
         );
 
