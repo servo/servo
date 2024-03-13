@@ -317,6 +317,7 @@ where
             self.current_inline_level_boxes()
                 .push(ArcRefCell::new(InlineLevelBox::Atomic(ifc)));
         } else {
+            self.end_ongoing_inline_formatting_context();
             let anonymous_info = self.info.new_anonymous(ifc.style().clone());
             let table_block = ArcRefCell::new(BlockLevelBox::Independent(ifc));
             self.block_level_boxes.push(BlockLevelJob {
