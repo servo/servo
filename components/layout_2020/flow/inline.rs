@@ -604,7 +604,7 @@ pub(super) struct InlineFormattingContextState<'a, 'b> {
     /// of the inline box is the state popped from the stack.
     inline_box_state_stack: Vec<InlineBoxContainerState>,
 
-    /// A vector of fragment that are laid out. This includes one [`Fragment::Anonymous`]
+    /// A vector of fragment that are laid out. This includes one [`Fragment::Positioning`]
     /// per line that is currently laid out plus fragments for all floats, which
     /// are currently laid out at the top-level of each [`InlineFormattingContext`].
     fragments: Vec<Fragment>,
