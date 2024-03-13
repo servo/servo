@@ -64,7 +64,7 @@ impl BlockContainer {
             BlockContainer::BlockLevelBoxes(boxes) => boxes
                 .iter()
                 .any(|block_level_box| block_level_box.borrow().contains_floats()),
-            BlockContainer::InlineFormattingContext { .. } => true,
+            BlockContainer::InlineFormattingContext(context) => context.contains_floats,
         }
     }
 }
