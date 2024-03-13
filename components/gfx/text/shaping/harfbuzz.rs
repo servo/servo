@@ -47,7 +47,7 @@ pub struct ShapedGlyphEntry {
 }
 
 impl ShapedGlyphData {
-    /// Create a new [`SharedGlyphData`] from the given HarfBuzz buffer.
+    /// Create a new [`ShapedGlyphData`] from the given HarfBuzz buffer.
     ///
     /// # Safety
     ///
