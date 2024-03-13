@@ -151,7 +151,7 @@ pub fn is_token(s: &[u8]) -> bool {
 
 /// A DOMString.
 ///
-/// This type corresponds to the [`DOMString`](idl) type in WebIDL.
+/// This type corresponds to the [`DOMString`](https://webidl.spec.whatwg.org/#idl-DOMString) type in WebIDL.
 ///
 /// [idl]: https://heycam.github.io/webidl/#idl-DOMString
 ///
