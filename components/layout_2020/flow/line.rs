@@ -51,7 +51,7 @@ pub(super) struct LineItemLayoutState<'a> {
     pub parent_offset: LogicalVec2<Length>,
 
     /// The block offset of the parent's baseline relative to the block start of the line. This
-    /// is often the same as [`Self::block_offset_of_parent`], but can be different for the root
+    /// is often the same as [`Self::parent_offset`], but can be different for the root
     /// element.
     pub baseline_offset: Au,
 
