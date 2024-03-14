@@ -30,7 +30,9 @@ use wr::{BoxShadowClipMode, ScrollSensitivity};
 use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
-use crate::fragment_tree::{BoxFragment, Fragment, FragmentTree, Tag, TextFragment};
+use crate::fragment_tree::{
+    BackgroundMode, BoxFragment, Fragment, FragmentTree, Tag, TextFragment,
+};
 use crate::geom::{LogicalRect, PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
 use crate::style_ext::ComputedValuesExt;
@@ -611,19 +613,29 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        for extra_background in self.fragment.extra_backgrounds.iter() {
-            let positioning_area: LogicalRect<Length> = extra_background.rect.clone().into();
-            let painter = BackgroundPainter {
-                style: &extra_background.style,
-                painting_area_override: None,
-                positioning_area_override: Some(
-                    positioning_area
-                        .to_physical(self.fragment.style.writing_mode, self.containing_block)
-                        .translate(self.containing_block.origin.to_vector())
-                        .to_webrender(),
-                ),
-            };
-            self.build_background_for_painter(builder, &painter);
+        // If this BoxFragment does not paint a background, do nothing.
+        if let BackgroundMode::None = self.fragment.background_mode {
+            return;
+        }
+
+        // Paint all extra backgrounds for this BoxFragment. These are painted first, as that's
+        // the order that they are expected to be painted for table cells (where this feature
+        // is used).
+        if let BackgroundMode::Extra(ref extra_backgrounds) = self.fragment.background_mode {
+            for extra_background in extra_backgrounds {
+                let positioning_area: LogicalRect<Length> = extra_background.rect.clone().into();
+                let painter = BackgroundPainter {
+                    style: &extra_background.style,
+                    painting_area_override: None,
+                    positioning_area_override: Some(
+                        positioning_area
+                            .to_physical(self.fragment.style.writing_mode, self.containing_block)
+                            .translate(self.containing_block.origin.to_vector())
+                            .to_webrender(),
+                    ),
+                };
+                self.build_background_for_painter(builder, &painter);
+            }
         }
 
         let painter = BackgroundPainter {

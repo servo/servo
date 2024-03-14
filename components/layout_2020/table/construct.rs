@@ -639,10 +639,10 @@ where
             .stylist
             .style_for_anonymous::<Node::ConcreteElement>(
                 &context.shared_context().guards,
-                &PseudoElement::ServoAnonymousTableCell,
+                &PseudoElement::ServoAnonymousTableRow,
                 &self.info.style,
             );
-        let anonymous_info = self.info.new_anonymous(anonymous_style);
+        let anonymous_info = self.info.new_anonymous(anonymous_style.clone());
         let mut row_builder =
             TableRowBuilder::new(self, &anonymous_info, self.current_text_decoration_line);
 
@@ -663,6 +663,23 @@ where
         }
 
         row_builder.finish();
+
+        self.push_table_row(TableTrack {
+            base_fragment_info: (&anonymous_info).into(),
+            style: anonymous_style,
+            group_index: self.current_row_group_index,
+            is_anonymous: true,
+        });
+    }
+
+    fn push_table_row(&mut self, table_track: TableTrack) {
+        self.builder.table.rows.push(table_track);
+
+        let last_row = self.builder.table.rows.len();
+        if let Some(index) = self.current_row_group_index {
+            let row_group = &mut self.builder.table.row_groups[index];
+            row_group.track_range.end = last_row;
+        }
     }
 }
 
@@ -714,6 +731,7 @@ where
                         info,
                         self,
                     );
+                    self.finish_anonymous_row_if_needed();
 
                     self.current_row_group_index = None;
                     self.current_text_decoration_line = previous_text_decoration_line;
@@ -736,20 +754,12 @@ where
                     );
                     row_builder.finish();
 
-                    self.builder.table.rows.push(TableTrack {
+                    self.push_table_row(TableTrack {
                         base_fragment_info: info.into(),
                         style: info.style.clone(),
                         group_index: self.current_row_group_index,
                         is_anonymous: false,
                     });
-
-                    let last_row = self.builder.table.rows.len();
-                    let row_group = self
-                        .current_row_group_index
-                        .map(|index| &mut self.builder.table.row_groups[index]);
-                    if let Some(row_group) = row_group {
-                        row_group.track_range.end = last_row;
-                    }
 
                     // We are doing this until we have actually set a Box for this `BoxSlot`.
                     ::std::mem::forget(box_slot)
