@@ -49,6 +49,7 @@ impl HangMonitorRegister {
         let (tether, tether_port) = unbounded();
 
         let _ = thread::Builder::new()
+            .name("HangMonitor".to_owned())
             .spawn(move || {
                 let mut monitor = BackgroundHangMonitorWorker::new(
                     constellation_chan,

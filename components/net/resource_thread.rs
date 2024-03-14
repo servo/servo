@@ -526,6 +526,7 @@ pub struct CoreResourceThreadPool {
 impl CoreResourceThreadPool {
     pub fn new(num_threads: usize) -> CoreResourceThreadPool {
         let pool = rayon::ThreadPoolBuilder::new()
+            .thread_name(|i| format!("CoreResourceThread#{i}"))
             .num_threads(num_threads)
             .build()
             .unwrap();
