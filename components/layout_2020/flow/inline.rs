@@ -2248,8 +2248,8 @@ struct ContentSizesComputation<'a> {
     current_line: ContentSizes,
     /// Size for whitepsace pending to be added to this line.
     pending_whitespace: Au,
-    /// Whether or not this IFC has seen any non-whitespace content.
-    had_non_whitespace_content_yet: bool,
+    /// Whether or not this IFC has seen any content, excluding collapsed whitespace.
+    had_content_yet: bool,
     /// Stack of ending padding, margin, and border to add to the length
     /// when an inline box finishes.
     ending_inline_pbm_stack: Vec<Length>,
@@ -2304,31 +2304,35 @@ impl<'a> ContentSizesComputation<'a> {
                     for run in segment.runs.iter() {
                         let advance = run.glyph_store.total_advance();
 
-                        if !run.glyph_store.is_whitespace() {
-                            self.had_non_whitespace_content_yet = true;
-                            self.current_line.min_content += advance;
-                            self.current_line.max_content += self.pending_whitespace + advance;
-                            self.pending_whitespace = Au::zero();
-                        } else {
+                        if run.glyph_store.is_whitespace() {
                             // If this run is a forced line break, we *must* break the line
                             // and start measuring from the inline origin once more.
-                            if text_run.glyph_run_is_whitespace_ending_with_preserved_newline(run) {
-                                self.had_non_whitespace_content_yet = true;
+                            if text_run.glyph_run_is_preserved_newline(run) {
+                                self.had_content_yet = true;
                                 self.forced_line_break();
                                 self.current_line = ContentSizes::zero();
                                 continue;
                             }
 
-                            // Discard any leading whitespace in the IFC. This will always be trimmed.
-                            if !self.had_non_whitespace_content_yet {
+                            let white_space =
+                                text_run.parent_style.get_inherited_text().white_space;
+                            // TODO: need to handle white_space.allow_wrap() too.
+                            if !white_space.preserve_spaces() {
+                                // Discard any leading whitespace in the IFC. This will always be trimmed.
+                                if self.had_content_yet {
+                                    // Wait to take into account other whitespace until we see more content.
+                                    // Whitespace at the end of the IFC will always be trimmed.
+                                    self.line_break_opportunity();
+                                    self.pending_whitespace += advance;
+                                }
                                 continue;
                             }
-
-                            // Wait to take into account other whitespace until we see more content.
-                            // Whitespace at the end of the IFC will always be trimmed.
-                            self.line_break_opportunity();
-                            self.pending_whitespace += advance;
                         }
+
+                        self.had_content_yet = true;
+                        self.current_line.min_content += advance;
+                        self.current_line.max_content += self.pending_whitespace + advance;
+                        self.pending_whitespace = Au::zero();
                     }
                 }
             },
@@ -2341,7 +2345,7 @@ impl<'a> ContentSizesComputation<'a> {
                 self.current_line.min_content += self.pending_whitespace + outer.min_content;
                 self.current_line.max_content += self.pending_whitespace + outer.max_content;
                 self.pending_whitespace = Au::zero();
-                self.had_non_whitespace_content_yet = true;
+                self.had_content_yet = true;
             },
             _ => {},
         });
@@ -2380,7 +2384,7 @@ impl<'a> ContentSizesComputation<'a> {
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
             pending_whitespace: Au::zero(),
-            had_non_whitespace_content_yet: false,
+            had_content_yet: false,
             ending_inline_pbm_stack: Vec::new(),
         }
         .traverse(inline_formatting_context)
