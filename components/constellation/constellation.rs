@@ -1336,7 +1336,7 @@ where
     }
 
     fn handle_request_from_compositor(&mut self, message: FromCompositorMsg) {
-        trace!("Got compositor message: {:?}", message);
+        trace_msg_from_compositor!(message, "{message:?}");
         match message {
             FromCompositorMsg::Exit => {
                 self.handle_exit();
@@ -1559,11 +1559,7 @@ where
 
     fn handle_request_from_script(&mut self, message: (PipelineId, FromScriptMsg)) {
         let (source_pipeline_id, content) = message;
-        trace!(
-            "{}: Message from pipeline: {:?}",
-            source_pipeline_id,
-            content,
-        );
+        trace_script_msg!(content, "{source_pipeline_id}: {content:?}");
 
         let source_top_ctx_id = match self
             .pipelines
@@ -2110,7 +2106,7 @@ where
     }
 
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
-        debug!("Got layout message: {:?}", message);
+        trace_layout_msg!(message, "{message:?}");
         match message {
             // Layout sends new sizes for all subframes. This needs to be reflected by all
             // frame trees in the navigation context containing the subframe.
