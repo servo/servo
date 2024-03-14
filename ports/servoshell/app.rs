@@ -27,6 +27,7 @@ use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::minibrowser::Minibrowser;
 use crate::parser::get_default_url;
+use crate::tracing::LogTarget as _;
 use crate::webview::WebViewManager;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};
@@ -140,19 +141,18 @@ impl App {
         let ev_waker = events_loop.create_event_loop_waker();
         events_loop.run_forever(move |event, w, control_flow| {
             let now = Instant::now();
-            match event {
-                // Uncomment to filter out logging of common events, which can be very noisy.
-                // winit::event::Event::DeviceEvent { .. } => {},
-                // winit::event::Event::WindowEvent {
-                //     event: WindowEvent::CursorMoved { .. },
-                //     ..
-                // } => {},
-                // winit::event::Event::MainEventsCleared => {},
-                // winit::event::Event::RedrawEventsCleared => {},
-                // winit::event::Event::UserEvent(..) => {},
-                // winit::event::Event::NewEvents(..) => {},
-                _ => trace!("@{:?} (+{:?}) {:?}", now - t_start, now - t, event),
-            }
+            // To disable tracing: RUST_LOG='servoshell<winit@=off'
+            // To enable tracing: RUST_LOG='servoshell<winit@'
+            // Recommended filters when tracing is enabled:
+            // - servoshell<winit@DeviceEvent=off
+            // - servoshell<winit@MainEventsCleared=off
+            // - servoshell<winit@NewEvents(WaitCancelled)=off
+            // - servoshell<winit@RedrawEventsCleared=off
+            // - servoshell<winit@RedrawRequested=off
+            // - servoshell<winit@UserEvent(WakerEvent)=off
+            // - servoshell<winit@WindowEvent(AxisMotion)=off
+            // - servoshell<winit@WindowEvent(CursorMoved)=off
+            trace!(target: event.log_target(), "@{:?} (+{:?}) {:?}", now - t_start, now - t, event);
             t = now;
             match event {
                 winit::event::Event::NewEvents(winit::event::StartCause::Init) => {

@@ -26,6 +26,7 @@ mod minibrowser;
 mod parser;
 mod prefs;
 mod resources;
+mod tracing;
 mod webview;
 mod window_trait;
 

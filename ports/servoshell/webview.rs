@@ -31,6 +31,7 @@ use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
 use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use crate::parser::location_bar_input_to_url;
+use crate::tracing::LogTarget as _;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
 pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
@@ -112,7 +113,12 @@ where
 
     pub fn handle_window_events(&mut self, events: Vec<EmbedderEvent>) {
         for event in events {
-            trace!("embedder <- window EmbedderEvent {:?}", event);
+            // To disable tracing: RUST_LOG='servoshell>servo@=off'
+            // To enable tracing: RUST_LOG='servoshell>servo@'
+            // Recommended filters when tracing is enabled:
+            // - servoshell>servo@Idle=off
+            // - servoshell>servo@MouseWindowMoveEventClass=off
+            trace!(target: event.log_target(), "{event:?}");
             match event {
                 EmbedderEvent::Keyboard(key_event) => {
                     self.handle_key_from_window(key_event);
@@ -412,11 +418,16 @@ where
         let mut need_present = false;
         let mut history_changed = false;
         for (webview_id, msg) in events {
-            trace!(
-                "embedder <- servo EmbedderMsg ({:?}, {:?})",
-                webview_id.map(|x| format!("{}", x)),
-                msg
-            );
+            // To disable tracing: RUST_LOG='servoshell<servo@=off'
+            // To enable tracing: RUST_LOG='servoshell<servo@'
+            // Recommended filters when tracing is enabled:
+            // - servoshell<servo@EventDelivered=off
+            // - servoshell<servo@ReadyToPresent=off
+            if let Some(webview_id) = webview_id {
+                trace!(target: msg.log_target(), "{webview_id} {msg:?}");
+            } else {
+                trace!(target: msg.log_target(), "{msg:?}");
+            }
             match msg {
                 EmbedderMsg::Status(_status) => {
                     // FIXME: surface this status string in the UI somehow
