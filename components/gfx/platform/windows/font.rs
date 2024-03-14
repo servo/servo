@@ -13,7 +13,6 @@ use std::sync::Arc;
 use app_units::Au;
 use dwrote::{Font, FontFace, FontFile, FontStretch, FontStyle};
 use log::debug;
-use servo_atoms::Atom;
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
 use style::values::computed::font::FontStyle as StyleFontStyle;
@@ -22,9 +21,9 @@ use style::values::specified::font::FontStretchKeyword;
 use crate::font::{
     FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel,
 };
+use crate::font_cache_thread::FontIdentifier;
 use crate::platform::font_template::FontTemplateData;
 use crate::platform::windows::font_context::FontContextHandle;
-use crate::platform::windows::font_list::font_from_atom;
 use crate::text::glyph::GlyphId;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
@@ -208,7 +207,6 @@ pub struct FontHandle {
     face: Nondebug<FontFace>,
     info: FontInfo,
     em_size: f32,
-    du_per_em: f32,
     du_to_px: f32,
     scaled_du_to_px: f32,
 }
@@ -236,24 +234,17 @@ impl FontHandleMethods for FontHandle {
         template: Arc<FontTemplateData>,
         pt_size: Option<Au>,
     ) -> Result<Self, ()> {
-        let (info, face) = if let Some(ref raw_font) = template.bytes {
-            let font_file = FontFile::new_from_data(Arc::new(raw_font.clone()));
-            if font_file.is_none() {
-                // failed to load raw font
-                return Err(());
-            }
-
-            let face = font_file
-                .unwrap()
-                .create_face(0, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
-                .map_err(|_| ())?;
-            let info = FontInfo::new_from_face(&face)?;
-            (info, face)
-        } else {
-            let font = font_from_atom(&template.identifier);
-            let face = font.create_font_face();
-            let info = FontInfo::new_from_font(&font)?;
-            (info, face)
+        let (face, info) = match template.get_font() {
+            Some(font) => (font.create_font_face(), FontInfo::new_from_font(&font)?),
+            None => {
+                let bytes = template.bytes();
+                let font_file = FontFile::new_from_data(bytes).ok_or(())?;
+                let face = font_file
+                    .create_face(0, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
+                    .map_err(|_| ())?;
+                let info = FontInfo::new_from_face(&face)?;
+                (face, info)
+            },
         };
 
         let pt_size = pt_size.unwrap_or(au_from_pt(12.));
@@ -268,9 +259,8 @@ impl FontHandleMethods for FontHandle {
         Ok(FontHandle {
             font_data: template.clone(),
             face: Nondebug(face),
-            info: info,
-            em_size: em_size,
-            du_per_em: du_per_em,
+            info,
+            em_size,
             du_to_px: design_units_to_pixels,
             scaled_du_to_px: scaled_design_units_to_pixels,
         })
@@ -366,7 +356,7 @@ impl FontHandleMethods for FontHandle {
             .map(|bytes| FontTable { data: bytes })
     }
 
-    fn identifier(&self) -> Atom {
-        self.font_data.identifier.clone()
+    fn identifier(&self) -> &FontIdentifier {
+        &self.font_data.identifier
     }
 }

@@ -5,6 +5,8 @@
 use std::path::Path;
 
 use log::warn;
+use serde::{Deserialize, Serialize};
+use style::Atom;
 use ucd::{Codepoint, UnicodeBlock};
 
 use super::xml::{Attribute, Node};
@@ -12,6 +14,13 @@ use crate::text::util::is_cjk;
 
 lazy_static::lazy_static! {
     static ref FONT_LIST: FontList = FontList::new();
+}
+
+/// An identifier for a local font on Android systems.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct LocalFontIdentifier {
+    /// The path to the font.
+    pub path: Atom,
 }
 
 // Android doesn't provide an API to query system fonts until Android O:
@@ -426,11 +435,17 @@ where
 
 pub fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
-    F: FnMut(String),
+    F: FnMut(LocalFontIdentifier),
 {
+    let mut produce_font = |font: &Font| {
+        callback(LocalFontIdentifier {
+            path: Atom::from(FontList::font_absolute_path(&font.filename)),
+        })
+    };
+
     if let Some(family) = FONT_LIST.find_family(family_name) {
         for font in &family.fonts {
-            callback(FontList::font_absolute_path(&font.filename));
+            produce_font(font);
         }
         return;
     }
@@ -439,12 +454,8 @@ where
         if let Some(family) = FONT_LIST.find_family(&alias.to) {
             for font in &family.fonts {
                 match (alias.weight, font.weight) {
-                    (None, _) => callback(FontList::font_absolute_path(&font.filename)),
-                    (Some(w1), Some(w2)) => {
-                        if w1 == w2 {
-                            callback(FontList::font_absolute_path(&font.filename))
-                        }
-                    },
+                    (None, _) => produce_font(font),
+                    (Some(w1), Some(w2)) if w1 == w2 => produce_font(font),
                     _ => {},
                 }
             }

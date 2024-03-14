@@ -19,13 +19,13 @@ use core_text::font_descriptor::{
     kCTFontDefaultOrientation, SymbolicTraitAccessors, TraitAccessors,
 };
 use log::debug;
-use servo_atoms::Atom;
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 
 use crate::font::{
     FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, GPOS, GSUB,
     KERN,
 };
+use crate::font_cache_thread::FontIdentifier;
 use crate::platform::font_template::FontTemplateData;
 use crate::platform::macos::font_context::FontContextHandle;
 use crate::text::glyph::GlyphId;
@@ -325,7 +325,7 @@ impl FontHandleMethods for FontHandle {
         result.and_then(|data| Some(FontTable::wrap(data)))
     }
 
-    fn identifier(&self) -> Atom {
-        self.font_data.identifier.clone()
+    fn identifier(&self) -> &FontIdentifier {
+        &self.font_data.identifier
     }
 }
