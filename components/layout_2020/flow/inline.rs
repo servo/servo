@@ -971,7 +971,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             match text_align {
                 TextAlign::Start => text_indent,
                 TextAlign::End => (available_space - line_length).max(text_indent),
-                TextAlign::Center => (available_space - line_length + text_indent) / 2.,
+                TextAlign::Center => {
+                    ((available_space - line_length + text_indent) / 2.).max(text_indent)
+                },
             };
 
         // Calculate the justification adjustment. This is simply the remaining space on the line,
