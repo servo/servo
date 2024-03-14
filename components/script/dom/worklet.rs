@@ -467,11 +467,11 @@ impl WorkletThread {
     fn spawn(
         role: WorkletThreadRole,
         init: WorkletThreadInit,
-        index: u8,
+        thread_index: u8,
     ) -> Sender<WorkletControl> {
         let (control_sender, control_receiver) = unbounded();
         let _ = thread::Builder::new()
-            .name(format!("Worklet#{index}"))
+            .name(format!("Worklet#{thread_index}"))
             .spawn(move || {
                 // TODO: add a new IN_WORKLET thread state?
                 // TODO: set interrupt handler?
