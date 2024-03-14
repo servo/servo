@@ -141,18 +141,7 @@ impl App {
         let ev_waker = events_loop.create_event_loop_waker();
         events_loop.run_forever(move |event, w, control_flow| {
             let now = Instant::now();
-            // To disable tracing: RUST_LOG='servoshell<winit@=off'
-            // To enable tracing: RUST_LOG='servoshell<winit@'
-            // Recommended filters when tracing is enabled:
-            // - servoshell<winit@DeviceEvent=off
-            // - servoshell<winit@MainEventsCleared=off
-            // - servoshell<winit@NewEvents(WaitCancelled)=off
-            // - servoshell<winit@RedrawEventsCleared=off
-            // - servoshell<winit@RedrawRequested=off
-            // - servoshell<winit@UserEvent(WakerEvent)=off
-            // - servoshell<winit@WindowEvent(AxisMotion)=off
-            // - servoshell<winit@WindowEvent(CursorMoved)=off
-            trace!(target: event.log_target(), "@{:?} (+{:?}) {:?}", now - t_start, now - t, event);
+            trace_from_winit!(event, "@{:?} (+{:?}) {:?}", now - t_start, now - t, event);
             t = now;
             match event {
                 winit::event::Event::NewEvents(winit::event::StartCause::Init) => {

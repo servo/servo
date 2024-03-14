@@ -2,6 +2,54 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/// Log an event from winit at trace level.
+/// - To disable tracing: RUST_LOG='servoshell<winit@=off'
+/// - To enable tracing: RUST_LOG='servoshell<winit@'
+/// - Recommended filters when tracing is enabled:
+///   - servoshell<winit@DeviceEvent=off
+///   - servoshell<winit@MainEventsCleared=off
+///   - servoshell<winit@NewEvents(WaitCancelled)=off
+///   - servoshell<winit@RedrawEventsCleared=off
+///   - servoshell<winit@RedrawRequested=off
+///   - servoshell<winit@UserEvent(WakerEvent)=off
+///   - servoshell<winit@WindowEvent(AxisMotion)=off
+///   - servoshell<winit@WindowEvent(CursorMoved)=off
+macro_rules! trace_from_winit {
+    // This macro only exists to put the docs in the same file as the target prefix,
+    // so the macro definition is always the same.
+    ($event:expr, $($rest:tt)+) => {
+        ::log::trace!(target: $event.log_target(), $($rest)+)
+    };
+}
+
+/// Log an event from servo at trace level.
+/// - To disable tracing: RUST_LOG='servoshell<servo@=off'
+/// - To enable tracing: RUST_LOG='servoshell<servo@'
+/// - Recommended filters when tracing is enabled:
+///   - servoshell<servo@EventDelivered=off
+///   - servoshell<servo@ReadyToPresent=off
+macro_rules! trace_from_servo {
+    // This macro only exists to put the docs in the same file as the target prefix,
+    // so the macro definition is always the same.
+    ($event:expr, $($rest:tt)+) => {
+        ::log::trace!(target: $event.log_target(), $($rest)+)
+    };
+}
+
+/// Log an event to servo at trace level.
+/// - To disable tracing: RUST_LOG='servoshell>servo@=off'
+/// - To enable tracing: RUST_LOG='servoshell>servo@'
+/// - Recommended filters when tracing is enabled:
+///   - servoshell>servo@Idle=off
+///   - servoshell>servo@MouseWindowMoveEventClass=off
+macro_rules! trace_to_servo {
+    // This macro only exists to put the docs in the same file as the target prefix,
+    // so the macro definition is always the same.
+    ($event:expr, $($rest:tt)+) => {
+        ::log::trace!(target: $event.log_target(), $($rest)+)
+    };
+}
+
 /// Get the log target for an event, as a static string.
 pub(crate) trait LogTarget {
     fn log_target(&self) -> &'static str;

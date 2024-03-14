@@ -9,6 +9,9 @@
 #[macro_use]
 extern crate sig;
 
+#[macro_use]
+mod tracing;
+
 #[cfg(test)]
 mod test;
 
@@ -26,7 +29,6 @@ mod minibrowser;
 mod parser;
 mod prefs;
 mod resources;
-mod tracing;
 mod webview;
 mod window_trait;
 

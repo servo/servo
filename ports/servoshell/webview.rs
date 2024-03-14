@@ -113,12 +113,7 @@ where
 
     pub fn handle_window_events(&mut self, events: Vec<EmbedderEvent>) {
         for event in events {
-            // To disable tracing: RUST_LOG='servoshell>servo@=off'
-            // To enable tracing: RUST_LOG='servoshell>servo@'
-            // Recommended filters when tracing is enabled:
-            // - servoshell>servo@Idle=off
-            // - servoshell>servo@MouseWindowMoveEventClass=off
-            trace!(target: event.log_target(), "{event:?}");
+            trace_to_servo!(event, "{event:?}");
             match event {
                 EmbedderEvent::Keyboard(key_event) => {
                     self.handle_key_from_window(key_event);
@@ -418,15 +413,10 @@ where
         let mut need_present = false;
         let mut history_changed = false;
         for (webview_id, msg) in events {
-            // To disable tracing: RUST_LOG='servoshell<servo@=off'
-            // To enable tracing: RUST_LOG='servoshell<servo@'
-            // Recommended filters when tracing is enabled:
-            // - servoshell<servo@EventDelivered=off
-            // - servoshell<servo@ReadyToPresent=off
             if let Some(webview_id) = webview_id {
-                trace!(target: msg.log_target(), "{webview_id} {msg:?}");
+                trace_from_servo!(msg, "{webview_id} {msg:?}");
             } else {
-                trace!(target: msg.log_target(), "{msg:?}");
+                trace_from_servo!(msg, "{msg:?}");
             }
             match msg {
                 EmbedderMsg::Status(_status) => {
