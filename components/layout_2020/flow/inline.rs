@@ -1215,7 +1215,12 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .current_inline_container_state()
                 .strut_block_sizes
                 .clone();
-            self.update_unbreakable_segment_for_new_content(&strut_size, Length::zero(), false);
+            self.update_unbreakable_segment_for_new_content(
+                &strut_size,
+                Length::zero(),
+                false,
+                false,
+            );
         }
 
         self.had_inflow_content = true;
@@ -1243,12 +1248,10 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         font_index: usize,
     ) {
         let inline_advance = Length::from(glyph_store.total_advance());
-        let preserve_spaces = text_run
-            .parent_style
-            .get_inherited_text()
-            .white_space
-            .preserve_spaces();
-        let is_collapsible_whitespace = glyph_store.is_whitespace() && !preserve_spaces;
+        let white_space = text_run.parent_style.get_inherited_text().white_space;
+        let is_collapsible_whitespace =
+            glyph_store.is_whitespace() && !white_space.preserve_spaces();
+        let is_wrappable_whitespace = glyph_store.is_whitespace() && white_space.allow_wrap();
 
         // If the metrics of this font don't match the default font, we are likely using a fallback
         // font and need to adjust the line size to account for a potentially different font.
@@ -1285,6 +1288,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             &strut_size,
             inline_advance,
             is_collapsible_whitespace,
+            is_wrappable_whitespace,
         );
 
         match self.current_line_segment.line_items.last_mut() {
@@ -1310,13 +1314,16 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         block_sizes_of_content: &LineBlockSizes,
         inline_size: Length,
         is_collapsible_whitespace: bool,
+        is_wrappable_whitespace: bool,
     ) {
-        if !is_collapsible_whitespace {
+        if is_collapsible_whitespace || is_wrappable_whitespace {
+            self.current_line_segment.trailing_whitespace_size = inline_size;
+        } else {
             self.current_line_segment.trailing_whitespace_size = Length::zero();
+        }
+        if !is_collapsible_whitespace {
             self.current_line_segment.has_content = true;
             self.had_inflow_content = true;
-        } else {
-            self.current_line_segment.trailing_whitespace_size = inline_size;
         }
 
         // This may or may not include the size of the strut depending on the quirks mode setting.
@@ -2088,7 +2095,7 @@ impl IndependentFormattingContext {
 
         let (block_sizes, baseline_offset_in_parent) =
             self.get_block_sizes_and_baseline_offset(ifc, size.block, baseline_offset);
-        ifc.update_unbreakable_segment_for_new_content(&block_sizes, size.inline, false);
+        ifc.update_unbreakable_segment_for_new_content(&block_sizes, size.inline, false, false);
         ifc.push_line_item_to_unbreakable_segment(LineItem::Atomic(AtomicLineItem {
             fragment,
             size,
