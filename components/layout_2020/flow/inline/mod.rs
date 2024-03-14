@@ -2275,11 +2275,14 @@ struct ContentSizesComputation<'layout_data> {
     containing_block: &'layout_data IndefiniteContainingBlock<'layout_data>,
     paragraph: ContentSizes,
     current_line: ContentSizes,
-    /// Size for whitepsace pending to be added to this line.
-    pending_whitespace: Au,
+    /// Size for whitespace pending to be added to this line.
+    pending_whitespace: ContentSizes,
+    /// Whether or not the current line has seen any content (excluding collapsed whitespace),
+    /// when sizing under a min-content constraint.
+    had_content_yet_for_min_content: bool,
     /// Whether or not the current line has seen any content (excluding collapsed whitespace),
     /// when sizing under a max-content constraint.
-    had_content_yet: bool,
+    had_content_yet_for_max_content: bool,
     /// Stack of ending padding, margin, and border to add to the length
     /// when an inline box finishes.
     ending_inline_pbm_stack: Vec<Au>,
@@ -2345,6 +2348,8 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
 
                     for run in segment.runs.iter() {
                         let advance = run.glyph_store.total_advance();
+                        let style_text = text_run.parent_style.get_inherited_text();
+                        let can_wrap = style_text.text_wrap_mode == TextWrapMode::Wrap;
 
                         if run.glyph_store.is_whitespace() {
                             // If this run is a forced line break, we *must* break the line
@@ -2354,31 +2359,38 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                                 self.current_line = ContentSizes::zero();
                                 continue;
                             }
-
-                            let style_text = text_run.parent_style.get_inherited_text();
-                            if style_text.white_space_collapse != WhiteSpaceCollapse::Preserve {
-                                // TODO: need to handle TextWrapMode::Nowrap.
-                                self.line_break_opportunity();
-                                // Discard any leading whitespace in the line. This will always be trimmed.
-                                if self.had_content_yet {
-                                    // Wait to take into account other whitespace until we see more content.
-                                    // Whitespace at the end of the line will always be trimmed.
-                                    self.pending_whitespace += advance;
+                            if !matches!(
+                                style_text.white_space_collapse,
+                                WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
+                            ) {
+                                if can_wrap {
+                                    self.line_break_opportunity();
+                                } else if self.had_content_yet_for_min_content {
+                                    self.pending_whitespace.min_content += advance;
+                                }
+                                if self.had_content_yet_for_max_content {
+                                    self.pending_whitespace.max_content += advance;
                                 }
                                 continue;
                             }
-                            if style_text.text_wrap_mode == TextWrapMode::Wrap {
+                            if can_wrap {
+                                self.pending_whitespace.max_content += advance;
                                 self.commit_pending_whitespace();
                                 self.line_break_opportunity();
-                                self.current_line.max_content += advance;
-                                self.had_content_yet = true;
                                 continue;
                             }
                         }
 
                         self.commit_pending_whitespace();
                         self.add_inline_size(advance);
-                        self.had_content_yet = true;
+
+                        // Typically whitespace glyphs are placed in a separate store,
+                        // but for `white-space: break-spaces` we place the first whitespace
+                        // with the preceding text. That prevents a line break before that
+                        // first space, but we still need to allow a line break after it.
+                        if can_wrap && run.glyph_store.ends_with_whitespace() {
+                            self.line_break_opportunity();
+                        }
                     }
                 }
             },
@@ -2405,7 +2417,6 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
 
                 self.commit_pending_whitespace();
                 self.current_line += outer;
-                self.had_content_yet = true;
             },
             _ => {},
         }
@@ -2417,9 +2428,14 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
     }
 
     fn line_break_opportunity(&mut self) {
+        // Clear the pending whitespace, assuming that at the end of the line
+        // it needs to either hang or be removed. If that isn't the case,
+        // `commit_pending_whitespace()` should be called first.
+        self.pending_whitespace.min_content = Au::zero();
         self.paragraph.min_content =
             std::cmp::max(self.paragraph.min_content, self.current_line.min_content);
         self.current_line.min_content = Au::zero();
+        self.had_content_yet_for_min_content = false;
     }
 
     fn forced_line_break(&mut self) {
@@ -2427,15 +2443,14 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         self.paragraph.max_content =
             std::cmp::max(self.paragraph.max_content, self.current_line.max_content);
         self.current_line.max_content = Au::zero();
-        self.had_content_yet = false;
+        self.had_content_yet_for_min_content = false;
+        self.had_content_yet_for_max_content = false;
     }
 
     fn commit_pending_whitespace(&mut self) {
-        // Only add the pending whitespace to the max-content size, because for the min-content
-        // we should wrap lines wherever is possible, so wrappable spaces shouldn't increase
-        // the length of the line (they will just be removed or hang at the end of the line).
-        self.current_line.max_content += self.pending_whitespace;
-        self.pending_whitespace = Au::zero();
+        self.current_line += mem::take(&mut self.pending_whitespace);
+        self.had_content_yet_for_min_content = true;
+        self.had_content_yet_for_max_content = true;
     }
 
     /// Compute the [`ContentSizes`] of the given [`InlineFormattingContext`].
@@ -2449,8 +2464,9 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             containing_block,
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
-            pending_whitespace: Au::zero(),
-            had_content_yet: false,
+            pending_whitespace: ContentSizes::zero(),
+            had_content_yet_for_min_content: false,
+            had_content_yet_for_max_content: false,
             ending_inline_pbm_stack: Vec::new(),
         }
         .traverse(inline_formatting_context)
