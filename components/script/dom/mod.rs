@@ -319,7 +319,6 @@ pub mod gamepad;
 pub mod gamepadbutton;
 pub mod gamepadbuttonlist;
 pub mod gamepadevent;
-pub mod gamepadlist;
 pub mod gamepadpose;
 pub mod globalscope;
 pub mod gpu;
