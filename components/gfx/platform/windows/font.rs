@@ -63,8 +63,6 @@ fn make_tag(tag_bytes: &[u8]) -> FontTableTag {
     unsafe { *(tag_bytes.as_ptr() as *const FontTableTag) }
 }
 
-macro_rules! try_lossy(($result:expr) => ($result.map_err(|_| (()))?));
-
 // We need the font (DWriteFont) in order to be able to query things like
 // the family name, face name, weight, etc.  On Windows 10, the
 // DWriteFontFace3 interface provides this on the FontFace, but that's only
@@ -83,7 +81,7 @@ struct FontInfo {
 }
 
 impl FontInfo {
-    fn new_from_face(face: &FontFace) -> Result<FontInfo, ()> {
+    fn new_from_face(face: &FontFace) -> Result<FontInfo, &'static str> {
         use std::cmp::{max, min};
         use std::collections::HashMap;
         use std::io::Cursor;
@@ -95,11 +93,11 @@ impl FontInfo {
         let names_bytes = face.get_font_table(make_tag(b"name"));
         let windows_metrics_bytes = face.get_font_table(make_tag(b"OS/2"));
         if names_bytes.is_none() || windows_metrics_bytes.is_none() {
-            return Err(());
+            return Err("No 'name' or 'OS/2' tables");
         }
 
         let mut cursor = Cursor::new(names_bytes.as_ref().unwrap());
-        let table = try_lossy!(Names::read(&mut cursor));
+        let table = Names::read(&mut cursor).map_err(|_| "Could not read 'name' table")?;
         let language_tags = table.language_tags().collect::<Vec<_>>();
         let mut names = table
             .iter()
@@ -113,15 +111,15 @@ impl FontInfo {
             .collect::<HashMap<_, _>>();
         let family = match names.remove(&NameID::FontFamilyName) {
             Some(family) => family,
-            _ => return Err(()),
+            _ => return Err("Could not find family"),
         };
         let face = match names.remove(&NameID::FontSubfamilyName) {
             Some(face) => face,
-            _ => return Err(()),
+            _ => return Err("Could not find subfamily"),
         };
 
         let mut cursor = Cursor::new(windows_metrics_bytes.as_ref().unwrap());
-        let table = try_lossy!(WindowsMetrics::read(&mut cursor));
+        let table = WindowsMetrics::read(&mut cursor).map_err(|_| "Could not read OS/2 table")?;
         let (weight_val, width_val, italic_bool) = match table {
             WindowsMetrics::Version0(ref m) => {
                 (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
@@ -151,7 +149,7 @@ impl FontInfo {
             7 => FontStretchKeyword::Expanded,
             8 => FontStretchKeyword::ExtraExpanded,
             9 => FontStretchKeyword::UltraExpanded,
-            _ => return Err(()),
+            _ => return Err("Unknown stretch size"),
         }
         .compute();
 
@@ -170,7 +168,7 @@ impl FontInfo {
         })
     }
 
-    fn new_from_font(font: &Font) -> Result<FontInfo, ()> {
+    fn new_from_font(font: &Font) -> Result<FontInfo, &'static str> {
         let style = match font.style() {
             FontStyle::Normal => StyleFontStyle::NORMAL,
             FontStyle::Oblique => StyleFontStyle::OBLIQUE,
@@ -233,15 +231,16 @@ impl FontHandleMethods for FontHandle {
         _: &FontContextHandle,
         template: Arc<FontTemplateData>,
         pt_size: Option<Au>,
-    ) -> Result<Self, ()> {
+    ) -> Result<Self, &'static str> {
         let (face, info) = match template.get_font() {
             Some(font) => (font.create_font_face(), FontInfo::new_from_font(&font)?),
             None => {
                 let bytes = template.bytes();
-                let font_file = FontFile::new_from_data(bytes).ok_or(())?;
+                let font_file =
+                    FontFile::new_from_data(bytes).ok_or_else(|| "Could not create FontFile")?;
                 let face = font_file
                     .create_face(0, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
-                    .map_err(|_| ())?;
+                    .map_err(|_| "Could not create FontFace")?;
                 let info = FontInfo::new_from_face(&face)?;
                 (face, info)
             },
