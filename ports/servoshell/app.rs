@@ -27,7 +27,6 @@ use crate::embedder::EmbedderCallbacks;
 use crate::events_loop::{EventsLoop, WakerEvent};
 use crate::minibrowser::Minibrowser;
 use crate::parser::get_default_url;
-use crate::tracing::LogTarget as _;
 use crate::webview::WebViewManager;
 use crate::window_trait::WindowPortsMethods;
 use crate::{headed_window, headless_window};

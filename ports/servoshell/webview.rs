@@ -31,7 +31,6 @@ use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
 use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
 use crate::parser::location_bar_input_to_url;
-use crate::tracing::LogTarget as _;
 use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
 pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {

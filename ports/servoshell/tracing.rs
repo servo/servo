@@ -18,7 +18,7 @@ macro_rules! trace_from_winit {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
     ($event:expr, $($rest:tt)+) => {
-        ::log::trace!(target: $event.log_target(), $($rest)+)
+        ::log::trace!(target: $crate::tracing::LogTarget::log_target(&$event), $($rest)+)
     };
 }
 
@@ -32,7 +32,7 @@ macro_rules! trace_from_servo {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
     ($event:expr, $($rest:tt)+) => {
-        ::log::trace!(target: $event.log_target(), $($rest)+)
+        ::log::trace!(target: $crate::tracing::LogTarget::log_target(&$event), $($rest)+)
     };
 }
 
@@ -46,7 +46,7 @@ macro_rules! trace_to_servo {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
     ($event:expr, $($rest:tt)+) => {
-        ::log::trace!(target: $event.log_target(), $($rest)+)
+        ::log::trace!(target: $crate::tracing::LogTarget::log_target(&$event), $($rest)+)
     };
 }
 
