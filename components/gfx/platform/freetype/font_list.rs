@@ -172,7 +172,6 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
             families.push("Noto Sans KR");
             families.push("Noto Sans SC");
             families.push("Noto Sans TC");
-
         }
     }
 
