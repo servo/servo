@@ -1505,7 +1505,16 @@ impl ScriptThread {
                 )
             },
         };
+        // Do not handle events if the BC has been, or is being, discarded
+        if document.window().Closed() {
+            return warn!(
+                "Compositor event sent to a pipeline with a closed window {}.",
+                pipeline_id
+            );
+        }
         let window = document.window();
+        ScriptThread::set_user_interacting(true);
+        let _realm = enter_realm(document.window());
         for event in pending_for_pipeline {
             match event {
                 CompositorEvent::ResizeEvent(new_size, size_type) => {
@@ -1637,6 +1646,7 @@ impl ScriptThread {
                 },
             }
         }
+        ScriptThread::set_user_interacting(false);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
@@ -1658,25 +1668,39 @@ impl ScriptThread {
                 })
             {
                 // TODO: reveal the document(#31581).
-
-                // Do not handle events if the BC has been, or is being, discarded
-                if document.window().Closed() {
-                    return warn!(
-                        "Compositor event sent to a pipeline with a closed window {}.",
-                        pipeline_id
-                    );
-                }
-
-                ScriptThread::set_user_interacting(true);
-                let _realm = enter_realm(document.window());
-
+                
                 // Focusing steps, plus other composition events.
-                // TODO: break-up to match spec more closely.
+                // TODO: break-up to match spec more closely?
+                // See: flush autofocus candidates.
                 self.process_pending_compositor_events(pipeline_id);
 
+                // Resize steps. 
                 self.run_the_resize_steps(pipeline_id, &*document);
-
-                ScriptThread::set_user_interacting(false);
+                
+                // TODO: scroll steps(#31665)
+                
+                // TODO: evaluate media queries and report changes.
+                
+                // TODO: update animations and send events.
+                
+                // TODO: fullscreen steps.
+                
+                // TODO: context lost steps.
+                
+                // TODO: run the animation frame callbacks. 
+                
+                // TODO: resize observer steps.
+                
+                // TODO: if the focused area of doc is not a focusable area, 
+                // then run the focusing steps for doc's viewport.
+                
+                // TODO: perform pending transition operations.
+                
+                // TODO: run the update intersection observations steps.
+                
+                // TODO: mark paint timing.
+                
+                // TODO: update the rendering(reflow?).
             }
         }
     }
