@@ -56,7 +56,7 @@ use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::{CSSPixel, SpeculativePainter};
 use webgpu::identity::WebGPUMsg;
-use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, WorldPoint};
+use webrender_api::units::{DeviceIntSize, DevicePixel, DevicePoint, LayoutPixel, LayoutPoint};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, DocumentId, ExternalImageData, ExternalScrollId,
     HitTestFlags, ImageData, ImageDescriptor, ImageKey, PipelineId as WebRenderPipelineId,
@@ -1121,7 +1121,7 @@ pub enum ScriptToCompositorMsg {
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebRenderPipelineId),
     /// Perform a scroll operation.
-    SendScrollNode(LayoutPoint, ExternalScrollId),
+    SendScrollNode(WebRenderPipelineId, LayoutPoint, ExternalScrollId),
     /// Inform WebRender of a new display list for the given pipeline.
     SendDisplayList {
         /// The [CompositorDisplayListInfo] that describes the display list being sent.
@@ -1135,7 +1135,7 @@ pub enum ScriptToCompositorMsg {
     /// the provided channel sender.
     HitTest(
         Option<WebRenderPipelineId>,
-        WorldPoint,
+        DevicePoint,
         HitTestFlags,
         IpcSender<Vec<CompositorHitTestResult>>,
     ),
@@ -1167,11 +1167,17 @@ impl WebrenderIpcSender {
     }
 
     /// Perform a scroll operation.
-    pub fn send_scroll_node(&self, point: LayoutPoint, scroll_id: ExternalScrollId) {
-        if let Err(e) = self
-            .0
-            .send(ScriptToCompositorMsg::SendScrollNode(point, scroll_id))
-        {
+    pub fn send_scroll_node(
+        &self,
+        pipeline_id: WebRenderPipelineId,
+        point: LayoutPoint,
+        scroll_id: ExternalScrollId,
+    ) {
+        if let Err(e) = self.0.send(ScriptToCompositorMsg::SendScrollNode(
+            pipeline_id,
+            point,
+            scroll_id,
+        )) {
             warn!("Error sending scroll node: {}", e);
         }
     }
@@ -1192,8 +1198,14 @@ impl WebrenderIpcSender {
             warn!("Error sending display list: {}", e);
         }
 
-        if let Err(e) = display_list_sender.send(&display_list_data) {
-            warn!("Error sending display data: {}", e);
+        if let Err(error) = display_list_sender.send(&display_list_data.items_data) {
+            warn!("Error sending display list items: {}", error);
+        }
+        if let Err(error) = display_list_sender.send(&display_list_data.cache_data) {
+            warn!("Error sending display list cache data: {}", error);
+        }
+        if let Err(error) = display_list_sender.send(&display_list_data.spatial_tree) {
+            warn!("Error sending display spatial tree: {}", error);
         }
     }
 
@@ -1202,7 +1214,7 @@ impl WebrenderIpcSender {
     pub fn hit_test(
         &self,
         pipeline: Option<WebRenderPipelineId>,
-        point: WorldPoint,
+        point: DevicePoint,
         flags: HitTestFlags,
     ) -> Vec<CompositorHitTestResult> {
         let (sender, receiver) = ipc::channel().unwrap();

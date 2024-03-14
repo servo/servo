@@ -891,7 +891,7 @@ impl WindowMethods for ServoWindowCallbacks {
     fn get_coordinates(&self) -> EmbedderCoordinates {
         let coords = self.coordinates.borrow();
         EmbedderCoordinates {
-            viewport: coords.viewport,
+            viewport: coords.viewport.to_box2d(),
             framebuffer: coords.framebuffer,
             window: (coords.viewport.size, Point2D::new(0, 0)),
             screen: coords.viewport.size,

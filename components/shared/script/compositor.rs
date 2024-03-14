@@ -7,9 +7,17 @@
 use embedder_traits::Cursor;
 use serde::{Deserialize, Serialize};
 use webrender_api::units::{LayoutSize, LayoutVector2D};
-use webrender_api::{
-    Epoch, ExternalScrollId, PipelineId, ScrollLocation, ScrollSensitivity, SpatialId,
-};
+use webrender_api::{Epoch, ExternalScrollId, PipelineId, ScrollLocation, SpatialId};
+
+/// The scroll sensitivity of a scroll node ie whether it can be scrolled due to input event and
+/// script events or only script events.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum ScrollSensitivity {
+    /// This node can be scrolled by input and script events.
+    ScriptAndInputEvents,
+    /// This node can only be scrolled by script events.
+    Script,
+}
 
 /// Information that Servo keeps alongside WebRender display items
 /// in order to add more context to hit test results.
@@ -207,6 +215,25 @@ impl ScrollTree {
         };
 
         parent.and_then(|parent| self.scroll_node_or_ancestor(&parent, scroll_location))
+    }
+
+    /// Given an [`ExternalScrollId`] and an offset, update the scroll offset of the scroll node
+    /// with the given id.
+    pub fn set_scroll_offsets_for_node_with_external_scroll_id(
+        &mut self,
+        external_scroll_id: ExternalScrollId,
+        offset: LayoutVector2D,
+    ) -> bool {
+        for node in self.nodes.iter_mut() {
+            match node.scroll_info {
+                Some(ref mut scroll_info) if scroll_info.external_id == external_scroll_id => {
+                    scroll_info.offset = offset;
+                    return true;
+                },
+                _ => {},
+            }
+        }
+        false
     }
 }
 

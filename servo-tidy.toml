@@ -68,6 +68,10 @@ packages = [
     "phf_codegen",
     "phf_generator",
     "phf_shared",
+
+    # These can be removed once winit, font-kit, etc are upgraded
+    "core-graphics",
+    "core-text",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
