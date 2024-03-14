@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-/// Log an event from winit at trace level.
+/// Log an event from winit ([winit::event::Event]) at trace level.
 /// - To disable tracing: RUST_LOG='servoshell<winit@=off'
 /// - To enable tracing: RUST_LOG='servoshell<winit@'
 /// - Recommended filters when tracing is enabled:
@@ -14,7 +14,7 @@
 ///   - servoshell<winit@UserEvent(WakerEvent)=off
 ///   - servoshell<winit@WindowEvent(AxisMotion)=off
 ///   - servoshell<winit@WindowEvent(CursorMoved)=off
-macro_rules! trace_from_winit {
+macro_rules! trace_winit_event {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
     ($event:expr, $($rest:tt)+) => {
@@ -22,13 +22,13 @@ macro_rules! trace_from_winit {
     };
 }
 
-/// Log an event from servo at trace level.
+/// Log an event from servo ([servo::embedder_traits::EmbedderMsg]) at trace level.
 /// - To disable tracing: RUST_LOG='servoshell<servo@=off'
 /// - To enable tracing: RUST_LOG='servoshell<servo@'
 /// - Recommended filters when tracing is enabled:
 ///   - servoshell<servo@EventDelivered=off
 ///   - servoshell<servo@ReadyToPresent=off
-macro_rules! trace_from_servo {
+macro_rules! trace_embedder_msg {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
     ($event:expr, $($rest:tt)+) => {
@@ -36,13 +36,13 @@ macro_rules! trace_from_servo {
     };
 }
 
-/// Log an event to servo at trace level.
+/// Log an event to servo ([servo::compositing::windowing::EmbedderEvent]) at trace level.
 /// - To disable tracing: RUST_LOG='servoshell>servo@=off'
 /// - To enable tracing: RUST_LOG='servoshell>servo@'
 /// - Recommended filters when tracing is enabled:
 ///   - servoshell>servo@Idle=off
 ///   - servoshell>servo@MouseWindowMoveEventClass=off
-macro_rules! trace_to_servo {
+macro_rules! trace_embedder_event {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
     ($event:expr, $($rest:tt)+) => {

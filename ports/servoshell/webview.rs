@@ -112,7 +112,7 @@ where
 
     pub fn handle_window_events(&mut self, events: Vec<EmbedderEvent>) {
         for event in events {
-            trace_to_servo!(event, "{event:?}");
+            trace_embedder_event!(event, "{event:?}");
             match event {
                 EmbedderEvent::Keyboard(key_event) => {
                     self.handle_key_from_window(key_event);
@@ -413,9 +413,9 @@ where
         let mut history_changed = false;
         for (webview_id, msg) in events {
             if let Some(webview_id) = webview_id {
-                trace_from_servo!(msg, "{webview_id} {msg:?}");
+                trace_embedder_msg!(msg, "{webview_id} {msg:?}");
             } else {
-                trace_from_servo!(msg, "{msg:?}");
+                trace_embedder_msg!(msg, "{msg:?}");
             }
             match msg {
                 EmbedderMsg::Status(_status) => {
