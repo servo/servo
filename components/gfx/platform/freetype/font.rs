@@ -17,7 +17,6 @@ use freetype::freetype::{
 use freetype::succeeded;
 use freetype::tt_os2::TT_OS2;
 use log::debug;
-use servo_atoms::Atom;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
@@ -27,6 +26,7 @@ use crate::font::{
     FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, GPOS, GSUB,
     KERN,
 };
+use crate::font_cache_thread::FontIdentifier;
 use crate::platform::font_context::FontContextHandle;
 use crate::platform::font_template::FontTemplateData;
 use crate::text::glyph::GlyphId;
@@ -102,23 +102,26 @@ fn create_face(
         let mut face: FT_Face = ptr::null_mut();
         let face_index = 0 as FT_Long;
 
-        let result = if let Some(ref bytes) = template.bytes {
-            FT_New_Memory_Face(
-                lib,
-                bytes.as_ptr(),
-                bytes.len() as FT_Long,
-                face_index,
-                &mut face,
-            )
-        } else {
-            // This will trigger a synchronous file read during layout, which we may want to
-            // revisit at some point. See discussion here:
-            //
-            // https://github.com/servo/servo/pull/20506#issuecomment-378838800
-
-            let filename =
-                CString::new(&*template.identifier).expect("filename contains NUL byte!");
-            FT_New_Face(lib, filename.as_ptr(), face_index, &mut face)
+        let result = match template.identifier {
+            FontIdentifier::Web(_) => {
+                let bytes = template.bytes();
+                FT_New_Memory_Face(
+                    lib,
+                    bytes.as_ptr(),
+                    bytes.len() as FT_Long,
+                    face_index,
+                    &mut face,
+                )
+            },
+            FontIdentifier::Local(ref local_identifier) => {
+                // This will trigger a synchronous file read during layout, which we may want to
+                // revisit at some point. See discussion here:
+                //
+                // https://github.com/servo/servo/pull/20506#issuecomment-378838800
+                let filename =
+                    CString::new(&*local_identifier.path).expect("filename contains NUL byte!");
+                FT_New_Face(lib, filename.as_ptr(), face_index, &mut face)
+            },
         };
 
         if !succeeded(result) || face.is_null() {
@@ -361,8 +364,8 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    fn identifier(&self) -> Atom {
-        self.font_data.identifier.clone()
+    fn identifier(&self) -> &FontIdentifier {
+        &self.font_data.identifier
     }
 }
 
