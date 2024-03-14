@@ -112,7 +112,7 @@ where
 
     pub fn handle_window_events(&mut self, events: Vec<EmbedderEvent>) {
         for event in events {
-            trace!("embedder <- window EmbedderEvent {:?}", event);
+            trace_embedder_event!(event, "{event:?}");
             match event {
                 EmbedderEvent::Keyboard(key_event) => {
                     self.handle_key_from_window(key_event);
@@ -412,11 +412,11 @@ where
         let mut need_present = false;
         let mut history_changed = false;
         for (webview_id, msg) in events {
-            trace!(
-                "embedder <- servo EmbedderMsg ({:?}, {:?})",
-                webview_id.map(|x| format!("{}", x)),
-                msg
-            );
+            if let Some(webview_id) = webview_id {
+                trace_embedder_msg!(msg, "{webview_id} {msg:?}");
+            } else {
+                trace_embedder_msg!(msg, "{msg:?}");
+            }
             match msg {
                 EmbedderMsg::Status(_status) => {
                     // FIXME: surface this status string in the UI somehow
