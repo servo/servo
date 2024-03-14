@@ -140,7 +140,7 @@ impl App {
         let ev_waker = events_loop.create_event_loop_waker();
         events_loop.run_forever(move |event, w, control_flow| {
             let now = Instant::now();
-            trace_from_winit!(event, "@{:?} (+{:?}) {:?}", now - t_start, now - t, event);
+            trace_from_winit!(event, "@{:?} (+{:?}) {event:?}", now - t_start, now - t);
             t = now;
             match event {
                 winit::event::Event::NewEvents(winit::event::StartCause::Init) => {
