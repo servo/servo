@@ -2106,11 +2106,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // Notify embedder that servo is ready to present.
         // Embedder should call `present` to tell compositor to continue rendering.
         self.waiting_on_present = true;
-        for (&top_level_browsing_context_id, _) in self.webviews.painting_order() {
-            let msg = ConstellationMsg::ReadyToPresent(top_level_browsing_context_id);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({:?}).", e);
-            }
+        let webview_ids = self.webviews.painting_order().map(|(&id, _)| id);
+        let msg = ConstellationMsg::ReadyToPresent(webview_ids.collect());
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending event to constellation failed ({:?}).", e);
         }
 
         self.composition_request = CompositionRequest::NoCompositingNecessary;

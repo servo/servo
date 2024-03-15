@@ -726,7 +726,7 @@ where
                 EmbedderMsg::ShowContextMenu(sender, ..) => {
                     let _ = sender.send(ContextMenuResult::Ignored);
                 },
-                EmbedderMsg::ReadyToPresent => {
+                EmbedderMsg::ReadyToPresent(_webview_ids) => {
                     need_present = true;
                 },
                 EmbedderMsg::EventDelivered(event) => match (webview_id, event) {

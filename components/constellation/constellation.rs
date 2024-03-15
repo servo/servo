@@ -1616,11 +1616,9 @@ where
                 let visible = self.webviews.is_effectively_visible(webview_id);
                 self.notify_webview_visibility(webview_id, visible);
             },
-            FromCompositorMsg::ReadyToPresent(top_level_browsing_context_id) => {
-                self.embedder_proxy.send((
-                    Some(top_level_browsing_context_id),
-                    EmbedderMsg::ReadyToPresent,
-                ));
+            FromCompositorMsg::ReadyToPresent(webview_ids) => {
+                self.embedder_proxy
+                    .send((None, EmbedderMsg::ReadyToPresent(webview_ids)));
             },
             FromCompositorMsg::Gamepad(gamepad_event) => {
                 self.handle_gamepad_msg(gamepad_event);

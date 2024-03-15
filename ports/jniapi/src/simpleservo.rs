@@ -822,7 +822,7 @@ impl ServoGlue {
                 EmbedderMsg::Panic(reason, backtrace) => {
                     self.callbacks.host_callbacks.on_panic(reason, backtrace);
                 },
-                EmbedderMsg::ReadyToPresent => {
+                EmbedderMsg::ReadyToPresent(_webview_ids) => {
                     need_present = true;
                 },
                 EmbedderMsg::Status(..) |

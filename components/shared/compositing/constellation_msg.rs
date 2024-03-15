@@ -11,7 +11,7 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{
-    BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection,
+    BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection, WebViewId,
 };
 use script_traits::{
     AnimationTickType, CompositorEvent, GamepadEvent, LogEntry, MediaSessionActionType,
@@ -92,7 +92,7 @@ pub enum ConstellationMsg {
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Notify the embedder that it needs to present a new frame.
-    ReadyToPresent(TopLevelBrowsingContextId),
+    ReadyToPresent(Vec<WebViewId>),
     /// Gamepad state has changed
     Gamepad(GamepadEvent),
     /// Notify the embedder of an updated webview painting order.

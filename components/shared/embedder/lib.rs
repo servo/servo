@@ -10,7 +10,7 @@ use crossbeam_channel::{Receiver, Sender};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
 use log::warn;
-use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
@@ -213,7 +213,7 @@ pub enum EmbedderMsg {
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Notify the embedder that it needs to present a new frame.
-    ReadyToPresent,
+    ReadyToPresent(Vec<WebViewId>),
     /// The given event was delivered to a pipeline in the given browser.
     EventDelivered(CompositorEventVariant),
 }
@@ -269,7 +269,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
-            EmbedderMsg::ReadyToPresent => write!(f, "ReadyToPresent"),
+            EmbedderMsg::ReadyToPresent(..) => write!(f, "ReadyToPresent"),
             EmbedderMsg::EventDelivered(..) => write!(f, "HitTestedEvent"),
         }
     }
