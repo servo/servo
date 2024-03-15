@@ -219,7 +219,7 @@ impl EmbedderCoordinates {
     pub fn get_flipped_viewport(&self) -> DeviceIntRect {
         let fb_height = self.framebuffer.height;
         let mut view = self.viewport;
-        view.origin.y = fb_height - view.origin.y - view.size.height;
+        view.min.y = fb_height - view.min.y - view.size().height;
         DeviceIntRect::from_untyped(&view.to_untyped())
     }
 }

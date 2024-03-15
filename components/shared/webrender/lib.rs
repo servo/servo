@@ -9,9 +9,7 @@ use std::sync::{Arc, Mutex};
 
 use euclid::default::Size2D;
 use webrender_api::units::TexelRect;
-use webrender_api::{
-    ExternalImage, ExternalImageHandler, ExternalImageId, ExternalImageSource, ImageRendering,
-};
+use webrender_api::{ExternalImage, ExternalImageHandler, ExternalImageId, ExternalImageSource};
 
 /// This trait is used as a bridge between the different GL clients
 /// in Servo that handles WebRender ExternalImages and the WebRender
@@ -108,12 +106,7 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
     /// image content.
     /// The WR client should not change the image content until the
     /// unlock() call.
-    fn lock(
-        &mut self,
-        key: ExternalImageId,
-        _channel_index: u8,
-        _rendering: ImageRendering,
-    ) -> ExternalImage {
+    fn lock(&mut self, key: ExternalImageId, _channel_index: u8) -> ExternalImage {
         let external_images = self.external_images.lock().unwrap();
         let handler_type = external_images
             .get(&key)
