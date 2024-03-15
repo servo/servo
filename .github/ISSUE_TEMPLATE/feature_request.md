@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest an idea or new feature request
+about: Suggest the implementation of a new feature
 title: ''
 labels: B-feature-tracking, C-untriaged
 assignees: ''
