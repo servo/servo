@@ -205,7 +205,7 @@ pub trait Layout {
     fn current_epoch(&self) -> Epoch;
 }
 
-/// This trait is part of `layout_traits` because it depends on both `script_traits` and also
+/// This trait is part of `script_layout_interface` because it depends on both `script_traits` and also
 /// `LayoutFactory` from this crate. If it was in `script_traits` there would be a circular
 /// dependency.
 pub trait ScriptThreadFactory {
