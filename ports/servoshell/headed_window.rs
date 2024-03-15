@@ -399,14 +399,7 @@ impl WindowPortsMethods for Window {
                 }
             },
             winit::event::WindowEvent::CursorMoved { position, .. } => {
-                let position = if cfg!(feature = "multiview") {
-                    winit_position_to_euclid_point(position)
-                } else {
-                    let toolbar_height = self.toolbar_height.get() * self.hidpi_factor();
-                    let toolbar_size = Size2D::from_lengths(Length::zero(), toolbar_height);
-                    winit_position_to_euclid_point(position) - toolbar_size.to_f64()
-                };
-
+                let position = winit_position_to_euclid_point(position);
                 self.mouse_pos.set(position.to_i32());
                 self.event_queue
                     .borrow_mut()
@@ -531,17 +524,8 @@ impl WindowMethods for Window {
         let window_size = winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32();
         let window_origin = self.winit_window.outer_position().unwrap_or_default();
         let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
-        let inner_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
-
-        let viewport_size = if cfg!(feature = "multiview") {
-            inner_size
-        } else {
-            // Subtract the minibrowser toolbar height if any
-            let toolbar_height = self.toolbar_height.get() * self.hidpi_factor();
-            inner_size - Size2D::from_lengths(Length::zero(), toolbar_height)
-        };
-
         let viewport_origin = DeviceIntPoint::zero(); // bottom left
+        let viewport_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
         let viewport = DeviceIntRect::new(viewport_origin, viewport_size.to_i32());
         let screen = self.screen_size.to_i32();
 
