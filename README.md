@@ -11,32 +11,18 @@ for help getting started.
 Visit the [Servo Project page](https://servo.org/) for news and guides.
 
 ## Getting Servo
-The first step is to `fork the repository` to your GitHub account. After forking, proceed to clone the repository using the instructions provided below.
 
 ``` sh
-git clone https://github.com/<your username >/servo.git
-```
+git clone https://github.com/servo/servo
 
-````{note}
-To address potential barriers with slow internet connections due to the large size of this repository, you can use [partial clones](https://github.blog/2020-12-21-get-up-to-speed-with-partial-clone-and-shallow-clone/#). Specifically, focusing on blobless clones, which are efficient for developers, involves utilizing the `--filter=blob:none` option in the git clone command.
-
-By using `--filter=blob:none`, the initial git clone operation downloads all reachable commits and trees, while blobs (file contents) for commits are only downloaded when performing a git checkout
-
-Here's the command to use blobless clones:
-
-```console
-git clone --filter=blob:none https://github.com/<your username>/servo.git
-
-```
-````
-
-> Navigate into the cloned repository folder 
-
-```console
 cd servo
 ```
 
 Your CARGO_HOME needs to point to (or be in) the same drive as your Servo repository (See [#28530](https://github.com/servo/servo/issues/28530)).
+
+> Considering the large size of the Servo repository, if you experience slow network speeds, it's advisable to make a shallow clone. Learn more [here](https://github.blog/2020-12-21-get-up-to-speed-with-partial-clone-and-shallow-clone/).
+
+> Ensure that you are in the Servo directory you have cloned and run the following steps for your platform:
 
 ## Build Setup
 
