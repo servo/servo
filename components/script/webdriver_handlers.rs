@@ -1048,7 +1048,7 @@ pub fn handle_get_css(
                 let element = node.downcast::<Element>().unwrap();
                 Ok(String::from(
                     window
-                        .GetComputedStyle(&element, None)
+                        .GetComputedStyle(element, None)
                         .GetPropertyValue(DOMString::from(name)),
                 ))
             }),
@@ -1173,7 +1173,7 @@ pub fn handle_is_enabled(
 ) {
     reply
         .send(
-            find_node_by_unique_id(&documents, pipeline, element_id).and_then(|node| match node
+            find_node_by_unique_id(documents, pipeline, element_id).and_then(|node| match node
                 .downcast::<Element>(
             ) {
                 Some(element) => Ok(element.enabled_state()),
