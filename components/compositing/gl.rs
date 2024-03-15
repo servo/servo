@@ -132,7 +132,7 @@ impl RenderTargetInfo {
             let dst_start = y * stride;
             let src_start = (height - y - 1) * stride;
             let src_slice = &orig_pixels[src_start..src_start + stride];
-            (&mut pixels[dst_start..dst_start + stride]).clone_from_slice(&src_slice[..stride]);
+            pixels[dst_start..dst_start + stride].clone_from_slice(&src_slice[..stride]);
         }
 
         RgbImage::from_raw(width as u32, height as u32, pixels).expect("Flipping image failed!")

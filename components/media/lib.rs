@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
+#![allow(clippy::type_complexity)]
 
 mod media_channel;
 mod media_thread;

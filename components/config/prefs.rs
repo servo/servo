@@ -67,7 +67,7 @@ pub fn add_user_prefs(prefs: HashMap<String, PrefValue>) {
     for (key, value) in prefs.iter() {
         set_stylo_pref_ref(key, value);
     }
-    if let Err(error) = PREFS.set_all(prefs.into_iter()) {
+    if let Err(error) = PREFS.set_all(prefs) {
         panic!("Error setting preference: {:?}", error);
     }
 }
@@ -106,15 +106,15 @@ impl TryFrom<&PrefValue> for StyloPrefValue {
     type Error = TryFromPrefValueError;
 
     fn try_from(value: &PrefValue) -> Result<Self, Self::Error> {
-        match value {
-            &PrefValue::Int(value) => {
+        match *value {
+            PrefValue::Int(value) => {
                 if let Ok(value) = value.try_into() {
                     Ok(Self::Int(value))
                 } else {
                     Err(TryFromPrefValueError::IntegerOverflow(value))
                 }
             },
-            &PrefValue::Bool(value) => Ok(Self::Bool(value)),
+            PrefValue::Bool(value) => Ok(Self::Bool(value)),
             _ => Err(TryFromPrefValueError::UnmappedType),
         }
     }
@@ -122,7 +122,7 @@ impl TryFrom<&PrefValue> for StyloPrefValue {
 
 pub fn read_prefs_map(txt: &str) -> Result<HashMap<String, PrefValue>, PrefError> {
     let prefs: HashMap<String, Value> =
-        serde_json::from_str(txt).map_err(|e| PrefError::JsonParseErr(e))?;
+        serde_json::from_str(txt).map_err(PrefError::JsonParseErr)?;
     prefs
         .into_iter()
         .map(|(k, pref_value)| {
@@ -133,7 +133,7 @@ pub fn read_prefs_map(txt: &str) -> Result<HashMap<String, PrefValue>, PrefError
                     Value::Number(n) if n.is_f64() => PrefValue::Float(n.as_f64().unwrap()),
                     Value::String(s) => PrefValue::Str(s.to_owned()),
                     Value::Array(v) => {
-                        let mut array = v.iter().map(|v| PrefValue::from_json_value(v));
+                        let mut array = v.iter().map(PrefValue::from_json_value);
                         if array.all(|v| v.is_some()) {
                             PrefValue::Array(array.flatten().collect())
                         } else {

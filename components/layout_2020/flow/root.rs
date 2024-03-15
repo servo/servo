@@ -3,13 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use atomic_refcell::AtomicRef;
-use script_layout_interface::wrapper_traits::LayoutNode;
+use script_layout_interface::wrapper_traits::{
+    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
+use script_traits::compositor::ScrollSensitivity;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
+use style::values::computed::{Length, Overflow};
 use style_traits::CSSPixel;
 
 use crate::cell::ArcRefCell;
@@ -36,6 +39,9 @@ pub struct BoxTree {
 
     /// <https://drafts.csswg.org/css-backgrounds/#special-backgrounds>
     canvas_background: CanvasBackground,
+
+    /// Whether or not the root element should be sensitive to scrolling input events.
+    sensitive_to_scroll_input: bool,
 }
 
 impl BoxTree {
@@ -48,6 +54,35 @@ impl BoxTree {
         // Zero box for `:root { display: none }`, one for the root element otherwise.
         assert!(boxes.len() <= 1);
 
+        // From https://drafts.csswg.org/css-overflow/#propdef-overflow:
+        // > UAs must apply the overflow-* values set on the root element to the viewport when the
+        // > root element’s display value is not none. However, when the root element is an [HTML]
+        // > html element (including XML syntax for HTML) whose overflow value is visible (in both
+        // > axes), and that element has as a child a body element whose display value is also not
+        // > none, user agents must instead apply the overflow-* values of the first such child
+        // > element to the viewport. The element from which the value is propagated must then have a
+        // > used overflow value of visible.
+        //
+        // TODO: This should handle when different overflow is set multiple axes, which requires the
+        // compositor scroll tree to allow setting a value per axis.
+        let root_style = root_element.style(context);
+        let mut root_overflow = root_style.get_box().overflow_y;
+        if root_overflow == Overflow::Visible && !root_style.get_box().display.is_none() {
+            for child in iter_child_nodes(root_element) {
+                if !child.to_threadsafe().as_element().map_or(false, |element| {
+                    element.is_body_element_of_html_element_root()
+                }) {
+                    continue;
+                }
+
+                let style = child.style(context);
+                if !style.get_box().display.is_none() {
+                    root_overflow = style.get_box().overflow_y;
+                    break;
+                }
+            }
+        }
+
         let contents = BlockContainer::BlockLevelBoxes(boxes);
         let contains_floats = contents.contains_floats();
         Self {
@@ -56,6 +91,7 @@ impl BoxTree {
                 contains_floats,
             },
             canvas_background: CanvasBackground::for_root_element(context, root_element),
+            sensitive_to_scroll_input: root_overflow != Overflow::Hidden,
         }
     }
 
@@ -83,6 +119,7 @@ impl BoxTree {
     where
         Node: 'dom + Copy + LayoutNode<'dom> + Send + Sync,
     {
+        #[allow(clippy::enum_variant_names)]
         enum UpdatePoint {
             AbsolutelyPositionedBlockLevelBox(ArcRefCell<BlockLevelBox>),
             AbsolutelyPositionedInlineLevelBox(ArcRefCell<InlineLevelBox>),
@@ -251,6 +288,7 @@ fn construct_for_root_element<'dom>(
             propagated_text_decoration_line,
         ))
     };
+
     let root_box = ArcRefCell::new(root_box);
     root_element
         .element_box_slot()
@@ -329,11 +367,18 @@ impl BoxTree {
                 acc.union(&child_overflow)
             });
 
+        let root_scroll_sensitivity = if self.sensitive_to_scroll_input {
+            ScrollSensitivity::ScriptAndInputEvents
+        } else {
+            ScrollSensitivity::Script
+        };
+
         FragmentTree {
             root_fragments,
             scrollable_overflow,
             initial_containing_block: physical_containing_block,
             canvas_background: self.canvas_background.clone(),
+            root_scroll_sensitivity,
         }
     }
 }

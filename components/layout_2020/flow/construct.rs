@@ -54,7 +54,7 @@ impl BlockFormattingContext {
         }
     }
 
-    pub fn construct_for_text_runs<'dom>(
+    pub fn construct_for_text_runs(
         runs: impl Iterator<Item = TextRun>,
         layout_context: &LayoutContext,
         text_decoration_line: TextDecorationLine,
@@ -317,7 +317,8 @@ where
             self.current_inline_level_boxes()
                 .push(ArcRefCell::new(InlineLevelBox::Atomic(ifc)));
         } else {
-            let anonymous_info = self.info.new_replacing_style(ifc.style().clone());
+            self.end_ongoing_inline_formatting_context();
+            let anonymous_info = self.info.new_anonymous(ifc.style().clone());
             let table_block = ArcRefCell::new(BlockLevelBox::Independent(ifc));
             self.block_level_boxes.push(BlockLevelJob {
                 info: anonymous_info,
@@ -409,15 +410,11 @@ where
         // collecting all Cow strings into a vector and passing them along to text breaking
         // and shaping during final InlineFormattingContext construction.
         let inlines = self.current_inline_level_boxes();
-        match inlines.last_mut().map(|last| last.borrow_mut()) {
-            Some(mut last_box) => match *last_box {
-                InlineLevelBox::TextRun(ref mut text_run) => {
-                    text_run.text.push_str(&input);
-                    return;
-                },
-                _ => {},
-            },
-            _ => {},
+        if let Some(mut last_box) = inlines.last_mut().map(|last| last.borrow_mut()) {
+            if let InlineLevelBox::TextRun(ref mut text_run) = *last_box {
+                text_run.text.push_str(&input);
+                return;
+            }
         }
 
         inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun::new(
@@ -489,6 +486,8 @@ where
             NonReplacedContents::try_from(contents)
                 .unwrap()
                 .traverse(self.context, info, self);
+
+            self.finish_anonymous_table_if_needed();
 
             let mut inline_box = self
                 .ongoing_inline_boxes_stack
@@ -690,7 +689,7 @@ where
         );
         std::mem::swap(&mut self.ongoing_inline_formatting_context, &mut ifc);
 
-        let info = self.info.new_replacing_style(anonymous_style.clone());
+        let info = self.info.new_anonymous(anonymous_style.clone());
         self.block_level_boxes.push(BlockLevelJob {
             info,
             // FIXME(nox): We should be storing this somewhere.

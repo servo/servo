@@ -113,9 +113,9 @@ impl<'a> PlacementAmongFloats<'a> {
             (current_bands, next_band)
         };
         let min_inline_start = float_context.containing_block_info.inline_start +
-            pbm.margin.inline_start.auto_is(Length::zero).into();
+            pbm.margin.inline_start.auto_is(Au::zero);
         let max_inline_end = (float_context.containing_block_info.inline_end -
-            pbm.margin.inline_end.auto_is(Length::zero).into())
+            pbm.margin.inline_end.auto_is(Au::zero))
         .max(min_inline_start + object_size.inline);
         PlacementAmongFloats {
             float_context,
@@ -259,7 +259,7 @@ impl<'a> PlacementAmongFloats<'a> {
     pub(crate) fn set_inline_size(&mut self, inline_size: Au, pbm: &PaddingBorderMargin) {
         self.object_size.inline = inline_size;
         self.max_inline_end = (self.float_context.containing_block_info.inline_end -
-            pbm.margin.inline_end.auto_is(Length::zero).into())
+            pbm.margin.inline_end.auto_is(Au::zero))
         .max(self.min_inline_start + inline_size);
     }
 
@@ -911,8 +911,8 @@ impl FloatBox {
                 // Margin is computed this way regardless of whether the element is replaced
                 // or non-replaced.
                 let pbm = style.padding_border_margin(containing_block);
-                let margin = pbm.margin.auto_is(Length::zero);
-                let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone().into();
+                let margin = pbm.margin.auto_is(Au::zero);
+                let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone();
 
                 let (content_size, children);
                 match self.contents {
@@ -951,7 +951,7 @@ impl FloatBox {
                             layout_context,
                             positioning_context,
                             &containing_block_for_children,
-                            &containing_block,
+                            containing_block,
                         );
                         content_size = LogicalVec2 {
                             inline: inline_size,
@@ -991,7 +991,7 @@ impl FloatBox {
                     content_rect,
                     pbm.padding.into(),
                     pbm.border.into(),
-                    margin,
+                    margin.into(),
                     // Clearance is handled internally by the float placement logic, so there's no need
                     // to store it explicitly in the fragment.
                     None, // clearance

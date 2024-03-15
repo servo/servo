@@ -307,7 +307,7 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
         }
 
         // Truncate down counters.
-        for (_, counter) in &mut self.traversal.counters {
+        for counter in self.traversal.counters.values_mut() {
             counter.truncate_to_level(self.level);
         }
         self.traversal.list_item.truncate_to_level(self.level);

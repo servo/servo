@@ -130,7 +130,7 @@ impl Decoder {
         Decoder {
             inner: Inner::Pending(Pending {
                 body: ReadableChunks::new(body),
-                type_: type_,
+                type_,
             }),
         }
     }
@@ -222,7 +222,7 @@ impl Gzip {
         Gzip {
             buf: BytesMut::with_capacity(INIT_BUFFER_SIZE),
             inner: Box::new(gzip::Decoder::new(Peeked::new(stream))),
-            reader: reader,
+            reader,
         }
     }
 }
@@ -248,7 +248,7 @@ fn poll_with_read(reader: &mut dyn Read, buf: &mut BytesMut) -> Poll<Option<Resu
     };
 
     match read {
-        Ok(read) if read == 0 => Poll::Ready(None),
+        Ok(0) => Poll::Ready(None),
         Ok(read) => {
             unsafe { buf.advance_mut(read) };
             let chunk = buf.split_to(read).freeze();
@@ -286,7 +286,7 @@ impl Brotli {
         Self {
             buf: BytesMut::with_capacity(INIT_BUFFER_SIZE),
             inner: Box::new(Decompressor::new(Peeked::new(stream), BUF_SIZE)),
-            reader: reader,
+            reader,
         }
     }
 }
@@ -318,7 +318,7 @@ impl Deflate {
         Self {
             buf: BytesMut::with_capacity(INIT_BUFFER_SIZE),
             inner: Box::new(DeflateDecoder::new(Peeked::new(stream))),
-            reader: reader,
+            reader,
         }
     }
 }
@@ -382,7 +382,7 @@ impl<R> Peeked<R> {
         Peeked {
             state: PeekedState::NotReady,
             peeked_buf: [0; 10],
-            inner: inner,
+            inner,
             pos: 0,
         }
     }
@@ -418,10 +418,10 @@ impl<R: Read> Read for Peeked<R> {
                     return Ok(len);
                 },
                 PeekedState::NotReady => {
-                    let mut buf = &mut self.peeked_buf[self.pos..];
+                    let buf = &mut self.peeked_buf[self.pos..];
                     let stream = self.inner.clone();
                     let mut reader = stream.lock().unwrap();
-                    let read = reader.read(&mut buf);
+                    let read = reader.read(buf);
 
                     match read {
                         Ok(0) => self.ready(),
@@ -444,7 +444,7 @@ impl<S> ReadableChunks<S> {
     fn new(stream: S) -> Self {
         ReadableChunks {
             state: ReadState::NotReady,
-            stream: stream,
+            stream,
             waker: None,
         }
     }

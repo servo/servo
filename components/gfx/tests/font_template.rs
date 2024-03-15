@@ -10,9 +10,10 @@ fn test_font_template_descriptor() {
     use std::io::prelude::*;
     use std::path::PathBuf;
 
+    use gfx::font_cache_thread::FontIdentifier;
     use gfx::font_context::FontContextHandle;
     use gfx::font_template::{FontTemplate, FontTemplateDescriptor};
-    use servo_atoms::Atom;
+    use servo_url::ServoUrl;
     use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 
     fn descriptor(filename: &str) -> FontTemplateDescriptor {
@@ -27,15 +28,14 @@ fn test_font_template_descriptor() {
         .collect();
         path.push(format!("{}.ttf", filename));
 
-        let file = File::open(path).unwrap();
-
+        let file = File::open(path.clone()).unwrap();
         let mut template = FontTemplate::new(
-            Atom::from(filename),
+            FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap()),
             Some(file.bytes().map(|b| b.unwrap()).collect()),
         )
         .unwrap();
 
-        let context = FontContextHandle::new();
+        let context = FontContextHandle::default();
 
         template.descriptor(&context).unwrap()
     }

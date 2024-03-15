@@ -5,8 +5,6 @@
 use core::convert::Infallible;
 use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
-use std::mem;
-use std::ops::Deref;
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -21,8 +19,8 @@ use headers::authorization::Basic;
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
     AccessControlAllowOrigin, AccessControlMaxAge, AccessControlRequestHeaders,
-    AccessControlRequestMethod, Authorization, CacheControl, ContentEncoding, ContentLength,
-    HeaderMapExt, IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent,
+    AccessControlRequestMethod, Authorization, CacheControl, ContentLength, HeaderMapExt,
+    IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent,
 };
 use http::header::{
     self, HeaderValue, ACCEPT, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION, CONTENT_TYPE,
@@ -87,6 +85,8 @@ pub enum HttpCacheEntryState {
     PendingStore(usize),
 }
 
+type HttpCacheState = Mutex<HashMap<CacheKey, Arc<(Mutex<HttpCacheEntryState>, Condvar)>>>;
+
 pub struct HttpState {
     pub hsts_list: RwLock<HstsList>,
     pub cookie_jar: RwLock<CookieStorage>,
@@ -94,22 +94,22 @@ pub struct HttpState {
     /// A map of cache key to entry state,
     /// reflecting whether the cache entry is ready to read from,
     /// or whether a concurrent pending store should be awaited.
-    pub http_cache_state: Mutex<HashMap<CacheKey, Arc<(Mutex<HttpCacheEntryState>, Condvar)>>>,
+    pub http_cache_state: HttpCacheState,
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, Body>,
     pub override_manager: CertificateErrorOverrideManager,
 }
 
-impl HttpState {
-    pub fn new() -> HttpState {
+impl Default for HttpState {
+    fn default() -> Self {
         let override_manager = CertificateErrorOverrideManager::new();
-        HttpState {
-            hsts_list: RwLock::new(HstsList::new()),
+        Self {
+            hsts_list: RwLock::new(HstsList::default()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
-            auth_cache: RwLock::new(AuthCache::new()),
+            auth_cache: RwLock::new(AuthCache::default()),
             history_states: RwLock::new(HashMap::new()),
-            http_cache: RwLock::new(HttpCache::new()),
+            http_cache: RwLock::new(HttpCache::default()),
             http_cache_state: Mutex::new(HashMap::new()),
             client: create_http_client(create_tls_config(
                 CACertificates::Default,
@@ -193,7 +193,7 @@ fn no_referrer_when_downgrade(referrer_url: ServoUrl, current_url: ServoUrl) -> 
         return None;
     }
     // Step 2
-    return strip_url_for_use_as_referrer(referrer_url, false);
+    strip_url_for_use_as_referrer(referrer_url, false)
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin>
@@ -237,8 +237,8 @@ fn is_schemelessy_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) 
         let host_b_reg = reg_suffix(&host_b);
 
         // Step 2.2-2.3
-        (site_a.host() == site_b.host() && host_a_reg == "") ||
-            (host_a_reg == host_b_reg && host_a_reg != "")
+        (site_a.host() == site_b.host() && host_a_reg.is_empty()) ||
+            (host_a_reg == host_b_reg && !host_a_reg.is_empty())
     } else {
         // Step 3
         false
@@ -345,11 +345,12 @@ fn set_cookies_from_headers(
 ) {
     for cookie in headers.get_all(header::SET_COOKIE) {
         if let Ok(cookie_str) = std::str::from_utf8(cookie.as_bytes()) {
-            set_cookie_for_url(&cookie_jar, &url, &cookie_str);
+            set_cookie_for_url(cookie_jar, url, cookie_str);
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn prepare_devtools_request(
     request_id: String,
     url: ServoUrl,
@@ -363,16 +364,16 @@ fn prepare_devtools_request(
     is_xhr: bool,
 ) -> ChromeToDevtoolsControlMsg {
     let request = DevtoolsHttpRequest {
-        url: url,
-        method: method,
-        headers: headers,
-        body: body,
-        pipeline_id: pipeline_id,
+        url,
+        method,
+        headers,
+        body,
+        pipeline_id,
         startedDateTime: now,
         timeStamp: now.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64,
-        connect_time: connect_time,
-        send_time: send_time,
-        is_xhr: is_xhr,
+        connect_time,
+        send_time,
+        is_xhr,
     };
     let net_event = NetworkEvent::HttpRequest(request);
 
@@ -396,10 +397,10 @@ fn send_response_to_devtools(
     pipeline_id: PipelineId,
 ) {
     let response = DevtoolsHttpResponse {
-        headers: headers,
-        status: status,
+        headers,
+        status,
         body: None,
-        pipeline_id: pipeline_id,
+        pipeline_id,
     };
     let net_event_response = NetworkEvent::HttpResponse(response);
 
@@ -411,7 +412,7 @@ fn auth_from_cache(
     auth_cache: &RwLock<AuthCache>,
     origin: &ImmutableOrigin,
 ) -> Option<Authorization<Basic>> {
-    if let Some(ref auth_entry) = auth_cache
+    if let Some(auth_entry) = auth_cache
         .read()
         .unwrap()
         .entries
@@ -480,6 +481,7 @@ impl BodySink {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn obtain_response(
     client: &Client<Connector, Body>,
     url: &ServoUrl,
@@ -503,9 +505,9 @@ async fn obtain_response(
             .clone()
             .into_url()
             .as_ref()
-            .replace("|", "%7C")
-            .replace("{", "%7B")
-            .replace("}", "%7D");
+            .replace('|', "%7C")
+            .replace('{', "%7B")
+            .replace('}', "%7D");
 
         let request = if let Some(chunk_requester) = body {
             let (sink, stream) = if source_is_null {
@@ -649,7 +651,7 @@ async fn obtain_response(
             .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
 
         let request_id = request_id.map(|v| v.to_owned());
-        let pipeline_id = pipeline_id.clone();
+        let pipeline_id = *pipeline_id;
         let closure_url = url.clone();
         let method = method.clone();
         let send_start = precise_time_ms();
@@ -705,6 +707,7 @@ async fn obtain_response(
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
 #[async_recursion]
+#[allow(clippy::too_many_arguments)]
 pub async fn http_fetch(
     request: &mut Request,
     cache: &mut CorsCache,
@@ -760,13 +763,13 @@ pub async fn http_fetch(
             let method_mismatch = !method_cache_match &&
                 (!is_cors_safelisted_method(&request.method) || request.use_cors_preflight);
             let header_mismatch = request.headers.iter().any(|(name, value)| {
-                !cache.match_header(&*request, &name) &&
+                !cache.match_header(&*request, name) &&
                     !is_cors_safelisted_request_header(&name, &value)
             });
 
             // Sub-substep 1
             if method_mismatch || header_mismatch {
-                let preflight_result = cors_preflight_fetch(&request, cache, context).await;
+                let preflight_result = cors_preflight_fetch(request, cache, context).await;
                 // Sub-substep 2
                 if let Some(e) = preflight_result.get_network_error() {
                     return Response::network_error(e.clone());
@@ -798,7 +801,7 @@ pub async fn http_fetch(
         .await;
 
         // Substep 4
-        if cors_flag && cors_check(&request, &fetch_result).is_err() {
+        if cors_flag && cors_check(request, &fetch_result).is_err() {
             return Response::network_error(NetworkError::Internal("CORS check failed".into()));
         }
 
@@ -834,7 +837,7 @@ pub async fn http_fetch(
             .and_then(|v| {
                 HeaderValue::to_str(v)
                     .map(|l| {
-                        ServoUrl::parse_with_base(response.actual_response().url(), &l)
+                        ServoUrl::parse_with_base(response.actual_response().url(), l)
                             .map_err(|err| err.to_string())
                     })
                     .ok()
@@ -1093,7 +1096,7 @@ fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<
                 ("http", 80) | ("https", 443) => None,
                 _ => Some(*port),
             };
-            HyperOrigin::try_from_parts(&scheme, &host.to_string(), port).ok()
+            HyperOrigin::try_from_parts(scheme, &host.to_string(), port).ok()
         },
     }
 }
@@ -1257,13 +1260,14 @@ async fn http_network_or_cache_fetch(
             }
 
             // Substep 5
-            if authentication_fetch_flag && authorization_value.is_none() {
-                if has_credentials(&current_url) {
-                    authorization_value = Some(Authorization::basic(
-                        current_url.username(),
-                        current_url.password().unwrap_or(""),
-                    ));
-                }
+            if authentication_fetch_flag &&
+                authorization_value.is_none() &&
+                has_credentials(&current_url)
+            {
+                authorization_value = Some(Authorization::basic(
+                    current_url.username(),
+                    current_url.password().unwrap_or(""),
+                ));
             }
 
             // Substep 6
@@ -1285,7 +1289,7 @@ async fn http_network_or_cache_fetch(
     // That one happens when a fetch gets a cache hit, and the resource is pending completion from the network.
     {
         let (lock, cvar) = {
-            let entry_key = CacheKey::new(&http_request);
+            let entry_key = CacheKey::new(http_request);
             let mut state_map = context.state.http_cache_state.lock().unwrap();
             &*state_map
                 .entry(entry_key)
@@ -1314,7 +1318,7 @@ async fn http_network_or_cache_fetch(
         // Step 5.19
         if let Ok(http_cache) = context.state.http_cache.read() {
             if let Some(response_from_cache) =
-                http_cache.construct_response(&http_request, done_chan)
+                http_cache.construct_response(http_request, done_chan)
             {
                 let response_headers = response_from_cache.response.headers.clone();
                 // Substep 1, 2, 3, 4
@@ -1378,7 +1382,7 @@ async fn http_network_or_cache_fetch(
     // if no stores are pending.
     fn update_http_cache_state(context: &FetchContext, http_request: &Request) {
         let (lock, cvar) = {
-            let entry_key = CacheKey::new(&http_request);
+            let entry_key = CacheKey::new(http_request);
             let mut state_map = context.state.http_cache_state.lock().unwrap();
             &*state_map
                 .get_mut(&entry_key)
@@ -1437,7 +1441,7 @@ async fn http_network_or_cache_fetch(
         if http_request.cache_mode == CacheMode::OnlyIfCached {
             // The cache will not be updated,
             // set its state to ready to construct.
-            update_http_cache_state(context, &http_request);
+            update_http_cache_state(context, http_request);
             return Response::network_error(NetworkError::Internal(
                 "Couldn't find response in cache".into(),
             ));
@@ -1452,7 +1456,7 @@ async fn http_network_or_cache_fetch(
         if let Some((200..=399, _)) = forward_response.raw_status {
             if !http_request.method.is_safe() {
                 if let Ok(mut http_cache) = context.state.http_cache.write() {
-                    http_cache.invalidate(&http_request, &forward_response);
+                    http_cache.invalidate(http_request, &forward_response);
                 }
             }
         }
@@ -1467,7 +1471,7 @@ async fn http_network_or_cache_fetch(
                 // Ensure done_chan is None,
                 // since the network response will be replaced by the revalidated stored one.
                 *done_chan = None;
-                response = http_cache.refresh(&http_request, forward_response.clone(), done_chan);
+                response = http_cache.refresh(http_request, forward_response.clone(), done_chan);
             }
             wait_for_cached_response(done_chan, &mut response).await;
         }
@@ -1477,7 +1481,7 @@ async fn http_network_or_cache_fetch(
             if http_request.cache_mode != CacheMode::NoStore {
                 // Subsubstep 2, doing it first to avoid a clone of forward_response.
                 if let Ok(mut http_cache) = context.state.http_cache.write() {
-                    http_cache.store(&http_request, &forward_response);
+                    http_cache.store(http_request, &forward_response);
                 }
             }
             // Subsubstep 1
@@ -1488,7 +1492,7 @@ async fn http_network_or_cache_fetch(
     let mut response = response.unwrap();
 
     // The cache has been updated, set its state to ready to construct.
-    update_http_cache_state(context, &http_request);
+    update_http_cache_state(context, http_request);
 
     // Step 8
     // TODO: if necessary set response's range-requested flag
@@ -1537,7 +1541,7 @@ async fn http_network_or_cache_fetch(
         // Step 5
         if let Origin::Origin(ref request_origin) = request.origin {
             let schemeless_same_origin =
-                is_schemelessy_same_site(&request_origin, &current_url_origin);
+                is_schemelessy_same_site(request_origin, &current_url_origin);
             if schemeless_same_origin &&
                 (request_origin.scheme() == Some("https") ||
                     response.https_state == HttpsState::None)
@@ -1555,7 +1559,7 @@ async fn http_network_or_cache_fetch(
     }
 
     if http_request.response_tainting != ResponseTainting::CorsTainting &&
-        cross_origin_resource_policy_check(&http_request, &response) ==
+        cross_origin_resource_policy_check(http_request, &response) ==
             CrossOriginResourcePolicy::Blocked
     {
         return Response::network_error(NetworkError::Internal(
@@ -1722,7 +1726,7 @@ async fn http_network_fetch(
             .map(|body| body.source_is_null())
             .unwrap_or(false),
         &request.pipeline_id,
-        request_id.as_ref().map(Deref::deref),
+        request_id.as_deref(),
         is_xhr,
         context,
         fetch_terminated_sender,
@@ -1796,7 +1800,7 @@ async fn http_network_fetch(
     ));
     response.headers = res.headers().clone();
     response.referrer = request.referrer.to_url().cloned();
-    response.referrer_policy = request.referrer_policy.clone();
+    response.referrer_policy = request.referrer_policy;
 
     let res_body = response.body.clone();
 
@@ -1834,7 +1838,7 @@ async fn http_network_fetch(
             send_response_to_devtools(
                 &sender,
                 request_id.unwrap(),
-                meta_headers.map(|hdrs| Serde::into_inner(hdrs)),
+                meta_headers.map(Serde::into_inner),
                 meta_status,
                 pipeline_id,
             );
@@ -1852,7 +1856,6 @@ async fn http_network_fetch(
         res.into_body()
             .map_err(|e| {
                 warn!("Error streaming response body: {:?}", e);
-                ()
             })
             .try_fold(res_body, move |res_body, chunk| {
                 if cancellation_listener.lock().unwrap().cancelled() {
@@ -1862,7 +1865,7 @@ async fn http_network_fetch(
                 }
                 if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
                     let bytes = chunk;
-                    body.extend_from_slice(&*bytes);
+                    body.extend_from_slice(&bytes);
                     let _ = done_sender.send(Data::Payload(bytes.to_vec()));
                 }
                 future::ready(Ok(res_body))
@@ -1871,7 +1874,7 @@ async fn http_network_fetch(
                 debug!("successfully finished response for {:?}", url1);
                 let mut body = res_body.lock().unwrap();
                 let completed_body = match *body {
-                    ResponseBody::Receiving(ref mut body) => mem::replace(body, vec![]),
+                    ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                     _ => vec![],
                 };
                 *body = ResponseBody::Done(completed_body);
@@ -1886,7 +1889,7 @@ async fn http_network_fetch(
                 debug!("finished response for {:?}", url2);
                 let mut body = res_body2.lock().unwrap();
                 let completed_body = match *body {
-                    ResponseBody::Receiving(ref mut body) => mem::replace(body, vec![]),
+                    ResponseBody::Receiving(ref mut body) => std::mem::take(body),
                     _ => vec![],
                 };
                 *body = ResponseBody::Done(completed_body);
@@ -1912,16 +1915,6 @@ async fn http_network_fetch(
 
     // Step 6-11
     // (needs stream bodies)
-
-    // Step 12
-    // TODO when https://bugzilla.mozilla.org/show_bug.cgi?id=1030660
-    // is resolved, this step will become uneccesary
-    // TODO this step
-    if let Some(encoding) = response.headers.typed_get::<ContentEncoding>() {
-        if encoding.contains("gzip") {
-        } else if encoding.contains("compress") {
-        }
-    };
 
     // Step 13
     // TODO this step isn't possible yet (CSP)
@@ -1974,8 +1967,8 @@ async fn cors_preflight_fetch(
             Origin::Origin(origin) => origin.clone(),
         })
         .pipeline_id(request.pipeline_id)
-        .initiator(request.initiator.clone())
-        .destination(request.destination.clone())
+        .initiator(request.initiator)
+        .destination(request.destination)
         .referrer_policy(request.referrer_policy)
         .mode(RequestMode::CorsMode)
         .response_tainting(ResponseTainting::CorsTainting)
@@ -2007,7 +2000,7 @@ async fn cors_preflight_fetch(
     let response =
         http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context).await;
     // Step 7
-    if cors_check(&request, &response).is_ok() &&
+    if cors_check(request, &response).is_ok() &&
         response
             .status
             .as_ref()
@@ -2079,7 +2072,7 @@ async fn cors_preflight_fetch(
 
         // Substep 6
         if request.headers.iter().any(|(name, _)| {
-            is_cors_non_wildcard_request_header_name(&name) &&
+            is_cors_non_wildcard_request_header_name(name) &&
                 header_names.iter().all(|hn| hn != name)
         }) {
             return Response::network_error(NetworkError::Internal(
@@ -2089,6 +2082,7 @@ async fn cors_preflight_fetch(
 
         // Substep 7
         let unsafe_names = get_cors_unsafe_header_names(&request.headers);
+        #[allow(clippy::mutable_key_type)] // We don't mutate the items in the set
         let header_names_set: HashSet<&HeaderName> = HashSet::from_iter(header_names.iter());
         let header_names_contains_star = header_names.iter().any(|hn| hn.as_str() == "*");
         for unsafe_name in unsafe_names.iter() {
@@ -2116,12 +2110,12 @@ async fn cors_preflight_fetch(
 
         // Substep 12, 13
         for method in &methods {
-            cache.match_method_and_update(&*request, method.clone(), max_age);
+            cache.match_method_and_update(request, method.clone(), max_age);
         }
 
         // Substep 14, 15
         for header_name in &header_names {
-            cache.match_header_and_update(&*request, &*header_name, max_age);
+            cache.match_header_and_update(request, header_name, max_age);
         }
 
         // Substep 16
@@ -2192,12 +2186,12 @@ fn is_no_store_cache(headers: &HeaderMap) -> bool {
 
 /// <https://fetch.spec.whatwg.org/#redirect-status>
 pub fn is_redirect_status(status: &(StatusCode, String)) -> bool {
-    match status.0 {
+    matches!(
+        status.0,
         StatusCode::MOVED_PERMANENTLY |
-        StatusCode::FOUND |
-        StatusCode::SEE_OTHER |
-        StatusCode::TEMPORARY_REDIRECT |
-        StatusCode::PERMANENT_REDIRECT => true,
-        _ => false,
-    }
+            StatusCode::FOUND |
+            StatusCode::SEE_OTHER |
+            StatusCode::TEMPORARY_REDIRECT |
+            StatusCode::PERMANENT_REDIRECT
+    )
 }

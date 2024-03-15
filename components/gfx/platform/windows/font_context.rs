@@ -4,14 +4,7 @@
 
 use malloc_size_of::malloc_size_of_is_0;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FontContextHandle;
-
-impl FontContextHandle {
-    // *shrug*
-    pub fn new() -> FontContextHandle {
-        FontContextHandle {}
-    }
-}
 
 malloc_size_of_is_0!(FontContextHandle);

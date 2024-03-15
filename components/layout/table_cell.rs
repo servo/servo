@@ -27,7 +27,7 @@ use crate::display_list::{
 use crate::flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, OpaqueFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use crate::table::InternalTable;
-use crate::table_row::{CollapsedBorder, CollapsedBorderProvenance};
+use crate::table_row::{CollapsedBorder, CollapsedBorderFrom};
 use crate::{layout_debug, layout_debug_scope};
 
 #[allow(unsafe_code)]
@@ -406,19 +406,19 @@ impl CollapsedBordersForCell {
     }
 
     fn should_paint_inline_start_border(&self) -> bool {
-        self.inline_start_border.provenance != CollapsedBorderProvenance::FromPreviousTableCell
+        self.inline_start_border.provenance != CollapsedBorderFrom::PreviousTableCell
     }
 
     fn should_paint_inline_end_border(&self) -> bool {
-        self.inline_end_border.provenance != CollapsedBorderProvenance::FromNextTableCell
+        self.inline_end_border.provenance != CollapsedBorderFrom::NextTableCell
     }
 
     fn should_paint_block_start_border(&self) -> bool {
-        self.block_start_border.provenance != CollapsedBorderProvenance::FromPreviousTableCell
+        self.block_start_border.provenance != CollapsedBorderFrom::PreviousTableCell
     }
 
     fn should_paint_block_end_border(&self) -> bool {
-        self.block_end_border.provenance != CollapsedBorderProvenance::FromNextTableCell
+        self.block_end_border.provenance != CollapsedBorderFrom::NextTableCell
     }
 
     pub fn adjust_border_widths_for_painting(&self, border_widths: &mut LogicalMargin<Au>) {

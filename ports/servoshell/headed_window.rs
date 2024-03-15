@@ -526,12 +526,12 @@ impl WindowMethods for Window {
         let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
         let viewport_origin = DeviceIntPoint::zero(); // bottom left
         let viewport_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
-        let viewport = DeviceIntRect::new(viewport_origin, viewport_size.to_i32());
+        let viewport = DeviceIntRect::from_origin_and_size(viewport_origin, viewport_size.to_i32());
         let screen = self.screen_size.to_i32();
 
         EmbedderCoordinates {
             viewport,
-            framebuffer: viewport.size,
+            framebuffer: viewport.size(),
             window: (window_size, window_origin),
             screen,
             // FIXME: Winit doesn't have API for available size. Fallback to screen size

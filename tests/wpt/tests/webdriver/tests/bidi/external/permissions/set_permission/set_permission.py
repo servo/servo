@@ -96,7 +96,22 @@ async def test_set_permission_new_context(bidi_session, new_tab, url):
 
 
 @pytest.mark.parametrize("origin", ['UNKNOWN', ''])
-async def test_set_permission_origin_unknown(bidi_session, new_tab, origin):
+async def test_set_permission_origin_unknown(bidi_session, new_tab, origin, url):
+    test_url = url("/common/blank.html", protocol="https")
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=test_url,
+        wait="complete",
+    )
+
+    # Ensure permission for the tab is prompt.
+    tab_origin = await get_context_origin(bidi_session, new_tab)
+    await bidi_session.permissions.set_permission(
+        descriptor={"name": "geolocation"},
+        state="prompt",
+        origin=tab_origin,
+    )
+
     await bidi_session.permissions.set_permission(
         descriptor={"name": "geolocation"},
         state="granted",

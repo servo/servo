@@ -67,7 +67,7 @@ struct FlexItem<'a> {
 
     /// Sum of padding, border, and margin (with `auto` assumed to be zero) in each axis.
     /// This is the difference between an outer and inner size.
-    pbm_auto_is_zero: FlexRelativeVec2<Length>,
+    pbm_auto_is_zero: FlexRelativeVec2<Au>,
 
     /// <https://drafts.csswg.org/css-flexbox/#algo-main-item>
     flex_base_size: Length,
@@ -509,7 +509,7 @@ impl<'a> FlexItem<'a> {
             inline: min_size.inline.auto_is(automatic_min_size),
             block: min_size.block.auto_is(Length::zero),
         };
-        let margin_auto_is_zero = pbm.margin.auto_is(Length::zero);
+        let margin_auto_is_zero = pbm.margin.auto_is(Au::zero);
 
         let content_box_size = flex_context.vec2_to_flex_relative(content_box_size);
         let content_max_size = flex_context.vec2_to_flex_relative(max_size);
@@ -519,8 +519,8 @@ impl<'a> FlexItem<'a> {
         let border = flex_context.sides_to_flex_relative(pbm.border);
         let padding_border = padding.sum_by_axis() + border.sum_by_axis();
         let pbm_auto_is_zero = FlexRelativeVec2 {
-            main: padding_border.main.into(),
-            cross: padding_border.cross.into(),
+            main: padding_border.main,
+            cross: padding_border.cross,
         } + margin_auto_is_zero.sum_by_axis();
 
         let align_self = flex_context.align_for(&box_.style().clone_align_self());
@@ -535,9 +535,7 @@ impl<'a> FlexItem<'a> {
 
         let hypothetical_main_size =
             flex_base_size.clamp_between_extremums(content_min_size.main, content_max_size.main);
-        let margin: FlexRelativeSides<AuOrAuto> = flex_context
-            .sides_to_flex_relative(pbm.margin)
-            .map(|v| v.map(|v| v.into()));
+        let margin: FlexRelativeSides<AuOrAuto> = flex_context.sides_to_flex_relative(pbm.margin);
 
         Self {
             box_,
@@ -652,7 +650,7 @@ fn collect_flex_lines<'items, LineResult>(
         let line = FlexLine {
             outer_hypothetical_main_sizes_sum: items
                 .iter()
-                .map(|item| item.hypothetical_main_size + item.pbm_auto_is_zero.main)
+                .map(|item| item.hypothetical_main_size + item.pbm_auto_is_zero.main.into())
                 .sum(),
             items,
         };
@@ -663,7 +661,7 @@ fn collect_flex_lines<'items, LineResult>(
         let mut line_so_far_is_empty = true;
         let mut index = 0;
         while let Some(item) = items.get(index) {
-            let item_size = item.hypothetical_main_size + item.pbm_auto_is_zero.main;
+            let item_size = item.hypothetical_main_size + item.pbm_auto_is_zero.main.into();
             let line_size_would_be = line_size_so_far + item_size;
             let item_fits = line_size_would_be <= container_main_size;
             if item_fits || line_so_far_is_empty {
@@ -739,7 +737,7 @@ impl FlexLine<'_> {
                     item.content_box_size.cross.is_auto() &&
                     !(item.margin.cross_start.is_auto() || item.margin.cross_end.is_auto())
                 {
-                    (line_cross_size - item.pbm_auto_is_zero.cross).clamp_between_extremums(
+                    (line_cross_size - item.pbm_auto_is_zero.cross.into()).clamp_between_extremums(
                         item.content_min_size.cross,
                         item.content_max_size.cross,
                     )
@@ -922,11 +920,12 @@ impl FlexLine<'_> {
                     .map(|((item, target_main_size), frozen)| {
                         item.pbm_auto_is_zero.main +
                             if frozen.get() {
-                                target_main_size.get()
+                                target_main_size.get().into()
                             } else {
-                                item.flex_base_size
+                                item.flex_base_size.into()
                             }
                     })
+                    .map(|t| t.into())
                     .sum()
         };
         // https://drafts.csswg.org/css-flexbox/#initial-free-space
@@ -1109,7 +1108,7 @@ impl<'a> FlexItem<'a> {
                             flex_context.layout_context,
                             &mut positioning_context,
                             &item_as_containing_block,
-                            &flex_context.containing_block,
+                            flex_context.containing_block,
                         );
 
                         let hypothetical_cross_size = self
@@ -1155,7 +1154,7 @@ impl<'items> FlexLine<'items> {
                 .iter()
                 .zip(&*self.items)
                 .map(|(item_result, item)| {
-                    item_result.hypothetical_cross_size + item.pbm_auto_is_zero.cross
+                    item_result.hypothetical_cross_size + item.pbm_auto_is_zero.cross.into()
                 });
         // FIXME: add support for `align-self: baseline`
         // and computing the baseline of flex items.
@@ -1256,8 +1255,8 @@ impl FlexItem<'_> {
             (AuOrAuto::Auto, AuOrAuto::Auto) => 2.,
             _ => 1.,
         };
-        let outer_size = self.pbm_auto_is_zero.cross + item_cross_content_size;
-        let available = line_cross_size - outer_size;
+        let outer_size = self.pbm_auto_is_zero.cross + item_cross_content_size.into();
+        let available = line_cross_size - outer_size.into();
         let start;
         let end;
         if available > Length::zero() {
@@ -1310,11 +1309,11 @@ impl FlexItem<'_> {
                 match self.align_self {
                     AlignItems::Stretch | AlignItems::FlexStart => Length::zero(),
                     AlignItems::FlexEnd => {
-                        let margin_box_cross = *content_size + self.pbm_auto_is_zero.cross;
+                        let margin_box_cross = *content_size + self.pbm_auto_is_zero.cross.into();
                         line_cross_size - margin_box_cross
                     },
                     AlignItems::Center => {
-                        let margin_box_cross = *content_size + self.pbm_auto_is_zero.cross;
+                        let margin_box_cross = *content_size + self.pbm_auto_is_zero.cross.into();
                         (line_cross_size - margin_box_cross) / 2.
                     },
                     // FIXME: handle baseline alignment

@@ -126,7 +126,7 @@ pub struct CachedResponse {
 }
 
 /// A memory cache.
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 pub struct HttpCache {
     /// cached responses.
     entries: HashMap<CacheKey, Vec<CachedResource>>,
@@ -134,10 +134,10 @@ pub struct HttpCache {
 
 /// Determine if a response is cacheable by default <https://tools.ietf.org/html/rfc7231#section-6.1>
 fn is_cacheable_by_default(status_code: u16) -> bool {
-    match status_code {
-        200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501 => true,
-        _ => false,
-    }
+    matches!(
+        status_code,
+        200 | 203 | 204 | 206 | 300 | 301 | 404 | 405 | 410 | 414 | 501
+    )
 }
 
 /// Determine if a given response is cacheable.
@@ -192,19 +192,18 @@ fn calculate_response_age(response: &Response) -> Duration {
 /// or uses a heuristic if none are present.
 fn get_response_expiry(response: &Response) -> Duration {
     // Calculating Freshness Lifetime <https://tools.ietf.org/html/rfc7234#section-4.2.1>
-    let age = calculate_response_age(&response);
+    let age = calculate_response_age(response);
     if let Some(directives) = response.headers.typed_get::<CacheControl>() {
         if directives.no_cache() {
             // Requires validation on first use.
             return Duration::seconds(0i64);
-        } else {
-            if let Some(secs) = directives.max_age().or(directives.s_max_age()) {
-                let max_age = Duration::from_std(secs).unwrap();
-                if max_age < age {
-                    return Duration::seconds(0i64);
-                }
-                return max_age - age;
+        }
+        if let Some(secs) = directives.max_age().or(directives.s_max_age()) {
+            let max_age = Duration::from_std(secs).unwrap();
+            if max_age < age {
+                return Duration::seconds(0i64);
             }
+            return max_age - age;
         }
     }
     match response.headers.typed_get::<Expires>() {
@@ -217,9 +216,8 @@ fn get_response_expiry(response: &Response) -> Duration {
 
             if desired > current {
                 return desired - current;
-            } else {
-                return Duration::seconds(0i64);
             }
+            return Duration::seconds(0i64);
         },
         // Malformed Expires header, shouldn't be used to construct a valid response.
         None if response.headers.contains_key(header::EXPIRES) => return Duration::seconds(0i64),
@@ -246,24 +244,23 @@ fn get_response_expiry(response: &Response) -> Duration {
             let last_modified = Timespec::new(last_modified.as_secs() as i64, 0);
             // A typical setting of this fraction might be 10%.
             let raw_heuristic_calc = (current - last_modified) / 10;
-            let result = if raw_heuristic_calc < max_heuristic {
+
+            if raw_heuristic_calc < max_heuristic {
                 raw_heuristic_calc
             } else {
                 max_heuristic
-            };
-            result
+            }
         } else {
             max_heuristic
         };
         if is_cacheable_by_default(*code) {
             // Status codes that are cacheable by default can use heuristics to determine freshness.
             return heuristic_freshness;
-        } else {
-            // Other status codes can only use heuristic freshness if the public cache directive is present.
-            if let Some(ref directives) = response.headers.typed_get::<CacheControl>() {
-                if directives.public() {
-                    return heuristic_freshness;
-                }
+        }
+        // Other status codes can only use heuristic freshness if the public cache directive is present.
+        if let Some(ref directives) = response.headers.typed_get::<CacheControl>() {
+            if directives.public() {
+                return heuristic_freshness;
             }
         }
     }
@@ -335,9 +332,9 @@ fn create_cached_response(
     response.status = cached_resource.data.status.clone();
     response.raw_status = cached_resource.data.raw_status.clone();
     response.url_list = cached_resource.data.url_list.clone();
-    response.https_state = cached_resource.data.https_state.clone();
+    response.https_state = cached_resource.data.https_state;
     response.referrer = request.referrer.to_url().cloned();
-    response.referrer_policy = request.referrer_policy.clone();
+    response.referrer_policy = request.referrer_policy;
     response.aborted = cached_resource.aborted.clone();
     let expires = cached_resource.data.expires;
     let adjusted_expires = get_expiry_adjustment_from_request_headers(request, expires);
@@ -347,10 +344,9 @@ fn create_cached_response(
     // TODO: take must-revalidate into account <https://tools.ietf.org/html/rfc7234#section-5.2.2.1>
     // TODO: if this cache is to be considered shared, take proxy-revalidate into account
     // <https://tools.ietf.org/html/rfc7234#section-5.2.2.7>
-    let has_expired =
-        (adjusted_expires < time_since_validated) || (adjusted_expires == time_since_validated);
+    let has_expired = adjusted_expires <= time_since_validated;
     let cached_response = CachedResponse {
-        response: response,
+        response,
         needs_validation: has_expired,
     };
     Some(cached_response)
@@ -370,12 +366,12 @@ fn create_resource_with_bytes_from_resource(
         data: Measurable(MeasurableCachedResource {
             metadata: resource.data.metadata.clone(),
             location_url: resource.data.location_url.clone(),
-            https_state: resource.data.https_state.clone(),
+            https_state: resource.data.https_state,
             status: Some((StatusCode::PARTIAL_CONTENT, "Partial Content".into())),
             raw_status: Some((206, b"Partial Content".to_vec())),
             url_list: resource.data.url_list.clone(),
-            expires: resource.data.expires.clone(),
-            last_validated: resource.data.last_validated.clone(),
+            expires: resource.data.expires,
+            last_validated: resource.data.last_validated,
         }),
     }
 }
@@ -413,7 +409,7 @@ fn handle_range_request(
         // see <https://tools.ietf.org/html/rfc7233#section-4.3>.
         // TODO: add support for complete and partial resources,
         // whose body is in the ResponseBody::Receiving state.
-        (&(Bound::Included(beginning), Bound::Included(end)), Some(ref complete_resource)) => {
+        (&(Bound::Included(beginning), Bound::Included(end)), Some(complete_resource)) => {
             if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
                 if end == u64::max_value() {
                     // Prevent overflow on the addition below.
@@ -427,7 +423,7 @@ fn handle_range_request(
                         create_resource_with_bytes_from_resource(bytes, complete_resource);
                     let cached_headers = new_resource.data.metadata.headers.lock().unwrap();
                     let cached_response =
-                        create_cached_response(request, &new_resource, &*cached_headers, done_chan);
+                        create_cached_response(request, &new_resource, &cached_headers, done_chan);
                     if let Some(cached_response) = cached_response {
                         return Some(cached_response);
                     }
@@ -451,7 +447,7 @@ fn handle_range_request(
                 if res_beginning <= beginning && res_end >= end {
                     let resource_body = &*partial_resource.body.lock().unwrap();
                     let requested = match resource_body {
-                        &ResponseBody::Done(ref body) => {
+                        ResponseBody::Done(body) => {
                             let b = beginning as usize - res_beginning as usize;
                             let e = end as usize - res_beginning as usize + 1;
                             body.get(b..e)
@@ -460,9 +456,9 @@ fn handle_range_request(
                     };
                     if let Some(bytes) = requested {
                         let new_resource =
-                            create_resource_with_bytes_from_resource(&bytes, partial_resource);
+                            create_resource_with_bytes_from_resource(bytes, partial_resource);
                         let cached_response =
-                            create_cached_response(request, &new_resource, &*headers, done_chan);
+                            create_cached_response(request, &new_resource, &headers, done_chan);
                         if let Some(cached_response) = cached_response {
                             return Some(cached_response);
                         }
@@ -470,7 +466,7 @@ fn handle_range_request(
                 }
             }
         },
-        (&(Bound::Included(beginning), Bound::Unbounded), Some(ref complete_resource)) => {
+        (&(Bound::Included(beginning), Bound::Unbounded), Some(complete_resource)) => {
             if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
                 let b = beginning as usize;
                 let requested = body.get(b..);
@@ -479,7 +475,7 @@ fn handle_range_request(
                         create_resource_with_bytes_from_resource(bytes, complete_resource);
                     let cached_headers = new_resource.data.metadata.headers.lock().unwrap();
                     let cached_response =
-                        create_cached_response(request, &new_resource, &*cached_headers, done_chan);
+                        create_cached_response(request, &new_resource, &cached_headers, done_chan);
                     if let Some(cached_response) = cached_response {
                         return Some(cached_response);
                     }
@@ -505,7 +501,7 @@ fn handle_range_request(
                 if res_beginning < beginning && res_end == total - 1 {
                     let resource_body = &*partial_resource.body.lock().unwrap();
                     let requested = match resource_body {
-                        &ResponseBody::Done(ref body) => {
+                        ResponseBody::Done(body) => {
                             let from_byte = beginning as usize - res_beginning as usize;
                             body.get(from_byte..)
                         },
@@ -513,9 +509,9 @@ fn handle_range_request(
                     };
                     if let Some(bytes) = requested {
                         let new_resource =
-                            create_resource_with_bytes_from_resource(&bytes, partial_resource);
+                            create_resource_with_bytes_from_resource(bytes, partial_resource);
                         let cached_response =
-                            create_cached_response(request, &new_resource, &*headers, done_chan);
+                            create_cached_response(request, &new_resource, &headers, done_chan);
                         if let Some(cached_response) = cached_response {
                             return Some(cached_response);
                         }
@@ -523,7 +519,7 @@ fn handle_range_request(
                 }
             }
         },
-        (&(Bound::Unbounded, Bound::Included(offset)), Some(ref complete_resource)) => {
+        (&(Bound::Unbounded, Bound::Included(offset)), Some(complete_resource)) => {
             if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
                 let from_byte = body.len() - offset as usize;
                 let requested = body.get(from_byte..);
@@ -532,7 +528,7 @@ fn handle_range_request(
                         create_resource_with_bytes_from_resource(bytes, complete_resource);
                     let cached_headers = new_resource.data.metadata.headers.lock().unwrap();
                     let cached_response =
-                        create_cached_response(request, &new_resource, &*cached_headers, done_chan);
+                        create_cached_response(request, &new_resource, &cached_headers, done_chan);
                     if let Some(cached_response) = cached_response {
                         return Some(cached_response);
                     }
@@ -551,8 +547,8 @@ fn handle_range_request(
                 } else {
                     continue;
                 };
-                if !(total >= res_beginning) ||
-                    !(total >= res_end) ||
+                if total < res_beginning ||
+                    total < res_end ||
                     offset == 0 ||
                     offset == u64::max_value()
                 {
@@ -562,7 +558,7 @@ fn handle_range_request(
                 if (total - res_beginning) > (offset - 1) && (total - res_end) < offset + 1 {
                     let resource_body = &*partial_resource.body.lock().unwrap();
                     let requested = match resource_body {
-                        &ResponseBody::Done(ref body) => {
+                        ResponseBody::Done(body) => {
                             let from_byte = body.len() - offset as usize;
                             body.get(from_byte..)
                         },
@@ -570,9 +566,9 @@ fn handle_range_request(
                     };
                     if let Some(bytes) = requested {
                         let new_resource =
-                            create_resource_with_bytes_from_resource(&bytes, partial_resource);
+                            create_resource_with_bytes_from_resource(bytes, partial_resource);
                         let cached_response =
-                            create_cached_response(request, &new_resource, &*headers, done_chan);
+                            create_cached_response(request, &new_resource, &headers, done_chan);
                         if let Some(cached_response) = cached_response {
                             return Some(cached_response);
                         }
@@ -587,13 +583,6 @@ fn handle_range_request(
 }
 
 impl HttpCache {
-    /// Create a new memory cache instance.
-    pub fn new() -> HttpCache {
-        HttpCache {
-            entries: HashMap::new(),
-        }
-    }
-
     /// Constructing Responses from Caches.
     /// <https://tools.ietf.org/html/rfc7234#section-4>
     pub fn construct_response(
@@ -608,11 +597,11 @@ impl HttpCache {
             debug!("non-GET method, not caching");
             return None;
         }
-        let entry_key = CacheKey::new(&request);
+        let entry_key = CacheKey::new(request);
         let resources = self
             .entries
             .get(&entry_key)?
-            .into_iter()
+            .iter()
             .filter(|r| !r.aborted.load(Ordering::Relaxed));
         let mut candidates = vec![];
         for cached_resource in resources {
@@ -671,36 +660,35 @@ impl HttpCache {
                 range_spec.iter().collect(),
                 done_chan,
             );
-        } else {
-            while let Some(cached_resource) = candidates.pop() {
-                // Not a Range request.
-                // Do not allow 206 responses to be constructed.
-                //
-                // See https://tools.ietf.org/html/rfc7234#section-3.1
-                //
-                // A cache MUST NOT use an incomplete response to answer requests unless the
-                // response has been made complete or the request is partial and
-                // specifies a range that is wholly within the incomplete response.
-                //
-                // TODO: Combining partial content to fulfill a non-Range request
-                // see https://tools.ietf.org/html/rfc7234#section-3.3
-                match cached_resource.data.raw_status {
-                    Some((ref code, _)) => {
-                        if *code == 206 {
-                            continue;
-                        }
-                    },
-                    None => continue,
-                }
-                // Returning a response that can be constructed
-                // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
-                // or using the Date header to return the most recent one.
-                let cached_headers = cached_resource.data.metadata.headers.lock().unwrap();
-                let cached_response =
-                    create_cached_response(request, cached_resource, &*cached_headers, done_chan);
-                if let Some(cached_response) = cached_response {
-                    return Some(cached_response);
-                }
+        }
+        while let Some(cached_resource) = candidates.pop() {
+            // Not a Range request.
+            // Do not allow 206 responses to be constructed.
+            //
+            // See https://tools.ietf.org/html/rfc7234#section-3.1
+            //
+            // A cache MUST NOT use an incomplete response to answer requests unless the
+            // response has been made complete or the request is partial and
+            // specifies a range that is wholly within the incomplete response.
+            //
+            // TODO: Combining partial content to fulfill a non-Range request
+            // see https://tools.ietf.org/html/rfc7234#section-3.3
+            match cached_resource.data.raw_status {
+                Some((ref code, _)) => {
+                    if *code == 206 {
+                        continue;
+                    }
+                },
+                None => continue,
+            }
+            // Returning a response that can be constructed
+            // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
+            // or using the Date header to return the most recent one.
+            let cached_headers = cached_resource.data.metadata.headers.lock().unwrap();
+            let cached_response =
+                create_cached_response(request, cached_resource, &cached_headers, done_chan);
+            if let Some(cached_response) = cached_response {
+                return Some(cached_response);
             }
         }
         debug!("couldn't find an appropriate response, not caching");
@@ -712,7 +700,7 @@ impl HttpCache {
     /// whose response body was still receiving data when the resource was constructed,
     /// and whose response has now either been completed or cancelled.
     pub fn update_awaiting_consumers(&self, request: &Request, response: &Response) {
-        let entry_key = CacheKey::new(&request);
+        let entry_key = CacheKey::new(request);
 
         let cached_resources = match self.entries.get(&entry_key) {
             None => return,
@@ -762,9 +750,9 @@ impl HttpCache {
         done_chan: &mut DoneChannel,
     ) -> Option<Response> {
         assert_eq!(response.status.map(|s| s.0), Some(StatusCode::NOT_MODIFIED));
-        let entry_key = CacheKey::new(&request);
+        let entry_key = CacheKey::new(request);
         if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
-            for cached_resource in cached_resources.iter_mut() {
+            if let Some(cached_resource) = cached_resources.iter_mut().next() {
                 // done_chan will have been set to Some(..) by http_network_fetch.
                 // If the body is not receiving data, set the done_chan back to None.
                 // Otherwise, create a new dedicated channel to update the consumer.
@@ -794,9 +782,9 @@ impl HttpCache {
                 );
                 constructed_response.body = cached_resource.body.clone();
                 constructed_response.status = cached_resource.data.status.clone();
-                constructed_response.https_state = cached_resource.data.https_state.clone();
+                constructed_response.https_state = cached_resource.data.https_state;
                 constructed_response.referrer = request.referrer.to_url().cloned();
-                constructed_response.referrer_policy = request.referrer_policy.clone();
+                constructed_response.referrer_policy = request.referrer_policy;
                 constructed_response.raw_status = cached_resource.data.raw_status.clone();
                 constructed_response.url_list = cached_resource.data.url_list.clone();
                 cached_resource.data.expires = get_response_expiry(&constructed_response);
@@ -831,12 +819,12 @@ impl HttpCache {
                 self.invalidate_for_url(&url);
             }
         }
-        if let Some(Ok(ref content_location)) = response
+        if let Some(Ok(content_location)) = response
             .headers
             .get(header::CONTENT_LOCATION)
             .map(HeaderValue::to_str)
         {
-            if let Ok(url) = request.current_url().join(&content_location) {
+            if let Ok(url) = request.current_url().join(content_location) {
                 self.invalidate_for_url(&url);
             }
         }
@@ -862,7 +850,7 @@ impl HttpCache {
             // responses to be stored is present in the response.
             return;
         };
-        let entry_key = CacheKey::new(&request);
+        let entry_key = CacheKey::new(request);
         let metadata = match response.metadata() {
             Ok(FetchMetadata::Filtered {
                 filtered: _,
@@ -874,7 +862,7 @@ impl HttpCache {
         if !response_is_cacheable(&metadata) {
             return;
         }
-        let expiry = get_response_expiry(&response);
+        let expiry = get_response_expiry(response);
         let cacheable_metadata = CachedMetadata {
             headers: Arc::new(Mutex::new(response.headers.clone())),
             data: Measurable(MeasurableCachedMetadata {
@@ -892,7 +880,7 @@ impl HttpCache {
             data: Measurable(MeasurableCachedResource {
                 metadata: cacheable_metadata,
                 location_url: response.location_url.clone(),
-                https_state: response.https_state.clone(),
+                https_state: response.https_state,
                 status: response.status.clone(),
                 raw_status: response.raw_status.clone(),
                 url_list: response.url_list.clone(),
@@ -900,7 +888,7 @@ impl HttpCache {
                 last_validated: time::now(),
             }),
         };
-        let entry = self.entries.entry(entry_key).or_insert_with(|| vec![]);
+        let entry = self.entries.entry(entry_key).or_default();
         entry.push(entry_resource);
         // TODO: Complete incomplete responses, including 206 response, when stored here.
         // See A cache MAY complete a stored incomplete response by making a subsequent range request

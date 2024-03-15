@@ -295,43 +295,6 @@ impl<'a, 'b: 'a> RwData<'a, 'b> {
     }
 }
 
-fn add_font_face_rules(
-    stylesheet: &Stylesheet,
-    guard: &SharedRwLockReadGuard,
-    device: &Device,
-    font_cache_thread: &FontCacheThread,
-    font_cache_sender: &IpcSender<()>,
-    outstanding_web_fonts_counter: &Arc<AtomicUsize>,
-    load_webfonts_synchronously: bool,
-) {
-    if load_webfonts_synchronously {
-        let (sender, receiver) = ipc::channel().unwrap();
-        stylesheet.effective_font_face_rules(&device, guard, |rule| {
-            if let Some(font_face) = rule.font_face() {
-                let effective_sources = font_face.effective_sources();
-                font_cache_thread.add_web_font(
-                    font_face.family().clone(),
-                    effective_sources,
-                    sender.clone(),
-                );
-                receiver.recv().unwrap();
-            }
-        })
-    } else {
-        stylesheet.effective_font_face_rules(&device, guard, |rule| {
-            if let Some(font_face) = rule.font_face() {
-                let effective_sources = font_face.effective_sources();
-                outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
-                font_cache_thread.add_web_font(
-                    font_face.family().clone(),
-                    effective_sources,
-                    (*font_cache_sender).clone(),
-                );
-            }
-        })
-    }
-}
-
 impl Layout for LayoutThread {
     fn process(&mut self, msg: script_layout_interface::message::Msg) {
         self.handle_request(Request::FromScript(msg));
@@ -644,15 +607,16 @@ impl LayoutThread {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
         if stylesheet.is_effective_for_device(self.stylist.device(), &guard) {
-            add_font_face_rules(
-                &*stylesheet,
-                &guard,
-                self.stylist.device(),
-                &self.font_cache_thread,
-                &self.font_cache_sender,
-                &self.outstanding_web_fonts,
-                self.debug.load_webfonts_synchronously,
-            );
+            let newly_loading_font_count =
+                self.font_cache_thread.add_all_web_fonts_from_stylesheet(
+                    &*stylesheet,
+                    &guard,
+                    self.stylist.device(),
+                    &self.font_cache_sender,
+                    self.debug.load_webfonts_synchronously,
+                );
+            self.outstanding_web_fonts
+                .fetch_add(newly_loading_font_count, Ordering::SeqCst);
         }
     }
 
@@ -872,7 +836,7 @@ impl LayoutThread {
                 self.epoch.set(epoch);
 
                 // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-                let (builder, compositor_info, is_contentful) =
+                let (mut builder, compositor_info, is_contentful) =
                     display_list.convert_to_webrender(self.id, viewport_size, epoch.into());
 
                 // Observe notifications about rendered frames if needed right before
@@ -882,7 +846,7 @@ impl LayoutThread {
                     .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
                 self.webrender_api
-                    .send_display_list(compositor_info, builder.finalize().1);
+                    .send_display_list(compositor_info, builder.end().1);
             },
         );
     }
@@ -1281,7 +1245,7 @@ impl LayoutThread {
                     // particular pipeline, so we need to tell WebRender about that.
                     flags.insert(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
-                    let client_point = units::WorldPoint::from_untyped(client_point);
+                    let client_point = units::DevicePoint::from_untyped(client_point);
                     let results = self.webrender_api.hit_test(
                         Some(self.id.to_webrender()),
                         client_point,
@@ -1317,8 +1281,11 @@ impl LayoutThread {
             .insert(state.scroll_id, state.scroll_offset);
 
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
-        self.webrender_api
-            .send_scroll_node(units::LayoutPoint::from_untyped(point), state.scroll_id);
+        self.webrender_api.send_scroll_node(
+            self.id.to_webrender(),
+            units::LayoutPoint::from_untyped(point),
+            state.scroll_id,
+        );
     }
 
     fn set_scroll_states<'a, 'b>(

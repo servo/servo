@@ -47,21 +47,24 @@ pub struct ShapedGlyphEntry {
 }
 
 impl ShapedGlyphData {
-    pub fn new(buffer: *mut hb_buffer_t) -> ShapedGlyphData {
-        unsafe {
-            let mut glyph_count = 0;
-            let glyph_infos = hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
-            assert!(!glyph_infos.is_null());
-            let mut pos_count = 0;
-            let pos_infos = hb_buffer_get_glyph_positions(buffer, &mut pos_count);
-            assert!(!pos_infos.is_null());
-            assert_eq!(glyph_count, pos_count);
+    /// Create a new [`SharedGlyphData`] from the given HarfBuzz buffer.
+    ///
+    /// # Safety
+    ///
+    /// Passing an invalid buffer pointer to this function results in undefined behavior.
+    pub unsafe fn new(buffer: *mut hb_buffer_t) -> ShapedGlyphData {
+        let mut glyph_count = 0;
+        let glyph_infos = hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
+        assert!(!glyph_infos.is_null());
+        let mut pos_count = 0;
+        let pos_infos = hb_buffer_get_glyph_positions(buffer, &mut pos_count);
+        assert!(!pos_infos.is_null());
+        assert_eq!(glyph_count, pos_count);
 
-            ShapedGlyphData {
-                count: glyph_count as usize,
-                glyph_infos: glyph_infos,
-                pos_infos: pos_infos,
-            }
+        ShapedGlyphData {
+            count: glyph_count as usize,
+            glyph_infos,
+            pos_infos,
         }
     }
 
@@ -70,7 +73,7 @@ impl ShapedGlyphData {
         assert!(i < self.count);
 
         unsafe {
-            let glyph_info_i = self.glyph_infos.offset(i as isize);
+            let glyph_info_i = self.glyph_infos.add(i);
             (*glyph_info_i).cluster
         }
     }
@@ -79,13 +82,17 @@ impl ShapedGlyphData {
         self.count
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
+
     /// Returns shaped glyph data for one glyph, and updates the y-position of the pen.
     pub fn entry_for_glyph(&self, i: usize, y_pos: &mut Au) -> ShapedGlyphEntry {
         assert!(i < self.count);
 
         unsafe {
-            let glyph_info_i = self.glyph_infos.offset(i as isize);
-            let pos_info_i = self.pos_infos.offset(i as isize);
+            let glyph_info_i = self.glyph_infos.add(i);
+            let pos_info_i = self.pos_infos.add(i);
             let x_offset = Shaper::fixed_to_float((*pos_info_i).x_offset);
             let y_offset = Shaper::fixed_to_float((*pos_info_i).y_offset);
             let x_advance = Shaper::fixed_to_float((*pos_info_i).x_advance);
@@ -101,7 +108,7 @@ impl ShapedGlyphData {
             } else {
                 // adjust the pen..
                 if y_advance > Au(0) {
-                    *y_pos = *y_pos - y_advance;
+                    *y_pos -= y_advance;
                 }
 
                 Some(Point2D::new(x_offset, *y_pos - y_offset))
@@ -110,7 +117,7 @@ impl ShapedGlyphData {
             ShapedGlyphEntry {
                 codepoint: (*glyph_info_i).codepoint as GlyphId,
                 advance: x_advance,
-                offset: offset,
+                offset,
             }
         }
     }
@@ -136,6 +143,7 @@ impl Drop for Shaper {
 }
 
 impl Shaper {
+    #[allow(clippy::not_unsafe_ptr_arg_deref)] // Has an unsafe block inside
     pub fn new(font: *const Font) -> Shaper {
         unsafe {
             let hb_face: *mut hb_face_t = hb_face_create_for_tables(
@@ -165,9 +173,9 @@ impl Shaper {
             );
 
             Shaper {
-                hb_face: hb_face,
-                hb_font: hb_font,
-                font: font,
+                hb_face,
+                hb_font,
+                font,
             }
         }
     }
@@ -415,7 +423,7 @@ impl Shaper {
         glyphs: &mut GlyphStore,
         buffer: *mut hb_buffer_t,
     ) {
-        let glyph_data = ShapedGlyphData::new(buffer);
+        let glyph_data = unsafe { ShapedGlyphData::new(buffer) };
         let glyph_count = glyph_data.len();
         let byte_max = text.len();
 
@@ -485,7 +493,7 @@ impl Shaper {
                 }
 
                 // if no glyphs were found yet, extend the char byte range more.
-                if glyph_span.len() == 0 {
+                if glyph_span.is_empty() {
                     continue;
                 }
 
@@ -508,8 +516,8 @@ impl Shaper {
                 // span or reach the end of the text.
             }
 
-            assert!(byte_range.len() > 0);
-            assert!(glyph_span.len() > 0);
+            assert!(!byte_range.is_empty());
+            assert!(!glyph_span.is_empty());
 
             // Now byte_range is the ligature clump formed by the glyphs in glyph_span.
             // We will save these glyphs to the glyph store at the index of the first byte.
@@ -580,7 +588,7 @@ impl Shaper {
         options: &ShapingOptions,
     ) -> Au {
         if let Some(letter_spacing) = options.letter_spacing {
-            advance = advance + letter_spacing;
+            advance += letter_spacing;
         };
 
         // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
@@ -654,13 +662,10 @@ extern "C" fn glyph_h_advance_func(
 
 fn glyph_space_advance(font: *const Font) -> (hb_codepoint_t, f64) {
     let space_unicode = ' ';
-    let space_glyph: hb_codepoint_t;
-    match unsafe { (*font).glyph_index(space_unicode) } {
-        Some(g) => {
-            space_glyph = g as hb_codepoint_t;
-        },
+    let space_glyph: hb_codepoint_t = match unsafe { (*font).glyph_index(space_unicode) } {
+        Some(g) => g as hb_codepoint_t,
         None => panic!("No space info"),
-    }
+    };
     let space_advance = unsafe { (*font).glyph_h_advance(space_glyph as GlyphId) };
     (space_glyph, space_advance)
 }

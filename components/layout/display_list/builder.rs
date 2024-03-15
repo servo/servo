@@ -8,6 +8,8 @@
 //! list building, as the actual painting does not happen here—only deciding *what* we're going to
 //! paint.
 
+#![allow(clippy::too_many_arguments)]
+
 use std::default::Default;
 use std::sync::Arc;
 use std::{f32, mem};
@@ -27,6 +29,7 @@ use log::{debug, warn};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
+use script_traits::compositor::ScrollSensitivity;
 use servo_config::opts;
 use servo_geometry::{self, MaxRect};
 use style::color::AbsoluteColor;
@@ -49,7 +52,7 @@ use webrender_api::units::{LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{
     self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ColorU,
     ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder,
-    NinePatchBorderSource, NormalBorder, PropertyBinding, ScrollSensitivity, StickyOffsetBounds,
+    NinePatchBorderSource, NormalBorder, PropertyBinding, StickyOffsetBounds,
 };
 
 use crate::block::BlockFlow;
@@ -80,7 +83,7 @@ static THREAD_TINT_COLORS: [ColorF; 8] = [
         a: 0.7,
     },
     ColorF {
-        r: 255.0 / 255.0,
+        r: 1.0,
         g: 212.0 / 255.0,
         b: 83.0 / 255.0,
         a: 0.7,
@@ -110,7 +113,7 @@ static THREAD_TINT_COLORS: [ColorF; 8] = [
         a: 0.7,
     },
     ColorF {
-        r: 255.0 / 255.0,
+        r: 1.0,
         g: 249.0 / 255.0,
         b: 201.0 / 255.0,
         a: 0.7,
@@ -382,6 +385,7 @@ impl<'a> DisplayListBuildState<'a> {
         &self,
         clip_rect: Rect<Au>,
         node: OpaqueNode,
+        unique_id: u64,
         cursor: Option<Cursor>,
         section: DisplayListSection,
     ) -> BaseDisplayItem {
@@ -395,6 +399,7 @@ impl<'a> DisplayListBuildState<'a> {
         self.create_base_display_item_with_clipping_and_scrolling(
             clip_rect,
             node,
+            unique_id,
             cursor,
             section,
             clipping_and_scrolling,
@@ -405,12 +410,17 @@ impl<'a> DisplayListBuildState<'a> {
         &self,
         clip_rect: Rect<Au>,
         node: OpaqueNode,
+        unique_id: u64,
         cursor: Option<Cursor>,
         section: DisplayListSection,
         clipping_and_scrolling: ClippingAndScrolling,
     ) -> BaseDisplayItem {
         BaseDisplayItem::new(
-            DisplayItemMetadata { node, cursor },
+            DisplayItemMetadata {
+                node,
+                unique_id,
+                cursor,
+            },
             clip_rect.to_layout(),
             section,
             self.current_stacking_context_id,
@@ -443,7 +453,7 @@ impl<'a> DisplayListBuildState<'a> {
         let mut list = Vec::new();
         let root_context = mem::replace(&mut self.root_stacking_context, StackingContext::root());
 
-        self.to_display_list_for_stacking_context(&mut list, root_context);
+        self.move_to_display_list_for_stacking_context(&mut list, root_context);
 
         DisplayList {
             list,
@@ -451,7 +461,7 @@ impl<'a> DisplayListBuildState<'a> {
         }
     }
 
-    fn to_display_list_for_stacking_context(
+    fn move_to_display_list_for_stacking_context(
         &mut self,
         list: &mut Vec<DisplayItem>,
         stacking_context: StackingContext,
@@ -473,7 +483,7 @@ impl<'a> DisplayListBuildState<'a> {
                     .into_iter()
                     .map(|index| index.to_define_item()),
             );
-            self.to_display_list_for_items(list, child_items, info.children);
+            self.move_to_display_list_for_items(list, child_items, info.children);
         } else {
             let (push_item, pop_item) = stacking_context.to_display_list_items();
             list.push(push_item);
@@ -482,12 +492,12 @@ impl<'a> DisplayListBuildState<'a> {
                     .into_iter()
                     .map(|index| index.to_define_item()),
             );
-            self.to_display_list_for_items(list, child_items, info.children);
+            self.move_to_display_list_for_items(list, child_items, info.children);
             list.push(pop_item);
         }
     }
 
-    fn to_display_list_for_items(
+    fn move_to_display_list_for_items(
         &mut self,
         list: &mut Vec<DisplayItem>,
         mut child_items: Vec<DisplayItem>,
@@ -509,7 +519,7 @@ impl<'a> DisplayListBuildState<'a> {
             .map_or(false, |child| child.z_index < 0)
         {
             let context = child_stacking_contexts.next().unwrap();
-            self.to_display_list_for_stacking_context(list, context);
+            self.move_to_display_list_for_stacking_context(list, context);
         }
 
         // Step 4: Block backgrounds and borders.
@@ -524,7 +534,7 @@ impl<'a> DisplayListBuildState<'a> {
             child.context_type == StackingContextType::PseudoFloat
         }) {
             let context = child_stacking_contexts.next().unwrap();
-            self.to_display_list_for_stacking_context(list, context);
+            self.move_to_display_list_for_stacking_context(list, context);
         }
 
         // Step 6 & 7: Content and inlines that generate stacking contexts.
@@ -536,7 +546,7 @@ impl<'a> DisplayListBuildState<'a> {
 
         // Step 8 & 9: Positioned descendants with nonnegative, numeric z-indices.
         for child in child_stacking_contexts {
-            self.to_display_list_for_stacking_context(list, child);
+            self.move_to_display_list_for_stacking_context(list, child);
         }
 
         // Step 10: Outlines.
@@ -700,6 +710,7 @@ impl Fragment {
             let base = state.create_base_display_item(
                 bounds,
                 self.node,
+                self.unique_id(),
                 get_cursor(style, Cursor::Default),
                 display_list_section,
             );
@@ -840,6 +851,7 @@ impl Fragment {
             let base = state.create_base_display_item(
                 placement.clip_rect,
                 self.node,
+                self.unique_id(),
                 get_cursor(style, Cursor::Default),
                 display_list_section,
             );
@@ -962,6 +974,7 @@ impl Fragment {
             let base = state.create_base_display_item(
                 placement.clip_rect,
                 self.node,
+                self.unique_id(),
                 get_cursor(style, Cursor::Default),
                 display_list_section,
             );
@@ -1017,7 +1030,7 @@ impl Fragment {
                     };
                     DisplayItem::RadialGradient(CommonDisplayItem::with_data(base, item, stops))
                 },
-                Gradient::Conic { .. } => unimplemented!(),
+                Gradient::Conic { .. } => return,
             };
             state.add_display_item(display_item);
         });
@@ -1038,6 +1051,7 @@ impl Fragment {
             let base = state.create_base_display_item(
                 clip,
                 self.node,
+                self.unique_id(),
                 get_cursor(style, Cursor::Default),
                 display_list_section,
             );
@@ -1124,6 +1138,7 @@ impl Fragment {
         let base = state.create_base_display_item(
             clip,
             self.node,
+            self.unique_id(),
             get_cursor(style, Cursor::Default),
             display_list_section,
         );
@@ -1219,7 +1234,7 @@ impl Fragment {
                 )?;
                 width = image.width;
                 height = image.height;
-                NinePatchBorderSource::Image(image.key?)
+                NinePatchBorderSource::Image(image.key?, ImageRendering::Auto)
             },
             Image::PaintWorklet(ref paint_worklet) => {
                 let image = self.get_webrender_image_for_paint_worklet(
@@ -1230,7 +1245,7 @@ impl Fragment {
                 )?;
                 width = image.width;
                 height = image.height;
-                NinePatchBorderSource::Image(image.key?)
+                NinePatchBorderSource::Image(image.key?, ImageRendering::Auto)
             },
             Image::Gradient(ref gradient) => match **gradient {
                 Gradient::Linear {
@@ -1271,7 +1286,7 @@ impl Fragment {
                     stops = radial_stops;
                     NinePatchBorderSource::RadialGradient(wr_gradient)
                 },
-                Gradient::Conic { .. } => unimplemented!(),
+                Gradient::Conic { .. } => return None,
             },
             _ => return None,
         };
@@ -1286,7 +1301,6 @@ impl Fragment {
             fill: border_image_fill,
             repeat_horizontal: border_image_repeat.0.to_layout(),
             repeat_vertical: border_image_repeat.1.to_layout(),
-            outset: SideOffsets2D::zero(),
         });
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
@@ -1338,6 +1352,7 @@ impl Fragment {
         let base = state.create_base_display_item(
             clip,
             self.node,
+            self.unique_id(),
             get_cursor(style, Cursor::Default),
             DisplayListSection::Outlines,
         );
@@ -1370,6 +1385,7 @@ impl Fragment {
         let base = state.create_base_display_item(
             clip,
             self.node,
+            self.unique_id(),
             get_cursor(style, Cursor::Default),
             DisplayListSection::Content,
         );
@@ -1400,12 +1416,13 @@ impl Fragment {
         let base = state.create_base_display_item(
             clip,
             self.node,
+            self.unique_id(),
             get_cursor(style, Cursor::Default),
             DisplayListSection::Content,
         );
         // TODO(gw): Use a better estimate for wavy line thickness.
         let area = baseline.to_layout();
-        let wavy_line_thickness = (0.33 * area.size.height).ceil();
+        let wavy_line_thickness = (0.33 * area.size().height).ceil();
         state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
             base,
             webrender_api::LineDisplayItem {
@@ -1430,6 +1447,7 @@ impl Fragment {
         let base = state.create_base_display_item(
             clip,
             self.node,
+            self.unique_id(),
             get_cursor(&self.style, Cursor::Default),
             DisplayListSection::Content,
         );
@@ -1473,6 +1491,7 @@ impl Fragment {
             let base = state.create_base_display_item(
                 stacking_relative_border_box,
                 self.node,
+                self.unique_id(),
                 get_cursor(&self.style, Cursor::Default),
                 display_list_section,
             );
@@ -1520,6 +1539,7 @@ impl Fragment {
         let base = state.create_base_display_item(
             insertion_point_bounds,
             self.node,
+            self.unique_id(),
             get_cursor(&self.style, cursor),
             display_list_section,
         );
@@ -1707,6 +1727,7 @@ impl Fragment {
             let base = state.create_base_display_item_with_clipping_and_scrolling(
                 content_size,
                 self.node,
+                self.unique_id(),
                 // FIXME(emilio): Why does this ignore pointer-events?
                 get_cursor(&self.style, Cursor::Default).or(Some(Cursor::Default)),
                 display_list_section,
@@ -1771,6 +1792,7 @@ impl Fragment {
             state.create_base_display_item(
                 stacking_relative_border_box,
                 self.node,
+                self.unique_id(),
                 get_cursor(&self.style, Cursor::Default),
                 DisplayListSection::Content,
             )
@@ -1857,7 +1879,7 @@ impl Fragment {
                     //         looks bogus.
                     state.iframe_sizes.insert(
                         browsing_context_id,
-                        euclid::Size2D::new(bounds.size.width, bounds.size.height),
+                        euclid::Size2D::new(bounds.size().width, bounds.size().height),
                     );
 
                     let pipeline_id = match fragment_info.pipeline_id {
@@ -2065,6 +2087,7 @@ impl Fragment {
         let base = state.create_base_display_item(
             clip,
             self.node,
+            self.unique_id(),
             get_cursor(&self.style, cursor),
             DisplayListSection::Content,
         );
@@ -2228,13 +2251,14 @@ impl Fragment {
         let base = state.create_base_display_item(
             clip,
             self.node,
+            self.unique_id(),
             get_cursor(&self.style, Cursor::Default),
             DisplayListSection::Content,
         );
 
         // TODO(gw): Use a better estimate for wavy line thickness.
         let area = stacking_relative_box.to_layout();
-        let wavy_line_thickness = (0.33 * area.size.height).ceil();
+        let wavy_line_thickness = (0.33 * area.size().height).ceil();
         state.add_display_item(DisplayItem::Line(CommonDisplayItem::new(
             base,
             webrender_api::LineDisplayItem {
@@ -2642,10 +2666,10 @@ impl BlockFlow {
         // The margins control which edges have sticky behavior.
         let sticky_frame_data = StickyFrameData {
             margins: SideOffsets2D::new(
-                sticky_position.top.to_option().map(|v| v.to_f32_px()),
-                sticky_position.right.to_option().map(|v| v.to_f32_px()),
-                sticky_position.bottom.to_option().map(|v| v.to_f32_px()),
-                sticky_position.left.to_option().map(|v| v.to_f32_px()),
+                sticky_position.top.as_option().map(|v| v.to_f32_px()),
+                sticky_position.right.as_option().map(|v| v.to_f32_px()),
+                sticky_position.bottom.as_option().map(|v| v.to_f32_px()),
+                sticky_position.left.as_option().map(|v| v.to_f32_px()),
             ),
             vertical_offset_bounds,
             horizontal_offset_bounds,
@@ -2943,8 +2967,15 @@ impl BaseFlow {
 
         let mut color = THREAD_TINT_COLORS[thread_id as usize % THREAD_TINT_COLORS.len()];
         color.a = 1.0;
-        let base =
-            state.create_base_display_item(self.clip, node, None, DisplayListSection::Content);
+        let base = state.create_base_display_item(
+            self.clip,
+            node,
+            // This item will never become a spatial tree node, so it's fine
+            // to pass 0 here.
+            0,
+            None,
+            DisplayListSection::Content,
+        );
         let bounds = stacking_context_relative_bounds.inflate(Au::from_px(2), Au::from_px(2));
         state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
             base,
@@ -3121,6 +3152,6 @@ trait ToF32Px {
 impl ToF32Px for Rect<Au> {
     type Output = LayoutRect;
     fn to_f32_px(&self) -> LayoutRect {
-        LayoutRect::from_untyped(&servo_geometry::au_rect_to_f32_rect(*self))
+        LayoutRect::from_untyped(&servo_geometry::au_rect_to_f32_rect(*self).to_box2d())
     }
 }

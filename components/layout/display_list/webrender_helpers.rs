@@ -10,12 +10,14 @@
 use gfx_traits::WebRenderEpochToU16;
 use log::trace;
 use msg::constellation_msg::PipelineId;
-use script_traits::compositor::{CompositorDisplayListInfo, ScrollTreeNodeId, ScrollableNodeInfo};
+use script_traits::compositor::{
+    CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo,
+};
 use webrender_api::units::{LayoutPoint, LayoutSize, LayoutVector2D};
 use webrender_api::{
     self, ClipChainId, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem,
-    DisplayListBuilder, Epoch, PrimitiveFlags, PropertyBinding, PushStackingContextDisplayItem,
-    RasterSpace, ReferenceFrameKind, SpaceAndClipInfo, SpatialId, StackingContext,
+    DisplayListBuilder, Epoch, HasScrollLinkedEffect, PrimitiveFlags, PropertyBinding, RasterSpace,
+    ReferenceFrameKind, SpaceAndClipInfo, SpatialId, SpatialTreeItemKey,
 };
 
 use crate::display_list::items::{
@@ -32,7 +34,6 @@ impl<'a> ClipScrollState<'a> {
     fn new(
         clip_scroll_nodes: &'a mut Vec<ClipScrollNode>,
         compositor_info: CompositorDisplayListInfo,
-        builder: &mut DisplayListBuilder,
     ) -> Self {
         let mut state = ClipScrollState {
             clip_scroll_nodes,
@@ -48,9 +49,7 @@ impl<'a> ClipScrollState<'a> {
             Some(state.compositor_info.root_reference_frame_id);
         state.clip_scroll_nodes[1].scroll_node_id = Some(state.compositor_info.root_scroll_node_id);
 
-        let root_clip_chain =
-            builder.define_clip_chain(None, [ClipId::root(state.compositor_info.pipeline_id)]);
-
+        let root_clip_chain = ClipChainId::INVALID;
         state.add_clip_node_mapping(0, root_clip_chain);
         state.add_clip_node_mapping(1, root_clip_chain);
 
@@ -100,6 +99,25 @@ impl<'a> ClipScrollState<'a> {
         self.clip_scroll_nodes[index].scroll_node_id =
             self.clip_scroll_nodes[parent_index].scroll_node_id
     }
+
+    pub fn define_clip_chain<I>(
+        &self,
+        builder: &mut DisplayListBuilder,
+        parent: ClipChainId,
+        clips: I,
+    ) -> ClipChainId
+    where
+        I: IntoIterator<Item = ClipId>,
+        I::IntoIter: ExactSizeIterator + Clone,
+    {
+        // We use INVALID to mean "no clipping", but that cannot be passed as an argument
+        // to `define_clip_chain()`, so it must be converted into `None`.
+        let parent = match parent {
+            ClipChainId::INVALID => None,
+            parent => Some(parent),
+        };
+        builder.define_clip_chain(parent, clips)
+    }
 }
 
 /// Contentful paint, for the purpose of
@@ -117,12 +135,18 @@ impl DisplayList {
     ) -> (DisplayListBuilder, CompositorDisplayListInfo, IsContentful) {
         let webrender_pipeline = pipeline_id.to_webrender();
         let mut builder = DisplayListBuilder::new(webrender_pipeline);
+        builder.begin();
 
-        let content_size = self.bounds().size;
+        let content_size = self.bounds().size();
         let mut state = ClipScrollState::new(
             &mut self.clip_scroll_nodes,
-            CompositorDisplayListInfo::new(viewport_size, content_size, webrender_pipeline, epoch),
-            &mut builder,
+            CompositorDisplayListInfo::new(
+                viewport_size,
+                content_size,
+                webrender_pipeline,
+                epoch,
+                ScrollSensitivity::ScriptAndInputEvents,
+            ),
         );
 
         let mut is_contentful = IsContentful(false);
@@ -135,6 +159,15 @@ impl DisplayList {
 }
 
 impl DisplayItem {
+    fn get_spatial_tree_item_key(
+        &self,
+        builder: &DisplayListBuilder,
+        node_index: usize,
+    ) -> SpatialTreeItemKey {
+        let pipeline_tag = (builder.pipeline_id.0 as u64) << 32 | builder.pipeline_id.1 as u64;
+        SpatialTreeItemKey::new(pipeline_tag, node_index as u64)
+    }
+
     fn convert_to_webrender(
         &mut self,
         state: &mut ClipScrollState,
@@ -161,7 +194,7 @@ impl DisplayItem {
             CommonItemProperties {
                 clip_rect: base.clip_rect,
                 spatial_id: current_scroll_node_id.spatial_id,
-                clip_id: ClipId::ClipChain(current_clip_chain_id),
+                clip_chain_id: current_clip_chain_id,
                 // TODO(gw): Make use of the WR backface visibility functionality.
                 flags: PrimitiveFlags::default(),
             }
@@ -185,12 +218,10 @@ impl DisplayItem {
             );
 
             builder.push_hit_test(
-                &CommonItemProperties {
-                    clip_rect: bounds,
-                    spatial_id: current_scroll_node_id.spatial_id,
-                    clip_id: ClipId::ClipChain(current_clip_chain_id),
-                    flags: PrimitiveFlags::default(),
-                },
+                bounds,
+                current_clip_chain_id,
+                current_scroll_node_id.spatial_id,
+                PrimitiveFlags::default(),
                 (hit_test_index as u64, state.compositor_info.epoch.as_u16()),
             );
         };
@@ -262,7 +293,7 @@ impl DisplayItem {
                 builder.push_shadow(
                     &SpaceAndClipInfo {
                         spatial_id: common.spatial_id,
-                        clip_id: common.clip_id,
+                        clip_chain_id: common.clip_chain_id,
                     },
                     item.shadow,
                     true,
@@ -281,7 +312,7 @@ impl DisplayItem {
                     common.clip_rect,
                     &SpaceAndClipInfo {
                         spatial_id: common.spatial_id,
-                        clip_id: common.clip_id,
+                        clip_chain_id: common.clip_chain_id,
                     },
                     item.iframe.to_webrender(),
                     true,
@@ -309,6 +340,7 @@ impl DisplayItem {
                                     ReferenceFrameKind::Transform {
                                         is_2d_scale_translation: false,
                                         should_snap: false,
+                                        paired_with_perspective: false,
                                     },
                                 ),
                                 (Some(t), Some(p)) => (
@@ -320,15 +352,16 @@ impl DisplayItem {
                                 (None, None) => unreachable!(),
                             };
 
+                        let index = frame_index.to_index();
                         let new_spatial_id = builder.push_reference_frame(
-                            stacking_context.bounds.origin,
+                            stacking_context.bounds.min,
                             current_scroll_node_id.spatial_id,
                             stacking_context.transform_style,
                             PropertyBinding::Value(transform),
                             ref_frame,
+                            self.get_spatial_tree_item_key(builder, index),
                         );
 
-                        let index = frame_index.to_index();
                         state.add_clip_node_mapping(index, current_clip_chain_id);
                         state.register_spatial_node(
                             index,
@@ -337,16 +370,11 @@ impl DisplayItem {
                             None,
                         );
 
-                        bounds.origin = LayoutPoint::zero();
+                        bounds.min = LayoutPoint::zero();
                         new_spatial_id
                     } else {
                         current_scroll_node_id.spatial_id
                     };
-
-                if !stacking_context.filters.is_empty() {
-                    builder.push_item(&WrDisplayItem::SetFilterOps);
-                    builder.push_iter(&stacking_context.filters);
-                }
 
                 // TODO(jdm): WebRender now requires us to create stacking context items
                 //            with the IS_BLEND_CONTAINER flag enabled if any children
@@ -354,20 +382,20 @@ impl DisplayItem {
                 //            This will require additional tracking during layout
                 //            before we start collecting stacking contexts so that
                 //            information will be available when we reach this point.
-                let wr_item = PushStackingContextDisplayItem {
-                    origin: bounds.origin,
+                builder.push_stacking_context(
+                    bounds.min,
                     spatial_id,
-                    prim_flags: PrimitiveFlags::default(),
-                    stacking_context: StackingContext {
-                        transform_style: stacking_context.transform_style,
-                        mix_blend_mode: stacking_context.mix_blend_mode,
-                        clip_id: None,
-                        raster_space: RasterSpace::Screen,
-                        flags: Default::default(),
-                    },
-                };
+                    PrimitiveFlags::default(),
+                    None,
+                    stacking_context.transform_style,
+                    stacking_context.mix_blend_mode,
+                    &stacking_context.filters,
+                    &[],
+                    &[],
+                    RasterSpace::Screen,
+                    Default::default(),
+                );
 
-                builder.push_item(&WrDisplayItem::PushStackingContext(wr_item));
                 IsContentful(false)
             },
             DisplayItem::PopStackingContext(ref item) => {
@@ -386,43 +414,38 @@ impl DisplayItem {
                 let parent_spatial_id = state.webrender_spatial_id_for_index(parent_index);
                 let parent_clip_chain_id = state.webrender_clip_id_for_index(parent_index);
 
-                let parent_space_and_clip_info = SpaceAndClipInfo {
-                    clip_id: ClipId::root(state.compositor_info.pipeline_id),
-                    spatial_id: parent_spatial_id,
-                };
-
                 match node.node_type {
                     ClipScrollNodeType::Clip(clip_type) => {
                         let clip_id = match clip_type {
                             ClipType::Rect => {
-                                builder.define_clip_rect(&parent_space_and_clip_info, item_rect)
+                                builder.define_clip_rect(parent_spatial_id, item_rect)
                             },
-                            ClipType::Rounded(complex) => builder
-                                .define_clip_rounded_rect(&parent_space_and_clip_info, complex),
+                            ClipType::Rounded(complex) => {
+                                builder.define_clip_rounded_rect(parent_spatial_id, complex)
+                            },
                         };
 
                         let clip_chain_id =
-                            builder.define_clip_chain(Some(parent_clip_chain_id), [clip_id]);
+                            state.define_clip_chain(builder, parent_clip_chain_id, [clip_id]);
                         state.add_clip_node_mapping(index, clip_chain_id);
                         state.add_spatial_node_mapping_to_parent_index(index, parent_index);
                     },
                     ClipScrollNodeType::ScrollFrame(scroll_sensitivity, external_id) => {
-                        let clip_id =
-                            builder.define_clip_rect(&parent_space_and_clip_info, item_rect);
+                        let clip_id = builder.define_clip_rect(parent_spatial_id, item_rect);
                         let clip_chain_id =
-                            builder.define_clip_chain(Some(parent_clip_chain_id), [clip_id]);
+                            state.define_clip_chain(builder, parent_clip_chain_id, [clip_id]);
                         state.add_clip_node_mapping(index, clip_chain_id);
 
-                        let spatial_id = builder
-                            .define_scroll_frame(
-                                &parent_space_and_clip_info,
-                                external_id,
-                                node.content_rect,
-                                item_rect,
-                                scroll_sensitivity,
-                                LayoutVector2D::zero(),
-                            )
-                            .spatial_id;
+                        let spatial_id = builder.define_scroll_frame(
+                            parent_spatial_id,
+                            external_id,
+                            node.content_rect,
+                            item_rect,
+                            LayoutVector2D::zero(), /* external_scroll_offset */
+                            0,                      /* scroll_offset_generation */
+                            HasScrollLinkedEffect::No,
+                            self.get_spatial_tree_item_key(builder, index),
+                        );
 
                         state.register_spatial_node(
                             index,
@@ -430,7 +453,7 @@ impl DisplayItem {
                             Some(parent_index),
                             Some(ScrollableNodeInfo {
                                 external_id,
-                                scrollable_size: node.content_rect.size - item_rect.size,
+                                scrollable_size: node.content_rect.size() - item_rect.size(),
                                 scroll_sensitivity,
                                 offset: LayoutVector2D::zero(),
                             }),
@@ -444,7 +467,8 @@ impl DisplayItem {
                             sticky_data.margins,
                             sticky_data.vertical_offset_bounds,
                             sticky_data.horizontal_offset_bounds,
-                            LayoutVector2D::zero(),
+                            LayoutVector2D::zero(), /* previously_applied_offset */
+                            self.get_spatial_tree_item_key(builder, index),
                         );
 
                         state.add_clip_node_mapping(index, parent_clip_chain_id);

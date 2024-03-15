@@ -331,7 +331,7 @@ function assert_phase(animation, phase) {
 // crbug.com/1378671
 async function waitForCompositorReady() {
   const animation =
-      document.body.animate({ opacity: [ 1, 1 ] }, {duration: 1 });
+      document.body.animate({ opacity: [ 0, 1 ] }, {duration: 1 });
   return animation.finished;
 }
 

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Interaction of 'inert' attribute with fullscreen element</title>
+<link rel="author" title="Peng Zhou" href="mailto:zhoupeng.1996@bytedance.com">
+<meta name="assert" content="Checks that fullscreen element inertness from ancestors.">
+<div id="wrapper">
+  wrapper
+  <span>
+    wrapper-child element
+  </span>
+  <div id="fullscreen">
+    fullscreen
+    <span id="child">
+      child
+    </span>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+async function cleanup() {
+  if (document.fullscreenElement) {
+    await document.exitFullscreen();
+  }
+  getSelection().removeAllRanges();
+}
+
+async function setupTest(element, context) {
+  element.inert = true;
+  await test_driver.bless("request full screen");
+  await fullscreen.requestFullscreen();
+  context.add_cleanup(async () => {
+    element.inert = false;
+    await cleanup();
+  });
+}
+
+add_completion_callback(cleanup);
+
+promise_test(async function() {
+  await setupTest(child, this);
+  assert_false(window.find("wrapper"));
+  assert_false(window.find("wrapper-child"));
+  assert_true(window.find("fullscreen"));
+  assert_false(window.find("child"));
+}, "Inner nodes with 'inert' attribute become inert anyways");
+
+promise_test(async function() {
+  await setupTest(fullscreen, this);
+  assert_false(window.find("wrapper"));
+  assert_false(window.find("wrapper-child"));
+  assert_false(window.find("fullscreen"));
+  assert_false(window.find("child"));
+}, "If the fullscreen element has the 'inert' attribute, everything becomes inert");
+
+promise_test(async function() {
+  await setupTest(wrapper, this);
+  assert_false(window.find("wrapper"));
+  assert_false(window.find("wrapper-child"));
+  assert_true(window.find("fullscreen"));
+  assert_true(window.find("child"));
+}, "If an ancestor of the fullscreen element has the 'inert' attribute, the fullscreen element escapes inertness");
+</script>

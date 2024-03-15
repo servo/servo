@@ -106,8 +106,8 @@ impl Cookie {
                 ""
             })
             .to_owned();
-        if path.chars().next() != Some('/') {
-            path = Cookie::default_path(&request.path().to_owned()).to_string();
+        if !path.starts_with('/') {
+            path = Cookie::default_path(request.path()).to_string();
         }
         cookie.set_path(path);
 
@@ -152,12 +152,12 @@ impl Cookie {
     // http://tools.ietf.org/html/rfc6265#section-5.1.4
     pub fn default_path(request_path: &str) -> &str {
         // Step 2
-        if request_path.chars().next() != Some('/') {
+        if !request_path.starts_with('/') {
             return "/";
         }
 
         // Step 3
-        let rightmost_slash_idx = request_path.rfind("/").unwrap();
+        let rightmost_slash_idx = request_path.rfind('/').unwrap();
         if rightmost_slash_idx == 0 {
             // There's only one slash; it's the first character
             return "/";
@@ -178,11 +178,11 @@ impl Cookie {
                 (
                     // The cookie-path is a prefix of the request-path, and the last
                     // character of the cookie-path is %x2F ("/").
-                    cookie_path.ends_with("/") ||
+                    cookie_path.ends_with('/') ||
             // The cookie-path is a prefix of the request-path, and the first
             // character of the request-path that is not included in the cookie-
             // path is a %x2F ("/") character.
-            request_path[cookie_path.len()..].starts_with("/")
+            request_path[cookie_path.len()..].starts_with('/')
                 ))
     }
 
@@ -205,15 +205,13 @@ impl Cookie {
             if self.cookie.domain() != domain {
                 return false;
             }
-        } else {
-            if let (Some(domain), &Some(ref cookie_domain)) = (domain, &self.cookie.domain()) {
-                if !Cookie::domain_match(domain, cookie_domain) {
-                    return false;
-                }
+        } else if let (Some(domain), Some(cookie_domain)) = (domain, &self.cookie.domain()) {
+            if !Cookie::domain_match(domain, cookie_domain) {
+                return false;
             }
         }
 
-        if let Some(ref cookie_path) = self.cookie.path() {
+        if let Some(cookie_path) = self.cookie.path() {
             if !Cookie::path_match(url.path(), cookie_path) {
                 return false;
             }

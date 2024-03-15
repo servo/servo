@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Node.appendChild: inserting script and meta-referrer from a div</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+promise_test(async t => {
+    const script = document.createElement("script");
+    const meta = document.createElement("meta");
+    meta.name = "referrer";
+    meta.content = "no-referrer";
+    const fragment = new DocumentFragment();
+    const done = new Promise(resolve => {
+        window.didFetch = resolve;
+    });
+    script.textContent = `
+        (async function() {
+            const response = await fetch("/html/infrastructure/urls/terminology-0/resources/echo-referrer-text.py")
+            const text = await response.text();
+            window.didFetch(text);
+        })();
+    `;
+    fragment.append(script, meta);
+    document.head.append(fragment);
+    const result = await done;
+    assert_equals(result, "");
+}, "<meta name=referrer> should apply before script, as it is an insertion step " +
+    "and not a post-insertion step");
+</script>

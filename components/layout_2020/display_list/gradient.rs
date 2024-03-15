@@ -5,9 +5,12 @@
 use style::color::mix::ColorInterpolationMethod;
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, Gradient, LineDirection};
-use style::values::computed::{Color, Length, LengthPercentage, Position};
+use style::values::computed::{
+    Angle, AngleOrPercentage, Color, Length, LengthPercentage, Position,
+};
 use style::values::generics::image::{Circle, ColorStop, Ellipse, GradientItem, ShapeExtent};
 use webrender_api::{self as wr, units};
+use wr::ColorF;
 
 pub(super) fn build(
     style: &ComputedValues,
@@ -56,7 +59,26 @@ pub(super) fn build(
             layer,
             builder,
         ),
-        Gradient::Conic { .. } => unimplemented!(),
+        Gradient::Conic {
+            angle,
+            position,
+            color_interpolation_method,
+            items,
+            repeating,
+        } => build_conic(
+            style,
+            *angle,
+            position,
+            *color_interpolation_method,
+            items,
+            if *repeating {
+                wr::ExtendMode::Repeat
+            } else {
+                wr::ExtendMode::Clamp
+            },
+            layer,
+            builder,
+        ),
     }
 }
 
@@ -148,7 +170,9 @@ pub(super) fn build_linear(
     let start_point = center - half_gradient_line;
     let end_point = center + half_gradient_line;
 
-    let stops = fixup_stops(style, items, Length::new(gradient_line_length));
+    let mut color_stops =
+        gradient_items_to_color_stops(style, items, Length::new(gradient_line_length));
+    let stops = fixup_stops(&mut color_stops);
     let linear_gradient = builder
         .wr()
         .create_gradient(start_point, end_point, stops, extend_mode);
@@ -162,6 +186,7 @@ pub(super) fn build_linear(
 }
 
 /// <https://drafts.csswg.org/css-images-3/#radial-gradients>
+#[allow(clippy::too_many_arguments)]
 pub(super) fn build_radial(
     style: &ComputedValues,
     items: &[GradientItem<Color, LengthPercentage>],
@@ -249,7 +274,9 @@ pub(super) fn build_radial(
     //  where the gradient line intersects the ending shape.”
     let gradient_line_length = radii.width;
 
-    let stops = fixup_stops(style, items, Length::new(gradient_line_length));
+    let mut color_stops =
+        gradient_items_to_color_stops(style, items, Length::new(gradient_line_length));
+    let stops = fixup_stops(&mut color_stops);
     let radial_gradient = builder
         .wr()
         .create_radial_gradient(center, radii, stops, extend_mode);
@@ -262,12 +289,48 @@ pub(super) fn build_radial(
     )
 }
 
-/// <https://drafts.csswg.org/css-images-4/#color-stop-fixup>
-fn fixup_stops(
+/// <https://drafts.csswg.org/css-images-4/#conic-gradients>
+#[allow(clippy::too_many_arguments)]
+fn build_conic(
     style: &ComputedValues,
-    items: &[GradientItem<Color, LengthPercentage>],
-    gradient_line_length: Length,
-) -> Vec<wr::GradientStop> {
+    angle: Angle,
+    center: &Position,
+    _color_interpolation_method: ColorInterpolationMethod,
+    items: &[GradientItem<Color, AngleOrPercentage>],
+    extend_mode: wr::ExtendMode,
+    layer: &super::background::BackgroundLayer,
+    builder: &mut super::DisplayListBuilder<'_>,
+) {
+    let gradient_box = layer.tile_size;
+    let center = units::LayoutPoint::new(
+        center
+            .horizontal
+            .percentage_relative_to(Length::new(gradient_box.width))
+            .px(),
+        center
+            .vertical
+            .percentage_relative_to(Length::new(gradient_box.height))
+            .px(),
+    );
+    let mut color_stops = conic_gradient_items_to_color_stops(style, items);
+    let stops = fixup_stops(&mut color_stops);
+    let conic_gradient =
+        builder
+            .wr()
+            .create_conic_gradient(center, angle.radians(), stops, extend_mode);
+    builder.wr().push_conic_gradient(
+        &layer.common,
+        layer.bounds,
+        conic_gradient,
+        layer.tile_size,
+        layer.tile_spacing,
+    )
+}
+
+fn conic_gradient_items_to_color_stops(
+    style: &ComputedValues,
+    items: &[GradientItem<Color, AngleOrPercentage>],
+) -> Vec<ColorStop<ColorF, f32>> {
     // Remove color transititon hints, which are not supported yet.
     // https://drafts.csswg.org/css-images-4/#color-transition-hint
     //
@@ -278,28 +341,71 @@ fn fixup_stops(
     // Either way, the best outcome is to add support.
     // Gecko does so by approximating the non-linear interpolation
     // by up to 10 piece-wise linear segments (9 intermediate color stops)
-    let mut stops = Vec::with_capacity(items.len());
-    for item in items {
-        match item {
-            GradientItem::SimpleColorStop(color) => stops.push(ColorStop {
-                color: super::rgba(style.resolve_color(color.clone())),
-                position: None,
-            }),
-            GradientItem::ComplexColorStop { color, position } => stops.push(ColorStop {
-                color: super::rgba(style.resolve_color(color.clone())),
-                position: Some(if gradient_line_length.px() == 0. {
-                    0.
-                } else {
-                    position.percentage_relative_to(gradient_line_length).px() /
-                        gradient_line_length.px()
+    items
+        .iter()
+        .filter_map(|item| {
+            match item {
+                GradientItem::SimpleColorStop(color) => Some(ColorStop {
+                    color: super::rgba(style.resolve_color(color.clone())),
+                    position: None,
                 }),
-            }),
-            GradientItem::InterpolationHint(_) => {
+                GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
+                    color: super::rgba(style.resolve_color(color.clone())),
+                    position: match position {
+                        AngleOrPercentage::Percentage(percentage) => Some(percentage.0),
+                        AngleOrPercentage::Angle(angle) => Some(angle.degrees() / 360.),
+                    },
+                }),
                 // FIXME: approximate like in:
                 // https://searchfox.org/mozilla-central/rev/f98dad153b59a985efd4505912588d4651033395/layout/painting/nsCSSRenderingGradients.cpp#315-391
-            },
-        }
-    }
+                GradientItem::InterpolationHint(_) => None,
+            }
+        })
+        .collect()
+}
+
+fn gradient_items_to_color_stops(
+    style: &ComputedValues,
+    items: &[GradientItem<Color, LengthPercentage>],
+    gradient_line_length: Length,
+) -> Vec<ColorStop<ColorF, f32>> {
+    // Remove color transititon hints, which are not supported yet.
+    // https://drafts.csswg.org/css-images-4/#color-transition-hint
+    //
+    // This gives an approximation of the gradient that might be visibly wrong,
+    // but maybe better than not parsing that value at all?
+    // It’s debatble whether that’s better or worse
+    // than not parsing and allowing authors to set a fallback.
+    // Either way, the best outcome is to add support.
+    // Gecko does so by approximating the non-linear interpolation
+    // by up to 10 piece-wise linear segments (9 intermediate color stops)
+    items
+        .iter()
+        .filter_map(|item| {
+            match item {
+                GradientItem::SimpleColorStop(color) => Some(ColorStop {
+                    color: super::rgba(style.resolve_color(color.clone())),
+                    position: None,
+                }),
+                GradientItem::ComplexColorStop { color, position } => Some(ColorStop {
+                    color: super::rgba(style.resolve_color(color.clone())),
+                    position: Some(if gradient_line_length.px() == 0. {
+                        0.
+                    } else {
+                        position.percentage_relative_to(gradient_line_length).px() /
+                            gradient_line_length.px()
+                    }),
+                }),
+                // FIXME: approximate like in:
+                // https://searchfox.org/mozilla-central/rev/f98dad153b59a985efd4505912588d4651033395/layout/painting/nsCSSRenderingGradients.cpp#315-391
+                GradientItem::InterpolationHint(_) => None,
+            }
+        })
+        .collect()
+}
+
+/// <https://drafts.csswg.org/css-images-4/#color-stop-fixup>
+fn fixup_stops(stops: &mut Vec<ColorStop<ColorF, f32>>) -> Vec<wr::GradientStop> {
     assert!(stops.len() >= 2);
 
     // https://drafts.csswg.org/css-images-4/#color-stop-fixup

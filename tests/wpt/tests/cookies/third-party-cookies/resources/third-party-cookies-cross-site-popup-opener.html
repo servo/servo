@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
 <title>Window that opens a popup in a cross-site context</title>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
@@ -26,17 +28,17 @@
     }
 
     // Verify whether third-party cookies are blocked by default.
-    promise_test(async () => {
-      const thirdPartyHttpCookie = "3P_http"
-      await credFetch(
-        `${origin}/cookies/resources/set.py?${thirdPartyHttpCookie}=foobar;` +
-        "Secure;Path=/;SameSite=None");
-      await assertHttpOriginCanAccessCookies({
+    if (navigator.userAgent.toLowerCase().indexOf('firefox') == -1) {
+      assertThirdPartyHttpCookies({
+        desc: "3P fetch",
         origin,
-        cookieNames: [thirdPartyHttpCookie],
+        cookieNames,
         expectsCookie: false,
       });
-    }, "3P fetch: Cross site window setting HTTP cookies");
+    } else {
+      // Default behavior for third-party cookie blocking is flaky in Firefox.
+      throw new AssertionError("Testing default third-party cookie blocking is not implemented in Firefox.");
+    }
 
     // Open the cookies' origin in a popup to activate the heuristic.
     const popupUrl = new URL(

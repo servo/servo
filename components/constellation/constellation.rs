@@ -84,6 +84,8 @@
 //!
 //! See <https://github.com/servo/servo/issues/14704>
 
+#![allow(clippy::too_many_arguments)]
+
 use std::borrow::{Cow, ToOwned};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -475,8 +477,6 @@ pub struct Constellation<STF, SWF> {
     /// currently being pressed.
     pressed_mouse_buttons: u16,
 
-    is_running_problem_test: bool,
-
     /// If True, exits on thread failure instead of displaying about:failure
     hard_fail: bool,
 
@@ -621,7 +621,6 @@ where
         initial_window_size: WindowSizeData,
         random_pipeline_closure_probability: Option<f32>,
         random_pipeline_closure_seed: Option<usize>,
-        is_running_problem_test: bool,
         hard_fail: bool,
         enable_canvas_antialiasing: bool,
         canvas_create_sender: Sender<ConstellationCanvasMsg>,
@@ -711,7 +710,7 @@ where
                 ROUTER.add_route(
                     webrender_ipc_receiver.to_opaque(),
                     Box::new(move |message| {
-                        let _ = compositor_proxy.send(CompositorMsg::Forwarded(
+                        compositor_proxy.send(CompositorMsg::Forwarded(
                             ForwardedToCompositorMsg::Layout(
                                 message.to().expect("conversion failure"),
                             ),
@@ -723,7 +722,7 @@ where
                 ROUTER.add_route(
                     webrender_image_ipc_receiver.to_opaque(),
                     Box::new(move |message| {
-                        let _ = compositor_proxy.send(CompositorMsg::Forwarded(
+                        compositor_proxy.send(CompositorMsg::Forwarded(
                             ForwardedToCompositorMsg::Net(
                                 message.to().expect("conversion failure"),
                             ),
@@ -746,12 +745,12 @@ where
                     background_monitor_register,
                     background_monitor_control_senders: background_hang_monitor_control_ipc_senders,
                     layout_sender: layout_ipc_sender,
-                    script_receiver: script_receiver,
-                    compositor_receiver: compositor_receiver,
+                    script_receiver,
+                    compositor_receiver,
                     layout_factory,
-                    layout_receiver: layout_receiver,
-                    network_listener_sender: network_listener_sender,
-                    network_listener_receiver: network_listener_receiver,
+                    layout_receiver,
+                    network_listener_sender,
+                    network_listener_receiver,
                     embedder_proxy: state.embedder_proxy,
                     compositor_proxy: state.compositor_proxy,
                     webviews: WebViewManager::default(),
@@ -761,7 +760,7 @@ where
                     private_resource_threads: state.private_resource_threads,
                     font_cache_thread: state.font_cache_thread,
                     sw_managers: Default::default(),
-                    swmanager_receiver: swmanager_receiver,
+                    swmanager_receiver,
                     swmanager_ipc_sender,
                     browsing_context_group_set: Default::default(),
                     browsing_context_group_next_id: Default::default(),
@@ -807,7 +806,6 @@ where
                     canvas_ipc_sender,
                     pending_approval_navigations: HashMap::new(),
                     pressed_mouse_buttons: 0,
-                    is_running_problem_test,
                     hard_fail,
                     enable_canvas_antialiasing,
                     glplayer_threads: state.glplayer_threads,
@@ -858,7 +856,7 @@ where
             Some(browsing_context_id) => {
                 let opener = self
                     .browsing_contexts
-                    .get(&browsing_context_id)
+                    .get(browsing_context_id)
                     .ok_or("Opener was closed before the openee started")?;
                 self.browsing_context_group_set
                     .get(&opener.bc_group_id)
@@ -870,7 +868,7 @@ where
                 .filter_map(|(_, bc_group)| {
                     if bc_group
                         .top_level_browsing_context_set
-                        .contains(&top_level_browsing_context_id)
+                        .contains(top_level_browsing_context_id)
                     {
                         Some(bc_group)
                     } else {
@@ -915,7 +913,7 @@ where
                     .top_level_browsing_context_set
                     .contains(&top_level_browsing_context_id)
                 {
-                    Some(id.clone())
+                    Some(*id)
                 } else {
                     None
                 }
@@ -929,10 +927,10 @@ where
             },
         };
         if let Some(bc_group) = self.browsing_context_group_set.get_mut(&bc_group_id) {
-            if !bc_group
+            if bc_group
                 .event_loops
                 .insert(host.clone(), event_loop)
-                .is_none()
+                .is_some()
             {
                 warn!(
                     "Double-setting an event-loop for {:?} at {:?}",
@@ -1028,7 +1026,7 @@ where
             opener,
             script_to_constellation_chan: ScriptToConstellationChan {
                 sender: self.script_sender.clone(),
-                pipeline_id: pipeline_id,
+                pipeline_id,
             },
             namespace_request_sender: self.namespace_ipc_sender.clone(),
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
@@ -1155,7 +1153,7 @@ where
             })
             .last()
         {
-            Some(id) => id.clone(),
+            Some(id) => *id,
             None => {
                 warn!("Top-level was unexpectedly removed from its top_level_browsing_context_set");
                 return;
@@ -1213,7 +1211,7 @@ where
         let scheduler_timeout = self
             .timer_scheduler
             .check_timers()
-            .map(|timeout| after(timeout))
+            .map(after)
             .unwrap_or(never());
 
         // Get one incoming request.
@@ -1336,7 +1334,7 @@ where
     }
 
     fn handle_request_from_compositor(&mut self, message: FromCompositorMsg) {
-        trace!("Got compositor message: {:?}", message);
+        trace_msg_from_compositor!(message, "{message:?}");
         match message {
             FromCompositorMsg::Exit => {
                 self.handle_exit();
@@ -1405,12 +1403,12 @@ where
                         }
                     },
                     None => {
-                        return warn!(
+                        warn!(
                             "{}: AllowNavigationResponse for unknown request",
                             pipeline_id
-                        );
+                        )
                     },
-                };
+                }
             },
             FromCompositorMsg::ClearCache => {
                 self.public_resource_threads.clear_cache();
@@ -1450,15 +1448,10 @@ where
             FromCompositorMsg::IsReadyToSaveImage(pipeline_states) => {
                 let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
                 debug!("Ready to save image {:?}.", is_ready);
-                if self.is_running_problem_test {
-                    println!("got ready to save image query, result is {:?}", is_ready);
-                }
-                let is_ready = is_ready == ReadyToSave::Ready;
                 self.compositor_proxy
-                    .send(CompositorMsg::IsReadyToSaveImageReply(is_ready));
-                if self.is_running_problem_test {
-                    println!("sent response");
-                }
+                    .send(CompositorMsg::IsReadyToSaveImageReply(
+                        is_ready == ReadyToSave::Ready,
+                    ));
             },
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
@@ -1632,11 +1625,7 @@ where
 
     fn handle_request_from_script(&mut self, message: (PipelineId, FromScriptMsg)) {
         let (source_pipeline_id, content) = message;
-        trace!(
-            "{}: Message from pipeline: {:?}",
-            source_pipeline_id,
-            content,
-        );
+        trace_script_msg!(content, "{source_pipeline_id}: {content:?}");
 
         let source_top_ctx_id = match self
             .pipelines
@@ -1853,7 +1842,7 @@ where
                 let result = self
                     .browsing_contexts
                     .get(&browsing_context_id)
-                    .and_then(|bc| Some(bc.top_level_id));
+                    .map(|bc| bc.top_level_id);
                 if let Err(e) = response_sender.send(result) {
                     warn!(
                         "Sending reply to get top for browsing context info failed ({:?}).",
@@ -1871,7 +1860,7 @@ where
                     .get(&browsing_context_id)
                     .and_then(|bc| self.pipelines.get(&bc.pipeline_id))
                     .and_then(|pipeline| pipeline.children.get(index))
-                    .map(|maybe_bcid| *maybe_bcid);
+                    .copied();
                 if let Err(e) = response_sender.send(result) {
                     warn!(
                         "Sending reply to get child browsing context ID failed ({:?}).",
@@ -1907,15 +1896,13 @@ where
                 // the active media session.
                 // Events coming from inactive media sessions are discarded.
                 if self.active_media_session.is_some() {
-                    match event {
-                        MediaSessionEvent::PlaybackStateChange(ref state) => {
-                            match state {
-                                MediaSessionPlaybackState::Playing |
-                                MediaSessionPlaybackState::Paused => (),
-                                _ => return,
-                            };
-                        },
-                        _ => (),
+                    if let MediaSessionEvent::PlaybackStateChange(ref state) = event {
+                        if !matches!(
+                            state,
+                            MediaSessionPlaybackState::Playing | MediaSessionPlaybackState::Paused
+                        ) {
+                            return;
+                        }
                     };
                 }
                 self.active_media_session = Some(pipeline_id);
@@ -1951,7 +1938,7 @@ where
         pipeline_id: &PipelineId,
         origin: &ImmutableOrigin,
     ) -> Result<(), ()> {
-        let pipeline_origin = match self.pipelines.get(&pipeline_id) {
+        let pipeline_origin = match self.pipelines.get(pipeline_id) {
             Some(pipeline) => pipeline.load_data.url.origin(),
             None => {
                 warn!("Received message from closed or unknown pipeline.");
@@ -1991,7 +1978,7 @@ where
                     continue;
                 }
 
-                if let Some(broadcast_ipc_sender) = self.broadcast_routers.get(&router) {
+                if let Some(broadcast_ipc_sender) = self.broadcast_routers.get(router) {
                     if broadcast_ipc_sender.send(message.clone()).is_err() {
                         warn!("Failed to broadcast message to router: {:?}", router);
                     }
@@ -2056,12 +2043,9 @@ where
         {
             return warn!("Attempt to add channel name from an unexpected origin.");
         }
-        let channels = self
-            .broadcast_channels
-            .entry(origin)
-            .or_insert_with(HashMap::new);
+        let channels = self.broadcast_channels.entry(origin).or_default();
 
-        let routers = channels.entry(channel_name).or_insert_with(Vec::new);
+        let routers = channels.entry(channel_name).or_default();
 
         routers.push(router_id);
     }
@@ -2127,7 +2111,7 @@ where
         };
         let browsing_context_group = if let Some(bcg) = self
             .browsing_context_group_set
-            .get_mut(&browsing_context_group_id)
+            .get_mut(browsing_context_group_id)
         {
             bcg
         } else {
@@ -2156,7 +2140,7 @@ where
             FromScriptMsg::RequestAdapter(response_sender, options, ids) => match webgpu_chan {
                 None => {
                     if let Err(e) = response_sender.send(None) {
-                        return warn!("Failed to send request adapter message: {}", e);
+                        warn!("Failed to send request adapter message: {}", e)
                     }
                 },
                 Some(webgpu_chan) => {
@@ -2172,18 +2156,18 @@ where
             },
             FromScriptMsg::GetWebGPUChan(response_sender) => {
                 if response_sender.send(webgpu_chan).is_err() {
-                    return warn!(
+                    warn!(
                         "{}: Failed to send WebGPU channel to pipeline",
                         source_pipeline_id
-                    );
+                    )
                 }
             },
-            _ => return warn!("Wrong message type in handle_wgpu_request"),
+            _ => warn!("Wrong message type in handle_wgpu_request"),
         }
     }
 
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
-        debug!("Got layout message: {:?}", message);
+        trace_layout_msg!(message, "{message:?}");
         match message {
             // Layout sends new sizes for all subframes. This needs to be reflected by all
             // frame trees in the navigation context containing the subframe.
@@ -2429,7 +2413,7 @@ where
                 // In both the managed and completion of a transfer case, we forward the message.
                 // Note that in both cases, if the port is transferred before the message is handled,
                 // it will be sent back here and buffered while the transfer is ongoing.
-                if let Some(ipc_sender) = self.message_port_routers.get(&router_id) {
+                if let Some(ipc_sender) = self.message_port_routers.get(router_id) {
                     let _ = ipc_sender.send(MessagePortMsg::NewTask(port_id, task));
                 } else {
                     warn!("No message-port sender for {:?}", router_id);
@@ -2776,7 +2760,7 @@ where
         let receivers = self
             .browsing_context_group_set
             .values()
-            .map(|browsing_context_group| {
+            .flat_map(|browsing_context_group| {
                 browsing_context_group.webgpus.values().map(|webgpu| {
                     let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
                     if let Err(e) = webgpu.exit(sender) {
@@ -2787,8 +2771,7 @@ where
                     }
                 })
             })
-            .flatten()
-            .filter_map(|r| r);
+            .flatten();
 
         for receiver in receivers {
             if let Err(e) = receiver.recv() {
@@ -3060,7 +3043,7 @@ where
         let new_bc_group_id = self.next_browsing_context_group_id();
         new_bc_group
             .top_level_browsing_context_set
-            .insert(top_level_browsing_context_id.clone());
+            .insert(top_level_browsing_context_id);
         self.browsing_context_group_set
             .insert(new_bc_group_id, new_bc_group);
 
@@ -3309,10 +3292,10 @@ where
             browsing_context_is_visible,
         );
         self.add_pending_change(SessionHistoryChange {
-            top_level_browsing_context_id: top_level_browsing_context_id,
-            browsing_context_id: browsing_context_id,
-            new_pipeline_id: new_pipeline_id,
-            replace: replace,
+            top_level_browsing_context_id,
+            browsing_context_id,
+            new_pipeline_id,
+            replace,
             // Browsing context for iframe already exists.
             new_browsing_context_info: None,
             window_size: load_info.window_size.initial_viewport,
@@ -3446,7 +3429,7 @@ where
         };
         bc_group
             .top_level_browsing_context_set
-            .insert(new_top_level_browsing_context_id.clone());
+            .insert(new_top_level_browsing_context_id);
 
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: new_top_level_browsing_context_id,
@@ -3647,9 +3630,9 @@ where
                     is_visible,
                 );
                 self.add_pending_change(SessionHistoryChange {
-                    top_level_browsing_context_id: top_level_browsing_context_id,
-                    browsing_context_id: browsing_context_id,
-                    new_pipeline_id: new_pipeline_id,
+                    top_level_browsing_context_id,
+                    browsing_context_id,
+                    new_pipeline_id,
                     replace,
                     // `load_url` is always invoked on an existing browsing context.
                     new_browsing_context_info: None,
@@ -3743,7 +3726,7 @@ where
 
         match replacement_enabled {
             HistoryEntryReplacement::Disabled => {
-                let diff = SessionHistoryDiff::HashDiff {
+                let diff = SessionHistoryDiff::Hash {
                     pipeline_reloader: NeedsToReload::No(pipeline_id),
                     new_url,
                     old_url,
@@ -3780,7 +3763,7 @@ where
                         .rev()
                     {
                         match diff {
-                            SessionHistoryDiff::BrowsingContextDiff {
+                            SessionHistoryDiff::BrowsingContext {
                                 browsing_context_id,
                                 ref new_reloader,
                                 ..
@@ -3788,7 +3771,7 @@ where
                                 browsing_context_changes
                                     .insert(browsing_context_id, new_reloader.clone());
                             },
-                            SessionHistoryDiff::PipelineDiff {
+                            SessionHistoryDiff::Pipeline {
                                 ref pipeline_reloader,
                                 new_history_state_id,
                                 ref new_url,
@@ -3804,7 +3787,7 @@ where
                                     url_to_load.insert(pipeline_id, new_url.clone());
                                 },
                             },
-                            SessionHistoryDiff::HashDiff {
+                            SessionHistoryDiff::Hash {
                                 ref pipeline_reloader,
                                 ref new_url,
                                 ..
@@ -3832,7 +3815,7 @@ where
 
                     for diff in session_history.past.drain(past_length - back..).rev() {
                         match diff {
-                            SessionHistoryDiff::BrowsingContextDiff {
+                            SessionHistoryDiff::BrowsingContext {
                                 browsing_context_id,
                                 ref old_reloader,
                                 ..
@@ -3840,7 +3823,7 @@ where
                                 browsing_context_changes
                                     .insert(browsing_context_id, old_reloader.clone());
                             },
-                            SessionHistoryDiff::PipelineDiff {
+                            SessionHistoryDiff::Pipeline {
                                 ref pipeline_reloader,
                                 old_history_state_id,
                                 ref old_url,
@@ -3856,7 +3839,7 @@ where
                                     url_to_load.insert(pipeline_id, old_url.clone());
                                 },
                             },
-                            SessionHistoryDiff::HashDiff {
+                            SessionHistoryDiff::Hash {
                                 ref pipeline_reloader,
                                 ref old_url,
                                 ..
@@ -4087,7 +4070,7 @@ where
                 },
             };
 
-        let diff = SessionHistoryDiff::PipelineDiff {
+        let diff = SessionHistoryDiff::Pipeline {
             pipeline_reloader: NeedsToReload::No(pipeline_id),
             new_history_state_id: history_state_id,
             new_url: url,
@@ -4522,7 +4505,7 @@ where
                     CompositorEvent::KeyboardEvent(event),
                 );
                 if let Err(e) = event_loop.send(control_msg) {
-                    return self.handle_send_error(pipeline_id, e);
+                    self.handle_send_error(pipeline_id, e)
                 }
             },
             WebDriverCommandMsg::MouseButtonAction(mouse_event_type, mouse_button, x, y) => {
@@ -4558,9 +4541,9 @@ where
             },
         };
         match self.pipelines.get(&pipeline_id) {
-            None => return warn!("{pipeline_id}: Tried to notify visibility after closure"),
+            None => warn!("{pipeline_id}: Tried to notify visibility after closure"),
             Some(pipeline) => pipeline.notify_visibility(visible),
-        };
+        }
     }
 
     fn notify_history_changed(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
@@ -4601,7 +4584,7 @@ where
         // is the LoadData of the parent browsing context.
         let resolve_load_data_future =
             |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| match *diff {
-                SessionHistoryDiff::BrowsingContextDiff {
+                SessionHistoryDiff::BrowsingContext {
                     browsing_context_id,
                     ref new_reloader,
                     ..
@@ -4627,7 +4610,7 @@ where
 
         let resolve_load_data_past =
             |previous_load_data: &mut LoadData, diff: &SessionHistoryDiff| match *diff {
-                SessionHistoryDiff::BrowsingContextDiff {
+                SessionHistoryDiff::BrowsingContext {
                     browsing_context_id,
                     ref old_reloader,
                     ..
@@ -4781,7 +4764,7 @@ where
                         NeedsToReload::Yes(..) => (None, None),
                     }
                 } else {
-                    let diff = SessionHistoryDiff::BrowsingContextDiff {
+                    let diff = SessionHistoryDiff::BrowsingContext {
                         browsing_context_id: change.browsing_context_id,
                         new_reloader: NeedsToReload::No(change.new_pipeline_id),
                         old_reloader: NeedsToReload::No(old_pipeline_id),
@@ -4796,12 +4779,12 @@ where
 
                     for diff in diffs_to_close {
                         match diff {
-                            SessionHistoryDiff::BrowsingContextDiff { new_reloader, .. } => {
+                            SessionHistoryDiff::BrowsingContext { new_reloader, .. } => {
                                 if let Some(pipeline_id) = new_reloader.alive_pipeline_id() {
                                     pipelines_to_close.push(pipeline_id);
                                 }
                             },
-                            SessionHistoryDiff::PipelineDiff {
+                            SessionHistoryDiff::Pipeline {
                                 pipeline_reloader,
                                 new_history_state_id,
                                 ..
@@ -4890,7 +4873,7 @@ where
                 .rev()
                 .map(|diff| diff.alive_old_pipeline())
                 .skip(history_length)
-                .filter_map(|maybe_pipeline| maybe_pipeline)
+                .flatten()
                 .collect::<Vec<_>>();
 
             // The future is stored with oldest entries front, so we must
@@ -4902,7 +4885,7 @@ where
                     .rev()
                     .map(|diff| diff.alive_new_pipeline())
                     .skip(history_length)
-                    .filter_map(|maybe_pipeline| maybe_pipeline),
+                    .flatten(),
             );
 
             pipelines_to_evict
@@ -5171,7 +5154,7 @@ where
                 .iter()
                 .filter(|pipeline_id| **pipeline_id != pipeline.id);
             for id in pipeline_ids {
-                if let Some(pipeline) = self.pipelines.get(&id) {
+                if let Some(pipeline) = self.pipelines.get(id) {
                     let _ = pipeline
                         .event_loop
                         .send(ConstellationControlMsg::ResizeInactive(

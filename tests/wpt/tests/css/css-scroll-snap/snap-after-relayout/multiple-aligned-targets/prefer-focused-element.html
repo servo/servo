@@ -71,15 +71,19 @@
 
           focusAndAssert(bottomright);
           await runScrollSnapSelectionVerificationTest(t, scroller,
-                                                       [bottomright,
-                                                        bottomleft],
-                                    /*expected_target=*/bottomright, "y");
+                               /*aligned_elements_x=*/[],
+                               /*aligned_elements_y=*/[bottomright, bottomleft],
+                               /*axis=*/"y",
+                               /*expected_target_x=*/null,
+                               /*expected_target_y=*/bottomright);
 
           focusAndAssert(bottomleft);
           await runScrollSnapSelectionVerificationTest(t, scroller,
-                                                       [bottomright,
-                                                        bottomleft],
-                                    /*expected_target=*/bottomleft, "y");
+                               /*aligned_elements_x=*/[],
+                               /*aligned_elements_y=*/[bottomright, bottomleft],
+                               /*axis=*/"y",
+                               /*expected_target_x=*/null,
+                               /*expected_target_y=*/bottomleft);
         }, "scroller selects focused target from aligned choices on snap");
 
         promise_test(async (t) => {
@@ -94,9 +98,11 @@
           // Set focus on bottomright without scrolling to it.
           focusAndAssert(bottomright, true);
           await runScrollSnapSelectionVerificationTest(t, scroller,
-                                                       [bottomright,
-                                                        bottomleft],
-                                    /*expected_target=*/bottomleft, "y");
+                               /*aligned_elements_x=*/[],
+                               /*aligned_elements_y=*/[bottomright, bottomleft],
+                               /*axis=*/"y",
+                               /*expected_target_x=*/null,
+                               /*expected_target_y=*/bottomleft);
         }, "out-of-viewport focused element is not the selected snap target.");
 
         promise_test(async(t) => {

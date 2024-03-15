@@ -115,11 +115,11 @@ impl LinearGradientStyle {
         stops: Vec<CanvasGradientStop>,
     ) -> LinearGradientStyle {
         LinearGradientStyle {
-            x0: x0,
-            y0: y0,
-            x1: x1,
-            y1: y1,
-            stops: stops,
+            x0,
+            y0,
+            x1,
+            y1,
+            stops,
         }
     }
 }
@@ -146,13 +146,13 @@ impl RadialGradientStyle {
         stops: Vec<CanvasGradientStop>,
     ) -> RadialGradientStyle {
         RadialGradientStyle {
-            x0: x0,
-            y0: y0,
-            r0: r0,
-            x1: x1,
-            y1: y1,
-            r1: r1,
-            stops: stops,
+            x0,
+            y0,
+            r0,
+            x1,
+            y1,
+            r1,
+            stops,
         }
     }
 }
@@ -402,8 +402,9 @@ impl FromStr for CompositionOrBlending {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum TextAlign {
+    #[default]
     Start,
     End,
     Left,
@@ -426,17 +427,12 @@ impl FromStr for TextAlign {
     }
 }
 
-impl Default for TextAlign {
-    fn default() -> TextAlign {
-        TextAlign::Start
-    }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum TextBaseline {
     Top,
     Hanging,
     Middle,
+    #[default]
     Alphabetic,
     Ideographic,
     Bottom,
@@ -458,16 +454,11 @@ impl FromStr for TextBaseline {
     }
 }
 
-impl Default for TextBaseline {
-    fn default() -> TextBaseline {
-        TextBaseline::Alphabetic
-    }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum Direction {
     Ltr,
     Rtl,
+    #[default]
     Inherit,
 }
 
@@ -481,11 +472,5 @@ impl FromStr for Direction {
             "inherit" => Ok(Direction::Inherit),
             _ => Err(()),
         }
-    }
-}
-
-impl Default for Direction {
-    fn default() -> Direction {
-        Direction::Inherit
     }
 }

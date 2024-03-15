@@ -36,7 +36,7 @@ const XI_LINE_BREAKING_CLASS_ZW: u8 = 28;
 const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
 const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 40;
 
-/// https://www.w3.org/TR/css-display-3/#css-text-run
+/// <https://www.w3.org/TR/css-display-3/#css-text-run>
 #[derive(Debug, Serialize)]
 pub(crate) struct TextRun {
     pub base_fragment_info: BaseFragmentInfo,
@@ -76,7 +76,7 @@ enum SegmentStartSoftWrapPolicy {
 
 #[derive(Debug, Serialize)]
 pub(crate) struct TextRunSegment {
-    /// The index of this font in the parent [`InlineFormattingContext`]'s collection of font
+    /// The index of this font in the parent [`super::InlineFormattingContext`]'s collection of font
     /// information.
     pub font_index: usize,
 
@@ -150,7 +150,7 @@ impl TextRunSegment {
             // If this whitespace forces a line break, queue up a hard line break the next time we
             // see any content. We don't line break immediately, because we'd like to finish processing
             // any ongoing inline boxes before ending the line.
-            if text_run.glyph_run_is_whitespace_ending_with_preserved_newline(run) {
+            if text_run.glyph_run_is_preserved_newline(run) {
                 ifc.defer_forced_line_break();
                 continue;
             }
@@ -426,11 +426,8 @@ impl TextRun {
             self.prevent_soft_wrap_opportunity_at_end;
     }
 
-    pub(super) fn glyph_run_is_whitespace_ending_with_preserved_newline(
-        &self,
-        run: &GlyphRun,
-    ) -> bool {
-        if !run.glyph_store.is_whitespace() {
+    pub(super) fn glyph_run_is_preserved_newline(&self, run: &GlyphRun) -> bool {
+        if !run.glyph_store.is_whitespace() || run.range.length() != ByteIndex(1) {
             return false;
         }
         if !self
@@ -442,15 +439,15 @@ impl TextRun {
             return false;
         }
 
-        let last_byte = self.text.as_bytes().get(run.range.end().to_usize() - 1);
-        last_byte == Some(&b'\n')
+        let byte = self.text.as_bytes().get(run.range.begin().to_usize());
+        byte == Some(&b'\n')
     }
 }
 
 /// Whether or not this character will rpevent a soft wrap opportunity when it
 /// comes before or after an atomic inline element.
 ///
-/// From https://www.w3.org/TR/css-text-3/#line-break-details:
+/// From <https://www.w3.org/TR/css-text-3/#line-break-details>:
 ///
 /// > For Web-compatibility there is a soft wrap opportunity before and after each
 /// > replaced element or other atomic inline, even when adjacent to a character that
@@ -524,7 +521,7 @@ pub struct WhitespaceCollapse<InputIterator> {
     white_space: WhiteSpace,
 
     /// Whether or not we should collapse white space completely at the start of the string.
-    /// This is true when the last character handled in our owning [`InlineFormattingContext`]
+    /// This is true when the last character handled in our owning [`super::InlineFormattingContext`]
     /// was collapsible white space.
     remove_collapsible_white_space_at_start: bool,
 
@@ -709,7 +706,7 @@ pub struct TextTransformation<InputIterator> {
     pending_case_conversion_result: Option<PendingCaseConversionResult>,
 }
 
-impl<'a, InputIterator> TextTransformation<InputIterator> {
+impl<InputIterator> TextTransformation<InputIterator> {
     pub fn new(char_iterator: InputIterator, text_transform: TextTransform) -> Self {
         Self {
             char_iterator,

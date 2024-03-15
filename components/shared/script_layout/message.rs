@@ -199,11 +199,11 @@ pub struct PendingRestyle {
     pub damage: RestyleDamage,
 }
 
-impl PendingRestyle {
+impl Default for PendingRestyle {
     /// Creates a new empty pending restyle.
     #[inline]
-    pub fn new() -> Self {
-        PendingRestyle {
+    fn default() -> Self {
+        Self {
             snapshot: None,
             hint: RestyleHint::empty(),
             damage: RestyleDamage::empty(),

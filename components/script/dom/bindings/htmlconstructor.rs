@@ -9,10 +9,10 @@ use html5ever::{local_name, namespace_url, ns, LocalName};
 use js::conversions::ToJSValConvertible;
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, CurrentGlobalOrNull, JSAutoRealm, JSObject};
-use js::jsval::UndefinedValue;
-use js::rust::wrappers::{JS_GetProperty, JS_SetPrototype, JS_WrapObject};
+use js::rust::wrappers::{JS_SetPrototype, JS_WrapObject};
 use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
 
+use super::utils::ProtoOrIfaceArray;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::{
     HTMLAnchorElementBinding, HTMLAreaElementBinding, HTMLAudioElementBinding,
@@ -38,9 +38,11 @@ use crate::dom::bindings::codegen::Bindings::{
     HTMLTimeElementBinding, HTMLTitleElementBinding, HTMLTrackElementBinding,
     HTMLUListElementBinding, HTMLVideoElementBinding,
 };
+use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{throw_dom_exception, Error};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::interface::get_desired_proto;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::create::create_native_html_element;
@@ -49,7 +51,7 @@ use crate::dom::element::{Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
+use crate::script_runtime::{JSContext, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
 // https://html.spec.whatwg.org/multipage/#htmlconstructor
@@ -58,7 +60,8 @@ unsafe fn html_constructor(
     window: &Window,
     call_args: &CallArgs,
     check_type: fn(&Element) -> bool,
-    get_proto_object: fn(JSContext, HandleObject, MutableHandleObject),
+    proto_id: PrototypeList::ID,
+    creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
 ) -> Result<(), ()> {
     let document = window.Document();
     let global = window.upcast::<GlobalScope>();
@@ -142,40 +145,7 @@ unsafe fn html_constructor(
 
     // Step 6
     rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
-    {
-        rooted!(in(*cx) let mut proto_val = UndefinedValue());
-        let _ac = JSAutoRealm::new(*cx, new_target_unwrapped.get());
-        if !JS_GetProperty(
-            *cx,
-            new_target_unwrapped.handle(),
-            b"prototype\0".as_ptr() as *const _,
-            proto_val.handle_mut(),
-        ) {
-            return Err(());
-        }
-
-        if !proto_val.is_object() {
-            // Step 7 of https://html.spec.whatwg.org/multipage/#htmlconstructor.
-            // This fallback behavior is designed to match analogous behavior for the
-            // JavaScript built-ins. So we enter the realm of our underlying
-            // newTarget object and fall back to the prototype object from that global.
-            // XXX The spec says to use GetFunctionRealm(), which is not actually
-            // the same thing as what we have here (e.g. in the case of scripted callable proxies
-            // whose target is not same-realm with the proxy, or bound functions, etc).
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1317658
-
-            rooted!(in(*cx) let global_object = CurrentGlobalOrNull(*cx));
-            get_proto_object(cx, global_object.handle(), prototype.handle_mut());
-        } else {
-            // Step 6
-            prototype.set(proto_val.to_object());
-        }
-    }
-
-    // Wrap prototype in this context since it is from the newTarget realm
-    if !JS_WrapObject(*cx, prototype.handle_mut()) {
-        return Err(());
-    }
+    get_desired_proto(cx, &call_args, proto_id, creator, prototype.handle_mut())?;
 
     let entry = definition.construction_stack.borrow().last().cloned();
     let result = match entry {
@@ -251,8 +221,10 @@ unsafe fn html_constructor(
     Ok(())
 }
 
-/// Returns the constructor object for the element associated with the given local name.
-/// This list should only include elements marked with the [HTMLConstructor] extended attribute.
+/// Returns the constructor object for the element associated with the
+/// given local name. This list should only include elements marked with the
+/// [HTMLConstructor](https://html.spec.whatwg.org/multipage/#htmlconstructor)
+/// extended attribute.
 pub fn get_constructor_object_from_local_name(
     name: LocalName,
     cx: JSContext,
@@ -409,7 +381,8 @@ pub(crate) unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
     cx: JSContext,
     args: &CallArgs,
     global: &Window,
-    get_proto_object: fn(JSContext, HandleObject, MutableHandleObject),
+    proto_id: PrototypeList::ID,
+    creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
 ) -> bool {
     fn element_derives_interface<T: DerivedFrom<Element>>(element: &Element) -> bool {
         element.is::<T>()
@@ -420,7 +393,8 @@ pub(crate) unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
         global,
         args,
         element_derives_interface::<T>,
-        get_proto_object,
+        proto_id,
+        creator,
     )
     .is_ok()
 }

@@ -1,25 +1,14 @@
 import importlib
 error_checker = importlib.import_module("credential-management.support.fedcm.request-params-check")
 
-def main(request, response):
-  request_error = error_checker.accountsCheck(request)
-  if (request_error):
-    return request_error
-
-  response.headers.set(b"Content-Type", b"application/json")
-
-  if request.cookies.get(b"accounts") != b"1":
-    return """
-{
- "accounts": [
-  ]
-}
+result_json = """
+{{
+ "accounts": [{}]
+}}
 """
 
-
-  return """
+one_account = """
 {
- "accounts": [{
    "id": "1234",
    "given_name": "John",
    "name": "John Doe",
@@ -28,6 +17,33 @@ def main(request, response):
    "approved_clients": ["123", "456", "789"],
    "login_hints": ["john_doe"],
    "hosted_domains": ["idp.example", "example"]
-  }]
+  }
+"""
+
+
+two_accounts = one_account + """
+, {
+   "id": "jane_doe",
+   "given_name": "Jane",
+   "name": "Jane Doe",
+   "email": "jane_doe@idp.example",
+   "picture": "https://idp.example/profile/5678",
+   "approved_clients": ["123", "abc"]
 }
 """
+
+def main(request, response):
+  request_error = error_checker.accountsCheck(request)
+  if (request_error):
+    return request_error
+
+  response.headers.set(b"Content-Type", b"application/json")
+
+  if request.cookies.get(b"accounts") == b"1":
+    return result_json.format(one_account)
+  if request.cookies.get(b"accounts") == b"2":
+    return result_json.format(two_accounts)
+
+  return result_json.format("")
+
+

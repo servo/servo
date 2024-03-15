@@ -111,14 +111,20 @@ impl ToWebRender for PhysicalSize<Au> {
 impl ToWebRender for PhysicalRect<Length> {
     type Type = units::LayoutRect;
     fn to_webrender(&self) -> Self::Type {
-        units::LayoutRect::new(self.origin.to_webrender(), self.size.to_webrender())
+        units::LayoutRect::from_origin_and_size(
+            self.origin.to_webrender(),
+            self.size.to_webrender(),
+        )
     }
 }
 
 impl ToWebRender for PhysicalRect<Au> {
     type Type = units::LayoutRect;
     fn to_webrender(&self) -> Self::Type {
-        units::LayoutRect::new(self.origin.to_webrender(), self.size.to_webrender())
+        units::LayoutRect::from_origin_and_size(
+            self.origin.to_webrender(),
+            self.size.to_webrender(),
+        )
     }
 }
 

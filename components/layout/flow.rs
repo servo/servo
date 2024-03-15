@@ -250,7 +250,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState);
 
     /// If this is a float, places it. The default implementation does nothing.
-    fn place_float_if_applicable<'a>(&mut self) {}
+    fn place_float_if_applicable(&mut self) {}
 
     /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
     /// implementation simply assigns block-sizes if this flow might have floats in. Returns true
@@ -505,6 +505,7 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     }
 }
 
+#[allow(clippy::wrong_self_convention)]
 pub trait ImmutableFlowUtils {
     // Convenience functions
 
@@ -603,18 +604,18 @@ pub enum FlowClass {
 
 impl FlowClass {
     fn is_block_like(self) -> bool {
-        match self {
+        matches!(
+            self,
             FlowClass::Block |
-            FlowClass::ListItem |
-            FlowClass::Table |
-            FlowClass::TableRowGroup |
-            FlowClass::TableRow |
-            FlowClass::TableCaption |
-            FlowClass::TableCell |
-            FlowClass::TableWrapper |
-            FlowClass::Flex => true,
-            _ => false,
-        }
+                FlowClass::ListItem |
+                FlowClass::Table |
+                FlowClass::TableRowGroup |
+                FlowClass::TableRow |
+                FlowClass::TableCaption |
+                FlowClass::TableCell |
+                FlowClass::TableWrapper |
+                FlowClass::Flex
+        )
     }
 }
 
@@ -1232,50 +1233,32 @@ impl<'a> ImmutableFlowUtils for &'a dyn Flow {
 
     /// Returns true if this flow is a table row flow.
     fn is_table_row(self) -> bool {
-        match self.class() {
-            FlowClass::TableRow => true,
-            _ => false,
-        }
+        matches!(self.class(), FlowClass::TableRow)
     }
 
     /// Returns true if this flow is a table cell flow.
     fn is_table_cell(self) -> bool {
-        match self.class() {
-            FlowClass::TableCell => true,
-            _ => false,
-        }
+        matches!(self.class(), FlowClass::TableCell)
     }
 
     /// Returns true if this flow is a table colgroup flow.
     fn is_table_colgroup(self) -> bool {
-        match self.class() {
-            FlowClass::TableColGroup => true,
-            _ => false,
-        }
+        matches!(self.class(), FlowClass::TableColGroup)
     }
 
     /// Returns true if this flow is a table flow.
     fn is_table(self) -> bool {
-        match self.class() {
-            FlowClass::Table => true,
-            _ => false,
-        }
+        matches!(self.class(), FlowClass::Table)
     }
 
     /// Returns true if this flow is a table caption flow.
     fn is_table_caption(self) -> bool {
-        match self.class() {
-            FlowClass::TableCaption => true,
-            _ => false,
-        }
+        matches!(self.class(), FlowClass::TableCaption)
     }
 
     /// Returns true if this flow is a table rowgroup flow.
     fn is_table_rowgroup(self) -> bool {
-        match self.class() {
-            FlowClass::TableRowGroup => true,
-            _ => false,
-        }
+        matches!(self.class(), FlowClass::TableRowGroup)
     }
 
     /// Returns the number of children that this flow possesses.
@@ -1285,18 +1268,12 @@ impl<'a> ImmutableFlowUtils for &'a dyn Flow {
 
     /// Returns true if this flow is a block flow.
     fn is_block_flow(self) -> bool {
-        match self.class() {
-            FlowClass::Block => true,
-            _ => false,
-        }
+        matches!(self.class(), FlowClass::Block)
     }
 
     /// Returns true if this flow is an inline flow.
     fn is_inline_flow(self) -> bool {
-        match self.class() {
-            FlowClass::Inline => true,
-            _ => false,
-        }
+        matches!(self.class(), FlowClass::Inline)
     }
 
     /// Dumps the flow tree for debugging.
@@ -1392,7 +1369,7 @@ impl MutableOwnedFlowUtils for FlowRef {
         for descendant_link in abs_descendants.descendant_links.iter_mut() {
             // TODO(servo#30573) revert to debug_assert!() once underlying bug is fixed
             #[cfg(debug_assertions)]
-            if !(!descendant_link.has_reached_containing_block) {
+            if descendant_link.has_reached_containing_block {
                 log::warn!("debug assertion failed! !descendant_link.has_reached_containing_block");
             }
             let descendant_base = FlowRef::deref_mut(&mut descendant_link.flow).mut_base();

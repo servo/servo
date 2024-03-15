@@ -64,7 +64,7 @@ impl BlockContainer {
             BlockContainer::BlockLevelBoxes(boxes) => boxes
                 .iter()
                 .any(|block_level_box| block_level_box.borrow().contains_floats()),
-            BlockContainer::InlineFormattingContext { .. } => true,
+            BlockContainer::InlineFormattingContext(context) => context.contains_floats,
         }
     }
 }
@@ -116,8 +116,8 @@ impl BlockLevelBox {
         }
 
         let pbm = style.padding_border_margin(containing_block);
-        let start_margin = pbm.margin.block_start.auto_is(Length::zero);
-        collected_margin.adjoin_assign(&CollapsedMargin::new(start_margin));
+        let start_margin = pbm.margin.block_start.auto_is(Au::zero);
+        collected_margin.adjoin_assign(&CollapsedMargin::new(start_margin.into()));
 
         let child_boxes = match self {
             BlockLevelBox::SameFormattingContextBlock { ref contents, .. } => match contents {
@@ -140,11 +140,13 @@ impl BlockLevelBox {
             .content_box_size(containing_block, &pbm)
             .inline
             .auto_is(|| {
-                let margin_inline_start = pbm.margin.inline_start.auto_is(Length::zero);
-                let margin_inline_end = pbm.margin.inline_end.auto_is(Length::zero);
-                Length::from(containing_block.inline_size - pbm.padding_border_sums.inline) -
+                let margin_inline_start = pbm.margin.inline_start.auto_is(Au::zero);
+                let margin_inline_end = pbm.margin.inline_end.auto_is(Au::zero);
+                (containing_block.inline_size -
+                    pbm.padding_border_sums.inline -
                     margin_inline_start -
-                    margin_inline_end
+                    margin_inline_end)
+                    .into()
             })
             .clamp_between_extremums(min_inline_size, max_inline_size);
 
@@ -173,8 +175,8 @@ impl BlockLevelBox {
             return false;
         }
 
-        let end_margin = pbm.margin.block_end.auto_is(Length::zero);
-        collected_margin.adjoin_assign(&CollapsedMargin::new(end_margin));
+        let end_margin = pbm.margin.block_end.auto_is(Au::zero);
+        collected_margin.adjoin_assign(&CollapsedMargin::new(end_margin.into()));
 
         true
     }
@@ -613,6 +615,7 @@ impl BlockLevelBox {
 ///
 /// - <https://drafts.csswg.org/css2/visudet.html#blockwidth>
 /// - <https://drafts.csswg.org/css2/visudet.html#normal-block>
+#[allow(clippy::too_many_arguments)]
 fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
@@ -856,7 +859,7 @@ impl NonReplacedFormattingContext {
             layout_context,
             positioning_context,
             &containing_block_for_children,
-            &containing_block,
+            containing_block,
         );
 
         let (block_size, inline_size) = match layout.content_inline_size_for_table {
@@ -932,7 +935,7 @@ impl NonReplacedFormattingContext {
         let effective_margin_inline_start;
         let (margin_block_start, margin_block_end) =
             solve_block_margins_for_in_flow_block_level(&pbm);
-        let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start);
+        let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start.into());
 
         // From https://drafts.csswg.org/css2/#floats:
         // "The border box of a table, a block-level replaced element, or an element in
@@ -1110,10 +1113,10 @@ impl NonReplacedFormattingContext {
         }
 
         let margin = LogicalSides {
-            inline_start: margin_inline_start,
-            inline_end: margin_inline_end,
-            block_start: margin_block_start,
-            block_end: margin_block_end,
+            inline_start: margin_inline_start.into(),
+            inline_end: margin_inline_end.into(),
+            block_start: margin_block_start.into(),
+            block_end: margin_block_end.into(),
         };
 
         // Clearance prevents margin collapse between this block and previous ones,
@@ -1138,7 +1141,7 @@ impl NonReplacedFormattingContext {
                     clearance.unwrap_or_else(Length::zero).into(),
                 inline: pbm.padding.inline_start +
                     pbm.border.inline_start +
-                    effective_margin_inline_start.into(),
+                    effective_margin_inline_start,
             },
             size: content_size.into(),
         };
@@ -1162,7 +1165,7 @@ impl NonReplacedFormattingContext {
 /// <https://drafts.csswg.org/css2/visudet.html#block-replaced-width>
 /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-width>
 /// <https://drafts.csswg.org/css2/visudet.html#inline-replaced-height>
-fn layout_in_flow_replaced_block_level<'a>(
+fn layout_in_flow_replaced_block_level(
     containing_block: &ContainingBlock,
     base_fragment_info: BaseFragmentInfo,
     style: &Arc<ComputedValues>,
@@ -1190,7 +1193,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         //  sufficient space. They may even make the border box of said element narrower
         //  than defined by section 10.3.3. CSS 2 does not define when a UA may put said
         //  element next to the float or by how much said element may become narrower."
-        let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start);
+        let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start.into());
         let size = &content_size + &pbm.padding_border_sums.clone();
         (
             clearance,
@@ -1216,7 +1219,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         sequential_layout_state.collapse_margins();
         sequential_layout_state
             .advance_block_position(size.block + clearance.unwrap_or_else(Length::zero).into());
-        sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin_block_end));
+        sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin_block_end.into()));
     } else {
         clearance = None;
         (
@@ -1230,19 +1233,17 @@ fn layout_in_flow_replaced_block_level<'a>(
     };
 
     let margin = LogicalSides {
-        inline_start: margin_inline_start,
-        inline_end: margin_inline_end,
-        block_start: margin_block_start,
-        block_end: margin_block_end,
+        inline_start: margin_inline_start.into(),
+        inline_end: margin_inline_end.into(),
+        block_start: margin_block_start.into(),
+        block_end: margin_block_end.into(),
     };
 
     let start_corner = LogicalVec2 {
         block: pbm.padding.block_start +
             pbm.border.block_start +
             clearance.unwrap_or_else(Length::zero).into(),
-        inline: pbm.padding.inline_start +
-            pbm.border.inline_start +
-            effective_margin_inline_start.into(),
+        inline: pbm.padding.inline_start + pbm.border.inline_start + effective_margin_inline_start,
     };
 
     let content_rect = LogicalRect {
@@ -1305,11 +1306,13 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let inline_size = box_size
         .inline
         .auto_is(|| {
-            let margin_inline_start = pbm.margin.inline_start.auto_is(Length::zero);
-            let margin_inline_end = pbm.margin.inline_end.auto_is(Length::zero);
-            Length::from(containing_block.inline_size - pbm.padding_border_sums.inline) -
+            let margin_inline_start = pbm.margin.inline_start.auto_is(Au::zero);
+            let margin_inline_end = pbm.margin.inline_end.auto_is(Au::zero);
+            (containing_block.inline_size -
+                pbm.padding_border_sums.inline -
                 margin_inline_start -
-                margin_inline_end
+                margin_inline_end)
+                .into()
         })
         .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
 
@@ -1348,46 +1351,46 @@ fn solve_margins(
     inline_size: Length,
 ) -> ResolvedMargins {
     let (inline_margins, effective_margin_inline_start) =
-        solve_inline_margins_for_in_flow_block_level(containing_block, &pbm, inline_size);
-    let block_margins = solve_block_margins_for_in_flow_block_level(&pbm);
+        solve_inline_margins_for_in_flow_block_level(containing_block, pbm, inline_size);
+    let block_margins = solve_block_margins_for_in_flow_block_level(pbm);
     ResolvedMargins {
         margin: LogicalSides {
-            inline_start: inline_margins.0,
-            inline_end: inline_margins.1,
-            block_start: block_margins.0,
-            block_end: block_margins.1,
+            inline_start: inline_margins.0.into(),
+            inline_end: inline_margins.1.into(),
+            block_start: block_margins.0.into(),
+            block_end: block_margins.1.into(),
         },
-        effective_margin_inline_start,
+        effective_margin_inline_start: effective_margin_inline_start.into(),
     }
 }
 
 /// Resolves 'auto' margins of an in-flow block-level box in the block axis.
 /// <https://drafts.csswg.org/css2/#normal-block>
 /// <https://drafts.csswg.org/css2/#block-root-margin>
-fn solve_block_margins_for_in_flow_block_level(pbm: &PaddingBorderMargin) -> (Length, Length) {
+fn solve_block_margins_for_in_flow_block_level(pbm: &PaddingBorderMargin) -> (Au, Au) {
     (
-        pbm.margin.block_start.auto_is(Length::zero),
-        pbm.margin.block_end.auto_is(Length::zero),
+        pbm.margin.block_start.auto_is(Au::zero),
+        pbm.margin.block_end.auto_is(Au::zero),
     )
 }
 
 /// This is supposed to handle 'justify-self', but no browser supports it on block boxes.
-/// Instead, <center> and <div align> are implemented via internal 'text-align' values.
+/// Instead, `<center>` and `<div align>` are implemented via internal 'text-align' values.
 /// The provided free space should already take margins into account. In particular,
 /// it should be zero if there is an auto margin.
 /// <https://drafts.csswg.org/css-align/#justify-block>
-fn justify_self_alignment(containing_block: &ContainingBlock, free_space: Length) -> Length {
+fn justify_self_alignment(containing_block: &ContainingBlock, free_space: Au) -> Au {
     let style = containing_block.style;
-    debug_assert!(free_space >= Length::zero());
+    debug_assert!(free_space >= Au::zero());
     match style.clone_text_align() {
-        TextAlignKeyword::ServoCenter => free_space / 2.,
+        TextAlignKeyword::ServoCenter => free_space / 2,
         TextAlignKeyword::ServoLeft if !style.writing_mode.line_left_is_inline_start() => {
             free_space
         },
         TextAlignKeyword::ServoRight if style.writing_mode.line_left_is_inline_start() => {
             free_space
         },
-        _ => Length::zero(),
+        _ => Au::zero(),
     }
 }
 
@@ -1407,25 +1410,25 @@ fn solve_inline_margins_for_in_flow_block_level(
     containing_block: &ContainingBlock,
     pbm: &PaddingBorderMargin,
     inline_size: Length,
-) -> ((Length, Length), Length) {
+) -> ((Au, Au), Au) {
     let free_space =
-        Length::from(containing_block.inline_size - pbm.padding_border_sums.inline) - inline_size;
-    let mut justification = Length::zero();
+        containing_block.inline_size - pbm.padding_border_sums.inline - inline_size.into();
+    let mut justification = Au::zero();
     let inline_margins = match (pbm.margin.inline_start, pbm.margin.inline_end) {
-        (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
-            let start = Length::zero().max(free_space / 2.);
+        (AuOrAuto::Auto, AuOrAuto::Auto) => {
+            let start = Au::zero().max(free_space / 2);
             (start, free_space - start)
         },
-        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
-            (Length::zero().max(free_space - end), end)
+        (AuOrAuto::Auto, AuOrAuto::LengthPercentage(end)) => {
+            (Au::zero().max(free_space - end), end)
         },
-        (LengthOrAuto::LengthPercentage(start), LengthOrAuto::Auto) => (start, free_space - start),
-        (LengthOrAuto::LengthPercentage(start), LengthOrAuto::LengthPercentage(end)) => {
+        (AuOrAuto::LengthPercentage(start), AuOrAuto::Auto) => (start, free_space - start),
+        (AuOrAuto::LengthPercentage(start), AuOrAuto::LengthPercentage(end)) => {
             // In the cases above, the free space is zero after taking 'auto' margins into account.
             // But here we may still have some free space to perform 'justify-self' alignment.
             // This aligns the margin box within the containing block, or in other words,
             // aligns the border box within the margin-shrunken containing block.
-            let free_space = Length::zero().max(free_space - start - end);
+            let free_space = Au::zero().max(free_space - start - end);
             justification = justify_self_alignment(containing_block, free_space);
             (start, end)
         },
@@ -1449,25 +1452,21 @@ fn solve_inline_margins_avoiding_floats(
     pbm: &PaddingBorderMargin,
     inline_size: Length,
     placement_rect: LogicalRect<Length>,
-) -> ((Length, Length), Length) {
-    let free_space = placement_rect.size.inline - inline_size;
-    debug_assert!(free_space >= Length::zero());
+) -> ((Au, Au), Au) {
+    let free_space = Au::from(placement_rect.size.inline - inline_size);
+    debug_assert!(free_space >= Au::zero());
     let cb_info = &sequential_layout_state.floats.containing_block_info;
-    let start_adjustment = placement_rect.start_corner.inline - cb_info.inline_start.into();
-    let end_adjustment = Length::from(cb_info.inline_end) - placement_rect.max_inline_position();
-    let mut justification = Length::zero();
+    let start_adjustment = Au::from(placement_rect.start_corner.inline) - cb_info.inline_start;
+    let end_adjustment = cb_info.inline_end - placement_rect.max_inline_position().into();
+    let mut justification = Au::zero();
     let inline_margins = match (pbm.margin.inline_start, pbm.margin.inline_end) {
-        (LengthOrAuto::Auto, LengthOrAuto::Auto) => {
-            let half = free_space / 2.;
+        (AuOrAuto::Auto, AuOrAuto::Auto) => {
+            let half = free_space / 2;
             (start_adjustment + half, end_adjustment + free_space - half)
         },
-        (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => {
-            (start_adjustment + free_space, end)
-        },
-        (LengthOrAuto::LengthPercentage(start), LengthOrAuto::Auto) => {
-            (start, end_adjustment + free_space)
-        },
-        (LengthOrAuto::LengthPercentage(start), LengthOrAuto::LengthPercentage(end)) => {
+        (AuOrAuto::Auto, AuOrAuto::LengthPercentage(end)) => (start_adjustment + free_space, end),
+        (AuOrAuto::LengthPercentage(start), AuOrAuto::Auto) => (start, end_adjustment + free_space),
+        (AuOrAuto::LengthPercentage(start), AuOrAuto::LengthPercentage(end)) => {
             // The spec says 'justify-self' aligns the margin box within the float-shrunken
             // containing block. That's wrong (https://github.com/w3c/csswg-drafts/issues/9963),
             // and Blink and WebKit are broken anyways. So we match Gecko instead: this aligns
@@ -1493,7 +1492,7 @@ fn solve_clearance_and_inline_margins_avoiding_floats(
     pbm: &PaddingBorderMargin,
     size: LogicalVec2<Length>,
     style: &Arc<ComputedValues>,
-) -> (Option<Length>, (Length, Length), Length) {
+) -> (Option<Length>, (Au, Au), Au) {
     let (clearance, placement_rect) = sequential_layout_state
         .calculate_clearance_and_inline_adjustment(
             style.get_box().clear,

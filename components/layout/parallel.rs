@@ -29,16 +29,24 @@ const CHUNK_SIZE: usize = 16;
 pub type FlowList = SmallVec<[UnsafeFlow; CHUNK_SIZE]>;
 
 /// Vtable + pointer representation of a Flow trait object.
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq)]
 pub struct UnsafeFlow(*const dyn Flow);
 
 unsafe impl Sync for UnsafeFlow {}
 unsafe impl Send for UnsafeFlow {}
+impl PartialEq for UnsafeFlow {
+    #[allow(clippy::ptr_eq)]
+    fn eq(&self, other: &Self) -> bool {
+        // Compare the pointers explicitly to avoid a clippy error
+        self.0 as *const u8 == other.0 as *const u8
+    }
+}
 
 fn null_unsafe_flow() -> UnsafeFlow {
     UnsafeFlow(ptr::null::<BlockFlow>())
 }
 
+#[allow(clippy::not_unsafe_ptr_arg_deref)] // It has an unsafe block inside
 pub fn mut_owned_flow_to_unsafe_flow(flow: *mut FlowRef) -> UnsafeFlow {
     unsafe { UnsafeFlow(&**flow) }
 }

@@ -289,7 +289,7 @@ impl WebGLThread {
             let exit = self.handle_msg(msg, &webgl_chan);
             if exit {
                 // Call remove_context functions in order to correctly delete WebRender image keys.
-                let context_ids: Vec<WebGLContextId> = self.contexts.keys().map(|id| *id).collect();
+                let context_ids: Vec<WebGLContextId> = self.contexts.keys().copied().collect();
                 for id in context_ids {
                     self.remove_webgl_context(id);
                 }
@@ -323,7 +323,7 @@ impl WebGLThread {
                             &mut self.bound_context_id,
                         )
                         .expect("WebGLContext not found");
-                        let glsl_version = Self::get_glsl_version(&*data.gl);
+                        let glsl_version = Self::get_glsl_version(&data.gl);
                         let api_type = match data.gl.get_type() {
                             gl::GlType::Gl => GlType::Gl,
                             gl::GlType::Gles => GlType::Gles,
@@ -458,7 +458,7 @@ impl WebGLThread {
             WebGLImpl::apply(
                 &self.device,
                 &data.ctx,
-                &*data.gl,
+                &data.gl,
                 &mut data.state,
                 &data.attributes,
                 command,
@@ -497,12 +497,12 @@ impl WebGLThread {
             ContextAttributeFlags::STENCIL;
         let context_attributes = &ContextAttributes {
             version: webgl_version.to_surfman_version(self.api_type),
-            flags: flags,
+            flags,
         };
 
         let context_descriptor = self
             .device
-            .create_context_descriptor(&context_attributes)
+            .create_context_descriptor(context_attributes)
             .map_err(|err| format!("Failed to create context descriptor: {:?}", err))?;
 
         let safe_size = Size2D::new(
@@ -562,7 +562,7 @@ impl WebGLThread {
             })),
         };
 
-        let limits = GLLimits::detect(&*gl, webgl_version);
+        let limits = GLLimits::detect(&gl, webgl_version);
 
         let size = clamp_viewport(&gl, requested_size);
         if safe_size != size {
@@ -583,7 +583,7 @@ impl WebGLThread {
             .device
             .context_surface_info(&ctx)
             .map_err(|err| format!("Failed to get context surface info: {:?}", err))?
-            .ok_or_else(|| format!("Failed to get context surface info"))?
+            .ok_or_else(|| "Failed to get context surface info".to_string())?
             .framebuffer_object;
 
         gl.bind_framebuffer(gl::FRAMEBUFFER, framebuffer);
@@ -616,7 +616,7 @@ impl WebGLThread {
         };
         debug!("Created state {:?}", state);
 
-        state.restore_invariant(&*gl);
+        state.restore_invariant(&gl);
         debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
 
         self.contexts.insert(
@@ -663,7 +663,7 @@ impl WebGLThread {
         // Check to see if any of the current framebuffer bindings are the surface we're about to
         // throw out. If so, we'll have to reset them after destroying the surface.
         let framebuffer_rebinding_info =
-            FramebufferRebindingInfo::detect(&self.device, &data.ctx, &*data.gl);
+            FramebufferRebindingInfo::detect(&self.device, &data.ctx, &data.gl);
 
         // Resize the swap chains
         if let Some(swap_chain) = self.webrender_swap_chains.get(context_id) {
@@ -676,14 +676,14 @@ impl WebGLThread {
                 .resize(&mut self.device, &mut data.ctx, size.to_i32())
                 .map_err(|err| format!("Failed to resize swap chain: {:?}", err))?;
             swap_chain
-                .clear_surface(&mut self.device, &mut data.ctx, &*data.gl, clear_color)
+                .clear_surface(&mut self.device, &mut data.ctx, &data.gl, clear_color)
                 .map_err(|err| format!("Failed to clear resized swap chain: {:?}", err))?;
         } else {
             error!("Failed to find swap chain");
         }
 
         // Reset framebuffer bindings as appropriate.
-        framebuffer_rebinding_info.apply(&self.device, &data.ctx, &*data.gl);
+        framebuffer_rebinding_info.apply(&self.device, &data.ctx, &data.gl);
         debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
         let has_alpha = data
@@ -764,7 +764,7 @@ impl WebGLThread {
             // Check to see if any of the current framebuffer bindings are the surface we're about
             // to swap out. If so, we'll have to reset them after destroying the surface.
             let framebuffer_rebinding_info =
-                FramebufferRebindingInfo::detect(&self.device, &data.ctx, &*data.gl);
+                FramebufferRebindingInfo::detect(&self.device, &data.ctx, &data.gl);
             debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
             debug!("Getting swap chain for {:?}", context_id);
@@ -779,7 +779,7 @@ impl WebGLThread {
                     &mut self.device,
                     &mut data.ctx,
                     if data.attributes.preserve_drawing_buffer {
-                        PreserveBuffer::Yes(&*data.gl)
+                        PreserveBuffer::Yes(&data.gl)
                     } else {
                         PreserveBuffer::No
                     },
@@ -795,14 +795,14 @@ impl WebGLThread {
                     .contains(ContextAttributeFlags::ALPHA);
                 let clear_color = [0.0, 0.0, 0.0, !alpha as i32 as f32];
                 swap_chain
-                    .clear_surface(&mut self.device, &mut data.ctx, &*data.gl, clear_color)
+                    .clear_surface(&mut self.device, &mut data.ctx, &data.gl, clear_color)
                     .unwrap();
                 debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
             }
 
             // Rebind framebuffers as appropriate.
             debug!("Rebinding {:?}", context_id);
-            framebuffer_rebinding_info.apply(&self.device, &data.ctx, &*data.gl);
+            framebuffer_rebinding_info.apply(&self.device, &data.ctx, &data.gl);
             debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
             let SurfaceInfo {
@@ -941,7 +941,7 @@ impl WebGLThread {
         image_buffer_kind: ImageBufferKind,
     ) -> ImageData {
         let data = ExternalImageData {
-            id: ExternalImageId(context_id.0 as u64),
+            id: ExternalImageId(context_id.0),
             channel_index: 0,
             image_type: ExternalImageType::TextureHandle(image_buffer_kind),
         };
@@ -1288,7 +1288,7 @@ impl WebGLImpl {
                 sender.send(location).unwrap();
             },
             WebGLCommand::GetUniformLocation(program_id, ref name, ref chan) => {
-                Self::uniform_location(gl, program_id, &name, chan)
+                Self::uniform_location(gl, program_id, name, chan)
             },
             WebGLCommand::GetShaderInfoLog(shader_id, ref chan) => {
                 Self::shader_info_log(gl, shader_id, chan)
@@ -1297,7 +1297,7 @@ impl WebGLImpl {
                 Self::program_info_log(gl, program_id, chan)
             },
             WebGLCommand::CompileShader(shader_id, ref source) => {
-                Self::compile_shader(gl, shader_id, &source)
+                Self::compile_shader(gl, shader_id, source)
             },
             WebGLCommand::CreateBuffer(ref chan) => Self::create_buffer(gl, chan),
             WebGLCommand::CreateFramebuffer(ref chan) => Self::create_framebuffer(gl, chan),
@@ -1426,7 +1426,7 @@ impl WebGLImpl {
                     alpha_treatment,
                     y_axis_treatment,
                     pixel_format,
-                    Cow::Borrowed(&*data),
+                    Cow::Borrowed(data),
                 );
 
                 gl.pixel_store_i(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
@@ -1489,7 +1489,7 @@ impl WebGLImpl {
                     alpha_treatment,
                     y_axis_treatment,
                     pixel_format,
-                    Cow::Borrowed(&*data),
+                    Cow::Borrowed(data),
                 );
 
                 gl.pixel_store_i(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
@@ -1519,7 +1519,7 @@ impl WebGLImpl {
                     size.width as i32,
                     size.height as i32,
                     0,
-                    &*data,
+                    data,
                 );
             },
             WebGLCommand::CompressedTexSubImage2D {
@@ -1533,13 +1533,13 @@ impl WebGLImpl {
             } => {
                 gl.compressed_tex_sub_image_2d(
                     target,
-                    level as i32,
-                    xoffset as i32,
-                    yoffset as i32,
+                    level,
+                    xoffset,
+                    yoffset,
                     size.width as i32,
                     size.height as i32,
                     format,
-                    &*data,
+                    data,
                 );
             },
             WebGLCommand::TexStorage2D(target, levels, internal_format, width, height) => gl
@@ -1561,7 +1561,7 @@ impl WebGLImpl {
                 ),
             WebGLCommand::DrawingBufferWidth(ref sender) => {
                 let size = device
-                    .context_surface_info(&ctx)
+                    .context_surface_info(ctx)
                     .unwrap()
                     .expect("Where's the front buffer?")
                     .size;
@@ -1569,7 +1569,7 @@ impl WebGLImpl {
             },
             WebGLCommand::DrawingBufferHeight(ref sender) => {
                 let size = device
-                    .context_surface_info(&ctx)
+                    .context_surface_info(ctx)
                     .unwrap()
                     .expect("Where's the front buffer?")
                     .size;
@@ -1615,7 +1615,7 @@ impl WebGLImpl {
                 sender.send(value).unwrap();
             },
             WebGLCommand::ClientWaitSync(sync_id, flags, timeout, ref sender) => {
-                let value = gl.client_wait_sync(sync_id.get() as *const _, flags, timeout as u64);
+                let value = gl.client_wait_sync(sync_id.get() as *const _, flags, timeout);
                 sender.send(value).unwrap();
             },
             WebGLCommand::WaitSync(sync_id, flags, timeout) => {
@@ -1744,10 +1744,10 @@ impl WebGLImpl {
                 }
             },
             WebGLCommand::TexParameteri(target, param, value) => {
-                gl.tex_parameter_i(target, param as u32, value)
+                gl.tex_parameter_i(target, param, value)
             },
             WebGLCommand::TexParameterf(target, param, value) => {
-                gl.tex_parameter_f(target, param as u32, value)
+                gl.tex_parameter_f(target, param, value)
             },
             WebGLCommand::LinkProgram(program_id, ref sender) => {
                 return sender.send(Self::link_program(gl, program_id)).unwrap();
@@ -2503,7 +2503,7 @@ impl WebGLImpl {
 ///
 /// To avoid hard-coding this we would need to use the `sh::GetAttributes` and `sh::GetUniforms`
 /// API to look up the `x.name` and `x.mappedName` members.
-const ANGLE_NAME_PREFIX: &'static str = "_u";
+const ANGLE_NAME_PREFIX: &str = "_u";
 
 fn to_name_in_compiled_shader(s: &str) -> String {
     map_dot_separated(s, |s, mapped| {
@@ -2514,8 +2514,8 @@ fn to_name_in_compiled_shader(s: &str) -> String {
 
 fn from_name_in_compiled_shader(s: &str) -> String {
     map_dot_separated(s, |s, mapped| {
-        mapped.push_str(if s.starts_with(ANGLE_NAME_PREFIX) {
-            &s[ANGLE_NAME_PREFIX.len()..]
+        mapped.push_str(if let Some(stripped) = s.strip_prefix(ANGLE_NAME_PREFIX) {
+            stripped
         } else {
             s
         })
@@ -2533,6 +2533,7 @@ fn map_dot_separated<F: Fn(&str, &mut String)>(s: &str, f: F) -> String {
     mapped
 }
 
+#[allow(clippy::too_many_arguments)]
 fn prepare_pixels(
     internal_format: TexFormat,
     data_type: TexDataType,
@@ -3057,7 +3058,7 @@ impl WebXRBridge {
             .map_err(|_| WebXRError::CommunicationError)?;
         let manager = factory.build(device, contexts)?;
         let manager_id = unsafe { WebXRLayerManagerId::new(self.next_manager_id) };
-        self.next_manager_id = self.next_manager_id + 1;
+        self.next_manager_id += 1;
         self.managers.insert(manager_id, manager);
         Ok(manager_id)
     }
@@ -3100,7 +3101,8 @@ impl WebXRBridge {
         contexts: &mut dyn WebXRContexts<WebXRSurfman>,
         context_id: WebXRContextId,
     ) {
-        for (_, manager) in &mut self.managers {
+        for manager in self.managers.values_mut() {
+            #[allow(clippy::unnecessary_to_owned)] // Needs mutable borrow later in destroy
             for (other_id, layer_id) in manager.layers().to_vec() {
                 if other_id == context_id {
                     manager.destroy_layer(device, contexts, context_id, layer_id);
@@ -3315,8 +3317,8 @@ impl<'a> WebXRContexts<WebXRSurfman> for WebXRBridgeContexts<'a> {
         let data = WebGLThread::make_current_if_needed_mut(
             device,
             WebGLContextId::from(context_id),
-            &mut self.contexts,
-            &mut self.bound_context_id,
+            self.contexts,
+            self.bound_context_id,
         )?;
         Some(&mut data.ctx)
     }
@@ -3324,8 +3326,8 @@ impl<'a> WebXRContexts<WebXRSurfman> for WebXRBridgeContexts<'a> {
         let data = WebGLThread::make_current_if_needed(
             device,
             WebGLContextId::from(context_id),
-            &self.contexts,
-            &mut self.bound_context_id,
+            self.contexts,
+            self.bound_context_id,
         )?;
         Some(&data.gl)
     }

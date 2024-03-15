@@ -129,7 +129,7 @@ impl<'a> Iterator for NaturalWordSliceIterator<'a> {
 
         if !byte_range.is_empty() {
             Some(TextRunSlice {
-                glyphs: &*slice_glyphs.glyph_store,
+                glyphs: &slice_glyphs.glyph_store,
                 offset: slice_range_begin,
                 range: byte_range,
             })
@@ -172,7 +172,7 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
 
         let index_within_glyph_run = byte_start - glyph_run.range.begin();
         Some(TextRunSlice {
-            glyphs: &*glyph_run.glyph_store,
+            glyphs: &glyph_run.glyph_store,
             offset: glyph_run.range.begin(),
             range: Range::new(index_within_glyph_run, byte_len),
         })
@@ -197,7 +197,7 @@ impl<'a> TextRun {
                 font_key: font.font_key,
                 pt_size: font.descriptor.pt_size,
                 glyphs: Arc::new(glyphs),
-                bidi_level: bidi_level,
+                bidi_level,
                 extra_word_spacing: Au(0),
             },
             break_at_zero,
@@ -217,13 +217,23 @@ impl<'a> TextRun {
         let mut break_at_zero = false;
 
         if breaker.is_none() {
-            if text.len() == 0 {
+            if text.is_empty() {
                 return (glyphs, true);
             }
             *breaker = Some(LineBreakLeafIter::new(text, 0));
         }
 
         let breaker = breaker.as_mut().unwrap();
+
+        let mut push_range = |range: &std::ops::Range<usize>, options: &ShapingOptions| {
+            glyphs.push(GlyphRun {
+                glyph_store: font.shape_text(&text[range.clone()], &options),
+                range: Range::new(
+                    ByteIndex(range.start as isize),
+                    ByteIndex(range.len() as isize),
+                ),
+            });
+        };
 
         while !finished {
             let (idx, _is_hard_break) = breaker.next(text);
@@ -240,9 +250,9 @@ impl<'a> TextRun {
 
             // Split off any trailing whitespace into a separate glyph run.
             let mut whitespace = slice.end..slice.end;
-            if let Some((i, _)) = word
-                .char_indices()
-                .rev()
+            let mut rev_char_indices = word.char_indices().rev().peekable();
+            let ends_with_newline = rev_char_indices.peek().map_or(false, |&(_, c)| c == '\n');
+            if let Some((i, _)) = rev_char_indices
                 .take_while(|&(_, c)| char_is_whitespace(c))
                 .last()
             {
@@ -253,27 +263,29 @@ impl<'a> TextRun {
                 // keep-all, try increasing the slice.
                 continue;
             }
-            if slice.len() > 0 {
-                glyphs.push(GlyphRun {
-                    glyph_store: font.shape_text(&text[slice.clone()], options),
-                    range: Range::new(
-                        ByteIndex(slice.start as isize),
-                        ByteIndex(slice.len() as isize),
-                    ),
-                });
+            if !slice.is_empty() {
+                push_range(&slice, options);
             }
-            if whitespace.len() > 0 {
-                let mut options = options.clone();
+            if !whitespace.is_empty() {
+                let mut options = *options;
                 options
                     .flags
                     .insert(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG);
-                glyphs.push(GlyphRun {
-                    glyph_store: font.shape_text(&text[whitespace.clone()], &options),
-                    range: Range::new(
-                        ByteIndex(whitespace.start as isize),
-                        ByteIndex(whitespace.len() as isize),
-                    ),
-                });
+
+                // The breaker breaks after every newline, so either there is none,
+                // or there is exactly one at the very end. In the latter case,
+                // split it into a different run. That's because shaping considers
+                // a newline to have the same advance as a space, but during layout
+                // we want to treat the newline as having no advance.
+                if ends_with_newline {
+                    whitespace.end -= 1;
+                    if !whitespace.is_empty() {
+                        push_range(&whitespace, &options);
+                    }
+                    whitespace.start = whitespace.end;
+                    whitespace.end += 1;
+                }
+                push_range(&whitespace, &options);
             }
             slice.start = whitespace.end;
         }
@@ -348,7 +360,9 @@ impl<'a> TextRun {
                 }
             }
 
-            if let Ok(result) = (&**self.glyphs).binary_search_by(|current| current.compare(&index))
+            if let Ok(result) = self
+                .glyphs
+                .binary_search_by(|current| current.compare(&index))
             {
                 index_of_first_glyph_run_cache.set(Some((self_ptr, index, result)));
                 Some(result)
@@ -396,7 +410,7 @@ impl<'a> TextRun {
         };
         NaturalWordSliceIterator {
             glyphs: &self.glyphs[..],
-            index: index,
+            index,
             range: *range,
             reverse: false,
         }
@@ -424,9 +438,9 @@ impl<'a> TextRun {
         };
         NaturalWordSliceIterator {
             glyphs: &self.glyphs[..],
-            index: index,
+            index,
             range: *range,
-            reverse: reverse,
+            reverse,
         }
     }
 
@@ -445,7 +459,7 @@ impl<'a> TextRun {
         CharacterSliceIterator {
             text: &self.text,
             glyph_run: first_glyph_run,
-            glyph_run_iter: glyph_run_iter,
+            glyph_run_iter,
             range: *range,
         }
     }

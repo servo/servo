@@ -9,6 +9,10 @@ test(function() {
 }, "webkitMediaStream interface should not exist");
 
 test(function() {
+  assert_false("getUserMedia" in navigator);
+}, "navigator.getUserMedia should not exist");
+
+test(function() {
   assert_false("webkitGetUserMedia" in navigator);
 }, "navigator.webkitGetUserMedia should not exist");
 

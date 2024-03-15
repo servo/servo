@@ -26,7 +26,7 @@ use crate::formatting_contexts::{
     IndependentFormattingContext, NonReplacedFormattingContext,
     NonReplacedFormattingContextContents,
 };
-use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags, Tag};
+use crate::fragment_tree::BaseFragmentInfo;
 use crate::style_ext::{DisplayGeneratingBox, DisplayLayoutInternal};
 
 /// A reference to a slot and its coordinates in the table
@@ -84,12 +84,10 @@ impl Table {
             .stylist
             .style_for_anonymous::<Node::ConcreteElement>(
                 &context.shared_context().guards,
-                // TODO: This should be updated for Layout 2020 once we've determined
-                // which styles should be inherited for tables.
-                &PseudoElement::ServoLegacyAnonymousTable,
+                &PseudoElement::ServoAnonymousTable,
                 &parent_info.style,
             );
-        let anonymous_info = parent_info.new_replacing_style(anonymous_style.clone());
+        let anonymous_info = parent_info.new_anonymous(anonymous_style.clone());
 
         let mut table_builder =
             TableBuilderTraversal::new(context, &anonymous_info, propagated_text_decoration_line);
@@ -641,10 +639,10 @@ where
             .stylist
             .style_for_anonymous::<Node::ConcreteElement>(
                 &context.shared_context().guards,
-                &PseudoElement::ServoAnonymousTableCell,
+                &PseudoElement::ServoAnonymousTableRow,
                 &self.info.style,
             );
-        let anonymous_info = self.info.new_replacing_style(anonymous_style);
+        let anonymous_info = self.info.new_anonymous(anonymous_style.clone());
         let mut row_builder =
             TableRowBuilder::new(self, &anonymous_info, self.current_text_decoration_line);
 
@@ -665,6 +663,23 @@ where
         }
 
         row_builder.finish();
+
+        self.push_table_row(TableTrack {
+            base_fragment_info: (&anonymous_info).into(),
+            style: anonymous_style,
+            group_index: self.current_row_group_index,
+            is_anonymous: true,
+        });
+    }
+
+    fn push_table_row(&mut self, table_track: TableTrack) {
+        self.builder.table.rows.push(table_track);
+
+        let last_row = self.builder.table.rows.len();
+        if let Some(index) = self.current_row_group_index {
+            let row_group = &mut self.builder.table.row_groups[index];
+            row_group.track_range.end = last_row;
+        }
     }
 }
 
@@ -706,8 +721,7 @@ where
                     });
 
                     let previous_text_decoration_line = self.current_text_decoration_line;
-                    self.current_text_decoration_line =
-                        self.current_text_decoration_line | info.style.clone_text_decoration_line();
+                    self.current_text_decoration_line |= info.style.clone_text_decoration_line();
 
                     let new_row_group_index = self.builder.table.row_groups.len() - 1;
                     self.current_row_group_index = Some(new_row_group_index);
@@ -717,6 +731,7 @@ where
                         info,
                         self,
                     );
+                    self.finish_anonymous_row_if_needed();
 
                     self.current_row_group_index = None;
                     self.current_text_decoration_line = previous_text_decoration_line;
@@ -739,27 +754,23 @@ where
                     );
                     row_builder.finish();
 
-                    self.builder.table.rows.push(TableTrack {
+                    self.push_table_row(TableTrack {
                         base_fragment_info: info.into(),
                         style: info.style.clone(),
                         group_index: self.current_row_group_index,
                         is_anonymous: false,
                     });
 
-                    let last_row = self.builder.table.rows.len();
-                    let row_group = self
-                        .current_row_group_index
-                        .map(|index| &mut self.builder.table.row_groups[index]);
-                    if let Some(row_group) = row_group {
-                        row_group.track_range.end = last_row;
-                    }
-
                     // We are doing this until we have actually set a Box for this `BoxSlot`.
                     ::std::mem::forget(box_slot)
                 },
                 DisplayLayoutInternal::TableColumn => {
-                    let node = info.node.to_threadsafe();
-                    let span = (node.get_span().unwrap_or(1) as usize).min(1000);
+                    let span = info
+                        .node
+                        .and_then(|node| node.to_threadsafe().get_span())
+                        .unwrap_or(1)
+                        .min(1000);
+
                     for _ in 0..span + 1 {
                         self.builder.table.columns.push(TableTrack {
                             base_fragment_info: info.into(),
@@ -787,8 +798,11 @@ where
 
                     let first_column = self.builder.table.columns.len();
                     if column_group_builder.columns.is_empty() {
-                        let node = info.node.to_threadsafe();
-                        let span = (node.get_span().unwrap_or(1) as usize).min(1000);
+                        let span = info
+                            .node
+                            .and_then(|node| node.to_threadsafe().get_span())
+                            .unwrap_or(1)
+                            .min(1000) as usize;
 
                         self.builder.table.columns.extend(
                             repeat(TableTrack {
@@ -896,7 +910,7 @@ where
                 &PseudoElement::ServoAnonymousTableCell,
                 &self.info.style,
             );
-        let anonymous_info = self.info.new_replacing_style(anonymous_style);
+        let anonymous_info = self.info.new_anonymous(anonymous_style);
         let mut builder =
             BlockContainerBuilder::new(context, &anonymous_info, self.text_decoration_line);
 
@@ -916,22 +930,13 @@ where
             }
         }
 
-        let tag = Tag::new_pseudo(
-            self.info.node.opaque(),
-            Some(PseudoElement::ServoAnonymousTableCell),
-        );
-        let base_fragment_info = BaseFragmentInfo {
-            tag,
-            flags: FragmentFlags::empty(),
-        };
-
         let block_container = builder.finish();
         self.table_traversal.builder.add_cell(TableSlotCell {
             contents: BlockFormattingContext::from_block_container(block_container),
             colspan: 1,
             rowspan: 1,
             style: anonymous_info.style,
-            base_fragment_info,
+            base_fragment_info: BaseFragmentInfo::anonymous(),
         });
     }
 }
@@ -957,6 +962,7 @@ where
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
+        #[allow(clippy::collapsible_match)] //// TODO: Remove once the other cases are handled
         match display {
             DisplayGeneratingBox::LayoutInternal(internal) => match internal {
                 DisplayLayoutInternal::TableCell => {
@@ -967,9 +973,12 @@ where
                     // 65534 and `colspan` to 1000, so we also enforce the same limits
                     // when dealing with arbitrary DOM elements (perhaps created via
                     // script).
-                    let node = info.node.to_threadsafe();
-                    let rowspan = (node.get_rowspan().unwrap_or(1) as usize).min(65534);
-                    let colspan = (node.get_colspan().unwrap_or(1) as usize).min(1000);
+                    let (rowspan, colspan) = info.node.map_or((1, 1), |node| {
+                        let node = node.to_threadsafe();
+                        let rowspan = node.get_rowspan().unwrap_or(1).min(65534) as usize;
+                        let colspan = node.get_colspan().unwrap_or(1).min(1000) as usize;
+                        (rowspan, colspan)
+                    });
 
                     let contents = match contents.try_into() {
                         Ok(non_replaced_contents) => {

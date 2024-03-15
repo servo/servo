@@ -42,3 +42,10 @@ def test_capability_default_value(session, capability, default_value):
     assert isinstance(session.capabilities, dict)
     assert capability in session.capabilities
     assert session.capabilities[capability] == default_value
+
+
+def test_capability_user_agent(session):
+    assert isinstance(session.capabilities, dict)
+    assert "userAgent" in session.capabilities
+    assert type(session.capabilities["userAgent"]) == str
+    assert len(session.capabilities["userAgent"]) > 0

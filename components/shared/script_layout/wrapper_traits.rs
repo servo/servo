@@ -50,17 +50,11 @@ impl PseudoElementType {
     }
 
     pub fn is_before(&self) -> bool {
-        match *self {
-            PseudoElementType::Before => true,
-            _ => false,
-        }
+        matches!(*self, PseudoElementType::Before)
     }
 
     pub fn is_replaced_content(&self) -> bool {
-        match *self {
-            PseudoElementType::Before | PseudoElementType::After => true,
-            _ => false,
-        }
+        matches!(*self, PseudoElementType::Before | PseudoElementType::After)
     }
 
     pub fn style_pseudo_element(&self) -> PseudoElement {
@@ -138,9 +132,8 @@ where
     ConcreteNode: LayoutNode<'dom>,
 {
     fn new(root: ConcreteNode) -> TreeIterator<ConcreteNode> {
-        let mut stack = vec![];
-        stack.push(root);
-        TreeIterator { stack: stack }
+        let stack = vec![root];
+        TreeIterator { stack }
     }
 
     pub fn next_skipping_children(&mut self) -> Option<ConcreteNode> {
@@ -155,7 +148,9 @@ where
     type Item = ConcreteNode;
     fn next(&mut self) -> Option<ConcreteNode> {
         let ret = self.stack.pop();
-        ret.map(|node| self.stack.extend(node.rev_children()));
+        if let Some(node) = ret {
+            self.stack.extend(node.rev_children())
+        }
         ret
     }
 }

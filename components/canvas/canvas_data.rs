@@ -74,23 +74,23 @@ impl PathState {
 pub trait Backend {
     fn get_composition_op(&self, opts: &DrawOptions) -> CompositionOp;
     fn need_to_draw_shadow(&self, color: &Color) -> bool;
-    fn set_shadow_color<'a>(&mut self, color: RGBA, state: &mut CanvasPaintState<'a>);
-    fn set_fill_style<'a>(
+    fn set_shadow_color(&mut self, color: RGBA, state: &mut CanvasPaintState<'_>);
+    fn set_fill_style(
         &mut self,
         style: FillOrStrokeStyle,
-        state: &mut CanvasPaintState<'a>,
+        state: &mut CanvasPaintState<'_>,
         drawtarget: &dyn GenericDrawTarget,
     );
-    fn set_stroke_style<'a>(
+    fn set_stroke_style(
         &mut self,
         style: FillOrStrokeStyle,
-        state: &mut CanvasPaintState<'a>,
+        state: &mut CanvasPaintState<'_>,
         drawtarget: &dyn GenericDrawTarget,
     );
-    fn set_global_composition<'a>(
+    fn set_global_composition(
         &mut self,
         op: CompositionOrBlending,
-        state: &mut CanvasPaintState<'a>,
+        state: &mut CanvasPaintState<'_>,
     );
     fn create_drawtarget(&self, size: Size2D<u64>) -> Box<dyn GenericDrawTarget>;
     fn recreate_paint_state<'a>(&self, state: &CanvasPaintState<'a>) -> CanvasPaintState<'a>;
@@ -114,6 +114,7 @@ pub trait GenericPathBuilder {
         control_point3: &Point2D<f32>,
     );
     fn close(&mut self);
+    #[allow(clippy::too_many_arguments)]
     fn ellipse(
         &mut self,
         origin: Point2D<f32>,
@@ -195,6 +196,7 @@ impl<'a> PathBuilderRef<'a> {
             .arc(center, radius, start_angle, end_angle, ccw);
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn ellipse(
         &mut self,
         center: &Point2D<f32>,
@@ -222,10 +224,9 @@ impl<'a> PathBuilderRef<'a> {
             Some(i) => i,
             None => return None,
         };
-        match self.builder.get_current_point() {
-            Some(point) => Some(inverse.transform_point(Point2D::new(point.x, point.y))),
-            None => None,
-        }
+        self.builder
+            .get_current_point()
+            .map(|point| inverse.transform_point(Point2D::new(point.x, point.y)))
     }
 
     fn close(&mut self) {
@@ -428,7 +429,7 @@ impl<'a> CanvasData<'a> {
         let source_rect = source_rect.ceil();
         // It discards the extra pixels (if any) that won't be painted
         let image_data = if Rect::from_size(image_size).contains_rect(&source_rect) {
-            pixels::rgba8_get_rect(&image_data, image_size.to_u64(), source_rect.to_u64()).into()
+            pixels::rgba8_get_rect(image_data, image_size.to_u64(), source_rect.to_u64()).into()
         } else {
             image_data.into()
         };
@@ -493,15 +494,14 @@ impl<'a> CanvasData<'a> {
         let font = font_style.map_or_else(
             || load_system_font_from_style(None),
             |style| {
-                with_thread_local_font_context(&self, |font_context| {
+                with_thread_local_font_context(self, |font_context| {
                     let font_group = font_context.font_group(ServoArc::new(style.clone()));
                     let font = font_group
                         .borrow_mut()
                         .first(font_context)
                         .expect("couldn't find font");
                     let font = font.borrow_mut();
-                    let template = font.handle.template();
-                    Font::from_bytes(Arc::new(template.bytes()), 0)
+                    Font::from_bytes(font.handle.template().bytes(), 0)
                         .ok()
                         .or_else(|| load_system_font_from_style(Some(style)))
                 })
@@ -651,7 +651,7 @@ impl<'a> CanvasData<'a> {
         }
 
         if self.need_to_draw_shadow() {
-            self.draw_with_shadow(&rect, |new_draw_target: &mut dyn GenericDrawTarget| {
+            self.draw_with_shadow(rect, |new_draw_target: &mut dyn GenericDrawTarget| {
                 new_draw_target.stroke_rect(
                     rect,
                     self.state.stroke_style.clone(),
@@ -918,7 +918,7 @@ impl<'a> CanvasData<'a> {
             Some(p) => p,
             None => {
                 self.path_builder().move_to(cp1);
-                cp1.clone()
+                *cp1
             },
         };
         let cp1 = *cp1;
@@ -979,6 +979,7 @@ impl<'a> CanvasData<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn ellipse(
         &mut self,
         center: &Point2D<f32>,
@@ -1042,7 +1043,7 @@ impl<'a> CanvasData<'a> {
                 }
             },
         }
-        self.state.transform = transform.clone();
+        self.state.transform = *transform;
         self.drawtarget.set_transform(transform)
     }
 
@@ -1200,10 +1201,7 @@ impl<'a> CanvasData<'a> {
         draw_shadow_source(&mut *new_draw_target);
         self.drawtarget.draw_surface_with_shadow(
             new_draw_target.snapshot(),
-            &Point2D::new(
-                shadow_src_rect.origin.x as f32,
-                shadow_src_rect.origin.y as f32,
-            ),
+            &Point2D::new(shadow_src_rect.origin.x, shadow_src_rect.origin.y),
             &self.state.shadow_color,
             &Vector2D::new(
                 self.state.shadow_offset_x as f32,
@@ -1394,18 +1392,18 @@ fn load_system_font_from_style(font_style: Option<&FontStyleStruct>) -> Option<F
         })
         .weight(Weight(style.font_weight.value()))
         .stretch(Stretch(style.font_stretch.to_percentage().0));
-    let font_handle = match SystemSource::new().select_best_match(&family_names, &properties) {
+    let font_handle = match SystemSource::new().select_best_match(&family_names, properties) {
         Ok(handle) => handle,
         Err(e) => {
             error!("error getting font handle for style {:?}: {}", style, e);
-            return load_default_system_fallback_font(&properties);
+            return load_default_system_fallback_font(properties);
         },
     };
     match font_handle.load() {
         Ok(f) => Some(f),
         Err(e) => {
             error!("error loading font for style {:?}: {}", style, e);
-            load_default_system_fallback_font(&properties)
+            load_default_system_fallback_font(properties)
         },
     }
 }

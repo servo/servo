@@ -11,7 +11,7 @@ Only arguments that need more explanation will be documented here.
 
 # Run
 ## Enable Experimental Features
-Use `--pref` to enable experimental features like experimental DOM API, JavaScript API and CSS properties.
+Use `--pref` to enable experimental features like experimental DOM APIs, JavaScript APIs and CSS properties.
 
 e.g. To enable Web VR and Bluetooth features:
 ```

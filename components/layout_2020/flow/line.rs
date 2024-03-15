@@ -10,7 +10,7 @@ use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage};
+use style::values::computed::Length;
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
 use style::values::generics::text::LineHeight;
 use style::values::specified::box_::DisplayOutside;
@@ -28,7 +28,7 @@ use crate::geom::{LogicalRect, LogicalVec2};
 use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, PositioningContext, PositioningContextLength,
 };
-use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
+use crate::style_ext::PaddingBorderMargin;
 use crate::ContainingBlock;
 
 pub(super) struct LineMetrics {
@@ -38,7 +38,7 @@ pub(super) struct LineMetrics {
     /// The block size of this line.
     pub block_size: Length,
 
-    /// The block offset of this line's baseline from [`Self:block_offset`].
+    /// The block offset of this line's baseline from [`Self::block_offset`].
     pub baseline_block_offset: Au,
 }
 
@@ -51,7 +51,7 @@ pub(super) struct LineItemLayoutState<'a> {
     pub parent_offset: LogicalVec2<Length>,
 
     /// The block offset of the parent's baseline relative to the block start of the line. This
-    /// is often the same as [`Self::block_offset_of_parent`], but can be different for the root
+    /// is often the same as [`Self::parent_offset`], but can be different for the root
     /// element.
     pub baseline_offset: Au,
 
@@ -226,16 +226,10 @@ impl TextRunLineItem {
         // The block start of the TextRun is often zero (meaning it has the same font metrics as the
         // inline box's strut), but for children of the inline formatting context root or for
         // fallback fonts that use baseline relatve alignment, it might be different.
-        let mut start_corner = &LogicalVec2 {
+        let start_corner = &LogicalVec2 {
             inline: state.inline_position,
             block: (state.baseline_offset - self.font_metrics.ascent).into(),
         } - &state.parent_offset;
-        if !is_baseline_relative(
-            self.parent_style
-                .effective_vertical_align_for_inline_layout(),
-        ) {
-            start_corner.block = Length::zero();
-        }
 
         let rect = LogicalRect {
             start_corner,
@@ -294,19 +288,19 @@ impl InlineBoxLineItem {
         let style = self.style.clone();
         let mut padding = self.pbm.padding.clone();
         let mut border = self.pbm.border.clone();
-        let mut margin = self.pbm.margin.auto_is(Length::zero);
+        let mut margin = self.pbm.margin.auto_is(Au::zero);
 
         if !self.is_first_fragment {
             padding.inline_start = Au::zero();
             border.inline_start = Au::zero();
-            margin.inline_start = Length::zero();
+            margin.inline_start = Au::zero();
         }
         if !self.is_last_fragment_of_ib_split {
             padding.inline_end = Au::zero();
             border.inline_end = Au::zero();
-            margin.inline_end = Length::zero();
+            margin.inline_end = Au::zero();
         }
-        let pbm_sums = &(&padding + &border) + &margin.map(|t| (*t).into());
+        let pbm_sums = &(&padding + &border) + &margin;
         state.inline_position += pbm_sums.inline_start.into();
 
         let space_above_baseline = self.calculate_space_above_baseline();
@@ -342,9 +336,9 @@ impl InlineBoxLineItem {
         if !self.is_last_fragment_of_ib_split || !saw_end {
             padding.inline_end = Au::zero();
             border.inline_end = Au::zero();
-            margin.inline_end = Length::zero();
+            margin.inline_end = Au::zero();
         }
-        let pbm_sums = &(&padding + &border) + &margin.clone().into();
+        let pbm_sums = &(&padding + &border) + &margin.clone();
 
         // If the inline box didn't have any content at all, don't add a Fragment for it.
         let box_has_padding_border_or_margin = pbm_sums.inline_sum() > Au::zero();
@@ -385,7 +379,7 @@ impl InlineBoxLineItem {
             content_rect,
             padding.into(),
             border.into(),
-            margin,
+            margin.into(),
             None, /* clearance */
             CollapsedBlockMargins::zero(),
         );
@@ -428,12 +422,11 @@ impl InlineBoxLineItem {
     /// Given the state for a line item layout and the space above the baseline for this inline
     /// box, find the block start position relative to the line block start position.
     fn calculate_block_start(&self, state: &LineItemLayoutState, space_above_baseline: Au) -> Au {
-        let vertical_align = self.style.effective_vertical_align_for_inline_layout();
         let line_gap = self.font_metrics.line_gap;
 
         // The baseline offset that we have in `Self::baseline_offset` is relative to the line
         // baseline, so we need to make it relative to the line block start.
-        match vertical_align {
+        match self.style.clone_vertical_align() {
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => {
                 let line_height: Au = line_height(&self.style, &self.font_metrics).into();
                 (line_height - line_gap).scale_by(0.5)
@@ -583,14 +576,6 @@ impl FloatLineItem {
         self.fragment.content_rect.start_corner =
             &self.fragment.content_rect.start_corner - &distance_from_parent_to_ifc;
         self.fragment
-    }
-}
-
-fn is_baseline_relative(vertical_align: GenericVerticalAlign<LengthPercentage>) -> bool {
-    match vertical_align {
-        GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-        GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => false,
-        _ => true,
     }
 }
 

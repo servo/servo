@@ -65,7 +65,7 @@ impl WebGLComm {
         WebGLComm {
             webgl_threads: WebGLThreads(sender),
             image_handler: Box::new(external),
-            webxr_layer_grand_manager: webxr_layer_grand_manager,
+            webxr_layer_grand_manager,
         }
     }
 }

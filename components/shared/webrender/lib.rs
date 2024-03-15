@@ -9,9 +9,7 @@ use std::sync::{Arc, Mutex};
 
 use euclid::default::Size2D;
 use webrender_api::units::TexelRect;
-use webrender_api::{
-    ExternalImage, ExternalImageHandler, ExternalImageId, ExternalImageSource, ImageRendering,
-};
+use webrender_api::{ExternalImage, ExternalImageHandler, ExternalImageId, ExternalImageSource};
 
 /// This trait is used as a bridge between the different GL clients
 /// in Servo that handles WebRender ExternalImages and the WebRender
@@ -39,6 +37,7 @@ pub enum WebrenderImageHandlerType {
 /// List of Webrender external images to be shared among all external image
 /// consumers (WebGL, Media, WebGPU).
 /// It ensures that external image identifiers are unique.
+#[derive(Default)]
 pub struct WebrenderExternalImageRegistry {
     /// Map of all generated external images.
     external_images: HashMap<ExternalImageId, WebrenderImageHandlerType>,
@@ -47,13 +46,6 @@ pub struct WebrenderExternalImageRegistry {
 }
 
 impl WebrenderExternalImageRegistry {
-    pub fn new() -> Self {
-        Self {
-            external_images: HashMap::new(),
-            next_image_id: 0,
-        }
-    }
-
     pub fn next_id(&mut self, handler_type: WebrenderImageHandlerType) -> ExternalImageId {
         self.next_image_id += 1;
         let key = ExternalImageId(self.next_image_id);
@@ -84,7 +76,7 @@ pub struct WebrenderExternalImageHandlers {
 
 impl WebrenderExternalImageHandlers {
     pub fn new() -> (Self, Arc<Mutex<WebrenderExternalImageRegistry>>) {
-        let external_images = Arc::new(Mutex::new(WebrenderExternalImageRegistry::new()));
+        let external_images = Arc::new(Mutex::new(WebrenderExternalImageRegistry::default()));
         (
             Self {
                 webgl_handler: None,
@@ -114,12 +106,7 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
     /// image content.
     /// The WR client should not change the image content until the
     /// unlock() call.
-    fn lock(
-        &mut self,
-        key: ExternalImageId,
-        _channel_index: u8,
-        _rendering: ImageRendering,
-    ) -> ExternalImage {
+    fn lock(&mut self, key: ExternalImageId, _channel_index: u8) -> ExternalImage {
         let external_images = self.external_images.lock().unwrap();
         let handler_type = external_images
             .get(&key)

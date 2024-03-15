@@ -11,7 +11,7 @@ use generic_array::ArrayLength;
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
-const SUPPORTED_ALGORITHM: &'static [&'static str] = &["sha256", "sha384", "sha512"];
+const SUPPORTED_ALGORITHM: &[&str] = &["sha256", "sha384", "sha512"];
 pub type StaticCharVec = &'static [char];
 /// A "space character" according to:
 ///
@@ -33,7 +33,7 @@ impl SriEntry {
         SriEntry {
             alg: alg.to_owned(),
             val: val.to_owned(),
-            opt: opt,
+            opt,
         }
     }
 }
@@ -46,7 +46,7 @@ pub fn parsed_metadata(integrity_metadata: &str) -> Vec<SriEntry> {
     // Step 3
     let tokens = split_html_space_chars(integrity_metadata);
     for token in tokens {
-        let parsed_data: Vec<&str> = token.split("-").collect();
+        let parsed_data: Vec<&str> = token.split('-').collect();
 
         if parsed_data.len() > 1 {
             let alg = parsed_data[0];
@@ -55,7 +55,7 @@ pub fn parsed_metadata(integrity_metadata: &str) -> Vec<SriEntry> {
                 continue;
             }
 
-            let data: Vec<&str> = parsed_data[1].split("?").collect();
+            let data: Vec<&str> = parsed_data[1].split('?').collect();
             let digest = data[0];
 
             let opt = if data.len() > 1 {
@@ -68,7 +68,7 @@ pub fn parsed_metadata(integrity_metadata: &str) -> Vec<SriEntry> {
         }
     }
 
-    return result;
+    result
 }
 
 /// <https://w3c.github.io/webappsec-subresource-integrity/#getprioritizedhashfunction>
@@ -78,11 +78,11 @@ pub fn get_prioritized_hash_function(
 ) -> Option<String> {
     let left_priority = SUPPORTED_ALGORITHM
         .iter()
-        .position(|s| s.to_owned() == hash_func_left)
+        .position(|s| *s == hash_func_left)
         .unwrap();
     let right_priority = SUPPORTED_ALGORITHM
         .iter()
-        .position(|s| s.to_owned() == hash_func_right)
+        .position(|s| *s == hash_func_right)
         .unwrap();
 
     if left_priority == right_priority {
@@ -102,7 +102,7 @@ pub fn get_strongest_metadata(integrity_metadata_list: Vec<SriEntry>) -> Vec<Sri
 
     for integrity_metadata in &integrity_metadata_list[1..] {
         let prioritized_hash =
-            get_prioritized_hash_function(&integrity_metadata.alg, &*current_algorithm);
+            get_prioritized_hash_function(&integrity_metadata.alg, &current_algorithm);
         if prioritized_hash.is_none() {
             result.push(integrity_metadata.clone());
         } else if let Some(algorithm) = prioritized_hash {
@@ -132,10 +132,10 @@ fn apply_algorithm_to_response<S: ArrayLength<u8>, D: Digest<OutputSize = S>>(
 
 /// <https://w3c.github.io/webappsec-subresource-integrity/#is-response-eligible>
 fn is_eligible_for_integrity_validation(response: &Response) -> bool {
-    match response.response_type {
-        ResponseType::Basic | ResponseType::Default | ResponseType::Cors => true,
-        _ => false,
-    }
+    matches!(
+        response.response_type,
+        ResponseType::Basic | ResponseType::Default | ResponseType::Cors
+    )
 }
 
 /// <https://w3c.github.io/webappsec-subresource-integrity/#does-response-match-metadatalist>
@@ -174,9 +174,7 @@ pub fn is_response_integrity_valid(integrity_metadata: &str, response: &Response
     false
 }
 
-pub fn split_html_space_chars<'a>(
-    s: &'a str,
-) -> Filter<Split<'a, StaticCharVec>, fn(&&str) -> bool> {
+pub fn split_html_space_chars(s: &str) -> Filter<Split<'_, StaticCharVec>, fn(&&str) -> bool> {
     fn not_empty(&split: &&str) -> bool {
         !split.is_empty()
     }

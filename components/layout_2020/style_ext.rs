@@ -13,16 +13,16 @@ use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
 use style::properties::ComputedValues;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{Length, LengthPercentage, NonNegativeLengthPercentage, Size};
-use style::values::generics::box_::{GenericVerticalAlign, Perspective, VerticalAlignKeyword};
+use style::values::generics::box_::Perspective;
 use style::values::generics::length::MaxSize;
-use style::values::specified::box_::DisplayOutside as StyloDisplayOutside;
 use style::values::specified::{box_ as stylo, Overflow};
 use style::Zero;
 use webrender_api as wr;
 
 use crate::dom_traversal::Contents;
 use crate::geom::{
-    LengthOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides, PhysicalSize,
+    AuOrAuto, LengthOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides,
+    PhysicalSize,
 };
 use crate::ContainingBlock;
 
@@ -88,6 +88,7 @@ pub(crate) enum DisplayInside {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 /// <https://drafts.csswg.org/css-display-3/#layout-specific-display>
 pub(crate) enum DisplayLayoutInternal {
     TableCaption,
@@ -117,7 +118,7 @@ impl DisplayLayoutInternal {
 pub(crate) struct PaddingBorderMargin {
     pub padding: LogicalSides<Au>,
     pub border: LogicalSides<Au>,
-    pub margin: LogicalSides<LengthOrAuto>,
+    pub margin: LogicalSides<AuOrAuto>,
 
     /// Pre-computed sums in each axis
     pub padding_border_sums: LogicalVec2<Au>,
@@ -187,7 +188,6 @@ pub(crate) trait ComputedValuesExt {
     fn establishes_containing_block_for_all_descendants(&self) -> bool;
     fn background_is_transparent(&self) -> bool;
     fn get_webrender_primitive_flags(&self) -> wr::PrimitiveFlags;
-    fn effective_vertical_align_for_inline_layout(&self) -> GenericVerticalAlign<LengthPercentage>;
 }
 
 impl ComputedValuesExt for ComputedValues {
@@ -350,6 +350,9 @@ impl ComputedValuesExt for ComputedValues {
             .padding(containing_block.style.writing_mode)
             .percentages_relative_to(cbis.into());
         let border = self.border_width(containing_block.style.writing_mode);
+        let margin = self
+            .margin(containing_block.style.writing_mode)
+            .percentages_relative_to(cbis.into());
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {
                 inline: (padding.inline_sum() + border.inline_sum()).into(),
@@ -357,9 +360,7 @@ impl ComputedValuesExt for ComputedValues {
             },
             padding: padding.into(),
             border: border.into(),
-            margin: self
-                .margin(containing_block.style.writing_mode)
-                .percentages_relative_to(cbis.into()),
+            margin: margin.map(|t| t.map(|m| m.into())),
         }
     }
 
@@ -555,18 +556,6 @@ impl ComputedValuesExt for ComputedValues {
         match self.get_box().backface_visibility {
             BackfaceVisiblity::Visible => wr::PrimitiveFlags::default(),
             BackfaceVisiblity::Hidden => wr::PrimitiveFlags::empty(),
-        }
-    }
-
-    /// Get the effective `vertical-align` property for inline layout. Essentially, if this style
-    /// has outside block display, this is the inline formatting context root and `vertical-align`
-    /// doesn't come into play for inline layout.
-    fn effective_vertical_align_for_inline_layout(&self) -> GenericVerticalAlign<LengthPercentage> {
-        match self.clone_display().outside() {
-            StyloDisplayOutside::Block => {
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Baseline)
-            },
-            _ => self.clone_vertical_align(),
         }
     }
 }

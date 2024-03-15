@@ -35,7 +35,7 @@ pub fn default_config_dir() -> Option<PathBuf> {
     Some(config_dir)
 }
 
-#[cfg(all(target_os = "windows"))]
+#[cfg(target_os = "windows")]
 pub fn default_config_dir() -> Option<PathBuf> {
     let mut config_dir = ::dirs_next::config_dir().unwrap();
     config_dir.push("Servo");

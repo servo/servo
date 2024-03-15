@@ -21,6 +21,19 @@ use crate::geom::{
 };
 use crate::style_ext::ComputedValuesExt;
 
+/// Describes how a [`BoxFragment`] paints its background.
+pub(crate) enum BackgroundMode {
+    /// Draw the normal [`BoxFragment`] background as well as the extra backgrounds
+    /// based on the style and positioning rectangles in this data structure.
+    Extra(Vec<ExtraBackground>),
+    /// Do not draw a background for this Fragment. This is used for elements like
+    /// table tracks and table track groups, which rely on cells to paint their
+    /// backgrounds.
+    None,
+    /// Draw the background normally, getting information from the Fragment style.
+    Normal,
+}
+
 pub(crate) struct ExtraBackground {
     pub style: ServoArc<ComputedValues>,
     pub rect: LogicalRect<Au>,
@@ -70,10 +83,11 @@ pub(crate) struct BoxFragment {
     pub(crate) resolved_sticky_insets: Option<PhysicalSides<LengthOrAuto>>,
 
     #[serde(skip_serializing)]
-    pub extra_backgrounds: Vec<ExtraBackground>,
+    pub background_mode: BackgroundMode,
 }
 
 impl BoxFragment {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
@@ -108,6 +122,7 @@ impl BoxFragment {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new_with_overconstrained(
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
@@ -158,7 +173,7 @@ impl BoxFragment {
             scrollable_overflow_from_children,
             overconstrained,
             resolved_sticky_insets: None,
-            extra_backgrounds: Vec::new(),
+            background_mode: BackgroundMode::Normal,
         }
     }
 
@@ -176,7 +191,14 @@ impl BoxFragment {
     }
 
     pub fn add_extra_background(&mut self, extra_background: ExtraBackground) {
-        self.extra_backgrounds.push(extra_background);
+        match self.background_mode {
+            BackgroundMode::Extra(ref mut backgrounds) => backgrounds.push(extra_background),
+            _ => self.background_mode = BackgroundMode::Extra(vec![extra_background]),
+        }
+    }
+
+    pub fn set_does_not_paint_background(&mut self) {
+        self.background_mode = BackgroundMode::None;
     }
 
     pub fn scrollable_overflow(

@@ -144,6 +144,7 @@ async def setup_blocked_request(
     add_intercept,
     fetch,
     wait_for_event,
+    wait_for_future_safe,
     top_context,
 ):
     """Creates an intercept for the provided phase, sends a fetch request that
@@ -190,16 +191,17 @@ async def setup_blocked_request(
             ],
         )
 
+        network_event = wait_for_event(f"network.{phase}")
         if navigate:
             asyncio.ensure_future(
                 bidi_session.browsing_context.navigate(
-                    context=top_context["context"], url=blocked_url, wait="complete"
+                    context=context["context"], url=blocked_url, wait="complete"
                 )
             )
         else:
-            asyncio.ensure_future(fetch(blocked_url))
+            asyncio.ensure_future(fetch(blocked_url, context=context))
 
-        event = await wait_for_event(f"network.{phase}")
+        event = await wait_for_future_safe(network_event)
         request = event["request"]["request"]
 
         return request

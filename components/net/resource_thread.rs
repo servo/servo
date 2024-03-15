@@ -9,7 +9,6 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, BufReader};
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
@@ -64,6 +63,7 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore
 }
 
 /// Returns a tuple of (public, private) senders to the new threads.
+#[allow(clippy::too_many_arguments)]
 pub fn new_resource_threads(
     user_agent: Cow<'static, str>,
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
@@ -103,6 +103,7 @@ pub fn new_resource_threads(
 }
 
 /// Create a CoreResourceThread
+#[allow(clippy::too_many_arguments)]
 pub fn new_core_resource_thread(
     user_agent: Cow<'static, str>,
     devtools_sender: Option<Sender<DevtoolsControlMsg>>,
@@ -160,8 +161,8 @@ fn create_http_states(
     ignore_certificate_errors: bool,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::from_servo_preload();
-    let mut auth_cache = AuthCache::new();
-    let http_cache = HttpCache::new();
+    let mut auth_cache = AuthCache::default();
+    let http_cache = HttpCache::default();
     let mut cookie_jar = CookieStorage::new(150);
     if let Some(config_dir) = config_dir {
         read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
@@ -189,9 +190,9 @@ fn create_http_states(
     let private_http_state = HttpState {
         hsts_list: RwLock::new(HstsList::from_servo_preload()),
         cookie_jar: RwLock::new(CookieStorage::new(150)),
-        auth_cache: RwLock::new(AuthCache::new()),
+        auth_cache: RwLock::new(AuthCache::default()),
         history_states: RwLock::new(HashMap::new()),
-        http_cache: RwLock::new(HttpCache::new()),
+        http_cache: RwLock::new(HttpCache::default()),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(create_tls_config(
             ca_certificates,
@@ -213,7 +214,7 @@ impl ResourceChannelManager {
         memory_reporter: IpcReceiver<ReportsChan>,
     ) {
         let (public_http_state, private_http_state) = create_http_states(
-            self.config_dir.as_ref().map(Deref::deref),
+            self.config_dir.as_deref(),
             self.ca_certificates.clone(),
             self.ignore_certificate_errors,
         );
@@ -226,9 +227,8 @@ impl ResourceChannelManager {
         loop {
             for receiver in rx_set.select().unwrap().into_iter() {
                 // Handles case where profiler thread shuts down before resource thread.
-                match receiver {
-                    ipc::IpcSelectionResult::ChannelClosed(..) => continue,
-                    _ => {},
+                if let ipc::IpcSelectionResult::ChannelClosed(..) = receiver {
+                    continue;
                 }
                 let (id, data) = receiver.unwrap();
                 // If message is memory report, get the size_of of public and private http caches
@@ -426,11 +426,10 @@ pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
 where
     T: Serialize,
 {
-    let json_encoded: String;
-    match serde_json::to_string_pretty(&data) {
-        Ok(d) => json_encoded = d,
+    let json_encoded: String = match serde_json::to_string_pretty(&data) {
+        Ok(d) => d,
         Err(_) => return,
-    }
+    };
     let path = config_dir.join(filename);
     let display = path.display();
 
@@ -451,9 +450,9 @@ pub struct AuthCacheEntry {
     pub password: String,
 }
 
-impl AuthCache {
-    pub fn new() -> AuthCache {
-        AuthCache {
+impl Default for AuthCache {
+    fn default() -> Self {
+        Self {
             version: 1,
             entries: HashMap::new(),
         }
@@ -527,11 +526,12 @@ pub struct CoreResourceThreadPool {
 impl CoreResourceThreadPool {
     pub fn new(num_threads: usize) -> CoreResourceThreadPool {
         let pool = rayon::ThreadPoolBuilder::new()
+            .thread_name(|i| format!("CoreResourceThread#{i}"))
             .num_threads(num_threads)
             .build()
             .unwrap();
         let state = Arc::new(Mutex::new(ThreadPoolState::new()));
-        CoreResourceThreadPool { pool: pool, state }
+        CoreResourceThreadPool { pool, state }
     }
 
     /// Spawn work on the thread-pool, if still active.
@@ -613,7 +613,7 @@ impl CoreResourceManager {
         let pool = CoreResourceThreadPool::new(16);
         let pool_handle = Arc::new(pool);
         CoreResourceManager {
-            user_agent: user_agent,
+            user_agent,
             devtools_sender,
             sw_managers: Default::default(),
             filemanager: FileManager::new(embedder_proxy, Arc::downgrade(&pool_handle)),
@@ -708,7 +708,7 @@ impl CoreResourceManager {
                     let response = Response::from_init(res_init, timing_type);
                     http_redirect_fetch(
                         &mut request,
-                        &mut CorsCache::new(),
+                        &mut CorsCache::default(),
                         response,
                         true,
                         &mut sender,

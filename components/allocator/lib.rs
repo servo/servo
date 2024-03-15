@@ -13,11 +13,13 @@ pub use crate::platform::*;
 mod platform {
     use std::os::raw::c_void;
 
-    use jemallocator;
-
-    pub use self::jemallocator::Jemalloc as Allocator;
+    pub use jemallocator::Jemalloc as Allocator;
 
     /// Get the size of a heap block.
+    ///
+    /// # Safety
+    ///
+    /// Passing a non-heap allocated pointer to this function results in undefined behavior.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
         jemallocator::usable_size(ptr)
     }
@@ -37,12 +39,16 @@ mod platform {
     use std::os::raw::c_void;
 
     /// Get the size of a heap block.
+    ///
+    /// # Safety
+    ///
+    /// Passing a non-heap allocated pointer to this function results in undefined behavior.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
-        #[cfg(target_os = "linux")]
-        return libc::malloc_usable_size(ptr as *mut _);
+        #[cfg(target_vendor = "apple")]
+        return libc::malloc_size(ptr);
 
-        #[cfg(not(target_os = "linux"))]
-        return libc::malloc_usable_size(ptr);
+        #[cfg(not(target_vendor = "apple"))]
+        return libc::malloc_usable_size(ptr as *mut _);
     }
 
     pub mod libc_compat {
@@ -58,6 +64,10 @@ mod platform {
     use winapi::um::heapapi::{GetProcessHeap, HeapSize, HeapValidate};
 
     /// Get the size of a heap block.
+    ///
+    /// # Safety
+    ///
+    /// Passing a non-heap allocated pointer to this function results in undefined behavior.
     pub unsafe extern "C" fn usable_size(mut ptr: *const c_void) -> usize {
         let heap = GetProcessHeap();
 

@@ -13,10 +13,10 @@ use std::{thread, time};
 use framework::{cb, nil, ns};
 use objc::runtime::Object;
 
-pub const NOT_SUPPORTED_ERROR: &'static str = "Error! Not supported by blurmac!";
-pub const NO_PERIPHERAL_FOUND: &'static str = "Error! No peripheral found!";
-pub const NO_SERVICE_FOUND: &'static str = "Error! No service found!";
-pub const NO_CHARACTERISTIC_FOUND: &'static str = "Error! No characteristic found!";
+pub const NOT_SUPPORTED_ERROR: &str = "Error! Not supported by blurmac!";
+pub const NO_PERIPHERAL_FOUND: &str = "Error! No peripheral found!";
+pub const NO_SERVICE_FOUND: &str = "Error! No service found!";
+pub const NO_CHARACTERISTIC_FOUND: &str = "Error! No characteristic found!";
 
 pub mod nsx {
     use super::*;

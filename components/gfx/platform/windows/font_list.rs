@@ -2,23 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Mutex;
+use std::hash::Hash;
+use std::sync::Arc;
 
-use dwrote::{Font, FontCollection, FontDescriptor};
-use lazy_static::lazy_static;
-use servo_atoms::Atom;
+use dwrote::{FontCollection, FontDescriptor};
+use serde::{Deserialize, Serialize};
 use ucd::{Codepoint, UnicodeBlock};
 
 use crate::text::util::unicode_plane;
 
-lazy_static! {
-    static ref FONT_ATOM_COUNTER: AtomicUsize = AtomicUsize::new(1);
-    static ref FONT_ATOM_MAP: Mutex<HashMap<Atom, FontDescriptor>> = Mutex::new(HashMap::new());
-}
-
-pub static SANS_SERIF_FONT_FAMILY: &'static str = "Arial";
+pub static SANS_SERIF_FONT_FAMILY: &str = "Arial";
 
 pub fn system_default_family(_: &str) -> Option<String> {
     Some("Verdana".to_owned())
@@ -34,6 +27,24 @@ where
     }
 }
 
+/// An identifier for a local font on a Windows system.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct LocalFontIdentifier {
+    /// The FontDescriptor of this font.
+    pub font_descriptor: Arc<FontDescriptor>,
+}
+
+impl Eq for LocalFontIdentifier {}
+
+impl Hash for LocalFontIdentifier {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.font_descriptor.family_name.hash(state);
+        self.font_descriptor.weight.to_u32().hash(state);
+        self.font_descriptor.stretch.to_u32().hash(state);
+        self.font_descriptor.style.to_u32().hash(state);
+    }
+}
+
 // for_each_variation is supposed to return a string that can be
 // atomized and then uniquely used to return back to this font.
 // Some platforms use the full postscript name (MacOS X), or
@@ -45,33 +56,18 @@ where
 
 pub fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
-    F: FnMut(String),
+    F: FnMut(LocalFontIdentifier),
 {
     let system_fc = FontCollection::system();
     if let Some(family) = system_fc.get_font_family_by_name(family_name) {
         let count = family.get_font_count();
         for i in 0..count {
             let font = family.get_font(i);
-            let index = FONT_ATOM_COUNTER.fetch_add(1, Ordering::Relaxed);
-            let index_str = format!("{}", index);
-            let atom = Atom::from(index_str.clone());
-
-            {
-                let descriptor = font.to_descriptor();
-                let mut fonts = FONT_ATOM_MAP.lock().unwrap();
-                fonts.insert(atom, descriptor);
-            }
-
-            callback(index_str);
+            callback(LocalFontIdentifier {
+                font_descriptor: Arc::new(font.to_descriptor()),
+            });
         }
     }
-}
-
-pub fn font_from_atom(ident: &Atom) -> Font {
-    let fonts = FONT_ATOM_MAP.lock().unwrap();
-    FontCollection::system()
-        .get_font_from_descriptor(fonts.get(ident).unwrap())
-        .unwrap()
 }
 
 // Based on gfxWindowsPlatform::GetCommonFallbackFonts() in Gecko

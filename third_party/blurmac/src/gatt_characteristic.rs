@@ -39,7 +39,7 @@ impl BluetoothGATTCharacteristic {
 
         BluetoothGATTCharacteristic {
             service: service.clone(),
-            characteristic: characteristic,
+            characteristic,
         }
     }
 
@@ -58,7 +58,7 @@ impl BluetoothGATTCharacteristic {
 
     pub fn get_id(&self) -> String {
         trace!("BluetoothGATTCharacteristic::get_id");
-        self.get_uuid().unwrap_or(String::new())
+        self.get_uuid().unwrap_or_default()
     }
 
     pub fn get_uuid(&self) -> Result<String, Box<dyn Error>> {

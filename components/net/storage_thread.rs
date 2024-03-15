@@ -47,10 +47,10 @@ impl StorageManager {
             resource_thread::read_json_from_file(&mut local_data, config_dir, "local_data.json");
         }
         StorageManager {
-            port: port,
+            port,
             session_data: HashMap::new(),
-            local_data: local_data,
-            config_dir: config_dir,
+            local_data,
+            config_dir,
         }
     }
 }
@@ -122,7 +122,7 @@ impl StorageManager {
         let origin = self.origin_as_string(url);
         let data = self.select_data(storage_type);
         sender
-            .send(data.get(&origin).map_or(0, |&(_, ref entry)| entry.len()))
+            .send(data.get(&origin).map_or(0, |(_, entry)| entry.len()))
             .unwrap();
     }
 
@@ -137,7 +137,7 @@ impl StorageManager {
         let data = self.select_data(storage_type);
         let key = data
             .get(&origin)
-            .and_then(|&(_, ref entry)| entry.keys().nth(index as usize))
+            .and_then(|(_, entry)| entry.keys().nth(index as usize))
             .cloned();
         sender.send(key).unwrap();
     }
@@ -147,7 +147,7 @@ impl StorageManager {
         let data = self.select_data(storage_type);
         let keys = data
             .get(&origin)
-            .map_or(vec![], |&(_, ref entry)| entry.keys().cloned().collect());
+            .map_or(vec![], |(_, entry)| entry.keys().cloned().collect());
 
         sender.send(keys).unwrap();
     }
@@ -225,7 +225,7 @@ impl StorageManager {
         sender
             .send(
                 data.get(&origin)
-                    .and_then(|&(_, ref entry)| entry.get(&name))
+                    .and_then(|(_, entry)| entry.get(&name))
                     .map(String::clone),
             )
             .unwrap();
@@ -244,9 +244,9 @@ impl StorageManager {
         let old_value = data
             .get_mut(&origin)
             .and_then(|&mut (ref mut total, ref mut entry)| {
-                entry.remove(&name).and_then(|old| {
+                entry.remove(&name).map(|old| {
                     *total -= name.as_bytes().len() + old.as_bytes().len();
-                    Some(old)
+                    old
                 })
             });
         sender.send(old_value).unwrap();

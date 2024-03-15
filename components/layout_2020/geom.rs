@@ -4,7 +4,7 @@
 
 use std::convert::From;
 use std::fmt;
-use std::ops::{Add, AddAssign, Sub};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use app_units::Au;
 use serde::Serialize;
@@ -26,7 +26,7 @@ pub type LengthOrAuto = AutoOr<Length>;
 pub type AuOrAuto = AutoOr<Au>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Copy, Serialize)]
 pub struct LogicalVec2<T> {
     pub inline: T,
     pub block: T,
@@ -117,6 +117,34 @@ where
     }
 }
 
+impl<T> AddAssign<LogicalVec2<T>> for LogicalVec2<T>
+where
+    T: AddAssign<T> + Copy,
+{
+    fn add_assign(&mut self, other: LogicalVec2<T>) {
+        self.add_assign(&other);
+    }
+}
+
+impl<T> SubAssign<&'_ LogicalVec2<T>> for LogicalVec2<T>
+where
+    T: SubAssign<T> + Copy,
+{
+    fn sub_assign(&mut self, other: &'_ LogicalVec2<T>) {
+        self.inline -= other.inline;
+        self.block -= other.block;
+    }
+}
+
+impl<T> SubAssign<LogicalVec2<T>> for LogicalVec2<T>
+where
+    T: SubAssign<T> + Copy,
+{
+    fn sub_assign(&mut self, other: LogicalVec2<T>) {
+        self.sub_assign(&other);
+    }
+}
+
 impl<T: Zero> LogicalVec2<T> {
     pub fn zero() -> Self {
         Self {
@@ -126,8 +154,8 @@ impl<T: Zero> LogicalVec2<T> {
     }
 }
 
-impl LogicalVec2<LengthOrAuto> {
-    pub fn auto_is(&self, f: impl Fn() -> Length) -> LogicalVec2<Length> {
+impl<T: Clone> LogicalVec2<AutoOr<T>> {
+    pub fn auto_is(&self, f: impl Fn() -> T) -> LogicalVec2<T> {
         self.map(|t| t.auto_is(&f))
     }
 }
@@ -335,8 +363,8 @@ impl LogicalSides<LengthPercentageOrAuto<'_>> {
     }
 }
 
-impl LogicalSides<LengthOrAuto> {
-    pub fn auto_is(&self, f: impl Fn() -> Length) -> LogicalSides<Length> {
+impl<T: Clone> LogicalSides<AutoOr<T>> {
+    pub fn auto_is(&self, f: impl Fn() -> T) -> LogicalSides<T> {
         self.map(|s| s.auto_is(&f))
     }
 }

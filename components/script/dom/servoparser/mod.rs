@@ -1281,7 +1281,7 @@ impl TreeSink for Sink {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#html-integration-point>
-    /// Specifically, the <annotation-xml> cases.
+    /// Specifically, the `<annotation-xml>` cases.
     fn is_mathml_annotation_xml_integration_point(&self, handle: &Dom<Node>) -> bool {
         let elem = handle.downcast::<Element>().unwrap();
         elem.get_attribute(&ns!(), &local_name!("encoding"))

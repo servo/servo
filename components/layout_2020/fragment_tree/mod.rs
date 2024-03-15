@@ -6,6 +6,7 @@ mod base_fragment;
 mod box_fragment;
 mod containing_block;
 mod fragment;
+#[allow(clippy::module_inception)]
 mod fragment_tree;
 mod hoisted_shared_fragment;
 mod positioning_fragment;

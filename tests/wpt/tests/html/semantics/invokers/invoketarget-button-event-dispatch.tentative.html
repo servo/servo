@@ -22,7 +22,7 @@
     assert_equals(event.bubbles, false, "bubbles");
     assert_equals(event.composed, true, "composed");
     assert_equals(event.isTrusted, true, "isTrusted");
-    assert_equals(event.action, "auto", "action");
+    assert_equals(event.action, "", "action");
     assert_equals(event.target, invokee, "target");
     assert_equals(event.invoker, invokerbutton, "invoker");
   }, "event dispatches on click");

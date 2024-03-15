@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![allow(clippy::too_many_arguments)]
+
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
@@ -291,7 +293,7 @@ impl Pipeline {
                     layout_to_constellation_chan: state.layout_to_constellation_chan,
                     script_chan: script_chan.clone(),
                     load_data: state.load_data.clone(),
-                    script_port: script_port,
+                    script_port,
                     opts: (*opts::get()).clone(),
                     prefs: prefs::pref_map().iter().collect(),
                     pipeline_namespace_id: state.pipeline_namespace_id,
@@ -311,7 +313,7 @@ impl Pipeline {
                     let (bhm_control_chan, bhm_control_port) =
                         ipc::channel().expect("Sampler chan");
                     unprivileged_pipeline_content.bhm_control_port = Some(bhm_control_port);
-                    let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
+                    unprivileged_pipeline_content.spawn_multiprocess()?;
                     Some(bhm_control_chan)
                 } else {
                     // Should not be None in single-process mode.
@@ -358,16 +360,16 @@ impl Pipeline {
         load_data: LoadData,
     ) -> Pipeline {
         let pipeline = Pipeline {
-            id: id,
-            browsing_context_id: browsing_context_id,
-            top_level_browsing_context_id: top_level_browsing_context_id,
-            opener: opener,
-            event_loop: event_loop,
-            compositor_proxy: compositor_proxy,
+            id,
+            browsing_context_id,
+            top_level_browsing_context_id,
+            opener,
+            event_loop,
+            compositor_proxy,
             url: load_data.url.clone(),
             children: vec![],
             animation_state: AnimationState::NoAnimationsPresent,
-            load_data: load_data,
+            load_data,
             history_state_id: None,
             history_states: HashSet::new(),
             completely_loaded: false,
@@ -426,8 +428,8 @@ impl Pipeline {
     /// The compositor's view of a pipeline.
     pub fn to_sendable(&self) -> CompositionPipeline {
         CompositionPipeline {
-            id: self.id.clone(),
-            top_level_browsing_context_id: self.top_level_browsing_context_id.clone(),
+            id: self.id,
+            top_level_browsing_context_id: self.top_level_browsing_context_id,
             script_chan: self.event_loop.sender(),
         }
     }
@@ -445,13 +447,15 @@ impl Pipeline {
             .position(|id| *id == browsing_context_id)
         {
             None => {
-                return warn!(
+                warn!(
                     "Pipeline remove child already removed ({:?}).",
                     browsing_context_id
-                );
+                )
             },
-            Some(index) => self.children.remove(index),
-        };
+            Some(index) => {
+                self.children.remove(index);
+            },
+        }
     }
 
     /// Notify the script thread that this pipeline is visible.
@@ -539,13 +543,13 @@ impl UnprivilegedPipelineContent {
                 devtools_chan: self.devtools_ipc_sender,
                 window_size: self.window_size,
                 pipeline_namespace_id: self.pipeline_namespace_id,
-                content_process_shutdown_chan: content_process_shutdown_chan,
+                content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
                 webxr_registry: self.webxr_registry,
                 webrender_document: self.webrender_document,
                 webrender_api_sender: self.webrender_api_sender.clone(),
                 player_context: self.player_context.clone(),
-                inherited_secure_context: self.load_data.inherited_secure_context.clone(),
+                inherited_secure_context: self.load_data.inherited_secure_context,
             },
             layout_factory,
             self.font_cache_thread.clone(),

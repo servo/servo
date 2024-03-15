@@ -1174,7 +1174,7 @@ impl Document {
                     kind,
                     text,
                     multiline,
-                    DeviceIntRect::from_untyped(&rect),
+                    DeviceIntRect::from_untyped(&rect.to_box2d()),
                 ));
             }
         }
@@ -3200,7 +3200,7 @@ impl Document {
             fullscreen_element: MutNullableDom::new(None),
             form_id_listener_map: Default::default(),
             interactive_time: DomRefCell::new(interactive_time),
-            tti_window: DomRefCell::new(InteractiveWindow::new()),
+            tti_window: DomRefCell::new(InteractiveWindow::default()),
             canceller: canceller,
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
@@ -3547,7 +3547,7 @@ impl Document {
         RefMut::map(map, |m| {
             &mut m
                 .entry(Dom::from_ref(el))
-                .or_insert_with(|| NoTrace(PendingRestyle::new()))
+                .or_insert_with(|| NoTrace(PendingRestyle::default()))
                 .0
         })
     }

@@ -28,7 +28,7 @@ pub struct GlyphEntry {
 
 impl GlyphEntry {
     fn new(value: u32) -> GlyphEntry {
-        GlyphEntry { value: value }
+        GlyphEntry { value }
     }
 
     fn initial() -> GlyphEntry {
@@ -40,7 +40,7 @@ impl GlyphEntry {
         assert!(is_simple_glyph_id(id));
         assert!(is_simple_advance(advance));
 
-        let id_mask = id as u32;
+        let id_mask = id;
         let Au(advance) = advance;
         let advance_mask = (advance as u32) << GLYPH_ADVANCE_SHIFT;
 
@@ -89,7 +89,7 @@ const GLYPH_ID_MASK: u32 = 0x0000FFFF;
 const GLYPH_COUNT_MASK: u32 = 0x0000FFFF;
 
 fn is_simple_glyph_id(id: GlyphId) -> bool {
-    ((id as u32) & GLYPH_ID_MASK) == id
+    (id & GLYPH_ID_MASK) == id
 }
 
 fn is_simple_advance(advance: Au) -> bool {
@@ -157,9 +157,9 @@ struct DetailedGlyph {
 impl DetailedGlyph {
     fn new(id: GlyphId, advance: Au, offset: Point2D<Au>) -> DetailedGlyph {
         DetailedGlyph {
-            id: id,
-            advance: advance,
-            offset: offset,
+            id,
+            advance,
+            offset,
         }
     }
 }
@@ -172,15 +172,15 @@ struct DetailedGlyphRecord {
     detail_offset: usize,
 }
 
-impl PartialOrd for DetailedGlyphRecord {
-    fn partial_cmp(&self, other: &DetailedGlyphRecord) -> Option<Ordering> {
-        self.entry_offset.partial_cmp(&other.entry_offset)
-    }
-}
-
 impl Ord for DetailedGlyphRecord {
     fn cmp(&self, other: &DetailedGlyphRecord) -> Ordering {
         self.entry_offset.cmp(&other.entry_offset)
+    }
+}
+
+impl PartialOrd for DetailedGlyphRecord {
+    fn partial_cmp(&self, other: &DetailedGlyphRecord) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -210,7 +210,7 @@ impl<'a> DetailedGlyphStore {
 
     fn add_detailed_glyphs_for_entry(&mut self, entry_offset: ByteIndex, glyphs: &[DetailedGlyph]) {
         let entry = DetailedGlyphRecord {
-            entry_offset: entry_offset,
+            entry_offset,
             detail_offset: self.detail_buffer.len(),
         };
 
@@ -245,7 +245,7 @@ impl<'a> DetailedGlyphStore {
         assert!(self.lookup_is_sorted);
 
         let key = DetailedGlyphRecord {
-            entry_offset: entry_offset,
+            entry_offset,
             detail_offset: 0, // unused
         };
 
@@ -268,7 +268,7 @@ impl<'a> DetailedGlyphStore {
         assert!(self.lookup_is_sorted);
 
         let key = DetailedGlyphRecord {
-            entry_offset: entry_offset,
+            entry_offset,
             detail_offset: 0, // unused
         };
 
@@ -329,11 +329,11 @@ impl GlyphData {
         ligature_start: bool,
     ) -> GlyphData {
         GlyphData {
-            id: id,
-            advance: advance,
+            id,
+            advance,
             offset: offset.unwrap_or(Point2D::zero()),
-            cluster_start: cluster_start,
-            ligature_start: ligature_start,
+            cluster_start,
+            ligature_start,
         }
     }
 }
@@ -455,8 +455,8 @@ impl<'a> GlyphStore {
             total_advance: Au(0),
             total_word_separators: 0,
             has_detailed_glyphs: false,
-            is_whitespace: is_whitespace,
-            is_rtl: is_rtl,
+            is_whitespace,
+            is_rtl,
         }
     }
 
@@ -482,15 +482,15 @@ impl<'a> GlyphStore {
 
     pub fn finalize_changes(&mut self) {
         self.detail_store.ensure_sorted();
-        self.cache_total_advance_and_word_seperators()
+        self.cache_total_advance_and_word_separators()
     }
 
     #[inline(never)]
-    fn cache_total_advance_and_word_seperators(&mut self) {
+    fn cache_total_advance_and_word_separators(&mut self) {
         let mut total_advance = Au(0);
         let mut total_word_separators = 0;
         for glyph in self.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), self.len())) {
-            total_advance = total_advance + glyph.advance();
+            total_advance += glyph.advance();
             if glyph.char_is_word_separator() {
                 total_word_separators += 1;
             }
@@ -539,7 +539,7 @@ impl<'a> GlyphStore {
 
     pub fn add_glyphs_for_byte_index(&mut self, i: ByteIndex, data_for_glyphs: &[GlyphData]) {
         assert!(i < self.len());
-        assert!(data_for_glyphs.len() > 0);
+        assert!(!data_for_glyphs.is_empty());
 
         let glyph_count = data_for_glyphs.len();
 
@@ -623,8 +623,6 @@ impl<'a> GlyphStore {
     pub fn advance_for_byte_range(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
         if range.begin() == ByteIndex(0) && range.end() == self.len() {
             self.total_advance + extra_word_spacing * (self.total_word_separators as i32)
-        } else if !self.has_detailed_glyphs {
-            self.advance_for_byte_range_simple_glyphs(range, extra_word_spacing)
         } else {
             self.advance_for_byte_range_simple_glyphs(range, extra_word_spacing)
         }
@@ -664,13 +662,13 @@ impl<'a> GlyphStore {
 
 impl fmt::Debug for GlyphStore {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        write!(formatter, "GlyphStore:\n")?;
+        writeln!(formatter, "GlyphStore:")?;
         let mut detailed_buffer = self.detail_store.detail_buffer.iter();
         for entry in self.entry_buffer.iter() {
             if entry.is_simple() {
-                write!(
+                writeln!(
                     formatter,
-                    "  simple id={:?} advance={:?}\n",
+                    "  simple id={:?} advance={:?}",
                     entry.id(),
                     entry.advance()
                 )?;
@@ -683,9 +681,9 @@ impl fmt::Debug for GlyphStore {
             if detailed_buffer.next().is_none() {
                 continue;
             }
-            write!(
+            writeln!(
                 formatter,
-                "  detailed id={:?} advance={:?}\n",
+                "  detailed id={:?} advance={:?}",
                 entry.id(),
                 entry.advance()
             )?;

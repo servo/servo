@@ -86,6 +86,8 @@ pub fn build_display_list_for_subtree<'a>(
     let base = state.create_base_display_item(
         bounds,
         flow_root.as_block().fragment.node,
+        // The unique id is the same as the node id because this is the root fragment.
+        flow_root.as_block().fragment.node.id() as u64,
         None,
         DisplayListSection::BackgroundAndBorders,
     );

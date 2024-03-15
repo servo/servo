@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Referer with location.replace and location.assign with nested iframes</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <iframe src="resources/iframe-with-iframe.html" hidden></iframe>
+    <script>
+      const iframe = document.querySelector("iframe");
+      async_test(function(t) {
+        function on_message(e) {
+          const referrer = e.data;
+          assert_equals(referrer, iframe.contentWindow.location.href);
+          t.done();
+        }
+        window.addEventListener('message', t.step_func(on_message), false);
+        window.addEventListener('load', function () {
+            iframe.contentDocument.querySelector("iframe").contentWindow.location.replace("/resources/blank.html");
+        }, false);
+      }, "Browser sends Referer header in nested iframe request when location.replace is called on an iframe");
+      async_test(function(t) {
+        function on_message(e) {
+          const referrer = e.data;
+          assert_equals(referrer, iframe.contentWindow.location.href);
+          t.done();
+        }
+        window.addEventListener('message', t.step_func(on_message), false);
+        window.addEventListener('load', function () {
+            iframe.contentDocument.querySelector("iframe").contentWindow.location.replace("/resources/blank.html");
+        }, false);
+      }, "Browser sends Referer header in nested iframe request when location.assign is called on an iframe");
+    </script>
+  </body>
+</html>

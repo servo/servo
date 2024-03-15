@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Typing white-space and another character at end of a block should preserve the white-space when br element is always block</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+br { display: block; }
+</style>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  test(
+    () => {
+      const editingHost = document.querySelector("div[contenteditable]");
+      editingHost.focus();
+      getSelection().collapse(editingHost.firstChild, "abc".length);
+      document.execCommand("insertText", false, " ");
+      document.execCommand("insertText", false, "d");
+      assert_in_array(
+        editingHost.innerHTML,
+        [
+          "abc d",
+          "abc d<br>",
+        ]
+      );
+    },
+    "Inserting white-space and a character at block end should keep the white-space even before block <br> element"
+  );
+}, {once: true});
+</script>
+</head>
+<body><div contenteditable>abc</div></body>
+</html>

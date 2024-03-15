@@ -186,7 +186,7 @@ impl RequestBody {
         }
     }
 
-    /// Step 12 of https://fetch.spec.whatwg.org/#concept-http-redirect-fetch
+    /// Step 12 of <https://fetch.spec.whatwg.org/#concept-http-redirect-fetch>
     pub fn extract_source(&mut self) {
         match self.source {
             BodySource::Null => panic!("Null sources should never be re-directed."),
@@ -207,8 +207,9 @@ impl RequestBody {
         self.source == BodySource::Null
     }
 
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> Option<usize> {
-        self.total_bytes.clone()
+        self.total_bytes
     }
 }
 
@@ -264,7 +265,7 @@ impl RequestBuilder {
     pub fn new(url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
             method: Method::GET,
-            url: url,
+            url,
             headers: HeaderMap::new(),
             unsafe_request: false,
             body: None,
@@ -277,7 +278,7 @@ impl RequestBuilder {
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
-            referrer: referrer,
+            referrer,
             referrer_policy: None,
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
@@ -524,9 +525,9 @@ impl Request {
             initiator: Initiator::None,
             destination: Destination::None,
             origin: origin.unwrap_or(Origin::Client),
-            referrer: referrer,
+            referrer,
             referrer_policy: None,
-            pipeline_id: pipeline_id,
+            pipeline_id,
             synchronous: false,
             mode: RequestMode::NoCors,
             use_cors_preflight: false,
@@ -540,7 +541,7 @@ impl Request {
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
             csp_list: None,
-            https_state: https_state,
+            https_state,
             crash: None,
         }
     }
@@ -567,19 +568,19 @@ impl Request {
 
     /// <https://fetch.spec.whatwg.org/#subresource-request>
     pub fn is_subresource_request(&self) -> bool {
-        match self.destination {
+        matches!(
+            self.destination,
             Destination::Audio |
-            Destination::Font |
-            Destination::Image |
-            Destination::Manifest |
-            Destination::Script |
-            Destination::Style |
-            Destination::Track |
-            Destination::Video |
-            Destination::Xslt |
-            Destination::None => true,
-            _ => false,
-        }
+                Destination::Font |
+                Destination::Image |
+                Destination::Manifest |
+                Destination::Script |
+                Destination::Style |
+                Destination::Track |
+                Destination::Video |
+                Destination::Xslt |
+                Destination::None
+        )
     }
 
     pub fn timing_type(&self) -> ResourceTimingType {
@@ -605,7 +606,7 @@ impl Referrer {
 // TODO: values in the control-code range are being quietly stripped out by
 // HeaderMap and never reach this function to be loudly rejected!
 fn is_cors_unsafe_request_header_byte(value: &u8) -> bool {
-    match value {
+    matches!(value,
         0x00..=0x08 |
         0x10..=0x19 |
         0x22 |
@@ -621,9 +622,8 @@ fn is_cors_unsafe_request_header_byte(value: &u8) -> bool {
         0x5D |
         0x7B |
         0x7D |
-        0x7F => true,
-        _ => false,
-    }
+        0x7F
+    )
 }
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-request-header
@@ -635,18 +635,19 @@ fn is_cors_safelisted_request_accept(value: &[u8]) -> bool {
 // https://fetch.spec.whatwg.org/#cors-safelisted-request-header
 // subclauses `accept-language`, `content-language`
 fn is_cors_safelisted_language(value: &[u8]) -> bool {
-    value.iter().all(|&x| match x {
-        0x30..=0x39 |
-        0x41..=0x5A |
-        0x61..=0x7A |
-        0x20 |
-        0x2A |
-        0x2C |
-        0x2D |
-        0x2E |
-        0x3B |
-        0x3D => true,
-        _ => false,
+    value.iter().all(|&x| {
+        matches!(x,
+            0x30..=0x39 |
+            0x41..=0x5A |
+            0x61..=0x7A |
+            0x20 |
+            0x2A |
+            0x2C |
+            0x2D |
+            0x2E |
+            0x3B |
+            0x3D
+        )
     })
 }
 
@@ -697,10 +698,7 @@ pub fn is_cors_safelisted_request_header<N: AsRef<str>, V: AsRef<[u8]>>(
 
 /// <https://fetch.spec.whatwg.org/#cors-safelisted-method>
 pub fn is_cors_safelisted_method(m: &Method) -> bool {
-    match *m {
-        Method::GET | Method::HEAD | Method::POST => true,
-        _ => false,
-    }
+    matches!(*m, Method::GET | Method::HEAD | Method::POST)
 }
 
 /// <https://fetch.spec.whatwg.org/#cors-non-wildcard-request-header-name>
@@ -733,7 +731,7 @@ pub fn get_cors_unsafe_header_names(headers: &HeaderMap) -> Vec<HeaderName> {
     }
 
     // Step 6
-    return convert_header_names_to_sorted_lowercase_set(unsafe_names);
+    convert_header_names_to_sorted_lowercase_set(unsafe_names)
 }
 
 /// <https://fetch.spec.whatwg.org/#ref-for-convert-header-names-to-a-sorted-lowercase-set>
@@ -745,5 +743,5 @@ pub fn convert_header_names_to_sorted_lowercase_set(
     let mut ordered_set = header_names.to_vec();
     ordered_set.sort_by(|a, b| a.as_str().partial_cmp(b.as_str()).unwrap());
     ordered_set.dedup();
-    return ordered_set.into_iter().cloned().collect();
+    ordered_set.into_iter().cloned().collect()
 }

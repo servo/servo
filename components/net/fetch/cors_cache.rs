@@ -60,11 +60,11 @@ impl CorsCacheEntry {
         header_or_method: HeaderOrMethod,
     ) -> CorsCacheEntry {
         CorsCacheEntry {
-            origin: origin,
-            url: url,
-            max_age: max_age,
-            credentials: credentials,
-            header_or_method: header_or_method,
+            origin,
+            url,
+            max_age,
+            credentials,
+            header_or_method,
             created: time::now().to_timespec(),
         }
     }
@@ -77,14 +77,10 @@ fn match_headers(cors_cache: &CorsCacheEntry, cors_req: &Request) -> bool {
 }
 
 /// A simple, vector-based CORS Cache
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CorsCache(Vec<CorsCacheEntry>);
 
 impl CorsCache {
-    pub fn new() -> CorsCache {
-        CorsCache(vec![])
-    }
-
     fn find_entry_by_header<'a>(
         &'a mut self,
         request: &Request,
@@ -122,7 +118,7 @@ impl CorsCache {
     /// Returns true if an entry with a
     /// [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found
     pub fn match_header(&mut self, request: &Request, header_name: &HeaderName) -> bool {
-        self.find_entry_by_header(&request, header_name).is_some()
+        self.find_entry_by_header(request, header_name).is_some()
     }
 
     /// Updates max age if an entry for a
@@ -136,7 +132,7 @@ impl CorsCache {
         new_max_age: u32,
     ) -> bool {
         match self
-            .find_entry_by_header(&request, header_name)
+            .find_entry_by_header(request, header_name)
             .map(|e| e.max_age = new_max_age)
         {
             Some(_) => true,
@@ -156,7 +152,7 @@ impl CorsCache {
     /// Returns true if an entry with a
     /// [matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found
     pub fn match_method(&mut self, request: &Request, method: Method) -> bool {
-        self.find_entry_by_method(&request, method).is_some()
+        self.find_entry_by_method(request, method).is_some()
     }
 
     /// Updates max age if an entry for
@@ -170,7 +166,7 @@ impl CorsCache {
         new_max_age: u32,
     ) -> bool {
         match self
-            .find_entry_by_method(&request, method.clone())
+            .find_entry_by_method(request, method.clone())
             .map(|e| e.max_age = new_max_age)
         {
             Some(_) => true,

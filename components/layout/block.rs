@@ -1761,7 +1761,7 @@ impl BlockFlow {
         // If you remove the might_have_floats_in conditional, this will go off.
         // TODO(servo#30572) revert to debug_assert!() once underlying bug is fixed
         #[cfg(debug_assertions)]
-        if !(!self.is_inline_flex_item()) {
+        if self.is_inline_flex_item() {
             log::warn!("debug assertion failed! !self.is_inline_flex_item()");
         }
 

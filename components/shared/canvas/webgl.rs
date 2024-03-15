@@ -140,10 +140,7 @@ pub struct WebGLMsgSender {
 
 impl WebGLMsgSender {
     pub fn new(id: WebGLContextId, sender: WebGLChan) -> Self {
-        WebGLMsgSender {
-            ctx_id: id,
-            sender: sender,
-        }
+        WebGLMsgSender { ctx_id: id, sender }
     }
 
     /// Returns the WebGLContextId associated to this sender
@@ -549,6 +546,11 @@ macro_rules! define_resource_id {
         impl $name {
             #[allow(unsafe_code)]
             #[inline]
+            /// Create a new $name.
+            ///
+            /// # Safety
+            ///
+            /// Using an invalid OpenGL id may result in undefined behavior.
             pub unsafe fn new(id: $type) -> Self {
                 $name(<nonzero_type!($type)>::new_unchecked(id))
             }
@@ -922,7 +924,7 @@ mod gl_ext_constants {
     pub const COMPRESSED_RGBA_S3TC_DXT5_EXT: GLenum = 0x83F3;
     pub const COMPRESSED_RGB_ETC1_WEBGL: GLenum = 0x8D64;
 
-    pub static COMPRESSIONS: &'static [GLenum] = &[
+    pub static COMPRESSIONS: &[GLenum] = &[
         COMPRESSED_RGB_S3TC_DXT1_EXT,
         COMPRESSED_RGBA_S3TC_DXT1_EXT,
         COMPRESSED_RGBA_S3TC_DXT3_EXT,
@@ -1061,18 +1063,18 @@ impl TexFormat {
 
     /// Returns whether this format is a known sized or unsized format.
     pub fn is_sized(&self) -> bool {
-        match self {
+        !matches!(
+            self,
             TexFormat::DepthComponent |
-            TexFormat::DepthStencil |
-            TexFormat::Alpha |
-            TexFormat::Red |
-            TexFormat::RG |
-            TexFormat::RGB |
-            TexFormat::RGBA |
-            TexFormat::Luminance |
-            TexFormat::LuminanceAlpha => false,
-            _ => true,
-        }
+                TexFormat::DepthStencil |
+                TexFormat::Alpha |
+                TexFormat::Red |
+                TexFormat::RG |
+                TexFormat::RGB |
+                TexFormat::RGBA |
+                TexFormat::Luminance |
+                TexFormat::LuminanceAlpha
+        )
     }
 
     pub fn to_unsized(self) -> TexFormat {

@@ -30,7 +30,7 @@ impl PartialOrd for ScheduledEvent {
 impl Eq for ScheduledEvent {}
 impl PartialEq for ScheduledEvent {
     fn eq(&self, other: &ScheduledEvent) -> bool {
-        self as *const ScheduledEvent == other as *const ScheduledEvent
+        std::ptr::eq(self, other)
     }
 }
 

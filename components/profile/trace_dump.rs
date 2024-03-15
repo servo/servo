@@ -37,7 +37,7 @@ impl TraceDump {
     {
         let mut file = fs::File::create(trace_file_path)?;
         write_prologue(&mut file)?;
-        Ok(TraceDump { file: file })
+        Ok(TraceDump { file })
     }
 
     /// Write one trace to the trace dump file.

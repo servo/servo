@@ -1,5 +1,5 @@
 import pytest
-from .. import assert_cookie_is_set, create_cookie
+from .. import assert_cookie_is_set, create_cookie, get_default_partition_key
 
 pytestmark = pytest.mark.asyncio
 
@@ -16,7 +16,7 @@ async def test_cookie_http_only(bidi_session, set_cookie, test_page, domain_valu
         cookie=create_cookie(domain=domain_value(), http_only=http_only))
 
     assert set_cookie_result == {
-        'partitionKey': {},
+        'partitionKey': (await get_default_partition_key(bidi_session)),
     }
 
     # `httpOnly` defaults to `false`.

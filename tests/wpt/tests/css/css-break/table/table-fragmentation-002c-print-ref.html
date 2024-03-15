@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+
+<style>
+@page { size: 5in 3in; margin: 0.5in; }
+body { margin: 0; }
+
+.table {
+  width: 3in;
+  box-sizing: border-box;
+  border: 0.25in solid black;
+  padding: 0.25in 0.5in;
+  box-decoration-break: clone;
+}
+.td {
+  margin: 0.25in 0;
+  border: 0.25in solid orange;
+}
+.content {
+  height: 1.5in;
+  background: gold;
+}
+</style>
+
+<div style="height: 0.25in">BEFORE TABLE</div>
+<div class="table">
+  <div class="td">
+    <div class="content"></div>
+  </div>
+</div>
+<div style="height: 0.25in">AFTER TABLE</div>

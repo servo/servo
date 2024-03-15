@@ -7,9 +7,17 @@
 use embedder_traits::Cursor;
 use serde::{Deserialize, Serialize};
 use webrender_api::units::{LayoutSize, LayoutVector2D};
-use webrender_api::{
-    Epoch, ExternalScrollId, PipelineId, ScrollLocation, ScrollSensitivity, SpatialId,
-};
+use webrender_api::{Epoch, ExternalScrollId, PipelineId, ScrollLocation, SpatialId};
+
+/// The scroll sensitivity of a scroll node ie whether it can be scrolled due to input event and
+/// script events or only script events.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub enum ScrollSensitivity {
+    /// This node can be scrolled by input and script events.
+    ScriptAndInputEvents,
+    /// This node can only be scrolled by script events.
+    Script,
+}
 
 /// Information that Servo keeps alongside WebRender display items
 /// in order to add more context to hit test results.
@@ -131,7 +139,7 @@ impl ScrollTreeNode {
 
         let scrollable_width = info.scrollable_size.width;
         let scrollable_height = info.scrollable_size.height;
-        let original_layer_scroll_offset = info.offset.clone();
+        let original_layer_scroll_offset = info.offset;
 
         if scrollable_width > 0. {
             info.offset.x = (info.offset.x + delta.x).min(0.0).max(-scrollable_width);
@@ -172,10 +180,10 @@ impl ScrollTree {
             parent: parent.cloned(),
             scroll_info,
         });
-        return ScrollTreeNodeId {
+        ScrollTreeNodeId {
             index: self.nodes.len() - 1,
             spatial_id,
-        };
+        }
     }
 
     /// Get a mutable reference to the node with the given index.
@@ -198,7 +206,7 @@ impl ScrollTree {
         scroll_location: ScrollLocation,
     ) -> Option<(ExternalScrollId, LayoutVector2D)> {
         let parent = {
-            let ref mut node = self.get_node_mut(scroll_node_id);
+            let node = &mut self.get_node_mut(scroll_node_id);
             let result = node.scroll(scroll_location);
             if result.is_some() {
                 return result;
@@ -207,6 +215,25 @@ impl ScrollTree {
         };
 
         parent.and_then(|parent| self.scroll_node_or_ancestor(&parent, scroll_location))
+    }
+
+    /// Given an [`ExternalScrollId`] and an offset, update the scroll offset of the scroll node
+    /// with the given id.
+    pub fn set_scroll_offsets_for_node_with_external_scroll_id(
+        &mut self,
+        external_scroll_id: ExternalScrollId,
+        offset: LayoutVector2D,
+    ) -> bool {
+        for node in self.nodes.iter_mut() {
+            match node.scroll_info {
+                Some(ref mut scroll_info) if scroll_info.external_id == external_scroll_id => {
+                    scroll_info.offset = offset;
+                    return true;
+                },
+                _ => {},
+            }
+        }
+        false
     }
 }
 
@@ -252,6 +279,7 @@ impl CompositorDisplayListInfo {
         content_size: LayoutSize,
         pipeline_id: PipelineId,
         epoch: Epoch,
+        root_scroll_sensitivity: ScrollSensitivity,
     ) -> Self {
         let mut scroll_tree = ScrollTree::default();
         let root_reference_frame_id = scroll_tree.add_scroll_tree_node(
@@ -265,7 +293,7 @@ impl CompositorDisplayListInfo {
             Some(ScrollableNodeInfo {
                 external_id: ExternalScrollId(0, pipeline_id),
                 scrollable_size: content_size - viewport_size,
-                scroll_sensitivity: ScrollSensitivity::ScriptAndInputEvents,
+                scroll_sensitivity: root_scroll_sensitivity,
                 offset: LayoutVector2D::zero(),
             }),
         );

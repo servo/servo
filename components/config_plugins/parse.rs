@@ -132,7 +132,7 @@ impl Parse for RootTypeDef {
 impl Parse for NewTypeDef {
     fn parse(input: ParseStream<'_>) -> Result<Self> {
         let content;
-        #[allow(clippy::eval_order_dependence)]
+        #[allow(clippy::mixed_read_write_in_expression)]
         Ok(NewTypeDef {
             _braces: braced!(content in input),
             fields: Punctuated::parse_terminated_with(&content, Field::parse)?,

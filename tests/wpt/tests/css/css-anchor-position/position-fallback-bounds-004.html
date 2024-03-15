@@ -57,12 +57,13 @@ body {
   left: anchor(left);
   anchor-default: --a;
   position-fallback-bounds: --bounds;
-  position-fallback: --top-then-bottom;
+  position-try-options: --bottom;
+  bottom: anchor(top);
 }
 
-@position-fallback --top-then-bottom {
-  @try { bottom: anchor(top); }
-  @try { top: anchor(bottom); }
+@position-try --bottom {
+  top: anchor(bottom);
+  bottom: auto;
 }
 </style>
 

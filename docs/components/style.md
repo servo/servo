@@ -1,15 +1,15 @@
 # Servo's style system overview
 
-This needs to be filled more extensively. Meanwhile, you can also take a look at
-the [style doc comments][style-doc], or the [Styling
-Overview][wiki-styling-overview] in the wiki, a conversation between
+This document provides an overview of Servo's style system. For more extensive details, 
+refer to the [style doc comments][style-doc], or the [Styling
+Overview][wiki-styling-overview] in the wiki, which includes a conversation between
 Boris Zbarsky and Patrick Walton about how style sharing works.
 
 <a name="selector-impl"></a>
 ## Selector Implementation
 
-In order to be sharable and compatible with Stylo (a project that aims 
-to integrate Servo's style system into Gecko), the style must be consistent.
+To ensure compatibility with Stylo (a project integrating Servo's style system into Gecko),
+selectors must be consistent.
 
 The consistency is implemented in [selectors' SelectorImpl][selector-impl], 
 containing the logic related to parsing pseudo-elements and other pseudo-classes 

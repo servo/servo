@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Text layout.
+#![allow(clippy::too_many_arguments)]
 
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
@@ -10,12 +11,12 @@ use std::sync::Arc;
 
 use app_units::Au;
 use gfx::font::{self, FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
+use gfx::font_cache_thread::FontIdentifier;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
 use log::{debug, warn};
 use range::Range;
-use servo_atoms::Atom;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::computed_values::word_break::T as WordBreak;
@@ -483,10 +484,10 @@ impl TextRunScanner {
                     SpecificFragmentInfo::ScannedText(new_text_fragment_info),
                 );
 
-                let is_last_mapping_of_this_old_fragment = match mappings.peek() {
-                    Some(mapping) if mapping.old_fragment_index == logical_offset => false,
-                    _ => true,
-                };
+                let is_last_mapping_of_this_old_fragment = !matches!(
+                    mappings.peek(),
+                    Some(mapping) if mapping.old_fragment_index == logical_offset
+                );
 
                 if let Some(ref mut context) = new_fragment.inline_context {
                     for node in &mut context.nodes {
@@ -664,10 +665,10 @@ impl RunInfo {
     }
 
     fn has_font(&self, font: &Option<FontRef>) -> bool {
-        fn identifier_and_pt_size(font: &Option<FontRef>) -> Option<(Atom, Au)> {
+        fn identifier_and_pt_size(font: &Option<FontRef>) -> Option<(FontIdentifier, Au)> {
             font.as_ref().map(|font| {
                 let font = font.borrow();
-                (font.identifier(), font.descriptor.pt_size)
+                (font.identifier().clone(), font.descriptor.pt_size)
             })
         }
 

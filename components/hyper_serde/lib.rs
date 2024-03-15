@@ -531,7 +531,7 @@ impl<'a> Serialize for Ser<'a, Mime> {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.v.as_ref())
+        serializer.serialize_str(self.v.as_ref())
     }
 }
 

@@ -24,6 +24,7 @@ use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use unicode_script::Script;
 use webrender_api::FontInstanceKey;
 
+use crate::font_cache_thread::FontIdentifier;
 use crate::font_context::{FontContext, FontSource};
 use crate::font_template::FontTemplateDescriptor;
 use crate::platform::font::{FontHandle, FontTable};
@@ -58,7 +59,7 @@ pub trait FontHandleMethods: Sized {
         fctx: &FontContextHandle,
         template: Arc<FontTemplateData>,
         pt_size: Option<Au>,
-    ) -> Result<Self, ()>;
+    ) -> Result<Self, &'static str>;
 
     fn template(&self) -> Arc<FontTemplateData>;
     fn family_name(&self) -> Option<String>;
@@ -78,7 +79,7 @@ pub trait FontHandleMethods: Sized {
     fn table_for_tag(&self, _: FontTableTag) -> Option<FontTable>;
 
     /// A unique identifier for the font, allowing comparison.
-    fn identifier(&self) -> Atom;
+    fn identifier(&self) -> &FontIdentifier;
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -96,7 +97,7 @@ impl FontTableTagConversions for FontTableTag {
             (self >> 24) as u8,
             (self >> 16) as u8,
             (self >> 8) as u8,
-            (self >> 0) as u8,
+            *self as u8,
         ];
         str::from_utf8(&bytes).unwrap().to_owned()
     }
@@ -190,7 +191,7 @@ impl Font {
         let metrics = handle.metrics();
 
         Font {
-            handle: handle,
+            handle,
             shaper: None,
             descriptor,
             metrics,
@@ -202,7 +203,7 @@ impl Font {
     }
 
     /// A unique identifier for the font, allowing comparison.
-    pub fn identifier(&self) -> Atom {
+    pub fn identifier(&self) -> &FontIdentifier {
         self.handle.identifier()
     }
 }
@@ -403,7 +404,7 @@ impl FontGroup {
             .font_family
             .families
             .iter()
-            .map(|family| FontGroupFamily::new(descriptor.clone(), &family))
+            .map(|family| FontGroupFamily::new(descriptor.clone(), family))
             .collect();
 
         FontGroup {
@@ -419,7 +420,7 @@ impl FontGroup {
     /// found, returns None.
     pub fn find_by_codepoint<S: FontSource>(
         &mut self,
-        mut font_context: &mut FontContext<S>,
+        font_context: &mut FontContext<S>,
         codepoint: char,
     ) -> Option<FontRef> {
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
@@ -436,43 +437,40 @@ impl FontGroup {
 
         let has_glyph = |font: &FontRef| font.borrow().has_glyph_for(codepoint);
 
-        if let Some(font) = self.find(&mut font_context, |font| has_glyph(font)) {
+        if let Some(font) = self.find(font_context, has_glyph) {
             return font_or_synthesized_small_caps(font);
         }
 
         if let Some(ref last_matching_fallback) = self.last_matching_fallback {
-            if has_glyph(&last_matching_fallback) {
+            if has_glyph(last_matching_fallback) {
                 return font_or_synthesized_small_caps(last_matching_fallback.clone());
             }
         }
 
-        if let Some(font) = self.find_fallback(&mut font_context, Some(codepoint), has_glyph) {
+        if let Some(font) = self.find_fallback(font_context, Some(codepoint), has_glyph) {
             self.last_matching_fallback = Some(font.clone());
             return font_or_synthesized_small_caps(font);
         }
 
-        self.first(&mut font_context)
+        self.first(font_context)
     }
 
     /// Find the first available font in the group, or the first available fallback font.
-    pub fn first<S: FontSource>(
-        &mut self,
-        mut font_context: &mut FontContext<S>,
-    ) -> Option<FontRef> {
-        self.find(&mut font_context, |_| true)
-            .or_else(|| self.find_fallback(&mut font_context, None, |_| true))
+    pub fn first<S: FontSource>(&mut self, font_context: &mut FontContext<S>) -> Option<FontRef> {
+        self.find(font_context, |_| true)
+            .or_else(|| self.find_fallback(font_context, None, |_| true))
     }
 
     /// Find a font which returns true for `predicate`. This method mutates because we may need to
     /// load new font data in the process of finding a suitable font.
-    fn find<S, P>(&mut self, mut font_context: &mut FontContext<S>, predicate: P) -> Option<FontRef>
+    fn find<S, P>(&mut self, font_context: &mut FontContext<S>, predicate: P) -> Option<FontRef>
     where
         S: FontSource,
         P: FnMut(&FontRef) -> bool,
     {
         self.families
             .iter_mut()
-            .filter_map(|family| family.font(&mut font_context))
+            .filter_map(|family| family.font(font_context))
             .find(predicate)
     }
 
@@ -567,8 +565,7 @@ impl RunMetrics {
 }
 
 pub fn get_and_reset_text_shaping_performance_counter() -> usize {
-    let value = TEXT_SHAPING_PERFORMANCE_COUNTER.swap(0, Ordering::SeqCst);
-    value
+    TEXT_SHAPING_PERFORMANCE_COUNTER.swap(0, Ordering::SeqCst)
 }
 
 /// The scope within which we will look for a font.

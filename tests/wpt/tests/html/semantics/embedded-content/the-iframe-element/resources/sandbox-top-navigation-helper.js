@@ -34,6 +34,17 @@ async function createNestedIframe(parent, origin, frame_sandbox, header_sandbox)
   }, iframe_attributes);
 }
 
+async function navigateFrameTo(frame, origin) {
+  return frame.navigateToNew({
+    origin: origin,
+    scripts: [
+      '/resources/testdriver.js',
+      '/resources/testdriver-driver.js',
+      '/resources/testdriver-vendor.js'
+    ],
+  });
+}
+
 async function attemptTopNavigation(iframe, should_succeed) {
   let did_succeed;
   try {

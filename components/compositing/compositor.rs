@@ -42,17 +42,16 @@ use script_traits::{
 };
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
-use webrender;
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntSize, DevicePoint, DeviceRect, LayoutPoint, LayoutRect, LayoutSize,
     LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
-    self, BuiltDisplayList, ClipId, DirtyRect, DocumentId, Epoch as WebRenderEpoch,
+    self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
     ExternalScrollId, HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding,
-    ReferenceFrameKind, ScrollClamping, ScrollLocation, SpaceAndClipInfo, SpatialId,
-    TransformStyle, ZoomFactor,
+    ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo,
+    SpatialId, SpatialTreeItemKey, TransformStyle,
 };
 
 use crate::gl::RenderTargetInfo;
@@ -80,6 +79,7 @@ const MAX_ZOOM: f32 = 8.0;
 const MIN_ZOOM: f32 = 0.1;
 
 trait ConvertPipelineIdFromWebRender {
+    #[allow(clippy::wrong_self_convention)]
     fn from_webrender(&self) -> PipelineId;
 }
 
@@ -110,13 +110,6 @@ impl FrameTreeId {
     }
 }
 
-/// One pixel in layer coordinate space.
-///
-/// This unit corresponds to a "pixel" in layer coordinate space, which after scaling and
-/// transformation becomes a device pixel.
-#[derive(Clone, Copy, Debug)]
-enum LayerPixel {}
-
 struct RootPipeline {
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     id: Option<PipelineId>,
@@ -135,9 +128,6 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// Tracks details about each active pipeline that the compositor knows about.
     pipeline_details: HashMap<PipelineId, PipelineDetails>,
-
-    /// The scene scale, to allow for zooming and high-resolution painting.
-    scale: Scale<f32, LayerPixel, DevicePixel>,
 
     /// "Mobile-style" zoom that does not reflow the page.
     viewport_zoom: PinchZoomFactor,
@@ -230,8 +220,6 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// Whether to invalidate `prev_offscreen_framebuffer` at the end of the next frame.
     invalidate_prev_offscreen_framebuffer: bool,
-
-    is_running_problem_test: bool,
 
     /// True to exit after page load ('-x').
     exit_after_load: bool,
@@ -387,7 +375,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         window: Rc<Window>,
         state: InitialCompositorState,
         composite_target: CompositeTarget,
-        is_running_problem_test: bool,
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -409,7 +396,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             port: state.receiver,
             webviews,
             pipeline_details: HashMap::new(),
-            scale: Scale::new(1.0),
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
@@ -437,7 +423,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             next_offscreen_framebuffer: OnceCell::new(),
             prev_offscreen_framebuffer: None,
             invalidate_prev_offscreen_framebuffer: false,
-            is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
             pending_frames: 0,
@@ -450,16 +435,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         window: Rc<Window>,
         state: InitialCompositorState,
         composite_target: CompositeTarget,
-        is_running_problem_test: bool,
         exit_after_load: bool,
         convert_mouse_to_touch: bool,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) -> Self {
-        let mut compositor = IOCompositor::new(
+        let compositor = IOCompositor::new(
             window,
             state,
             composite_target,
-            is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
             top_level_browsing_context_id,
@@ -467,10 +450,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         // Make sure the GL state is OK
         compositor.assert_gl_framebuffer_complete();
-
-        // Set the size of the root layer.
-        compositor.update_zoom_transform();
-
         compositor
     }
 
@@ -541,6 +520,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// and the system creates a new native surface that needs to bound to the current
     /// context.
     #[allow(unsafe_code)]
+    #[allow(clippy::not_unsafe_ptr_arg_deref)] // It has an unsafe block inside
     pub fn replace_native_surface(&mut self, native_widget: *mut c_void, coords: DeviceIntSize) {
         debug!("Replacing native surface in compositor: {native_widget:?}");
         let connection = self.rendering_context.connection();
@@ -648,8 +628,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.touch_handler.on_event_processed(result);
             },
 
-            (CompositorMsg::CreatePng(rect, reply), ShutdownState::NotShuttingDown) => {
-                let res = self.composite_specific_target(CompositeTarget::SharedMemory, rect);
+            (CompositorMsg::CreatePng(page_rect, reply), ShutdownState::NotShuttingDown) => {
+                let res = self.composite_specific_target(CompositeTarget::SharedMemory, page_rect);
                 if let Err(ref e) = res {
                     info!("Error retrieving PNG: {:?}", e);
                 }
@@ -666,14 +646,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 );
                 if is_ready && self.pending_frames == 0 {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
-                    if self.is_running_problem_test {
-                        println!("ready to save image!");
-                    }
                 } else {
                     self.ready_to_save_state = ReadyState::Unknown;
-                    if self.is_running_problem_test {
-                        println!("resetting ready_to_save_state!");
-                    }
                 }
                 self.composite_if_necessary(CompositingReason::Headless);
             },
@@ -697,11 +671,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 ShutdownState::NotShuttingDown,
             ) => {
                 if recomposite_needed {
-                    if let Some(result) = self.hit_test_at_device_point(self.cursor_pos) {
+                    if let Some(result) = self.hit_test_at_point(self.cursor_pos) {
                         self.update_cursor(result);
                     }
-                    self.composition_request =
-                        CompositionRequest::CompositeNow(CompositingReason::NewWebRenderFrame);
                 }
 
                 if recomposite_needed || self.animation_callbacks_active() {
@@ -728,7 +700,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 CompositorMsg::WebDriverMouseButtonEvent(mouse_event_type, mouse_button, x, y),
                 ShutdownState::NotShuttingDown,
             ) => {
-                let dppx = self.device_pixels_per_page_px();
+                let dppx = self.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
                 self.on_mouse_window_event_class(match mouse_event_type {
                     MouseEventType::Click => MouseWindowEvent::Click(mouse_button, point),
@@ -738,7 +710,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (CompositorMsg::WebDriverMouseMoveEvent(x, y), ShutdownState::NotShuttingDown) => {
-                let dppx = self.device_pixels_per_page_px();
+                let dppx = self.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
                 self.on_mouse_window_move_event_class(DevicePoint::new(point.x, point.y));
             },
@@ -789,25 +761,46 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 script_traits::ScriptToCompositorMsg::SendInitialTransaction(pipeline),
             ) => {
                 let mut txn = Transaction::new();
-                txn.set_display_list(
-                    WebRenderEpoch(0),
-                    None,
-                    Default::default(),
-                    (pipeline, Default::default()),
-                    false,
-                );
-
-                self.generate_frame(&mut txn);
+                txn.set_display_list(WebRenderEpoch(0), (pipeline, Default::default()));
+                self.generate_frame(&mut txn, RenderReasons::SCENE);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
 
             ForwardedToCompositorMsg::Layout(
-                script_traits::ScriptToCompositorMsg::SendScrollNode(point, scroll_id),
+                script_traits::ScriptToCompositorMsg::SendScrollNode(
+                    pipeline_id,
+                    point,
+                    external_scroll_id,
+                ),
             ) => {
+                let pipeline_id = PipelineId::from_webrender(pipeline_id);
+                let pipeline_details = match self.pipeline_details.get_mut(&pipeline_id) {
+                    Some(details) => details,
+                    None => return,
+                };
+
+                let offset = LayoutVector2D::new(point.x, point.y);
+                if !pipeline_details
+                    .scroll_tree
+                    .set_scroll_offsets_for_node_with_external_scroll_id(
+                        external_scroll_id,
+                        -offset,
+                    )
+                {
+                    warn!("Could not scroll not with id: {external_scroll_id:?}");
+                    return;
+                }
+
                 let mut txn = Transaction::new();
-                txn.scroll_node_with_id(point, scroll_id, ScrollClamping::NoClamping);
-                self.generate_frame(&mut txn);
+                txn.set_scroll_offsets(
+                    external_scroll_id,
+                    vec![SampledScrollOffset {
+                        offset,
+                        generation: 0,
+                    }],
+                );
+                self.generate_frame(&mut txn, RenderReasons::APZ);
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
@@ -819,10 +812,39 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     display_list_receiver,
                 },
             ) => {
-                let display_list_data = match display_list_receiver.recv() {
+                // This must match the order from the sender, currently in `shared/script/lib.rs`.
+                let items_data = match display_list_receiver.recv() {
                     Ok(display_list_data) => display_list_data,
-                    _ => return warn!("Could not recieve WebRender display list."),
+                    Err(error) => {
+                        return warn!(
+                            "Could not receive WebRender display list items data: {error}"
+                        )
+                    },
                 };
+                let cache_data = match display_list_receiver.recv() {
+                    Ok(display_list_data) => display_list_data,
+                    Err(error) => {
+                        return warn!(
+                            "Could not receive WebRender display list cache data: {error}"
+                        )
+                    },
+                };
+                let spatial_tree = match display_list_receiver.recv() {
+                    Ok(display_list_data) => display_list_data,
+                    Err(error) => {
+                        return warn!(
+                            "Could not receive WebRender display list spatial tree: {error}."
+                        )
+                    },
+                };
+                let built_display_list = BuiltDisplayList::from_data(
+                    DisplayListPayload {
+                        items_data,
+                        cache_data,
+                        spatial_tree,
+                    },
+                    display_list_descriptor,
+                );
 
                 let pipeline_id = display_list_info.pipeline_id;
                 let details = self.pipeline_details(PipelineId::from_webrender(pipeline_id));
@@ -830,20 +852,25 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 details.hit_test_items = display_list_info.hit_test_info;
                 details.install_new_scroll_tree(display_list_info.scroll_tree);
 
-                let mut txn = Transaction::new();
-                txn.set_display_list(
-                    display_list_info.epoch,
-                    None,
-                    display_list_info.viewport_size,
-                    (
-                        pipeline_id,
-                        BuiltDisplayList::from_data(display_list_data, display_list_descriptor),
-                    ),
-                    true,
-                );
-                self.generate_frame(&mut txn);
+                let mut transaction = Transaction::new();
+                transaction
+                    .set_display_list(display_list_info.epoch, (pipeline_id, built_display_list));
+
+                for node in details.scroll_tree.nodes.iter() {
+                    if let (Some(offset), Some(external_id)) = (node.offset(), node.external_id()) {
+                        let offset = LayoutVector2D::new(-offset.x, -offset.y);
+                        transaction.set_scroll_offsets(
+                            external_id,
+                            vec![SampledScrollOffset {
+                                offset,
+                                generation: 0,
+                            }],
+                        );
+                    }
+                }
+                self.generate_frame(&mut transaction, RenderReasons::SCENE);
                 self.webrender_api
-                    .send_transaction(self.webrender_document, txn);
+                    .send_transaction(self.webrender_document, transaction);
             },
 
             ForwardedToCompositorMsg::Layout(script_traits::ScriptToCompositorMsg::HitTest(
@@ -964,9 +991,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     /// Queue a new frame in the transaction and increase the pending frames count.
-    fn generate_frame(&mut self, transaction: &mut Transaction) {
+    fn generate_frame(&mut self, transaction: &mut Transaction, reason: RenderReasons) {
         self.pending_frames += 1;
-        transaction.generate_frame(0);
+        transaction.generate_frame(0, reason);
     }
 
     /// Sets or unsets the animations-running flag for the given pipeline, and schedules a
@@ -1003,10 +1030,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn pipeline_details(&mut self, pipeline_id: PipelineId) -> &mut PipelineDetails {
-        if !self.pipeline_details.contains_key(&pipeline_id) {
-            self.pipeline_details
-                .insert(pipeline_id, PipelineDetails::new());
-        }
+        self.pipeline_details
+            .entry(pipeline_id)
+            .or_insert_with(PipelineDetails::new);
         self.pipeline_details
             .get_mut(&pipeline_id)
             .expect("Insert then get failed!")
@@ -1014,7 +1040,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     pub fn pipeline(&self, pipeline_id: PipelineId) -> Option<&CompositionPipeline> {
         match self.pipeline_details.get(&pipeline_id) {
-            Some(ref details) => details.pipeline.as_ref(),
+            Some(details) => details.pipeline.as_ref(),
             None => {
                 warn!(
                     "Compositor layer has an unknown pipeline ({:?}).",
@@ -1026,20 +1052,20 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
-    /// for each visible top-level browsing context, applying the pinch zoom transformation if any.
+    /// for each visible top-level browsing context, applying a transformation on the root for
+    /// pinch zoom, page zoom, and HiDPI scaling.
     fn update_root_pipeline(&mut self) {
         let mut transaction = Transaction::new();
         self.update_root_pipeline_in_transaction(&mut transaction);
-        self.generate_frame(&mut transaction);
+        self.generate_frame(&mut transaction, RenderReasons::SCENE);
         self.webrender_api
             .send_transaction(self.webrender_document, transaction);
     }
 
     /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
-    /// for each visible top-level browsing context, applying the pinch zoom transformation if any.
+    /// for each visible top-level browsing context, applying a transformation on the root for
+    /// pinch zoom, page zoom, and HiDPI scaling.
     fn update_root_pipeline_in_transaction(&self, transaction: &mut Transaction) {
-        let zoom_factor = self.pinch_zoom_level();
-
         // Every display list needs a pipeline, but we'd like to choose one that is unlikely
         // to conflict with our content pipelines, which start at (1, 1). (0, 0) is WebRender's
         // dummy pipeline, so we choose (0, 1).
@@ -1047,6 +1073,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         transaction.set_root_pipeline(root_pipeline);
 
         let mut builder = webrender_api::DisplayListBuilder::new(root_pipeline);
+        builder.begin();
+
+        let zoom_factor = self.device_pixels_per_page_pixel().0;
         let zoom_reference_frame = builder.push_reference_frame(
             LayoutPoint::zero(),
             SpatialId::root_reference_frame(root_pipeline),
@@ -1055,21 +1084,26 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             ReferenceFrameKind::Transform {
                 is_2d_scale_translation: true,
                 should_snap: true,
+                paired_with_perspective: false,
             },
+            SpatialTreeItemKey::new(0, 0),
         );
 
-        let dppx = self.page_zoom * self.hidpi_factor();
-        let viewport_size = self.embedder_coordinates.get_viewport().size.to_f32() / dppx;
-        let viewport_size = LayoutSize::from_untyped(viewport_size.to_untyped());
+        let scaled_viewport_size = self.embedder_coordinates.get_viewport().size().to_f32() / zoom_factor;
+        let scaled_viewport_size = LayoutSize::from_untyped(scaled_viewport_size.to_untyped());
+        let scaled_viewport_rect = LayoutRect::from_origin_and_size(LayoutPoint::zero(), scaled_viewport_size);
+
+        let root_clip_id = builder.define_clip_rect(zoom_reference_frame, scaled_viewport_rect);
+        let clip_chain_id = builder.define_clip_chain(None, [root_clip_id]);
         for (_, webview) in self.webviews.painting_order() {
             if let Some(pipeline_id) = webview.pipeline_id {
-                let rect = webview.rect / dppx;
+                let scaled_webview_rect = webview.rect / zoom_factor;
                 builder.push_iframe(
-                    LayoutRect::from_untyped(&rect.to_untyped()),
-                    LayoutRect::from_untyped(&rect.to_untyped()),
+                    LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
+                    LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
                     &SpaceAndClipInfo {
                         spatial_id: zoom_reference_frame,
-                        clip_id: ClipId::root(pipeline_id.to_webrender()),
+                        clip_chain_id,
                     },
                     pipeline_id.to_webrender(),
                     true,
@@ -1077,19 +1111,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             }
         }
 
-        let built_display_list = builder.finalize();
+        let built_display_list = builder.end();
 
         // NB: We are always passing 0 as the epoch here, but this doesn't seem to
         // be an issue. WebRender will still update the scene and generate a new
         // frame even though the epoch hasn't changed.
-        let viewport_size = LayoutSize::from_untyped(viewport_size.to_untyped());
-        transaction.set_display_list(
-            WebRenderEpoch(0),
-            None,
-            viewport_size,
-            built_display_list,
-            false,
-        );
+        transaction.set_display_list(WebRenderEpoch(0), built_display_list);
     }
 
     fn set_frame_tree_for_webview(&mut self, frame_tree: &SendableFrameTree) {
@@ -1156,33 +1183,52 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.frame_tree_id.next();
     }
 
-    pub fn move_resize_webview(
+    fn move_resize_webview(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         rect: DeviceRect,
     ) {
-        let dppx = self.page_zoom * self.hidpi_factor();
-        if let Some(webview) = self.webviews.get_mut(top_level_browsing_context_id) {
-            let initial_viewport = rect.size.to_f32() / dppx;
-            let data = WindowSizeData {
-                device_pixel_ratio: dppx,
-                initial_viewport,
-            };
-            if rect.size != webview.rect.size {
-                let size_type = WindowSizeType::Resize; // FIXME always this value in practice
-                let msg =
-                    ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending window resize to constellation failed ({:?}).", e);
-                }
+        let size_changed;
+        match self.webviews.get_mut(top_level_browsing_context_id) {
+            Some(webview) => {
+                size_changed = rect.size() != webview.rect.size();
+                webview.rect = rect;
             }
-            webview.rect = rect;
-            self.update_root_pipeline();
-        } else {
-            warn!(
-                "{}: MoveResizeWebView on unknown top-level browsing context",
-                top_level_browsing_context_id
-            );
+            None => {
+                warn!(
+                    "{}: MoveResizeWebView on unknown top-level browsing context",
+                    top_level_browsing_context_id
+                );
+                return;
+            }
+        };
+
+        if size_changed {
+            self.send_window_size_message_for_top_level_browser_context(rect, top_level_browsing_context_id);
+        }
+
+        self.update_root_pipeline();
+    }
+
+    fn send_window_size_message_for_top_level_browser_context(
+        &self,
+        rect: DeviceRect,
+        top_level_browsing_context_id: TopLevelBrowsingContextId
+    ) {
+        // The device pixel ratio used by the style system should include the scale from page pixels
+        // to device pixels, but not including any pinch zoom.
+        let device_pixel_ratio = self.device_pixels_per_page_pixel_not_including_page_zoom();
+        let initial_viewport = rect.size().to_f32() / device_pixel_ratio;
+        let msg = ConstellationMsg::WindowSize(
+            top_level_browsing_context_id,
+            WindowSizeData {
+                device_pixel_ratio,
+                initial_viewport,
+            },
+            WindowSizeType::Resize
+        );
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending window resize to constellation failed ({:?}).", e);
         }
     }
 
@@ -1249,26 +1295,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.pipeline_details.remove(&pipeline_id);
     }
 
-    fn update_webrender_document_view(&mut self) {
-        let mut transaction = Transaction::new();
-        transaction.set_document_view(
-            self.embedder_coordinates.get_viewport(),
-            self.embedder_coordinates.hidpi_factor.get(),
-        );
-        self.webrender_api
-            .send_transaction(self.webrender_document, transaction);
-    }
-
     pub fn on_resize_window_event(&mut self) -> bool {
-        trace!("Compositor resize requested");
+        if self.shutdown_state != ShutdownState::NotShuttingDown {
+            return false;
+        }
 
         let old_coords = self.embedder_coordinates;
         self.embedder_coordinates = self.window.get_coordinates();
-
-        // A size change could also mean a resolution change.
-        if self.embedder_coordinates.hidpi_factor != old_coords.hidpi_factor {
-            self.update_zoom_transform();
-        }
 
         // If the framebuffer size has changed, invalidate the current framebuffer object, and mark
         // the last framebuffer object as needing to be invalidated at the end of the next frame.
@@ -1277,13 +1310,23 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             self.invalidate_prev_offscreen_framebuffer = true;
         }
 
-        if self.embedder_coordinates.viewport == old_coords.viewport {
+        if self.embedder_coordinates.viewport != old_coords.viewport {
+            let mut transaction = Transaction::new();
+            transaction.set_document_view(self.embedder_coordinates.get_viewport());
+            self.webrender_api
+                .send_transaction(self.webrender_document, transaction);
+        }
+
+        // A size change could also mean a resolution change.
+        if self.embedder_coordinates.hidpi_factor == old_coords.hidpi_factor &&
+            self.embedder_coordinates.viewport == old_coords.viewport
+        {
             return false;
         }
 
-        self.update_webrender_document_view();
+        self.update_after_zoom_or_hidpi_change();
         self.composite_if_necessary(CompositingReason::Resize);
-        return true;
+        true
     }
 
     pub fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
@@ -1306,7 +1349,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             MouseWindowEvent::MouseUp(_, p) => p,
         };
 
-        let Some(result) = self.hit_test_at_device_point(point) else {
+        let Some(result) = self.hit_test_at_point(point) else {
             // TODO: Notify embedder that the event failed to hit test to any webview.
             // TODO: Also notify embedder if an event hits a webview but isn’t consumed?
             return;
@@ -1333,14 +1376,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    fn hit_test_at_device_point(&self, point: DevicePoint) -> Option<CompositorHitTestResult> {
-        let dppx = self.page_zoom * self.hidpi_factor();
-        let scaled_point = (point / dppx).to_untyped();
-        let world_point = WorldPoint::from_untyped(scaled_point);
-        return self.hit_test_at_point(world_point);
-    }
-
-    fn hit_test_at_point(&self, point: WorldPoint) -> Option<CompositorHitTestResult> {
+    fn hit_test_at_point(&self, point: DevicePoint) -> Option<CompositorHitTestResult> {
         return self
             .hit_test_at_point_with_flags_and_pipeline(point, HitTestFlags::empty(), None)
             .first()
@@ -1349,13 +1385,15 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     fn hit_test_at_point_with_flags_and_pipeline(
         &self,
-        point: WorldPoint,
+        point: DevicePoint,
         flags: HitTestFlags,
         pipeline_id: Option<WebRenderPipelineId>,
     ) -> Vec<CompositorHitTestResult> {
+        // DevicePoint and WorldPoint are the same for us.
+        let world_point = WorldPoint::from_untyped(point.to_untyped());
         let results =
             self.webrender_api
-                .hit_test(self.webrender_document, pipeline_id, point, flags);
+                .hit_test(self.webrender_document, pipeline_id, world_point, flags);
 
         results
             .items
@@ -1398,7 +1436,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn dispatch_mouse_window_move_event_class(&mut self, cursor: DevicePoint) {
-        let result = match self.hit_test_at_device_point(cursor) {
+        let result = match self.hit_test_at_point(cursor) {
             Some(result) => result,
             None => return,
         };
@@ -1417,7 +1455,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         identifier: TouchId,
         point: DevicePoint,
     ) {
-        if let Some(result) = self.hit_test_at_device_point(point) {
+        if let Some(result) = self.hit_test_at_point(point) {
             let event = TouchEvent(
                 event_type,
                 identifier,
@@ -1432,7 +1470,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn send_wheel_event(&mut self, delta: WheelDelta, point: DevicePoint) {
-        if let Some(result) = self.hit_test_at_device_point(point) {
+        if let Some(result) = self.hit_test_at_point(point) {
             let event = WheelEvent(delta, result.point_in_viewport, Some(result.node));
             let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
             if let Err(e) = self.constellation_chan.send(msg) {
@@ -1479,7 +1517,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         scroll_location: ScrollLocation::Delta(LayoutVector2D::from_untyped(
                             scroll_delta.to_untyped(),
                         )),
-                        cursor: cursor,
+                        cursor,
                         event_count: 1,
                     }));
             },
@@ -1537,7 +1575,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn on_scroll_window_event(&mut self, scroll_location: ScrollLocation, cursor: DeviceIntPoint) {
         self.pending_scroll_zoom_events
             .push(ScrollZoomEvent::Scroll(ScrollEvent {
-                scroll_location: scroll_location,
+                scroll_location,
                 cursor,
                 event_count: 1,
             }));
@@ -1593,11 +1631,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         let zoom_changed =
-            self.set_pinch_zoom_level(self.pinch_zoom_level() * combined_magnification);
+            self.set_pinch_zoom_level(self.pinch_zoom_level().get() * combined_magnification);
         let scroll_result = combined_scroll_event.and_then(|combined_event| {
-            let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
-            self.scroll_node_at_world_point(
-                WorldPoint::from_untyped(cursor),
+            self.scroll_node_at_device_point(
+                combined_event.cursor.to_f32(),
                 combined_event.scroll_location,
             )
         });
@@ -1611,29 +1648,37 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         if let Some((pipeline_id, external_id, offset)) = scroll_result {
-            let scroll_origin = LayoutPoint::new(-offset.x, -offset.y);
-            transaction.scroll_node_with_id(scroll_origin, external_id, ScrollClamping::NoClamping);
+            let offset = LayoutVector2D::new(-offset.x, -offset.y);
+            transaction.set_scroll_offsets(
+                external_id,
+                vec![SampledScrollOffset {
+                    offset,
+                    generation: 0,
+                }],
+            );
             self.send_scroll_positions_to_layout_for_pipeline(&pipeline_id);
         }
 
-        self.generate_frame(&mut transaction);
+        self.generate_frame(&mut transaction, RenderReasons::APZ);
         self.webrender_api
             .send_transaction(self.webrender_document, transaction);
     }
 
-    /// Perform a hit test at the given [`WorldPoint`] and apply the [`ScrollLocation`]
+    /// Perform a hit test at the given [`DevicePoint`] and apply the [`ScrollLocation`]
     /// scrolling to the applicable scroll node under that point. If a scroll was
     /// performed, returns the [`PipelineId`] of the node scrolled, the id, and the final
     /// scroll delta.
-    fn scroll_node_at_world_point(
+    fn scroll_node_at_device_point(
         &mut self,
-        cursor: WorldPoint,
+        cursor: DevicePoint,
         scroll_location: ScrollLocation,
     ) -> Option<(PipelineId, ExternalScrollId, LayoutVector2D)> {
         let scroll_location = match scroll_location {
             ScrollLocation::Delta(delta) => {
-                let scaled_delta =
-                    (Vector2D::from_untyped(delta.to_untyped()) / self.scale).to_untyped();
+                let device_pixels_per_page = self.device_pixels_per_page_pixel();
+                let scaled_delta = (Vector2D::from_untyped(delta.to_untyped()) /
+                    device_pixels_per_page)
+                    .to_untyped();
                 let calculated_delta = LayoutVector2D::from_untyped(scaled_delta);
                 ScrollLocation::Delta(calculated_delta)
             },
@@ -1718,20 +1763,19 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.embedder_coordinates.hidpi_factor
     }
 
-    fn device_pixels_per_page_px(&self) -> Scale<f32, CSSPixel, DevicePixel> {
-        self.page_zoom * self.hidpi_factor()
+    fn device_pixels_per_page_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
+        self.device_pixels_per_page_pixel_not_including_page_zoom() * self.pinch_zoom_level()
     }
 
-    fn update_zoom_transform(&mut self) {
-        let scale = self.device_pixels_per_page_px();
-        self.scale = Scale::new(scale.get());
+    fn device_pixels_per_page_pixel_not_including_page_zoom(
+        &self,
+    ) -> Scale<f32, CSSPixel, DevicePixel> {
+        self.page_zoom * self.hidpi_factor()
     }
 
     pub fn on_zoom_reset_window_event(&mut self) {
         self.page_zoom = Scale::new(1.0);
-        self.update_zoom_transform();
-        self.update_webrender_document_view();
-        self.update_page_zoom_for_webrender();
+        self.update_after_zoom_or_hidpi_change();
     }
 
     pub fn on_zoom_window_event(&mut self, magnification: f32) {
@@ -1740,18 +1784,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 .max(MIN_ZOOM)
                 .min(MAX_ZOOM),
         );
-        self.update_zoom_transform();
-        self.update_webrender_document_view();
-        self.update_page_zoom_for_webrender();
+        self.update_after_zoom_or_hidpi_change();
     }
 
-    fn update_page_zoom_for_webrender(&mut self) {
-        let page_zoom = ZoomFactor::new(self.page_zoom.get());
+    fn update_after_zoom_or_hidpi_change(&mut self) {
+        for (top_level_browsing_context_id, webview) in self.webviews.painting_order() {
+            self.send_window_size_message_for_top_level_browser_context(webview.rect, *top_level_browsing_context_id);
+        }
 
-        let mut txn = webrender::Transaction::new();
-        txn.set_page_zoom(page_zoom);
-        self.webrender_api
-            .send_transaction(self.webrender_document, txn);
+        // Update the root transform in WebRender to reflect the new zoom.
+        self.update_root_pipeline();
     }
 
     /// Simulate a pinch zoom
@@ -1762,21 +1804,18 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn send_scroll_positions_to_layout_for_pipeline(&self, pipeline_id: &PipelineId) {
-        let details = match self.pipeline_details.get(&pipeline_id) {
+        let details = match self.pipeline_details.get(pipeline_id) {
             Some(details) => details,
             None => return,
         };
 
         let mut scroll_states = Vec::new();
         details.scroll_tree.nodes.iter().for_each(|node| {
-            match (node.external_id(), node.offset()) {
-                (Some(scroll_id), Some(scroll_offset)) => {
-                    scroll_states.push(ScrollState {
-                        scroll_id,
-                        scroll_offset,
-                    });
-                },
-                _ => {},
+            if let (Some(scroll_id), Some(scroll_offset)) = (node.external_id(), node.offset()) {
+                scroll_states.push(ScrollState {
+                    scroll_id,
+                    scroll_offset,
+                });
             }
         });
 
@@ -1791,7 +1830,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     // Check if any pipelines currently have active animations or animation callbacks.
     fn animations_active(&self) -> bool {
-        for (_, details) in &self.pipeline_details {
+        for details in self.pipeline_details.values() {
             // If animations are currently running, then don't bother checking
             // with the constellation if the output image is stable.
             if details.animations_running {
@@ -1825,7 +1864,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 // This gets sent to the constellation for comparison with the current
                 // frame tree.
                 let mut pipeline_epochs = HashMap::new();
-                for (id, _) in &self.pipeline_details {
+                for id in self.pipeline_details.keys() {
                     let webrender_pipeline_id = id.to_webrender();
                     if let Some(WebRenderEpoch(epoch)) = self
                         .webrender
@@ -1856,9 +1895,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 // for saving.
                 // Reset the flag so that we check again in the future
                 // TODO: only reset this if we load a new document?
-                if self.is_running_problem_test {
-                    println!("was ready to save, resetting ready_to_save_state");
-                }
                 self.ready_to_save_state = ReadyState::Unknown;
                 Ok(())
             },
@@ -1875,14 +1911,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     self.start_shutting_down();
                 }
             },
-            Err(e) => {
-                if self.is_running_problem_test {
-                    if e != UnableToComposite::NotReadyToPaintImage(
-                        NotReadyToPaint::WaitingOnConstellation,
-                    ) {
-                        println!("not ready to composite: {:?}", e);
-                    }
-                }
+            Err(error) => {
+                trace!("Unable to composite: {error:?}");
             },
         }
     }
@@ -1894,7 +1924,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn composite_specific_target(
         &mut self,
         target: CompositeTarget,
-        rect: Option<Rect<f32, CSSPixel>>,
+        page_rect: Option<Rect<f32, CSSPixel>>,
     ) -> Result<Option<Image>, UnableToComposite> {
         if self.waiting_on_present {
             debug!("tried to composite while waiting on present");
@@ -2002,7 +2032,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         continue;
                     }
                     // in which case, we remove it from the list of pending metrics,
-                    to_remove.push(id.clone());
+                    to_remove.push(*id);
                     if let Some(pipeline) = self.pipeline(*id) {
                         // and inform layout with the measured paint time.
                         let message = LayoutControlMsg::PaintMetric(epoch, paint_time);
@@ -2019,8 +2049,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             }
         }
 
-        let (x, y, width, height) = if let Some(rect) = rect {
-            let rect = self.device_pixels_per_page_px().transform_rect(&rect);
+        let (x, y, width, height) = if let Some(rect) = page_rect {
+            let rect = self.device_pixels_per_page_pixel().transform_rect(&rect);
 
             let x = rect.origin.x as i32;
             // We need to convert to the bottom-left origin coordinate
@@ -2069,7 +2099,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     width: img.width(),
                     height: img.height(),
                     format: PixelFormat::RGB8,
-                    bytes: ipc::IpcSharedMemory::from_bytes(&*img),
+                    bytes: ipc::IpcSharedMemory::from_bytes(&img),
                     id: None,
                     cors_status: CorsStatus::Safe,
                 })
@@ -2135,17 +2165,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {
-        if self.composition_request == CompositionRequest::NoCompositingNecessary {
-            if self.is_running_problem_test {
-                println!("updating composition_request ({:?})", reason);
-            }
-            self.composition_request = CompositionRequest::CompositeNow(reason)
-        } else if self.is_running_problem_test {
-            println!(
-                "composition_request is already {:?}",
-                self.composition_request
-            );
-        }
+        trace!(
+            "Will schedule a composite {reason:?}. Previously was {:?}",
+            self.composition_request
+        );
+        self.composition_request = CompositionRequest::CompositeNow(reason)
     }
 
     fn clear_background(&self) {
@@ -2165,10 +2189,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         for (_, webview) in self.webviews.painting_order() {
             let rect = self.embedder_coordinates.flip_rect(&webview.rect.to_i32());
             gl.scissor(
-                rect.origin.x,
-                rect.origin.y,
-                rect.size.width,
-                rect.size.height,
+                rect.min.x,
+                rect.min.y,
+                rect.size().width,
+                rect.size().height,
             );
             gl.enable(gleam::gl::SCISSOR_TEST);
             gl.clear(gleam::gl::COLOR_BUFFER_BIT);
@@ -2259,10 +2283,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     pub fn repaint_synchronously(&mut self) {
         while self.shutdown_state != ShutdownState::ShuttingDown {
             let msg = self.port.recv_compositor_msg();
-            let need_recomposite = match msg {
-                CompositorMsg::NewWebRenderFrameReady(_) => true,
-                _ => false,
-            };
+            let need_recomposite = matches!(msg, CompositorMsg::NewWebRenderFrameReady(_));
             let keep_going = self.handle_browser_message(msg);
             if need_recomposite {
                 self.composite();
@@ -2274,8 +2295,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    pub fn pinch_zoom_level(&self) -> f32 {
-        self.viewport_zoom.get()
+    pub fn pinch_zoom_level(&self) -> Scale<f32, DevicePixel, DevicePixel> {
+        Scale::new(self.viewport_zoom.get())
     }
 
     fn set_pinch_zoom_level(&mut self, mut zoom: f32) -> bool {
@@ -2305,7 +2326,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.webrender.set_debug_flags(flags);
 
         let mut txn = Transaction::new();
-        self.generate_frame(&mut txn);
+        self.generate_frame(&mut txn, RenderReasons::TESTING);
         self.webrender_api
             .send_transaction(self.webrender_document, txn);
     }
@@ -2323,7 +2344,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .map(|dir| dir.join("capture_webrender").join(&capture_id))
                     .ok()
             })
-            .find(|val| match create_dir_all(&val) {
+            .find(|val| match create_dir_all(val) {
                 Ok(_) => true,
                 Err(err) => {
                     eprintln!("Unable to create path '{:?}' for capture: {:?}", &val, err);

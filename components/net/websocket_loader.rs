@@ -94,7 +94,7 @@ fn create_request(
     }
 
     if resource_url.password().is_some() || resource_url.username() != "" {
-        let basic = base64::engine::general_purpose::STANDARD.encode(&format!(
+        let basic = base64::engine::general_purpose::STANDARD.encode(format!(
             "{}:{}",
             resource_url.username(),
             resource_url.password().unwrap_or("")
@@ -147,7 +147,7 @@ fn process_ws_response(
         .hsts_list
         .write()
         .unwrap()
-        .update_hsts_list_from_response(resource_url, &response.headers());
+        .update_hsts_list_from_response(resource_url, response.headers());
 
     Ok(protocol_in_use)
 }
@@ -389,7 +389,7 @@ fn connect(
         &req_url,
         &req_builder.origin.ascii_serialization(),
         &protocols,
-        &*http_state,
+        &http_state,
     ) {
         Ok(c) => c,
         Err(e) => return Err(e.to_string()),

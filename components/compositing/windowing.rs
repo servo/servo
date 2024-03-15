@@ -234,9 +234,8 @@ impl EmbedderCoordinates {
     /// Flip the given rect.
     /// This should be used when drawing directly to the framebuffer with OpenGL commands.
     pub fn flip_rect(&self, rect: &DeviceIntRect) -> DeviceIntRect {
-        let fb_height = self.framebuffer.height;
         let mut result = rect.clone();
-        result.origin.y = fb_height - result.origin.y - result.size.height;
+        result.min.y = self.framebuffer.height - result.min.y - result.size().height;
         result
     }
 

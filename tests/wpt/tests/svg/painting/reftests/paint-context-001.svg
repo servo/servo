@@ -35,7 +35,7 @@
   <defs>
     <rect id="rectangle" width="2" height="2" style="fill:context-stroke;stroke:context-fill" />
     <marker id="marker" style="overflow:visible" markerWidth="2" markerHeight="2" orient="auto" viewBox="0 0 2 2" refX="1" refY="1">
-      <use xlink:href="#rectangle"/>
+      <use xlink:href="#rectangle" style="fill:context-fill;stroke:context-stroke"/>
     </marker>
     <path id="path" d="m -25,-25 0,50 50,0 0,-50 z"/>
   </defs>

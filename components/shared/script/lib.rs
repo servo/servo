@@ -56,7 +56,7 @@ use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::{CSSPixel, SpeculativePainter};
 use webgpu::identity::WebGPUMsg;
-use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, WorldPoint};
+use webrender_api::units::{DeviceIntSize, DevicePixel, DevicePoint, LayoutPixel, LayoutPoint};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, DocumentId, ExternalImageData, ExternalScrollId,
     HitTestFlags, ImageData, ImageDescriptor, ImageKey, PipelineId as WebRenderPipelineId,
@@ -194,14 +194,14 @@ impl LoadData {
     ) -> LoadData {
         LoadData {
             load_origin,
-            url: url,
-            creator_pipeline_id: creator_pipeline_id,
+            url,
+            creator_pipeline_id,
             method: Method::GET,
             headers: HeaderMap::new(),
             data: None,
             js_eval_result: None,
-            referrer: referrer,
-            referrer_policy: referrer_policy,
+            referrer,
+            referrer_policy,
             srcdoc: "".to_string(),
             inherited_secure_context,
             crash: None,
@@ -977,7 +977,7 @@ impl StructuredSerializedData {
                     // Note: we insert the blob at the original id,
                     // otherwise this will not match the storage key as serialized by SM in `serialized`.
                     // The clone has it's own new Id however.
-                    blob_clones.insert(original_id.clone(), blob_clone);
+                    blob_clones.insert(*original_id, blob_clone);
                 } else {
                     // Not panicking only because this is called from the constellation.
                     warn!("Serialized blob not in memory format(should never happen).");
@@ -1121,7 +1121,7 @@ pub enum ScriptToCompositorMsg {
     /// Inform WebRender of the existence of this pipeline.
     SendInitialTransaction(WebRenderPipelineId),
     /// Perform a scroll operation.
-    SendScrollNode(LayoutPoint, ExternalScrollId),
+    SendScrollNode(WebRenderPipelineId, LayoutPoint, ExternalScrollId),
     /// Inform WebRender of a new display list for the given pipeline.
     SendDisplayList {
         /// The [CompositorDisplayListInfo] that describes the display list being sent.
@@ -1135,7 +1135,7 @@ pub enum ScriptToCompositorMsg {
     /// the provided channel sender.
     HitTest(
         Option<WebRenderPipelineId>,
-        WorldPoint,
+        DevicePoint,
         HitTestFlags,
         IpcSender<Vec<CompositorHitTestResult>>,
     ),
@@ -1167,11 +1167,17 @@ impl WebrenderIpcSender {
     }
 
     /// Perform a scroll operation.
-    pub fn send_scroll_node(&self, point: LayoutPoint, scroll_id: ExternalScrollId) {
-        if let Err(e) = self
-            .0
-            .send(ScriptToCompositorMsg::SendScrollNode(point, scroll_id))
-        {
+    pub fn send_scroll_node(
+        &self,
+        pipeline_id: WebRenderPipelineId,
+        point: LayoutPoint,
+        scroll_id: ExternalScrollId,
+    ) {
+        if let Err(e) = self.0.send(ScriptToCompositorMsg::SendScrollNode(
+            pipeline_id,
+            point,
+            scroll_id,
+        )) {
             warn!("Error sending scroll node: {}", e);
         }
     }
@@ -1192,8 +1198,14 @@ impl WebrenderIpcSender {
             warn!("Error sending display list: {}", e);
         }
 
-        if let Err(e) = display_list_sender.send(&display_list_data) {
-            warn!("Error sending display data: {}", e);
+        if let Err(error) = display_list_sender.send(&display_list_data.items_data) {
+            warn!("Error sending display list items: {}", error);
+        }
+        if let Err(error) = display_list_sender.send(&display_list_data.cache_data) {
+            warn!("Error sending display list cache data: {}", error);
+        }
+        if let Err(error) = display_list_sender.send(&display_list_data.spatial_tree) {
+            warn!("Error sending display spatial tree: {}", error);
         }
     }
 
@@ -1202,7 +1214,7 @@ impl WebrenderIpcSender {
     pub fn hit_test(
         &self,
         pipeline: Option<WebRenderPipelineId>,
-        point: WorldPoint,
+        point: DevicePoint,
         flags: HitTestFlags,
     ) -> Vec<CompositorHitTestResult> {
         let (sender, receiver) = ipc::channel().unwrap();
@@ -1263,7 +1275,7 @@ impl WebrenderIpcSender {
         }
 
         senders.into_iter().for_each(|(tx, data)| {
-            if let Err(e) = tx.send(&*data) {
+            if let Err(e) = tx.send(&data) {
                 warn!("error sending image data: {}", e);
             }
         });
@@ -1308,8 +1320,8 @@ impl SerializedImageData {
     /// Convert to ``ImageData`.
     pub fn to_image_data(&self) -> Result<ImageData, ipc::IpcError> {
         match self {
-            SerializedImageData::Raw(rx) => rx.recv().map(|data| ImageData::new(data)),
-            SerializedImageData::External(image) => Ok(ImageData::External(image.clone())),
+            SerializedImageData::Raw(rx) => rx.recv().map(ImageData::new),
+            SerializedImageData::External(image) => Ok(ImageData::External(*image)),
         }
     }
 }
@@ -1350,6 +1362,6 @@ pub enum GamepadUpdateType {
     /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-axis>
     Axis(usize, f64),
     /// Button index and input value
-    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button
+    /// <https://www.w3.org/TR/gamepad/#dfn-represents-a-standard-gamepad-button>
     Button(usize, f64),
 }

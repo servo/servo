@@ -42,7 +42,7 @@ impl CookieStorage {
         source: CookieSource,
     ) -> Result<Option<Cookie>, ()> {
         let domain = reg_host(cookie.cookie.domain().as_ref().unwrap_or(&""));
-        let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
+        let cookies = self.cookies_map.entry(domain).or_default();
 
         // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt Step 2
         if !cookie.cookie.secure().unwrap_or(false) && !url.is_secure_scheme() {
@@ -90,7 +90,7 @@ impl CookieStorage {
     }
     pub fn clear_storage(&mut self, url: &ServoUrl) {
         let domain = reg_host(url.host_str().unwrap_or(""));
-        let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
+        let cookies = self.cookies_map.entry(domain).or_default();
         for cookie in cookies.iter_mut() {
             cookie.set_expiry_time_negative();
         }
@@ -116,12 +116,12 @@ impl CookieStorage {
         }
 
         // Step 12
-        let domain = reg_host(&cookie.cookie.domain().as_ref().unwrap_or(&""));
-        let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
+        let domain = reg_host(cookie.cookie.domain().as_ref().unwrap_or(&""));
+        let cookies = self.cookies_map.entry(domain).or_default();
 
         if cookies.len() == self.max_per_host {
             let old_len = cookies.len();
-            cookies.retain(|c| !is_cookie_expired(&c));
+            cookies.retain(|c| !is_cookie_expired(c));
             let new_len = cookies.len();
 
             // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt
@@ -153,8 +153,8 @@ impl CookieStorage {
         let domain = reg_host(url.host_str().unwrap_or(""));
         if let Entry::Occupied(mut entry) = self.cookies_map.entry(domain) {
             let cookies = entry.get_mut();
-            cookies.retain(|c| !is_cookie_expired(&c));
-            if cookies.len() == 0 {
+            cookies.retain(|c| !is_cookie_expired(c));
+            if cookies.is_empty() {
                 entry.remove_entry();
             }
         }
@@ -179,10 +179,10 @@ impl CookieStorage {
         };
         // Step 2
         let domain = reg_host(url.host_str().unwrap_or(""));
-        let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
+        let cookies = self.cookies_map.entry(domain).or_default();
 
         let mut url_cookies: Vec<&mut Cookie> = cookies.iter_mut().filter(filterer).collect();
-        url_cookies.sort_by(|a, b| CookieStorage::cookie_comparator(*a, *b));
+        url_cookies.sort_by(|a, b| CookieStorage::cookie_comparator(a, b));
 
         let reducer = |acc: String, c: &mut &mut Cookie| -> String {
             // Step 3
@@ -192,9 +192,9 @@ impl CookieStorage {
             (match acc.len() {
                 0 => acc,
                 _ => acc + "; ",
-            }) + &c.cookie.name() +
+            }) + c.cookie.name() +
                 "=" +
-                &c.cookie.value()
+                c.cookie.value()
         };
         let result = url_cookies.iter_mut().fold("".to_owned(), reducer);
 
@@ -211,7 +211,7 @@ impl CookieStorage {
         source: CookieSource,
     ) -> impl Iterator<Item = cookie_rs::Cookie<'static>> + 'a {
         let domain = reg_host(url.host_str().unwrap_or(""));
-        let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
+        let cookies = self.cookies_map.entry(domain).or_default();
 
         cookies
             .iter_mut()
@@ -223,7 +223,7 @@ impl CookieStorage {
     }
 }
 
-fn reg_host<'a>(url: &'a str) -> String {
+fn reg_host(url: &str) -> String {
     reg_suffix(url).to_lowercase()
 }
 
@@ -250,10 +250,10 @@ fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> bool {
             cookies.remove(index);
         }
     }
-    return true;
+    true
 }
 
-fn get_oldest_accessed(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> Option<(usize, Tm)> {
+fn get_oldest_accessed(is_secure_cookie: bool, cookies: &mut [Cookie]) -> Option<(usize, Tm)> {
     let mut oldest_accessed: Option<(usize, Tm)> = None;
     for (i, c) in cookies.iter().enumerate() {
         if (c.cookie.secure().unwrap_or(false) == is_secure_cookie) &&

@@ -76,7 +76,7 @@ See also [Windows Troubleshooting Tips][windows-tips].
 - Install the latest version of the [Android command-line
   tools](https://developer.android.com/studio#command-tools) to
   `$ANDROID_SDK_ROOT/cmdline-tools/latest`.
-- Run the following command to install the necessary components and the path t
+- Run the following command to install the necessary components:
   ```shell
   sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --install
    "build-tools;33.0.2" \
@@ -187,7 +187,10 @@ Run Servo with the command:
 #### Linux
 
 * `GStreamer` >=1.18
+* `gst-plugins-base` >=1.18
+* `gst-plugins-good` >=1.18
 * `gst-plugins-bad` >=1.18
+* `gst-plugins-ugly` >=1.18
 * `libXcursor`
 * `libXrandr`
 * `libXi`
@@ -204,4 +207,4 @@ The generated documentation can be found on https://doc.servo.org/servo/index.ht
 
 [manual-build]: https://github.com/servo/servo/wiki/Building#manual-build-setup
 [windows-tips]: https://github.com/servo/servo/wiki/Building#troubleshooting-the-windows-build
-[android-docs]: https://github.com/servo/servo/wiki/Android
+[android-docs]: https://github.com/servo/servo/wiki/Building-for-Android
