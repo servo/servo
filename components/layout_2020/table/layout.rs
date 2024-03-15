@@ -1524,11 +1524,6 @@ impl<'a> TableLayout<'a> {
             )));
         }
 
-        if self.table.anonymous {
-            baselines.first = None;
-            baselines.last = None;
-        }
-
         IndependentLayout {
             fragments: table_fragments,
             content_block_size: table_and_track_dimensions.table_rect.max_block_position(),
