@@ -857,7 +857,8 @@ impl LayoutThread {
                         process_content_box_request(node, self.fragment_tree.borrow().clone());
                 },
                 &QueryMsg::ContentBoxesQuery(node) => {
-                    rw_data.content_boxes_response = process_content_boxes_request(node);
+                    rw_data.content_boxes_response =
+                        process_content_boxes_request(node, self.fragment_tree.borrow().clone());
                 },
                 &QueryMsg::TextIndexQuery(node, point_in_node) => {
                     let point_in_node = Point2D::new(
