@@ -141,7 +141,7 @@ class MachCommands(CommandBase):
         self.ensure_clobbered()
         env = self.build_env()
         env['RUSTC'] = 'rustc'
-        return self.run_cargo_build_like_command("clippy", params, env, **kwargs)
+        return self.run_cargo_build_like_command("clippy", params, env=env, **kwargs)
 
     @Command('grep',
              description='`git grep` for selected directories.',
