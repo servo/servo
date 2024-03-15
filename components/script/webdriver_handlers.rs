@@ -300,10 +300,10 @@ pub fn handle_execute_script(
                 global.evaluate_js_on_global_with_result(
                     &eval,
                     rval.handle_mut(),
-                    ScriptFetchOptions::default_classic_script(&global),
+                    ScriptFetchOptions::default_classic_script(global),
                     global.api_base_url(),
                 );
-                jsval_to_webdriver(*cx, &window.upcast::<GlobalScope>(), rval.handle())
+                jsval_to_webdriver(*cx, window.upcast::<GlobalScope>(), rval.handle())
             };
 
             reply.send(result).unwrap();
@@ -330,7 +330,7 @@ pub fn handle_execute_async_script(
             global.evaluate_js_on_global_with_result(
                 &eval,
                 rval.handle_mut(),
-                ScriptFetchOptions::default_classic_script(&global),
+                ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
             );
         },
