@@ -8,10 +8,10 @@ assignees: ''
 ---
 
 **Describe the bug:**
-A clear and concise description of the vulernability
+A clear and concise description of the vulnerability.
 
 **To Reproduce:**
 Steps to reproduce the behavior.
 
-**Platform:** (optional)
+**Platform:**
 Specify OS, distribution, and hardware platform.
