@@ -142,7 +142,7 @@ unsafe extern "C" fn get_own_property_descriptor(
             &mut *is_none,
         );
     }
-    return true;
+    true
 }
 
 #[allow(unsafe_code)]
