@@ -13,5 +13,5 @@ A clear and concise description of the bug.
 **To Reproduce:**
 Steps to reproduce the behavior.
 
-**Platform:** (optional)
-Specify the OS if relevant to the issue.
+**Platform:**
+Specify OS, distribution, and hardware platform.
