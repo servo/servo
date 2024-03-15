@@ -6820,7 +6820,9 @@ class CGDescriptor(CGThing):
             cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables,
                                                            haveLegacyWindowAliases))
 
-        cgThings = generate_imports(config, CGList(cgThings, '\n'), [descriptor])
+        cgThings = CGImports(CGList(cgThings, '\n'), descriptors=[descriptor],
+                             callbacks=[], dictionaries=[], enums=[], typedefs=[],
+                             imports=['servo_config::pref'], config=config, ignored_warnings=[])
         cgThings = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
                                          cgThings, public=True),
                              post='\n')
