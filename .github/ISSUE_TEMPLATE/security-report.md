@@ -1,5 +1,5 @@
 ---
-name: Security report
+name: Security Vulernability
 about: Report a security vulnerability
 title: ''
 labels: A-security, C-untriaged
