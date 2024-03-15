@@ -295,7 +295,7 @@ impl Minibrowser {
         }
     }
 
-    /// Updates the location field from the given [BrowserManager], unless the user has started
+    /// Updates the location field from the given [WebViewManager], unless the user has started
     /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
     pub fn update_location_in_toolbar(
         &mut self,
