@@ -166,6 +166,16 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
             families.push("Droid Sans Fallback");
             families.push("WenQuanYi Micro Hei");
             families.push("NanumGothic");
+            families.push("Noto Sans CJK HK");
+            families.push("Noto Sans CJK JP");
+            families.push("Noto Sans CJK KR");
+            families.push("Noto Sans CJK SC");
+            families.push("Noto Sans CJK TC");
+            families.push("Noto Sans HK");
+            families.push("Noto Sans JP");
+            families.push("Noto Sans KR");
+            families.push("Noto Sans SC");
+            families.push("Noto Sans TC");
         }
     }
 
