@@ -22,7 +22,7 @@ Your CARGO_HOME needs to point to (or be in) the same drive as your Servo reposi
 
 > Considering the large size of the Servo repository, if you experience slow network speeds, it's advisable to make a shallow clone. Learn more [here](https://github.blog/2020-12-21-get-up-to-speed-with-partial-clone-and-shallow-clone/).
 
-> Ensure that you are in the Servo directory you have cloned and run the following steps for your platform:
+Ensure that you are in the Servo directory you have cloned and run the following steps for your platform:
 
 ## Build Setup
 
