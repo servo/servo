@@ -181,16 +181,15 @@ impl FontTemplate {
         })
     }
 
-    fn instantiate(&mut self, font_context: &FontContextHandle) -> Result<(), ()> {
+    fn instantiate(&mut self, font_context: &FontContextHandle) -> Result<(), &'static str> {
         if !self.is_valid {
-            return Err(());
+            return Err("Invalid font template");
         }
 
-        let data = self.data().map_err(|_| ())?;
-        let handle: Result<FontHandle, ()> =
-            FontHandleMethods::new_from_template(font_context, data, None);
+        let data = self.data().map_err(|_| "Could not get FontTemplate data")?;
+        let handle = FontHandleMethods::new_from_template(font_context, data, None);
         self.is_valid = handle.is_ok();
-        let handle = handle?;
+        let handle: FontHandle = handle?;
         self.descriptor = Some(FontTemplateDescriptor::new(
             handle.boldness(),
             handle.stretchiness(),

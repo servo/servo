@@ -208,7 +208,10 @@ Run Servo with the command:
 #### Linux
 
 * `GStreamer` >=1.18
+* `gst-plugins-base` >=1.18
+* `gst-plugins-good` >=1.18
 * `gst-plugins-bad` >=1.18
+* `gst-plugins-ugly` >=1.18
 * `libXcursor`
 * `libXrandr`
 * `libXi`

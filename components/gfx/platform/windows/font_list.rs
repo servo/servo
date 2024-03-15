@@ -2,14 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
 use std::hash::Hash;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use dwrote::{FontCollection, FontDescriptor};
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use servo_atoms::Atom;
 use ucd::{Codepoint, UnicodeBlock};
 
 use crate::text::util::unicode_plane;

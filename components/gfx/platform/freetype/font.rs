@@ -97,7 +97,7 @@ fn create_face(
     lib: FT_Library,
     template: &FontTemplateData,
     pt_size: Option<Au>,
-) -> Result<FT_Face, ()> {
+) -> Result<FT_Face, &'static str> {
     unsafe {
         let mut face: FT_Face = ptr::null_mut();
         let face_index = 0 as FT_Long;
@@ -125,11 +125,11 @@ fn create_face(
         };
 
         if !succeeded(result) || face.is_null() {
-            return Err(());
+            return Err("Could not create FreeType face");
         }
 
         if let Some(s) = pt_size {
-            FontHandle::set_char_size(face, s).or(Err(()))?
+            FontHandle::set_char_size(face, s)?
         }
 
         Ok(face)
@@ -141,10 +141,10 @@ impl FontHandleMethods for FontHandle {
         fctx: &FontContextHandle,
         template: Arc<FontTemplateData>,
         pt_size: Option<Au>,
-    ) -> Result<FontHandle, ()> {
+    ) -> Result<FontHandle, &'static str> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() {
-            return Err(());
+            return Err("Null FT_Library");
         }
 
         let face = create_face(ft_ctx, &template, pt_size)?;
@@ -370,7 +370,7 @@ impl FontHandleMethods for FontHandle {
 }
 
 impl<'a> FontHandle {
-    fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), ()> {
+    fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), &'static str> {
         let char_size = pt_size.to_f64_px() * 64.0 + 0.5;
 
         unsafe {
@@ -378,7 +378,7 @@ impl<'a> FontHandle {
             if succeeded(result) {
                 Ok(())
             } else {
-                Err(())
+                Err("FT_Set_Char_Size failed")
             }
         }
     }

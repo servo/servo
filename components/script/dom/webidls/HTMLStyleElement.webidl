@@ -7,6 +7,7 @@
 interface HTMLStyleElement : HTMLElement {
   [HTMLConstructor] constructor();
 
+  attribute boolean disabled;
   // [CEReactions]
   //          attribute DOMString media;
   // [CEReactions]
