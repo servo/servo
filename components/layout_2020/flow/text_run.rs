@@ -150,7 +150,7 @@ impl TextRunSegment {
             // If this whitespace forces a line break, queue up a hard line break the next time we
             // see any content. We don't line break immediately, because we'd like to finish processing
             // any ongoing inline boxes before ending the line.
-            if text_run.glyph_run_is_whitespace_ending_with_preserved_newline(run) {
+            if text_run.glyph_run_is_preserved_newline(run) {
                 ifc.defer_forced_line_break();
                 continue;
             }
@@ -426,11 +426,8 @@ impl TextRun {
             self.prevent_soft_wrap_opportunity_at_end;
     }
 
-    pub(super) fn glyph_run_is_whitespace_ending_with_preserved_newline(
-        &self,
-        run: &GlyphRun,
-    ) -> bool {
-        if !run.glyph_store.is_whitespace() {
+    pub(super) fn glyph_run_is_preserved_newline(&self, run: &GlyphRun) -> bool {
+        if !run.glyph_store.is_whitespace() || run.range.length() != ByteIndex(1) {
             return false;
         }
         if !self
@@ -442,8 +439,8 @@ impl TextRun {
             return false;
         }
 
-        let last_byte = self.text.as_bytes().get(run.range.end().to_usize() - 1);
-        last_byte == Some(&b'\n')
+        let byte = self.text.as_bytes().get(run.range.begin().to_usize());
+        byte == Some(&b'\n')
     }
 }
 

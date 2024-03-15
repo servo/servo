@@ -54,7 +54,8 @@ DNF_PKGS = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
             'dbus-devel', 'ncurses-devel', 'harfbuzz-devel', 'ccache',
             'clang', 'clang-libs', 'llvm', 'python3-devel',
             'gstreamer1-devel', 'gstreamer1-plugins-base-devel',
-            'gstreamer1-plugins-bad-free-devel', 'libjpeg-turbo-devel',
+            'gstreamer1-plugins-good', 'gstreamer1-plugins-bad-free-devel',
+            'gstreamer1-plugins-ugly-free', 'libjpeg-turbo-devel',
             'zlib', 'libjpeg', 'vulkan-loader']
 
 # https://voidlinux.org/packages/
@@ -68,8 +69,9 @@ XBPS_PKGS = ['libtool', 'gcc', 'libXi-devel', 'freetype-devel',
              'fontconfig-devel', 'cabextract', 'expat-devel', 'cmake',
              'cmake', 'libXcursor-devel', 'libXmu-devel', 'dbus-devel',
              'ncurses-devel', 'harfbuzz-devel', 'ccache', 'glu-devel',
-             'clang', 'gstreamer1-devel',
-             'gst-plugins-base1-devel', 'gst-plugins-bad1-devel', 'vulkan-loader']
+             'clang', 'gstreamer1-devel', 'gst-plugins-base1-devel',
+             'gst-plugins-good1', 'gst-plugins-bad1-devel',
+             'gst-plugins-ugly1', 'vulkan-loader']
 
 GSTREAMER_URL = \
     "https://github.com/servo/servo-build-deps/releases/download/linux/gstreamer-1.16-x86_64-linux-gnu.20190515.tar.gz"

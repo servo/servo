@@ -213,4 +213,4 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
     families
 }
 
-pub static SANS_SERIF_FONT_FAMILY: &'static str = "Helvetica";
+pub static SANS_SERIF_FONT_FAMILY: &str = "Helvetica";
