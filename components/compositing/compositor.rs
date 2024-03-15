@@ -1307,8 +1307,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         };
 
         let Some(result) = self.hit_test_at_device_point(point) else {
-            // TODO notify embedder?
-            // let msg = ConstellationMsg::UnconsumedEvent(...);
+            // TODO: Notify embedder that the event failed to hit test to any webview.
+            // TODO: Also notify embedder if an event hits a webview but isn’t consumed?
             return;
         };
 
