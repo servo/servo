@@ -1,5 +1,5 @@
 ---
-name: Feature request
+name: Feature Request
 about: Suggest an idea or new feature request
 title: ''
 labels: B-feature-tracking, C-untriaged
