@@ -59,7 +59,7 @@ pub trait FontHandleMethods: Sized {
         fctx: &FontContextHandle,
         template: Arc<FontTemplateData>,
         pt_size: Option<Au>,
-    ) -> Result<Self, ()>;
+    ) -> Result<Self, &'static str>;
 
     fn template(&self) -> Arc<FontTemplateData>;
     fn family_name(&self) -> Option<String>;
