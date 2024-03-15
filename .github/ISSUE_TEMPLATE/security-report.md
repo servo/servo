@@ -14,4 +14,4 @@ A clear and concise description of the vulernability
 Steps to reproduce the behavior.
 
 **Platform:** (optional)
-Specify the OS if relevant to the issue.
+Specify OS, distribution, and hardware platform.
