@@ -206,7 +206,7 @@ pub trait Layout {
 }
 
 /// This trait is part of `script_layout_interface` because it depends on both `script_traits`
-/// and also `LayoutFactory` from this crate. If it was in `script_traits` there would be a 
+/// and also `LayoutFactory` from this crate. If it was in `script_traits` there would be a
 /// circular dependency.
 pub trait ScriptThreadFactory {
     /// Create a `ScriptThread`.
