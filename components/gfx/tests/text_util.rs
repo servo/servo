@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use gfx::text::util::{transform_text, CompressionMode, is_cjk};
+use gfx::text::util::{is_cjk, transform_text, CompressionMode};
 
 #[test]
 fn test_transform_compress_none() {
@@ -125,5 +125,4 @@ fn test_is_cjk() {
         let symbol: bool = is_cjk(test);
         assert_eq!(symbol, oracle);
     }
-
 }
