@@ -227,7 +227,7 @@ impl<'a> TextRun {
 
         let mut push_range = |range: &std::ops::Range<usize>, options: &ShapingOptions| {
             glyphs.push(GlyphRun {
-                glyph_store: font.shape_text(&text[range.clone()], &options),
+                glyph_store: font.shape_text(&text[range.clone()], options),
                 range: Range::new(
                     ByteIndex(range.start as isize),
                     ByteIndex(range.len() as isize),

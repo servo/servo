@@ -68,7 +68,7 @@ impl<T: DomObjectIteratorWrap + JSTraceable + Iterable> IterableIterator<T> {
     pub fn new(iterable: &T, type_: IteratorType) -> DomRoot<Self> {
         let iterator = Box::new(IterableIterator {
             reflector: Reflector::new(),
-            type_: type_,
+            type_,
             iterable: Dom::from_ref(iterable),
             index: Cell::new(0),
         });

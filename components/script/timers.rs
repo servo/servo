@@ -528,9 +528,9 @@ impl JsTimers {
         let oneshot_handle = global.schedule_callback(callback, duration);
 
         // step 3
-        let entry = active_timers.entry(handle).or_insert(JsTimerEntry {
-            oneshot_handle: oneshot_handle,
-        });
+        let entry = active_timers
+            .entry(handle)
+            .or_insert(JsTimerEntry { oneshot_handle });
         entry.oneshot_handle = oneshot_handle;
     }
 }

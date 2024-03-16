@@ -76,8 +76,8 @@ impl NonCallbackInterfaceObjectClass {
                 ext: 0 as *const _,
                 oOps: &OBJECT_OPS,
             },
-            proto_id: proto_id,
-            proto_depth: proto_depth,
+            proto_id,
+            proto_depth,
             representation: string_rep,
         }
     }
@@ -649,10 +649,8 @@ pub fn get_desired_proto(
             let global = GetNonCCWObjectGlobal(*new_target);
             let proto_or_iface_cache = get_proto_or_iface_array(global);
             desired_proto.set((*proto_or_iface_cache)[proto_id as usize]);
-            if &*new_target != &*original_new_target {
-                if !JS_WrapObject(*cx, desired_proto.into()) {
-                    return Err(());
-                }
+            if &*new_target != &*original_new_target && !JS_WrapObject(*cx, desired_proto.into()) {
+                return Err(());
             }
             return Ok(());
         }
