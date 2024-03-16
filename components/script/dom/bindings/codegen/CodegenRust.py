@@ -7265,144 +7265,57 @@ class CGBindingRoot(CGThing):
         curr = CGImports(curr, descriptors=callbackDescriptors, callbacks=mainCallbacks,
                          dictionaries=dictionaries, enums=enums, typedefs=typedefs,
                          imports=[
-                             'js::error::throw_type_error',  #
-                             'js::jsapi::CurrentGlobalOrNull',  #
-                             'js::jsapi::HandleValue as RawHandleValue',  #
-                             'js::jsapi::HandleValueArray',  #
-                             'js::jsapi::Heap',  #
-                             'js::jsapi::IsCallable',  #
-                             'js::jsapi::JSContext',  #
-                             'js::jsapi::JSObject',  #
-                             'js::jsapi::JS_NewObject',  #
-                             'js::jsval::JSVal',  #
-                             'js::jsval::NullValue',  #
-                             'js::jsval::ObjectValue',  #
-                             'js::jsval::ObjectOrNullValue',  #
-                             'js::jsval::UndefinedValue',  #
-                             'js::rust::HandleObject',  #
-                             'js::rust::HandleValue',  #
-                             'js::rust::wrappers::JS_CallFunctionValue',  #
-                             'js::rust::wrappers::JS_WrapValue',  #
-                             'js::rust::MutableHandleObject',  #
-                             'js::rust::MutableHandleValue',  #
-                             'js::panic::maybe_resume_unwind',  #
-                             'crate::dom::bindings::callback::CallSetup',  #
-                             'crate::dom::bindings::callback::CallbackContainer',  #
-                             'crate::dom::bindings::callback::CallbackInterface',  #
-                             'crate::dom::bindings::callback::CallbackFunction',  #
-                             'crate::dom::bindings::callback::CallbackObject',  #
-                             'crate::dom::bindings::callback::ExceptionHandling',  #
-                             'crate::dom::bindings::callback::wrap_call_this_object',  #
-                             'crate::dom::bindings::codegen::UnionTypes',  #
+                             'js::error::throw_type_error',
+                             'js::jsapi::CurrentGlobalOrNull',
+                             'js::jsapi::HandleValue as RawHandleValue',
+                             'js::jsapi::HandleValueArray',
+                             'js::jsapi::Heap',
+                             'js::jsapi::IsCallable',
+                             'js::jsapi::JSContext',
+                             'js::jsapi::JSObject',
+                             'js::jsapi::JS_NewObject',
+                             'js::jsval::JSVal',
+                             'js::jsval::NullValue',
+                             'js::jsval::ObjectValue',
+                             'js::jsval::ObjectOrNullValue',
+                             'js::jsval::UndefinedValue',
+                             'js::rust::HandleObject',
+                             'js::rust::HandleValue',
+                             'js::rust::wrappers::JS_CallFunctionValue',
+                             'js::rust::wrappers::JS_WrapValue',
+                             'js::rust::MutableHandleObject',
+                             'js::rust::MutableHandleValue',
+                             'js::panic::maybe_resume_unwind',
+                             'crate::dom::bindings::callback::CallSetup',
+                             'crate::dom::bindings::callback::CallbackContainer',
+                             'crate::dom::bindings::callback::CallbackInterface',
+                             'crate::dom::bindings::callback::CallbackFunction',
+                             'crate::dom::bindings::callback::CallbackObject',
+                             'crate::dom::bindings::callback::ExceptionHandling',
+                             'crate::dom::bindings::callback::wrap_call_this_object',
+                             'crate::dom::bindings::codegen::UnionTypes',
                              'crate::dom::bindings::conversions::ConversionBehavior',
-                             'crate::dom::bindings::conversions::ConversionResult',  #
-                             'crate::dom::bindings::conversions::FromJSValConvertible',  #
-                             'crate::dom::bindings::conversions::StringificationBehavior',  #
-                             'crate::dom::bindings::conversions::ToJSValConvertible',  #
-                             'crate::dom::bindings::conversions::root_from_handlevalue',  #
-                             'crate::dom::bindings::error::Fallible',  #
-                             'crate::dom::bindings::error::Error::JSFailed',  #
-                             'crate::dom::bindings::error::throw_dom_exception',  #
-                             'crate::dom::bindings::guard::Condition',
-                             'crate::dom::bindings::guard::Guard',
-                             'crate::dom::bindings::inheritance::Castable',
-                             'crate::dom::bindings::interface::ConstructorClassHook',
-                             'crate::dom::bindings::interface::InterfaceConstructorBehavior',
-                             'crate::dom::bindings::interface::NonCallbackInterfaceObjectClass',
-                             'crate::dom::bindings::interface::ProtoOrIfaceIndex',
-                             'crate::dom::bindings::interface::create_global_object',
-                             'crate::dom::bindings::interface::create_callback_interface_object',
-                             'crate::dom::bindings::interface::create_interface_prototype_object',
-                             'crate::dom::bindings::interface::create_named_constructors',
-                             'crate::dom::bindings::interface::create_noncallback_interface_object',
-                             'crate::dom::bindings::interface::define_dom_interface',
-                             'crate::dom::bindings::interface::define_guarded_constants',
-                             'crate::dom::bindings::interface::define_guarded_methods',
-                             'crate::dom::bindings::interface::define_guarded_properties',
-                             'crate::dom::bindings::interface::is_exposed_in',
-                             'crate::dom::bindings::interface::get_per_interface_object_handle',
-                             'crate::dom::bindings::interface::get_desired_proto',
-                             'crate::dom::bindings::finalize::finalize_common',
-                             'crate::dom::bindings::finalize::finalize_global',
-                             'crate::dom::bindings::finalize::finalize_weak_referenceable',
-                             'crate::dom::bindings::htmlconstructor::pop_current_element_queue',
-                             'crate::dom::bindings::htmlconstructor::push_new_element_queue',
-                             'crate::dom::bindings::iterable::Iterable',
-                             'crate::dom::bindings::iterable::IteratorType',
-                             'crate::dom::bindings::like::Setlike',
-                             'crate::dom::bindings::like::Maplike',
-                             'crate::dom::bindings::namespace::NamespaceObjectClass',
-                             'crate::dom::bindings::namespace::create_namespace_object',
+                             'crate::dom::bindings::conversions::ConversionResult',
+                             'crate::dom::bindings::conversions::FromJSValConvertible',
+                             'crate::dom::bindings::conversions::StringificationBehavior',
+                             'crate::dom::bindings::conversions::ToJSValConvertible',
+                             'crate::dom::bindings::conversions::root_from_handlevalue',
+                             'crate::dom::bindings::error::Fallible',
+                             'crate::dom::bindings::error::Error::JSFailed',
+                             'crate::dom::bindings::error::throw_dom_exception',
                              'crate::dom::bindings::num::Finite',
-                             'crate::dom::bindings::proxyhandler',
-                             'crate::dom::bindings::proxyhandler::ensure_expando_object',
-                             'crate::dom::bindings::proxyhandler::set_property_descriptor',
-                             'crate::dom::bindings::proxyhandler::get_expando_object',
-                             'crate::dom::bindings::record::Record',
-                             'crate::dom::bindings::reflector::MutDomObject',
                              'crate::dom::bindings::reflector::DomObject',
-                             'crate::dom::bindings::reflector::DomObjectWrap',
-                             'crate::dom::bindings::reflector::DomObjectIteratorWrap',
-                             'crate::dom::bindings::root::Dom',
                              'crate::dom::bindings::root::DomRoot',
-                             'crate::dom::bindings::root::DomSlice',
-                             'crate::dom::bindings::root::MaybeUnreflectedDom',
-                             'crate::dom::bindings::root::OptionalHeapSetter',
-                             'crate::dom::bindings::root::Root',
                              'crate::dom::bindings::str::ByteString',
                              'crate::dom::bindings::str::DOMString',
                              'crate::dom::bindings::str::USVString',
-                             'crate::dom::bindings::trace::JSTraceable',
                              'crate::dom::bindings::trace::RootedTraceableBox',
-                             'crate::dom::bindings::utils::AsVoidPtr',
-                             'crate::dom::bindings::utils::DOMClass',
-                             'crate::dom::bindings::utils::DOMJSClass',
-                             'crate::dom::bindings::utils::DOM_PROTO_UNFORGEABLE_HOLDER_SLOT',
-                             'crate::dom::bindings::utils::JSCLASS_DOM_GLOBAL',
-                             'crate::dom::bindings::utils::ProtoOrIfaceArray',
-                             'crate::dom::bindings::utils::callargs_is_constructing',
-                             'crate::dom::bindings::utils::enumerate_global',
-                             'crate::dom::bindings::utils::generic_getter',
-                             'crate::dom::bindings::utils::generic_lenient_getter',
-                             'crate::dom::bindings::utils::generic_lenient_setter',
-                             'crate::dom::bindings::utils::generic_method',
-                             'crate::dom::bindings::utils::generic_setter',
-                             'crate::dom::bindings::utils::get_array_index_from_id',
                              'crate::dom::bindings::utils::get_dictionary_property',
-                             'crate::dom::bindings::utils::get_property_on_prototype',
-                             'crate::dom::bindings::utils::get_proto_or_iface_array',
-                             'crate::dom::bindings::utils::has_property_on_prototype',
-                             'crate::dom::bindings::utils::is_platform_object_dynamic',
-                             'crate::dom::bindings::utils::is_platform_object_static',
-                             'crate::dom::bindings::utils::resolve_global',
                              'crate::dom::bindings::utils::set_dictionary_property',
-                             'crate::dom::bindings::utils::trace_global',
-                             'crate::dom::bindings::weakref::DOM_WEAK_SLOT',
-                             'crate::dom::bindings::weakref::WeakBox',
-                             'crate::dom::bindings::weakref::WeakReferenceable',
                              'crate::dom::globalscope::GlobalScope',
-                             'crate::dom::windowproxy::WindowProxy',
-                             'crate::mem::malloc_size_of_including_raw_self',
-                             'crate::realms::InRealm',
-                             'crate::realms::AlreadyInRealm',
                              'crate::script_runtime::JSContext as SafeJSContext',
-                             'libc',
-                             'servo_config::pref',
-                             'servo_config::prefs',
-                             'std::borrow::ToOwned',
-                             'std::cmp',
-                             'std::mem',
-                             'std::num',
-                             'std::os',
-                             'std::panic',
                              'std::ptr',
-                             'std::ptr::NonNull',
-                             'std::str',
-                             'std::rc',
                              'std::rc::Rc',
-                             'std::default::Default',
-                             'std::ffi::CString',
-                             'std::ops::Deref',
                          ], config=config)
 
         # Add the auto-generated comment.
