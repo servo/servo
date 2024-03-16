@@ -813,7 +813,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 let promiseGlobal = GlobalScope::from_object_maybe_wrapped(globalObj.handle().get(), *cx);
 
                 rooted!(in(*cx) let mut valueToResolve = $${val}.get());
-                if !JS_WrapValue(*cx, valueToResolve.handle_mut()) {
+                if !wrappers::JS_WrapValue(*cx, valueToResolve.handle_mut()) {
                 $*{exceptionCode}
                 }
                 match Promise::new_resolved(&promiseGlobal, cx, valueToResolve.handle()) {
@@ -854,7 +854,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         conversionFunction = "root_from_handlevalue"
         descriptorType = descriptor.returnType
         if isMember == "Variadic":
-            conversionFunction = "native_from_handlevalue"
+            conversionFunction = "conversions::native_from_handlevalue"
             descriptorType = descriptor.nativeType
         elif isArgument:
             descriptorType = descriptor.argumentType
@@ -1963,7 +1963,7 @@ class AttrDefiner(PropertyDefiner):
                 jitinfo = "0 as *const JSJitInfo"
             else:
                 if attr.hasLegacyLenientThis():
-                    accessor = "generic_lenient_getter"
+                    accessor = "utils::generic_lenient_getter"
                 else:
                     accessor = "generic_getter"
                 jitinfo = "&%s_getterinfo" % self.descriptor.internalNameFor(attr.identifier.name)
@@ -1986,7 +1986,7 @@ class AttrDefiner(PropertyDefiner):
                 jitinfo = "0 as *const JSJitInfo"
             else:
                 if attr.hasLegacyLenientThis():
-                    accessor = "generic_lenient_setter"
+                    accessor = "utils::generic_lenient_setter"
                 else:
                     accessor = "generic_setter"
                 jitinfo = "&%s_setterinfo" % self.descriptor.internalNameFor(attr.identifier.name)
@@ -2384,10 +2384,10 @@ class CGDOMJSClass(CGThing):
         }
         if self.descriptor.isGlobal():
             assert not self.descriptor.weakReferenceable
-            args["enumerateHook"] = "Some(enumerate_global)"
+            args["enumerateHook"] = "Some(utils::enumerate_global)"
             args["flags"] = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL | JSCLASS_FOREGROUND_FINALIZE"
             args["slots"] = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
-            args["resolveHook"] = "Some(resolve_global)"
+            args["resolveHook"] = "Some(utils::resolve_global)"
             args["traceHook"] = "js::jsapi::JS_GlobalObjectTraceHook"
         elif self.descriptor.weakReferenceable:
             args["slots"] = "2"
@@ -2506,8 +2506,8 @@ class CGInterfaceObjectJSClass(CGThing):
             else:
                 classString = "Object"
             return """\
-static NAMESPACE_OBJECT_CLASS: NamespaceObjectClass = unsafe {
-    NamespaceObjectClass::new(%s)
+static NAMESPACE_OBJECT_CLASS: namespace::NamespaceObjectClass = unsafe {
+    namespace::NamespaceObjectClass::new(%s)
 };
 """ % str_to_const_array(classString)
         if self.descriptor.interface.ctor():
@@ -2890,7 +2890,7 @@ def CopyLegacyUnforgeablePropertiesToInstance(descriptor):
     if descriptor.proxy:
         copyCode += """\
 rooted!(in(*cx) let mut expando = ptr::null_mut::<JSObject>());
-ensure_expando_object(*cx, obj.handle().into(), expando.handle_mut());
+proxyhandler::ensure_expando_object(*cx, obj.handle().into(), expando.handle_mut());
 """
         obj = "expando"
     else:
@@ -2900,7 +2900,7 @@ ensure_expando_object(*cx, obj.handle().into(), expando.handle_mut());
     # unforgeable holder for those with the right JSClass. Luckily, there
     # aren't too many globals being created.
     if descriptor.isGlobal():
-        copyFunc = "JS_CopyOwnPropertiesAndPrivateFields"
+        copyFunc = "wrappers::JS_CopyOwnPropertiesAndPrivateFields"
     else:
         copyFunc = "JS_InitializePropertiesFromCompatibleNativeObject"
     copyCode += """\
@@ -2990,7 +2990,7 @@ JS_SetReservedSlot(
         if self.descriptor.weakReferenceable:
             create += """
 let val = PrivateValue(ptr::null());
-JS_SetReservedSlot(obj.get(), DOM_WEAK_SLOT, &val);
+JS_SetReservedSlot(obj.get(), weakref::DOM_WEAK_SLOT, &val);
 """
 
         return CGGeneric("""\
@@ -3048,7 +3048,7 @@ let raw = Root::new(MaybeUnreflectedDom::from_box(object));
 let origin = (*raw.as_ptr()).upcast::<GlobalScope>().origin();
 
 rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
-create_global_object(
+interface::create_global_object(
     cx,
     &Class.base,
     raw.as_ptr() as *const %(concreteType)s as *const libc::c_void,
@@ -3062,9 +3062,9 @@ let root = raw.reflect_with(obj.get());
 let _ac = JSAutoRealm::new(*cx, obj.get());
 rooted!(in(*cx) let mut canonical_proto = ptr::null_mut::<JSObject>());
 GetProtoObject(cx, obj.handle(), canonical_proto.handle_mut());
-assert!(JS_SetPrototype(*cx, obj.handle(), canonical_proto.handle()));
+assert!(wrappers::JS_SetPrototype(*cx, obj.handle(), canonical_proto.handle()));
 let mut immutable = false;
-assert!(JS_SetImmutablePrototype(*cx, obj.handle(), &mut immutable));
+assert!(wrappers::JS_SetImmutablePrototype(*cx, obj.handle(), &mut immutable));
 assert!(immutable);
 
 %(members)s
@@ -3307,7 +3307,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 rooted!(in(*cx) let proto = {proto});
 assert!(!proto.is_null());
 rooted!(in(*cx) let mut namespace = ptr::null_mut::<JSObject>());
-create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
+namespace::create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
                         {methods}, {constants}, {str_to_const_array(name)}, namespace.handle_mut());
 assert!(!namespace.is_null());
 assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
@@ -3332,7 +3332,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
         parentName = self.descriptor.getParentName()
         if not parentName:
             if self.descriptor.interface.getExtendedAttribute("ExceptionClass"):
-                protoGetter = "GetRealmErrorPrototype"
+                protoGetter = "jsapi::GetRealmErrorPrototype"
             elif self.descriptor.interface.isIteratorInterface():
                 protoGetter = "GetRealmIteratorPrototype"
             else:
@@ -3441,11 +3441,11 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
         if aliasedMembers:
             def defineAlias(alias):
                 if alias == "@@iterator":
-                    symbolJSID = "RUST_SYMBOL_TO_JSID(GetWellKnownSymbol(*cx, SymbolCode::iterator), \
+                    symbolJSID = "wrappers::RUST_SYMBOL_TO_JSID(jsapi::GetWellKnownSymbol(*cx, SymbolCode::iterator), \
                                   iteratorId.handle_mut())"
                     getSymbolJSID = CGGeneric(fill("rooted!(in(*cx) let mut iteratorId: jsid);\n${symbolJSID};\n",
                                                    symbolJSID=symbolJSID))
-                    defineFn = "JS_DefinePropertyById2"
+                    defineFn = "wrappers::JS_DefinePropertyById2"
                     prop = "iteratorId.handle()"
                     enumFlags = "0"  # Not enumerable, per spec.
                 elif alias.startswith("@@"):
@@ -3492,16 +3492,16 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 
         constructors = self.descriptor.interface.legacyFactoryFunctions
         if constructors:
-            decl = "let named_constructors: [(ConstructorClassHook, &'static [u8], u32); %d]" % len(constructors)
+            decl = "let named_constructors: [(interface::ConstructorClassHook, &'static [u8], u32); %d]" % len(constructors)
             specs = []
             for constructor in constructors:
                 hook = CONSTRUCT_HOOK_NAME + "_" + constructor.identifier.name
                 name = str_to_const_array(constructor.identifier.name)
                 length = methodLength(constructor)
-                specs.append(CGGeneric("(%s as ConstructorClassHook, %s, %d)" % (hook, name, length)))
+                specs.append(CGGeneric("(%s as interface::ConstructorClassHook, %s, %d)" % (hook, name, length)))
             values = CGIndenter(CGList(specs, "\n"), 4)
             code.append(CGWrapper(values, pre="%s = [\n" % decl, post="\n];"))
-            code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
+            code.append(CGGeneric("interface::create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
 
         if self.descriptor.hasLegacyUnforgeableMembers:
             # We want to use the same JSClass and prototype as the object we'll
@@ -6047,7 +6047,7 @@ return true;""" % (maybeCrossOriginGet, getIndexedOrExpando, getNamed)
 class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
-                Argument('RawMutableHandleObject', 'proto')]
+                Argument('jsapi::MutableHandleObject', 'proto')]
         CGAbstractExternMethod.__init__(self, descriptor, "getPrototype", "bool", args)
         assert descriptor.isMaybeCrossOriginObject()
         self.descriptor = descriptor
@@ -6124,7 +6124,7 @@ class CGClassTraceHook(CGAbstractClassHook):
         body = [CGGeneric("if this.is_null() { return; } // GC during obj creation\n"
                           "(*this).trace(%s);" % self.args[0].name)]
         if self.traceGlobal:
-            body += [CGGeneric("trace_global(trc, obj);")]
+            body += [CGGeneric("utils::trace_global(trc, obj);")]
         return CGList(body, "\n")
 
 
@@ -6330,7 +6330,7 @@ class CGWeakReferenceableTrait(CGThing):
     def __init__(self, descriptor):
         CGThing.__init__(self)
         assert descriptor.weakReferenceable
-        self.code = "impl WeakReferenceable for %s {}" % descriptor.interface.identifier.name
+        self.code = "impl weakref::WeakReferenceable for %s {}" % descriptor.interface.identifier.name
 
     def define(self):
         return self.code
@@ -6523,34 +6523,27 @@ class CGDescriptor(CGThing):
 
         # Add imports
         # These are inside the generated module
-        # The global imports are handled in `CGBindingRoot`
         cgThings = CGImports(cgThings, descriptors=[descriptor], callbacks=[],
                              dictionaries=[], enums=[], typedefs=[],
                              imports=[
-                                 'super::*',  # Inherits all imports from `CGBindingRoot`
+                                 'super::*',  # Inherits global imports from `CGBindingRoot`
                                  'js::JSCLASS_GLOBAL_SLOT_COUNT',
                                  'js::JSCLASS_IS_DOMJSCLASS',
                                  'js::JSCLASS_IS_GLOBAL',
                                  'js::JSCLASS_RESERVED_SLOTS_MASK',
                                  'js::JS_CALLEE',
-                                 'js::error::throw_internal_error',
-                                 'js::glue::JS_GetReservedSlot',
-                                 'js::glue::CallJitGetterOp',
-                                 'js::glue::CallJitMethodOp',
-                                 'js::glue::CallJitSetterOp',
                                  'js::glue::CreateProxyHandler',
                                  'js::glue::GetProxyReservedSlot',
-                                 'js::glue::SetProxyReservedSlot',
+                                 'js::glue::JS_GetReservedSlot',
                                  'js::glue::ProxyTraps',
-                                 'js::glue::UnwrapObjectDynamic',
+                                 'js::glue::SetProxyReservedSlot',
+                                 'js::jsapi',
                                  'js::jsapi::__BindgenBitfieldUnit',
                                  'js::jsapi::CallArgs',
                                  'js::jsapi::GCContext',
-                                 'js::jsapi::GetRealmErrorPrototype',
                                  'js::jsapi::GetRealmFunctionPrototype',
                                  'js::jsapi::GetRealmIteratorPrototype',
                                  'js::jsapi::GetRealmObjectPrototype',
-                                 'js::jsapi::GetWellKnownSymbol',
                                  'js::jsapi::Handle as RawHandle',
                                  'js::jsapi::HandleId as RawHandleId',
                                  'js::jsapi::HandleObject as RawHandleObject',
@@ -6559,11 +6552,12 @@ class CGDescriptor(CGThing):
                                  'js::jsapi::JSCLASS_RESERVED_SLOTS_SHIFT',
                                  'js::jsapi::JSClass',
                                  'js::jsapi::JSFunctionSpec',
+                                 'js::jsapi::jsid',
                                  'js::jsapi::JSITER_HIDDEN',
                                  'js::jsapi::JSITER_OWNONLY',
                                  'js::jsapi::JSITER_SYMBOLS',
                                  'js::jsapi::JSJitGetterCallArgs',
-                                 'js::jsapi::JSJitInfo',
+                                 'js::jsapi::JSJitInfo', #
                                  'js::jsapi::JSJitInfo__bindgen_ty_1',
                                  'js::jsapi::JSJitInfo__bindgen_ty_2',
                                  'js::jsapi::JSJitInfo__bindgen_ty_3',
@@ -6572,7 +6566,6 @@ class CGDescriptor(CGThing):
                                  'js::jsapi::JSJitInfo_OpType',
                                  'js::jsapi::JSJitMethodCallArgs',
                                  'js::jsapi::JSJitSetterCallArgs',
-                                 'js::jsapi::JSNative',
                                  'js::jsapi::JSNativeWrapper',
                                  'js::jsapi::JSPROP_ENUMERATE',
                                  'js::jsapi::JSPROP_PERMANENT',
@@ -6586,89 +6579,60 @@ class CGDescriptor(CGThing):
                                  'js::jsapi::JSPropertySpec_ValueWrapper',
                                  'js::jsapi::JSPropertySpec_ValueWrapper_Type',
                                  'js::jsapi::JSPropertySpec_ValueWrapper__bindgen_ty_1',
-                                 'js::jsapi::JSString',
                                  'js::jsapi::JSTracer',
-                                 'js::jsapi::JSType',
                                  'js::jsapi::JSTypedMethodJitInfo',
                                  'js::jsapi::JSValueType',
                                  'js::jsapi::JS_AtomizeAndPinString',
                                  'js::jsapi::JS_ForwardGetPropertyTo',
-                                 'js::jsapi::JS_GetPropertyById',
                                  'js::jsapi::JS_GetPropertyDescriptorById',
-                                 'js::jsapi::JS_HasProperty',
                                  'js::jsapi::JS_HasPropertyById',
                                  'js::jsapi::JS_NewPlainObject',
                                  'js::jsapi::JS_SetReservedSlot',
-                                 'js::jsapi::MutableHandleObject as RawMutableHandleObject',
                                  'js::jsapi::MutableHandleValue as RawMutableHandleValue',
                                  'js::jsapi::MutableHandleIdVector as RawMutableHandleIdVector',
                                  'js::jsapi::MutableHandle as RawMutableHandle',
                                  'js::jsapi::ObjectOpResult',
                                  'js::jsapi::PropertyDescriptor',
-                                 'js::jsapi::Rooted',
-                                 'js::jsapi::RootedId',
-                                 'js::jsapi::RootedObject',
-                                 'js::jsapi::RootedString',
                                  'js::jsapi::SymbolCode',
-                                 'js::jsapi::jsid',
                                  'js::jsapi::UndefinedHandleValue',
                                  'js::jsval::PrivateValue',
                                  'js::rust::Handle',
-                                 'js::rust::HandleId',
                                  'js::rust::RootedGuard',
-                                 'js::rust::get_object_realm',
-                                 'js::rust::get_context_realm',
-                                 'js::rust::MutableHandle',
-                                 'js::rust::GCMethods',
                                  'js::rust::CustomAutoRooterGuard',
-                                 'js::rust::define_methods',
-                                 'js::rust::define_properties',
+                                 'js::rust::get_object_realm',
                                  'js::rust::get_object_class',
-                                 'js::rust::wrappers::JS_InitializePropertiesFromCompatibleNativeObject',
+                                 'js::rust::get_context_realm',
+                                 'js::rust::GCMethods',
+                                 'js::rust::MutableHandle',
+                                 'js::rust::wrappers::AppendToIdVector',
                                  'js::rust::wrappers::Call',
                                  'js::rust::wrappers::GetPropertyKeys',
-                                 'js::rust::wrappers::NewProxyObject',
-                                 'js::rust::wrappers::RUST_INTERNED_STRING_TO_JSID',
-                                 'js::rust::wrappers::JS_CopyOwnPropertiesAndPrivateFields',
+                                 'js::rust::wrappers::int_to_jsid',
                                  'js::rust::wrappers::JS_DefineProperty',
-                                 'js::rust::wrappers::JS_DefinePropertyById2',
                                  'js::rust::wrappers::JS_GetProperty',
+                                 'js::rust::wrappers::JS_InitializePropertiesFromCompatibleNativeObject',
                                  'js::rust::wrappers::JS_NewObjectWithGivenProto',
                                  'js::rust::wrappers::JS_NewObjectWithoutMetadata',
-                                 'js::rust::wrappers::ObjectIsDate',
-                                 'js::rust::wrappers::JS_SetImmutablePrototype',
                                  'js::rust::wrappers::JS_SetProperty',
-                                 'js::rust::wrappers::JS_SetPrototype',
                                  'js::rust::wrappers::JS_WrapObject',
-                                 'js::rust::wrappers::AppendToIdVector',
-                                 'js::rust::wrappers::RUST_SYMBOL_TO_JSID',
-                                 'js::rust::wrappers::int_to_jsid',
+                                 'js::rust::wrappers::NewProxyObject',
+                                 'js::rust::wrappers::RUST_INTERNED_STRING_TO_JSID',
                                  'js::panic::wrap_panic',
                                  'js::typedarray',
-                                 'js::typedarray::Int8Array',
                                  'js::typedarray::Uint8Array',
-                                 'js::typedarray::Int16Array',
-                                 'js::typedarray::Uint16Array',
-                                 'js::typedarray::Int32Array',
-                                 'js::typedarray::Uint32Array',
+                                 'js::typedarray::Uint8ClampedArray',
                                  'js::typedarray::Float32Array',
                                  'js::typedarray::Float64Array',
                                  'js::typedarray::ArrayBuffer',
                                  'js::typedarray::ArrayBufferView',
-                                 'js::typedarray::Uint8ClampedArray',
                                  'crate::dom',
-                                 'crate::dom::bindings',
+                                 'crate::dom::bindings::conversions',
                                  'crate::dom::bindings::conversions::DOM_OBJECT_SLOT',
                                  'crate::dom::bindings::conversions::IDLInterface',
                                  'crate::dom::bindings::conversions::StringificationBehavior',
                                  'crate::dom::bindings::conversions::ToJSValConvertible',
                                  'crate::dom::bindings::conversions::is_array_like',
-                                 'crate::dom::bindings::conversions::native_from_handlevalue',
-                                 'crate::dom::bindings::conversions::native_from_object',
                                  'crate::dom::bindings::conversions::native_from_object_static',
-                                 'crate::dom::bindings::conversions::private_from_object',
-                                 'crate::dom::bindings::conversions::root_from_handleobject',
-                                 'crate::dom::bindings::conversions::root_from_object',
                                  'crate::dom::bindings::conversions::jsid_to_string',
                                  'crate::dom::bindings::codegen::PrototypeList',
                                  'crate::dom::bindings::codegen::RegisterBindings',
@@ -6684,17 +6648,14 @@ class CGDescriptor(CGThing):
                                  'crate::dom::bindings::finalize::finalize_common',
                                  'crate::dom::bindings::finalize::finalize_global',
                                  'crate::dom::bindings::finalize::finalize_weak_referenceable',
-                                 'crate::dom::bindings::interface::ConstructorClassHook',
+                                 'crate::dom::bindings::interface',
                                  'crate::dom::bindings::interface::InterfaceConstructorBehavior',
                                  'crate::dom::bindings::interface::NonCallbackInterfaceObjectClass',
                                  'crate::dom::bindings::interface::ProtoOrIfaceIndex',
-                                 'crate::dom::bindings::interface::create_global_object',
                                  'crate::dom::bindings::interface::create_callback_interface_object',
                                  'crate::dom::bindings::interface::create_interface_prototype_object',
-                                 'crate::dom::bindings::interface::create_named_constructors',
                                  'crate::dom::bindings::interface::create_noncallback_interface_object',
                                  'crate::dom::bindings::interface::define_dom_interface',
-                                 'crate::dom::bindings::interface::define_guarded_constants',
                                  'crate::dom::bindings::interface::define_guarded_methods',
                                  'crate::dom::bindings::interface::define_guarded_properties',
                                  'crate::dom::bindings::interface::is_exposed_in',
@@ -6706,22 +6667,19 @@ class CGDescriptor(CGThing):
                                  'crate::dom::bindings::htmlconstructor::push_new_element_queue',
                                  'crate::dom::bindings::like::Setlike',
                                  'crate::dom::bindings::like::Maplike',
-                                 'crate::dom::bindings::namespace::NamespaceObjectClass',
-                                 'crate::dom::bindings::namespace::create_namespace_object',
+                                 'crate::dom::bindings::namespace',
                                  'crate::dom::bindings::proxyhandler',
-                                 'crate::dom::bindings::proxyhandler::ensure_expando_object',
                                  'crate::dom::bindings::proxyhandler::set_property_descriptor',
                                  'crate::dom::bindings::proxyhandler::get_expando_object',
                                  'crate::dom::bindings::record::Record',
-                                 'crate::dom::bindings::reflector::MutDomObject',
                                  'crate::dom::bindings::reflector::DomObjectWrap',
                                  'crate::dom::bindings::reflector::DomObjectIteratorWrap',
                                  'crate::dom::bindings::root::Dom',
                                  'crate::dom::bindings::root::DomSlice',
                                  'crate::dom::bindings::root::MaybeUnreflectedDom',
-                                 'crate::dom::bindings::root::OptionalHeapSetter',
                                  'crate::dom::bindings::root::Root',
                                  'crate::dom::bindings::trace::JSTraceable',
+                                 'crate::dom::bindings::utils',
                                  'crate::dom::bindings::utils::AsVoidPtr',
                                  'crate::dom::bindings::utils::DOMClass',
                                  'crate::dom::bindings::utils::DOMJSClass',
@@ -6729,43 +6687,22 @@ class CGDescriptor(CGThing):
                                  'crate::dom::bindings::utils::JSCLASS_DOM_GLOBAL',
                                  'crate::dom::bindings::utils::ProtoOrIfaceArray',
                                  'crate::dom::bindings::utils::callargs_is_constructing',
-                                 'crate::dom::bindings::utils::enumerate_global',
                                  'crate::dom::bindings::utils::generic_getter',
-                                 'crate::dom::bindings::utils::generic_lenient_getter',
-                                 'crate::dom::bindings::utils::generic_lenient_setter',
                                  'crate::dom::bindings::utils::generic_method',
                                  'crate::dom::bindings::utils::generic_setter',
                                  'crate::dom::bindings::utils::get_array_index_from_id',
                                  'crate::dom::bindings::utils::get_property_on_prototype',
-                                 'crate::dom::bindings::utils::get_proto_or_iface_array',
                                  'crate::dom::bindings::utils::has_property_on_prototype',
-                                 'crate::dom::bindings::utils::is_platform_object_dynamic',
-                                 'crate::dom::bindings::utils::is_platform_object_static',
-                                 'crate::dom::bindings::utils::resolve_global',
-                                 'crate::dom::bindings::utils::trace_global',
-                                 'crate::dom::bindings::weakref::DOM_WEAK_SLOT',
-                                 'crate::dom::bindings::weakref::WeakBox',
-                                 'crate::dom::bindings::weakref::WeakReferenceable',
-                                 'crate::dom::windowproxy::WindowProxy',
+                                 'crate::dom::bindings::weakref',
                                  'crate::mem::malloc_size_of_including_raw_self',
                                  'crate::realms::InRealm',
                                  'crate::realms::AlreadyInRealm',
                                  'libc',
                                  'servo_config::pref',
-                                 'servo_config::prefs',
-                                 'std::borrow::ToOwned',
                                  'std::cmp',
-                                 'std::mem',
-                                 'std::num',
-                                 'std::os',
-                                 'std::panic',
                                  'std::ptr::NonNull',
-                                 'std::str',
-                                 'std::rc',
-                                 'std::default::Default',
                                  'std::ffi::CString',
-                                 'std::ops::Deref',
-        ], config=config)
+                             ], config=config)
 
         cgThings = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
                                          cgThings, public=True),
@@ -7233,8 +7170,8 @@ class CGBindingRoot(CGThing):
                              'js::jsval::UndefinedValue',
                              'js::rust::HandleObject',
                              'js::rust::HandleValue',
+                             'js::rust::wrappers',
                              'js::rust::wrappers::JS_CallFunctionValue',
-                             'js::rust::wrappers::JS_WrapValue',
                              'js::rust::MutableHandleObject',
                              'js::rust::MutableHandleValue',
                              'js::panic::maybe_resume_unwind',
