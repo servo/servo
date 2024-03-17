@@ -134,6 +134,45 @@ async def test_partition_context(
     assert len(cookies["cookies"]) == 0
 
 
+async def test_partition_context_with_different_domain(
+    bidi_session, set_cookie, new_tab, test_page, domain_value
+):
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=test_page, wait="complete"
+    )
+
+    # Set cookie on a different domain.
+    cookie_domain = domain_value(domain="alt")
+    cookie_name = "foo"
+    cookie_value = "bar"
+    partition = BrowsingContextPartitionDescriptor(new_tab["context"])
+    await set_cookie(
+        cookie=create_cookie(
+            domain=cookie_domain,
+            name=cookie_name,
+            value=NetworkStringValue(cookie_value),
+        ),
+        partition=partition,
+    )
+
+    result = await bidi_session.storage.get_cookies(
+        partition=BrowsingContextPartitionDescriptor(new_tab["context"])
+    )
+
+    assert result["cookies"] == [
+        {
+            "domain": cookie_domain,
+            "httpOnly": False,
+            "name": cookie_name,
+            "path": "/",
+            "sameSite": "none",
+            "secure": True,
+            "size": 6,
+            "value": {"type": "string", "value": cookie_value},
+        }
+    ]
+
+
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
 async def test_partition_context_iframe(
     bidi_session, new_tab, inline, domain_value, domain, set_cookie

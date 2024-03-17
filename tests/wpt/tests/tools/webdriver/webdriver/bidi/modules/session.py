@@ -40,9 +40,9 @@ class Session(BidiModule):
 
     @command
     def unsubscribe(self,
-                    events: Optional[List[str]] = None,
+                    events: List[str],
                     contexts: Optional[List[str]] = None) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {"events": events if events is not None else []}
+        params: MutableMapping[str, Any] = {"events": events}
         if contexts is not None:
             params["contexts"] = contexts
         return params

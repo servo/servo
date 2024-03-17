@@ -1,18 +1,26 @@
 import pytest
 
-from .. import assert_browsing_context
 from webdriver.bidi.modules.script import ContextTarget
+from .. import assert_browsing_context, assert_document_status
+
 
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.mark.parametrize("value", ["tab", "window"])
-async def test_type(bidi_session, value):
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+async def test_type(bidi_session, top_context, type_hint):
+    is_window = type_hint == "window"
+
     contexts = await bidi_session.browsing_context.get_tree(max_depth=0)
     assert len(contexts) == 1
 
-    new_context = await bidi_session.browsing_context.create(type_hint=value)
+    await assert_document_status(bidi_session, top_context, visible=True, focused=True)
+
+    new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
     assert contexts[0]["context"] != new_context["context"]
+
+    await assert_document_status(bidi_session, new_context, visible=True, focused=True)
+    await assert_document_status(bidi_session, top_context, visible=is_window, focused=False)
 
     # Check there is an additional browsing context
     contexts = await bidi_session.browsing_context.get_tree(max_depth=0)

@@ -1,6 +1,10 @@
 // META: global=window,dedicatedworker
 // META: script=/webcodecs/utils.js
 
+
+const detachedArrayBuffer = new ArrayBuffer(4);
+var b = detachedArrayBuffer.transferToFixedLength();
+
 const invalidConfigs = [
   {
     comment: 'Missing codec',
@@ -45,6 +49,15 @@ const invalidConfigs = [
       codec: 'opus',
       sampleRate: 8000,
       numberOfChannels: 0,
+    },
+  },
+  {
+    comment: 'Valid configuration except detached description',
+    config: {
+      codec: 'opus',
+      sampleRate: 8000,
+      numberOfChannels: 1,
+      description: detachedArrayBuffer
     },
   },
 ];

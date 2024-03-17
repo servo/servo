@@ -1,5 +1,9 @@
 // META: global=window,dedicatedworker
 // META: script=/webcodecs/utils.js
+//
+
+const detachedArrayBuffer = new ArrayBuffer(4);
+var b = detachedArrayBuffer.transferToFixedLength();
 
 const invalidConfigs = [
   {
@@ -9,6 +13,10 @@ const invalidConfigs = [
   {
     comment: 'Empty codec',
     config: {codec: ''},
+  },
+  {
+    comment: 'Valid codec, detached description',
+    config: {codec: 'vp8', description: detachedArrayBuffer},
   },
 ];  // invalidConfigs
 

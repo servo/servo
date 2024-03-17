@@ -95,7 +95,7 @@
 
       <defs>
         <rect id="rectID" x="10" y="60" width="60" height="20" fill="blue" stroke="black" stroke-width="2">
-          <animateColor attributeName="fill" from="white" to="rgb(16, 93, 140)" begin="0" dur="3" fill="freeze"/>
+          <animate attributeName="fill" from="white" to="rgb(16, 93, 140)" begin="0" dur="3" fill="freeze"/>
           <animate attributeName="height" from="20" to="40" begin="0" dur="3" fill="freeze"/>
         </rect>
       </defs>

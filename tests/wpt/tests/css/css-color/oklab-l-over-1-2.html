@@ -5,13 +5,16 @@
 <link rel="match" href="oklab-l-over-1-ref.html">
 <meta name="assert" content="oklab() with lightness greater than 100%">
 <style>
-    .ref { background-color: oklab(100% 0.5 0.2); width: 100px; height: 100px}
+    .square { border: 1px solid black; width: 200px; height: 200px}
+    .ref { background-color: oklab(100% 0.5 0.2); height: 100px}
     /* l = 150 should clamp back to 100 */
-    .test { background-color: oklab(150% 0.5 0.2); width: 100px; height: 100px}
+    .test { background-color: oklab(150% 0.5 0.2); height: 100px}
 </style>
 
 <body>
-    <p>Test passes if you see a single color.</p>
-    <div class="ref"></div>
-    <div class="test"></div>
+    <p>Test passes if you see a square border with a single color inside.</p>
+    <div class="square">
+        <div class="ref"></div>
+        <div class="test"></div>
+    </div>
 </body>

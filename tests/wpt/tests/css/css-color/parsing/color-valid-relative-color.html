@@ -739,7 +739,7 @@
         fuzzy_test_valid_color(`color(from currentColor ${colorSpace} x y z)`,                                                  `color(from currentColor ${colorSpace} x y z)`);
 
         // color-mix
-        fuzzy_test_valid_color(`color(from color-mix(in xyz, color(${colorSpace} 0.7 0.5 0.3), color(${colorSpace} 0.7 0.5 0.3)) ${colorSpace} r g b / alpha)`, `color(${resultColorSpace} 0.7 0.5 0.3)`);
+        fuzzy_test_valid_color(`color(from color-mix(in xyz, color(${colorSpace} 0.7 0.5 0.3), color(${colorSpace} 0.7 0.5 0.3)) ${colorSpace} x y z / alpha)`, `color(${resultColorSpace} 0.7 0.5 0.3)`);
     }
 
     // Spec Examples: https://www.w3.org/TR/css-color-5/#relative-colors

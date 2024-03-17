@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver minimize/restore method in popup</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+const params = new URLSearchParams(location.search);
+const is_popup_page = params.has('popup');
+const channel = new BroadcastChannel("testchannel");
+
+if (is_popup_page) {
+    onload = async () => {
+        window.opener.events.push(document.visibilityState);
+        let rect = await test_driver.minimize_window();
+        window.opener.events.push(document.visibilityState);
+        await test_driver.set_window_rect(rect);
+        window.opener.events.push(document.visibilityState);
+        channel.postMessage("done");
+    };
+} else {
+    promise_test(async t => {
+        let popup;
+        onload = () => {
+          window.events = [];
+          popup = window.open("?popup");
+        };
+
+        await new Promise(resolve => {
+          channel.addEventListener(
+            "message", t.step_func(async (e) => {
+              if (e.data === "done") {
+                const expectedEvents = ["visible", "hidden", "visible"];
+                assert_array_equals(window.events, expectedEvents, 'incorrect event order');
+                popup.close();
+                resolve();
+              }
+          }));
+        });
+  }, `minimize and restore on popup`);
+}
+</script>

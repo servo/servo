@@ -52,6 +52,12 @@ const routerRules = {
     };
     return {condition: addOrCondition({}, 0), source: 'network'};
   })(),
+  'condition-invalid-router-size': [...Array(512)].map((val, i) => {
+    return {
+      condition: {urlPattern: `/foo-${i}`},
+      source: 'network'
+    };
+  }),
   'condition-request-destination-script-network':
       [{condition: {requestDestination: 'script'}, source: 'network'}],
   'condition-or-source-network': [{

@@ -54,8 +54,8 @@ jobs:
           export CURRENT_DATE=$(date +"%d-%m-%Y")
           echo $CURRENT_DATE
           echo "CURRENT_DATE=$CURRENT_DATE" >> $GITHUB_ENV
-          ./mach update-wpt linux-layout-2013/*.log --legacy-layout
-          ./mach update-wpt linux-layout-2020/*.log
+          ./mach update-wpt linux-layout-2013/raw/*.log --legacy-layout
+          ./mach update-wpt linux-layout-2020/raw/*.log
           git add tests/wpt/meta tests/wpt/meta-legacy-layout
           git commit -a --amend --no-edit
       - name: Push changes

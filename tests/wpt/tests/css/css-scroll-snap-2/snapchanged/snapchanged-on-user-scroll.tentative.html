@@ -71,6 +71,8 @@
   </div>
   <script>
     const scroller = document.getElementById("scroller");
+    const snap_point_1 =  document.getElementById("snap_point_1");
+    const snap_point_2 =  document.getElementById("snap_point_2");
     const offset_to_snap_point_2 = {
       x: snap_point_2.offsetLeft,
       y: snap_point_2.offsetTop
@@ -89,7 +91,7 @@
         scrolling_function: async () => {
           await snap_event_touch_scroll_helper(start_pos, end_pos);
         },
-        expected_snap_targets: [snap_point_2.id],
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_2 },
         expected_scroll_offsets: {
           x: offset_to_snap_point_2.x,
           y: offset_to_snap_point_2.y,
@@ -109,7 +111,7 @@
               offset_to_snap_point_2.y,
               { origin: scroller }).send();
       },
-        expected_snap_targets: [snap_point_2.id],
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_2 },
         expected_scroll_offsets: {
           x: offset_to_snap_point_2.x,
           y: offset_to_snap_point_2.y,
@@ -136,7 +138,7 @@
               scrollbar_to_scroller_ratio;
           await snap_event_scrollbar_drag_helper(scroller, scrollbar_width, drag_amt);
         },
-        expected_snap_targets: [snap_point_1.id, snap_point_2.id],
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_1 },
         expected_scroll_offsets: {
           x: 0,
           y: offset_to_snap_point_2.y,
@@ -154,7 +156,7 @@
           scroller.focus();
           window.test_driver.send_keys(scroller, '\ue015'/*ArrowDown*/);
         },
-        expected_snap_targets: [snap_point_1.id, snap_point_2.id],
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_1 },
         expected_scroll_offsets: {
           x: 0,
           y: offset_to_snap_point_2.y,

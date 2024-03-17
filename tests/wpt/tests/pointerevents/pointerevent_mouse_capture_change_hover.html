@@ -61,8 +61,8 @@ function releaseCapture(event) {
 
 function run() {
   promise_test (async() => {
-    // Move to (0, 0) to reset hovering.
-    await new test_driver.Actions().pointerMove(0, 0).send();
+    // Move to (1, 1) to reset hovering.
+    await new test_driver.Actions().pointerMove(1, 1).send();
     receivedEventList = [];
 
     // pointerdown at green -> set capture to green -> green receive the following moves.
@@ -93,8 +93,8 @@ function run() {
   }, "Mouse down and capture to green.");
 
   promise_test (async() => {
-    // Move to (0, 0) to reset hovering.
-    await new test_driver.Actions().addPointer("mouse").pointerMove(0, 0).send();
+    // Move to (1, 1) to reset hovering.
+    await new test_driver.Actions().addPointer("mouse").pointerMove(1, 1).send();
     receivedEventList = [];
 
     // pointerdown at green -> set capture to blue -> blue receive the following moves.
@@ -129,8 +129,8 @@ function run() {
   }, "Mouse down at green and capture to blue.");
 
   promise_test (async() => {
-    // Move to (0, 0) to reset hovering.
-    await new test_driver.Actions().addPointer("mouse").pointerMove(0, 0).send();
+    // Move to (1, 1) to reset hovering.
+    await new test_driver.Actions().addPointer("mouse").pointerMove(1, 1).send();
     receivedEventList = [];
 
     // pointerdown at green -> set capture to green -> green receive first move -> release capture -> blue receive the next move
