@@ -1558,7 +1558,7 @@ impl XMLHttpRequest {
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {
-            xhr: xhr,
+            xhr,
             gen_id: self.generation_id.get(),
             sync_status: DomRefCell::new(None),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),

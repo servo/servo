@@ -183,8 +183,8 @@ impl CanvasState {
             global.origin().immutable().clone()
         };
         CanvasState {
-            ipc_renderer: ipc_renderer,
-            canvas_id: canvas_id,
+            ipc_renderer,
+            canvas_id,
             state: DomRefCell::new(CanvasContextState::new()),
             origin_clean: Cell::new(true),
             image_cache: global.image_cache(),
