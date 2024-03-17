@@ -18,14 +18,15 @@ use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, Verti
 use style::values::generics::length::GenericLengthPercentageOrAuto::{Auto, LengthPercentage};
 use style::Zero;
 
-use super::{Table, TableSlot, TableSlotCell, TableTrackGroup};
+use super::{Table, TableSlot, TableSlotCell, TableTrack, TableTrackGroup};
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentLayout};
 use crate::fragment_tree::{
-    BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, PositioningFragment,
+    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment,
+    PositioningFragment,
 };
 use crate::geom::{AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2};
-use crate::positioned::{PositioningContext, PositioningContextLength};
+use crate::positioned::{relative_adjustement, PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt, PaddingBorderMargin};
 use crate::table::TableSlotCoordinates;
@@ -84,6 +85,7 @@ pub(crate) struct TableLayout<'a> {
     column_measures: Vec<CellOrTrackMeasure>,
     distributed_column_widths: Vec<Au>,
     row_sizes: Vec<Au>,
+    /// The accumulated baseline of each row, relative to the top of the row.
     row_baselines: Vec<Au>,
     cells_laid_out: Vec<Vec<Option<CellLayout>>>,
     basis_for_cell_padding_percentage: Au,
@@ -968,9 +970,25 @@ impl<'a> TableLayout<'a> {
         parent_positioning_context: &mut PositioningContext,
     ) {
         for row_index in 0..self.table.slots.len() {
-            let row = &self.table.slots[row_index];
+            // When building the PositioningContext for this cell, we want it to have the same
+            // configuration for whatever PositioningContext the contents are ultimately added to.
+            let collect_for_nearest_positioned_ancestor = parent_positioning_context
+                .collects_for_nearest_positioned_ancestor() ||
+                self.table.rows.get(row_index).map_or(false, |row| {
+                    let row_group_collects_for_nearest_positioned_ancestor =
+                        row.group_index.map_or(false, |group_index| {
+                            self.table.row_groups[group_index]
+                                .style
+                                .establishes_containing_block_for_absolute_descendants()
+                        });
+                    row_group_collects_for_nearest_positioned_ancestor ||
+                        row.style
+                            .establishes_containing_block_for_absolute_descendants()
+                });
+
             let mut cells_laid_out_row = Vec::new();
-            for (column_index, slot) in row.iter().enumerate() {
+            let slots = &self.table.slots[row_index];
+            for (column_index, slot) in slots.iter().enumerate() {
                 let cell = match slot {
                     TableSlot::Cell(cell) => cell,
                     _ => {
@@ -1001,8 +1019,7 @@ impl<'a> TableLayout<'a> {
                     block_size: AuOrAuto::Auto,
                     style: &cell.style,
                 };
-                let collect_for_nearest_positioned_ancestor =
-                    parent_positioning_context.collects_for_nearest_positioned_ancestor();
+
                 let mut positioning_context =
                     PositioningContext::new_for_subtree(collect_for_nearest_positioned_ancestor);
 
@@ -1398,21 +1415,52 @@ impl<'a> TableLayout<'a> {
         assert_eq!(self.table.size.width, self.distributed_column_widths.len());
 
         let mut baselines = Baselines::default();
-        let mut fragments = Vec::new();
+        let mut table_fragments = Vec::new();
 
         if self.table.size.width == 0 || self.table.size.height == 0 {
             return IndependentLayout {
-                fragments,
+                fragments: table_fragments,
                 content_block_size: self.final_table_height,
                 content_inline_size_for_table: Some(self.assignable_width),
                 baselines,
             };
         }
 
-        let dimensions = TableAndTrackDimensions::new(&self);
-        self.make_fragments_for_columns_rows_and_groups(&dimensions, &mut fragments);
+        let table_and_track_dimensions = TableAndTrackDimensions::new(&self);
+        self.make_fragments_for_columns_and_column_groups(
+            &table_and_track_dimensions,
+            &mut table_fragments,
+        );
 
+        let mut row_group_fragment_layout = None;
         for row_index in 0..self.table.size.height {
+            let table_row = &self.table.rows[row_index];
+            let mut row_fragment_layout =
+                RowFragmentLayout::new(table_row, row_index, &table_and_track_dimensions);
+
+            let old_row_group_index = row_group_fragment_layout
+                .as_ref()
+                .map(|layout: &RowGroupFragmentLayout| layout.index);
+            if table_row.group_index != old_row_group_index {
+                // First create the Fragment for any existing RowGroupFragmentLayout.
+                if let Some(old_row_group_layout) = row_group_fragment_layout.take() {
+                    table_fragments.push(Fragment::Box(old_row_group_layout.finish(
+                        layout_context,
+                        positioning_context,
+                        containing_block_for_children,
+                    )));
+                }
+
+                // Then, create a new RowGroupFragmentLayout for the current and potentially subsequent rows.
+                if let Some(new_group_index) = table_row.group_index {
+                    row_group_fragment_layout = Some(RowGroupFragmentLayout::new(
+                        &self.table.row_groups[new_group_index],
+                        new_group_index,
+                        &table_and_track_dimensions,
+                    ));
+                }
+            }
+
             // From <https://drafts.csswg.org/css-align-3/#baseline-export>
             // > If any cells in the row participate in first baseline/last baseline alignment along
             // > the inline axis, the first/last baseline set of the row is generated from their
@@ -1423,102 +1471,163 @@ impl<'a> TableLayout<'a> {
             // If any cell below has baseline alignment, these values will be overwritten,
             // but they are initialized to the content edge of the first row.
             if row_index == 0 {
-                let row_end = dimensions.get_row_rect(0).max_block_position();
+                let row_end = table_and_track_dimensions
+                    .get_row_rect(0)
+                    .max_block_position();
                 baselines.first = Some(row_end);
                 baselines.last = Some(row_end);
             }
 
-            for column_index in 0..self.table.size.width {
-                let layout = match self.cells_laid_out[row_index][column_index].take() {
-                    Some(layout) => layout,
-                    None => {
-                        continue;
-                    },
-                };
+            let column_indices = 0..self.table.size.width.clone();
+            row_fragment_layout.fragments.reserve(self.table.size.width);
+            for column_index in column_indices {
+                // The PositioningContext for cells is, in order or preference, the PositioningContext of the row,
+                // the PositioningContext of the row group, or the PositioningContext of the table.
+                let row_group_positioning_context = row_group_fragment_layout
+                    .as_mut()
+                    .and_then(|layout| layout.positioning_context.as_mut());
+                let positioning_context_for_cells = row_fragment_layout
+                    .positioning_context
+                    .as_mut()
+                    .or(row_group_positioning_context)
+                    .unwrap_or(positioning_context);
 
-                let cell = match self.table.slots[row_index][column_index] {
-                    TableSlot::Cell(ref cell) => cell,
-                    _ => {
-                        warn!("Did not find a non-spanned cell at index with layout.");
-                        continue;
-                    },
-                };
-
-                let cell_rect = dimensions.get_cell_rect(
-                    TableSlotCoordinates::new(column_index, row_index),
-                    cell.rowspan,
-                    cell.colspan,
+                self.do_final_cell_layout(
+                    row_index,
+                    column_index,
+                    &table_and_track_dimensions,
+                    &row_fragment_layout.rect,
+                    positioning_context_for_cells,
+                    &mut baselines,
+                    &mut row_fragment_layout.fragments,
                 );
+            }
 
-                // If this cell has baseline alignment, it can adjust the table's overall baseline.
-                let row_baseline = self.row_baselines[row_index];
-                if cell.effective_vertical_align() == VerticalAlignKeyword::Baseline {
-                    let baseline = cell_rect.start_corner.block + row_baseline;
-                    if row_index == 0 {
-                        baselines.first = Some(baseline);
-                    }
-                    baselines.last = Some(baseline);
-                }
+            let row_fragment = Fragment::Box(row_fragment_layout.finish(
+                layout_context,
+                positioning_context,
+                containing_block_for_children,
+                &mut row_group_fragment_layout,
+            ));
 
-                let mut fragment =
-                    cell.create_fragment(layout, cell_rect, row_baseline, positioning_context);
-
-                let column = self.table.columns.get(column_index);
-                let column_group = column
-                    .and_then(|column| column.group_index)
-                    .and_then(|index| self.table.column_groups.get(index));
-                if let Some(column_group) = column_group {
-                    fragment.add_extra_background(ExtraBackground {
-                        style: column_group.style.clone(),
-                        rect: dimensions.get_column_group_rect(column_group),
-                    })
-                }
-
-                if let Some(column) = column {
-                    if !column.is_anonymous {
-                        fragment.add_extra_background(ExtraBackground {
-                            style: column.style.clone(),
-                            rect: dimensions.get_column_rect(column_index),
-                        })
-                    }
-                }
-
-                let row = self.table.rows.get(row_index);
-                let row_group = row
-                    .and_then(|row| row.group_index)
-                    .and_then(|index| self.table.row_groups.get(index));
-                if let Some(row_group) = row_group {
-                    fragment.add_extra_background(ExtraBackground {
-                        style: row_group.style.clone(),
-                        rect: dimensions.get_row_group_rect(row_group),
-                    })
-                }
-
-                if let Some(row) = row {
-                    fragment.add_extra_background(ExtraBackground {
-                        style: row.style.clone(),
-                        rect: dimensions.get_row_rect(row_index),
-                    })
-                }
-
-                fragments.push(Fragment::Box(fragment));
+            match row_group_fragment_layout.as_mut() {
+                Some(layout) => layout.fragments.push(row_fragment),
+                None => table_fragments.push(row_fragment),
             }
         }
 
-        if self.table.anonymous {
-            baselines.first = None;
-            baselines.last = None;
+        if let Some(row_group_layout) = row_group_fragment_layout.take() {
+            table_fragments.push(Fragment::Box(row_group_layout.finish(
+                layout_context,
+                positioning_context,
+                containing_block_for_children,
+            )));
         }
 
         IndependentLayout {
-            fragments,
-            content_block_size: dimensions.table_rect.max_block_position(),
-            content_inline_size_for_table: Some(dimensions.table_rect.max_inline_position()),
+            fragments: table_fragments,
+            content_block_size: table_and_track_dimensions.table_rect.max_block_position(),
+            content_inline_size_for_table: Some(
+                table_and_track_dimensions.table_rect.max_inline_position(),
+            ),
             baselines,
         }
     }
 
-    fn make_fragments_for_columns_rows_and_groups(
+    fn do_final_cell_layout(
+        &mut self,
+        row_index: usize,
+        column_index: usize,
+        dimensions: &TableAndTrackDimensions,
+        row_rect: &LogicalRect<Au>,
+        positioning_context: &mut PositioningContext,
+        baselines: &mut Baselines,
+        cell_fragments: &mut Vec<Fragment>,
+    ) {
+        let layout = match self.cells_laid_out[row_index][column_index].take() {
+            Some(layout) => layout,
+            None => {
+                return;
+            },
+        };
+        let cell = match self.table.slots[row_index][column_index] {
+            TableSlot::Cell(ref cell) => cell,
+            _ => {
+                warn!("Did not find a non-spanned cell at index with layout.");
+                return;
+            },
+        };
+
+        let row_block_offset = row_rect.start_corner.block;
+        let row_baseline = self.row_baselines[row_index];
+        if cell.effective_vertical_align() == VerticalAlignKeyword::Baseline {
+            let baseline = row_block_offset + row_baseline;
+            if row_index == 0 {
+                baselines.first = Some(baseline);
+            }
+            baselines.last = Some(baseline);
+        }
+        let mut row_relative_cell_rect = dimensions.get_cell_rect(
+            TableSlotCoordinates::new(column_index, row_index),
+            cell.rowspan,
+            cell.colspan,
+        );
+        row_relative_cell_rect.start_corner =
+            &row_relative_cell_rect.start_corner - &row_rect.start_corner;
+        let mut fragment = cell.create_fragment(
+            layout,
+            row_relative_cell_rect,
+            row_baseline,
+            positioning_context,
+        );
+        let column = self.table.columns.get(column_index);
+        let column_group = column
+            .and_then(|column| column.group_index)
+            .and_then(|index| self.table.column_groups.get(index));
+        if let Some(column_group) = column_group {
+            let mut rect = dimensions.get_column_group_rect(column_group);
+            rect.start_corner -= row_rect.start_corner;
+            fragment.add_extra_background(ExtraBackground {
+                style: column_group.style.clone(),
+                rect,
+            })
+        }
+        if let Some(column) = column {
+            if !column.is_anonymous {
+                let mut rect = dimensions.get_column_rect(column_index);
+                rect.start_corner -= row_rect.start_corner;
+                fragment.add_extra_background(ExtraBackground {
+                    style: column.style.clone(),
+                    rect,
+                })
+            }
+        }
+        let row = self.table.rows.get(row_index);
+        let row_group = row
+            .and_then(|row| row.group_index)
+            .and_then(|index| self.table.row_groups.get(index));
+        if let Some(row_group) = row_group {
+            let mut rect = dimensions.get_row_group_rect(row_group);
+            rect.start_corner -= row_rect.start_corner;
+            fragment.add_extra_background(ExtraBackground {
+                style: row_group.style.clone(),
+                rect,
+            })
+        }
+        if let Some(row) = row {
+            let mut rect = row_rect.clone();
+            rect.start_corner = LogicalVec2::zero();
+            fragment.add_extra_background(ExtraBackground {
+                style: row.style.clone(),
+                rect,
+            })
+        }
+        cell_fragments.push(Fragment::Box(fragment));
+
+        // If this cell has baseline alignment, it can adjust the table's overall baseline.
+    }
+
+    fn make_fragments_for_columns_and_column_groups(
         &mut self,
         dimensions: &TableAndTrackDimensions,
         fragments: &mut Vec<Fragment>,
@@ -1540,27 +1649,129 @@ impl<'a> TableLayout<'a> {
                 column.style.clone(),
             )));
         }
-
-        for row_group in self.table.row_groups.iter() {
-            if !row_group.is_empty() {
-                fragments.push(Fragment::Positioning(PositioningFragment::new_empty(
-                    row_group.base_fragment_info,
-                    dimensions.get_row_group_rect(row_group).into(),
-                    row_group.style.clone(),
-                )));
-            }
-        }
-
-        for (row_index, row) in self.table.rows.iter().enumerate() {
-            fragments.push(Fragment::Positioning(PositioningFragment::new_empty(
-                row.base_fragment_info,
-                dimensions.get_row_rect(row_index).into(),
-                row.style.clone(),
-            )));
-        }
     }
 }
 
+struct RowFragmentLayout<'a> {
+    row: &'a TableTrack,
+    rect: LogicalRect<Au>,
+    positioning_context: Option<PositioningContext>,
+    fragments: Vec<Fragment>,
+}
+
+impl<'a> RowFragmentLayout<'a> {
+    fn new(table_row: &'a TableTrack, index: usize, dimensions: &TableAndTrackDimensions) -> Self {
+        Self {
+            row: table_row,
+            rect: dimensions.get_row_rect(index),
+            positioning_context: PositioningContext::new_for_style(&table_row.style),
+            fragments: Vec::new(),
+        }
+    }
+    fn finish(
+        mut self,
+        layout_context: &LayoutContext,
+        table_positioning_context: &mut PositioningContext,
+        containing_block: &ContainingBlock,
+        row_group_fragment_layout: &mut Option<RowGroupFragmentLayout>,
+    ) -> BoxFragment {
+        let mut row_rect: LogicalRect<Length> = self.rect.into();
+        if self.positioning_context.is_some() {
+            row_rect.start_corner += relative_adjustement(&self.row.style, containing_block);
+        }
+
+        if let Some(ref row_group_layout) = row_group_fragment_layout {
+            let row_group_start_corner: LogicalVec2<Length> =
+                row_group_layout.rect.start_corner.into();
+            row_rect.start_corner -= row_group_start_corner;
+        }
+
+        let mut row_fragment = BoxFragment::new(
+            self.row.base_fragment_info,
+            self.row.style.clone(),
+            self.fragments,
+            row_rect,
+            LogicalSides::zero(), /* padding */
+            LogicalSides::zero(), /* border */
+            LogicalSides::zero(), /* margin */
+            None,                 /* clearance */
+            CollapsedBlockMargins::zero(),
+        );
+        row_fragment.set_does_not_paint_background();
+
+        if let Some(mut row_positioning_context) = self.positioning_context.take() {
+            row_positioning_context.layout_collected_children(layout_context, &mut row_fragment);
+
+            let positioning_context = row_group_fragment_layout
+                .as_mut()
+                .and_then(|layout| layout.positioning_context.as_mut())
+                .unwrap_or(table_positioning_context);
+            positioning_context.append(row_positioning_context);
+        }
+
+        row_fragment
+    }
+}
+
+struct RowGroupFragmentLayout {
+    base_fragment_info: BaseFragmentInfo,
+    style: Arc<ComputedValues>,
+    rect: LogicalRect<Au>,
+    positioning_context: Option<PositioningContext>,
+    index: usize,
+    fragments: Vec<Fragment>,
+}
+
+impl RowGroupFragmentLayout {
+    fn new(
+        row_group: &TableTrackGroup,
+        index: usize,
+        dimensions: &TableAndTrackDimensions,
+    ) -> Self {
+        let rect = dimensions.get_row_group_rect(row_group);
+        Self {
+            base_fragment_info: row_group.base_fragment_info,
+            style: row_group.style.clone(),
+            rect,
+            positioning_context: PositioningContext::new_for_style(&row_group.style),
+            index,
+            fragments: Vec::new(),
+        }
+    }
+
+    fn finish(
+        mut self,
+        layout_context: &LayoutContext,
+        table_positioning_context: &mut PositioningContext,
+        containing_block: &ContainingBlock,
+    ) -> BoxFragment {
+        let mut content_rect: LogicalRect<Length> = self.rect.into();
+        if self.positioning_context.is_some() {
+            content_rect.start_corner += relative_adjustement(&self.style, containing_block);
+        }
+
+        let mut row_group_fragment = BoxFragment::new(
+            self.base_fragment_info,
+            self.style,
+            self.fragments,
+            content_rect,
+            LogicalSides::zero(), /* padding */
+            LogicalSides::zero(), /* border */
+            LogicalSides::zero(), /* margin */
+            None,                 /* clearance */
+            CollapsedBlockMargins::zero(),
+        );
+        row_group_fragment.set_does_not_paint_background();
+
+        if let Some(mut row_positioning_context) = self.positioning_context.take() {
+            row_positioning_context
+                .layout_collected_children(layout_context, &mut row_group_fragment);
+            table_positioning_context.append(row_positioning_context);
+        }
+
+        row_group_fragment
+    }
+}
 struct TableAndTrackDimensions {
     /// The rect of the full table, not counting for borders, padding, and margin.
     table_rect: LogicalRect<Au>,

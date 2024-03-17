@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::Size2D;
-use script_traits::compositor::{ScrollTree, ScrollTreeNodeId, ScrollableNodeInfo};
+use script_traits::compositor::{
+    ScrollSensitivity, ScrollTree, ScrollTreeNodeId, ScrollableNodeInfo,
+};
 use webrender_api::units::LayoutVector2D;
-use webrender_api::{ExternalScrollId, PipelineId, ScrollLocation, ScrollSensitivity, SpatialId};
+use webrender_api::{ExternalScrollId, PipelineId, ScrollLocation, SpatialId};
 
 fn add_mock_scroll_node(tree: &mut ScrollTree) -> ScrollTreeNodeId {
     let pipeline_id = PipelineId(0, 0);

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp::Ordering;
 use std::ops::Range;
 use std::sync::Arc;
 use std::{fmt, ptr};
@@ -19,13 +20,13 @@ use core_text::font_descriptor::{
     kCTFontDefaultOrientation, SymbolicTraitAccessors, TraitAccessors,
 };
 use log::debug;
-use servo_atoms::Atom;
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 
 use crate::font::{
     FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, GPOS, GSUB,
     KERN,
 };
+use crate::font_cache_thread::FontIdentifier;
 use crate::platform::font_template::FontTemplateData;
 use crate::platform::macos::font_context::FontContextHandle;
 use crate::text::glyph::GlyphId;
@@ -52,7 +53,7 @@ fn au_from_pt(pt: f64) -> Au {
 
 impl FontTable {
     pub fn wrap(data: CFData) -> FontTable {
-        FontTable { data: data }
+        FontTable { data }
     }
 }
 
@@ -76,7 +77,7 @@ impl FontHandle {
     fn find_h_kern_subtable(&self) -> Option<CachedKernTable> {
         let font_table = self.table_for_tag(KERN)?;
         let mut result = CachedKernTable {
-            font_table: font_table,
+            font_table,
             pair_data_range: 0..0,
             px_per_font_unit: 0.0,
         };
@@ -101,7 +102,7 @@ impl FontHandle {
                 let end = start + len;
                 if cov == KERN_COVERAGE_HORIZONTAL_FORMAT_0 {
                     // Found a matching subtable.
-                    if result.pair_data_range.len() > 0 {
+                    if !result.pair_data_range.is_empty() {
                         debug!("Found multiple horizontal kern tables. Disable fast path.");
                         return None;
                     }
@@ -117,13 +118,13 @@ impl FontHandle {
                     }
 
                     let pt_per_font_unit =
-                        self.ctfont.pt_size() as f64 / self.ctfont.units_per_em() as f64;
+                        self.ctfont.pt_size() / self.ctfont.units_per_em() as f64;
                     result.px_per_font_unit = pt_to_px(pt_per_font_unit);
                 }
                 start = end;
             }
         }
-        if result.pair_data_range.len() > 0 {
+        if !result.pair_data_range.is_empty() {
             Some(result)
         } else {
             None
@@ -147,12 +148,12 @@ impl CachedKernTable {
         while start < end {
             let i = (start + end) / 2;
             let key = BigEndian::read_u32(&pairs[i * KERN_PAIR_LEN..]);
-            if key > query {
-                end = i;
-            } else if key < query {
-                start = i + 1;
-            } else {
-                return Some(BigEndian::read_i16(&pairs[i * KERN_PAIR_LEN + 4..]));
+            match key.cmp(&query) {
+                Ordering::Less => start = i + 1,
+                Ordering::Equal => {
+                    return Some(BigEndian::read_i16(&pairs[i * KERN_PAIR_LEN + 4..]))
+                },
+                Ordering::Greater => end = i,
             }
         }
         None
@@ -170,7 +171,7 @@ impl FontHandleMethods for FontHandle {
         _fctx: &FontContextHandle,
         template: Arc<FontTemplateData>,
         pt_size: Option<Au>,
-    ) -> Result<FontHandle, ()> {
+    ) -> Result<FontHandle, &'static str> {
         let size = match pt_size {
             Some(s) => s.to_f64_px(),
             None => 0.0,
@@ -190,7 +191,7 @@ impl FontHandleMethods for FontHandle {
                     handle.table_for_tag(GSUB).is_none();
                 Ok(handle)
             },
-            None => Err(()),
+            None => Err("Could not generate CTFont for FontTemplateData"),
         }
     }
 
@@ -247,7 +248,7 @@ impl FontHandleMethods for FontHandle {
             return None;
         }
 
-        return Some(glyphs[0] as GlyphId);
+        Some(glyphs[0] as GlyphId)
     }
 
     fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
@@ -278,43 +279,43 @@ impl FontHandleMethods for FontHandle {
 
     fn metrics(&self) -> FontMetrics {
         let bounding_rect: CGRect = self.ctfont.bounding_box();
-        let ascent = self.ctfont.ascent() as f64;
-        let descent = self.ctfont.descent() as f64;
-        let em_size = Au::from_f64_px(self.ctfont.pt_size() as f64);
-        let leading = self.ctfont.leading() as f64;
+        let ascent = self.ctfont.ascent();
+        let descent = self.ctfont.descent();
+        let em_size = Au::from_f64_px(self.ctfont.pt_size());
+        let leading = self.ctfont.leading();
 
-        let scale = px_to_pt(self.ctfont.pt_size() as f64) / (ascent + descent);
+        let scale = px_to_pt(self.ctfont.pt_size()) / (ascent + descent);
         let line_gap = (ascent + descent + leading + 0.5).floor();
 
-        let max_advance_width = au_from_pt(bounding_rect.size.width as f64);
+        let max_advance = au_from_pt(bounding_rect.size.width);
         let average_advance = self
             .glyph_index('0')
             .and_then(|idx| self.glyph_h_advance(idx))
             .map(Au::from_f64_px)
-            .unwrap_or(max_advance_width);
+            .unwrap_or(max_advance);
 
         let metrics = FontMetrics {
-            underline_size: au_from_pt(self.ctfont.underline_thickness() as f64),
+            underline_size: au_from_pt(self.ctfont.underline_thickness()),
             // TODO(Issue #201): underline metrics are not reliable. Have to pull out of font table
             // directly.
             //
             // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
             // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
-            underline_offset: au_from_pt(self.ctfont.underline_position() as f64),
+            underline_offset: au_from_pt(self.ctfont.underline_position()),
             strikeout_size: Au(0),   // FIXME(Issue #942)
             strikeout_offset: Au(0), // FIXME(Issue #942)
             leading: au_from_pt(leading),
-            x_height: au_from_pt((self.ctfont.x_height() as f64) * scale),
-            em_size: em_size,
+            x_height: au_from_pt(self.ctfont.x_height() * scale),
+            em_size,
             ascent: au_from_pt(ascent * scale),
             descent: au_from_pt(descent * scale),
-            max_advance: max_advance_width,
-            average_advance: average_advance,
+            max_advance,
+            average_advance,
             line_gap: Au::from_f64_px(line_gap),
         };
         debug!(
             "Font metrics (@{} pt): {:?}",
-            self.ctfont.pt_size() as f64,
+            self.ctfont.pt_size(),
             metrics
         );
         metrics
@@ -322,10 +323,10 @@ impl FontHandleMethods for FontHandle {
 
     fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result: Option<CFData> = self.ctfont.get_font_table(tag);
-        result.and_then(|data| Some(FontTable::wrap(data)))
+        result.map(FontTable::wrap)
     }
 
-    fn identifier(&self) -> Atom {
-        self.font_data.identifier.clone()
+    fn identifier(&self) -> &FontIdentifier {
+        &self.font_data.identifier
     }
 }

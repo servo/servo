@@ -33,11 +33,12 @@
     }
 
     if (declarations) {
-      let cssText = div.style.cssText;
+      let cssTextSerialization = div.style.cssText;
       declarations.forEach(decl => {
         test(function(){
-          assert_true(cssText.indexOf(decl) !== -1, `cssText ('${cssText}') must contain '${decl}'`);
-        }, `cssText ('${cssText}') must contain '${decl}'`);
+          assert_true(cssTextSerialization.indexOf(decl) !== -1,
+                      `cssText serialization ('${cssTextSerialization}') must contain contain '${decl}'`);
+        }, `cssText ('${cssText}') must contain '${decl}' in its serialization`);
       });
     }
   }

@@ -17,6 +17,10 @@ namespace console {
   undefined assert(boolean condition, optional any message);
   undefined clear();
 
+  // Counting
+  undefined count(optional DOMString label = "default");
+  undefined countReset(optional DOMString label = "default");
+
   // Grouping
   undefined group(any... data);
   undefined groupCollapsed(any... data);

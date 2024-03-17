@@ -4,7 +4,7 @@
 
 use std::convert::From;
 use std::fmt;
-use std::ops::{Add, AddAssign, Sub};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use app_units::Au;
 use serde::Serialize;
@@ -26,7 +26,7 @@ pub type LengthOrAuto = AutoOr<Length>;
 pub type AuOrAuto = AutoOr<Au>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Copy, Serialize)]
 pub struct LogicalVec2<T> {
     pub inline: T,
     pub block: T,
@@ -114,6 +114,34 @@ where
     fn add_assign(&mut self, other: &'_ LogicalVec2<T>) {
         self.inline += other.inline;
         self.block += other.block;
+    }
+}
+
+impl<T> AddAssign<LogicalVec2<T>> for LogicalVec2<T>
+where
+    T: AddAssign<T> + Copy,
+{
+    fn add_assign(&mut self, other: LogicalVec2<T>) {
+        self.add_assign(&other);
+    }
+}
+
+impl<T> SubAssign<&'_ LogicalVec2<T>> for LogicalVec2<T>
+where
+    T: SubAssign<T> + Copy,
+{
+    fn sub_assign(&mut self, other: &'_ LogicalVec2<T>) {
+        self.inline -= other.inline;
+        self.block -= other.block;
+    }
+}
+
+impl<T> SubAssign<LogicalVec2<T>> for LogicalVec2<T>
+where
+    T: SubAssign<T> + Copy,
+{
+    fn sub_assign(&mut self, other: LogicalVec2<T>) {
+        self.sub_assign(&other);
     }
 }
 
@@ -496,4 +524,18 @@ impl From<LogicalRect<CSSPixelLength>> for LogicalRect<Au> {
             size: value.size.into(),
         }
     }
+}
+
+/// Convert a `PhysicalRect<Length>` (one that uses CSSPixel as the unit) to an untyped `Rect<Au>`.
+pub fn physical_rect_to_au_rect(rect: PhysicalRect<Length>) -> euclid::default::Rect<Au> {
+    euclid::default::Rect::new(
+        euclid::default::Point2D::new(
+            Au::from_f32_px(rect.origin.x.px()),
+            Au::from_f32_px(rect.origin.y.px()),
+        ),
+        euclid::default::Size2D::new(
+            Au::from_f32_px(rect.size.width.px()),
+            Au::from_f32_px(rect.size.height.px()),
+        ),
+    )
 }

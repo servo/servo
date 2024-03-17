@@ -482,11 +482,11 @@ impl<'a> GlyphStore {
 
     pub fn finalize_changes(&mut self) {
         self.detail_store.ensure_sorted();
-        self.cache_total_advance_and_word_seperators()
+        self.cache_total_advance_and_word_separators()
     }
 
     #[inline(never)]
-    fn cache_total_advance_and_word_seperators(&mut self) {
+    fn cache_total_advance_and_word_separators(&mut self) {
         let mut total_advance = Au(0);
         let mut total_word_separators = 0;
         for glyph in self.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), self.len())) {

@@ -11,7 +11,7 @@
     obj.platform = navigator.userAgentData.platform;
     const highEntropyValues = await navigator.userAgentData.getHighEntropyValues([
       "architecture", "bitness", "fullVersionList", "model",
-      "platformVersion", "uaFullVersion", "wow64", "formFactor",
+      "platformVersion", "uaFullVersion", "wow64", "formFactors",
     ]);
     obj.architecture = highEntropyValues.architecture;
     obj.bitness = highEntropyValues.bitness;
@@ -20,7 +20,7 @@
     obj.platformVersion = highEntropyValues.platformVersion;
     obj.uaFullVersion = highEntropyValues.uaFullVersion;
     obj.wow64 = highEntropyValues.wow64;
-    obj.formFactor = highEntropyValues.formFactor;
+    obj.formFactors = highEntropyValues.formFactors;
     obj.NavigatorUADataExposed = (typeof self.NavigatorUAData != "undefined");
   }
   postMessage(obj);

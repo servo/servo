@@ -24,6 +24,7 @@ use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use unicode_script::Script;
 use webrender_api::FontInstanceKey;
 
+use crate::font_cache_thread::FontIdentifier;
 use crate::font_context::{FontContext, FontSource};
 use crate::font_template::FontTemplateDescriptor;
 use crate::platform::font::{FontHandle, FontTable};
@@ -58,7 +59,7 @@ pub trait FontHandleMethods: Sized {
         fctx: &FontContextHandle,
         template: Arc<FontTemplateData>,
         pt_size: Option<Au>,
-    ) -> Result<Self, ()>;
+    ) -> Result<Self, &'static str>;
 
     fn template(&self) -> Arc<FontTemplateData>;
     fn family_name(&self) -> Option<String>;
@@ -78,7 +79,7 @@ pub trait FontHandleMethods: Sized {
     fn table_for_tag(&self, _: FontTableTag) -> Option<FontTable>;
 
     /// A unique identifier for the font, allowing comparison.
-    fn identifier(&self) -> Atom;
+    fn identifier(&self) -> &FontIdentifier;
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -202,7 +203,7 @@ impl Font {
     }
 
     /// A unique identifier for the font, allowing comparison.
-    pub fn identifier(&self) -> Atom {
+    pub fn identifier(&self) -> &FontIdentifier {
         self.handle.identifier()
     }
 }

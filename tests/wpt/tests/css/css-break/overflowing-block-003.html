@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="match" href="overflowing-block-003-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-break-3/#parallel-flows">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=563436">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+.multicol {
+  width: 150px;
+  height: 50px;
+  columns: 2;
+  column-gap: 0;
+  column-fill: auto;
+  border: 3px solid black;
+  margin: 10px;
+}
+.outer {
+  margin-right: 25px;
+}
+.inner {
+  background: green;
+  color: green;
+  font: 25px/1 Ahem;
+  word-break: break-all;
+}
+</style>
+
+<p>This test passes if there are two 50x50 green squares in each black box.</p>
+
+<div class="multicol">
+  <div class="outer">
+    <div class="inner" style="float: left">
+      AAAA BBBB
+    </div>
+  </div>
+</div>
+
+<div class="multicol">
+  <div class="outer" style="height: 0">
+    <div class="inner" style="height: 100px"></div>
+  </div>
+</div>

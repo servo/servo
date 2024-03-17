@@ -7,13 +7,13 @@ use std::io::Error as IoError;
 use std::sync::{Arc, Weak};
 
 use serde::{Deserialize, Serialize};
-use servo_atoms::Atom;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::FontWeight;
 
 use crate::font::FontHandleMethods;
+use crate::font_cache_thread::FontIdentifier;
 use crate::platform::font::FontHandle;
 use crate::platform::font_context::FontContextHandle;
 use crate::platform::font_template::FontTemplateData;
@@ -85,7 +85,7 @@ impl<'a> From<&'a FontStyleStruct> for FontTemplateDescriptor {
 /// font instance handles. It contains a unique
 /// FontTemplateData structure that is platform specific.
 pub struct FontTemplate {
-    identifier: Atom,
+    identifier: FontIdentifier,
     descriptor: Option<FontTemplateDescriptor>,
     weak_ref: Option<Weak<FontTemplateData>>,
     // GWTODO: Add code path to unset the strong_ref for web fonts!
@@ -103,7 +103,10 @@ impl Debug for FontTemplate {
 /// is common, regardless of the number of instances of
 /// this font handle per thread.
 impl FontTemplate {
-    pub fn new(identifier: Atom, maybe_bytes: Option<Vec<u8>>) -> Result<FontTemplate, IoError> {
+    pub fn new(
+        identifier: FontIdentifier,
+        maybe_bytes: Option<Vec<u8>>,
+    ) -> Result<FontTemplate, IoError> {
         let maybe_data = match maybe_bytes {
             Some(_) => Some(FontTemplateData::new(identifier.clone(), maybe_bytes)?),
             None => None,
@@ -122,7 +125,7 @@ impl FontTemplate {
         })
     }
 
-    pub fn identifier(&self) -> &Atom {
+    pub fn identifier(&self) -> &FontIdentifier {
         &self.identifier
     }
 
@@ -178,16 +181,15 @@ impl FontTemplate {
         })
     }
 
-    fn instantiate(&mut self, font_context: &FontContextHandle) -> Result<(), ()> {
+    fn instantiate(&mut self, font_context: &FontContextHandle) -> Result<(), &'static str> {
         if !self.is_valid {
-            return Err(());
+            return Err("Invalid font template");
         }
 
-        let data = self.data().map_err(|_| ())?;
-        let handle: Result<FontHandle, ()> =
-            FontHandleMethods::new_from_template(font_context, data, None);
+        let data = self.data().map_err(|_| "Could not get FontTemplate data")?;
+        let handle = FontHandleMethods::new_from_template(font_context, data, None);
         self.is_valid = handle.is_ok();
-        let handle = handle?;
+        let handle: FontHandle = handle?;
         self.descriptor = Some(FontTemplateDescriptor::new(
             handle.boldness(),
             handle.stretchiness(),

@@ -248,7 +248,7 @@ fn poll_with_read(reader: &mut dyn Read, buf: &mut BytesMut) -> Poll<Option<Resu
     };
 
     match read {
-        Ok(read) if read == 0 => Poll::Ready(None),
+        Ok(0) => Poll::Ready(None),
         Ok(read) => {
             unsafe { buf.advance_mut(read) };
             let chunk = buf.split_to(read).freeze();

@@ -140,19 +140,7 @@ impl App {
         let ev_waker = events_loop.create_event_loop_waker();
         events_loop.run_forever(move |event, w, control_flow| {
             let now = Instant::now();
-            match event {
-                // Uncomment to filter out logging of common events, which can be very noisy.
-                // winit::event::Event::DeviceEvent { .. } => {},
-                // winit::event::Event::WindowEvent {
-                //     event: WindowEvent::CursorMoved { .. },
-                //     ..
-                // } => {},
-                // winit::event::Event::MainEventsCleared => {},
-                // winit::event::Event::RedrawEventsCleared => {},
-                // winit::event::Event::UserEvent(..) => {},
-                // winit::event::Event::NewEvents(..) => {},
-                _ => trace!("@{:?} (+{:?}) {:?}", now - t_start, now - t, event),
-            }
+            trace_winit_event!(event, "@{:?} (+{:?}) {event:?}", now - t_start, now - t);
             t = now;
             match event {
                 winit::event::Event::NewEvents(winit::event::StartCause::Init) => {

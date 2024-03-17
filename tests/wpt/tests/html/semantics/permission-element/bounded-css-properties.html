@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!--The permission element should have some limits for specific properties:
+  * font-weight is adjusted to be at least 200.
+  * font-style should only have "normal" or "italic" values.
+-->
+<style>
+  #id1 {
+    font-weight: 100;
+    font-style: oblique 30deg;
+  }
+  #id2 {
+    font-weight: 300;
+    font-style: italic;
+  }
+</style>
+
+
+<permission id="id1" type="geolocation">
+<permission id="id2" type="camera">
+
+<script>
+  test(function(){
+    var el_outside_bounds = document.getElementById("id1");
+    assert_equals(getComputedStyle(el_outside_bounds).fontWeight, "200", "font-weight");
+    assert_equals(getComputedStyle(el_outside_bounds).fontStyle, "normal", "font-style");
+  }, "Properties with out-of-bounds values should be corrected");
+
+  test(function(){
+    var el_inside_bounds = document.getElementById("id2");
+    assert_equals(getComputedStyle(el_inside_bounds).fontWeight, "300", "font-weight");
+    assert_equals(getComputedStyle(el_inside_bounds).fontStyle, "italic", "font-style");
+  }, "Properties with values in bounds should not be modified");
+</script>
+</body>

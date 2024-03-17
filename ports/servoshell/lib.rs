@@ -9,6 +9,9 @@
 #[macro_use]
 extern crate sig;
 
+#[macro_use]
+mod tracing;
+
 #[cfg(test)]
 mod test;
 

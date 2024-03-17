@@ -20,6 +20,7 @@ interface DocumentPictureInPicture : EventTarget {
 dictionary DocumentPictureInPictureOptions {
   [EnforceRange] unsigned long long width = 0;
   [EnforceRange] unsigned long long height = 0;
+  boolean allowReturnToOpener = true;
 };
 
 [Exposed=Window, SecureContext]

@@ -37,7 +37,7 @@ class Item:
     def from_result(cls, result: dict, title: Optional[str] = None, print_stack=True):
         expected = result["expected"]
         actual = result["actual"]
-        title = title if title else result["path"]
+        title = title if title else f'`{result["path"]}`'
         if expected != actual:
             title = f"{actual} [expected {expected}] {title}"
         else:
@@ -51,12 +51,15 @@ class Item:
 
         stack = result["stack"] if result["stack"] and print_stack else ""
         body = f"{result['message']}\n{stack}".strip()
+        if body:
+            body = f"\n```\n{body}\n```\n"
 
         subtest_results = result.get("unexpected_subtest_results", [])
         children = [
             cls.from_result(
                 subtest_result,
-                f"subtest: {subtest_result['subtest']} {subtest_result.get('message', '')}",
+                f"subtest: `{subtest_result['subtest']}`"
+                + (f" \n```\n{subtest_result['message']}\n```\n" if subtest_result['message'] else ""),
                 False)
             for subtest_result in subtest_results
         ]
@@ -69,7 +72,7 @@ class Item:
                                       " " * len(indent + bullet))
         output += "\n".join([child.to_string("• ", indent + "  ")
                              for child in self.children])
-        return output.rstrip()
+        return output.rstrip().replace("`", "")
 
     def to_html(self, level: int = 0) -> ElementTree.Element:
         if level == 0:

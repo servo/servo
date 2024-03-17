@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>Tests that layout is updated on position-anchor value changes</title>
+<link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1/#position-anchor">
+<link rel="author" href="mailto:xiaochengh@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#target {
+  position: fixed;
+  width: 100px;
+  height: 100px;
+  background: lime;
+  top: anchor(top);
+  left: anchor(right);
+  position-anchor: --a;
+}
+
+#target.after {
+  position-anchor: --b;
+}
+
+#anchor1, #anchor2 {
+  width: 100px;
+  height: 100px;
+  background: orange;
+}
+
+#anchor1 {
+  anchor-name: --a;
+}
+
+#anchor2 {
+  margin-left: 100px;
+  anchor-name: --b;
+}
+
+body {
+  margin: 0;
+}
+</style>
+
+<div id="anchor1"></div>
+<div id="anchor2"></div>
+<div id="target"></div>
+
+<script>
+test(() => {
+  document.body.offsetLeft; // Force layout
+  target.classList.add('after');
+  // #target should be anchored to #anchor2 now
+  assert_equals(target.offsetLeft, 200);
+  assert_equals(target.offsetTop, 100);
+}, 'Layout is updated on `position-anchor` changes');
+</script>

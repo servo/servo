@@ -1174,7 +1174,7 @@ impl Document {
                     kind,
                     text,
                     multiline,
-                    DeviceIntRect::from_untyped(&rect),
+                    DeviceIntRect::from_untyped(&rect.to_box2d()),
                 ));
             }
         }

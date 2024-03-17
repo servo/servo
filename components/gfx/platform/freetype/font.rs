@@ -17,7 +17,6 @@ use freetype::freetype::{
 use freetype::succeeded;
 use freetype::tt_os2::TT_OS2;
 use log::debug;
-use servo_atoms::Atom;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
@@ -27,6 +26,7 @@ use crate::font::{
     FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, GPOS, GSUB,
     KERN,
 };
+use crate::font_cache_thread::FontIdentifier;
 use crate::platform::font_context::FontContextHandle;
 use crate::platform::font_template::FontTemplateData;
 use crate::text::glyph::GlyphId;
@@ -97,36 +97,39 @@ fn create_face(
     lib: FT_Library,
     template: &FontTemplateData,
     pt_size: Option<Au>,
-) -> Result<FT_Face, ()> {
+) -> Result<FT_Face, &'static str> {
     unsafe {
         let mut face: FT_Face = ptr::null_mut();
         let face_index = 0 as FT_Long;
 
-        let result = if let Some(ref bytes) = template.bytes {
-            FT_New_Memory_Face(
-                lib,
-                bytes.as_ptr(),
-                bytes.len() as FT_Long,
-                face_index,
-                &mut face,
-            )
-        } else {
-            // This will trigger a synchronous file read during layout, which we may want to
-            // revisit at some point. See discussion here:
-            //
-            // https://github.com/servo/servo/pull/20506#issuecomment-378838800
-
-            let filename =
-                CString::new(&*template.identifier).expect("filename contains NUL byte!");
-            FT_New_Face(lib, filename.as_ptr(), face_index, &mut face)
+        let result = match template.identifier {
+            FontIdentifier::Web(_) => {
+                let bytes = template.bytes();
+                FT_New_Memory_Face(
+                    lib,
+                    bytes.as_ptr(),
+                    bytes.len() as FT_Long,
+                    face_index,
+                    &mut face,
+                )
+            },
+            FontIdentifier::Local(ref local_identifier) => {
+                // This will trigger a synchronous file read during layout, which we may want to
+                // revisit at some point. See discussion here:
+                //
+                // https://github.com/servo/servo/pull/20506#issuecomment-378838800
+                let filename =
+                    CString::new(&*local_identifier.path).expect("filename contains NUL byte!");
+                FT_New_Face(lib, filename.as_ptr(), face_index, &mut face)
+            },
         };
 
         if !succeeded(result) || face.is_null() {
-            return Err(());
+            return Err("Could not create FreeType face");
         }
 
         if let Some(s) = pt_size {
-            FontHandle::set_char_size(face, s).or(Err(()))?
+            FontHandle::set_char_size(face, s)?
         }
 
         Ok(face)
@@ -138,10 +141,10 @@ impl FontHandleMethods for FontHandle {
         fctx: &FontContextHandle,
         template: Arc<FontTemplateData>,
         pt_size: Option<Au>,
-    ) -> Result<FontHandle, ()> {
+    ) -> Result<FontHandle, &'static str> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() {
-            return Err(());
+            return Err("Null FT_Library");
         }
 
         let face = create_face(ft_ctx, &template, pt_size)?;
@@ -361,13 +364,13 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    fn identifier(&self) -> Atom {
-        self.font_data.identifier.clone()
+    fn identifier(&self) -> &FontIdentifier {
+        &self.font_data.identifier
     }
 }
 
 impl<'a> FontHandle {
-    fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), ()> {
+    fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), &'static str> {
         let char_size = pt_size.to_f64_px() * 64.0 + 0.5;
 
         unsafe {
@@ -375,7 +378,7 @@ impl<'a> FontHandle {
             if succeeded(result) {
                 Ok(())
             } else {
-                Err(())
+                Err("FT_Set_Char_Size failed")
             }
         }
     }

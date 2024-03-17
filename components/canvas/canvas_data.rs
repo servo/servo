@@ -501,8 +501,7 @@ impl<'a> CanvasData<'a> {
                         .first(font_context)
                         .expect("couldn't find font");
                     let font = font.borrow_mut();
-                    let template = font.handle.template();
-                    Font::from_bytes(Arc::new(template.bytes()), 0)
+                    Font::from_bytes(font.handle.template().bytes(), 0)
                         .ok()
                         .or_else(|| load_system_font_from_style(Some(style)))
                 })

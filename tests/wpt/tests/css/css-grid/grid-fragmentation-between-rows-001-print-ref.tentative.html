@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<div style="height:40vh">
+  Test passes if there is two purple boxes on both page 1 and page 2 in print mode. (Ctrl+P, with "print backgrounds" enabled)
+</div>
+<div style="display:grid; grid-template-columns:1fr 1fr;">
+  <div style="contain:size; height:40vh;">
+    <div style="height:40vh; width: 20vw; background:purple;"></div>
+  </div>
+  <div style="contain:size; height:40vh;">
+    <div style="height:40vh; width: 20vw; background:purple;"></div>
+  </div>
+</div>
+<div style="display:grid; grid-template-columns:1fr 1fr; break-before:page;">
+  <div style="contain:size; height:40vh;">
+    <div style="height:40vh; width: 20vw; background:purple;"></div>
+  </div>
+  <div style="contain:size; height:40vh;">
+    <div style="height:40vh; width: 20vw; background:purple;"></div>
+  </div>
+</div>

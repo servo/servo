@@ -3,9 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use log::debug;
+use serde::{Deserialize, Serialize};
+use style::Atom;
 use ucd::{Codepoint, UnicodeBlock};
 
 use crate::text::util::unicode_plane;
+
+/// An identifier for a local font on a MacOS system. These values comes from the CoreText
+/// CTFontCollection. Note that `path` here is required. We do not load fonts that do not
+/// have paths.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct LocalFontIdentifier {
+    pub postscript_name: Atom,
+    pub path: Atom,
+}
 
 pub fn for_each_available_family<F>(mut callback: F)
 where
@@ -19,7 +30,7 @@ where
 
 pub fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
-    F: FnMut(String),
+    F: FnMut(LocalFontIdentifier),
 {
     debug!("Looking for faces of family: {}", family_name);
 
@@ -27,7 +38,15 @@ where
     if let Some(family_collection) = family_collection {
         if let Some(family_descriptors) = family_collection.get_descriptors() {
             for family_descriptor in family_descriptors.iter() {
-                callback(family_descriptor.font_name());
+                let path = family_descriptor.font_path();
+                let path = match path.as_ref().and_then(|path| path.to_str()) {
+                    Some(path) => path,
+                    None => continue,
+                };
+                callback(LocalFontIdentifier {
+                    postscript_name: Atom::from(family_descriptor.font_name()),
+                    path: Atom::from(path),
+                })
             }
         }
     }
@@ -194,4 +213,4 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
     families
 }
 
-pub static SANS_SERIF_FONT_FAMILY: &'static str = "Helvetica";
+pub static SANS_SERIF_FONT_FAMILY: &str = "Helvetica";

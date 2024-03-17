@@ -13,11 +13,12 @@ use app_units::Au;
 use gfx::font::{
     fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope,
 };
-use gfx::font_cache_thread::{FontTemplateInfo, FontTemplates};
+use gfx::font_cache_thread::{FontIdentifier, FontTemplateInfo, FontTemplates};
 use gfx::font_context::{FontContext, FontContextHandle, FontSource};
 use gfx::font_template::FontTemplateDescriptor;
 use servo_arc::Arc;
 use servo_atoms::Atom;
+use servo_url::ServoUrl;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
@@ -36,13 +37,13 @@ struct TestFontSource {
 impl TestFontSource {
     fn new() -> TestFontSource {
         let mut csstest_ascii = FontTemplates::default();
-        Self::add_face(&mut csstest_ascii, "csstest-ascii", None);
+        Self::add_face(&mut csstest_ascii, "csstest-ascii");
 
         let mut csstest_basic = FontTemplates::default();
-        Self::add_face(&mut csstest_basic, "csstest-basic-regular", None);
+        Self::add_face(&mut csstest_basic, "csstest-basic-regular");
 
         let mut fallback = FontTemplates::default();
-        Self::add_face(&mut fallback, "csstest-basic-regular", Some("fallback"));
+        Self::add_face(&mut fallback, "csstest-basic-regular");
 
         let mut families = HashMap::new();
         families.insert("CSSTest ASCII".to_owned(), csstest_ascii);
@@ -56,16 +57,25 @@ impl TestFontSource {
         }
     }
 
-    fn add_face(family: &mut FontTemplates, name: &str, identifier: Option<&str>) {
+    fn identifier_for_font_name(name: &str) -> FontIdentifier {
+        let mut path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "support", "CSSTest"]
+            .iter()
+            .collect();
+        path.push(format!("{}.ttf", name));
+        FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap())
+    }
+
+    fn add_face(family: &mut FontTemplates, name: &str) {
         let mut path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "support", "CSSTest"]
             .iter()
             .collect();
         path.push(format!("{}.ttf", name));
 
         let file = File::open(path).unwrap();
-        let identifier = Atom::from(identifier.unwrap_or(name));
-
-        family.add_template(identifier, Some(file.bytes().map(|b| b.unwrap()).collect()))
+        family.add_template(
+            Self::identifier_for_font_name(name),
+            Some(file.bytes().map(|b| b.unwrap()).collect()),
+        )
     }
 }
 
@@ -165,7 +175,10 @@ fn test_font_group_find_by_codepoint() {
         .borrow_mut()
         .find_by_codepoint(&mut context, 'a')
         .unwrap();
-    assert_eq!(&*font.borrow().identifier(), "csstest-ascii");
+    assert_eq!(
+        *font.borrow().identifier(),
+        TestFontSource::identifier_for_font_name("csstest-ascii")
+    );
     assert_eq!(
         count.get(),
         1,
@@ -176,7 +189,10 @@ fn test_font_group_find_by_codepoint() {
         .borrow_mut()
         .find_by_codepoint(&mut context, 'a')
         .unwrap();
-    assert_eq!(&*font.borrow().identifier(), "csstest-ascii");
+    assert_eq!(
+        *font.borrow().identifier(),
+        TestFontSource::identifier_for_font_name("csstest-ascii")
+    );
     assert_eq!(
         count.get(),
         1,
@@ -187,7 +203,10 @@ fn test_font_group_find_by_codepoint() {
         .borrow_mut()
         .find_by_codepoint(&mut context, 'á')
         .unwrap();
-    assert_eq!(&*font.borrow().identifier(), "csstest-basic-regular");
+    assert_eq!(
+        *font.borrow().identifier(),
+        TestFontSource::identifier_for_font_name("csstest-basic-regular")
+    );
     assert_eq!(count.get(), 2, "both fonts should now have been loaded");
 }
 
@@ -206,8 +225,8 @@ fn test_font_fallback() {
         .find_by_codepoint(&mut context, 'a')
         .unwrap();
     assert_eq!(
-        &*font.borrow().identifier(),
-        "csstest-ascii",
+        *font.borrow().identifier(),
+        TestFontSource::identifier_for_font_name("csstest-ascii"),
         "a family in the group should be used if there is a matching glyph"
     );
 
@@ -216,8 +235,8 @@ fn test_font_fallback() {
         .find_by_codepoint(&mut context, 'á')
         .unwrap();
     assert_eq!(
-        &*font.borrow().identifier(),
-        "fallback",
+        *font.borrow().identifier(),
+        TestFontSource::identifier_for_font_name("csstest-basic-regular"),
         "a fallback font should be used if there is no matching glyph in the group"
     );
 }

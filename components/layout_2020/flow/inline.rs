@@ -72,16 +72,18 @@ use std::cell::OnceCell;
 use std::mem;
 
 use app_units::Au;
+use bitflags::bitflags;
 use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use serde::Serialize;
 use servo_arc::Arc;
+use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space::T as WhiteSpace;
 use style::context::QuirksMode;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage};
-use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
+use style::values::computed::Length;
+use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::text::LineHeight;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::values::specified::{TextAlignLast, TextJustify};
@@ -173,7 +175,7 @@ struct LineUnderConstruction {
     /// offset from `text-indent`.
     start_position: LogicalVec2<Length>,
 
-    /// The current inline position in the line being laid out into [`LineItems`] in this
+    /// The current inline position in the line being laid out into [`LineItem`]s in this
     /// [`InlineFormattingContext`] independent of the depth in the nesting level.
     inline_position: Length,
 
@@ -187,7 +189,7 @@ struct LineUnderConstruction {
     has_content: bool,
 
     /// Whether or not there are floats that did not fit on the current line. Before
-    /// the [`LineItems`] of this line are laid out, these floats will need to be
+    /// the [`LineItem`]s of this line are laid out, these floats will need to be
     /// placed directly below this line, but still as children of this line's Fragments.
     has_floats_waiting_to_be_placed: bool,
 
@@ -604,7 +606,7 @@ pub(super) struct InlineFormattingContextState<'a, 'b> {
     /// of the inline box is the state popped from the stack.
     inline_box_state_stack: Vec<InlineBoxContainerState>,
 
-    /// A vector of fragment that are laid out. This includes one [`Fragment::Anonymous`]
+    /// A vector of fragment that are laid out. This includes one [`Fragment::Positioning`]
     /// per line that is currently laid out plus fragments for all floats, which
     /// are currently laid out at the top-level of each [`InlineFormattingContext`].
     fragments: Vec<Fragment>,
@@ -970,7 +972,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             match text_align {
                 TextAlign::Start => text_indent,
                 TextAlign::End => (available_space - line_length).max(text_indent),
-                TextAlign::Center => (available_space - line_length + text_indent) / 2.,
+                TextAlign::Center => {
+                    ((available_space - line_length + text_indent) / 2.).max(text_indent)
+                },
             };
 
         // Calculate the justification adjustment. This is simply the remaining space on the line,
@@ -1212,7 +1216,11 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .current_inline_container_state()
                 .strut_block_sizes
                 .clone();
-            self.update_unbreakable_segment_for_new_content(&strut_size, Length::zero(), false);
+            self.update_unbreakable_segment_for_new_content(
+                &strut_size,
+                Length::zero(),
+                SegmentContentFlags::empty(),
+            );
         }
 
         self.had_inflow_content = true;
@@ -1240,12 +1248,11 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         font_index: usize,
     ) {
         let inline_advance = Length::from(glyph_store.total_advance());
-        let preserve_spaces = text_run
-            .parent_style
-            .get_inherited_text()
-            .white_space
-            .preserve_spaces();
-        let is_collapsible_whitespace = glyph_store.is_whitespace() && !preserve_spaces;
+        let flags = if glyph_store.is_whitespace() {
+            SegmentContentFlags::from(text_run.parent_style.get_inherited_text().white_space)
+        } else {
+            SegmentContentFlags::empty()
+        };
 
         // If the metrics of this font don't match the default font, we are likely using a fallback
         // font and need to adjust the line size to account for a potentially different font.
@@ -1259,10 +1266,15 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let strut_size = if using_fallback_font {
             // TODO(mrobinson): This value should probably be cached somewhere.
             let container_state = self.current_inline_container_state();
-            let mut block_size = container_state.get_block_size_contribution(&font_metrics);
+            let vertical_align = effective_vertical_align(
+                &container_state.style,
+                self.inline_box_state_stack.last().map(|c| &c.base),
+            );
+            let mut block_size =
+                container_state.get_block_size_contribution(vertical_align, &font_metrics);
             block_size.adjust_for_baseline_offset(container_state.baseline_offset);
             block_size
-        } else if quirks_mode && !is_collapsible_whitespace {
+        } else if quirks_mode && !flags.is_collapsible_whitespace() {
             // Normally, the strut is incorporated into the nested block size. In quirks mode though
             // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
             // TODO(mrobinson): This isn't quite right for situations where collapsible white space
@@ -1273,11 +1285,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         } else {
             LineBlockSizes::zero()
         };
-        self.update_unbreakable_segment_for_new_content(
-            &strut_size,
-            inline_advance,
-            is_collapsible_whitespace,
-        );
+        self.update_unbreakable_segment_for_new_content(&strut_size, inline_advance, flags);
 
         match self.current_line_segment.line_items.last_mut() {
             Some(LineItem::TextRun(line_item)) if ifc_font_info.key == line_item.font_key => {
@@ -1301,14 +1309,16 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         &mut self,
         block_sizes_of_content: &LineBlockSizes,
         inline_size: Length,
-        is_collapsible_whitespace: bool,
+        flags: SegmentContentFlags,
     ) {
-        if !is_collapsible_whitespace {
+        if flags.is_collapsible_whitespace() || flags.is_wrappable_whitespace() {
+            self.current_line_segment.trailing_whitespace_size = inline_size;
+        } else {
             self.current_line_segment.trailing_whitespace_size = Length::zero();
+        }
+        if !flags.is_collapsible_whitespace() {
             self.current_line_segment.has_content = true;
             self.had_inflow_content = true;
-        } else {
-            self.current_line_segment.trailing_whitespace_size = inline_size;
         }
 
         // This may or may not include the size of the strut depending on the quirks mode setting.
@@ -1431,6 +1441,36 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         self.current_line.has_content |= self.current_line_segment.has_content;
 
         self.current_line_segment.reset();
+    }
+}
+
+bitflags! {
+    pub struct SegmentContentFlags: u8 {
+        const COLLAPSIBLE_WHITESPACE = 0b00000001;
+        const WRAPPABLE_WHITESPACE = 0b00000010;
+    }
+}
+
+impl SegmentContentFlags {
+    fn is_collapsible_whitespace(&self) -> bool {
+        self.contains(Self::COLLAPSIBLE_WHITESPACE)
+    }
+
+    fn is_wrappable_whitespace(&self) -> bool {
+        self.contains(Self::WRAPPABLE_WHITESPACE)
+    }
+}
+
+impl From<WhiteSpace> for SegmentContentFlags {
+    fn from(white_space: WhiteSpace) -> Self {
+        let mut flags = Self::empty();
+        if !white_space.preserve_spaces() {
+            flags.insert(Self::COLLAPSIBLE_WHITESPACE);
+        }
+        if white_space.allow_wrap() {
+            flags.insert(Self::WRAPPABLE_WHITESPACE);
+        }
+        flags
     }
 }
 
@@ -1725,13 +1765,17 @@ impl InlineContainerState {
         let line_height = line_height(&style, &font_metrics);
 
         let mut baseline_offset = Au::zero();
-        let mut strut_block_sizes =
-            Self::get_block_sizes_with_style(&style, &font_metrics, line_height);
+        let mut strut_block_sizes = Self::get_block_sizes_with_style(
+            effective_vertical_align(&style, parent_container),
+            &style,
+            &font_metrics,
+            line_height,
+        );
         if let Some(parent_container) = parent_container {
             // The baseline offset from `vertical-align` might adjust where our block size contribution is
             // within the line.
             baseline_offset = parent_container.get_cumulative_baseline_offset_for_child(
-                style.effective_vertical_align_for_inline_layout(),
+                style.clone_vertical_align(),
                 &strut_block_sizes,
             );
             strut_block_sizes.adjust_for_baseline_offset(baseline_offset);
@@ -1756,11 +1800,11 @@ impl InlineContainerState {
     }
 
     fn get_block_sizes_with_style(
+        vertical_align: VerticalAlign,
         style: &ComputedValues,
         font_metrics: &FontMetrics,
         line_height: Length,
     ) -> LineBlockSizes {
-        let vertical_align = style.effective_vertical_align_for_inline_layout();
         if !is_baseline_relative(vertical_align) {
             return LineBlockSizes {
                 line_height,
@@ -1820,8 +1864,13 @@ impl InlineContainerState {
         }
     }
 
-    fn get_block_size_contribution(&self, font_metrics: &FontMetrics) -> LineBlockSizes {
+    fn get_block_size_contribution(
+        &self,
+        vertical_align: VerticalAlign,
+        font_metrics: &FontMetrics,
+    ) -> LineBlockSizes {
         Self::get_block_sizes_with_style(
+            vertical_align,
             &self.style,
             font_metrics,
             line_height(&self.style, font_metrics),
@@ -1830,35 +1879,36 @@ impl InlineContainerState {
 
     fn get_cumulative_baseline_offset_for_child(
         &self,
-        child_vertical_align: GenericVerticalAlign<LengthPercentage>,
+        child_vertical_align: VerticalAlign,
         child_block_size: &LineBlockSizes,
     ) -> Au {
-        let block_size = self.get_block_size_contribution(&self.font_metrics);
+        let block_size =
+            self.get_block_size_contribution(child_vertical_align.clone(), &self.font_metrics);
         self.baseline_offset +
             match child_vertical_align {
                 // `top` and `bottom are not actually relative to the baseline, but this value is unused
                 // in those cases.
                 // TODO: We should distinguish these from `baseline` in order to implement "aligned subtrees" properly.
                 // See https://drafts.csswg.org/css2/#aligned-subtree.
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Baseline) |
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => Au::zero(),
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Sub) => Au::from_f32_px(
+                VerticalAlign::Keyword(VerticalAlignKeyword::Baseline) |
+                VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
+                VerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => Au::zero(),
+                VerticalAlign::Keyword(VerticalAlignKeyword::Sub) => Au::from_f32_px(
                     block_size
                         .resolve()
                         .scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
                         .px(),
                 ),
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Super) => -Au::from_f32_px(
+                VerticalAlign::Keyword(VerticalAlignKeyword::Super) => -Au::from_f32_px(
                     block_size
                         .resolve()
                         .scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO)
                         .px(),
                 ),
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::TextTop) => {
+                VerticalAlign::Keyword(VerticalAlignKeyword::TextTop) => {
                     child_block_size.size_for_baseline_positioning.ascent - self.font_metrics.ascent
                 },
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::Middle) => {
+                VerticalAlign::Keyword(VerticalAlignKeyword::Middle) => {
                     // "Align the vertical midpoint of the box with the baseline of the parent
                     // box plus half the x-height of the parent."
                     (child_block_size.size_for_baseline_positioning.ascent -
@@ -1866,11 +1916,11 @@ impl InlineContainerState {
                         self.font_metrics.x_height)
                         .scale_by(0.5)
                 },
-                GenericVerticalAlign::Keyword(VerticalAlignKeyword::TextBottom) => {
+                VerticalAlign::Keyword(VerticalAlignKeyword::TextBottom) => {
                     self.font_metrics.descent -
                         child_block_size.size_for_baseline_positioning.descent
                 },
-                GenericVerticalAlign::Length(length_percentage) => {
+                VerticalAlign::Length(length_percentage) => {
                     Au::from_f32_px(-length_percentage.resolve(child_block_size.line_height).px())
                 },
             }
@@ -2070,7 +2120,11 @@ impl IndependentFormattingContext {
 
         let (block_sizes, baseline_offset_in_parent) =
             self.get_block_sizes_and_baseline_offset(ifc, size.block, baseline_offset);
-        ifc.update_unbreakable_segment_for_new_content(&block_sizes, size.inline, false);
+        ifc.update_unbreakable_segment_for_new_content(
+            &block_sizes,
+            size.inline,
+            SegmentContentFlags::empty(),
+        );
         ifc.push_line_item_to_unbreakable_segment(LineItem::Atomic(AtomicLineItem {
             fragment,
             size,
@@ -2156,11 +2210,25 @@ fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Len
     }
 }
 
-fn is_baseline_relative(vertical_align: GenericVerticalAlign<LengthPercentage>) -> bool {
+fn effective_vertical_align(
+    style: &ComputedValues,
+    container: Option<&InlineContainerState>,
+) -> VerticalAlign {
+    if container.is_none() {
+        // If we are at the root of the inline formatting context, we shouldn't use the
+        // computed `vertical-align`, since it has no effect on the contents of this IFC
+        // (it can just affect how the block container is aligned within the parent IFC).
+        VerticalAlign::Keyword(VerticalAlignKeyword::Baseline)
+    } else {
+        style.clone_vertical_align()
+    }
+}
+
+fn is_baseline_relative(vertical_align: VerticalAlign) -> bool {
     !matches!(
         vertical_align,
-        GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
+        VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
+            VerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
     )
 }
 
@@ -2216,8 +2284,8 @@ struct ContentSizesComputation<'a> {
     current_line: ContentSizes,
     /// Size for whitepsace pending to be added to this line.
     pending_whitespace: Au,
-    /// Whether or not this IFC has seen any non-whitespace content.
-    had_non_whitespace_content_yet: bool,
+    /// Whether or not this IFC has seen any content, excluding collapsed whitespace.
+    had_content_yet: bool,
     /// Stack of ending padding, margin, and border to add to the length
     /// when an inline box finishes.
     ending_inline_pbm_stack: Vec<Length>,
@@ -2272,31 +2340,35 @@ impl<'a> ContentSizesComputation<'a> {
                     for run in segment.runs.iter() {
                         let advance = run.glyph_store.total_advance();
 
-                        if !run.glyph_store.is_whitespace() {
-                            self.had_non_whitespace_content_yet = true;
-                            self.current_line.min_content += advance;
-                            self.current_line.max_content += self.pending_whitespace + advance;
-                            self.pending_whitespace = Au::zero();
-                        } else {
+                        if run.glyph_store.is_whitespace() {
                             // If this run is a forced line break, we *must* break the line
                             // and start measuring from the inline origin once more.
-                            if text_run.glyph_run_is_whitespace_ending_with_preserved_newline(run) {
-                                self.had_non_whitespace_content_yet = true;
+                            if text_run.glyph_run_is_preserved_newline(run) {
+                                self.had_content_yet = true;
                                 self.forced_line_break();
                                 self.current_line = ContentSizes::zero();
                                 continue;
                             }
 
-                            // Discard any leading whitespace in the IFC. This will always be trimmed.
-                            if !self.had_non_whitespace_content_yet {
+                            let white_space =
+                                text_run.parent_style.get_inherited_text().white_space;
+                            // TODO: need to handle white_space.allow_wrap() too.
+                            if !white_space.preserve_spaces() {
+                                // Discard any leading whitespace in the IFC. This will always be trimmed.
+                                if self.had_content_yet {
+                                    // Wait to take into account other whitespace until we see more content.
+                                    // Whitespace at the end of the IFC will always be trimmed.
+                                    self.line_break_opportunity();
+                                    self.pending_whitespace += advance;
+                                }
                                 continue;
                             }
-
-                            // Wait to take into account other whitespace until we see more content.
-                            // Whitespace at the end of the IFC will always be trimmed.
-                            self.line_break_opportunity();
-                            self.pending_whitespace += advance;
                         }
+
+                        self.had_content_yet = true;
+                        self.current_line.min_content += advance;
+                        self.current_line.max_content += self.pending_whitespace + advance;
+                        self.pending_whitespace = Au::zero();
                     }
                 }
             },
@@ -2309,7 +2381,7 @@ impl<'a> ContentSizesComputation<'a> {
                 self.current_line.min_content += self.pending_whitespace + outer.min_content;
                 self.current_line.max_content += self.pending_whitespace + outer.max_content;
                 self.pending_whitespace = Au::zero();
-                self.had_non_whitespace_content_yet = true;
+                self.had_content_yet = true;
             },
             _ => {},
         });
@@ -2348,7 +2420,7 @@ impl<'a> ContentSizesComputation<'a> {
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
             pending_whitespace: Au::zero(),
-            had_non_whitespace_content_yet: false,
+            had_content_yet: false,
             ending_inline_pbm_stack: Vec::new(),
         }
         .traverse(inline_formatting_context)

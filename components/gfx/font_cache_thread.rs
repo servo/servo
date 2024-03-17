@@ -28,7 +28,8 @@ use crate::font_context::FontSource;
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::font_context::FontContextHandle;
 use crate::platform::font_list::{
-    for_each_available_family, for_each_variation, system_default_family, SANS_SERIF_FONT_FAMILY,
+    for_each_available_family, for_each_variation, system_default_family, LocalFontIdentifier,
+    SANS_SERIF_FONT_FAMILY,
 };
 use crate::platform::font_template::FontTemplateData;
 
@@ -50,9 +51,15 @@ pub struct SerializedFontTemplateInfo {
     pub font_key: FontKey,
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum FontIdentifier {
+    Local(LocalFontIdentifier),
+    Web(ServoUrl),
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SerializedFontTemplate {
-    identifier: Atom,
+    identifier: FontIdentifier,
     bytes_receiver: ipc_channel::ipc::IpcBytesReceiver,
 }
 
@@ -110,7 +117,7 @@ impl FontTemplates {
         None
     }
 
-    pub fn add_template(&mut self, identifier: Atom, maybe_data: Option<Vec<u8>>) {
+    pub fn add_template(&mut self, identifier: FontIdentifier, maybe_data: Option<Vec<u8>>) {
         for template in &self.templates {
             if *template.identifier() == identifier {
                 return;
@@ -155,7 +162,7 @@ struct FontCache {
     font_context: FontContextHandle,
     core_resource_thread: CoreResourceThread,
     webrender_api: Box<dyn WebrenderApi>,
-    webrender_fonts: HashMap<Atom, FontKey>,
+    webrender_fonts: HashMap<FontIdentifier, FontKey>,
     font_instances: HashMap<(FontKey, Au), FontInstanceKey>,
 }
 
@@ -235,7 +242,7 @@ impl FontCache {
                 },
                 Command::AddDownloadedWebFont(family_name, url, bytes, result) => {
                     let templates = &mut self.web_families.get_mut(&family_name).unwrap();
-                    templates.add_template(Atom::from(url.to_string()), Some(bytes));
+                    templates.add_template(FontIdentifier::Web(url), Some(bytes));
                     drop(result.send(()));
                 },
                 Command::Ping => (),
@@ -346,9 +353,9 @@ impl FontCache {
                 let font_face_name = LowercaseString::new(&font.name);
                 let templates = &mut self.web_families.get_mut(&family_name).unwrap();
                 let mut found = false;
-                for_each_variation(&font_face_name, |path| {
+                for_each_variation(&font_face_name, |local_font_identifier| {
                     found = true;
-                    templates.add_template(Atom::from(&*path), None);
+                    templates.add_template(FontIdentifier::Local(local_font_identifier), None);
                 });
                 if found {
                     sender.send(()).unwrap();
@@ -389,8 +396,8 @@ impl FontCache {
             let s = self.local_families.get_mut(&family_name).unwrap();
 
             if s.templates.is_empty() {
-                for_each_variation(&family_name, |path| {
-                    s.add_template(Atom::from(&*path), None);
+                for_each_variation(&family_name, |local_font_identifier| {
+                    s.add_template(FontIdentifier::Local(local_font_identifier), None);
                 });
             }
 
@@ -430,9 +437,9 @@ impl FontCache {
             .entry(template.identifier.clone())
             .or_insert_with(|| {
                 let font = match (template.bytes_if_in_memory(), template.native_font()) {
-                    (Some(bytes), _) => FontData::Raw(bytes),
+                    (Some(bytes), _) => FontData::Raw((*bytes).clone()),
                     (None, Some(native_font)) => FontData::Native(native_font),
-                    (None, None) => FontData::Raw(template.bytes()),
+                    (None, None) => FontData::Raw((*template.bytes()).clone()),
                 };
                 webrender_api.add_font(font)
             });

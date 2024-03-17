@@ -198,7 +198,7 @@ def add_and_remove_iframe(bidi_session):
                 document.documentElement.lastElementChild.append(iframe);
                 return new Promise(resolve => iframe.onload = () => resolve(id));
             }""",
-            target={"context": context["context"]},
+            target=ContextTarget(context["context"]),
             await_promise=True)
         iframe_dom_id = resp["value"]
 
@@ -210,7 +210,7 @@ def add_and_remove_iframe(bidi_session):
 
         await bidi_session.script.evaluate(
             expression=f"document.getElementById('{iframe_dom_id}').remove()",
-            target={"context": context["context"]},
+            target=ContextTarget(context["context"]),
             await_promise=False)
 
         return frame_id

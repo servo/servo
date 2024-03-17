@@ -32,6 +32,7 @@ dictionary GenerateBidInterestGroup {
   USVString trustedBiddingSignalsURL;
   sequence<USVString> trustedBiddingSignalsKeys;
   DOMString trustedBiddingSignalsSlotSizeMode = "none";
+  long maxTrustedBiddingSignalsURLLength;
   any userBiddingSignals;
   sequence<AuctionAd> ads;
   sequence<AuctionAd> adComponents;
@@ -68,12 +69,14 @@ dictionary AuctionAdConfig {
   required USVString seller;
   required USVString decisionLogicURL;
   USVString trustedScoringSignalsURL;
+  long maxTrustedScoringSignalsURLLength;
   sequence<USVString> interestGroupBuyers;
   Promise<any> auctionSignals;
   record<DOMString, DOMString> requestedSize;
   sequence<record<DOMString, DOMString>> allSlotsRequestedSizes;
   Promise<any> sellerSignals;
   Promise<DOMString> directFromSellerSignalsHeaderAdSlot;
+  Promise<record<USVString, USVString>> deprecatedRenderURLReplacements;
   unsigned long long sellerTimeout;
   unsigned short sellerExperimentGroupId;
   USVString sellerCurrency;

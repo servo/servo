@@ -47,6 +47,11 @@ pub struct ShapedGlyphEntry {
 }
 
 impl ShapedGlyphData {
+    /// Create a new [`ShapedGlyphData`] from the given HarfBuzz buffer.
+    ///
+    /// # Safety
+    ///
+    /// Passing an invalid buffer pointer to this function results in undefined behavior.
     pub unsafe fn new(buffer: *mut hb_buffer_t) -> ShapedGlyphData {
         let mut glyph_count = 0;
         let glyph_infos = hb_buffer_get_glyph_infos(buffer, &mut glyph_count);

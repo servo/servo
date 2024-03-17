@@ -13,6 +13,8 @@ use fontconfig_sys::{
 };
 use libc::{c_char, c_int};
 use log::debug;
+use serde::{Deserialize, Serialize};
+use style::Atom;
 
 use super::c_str_to_string;
 use crate::text::util::is_cjk;
@@ -21,6 +23,15 @@ static FC_FAMILY: &[u8] = b"family\0";
 static FC_FILE: &[u8] = b"file\0";
 static FC_INDEX: &[u8] = b"index\0";
 static FC_FONTFORMAT: &[u8] = b"fontformat\0";
+
+/// An identifier for a local font on systems using Freetype.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct LocalFontIdentifier {
+    /// The path to the font.
+    pub path: Atom,
+    /// The variation index within the font.
+    pub variation_index: i32,
+}
 
 pub fn for_each_available_family<F>(mut callback: F)
 where
@@ -59,7 +70,7 @@ where
 
 pub fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
-    F: FnMut(String),
+    F: FnMut(LocalFontIdentifier),
 {
     debug!("getting variations for {}", family_name);
     unsafe {
@@ -84,31 +95,24 @@ where
         FcObjectSetAdd(object_set, FC_INDEX.as_ptr() as *mut c_char);
 
         let matches = FcFontSetList(config, font_set_array_ptr, 1, pattern, object_set);
-
         debug!("found {} variations", (*matches).nfont);
 
         for i in 0..((*matches).nfont as isize) {
             let font = (*matches).fonts.offset(i);
-            let mut file: *mut FcChar8 = ptr::null_mut();
-            let result = FcPatternGetString(*font, FC_FILE.as_ptr() as *mut c_char, 0, &mut file);
-            let file = if result == FcResultMatch {
-                c_str_to_string(file as *const c_char)
-            } else {
-                panic!();
-            };
+
+            let mut path: *mut FcChar8 = ptr::null_mut();
+            let result = FcPatternGetString(*font, FC_FILE.as_ptr() as *mut c_char, 0, &mut path);
+            assert_eq!(result, FcResultMatch);
+
             let mut index: libc::c_int = 0;
             let result =
                 FcPatternGetInteger(*font, FC_INDEX.as_ptr() as *mut c_char, 0, &mut index);
-            let index = if result == FcResultMatch {
-                index
-            } else {
-                panic!();
-            };
+            assert_eq!(result, FcResultMatch);
 
-            debug!("variation file: {}", file);
-            debug!("variation index: {}", index);
-
-            callback(file);
+            callback(LocalFontIdentifier {
+                path: Atom::from(c_str_to_string(path as *const c_char)),
+                variation_index: index as i32,
+            });
         }
 
         FcFontSetDestroy(matches);
@@ -162,6 +166,16 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
             families.push("Droid Sans Fallback");
             families.push("WenQuanYi Micro Hei");
             families.push("NanumGothic");
+            families.push("Noto Sans CJK HK");
+            families.push("Noto Sans CJK JP");
+            families.push("Noto Sans CJK KR");
+            families.push("Noto Sans CJK SC");
+            families.push("Noto Sans CJK TC");
+            families.push("Noto Sans HK");
+            families.push("Noto Sans JP");
+            families.push("Noto Sans KR");
+            families.push("Noto Sans SC");
+            families.push("Noto Sans TC");
         }
     }
 

@@ -139,7 +139,7 @@ impl ToLayout for Point2D<Au> {
 impl ToLayout for Rect<Au> {
     type Type = wr::units::LayoutRect;
     fn to_layout(&self) -> Self::Type {
-        wr::units::LayoutRect::new(self.origin.to_layout(), self.size.to_layout())
+        wr::units::LayoutRect::from_origin_and_size(self.origin.to_layout(), self.size.to_layout())
     }
 }
 

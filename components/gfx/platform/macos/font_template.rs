@@ -2,34 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::ToOwned;
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt;
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::{Error as IoError, Read};
 use std::ops::Deref;
 use std::path::Path;
 use std::sync::{Arc, Mutex, RwLock};
 
 use app_units::Au;
-use core_foundation::array::CFArray;
-use core_foundation::base::{CFType, TCFType};
-use core_foundation::dictionary::CFDictionary;
-use core_foundation::string::CFString;
 use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::CGFont;
 use core_text::font::CTFont;
-use core_text::{font_collection, font_descriptor};
 use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use servo_atoms::Atom;
-use servo_url::ServoUrl;
 use webrender_api::NativeFontHandle;
 
-/// Platform specific font representation for mac.
-/// The identifier is a PostScript font name. The
-/// CTFont object is cached here for use by the
-/// paint functions that create CGFont references.
+use crate::font_cache_thread::FontIdentifier;
+
+/// Platform specific font representation for MacOS. CTFont object is cached here for use
+/// by the paint functions that create CGFont references.
 #[derive(Deserialize, Serialize)]
 pub struct FontTemplateData {
     // If you add members here, review the Debug impl below
@@ -41,8 +34,7 @@ pub struct FontTemplateData {
     /// the other side, because `CTFont` instances cannot be sent across processes. This is
     /// harmless, however, because it can always be recreated.
     ctfont: CachedCTFont,
-
-    pub identifier: Atom,
+    pub identifier: FontIdentifier,
     pub font_data: RwLock<Option<Arc<Vec<u8>>>>,
 }
 
@@ -68,10 +60,13 @@ unsafe impl Send for FontTemplateData {}
 unsafe impl Sync for FontTemplateData {}
 
 impl FontTemplateData {
-    pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> Result<FontTemplateData, IoError> {
+    pub fn new(
+        identifier: FontIdentifier,
+        font_data: Option<Vec<u8>>,
+    ) -> Result<FontTemplateData, IoError> {
         Ok(FontTemplateData {
             ctfont: CachedCTFont(Mutex::new(HashMap::new())),
-            identifier: identifier.to_owned(),
+            identifier,
             font_data: RwLock::new(font_data.map(Arc::new)),
         })
     }
@@ -79,111 +74,65 @@ impl FontTemplateData {
     /// Retrieves the Core Text font instance, instantiating it if necessary.
     pub fn ctfont(&self, pt_size: f64) -> Option<CTFont> {
         let mut ctfonts = self.ctfont.lock().unwrap();
-        let pt_size_key = Au::from_f64_px(pt_size);
-        if !ctfonts.contains_key(&pt_size_key) {
-            // If you pass a zero font size to one of the Core Text APIs, it'll replace it with
-            // 12.0. We don't want that! (Issue #10492.)
-            let clamped_pt_size = pt_size.max(0.01);
-            let mut font_data = self.font_data.write().unwrap();
-            let ctfont = match *font_data {
-                Some(ref bytes) => {
-                    let fontprov = CGDataProvider::from_buffer(bytes.clone());
-                    let cgfont_result = CGFont::from_data_provider(fontprov);
-                    match cgfont_result {
-                        Ok(cgfont) => {
-                            Some(core_text::font::new_from_CGFont(&cgfont, clamped_pt_size))
-                        },
-                        Err(_) => None,
-                    }
-                },
-                None => {
-                    // We can't rely on Core Text to load a font for us by postscript
-                    // name here, due to https://github.com/servo/servo/issues/23290.
-                    // The APIs will randomly load the wrong font, forcing us to use
-                    // the roundabout route of creating a Core Graphics font from a
-                    // a set of descriptors and then creating a Core Text font from
-                    // that one.
 
-                    let attributes: CFDictionary<CFString, CFType> =
-                        CFDictionary::from_CFType_pairs(&[(
-                            CFString::new("NSFontNameAttribute"),
-                            CFString::new(&*self.identifier).as_CFType(),
-                        )]);
-
-                    let descriptor = font_descriptor::new_from_attributes(&attributes);
-                    let descriptors = CFArray::from_CFTypes(&[descriptor]);
-                    let collection = font_collection::new_from_descriptors(&descriptors);
-                    collection.get_descriptors().and_then(|descriptors| {
-                        let descriptor = descriptors.get(0).unwrap();
-                        let font_path = Path::new(&descriptor.font_path().unwrap()).to_owned();
-                        fs::read(&font_path).ok().and_then(|bytes| {
-                            let font_bytes = Arc::new(bytes);
-                            let fontprov = CGDataProvider::from_buffer(font_bytes.clone());
-                            CGFont::from_data_provider(fontprov).ok().map(|cgfont| {
-                                *font_data = Some(font_bytes);
-                                core_text::font::new_from_CGFont(&cgfont, clamped_pt_size)
-                            })
-                        })
-                    })
-                },
-            };
-            if let Some(ctfont) = ctfont {
-                ctfonts.insert(pt_size_key, ctfont);
-            }
+        let entry = ctfonts.entry(Au::from_f64_px(pt_size));
+        match entry {
+            Entry::Occupied(entry) => return Some(entry.get().clone()),
+            Entry::Vacant(_) => {},
         }
-        ctfonts.get(&pt_size_key).map(|ctfont| (*ctfont).clone())
+
+        // If you pass a zero font size to one of the Core Text APIs, it'll replace it with
+        // 12.0. We don't want that! (Issue #10492.)
+        let clamped_pt_size = pt_size.max(0.01);
+
+        let provider = CGDataProvider::from_buffer(self.bytes());
+        let cgfont = CGFont::from_data_provider(provider).ok()?;
+        let ctfont = core_text::font::new_from_CGFont(&cgfont, clamped_pt_size);
+
+        // Cache the newly created CTFont font.
+        entry.or_insert(ctfont.clone());
+
+        Some(ctfont)
     }
 
-    /// Returns a clone of the data in this font. This may be a hugely expensive
+    /// Returns a reference to the data in this font. This may be a hugely expensive
     /// operation (depending on the platform) which performs synchronous disk I/O
     /// and should never be done lightly.
-    pub fn bytes(&self) -> Vec<u8> {
-        if let Some(font_data) = self.bytes_if_in_memory() {
-            return font_data;
-        }
-
-        // This is spooky action at a distance, but getting a CTFont from this template
-        // will (in the common case) bring the bytes into memory if they were not there
-        // already. This also helps work around intermittent panics like
-        // https://github.com/servo/servo/issues/24622 that occur for unclear reasons.
-        let ctfont = self.ctfont(0.0);
-        if let Some(font_data) = self.bytes_if_in_memory() {
-            return font_data;
-        }
-
-        let path = ServoUrl::parse(
-            &*ctfont
-                .expect("No Core Text font available!")
-                .url()
-                .expect("No URL for Core Text font!")
-                .get_string()
-                .to_string(),
-        )
-        .expect("Couldn't parse Core Text font URL!")
-        .to_file_path()
-        .expect("Core Text font didn't name a path!");
-        let mut bytes = Vec::new();
-        File::open(path)
-            .expect("Couldn't open font file!")
-            .read_to_end(&mut bytes)
-            .unwrap();
-        bytes
+    pub fn bytes(&self) -> Arc<Vec<u8>> {
+        self.font_data
+            .write()
+            .unwrap()
+            .get_or_insert_with(|| {
+                let path = match &self.identifier {
+                    FontIdentifier::Local(local) => local.path.clone(),
+                    FontIdentifier::Web(_) => unreachable!("Web fonts should always have data."),
+                };
+                let mut bytes = Vec::new();
+                File::open(Path::new(&*path))
+                    .expect("Couldn't open font file!")
+                    .read_to_end(&mut bytes)
+                    .unwrap();
+                Arc::new(bytes)
+            })
+            .clone()
     }
 
-    /// Returns a clone of the bytes in this font if they are in memory. This function never
-    /// performs disk I/O.
-    pub fn bytes_if_in_memory(&self) -> Option<Vec<u8>> {
-        self.font_data
-            .read()
-            .unwrap()
-            .as_ref()
-            .map(|bytes| (**bytes).clone())
+    /// Returns a reference to the bytes in this font if they are in memory.
+    /// This function never performs disk I/O.
+    pub fn bytes_if_in_memory(&self) -> Option<Arc<Vec<u8>>> {
+        self.font_data.read().unwrap().as_ref().cloned()
     }
 
     /// Returns the native font that underlies this font template, if applicable.
     pub fn native_font(&self) -> Option<NativeFontHandle> {
-        self.ctfont(0.0)
-            .map(|ctfont| NativeFontHandle(ctfont.copy_to_CGFont()))
+        let local_identifier = match &self.identifier {
+            FontIdentifier::Local(local_identifier) => local_identifier,
+            FontIdentifier::Web(_) => return None,
+        };
+        Some(NativeFontHandle {
+            name: local_identifier.postscript_name.to_string(),
+            path: local_identifier.path.to_string(),
+        })
     }
 }
 

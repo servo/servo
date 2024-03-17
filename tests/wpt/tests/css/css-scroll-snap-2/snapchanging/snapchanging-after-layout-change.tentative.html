@@ -102,7 +102,7 @@
 
       // assert snapchanging that should have already happened.
       await scroll_promise;
-      assertSnapEvent(snap_evt, [box2.id]);
+      assertSnapEvent(snap_evt, { block: null, inline: box2 });
 
       evt_promise = waitForSnapEvent(scroller, "snapchanging", false);
       // Change layout while pointer is still down.
@@ -111,7 +111,7 @@
       box2.style.left = box3_prev_left;
       box3.style.left = box2_prev_left;
       snap_evt = await evt_promise;
-      assertSnapEvent(snap_evt, [box3.id]);
+      assertSnapEvent(snap_evt, { block: null, inline: box3 });
     }, "snapchanging fires after layout change");
   </script>
 </body>

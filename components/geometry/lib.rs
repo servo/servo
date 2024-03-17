@@ -51,7 +51,7 @@ impl MaxRect for Rect<Au> {
 impl MaxRect for LayoutRect {
     #[inline]
     fn max_rect() -> LayoutRect {
-        LayoutRect::new(
+        LayoutRect::from_origin_and_size(
             LayoutPoint::new(f32::MIN / 2.0, f32::MIN / 2.0),
             LayoutSize::new(f32::MAX, f32::MAX),
         )
