@@ -1410,7 +1410,7 @@ if %(argc)s > %(index)s {
         return self.converter.define()
 
 
-def wrapForType(jsvalRef, result='result', successCode='return true;', pre=''):
+def wrapForType(jsvalRef, result='result', successCode='true', pre=''):
     """
     Reflect a Rust value into JS.
 
@@ -1851,6 +1851,8 @@ class MethodDefiner(PropertyDefiner):
             flags = m["flags"]
             if self.unforgeable:
                 flags += " | JSPROP_PERMANENT | JSPROP_READONLY"
+            if flags != "0":
+                flags = f"({flags}) as u16"
             if "selfHostedName" in m:
                 selfHostedName = '%s as *const u8 as *const libc::c_char' % str_to_const_array(m["selfHostedName"])
                 assert not m.get("methodInfo", True)
@@ -1882,7 +1884,7 @@ class MethodDefiner(PropertyDefiner):
             '        name: %s,\n'
             '        call: JSNativeWrapper { op: %s, info: %s },\n'
             '        nargs: %s,\n'
-            '        flags: (%s) as u16,\n'
+            '        flags: %s,\n'
             '        selfHostedName: %s\n'
             '    }')
         specTerminator = (
@@ -2171,6 +2173,9 @@ class CGImports(CGWrapper):
                 'unused_variables',
                 'unused_assignments',
                 'unused_mut',
+                'clippy::let_unit_value',
+                'clippy::needless_return',
+                'clippy::unnecessary_cast'
             ]
 
         def componentTypes(type):
@@ -2483,13 +2488,13 @@ static PrototypeClass: JSClass = JSClass {
     name: %(name)s as *const u8 as *const libc::c_char,
     flags:
         // JSCLASS_HAS_RESERVED_SLOTS(%(slotCount)s)
-        (%(slotCount)s & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT,
+        (%(slotCount)s ) << JSCLASS_RESERVED_SLOTS_SHIFT,
     cOps: 0 as *const _,
     spec: ptr::null(),
     ext: ptr::null(),
     oOps: ptr::null(),
 };
-""" % {'name': name, 'slotCount': slotCount}
+""" % {'name': name, 'slotCount': f"{slotCount} & JSCLASS_RESERVED_SLOTS_MASK" if slotCount > 0 else "0"}
 
 
 class CGInterfaceObjectJSClass(CGThing):
@@ -2956,7 +2961,7 @@ assert!(!obj.is_null());
 SetProxyReservedSlot(
     obj.get(),
     0,
-    &PrivateValue(raw.as_ptr() as *const %(concreteType)s as *const libc::c_void),
+    &PrivateValue(raw.as_ptr() as *const libc::c_void),
 );
 """
             create = create % {"concreteType": self.descriptor.concreteType,
@@ -2983,7 +2988,7 @@ assert!(!obj.is_null());
 JS_SetReservedSlot(
     obj.get(),
     DOM_OBJECT_SLOT,
-    &PrivateValue(raw.as_ptr() as *const %(concreteType)s as *const libc::c_void),
+    &PrivateValue(raw.as_ptr() as *const libc::c_void),
 );
 """
             create = create % {"concreteType": self.descriptor.concreteType}
@@ -3051,7 +3056,7 @@ rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
 create_global_object(
     cx,
     &Class.base,
-    raw.as_ptr() as *const %(concreteType)s as *const libc::c_void,
+    raw.as_ptr() as *const libc::c_void,
     _trace,
     obj.handle_mut(),
     origin);
@@ -3091,9 +3096,9 @@ class CGIDLInterface(CGThing):
             depth = self.descriptor.prototypeDepth
             check = "class.interface_chain[%s] == PrototypeList::ID::%s" % (depth, name)
         elif self.descriptor.proxy:
-            check = "class as *const _ == &Class as *const _"
+            check = "ptr::eq(class, &Class)"
         else:
-            check = "class as *const _ == &Class.dom_class as *const _"
+            check = "ptr::eq(class, &Class.dom_class)"
         return """\
 impl IDLInterface for %(name)s {
     #[inline]
@@ -3104,7 +3109,7 @@ impl IDLInterface for %(name)s {
 
 impl PartialEq for %(name)s {
     fn eq(&self, other: &%(name)s) -> bool {
-        self as *const %(name)s == &*other
+        self as *const %(name)s == other
     }
 }
 """ % {'check': check, 'name': name}
@@ -3455,6 +3460,8 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                     defineFn = "JS_DefineProperty"
                     prop = '"%s"' % alias
                     enumFlags = "JSPROP_ENUMERATE"
+                if enumFlags != "0":
+                    enumFlags = f"{enumFlags} as u32"
                 return CGList([
                     getSymbolJSID,
                     # XXX If we ever create non-enumerable properties that can
@@ -3462,8 +3469,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                     #     match the enumerability of the property being aliased.
                     CGGeneric(fill(
                         """
-                        assert!(${defineFn}(*cx, prototype.handle(), ${prop}, aliasedVal.handle(),
-                                            ${enumFlags} as u32));
+                        assert!(${defineFn}(*cx, prototype.handle(), ${prop}, aliasedVal.handle(), ${enumFlags}));
                         """,
                         defineFn=defineFn,
                         prop=prop,
@@ -3492,7 +3498,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 
         constructors = self.descriptor.interface.legacyFactoryFunctions
         if constructors:
-            decl = "let named_constructors: [(ConstructorClassHook, &'static [u8], u32); %d]" % len(constructors)
+            decl = "let named_constructors: [(ConstructorClassHook, &[u8], u32); %d]" % len(constructors)
             specs = []
             for constructor in constructors:
                 hook = CONSTRUCT_HOOK_NAME + "_" + constructor.identifier.name
@@ -3879,7 +3885,7 @@ class CGPerSignatureCall(CGThing):
         return 'infallible' not in self.extendedAttributes
 
     def wrap_return_value(self):
-        return wrapForType('MutableHandleValue::from_raw(args.rval())')
+        return wrapForType('MutableHandleValue::from_raw(args.rval())', successCode='return true;')
 
     def define(self):
         return (self.cgRoot.define() + "\n" + self.wrap_return_value())
@@ -8121,7 +8127,7 @@ class GlobalGenRoots():
             CGWrapper(CGIndenter(CGList([CGGeneric('"' + name + '"') for name in protos],
                                         ",\n"),
                                  indentLevel=4),
-                      pre="static INTERFACES: [&'static str; %d] = [\n" % len(protos),
+                      pre="static INTERFACES: [&str; %d] = [\n" % len(protos),
                       post="\n];\n\n"),
             CGGeneric("pub fn proto_id_to_name(proto_id: u16) -> &'static str {\n"
                       "    debug_assert!(proto_id < ID::Last as u16);\n"
