@@ -129,7 +129,7 @@ impl MediaFragmentParser {
         if input.ends_with('-') || input.starts_with(',') || !input.contains('-') {
             let sec = parse_hms(
                 NaiveDateTime::parse_from_str(
-                    &input.replace('-', "").replace(',', ""),
+                    &input.replace(',', "").replace(',', ""),
                     "%Y%m%dT%H%M%S%.fZ",
                 )
                 .map_err(|_| ())?
@@ -146,10 +146,8 @@ impl MediaFragmentParser {
             let vec: Vec<&str> = input.split('-').collect();
             let mut hms: Vec<f64> = vec
                 .iter()
-                .map(|s| NaiveDateTime::parse_from_str(s, "%Y%m%dT%H%M%S%.fZ"))
-                .flatten()
-                .map(|s| parse_hms(&s.time().to_string()))
-                .flatten()
+                .flat_map(|s| NaiveDateTime::parse_from_str(s, "%Y%m%dT%H%M%S%.fZ"))
+                .flat_map(|s| parse_hms(&s.time().to_string()))
                 .collect();
 
             let end = hms.pop().ok_or_else(|| ())?;
