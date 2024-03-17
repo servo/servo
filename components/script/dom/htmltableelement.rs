@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 
-use cssparser::RgbaLegacy;
+use cssparser_color::RgbaLegacy;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;

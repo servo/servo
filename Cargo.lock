@@ -329,7 +329,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "lazy_static",
  "lazycell",
  "log",
@@ -572,7 +572,7 @@ dependencies = [
  "byteorder",
  "canvas_traits",
  "crossbeam-channel",
- "cssparser 0.32.0",
+ "cssparser-color",
  "euclid",
  "fnv",
  "font-kit",
@@ -603,7 +603,7 @@ name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
- "cssparser 0.32.0",
+ "cssparser-color",
  "euclid",
  "ipc-channel",
  "lazy_static",
@@ -1081,19 +1081,6 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d54fe63cb80af11947c98a880393db44448d0b512f9b6c318398ae355794cb9"
-dependencies = [
- "cssparser-macros",
- "dtoa-short",
- "itoa",
- "phf 0.11.2",
- "smallvec",
-]
-
-[[package]]
-name = "cssparser"
 version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9be934d936a0fbed5bcdc01042b770de1398bf79d0e192f49fa7faea0e99281e"
@@ -1101,9 +1088,18 @@ dependencies = [
  "cssparser-macros",
  "dtoa-short",
  "itoa",
- "phf 0.10.1",
+ "phf 0.11.2",
  "serde",
  "smallvec",
+]
+
+[[package]]
+name = "cssparser-color"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "556c099a61d85989d7af52b692e35a8d68a57e7df8c6d07563dc0778b3960c9f"
+dependencies = [
+ "cssparser",
 ]
 
 [[package]]
@@ -1123,7 +1119,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e16e44ab292b1dddfdaf7be62cfd8877df52f2f3fde5858d95bab606be259f20"
 dependencies = [
  "bitflags 2.5.0",
- "libloading 0.7.4",
+ "libloading 0.8.3",
  "winapi",
 ]
 
@@ -1319,7 +1315,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.7.4",
+ "libloading 0.8.3",
 ]
 
 [[package]]
@@ -3106,7 +3102,7 @@ dependencies = [
  "atomic_refcell",
  "bitflags 2.5.0",
  "canvas_traits",
- "cssparser 0.32.0",
+ "cssparser",
  "embedder_traits",
  "euclid",
  "fnv",
@@ -3469,7 +3465,7 @@ dependencies = [
  "app_units",
  "content-security-policy",
  "crossbeam-channel",
- "cssparser 0.33.0",
+ "cssparser",
  "euclid",
  "http",
  "indexmap 2.2.6",
@@ -4272,9 +4268,7 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fabbf1ead8a5bcbc20f5f8b939ee3f5b0f6f281b6ad3468b84656b658b455259"
 dependencies = [
- "phf_macros 0.10.0",
  "phf_shared 0.10.0",
- "proc-macro-hack",
 ]
 
 [[package]]
@@ -4283,7 +4277,7 @@ version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ade2d8b8f33c7333b51bcf0428d37e217e9f32192ae4772156f65063b8ce03dc"
 dependencies = [
- "phf_macros 0.11.2",
+ "phf_macros",
  "phf_shared 0.11.2",
 ]
 
@@ -4325,20 +4319,6 @@ checksum = "48e4cc64c2ad9ebe670cb8fd69dd50ae301650392e81c05f9bfcb2d5bdbc24b0"
 dependencies = [
  "phf_shared 0.11.2",
  "rand",
-]
-
-[[package]]
-name = "phf_macros"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58fdf3184dd560f160dd73922bea2d5cd6e8f064bf4b13110abd81b03697b4e0"
-dependencies = [
- "phf_generator 0.10.0",
- "phf_shared 0.10.0",
- "proc-macro-hack",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -4491,12 +4471,6 @@ checksum = "6d37c51ca738a55da99dc0c4a34860fd675453b8b36209178c2249bb13651284"
 dependencies = [
  "toml_edit",
 ]
-
-[[package]]
-name = "proc-macro-hack"
-version = "0.5.20+deprecated"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc375e1527247fe1a97d8b7156678dfe7c1af2fc075c9a4db3690ecd2a148068"
 
 [[package]]
 name = "proc-macro2"
@@ -4909,7 +4883,8 @@ dependencies = [
  "content-security-policy",
  "cookie 0.12.0",
  "crossbeam-channel",
- "cssparser 0.32.0",
+ "cssparser",
+ "cssparser-color",
  "data-url",
  "deny_public_fields",
  "devtools_traits",
@@ -5101,7 +5076,7 @@ version = "0.24.0"
 source = "git+https://github.com/servo/stylo?branch=2023-10-16#bab07f5fa1d0101d6b3c274e3715d1c1ef77e33c"
 dependencies = [
  "bitflags 2.5.0",
- "cssparser 0.33.0",
+ "cssparser",
  "derive_more",
  "fxhash",
  "log",
@@ -5764,7 +5739,7 @@ dependencies = [
  "atomic_refcell",
  "bitflags 2.5.0",
  "byteorder",
- "cssparser 0.33.0",
+ "cssparser",
  "derive_more",
  "encoding_rs",
  "euclid",
@@ -5839,7 +5814,7 @@ name = "style_tests"
 version = "0.0.1"
 dependencies = [
  "app_units",
- "cssparser 0.32.0",
+ "cssparser",
  "euclid",
  "html5ever",
  "rayon",
@@ -5859,7 +5834,7 @@ source = "git+https://github.com/servo/stylo?branch=2023-10-16#bab07f5fa1d0101d6
 dependencies = [
  "app_units",
  "bitflags 2.5.0",
- "cssparser 0.33.0",
+ "cssparser",
  "euclid",
  "lazy_static",
  "malloc_size_of",
@@ -6211,7 +6186,7 @@ name = "to_shmem"
 version = "0.0.1"
 source = "git+https://github.com/servo/stylo?branch=2023-10-16#bab07f5fa1d0101d6b3c274e3715d1c1ef77e33c"
 dependencies = [
- "cssparser 0.33.0",
+ "cssparser",
  "servo_arc",
  "smallbitvec",
  "smallvec",
@@ -7042,7 +7017,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.7.4",
+ "libloading 0.8.3",
  "log",
  "metal 0.27.0",
  "naga",

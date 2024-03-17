@@ -41,6 +41,7 @@ content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
+cssparser-color = { workspace = true }
 data-url = { workspace = true }
 deny_public_fields = { path = "../deny_public_fields" }
 devtools_traits = { workspace = true }

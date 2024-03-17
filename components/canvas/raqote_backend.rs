@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::*;
-use cssparser::RgbaLegacy;
+use cssparser_color::RgbaLegacy;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::Angle;
 use font_kit::font::Font;
