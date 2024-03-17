@@ -13,7 +13,6 @@ use canvas_traits::canvas::{
     RepetitionStyle, TextAlign, TextBaseline,
 };
 use cssparser::{Parser, ParserInput};
-use cssparser_color::RgbaLegacy;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
@@ -23,6 +22,7 @@ use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::color::parsing::RgbaLegacy;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::context::QuirksMode;
 use style::parser::ParserContext;

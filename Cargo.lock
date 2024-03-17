@@ -572,7 +572,6 @@ dependencies = [
  "byteorder",
  "canvas_traits",
  "crossbeam-channel",
- "cssparser-color",
  "euclid",
  "fnv",
  "font-kit",
@@ -603,7 +602,6 @@ name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
- "cssparser-color",
  "euclid",
  "ipc-channel",
  "lazy_static",
@@ -1091,15 +1089,6 @@ dependencies = [
  "phf 0.11.2",
  "serde",
  "smallvec",
-]
-
-[[package]]
-name = "cssparser-color"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "556c099a61d85989d7af52b692e35a8d68a57e7df8c6d07563dc0778b3960c9f"
-dependencies = [
- "cssparser",
 ]
 
 [[package]]
@@ -4884,7 +4873,6 @@ dependencies = [
  "cookie 0.12.0",
  "crossbeam-channel",
  "cssparser",
- "cssparser-color",
  "data-url",
  "deny_public_fields",
  "devtools_traits",

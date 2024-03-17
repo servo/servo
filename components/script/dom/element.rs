@@ -707,7 +707,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = bgcolor {
-            use cssparser_color::FromParsedColor;
+            use style::color::parsing::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BackgroundColor(specified::Color::from_rgba(
@@ -747,7 +747,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = color {
-            use cssparser_color::FromParsedColor;
+            use style::color::parsing::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::Color(longhands::color::SpecifiedValue(

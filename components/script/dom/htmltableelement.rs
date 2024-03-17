@@ -4,11 +4,11 @@
 
 use std::cell::Cell;
 
-use cssparser_color::RgbaLegacy;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use style::attr::{parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto};
+use style::color::parsing::RgbaLegacy;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
