@@ -139,7 +139,7 @@ impl WebGLTexture {
             let face_count = match target {
                 constants::TEXTURE_2D => 1,
                 constants::TEXTURE_CUBE_MAP => 6,
-                _ => return Err(WebGLError::InvalidEnum),
+                _ => Err(WebGLError::InvalidEnum),
             };
             self.face_count.set(face_count);
             self.target.set(Some(target));
@@ -431,7 +431,7 @@ impl WebGLTexture {
     }
 
     pub fn image_info_for_target(&self, target: &TexImageTarget, level: u32) -> Option<ImageInfo> {
-        let face_index = self.face_index_for_target(&target);
+        let face_index = self.face_index_for_target(target);
         self.image_info_at_face(face_index, level)
     }
 

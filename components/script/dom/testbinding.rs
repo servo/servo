@@ -873,8 +873,8 @@ impl TestBindingMethods for TestBinding {
         prefs::pref_map()
             .get(pref_name.as_ref())
             .as_str()
-            .map(|s| DOMString::from(s))
-            .unwrap_or_else(|| DOMString::new())
+            .map(DOMString::from)
+            .unwrap_or_else(DOMString::new)
     }
     fn PrefControlledAttributeDisabled(&self) -> bool {
         false
@@ -1000,7 +1000,7 @@ impl TestBindingMethods for TestBinding {
             resolve.map(SimpleHandler::new),
             reject.map(SimpleHandler::new),
         );
-        let p = Promise::new_in_current_realm(comp.clone());
+        let p = Promise::new_in_current_realm(comp());
         p.append_native_handler(&handler, comp);
         return p;
 

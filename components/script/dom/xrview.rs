@@ -57,7 +57,7 @@ impl XRView {
         viewport_index: usize,
         to_base: &BaseTransform,
     ) -> DomRoot<XRView> {
-        let transform: RigidTransform3D<f32, V, BaseSpace> = view.transform.then(&to_base);
+        let transform: RigidTransform3D<f32, V, BaseSpace> = view.transform.then(to_base);
         let transform = XRRigidTransform::new(global, cast_transform(transform));
 
         reflect_dom_object(

@@ -215,13 +215,13 @@ impl WebGLExtensions {
         self.extensions
             .borrow()
             .iter()
-            .filter(|ref v| {
+            .filter(|v| {
                 if let WebGLExtensionSpec::Specific(version) = v.1.spec() {
                     if self.webgl_version != version {
                         return false;
                     }
                 }
-                v.1.is_supported(&self)
+                v.1.is_supported(self)
             })
             .map(|ref v| v.1.name())
             .collect()
@@ -406,8 +406,7 @@ impl WebGLExtensions {
             .borrow()
             .tex_compression_formats
             .keys()
-            .map(|&k| k)
-            .collect()
+            .copied()
     }
 
     fn register_all_extensions(&self) {

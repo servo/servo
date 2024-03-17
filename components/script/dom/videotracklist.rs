@@ -32,7 +32,7 @@ impl VideoTrackList {
         VideoTrackList {
             eventtarget: EventTarget::new_inherited(),
             tracks: DomRefCell::new(tracks.iter().map(|track| Dom::from_ref(&**track)).collect()),
-            media_element: media_element.map(|m| Dom::from_ref(m)),
+            media_element: media_element.map(Dom::from_ref),
         }
     }
 
@@ -149,7 +149,7 @@ impl VideoTrackListMethods for VideoTrackList {
         if let Some(idx) = self.selected_index() {
             return idx as i32;
         }
-        return -1;
+        -1
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-tracklist-onchange

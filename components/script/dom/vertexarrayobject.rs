@@ -71,7 +71,7 @@ impl VertexArrayObject {
     }
 
     pub fn ever_bound(&self) -> bool {
-        return self.ever_bound.get();
+        self.ever_bound.get()
     }
 
     pub fn set_ever_bound(&self) {

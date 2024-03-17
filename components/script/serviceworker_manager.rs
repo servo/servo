@@ -243,7 +243,7 @@ impl ServiceWorkerManager {
 
     pub fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {
         for scope in self.registrations.keys() {
-            if longest_prefix_match(&scope, load_url) {
+            if longest_prefix_match(scope, load_url) {
                 return Some(scope.clone());
             }
         }

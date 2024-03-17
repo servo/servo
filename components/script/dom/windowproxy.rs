@@ -263,7 +263,7 @@ impl WindowProxy {
             SetProxyReservedSlot(
                 js_proxy.get(),
                 0,
-                &PrivateValue((&*window_proxy).as_void_ptr()),
+                &PrivateValue((*window_proxy).as_void_ptr()),
             );
 
             // Notify the JS engine about the new window proxy binding.
@@ -459,7 +459,7 @@ impl WindowProxy {
         }
         rooted!(in(cx) let mut val = UndefinedValue());
         unsafe { opener_proxy.to_jsval(cx, val.handle_mut()) };
-        return val.get();
+        val.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#window-open-steps
@@ -1036,7 +1036,7 @@ unsafe extern "C" fn get_prototype_if_ordinary(
     // non-wrapper object *must* report non-ordinary, even if static [[Prototype]]
     // usually means ordinary.
     *is_ordinary = false;
-    return true;
+    true
 }
 
 static PROXY_HANDLER: ProxyTraps = ProxyTraps {

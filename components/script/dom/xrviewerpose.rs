@@ -54,45 +54,26 @@ impl XRViewerPose {
                 0,
                 &to_base,
             )),
-            Views::Mono(view) => views.push(XRView::new(
-                global,
-                session,
-                &view,
-                XREye::None,
-                0,
-                &to_base,
-            )),
+            Views::Mono(view) => {
+                views.push(XRView::new(global, session, view, XREye::None, 0, &to_base))
+            },
             Views::Stereo(left, right) => {
+                views.push(XRView::new(global, session, left, XREye::Left, 0, &to_base));
                 views.push(XRView::new(
                     global,
                     session,
-                    &left,
-                    XREye::Left,
-                    0,
-                    &to_base,
-                ));
-                views.push(XRView::new(
-                    global,
-                    session,
-                    &right,
+                    right,
                     XREye::Right,
                     1,
                     &to_base,
                 ));
             },
             Views::StereoCapture(left, right, third_eye) => {
+                views.push(XRView::new(global, session, left, XREye::Left, 0, &to_base));
                 views.push(XRView::new(
                     global,
                     session,
-                    &left,
-                    XREye::Left,
-                    0,
-                    &to_base,
-                ));
-                views.push(XRView::new(
-                    global,
-                    session,
-                    &right,
+                    right,
                     XREye::Right,
                     1,
                     &to_base,
@@ -100,7 +81,7 @@ impl XRViewerPose {
                 views.push(XRView::new(
                     global,
                     session,
-                    &third_eye,
+                    third_eye,
                     XREye::None,
                     2,
                     &to_base,
@@ -110,44 +91,30 @@ impl XRViewerPose {
                 views.push(XRView::new(
                     global,
                     session,
-                    &front,
+                    front,
                     XREye::None,
                     0,
                     &to_base,
                 ));
+                views.push(XRView::new(global, session, left, XREye::None, 1, &to_base));
                 views.push(XRView::new(
                     global,
                     session,
-                    &left,
-                    XREye::None,
-                    1,
-                    &to_base,
-                ));
-                views.push(XRView::new(
-                    global,
-                    session,
-                    &right,
+                    right,
                     XREye::None,
                     2,
                     &to_base,
                 ));
-                views.push(XRView::new(global, session, &top, XREye::None, 3, &to_base));
+                views.push(XRView::new(global, session, top, XREye::None, 3, &to_base));
                 views.push(XRView::new(
                     global,
                     session,
-                    &bottom,
+                    bottom,
                     XREye::None,
                     4,
                     &to_base,
                 ));
-                views.push(XRView::new(
-                    global,
-                    session,
-                    &back,
-                    XREye::None,
-                    5,
-                    &to_base,
-                ));
+                views.push(XRView::new(global, session, back, XREye::None, 5, &to_base));
             },
         };
         let transform: RigidTransform3D<f32, Viewer, BaseSpace> =
