@@ -6706,7 +6706,6 @@ class CGDescriptor(CGThing):
             'crate::mem::malloc_size_of_including_raw_self',
             'crate::realms::InRealm',
             'crate::realms::AlreadyInRealm',
-            'libc',
             'servo_config::pref',
             'std::cmp',
             'std::ptr::NonNull',
