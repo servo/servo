@@ -2015,7 +2015,7 @@ class AttrDefiner(PropertyDefiner):
             if m["name"] == "@@toStringTag":
                 return """    JSPropertySpec {
                     name: JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 },
-                    attributes_: (%s) as u8,
+                    attributes_: (%s),
                     kind_: (%s),
                     u: JSPropertySpec_AccessorsOrValue {
                         value: JSPropertySpec_ValueWrapper {
@@ -2029,7 +2029,7 @@ class AttrDefiner(PropertyDefiner):
 """
             return """    JSPropertySpec {
                     name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },
-                    attributes_: (%s) as u8,
+                    attributes_: (%s),
                     kind_: (%s),
                     u: JSPropertySpec_AccessorsOrValue {
                         accessors: JSPropertySpec_AccessorsOrValue_Accessors {
@@ -2800,7 +2800,7 @@ class CGAbstractMethod(CGThing):
                 )
                 post = (
                     "\n})());\n"
-                    "return result"
+                    "result"
                 )
             body = CGWrapper(CGIndenter(body), pre=pre, post=post)
 
@@ -3268,7 +3268,7 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                     }
                     """,
                     name=name, nameAsArray=str_to_const_array(name), conditions=ret_conditions)
-        ret += 'return true;\n'
+        ret += 'true\n'
         return CGGeneric(ret)
 
 
@@ -3381,14 +3381,14 @@ assert!(!prototype_proto.is_null());""" % name))
         code.append(CGGeneric("""
 rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
 create_interface_prototype_object(cx,
-                                  global.into(),
-                                  prototype_proto.handle().into(),
+                                  global,
+                                  prototype_proto.handle(),
                                   &PrototypeClass,
                                   %(methods)s,
                                   %(attrs)s,
                                   %(consts)s,
                                   %(unscopables)s,
-                                  prototype.handle_mut().into());
+                                  prototype.handle_mut());
 assert!(!prototype.is_null());
 assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
 (*cache)[PrototypeList::ID::%(id)s as usize] = prototype.get();
@@ -3416,7 +3416,7 @@ assert!(!interface_proto.is_null());
 
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
 create_noncallback_interface_object(cx,
-                                    global.into(),
+                                    global,
                                     interface_proto.handle(),
                                     &INTERFACE_OBJECT_CLASS,
                                     %(static_methods)s,
@@ -3972,7 +3972,7 @@ class CGSetterCall(CGPerSignatureCall):
 
     def wrap_return_value(self):
         # We have no return value
-        return "\nreturn true;"
+        return "\ntrue"
 
     def getArgc(self):
         return "1"
@@ -4090,7 +4090,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
             parents -= 1
         ret += fill(form, parentclass="")
         ret += ('(*args).rval().set(ObjectValue(*result));\n'
-                'return true;\n')
+                'true\n')
         return CGGeneric(ret)
 
 
@@ -5645,7 +5645,7 @@ if !expando.is_null() {
     }
 }
 """ + namedGet + """\
-return true;"""
+true"""
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -5803,7 +5803,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 return false;
             }
 
-            return true;
+            true
             """)
 
         return body
@@ -5862,7 +5862,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
                 return false;
             }
 
-            return true;
+            true
             """)
 
         return body
@@ -5937,7 +5937,7 @@ if !expando.is_null() {
 }
 """ + named + """\
 *bp = false;
-return true;"""
+true"""
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -6038,7 +6038,7 @@ if found {
 }
 %s
 vp.set(UndefinedValue());
-return true;""" % (maybeCrossOriginGet, getIndexedOrExpando, getNamed)
+true""" % (maybeCrossOriginGet, getIndexedOrExpando, getNamed)
 
     def definition_body(self):
         return CGGeneric(self.getBody())
