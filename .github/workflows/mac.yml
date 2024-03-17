@@ -90,7 +90,7 @@ jobs:
           brew install gnu-tar
       - name: Build (${{ inputs.profile }})
         run: |
-          python3 ./mach build --${{ inputs.profile }}
+          python3 ./mach build --locked --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-macos
       - name: Smoketest
         uses: nick-fields/retry@v3
