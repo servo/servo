@@ -1672,11 +1672,11 @@ class PropertyDefiner:
                 prefableSpecs.append(
                     prefableTemplate % (cond, name + "_specs", len(specs) - 1))
 
-        specsArray = ("const %s_specs: &'static [&'static[%s]] = &[\n"
+        specsArray = ("const %s_specs: &[&[%s]] = &[\n"
                       + ",\n".join(specs) + "\n"
                       + "];\n") % (name, specType)
 
-        prefArray = ("const %s: &'static [Guard<&'static [%s]>] = &[\n"
+        prefArray = ("const %s: &[Guard<&[%s]>] = &[\n"
                      + ",\n".join(prefableSpecs) + "\n"
                      + "];\n") % (name, specType)
         return specsArray + prefArray
@@ -4666,7 +4666,7 @@ use js::rust::HandleValue;
 use js::rust::MutableHandleValue;
 use js::jsval::JSVal;
 
-pub const pairs: &'static [(&'static str, super::${ident})] = &[
+pub const pairs: &[(&str, super::${ident})] = &[
     ${pairs},
 ];
 
@@ -6309,9 +6309,9 @@ class CGInterfaceTrait(CGThing):
         methods = []
         for name, arguments, rettype in members():
             arguments = list(arguments)
-            methods.append(CGGeneric("%sfn %s(&self%s) -> %s;\n" % (
+            methods.append(CGGeneric("%sfn %s(&self%s)%s;\n" % (
                 'unsafe ' if contains_unsafe_arg(arguments) else '',
-                name, fmt(arguments), rettype))
+                name, fmt(arguments), f" -> {rettype}" if rettype != '()' else ''))
             )
 
         if methods:
@@ -6772,7 +6772,7 @@ class CGDescriptor(CGThing):
             if unscopableNames:
                 haveUnscopables = True
                 cgThings.append(
-                    CGList([CGGeneric("const unscopable_names: &'static [&'static [u8]] = &["),
+                    CGList([CGGeneric("const unscopable_names: &[&[u8]] = &["),
                             CGIndenter(CGList([CGGeneric(str_to_const_array(name)) for
                                                name in unscopableNames], ",\n")),
                             CGGeneric("];\n")], "\n"))
@@ -6791,7 +6791,7 @@ class CGDescriptor(CGThing):
         haveLegacyWindowAliases = len(legacyWindowAliases) != 0
         if haveLegacyWindowAliases:
             cgThings.append(
-                CGList([CGGeneric("const legacy_window_aliases: &'static [&'static [u8]] = &["),
+                CGList([CGGeneric("const legacy_window_aliases: &[&[u8]] = &["),
                         CGIndenter(CGList([CGGeneric(str_to_const_array(name)) for
                                            name in legacyWindowAliases], ",\n")),
                         CGGeneric("];\n")], "\n"))
