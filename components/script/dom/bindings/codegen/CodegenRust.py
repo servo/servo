@@ -420,14 +420,14 @@ class CGMethodCall(CGThing):
                 caseBody.append(CGGeneric("if %s.get().is_object() {" %
                                           (distinguishingArg)))
                 for idx, sig in enumerate(interfacesSigs):
-                    caseBody.append(CGIndenter(CGGeneric("loop {")))
+                    caseBody.append(CGIndenter(CGGeneric("'_block: {")))
                     type = sig[1][distinguishingIndex].type
 
                     # The argument at index distinguishingIndex can't possibly
                     # be unset here, because we've already checked that argc is
                     # large enough that we can examine this argument.
                     info = getJSToNativeConversionInfo(
-                        type, descriptor, failureCode="break;", isDefinitelyObject=True)
+                        type, descriptor, failureCode="break '_block;", isDefinitelyObject=True)
                     template = info.template
                     declType = info.declType
 
@@ -2173,9 +2173,11 @@ class CGImports(CGWrapper):
                 'unused_variables',
                 'unused_assignments',
                 'unused_mut',
+                'clippy::approx_constant',
                 'clippy::let_unit_value',
                 'clippy::needless_return',
-                'clippy::unnecessary_cast'
+                'clippy::too_many_arguments',
+                'clippy::unnecessary_cast',
             ]
 
         def componentTypes(type):
@@ -7624,9 +7626,9 @@ class CallbackMember(CGNativeMember):
             # Check for variadic arguments
             lastArg = args[self.argCount - 1]
             if lastArg.variadic:
+                argCount = "0" if self.argCount == 1 else f"({self.argCount} - 1)"
                 self.argCountStr = (
-                    "(%d - 1) + %s.len()" % (self.argCount,
-                                             lastArg.identifier.name))
+                    "%s + %s.len()" % (argCount, lastArg.identifier.name))
             else:
                 self.argCountStr = "%d" % self.argCount
         self.needThisHandling = needThisHandling
