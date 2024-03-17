@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <style>
+    #space {
+      height: 300vh;
+      width: 300vw;
+      position: absolute;
+    }
+    #scroller {
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      width: 450px;
+      height: 450px;
+      border: solid 1px black;
+      position: relative;
+    }
+    .box {
+      height: 200px;
+      width: 200px;
+      position: absolute;
+      background-color: green;
+      scroll-snap-align: start;
+    }
+    .box:target {
+      background-color: red;
+    }
+    .toprow { top: 0px; }
+    .midrow { top: 210px; }
+    .bottomrow { top: 420px; }
+    .leftcol { left: 0px; }
+    .midcol { left: 210px; }
+    .rightcol { left: 420px; }
+  </style>
+  <div id="scroller">
+    <div id="space"></div>
+    <div class="leftcol toprow box" id="box1"></div>
+    <div class="midcol toprow box" id="box2"></div>
+    <div class="rightcol toprow box" id="box3"></div>
+    <div class="leftcol midrow box" id="box4"></div>
+    <div class="midcol midrow box" id="box5"></div>
+    <div class="rightcol midrow box" id="box6"></div>
+    <div class="leftcol bottomrow box" id="box7"></div>
+    <div class="midcol bottomrow box" id="box8"></div>
+    <div class="rightcol bottomrow box" id="box9"></div>
+  </div>
+  <script>
+    // This test sets up a 3x3 grid within scroller:
+    // -------------------------
+    // | Box 1 | Box 2 | Box 3 |
+    // ------------------------
+    // | Box 4 | Box 5 | Box 6 |
+    // -------------------------
+    // | Box 7 | Box 8 | Box 9 |
+    // -------------------------
+    // This function just gets the numbers beside |box_number| on each row.
+    // E.g. 4: 4%3 = 1; so the numbers we want are 5 (4+1) and 6 (4+2).
+    function getAlignedNumbers(n) {
+      n = parseInt(n);
+      const mod_3 = n % 3;
+      if (mod_3 == 1) {
+        return [n + 1, n + 2];
+      } else if (mod_3 == 2) {
+        return [n - 1, n + 1];
+      }
+      return [n - 1, n - 2];
+    }
+    function stashResult(key, result) {
+      fetch(`/css/css-scroll-snap/snap-after-relayout` +
+        `/multiple-aligned-targets/stash.py?key=${key}`, {
+        method: "POST",
+        body: result
+      }).then(() => {
+        window.close();
+      });
+    }
+    function assert_equals(v1, v2) {
+      if (v1 != v2) {
+        throw new Error(`Expected equality of v1(${v1}) and v2(${v2}).`);
+      }
+    }
+    async function record() {
+      let key = (new URL(document.location)).searchParams.get("key");
+      try {
+        // Get the id of that targeted element.
+        const target_id = location.hash.substring(1);
+        const box_number = target_id.substring(3);
+
+        // Get the elements aligned with the targeted element.
+        const target = document.getElementById(target_id);
+        if (target == null) {
+          throw new Error("Null hash fragment target.");
+        }
+        let [aligned_number_1, aligned_number_2] =
+          getAlignedNumbers(box_number);
+        const aligned_box_1 = document.getElementById(`box${aligned_number_1}`);
+        const aligned_box_2 = document.getElementById(`box${aligned_number_2}`);
+
+        // Make sure all the boxes are equally aligned.
+        assert_equals(aligned_box_1.offsetTop, target.offsetTop);
+        assert_equals(aligned_box_1.offsetTop, aligned_box_2.offsetTop);
+
+        // Scroll to the aligned boxes if necessary.
+        if (scroller.scrollTop != target.offsetTop) {
+          const scrollend_promise = new Promise((res) => {
+            scroller.addEventListener(res);
+          });
+          scroller.scrollTop = target.offsetTop;
+          await scrollend_promise;
+        }
+
+        // Save target's original top and move it down by 100px;
+        const original_top = getComputedStyle(target).top;
+        target.style.top = `${target.offsetTop + 100}px`;
+
+        // Assert that scroller followed target as it moved down.
+        assert_equals(scroller.scrollTop, target.offsetTop);
+
+        // Cleanup: undo style change.
+        target.style.top = `${original_top}px`;
+
+        // Stash result.
+        stashResult(key, "PASS");
+      } catch (error) {
+        stashResult(key, error.message);
+      }
+    }
+
+    window.onload = () => {
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(record);
+      })
+    }
+  </script>
+</body>
+
+</html>

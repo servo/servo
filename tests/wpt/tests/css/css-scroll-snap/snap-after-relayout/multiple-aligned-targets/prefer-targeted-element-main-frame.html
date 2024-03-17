@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title> CSS Scroll Snap Test: snap selection with targeted element</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/common/utils.js"></script>
+</head>
+
+<body onload="runTest()">
+  <script>
+    async function fetchResult(key) {
+      const url = `/css/css-scroll-snap/snap-after-relayout/` +
+        `multiple-aligned-targets/stash.py?key=${key}`;
+      // We may need multiple requests. Return a promise that will be resolved
+      // when an actual response is received.
+      return new Promise(async (resolve) => {
+        async function fetchResultInternal(url) {
+          const response = await fetch(url);
+          const text = await response.text();
+          if (text) {
+            resolve(text);
+          } else {
+            requestAnimationFrame(fetchResultInternal.bind(this, url));
+          }
+        }
+        fetchResultInternal(url);
+      });
+    }
+
+    function runTest() {
+      function test(n) {
+        return promise_test(async (t) => {
+          let key = token();
+
+          test_driver.bless("Open a URL with a text fragment directive", () => {
+            window.open(`prefer-targeted-element-main-frame-target.html` +
+              `?key=${key}#box${n}`, "_blank", "noopener");
+          });
+
+          assert_equals(await fetchResult(key), "PASS");
+        }, `targeted box${n} is selected snap target.`);
+      }
+
+      test(1);
+      test(2);
+      test(3);
+      test(4);
+      test(5);
+      test(6);
+      test(7);
+      test(8);
+      test(9);
+    }
+  </script>
+</body>

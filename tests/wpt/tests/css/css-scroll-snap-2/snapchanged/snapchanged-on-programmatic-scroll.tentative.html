@@ -76,7 +76,7 @@
         scrolling_function: () => {
             scroller.scrollTo(snap_point_2.offsetLeft, snap_point_2.offsetTop);
         },
-        expected_snap_targets: [snap_point_2.id],
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_2 },
         expected_scroll_offsets: {
           x: snap_point_2.offsetLeft,
           y: snap_point_2.offsetTop,
@@ -115,7 +115,7 @@
       scroller.scrollTo(scroll_left_target, scroll_top_target);
 
       evt = await snapchanged_promise;
-      assertSnapEvent(evt, [snap_point_2.id]);
+      assertSnapEvent(evt, { block: snap_point_2, inline: snap_point_2 })
       assert_approx_equals(scroller.scrollTop, snap_point_2.offsetTop, 1,
           "scroller snaps to the top of snap_point_2");
       assert_approx_equals(scroller.scrollLeft, snap_point_2.offsetLeft, 1,

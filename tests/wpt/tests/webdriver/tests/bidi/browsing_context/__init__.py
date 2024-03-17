@@ -53,6 +53,13 @@ def assert_browsing_context(
     assert info["userContext"] == user_context
 
 
+async def assert_document_status(bidi_session, context, visible, focused):
+    state = "visible" if visible else "hidden"
+
+    assert await get_visibility_state(bidi_session, context) == state
+    assert await get_document_focus(bidi_session, context) is focused
+
+
 def assert_navigation_info(event, expected_navigation_info):
     recursive_compare(
         {

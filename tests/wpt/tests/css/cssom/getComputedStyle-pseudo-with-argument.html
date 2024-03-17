@@ -32,7 +32,15 @@
   "::highlight($)",
   "::highlight (name)",
   "::highlight(name)a",
+  ":highlight(name)",
   "::view-transition-group(*)",
+  "::view-transition-image-pair(*)",
+  "::view-transition-old(*)",
+  "::view-transition-new(*)",
+  ":view-transition-group(name)",
+  ":view-transition-image-pair(name)",
+  ":view-transition-old(name)",
+  ":view-transition-new(name)",
 ].forEach(nonParsablePseudoIdentifier => {
   test(() => {
     const li = document.querySelector('li');

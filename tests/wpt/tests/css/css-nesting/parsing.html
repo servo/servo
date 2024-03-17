@@ -55,6 +55,7 @@
   testNestedSelector(".foo", {expected:"& .foo"});
   testNestedSelector(".test > & .bar");
   testNestedSelector(".foo, .foo &", {expected:"& .foo, .foo &"});
+  testNestedSelector(".foo, .bar", {expected:"& .foo, & .bar"});
   testNestedSelector(":is(.bar, .baz)", {expected:"& :is(.bar, .baz)"});
   testNestedSelector("&:is(.bar, .baz)");
   testNestedSelector(":is(.bar, &.baz)");

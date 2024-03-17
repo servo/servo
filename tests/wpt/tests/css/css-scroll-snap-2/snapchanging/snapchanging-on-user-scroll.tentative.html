@@ -63,6 +63,8 @@
     </div>
     <script>
       const scroller = document.getElementById("scroller");
+      const snap_area_2 = document.getElementById("snap_area_2");
+      const snap_area_1 = document.getElementById("snap_area_1");
 
       // Touch scroll test.
       promise_test(async (t) => {
@@ -75,7 +77,7 @@
             const end_pos = { x: scroller_middle, y: 0 };
             await snap_event_touch_scroll_helper(start_pos, end_pos);
           },
-          expected_snap_targets: [snap_area_2.id],
+          expected_snap_targets: { block: snap_area_2, inline: null },
           expected_scroll_offsets: {
             x: 0,
             y: snap_area_2.offsetTop
@@ -94,7 +96,7 @@
               Math.round(snap_area_2.offsetTop / 2) + 1,
               { origin: scroller }).send();
           },
-          expected_snap_targets: [snap_area_2.id],
+          expected_snap_targets: { block: snap_area_2, inline: null },
           expected_scroll_offsets: {
             x: 0,
             y: snap_area_2.offsetTop
@@ -121,7 +123,7 @@
               scrollbar_to_scroller_ratio;
             await snap_event_scrollbar_drag_helper(scroller, scrollbar_width, drag_amt);
           },
-          expected_snap_targets: [snap_area_2.id],
+          expected_snap_targets: { block: snap_area_2, inline: null },
           expected_scroll_offsets: {
              x: 0,
              y: snap_area_2.offsetTop
@@ -139,7 +141,7 @@
             scroller.focus();
             window.test_driver.send_keys(scroller, '\ue015'/*ArrowDown*/);
           },
-          expected_snap_targets: [snap_area_2.id],
+          expected_snap_targets: { block: snap_area_2, inline: null },
           expected_scroll_offsets: {
              x: 0,
              y: snap_area_2.offsetTop
@@ -174,8 +176,8 @@
           .send();
         let evts = await evts_promise;
         assert_equals(evts.length, 2, "2 snapchanging events are seens");
-        assertSnapEvent(evts[0], [snap_area_2.id]);
-        assertSnapEvent(evts[1], [snap_area_1.id]);
+        assertSnapEvent(evts[0], { block: snap_area_2, inline: null });
+        assertSnapEvent(evts[1], { block: snap_area_1, inline: null });
       }, "snapchanging fires as scroll moves through different snap targets.");
 
     // snapchanging doesn't fire test.

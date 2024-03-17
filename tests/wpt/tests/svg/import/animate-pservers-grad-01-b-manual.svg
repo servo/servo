@@ -47,8 +47,8 @@
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
     <defs>
       <g id="g0" stop-color="yellow" stop-opacity="0" color="yellow">
-        <animateColor id="a1" attributeName="stop-color" from="red" to="green" dur="5" fill="freeze"/>
-        <animateColor id="a2" attributeName="color" from="yellow" to="green" dur="5" fill="freeze"/>
+        <animate id="a1" attributeName="stop-color" from="red" to="green" dur="5" fill="freeze"/>
+        <animate id="a2" attributeName="color" from="yellow" to="green" dur="5" fill="freeze"/>
         <animate id="a3" attributeName="stop-opacity" from="0.5" to="1" dur="5" fill="freeze"/>
 
         <linearGradient id="MyGradient1" stop-color="inherit">
@@ -73,7 +73,7 @@
       </g>
     </defs>
     <g id="g1" stop-color="blue">
-      <animateColor id="a4" attributeName="stop-color" from="blue" to="red" dur="5" fill="freeze"/>
+      <animate id="a4" attributeName="stop-color" from="blue" to="red" dur="5" fill="freeze"/>
       <rect id="r1" fill="url(#MyGradient1)" width="100" height="100" x="50" y="50"/>
     </g>
     <g id="g2" stop-opacity="1">
@@ -81,12 +81,12 @@
       <rect id="r2" fill="url(#MyGradient2)" width="100" height="100" x="200" y="50"/>
     </g>
     <g id="g3" stop-opacity="1" stop-color="blue">
-      <animateColor id="a6" attributeName="stop-color" from="blue" to="red" dur="5" fill="freeze"/>
+      <animate id="a6" attributeName="stop-color" from="blue" to="red" dur="5" fill="freeze"/>
       <animate id="a7" attributeName="stop-opacity" from="1" to="0" dur="5" fill="freeze"/>
       <rect id="r3" fill="url(#MyGradient3)" width="100" height="100" x="50" y="200"/>
     </g>
     <g id="g4" color="blue">
-      <animateColor id="a7" attributeName="color" from="blue" to="red" dur="5" fill="freeze"/>
+      <animate id="a7" attributeName="color" from="blue" to="red" dur="5" fill="freeze"/>
       <rect id="r4" fill="url(#MyGradient4)" width="100" height="100" x="200" y="200"/>
     </g>
   </g>

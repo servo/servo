@@ -6,8 +6,9 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <script>
-const expectedUrl = "http://{{hosts[][www]}}:{{ports[http][0]}}/html/browsers/browsing-the-web/history-traversal/pageswap/pageswap-cross-origin.sub.html?new";
+const expectedUrl = get_host_info().HTTPS_REMOTE_ORIGIN + "/html/browsers/browsing-the-web/history-traversal/pageswap/pageswap-cross-origin.sub.html?new";
 
 const params = new URLSearchParams(location.search);
 // The page the popup navigates to.

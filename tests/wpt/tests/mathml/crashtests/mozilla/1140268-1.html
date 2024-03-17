@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<script>
+function boom()
+{
+    var e = document.getElementsByTagName("mo")[0];
+    e.setAttribute("style", "position: absolute; top: 0px;");
+    document.documentElement.offsetHeight;
+    e.setAttribute("style", "position: absolute; top: 100px;");
+}
+</script>
+</head>
+<body onload="boom();">
+<math><mo>boom!</mo></math>
+</body>
+</html>

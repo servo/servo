@@ -39,6 +39,7 @@ let basic_tests = [
   { value: "calc-size(calc-size(min-content, size), size)", expected: "10px" },
   { value: "calc(12% + calc-size(any, 31%))", expected_auto: "10px", expected_definite: "43px" },
   { value: "calc-size(any, 31% + 12px)", expected_auto: "12px", expected_definite: "43px" },
+  { value: "calc-size(auto, size * 1.5)", expected: "15px" },
 ];
 const container = document.getElementById("container");
 const target = document.getElementById("target");

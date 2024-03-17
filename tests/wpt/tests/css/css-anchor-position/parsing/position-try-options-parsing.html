@@ -13,22 +13,28 @@
   test_valid_value("position-try-options", "revert");
   test_valid_value("position-try-options", "none");
   test_valid_value("position-try-options", "flip-block");
+  test_valid_value("position-try-options", "flip-block ", 'flip-block');
   test_valid_value("position-try-options", "flip-start, flip-block");
-  test_valid_value("position-try-options", "flip-start flip-inline, flip-block", "flip-inline flip-start, flip-block");
+  test_valid_value("position-try-options", "flip-start flip-inline, flip-block");
   test_valid_value("position-try-options", "flip-start, flip-start");
+  test_valid_value("position-try-options", "flip-start flip-inline flip-block");
   test_valid_value("position-try-options", "flip-block, --foo");
   test_valid_value("position-try-options", "--bar, flip-block flip-start");
   test_valid_value("position-try-options", "--foo, --bar, --baz");
   test_valid_value("position-try-options", "--bar flip-block");
-  test_valid_value("position-try-options", "--bar flip-inline flip-block", "--bar flip-block flip-inline");
+  test_valid_value("position-try-options", "--bar flip-inline flip-block");
   test_valid_value("position-try-options", "flip-inline --foo", "--foo flip-inline");
   test_valid_value("position-try-options", "flip-inline flip-start --foo", "--foo flip-inline flip-start");
 
   test_invalid_value("position-try-options", "none, flip-start");
   test_invalid_value("position-try-options", "flip-block flip-block");
+  test_invalid_value("position-try-options", "flip-block flip-inline flip-inline");
+  test_invalid_value("position-try-options", "flip-block, flip-inline flip-inline");
   test_invalid_value("position-try-options", "--bar flip-block --foo");
   test_invalid_value("position-try-options", "--foo --bar");
   test_invalid_value("position-try-options", "flip-inline --bar flip-block");
   test_invalid_value("position-try-options", "-foo");
   test_invalid_value("position-try-options", "foo");
+  test_invalid_value("position-try-options", "flip-start 123");
+  test_invalid_value("position-try-options", "--foo 123");
 </script>

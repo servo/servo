@@ -61,7 +61,7 @@
     // to outside the proximity range and are no longer snapped.
     let evt = await snapchanged_promise;
     assert_equals(scroller.scrollTop, 250);
-    assertSnapEvent(evt, []);
+    assertSnapEvent(evt, { block: null, inline: null });
     evt = null;
 
     snapchanged_promise = waitForSnapChangedEvent(scroller);
@@ -73,7 +73,7 @@
     assert_equals(scroller.scrollTop, 0);
     // snapchanged should fire as we've moved from outside the proximity range
     // to inside the proximity range and are once again snapped.
-    assertSnapEvent(evt, [target.id]);
+    assertSnapEvent(evt, { block: target, inline: null });
   }, "Snapchanged fires when scrolling outside proximity range.");
   </script>
 </body>

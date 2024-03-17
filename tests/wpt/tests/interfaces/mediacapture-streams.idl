@@ -189,16 +189,6 @@ dictionary MediaStreamConstraints {
   (boolean or MediaTrackConstraints) audio = false;
 };
 
-partial interface Navigator {
-  [SecureContext] undefined getUserMedia(MediaStreamConstraints constraints,
-                                    NavigatorUserMediaSuccessCallback successCallback,
-                                    NavigatorUserMediaErrorCallback errorCallback);
-};
-
-callback NavigatorUserMediaSuccessCallback = undefined (MediaStream stream);
-
-callback NavigatorUserMediaErrorCallback = undefined (DOMException error);
-
 dictionary DoubleRange {
   double max;
   double min;

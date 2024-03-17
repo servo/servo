@@ -7,6 +7,20 @@
 
 <script>
 
+test_valid_value("width",        "calc-size(auto, size)");
+test_valid_value("min-width",    "calc-size(auto, size)");
+test_valid_value("height",       "calc-size(auto, size)");
+test_valid_value("min-height",   "calc-size(auto, size)");
+test_invalid_value("max-height", "calc-size(auto, size)");
+test_invalid_value("max-width",  "calc-size(auto, size)");
+
+test_invalid_value("height",     "calc-size(none, size)");
+test_invalid_value("width",      "calc-size(none, size)");
+test_invalid_value("min-height", "calc-size(none, size)");
+test_invalid_value("min-width",  "calc-size(none, size)");
+test_invalid_value("max-height", "calc-size(none, size)");
+test_invalid_value("max-width",  "calc-size(none, size)");
+
 test_valid_value("width",      "calc-size(fit-content, size)");
 test_valid_value("height",     "calc-size(min-content, size * 2)");
 test_valid_value("max-width",  "calc-size(max-content, size / 2)");
