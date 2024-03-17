@@ -32,7 +32,7 @@ use crate::style_ext::PaddingBorderMargin;
 use crate::ContainingBlock;
 
 pub(super) struct LineMetrics {
-    /// The block offset of the line start in the containing 
+    /// The block offset of the line start in the containing
     /// [`crate::flow::InlineFormattingContext`].
     pub block_offset: Length,
 
