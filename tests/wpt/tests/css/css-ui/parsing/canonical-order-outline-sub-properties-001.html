@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Basic User Interface Test: canonical order of outline sub-properties</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+
+  <!--
+
+  Issue 7700: [css-ui-4] Align canonical order of outline sub-properties with border
+  https://github.com/w3c/csswg-drafts/issues/7700
+
+  Date created: February 22nd 2023
+
+  Date last modified: March 8th 2023
+
+  -->
+
+  <link rel="help" href="https://www.w3.org/TR/css-ui-4/#outline">
+
+  <meta name="flags" content="">
+  <meta content="This test verifies that the canonical order of outline sub-properties matches the order of border shorthand, which is 'line-width' || 'line-style' || 'color'. All possible orders are checked in this test. Shorthand 'outline' values involving 'outline-style: auto' and 'outline-style: none' are not tested." name="assert">
+
+  <script src="/resources/testharness.js"></script>
+
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+  div#target
+    {
+      outline: black solid medium;
+    }
+  </style>
+
+  <div id="target"></div>
+
+  <script>
+  function startTesting()
+  {
+
+  var targetElement = document.getElementById("target");
+
+    function verifyComputedStyle(property_name, specified_value, expected_value, description)
+    {
+
+    test(function()
+      {
+
+      targetElement.style.setProperty(property_name, specified_value);
+
+      assert_equals(getComputedStyle(targetElement)[property_name], expected_value);
+
+      }, description);
+    }
+
+/*
+
+All possible permutations are:
+
+outline-color
+
+outline-width
+
+outline-style
+
+outline-style outline-width
+
+outline-width outline-style
+
+outline-style outline-color
+
+outline-color outline-style
+
+outline-color outline-width
+
+outline-width outline-color
+
+outline-color outline-style outline-width
+
+outline-color outline-width outline-style
+
+outline-style outline-width outline-color
+
+outline-style outline-color outline-width
+
+outline-width outline-style outline-color
+
+outline-width outline-color outline-style
+
+Nota bene: outline values involving
+
+'outline-style: auto'  (see https://www.w3.org/TR/css-ui-4/#typedef-outline-line-style )
+
+and
+
+'outline-style: none'
+
+are not tested.
+
+*/
+
+
+    verifyComputedStyle("outline", "blue", "0px none rgb(0, 0, 255)", "testing outline: blue");
+
+    verifyComputedStyle("outline", "invert", "0px none invert", "testing outline: invert");
+
+    verifyComputedStyle("outline", "4px", "0px none invert", "testing outline: 4px");
+
+    verifyComputedStyle("outline", "solid", "3px solid invert", "testing outline: solid");
+
+    verifyComputedStyle("outline", "solid 5px", "5px solid invert", "testing outline: solid 5px");
+
+    verifyComputedStyle("outline", "6px dashed", "6px dashed invert", "testing outline: 6px dashed");
+
+    verifyComputedStyle("outline", "dotted blue", "3px dotted rgb(0, 0, 255)", "testing outline: dotted blue");
+
+    verifyComputedStyle("outline", "dotted invert", "3px dotted invert", "testing outline: dotted invert");
+
+    verifyComputedStyle("outline", "blue solid", "3px solid rgb(0, 0, 255)", "testing outline: blue solid");
+
+    verifyComputedStyle("outline", "invert solid", "3px solid invert", "testing outline: invert solid");
+
+    verifyComputedStyle("outline", "black 4px", "0px none rgb(0, 0, 0)", "testing outline: black 4px");
+
+    verifyComputedStyle("outline", "invert 4px", "0px none invert", "testing outline: invert 4px");
+
+    verifyComputedStyle("outline", "5px blue", "0px none rgb(0, 0, 255)", "testing outline: 5px blue");
+
+    verifyComputedStyle("outline", "5px invert", "0px none invert", "testing outline: 5px invert");
+
+    verifyComputedStyle("outline", "black solid 6px", "6px solid rgb(0, 0, 0)", "testing outline: black solid 6px");
+
+    verifyComputedStyle("outline", "invert solid 6px", "6px solid invert", "testing outline: invert solid 6px");
+
+    verifyComputedStyle("outline", "blue 4px dotted", "4px dotted rgb(0, 0, 255)", "testing outline: blue 4px dotted");
+
+    verifyComputedStyle("outline", "invert 4px dotted", "4px dotted invert", "testing outline: invert 4px dotted");
+
+    verifyComputedStyle("outline", "dashed 5px black", "5px dashed rgb(0, 0, 0)", "testing outline: dashed 5px black");
+
+    verifyComputedStyle("outline", "dashed 5px invert", "5px dashed invert", "testing outline: dashed 5px invert");
+
+    verifyComputedStyle("outline", "solid blue 6px", "6px solid rgb(0, 0, 255)", "testing outline: solid blue 6px");
+
+    verifyComputedStyle("outline", "solid invert 6px", "6px solid invert", "testing outline: solid invert 6px");
+
+    verifyComputedStyle("outline", "4px dotted black", "4px dotted rgb(0, 0, 0)", "testing outline: 4px dotted black");
+
+    verifyComputedStyle("outline", "4px dotted invert", "4px dotted invert", "testing outline: 4px dotted invert");
+
+    verifyComputedStyle("outline", "5px blue dashed", "5px dashed rgb(0, 0, 255)", "testing outline: 5px blue dashed");
+
+    verifyComputedStyle("outline", "5px invert dashed", "5px dashed invert", "testing outline: 5px invert dashed");
+
+  }
+
+  startTesting();
+
+  </script>

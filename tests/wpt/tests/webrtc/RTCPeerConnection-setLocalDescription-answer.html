@@ -75,8 +75,8 @@
           assert_session_desc_similar(pc.localDescription, answer);
           assert_session_desc_similar(pc.remoteDescription, offer);
 
-          assert_session_desc_similar(pc.currentLocalDescription, answer);
-          assert_session_desc_similar(pc.currentRemoteDescription, offer);
+          assert_equals(pc.currentLocalDescription, pc.localDescription);
+          assert_equals(pc.currentRemoteDescription, pc.remoteDescription);
 
           assert_equals(pc.pendingLocalDescription, null);
           assert_equals(pc.pendingRemoteDescription, null);
@@ -107,8 +107,8 @@
           assert_session_desc_similar(pc.localDescription, answer);
           assert_session_desc_similar(pc.remoteDescription, offer);
 
-          assert_session_desc_similar(pc.currentLocalDescription, answer);
-          assert_session_desc_similar(pc.currentRemoteDescription, offer);
+          assert_equals(pc.currentLocalDescription, pc.localDescription);
+          assert_equals(pc.currentRemoteDescription, pc.remoteDescription);
 
           assert_equals(pc.pendingLocalDescription, null);
           assert_equals(pc.pendingRemoteDescription, null);
@@ -204,7 +204,7 @@
     assert_equals(pc2.pendingLocalDescription, null, "pendingLocalDescription should never be set due to sLD(answer)");
     assert_not_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should not be set synchronously after a call to sLD");
     assert_equals(pc2.pendingRemoteDescription.type, "offer");
-    assert_equals(pc2.remoteDescription.sdp, pc2.pendingRemoteDescription.sdp);
+    assert_equals(pc2.remoteDescription, pc2.pendingRemoteDescription);
     assert_equals(pc2.currentLocalDescription, null, "currentLocalDescription should not be set synchronously after a call to sLD");
     assert_equals(pc2.currentRemoteDescription, null, "currentRemoteDescription should not be set synchronously after a call to sLD");
 
@@ -219,10 +219,10 @@
     assert_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should be updated before the signalingstatechange event");
     assert_not_equals(pc2.currentLocalDescription, null, "currentLocalDescription should be updated before the signalingstatechange event");
     assert_equals(pc2.currentLocalDescription.type, "answer");
-    assert_equals(pc2.currentLocalDescription.sdp, pc2.localDescription.sdp);
+    assert_equals(pc2.currentLocalDescription, pc2.localDescription);
     assert_not_equals(pc2.currentRemoteDescription, null, "currentRemoteDescription should be updated before the signalingstatechange event");
     assert_equals(pc2.currentRemoteDescription.type, "offer");
-    assert_equals(pc2.currentRemoteDescription.sdp, pc2.remoteDescription.sdp);
+    assert_equals(pc2.currentRemoteDescription, pc2.remoteDescription);
 
     await sldPromise;
   }, "setLocalDescription(answer) should update internal state with a queued task, in the right order");

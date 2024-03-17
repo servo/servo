@@ -48,6 +48,7 @@ function createTargetWithStyle(test, style) {
 test(t => {
   const target = createTargetWithStyle(t, `
     @position-try --fallback {
+      left: auto;
       right: anchor(--a left);
     }
     @position-try --fallback {
@@ -60,10 +61,12 @@ test(t => {
 test(t => {
   const target = createTargetWithStyle(t, `
     @position-try --fallback {
+      left: auto;
       bottom: anchor(--a top);
     }
     @layer {
       @position-try --fallback {
+        left: auto;
         top: anchor(--a bottom);
       }
     }

@@ -1,0 +1,31 @@
+<!doctype html>
+<title>playback should not reset when moving within a document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<div id="log"></div>
+<video autoplay muted hidden></video>
+<div id="elsewhere"></div>
+<script>
+async_test(t => {
+  const v = document.querySelector('video');
+  v.src = getVideoURI('/media/movie_300');
+  v.currentTime  = 0;
+  v.onplaying = t.step_func(() => {
+    v.currentTime = 10;
+    t.step_timeout(() => {
+      assert_greater_than_equal(v.currentTime, 10);
+      document.getElementById('elsewhere').appendChild(v);
+      assert_false(v.paused, 'paused after moving');
+      assert_greater_than_equal(v.currentTime, 10);
+      t.step_timeout(() => {
+        assert_greater_than_equal(v.currentTime, 10);
+        t.done();
+      }, 0);
+    }, 0);
+
+  });
+  v.play();
+  v.onpause = t.step_func(function() { assert_unreached(); });
+});
+</script>

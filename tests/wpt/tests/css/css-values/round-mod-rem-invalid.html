@@ -31,7 +31,6 @@ test_invalid_number('round(nearest, 1 2)');
 test_invalid_number('round(1, nearest, 12)');
 test_invalid_number('round(1, nearest)');
 test_invalid_number('round(nearest, 1, nearest)');
-test_invalid_number('round(nearest, 1)');
 test_invalid_number('round(1, , 2)');
 test_invalid_number('mod()');
 test_invalid_number('mod( )');
@@ -97,6 +96,7 @@ test_invalid_number('rem(1, 0Hz)');
 test_invalid_number('rem(1, 0dpi)');
 test_invalid_number('rem(1, 0fr)');
 
+test_invalid_length_percentage('round(0px)');
 test_invalid_length_percentage('round(0px, 0s)');
 test_invalid_length_percentage('round(0px, 0deg)');
 test_invalid_length_percentage('round(0px, 0Hz)');

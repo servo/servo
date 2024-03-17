@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Union
 
 from ..error import UnknownErrorException
 from ._module import BidiModule, command
+from ..undefined import UNDEFINED, Undefined
 
 
 class ScriptEvaluateResultException(Exception):
@@ -78,15 +79,15 @@ Target = Union[RealmTarget, ContextTarget]
 class SerializationOptions(Dict[str, Any]):
     def __init__(
             self,
-            max_dom_depth: Optional[int] = None,
-            max_object_depth: Optional[int] = None,
-            include_shadow_tree: Optional[str] = None
+            max_dom_depth: Union[Optional[int], Undefined] = UNDEFINED,
+            max_object_depth: Union[Optional[int], Undefined] = UNDEFINED,
+            include_shadow_tree: Union[Optional[str], Undefined] = UNDEFINED
     ):
-        if max_dom_depth is not None:
+        if max_dom_depth is not UNDEFINED:
             self["maxDomDepth"] = max_dom_depth
-        if max_object_depth is not None:
+        if max_object_depth is not UNDEFINED:
             self["maxObjectDepth"] = max_object_depth
-        if include_shadow_tree is not None:
+        if include_shadow_tree is not UNDEFINED and include_shadow_tree is not None:
             self["includeShadowTree"] = include_shadow_tree
 
 

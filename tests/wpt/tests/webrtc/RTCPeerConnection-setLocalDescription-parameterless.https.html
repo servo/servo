@@ -27,6 +27,7 @@ promise_test(async t => {
 
   await offerer.setLocalDescription();
   assert_not_equals(offerer.pendingLocalDescription, null);
+  assert_equals(offerer.pendingLocalDescription, offerer.pendingLocalDescription);
 }, "Parameterless SLD() in 'stable' sets pendingLocalDescription");
 
 promise_test(async t => {
@@ -63,6 +64,7 @@ promise_test(async t => {
   await answerer.setRemoteDescription(await offerer.createOffer());
   await answerer.setLocalDescription();
   assert_not_equals(answerer.currentLocalDescription, null);
+  assert_equals(answerer.currentLocalDescription, answerer.currentLocalDescription);
 }, "Parameterless SLD() in 'have-remote-offer' sets currentLocalDescription");
 
 promise_test(async t => {

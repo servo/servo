@@ -325,7 +325,16 @@ def start(logger, dest=None, reinstall=False, prompt=True, device_serial=None):
         emulator.start()
         timer = threading.Timer(300, cancel_start(threading.get_ident()))
         timer.start()
-        emulator.wait_for_start()
+        for i in range(10):
+            logger.info(f"Wait for emulator to start attempt {i + 1}/10")
+            try:
+                emulator.wait_for_start()
+            except Exception:
+                import traceback
+                logger.warning(f"""emulator.wait_for_start() failed:
+{traceback.format_exc()}""")
+            else:
+                break
         timer.cancel()
     return emulator
 

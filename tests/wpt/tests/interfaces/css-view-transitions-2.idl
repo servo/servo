@@ -23,3 +23,7 @@ interface CSSViewTransitionRule : CSSRule {
   attribute ViewTransitionNavigation navigation;
   attribute DOMTokenList typeList;
 };
+
+partial interface ViewTransition {
+  readonly attribute DOMTokenList typeList;
+};

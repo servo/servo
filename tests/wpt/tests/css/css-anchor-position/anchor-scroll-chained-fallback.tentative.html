@@ -27,7 +27,7 @@ div {
 
 #anchored1 {
   position: absolute;
-  anchor-default: --a1;
+  position-anchor: --a1;
   background: green;
   position-try-options: --fallback;
   anchor-name: --a2;
@@ -37,7 +37,7 @@ div {
 
 #anchored2 {
   position: absolute;
-  anchor-default: --a2;
+  position-anchor: --a2;
   left: anchor(--a2 left);
   top: anchor(--a2 bottom);
   background: lime;
@@ -46,6 +46,7 @@ div {
 @position-try --fallback {
   left: anchor(--a1 right);
   top: anchor(--a1 top);
+  bottom: auto;
 }
 
 </style>

@@ -15,39 +15,38 @@ async def test_params_empty(send_blocking_command):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("value", [None, True, "foo", 42, {}])
-async def test_params_events_invalid_type(send_blocking_command, value):
+async def test_params_events_invalid_type(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
-        await send_blocking_command("session.subscribe", {"events": value})
+        await bidi_session.session.subscribe(events=value)
 
 
 @pytest.mark.asyncio
 async def test_params_events_empty(bidi_session):
-    response = await bidi_session.session.subscribe(events=[])
-    assert response == {}
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.subscribe(events=[])
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("value", [None, True, 42, [], {}])
-async def test_params_events_value_invalid_type(send_blocking_command, value):
+async def test_params_events_value_invalid_type(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
-        await send_blocking_command("session.subscribe", {"events": [value]})
+        await bidi_session.session.subscribe(events=[value])
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("value", ["", "foo", "foo.bar", "log.invalidEvent"])
-async def test_params_events_value_invalid_event_name(send_blocking_command, value):
+async def test_params_events_value_invalid_event_name(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
-        await send_blocking_command("session.subscribe", {"events": [value]})
+        await bidi_session.session.subscribe(events=[value])
 
 
 @pytest.mark.asyncio
 async def test_params_events_value_valid_and_invalid_event_names(
-    bidi_session, send_blocking_command, top_context
+    bidi_session, top_context
 ):
     with pytest.raises(InvalidArgumentException):
-        await send_blocking_command(
-            "session.subscribe", {"events": ["log.entryAdded", "some.invalidEvent"]}
-        )
+        await bidi_session.session.subscribe(events=[
+            "log.entryAdded", "some.invalidEvent"])
 
     # Make sure that we didn't subscribe to log.entryAdded because of the error
 
@@ -57,7 +56,8 @@ async def test_params_events_value_valid_and_invalid_event_names(
     async def on_event(method, data):
         events.append(data)
 
-    remove_listener = bidi_session.add_event_listener("log.entryAdded", on_event)
+    remove_listener = bidi_session.add_event_listener(
+        "log.entryAdded", on_event)
 
     await create_console_api_message(bidi_session, top_context, "text1")
 
@@ -70,57 +70,37 @@ async def test_params_events_value_valid_and_invalid_event_names(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("value", [True, "foo", 42, {}])
-async def test_params_contexts_invalid_type(send_blocking_command, value):
+async def test_params_contexts_invalid_type(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
-        await send_blocking_command(
-            "session.subscribe",
-            {
-                "events": [],
-                "contexts": value,
-            }
-        )
+        await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=value)
 
 
 @pytest.mark.asyncio
 async def test_params_contexts_empty(bidi_session):
-    response = await bidi_session.session.subscribe(events=[], contexts=[])
-    assert response == {}
+    with pytest.raises(InvalidArgumentException):
+        await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=[])
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("value", [None, True, 42, [], {}])
-async def test_params_contexts_value_invalid_type(send_blocking_command, value):
+async def test_params_contexts_value_invalid_type(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
-        await send_blocking_command(
-            "session.subscribe",
-            {
-                "events": [],
-                "contexts": [value],
-            }
-        )
+        await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=[value])
 
 
 @pytest.mark.asyncio
-async def test_params_contexts_value_invalid_value(send_blocking_command):
+async def test_params_contexts_value_invalid_value(bidi_session):
     with pytest.raises(NoSuchFrameException):
-        await send_blocking_command(
-            "session.subscribe",
-            {
-                "events": [],
-                "contexts": ["foo"],
-            }
-        )
+        await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=["foo"])
 
 
 @pytest.mark.asyncio
 async def test_params_contexts_valid_and_invalid_value(
-    bidi_session, send_blocking_command, top_context
+    bidi_session, top_context
 ):
     with pytest.raises(NoSuchFrameException):
-        await send_blocking_command(
-            "session.subscribe",
-            {"events": ["log.entryAdded"], "contexts": [top_context["context"], "foo"]},
-        )
+        await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=[
+            top_context["context"], "foo"])
 
     # Make sure that we didn't subscribe to log.entryAdded because of error
 
@@ -130,7 +110,8 @@ async def test_params_contexts_valid_and_invalid_value(
     async def on_event(method, data):
         events.append(data)
 
-    remove_listener = bidi_session.add_event_listener("log.entryAdded", on_event)
+    remove_listener = bidi_session.add_event_listener(
+        "log.entryAdded", on_event)
 
     await create_console_api_message(bidi_session, top_context, "text1")
 
@@ -142,16 +123,10 @@ async def test_params_contexts_valid_and_invalid_value(
 
 
 @pytest.mark.asyncio
-async def test_subscribe_to_closed_tab(bidi_session, send_blocking_command):
+async def test_subscribe_to_closed_tab(bidi_session):
     new_tab = await bidi_session.browsing_context.create(type_hint="tab")
     await bidi_session.browsing_context.close(context=new_tab["context"])
 
     # Try to subscribe to the closed context
     with pytest.raises(NoSuchFrameException):
-        await send_blocking_command(
-            "session.subscribe",
-            {
-                "events": ["log.entryAdded"],
-                "contexts": [new_tab["context"]]
-            },
-        )
+        await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=[new_tab["context"]])

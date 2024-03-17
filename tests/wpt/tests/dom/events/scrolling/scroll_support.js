@@ -33,8 +33,7 @@ async function waitForScrollReset(test, scroller, x = 0, y = 0) {
     } else {
       const eventTarget =
         scroller == document.scrollingElement ? document : scroller;
-      scroller.scrollTop = y;
-      scroller.scrollLeft = x;
+      scroller.scrollTo(x, y);
       waitForScrollendEventNoTimeout(eventTarget).then(resolve);
     }
   });

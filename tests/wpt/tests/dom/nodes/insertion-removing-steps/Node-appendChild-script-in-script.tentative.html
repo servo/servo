@@ -12,26 +12,29 @@ test(() => {
   const s2 = document.createElement("script");
 
   // This script, which is ultimately a *child* of the
-  // already-connected-but-empty `s1` script, runs first. This is because when
-  // the DocumentFragment `df` containing this script (`s2`) is appended to
-  // `s1`, we do not immediately execute `s1`, because of this condition: [1].
-  // It specifies that when a "node or document fragment is inserted into the
-  // script", we only run the "prepare the script algorithm" for that script
-  // "after any script elements inserted at that time".
+  // already-connected-but-empty `s1` script, runs second, after `s1` runs. See
+  // the example in
+  // http://html.spec.whatwg.org/C/#script-processing-model:children-changed-steps
+  // for more information.
   //
-  // So upon insertion of `s2`, its insertion conditions are met and it is
-  // prepared and run first. During its execution, it mutates `s1`, adding more
-  // text to it. This condition still does not trigger the immediate execution
-  // of `s1`, because `s2`'s insertion is not complete yet.
+  // HISTORICAL CONTEXT: There used to be a condition in the HTML standard that
+  // said an "outer" script must be "prepared" when a node gets inserted into
+  // the script. BUT it also stipulated that if the insertion consists of any
+  // "inner" (nested, essentially) script elements, then this "outer" script
+  // must prepare/execute after any of those "inner" newly-inserted scripts
+  // themselves get prepared.
   //
-  // Once `s2` is finished being inserted, the condition to prepare and execute
-  // `s1` is met, and it is processed accordingly, which includes the execution
-  // of the text that `s2` added to `s1`.
-  //
-  // [1]: https://html.spec.whatwg.org/C#script-processing-model:prepare-the-script-element-4
+  // This changed in https://github.com/whatwg/html/pull/10188.
   s2.textContent = `
     happened.push("s2");
+
+    // This text never executes in the outer script, because by the time this
+    // gets appended, the outer script has "already started" [1], so it does not
+    // get re-prepared/executed a second time.
+    //
+    // [1]: https://html.spec.whatwg.org/C#already-started
     s1.appendChild(new Text("happened.push('s1ran');"));
+
     happened.push("s2ran");
 `;
 
@@ -41,8 +44,8 @@ test(() => {
 
   assert_array_equals(happened, []);
   s1.appendChild(df);
-  assert_array_equals(happened, ["s2", "s2ran", "s1", "s1ran"]);
-}, "An outer script does not execute until its inner `<script>` children are " +
-   "finished being inserted into it. The outer script's execution considers " +
-   "any script text that inner scripts added to the outer one.");
+  assert_array_equals(happened, ["s1", "s2", "s2ran"]);
+}, "An outer script whose preparation/execution gets triggered by the " +
+   "insertion of a 'nested'/'inner' script, executes *before* the inner " +
+   "script executes");
 </script>

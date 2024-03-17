@@ -43,6 +43,8 @@ document.fonts.ready.then(()=> {
     { value: "calc-size(calc-size(2in, 30px), 15em)", expected: "300px" },
     { value: "calc-size(calc-size(min-content, 30px), 15em)", expected: "300px" },
     { value: "calc-size(calc-size(min-content, size), size)", expected: "400px" },
+    { value: "calc-size(auto, size)", expected: "500px" },
+    { value: "calc-size(auto, size * 0.6 + 23px)", expected: "323px" },
   ];
   const container = document.getElementById("container");
   const target = document.getElementById("target");

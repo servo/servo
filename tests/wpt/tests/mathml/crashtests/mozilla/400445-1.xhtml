@@ -1,0 +1,22 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:math="http://www.w3.org/1998/Math/MathML">
+<head>
+<script>
+
+function boom()
+{
+  var mtd1 = document.getElementById("mtd1");
+  var mtd2 = document.getElementById("mtd2");
+  var newSpan = document.createElementNS("http://www.w3.org/1999/xhtml", "span");
+
+  mtd1.appendChild(newSpan);
+  mtd1.removeAttribute("columnspan");
+  mtd2.setAttribute("columnspan", 0);
+}
+
+</script>
+</head>
+
+<body onload="boom();">
+<math:mtd id="mtd1" columnspan="5" /><math:mtd id="mtd2" />
+</body>
+</html>
