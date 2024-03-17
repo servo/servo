@@ -164,7 +164,7 @@ impl MediaFragmentParser {
     fn parse_spatial(&self, input: &str) -> Result<SpatialClipping, ()> {
         let (prefix, s) = split_prefix(input);
         let vec: Vec<&str> = s.split(',').collect();
-        let mut queue: VecDeque<u32> = vec.iter().map(|s| s.parse::<u32>()).flatten().collect();
+        let mut queue: VecDeque<u32> = vec.iter().flat_map(|s| s.parse::<u32>()).collect();
 
         let mut clipping = SpatialClipping {
             region: None,
