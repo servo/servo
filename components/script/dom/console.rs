@@ -297,19 +297,19 @@ impl Console {
         global.pop_console_group();
     }
 
-    // https://console.spec.whatwg.org/#count
+    /// <https://console.spec.whatwg.org/#count>
     pub fn Count(global: &GlobalScope, label: DOMString) {
         let count = global.increment_console_count(&label);
-        let message = DOMString::from(format!("{}: {}", label, count));
+        let message = DOMString::from(format!("{label}: {count}"));
         console_message(global, message, LogLevel::Log);
     }
 
-    // https://console.spec.whatwg.org/#countreset
+    /// <https://console.spec.whatwg.org/#countreset>
     pub fn CountReset(global: &GlobalScope, label: DOMString) {
         if global.reset_console_count(&label).is_err() {
             Self::internal_warn(
                 global,
-                DOMString::from(format!("Counter “{}” doesn’t exist.", label)),
+                DOMString::from(format!("Counter “{label}” doesn’t exist.")),
             )
         }
     }

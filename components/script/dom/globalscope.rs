@@ -3262,22 +3262,22 @@ impl GlobalScope {
     }
 
     pub(crate) fn increment_console_count(&self, label: &DOMString) -> usize {
-        let mut map = self.console_count_map.borrow_mut();
-        if let Some(val) = map.get_mut(label) {
-            *val += 1;
-            return *val;
-        }
-        map.insert(label.clone(), 1);
-        1
+        *self
+            .console_count_map
+            .borrow_mut()
+            .entry(label.clone())
+            .and_modify(|e| *e += 1)
+            .or_insert(1)
     }
 
     pub(crate) fn reset_console_count(&self, label: &DOMString) -> Result<(), ()> {
-        let mut map = self.console_count_map.borrow_mut();
-        if let Some(val) = map.get_mut(label) {
-            *val = 0;
-            return Ok(());
+        match self.console_count_map.borrow_mut().get_mut(label) {
+            Some(value) => {
+                *value = 0;
+                Ok(())
+            },
+            None => Err(()),
         }
-        return Err(());
     }
 
     pub(crate) fn dynamic_module_list(&self) -> RefMut<DynamicModuleList> {
