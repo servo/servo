@@ -19,6 +19,7 @@ promise_test(async t => {
   await promise;
   assert_not_equals(pc.pendingLocalDescription, null,
                     'pendingLocalDescription is not null after await');
+  assert_equals(pc.pendingLocalDescription, pc.localDescription);
 }, "pendingLocalDescription is surfaced at the right time");
 
 promise_test(async t => {
@@ -34,6 +35,7 @@ promise_test(async t => {
   await promise;
   assert_not_equals(pc.pendingRemoteDescription, null,
                     'pendingRemoteDescription is not null after await');
+  assert_equals(pc.pendingRemoteDescription, pc.remoteDescription);
 }, "pendingRemoteDescription is surfaced at the right time");
 
 promise_test(async t => {
@@ -55,6 +57,7 @@ promise_test(async t => {
   await promise;
   assert_not_equals(pc2.currentLocalDescription, null,
                     'currentLocalDescription is not null after await');
+  assert_equals(pc2.currentLocalDescription, pc2.localDescription);
 }, "currentLocalDescription is surfaced at the right time");
 
 promise_test(async t => {
@@ -76,6 +79,7 @@ promise_test(async t => {
   await promise;
   assert_not_equals(pc1.currentRemoteDescription, null,
                     'currentRemoteDescription is not null after await');
+  assert_equals(pc1.currentRemoteDescription, pc1.remoteDescription);
 }, "currentRemoteDescription is surfaced at the right time");
 
 </script>

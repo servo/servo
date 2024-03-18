@@ -580,6 +580,7 @@ MISSING-LINK: css/cssom-view/scrollTop-display-change.html
 # TODO https://github.com/web-platform-tests/wpt/issues/5770
 MISSING-LINK: css/css-highlight-api/idlharness.window.js
 MISSING-LINK: css/css-highlight-api/historical.window.js
+MISSING-LINK: css/cssom/cssstyledeclaration-csstext-setter.window.js
 MISSING-LINK: css/geometry/*.worker.js
 MISSING-LINK: css/geometry/*.any.js
 MISSING-LINK: css/filter-effects/*.any.js
@@ -745,5 +746,6 @@ HTML INVALID SYNTAX: domparsing/DOMParser-parseFromString-xml-parsererror.html
 HTML INVALID SYNTAX: domparsing/XMLSerializer-serializeToString.html
 HTML INVALID SYNTAX: html/canvas/element/manual/unclosed-canvas-4.htm
 HTML INVALID SYNTAX: html/syntax/parsing/unclosed-svg-script.html
+HTML INVALID SYNTAX: mathml/crashtests/mozilla/411603-1.html
 HTML INVALID SYNTAX: quirks/percentage-height-calculation.html
 HTML INVALID SYNTAX: trusted-types/TrustedTypePolicyFactory-getAttributeType-namespace.html

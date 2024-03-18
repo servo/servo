@@ -200,6 +200,16 @@ test_math_used("calc(0 - round(to-zero, 13, 10))", "-10", { type: "integer" });
 test_math_used("calc(0 - round(to-zero, -13, 10))", "10", { type: "integer" });
 test_math_used("calc(0 - round(to-zero, -18, 10))", "10", { type: "integer" });
 
+// Test omission of <step> argument
+test_math_used("round(1.5)", "2", { type: "integer" });
+test_math_used("round(up, 1.5)", "2", { type: "integer" });
+test_math_used("round(down, 1.5)", "1", { type: "integer" });
+test_math_used("round(to-zero, 1.5)", "1", { type: "integer" });
+test_math_used("round(-1.5)", "-1", { type: "integer" });
+test_math_used("round(up, -1.5)", "-1", { type: "integer" });
+test_math_used("round(down, -1.5)", "-2", { type: "integer" });
+test_math_used("round(to-zero, -1.5)", "-1", { type: "integer" });
+
 // Extreme cases:
 
 // 0 step is NaN

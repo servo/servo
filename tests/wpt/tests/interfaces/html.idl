@@ -123,6 +123,7 @@ interface HTMLElement : Element {
   readonly attribute DOMString accessKeyLabel;
   [CEReactions] attribute boolean draggable;
   [CEReactions] attribute boolean spellcheck;
+  [CEReactions] attribute DOMString writingSuggestions;
   [CEReactions] attribute DOMString autocapitalize;
 
   [CEReactions] attribute [LegacyNullToEmptyString] DOMString innerText;

@@ -68,7 +68,7 @@
       .then(() => {
         assert_equals(pc.signalingState, 'have-local-offer');
         assert_session_desc_similar(pc.localDescription, offer);
-        assert_session_desc_similar(pc.pendingLocalDescription, offer);
+        assert_equals(pc.pendingLocalDescription, pc.localDescription);
         assert_equals(pc.currentLocalDescription, null);
 
         assert_array_equals(states, ['have-local-offer']);
@@ -90,7 +90,7 @@
       .then(() => {
         assert_equals(pc.signalingState, 'have-local-offer');
         assert_session_desc_similar(pc.localDescription, offer);
-        assert_session_desc_similar(pc.pendingLocalDescription, offer);
+        assert_equals(pc.pendingLocalDescription, pc.localDescription);
         assert_equals(pc.currentLocalDescription, null);
       }));
   }, 'setLocalDescription with type offer and null sdp should use lastOffer generated from createOffer');
@@ -219,7 +219,7 @@
     assert_equals(pc.pendingRemoteDescription, null, "pendingRemoteDescription should never be set due to sLD");
     assert_not_equals(pc.pendingLocalDescription, null, "pendingLocalDescription should be updated before the signalingstatechange event");
     assert_equals(pc.pendingLocalDescription.type, "offer");
-    assert_equals(pc.pendingLocalDescription.sdp, pc.localDescription.sdp);
+    assert_equals(pc.pendingLocalDescription, pc.localDescription);
     assert_equals(pc.currentLocalDescription, null, "currentLocalDescription should never be updated due to sLD(offer)");
     assert_equals(pc.currentRemoteDescription, null, "currentRemoteDescription should never be updated due to sLD(offer)");
 

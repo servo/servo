@@ -136,7 +136,7 @@
     await pc2.setLocalDescription(answer);
     await pc.setRemoteDescription(answer);
     await exchangeOffer(pc2, pc);
-    assert_equals(pc.remoteDescription.sdp, pc.pendingRemoteDescription.sdp);
+    assert_equals(pc.remoteDescription, pc.pendingRemoteDescription);
     assert_session_desc_similar(pc.remoteDescription, offer);
     assert_session_desc_similar(pc.currentRemoteDescription, answer);
   }, 'Switching role from offerer to answerer after going back to stable state should succeed');

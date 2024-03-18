@@ -207,7 +207,7 @@ impl<S: FontSource> FontContext<S> {
         info: FontTemplateInfo,
         descriptor: FontDescriptor,
         synthesized_small_caps: Option<FontRef>,
-    ) -> Result<Font, ()> {
+    ) -> Result<Font, &'static str> {
         let handle = FontHandle::new_from_template(
             &self.platform_handle,
             info.font_template,

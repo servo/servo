@@ -90,22 +90,23 @@ impl RenderingContext {
         Ok(RenderingContext(Rc::new(data)))
     }
 
-    pub fn create_surface_texture(
-        &self,
-        surface: Surface,
-    ) -> Result<SurfaceTexture, (Error, Surface)> {
+    pub fn create_surface_texture(&self, surface: Surface) -> Result<SurfaceTexture, Error> {
         let device = &self.0.device.borrow();
         let context = &mut self.0.context.borrow_mut();
-        device.create_surface_texture(context, surface)
+        device
+            .create_surface_texture(context, surface)
+            .map_err(|(error, _)| error)
     }
 
     pub fn destroy_surface_texture(
         &self,
         surface_texture: SurfaceTexture,
-    ) -> Result<Surface, (Error, SurfaceTexture)> {
+    ) -> Result<Surface, Error> {
         let device = &self.0.device.borrow();
         let context = &mut self.0.context.borrow_mut();
-        device.destroy_surface_texture(context, surface_texture)
+        device
+            .destroy_surface_texture(context, surface_texture)
+            .map_err(|(error, _)| error)
     }
 
     pub fn make_gl_context_current(&self) -> Result<(), Error> {

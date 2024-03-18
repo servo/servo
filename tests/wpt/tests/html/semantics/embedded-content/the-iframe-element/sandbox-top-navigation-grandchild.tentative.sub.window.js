@@ -5,7 +5,7 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
 // META: script=/html/browsers/browsing-the-web/remote-context-helper/resources/remote-context-helper.js
-// META: script=./resources/sandbox-top-navigation-helper.js
+// META: script=./resources/sandbox-top-navigation-helper.sub.js
 
 'use strict';
 

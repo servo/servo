@@ -17,7 +17,7 @@ use super::{ContainingBlockManager, Fragment, Tag};
 use crate::cell::ArcRefCell;
 use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
-use crate::geom::PhysicalRect;
+use crate::geom::{physical_rect_to_au_rect, PhysicalRect};
 
 #[derive(Serialize)]
 pub struct FragmentTree {
@@ -97,9 +97,13 @@ impl FragmentTree {
         });
     }
 
-    pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Option<Rect<Au>> {
-        let mut bounding_box = PhysicalRect::zero();
-        let mut found_any_nodes = false;
+    /// Get the vector of rectangles that surrounds the fragments of the node with the given address.
+    /// This function answers the `getClientRects()` query and the union of the rectangles answers
+    /// the `getBoundingClientRect()` query.
+    ///
+    /// TODO: This function is supposed to handle scroll offsets, but that isn't happening at all.
+    pub fn get_content_boxes_for_node(&self, requested_node: OpaqueNode) -> Vec<Rect<Au>> {
+        let mut content_boxes = Vec::new();
         let tag_to_find = Tag::new(requested_node);
         self.find(|fragment, _, containing_block| {
             if fragment.tag() != Some(tag_to_find) {
@@ -121,27 +125,12 @@ impl FragmentTree {
                 Fragment::IFrame(_) => return None,
             };
 
-            found_any_nodes = true;
-            bounding_box = fragment_relative_rect
-                .translate(containing_block.origin.to_vector())
-                .union(&bounding_box);
+            content_boxes.push(physical_rect_to_au_rect(
+                fragment_relative_rect.translate(containing_block.origin.to_vector()),
+            ));
             None::<()>
         });
-
-        if found_any_nodes {
-            Some(Rect::new(
-                Point2D::new(
-                    Au::from_f32_px(bounding_box.origin.x.px()),
-                    Au::from_f32_px(bounding_box.origin.y.px()),
-                ),
-                Size2D::new(
-                    Au::from_f32_px(bounding_box.size.width.px()),
-                    Au::from_f32_px(bounding_box.size.height.px()),
-                ),
-            ))
-        } else {
-            None
-        }
+        content_boxes
     }
 
     pub fn get_border_dimensions_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {

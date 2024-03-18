@@ -186,6 +186,12 @@ x
   x
 </button>
 
+<span style="display: none">
+<button data-expectedlabel="" data-testname="Hidden button's label should be the empty string" class="ex">
+x
+</button>
+</span>
+
 <!-- Step 2B: LabelledBy supercedes 2D: AriaLabel, also see wpt/accname/name/comp_labelledby.html -->
 <a href="#" aria-labelledby="span6" aria-label="foo" data-expectedlabel="label" data-testname="link's aria-labelledby name supercedes aria-label" class="ex">x</a>
 <span id="span6">label</span>

@@ -225,6 +225,16 @@ impl<'a> TextRun {
 
         let breaker = breaker.as_mut().unwrap();
 
+        let mut push_range = |range: &std::ops::Range<usize>, options: &ShapingOptions| {
+            glyphs.push(GlyphRun {
+                glyph_store: font.shape_text(&text[range.clone()], &options),
+                range: Range::new(
+                    ByteIndex(range.start as isize),
+                    ByteIndex(range.len() as isize),
+                ),
+            });
+        };
+
         while !finished {
             let (idx, _is_hard_break) = breaker.next(text);
             if idx == text.len() {
@@ -240,9 +250,9 @@ impl<'a> TextRun {
 
             // Split off any trailing whitespace into a separate glyph run.
             let mut whitespace = slice.end..slice.end;
-            if let Some((i, _)) = word
-                .char_indices()
-                .rev()
+            let mut rev_char_indices = word.char_indices().rev().peekable();
+            let ends_with_newline = rev_char_indices.peek().map_or(false, |&(_, c)| c == '\n');
+            if let Some((i, _)) = rev_char_indices
                 .take_while(|&(_, c)| char_is_whitespace(c))
                 .last()
             {
@@ -254,26 +264,28 @@ impl<'a> TextRun {
                 continue;
             }
             if !slice.is_empty() {
-                glyphs.push(GlyphRun {
-                    glyph_store: font.shape_text(&text[slice.clone()], options),
-                    range: Range::new(
-                        ByteIndex(slice.start as isize),
-                        ByteIndex(slice.len() as isize),
-                    ),
-                });
+                push_range(&slice, options);
             }
             if !whitespace.is_empty() {
                 let mut options = *options;
                 options
                     .flags
                     .insert(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG);
-                glyphs.push(GlyphRun {
-                    glyph_store: font.shape_text(&text[whitespace.clone()], &options),
-                    range: Range::new(
-                        ByteIndex(whitespace.start as isize),
-                        ByteIndex(whitespace.len() as isize),
-                    ),
-                });
+
+                // The breaker breaks after every newline, so either there is none,
+                // or there is exactly one at the very end. In the latter case,
+                // split it into a different run. That's because shaping considers
+                // a newline to have the same advance as a space, but during layout
+                // we want to treat the newline as having no advance.
+                if ends_with_newline {
+                    whitespace.end -= 1;
+                    if !whitespace.is_empty() {
+                        push_range(&whitespace, &options);
+                    }
+                    whitespace.start = whitespace.end;
+                    whitespace.end += 1;
+                }
+                push_range(&whitespace, &options);
             }
             slice.start = whitespace.end;
         }

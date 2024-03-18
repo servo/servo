@@ -11,11 +11,17 @@ for help getting started.
 Visit the [Servo Project page](https://servo.org/) for news and guides.
 
 ## Getting Servo
+
 ``` sh
 git clone https://github.com/servo/servo
 cd servo
 ```
-Your CARGO_HOME needs to point to (or be in) the same drive as your Servo repository (See [#28530](https://github.com/servo/servo/issues/28530)).
+
+ - Your CARGO_HOME needs to point to (or be in) the same drive as your 
+   Servo repository ([#28530](https://github.com/servo/servo/issues/28530)).
+ - The Servo repository is big! If you have an unreliable network connection, consider
+   [making a shallow clone](https://github.blog/2020-12-21-get-up-to-speed-with-partial-clone-and-shallow-clone/).
+
 
 ## Build Setup
 
@@ -187,7 +193,10 @@ Run Servo with the command:
 #### Linux
 
 * `GStreamer` >=1.18
+* `gst-plugins-base` >=1.18
+* `gst-plugins-good` >=1.18
 * `gst-plugins-bad` >=1.18
+* `gst-plugins-ugly` >=1.18
 * `libXcursor`
 * `libXrandr`
 * `libXi`
