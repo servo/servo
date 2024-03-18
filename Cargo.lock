@@ -5604,9 +5604,9 @@ dependencies = [
 
 [[package]]
 name = "smallbitvec"
-version = "2.5.2"
+version = "2.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89585d5125f6ba10f6aecf290219b36691ca293e9267f1c9575fae0e5cd9c620"
+checksum = "fcc3fc564a4b53fd1e8589628efafe57602d91bde78be18186b5f61e8faea470"
 
 [[package]]
 name = "smallvec"
