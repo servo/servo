@@ -61,6 +61,7 @@ egui = "0.22.0"
 egui_glow = { version = "0.22.0", features = ["winit"] }
 egui-winit = { version = "0.22.0", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
+event_tracing = { path = "../../components/event_tracing" }
 getopts = { workspace = true }
 gilrs = "0.10.4"
 gleam = { workspace = true }

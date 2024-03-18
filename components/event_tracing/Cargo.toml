@@ -1,0 +1,17 @@
+[package]
+name = "event_tracing"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "event_tracing"
+path = "lib.rs"
+proc-macro = true
+
+[dependencies]
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }

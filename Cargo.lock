@@ -874,6 +874,7 @@ dependencies = [
  "devtools_traits",
  "embedder_traits",
  "euclid",
+ "event_tracing",
  "gaol",
  "gfx",
  "gfx_traits",
@@ -1590,6 +1591,15 @@ checksum = "87f253bc5c813ca05792837a0ff4b3a580336b224512d48f7eda1d7dd9210787"
 dependencies = [
  "num-traits",
  "serde",
+]
+
+[[package]]
+name = "event_tracing"
+version = "0.0.1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.52",
 ]
 
 [[package]]
@@ -5466,6 +5476,7 @@ dependencies = [
  "egui-winit",
  "egui_glow",
  "euclid",
+ "event_tracing",
  "getopts",
  "gilrs",
  "gleam",
