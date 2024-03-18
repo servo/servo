@@ -1987,6 +1987,10 @@ impl HTMLMediaElement {
         self.video_renderer.lock().unwrap().current_frame.clone()
     }
 
+    pub fn clear_current_frame(&self) {
+        self.video_renderer.lock().unwrap().current_frame = None;
+    }
+
     /// By default the audio is rendered through the audio sink automatically
     /// selected by the servo-media Player instance. However, in some cases, like
     /// the WebAudio MediaElementAudioSourceNode, we need to set a custom audio
