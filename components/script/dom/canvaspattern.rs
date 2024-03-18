@@ -39,11 +39,11 @@ impl CanvasPattern {
 
         CanvasPattern {
             reflector_: Reflector::new(),
-            surface_data: surface_data,
+            surface_data,
             surface_size,
             repeat_x: x,
             repeat_y: y,
-            origin_clean: origin_clean,
+            origin_clean,
         }
     }
     pub fn new(
