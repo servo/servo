@@ -331,6 +331,11 @@ where
                 webrender_gl.clone(),
                 render_notifier,
                 webrender::WebRenderOptions {
+                    // We force the use of optimized shaders here because rendering is broken
+                    // on Android emulators with unoptimized shaders. This is due to a known
+                    // issue in the emulator's OpenGL emulation layer.
+                    // See: https://github.com/servo/servo/issues/31726
+                    use_optimized_shaders: true,
                     resource_override_path: opts.shaders_dir.clone(),
                     enable_aa: !opts.debug.disable_text_antialiasing,
                     debug_flags: debug_flags,
