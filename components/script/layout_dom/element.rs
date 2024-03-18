@@ -456,6 +456,21 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
     ) -> euclid::default::Size2D<Option<app_units::Au>> {
         todo!();
     }
+
+    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
+        self.element.get_selector_flags().contains(flags)
+    }
+
+    fn relative_selector_search_direction(&self) -> Option<ElementSelectorFlags> {
+        let flags = self.element.get_selector_flags().intersection(
+            ElementSelectorFlags::RELATIVE_SELECTOR_SEARCH_DIRECTION_ANCESTOR_SIBLING,
+        );
+        if flags.is_empty() {
+            None
+        } else {
+            Some(flags)
+        }
+    }
 }
 
 impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
