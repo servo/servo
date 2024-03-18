@@ -63,7 +63,7 @@ pub struct WebView {}
 
 pub struct ServoEventResponse {
     pub need_present: bool,
-    pub history_changed: bool,
+    pub need_update: bool,
 }
 
 impl<Window> WebViewManager<Window>
@@ -410,7 +410,7 @@ where
         events: Drain<'_, (Option<WebViewId>, EmbedderMsg)>,
     ) -> ServoEventResponse {
         let mut need_present = false;
-        let mut history_changed = false;
+        let mut need_update = false;
         for (webview_id, msg) in events {
             if let Some(webview_id) = webview_id {
                 trace_embedder_msg!(msg, "{webview_id} {msg:?}");
@@ -599,7 +599,7 @@ where
                 EmbedderMsg::HistoryChanged(urls, current) => {
                     self.current_url = Some(urls[current].clone());
                     self.current_url_string = Some(urls[current].clone().into_string());
-                    history_changed = true;
+                    need_update = true;
                 },
                 EmbedderMsg::SetFullscreenState(state) => {
                     self.window.set_fullscreen(state);
@@ -680,7 +680,7 @@ where
 
         ServoEventResponse {
             need_present,
-            history_changed,
+            need_update,
         }
     }
 }

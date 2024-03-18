@@ -51,7 +51,7 @@ enum PumpResult {
     /// The caller should shut down Servo and its related context.
     Shutdown,
     Continue {
-        history_changed: bool,
+        update: bool,
         present: Present,
     },
 }
@@ -298,14 +298,11 @@ impl App {
                         minibrowser.context.destroy();
                     }
                 },
-                PumpResult::Continue {
-                    history_changed,
-                    present,
-                } => {
-                    if history_changed {
+                PumpResult::Continue { update, present } => {
+                    if update {
                         if let Some(mut minibrowser) = app.minibrowser() {
                             let webviews = &mut app.webviews.borrow_mut();
-                            if minibrowser.update_location_in_toolbar(webviews) {
+                            if minibrowser.update_webview_data(webviews) {
                                 // Update the minibrowser immediately. While we could update by requesting a
                                 // redraw, doing so would delay the location update by two frames.
                                 minibrowser.update(
@@ -432,12 +429,12 @@ impl App {
         let mut embedder_messages = self.servo.as_mut().unwrap().get_events();
         let mut need_resize = false;
         let mut need_present = false;
-        let mut history_changed = false;
+        let mut need_update = false;
         loop {
             // Consume and handle those embedder messages.
             let servo_event_response = webviews.handle_servo_events(embedder_messages);
             need_present |= servo_event_response.need_present;
-            history_changed |= servo_event_response.history_changed;
+            need_update |= servo_event_response.need_update;
 
             // Route embedder events from the WebViewManager to the relevant Servo components,
             // receives and collects embedder messages from various Servo components,
@@ -467,7 +464,7 @@ impl App {
         };
 
         PumpResult::Continue {
-            history_changed,
+            update: need_update,
             present,
         }
     }

@@ -314,4 +314,13 @@ impl Minibrowser {
             _ => false,
         }
     }
+
+    /// Updates all fields taken from the given [WebViewManager], such as the location field.
+    /// Returns true iff the egui needs an update.
+    pub fn update_webview_data(
+        &mut self,
+        browser: &mut WebViewManager<dyn WindowPortsMethods>,
+    ) -> bool {
+        return self.update_location_in_toolbar(browser);
+    }
 }
