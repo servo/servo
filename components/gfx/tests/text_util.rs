@@ -107,22 +107,19 @@ fn test_transform_compress_whitespace_newline_no_incoming() {
 
 #[test]
 fn test_is_cjk() {
-    let test_strs = [
-        ('〇', true),
-        ('㐀', true),
-        ('あ', true),
-        ('ア', true),
-        ('㆒', true),
-        ('ㆣ', true),
-        ('龥', true),
-        ('𪣻', true),
-        ('a', false),
-        ('🙂', false),
-        ('©', false),
-    ];
+    // Test characters from different CJK blocks
+    assert_eq!(is_cjk('〇'), true);
+    assert_eq!(is_cjk('㐀'), true);
+    assert_eq!(is_cjk('あ'), true);
+    assert_eq!(is_cjk('ア'), true);
+    assert_eq!(is_cjk('㆒'), true);
+    assert_eq!(is_cjk('ㆣ'), true);
+    assert_eq!(is_cjk('龥'), true);
+    assert_eq!(is_cjk('𰾑'), true);
+    assert_eq!(is_cjk('𰻝'), true);
 
-    for &(test, oracle) in test_strs.iter() {
-        let symbol: bool = is_cjk(test);
-        assert_eq!(symbol, oracle);
-    }
+    // Test characters from outside CJK blocks
+    assert_eq!(is_cjk('a'), false);
+    assert_eq!(is_cjk('🙂'), false);
+    assert_eq!(is_cjk('©'), false);
 }
