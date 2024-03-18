@@ -356,7 +356,7 @@ pub mod bm {
     pub fn delegate_peripherals(delegate: *mut Object) -> *mut Object {
         unsafe {
             let peripherals: *mut Object =
-                *(&mut *delegate).get_ivar::<*mut Object>(DELEGATE_PERIPHERALS_IVAR);
+                *(*delegate).get_ivar::<*mut Object>(DELEGATE_PERIPHERALS_IVAR);
             peripherals
         }
     }

@@ -1081,7 +1081,7 @@ impl<'a> FlexItem<'a> {
                             box_size,
                             &pbm,
                         );
-                        let cross_size = flex_context.vec2_to_flex_relative(size.clone()).cross;
+                        let cross_size = flex_context.vec2_to_flex_relative(size).cross;
                         let fragments = replaced.contents.make_fragments(&replaced.style, size);
                         FlexItemLayoutResult {
                             hypothetical_cross_size: cross_size.into(),

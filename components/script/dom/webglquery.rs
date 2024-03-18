@@ -144,7 +144,7 @@ impl WebGLQuery {
         self.query_result_available.set(Some(is_available));
     }
 
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     pub fn get_parameter(
         &self,
         context: &WebGLRenderingContext,

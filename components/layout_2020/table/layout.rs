@@ -1478,7 +1478,7 @@ impl<'a> TableLayout<'a> {
                 baselines.last = Some(row_end);
             }
 
-            let column_indices = 0..self.table.size.width.clone();
+            let column_indices = 0..self.table.size.width;
             row_fragment_layout.fragments.reserve(self.table.size.width);
             for column_index in column_indices {
                 // The PositioningContext for cells is, in order or preference, the PositioningContext of the row,

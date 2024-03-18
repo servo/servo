@@ -76,7 +76,7 @@ where
 {
     let heap_buffer_source = match init {
         HeapTypedArrayInit::Buffer(buffer_source) => HeapBufferSource {
-            buffer_source: buffer_source,
+            buffer_source,
             phantom: PhantomData::default(),
         },
         HeapTypedArrayInit::Info { len, cx } => {

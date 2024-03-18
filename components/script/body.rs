@@ -91,7 +91,7 @@ impl TransmitBodyConnectHandler {
         source: BodySource,
     ) -> TransmitBodyConnectHandler {
         TransmitBodyConnectHandler {
-            stream: stream,
+            stream,
             task_source,
             canceller,
             bytes_sender: None,
