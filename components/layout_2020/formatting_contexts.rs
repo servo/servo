@@ -59,8 +59,8 @@ pub(crate) enum NonReplacedFormattingContextContents {
     // Other layout modes go here
 }
 
-/// The baselines of a layout or a [`BoxFragment`]. Some layout uses the first and some layout uses
-/// the last.
+/// The baselines of a layout or a [`crate::fragment_tree::BoxFragment`]. Some layout
+/// uses the first and some layout uses the last.
 #[derive(Debug, Default, Serialize)]
 pub(crate) struct Baselines {
     pub first: Option<Au>,

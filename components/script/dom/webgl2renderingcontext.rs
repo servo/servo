@@ -3369,7 +3369,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn DeleteQuery(&self, query: Option<&WebGLQuery>) {
         if let Some(query) = query {
             handle_potential_webgl_error!(self.base, self.base.validate_ownership(query), return);
@@ -3431,7 +3431,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn BeginQuery(&self, target: u32, query: &WebGLQuery) {
         handle_potential_webgl_error!(self.base, self.base.validate_ownership(query), return);
 
@@ -3460,7 +3460,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn EndQuery(&self, target: u32) {
         let active_query = match target {
             constants::ANY_SAMPLES_PASSED |
@@ -3487,7 +3487,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn GetQuery(&self, target: u32, pname: u32) -> Option<DomRoot<WebGLQuery>> {
         if pname != constants::CURRENT_QUERY {
             self.base.webgl_error(InvalidEnum);
@@ -3515,7 +3515,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.12>
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn GetQueryParameter(&self, _cx: JSContext, query: &WebGLQuery, pname: u32) -> JSVal {
         handle_potential_webgl_error!(
             self.base,

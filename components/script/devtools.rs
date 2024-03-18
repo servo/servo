@@ -175,8 +175,8 @@ pub fn handle_get_layout(
             paddingRight: String::from(computed_style.PaddingRight()),
             paddingBottom: String::from(computed_style.PaddingBottom()),
             paddingLeft: String::from(computed_style.PaddingLeft()),
-            width: width,
-            height: height,
+            width,
+            height,
         }))
         .unwrap();
 }
