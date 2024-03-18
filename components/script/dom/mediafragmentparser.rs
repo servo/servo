@@ -114,8 +114,8 @@ impl MediaFragmentParser {
             }
         } else {
             let mut iterator = fragment.split(',');
-            let start = parse_hms(iterator.next().ok_or_else(|| ())?)?;
-            let end = parse_hms(iterator.next().ok_or_else(|| ())?)?;
+            let start = parse_hms(iterator.next().ok_or(()))?;
+            let end = parse_hms(iterator.next().ok_or(()))?;
 
             if iterator.next().is_some() || start >= end {
                 return Err(());
@@ -150,8 +150,8 @@ impl MediaFragmentParser {
                 .flat_map(|s| parse_hms(&s.time().to_string()))
                 .collect();
 
-            let end = hms.pop().ok_or_else(|| ())?;
-            let start = hms.pop().ok_or_else(|| ())?;
+            let end = hms.pop().ok_or(())?;
+            let start = hms.pop().ok_or(())?;
 
             if !hms.is_empty() || start >= end {
                 return Err(());
