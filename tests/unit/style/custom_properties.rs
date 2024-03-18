@@ -14,6 +14,7 @@ use style::media_queries::{Device, MediaType};
 use style::properties::{CustomDeclaration, CustomDeclarationValue};
 use style::rule_tree::CascadeLevel;
 use style::stylesheets::layer_rule::LayerOrder;
+use style::stylist::Stylist;
 use test::{self, Bencher};
 
 fn cascade(
@@ -37,7 +38,8 @@ fn cascade(
         Size2D::new(800., 600.),
         Scale::new(1.0),
     );
-    let mut builder = CustomPropertiesBuilder::new(inherited, &device);
+    let stylist = Stylist::new(device, QuirksMode::NoQuirks);
+    let mut builder = CustomPropertiesBuilder::new(inherited, &stylist);
 
     for declaration in &declarations {
         builder.cascade(

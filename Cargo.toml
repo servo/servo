@@ -26,7 +26,7 @@ compositing_traits = { path = "components/shared/compositing" }
 content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = "0.12"
 crossbeam-channel = "0.5"
-cssparser = "0.31.2"
+cssparser = "0.32"
 darling = { version = "0.20", default-features = false }
 data-url = "0.1.0"
 devtools_traits = { path = "components/shared/devtools" }
@@ -64,7 +64,7 @@ keyboard-types = "0.6"
 lazy_static = "1.4"
 libc = "0.2"
 log = "0.4"
-malloc_size_of = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23", features = ["servo"] }
+malloc_size_of = { git = "https://github.com/servo/stylo.git", branch = "2023-09-01", features = ["servo"] }
 malloc_size_of_derive = "0.1"
 mime = "0.3.13"
 mime_guess = "2.0.3"
@@ -87,31 +87,31 @@ rustls = { version = "0.21.10", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
-selectors = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23" }
+selectors = { git = "https://github.com/servo/stylo.git", branch = "2023-09-01" }
 serde = "1.0.197"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
-servo_arc = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23" }
-servo_atoms = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23" }
-size_of_test = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23" }
+servo_arc = { git = "https://github.com/servo/stylo.git", branch = "2023-09-01" }
+servo_atoms = { git = "https://github.com/servo/stylo.git", branch = "2023-09-01" }
+size_of_test = { git = "https://github.com/servo/stylo.git", branch = "2023-09-01" }
 smallbitvec = "2.5.2"
 smallvec = "1.13"
 sparkle = "0.1.26"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
-style = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23", features = ["servo"] }
-style_config = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23" }
-style_traits = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23", features = ["servo"] }
+style = { git = "https://github.com/servo/stylo.git", branch = "2023-09-01", features = ["servo"] }
+style_config = { git = "https://github.com/servo/stylo.git", branch = "2023-09-01" }
+style_traits = { git = "https://github.com/servo/stylo.git", branch = "2023-09-01", features = ["servo"] }
 # NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
 surfman = { version = "0.9", features = ["chains", "sm-angle", "sm-angle-default"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
 time = "0.1.41"
-to_shmem = { git = "https://github.com/servo/stylo.git", branch = "2023-07-23" }
+to_shmem = { git = "https://github.com/servo/stylo.git", branch = "2023-09-01" }
 tokio = "1"
 tokio-rustls = "0.24"
 tungstenite = "0.20"

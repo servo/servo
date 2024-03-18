@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::RGBA;
+use cssparser::RgbaLegacy;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
@@ -105,13 +105,13 @@ impl VirtualMethods for HTMLFontElement {
 }
 
 pub trait HTMLFontElementLayoutHelpers {
-    fn get_color(self) -> Option<RGBA>;
+    fn get_color(self) -> Option<RgbaLegacy>;
     fn get_face(self) -> Option<Atom>;
     fn get_size(self) -> Option<u32>;
 }
 
 impl HTMLFontElementLayoutHelpers for LayoutDom<'_, HTMLFontElement> {
-    fn get_color(self) -> Option<RGBA> {
+    fn get_color(self) -> Option<RgbaLegacy> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("color"))
             .and_then(AttrValue::as_color)

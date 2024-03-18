@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::RGBA;
+use cssparser::RgbaLegacy;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
@@ -100,20 +100,20 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 }
 
 pub trait HTMLBodyElementLayoutHelpers {
-    fn get_background_color(self) -> Option<RGBA>;
-    fn get_color(self) -> Option<RGBA>;
+    fn get_background_color(self) -> Option<RgbaLegacy>;
+    fn get_color(self) -> Option<RgbaLegacy>;
     fn get_background(self) -> Option<ServoUrl>;
 }
 
 impl HTMLBodyElementLayoutHelpers for LayoutDom<'_, HTMLBodyElement> {
-    fn get_background_color(self) -> Option<RGBA> {
+    fn get_background_color(self) -> Option<RgbaLegacy> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
             .and_then(AttrValue::as_color)
             .cloned()
     }
 
-    fn get_color(self) -> Option<RGBA> {
+    fn get_color(self) -> Option<RgbaLegacy> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("text"))
             .and_then(AttrValue::as_color)
