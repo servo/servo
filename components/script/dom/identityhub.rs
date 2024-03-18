@@ -64,8 +64,8 @@ pub struct Identities {
     dummy_hub: IdentityHub,
 }
 
-impl Default for Identities {
-    fn default() -> Self {
+impl Identities {
+    pub fn new() -> Self {
         Identities {
             _surface: IdentityManager::default(),
             #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -91,8 +91,8 @@ impl Default for Identities {
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             Backend::Metal => &mut self.metal_hub,
             _ => &mut self.dummy_hub,
-        }
-    }
+        }}
+
 
     fn hubs(&mut self) -> Vec<(&mut IdentityHub, Backend)> {
         vec![
