@@ -209,10 +209,7 @@ impl From<&ServoUrl> for MediaFragmentParser {
 // 5.1.1 Processing name-value components.
 fn decode_octets(bytes: &[u8]) -> Vec<(Cow<str>, Cow<str>)> {
     form_urlencoded::parse(bytes)
-        .filter(|(key, _)| match key.as_bytes() {
-            b"t" | b"track" | b"id" | b"xywh" => true,
-            _ => false,
-        })
+        .filter(|(key, _)| matches!(key.as_bytes(), b"t" | b"track" | b"id" | b"xywh"))
         .collect()
 }
 
@@ -239,10 +236,7 @@ fn split_url(s: &str) -> (&str, &str) {
 }
 
 fn is_byte_number(byte: u8) -> bool {
-    match byte {
-        48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 => true,
-        _ => false,
-    }
+    matches!(byte, 48..=57)
 }
 
 fn split_prefix(s: &str) -> (Option<&str>, &str) {
