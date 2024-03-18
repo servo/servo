@@ -39,15 +39,15 @@ impl BluetoothCharacteristicProperties {
     ) -> BluetoothCharacteristicProperties {
         BluetoothCharacteristicProperties {
             reflector_: Reflector::new(),
-            broadcast: broadcast,
-            read: read,
-            write_without_response: write_without_response,
-            write: write,
-            notify: notify,
-            indicate: indicate,
-            authenticated_signed_writes: authenticated_signed_writes,
-            reliable_write: reliable_write,
-            writable_auxiliaries: writable_auxiliaries,
+            broadcast,
+            read,
+            write_without_response,
+            write,
+            notify,
+            indicate,
+            authenticated_signed_writes,
+            reliable_write,
+            writable_auxiliaries,
         }
     }
 

@@ -56,10 +56,10 @@ impl BluetoothRemoteGATTCharacteristic {
         BluetoothRemoteGATTCharacteristic {
             eventtarget: EventTarget::new_inherited(),
             service: Dom::from_ref(service),
-            uuid: uuid,
+            uuid,
             properties: Dom::from_ref(properties),
             value: DomRefCell::new(None),
-            instance_id: instance_id,
+            instance_id,
         }
     }
 

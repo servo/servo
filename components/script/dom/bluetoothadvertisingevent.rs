@@ -43,10 +43,10 @@ impl BluetoothAdvertisingEvent {
         BluetoothAdvertisingEvent {
             event: Event::new_inherited(),
             device: Dom::from_ref(device),
-            name: name,
-            appearance: appearance,
-            tx_power: tx_power,
-            rssi: rssi,
+            name,
+            appearance,
+            tx_power,
+            rssi,
         }
     }
 

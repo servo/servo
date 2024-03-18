@@ -57,8 +57,8 @@ impl BluetoothDevice {
     ) -> BluetoothDevice {
         BluetoothDevice {
             eventtarget: EventTarget::new_inherited(),
-            id: id,
-            name: name,
+            id,
+            name,
             gatt: Default::default(),
             context: Dom::from_ref(context),
             attribute_instance_map: (
