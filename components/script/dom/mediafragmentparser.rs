@@ -146,10 +146,8 @@ impl MediaFragmentParser {
             let vec: Vec<&str> = input.split('-').collect();
             let mut hms: Vec<f64> = vec
                 .iter()
-                .map(|s| NaiveDateTime::parse_from_str(s, "%Y%m%dT%H%M%S%.fZ"))
-                .flatten()
-                .map(|s| parse_hms(&s.time().to_string()))
-                .flatten()
+                .flat_map(|s| NaiveDateTime::parse_from_str(s, "%Y%m%dT%H%M%S%.fZ"))
+                .flat_map(|s| parse_hms(&s.time().to_string()))
                 .collect();
 
             let end = hms.pop().ok_or_else(|| ())?;
@@ -166,7 +164,7 @@ impl MediaFragmentParser {
     fn parse_spatial(&self, input: &str) -> Result<SpatialClipping, ()> {
         let (prefix, s) = split_prefix(input);
         let vec: Vec<&str> = s.split(',').collect();
-        let mut queue: VecDeque<u32> = vec.iter().map(|s| s.parse::<u32>()).flatten().collect();
+        let mut queue: VecDeque<u32> = vec.iter().flat_map(|s| s.parse::<u32>()).collect();
 
         let mut clipping = SpatialClipping {
             region: None,

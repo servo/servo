@@ -464,7 +464,7 @@ impl LocationMethods for Location {
                 None => &value.0,
             };
 
-            if let Err(_) = copy_url.as_mut_url().set_scheme(scheme) {
+            if copy_url.as_mut_url().set_scheme(scheme).is_err() {
                 // Step 5: If possibleFailure is failure, then throw a "SyntaxError" DOMException.
                 return Err(Error::Syntax);
             }
