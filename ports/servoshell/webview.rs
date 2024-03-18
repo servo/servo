@@ -56,6 +56,7 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     clipboard: Option<Clipboard>,
     gamepad: Option<Gilrs>,
     shutdown_requested: bool,
+    load_status: LoadStatus,
 }
 
 #[derive(Debug)]
@@ -64,6 +65,13 @@ pub struct WebView {}
 pub struct ServoEventResponse {
     pub need_present: bool,
     pub need_update: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LoadStatus {
+    HeadParsed,
+    LoadStart,
+    LoadComplete,
 }
 
 impl<Window> WebViewManager<Window>
@@ -95,6 +103,7 @@ where
             },
             event_queue: Vec::new(),
             shutdown_requested: false,
+            load_status: LoadStatus::LoadComplete,
         }
     }
 
@@ -104,6 +113,10 @@ where
 
     pub fn current_url_string(&self) -> Option<&str> {
         self.current_url_string.as_deref()
+    }
+
+    pub fn load_status(&self) -> LoadStatus {
+        self.load_status
     }
 
     pub fn get_events(&mut self) -> Vec<EmbedderEvent> {
@@ -409,7 +422,7 @@ where
         &mut self,
         events: Drain<'_, (Option<WebViewId>, EmbedderMsg)>,
     ) -> ServoEventResponse {
-        let mut need_present = false;
+        let mut need_present = self.load_status != LoadStatus::LoadComplete;
         let mut need_update = false;
         for (webview_id, msg) in events {
             if let Some(webview_id) = webview_id {
@@ -594,7 +607,8 @@ where
                     // FIXME: show favicons in the UI somehow
                 },
                 EmbedderMsg::HeadParsed => {
-                    // FIXME: surface the loading state in the UI somehow
+                    self.load_status = LoadStatus::HeadParsed;
+                    need_update = true;
                 },
                 EmbedderMsg::HistoryChanged(urls, current) => {
                     self.current_url = Some(urls[current].clone());
@@ -605,10 +619,12 @@ where
                     self.window.set_fullscreen(state);
                 },
                 EmbedderMsg::LoadStart => {
-                    // FIXME: surface the loading state in the UI somehow
+                    self.load_status = LoadStatus::LoadStart;
+                    need_update = true;
                 },
                 EmbedderMsg::LoadComplete => {
-                    // FIXME: surface the loading state in the UI somehow
+                    self.load_status = LoadStatus::LoadComplete;
+                    need_update = true;
                 },
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;
