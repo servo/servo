@@ -280,14 +280,21 @@ impl VirtualMethods for HTMLVideoElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
-        if let Some(new_value) = mutation.new_value(attr) {
-            match attr.local_name() {
-                &local_name!("poster") => {
-                    self.fetch_poster_frame(&new_value);
+        match attr.local_name() {
+            &local_name!("poster") => match mutation {
+                AttributeMutation::Set(_) => {
+                    println!("set");
+                    if let Some(new_value) = mutation.new_value(attr) {
+                        self.fetch_poster_frame(&new_value)
+                    }
                 },
-                _ => (),
-            };
-        }
+                AttributeMutation::Removed => {
+                    println!("remove");
+                    self.htmlmediaelement.clear_current_frame();
+                },
+            },
+            _ => (),
+        };
     }
 }
 
