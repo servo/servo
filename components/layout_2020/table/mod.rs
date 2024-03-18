@@ -46,8 +46,8 @@
 //! Fragment tree construction involves calculating the size and positioning of all table elements,
 //! given their style, content, and cell and row spans. This happens both during intrinsic inline
 //! size computation as well as layout into Fragments. In both of these cases, measurement and
-//! layout is done by [`layout::TableLayout`], though for intrinsic size computation only a partial
-//! layout is done.
+//! layout is done by the layout module located in components/layout_2020/table/layout.rs,
+//! though for intrinsic size computation only a partial layout is done.
 //!
 //! In general, we follow the following steps when laying out table content:
 //!
@@ -196,7 +196,8 @@ impl TableSlotCell {
         }
     }
 
-    /// Get the node id of this cell's [`BaseFragmentInfo`]. This is used for unit tests.
+    /// Get the node id of this cell's base fragment located in components/layout_2020/fragment_tree/base_fragment.rs.
+    /// This is used for unit tests.
     pub fn node_id(&self) -> usize {
         self.base_fragment_info.tag.map_or(0, |tag| tag.node.0)
     }
