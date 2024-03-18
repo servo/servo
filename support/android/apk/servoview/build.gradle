@@ -76,6 +76,12 @@ android {
         x86Release {
             initWith(release)
         }
+        x64Debug {
+            initWith(debug)
+        }
+        x64Release {
+            initWith(release)
+        }
     }
 
     sourceSets {
@@ -98,6 +104,12 @@ android {
         }
         x86Release {
             jniLibs.srcDirs = [getJniLibsPath(false, 'x86')]
+        }
+        x64Debug {
+            jniLibs.srcDirs = [getJniLibsPath(true, 'x64')]
+        }
+        x64Release {
+            jniLibs.srcDirs = [getJniLibsPath(false, 'x64')]
         }
     }
 
@@ -183,7 +195,7 @@ dependencies {
     ]
     // Iterate all build types and dependencies
     // For each dependency call the proper implementation command and set the correct dependency path
-    def list = ['armv7', 'arm64', 'x86']
+    def list = ['armv7', 'arm64', 'x86', 'x64']
     for (arch in list) {
         for (debug in [true, false]) {
             String basePath = getTargetDir(debug, arch) + "/build"
