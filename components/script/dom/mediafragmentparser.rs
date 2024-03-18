@@ -168,10 +168,10 @@ impl MediaFragmentParser {
 
         let mut clipping = SpatialClipping {
             region: None,
-            x: queue.pop_front().ok_or_else(|| ())?,
-            y: queue.pop_front().ok_or_else(|| ())?,
-            width: queue.pop_front().ok_or_else(|| ())?,
-            height: queue.pop_front().ok_or_else(|| ())?,
+            x: queue.pop_front().ok_or(())?,
+            y: queue.pop_front().ok_or(())?,
+            width: queue.pop_front().ok_or(())?,
+            height: queue.pop_front().ok_or(())?,
         };
 
         if !queue.is_empty() {
