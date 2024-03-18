@@ -44,25 +44,25 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
-const KEY_CONVERSION_ERROR: &'static str =
+const KEY_CONVERSION_ERROR: &str =
     "This `manufacturerData` key can not be parsed as unsigned short:";
-const FILTER_EMPTY_ERROR: &'static str =
+const FILTER_EMPTY_ERROR: &str =
     "'filters' member, if present, must be nonempty to find any devices.";
-const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
-const MANUFACTURER_DATA_ERROR: &'static str =
+const FILTER_ERROR: &str = "A filter must restrict the devices in some way.";
+const MANUFACTURER_DATA_ERROR: &str =
     "'manufacturerData', if present, must be non-empty to filter devices.";
-const MASK_LENGTH_ERROR: &'static str =
+const MASK_LENGTH_ERROR: &str =
     "`mask`, if present, must have the same length as `dataPrefix`.";
 // 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
 const MAX_DEVICE_NAME_LENGTH: usize = 248;
-const NAME_PREFIX_ERROR: &'static str = "'namePrefix', if present, must be nonempty.";
-const NAME_TOO_LONG_ERROR: &'static str = "A device name can't be longer than 248 bytes.";
-const SERVICE_DATA_ERROR: &'static str =
+const NAME_PREFIX_ERROR: &str = "'namePrefix', if present, must be nonempty.";
+const NAME_TOO_LONG_ERROR: &str = "A device name can't be longer than 248 bytes.";
+const SERVICE_DATA_ERROR: &str =
     "'serviceData', if present, must be non-empty to filter devices.";
-const SERVICE_ERROR: &'static str = "'services', if present, must contain at least one service.";
-const OPTIONS_ERROR: &'static str = "Fields of 'options' conflict with each other.
+const SERVICE_ERROR: &str = "'services', if present, must contain at least one service.";
+const OPTIONS_ERROR: &str = "Fields of 'options' conflict with each other.
  Either 'acceptAllDevices' member must be true, or 'filters' member must be set to a value.";
-const BT_DESC_CONVERSION_ERROR: &'static str =
+const BT_DESC_CONVERSION_ERROR: &str =
     "Can't convert to an IDL value of type BluetoothPermissionDescriptor";
 
 #[derive(JSTraceable, MallocSizeOf)]
