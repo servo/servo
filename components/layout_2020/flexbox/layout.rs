@@ -48,6 +48,8 @@ struct FlexContext<'a> {
     container_min_cross_size: Length,
     container_max_cross_size: Option<Length>,
     flex_axis: FlexAxis,
+    flex_direction_is_reversed: bool,
+    flex_wrap_reverse: bool,
     main_start_cross_start_sides_are: MainStartCrossStart,
     container_definite_inner_size: FlexRelativeVec2<Option<Length>>,
     align_content: AlignContent,
@@ -218,6 +220,10 @@ impl FlexContainer {
             FlexWrap::Wrap | FlexWrap::WrapReverse => false,
         };
         let flex_axis = FlexAxis::from(flex_direction);
+        let flex_direction_is_reversed = match flex_direction {
+            FlexDirection::Row | FlexDirection::Column => false,
+            FlexDirection::RowReverse | FlexDirection::ColumnReverse => true,
+        };
         let flex_wrap_reverse = match flex_wrap {
             FlexWrap::Nowrap | FlexWrap::Wrap => false,
             FlexWrap::WrapReverse => true,
@@ -234,6 +240,8 @@ impl FlexContainer {
             container_max_cross_size,
             container_is_single_line,
             flex_axis,
+            flex_direction_is_reversed,
+            flex_wrap_reverse,
             align_content,
             align_items,
             justify_content,
@@ -301,19 +309,65 @@ impl FlexContainer {
         let line_interval = match flex_context.container_definite_inner_size.cross {
             Some(cross_size) if line_count >= 2 => {
                 let free_space = cross_size - content_cross_size;
+                let layout_is_flex_reversed = flex_context.flex_wrap_reverse;
 
                 cross_start_position_cursor = match flex_context.align_content {
+                    AlignContent::Start => Length::zero(),
+                    AlignContent::FlexStart => {
+                        if layout_is_flex_reversed {
+                            free_space
+                        } else {
+                            Length::zero()
+                        }
+                    },
+                    AlignContent::End => free_space,
+                    AlignContent::FlexEnd => {
+                        if layout_is_flex_reversed {
+                            Length::zero()
+                        } else {
+                            free_space
+                        }
+                    },
                     AlignContent::Center => free_space / 2.0,
-                    AlignContent::SpaceAround => free_space / (line_count * 2) as CSSFloat,
-                    AlignContent::FlexEnd => free_space,
-                    _ => Length::zero(),
+                    AlignContent::Stretch => Length::zero(),
+                    AlignContent::SpaceBetween => Length::zero(),
+                    AlignContent::SpaceAround => {
+                        if free_space >= Length::zero() {
+                            (free_space / line_count as CSSFloat) / 2.0
+                        } else {
+                            free_space / 2.0
+                        }
+                    },
+                    AlignContent::SpaceEvenly => {
+                        if free_space >= Length::zero() {
+                            free_space / (line_count + 1) as CSSFloat
+                        } else {
+                            free_space / 2.0
+                        }
+                    },
                 };
 
-                match flex_context.align_content {
-                    AlignContent::SpaceBetween => free_space / (line_count - 1) as CSSFloat,
-                    AlignContent::SpaceAround => free_space / line_count as CSSFloat,
-                    _ => Length::zero(),
-                }
+                // Note: free_space may be negative in which case we wish the gaps between items to be zero
+                // (although this will change once gap is implemented)
+                // TODO: Implement gap property
+                let item_main_interval = if free_space <= Length::zero() || line_count == 0 {
+                    Length::zero() /* gap */
+                } else {
+                    /*gap + */
+                    match flex_context.align_content {
+                        AlignContent::Start => Length::zero(),
+                        AlignContent::FlexStart => Length::zero(),
+                        AlignContent::End => Length::zero(),
+                        AlignContent::FlexEnd => Length::zero(),
+                        AlignContent::Center => Length::zero(),
+                        AlignContent::Stretch => Length::zero(),
+                        AlignContent::SpaceBetween => free_space / (line_count - 1) as CSSFloat,
+                        AlignContent::SpaceAround => free_space / line_count as CSSFloat,
+                        AlignContent::SpaceEvenly => free_space / (line_count + 1) as CSSFloat,
+                    }
+                };
+
+                item_main_interval
             },
             _ => Length::zero(),
         };
@@ -761,30 +815,68 @@ impl FlexLine<'_> {
 
         // Align the items along the main-axis per justify-content.
         let item_count = self.items.len();
+        let layout_is_flex_reversed = flex_context.flex_direction_is_reversed;
+
         let main_start_position = if free_space_distributed {
             Length::zero()
         } else {
             match flex_context.justify_content {
-                JustifyContent::FlexEnd => remaining_free_space,
-                JustifyContent::Center => remaining_free_space / 2.0,
-                JustifyContent::SpaceAround => remaining_free_space / (item_count * 2) as CSSFloat,
-                _ => Length::zero(),
-            }
-        };
-
-        let item_main_interval = if free_space_distributed {
-            Length::zero()
-        } else {
-            match flex_context.justify_content {
-                JustifyContent::SpaceBetween => {
-                    if item_count > 1 {
-                        remaining_free_space / (item_count - 1) as CSSFloat
+                JustifyContent::Start => Length::zero(),
+                JustifyContent::FlexStart => {
+                    if layout_is_flex_reversed {
+                        remaining_free_space
                     } else {
                         Length::zero()
                     }
                 },
+                JustifyContent::End => remaining_free_space,
+                JustifyContent::FlexEnd => {
+                    if layout_is_flex_reversed {
+                        Length::zero()
+                    } else {
+                        remaining_free_space
+                    }
+                },
+                JustifyContent::Center => remaining_free_space / 2.0,
+                JustifyContent::Stretch => Length::zero(),
+                JustifyContent::SpaceBetween => Length::zero(),
+                JustifyContent::SpaceAround => {
+                    if remaining_free_space >= Length::zero() {
+                        (remaining_free_space / item_count as CSSFloat) / 2.0
+                    } else {
+                        remaining_free_space / 2.0
+                    }
+                },
+                JustifyContent::SpaceEvenly => {
+                    if remaining_free_space >= Length::zero() {
+                        remaining_free_space / (item_count + 1) as CSSFloat
+                    } else {
+                        remaining_free_space / 2.0
+                    }
+                },
+            }
+        };
+
+        // Note: remaining_free_space may be negative in which case we wish the gaps between items to be zero
+        // (although this will change once gap is implemented)
+        // TODO: Implement gap property
+        let item_main_interval = if free_space_distributed ||
+            item_count == 0 ||
+            remaining_free_space <= Length::zero()
+        {
+            Length::zero() /* gap */
+        } else {
+            /*gap + */
+            match flex_context.justify_content {
+                JustifyContent::Start => Length::zero(),
+                JustifyContent::FlexStart => Length::zero(),
+                JustifyContent::End => Length::zero(),
+                JustifyContent::FlexEnd => Length::zero(),
+                JustifyContent::Center => Length::zero(),
+                JustifyContent::Stretch => Length::zero(),
+                JustifyContent::SpaceBetween => remaining_free_space / (item_count - 1) as CSSFloat,
                 JustifyContent::SpaceAround => remaining_free_space / item_count as CSSFloat,
-                _ => Length::zero(),
+                JustifyContent::SpaceEvenly => remaining_free_space / (item_count + 1) as CSSFloat,
             }
         };
 
