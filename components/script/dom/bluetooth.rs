@@ -51,14 +51,12 @@ const FILTER_EMPTY_ERROR: &str =
 const FILTER_ERROR: &str = "A filter must restrict the devices in some way.";
 const MANUFACTURER_DATA_ERROR: &str =
     "'manufacturerData', if present, must be non-empty to filter devices.";
-const MASK_LENGTH_ERROR: &str =
-    "`mask`, if present, must have the same length as `dataPrefix`.";
+const MASK_LENGTH_ERROR: &str = "`mask`, if present, must have the same length as `dataPrefix`.";
 // 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
 const MAX_DEVICE_NAME_LENGTH: usize = 248;
 const NAME_PREFIX_ERROR: &str = "'namePrefix', if present, must be nonempty.";
 const NAME_TOO_LONG_ERROR: &str = "A device name can't be longer than 248 bytes.";
-const SERVICE_DATA_ERROR: &str =
-    "'serviceData', if present, must be non-empty to filter devices.";
+const SERVICE_DATA_ERROR: &str = "'serviceData', if present, must be non-empty to filter devices.";
 const SERVICE_ERROR: &str = "'services', if present, must contain at least one service.";
 const OPTIONS_ERROR: &str = "Fields of 'options' conflict with each other.
  Either 'acceptAllDevices' member must be true, or 'filters' member must be set to a value.";

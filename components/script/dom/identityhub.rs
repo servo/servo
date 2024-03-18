@@ -91,8 +91,8 @@ impl Identities {
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             Backend::Metal => &mut self.metal_hub,
             _ => &mut self.dummy_hub,
-        }}
-
+        }
+    }
 
     fn hubs(&mut self) -> Vec<(&mut IdentityHub, Backend)> {
         vec![
