@@ -112,7 +112,7 @@ fn style() -> FontStyleStruct {
         font_stretch: FontStretch::hundred(),
         hash: 0,
         font_language_override: FontLanguageOverride::normal(),
-        _x_lang: XLang::get_initial_value()
+        _x_lang: XLang::get_initial_value(),
     };
     style.compute_font_hash();
     style
