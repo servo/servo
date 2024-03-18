@@ -299,13 +299,13 @@ impl ImageCacheListener for HTMLVideoElement {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
                 self.htmlmediaelement.process_poster_image_loaded(image);
-                LoadBlocker::terminate(&mut *self.load_blocker.borrow_mut());
+                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut());
             },
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
             ImageResponse::PlaceholderLoaded(..) | ImageResponse::None => {
                 // A failed load should unblock the document load.
-                LoadBlocker::terminate(&mut *self.load_blocker.borrow_mut());
+                LoadBlocker::terminate(&mut self.load_blocker.borrow_mut());
             },
         }
     }
