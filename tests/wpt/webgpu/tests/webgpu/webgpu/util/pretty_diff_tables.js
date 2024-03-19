@@ -1,6 +1,28 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/import { range } from '../../common/util/util.js'; /**
+ * @returns a function that converts numerics to strings, depending on if they
+ * should be treated as integers or not.
+ */
+export function numericToStringBuilder(is_integer) {
+  if (is_integer) {
+    return (val) => {
+      if (typeof val === 'number') {
+        return val.toFixed();
+      }
+      return val.toString();
+    };
+  }
+
+  return (val) => {
+    if (typeof val === 'number') {
+      return val.toPrecision(6);
+    }
+    return val.toString();
+  };
+}
+
+/**
  * Pretty-prints a "table" of cell values (each being `number | string`), right-aligned.
  * Each row may be any iterator, including lazily-generated (potentially infinite) rows.
  *
@@ -12,7 +34,10 @@
  * Each remaining argument provides one row for the table.
  */
 export function generatePrettyTable(
-{ fillToWidth, numberToString },
+{
+  fillToWidth,
+  numericToString
+},
 rows)
 {
   const rowStrings = range(rows.length, () => '');
@@ -23,7 +48,13 @@ rows)
   for (;;) {
     const cellsForColumn = iters.map((iter) => {
       const r = iter.next(); // Advance the iterator for each row, in lock-step.
-      return r.done ? undefined : typeof r.value === 'number' ? numberToString(r.value) : r.value;
+      if (r.done) {
+        return undefined;
+      }
+      if (typeof r.value === 'number' || typeof r.value === 'bigint') {
+        return numericToString(r.value);
+      }
+      return r.value;
     });
     if (cellsForColumn.every((cell) => cell === undefined)) break;
 

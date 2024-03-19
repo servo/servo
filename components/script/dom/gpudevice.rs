@@ -737,7 +737,18 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder>
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipelineasync>
+    fn CreateComputePipelineAsync(
+        &self,
+        descriptor: &GPUComputePipelineDescriptor,
+        comp: InRealm,
+    ) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp);
+        promise.resolve_native(&self.CreateComputePipeline(descriptor));
+        promise
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder
     fn CreateCommandEncoder(
         &self,
         descriptor: &GPUCommandEncoderDescriptor,
@@ -1040,6 +1051,17 @@ impl GPUDeviceMethods for GPUDevice {
         )
     }
 
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipelineasync>
+    fn CreateRenderPipelineAsync(
+        &self,
+        descriptor: &GPURenderPipelineDescriptor,
+        comp: InRealm,
+    ) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp);
+        promise.resolve_native(&self.CreateRenderPipeline(descriptor));
+        promise
+    }
+
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder>
     fn CreateRenderBundleEncoder(
         &self,
@@ -1147,19 +1169,6 @@ impl GPUDeviceMethods for GPUDevice {
                 warn!("Failed to send DestroyDevice ({:?}) ({})", self.device.0, e);
             }
         }
-    }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipelineasync>
-    fn CreateComputePipelineAsync(
-        &self,
-        _descriptor: &GPUComputePipelineDescriptor,
-    ) -> Rc<Promise> {
-        todo!()
-    }
-
-    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipelineasync>
-    fn CreateRenderPipelineAsync(&self, _descriptor: &GPURenderPipelineDescriptor) -> Rc<Promise> {
-        todo!()
     }
 }
 

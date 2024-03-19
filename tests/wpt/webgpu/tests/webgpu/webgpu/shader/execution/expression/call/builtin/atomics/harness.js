@@ -25,15 +25,14 @@ export const kMapId = {
   }
 };
 
-export function typedArrayCtor(scalarType) {
+export function typedArrayCtor(
+scalarType)
+{
   switch (scalarType) {
     case 'u32':
       return Uint32Array;
     case 'i32':
       return Int32Array;
-    default:
-      assert(false, 'Atomic variables can only by u32 or i32');
-      return Uint8Array;
   }
 }
 

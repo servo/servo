@@ -6,7 +6,7 @@ Tests that textureBindingViewDimension must compatible with texture dimension
 `;
 import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { kTextureDimensions, kTextureViewDimensions } from '../../../../capability_info.js';
-import { kColorTextureFormats, kTextureFormatInfo } from '../../../../format_info.js';
+import { kColorTextureFormats, kCompatModeUnsupportedStorageTextureFormats, kTextureFormatInfo } from '../../../../format_info.js';
 import { getTextureDimensionFromView } from '../../../../util/texture/base.js';
 import { CompatibilityTest } from '../../../compatibility_test.js';
 
@@ -152,4 +152,21 @@ fn((t) => {
       true
     );
   }
+});
+
+g.test('unsupportedStorageTextureFormats').
+desc(`Tests that you can not create unsupported storage texture formats in compat mode.`).
+params((u) => u.combine('format', kCompatModeUnsupportedStorageTextureFormats)).
+fn((t) => {
+  const { format } = t.params;
+  t.expectGPUError(
+    'validation',
+    () =>
+    t.device.createTexture({
+      size: [1, 1, 1],
+      format,
+      usage: GPUTextureUsage.STORAGE_BINDING
+    }),
+    true
+  );
 });

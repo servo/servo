@@ -73,34 +73,46 @@ fn((t) => {
   t.expectCompileResult(true, code);
 });
 
-g.test('duplicate_compute_on_function').
-desc(`Test that duplcate @compute attributes are not allowed.`).
-params((u) => u.combine('dupe', ['', '@compute'])).
+g.test('extra_on_compute_function').
+desc(`Test that an extra stage attribute on @compute functions are not allowed.`).
+params((u) =>
+u.combine('extra', ['', '@compute', '@fragment', '@vertex']).combine('before', [false, true])
+).
 fn((t) => {
+  const before = t.params.before ? t.params.extra : '';
+  const after = t.params.before ? '' : t.params.extra;
   const code = `
-@compute ${t.params.dupe} @workgroup_size(1) fn compute_1() {}
+${before} @compute ${after} @workgroup_size(1) fn main() {}
 `;
-  t.expectCompileResult(t.params.dupe === '', code);
+  t.expectCompileResult(t.params.extra === '', code);
 });
 
-g.test('duplicate_fragment_on_function').
-desc(`Test that duplcate @fragment attributes are not allowed.`).
-params((u) => u.combine('dupe', ['', '@fragment'])).
+g.test('extra_on_fragment_function').
+desc(`Test that an extra stage attribute on @fragment functions are not allowed.`).
+params((u) =>
+u.combine('extra', ['', '@compute', '@fragment', '@vertex']).combine('before', [false, true])
+).
 fn((t) => {
+  const before = t.params.before ? t.params.extra : '';
+  const after = t.params.before ? '' : t.params.extra;
   const code = `
-@fragment ${t.params.dupe} fn vtx() -> @location(0) vec4f { return vec4f(1); }
+${before} @fragment ${after} fn main() -> @location(0) vec4f { return vec4f(1); }
 `;
-  t.expectCompileResult(t.params.dupe === '', code);
+  t.expectCompileResult(t.params.extra === '', code);
 });
 
-g.test('duplicate_vertex_on_function').
-desc(`Test that duplcate @vertex attributes are not allowed.`).
-params((u) => u.combine('dupe', ['', '@vertex'])).
+g.test('extra_on_vertex_function').
+desc(`Test that an extra stage attribute on @vertex functions are not allowed.`).
+params((u) =>
+u.combine('extra', ['', '@compute', '@fragment', '@vertex']).combine('before', [false, true])
+).
 fn((t) => {
+  const before = t.params.before ? t.params.extra : '';
+  const after = t.params.before ? '' : t.params.extra;
   const code = `
-@vertex ${t.params.dupe} fn vtx() -> @builtin(position) vec4f { return vec4f(1); }
+${before} @vertex ${after} fn main() -> @builtin(position) vec4f { return vec4f(1); }
 `;
-  t.expectCompileResult(t.params.dupe === '', code);
+  t.expectCompileResult(t.params.extra === '', code);
 });
 
 g.test('placement').

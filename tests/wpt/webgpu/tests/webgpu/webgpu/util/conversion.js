@@ -84,6 +84,7 @@ const workingDataI16 = new Int16Array(workingData);
 const workingDataI32 = new Int32Array(workingData);
 const workingDataI8 = new Int8Array(workingData);
 const workingDataF64 = new Float64Array(workingData);
+const workingDataI64 = new BigInt64Array(workingData);
 const workingDataView = new DataView(workingData);
 
 /**
@@ -589,6 +590,7 @@ export function float16ToInt16(f16) {
 
 
 
+
 /** ScalarType describes the type of WGSL Scalar. */
 export class ScalarType {
   // The named type
@@ -611,30 +613,43 @@ export class ScalarType {
 
   /** Constructs a Scalar of this type with `value` */
   create(value) {
-    switch (this.kind) {
-      case 'abstract-float':
-        return abstractFloat(value);
-      case 'f64':
-        return f64(value);
-      case 'f32':
-        return f32(value);
-      case 'f16':
-        return f16(value);
-      case 'u32':
-        return u32(value);
-      case 'u16':
-        return u16(value);
-      case 'u8':
-        return u8(value);
-      case 'i32':
-        return i32(value);
-      case 'i16':
-        return i16(value);
-      case 'i8':
-        return i8(value);
-      case 'bool':
-        return bool(value !== 0);
+    switch (typeof value) {
+      case 'number':
+        switch (this.kind) {
+          case 'abstract-float':
+            return abstractFloat(value);
+          case 'f64':
+            return f64(value);
+          case 'f32':
+            return f32(value);
+          case 'f16':
+            return f16(value);
+          case 'u32':
+            return u32(value);
+          case 'u16':
+            return u16(value);
+          case 'u8':
+            return u8(value);
+          case 'i32':
+            return i32(value);
+          case 'i16':
+            return i16(value);
+          case 'i8':
+            return i8(value);
+          case 'bool':
+            return bool(value !== 0);
+        }
+        break;
+      case 'bigint':
+        switch (this.kind) {
+          case 'abstract-int':
+            return abstractInt(value);
+          case 'bool':
+            return bool(value !== 0n);
+        }
+        break;
     }
+    unreachable(`Scalar<${this.kind}>.create() does not support ${typeof value}`);
   }
 }
 
@@ -754,14 +769,26 @@ export function TypeMat(cols, rows, elementType) {
 /** Type is a ScalarType, VectorType, or MatrixType. */
 
 
+/** ArrayElementType infers the element type of the indexable type A */
+
+
 /** Copy bytes from `buf` at `offset` into the working data, then read it out using `workingDataOut` */
-function valueFromBytes(workingDataOut, buf, offset) {
+function valueFromBytes(
+workingDataOut,
+buf,
+offset)
+{
   for (let i = 0; i < workingDataOut.BYTES_PER_ELEMENT; ++i) {
     workingDataU8[i] = buf[offset + i];
   }
   return workingDataOut[0];
 }
 
+export const TypeAbstractInt = new ScalarType(
+  'abstract-int',
+  8,
+  (buf, offset) => abstractInt(valueFromBytes(workingDataI64, buf, offset))
+);
 export const TypeI32 = new ScalarType('i32', 4, (buf, offset) =>
 i32(valueFromBytes(workingDataI32, buf, offset))
 );
@@ -815,6 +842,8 @@ export function scalarType(kind) {
       return TypeU16;
     case 'u8':
       return TypeU8;
+    case 'abstract-int':
+      return TypeAbstractInt;
     case 'i32':
       return TypeI32;
     case 'i16':
@@ -894,6 +923,10 @@ export class Scalar {
    * @param offset the offset in buffer, in units of `buffer`
    */
   copyTo(buffer, offset) {
+    assert(
+      this.type.kind !== 'abstract-int',
+      `Copying 'abstract-int' values to/from buffers is yet implemented`
+    );
     assert(this.type.kind !== 'f64', `Copying f64 values to/from buffers is not defined`);
     workingDataU32[1] = this.bits1;
     workingDataU32[0] = this.bits0;
@@ -910,24 +943,42 @@ export class Scalar {
       const str = `${x}`;
       return str.indexOf('.') > 0 || str.indexOf('e') > 0 ? str : `${str}.0`;
     };
-    if (isFinite(this.value)) {
-      switch (this.type.kind) {
-        case 'abstract-float':
-          return `${withPoint(this.value)}`;
-        case 'f64':
-          return `${withPoint(this.value)}`;
-        case 'f32':
-          return `${withPoint(this.value)}f`;
-        case 'f16':
-          return `${withPoint(this.value)}h`;
-        case 'u32':
-          return `${this.value}u`;
-        case 'i32':
-          return `i32(${this.value})`;
-        case 'bool':
+
+    switch (typeof this.value) {
+      case 'bigint':
+        if (this.type.kind === 'abstract-int') {
+          // WGSL parses negative numbers as a negated positive.
+          // This means '-9223372036854775808' parses as `-' &
+          // '9223372036854775808', so must be written as
+          // '(-9223372036854775807 - 1)' in WGSL, because '9223372036854775808'
+          // is not a valid AbstractInt.
+          if (this.value === -9223372036854775808n) {
+            return `(-9223372036854775807 - 1)`;
+          }
           return `${this.value}`;
-      }
+        }
+        break;
+      case 'number':
+        if (!isFinite(this.value)) break;
+        switch (this.type.kind) {
+          case 'abstract-float':
+            return `${withPoint(this.value)}`;
+          case 'f64':
+            return `${withPoint(this.value)}`;
+          case 'f32':
+            return `${withPoint(this.value)}f`;
+          case 'f16':
+            return `${withPoint(this.value)}h`;
+          case 'u32':
+            return `${this.value}u`;
+          case 'i32':
+            return `i32(${this.value})`;
+        }
+        break;
+      case 'boolean':
+        return `${this.value}`;
     }
+
     throw new Error(
       `scalar of value ${this.value} and type ${this.type} has no WGSL representation`
     );
@@ -1037,6 +1088,10 @@ scalarFromBits(TypeF32, workingDataU32, workingDataF32, bits);
 /** Create an f16 from a bit representation, a uint16 represented as a JS `number`. */
 export const f16Bits = (bits) =>
 scalarFromBits(TypeF16, workingDataU16, workingDataF16, bits);
+
+/** Create an AbstractInt from a numeric value, a JS `bigint`. */
+export const abstractInt = (value) =>
+scalarFromValue(TypeAbstractInt, workingDataI64, value);
 
 /** Create an i32 from a numeric value, a JS `number`. */
 export const i32 = (value) => scalarFromValue(TypeI32, workingDataI32, value);
@@ -1302,7 +1357,8 @@ export function toMatrix(m, op) {
 
 
 
-SerializedScalarKind = /*#__PURE__*/function (SerializedScalarKind) {SerializedScalarKind[SerializedScalarKind["AbstractFloat"] = 0] = "AbstractFloat";SerializedScalarKind[SerializedScalarKind["F64"] = 1] = "F64";SerializedScalarKind[SerializedScalarKind["F32"] = 2] = "F32";SerializedScalarKind[SerializedScalarKind["F16"] = 3] = "F16";SerializedScalarKind[SerializedScalarKind["U32"] = 4] = "U32";SerializedScalarKind[SerializedScalarKind["U16"] = 5] = "U16";SerializedScalarKind[SerializedScalarKind["U8"] = 6] = "U8";SerializedScalarKind[SerializedScalarKind["I32"] = 7] = "I32";SerializedScalarKind[SerializedScalarKind["I16"] = 8] = "I16";SerializedScalarKind[SerializedScalarKind["I8"] = 9] = "I8";SerializedScalarKind[SerializedScalarKind["Bool"] = 10] = "Bool";return SerializedScalarKind;}(SerializedScalarKind || {});
+SerializedScalarKind = /*#__PURE__*/function (SerializedScalarKind) {SerializedScalarKind[SerializedScalarKind["AbstractFloat"] = 0] = "AbstractFloat";SerializedScalarKind[SerializedScalarKind["F64"] = 1] = "F64";SerializedScalarKind[SerializedScalarKind["F32"] = 2] = "F32";SerializedScalarKind[SerializedScalarKind["F16"] = 3] = "F16";SerializedScalarKind[SerializedScalarKind["U32"] = 4] = "U32";SerializedScalarKind[SerializedScalarKind["U16"] = 5] = "U16";SerializedScalarKind[SerializedScalarKind["U8"] = 6] = "U8";SerializedScalarKind[SerializedScalarKind["I32"] = 7] = "I32";SerializedScalarKind[SerializedScalarKind["I16"] = 8] = "I16";SerializedScalarKind[SerializedScalarKind["I8"] = 9] = "I8";SerializedScalarKind[SerializedScalarKind["Bool"] = 10] = "Bool";SerializedScalarKind[SerializedScalarKind["AbstractInt"] = 11] = "AbstractInt";return SerializedScalarKind;}(SerializedScalarKind || {});
+
 
 
 
@@ -1340,6 +1396,9 @@ function serializeScalarKind(s, v) {
     case 'u8':
       s.writeU8(SerializedScalarKind.U8);
       return;
+    case 'abstract-int':
+      s.writeU8(SerializedScalarKind.AbstractInt);
+      return;
     case 'i32':
       s.writeU8(SerializedScalarKind.I32);
       return;
@@ -1353,6 +1412,7 @@ function serializeScalarKind(s, v) {
       s.writeU8(SerializedScalarKind.Bool);
       return;
   }
+  unreachable(`Do not know what to write scalar kind = ${v}`);
 }
 
 /** deserializeScalarKind() deserializes a ScalarKind from a BinaryStream */
@@ -1373,6 +1433,8 @@ function deserializeScalarKind(s) {
       return 'u16';
     case SerializedScalarKind.U8:
       return 'u8';
+    case SerializedScalarKind.AbstractInt:
+      return 'abstract-int';
     case SerializedScalarKind.I32:
       return 'i32';
     case SerializedScalarKind.I16:
@@ -1395,40 +1457,55 @@ SerializedValueKind = /*#__PURE__*/function (SerializedValueKind) {SerializedVal
 /** serializeValue() serializes a Value to a BinaryStream */
 export function serializeValue(s, v) {
   const serializeScalar = (scalar, kind) => {
-    switch (kind) {
-      case 'abstract-float':
-        s.writeF64(scalar.value);
-        return;
-      case 'f64':
-        s.writeF64(scalar.value);
-        return;
-      case 'f32':
-        s.writeF32(scalar.value);
-        return;
-      case 'f16':
-        s.writeF16(scalar.value);
-        return;
-      case 'u32':
-        s.writeU32(scalar.value);
-        return;
-      case 'u16':
-        s.writeU16(scalar.value);
-        return;
-      case 'u8':
-        s.writeU8(scalar.value);
-        return;
-      case 'i32':
-        s.writeI32(scalar.value);
-        return;
-      case 'i16':
-        s.writeI16(scalar.value);
-        return;
-      case 'i8':
-        s.writeI8(scalar.value);
-        return;
-      case 'bool':
-        s.writeBool(scalar.value);
-        return;
+    switch (typeof scalar.value) {
+      case 'number':
+        switch (kind) {
+          case 'abstract-float':
+            s.writeF64(scalar.value);
+            return;
+          case 'f64':
+            s.writeF64(scalar.value);
+            return;
+          case 'f32':
+            s.writeF32(scalar.value);
+            return;
+          case 'f16':
+            s.writeF16(scalar.value);
+            return;
+          case 'u32':
+            s.writeU32(scalar.value);
+            return;
+          case 'u16':
+            s.writeU16(scalar.value);
+            return;
+          case 'u8':
+            s.writeU8(scalar.value);
+            return;
+          case 'i32':
+            s.writeI32(scalar.value);
+            return;
+          case 'i16':
+            s.writeI16(scalar.value);
+            return;
+          case 'i8':
+            s.writeI8(scalar.value);
+            return;
+        }
+        break;
+      case 'bigint':
+        switch (kind) {
+          case 'abstract-int':
+            s.writeI64(scalar.value);
+            return;
+        }
+        break;
+      case 'boolean':
+        switch (kind) {
+          case 'bool':
+            s.writeBool(scalar.value);
+            return;
+        }
+        break;
     }
   };
 
@@ -1481,6 +1558,8 @@ export function deserializeValue(s) {
         return u16(s.readU16());
       case 'u8':
         return u8(s.readU8());
+      case 'abstract-int':
+        return abstractInt(s.readI64());
       case 'i32':
         return i32(s.readI32());
       case 'i16':
@@ -1533,7 +1612,7 @@ export function isFloatValue(v) {
  */
 export function isAbstractType(ty) {
   if (ty instanceof ScalarType) {
-    return ty.kind === 'abstract-float';
+    return ty.kind === 'abstract-float' || ty.kind === 'abstract-int';
   }
   return false;
 }

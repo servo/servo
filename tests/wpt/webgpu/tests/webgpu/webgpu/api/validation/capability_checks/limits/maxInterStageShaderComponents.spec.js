@@ -111,8 +111,12 @@ params(
   combine('sampleMaskOut', [false, true])
 ).
 beforeAllSubcases((t) => {
-  if (t.isCompatibility && (t.params.sampleMaskIn || t.params.sampleMaskOut)) {
-    t.skip('sample_mask not supported in compatibility mode');
+  if (t.isCompatibility) {
+    t.skipIf(
+      t.params.sampleMaskIn || t.params.sampleMaskOut,
+      'sample_mask not supported in compatibility mode'
+    );
+    t.skipIf(t.params.sampleIndex, 'sample_index not supported in compatibility mode');
   }
 }).
 fn(async (t) => {

@@ -40,6 +40,27 @@ class GPUContextTest extends GPUTest {
 
     return ctx;
   }
+
+  expectTextureDestroyed(texture, expectDestroyed = true) {
+    this.expectValidationError(() => {
+      // Try using the texture in a render pass. Because it's a canvas texture
+      // it should have RENDER_ATTACHMENT usage.
+      assert((texture.usage & GPUTextureUsage.RENDER_ATTACHMENT) !== 0);
+      const encoder = this.device.createCommandEncoder();
+      const pass = encoder.beginRenderPass({
+        colorAttachments: [
+        {
+          view: texture.createView(),
+          loadOp: 'clear',
+          storeOp: 'store'
+        }]
+
+      });
+      pass.end();
+      // Submitting should generate a validation error if the texture is destroyed.
+      this.queue.submit([encoder.finish()]);
+    }, expectDestroyed);
+  }
 }
 
 export const g = makeTestGroup(GPUContextTest);
@@ -235,6 +256,8 @@ fn((t) => {
   // Trigger a resize by changing the width.
   ctx.canvas.width = 4;
 
+  t.expectTextureDestroyed(prevTexture);
+
   // When the canvas resizes the texture returned by getCurrentTexture should immediately begin
   // returning a new texture matching the update dimensions.
   let currentTexture = ctx.getCurrentTexture();
@@ -263,7 +286,6 @@ fn((t) => {
   t.expect(currentTexture.height === ctx.canvas.height);
   t.expect(prevTexture.width === 4);
   t.expect(prevTexture.height === 2);
-  prevTexture = currentTexture;
 
   // Ensure that texture contents are transparent black.
   t.expectSingleColor(currentTexture, currentTexture.format, {
@@ -271,13 +293,31 @@ fn((t) => {
     exp: { R: 0, G: 0, B: 0, A: 0 }
   });
 
-  // Simply setting the canvas width and height values to their current values should not trigger
-  // a change in the texture.
-  ctx.canvas.width = 4;
-  ctx.canvas.height = 4;
+  // HTMLCanvasElement behaves differently than OffscreenCanvas
+  if (t.params.canvasType === 'onscreen') {
+    // Ensure canvas goes back to defaults when set to negative numbers.
+    ctx.canvas.width = -1;
+    currentTexture = ctx.getCurrentTexture();
+    t.expect(currentTexture.width === 300);
+    t.expect(currentTexture.height === 4);
 
-  currentTexture = ctx.getCurrentTexture();
-  t.expect(prevTexture === currentTexture);
+    ctx.canvas.height = -1;
+    currentTexture = ctx.getCurrentTexture();
+    t.expect(currentTexture.width === 300);
+    t.expect(currentTexture.height === 150);
+
+    // Setting the canvas width and height values to their current values should
+    // still trigger a change in the texture.
+    prevTexture = ctx.getCurrentTexture();
+    const { width, height } = ctx.canvas;
+    ctx.canvas.width = width;
+    ctx.canvas.height = height;
+
+    t.expectTextureDestroyed(prevTexture);
+
+    currentTexture = ctx.getCurrentTexture();
+    t.expect(prevTexture !== currentTexture);
+  }
 });
 
 g.test('expiry').

@@ -12,7 +12,8 @@ import {
 const limit = 'maxComputeWorkgroupStorageSize';
 export const { g, description } = makeLimitTestGroup(limit);
 
-const kSmallestWorkgroupVarSize = 4;
+// Each var is roundUp(16, SizeOf(T))
+const kSmallestWorkgroupVarSize = 16;
 
 const wgslF16Types = {
   f16: { alignOf: 2, sizeOf: 2, requireF16: true },
@@ -71,7 +72,9 @@ function getModuleForWorkgroupStorageSize(device, wgslType, size) {
   const { sizeOf, alignOf, requireF16 } = wgslTypes[wgslType];
   const unitSize = align(sizeOf, alignOf);
   const units = Math.floor(size / unitSize);
-  const extra = (size - units * unitSize) / kSmallestWorkgroupVarSize;
+  const sizeUsed = align(units * unitSize, 16);
+  const sizeLeft = size - sizeUsed;
+  const extra = Math.floor(sizeLeft / kSmallestWorkgroupVarSize);
 
   const code =
   (requireF16 ? 'enable f16;\n' : '') +
@@ -89,7 +92,7 @@ function getModuleForWorkgroupStorageSize(device, wgslType, size) {
       b: vec2f,
     };
     var<workgroup> d0: array<${wgslType}, ${units}>;
-    ${extra ? `var<workgroup> d1: array<f32, ${extra}>;` : ''}
+    ${extra ? `var<workgroup> d1: array<vec4<f32>, ${extra}>;` : ''}
     @compute @workgroup_size(1) fn main() {
       _ = d0;
       ${extra ? '_ = d1;' : ''}

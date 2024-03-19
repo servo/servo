@@ -45,32 +45,47 @@ export function getPipelineTypeForBindingCombination(bindingCombination) {
   }
 }
 
-function getBindGroupIndex(bindGroupTest, i) {
+function getBindGroupIndex(bindGroupTest, numBindGroups, i) {
   switch (bindGroupTest) {
     case 'sameGroup':
       return 0;
     case 'differentGroups':
-      return i % 3;
+      return i % numBindGroups;
+  }
+}
+
+function getBindingIndex(bindGroupTest, numBindGroups, i) {
+  switch (bindGroupTest) {
+    case 'sameGroup':
+      return i;
+    case 'differentGroups':
+      return i / numBindGroups | 0;
   }
 }
 
 function getWGSLBindings(
-order,
-bindGroupTest,
-storageDefinitionWGSLSnippetFn,
+{
+  order,
+  bindGroupTest,
+  storageDefinitionWGSLSnippetFn,
+  numBindGroups
+
+
+
+
+
+},
 numBindings,
 id)
 {
   return reorder(
     order,
-    range(
-      numBindings,
-      (i) =>
-      `@group(${getBindGroupIndex(
-        bindGroupTest,
-        i
-      )}) @binding(${i}) ${storageDefinitionWGSLSnippetFn(i, id)};`
-    )
+    range(numBindings, (i) => {
+      const groupNdx = getBindGroupIndex(bindGroupTest, numBindGroups, i);
+      const bindingNdx = getBindingIndex(bindGroupTest, numBindGroups, i);
+      const storageWGSL = storageDefinitionWGSLSnippetFn(i, id);
+      return `@group(${groupNdx}) @binding(${bindingNdx}) ${storageWGSL};`;
+    })
   ).join('\n        ');
 }
 
@@ -80,15 +95,22 @@ order,
 bindGroupTest,
 storageDefinitionWGSLSnippetFn,
 bodyFn,
+numBindGroups,
 numBindings,
 extraWGSL = '')
 {
+  const bindingParams = {
+    order,
+    bindGroupTest,
+    storageDefinitionWGSLSnippetFn,
+    numBindGroups
+  };
   switch (bindingCombination) {
     case 'vertex':
       return `
         ${extraWGSL}
 
-        ${getWGSLBindings(order, bindGroupTest, storageDefinitionWGSLSnippetFn, numBindings, 0)}
+        ${getWGSLBindings(bindingParams, numBindings, 0)}
 
         @vertex fn mainVS() -> @builtin(position) vec4f {
           ${bodyFn(numBindings, 0)}
@@ -99,7 +121,7 @@ extraWGSL = '')
       return `
         ${extraWGSL}
 
-        ${getWGSLBindings(order, bindGroupTest, storageDefinitionWGSLSnippetFn, numBindings, 0)}
+        ${getWGSLBindings(bindingParams, numBindings, 0)}
 
         @vertex fn mainVS() -> @builtin(position) vec4f {
           return vec4f(0);
@@ -113,9 +135,9 @@ extraWGSL = '')
         return `
         ${extraWGSL}
 
-        ${getWGSLBindings(order, bindGroupTest, storageDefinitionWGSLSnippetFn, numBindings, 0)}
+        ${getWGSLBindings(bindingParams, numBindings, 0)}
 
-        ${getWGSLBindings(order, bindGroupTest, storageDefinitionWGSLSnippetFn, numBindings - 1, 1)}
+        ${getWGSLBindings(bindingParams, numBindings - 1, 1)}
 
         @vertex fn mainVS() -> @builtin(position) vec4f {
           ${bodyFn(numBindings, 0)}
@@ -131,9 +153,9 @@ extraWGSL = '')
         return `
         ${extraWGSL}
 
-        ${getWGSLBindings(order, bindGroupTest, storageDefinitionWGSLSnippetFn, numBindings - 1, 0)}
+        ${getWGSLBindings(bindingParams, numBindings - 1, 0)}
 
-        ${getWGSLBindings(order, bindGroupTest, storageDefinitionWGSLSnippetFn, numBindings, 1)}
+        ${getWGSLBindings(bindingParams, numBindings, 1)}
 
         @vertex fn mainVS() -> @builtin(position) vec4f {
           ${bodyFn(numBindings - 1, 0)}
@@ -148,8 +170,7 @@ extraWGSL = '')
     case 'compute':
       return `
         ${extraWGSL}
-        ${getWGSLBindings(order, bindGroupTest, storageDefinitionWGSLSnippetFn, numBindings, 0)}
-        @group(3) @binding(0) var<storage, read_write> d: f32;
+        ${getWGSLBindings(bindingParams, numBindings, 0)}
         @compute @workgroup_size(1) fn main() {
           ${bodyFn(numBindings, 0)}
         }
@@ -164,6 +185,7 @@ order,
 bindGroupTest,
 storageDefinitionWGSLSnippetFn,
 usageWGSLSnippetFn,
+maxBindGroups,
 numBindings,
 extraWGSL = '')
 {
@@ -174,6 +196,7 @@ extraWGSL = '')
     storageDefinitionWGSLSnippetFn,
     (numBindings, set) =>
     `${range(numBindings, (i) => usageWGSLSnippetFn(i, set)).join('\n          ')}`,
+    maxBindGroups,
     numBindings,
     extraWGSL
   );
@@ -185,6 +208,7 @@ order,
 bindGroupTest,
 storageDefinitionWGSLSnippetFn,
 usageWGSLSnippetFn,
+numBindGroups,
 numBindings,
 extraWGSL = '')
 {
@@ -195,6 +219,7 @@ extraWGSL = '')
     storageDefinitionWGSLSnippetFn,
     (numBindings, set) =>
     `${range(numBindings, (i) => usageWGSLSnippetFn(i, set)).join('\n          ')}`,
+    numBindGroups,
     numBindings,
     extraWGSL
   );
