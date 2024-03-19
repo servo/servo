@@ -311,9 +311,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             _ => return None,
         };
         match script_msg {
-            CommonScriptMsg::Task(_category, _boxed, pipeline_id, _task_source) => {
-                *pipeline_id
-            },
+            CommonScriptMsg::Task(_category, _boxed, pipeline_id, _task_source) => *pipeline_id,
             _ => None,
         }
     }
@@ -2364,20 +2362,10 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::FocusElement(element_id, reply) => {
-                webdriver_handlers::handle_focus_element(
-                    &documents,
-                    pipeline_id,
-                    element_id,
-                    reply,
-                )
+                webdriver_handlers::handle_focus_element(&documents, pipeline_id, element_id, reply)
             },
             WebDriverScriptCommand::ElementClick(element_id, reply) => {
-                webdriver_handlers::handle_element_click(
-                    &documents,
-                    pipeline_id,
-                    element_id,
-                    reply,
-                )
+                webdriver_handlers::handle_element_click(&documents, pipeline_id, element_id, reply)
             },
             WebDriverScriptCommand::GetActiveElement(reply) => {
                 webdriver_handlers::handle_get_active_element(&documents, pipeline_id, reply)
